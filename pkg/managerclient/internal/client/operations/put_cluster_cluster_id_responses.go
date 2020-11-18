@@ -30,24 +30,6 @@ func (o *PutClusterClusterIDReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPutClusterClusterIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewPutClusterClusterIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewPutClusterClusterIDInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewPutClusterClusterIDDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -93,105 +75,6 @@ func (o *PutClusterClusterIDOK) readResponse(response runtime.ClientResponse, co
 	return nil
 }
 
-// NewPutClusterClusterIDBadRequest creates a PutClusterClusterIDBadRequest with default headers values
-func NewPutClusterClusterIDBadRequest() *PutClusterClusterIDBadRequest {
-	return &PutClusterClusterIDBadRequest{}
-}
-
-/*PutClusterClusterIDBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type PutClusterClusterIDBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}][%d] putClusterClusterIdBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *PutClusterClusterIDBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPutClusterClusterIDNotFound creates a PutClusterClusterIDNotFound with default headers values
-func NewPutClusterClusterIDNotFound() *PutClusterClusterIDNotFound {
-	return &PutClusterClusterIDNotFound{}
-}
-
-/*PutClusterClusterIDNotFound handles this case with default header values.
-
-Not found
-*/
-type PutClusterClusterIDNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDNotFound) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}][%d] putClusterClusterIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *PutClusterClusterIDNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPutClusterClusterIDInternalServerError creates a PutClusterClusterIDInternalServerError with default headers values
-func NewPutClusterClusterIDInternalServerError() *PutClusterClusterIDInternalServerError {
-	return &PutClusterClusterIDInternalServerError{}
-}
-
-/*PutClusterClusterIDInternalServerError handles this case with default header values.
-
-Server error
-*/
-type PutClusterClusterIDInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}][%d] putClusterClusterIdInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *PutClusterClusterIDInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewPutClusterClusterIDDefault creates a PutClusterClusterIDDefault with default headers values
 func NewPutClusterClusterIDDefault(code int) *PutClusterClusterIDDefault {
 	return &PutClusterClusterIDDefault{
@@ -201,7 +84,7 @@ func NewPutClusterClusterIDDefault(code int) *PutClusterClusterIDDefault {
 
 /*PutClusterClusterIDDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type PutClusterClusterIDDefault struct {
 	_statusCode int

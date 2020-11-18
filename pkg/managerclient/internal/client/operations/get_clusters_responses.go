@@ -30,24 +30,6 @@ func (o *GetClustersReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClustersBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClustersNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClustersInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClustersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -91,105 +73,6 @@ func (o *GetClustersOK) readResponse(response runtime.ClientResponse, consumer r
 	return nil
 }
 
-// NewGetClustersBadRequest creates a GetClustersBadRequest with default headers values
-func NewGetClustersBadRequest() *GetClustersBadRequest {
-	return &GetClustersBadRequest{}
-}
-
-/*GetClustersBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClustersBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClustersBadRequest) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] getClustersBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClustersBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClustersBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClustersNotFound creates a GetClustersNotFound with default headers values
-func NewGetClustersNotFound() *GetClustersNotFound {
-	return &GetClustersNotFound{}
-}
-
-/*GetClustersNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClustersNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClustersNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] getClustersNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClustersNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClustersNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClustersInternalServerError creates a GetClustersInternalServerError with default headers values
-func NewGetClustersInternalServerError() *GetClustersInternalServerError {
-	return &GetClustersInternalServerError{}
-}
-
-/*GetClustersInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClustersInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClustersInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] getClustersInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClustersInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClustersInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClustersDefault creates a GetClustersDefault with default headers values
 func NewGetClustersDefault(code int) *GetClustersDefault {
 	return &GetClustersDefault{
@@ -199,7 +82,7 @@ func NewGetClustersDefault(code int) *GetClustersDefault {
 
 /*GetClustersDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClustersDefault struct {
 	_statusCode int

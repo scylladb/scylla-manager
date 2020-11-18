@@ -765,26 +765,8 @@
               "$ref": "#/definitions/Version"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -804,26 +786,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -849,26 +813,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -893,26 +839,8 @@
               "$ref": "#/definitions/Cluster"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -936,26 +864,8 @@
               "$ref": "#/definitions/Cluster"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -979,26 +889,8 @@
           "200": {
             "description": "Cluster deleted"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1023,26 +915,8 @@
               "$ref": "#/definitions/ClusterStatus"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1090,26 +964,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1135,26 +991,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1188,26 +1026,8 @@
               "$ref": "#/definitions/RepairTarget"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1241,26 +1061,8 @@
               "$ref": "#/definitions/BackupTarget"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1297,26 +1099,8 @@
               "$ref": "#/definitions/Task"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1340,26 +1124,8 @@
               "$ref": "#/definitions/Task"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1371,26 +1137,8 @@
           "200": {
             "description": "Task deleted"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1430,26 +1178,8 @@
           "200": {
             "description": "Task started"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1489,26 +1219,8 @@
           "200": {
             "description": "Task stopped"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1557,26 +1269,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1613,26 +1307,8 @@
               "$ref": "#/definitions/TaskRunRepairProgress"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1669,26 +1345,8 @@
               "$ref": "#/definitions/TaskRunBackupProgress"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1750,26 +1408,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1803,26 +1443,8 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1878,26 +1500,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1925,26 +1529,8 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -1972,26 +1558,8 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            }
-          },
           "default": {
-            "description": "Unexpected error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }

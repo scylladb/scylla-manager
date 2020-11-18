@@ -30,24 +30,6 @@ func (o *GetClusterClusterIDBackupsFilesReader) ReadResponse(response runtime.Cl
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClusterClusterIDBackupsFilesBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClusterClusterIDBackupsFilesNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClusterClusterIDBackupsFilesInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClusterClusterIDBackupsFilesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -91,105 +73,6 @@ func (o *GetClusterClusterIDBackupsFilesOK) readResponse(response runtime.Client
 	return nil
 }
 
-// NewGetClusterClusterIDBackupsFilesBadRequest creates a GetClusterClusterIDBackupsFilesBadRequest with default headers values
-func NewGetClusterClusterIDBackupsFilesBadRequest() *GetClusterClusterIDBackupsFilesBadRequest {
-	return &GetClusterClusterIDBackupsFilesBadRequest{}
-}
-
-/*GetClusterClusterIDBackupsFilesBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClusterClusterIDBackupsFilesBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDBackupsFilesBadRequest) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/backups/files][%d] getClusterClusterIdBackupsFilesBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClusterClusterIDBackupsFilesBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDBackupsFilesBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDBackupsFilesNotFound creates a GetClusterClusterIDBackupsFilesNotFound with default headers values
-func NewGetClusterClusterIDBackupsFilesNotFound() *GetClusterClusterIDBackupsFilesNotFound {
-	return &GetClusterClusterIDBackupsFilesNotFound{}
-}
-
-/*GetClusterClusterIDBackupsFilesNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClusterClusterIDBackupsFilesNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDBackupsFilesNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/backups/files][%d] getClusterClusterIdBackupsFilesNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterClusterIDBackupsFilesNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDBackupsFilesNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDBackupsFilesInternalServerError creates a GetClusterClusterIDBackupsFilesInternalServerError with default headers values
-func NewGetClusterClusterIDBackupsFilesInternalServerError() *GetClusterClusterIDBackupsFilesInternalServerError {
-	return &GetClusterClusterIDBackupsFilesInternalServerError{}
-}
-
-/*GetClusterClusterIDBackupsFilesInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClusterClusterIDBackupsFilesInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDBackupsFilesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/backups/files][%d] getClusterClusterIdBackupsFilesInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClusterClusterIDBackupsFilesInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDBackupsFilesInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClusterClusterIDBackupsFilesDefault creates a GetClusterClusterIDBackupsFilesDefault with default headers values
 func NewGetClusterClusterIDBackupsFilesDefault(code int) *GetClusterClusterIDBackupsFilesDefault {
 	return &GetClusterClusterIDBackupsFilesDefault{
@@ -199,7 +82,7 @@ func NewGetClusterClusterIDBackupsFilesDefault(code int) *GetClusterClusterIDBac
 
 /*GetClusterClusterIDBackupsFilesDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClusterClusterIDBackupsFilesDefault struct {
 	_statusCode int

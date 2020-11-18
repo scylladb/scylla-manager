@@ -30,24 +30,6 @@ func (o *GetVersionReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetVersionBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetVersionNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetVersionInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetVersionDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -93,105 +75,6 @@ func (o *GetVersionOK) readResponse(response runtime.ClientResponse, consumer ru
 	return nil
 }
 
-// NewGetVersionBadRequest creates a GetVersionBadRequest with default headers values
-func NewGetVersionBadRequest() *GetVersionBadRequest {
-	return &GetVersionBadRequest{}
-}
-
-/*GetVersionBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetVersionBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetVersionBadRequest) Error() string {
-	return fmt.Sprintf("[GET /version][%d] getVersionBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetVersionBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetVersionBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetVersionNotFound creates a GetVersionNotFound with default headers values
-func NewGetVersionNotFound() *GetVersionNotFound {
-	return &GetVersionNotFound{}
-}
-
-/*GetVersionNotFound handles this case with default header values.
-
-Not found
-*/
-type GetVersionNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetVersionNotFound) Error() string {
-	return fmt.Sprintf("[GET /version][%d] getVersionNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetVersionNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetVersionNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetVersionInternalServerError creates a GetVersionInternalServerError with default headers values
-func NewGetVersionInternalServerError() *GetVersionInternalServerError {
-	return &GetVersionInternalServerError{}
-}
-
-/*GetVersionInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetVersionInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetVersionInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /version][%d] getVersionInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetVersionInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetVersionInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetVersionDefault creates a GetVersionDefault with default headers values
 func NewGetVersionDefault(code int) *GetVersionDefault {
 	return &GetVersionDefault{
@@ -201,7 +84,7 @@ func NewGetVersionDefault(code int) *GetVersionDefault {
 
 /*GetVersionDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetVersionDefault struct {
 	_statusCode int

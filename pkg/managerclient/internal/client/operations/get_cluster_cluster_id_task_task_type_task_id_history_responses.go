@@ -30,24 +30,6 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryReader) ReadResponse(respon
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -91,105 +73,6 @@ func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK) readResponse(response r
 	return nil
 }
 
-// NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest creates a GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest with default headers values
-func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest() *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest {
-	return &GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest{}
-}
-
-/*GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound creates a GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound with default headers values
-func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound() *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound {
-	return &GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound{}
-}
-
-/*GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError creates a GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError with default headers values
-func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError() *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError {
-	return &GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError{}
-}
-
-/*GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/task/{task_type}/{task_id}/history][%d] getClusterClusterIdTaskTaskTypeTaskIdHistoryInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDTaskTaskTypeTaskIDHistoryInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault creates a GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault with default headers values
 func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault(code int) *GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault {
 	return &GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault{
@@ -199,7 +82,7 @@ func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault(code int) *GetCluste
 
 /*GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault struct {
 	_statusCode int

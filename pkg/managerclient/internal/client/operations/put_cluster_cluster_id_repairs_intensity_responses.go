@@ -30,24 +30,6 @@ func (o *PutClusterClusterIDRepairsIntensityReader) ReadResponse(response runtim
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPutClusterClusterIDRepairsIntensityBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewPutClusterClusterIDRepairsIntensityNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewPutClusterClusterIDRepairsIntensityInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewPutClusterClusterIDRepairsIntensityDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -81,105 +63,6 @@ func (o *PutClusterClusterIDRepairsIntensityOK) readResponse(response runtime.Cl
 	return nil
 }
 
-// NewPutClusterClusterIDRepairsIntensityBadRequest creates a PutClusterClusterIDRepairsIntensityBadRequest with default headers values
-func NewPutClusterClusterIDRepairsIntensityBadRequest() *PutClusterClusterIDRepairsIntensityBadRequest {
-	return &PutClusterClusterIDRepairsIntensityBadRequest{}
-}
-
-/*PutClusterClusterIDRepairsIntensityBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type PutClusterClusterIDRepairsIntensityBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDRepairsIntensityBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repairs/intensity][%d] putClusterClusterIdRepairsIntensityBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *PutClusterClusterIDRepairsIntensityBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDRepairsIntensityBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPutClusterClusterIDRepairsIntensityNotFound creates a PutClusterClusterIDRepairsIntensityNotFound with default headers values
-func NewPutClusterClusterIDRepairsIntensityNotFound() *PutClusterClusterIDRepairsIntensityNotFound {
-	return &PutClusterClusterIDRepairsIntensityNotFound{}
-}
-
-/*PutClusterClusterIDRepairsIntensityNotFound handles this case with default header values.
-
-Not found
-*/
-type PutClusterClusterIDRepairsIntensityNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDRepairsIntensityNotFound) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repairs/intensity][%d] putClusterClusterIdRepairsIntensityNotFound  %+v", 404, o.Payload)
-}
-
-func (o *PutClusterClusterIDRepairsIntensityNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDRepairsIntensityNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPutClusterClusterIDRepairsIntensityInternalServerError creates a PutClusterClusterIDRepairsIntensityInternalServerError with default headers values
-func NewPutClusterClusterIDRepairsIntensityInternalServerError() *PutClusterClusterIDRepairsIntensityInternalServerError {
-	return &PutClusterClusterIDRepairsIntensityInternalServerError{}
-}
-
-/*PutClusterClusterIDRepairsIntensityInternalServerError handles this case with default header values.
-
-Server error
-*/
-type PutClusterClusterIDRepairsIntensityInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PutClusterClusterIDRepairsIntensityInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repairs/intensity][%d] putClusterClusterIdRepairsIntensityInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *PutClusterClusterIDRepairsIntensityInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PutClusterClusterIDRepairsIntensityInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewPutClusterClusterIDRepairsIntensityDefault creates a PutClusterClusterIDRepairsIntensityDefault with default headers values
 func NewPutClusterClusterIDRepairsIntensityDefault(code int) *PutClusterClusterIDRepairsIntensityDefault {
 	return &PutClusterClusterIDRepairsIntensityDefault{
@@ -189,7 +72,7 @@ func NewPutClusterClusterIDRepairsIntensityDefault(code int) *PutClusterClusterI
 
 /*PutClusterClusterIDRepairsIntensityDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type PutClusterClusterIDRepairsIntensityDefault struct {
 	_statusCode int

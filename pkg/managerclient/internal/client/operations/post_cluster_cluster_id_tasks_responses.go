@@ -30,24 +30,6 @@ func (o *PostClusterClusterIDTasksReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPostClusterClusterIDTasksBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewPostClusterClusterIDTasksNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewPostClusterClusterIDTasksInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewPostClusterClusterIDTasksDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -85,105 +67,6 @@ func (o *PostClusterClusterIDTasksCreated) readResponse(response runtime.ClientR
 	return nil
 }
 
-// NewPostClusterClusterIDTasksBadRequest creates a PostClusterClusterIDTasksBadRequest with default headers values
-func NewPostClusterClusterIDTasksBadRequest() *PostClusterClusterIDTasksBadRequest {
-	return &PostClusterClusterIDTasksBadRequest{}
-}
-
-/*PostClusterClusterIDTasksBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type PostClusterClusterIDTasksBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PostClusterClusterIDTasksBadRequest) Error() string {
-	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] postClusterClusterIdTasksBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *PostClusterClusterIDTasksBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PostClusterClusterIDTasksBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPostClusterClusterIDTasksNotFound creates a PostClusterClusterIDTasksNotFound with default headers values
-func NewPostClusterClusterIDTasksNotFound() *PostClusterClusterIDTasksNotFound {
-	return &PostClusterClusterIDTasksNotFound{}
-}
-
-/*PostClusterClusterIDTasksNotFound handles this case with default header values.
-
-Not found
-*/
-type PostClusterClusterIDTasksNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PostClusterClusterIDTasksNotFound) Error() string {
-	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] postClusterClusterIdTasksNotFound  %+v", 404, o.Payload)
-}
-
-func (o *PostClusterClusterIDTasksNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PostClusterClusterIDTasksNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewPostClusterClusterIDTasksInternalServerError creates a PostClusterClusterIDTasksInternalServerError with default headers values
-func NewPostClusterClusterIDTasksInternalServerError() *PostClusterClusterIDTasksInternalServerError {
-	return &PostClusterClusterIDTasksInternalServerError{}
-}
-
-/*PostClusterClusterIDTasksInternalServerError handles this case with default header values.
-
-Server error
-*/
-type PostClusterClusterIDTasksInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *PostClusterClusterIDTasksInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /cluster/{cluster_id}/tasks][%d] postClusterClusterIdTasksInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *PostClusterClusterIDTasksInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *PostClusterClusterIDTasksInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewPostClusterClusterIDTasksDefault creates a PostClusterClusterIDTasksDefault with default headers values
 func NewPostClusterClusterIDTasksDefault(code int) *PostClusterClusterIDTasksDefault {
 	return &PostClusterClusterIDTasksDefault{
@@ -193,7 +76,7 @@ func NewPostClusterClusterIDTasksDefault(code int) *PostClusterClusterIDTasksDef
 
 /*PostClusterClusterIDTasksDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type PostClusterClusterIDTasksDefault struct {
 	_statusCode int

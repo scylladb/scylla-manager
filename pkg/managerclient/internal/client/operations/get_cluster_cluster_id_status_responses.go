@@ -30,24 +30,6 @@ func (o *GetClusterClusterIDStatusReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewGetClusterClusterIDStatusBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 404:
-		result := NewGetClusterClusterIDStatusNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-	case 500:
-		result := NewGetClusterClusterIDStatusInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	default:
 		result := NewGetClusterClusterIDStatusDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -91,105 +73,6 @@ func (o *GetClusterClusterIDStatusOK) readResponse(response runtime.ClientRespon
 	return nil
 }
 
-// NewGetClusterClusterIDStatusBadRequest creates a GetClusterClusterIDStatusBadRequest with default headers values
-func NewGetClusterClusterIDStatusBadRequest() *GetClusterClusterIDStatusBadRequest {
-	return &GetClusterClusterIDStatusBadRequest{}
-}
-
-/*GetClusterClusterIDStatusBadRequest handles this case with default header values.
-
-Bad Request
-*/
-type GetClusterClusterIDStatusBadRequest struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDStatusBadRequest) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *GetClusterClusterIDStatusBadRequest) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDStatusBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDStatusNotFound creates a GetClusterClusterIDStatusNotFound with default headers values
-func NewGetClusterClusterIDStatusNotFound() *GetClusterClusterIDStatusNotFound {
-	return &GetClusterClusterIDStatusNotFound{}
-}
-
-/*GetClusterClusterIDStatusNotFound handles this case with default header values.
-
-Not found
-*/
-type GetClusterClusterIDStatusNotFound struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDStatusNotFound) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterClusterIDStatusNotFound) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDStatusNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterClusterIDStatusInternalServerError creates a GetClusterClusterIDStatusInternalServerError with default headers values
-func NewGetClusterClusterIDStatusInternalServerError() *GetClusterClusterIDStatusInternalServerError {
-	return &GetClusterClusterIDStatusInternalServerError{}
-}
-
-/*GetClusterClusterIDStatusInternalServerError handles this case with default header values.
-
-Server error
-*/
-type GetClusterClusterIDStatusInternalServerError struct {
-	Payload *models.ErrorResponse
-}
-
-func (o *GetClusterClusterIDStatusInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /cluster/{cluster_id}/status][%d] getClusterClusterIdStatusInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *GetClusterClusterIDStatusInternalServerError) GetPayload() *models.ErrorResponse {
-	return o.Payload
-}
-
-func (o *GetClusterClusterIDStatusInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.ErrorResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
 // NewGetClusterClusterIDStatusDefault creates a GetClusterClusterIDStatusDefault with default headers values
 func NewGetClusterClusterIDStatusDefault(code int) *GetClusterClusterIDStatusDefault {
 	return &GetClusterClusterIDStatusDefault{
@@ -199,7 +82,7 @@ func NewGetClusterClusterIDStatusDefault(code int) *GetClusterClusterIDStatusDef
 
 /*GetClusterClusterIDStatusDefault handles this case with default header values.
 
-Unexpected error
+Error
 */
 type GetClusterClusterIDStatusDefault struct {
 	_statusCode int
