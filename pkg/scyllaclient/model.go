@@ -206,7 +206,8 @@ type Unit struct {
 
 // ScyllaFeatures specifies features supported by the Scylla version.
 type ScyllaFeatures struct {
-	RowLevelRepair bool
+	RowLevelRepair    bool
+	RepairLongPolling bool
 }
 
 type gossipApplicationState int32

@@ -262,6 +262,28 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 	})
 }
 
+func repairStatusNoResponseInterceptor(ctx context.Context) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+			return nil, nil
+		}
+
+		resp := makeResponse(req)
+
+		switch req.Method {
+		case http.MethodGet:
+			// do not respond until context is canceled.
+			<-ctx.Done()
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
+		case http.MethodPost:
+			id := atomic.AddInt32(&commandCounter, 1)
+			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+		}
+
+		return resp, nil
+	})
+}
+
 func assertReplicasRepairInterceptor(t *testing.T, host string) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodPost {
@@ -1176,6 +1198,29 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if repairCalled != 1 {
 			t.Fatalf("Expected repair in one shot got %d", repairCalled)
 		}
+	})
+
+	t.Run("repair status context timeout", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		u := allUnits()
+		u.FailFast = true
+
+		Print("When: repair status is not responding in time")
+		h.hrt.SetInterceptor(repairStatusNoResponseInterceptor(ctx))
+
+		Print("And: run repair")
+		h.runRepair(ctx, u)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+
+		Print("Then: repair is done")
+		h.assertDone(longWait)
 	})
 }
 

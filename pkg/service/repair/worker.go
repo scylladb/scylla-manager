@@ -35,28 +35,32 @@ func maxParallelRepairs(ranges []scyllaclient.TokenRange) int {
 }
 
 type worker struct {
-	run             *Run
-	in              <-chan job
-	out             chan<- jobResult
-	client          *scyllaclient.Client
-	progress        progressManager
-	pollInterval    time.Duration
-	hostPartitioner map[string]*dht.Murmur3Partitioner
-	logger          log.Logger
+	run                       *Run
+	in                        <-chan job
+	out                       chan<- jobResult
+	client                    *scyllaclient.Client
+	progress                  progressManager
+	pollInterval              time.Duration
+	longPollingTimeoutSeconds int
+	hostPartitioner           map[string]*dht.Murmur3Partitioner
+	hostFeatures              map[string]scyllaclient.ScyllaFeatures
+	logger                    log.Logger
 }
 
 func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
-	manager progressManager, hostPartitioner map[string]*dht.Murmur3Partitioner,
-	pollInterval time.Duration, logger log.Logger) *worker {
+	manager progressManager, hostPartitioner map[string]*dht.Murmur3Partitioner, hostFeatures map[string]scyllaclient.ScyllaFeatures,
+	pollInterval time.Duration, longPollingTimeoutSeconds int, logger log.Logger) *worker {
 	return &worker{
-		run:             run,
-		in:              in,
-		out:             out,
-		client:          client,
-		progress:        manager,
-		pollInterval:    pollInterval,
-		hostPartitioner: hostPartitioner,
-		logger:          logger,
+		run:                       run,
+		in:                        in,
+		out:                       out,
+		client:                    client,
+		progress:                  manager,
+		pollInterval:              pollInterval,
+		longPollingTimeoutSeconds: longPollingTimeoutSeconds,
+		hostPartitioner:           hostPartitioner,
+		hostFeatures:              hostFeatures,
+		logger:                    logger,
 	}
 }
 
@@ -211,35 +215,60 @@ func (w *worker) legacyRepair(ctx context.Context, job job) error {
 }
 
 func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {
-	t := time.NewTicker(w.pollInterval)
-	defer t.Stop()
+	var (
+		waitSeconds int
+		ticker      *time.Ticker
+	)
+
+	if w.hostFeatures[host].RepairLongPolling {
+		waitSeconds = w.longPollingTimeoutSeconds
+	} else {
+		ticker = time.NewTicker(w.pollInterval)
+		defer ticker.Stop()
+	}
 
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-t.C:
-			s, err := w.client.RepairStatus(ctx, host, keyspace, id)
-			if err != nil {
-				if w.tableDeleted(ctx, err, keyspace, table) {
-					return errTableDeleted
-				}
+		if waitSeconds > 0 {
+			if err := ctx.Err(); err != nil {
 				return err
 			}
-			switch s {
-			case scyllaclient.CommandRunning:
-				// Continue
-			case scyllaclient.CommandSuccessful:
-				return nil
-			case scyllaclient.CommandFailed:
-				if w.tableDeleted(ctx, nil, keyspace, table) {
-					return errTableDeleted
-				}
-				return errors.New("repair failed on Scylla - consult Scylla logs for details")
-			default:
-				return errors.Errorf("unknown command status %q", s)
+		} else {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-ticker.C:
 			}
 		}
+		s, err := w.client.RepairStatus(ctx, host, keyspace, id, waitSeconds)
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+				continue
+			}
+			if w.tableDeleted(ctx, err, keyspace, table) {
+				return errTableDeleted
+			}
+			return err
+		}
+		running, err := w.repairStatus(ctx, s, keyspace, table)
+		if err != nil || !running {
+			return err
+		}
+	}
+}
+
+func (w *worker) repairStatus(ctx context.Context, s scyllaclient.CommandStatus, keyspace, table string) (bool, error) {
+	switch s {
+	case scyllaclient.CommandRunning:
+		return true, nil
+	case scyllaclient.CommandSuccessful:
+		return false, nil
+	case scyllaclient.CommandFailed:
+		if w.tableDeleted(ctx, nil, keyspace, table) {
+			return false, errTableDeleted
+		}
+		return false, errors.New("repair failed on Scylla - consult Scylla logs for details")
+	default:
+		return false, errors.Errorf("unknown command status %q", s)
 	}
 }
 

@@ -35,7 +35,7 @@ func TestTableDeletedIntegration(t *testing.T) {
 			t.Fatalf("Repair() error %s", err)
 		}
 
-		_, err = client.RepairStatus(ctx, ManagedClusterHost(), "system_auth", id)
+		_, err = client.RepairStatus(ctx, ManagedClusterHost(), "system_auth", id, 0)
 		if !w.tableDeleted(ctx, err, "system_auth", "aaa") {
 			t.Errorf("tableDeleted() = %v, expected %v", false, true)
 		}

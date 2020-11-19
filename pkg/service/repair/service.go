@@ -358,8 +358,16 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	hosts := repairHosts.List()
+
+	scyllaFeatures, err := client.ScyllaFeatures(ctx, hosts...)
+	if err != nil {
+		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
+		return errors.Wrap(err, "scylla features")
+	}
+
 	// Create host partitioner for legacy repair
-	hostPartitioner, err := s.hostPartitioner(ctx, repairHosts.List(), client)
+	hostPartitioner, err := s.hostPartitioner(ctx, hosts, scyllaFeatures, client)
 	if err != nil {
 		return errors.Wrap(err, "initialize host partitioner")
 	}
@@ -407,7 +415,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		i := i
 		eg.Go(func() error {
 			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
-				hostPartitioner, s.config.PollInterval, s.logger.Named(fmt.Sprintf("worker %d", i)))
+				hostPartitioner, scyllaFeatures, s.config.PollInterval, s.config.LongPollingTimeoutSeconds, s.logger.Named(fmt.Sprintf("worker %d", i)))
 
 			err := w.Run(workerCtx)
 			if errors.Is(err, context.Canceled) {
@@ -601,7 +609,8 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
+func (s *Service) hostPartitioner(ctx context.Context, hosts []string,
+	scyllaFeatures map[string]scyllaclient.ScyllaFeatures, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
 	out := make(map[string]*dht.Murmur3Partitioner)
 	// Check the cluster partitioner
 	p, err := client.Partitioner(ctx)
@@ -633,14 +642,8 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *s
 		return out, nil
 	}
 
-	sf, err := client.ScyllaFeatures(ctx, hosts)
-	if err != nil {
-		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
-		return nil, errors.Wrap(err, "scylla features")
-	}
-
 	for _, h := range hosts {
-		if sf[h].RowLevelRepair {
+		if scyllaFeatures[h].RowLevelRepair {
 			out[h] = nil
 		} else {
 			s.logger.Info(ctx, "Row-level repair not supported", "host", h)

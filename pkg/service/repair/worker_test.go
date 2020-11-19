@@ -68,15 +68,16 @@ func TestMaxParallelRepairs(t *testing.T) {
 
 func TestWorkerRun(t *testing.T) {
 	var (
-		logger               = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
-		hrt                  = NewHackableRoundTripper(scyllaclient.DefaultTransport())
-		c                    = newTestClient(t, hrt, logger)
-		ctx                  = context.Background()
-		pollInterval         = 50 * time.Millisecond
-		partitioner          = dht.NewMurmur3Partitioner(2, 12)
-		hostPartitioner      = map[string]*dht.Murmur3Partitioner{"h1": partitioner, "h2": partitioner}
-		emptyHostPartitioner = make(map[string]*dht.Murmur3Partitioner)
-		run                  = &Run{ID: uuid.NewTime(), TaskID: uuid.NewTime(), clusterName: "test-cluster"}
+		logger                    = log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+		hrt                       = NewHackableRoundTripper(scyllaclient.DefaultTransport())
+		c                         = newTestClient(t, hrt, logger)
+		ctx                       = context.Background()
+		pollInterval              = 50 * time.Millisecond
+		longPollingTimeoutSeconds = 2
+		partitioner               = dht.NewMurmur3Partitioner(2, 12)
+		hostPartitioner           = map[string]*dht.Murmur3Partitioner{"h1": partitioner, "h2": partitioner}
+		emptyHostPartitioner      = make(map[string]*dht.Murmur3Partitioner)
+		run                       = &Run{ID: uuid.NewTime(), TaskID: uuid.NewTime(), clusterName: "test-cluster"}
 	)
 
 	t.Run("successful run", func(t *testing.T) {
@@ -85,9 +86,9 @@ func TestWorkerRun(t *testing.T) {
 		ranges := []tokenRange{
 			{StartToken: 0, EndToken: 5}, {StartToken: 6, EndToken: 10},
 		}
-		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
+		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, pollInterval, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, scyllaFeatures(false, true), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -139,9 +140,9 @@ func TestWorkerRun(t *testing.T) {
 		ranges := []tokenRange{
 			{StartToken: 0, EndToken: 5}, {StartToken: 6, EndToken: 10},
 		}
-		hrt.SetInterceptor(repairInterceptor(false, ranges, 2, "3.1.0-0.20191012.9c3cdded9"))
+		hrt.SetInterceptor(repairInterceptor(false, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, pollInterval, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, scyllaFeatures(false, false), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -193,9 +194,9 @@ func TestWorkerRun(t *testing.T) {
 		ranges := []tokenRange{
 			{StartToken: 3689195723611658698, EndToken: 3689195723611658798}, {StartToken: -8022912513662303546, EndToken: -8022912513662303446},
 		}
-		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
+		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, pollInterval, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(false, false), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -247,9 +248,9 @@ func TestWorkerRun(t *testing.T) {
 		ranges := []tokenRange{
 			{StartToken: 0, EndToken: 5}, {StartToken: 6, EndToken: 10},
 		}
-		hrt.SetInterceptor(repairInterceptor(true, ranges, 2, "3.0.0-0.20191012.9c3cdded9"))
+		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, pollInterval, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, scyllaFeatures(false, true), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -296,6 +297,18 @@ func TestWorkerRun(t *testing.T) {
 	})
 }
 
+func scyllaFeatures(rowLevel, longPolling bool) map[string]scyllaclient.ScyllaFeatures {
+	out := make(map[string]scyllaclient.ScyllaFeatures)
+
+	for i := 0; i < 5; i++ {
+		out[fmt.Sprintf("h%d", i)] = scyllaclient.ScyllaFeatures{
+			rowLevel, longPolling,
+		}
+	}
+
+	return out
+}
+
 var commandCounter int32
 
 type tokenRange struct {
@@ -303,7 +316,7 @@ type tokenRange struct {
 	EndToken   int64
 }
 
-func repairInterceptor(success bool, ranges []tokenRange, shardCount int, version string) http.RoundTripper {
+func repairInterceptor(success bool, ranges []tokenRange, shardCount int) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		resp := &http.Response{
 			Status:     "200 OK",
@@ -377,8 +390,15 @@ func repairInterceptor(success bool, ranges []tokenRange, shardCount int, versio
 			return resp, nil
 		}
 
-		if strings.HasPrefix(req.URL.Path, "/storage_service/scylla_release_version") {
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(`"` + version + `"`))
+		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_status") {
+			cmd := scyllaclient.CommandFailed
+			if success {
+				cmd = scyllaclient.CommandSuccessful
+			}
+			switch req.Method {
+			case http.MethodGet:
+				resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", cmd)))
+			}
 
 			return resp, nil
 		}

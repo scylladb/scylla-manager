@@ -42,7 +42,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 
 	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id)
+		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id, longPollingTimeoutSeconds)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -101,7 +101,7 @@ func TestRcloneLocalToS3CopyFileIntegration(t *testing.T) {
 
 	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id)
+		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id, longPollingTimeoutSeconds)
 		if err != nil {
 			t.Fatal(err)
 		}

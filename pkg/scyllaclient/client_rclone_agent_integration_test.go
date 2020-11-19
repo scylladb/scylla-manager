@@ -16,6 +16,8 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
+var longPollingTimeoutSeconds = 1
+
 func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
 	testHost := ManagedClusterHost()
 
@@ -63,7 +65,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 	var job *scyllaclient.RcloneJobInfo
 	WaitCond(t, func() bool {
-		job, err = client.RcloneJobInfo(ctx, testHost, id)
+		job, err = client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -85,7 +87,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	}
 
 	WaitCond(t, func() bool {
-		job, err = client.RcloneJobInfo(ctx, testHost, id)
+		job, err = client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -104,7 +106,6 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	config.LongPollingSeconds = 1
 	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +147,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	}
 
 	WaitCond(t, func() bool {
-		job, err := client.RcloneJobInfo(ctx, testHost, id)
+		job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,7 +159,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	job, err := client.RcloneJobInfo(ctx, testHost, id)
+	job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
 	if err != nil {
 		t.Fatal(err)
 	}
