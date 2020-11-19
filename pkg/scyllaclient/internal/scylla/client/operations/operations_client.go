@@ -12444,6 +12444,41 @@ func (a *Client) StorageServiceRepairAsyncByKeyspacePost(params *StorageServiceR
 }
 
 /*
+StorageServiceRepairStatus storages service repair status
+
+Query the repair status and return when the repair is finished or timeout
+*/
+func (a *Client) StorageServiceRepairStatus(params *StorageServiceRepairStatusParams) (*StorageServiceRepairStatusOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRepairStatusParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRepairStatus",
+		Method:             "GET",
+		PathPattern:        "/storage_service/repair_status",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRepairStatusReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*StorageServiceRepairStatusOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*StorageServiceRepairStatusDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 StorageServiceRescheduleFailedDeletionsPost reschedules failed deletions
 
 Reschedule failed deletions

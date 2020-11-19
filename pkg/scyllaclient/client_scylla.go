@@ -11,12 +11,15 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client/operations"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/models"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/pkg/util/prom"
 	"go.uber.org/multierr"
 )
@@ -422,17 +425,43 @@ func (c *Client) Repair(ctx context.Context, host string, config RepairConfig) (
 }
 
 // RepairStatus returns current status of a repair command.
-func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32) (CommandStatus, error) {
-	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
-		Context:  forceHost(ctx, host),
-		Keyspace: keyspace,
-		ID:       id,
-	})
+// If waitSeconds is bigger than 0 long polling will be used.
+// waitSeconds argument represents number of seconds.
+func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32, waitSeconds int) (CommandStatus, error) {
+	ctx = customTimeout(forceHost(ctx, host), c.longPollingTimeout(waitSeconds))
+
+	var (
+		resp interface {
+			GetPayload() models.RepairAsyncStatusResponse
+		}
+		err error
+	)
+	if waitSeconds > 0 {
+		resp, err = c.scyllaOps.StorageServiceRepairStatus(&operations.StorageServiceRepairStatusParams{
+			Context: ctx,
+			ID:      id,
+			Timeout: pointer.Int64Ptr(int64(waitSeconds)),
+		})
+	} else {
+		resp, err = c.scyllaOps.StorageServiceRepairAsyncByKeyspaceGet(&operations.StorageServiceRepairAsyncByKeyspaceGetParams{
+			Context:  ctx,
+			Keyspace: keyspace,
+			ID:       id,
+		})
+	}
 	if err != nil {
 		return "", err
 	}
 
-	return CommandStatus(resp.Payload), nil
+	return CommandStatus(resp.GetPayload()), nil
+}
+
+// When using long polling, wait duration starts only when node receives the
+// request.
+// longPollingTimeout is calculating timeout duration needed for request to
+// reach node so context is not canceled before response is received.
+func (c *Client) longPollingTimeout(waitSeconds int) time.Duration {
+	return time.Second*time.Duration(waitSeconds) + c.config.Timeout
 }
 
 // ActiveRepairs returns a subset of hosts that are coordinators of a repair.
@@ -637,7 +666,7 @@ func (c *Client) TableExists(ctx context.Context, keyspace, table string) (bool,
 	})
 
 	s, m := StatusCodeAndMessageOf(err)
-	if s >= 400 && TableNotExistsRegex.MatchString(m) {
+	if s >= http.StatusBadRequest && TableNotExistsRegex.MatchString(m) {
 		return false, nil
 	}
 
@@ -645,22 +674,45 @@ func (c *Client) TableExists(ctx context.Context, keyspace, table string) (bool,
 }
 
 // ScyllaFeatures returns features supported by the current Scylla release.
-func (c *Client) ScyllaFeatures(ctx context.Context, hosts []string) (map[string]ScyllaFeatures, error) {
+func (c *Client) ScyllaFeatures(ctx context.Context, hosts ...string) (map[string]ScyllaFeatures, error) {
 	resp, err := c.scyllaOps.FailureDetectorEndpointsGet(&operations.FailureDetectorEndpointsGetParams{
 		Context: ctx,
 	})
 	if err != nil {
 		return nil, err
 	}
-	features := makeScyllaFeatures(resp.Payload)
 
-	// Filter results to have only requested hosts.
-	sfs := make(map[string]ScyllaFeatures, len(hosts))
-	for _, h := range hosts {
-		sfs[h] = features[h]
-	}
+	var (
+		mu  sync.Mutex
+		out = make(map[string]ScyllaFeatures, len(hosts))
+		sfs = makeScyllaFeatures(resp.Payload)
+	)
 
-	return sfs, nil
+	err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+		sf := sfs[hosts[i]]
+		sf.RepairLongPolling = c.checkRepairLongPolling(ctx, hosts[i])
+		mu.Lock()
+		out[hosts[i]] = sf
+		mu.Unlock()
+
+		return nil
+	})
+
+	return out, err
+}
+
+var endpointNotFoundRegex = regexp.MustCompile("(?i)^not found")
+
+func (c *Client) checkRepairLongPolling(ctx context.Context, h string) bool {
+	_, err := c.scyllaOps.StorageServiceRepairStatus(&operations.StorageServiceRepairStatusParams{
+		ID:      1, // To pass validation.
+		Context: forceHost(ctx, h),
+	})
+	s, m := StatusCodeAndMessageOf(err)
+
+	// search for explicit "not found" string at the start of the response to
+	// exclude situations where 404 is fired for unrelated cause.
+	return !(s == http.StatusNotFound && endpointNotFoundRegex.MatchString(m))
 }
 
 // TotalMemory returns Scylla total memory from particular host.

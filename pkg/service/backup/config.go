@@ -12,15 +12,17 @@ import (
 
 // Config specifies the backup service configuration.
 type Config struct {
-	DiskSpaceFreeMinPercent int           `yaml:"disk_space_free_min_percent"`
-	AgeMax                  time.Duration `yaml:"age_max"`
+	DiskSpaceFreeMinPercent   int           `yaml:"disk_space_free_min_percent"`
+	LongPollingTimeoutSeconds int           `yaml:"long_polling_timeout_seconds"`
+	AgeMax                    time.Duration `yaml:"age_max"`
 }
 
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		DiskSpaceFreeMinPercent: 10,
-		AgeMax:                  12 * time.Hour,
+		DiskSpaceFreeMinPercent:   10,
+		LongPollingTimeoutSeconds: 10,
+		AgeMax:                    12 * time.Hour,
 	}
 }
 

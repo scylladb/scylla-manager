@@ -10421,6 +10421,51 @@
         "security": []
       }
     },
+    "/storage_service/repair_status": {
+      "get": {
+        "description": "Query the repair status and return when the repair is finished or timeout",
+        "summary": "storage_service_repair_status",
+        "operationId": "StorageServiceRepairStatus",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "exclusiveMaximum": false,
+            "exclusiveMinimum": false,
+            "description": "The repair ID to check for status"
+          },
+          {
+            "name": "timeout",
+            "description": "Seconds to wait before the query returns even if the repair is not finished. The value -1 or not providing this parameter means no timeout",
+            "required": false,
+            "type": "integer",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repair status value",
+            "schema": {
+              "$ref": "#/definitions/repair_async_statusResponse"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
     "/storage_service/force_terminate": {
       "post": {
         "description": "Force terminate all repair sessions",

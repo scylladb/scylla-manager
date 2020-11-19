@@ -25,6 +25,7 @@ const (
 // Config specifies the repair service configuration.
 type Config struct {
 	PollInterval                    time.Duration `yaml:"poll_interval"`
+	LongPollingTimeoutSeconds       int           `yaml:"long_polling_timeout_seconds"`
 	AgeMax                          time.Duration `yaml:"age_max"`
 	GracefulStopTimeout             time.Duration `yaml:"graceful_stop_timeout"`
 	ForceRepairType                 string        `yaml:"force_repair_type"`
@@ -35,6 +36,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		PollInterval:                    50 * time.Millisecond,
+		LongPollingTimeoutSeconds:       10,
 		GracefulStopTimeout:             30 * time.Second,
 		ForceRepairType:                 TypeAuto,
 		Murmur3PartitionerIgnoreMSBBits: 12,

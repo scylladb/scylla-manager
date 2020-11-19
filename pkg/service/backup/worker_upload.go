@@ -94,7 +94,7 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 		return 0
 	}
 
-	job, err := w.Client.RcloneJobProgress(ctx, d.Host, p.AgentJobID)
+	job, err := w.Client.RcloneJobProgress(ctx, d.Host, p.AgentJobID, w.Config.LongPollingTimeoutSeconds)
 	if err != nil {
 		w.Logger.Error(ctx, "Failed to fetch job info",
 			"host", d.Host,
@@ -190,7 +190,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 					"error", err,
 				)
 			}
-			job, err := w.Client.RcloneJobProgress(stopCtx, d.Host, id)
+			job, err := w.Client.RcloneJobProgress(stopCtx, d.Host, id, w.Config.LongPollingTimeoutSeconds)
 			if err != nil {
 				w.Logger.Error(waitCtx, "Failed to fetch job info",
 					"host", d.Host,
@@ -204,7 +204,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			w.updateProgress(stopCtx, d, job)
 			return waitCtx.Err()
 		default:
-			job, err := w.Client.RcloneJobProgress(waitCtx, d.Host, id)
+			job, err := w.Client.RcloneJobProgress(waitCtx, d.Host, id, w.Config.LongPollingTimeoutSeconds)
 			if err != nil {
 				w.Logger.Error(waitCtx, "Failed to fetch job info",
 					"host", d.Host,

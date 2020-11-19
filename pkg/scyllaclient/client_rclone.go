@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
@@ -56,14 +55,15 @@ var GlobalProgressID int64 = 0
 
 // RcloneJobInfo returns job stats, and transfers info about running stats and
 // completed transfers.
-func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*RcloneJobInfo, error) {
-	ctx = customTimeout(ctx, time.Second*time.Duration(c.config.LongPollingSeconds)+c.config.Timeout)
+// If waitSeconds > 0 then long polling will be used with number of seconds.
+func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64, waitSeconds int) (*RcloneJobInfo, error) {
+	ctx = customTimeout(forceHost(ctx, host), c.longPollingTimeout(waitSeconds))
 
 	p := operations.JobInfoParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 		Jobinfo: &models.JobInfoParams{
 			Jobid: jobID,
-			Wait:  c.config.LongPollingSeconds,
+			Wait:  int64(waitSeconds),
 		},
 	}
 	resp, err := c.agentOps.JobInfo(&p)
@@ -75,14 +75,14 @@ func (c *Client) RcloneJobInfo(ctx context.Context, host string, jobID int64) (*
 }
 
 // RcloneJobProgress returns aggregated stats for the job along with its status.
-func (c *Client) RcloneJobProgress(ctx context.Context, host string, jobID int64) (*RcloneJobProgress, error) {
-	ctx = customTimeout(ctx, time.Second*time.Duration(c.config.LongPollingSeconds)+c.config.Timeout)
+func (c *Client) RcloneJobProgress(ctx context.Context, host string, jobID int64, waitSeconds int) (*RcloneJobProgress, error) {
+	ctx = customTimeout(forceHost(ctx, host), c.longPollingTimeout(waitSeconds))
 
 	p := operations.JobProgressParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 		Jobinfo: &models.JobInfoParams{
 			Jobid: jobID,
-			Wait:  c.config.LongPollingSeconds,
+			Wait:  int64(waitSeconds),
 		},
 	}
 	resp, err := c.agentOps.JobProgress(&p)

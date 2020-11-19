@@ -222,8 +222,9 @@ func execOnAllHosts(t *testing.T, cmd string) {
 }
 
 const (
-	maxWaitCond       = 5 * time.Second
-	condCheckInterval = 100 * time.Millisecond
+	maxWaitCond               = 5 * time.Second
+	condCheckInterval         = 100 * time.Millisecond
+	longPollingTimeoutSeconds = 2
 )
 
 func (h *backupTestHelper) waitCond(f func() bool) {
@@ -234,7 +235,7 @@ func (h *backupTestHelper) waitTransfersStarted() {
 	h.waitCond(func() bool {
 		h.t.Helper()
 		for _, host := range ManagedClusterHosts() {
-			job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID)
+			job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID, longPollingTimeoutSeconds)
 			if err != nil {
 				h.t.Fatal(err)
 			}
@@ -261,7 +262,7 @@ func (h *backupTestHelper) waitNoTransfers() {
 	h.waitCond(func() bool {
 		h.t.Helper()
 		for _, host := range ManagedClusterHosts() {
-			job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID)
+			job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID, longPollingTimeoutSeconds)
 			if err != nil {
 				h.t.Fatal(err)
 			}
@@ -717,7 +718,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: transfer statistics are cleared")
 	for _, host := range ManagedClusterHosts() {
-		job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID)
+		job, err := h.client.RcloneJobInfo(context.Background(), host, scyllaclient.GlobalProgressID, longPollingTimeoutSeconds)
 		if err != nil {
 			h.t.Fatal(err)
 		}

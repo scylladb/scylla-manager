@@ -30,9 +30,6 @@ type Config struct {
 	// InteractiveBackoff specifies backoff for interactive requests i.e.
 	// originating from API / sctool.
 	InteractiveBackoff BackoffConfig
-	// How many seconds to wait for the job to finish before returning
-	// the info response.
-	LongPollingSeconds int64
 	// PoolDecayDuration specifies size of time window to measure average
 	// request time in Epsilon-Greedy host pool.
 	PoolDecayDuration time.Duration
@@ -68,8 +65,7 @@ func DefaultConfig() Config {
 			WaitMin:    time.Second,
 			MaxRetries: 1,
 		},
-		LongPollingSeconds: 30,
-		PoolDecayDuration:  30 * time.Minute,
+		PoolDecayDuration: 30 * time.Minute,
 	}
 }
 

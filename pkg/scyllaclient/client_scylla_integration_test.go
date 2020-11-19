@@ -192,7 +192,7 @@ func TestScyllaFeaturesIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	sf, err := client.ScyllaFeatures(ctx, ManagedClusterHosts())
+	sf, err := client.ScyllaFeatures(ctx, ManagedClusterHosts()...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -200,6 +200,9 @@ func TestScyllaFeaturesIntegration(t *testing.T) {
 	for _, h := range ManagedClusterHosts() {
 		if !sf[h].RowLevelRepair {
 			t.Errorf("%s host doesn't support row-level repair, but it should", h)
+		}
+		if sf[h].RepairLongPolling {
+			t.Errorf("%s host supports long polling repair but it shouldn't", h)
 		}
 	}
 }

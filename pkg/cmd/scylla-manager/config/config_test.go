@@ -74,11 +74,13 @@ func TestConfigModification(t *testing.T) {
 			NodeInfoTTL: time.Second,
 		},
 		Backup: backup.Config{
-			DiskSpaceFreeMinPercent: 1,
-			AgeMax:                  12 * time.Hour,
+			DiskSpaceFreeMinPercent:   1,
+			LongPollingTimeoutSeconds: 5,
+			AgeMax:                    12 * time.Hour,
 		},
 		Repair: repair.Config{
 			PollInterval:                    500 * time.Millisecond,
+			LongPollingTimeoutSeconds:       5,
 			AgeMax:                          12 * time.Hour,
 			GracefulStopTimeout:             60 * time.Second,
 			ForceRepairType:                 repair.TypeAuto,
