@@ -79,7 +79,7 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 			tables = u.Tables
 		}
 		if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, tables...); err != nil {
-			return errors.Wrapf(err, "keyspace %s: snapshot failed", u.Keyspace)
+			return errors.Wrapf(err, "keyspace %s: snapshot", u.Keyspace)
 		}
 	}
 	return nil

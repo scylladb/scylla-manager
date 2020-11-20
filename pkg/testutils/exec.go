@@ -68,7 +68,7 @@ func sshAsRoot() *ssh.ClientConfig {
 func StopService(h, service string) error {
 	stdout, stderr, err := ExecOnHost(h, "supervisorctl stop "+service)
 	if err != nil {
-		return errors.Wrapf(err, "stop agent failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+		return errors.Wrapf(err, "stop agent host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
 	return nil
 }
@@ -78,7 +78,7 @@ func StopService(h, service string) error {
 func StartService(h, service string) error {
 	stdout, stderr, err := ExecOnHost(h, "supervisorctl start "+service)
 	if err != nil {
-		return errors.Wrapf(err, "start agent failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+		return errors.Wrapf(err, "start agent host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
 	return nil
 }

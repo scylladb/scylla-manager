@@ -52,7 +52,7 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .PHONY: .check-errors-wrap
 .check-errors-wrap:
 	@set -e; for f in `$(GOFILES)`; do \
-		! e=`grep -n errors.Wrap $$f | grep "failed to"` || \
+		! e=`grep -n -E 'errors\.(Errorf|New|Wrap|Wrapf)' $$f | grep -E '("| )fail'` || \
 		(echo $$f $$e; false); \
 	done
 
