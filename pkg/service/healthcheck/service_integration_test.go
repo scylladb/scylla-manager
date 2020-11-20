@@ -403,7 +403,7 @@ func unblockAlternator(t *testing.T, h string) {
 func block(h, cmd string) error {
 	stdout, stderr, err := ExecOnHost(h, cmd)
 	if err != nil {
-		return errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+		return errors.Wrapf(err, "block host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
 	return nil
 }
@@ -411,7 +411,7 @@ func block(h, cmd string) error {
 func unblock(h, cmd string) error {
 	stdout, stderr, err := ExecOnHost(h, cmd)
 	if err != nil {
-		return errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr)
+		return errors.Wrapf(err, "unblock host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
 	return nil
 }

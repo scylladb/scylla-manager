@@ -403,7 +403,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 		errs = multierr.Append(errs, errors.Wrap(err, live[i]))
 	}
 	if errs != nil {
-		return service.ErrValidate(errors.Wrap(errs, "connectivity check failed"))
+		return service.ErrValidate(errors.Wrap(errs, "connectivity check"))
 	}
 
 	// Update known hosts.

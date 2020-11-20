@@ -32,7 +32,7 @@ func (pr PolicyRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UU
 	return pr.Runner.Run(ctx, clusterID, taskID, runID, properties)
 }
 
-var errClusterBusy = errors.New("failed to start, another task is running")
+var errClusterBusy = errors.New("another task is running")
 
 // LockClusterPolicy is a policy that can execute only one task at a time.
 type LockClusterPolicy struct {

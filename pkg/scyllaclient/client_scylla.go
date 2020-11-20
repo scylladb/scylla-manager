@@ -289,7 +289,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 
 	shards := len(metrics[metricName].Metric)
 	if shards == 0 {
-		return 0, errors.New("failed to get shard count")
+		return 0, errors.New("missing shard count")
 	}
 
 	return uint(shards), nil

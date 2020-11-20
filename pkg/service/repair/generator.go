@@ -228,7 +228,7 @@ loop:
 	}
 
 	if g.failed > 0 {
-		return errors.Errorf("%d token ranges out of %d failed to repair", g.failed, g.count)
+		return errors.Errorf("repair %d token ranges out of %d", g.failed, g.count)
 	}
 	return err
 }

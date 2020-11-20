@@ -38,13 +38,13 @@ func TestWaiterTimeoutIntegration(t *testing.T) {
 func blockCQL(t *testing.T, h string) {
 	stdout, stderr, err := ExecOnHost(h, CmdBlockScyllaCQL)
 	if err != nil {
-		t.Error(errors.Wrapf(err, "block failed host: %s, stdout %s, stderr %s", h, stdout, stderr))
+		t.Error(errors.Wrapf(err, "block host: %s, stdout %s, stderr %s", h, stdout, stderr))
 	}
 }
 
 func unblockCQL(t *testing.T, h string) {
 	stdout, stderr, err := ExecOnHost(h, CmdUnblockScyllaCQL)
 	if err != nil {
-		t.Error(errors.Wrapf(err, "unblock failed host: %s, stdout %s, stderr %s", h, stdout, stderr))
+		t.Error(errors.Wrapf(err, "unblock host: %s, stdout %s, stderr %s", h, stdout, stderr))
 	}
 }

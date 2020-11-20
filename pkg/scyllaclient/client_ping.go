@@ -118,7 +118,7 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 
 	// All hosts failed...
 	if min[sorted[0]] == math.MaxInt64 {
-		return nil, errors.New("failed to connect to any node")
+		return nil, errors.New("could not connect to any node")
 	}
 
 	c.logger.Info(ctx, "Datacenters by latency (dec)", "dcs", sorted)

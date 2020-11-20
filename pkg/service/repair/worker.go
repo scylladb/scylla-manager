@@ -249,14 +249,14 @@ func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace,
 			}
 			return err
 		}
-		running, err := w.repairStatus(ctx, s, keyspace, table)
+		running, err := w.repairStatus(ctx, s, id, host, keyspace, table)
 		if err != nil || !running {
 			return err
 		}
 	}
 }
 
-func (w *worker) repairStatus(ctx context.Context, s scyllaclient.CommandStatus, keyspace, table string) (bool, error) {
+func (w *worker) repairStatus(ctx context.Context, s scyllaclient.CommandStatus, id int32, host, keyspace, table string) (bool, error) {
 	switch s {
 	case scyllaclient.CommandRunning:
 		return true, nil
@@ -266,9 +266,9 @@ func (w *worker) repairStatus(ctx context.Context, s scyllaclient.CommandStatus,
 		if w.tableDeleted(ctx, nil, keyspace, table) {
 			return false, errTableDeleted
 		}
-		return false, errors.New("repair failed on Scylla - consult Scylla logs for details")
+		return false, errors.Errorf("Scylla error - check logs on host %s for job %d", host, id)
 	default:
-		return false, errors.Errorf("unknown command status %q", s)
+		return false, errors.Errorf("unknown command status %q - check logs on host %s for job %d", s, host, id)
 	}
 }
 
