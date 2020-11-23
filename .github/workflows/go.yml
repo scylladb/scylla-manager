@@ -51,9 +51,9 @@ jobs:
 
       - name: Restore Go dependencies
         uses: actions/cache@preview
-        id: cache-go-deps
+        id: cache-dependencies
         with:
-         path: ~/go/bin/
+         path: ~/work/scylla-manager/scylla-manager/bin
          key: ${{ runner.os }}-${{ hashFiles('**/install-dependencies.sh') }}
 
       - name: Install Go dependencies
