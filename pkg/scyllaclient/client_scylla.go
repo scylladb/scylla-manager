@@ -712,8 +712,6 @@ func (c *Client) checkRepairLongPolling(ctx context.Context, h string) bool {
 	})
 	s, m := StatusCodeAndMessageOf(err)
 
-	// search for explicit "not found" string at the start of the response to
-	// exclude situations where 404 is fired for unrelated cause.
 	return !(s == http.StatusNotFound && endpointNotFoundRegex.MatchString(m))
 }
 
