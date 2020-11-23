@@ -1,0 +1,36 @@
+name: Release docs
+
+on:
+  push:
+    branches:
+    - master
+    - 'branch-**'
+    paths:
+      - 'docs/**'
+
+jobs:
+  build:
+    name: Release docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - uses: actions/cache@v2
+        id: cache-poetry
+        with:
+          path: |
+            ~/.poetry
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-pypoetry-${{ hashFiles('docs/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pypoetry-
+
+      - run: make -C docs multiversion
+
+      - name: Deploy
+        run : ./docs/_utils/deploy.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST_VERSION: 2.2
