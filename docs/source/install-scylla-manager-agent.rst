@@ -26,6 +26,10 @@ Run the scyllamgr_agent_setup script
 The Scylla Manager Agent setup script automates configuration of Scylla Manager Agent by asking you some questions.
 It can be run in non-interactive mode by using flags.
 
+.. note:: Make sure you run the Scylla Manager Agent setup script, and enable Scylla helper slice.
+   The helper slice contains a cgroup definition that governs Scylla Manager Agent resources usage.
+   Without the slice the node latency during backup upload maybe unpredictable.
+
 .. code-block:: none
 
    scyllamgr_agent_setup -h
