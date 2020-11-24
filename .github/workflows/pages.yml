@@ -12,6 +12,8 @@ jobs:
   build:
     name: Release docs
     runs-on: ubuntu-latest
+    env:
+      LATEST_VERSION: 2.2
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -33,4 +35,3 @@ jobs:
         run : ./docs/_utils/deploy.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LATEST_VERSION: 2.2
