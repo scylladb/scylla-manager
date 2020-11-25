@@ -1,18 +1,6 @@
 // Package s3 provides an interface to Amazon S3 oject storage
 package s3
 
-// FIXME need to prevent anything but ListDir working for s3://
-
-/*
-Progress of port to aws-sdk
-
- * Don't really need o.meta at all?
-
-What happens if you CTRL-C a multipart upload
-  * get an incomplete upload
-  * disappears when you delete the bucket
-*/
-
 import (
 	"bytes"
 	"context"
@@ -40,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -52,13 +41,16 @@ import (
 	"github.com/rclone/rclone/fs/fserrors"
 	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/hash"
+	"github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/walk"
+	"github.com/rclone/rclone/lib/atexit"
 	"github.com/rclone/rclone/lib/bucket"
 	"github.com/rclone/rclone/lib/encoder"
 	"github.com/rclone/rclone/lib/pacer"
 	"github.com/rclone/rclone/lib/pool"
 	"github.com/rclone/rclone/lib/readers"
 	"github.com/rclone/rclone/lib/rest"
+	"github.com/rclone/rclone/lib/structs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -66,8 +58,9 @@ import (
 func init() {
 	fs.Register(&fs.RegInfo{
 		Name:        "s3",
-		Description: "Amazon S3 Compliant Storage Provider (AWS, Alibaba, Ceph, Digital Ocean, Dreamhost, IBM COS, Minio, etc)",
+		Description: "Amazon S3 Compliant Storage Provider (AWS, Alibaba, Ceph, Digital Ocean, Dreamhost, IBM COS, Minio, Tencent COS, etc)",
 		NewFs:       NewFs,
+		CommandHelp: commandHelp,
 		Options: []fs.Option{{
 			Name: fs.ConfigProvider,
 			Help: "Choose your S3 provider.",
@@ -96,8 +89,14 @@ func init() {
 				Value: "Netease",
 				Help:  "Netease Object Storage (NOS)",
 			}, {
+				Value: "Scaleway",
+				Help:  "Scaleway Object Storage",
+			}, {
 				Value: "StackPath",
 				Help:  "StackPath Object Storage",
+			}, {
+				Value: "TencentCOS",
+				Help:  "Tencent Cloud Object Storage (COS)",
 			}, {
 				Value: "Wasabi",
 				Help:  "Wasabi Object Storage",
@@ -123,6 +122,9 @@ func init() {
 			Name: "secret_access_key",
 			Help: "AWS Secret Access Key (password)\nLeave blank for anonymous access or runtime credentials.",
 		}, {
+			// References:
+			// 1. https://docs.aws.amazon.com/general/latest/gr/rande.html
+			// 2. https://docs.aws.amazon.com/general/latest/gr/s3.html
 			Name:     "region",
 			Help:     "Region to connect to.",
 			Provider: "AWS",
@@ -133,11 +135,11 @@ func init() {
 				Value: "us-east-2",
 				Help:  "US East (Ohio) Region\nNeeds location constraint us-east-2.",
 			}, {
-				Value: "us-west-2",
-				Help:  "US West (Oregon) Region\nNeeds location constraint us-west-2.",
-			}, {
 				Value: "us-west-1",
 				Help:  "US West (Northern California) Region\nNeeds location constraint us-west-1.",
+			}, {
+				Value: "us-west-2",
+				Help:  "US West (Oregon) Region\nNeeds location constraint us-west-2.",
 			}, {
 				Value: "ca-central-1",
 				Help:  "Canada (Central) Region\nNeeds location constraint ca-central-1.",
@@ -148,8 +150,14 @@ func init() {
 				Value: "eu-west-2",
 				Help:  "EU (London) Region\nNeeds location constraint eu-west-2.",
 			}, {
+				Value: "eu-west-3",
+				Help:  "EU (Paris) Region\nNeeds location constraint eu-west-3.",
+			}, {
 				Value: "eu-north-1",
 				Help:  "EU (Stockholm) Region\nNeeds location constraint eu-north-1.",
+			}, {
+				Value: "eu-south-1",
+				Help:  "EU (Milan) Region\nNeeds location constraint eu-south-1.",
 			}, {
 				Value: "eu-central-1",
 				Help:  "EU (Frankfurt) Region\nNeeds location constraint eu-central-1.",
@@ -166,19 +174,51 @@ func init() {
 				Value: "ap-northeast-2",
 				Help:  "Asia Pacific (Seoul)\nNeeds location constraint ap-northeast-2.",
 			}, {
+				Value: "ap-northeast-3",
+				Help:  "Asia Pacific (Osaka-Local)\nNeeds location constraint ap-northeast-3.",
+			}, {
 				Value: "ap-south-1",
 				Help:  "Asia Pacific (Mumbai)\nNeeds location constraint ap-south-1.",
 			}, {
 				Value: "ap-east-1",
-				Help:  "Asia Patific (Hong Kong) Region\nNeeds location constraint ap-east-1.",
+				Help:  "Asia Pacific (Hong Kong) Region\nNeeds location constraint ap-east-1.",
 			}, {
 				Value: "sa-east-1",
 				Help:  "South America (Sao Paulo) Region\nNeeds location constraint sa-east-1.",
+			}, {
+				Value: "me-south-1",
+				Help:  "Middle East (Bahrain) Region\nNeeds location constraint me-south-1.",
+			}, {
+				Value: "af-south-1",
+				Help:  "Africa (Cape Town) Region\nNeeds location constraint af-south-1.",
+			}, {
+				Value: "cn-north-1",
+				Help:  "China (Beijing) Region\nNeeds location constraint cn-north-1.",
+			}, {
+				Value: "cn-northwest-1",
+				Help:  "China (Ningxia) Region\nNeeds location constraint cn-northwest-1.",
+			}, {
+				Value: "us-gov-east-1",
+				Help:  "AWS GovCloud (US-East) Region\nNeeds location constraint us-gov-east-1.",
+			}, {
+				Value: "us-gov-west-1",
+				Help:  "AWS GovCloud (US) Region\nNeeds location constraint us-gov-west-1.",
+			}},
+		}, {
+			Name:     "region",
+			Help:     "Region to connect to.",
+			Provider: "Scaleway",
+			Examples: []fs.OptionExample{{
+				Value: "nl-ams",
+				Help:  "Amsterdam, The Netherlands",
+			}, {
+				Value: "fr-par",
+				Help:  "Paris, France",
 			}},
 		}, {
 			Name:     "region",
 			Help:     "Region to connect to.\nLeave blank if you are using an S3 clone and you don't have a region.",
-			Provider: "!AWS,Alibaba",
+			Provider: "!AWS,Alibaba,Scaleway,TencentCOS",
 			Examples: []fs.OptionExample{{
 				Value: "",
 				Help:  "Use this if unsure. Will use v4 signatures and an empty region.",
@@ -195,107 +235,191 @@ func init() {
 			Help:     "Endpoint for IBM COS S3 API.\nSpecify if using an IBM COS On Premise.",
 			Provider: "IBMCOS",
 			Examples: []fs.OptionExample{{
-				Value: "s3-api.us-geo.objectstorage.softlayer.net",
+				Value: "s3.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region Endpoint",
 			}, {
-				Value: "s3-api.dal.us-geo.objectstorage.softlayer.net",
+				Value: "s3.dal.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region Dallas Endpoint",
 			}, {
-				Value: "s3-api.wdc-us-geo.objectstorage.softlayer.net",
+				Value: "s3.wdc.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region Washington DC Endpoint",
 			}, {
-				Value: "s3-api.sjc-us-geo.objectstorage.softlayer.net",
+				Value: "s3.sjc.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region San Jose Endpoint",
 			}, {
-				Value: "s3-api.us-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region Private Endpoint",
 			}, {
-				Value: "s3-api.dal-us-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.dal.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region Dallas Private Endpoint",
 			}, {
-				Value: "s3-api.wdc-us-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.wdc.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region Washington DC Private Endpoint",
 			}, {
-				Value: "s3-api.sjc-us-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.sjc.us.cloud-object-storage.appdomain.cloud",
 				Help:  "US Cross Region San Jose Private Endpoint",
 			}, {
-				Value: "s3.us-east.objectstorage.softlayer.net",
+				Value: "s3.us-east.cloud-object-storage.appdomain.cloud",
 				Help:  "US Region East Endpoint",
 			}, {
-				Value: "s3.us-east.objectstorage.service.networklayer.com",
+				Value: "s3.private.us-east.cloud-object-storage.appdomain.cloud",
 				Help:  "US Region East Private Endpoint",
 			}, {
-				Value: "s3.us-south.objectstorage.softlayer.net",
+				Value: "s3.us-south.cloud-object-storage.appdomain.cloud",
 				Help:  "US Region South Endpoint",
 			}, {
-				Value: "s3.us-south.objectstorage.service.networklayer.com",
+				Value: "s3.private.us-south.cloud-object-storage.appdomain.cloud",
 				Help:  "US Region South Private Endpoint",
 			}, {
-				Value: "s3.eu-geo.objectstorage.softlayer.net",
+				Value: "s3.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Endpoint",
 			}, {
-				Value: "s3.fra-eu-geo.objectstorage.softlayer.net",
+				Value: "s3.fra.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Frankfurt Endpoint",
 			}, {
-				Value: "s3.mil-eu-geo.objectstorage.softlayer.net",
+				Value: "s3.mil.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Milan Endpoint",
 			}, {
-				Value: "s3.ams-eu-geo.objectstorage.softlayer.net",
+				Value: "s3.ams.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Amsterdam Endpoint",
 			}, {
-				Value: "s3.eu-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Private Endpoint",
 			}, {
-				Value: "s3.fra-eu-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.fra.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Frankfurt Private Endpoint",
 			}, {
-				Value: "s3.mil-eu-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.mil.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Milan Private Endpoint",
 			}, {
-				Value: "s3.ams-eu-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.ams.eu.cloud-object-storage.appdomain.cloud",
 				Help:  "EU Cross Region Amsterdam Private Endpoint",
 			}, {
-				Value: "s3.eu-gb.objectstorage.softlayer.net",
+				Value: "s3.eu-gb.cloud-object-storage.appdomain.cloud",
 				Help:  "Great Britain Endpoint",
 			}, {
-				Value: "s3.eu-gb.objectstorage.service.networklayer.com",
+				Value: "s3.private.eu-gb.cloud-object-storage.appdomain.cloud",
 				Help:  "Great Britain Private Endpoint",
 			}, {
-				Value: "s3.ap-geo.objectstorage.softlayer.net",
+				Value: "s3.eu-de.cloud-object-storage.appdomain.cloud",
+				Help:  "EU Region DE Endpoint",
+			}, {
+				Value: "s3.private.eu-de.cloud-object-storage.appdomain.cloud",
+				Help:  "EU Region DE Private Endpoint",
+			}, {
+				Value: "s3.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional Endpoint",
 			}, {
-				Value: "s3.tok-ap-geo.objectstorage.softlayer.net",
+				Value: "s3.tok.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional Tokyo Endpoint",
 			}, {
-				Value: "s3.hkg-ap-geo.objectstorage.softlayer.net",
+				Value: "s3.hkg.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional HongKong Endpoint",
 			}, {
-				Value: "s3.seo-ap-geo.objectstorage.softlayer.net",
+				Value: "s3.seo.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional Seoul Endpoint",
 			}, {
-				Value: "s3.ap-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional Private Endpoint",
 			}, {
-				Value: "s3.tok-ap-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.tok.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional Tokyo Private Endpoint",
 			}, {
-				Value: "s3.hkg-ap-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.hkg.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional HongKong Private Endpoint",
 			}, {
-				Value: "s3.seo-ap-geo.objectstorage.service.networklayer.com",
+				Value: "s3.private.seo.ap.cloud-object-storage.appdomain.cloud",
 				Help:  "APAC Cross Regional Seoul Private Endpoint",
 			}, {
-				Value: "s3.mel01.objectstorage.softlayer.net",
+				Value: "s3.jp-tok.cloud-object-storage.appdomain.cloud",
+				Help:  "APAC Region Japan Endpoint",
+			}, {
+				Value: "s3.private.jp-tok.cloud-object-storage.appdomain.cloud",
+				Help:  "APAC Region Japan Private Endpoint",
+			}, {
+				Value: "s3.au-syd.cloud-object-storage.appdomain.cloud",
+				Help:  "APAC Region Australia Endpoint",
+			}, {
+				Value: "s3.private.au-syd.cloud-object-storage.appdomain.cloud",
+				Help:  "APAC Region Australia Private Endpoint",
+			}, {
+				Value: "s3.ams03.cloud-object-storage.appdomain.cloud",
+				Help:  "Amsterdam Single Site Endpoint",
+			}, {
+				Value: "s3.private.ams03.cloud-object-storage.appdomain.cloud",
+				Help:  "Amsterdam Single Site Private Endpoint",
+			}, {
+				Value: "s3.che01.cloud-object-storage.appdomain.cloud",
+				Help:  "Chennai Single Site Endpoint",
+			}, {
+				Value: "s3.private.che01.cloud-object-storage.appdomain.cloud",
+				Help:  "Chennai Single Site Private Endpoint",
+			}, {
+				Value: "s3.mel01.cloud-object-storage.appdomain.cloud",
 				Help:  "Melbourne Single Site Endpoint",
 			}, {
-				Value: "s3.mel01.objectstorage.service.networklayer.com",
+				Value: "s3.private.mel01.cloud-object-storage.appdomain.cloud",
 				Help:  "Melbourne Single Site Private Endpoint",
 			}, {
-				Value: "s3.tor01.objectstorage.softlayer.net",
+				Value: "s3.osl01.cloud-object-storage.appdomain.cloud",
+				Help:  "Oslo Single Site Endpoint",
+			}, {
+				Value: "s3.private.osl01.cloud-object-storage.appdomain.cloud",
+				Help:  "Oslo Single Site Private Endpoint",
+			}, {
+				Value: "s3.tor01.cloud-object-storage.appdomain.cloud",
 				Help:  "Toronto Single Site Endpoint",
 			}, {
-				Value: "s3.tor01.objectstorage.service.networklayer.com",
+				Value: "s3.private.tor01.cloud-object-storage.appdomain.cloud",
 				Help:  "Toronto Single Site Private Endpoint",
+			}, {
+				Value: "s3.seo01.cloud-object-storage.appdomain.cloud",
+				Help:  "Seoul Single Site Endpoint",
+			}, {
+				Value: "s3.private.seo01.cloud-object-storage.appdomain.cloud",
+				Help:  "Seoul Single Site Private Endpoint",
+			}, {
+				Value: "s3.mon01.cloud-object-storage.appdomain.cloud",
+				Help:  "Montreal Single Site Endpoint",
+			}, {
+				Value: "s3.private.mon01.cloud-object-storage.appdomain.cloud",
+				Help:  "Montreal Single Site Private Endpoint",
+			}, {
+				Value: "s3.mex01.cloud-object-storage.appdomain.cloud",
+				Help:  "Mexico Single Site Endpoint",
+			}, {
+				Value: "s3.private.mex01.cloud-object-storage.appdomain.cloud",
+				Help:  "Mexico Single Site Private Endpoint",
+			}, {
+				Value: "s3.sjc04.cloud-object-storage.appdomain.cloud",
+				Help:  "San Jose Single Site Endpoint",
+			}, {
+				Value: "s3.private.sjc04.cloud-object-storage.appdomain.cloud",
+				Help:  "San Jose Single Site Private Endpoint",
+			}, {
+				Value: "s3.mil01.cloud-object-storage.appdomain.cloud",
+				Help:  "Milan Single Site Endpoint",
+			}, {
+				Value: "s3.private.mil01.cloud-object-storage.appdomain.cloud",
+				Help:  "Milan Single Site Private Endpoint",
+			}, {
+				Value: "s3.hkg02.cloud-object-storage.appdomain.cloud",
+				Help:  "Hong Kong Single Site Endpoint",
+			}, {
+				Value: "s3.private.hkg02.cloud-object-storage.appdomain.cloud",
+				Help:  "Hong Kong Single Site Private Endpoint",
+			}, {
+				Value: "s3.par01.cloud-object-storage.appdomain.cloud",
+				Help:  "Paris Single Site Endpoint",
+			}, {
+				Value: "s3.private.par01.cloud-object-storage.appdomain.cloud",
+				Help:  "Paris Single Site Private Endpoint",
+			}, {
+				Value: "s3.sng01.cloud-object-storage.appdomain.cloud",
+				Help:  "Singapore Single Site Endpoint",
+			}, {
+				Value: "s3.private.sng01.cloud-object-storage.appdomain.cloud",
+				Help:  "Singapore Single Site Private Endpoint",
 			}},
 		}, {
 			// oss endpoints: https://help.aliyun.com/document_detail/31837.html
@@ -362,6 +486,17 @@ func init() {
 			}},
 		}, {
 			Name:     "endpoint",
+			Help:     "Endpoint for Scaleway Object Storage.",
+			Provider: "Scaleway",
+			Examples: []fs.OptionExample{{
+				Value: "s3.nl-ams.scw.cloud",
+				Help:  "Amsterdam Endpoint",
+			}, {
+				Value: "s3.fr-par.scw.cloud",
+				Help:  "Paris Endpoint",
+			}},
+		}, {
+			Name:     "endpoint",
 			Help:     "Endpoint for StackPath Object Storage.",
 			Provider: "StackPath",
 			Examples: []fs.OptionExample{{
@@ -375,9 +510,72 @@ func init() {
 				Help:  "EU Endpoint",
 			}},
 		}, {
+			// cos endpoints: https://intl.cloud.tencent.com/document/product/436/6224
+			Name:     "endpoint",
+			Help:     "Endpoint for Tencent COS API.",
+			Provider: "TencentCOS",
+			Examples: []fs.OptionExample{{
+				Value: "cos.ap-beijing.myqcloud.com",
+				Help:  "Beijing Region.",
+			}, {
+				Value: "cos.ap-nanjing.myqcloud.com",
+				Help:  "Nanjing Region.",
+			}, {
+				Value: "cos.ap-shanghai.myqcloud.com",
+				Help:  "Shanghai Region.",
+			}, {
+				Value: "cos.ap-guangzhou.myqcloud.com",
+				Help:  "Guangzhou Region.",
+			}, {
+				Value: "cos.ap-nanjing.myqcloud.com",
+				Help:  "Nanjing Region.",
+			}, {
+				Value: "cos.ap-chengdu.myqcloud.com",
+				Help:  "Chengdu Region.",
+			}, {
+				Value: "cos.ap-chongqing.myqcloud.com",
+				Help:  "Chongqing Region.",
+			}, {
+				Value: "cos.ap-hongkong.myqcloud.com",
+				Help:  "Hong Kong (China) Region.",
+			}, {
+				Value: "cos.ap-singapore.myqcloud.com",
+				Help:  "Singapore Region.",
+			}, {
+				Value: "cos.ap-mumbai.myqcloud.com",
+				Help:  "Mumbai Region.",
+			}, {
+				Value: "cos.ap-seoul.myqcloud.com",
+				Help:  "Seoul Region.",
+			}, {
+				Value: "cos.ap-bangkok.myqcloud.com",
+				Help:  "Bangkok Region.",
+			}, {
+				Value: "cos.ap-tokyo.myqcloud.com",
+				Help:  "Tokyo Region.",
+			}, {
+				Value: "cos.na-siliconvalley.myqcloud.com",
+				Help:  "Silicon Valley Region.",
+			}, {
+				Value: "cos.na-ashburn.myqcloud.com",
+				Help:  "Virginia Region.",
+			}, {
+				Value: "cos.na-toronto.myqcloud.com",
+				Help:  "Toronto Region.",
+			}, {
+				Value: "cos.eu-frankfurt.myqcloud.com",
+				Help:  "Frankfurt Region.",
+			}, {
+				Value: "cos.eu-moscow.myqcloud.com",
+				Help:  "Moscow Region.",
+			}, {
+				Value: "cos.accelerate.myqcloud.com",
+				Help:  "Use Tencent COS Accelerate Endpoint.",
+			}},
+		}, {
 			Name:     "endpoint",
 			Help:     "Endpoint for S3 API.\nRequired when using an S3 clone.",
-			Provider: "!AWS,IBMCOS,Alibaba,StackPath",
+			Provider: "!AWS,IBMCOS,TencentCOS,Alibaba,Scaleway,StackPath",
 			Examples: []fs.OptionExample{{
 				Value:    "objects-us-east-1.dream.io",
 				Help:     "Dream Objects endpoint",
@@ -418,11 +616,11 @@ func init() {
 				Value: "us-east-2",
 				Help:  "US East (Ohio) Region.",
 			}, {
-				Value: "us-west-2",
-				Help:  "US West (Oregon) Region.",
-			}, {
 				Value: "us-west-1",
 				Help:  "US West (Northern California) Region.",
+			}, {
+				Value: "us-west-2",
+				Help:  "US West (Oregon) Region.",
 			}, {
 				Value: "ca-central-1",
 				Help:  "Canada (Central) Region.",
@@ -433,8 +631,14 @@ func init() {
 				Value: "eu-west-2",
 				Help:  "EU (London) Region.",
 			}, {
+				Value: "eu-west-3",
+				Help:  "EU (Paris) Region.",
+			}, {
 				Value: "eu-north-1",
 				Help:  "EU (Stockholm) Region.",
+			}, {
+				Value: "eu-south-1",
+				Help:  "EU (Milan) Region.",
 			}, {
 				Value: "EU",
 				Help:  "EU Region.",
@@ -449,16 +653,37 @@ func init() {
 				Help:  "Asia Pacific (Tokyo) Region.",
 			}, {
 				Value: "ap-northeast-2",
-				Help:  "Asia Pacific (Seoul)",
+				Help:  "Asia Pacific (Seoul) Region.",
+			}, {
+				Value: "ap-northeast-3",
+				Help:  "Asia Pacific (Osaka-Local) Region.",
 			}, {
 				Value: "ap-south-1",
-				Help:  "Asia Pacific (Mumbai)",
+				Help:  "Asia Pacific (Mumbai) Region.",
 			}, {
 				Value: "ap-east-1",
-				Help:  "Asia Pacific (Hong Kong)",
+				Help:  "Asia Pacific (Hong Kong) Region.",
 			}, {
 				Value: "sa-east-1",
 				Help:  "South America (Sao Paulo) Region.",
+			}, {
+				Value: "me-south-1",
+				Help:  "Middle East (Bahrain) Region.",
+			}, {
+				Value: "af-south-1",
+				Help:  "Africa (Cape Town) Region.",
+			}, {
+				Value: "cn-north-1",
+				Help:  "China (Beijing) Region",
+			}, {
+				Value: "cn-northwest-1",
+				Help:  "China (Ningxia) Region.",
+			}, {
+				Value: "us-gov-east-1",
+				Help:  "AWS GovCloud (US-East) Region.",
+			}, {
+				Value: "us-gov-west-1",
+				Help:  "AWS GovCloud (US) Region.",
 			}},
 		}, {
 			Name:     "location_constraint",
@@ -564,7 +789,7 @@ func init() {
 		}, {
 			Name:     "location_constraint",
 			Help:     "Location constraint - must be set to match the Region.\nLeave blank if not sure. Used when creating buckets only.",
-			Provider: "!AWS,IBMCOS,Alibaba,StackPath",
+			Provider: "!AWS,IBMCOS,Alibaba,Scaleway,StackPath,TencentCOS",
 		}, {
 			Name: "acl",
 			Help: `Canned ACL used when creating buckets and storing or copying objects.
@@ -576,9 +801,13 @@ For more info visit https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview
 Note that this ACL is applied when server side copying objects as S3
 doesn't copy the ACL from the source but rather writes a fresh one.`,
 			Examples: []fs.OptionExample{{
+				Value:    "default",
+				Help:     "Owner gets Full_CONTROL. No one else has access rights (default).",
+				Provider: "TencentCOS",
+			}, {
 				Value:    "private",
 				Help:     "Owner gets FULL_CONTROL. No one else has access rights (default).",
-				Provider: "!IBMCOS",
+				Provider: "!IBMCOS,TencentCOS",
 			}, {
 				Value:    "public-read",
 				Help:     "Owner gets FULL_CONTROL. The AllUsers group gets READ access.",
@@ -677,7 +906,7 @@ isn't set then "acl" is used instead.`,
 			}},
 		}, {
 			Name:     "sse_customer_key",
-			Help:     "If using SSE-C you must provide the secret encyption key used to encrypt/decrypt your data.",
+			Help:     "If using SSE-C you must provide the secret encryption key used to encrypt/decrypt your data.",
 			Provider: "AWS,Ceph,Minio",
 			Advanced: true,
 			Examples: []fs.OptionExample{{
@@ -685,8 +914,11 @@ isn't set then "acl" is used instead.`,
 				Help:  "None",
 			}},
 		}, {
-			Name:     "sse_customer_key_md5",
-			Help:     "If using SSE-C you must provide the secret encryption key MD5 checksum.",
+			Name: "sse_customer_key_md5",
+			Help: `If using SSE-C you may provide the secret encryption key MD5 checksum (optional).
+
+If you leave it blank, this is calculated automatically from the sse_customer_key provided.
+`,
 			Provider: "AWS,Ceph,Minio",
 			Advanced: true,
 			Examples: []fs.OptionExample{{
@@ -741,6 +973,39 @@ isn't set then "acl" is used instead.`,
 				Help:  "Infrequent access storage mode.",
 			}},
 		}, {
+			// Mapping from here: https://intl.cloud.tencent.com/document/product/436/30925
+			Name:     "storage_class",
+			Help:     "The storage class to use when storing new objects in Tencent COS.",
+			Provider: "TencentCOS",
+			Examples: []fs.OptionExample{{
+				Value: "",
+				Help:  "Default",
+			}, {
+				Value: "STANDARD",
+				Help:  "Standard storage class",
+			}, {
+				Value: "ARCHIVE",
+				Help:  "Archive storage mode.",
+			}, {
+				Value: "STANDARD_IA",
+				Help:  "Infrequent access storage mode.",
+			}},
+		}, {
+			// Mapping from here: https://www.scaleway.com/en/docs/object-storage-glacier/#-Scaleway-Storage-Classes
+			Name:     "storage_class",
+			Help:     "The storage class to use when storing new objects in S3.",
+			Provider: "Scaleway",
+			Examples: []fs.OptionExample{{
+				Value: "",
+				Help:  "Default",
+			}, {
+				Value: "STANDARD",
+				Help:  "The Standard class for any upload; suitable for on-demand content like streaming or CDN.",
+			}, {
+				Value: "GLACIER",
+				Help:  "Archived storage; prices are lower, but it needs to be restored first to be accessed.",
+			}},
+		}, {
 			Name: "upload_cutoff",
 			Help: `Cutoff for switching to chunked upload
 
@@ -774,6 +1039,21 @@ larger files then you will need to increase chunk_size.`,
 			Default:  minChunkSize,
 			Advanced: true,
 		}, {
+			Name: "max_upload_parts",
+			Help: `Maximum number of parts in a multipart upload.
+
+This option defines the maximum number of multipart chunks to use
+when doing a multipart upload.
+
+This can be useful if a service does not support the AWS S3
+specification of 10,000 chunks.
+
+Rclone will automatically increase the chunk size when uploading a
+large file of a known size to stay below this number of chunks limit.
+`,
+			Default:  maxUploadParts,
+			Advanced: true,
+		}, {
 			Name: "copy_cutoff",
 			Help: `Cutoff for switching to multipart copy
 
@@ -784,9 +1064,39 @@ The minimum is 0 and the maximum is 5GB.`,
 			Default:  fs.SizeSuffix(maxSizeForCopy),
 			Advanced: true,
 		}, {
-			Name:     "disable_checksum",
-			Help:     "Don't store MD5 checksum with object metadata",
+			Name: "disable_checksum",
+			Help: `Don't store MD5 checksum with object metadata
+
+Normally rclone will calculate the MD5 checksum of the input before
+uploading it so it can add it to metadata on the object. This is great
+for data integrity checking but can cause long delays for large files
+to start uploading.`,
 			Default:  false,
+			Advanced: true,
+		}, {
+			Name: "shared_credentials_file",
+			Help: `Path to the shared credentials file
+
+If env_auth = true then rclone can use a shared credentials file.
+
+If this variable is empty rclone will look for the
+"AWS_SHARED_CREDENTIALS_FILE" env variable. If the env value is empty
+it will default to the current user's home directory.
+
+    Linux/OSX: "$HOME/.aws/credentials"
+    Windows:   "%USERPROFILE%\.aws\credentials"
+`,
+			Advanced: true,
+		}, {
+			Name: "profile",
+			Help: `Profile to use in the shared credentials file
+
+If env_auth = true then rclone can use a shared credentials file. This
+variable controls which profile is used in that file.
+
+If empty it will default to the environment variable "AWS_PROFILE" or
+"default" if that environment variable is also not set.
+`,
 			Advanced: true,
 		}, {
 			Name:     "session_token",
@@ -813,7 +1123,7 @@ if false then rclone will use virtual path style. See [the AWS S3
 docs](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro)
 for more info.
 
-Some providers (eg AWS, Aliyun OSS or Netease COS) require this set to
+Some providers (eg AWS, Aliyun OSS, Netease COS or Tencent COS) require this set to
 false - rclone will do this automatically based on the provider
 setting.`,
 			Default:  true,
@@ -859,6 +1169,15 @@ In Ceph, this can be increased with the "rgw list buckets max chunk" option.
 			Default:  1000,
 			Advanced: true,
 		}, {
+			Name: "no_check_bucket",
+			Help: `If set don't attempt to check the bucket exists or create it
+
+This can be useful when trying to minimise the number of transactions
+rclone does if you know the bucket exists already.
+`,
+			Default:  false,
+			Advanced: true,
+		}, {
 			Name:     config.ConfigEncoding,
 			Help:     config.ConfigEncodingHelp,
 			Advanced: true,
@@ -893,10 +1212,12 @@ This option controls how often unused buffers will be removed from the pool.`,
 
 // Constants
 const (
-	metaMtime           = "Mtime"                // the meta key to store mtime in - eg X-Amz-Meta-Mtime
-	metaMD5Hash         = "Md5chksum"            // the meta key to store md5hash in
-	maxSizeForCopy      = 5 * 1024 * 1024 * 1024 // The maximum size of object we can COPY
-	maxUploadParts      = 10000                  // maximum allowed number of parts in a multi-part upload
+	metaMtime   = "Mtime"     // the meta key to store mtime in - eg X-Amz-Meta-Mtime
+	metaMD5Hash = "Md5chksum" // the meta key to store md5hash in
+	// The maximum size of object we can COPY - this should be 5GiB but is < 5GB for b2 compatibility
+	// See https://forum.rclone.org/t/copying-files-within-a-b2-bucket/16680/76
+	maxSizeForCopy      = 4768 * 1024 * 1024
+	maxUploadParts      = 10000 // maximum allowed number of parts in a multi-part upload
 	minChunkSize        = fs.SizeSuffix(1024 * 1024 * 5)
 	defaultUploadCutoff = fs.SizeSuffix(200 * 1024 * 1024)
 	maxUploadCutoff     = fs.SizeSuffix(5 * 1024 * 1024 * 1024)
@@ -904,6 +1225,7 @@ const (
 
 	memoryPoolFlushTime = fs.Duration(time.Minute) // flush the cached buffers after this long
 	memoryPoolUseMmap   = false
+	maxExpireDuration   = fs.Duration(7 * 24 * time.Hour) // max expiry is 1 week
 )
 
 // Options defines the configuration for this backend
@@ -926,7 +1248,10 @@ type Options struct {
 	UploadCutoff          fs.SizeSuffix        `config:"upload_cutoff"`
 	CopyCutoff            fs.SizeSuffix        `config:"copy_cutoff"`
 	ChunkSize             fs.SizeSuffix        `config:"chunk_size"`
+	MaxUploadParts        int64                `config:"max_upload_parts"`
 	DisableChecksum       bool                 `config:"disable_checksum"`
+	SharedCredentialsFile string               `config:"shared_credentials_file"`
+	Profile               string               `config:"profile"`
 	SessionToken          string               `config:"session_token"`
 	UploadConcurrency     int                  `config:"upload_concurrency"`
 	ForcePathStyle        bool                 `config:"force_path_style"`
@@ -934,6 +1259,7 @@ type Options struct {
 	UseAccelerateEndpoint bool                 `config:"use_accelerate_endpoint"`
 	LeavePartsOnError     bool                 `config:"leave_parts_on_error"`
 	ListChunk             int64                `config:"list_chunk"`
+	NoCheckBucket         bool                 `config:"no_check_bucket"`
 	Enc                   encoder.MultiEncoder `config:"encoding"`
 	MemoryPoolFlushTime   fs.Duration          `config:"memory_pool_flush_time"`
 	MemoryPoolUseMmap     bool                 `config:"memory_pool_use_mmap"`
@@ -954,6 +1280,7 @@ type Fs struct {
 	srv           *http.Client          // a plain http client
 	tokens        *pacer.TokenDispenser // upload concurency tokens
 	pool          *pool.Pool            // memory pool
+	etagIsNotMD5  bool                  // if set ETags are not MD5s
 }
 
 // Object describes a s3 object
@@ -964,7 +1291,7 @@ type Object struct {
 	// that in you need to call readMetaData
 	fs           *Fs                // what this object is part of
 	remote       string             // The remote path
-	etag         string             // md5sum of the object
+	md5          string             // md5sum of the object
 	bytes        int64              // size of the object
 	lastModified time.Time          // Last modified
 	meta         map[string]*string // The object metadata if known - may be nil
@@ -1003,6 +1330,7 @@ func (f *Fs) Features() *fs.Features {
 // retryErrorCodes is a slice of error codes that we will retry
 // See: https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
 var retryErrorCodes = []int{
+	429, // Too Many Requests
 	500, // Internal Server Error - "We encountered an internal error. Please try again."
 	503, // Service Unavailable/Slow Down - "Reduce your request rate"
 }
@@ -1090,7 +1418,10 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 		// A SharedCredentialsProvider retrieves credentials
 		// from the current user's home directory.  It checks
 		// AWS_SHARED_CREDENTIALS_FILE and AWS_PROFILE too.
-		&credentials.SharedCredentialsProvider{},
+		&credentials.SharedCredentialsProvider{
+			Filename: opt.SharedCredentialsFile, // If empty will look for "AWS_SHARED_CREDENTIALS_FILE" env variable.
+			Profile:  opt.Profile,               // If empty will look gor "AWS_PROFILE" env var or "default" if not set.
+		},
 
 		// Pick up IAM role if we're in an ECS task
 		defaults.RemoteCredProvider(*def.Config, def.Handlers),
@@ -1122,21 +1453,23 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 		return nil, nil, errors.New("secret_access_key not found")
 	}
 
-	if opt.Region == "" && opt.Endpoint == "" {
-		opt.Endpoint = "https://s3.amazonaws.com/"
-	}
 	if opt.Region == "" {
 		opt.Region = "us-east-1"
 	}
-	if opt.Provider == "AWS" || opt.Provider == "Alibaba" || opt.Provider == "Netease" || opt.UseAccelerateEndpoint {
+	if opt.Provider == "AWS" || opt.Provider == "Alibaba" || opt.Provider == "Netease" || opt.Provider == "Scaleway" || opt.Provider == "TencentCOS" || opt.UseAccelerateEndpoint {
 		opt.ForcePathStyle = false
+	}
+	if opt.Provider == "Scaleway" && opt.MaxUploadParts > 1000 {
+		opt.MaxUploadParts = 1000
 	}
 	awsConfig := aws.NewConfig().
 		WithMaxRetries(0). // Rely on rclone's retry logic
 		WithCredentials(cred).
 		WithHTTPClient(fshttp.NewClient(fs.Config)).
 		WithS3ForcePathStyle(opt.ForcePathStyle).
-		WithS3UseAccelerate(opt.UseAccelerateEndpoint)
+		WithS3UseAccelerate(opt.UseAccelerateEndpoint).
+		WithS3UsEast1RegionalEndpoint(endpoints.RegionalS3UsEast1Endpoint)
+
 	if opt.Region != "" {
 		awsConfig.WithRegion(opt.Region)
 	}
@@ -1234,6 +1567,11 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	if opt.BucketACL == "" {
 		opt.BucketACL = opt.ACL
 	}
+	if opt.SSECustomerKey != "" && opt.SSECustomerKeyMD5 == "" {
+		// calculate CustomerKeyMD5 if not supplied
+		md5sumBinary := md5.Sum([]byte(opt.SSECustomerKey))
+		opt.SSECustomerKeyMD5 = base64.StdEncoding.EncodeToString(md5sumBinary[:])
+	}
 	c, ses, err := s3Connection(opt)
 	if err != nil {
 		return nil, err
@@ -1260,7 +1598,16 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		),
 		tokens: pacer.NewTokenDispenser(concurrency),
 	}
-
+	if opt.ServerSideEncryption == "aws:kms" || opt.SSECustomerAlgorithm != "" {
+		// From: https://docs.aws.amazon.com/AmazonS3/latest/API/RESTCommonResponseHeaders.html
+		//
+		// Objects encrypted by SSE-S3 or plaintext have ETags that are an MD5
+		// digest of their data.
+		//
+		// Objects encrypted by SSE-C or SSE-KMS have ETags that are not an
+		// MD5 digest of their object data.
+		f.etagIsNotMD5 = true
+	}
 	f.setRoot(root)
 	f.features = (&fs.Features{
 		ReadMimeType:      true,
@@ -1269,27 +1616,24 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		BucketBasedRootOK: true,
 		SetTier:           true,
 		GetTier:           true,
+		SlowModTime:       true,
 	}).Fill(f)
 	if f.rootBucket != "" && f.rootDirectory != "" {
-		// Check to see if the object exists
-		encodedDirectory := f.opt.Enc.FromStandardPath(f.rootDirectory)
-		req := s3.HeadObjectInput{
-			Bucket: &f.rootBucket,
-			Key:    &encodedDirectory,
-		}
-		err = f.pacer.Call(func() (bool, error) {
-			_, err = f.c.HeadObject(&req)
-			return f.shouldRetry(err)
-		})
-		if err == nil {
-			newRoot := path.Dir(f.root)
-			if newRoot == "." {
-				newRoot = ""
+		// Check to see if the (bucket,directory) is actually an existing file
+		oldRoot := f.root
+		newRoot, leaf := path.Split(oldRoot)
+		f.setRoot(newRoot)
+		_, err := f.NewObject(context.Background(), leaf)
+		if err != nil {
+			if err == fs.ErrorObjectNotFound || err == fs.ErrorNotAFile {
+				// File doesn't exist or is a directory so return old f
+				f.setRoot(oldRoot)
+				return f, nil
 			}
-			f.setRoot(newRoot)
-			// return an error with an fs which points to the parent
-			return f, fs.ErrorIsFile
+			return nil, err
 		}
+		// return an error with an fs which points to the parent
+		return f, fs.ErrorIsFile
 	}
 	// f.listMultipartUploads()
 	return f, nil
@@ -1311,7 +1655,7 @@ func (f *Fs) newObjectWithInfo(ctx context.Context, remote string, info *s3.Obje
 		} else {
 			o.lastModified = *info.LastModified
 		}
-		o.etag = aws.StringValue(info.ETag)
+		o.setMD5FromEtag(aws.StringValue(info.ETag))
 		o.bytes = aws.Int64Value(info.Size)
 		o.storageClass = aws.StringValue(info.StorageClass)
 	} else {
@@ -1410,7 +1754,7 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 	//
 	// So we enable only on providers we know supports it properly, all others can retry when a
 	// XML Syntax error is detected.
-	var urlEncodeListings = (f.opt.Provider == "AWS" || f.opt.Provider == "Wasabi" || f.opt.Provider == "Alibaba")
+	var urlEncodeListings = (f.opt.Provider == "AWS" || f.opt.Provider == "Wasabi" || f.opt.Provider == "Alibaba" || f.opt.Provider == "Minio" || f.opt.Provider == "TencentCOS")
 	for {
 		// FIXME need to implement ALL loop
 		req := s3.ListObjectsInput{
@@ -1723,6 +2067,9 @@ func (f *Fs) Mkdir(ctx context.Context, dir string) error {
 
 // makeBucket creates the bucket if it doesn't exist
 func (f *Fs) makeBucket(ctx context.Context, bucket string) error {
+	if f.opt.NoCheckBucket {
+		return nil
+	}
 	return f.cache.Create(bucket, func() error {
 		req := s3.CreateBucketInput{
 			Bucket: &bucket,
@@ -1740,12 +2087,12 @@ func (f *Fs) makeBucket(ctx context.Context, bucket string) error {
 		if err == nil {
 			fs.Infof(f, "Bucket %q created with ACL %q", bucket, f.opt.BucketACL)
 		}
-		if err, ok := err.(awserr.Error); ok {
-			if err.Code() == "BucketAlreadyOwnedByYou" {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if code := awsErr.Code(); code == "BucketAlreadyOwnedByYou" || code == "BucketAlreadyExists" {
 				err = nil
 			}
 		}
-		return nil
+		return err
 	}, func() (bool, error) {
 		return f.bucketExists(ctx, bucket)
 	})
@@ -1789,7 +2136,7 @@ func pathEscape(s string) string {
 //
 // It adds the boiler plate to the req passed in and calls the s3
 // method
-func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string, srcSize int64) error {
+func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string, src *Object) error {
 	req.Bucket = &dstBucket
 	req.ACL = &f.opt.ACL
 	req.Key = &dstPath
@@ -1798,6 +2145,18 @@ func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPa
 	if f.opt.ServerSideEncryption != "" {
 		req.ServerSideEncryption = &f.opt.ServerSideEncryption
 	}
+	if f.opt.SSECustomerAlgorithm != "" {
+		req.SSECustomerAlgorithm = &f.opt.SSECustomerAlgorithm
+		req.CopySourceSSECustomerAlgorithm = &f.opt.SSECustomerAlgorithm
+	}
+	if f.opt.SSECustomerKey != "" {
+		req.SSECustomerKey = &f.opt.SSECustomerKey
+		req.CopySourceSSECustomerKey = &f.opt.SSECustomerKey
+	}
+	if f.opt.SSECustomerKeyMD5 != "" {
+		req.SSECustomerKeyMD5 = &f.opt.SSECustomerKeyMD5
+		req.CopySourceSSECustomerKeyMD5 = &f.opt.SSECustomerKeyMD5
+	}
 	if f.opt.SSEKMSKeyID != "" {
 		req.SSEKMSKeyId = &f.opt.SSEKMSKeyID
 	}
@@ -1805,8 +2164,8 @@ func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPa
 		req.StorageClass = &f.opt.StorageClass
 	}
 
-	if srcSize >= int64(f.opt.CopyCutoff) {
-		return f.copyMultipart(ctx, req, dstBucket, dstPath, srcBucket, srcPath, srcSize)
+	if src.bytes >= int64(f.opt.CopyCutoff) {
+		return f.copyMultipart(ctx, req, dstBucket, dstPath, srcBucket, srcPath, src)
 	}
 	return f.pacer.CallContext(ctx, func() (bool, error) {
 		_, err := f.c.CopyObjectWithContext(ctx, req)
@@ -1827,63 +2186,70 @@ func calculateRange(partSize, partIndex, numParts, totalSize int64) string {
 	return fmt.Sprintf("bytes=%v-%v", start, ends)
 }
 
-func (f *Fs) copyMultipart(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string, srcSize int64) (err error) {
+func (f *Fs) copyMultipart(ctx context.Context, copyReq *s3.CopyObjectInput, dstBucket, dstPath, srcBucket, srcPath string, src *Object) (err error) {
+	info, err := src.headObject(ctx)
+	if err != nil {
+		return err
+	}
+
+	req := &s3.CreateMultipartUploadInput{}
+
+	// Fill in the request from the head info
+	structs.SetFrom(req, info)
+
+	// If copy metadata was set then set the Metadata to that read
+	// from the head request
+	if aws.StringValue(copyReq.MetadataDirective) == s3.MetadataDirectiveCopy {
+		copyReq.Metadata = info.Metadata
+	}
+
+	// Overwrite any from the copyReq
+	structs.SetFrom(req, copyReq)
+
+	req.Bucket = &dstBucket
+	req.Key = &dstPath
+
 	var cout *s3.CreateMultipartUploadOutput
 	if err := f.pacer.CallContext(ctx, func() (bool, error) {
 		var err error
-		cout, err = f.c.CreateMultipartUploadWithContext(ctx, &s3.CreateMultipartUploadInput{
-			Bucket: &dstBucket,
-			Key:    &dstPath,
-		})
+		cout, err = f.c.CreateMultipartUploadWithContext(ctx, req)
 		return f.shouldRetry(err)
 	}); err != nil {
 		return err
 	}
 	uid := cout.UploadId
 
-	defer func() {
-		if err != nil {
-			// We can try to abort the upload, but ignore the error.
-			fs.Debugf(nil, "Cancelling multipart copy")
-			_ = f.pacer.CallContext(ctx, func() (bool, error) {
-				_, err := f.c.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
-					Bucket:       &dstBucket,
-					Key:          &dstPath,
-					UploadId:     uid,
-					RequestPayer: req.RequestPayer,
-				})
-				return f.shouldRetry(err)
+	defer atexit.OnError(&err, func() {
+		// Try to abort the upload, but ignore the error.
+		fs.Debugf(src, "Cancelling multipart copy")
+		_ = f.pacer.CallContext(ctx, func() (bool, error) {
+			_, err := f.c.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
+				Bucket:       &dstBucket,
+				Key:          &dstPath,
+				UploadId:     uid,
+				RequestPayer: req.RequestPayer,
 			})
-		}
-	}()
+			return f.shouldRetry(err)
+		})
+	})()
 
+	srcSize := src.bytes
 	partSize := int64(f.opt.CopyCutoff)
 	numParts := (srcSize-1)/partSize + 1
+
+	fs.Debugf(src, "Starting  multipart copy with %d parts", numParts)
 
 	var parts []*s3.CompletedPart
 	for partNum := int64(1); partNum <= numParts; partNum++ {
 		if err := f.pacer.CallContext(ctx, func() (bool, error) {
 			partNum := partNum
-			uploadPartReq := &s3.UploadPartCopyInput{
-				Bucket:          &dstBucket,
-				Key:             &dstPath,
-				PartNumber:      &partNum,
-				UploadId:        uid,
-				CopySourceRange: aws.String(calculateRange(partSize, partNum-1, numParts, srcSize)),
-				// Args copy from req
-				CopySource:                     req.CopySource,
-				CopySourceIfMatch:              req.CopySourceIfMatch,
-				CopySourceIfModifiedSince:      req.CopySourceIfModifiedSince,
-				CopySourceIfNoneMatch:          req.CopySourceIfNoneMatch,
-				CopySourceIfUnmodifiedSince:    req.CopySourceIfUnmodifiedSince,
-				CopySourceSSECustomerAlgorithm: req.CopySourceSSECustomerAlgorithm,
-				CopySourceSSECustomerKey:       req.CopySourceSSECustomerKey,
-				CopySourceSSECustomerKeyMD5:    req.CopySourceSSECustomerKeyMD5,
-				RequestPayer:                   req.RequestPayer,
-				SSECustomerAlgorithm:           req.SSECustomerAlgorithm,
-				SSECustomerKey:                 req.SSECustomerKey,
-				SSECustomerKeyMD5:              req.SSECustomerKeyMD5,
-			}
+			uploadPartReq := &s3.UploadPartCopyInput{}
+			structs.SetFrom(uploadPartReq, copyReq)
+			uploadPartReq.Bucket = &dstBucket
+			uploadPartReq.Key = &dstPath
+			uploadPartReq.PartNumber = &partNum
+			uploadPartReq.UploadId = uid
+			uploadPartReq.CopySourceRange = aws.String(calculateRange(partSize, partNum-1, numParts, srcSize))
 			uout, err := f.c.UploadPartCopyWithContext(ctx, uploadPartReq)
 			if err != nil {
 				return f.shouldRetry(err)
@@ -1936,7 +2302,7 @@ func (f *Fs) Copy(ctx context.Context, src fs.Object, remote string) (fs.Object,
 	req := s3.CopyObjectInput{
 		MetadataDirective: aws.String(s3.MetadataDirectiveCopy),
 	}
-	err = f.copy(ctx, &req, dstBucket, dstPath, srcBucket, srcPath, srcObj.Size())
+	err = f.copy(ctx, &req, dstBucket, dstPath, srcBucket, srcPath, srcObj)
 	if err != nil {
 		return nil, err
 	}
@@ -1961,6 +2327,325 @@ func (f *Fs) getMemoryPool(size int64) *pool.Pool {
 	)
 }
 
+// PublicLink generates a public link to the remote path (usually readable by anyone)
+func (f *Fs) PublicLink(ctx context.Context, remote string, expire fs.Duration, unlink bool) (link string, err error) {
+	if strings.HasSuffix(remote, "/") {
+		return "", fs.ErrorCantShareDirectories
+	}
+	if _, err := f.NewObject(ctx, remote); err != nil {
+		return "", err
+	}
+	if expire > maxExpireDuration {
+		fs.Logf(f, "Public Link: Reducing expiry to %v as %v is greater than the max time allowed", maxExpireDuration, expire)
+		expire = maxExpireDuration
+	}
+	bucket, bucketPath := f.split(remote)
+	httpReq, _ := f.c.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: &bucket,
+		Key:    &bucketPath,
+	})
+
+	return httpReq.Presign(time.Duration(expire))
+}
+
+var commandHelp = []fs.CommandHelp{{
+	Name:  "restore",
+	Short: "Restore objects from GLACIER to normal storage",
+	Long: `This command can be used to restore one or more objects from GLACIER
+to normal storage.
+
+Usage Examples:
+
+    rclone backend restore s3:bucket/path/to/object [-o priority=PRIORITY] [-o lifetime=DAYS]
+    rclone backend restore s3:bucket/path/to/directory [-o priority=PRIORITY] [-o lifetime=DAYS]
+    rclone backend restore s3:bucket [-o priority=PRIORITY] [-o lifetime=DAYS]
+
+This flag also obeys the filters. Test first with -i/--interactive or --dry-run flags
+
+    rclone -i backend restore --include "*.txt" s3:bucket/path -o priority=Standard
+
+All the objects shown will be marked for restore, then
+
+    rclone backend restore --include "*.txt" s3:bucket/path -o priority=Standard
+
+It returns a list of status dictionaries with Remote and Status
+keys. The Status will be OK if it was successfull or an error message
+if not.
+
+    [
+        {
+            "Status": "OK",
+            "Path": "test.txt"
+        },
+        {
+            "Status": "OK",
+            "Path": "test/file4.txt"
+        }
+    ]
+
+`,
+	Opts: map[string]string{
+		"priority":    "Priority of restore: Standard|Expedited|Bulk",
+		"lifetime":    "Lifetime of the active copy in days",
+		"description": "The optional description for the job.",
+	},
+}, {
+	Name:  "list-multipart-uploads",
+	Short: "List the unfinished multipart uploads",
+	Long: `This command lists the unfinished multipart uploads in JSON format.
+
+    rclone backend list-multipart s3:bucket/path/to/object
+
+It returns a dictionary of buckets with values as lists of unfinished
+multipart uploads.
+
+You can call it with no bucket in which case it lists all bucket, with
+a bucket or with a bucket and path.
+
+    {
+      "rclone": [
+        {
+          "Initiated": "2020-06-26T14:20:36Z",
+          "Initiator": {
+            "DisplayName": "XXX",
+            "ID": "arn:aws:iam::XXX:user/XXX"
+          },
+          "Key": "KEY",
+          "Owner": {
+            "DisplayName": null,
+            "ID": "XXX"
+          },
+          "StorageClass": "STANDARD",
+          "UploadId": "XXX"
+        }
+      ],
+      "rclone-1000files": [],
+      "rclone-dst": []
+    }
+
+`,
+}, {
+	Name:  "cleanup",
+	Short: "Remove unfinished multipart uploads.",
+	Long: `This command removes unfinished multipart uploads of age greater than
+max-age which defaults to 24 hours.
+
+Note that you can use -i/--dry-run with this command to see what it
+would do.
+
+    rclone backend cleanup s3:bucket/path/to/object
+    rclone backend cleanup -o max-age=7w s3:bucket/path/to/object
+
+Durations are parsed as per the rest of rclone, 2h, 7d, 7w etc.
+`,
+	Opts: map[string]string{
+		"max-age": "Max age of upload to delete",
+	},
+}}
+
+// Command the backend to run a named command
+//
+// The command run is name
+// args may be used to read arguments from
+// opts may be used to read optional arguments from
+//
+// The result should be capable of being JSON encoded
+// If it is a string or a []string it will be shown to the user
+// otherwise it will be JSON encoded and shown to the user like that
+func (f *Fs) Command(ctx context.Context, name string, arg []string, opt map[string]string) (out interface{}, err error) {
+	switch name {
+	case "restore":
+		req := s3.RestoreObjectInput{
+			//Bucket:         &f.rootBucket,
+			//Key:            &encodedDirectory,
+			RestoreRequest: &s3.RestoreRequest{},
+		}
+		if lifetime := opt["lifetime"]; lifetime != "" {
+			ilifetime, err := strconv.ParseInt(lifetime, 10, 64)
+			if err != nil {
+				return nil, errors.Wrap(err, "bad lifetime")
+			}
+			req.RestoreRequest.Days = &ilifetime
+		}
+		if priority := opt["priority"]; priority != "" {
+			req.RestoreRequest.GlacierJobParameters = &s3.GlacierJobParameters{
+				Tier: &priority,
+			}
+		}
+		if description := opt["description"]; description != "" {
+			req.RestoreRequest.Description = &description
+		}
+		type status struct {
+			Status string
+			Remote string
+		}
+		var (
+			outMu sync.Mutex
+			out   = []status{}
+		)
+		err = operations.ListFn(ctx, f, func(obj fs.Object) {
+			// Remember this is run --checkers times concurrently
+			o, ok := obj.(*Object)
+			st := status{Status: "OK", Remote: obj.Remote()}
+			defer func() {
+				outMu.Lock()
+				out = append(out, st)
+				outMu.Unlock()
+			}()
+			if operations.SkipDestructive(ctx, obj, "restore") {
+				return
+			}
+			if !ok {
+				st.Status = "Not an S3 object"
+				return
+			}
+			bucket, bucketPath := o.split()
+			reqCopy := req
+			reqCopy.Bucket = &bucket
+			reqCopy.Key = &bucketPath
+			err = f.pacer.Call(func() (bool, error) {
+				_, err = f.c.RestoreObject(&reqCopy)
+				return f.shouldRetry(err)
+			})
+			if err != nil {
+				st.Status = err.Error()
+			}
+		})
+		if err != nil {
+			return out, err
+		}
+		return out, nil
+	case "list-multipart-uploads":
+		return f.listMultipartUploadsAll(ctx)
+	case "cleanup":
+		maxAge := 24 * time.Hour
+		if opt["max-age"] != "" {
+			maxAge, err = fs.ParseDuration(opt["max-age"])
+			if err != nil {
+				return nil, errors.Wrap(err, "bad max-age")
+			}
+		}
+		return nil, f.cleanUp(ctx, maxAge)
+	default:
+		return nil, fs.ErrorCommandNotFound
+	}
+}
+
+// listMultipartUploads lists all outstanding multipart uploads for (bucket, key)
+//
+// Note that rather lazily we treat key as a prefix so it matches
+// directories and objects. This could suprise the user if they ask
+// for "dir" and it returns "dirKey"
+func (f *Fs) listMultipartUploads(ctx context.Context, bucket, key string) (uploads []*s3.MultipartUpload, err error) {
+	var (
+		keyMarker      *string
+		uploadIDMarker *string
+	)
+	uploads = []*s3.MultipartUpload{}
+	for {
+		req := s3.ListMultipartUploadsInput{
+			Bucket:         &bucket,
+			MaxUploads:     &f.opt.ListChunk,
+			KeyMarker:      keyMarker,
+			UploadIdMarker: uploadIDMarker,
+			Prefix:         &key,
+		}
+		var resp *s3.ListMultipartUploadsOutput
+		err = f.pacer.Call(func() (bool, error) {
+			resp, err = f.c.ListMultipartUploads(&req)
+			return f.shouldRetry(err)
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "list multipart uploads bucket %q key %q", bucket, key)
+		}
+		uploads = append(uploads, resp.Uploads...)
+		if !aws.BoolValue(resp.IsTruncated) {
+			break
+		}
+		keyMarker = resp.NextKeyMarker
+		uploadIDMarker = resp.NextUploadIdMarker
+	}
+	return uploads, nil
+}
+
+func (f *Fs) listMultipartUploadsAll(ctx context.Context) (uploadsMap map[string][]*s3.MultipartUpload, err error) {
+	uploadsMap = make(map[string][]*s3.MultipartUpload)
+	bucket, directory := f.split("")
+	if bucket != "" {
+		uploads, err := f.listMultipartUploads(ctx, bucket, directory)
+		if err != nil {
+			return uploadsMap, err
+		}
+		uploadsMap[bucket] = uploads
+		return uploadsMap, nil
+	}
+	entries, err := f.listBuckets(ctx)
+	if err != nil {
+		return uploadsMap, err
+	}
+	for _, entry := range entries {
+		bucket := entry.Remote()
+		uploads, listErr := f.listMultipartUploads(ctx, bucket, "")
+		if listErr != nil {
+			err = listErr
+			fs.Errorf(f, "%v", err)
+		}
+		uploadsMap[bucket] = uploads
+	}
+	return uploadsMap, err
+}
+
+// cleanUpBucket removes all pending multipart uploads for a given bucket over the age of maxAge
+func (f *Fs) cleanUpBucket(ctx context.Context, bucket string, maxAge time.Duration, uploads []*s3.MultipartUpload) (err error) {
+	fs.Infof(f, "cleaning bucket %q of pending multipart uploads older than %v", bucket, maxAge)
+	for _, upload := range uploads {
+		if upload.Initiated != nil && upload.Key != nil && upload.UploadId != nil {
+			age := time.Since(*upload.Initiated)
+			what := fmt.Sprintf("pending multipart upload for bucket %q key %q dated %v (%v ago)", bucket, *upload.Key, upload.Initiated, age)
+			if age > maxAge {
+				fs.Infof(f, "removing %s", what)
+				if operations.SkipDestructive(ctx, what, "remove pending upload") {
+					continue
+				}
+				req := s3.AbortMultipartUploadInput{
+					Bucket:   &bucket,
+					UploadId: upload.UploadId,
+					Key:      upload.Key,
+				}
+				_, abortErr := f.c.AbortMultipartUpload(&req)
+				if abortErr != nil {
+					err = errors.Wrapf(abortErr, "failed to remove %s", what)
+					fs.Errorf(f, "%v", err)
+				}
+			} else {
+				fs.Debugf(f, "ignoring %s", what)
+			}
+		}
+	}
+	return err
+}
+
+// CleanUp removes all pending multipart uploads
+func (f *Fs) cleanUp(ctx context.Context, maxAge time.Duration) (err error) {
+	uploadsMap, err := f.listMultipartUploadsAll(ctx)
+	if err != nil {
+		return err
+	}
+	for bucket, uploads := range uploadsMap {
+		cleanErr := f.cleanUpBucket(ctx, bucket, maxAge, uploads)
+		if err != nil {
+			fs.Errorf(f, "Failed to cleanup bucket %q: %v", bucket, cleanErr)
+			err = cleanErr
+		}
+	}
+	return err
+}
+
+// CleanUp removes all pending multipart uploads older than 24 hours
+func (f *Fs) CleanUp(ctx context.Context) (err error) {
+	return f.cleanUp(ctx, 24*time.Hour)
+}
+
 // ------------------------------------------------------------
 
 // Fs returns the parent Fs
@@ -1983,35 +2668,75 @@ func (o *Object) Remote() string {
 
 var matchMd5 = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
+// Set the MD5 from the etag
+func (o *Object) setMD5FromEtag(etag string) {
+	if o.fs.etagIsNotMD5 {
+		o.md5 = ""
+		return
+	}
+	if etag == "" {
+		o.md5 = ""
+		return
+	}
+	hash := strings.Trim(strings.ToLower(etag), `"`)
+	// Check the etag is a valid md5sum
+	if !matchMd5.MatchString(hash) {
+		o.md5 = ""
+		return
+	}
+	o.md5 = hash
+}
+
 // Hash returns the Md5sum of an object returning a lowercase hex string
 func (o *Object) Hash(ctx context.Context, t hash.Type) (string, error) {
 	if t != hash.MD5 {
 		return "", hash.ErrUnsupported
 	}
-	hash := strings.Trim(strings.ToLower(o.etag), `"`)
-	// Check the etag is a valid md5sum
-	if !matchMd5.MatchString(hash) {
+	// If we haven't got an MD5, then check the metadata
+	if o.md5 == "" {
 		err := o.readMetaData(ctx)
 		if err != nil {
 			return "", err
 		}
-
-		if md5sum, ok := o.meta[metaMD5Hash]; ok {
-			md5sumBytes, err := base64.StdEncoding.DecodeString(*md5sum)
-			if err != nil {
-				return "", err
-			}
-			hash = hex.EncodeToString(md5sumBytes)
-		} else {
-			hash = ""
-		}
 	}
-	return hash, nil
+	return o.md5, nil
 }
 
 // Size returns the size of an object in bytes
 func (o *Object) Size() int64 {
 	return o.bytes
+}
+
+func (o *Object) headObject(ctx context.Context) (resp *s3.HeadObjectOutput, err error) {
+	bucket, bucketPath := o.split()
+	req := s3.HeadObjectInput{
+		Bucket: &bucket,
+		Key:    &bucketPath,
+	}
+	if o.fs.opt.SSECustomerAlgorithm != "" {
+		req.SSECustomerAlgorithm = &o.fs.opt.SSECustomerAlgorithm
+	}
+	if o.fs.opt.SSECustomerKey != "" {
+		req.SSECustomerKey = &o.fs.opt.SSECustomerKey
+	}
+	if o.fs.opt.SSECustomerKeyMD5 != "" {
+		req.SSECustomerKeyMD5 = &o.fs.opt.SSECustomerKeyMD5
+	}
+	err = o.fs.pacer.CallContext(ctx, func() (bool, error) {
+		var err error
+		resp, err = o.fs.c.HeadObjectWithContext(ctx, &req)
+		return o.fs.shouldRetry(err)
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.RequestFailure); ok {
+			if awsErr.StatusCode() == http.StatusNotFound {
+				return nil, fs.ErrorObjectNotFound
+			}
+		}
+		return nil, err
+	}
+	o.fs.cache.MarkOK(bucket)
+	return resp, nil
 }
 
 // readMetaData gets the metadata if it hasn't already been fetched
@@ -2021,23 +2746,8 @@ func (o *Object) readMetaData(ctx context.Context) (err error) {
 	if o.meta != nil {
 		return nil
 	}
-	bucket, bucketPath := o.split()
-	req := s3.HeadObjectInput{
-		Bucket: &bucket,
-		Key:    &bucketPath,
-	}
-	var resp *s3.HeadObjectOutput
-	err = o.fs.pacer.CallContext(ctx, func() (bool, error) {
-		var err error
-		resp, err = o.fs.c.HeadObjectWithContext(ctx, &req)
-		return o.fs.shouldRetry(err)
-	})
+	resp, err := o.headObject(ctx)
 	if err != nil {
-		if awsErr, ok := err.(awserr.RequestFailure); ok {
-			if awsErr.StatusCode() == http.StatusNotFound {
-				return fs.ErrorObjectNotFound
-			}
-		}
 		return err
 	}
 	var size int64
@@ -2046,11 +2756,22 @@ func (o *Object) readMetaData(ctx context.Context) (err error) {
 	if resp.ContentLength != nil {
 		size = *resp.ContentLength
 	}
-	o.etag = aws.StringValue(resp.ETag)
+	o.setMD5FromEtag(aws.StringValue(resp.ETag))
 	o.bytes = size
 	o.meta = resp.Metadata
 	if o.meta == nil {
 		o.meta = map[string]*string{}
+	}
+	// Read MD5 from metadata if present
+	if md5sumBase64, ok := o.meta[metaMD5Hash]; ok {
+		md5sumBytes, err := base64.StdEncoding.DecodeString(*md5sumBase64)
+		if err != nil {
+			fs.Debugf(o, "Failed to read md5sum from metadata %q: %v", *md5sumBase64, err)
+		} else if len(md5sumBytes) != 16 {
+			fs.Debugf(o, "Failed to read md5sum from metadata %q: wrong length", *md5sumBase64)
+		} else {
+			o.md5 = hex.EncodeToString(md5sumBytes)
+		}
 	}
 	o.storageClass = aws.StringValue(resp.StorageClass)
 	if resp.LastModified == nil {
@@ -2110,7 +2831,7 @@ func (o *Object) SetModTime(ctx context.Context, modTime time.Time) error {
 		Metadata:          o.meta,
 		MetadataDirective: aws.String(s3.MetadataDirectiveReplace), // replace metadata with that passed in
 	}
-	return o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o.bytes)
+	return o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o)
 }
 
 // Storable raturns a boolean indicating if this object is storable
@@ -2134,22 +2855,27 @@ func (o *Object) Open(ctx context.Context, options ...fs.OpenOption) (in io.Read
 	if o.fs.opt.SSECustomerKeyMD5 != "" {
 		req.SSECustomerKeyMD5 = &o.fs.opt.SSECustomerKeyMD5
 	}
+	httpReq, resp := o.fs.c.GetObjectRequest(&req)
 	fs.FixRangeOption(options, o.bytes)
 	for _, option := range options {
 		switch option.(type) {
 		case *fs.RangeOption, *fs.SeekOption:
 			_, value := option.Header()
 			req.Range = &value
+		case *fs.HTTPOption:
+			key, value := option.Header()
+			httpReq.HTTPRequest.Header.Add(key, value)
 		default:
 			if option.Mandatory() {
 				fs.Logf(o, "Unsupported mandatory option: %v", option)
 			}
 		}
 	}
-	var resp *s3.GetObjectOutput
+
 	err = o.fs.pacer.CallContext(ctx, func() (bool, error) {
 		var err error
-		resp, err = o.fs.c.GetObjectWithContext(ctx, &req)
+		httpReq.HTTPRequest = httpReq.HTTPRequest.WithContext(ctx)
+		err = httpReq.Send()
 		return o.fs.shouldRetry(err)
 	})
 	if err, ok := err.(awserr.RequestFailure); ok {
@@ -2168,6 +2894,13 @@ var warnStreamUpload sync.Once
 func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, size int64, in io.Reader) (err error) {
 	f := o.fs
 
+	uploadParts := f.opt.MaxUploadParts
+	if uploadParts < 1 {
+		uploadParts = 1
+	} else if uploadParts > maxUploadParts {
+		uploadParts = maxUploadParts
+	}
+
 	// calculate size of parts
 	partSize := int(f.opt.ChunkSize)
 
@@ -2177,31 +2910,24 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 	if size == -1 {
 		warnStreamUpload.Do(func() {
 			fs.Logf(f, "Streaming uploads using chunk size %v will have maximum file size of %v",
-				f.opt.ChunkSize, fs.SizeSuffix(partSize*maxUploadParts))
+				f.opt.ChunkSize, fs.SizeSuffix(int64(partSize)*uploadParts))
 		})
 	} else {
 		// Adjust partSize until the number of parts is small enough.
-		if size/int64(partSize) >= maxUploadParts {
+		if size/int64(partSize) >= uploadParts {
 			// Calculate partition size rounded up to the nearest MB
-			partSize = int((((size / maxUploadParts) >> 20) + 1) << 20)
+			partSize = int((((size / uploadParts) >> 20) + 1) << 20)
 		}
 	}
 
 	memPool := f.getMemoryPool(int64(partSize))
 
+	var mReq s3.CreateMultipartUploadInput
+	structs.SetFrom(&mReq, req)
 	var cout *s3.CreateMultipartUploadOutput
 	err = f.pacer.CallContext(ctx, func() (bool, error) {
 		var err error
-		cout, err = f.c.CreateMultipartUploadWithContext(ctx, &s3.CreateMultipartUploadInput{
-			Bucket:               req.Bucket,
-			ACL:                  req.ACL,
-			Key:                  req.Key,
-			ContentType:          req.ContentType,
-			Metadata:             req.Metadata,
-			ServerSideEncryption: req.ServerSideEncryption,
-			SSEKMSKeyId:          req.SSEKMSKeyId,
-			StorageClass:         req.StorageClass,
-		})
+		cout, err = f.c.CreateMultipartUploadWithContext(ctx, &mReq)
 		return f.shouldRetry(err)
 	})
 	if err != nil {
@@ -2209,27 +2935,24 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 	}
 	uid := cout.UploadId
 
-	defer func() {
+	defer atexit.OnError(&err, func() {
 		if o.fs.opt.LeavePartsOnError {
 			return
 		}
-		if err != nil {
-			// We can try to abort the upload, but ignore the error.
-			fs.Debugf(o, "Cancelling multipart upload")
-			errCancel := f.pacer.CallContext(ctx, func() (bool, error) {
-				_, err := f.c.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
-					Bucket:       req.Bucket,
-					Key:          req.Key,
-					UploadId:     uid,
-					RequestPayer: req.RequestPayer,
-				})
-				return f.shouldRetry(err)
+		fs.Debugf(o, "Cancelling multipart upload")
+		errCancel := f.pacer.CallContext(ctx, func() (bool, error) {
+			_, err := f.c.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
+				Bucket:       req.Bucket,
+				Key:          req.Key,
+				UploadId:     uid,
+				RequestPayer: req.RequestPayer,
 			})
-			if errCancel != nil {
-				fs.Debugf(o, "Failed to cancel multipart upload: %v", errCancel)
-			}
+			return f.shouldRetry(err)
+		})
+		if errCancel != nil {
+			fs.Debugf(o, "Failed to cancel multipart upload: %v", errCancel)
 		}
-	}()
+	})()
 
 	var (
 		g, gCtx  = errgroup.WithContext(ctx)
@@ -2244,9 +2967,16 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 		o.fs.tokens.Get()
 		buf := memPool.Get()
 
+		free := func() {
+			// return the memory and token
+			memPool.Put(buf)
+			o.fs.tokens.Put()
+		}
+
 		// Fail fast, in case an errgroup managed function returns an error
 		// gCtx is cancelled. There is no point in uploading all the other parts.
 		if gCtx.Err() != nil {
+			free()
 			break
 		}
 
@@ -2255,10 +2985,12 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 		n, err = readers.ReadFill(in, buf) // this can never return 0, nil
 		if err == io.EOF {
 			if n == 0 && partNum != 1 { // end if no data and if not first chunk
+				free()
 				break
 			}
 			finished = true
 		} else if err != nil {
+			free()
 			return errors.Wrap(err, "multipart upload failed to read source")
 		}
 		buf = buf[:n]
@@ -2267,6 +2999,7 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 		fs.Debugf(o, "multipart upload starting chunk %d size %v offset %v/%v", partNum, fs.SizeSuffix(n), fs.SizeSuffix(off), fs.SizeSuffix(size))
 		off += int64(n)
 		g.Go(func() (err error) {
+			defer free()
 			partLength := int64(len(buf))
 
 			// create checksum of buffer for integrity checking
@@ -2308,10 +3041,6 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 
 				return false, nil
 			})
-
-			// return the memory and token
-			memPool.Put(buf)
-			o.fs.tokens.Put()
 
 			if err != nil {
 				return errors.Wrap(err, "multipart upload failed to upload part")
@@ -2367,6 +3096,7 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	// read the md5sum if available
 	// - for non multpart
 	//    - so we can add a ContentMD5
+	//    - so we can add the md5sum in the metadata as metaMD5Hash if using SSE/SSE-C
 	// - for multipart provided checksums aren't disabled
 	//    - so we can add the md5sum in the metadata as metaMD5Hash
 	var md5sum string
@@ -2376,7 +3106,11 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 			hashBytes, err := hex.DecodeString(hash)
 			if err == nil {
 				md5sum = base64.StdEncoding.EncodeToString(hashBytes)
-				if multipart {
+				if (multipart || o.fs.etagIsNotMD5) && !o.fs.opt.DisableChecksum {
+					// Set the md5sum as metadata on the object if
+					// - a multipart upload
+					// - the Etag is not an MD5, eg when using SSE/SSE-C
+					// provided checksums aren't disabled
 					metadata[metaMD5Hash] = &md5sum
 				}
 			}
@@ -2412,6 +3146,35 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	}
 	if o.fs.opt.StorageClass != "" {
 		req.StorageClass = &o.fs.opt.StorageClass
+	}
+	// Apply upload options
+	for _, option := range options {
+		key, value := option.Header()
+		lowerKey := strings.ToLower(key)
+		switch lowerKey {
+		case "":
+			// ignore
+		case "cache-control":
+			req.CacheControl = aws.String(value)
+		case "content-disposition":
+			req.ContentDisposition = aws.String(value)
+		case "content-encoding":
+			req.ContentEncoding = aws.String(value)
+		case "content-language":
+			req.ContentLanguage = aws.String(value)
+		case "content-type":
+			req.ContentType = aws.String(value)
+		case "x-amz-tagging":
+			req.Tagging = aws.String(value)
+		default:
+			const amzMetaPrefix = "x-amz-meta-"
+			if strings.HasPrefix(lowerKey, amzMetaPrefix) {
+				metaKey := lowerKey[len(amzMetaPrefix):]
+				req.Metadata[metaKey] = aws.String(value)
+			} else {
+				fs.Errorf(o, "Don't know how to set key %q on upload", key)
+			}
+		}
 	}
 
 	if multipart {
@@ -2512,7 +3275,7 @@ func (o *Object) SetTier(tier string) (err error) {
 		MetadataDirective: aws.String(s3.MetadataDirectiveCopy),
 		StorageClass:      aws.String(tier),
 	}
-	err = o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o.bytes)
+	err = o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o)
 	if err != nil {
 		return err
 	}
@@ -2534,6 +3297,8 @@ var (
 	_ fs.Copier      = &Fs{}
 	_ fs.PutStreamer = &Fs{}
 	_ fs.ListRer     = &Fs{}
+	_ fs.Commander   = &Fs{}
+	_ fs.CleanUpper  = &Fs{}
 	_ fs.Object      = &Object{}
 	_ fs.MimeTyper   = &Object{}
 	_ fs.GetTierer   = &Object{}

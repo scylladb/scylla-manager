@@ -16,7 +16,7 @@ import (
 	"github.com/rclone/rclone/fs/rc"
 )
 
-// Job describes a asynchronous task started via the rc package
+// Job describes an asynchronous task started via the rc package
 type Job struct {
 	mu        sync.Mutex
 	ID        int64     `json:"id"`
@@ -29,7 +29,7 @@ type Job struct {
 	Duration  float64   `json:"duration"`
 	Output    rc.Params `json:"output"`
 	Stop      func()    `json:"-"`
-	listeners []func()
+	listeners []*func()
 
 	// realErr is the Error before printing it as a string, it's used to return
 	// the real error to the upper application layers while still printing the
@@ -59,17 +59,28 @@ func (job *Job) finish(out rc.Params, err error) {
 
 	// Notify listeners that the job is finished
 	for i := range job.listeners {
-		go job.listeners[i]()
+		go (*job.listeners[i])()
 	}
 
 	job.mu.Unlock()
 	running.kickExpire() // make sure this job gets expired
 }
 
-func (job *Job) addListener(fn func()) {
+func (job *Job) addListener(fn *func()) {
 	job.mu.Lock()
 	defer job.mu.Unlock()
 	job.listeners = append(job.listeners, fn)
+}
+
+func (job *Job) removeListener(fn *func()) {
+	job.mu.Lock()
+	defer job.mu.Unlock()
+	for i, ln := range job.listeners {
+		if ln == fn {
+			job.listeners = append(job.listeners[:i], job.listeners[i+1:]...)
+			return
+		}
+	}
 }
 
 // run the job until completion writing the return status
@@ -245,17 +256,18 @@ func ExecuteJob(ctx context.Context, fn rc.Func, in rc.Params) (rc.Params, int64
 }
 
 // OnFinish adds listener to jobid that will be triggered when job is finished.
-func OnFinish(jobID int64, fn func()) error {
+// It returns a function to cancel listening.
+func OnFinish(jobID int64, fn func()) (func(), error) {
 	job := running.Get(jobID)
 	if job == nil {
-		return errors.New("job not found")
+		return func(){}, errors.New("job not found")
 	}
 	if job.Finished {
 		fn()
 	} else {
-		job.addListener(fn)
+		job.addListener(&fn)
 	}
-	return nil
+	return func() {job.removeListener(&fn)}, nil
 }
 
 func init() {

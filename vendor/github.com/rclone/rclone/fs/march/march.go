@@ -22,16 +22,17 @@ import (
 // calling Callback for each match
 type March struct {
 	// parameters
-	Ctx           context.Context // context for background goroutines
-	Fdst          fs.Fs           // source Fs
-	DstDir        string          // destination directory
-	Fsrc          fs.Fs           // dest Fs
-	SrcDir        string          // source directory
-	NoTraverse    bool            // don't traverse the destination
-	SrcIncludeAll bool            // don't include all files in the src
-	DstIncludeAll bool            // don't include all files in the destination
-	Callback      Marcher         // object to call with results
-	NoCheckDest   bool            // transfer all objects regardless without checking dst
+	Ctx                    context.Context // context for background goroutines
+	Fdst                   fs.Fs           // source Fs
+	DstDir                 string          // destination directory
+	Fsrc                   fs.Fs           // dest Fs
+	SrcDir                 string          // source directory
+	NoTraverse             bool            // don't traverse the destination
+	SrcIncludeAll          bool            // don't include all files in the src
+	DstIncludeAll          bool            // don't include all files in the destination
+	Callback               Marcher         // object to call with results
+	NoCheckDest            bool            // transfer all objects regardless without checking dst
+	NoUnicodeNormalization bool            // don't normalize unicode characters in filenames
 	// internal state
 	srcListDir listDirFn // function to call to list a directory in the src
 	dstListDir listDirFn // function to call to list a directory in the dst
@@ -56,7 +57,9 @@ func (m *March) init() {
 	}
 	// Now create the matching transform
 	// ..normalise the UTF8 first
-	m.transforms = append(m.transforms, norm.NFC.String)
+	if !m.NoUnicodeNormalization {
+		m.transforms = append(m.transforms, norm.NFC.String)
+	}
 	// ..if destination is caseInsensitive then make it lower case
 	// case Insensitive | src | dst | lower case compare |
 	//                  | No  | No  | No                 |
@@ -374,6 +377,7 @@ func (m *March) processJob(job listDirJob) ([]listDirJob, error) {
 		srcList, dstList       fs.DirEntries
 		srcListErr, dstListErr error
 		wg                     sync.WaitGroup
+		mu                     sync.Mutex
 	)
 
 	// List the src and dst directories
@@ -408,17 +412,27 @@ func (m *March) processJob(job listDirJob) ([]listDirJob, error) {
 	}
 
 	// If NoTraverse is set, then try to find a matching object
-	// for each item in the srcList
+	// for each item in the srcList to head dst object
+	limiter := make(chan struct{}, fs.Config.Checkers)
 	if m.NoTraverse && !m.NoCheckDest {
 		for _, src := range srcList {
-			if srcObj, ok := src.(fs.Object); ok {
-				leaf := path.Base(srcObj.Remote())
-				dstObj, err := m.Fdst.NewObject(m.Ctx, path.Join(job.dstRemote, leaf))
-				if err == nil {
-					dstList = append(dstList, dstObj)
+			wg.Add(1)
+			limiter <- struct{}{}
+			go func(limiter chan struct{}, src fs.DirEntry) {
+				defer wg.Done()
+				if srcObj, ok := src.(fs.Object); ok {
+					leaf := path.Base(srcObj.Remote())
+					dstObj, err := m.Fdst.NewObject(m.Ctx, path.Join(job.dstRemote, leaf))
+					if err == nil {
+						mu.Lock()
+						dstList = append(dstList, dstObj)
+						mu.Unlock()
+					}
 				}
-			}
+				<-limiter
+			}(limiter, src)
 		}
+		wg.Wait()
 	}
 
 	// Work out what to do and do it

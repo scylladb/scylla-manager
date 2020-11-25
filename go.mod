@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
-	github.com/aws/aws-sdk-go v1.25.31
+	github.com/aws/aws-sdk-go v1.32.11
 	github.com/cenkalti/backoff/v4 v4.0.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1
@@ -13,9 +13,7 @@ require (
 	github.com/go-chi/render v1.0.0
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/jsonreference v0.19.4 // indirect
-	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.20
-	github.com/go-openapi/spec v0.19.8
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.9
 	github.com/go-openapi/validate v0.19.10
@@ -28,10 +26,9 @@ require (
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.5.1
+	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.9.1
-	github.com/prometheus/procfs v0.0.11 // indirect
+	github.com/prometheus/common v0.10.0
 	github.com/rclone/rclone v1.51.0
 	github.com/scylladb/go-log v0.0.4
 	github.com/scylladb/go-reflectx v1.0.1
@@ -40,24 +37,22 @@ require (
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
-	go.mongodb.org/mongo-driver v1.3.5 // indirect
-	go.uber.org/atomic v1.5.0
+	go.uber.org/atomic v1.6.0
 	go.uber.org/config v1.4.0
 	go.uber.org/goleak v1.0.0
-	go.uber.org/multierr v1.4.0
-	go.uber.org/zap v1.14.0
+	go.uber.org/multierr v1.5.0
+	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200828194041-157a740278f4
-	golang.org/x/tools v0.0.0-20200828161849-5deb26317202
-	google.golang.org/protobuf v1.25.0 // indirect
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
 	gopkg.in/yaml.v2 v2.3.0
 )
 
 replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.4.3
-	github.com/rclone/rclone => github.com/scylladb/rclone v1.51.0-patched-6
+	github.com/rclone/rclone => github.com/scylladb/rclone v1.53.3-ajankovic-4
 	google.golang.org/api v0.30.0 => github.com/scylladb/google-api-go-client v0.30.1-0.20200901094148-b1d4e0b17dda
 )

@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -38,9 +37,9 @@ import (
 	"github.com/rclone/rclone/fs/walk"
 	"github.com/rclone/rclone/lib/bucket"
 	"github.com/rclone/rclone/lib/encoder"
+	"github.com/rclone/rclone/lib/env"
 	"github.com/rclone/rclone/lib/oauthutil"
 	"github.com/rclone/rclone/lib/pacer"
-	"github.com/rclone/rclone/lib/pool"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/googleapi"
@@ -83,30 +82,29 @@ func init() {
 		Config: func(name string, m configmap.Mapper) {
 			saFile, _ := m.Get("service_account_file")
 			saCreds, _ := m.Get("service_account_credentials")
-			if saFile != "" || saCreds != "" {
+			anonymous, _ := m.Get("anonymous")
+			if saFile != "" || saCreds != "" || anonymous == "true" {
 				return
 			}
-			err := oauthutil.Config("google cloud storage", name, m, storageConfig)
+			err := oauthutil.Config("google cloud storage", name, m, storageConfig, nil)
 			if err != nil {
 				log.Fatalf("Failed to configure token: %v", err)
 			}
 		},
-		Options: []fs.Option{{
-			Name: config.ConfigClientID,
-			Help: "Google Application Client Id\nLeave blank normally.",
-		}, {
-			Name: config.ConfigClientSecret,
-			Help: "Google Application Client Secret\nLeave blank normally.",
-		}, {
+		Options: append(oauthutil.SharedOptions, []fs.Option{{
 			Name: "project_number",
 			Help: "Project number.\nOptional - needed only for list/create/delete buckets - see your developer console.",
 		}, {
 			Name: "service_account_file",
-			Help: "Service Account Credentials JSON file path\nLeave blank normally.\nNeeded only if you want use SA instead of interactive login.",
+			Help: "Service Account Credentials JSON file path\nLeave blank normally.\nNeeded only if you want use SA instead of interactive login." + env.ShellExpandHelp,
 		}, {
 			Name: "service_account_credentials",
 			Help: "Service Account Credentials JSON blob\nLeave blank normally.\nNeeded only if you want use SA instead of interactive login.",
 			Hide: fs.OptionHideBoth,
+		}, {
+			Name:    "anonymous",
+			Help:    "Access public buckets and objects without credentials\nSet to 'true' if you just want to download files and don't configure credentials.",
+			Default: false,
 		}, {
 			Name: "object_acl",
 			Help: "Access Control List for new objects.",
@@ -247,6 +245,9 @@ Docs: https://cloud.google.com/storage/docs/bucket-policy-only
 				Value: "COLDLINE",
 				Help:  "Coldline storage class",
 			}, {
+				Value: "ARCHIVE",
+				Help:  "Archive storage class",
+			}, {
 				Value: "DURABLE_REDUCED_AVAILABILITY",
 				Help:  "Durable reduced availability storage class",
 			}},
@@ -298,7 +299,7 @@ If size is zero, media will be uploaded in a single request.
 If bucket doesn't exists, error will be returned.'`,
 				Default: true,
 			},
-		},
+		}...),
 	})
 }
 
@@ -307,6 +308,7 @@ type Options struct {
 	ProjectNumber             string               `config:"project_number"`
 	ServiceAccountFile        string               `config:"service_account_file"`
 	ServiceAccountCredentials string               `config:"service_account_credentials"`
+	Anonymous                 bool                 `config:"anonymous"`
 	ObjectACL                 string               `config:"object_acl"`
 	BucketACL                 string               `config:"bucket_acl"`
 	BucketPolicyOnly          bool                 `config:"bucket_policy_only"`
@@ -331,7 +333,6 @@ type Fs struct {
 	rootDirectory string           // directory part of root (if any)
 	cache         *bucket.Cache    // cache of bucket status
 	pacer         *fs.Pacer        // To pace the API calls
-	pool          *pool.Pool
 }
 
 // Object describes a storage object
@@ -452,13 +453,15 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 
 	// try loading service account credentials from env variable, then from a file
 	if opt.ServiceAccountCredentials == "" && opt.ServiceAccountFile != "" {
-		loadedCreds, err := ioutil.ReadFile(os.ExpandEnv(opt.ServiceAccountFile))
+		loadedCreds, err := ioutil.ReadFile(env.ShellExpand(opt.ServiceAccountFile))
 		if err != nil {
 			return nil, errors.Wrap(err, "error opening service account credentials file")
 		}
 		opt.ServiceAccountCredentials = string(loadedCreds)
 	}
-	if opt.ServiceAccountCredentials != "" {
+	if opt.Anonymous {
+		oAuthClient = &http.Client{}
+	} else if opt.ServiceAccountCredentials != "" {
 		oAuthClient, err = getServiceAccountClient([]byte(opt.ServiceAccountCredentials))
 		if err != nil {
 			return nil, errors.Wrap(err, "failed configuring Google Cloud Storage Service Account")
@@ -480,12 +483,6 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		opt:   *opt,
 		pacer: fs.NewPacer(pacer.NewGoogleDrive(pacer.MinSleep(minSleep))),
 		cache: bucket.NewCache(),
-		pool: pool.New(
-			time.Duration(opt.MemoryPoolFlushTime),
-			int(opt.ChunkSize),
-			fs.Config.Transfers,
-			opt.MemoryPoolUseMmap,
-		),
 	}
 	f.setRoot(root)
 	f.features = (&fs.Features{
@@ -611,7 +608,7 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 				continue
 			}
 			remote = remote[len(prefix):]
-			isDirectory := strings.HasSuffix(remote, "/")
+			isDirectory := remote == "" || strings.HasSuffix(remote, "/")
 			if addBucket {
 				remote = path.Join(bucket, remote)
 			}
@@ -895,20 +892,27 @@ func (f *Fs) Copy(ctx context.Context, src fs.Object, remote string) (fs.Object,
 		remote: remote,
 	}
 
-	var newObject *storage.Object
-	err = f.pacer.Call(func() (bool, error) {
-		copyObject := f.svc.Objects.Copy(srcBucket, srcPath, dstBucket, dstPath, nil)
-		if !f.opt.BucketPolicyOnly {
-			copyObject.DestinationPredefinedAcl(f.opt.ObjectACL)
+	rewriteRequest := f.svc.Objects.Rewrite(srcBucket, srcPath, dstBucket, dstPath, nil)
+	if !f.opt.BucketPolicyOnly {
+		rewriteRequest.DestinationPredefinedAcl(f.opt.ObjectACL)
+	}
+	var rewriteResponse *storage.RewriteResponse
+	for {
+		err = f.pacer.Call(func() (bool, error) {
+			rewriteResponse, err = rewriteRequest.Context(ctx).Do()
+			return shouldRetry(err)
+		})
+		if err != nil {
+			return nil, err
 		}
-		newObject, err = copyObject.Context(ctx).Do()
-		return shouldRetry(err)
-	})
-	if err != nil {
-		return nil, err
+		if rewriteResponse.Done {
+			break
+		}
+		rewriteRequest.RewriteToken(rewriteResponse.RewriteToken)
+		fs.Debugf(dstObj, "Continuing rewrite %d bytes done", rewriteResponse.TotalBytesRewritten)
 	}
 	// Set the metadata for the new object while we have it
-	dstObj.setMetaData(newObject)
+	dstObj.setMetaData(rewriteResponse.Resource)
 	return dstObj, nil
 }
 
@@ -1122,18 +1126,36 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		ContentType: fs.MimeType(ctx, src),
 		Metadata:    metadataFromModTime(modTime),
 	}
-
-	buf := o.fs.pool.Get()
-	defer o.fs.pool.Put(buf)
-
+	// Apply upload options
+	for _, option := range options {
+		key, value := option.Header()
+		lowerKey := strings.ToLower(key)
+		switch lowerKey {
+		case "":
+			// ignore
+		case "cache-control":
+			object.CacheControl = value
+		case "content-disposition":
+			object.ContentDisposition = value
+		case "content-encoding":
+			object.ContentEncoding = value
+		case "content-language":
+			object.ContentLanguage = value
+		case "content-type":
+			object.ContentType = value
+		default:
+			const googMetaPrefix = "x-goog-meta-"
+			if strings.HasPrefix(lowerKey, googMetaPrefix) {
+				metaKey := lowerKey[len(googMetaPrefix):]
+				object.Metadata[metaKey] = value
+			} else {
+				fs.Errorf(o, "Don't know how to set key %q on upload", key)
+			}
+		}
+	}
 	var newObject *storage.Object
 	err = o.fs.pacer.CallNoRetry(func() (bool, error) {
-		mediaOpts := []googleapi.MediaOption{
-			googleapi.ContentType(""),
-			googleapi.ChunkSize(int(o.fs.opt.ChunkSize)),
-			googleapi.WithBuffer(buf),
-		}
-		insertObject := o.fs.svc.Objects.Insert(bucket, &object).Media(in, mediaOpts...).Name(object.Name)
+		insertObject := o.fs.svc.Objects.Insert(bucket, &object).Media(in, googleapi.ContentType("")).Name(object.Name)
 		if !o.fs.opt.BucketPolicyOnly {
 			insertObject.PredefinedAcl(o.fs.opt.ObjectACL)
 		}
