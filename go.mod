@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager
 
-go 1.13
+go 1.15
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
