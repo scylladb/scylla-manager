@@ -31,9 +31,6 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .PHONY: .check-copyright
 .check-copyright:
 	@set -e; for f in `$(GOFILES)`; do \
-		[[ $$f =~ /scyllaclient/internal/ ]] || \
-		[[ $$f =~ /managerclient/internal/ ]] || \
-		[[ $$f =~ /rclone/rcserver/internal/ ]] || \
 		[[ $$f =~ /mock_.*_test[.]go ]] || \
 		[[ `head -n 1 $$f` =~ '// Copyright (C) ' ]] || \
 		(echo $$f; false); \
@@ -43,8 +40,6 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .check-comments:
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ _string\.go ]] || \
-		[[ $$f =~ /managerclient/internal/ ]] || \
-		[[ $$f =~ /scyllaclient/internal/ ]] || \
 		! e=`grep -Pzo '\n\n\s+//\s*[a-z].*' $$f` || \
 		(echo $$f $$e; false); \
 	done
@@ -66,7 +61,6 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .PHONY: .check-timeutc
 .check-timeutc:
 	@set -e; for f in `$(GOFILES)`; do \
-		[[ $$f =~ /internal/ ]] || \
 		[[ $$f =~ /timeutc/ ]] || \
 		! e=`grep -n 'time.\(Now\|Parse(\|Since\)' $$f` || \
 		(echo $$f $$e; false); \
