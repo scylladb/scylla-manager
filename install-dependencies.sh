@@ -39,6 +39,8 @@ esac
 echo "==> Installing cqlsh from pip"
 python2.7 -m pip install cqlsh
 
+echo "==> Cleaning ${LOCAL_BIN}"
+rm -f "${LOCAL_BIN}"/*
 
 echo "==> Installing Go packages at ${LOCAL_BIN}"
 
@@ -60,7 +62,7 @@ function download() {
 }
 
 function install_from_vendor() {
-    GO111MODULE=on go install -mod=vendor ${1}
+    GO111MODULE=on go build -mod=vendor -o "${LOCAL_BIN}/$1" ${2}
 }
 
 function install() {
@@ -68,7 +70,7 @@ function install() {
     if [[ $2 =~ http* ]]; then
         download $1 $2
     else
-        install_from_vendor $2
+        install_from_vendor $1 $2
     fi
 }
 
