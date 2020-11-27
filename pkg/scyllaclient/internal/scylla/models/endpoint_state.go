@@ -8,15 +8,15 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // EndpointState endpoint_state
 //
 // Holds an endpoint state
+//
 // swagger:model endpoint_state
 type EndpointState struct {
 

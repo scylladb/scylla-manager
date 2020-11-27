@@ -6,13 +6,12 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
-	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // Cluster cluster
+//
 // swagger:model Cluster
 type Cluster struct {
 
@@ -48,41 +47,6 @@ type Cluster struct {
 
 // Validate validates this cluster
 func (m *Cluster) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateSslUserCertFile(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateSslUserKeyFile(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *Cluster) validateSslUserCertFile(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.SslUserCertFile) { // not required
-		return nil
-	}
-
-	// Format "byte" (base64 string) is already validated when unmarshalled
-
-	return nil
-}
-
-func (m *Cluster) validateSslUserKeyFile(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.SslUserKeyFile) { // not required
-		return nil
-	}
-
-	// Format "byte" (base64 string) is already validated when unmarshalled
-
 	return nil
 }
 

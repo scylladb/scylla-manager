@@ -13,10 +13,9 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	models "github.com/scylladb/scylla-manager/pkg/managerclient/internal/models"
+	"github.com/scylladb/scylla-manager/pkg/managerclient/internal/models"
 )
 
 // NewPutClusterClusterIDParams creates a new PutClusterClusterIDParams object

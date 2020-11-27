@@ -8,15 +8,15 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // History history
 //
 // Compaction history information
+//
 // swagger:model history
 type History struct {
 

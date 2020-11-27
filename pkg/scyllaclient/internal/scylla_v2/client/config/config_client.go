@@ -7,12 +7,11 @@ package config
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new config API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -24,8 +23,379 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientService is the interface for Client methods
+type ClientService interface {
+	FindConfigAbortOnLsaBadAlloc(params *FindConfigAbortOnLsaBadAllocParams) (*FindConfigAbortOnLsaBadAllocOK, error)
+
+	FindConfigAlternatorAddress(params *FindConfigAlternatorAddressParams) (*FindConfigAlternatorAddressOK, error)
+
+	FindConfigAlternatorEnforceAuthorization(params *FindConfigAlternatorEnforceAuthorizationParams) (*FindConfigAlternatorEnforceAuthorizationOK, error)
+
+	FindConfigAlternatorHTTPSPort(params *FindConfigAlternatorHTTPSPortParams) (*FindConfigAlternatorHTTPSPortOK, error)
+
+	FindConfigAlternatorPort(params *FindConfigAlternatorPortParams) (*FindConfigAlternatorPortOK, error)
+
+	FindConfigAPIAddress(params *FindConfigAPIAddressParams) (*FindConfigAPIAddressOK, error)
+
+	FindConfigAPIDocDir(params *FindConfigAPIDocDirParams) (*FindConfigAPIDocDirOK, error)
+
+	FindConfigAPIPort(params *FindConfigAPIPortParams) (*FindConfigAPIPortOK, error)
+
+	FindConfigAPIUIDir(params *FindConfigAPIUIDirParams) (*FindConfigAPIUIDirOK, error)
+
+	FindConfigAuthenticator(params *FindConfigAuthenticatorParams) (*FindConfigAuthenticatorOK, error)
+
+	FindConfigAuthorizer(params *FindConfigAuthorizerParams) (*FindConfigAuthorizerOK, error)
+
+	FindConfigAutoAdjustFlushQuota(params *FindConfigAutoAdjustFlushQuotaParams) (*FindConfigAutoAdjustFlushQuotaOK, error)
+
+	FindConfigAutoBootstrap(params *FindConfigAutoBootstrapParams) (*FindConfigAutoBootstrapOK, error)
+
+	FindConfigAutoSnapshot(params *FindConfigAutoSnapshotParams) (*FindConfigAutoSnapshotOK, error)
+
+	FindConfigBackgroundWriterSchedulingQuota(params *FindConfigBackgroundWriterSchedulingQuotaParams) (*FindConfigBackgroundWriterSchedulingQuotaOK, error)
+
+	FindConfigBatchSizeFailThresholdInKb(params *FindConfigBatchSizeFailThresholdInKbParams) (*FindConfigBatchSizeFailThresholdInKbOK, error)
+
+	FindConfigBatchSizeWarnThresholdInKb(params *FindConfigBatchSizeWarnThresholdInKbParams) (*FindConfigBatchSizeWarnThresholdInKbOK, error)
+
+	FindConfigBatchlogReplayThrottleInKb(params *FindConfigBatchlogReplayThrottleInKbParams) (*FindConfigBatchlogReplayThrottleInKbOK, error)
+
+	FindConfigBroadcastAddress(params *FindConfigBroadcastAddressParams) (*FindConfigBroadcastAddressOK, error)
+
+	FindConfigBroadcastRPCAddress(params *FindConfigBroadcastRPCAddressParams) (*FindConfigBroadcastRPCAddressOK, error)
+
+	FindConfigCacheHitRateReadBalancing(params *FindConfigCacheHitRateReadBalancingParams) (*FindConfigCacheHitRateReadBalancingOK, error)
+
+	FindConfigCasContentionTimeoutInMs(params *FindConfigCasContentionTimeoutInMsParams) (*FindConfigCasContentionTimeoutInMsOK, error)
+
+	FindConfigClientEncryptionOptions(params *FindConfigClientEncryptionOptionsParams) (*FindConfigClientEncryptionOptionsOK, error)
+
+	FindConfigClusterName(params *FindConfigClusterNameParams) (*FindConfigClusterNameOK, error)
+
+	FindConfigColumnIndexSizeInKb(params *FindConfigColumnIndexSizeInKbParams) (*FindConfigColumnIndexSizeInKbOK, error)
+
+	FindConfigCommitFailurePolicy(params *FindConfigCommitFailurePolicyParams) (*FindConfigCommitFailurePolicyOK, error)
+
+	FindConfigCommitlogDirectory(params *FindConfigCommitlogDirectoryParams) (*FindConfigCommitlogDirectoryOK, error)
+
+	FindConfigCommitlogReuseSegments(params *FindConfigCommitlogReuseSegmentsParams) (*FindConfigCommitlogReuseSegmentsOK, error)
+
+	FindConfigCommitlogSegmentSizeInMb(params *FindConfigCommitlogSegmentSizeInMbParams) (*FindConfigCommitlogSegmentSizeInMbOK, error)
+
+	FindConfigCommitlogSync(params *FindConfigCommitlogSyncParams) (*FindConfigCommitlogSyncOK, error)
+
+	FindConfigCommitlogSyncBatchWindowInMs(params *FindConfigCommitlogSyncBatchWindowInMsParams) (*FindConfigCommitlogSyncBatchWindowInMsOK, error)
+
+	FindConfigCommitlogSyncPeriodInMs(params *FindConfigCommitlogSyncPeriodInMsParams) (*FindConfigCommitlogSyncPeriodInMsOK, error)
+
+	FindConfigCommitlogTotalSpaceInMb(params *FindConfigCommitlogTotalSpaceInMbParams) (*FindConfigCommitlogTotalSpaceInMbOK, error)
+
+	FindConfigCommitlogUseoDsync(params *FindConfigCommitlogUseoDsyncParams) (*FindConfigCommitlogUseODsyncOK, error)
+
+	FindConfigCompactionEnforceMinThreshold(params *FindConfigCompactionEnforceMinThresholdParams) (*FindConfigCompactionEnforceMinThresholdOK, error)
+
+	FindConfigCompactionLargeCellWarningThresholdMb(params *FindConfigCompactionLargeCellWarningThresholdMbParams) (*FindConfigCompactionLargeCellWarningThresholdMbOK, error)
+
+	FindConfigCompactionLargePartitionWarningThresholdMb(params *FindConfigCompactionLargePartitionWarningThresholdMbParams) (*FindConfigCompactionLargePartitionWarningThresholdMbOK, error)
+
+	FindConfigCompactionLargeRowWarningThresholdMb(params *FindConfigCompactionLargeRowWarningThresholdMbParams) (*FindConfigCompactionLargeRowWarningThresholdMbOK, error)
+
+	FindConfigCompactionPreheatKeyCache(params *FindConfigCompactionPreheatKeyCacheParams) (*FindConfigCompactionPreheatKeyCacheOK, error)
+
+	FindConfigCompactionRowsCountWarningThreshold(params *FindConfigCompactionRowsCountWarningThresholdParams) (*FindConfigCompactionRowsCountWarningThresholdOK, error)
+
+	FindConfigCompactionStaticShares(params *FindConfigCompactionStaticSharesParams) (*FindConfigCompactionStaticSharesOK, error)
+
+	FindConfigCompactionThroughputMbPerSec(params *FindConfigCompactionThroughputMbPerSecParams) (*FindConfigCompactionThroughputMbPerSecOK, error)
+
+	FindConfigConcurrentCompactors(params *FindConfigConcurrentCompactorsParams) (*FindConfigConcurrentCompactorsOK, error)
+
+	FindConfigConcurrentCounterWrites(params *FindConfigConcurrentCounterWritesParams) (*FindConfigConcurrentCounterWritesOK, error)
+
+	FindConfigConcurrentReads(params *FindConfigConcurrentReadsParams) (*FindConfigConcurrentReadsOK, error)
+
+	FindConfigConcurrentWrites(params *FindConfigConcurrentWritesParams) (*FindConfigConcurrentWritesOK, error)
+
+	FindConfigConsistentRangemovement(params *FindConfigConsistentRangemovementParams) (*FindConfigConsistentRangemovementOK, error)
+
+	FindConfigCounterCacheKeysToSave(params *FindConfigCounterCacheKeysToSaveParams) (*FindConfigCounterCacheKeysToSaveOK, error)
+
+	FindConfigCounterCacheSavePeriod(params *FindConfigCounterCacheSavePeriodParams) (*FindConfigCounterCacheSavePeriodOK, error)
+
+	FindConfigCounterCacheSizeInMb(params *FindConfigCounterCacheSizeInMbParams) (*FindConfigCounterCacheSizeInMbOK, error)
+
+	FindConfigCounterWriteRequestTimeoutInMs(params *FindConfigCounterWriteRequestTimeoutInMsParams) (*FindConfigCounterWriteRequestTimeoutInMsOK, error)
+
+	FindConfigCPUScheduler(params *FindConfigCPUSchedulerParams) (*FindConfigCPUSchedulerOK, error)
+
+	FindConfigCrossNodeTimeout(params *FindConfigCrossNodeTimeoutParams) (*FindConfigCrossNodeTimeoutOK, error)
+
+	FindConfigDataFileDirectories(params *FindConfigDataFileDirectoriesParams) (*FindConfigDataFileDirectoriesOK, error)
+
+	FindConfigDefaultLogLevel(params *FindConfigDefaultLogLevelParams) (*FindConfigDefaultLogLevelOK, error)
+
+	FindConfigDefragmentMemoryOnIdle(params *FindConfigDefragmentMemoryOnIdleParams) (*FindConfigDefragmentMemoryOnIdleOK, error)
+
+	FindConfigDeveloperMode(params *FindConfigDeveloperModeParams) (*FindConfigDeveloperModeOK, error)
+
+	FindConfigDiskFailurePolicy(params *FindConfigDiskFailurePolicyParams) (*FindConfigDiskFailurePolicyOK, error)
+
+	FindConfigDynamicSnitchBadnessThreshold(params *FindConfigDynamicSnitchBadnessThresholdParams) (*FindConfigDynamicSnitchBadnessThresholdOK, error)
+
+	FindConfigDynamicSnitchResetIntervalInMs(params *FindConfigDynamicSnitchResetIntervalInMsParams) (*FindConfigDynamicSnitchResetIntervalInMsOK, error)
+
+	FindConfigDynamicSnitchUpdateIntervalInMs(params *FindConfigDynamicSnitchUpdateIntervalInMsParams) (*FindConfigDynamicSnitchUpdateIntervalInMsOK, error)
+
+	FindConfigEnableCache(params *FindConfigEnableCacheParams) (*FindConfigEnableCacheOK, error)
+
+	FindConfigEnableCommitlog(params *FindConfigEnableCommitlogParams) (*FindConfigEnableCommitlogOK, error)
+
+	FindConfigEnableDangerousDirectImportOfCassandraCounters(params *FindConfigEnableDangerousDirectImportOfCassandraCountersParams) (*FindConfigEnableDangerousDirectImportOfCassandraCountersOK, error)
+
+	FindConfigEnableDeprecatedPartitioners(params *FindConfigEnableDeprecatedPartitionersParams) (*FindConfigEnableDeprecatedPartitionersOK, error)
+
+	FindConfigEnableInMemoryDataStore(params *FindConfigEnableInMemoryDataStoreParams) (*FindConfigEnableInMemoryDataStoreOK, error)
+
+	FindConfigEnableKeyspaceColumnFamilyMetrics(params *FindConfigEnableKeyspaceColumnFamilyMetricsParams) (*FindConfigEnableKeyspaceColumnFamilyMetricsOK, error)
+
+	FindConfigEnableShardAwareDrivers(params *FindConfigEnableShardAwareDriversParams) (*FindConfigEnableShardAwareDriversOK, error)
+
+	FindConfigEnableSstableDataIntegrityCheck(params *FindConfigEnableSstableDataIntegrityCheckParams) (*FindConfigEnableSstableDataIntegrityCheckOK, error)
+
+	FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstablesMcFormatParams) (*FindConfigEnableSstablesMcFormatOK, error)
+
+	FindConfigEndpointSnitch(params *FindConfigEndpointSnitchParams) (*FindConfigEndpointSnitchOK, error)
+
+	FindConfigExperimental(params *FindConfigExperimentalParams) (*FindConfigExperimentalOK, error)
+
+	FindConfigFdInitialValueMs(params *FindConfigFdInitialValueMsParams) (*FindConfigFdInitialValueMsOK, error)
+
+	FindConfigFdMaxIntervalMs(params *FindConfigFdMaxIntervalMsParams) (*FindConfigFdMaxIntervalMsOK, error)
+
+	FindConfigFileCacheSizeInMb(params *FindConfigFileCacheSizeInMbParams) (*FindConfigFileCacheSizeInMbOK, error)
+
+	FindConfigHintedHandoffEnabled(params *FindConfigHintedHandoffEnabledParams) (*FindConfigHintedHandoffEnabledOK, error)
+
+	FindConfigHintedHandoffThrottleInKb(params *FindConfigHintedHandoffThrottleInKbParams) (*FindConfigHintedHandoffThrottleInKbOK, error)
+
+	FindConfigHintsDirectory(params *FindConfigHintsDirectoryParams) (*FindConfigHintsDirectoryOK, error)
+
+	FindConfigInMemoryCompactionLimitInMb(params *FindConfigInMemoryCompactionLimitInMbParams) (*FindConfigInMemoryCompactionLimitInMbOK, error)
+
+	FindConfigIncrementalBackups(params *FindConfigIncrementalBackupsParams) (*FindConfigIncrementalBackupsOK, error)
+
+	FindConfigIndexSummaryCapacityInMb(params *FindConfigIndexSummaryCapacityInMbParams) (*FindConfigIndexSummaryCapacityInMbOK, error)
+
+	FindConfigIndexSummaryResizeIntervalInMinutes(params *FindConfigIndexSummaryResizeIntervalInMinutesParams) (*FindConfigIndexSummaryResizeIntervalInMinutesOK, error)
+
+	FindConfigInitialToken(params *FindConfigInitialTokenParams) (*FindConfigInitialTokenOK, error)
+
+	FindConfigInterDcStreamThroughputOutboundMegabitsPerSec(params *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecParams) (*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK, error)
+
+	FindConfigInterDcTCPNodelay(params *FindConfigInterDcTCPNodelayParams) (*FindConfigInterDcTCPNodelayOK, error)
+
+	FindConfigInternodeAuthenticator(params *FindConfigInternodeAuthenticatorParams) (*FindConfigInternodeAuthenticatorOK, error)
+
+	FindConfigInternodeCompression(params *FindConfigInternodeCompressionParams) (*FindConfigInternodeCompressionOK, error)
+
+	FindConfigInternodeRecvBuffSizeInBytes(params *FindConfigInternodeRecvBuffSizeInBytesParams) (*FindConfigInternodeRecvBuffSizeInBytesOK, error)
+
+	FindConfigInternodeSendBuffSizeInBytes(params *FindConfigInternodeSendBuffSizeInBytesParams) (*FindConfigInternodeSendBuffSizeInBytesOK, error)
+
+	FindConfigJoinRing(params *FindConfigJoinRingParams) (*FindConfigJoinRingOK, error)
+
+	FindConfigKeyCacheKeysToSave(params *FindConfigKeyCacheKeysToSaveParams) (*FindConfigKeyCacheKeysToSaveOK, error)
+
+	FindConfigKeyCacheSavePeriod(params *FindConfigKeyCacheSavePeriodParams) (*FindConfigKeyCacheSavePeriodOK, error)
+
+	FindConfigKeyCacheSizeInMb(params *FindConfigKeyCacheSizeInMbParams) (*FindConfigKeyCacheSizeInMbOK, error)
+
+	FindConfigLargeMemoryAllocationWarningThreshold(params *FindConfigLargeMemoryAllocationWarningThresholdParams) (*FindConfigLargeMemoryAllocationWarningThresholdOK, error)
+
+	FindConfigListenAddress(params *FindConfigListenAddressParams) (*FindConfigListenAddressOK, error)
+
+	FindConfigListenInterface(params *FindConfigListenInterfaceParams) (*FindConfigListenInterfaceOK, error)
+
+	FindConfigListenOnBroadcastAddress(params *FindConfigListenOnBroadcastAddressParams) (*FindConfigListenOnBroadcastAddressOK, error)
+
+	FindConfigLoadBalance(params *FindConfigLoadBalanceParams) (*FindConfigLoadBalanceOK, error)
+
+	FindConfigLoadRingState(params *FindConfigLoadRingStateParams) (*FindConfigLoadRingStateOK, error)
+
+	FindConfigLogToStdout(params *FindConfigLogToStdoutParams) (*FindConfigLogToStdoutOK, error)
+
+	FindConfigLogToSyslog(params *FindConfigLogToSyslogParams) (*FindConfigLogToSyslogOK, error)
+
+	FindConfigLoggerLogLevel(params *FindConfigLoggerLogLevelParams) (*FindConfigLoggerLogLevelOK, error)
+
+	FindConfigLsaReclamationStep(params *FindConfigLsaReclamationStepParams) (*FindConfigLsaReclamationStepOK, error)
+
+	FindConfigMaxHintWindowInMs(params *FindConfigMaxHintWindowInMsParams) (*FindConfigMaxHintWindowInMsOK, error)
+
+	FindConfigMaxHintsDeliveryThreads(params *FindConfigMaxHintsDeliveryThreadsParams) (*FindConfigMaxHintsDeliveryThreadsOK, error)
+
+	FindConfigMemoryAllocator(params *FindConfigMemoryAllocatorParams) (*FindConfigMemoryAllocatorOK, error)
+
+	FindConfigMemtableAllocationType(params *FindConfigMemtableAllocationTypeParams) (*FindConfigMemtableAllocationTypeOK, error)
+
+	FindConfigMemtableCleanupThreshold(params *FindConfigMemtableCleanupThresholdParams) (*FindConfigMemtableCleanupThresholdOK, error)
+
+	FindConfigMemtableFlushQueueSize(params *FindConfigMemtableFlushQueueSizeParams) (*FindConfigMemtableFlushQueueSizeOK, error)
+
+	FindConfigMemtableFlushStaticShares(params *FindConfigMemtableFlushStaticSharesParams) (*FindConfigMemtableFlushStaticSharesOK, error)
+
+	FindConfigMemtableFlushWriters(params *FindConfigMemtableFlushWritersParams) (*FindConfigMemtableFlushWritersOK, error)
+
+	FindConfigMemtableHeapSpaceInMb(params *FindConfigMemtableHeapSpaceInMbParams) (*FindConfigMemtableHeapSpaceInMbOK, error)
+
+	FindConfigMemtableOffheapSpaceInMb(params *FindConfigMemtableOffheapSpaceInMbParams) (*FindConfigMemtableOffheapSpaceInMbOK, error)
+
+	FindConfigMemtableTotalSpaceInMb(params *FindConfigMemtableTotalSpaceInMbParams) (*FindConfigMemtableTotalSpaceInMbOK, error)
+
+	FindConfigMurmur3PartitionerIgnoreMsbBits(params *FindConfigMurmur3PartitionerIgnoreMsbBitsParams) (*FindConfigMurmur3PartitionerIgnoreMsbBitsOK, error)
+
+	FindConfigNativeTransportMaxFrameSizeInMb(params *FindConfigNativeTransportMaxFrameSizeInMbParams) (*FindConfigNativeTransportMaxFrameSizeInMbOK, error)
+
+	FindConfigNativeTransportMaxThreads(params *FindConfigNativeTransportMaxThreadsParams) (*FindConfigNativeTransportMaxThreadsOK, error)
+
+	FindConfigNativeTransportPort(params *FindConfigNativeTransportPortParams) (*FindConfigNativeTransportPortOK, error)
+
+	FindConfigNativeTransportPortSsl(params *FindConfigNativeTransportPortSslParams) (*FindConfigNativeTransportPortSslOK, error)
+
+	FindConfigNumTokens(params *FindConfigNumTokensParams) (*FindConfigNumTokensOK, error)
+
+	FindConfigOverrideDecommission(params *FindConfigOverrideDecommissionParams) (*FindConfigOverrideDecommissionOK, error)
+
+	FindConfigPartitioner(params *FindConfigPartitionerParams) (*FindConfigPartitionerOK, error)
+
+	FindConfigPermissionsCacheMaxEntries(params *FindConfigPermissionsCacheMaxEntriesParams) (*FindConfigPermissionsCacheMaxEntriesOK, error)
+
+	FindConfigPermissionsUpdateIntervalInMs(params *FindConfigPermissionsUpdateIntervalInMsParams) (*FindConfigPermissionsUpdateIntervalInMsOK, error)
+
+	FindConfigPermissionsValidityInMs(params *FindConfigPermissionsValidityInMsParams) (*FindConfigPermissionsValidityInMsOK, error)
+
+	FindConfigPhiConvictThreshold(params *FindConfigPhiConvictThresholdParams) (*FindConfigPhiConvictThresholdOK, error)
+
+	FindConfigPreheatKernelPageCache(params *FindConfigPreheatKernelPageCacheParams) (*FindConfigPreheatKernelPageCacheOK, error)
+
+	FindConfigPrometheusAddress(params *FindConfigPrometheusAddressParams) (*FindConfigPrometheusAddressOK, error)
+
+	FindConfigPrometheusPort(params *FindConfigPrometheusPortParams) (*FindConfigPrometheusPortOK, error)
+
+	FindConfigPrometheusPrefix(params *FindConfigPrometheusPrefixParams) (*FindConfigPrometheusPrefixOK, error)
+
+	FindConfigRangeRequestTimeoutInMs(params *FindConfigRangeRequestTimeoutInMsParams) (*FindConfigRangeRequestTimeoutInMsOK, error)
+
+	FindConfigReadRequestTimeoutInMs(params *FindConfigReadRequestTimeoutInMsParams) (*FindConfigReadRequestTimeoutInMsOK, error)
+
+	FindConfigReduceCacheCapacityTo(params *FindConfigReduceCacheCapacityToParams) (*FindConfigReduceCacheCapacityToOK, error)
+
+	FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizesAtParams) (*FindConfigReduceCacheSizesAtOK, error)
+
+	FindConfigReplaceAddress(params *FindConfigReplaceAddressParams) (*FindConfigReplaceAddressOK, error)
+
+	FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddressFirstBootParams) (*FindConfigReplaceAddressFirstBootOK, error)
+
+	FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*FindConfigReplaceNodeOK, error)
+
+	FindConfigReplaceToken(params *FindConfigReplaceTokenParams) (*FindConfigReplaceTokenOK, error)
+
+	FindConfigRequestScheduler(params *FindConfigRequestSchedulerParams) (*FindConfigRequestSchedulerOK, error)
+
+	FindConfigRequestSchedulerID(params *FindConfigRequestSchedulerIDParams) (*FindConfigRequestSchedulerIDOK, error)
+
+	FindConfigRequestSchedulerOptions(params *FindConfigRequestSchedulerOptionsParams) (*FindConfigRequestSchedulerOptionsOK, error)
+
+	FindConfigRequestTimeoutInMs(params *FindConfigRequestTimeoutInMsParams) (*FindConfigRequestTimeoutInMsOK, error)
+
+	FindConfigRingDelayMs(params *FindConfigRingDelayMsParams) (*FindConfigRingDelayMsOK, error)
+
+	FindConfigRoleManager(params *FindConfigRoleManagerParams) (*FindConfigRoleManagerOK, error)
+
+	FindConfigRowCacheKeysToSave(params *FindConfigRowCacheKeysToSaveParams) (*FindConfigRowCacheKeysToSaveOK, error)
+
+	FindConfigRowCacheSavePeriod(params *FindConfigRowCacheSavePeriodParams) (*FindConfigRowCacheSavePeriodOK, error)
+
+	FindConfigRowCacheSizeInMb(params *FindConfigRowCacheSizeInMbParams) (*FindConfigRowCacheSizeInMbOK, error)
+
+	FindConfigRPCAddress(params *FindConfigRPCAddressParams) (*FindConfigRPCAddressOK, error)
+
+	FindConfigRPCInterface(params *FindConfigRPCInterfaceParams) (*FindConfigRPCInterfaceOK, error)
+
+	FindConfigRPCKeepalive(params *FindConfigRPCKeepaliveParams) (*FindConfigRPCKeepaliveOK, error)
+
+	FindConfigRPCMaxThreads(params *FindConfigRPCMaxThreadsParams) (*FindConfigRPCMaxThreadsOK, error)
+
+	FindConfigRPCMinThreads(params *FindConfigRPCMinThreadsParams) (*FindConfigRPCMinThreadsOK, error)
+
+	FindConfigRPCPort(params *FindConfigRPCPortParams) (*FindConfigRPCPortOK, error)
+
+	FindConfigRPCRecvBuffSizeInBytes(params *FindConfigRPCRecvBuffSizeInBytesParams) (*FindConfigRPCRecvBuffSizeInBytesOK, error)
+
+	FindConfigRPCSendBuffSizeInBytes(params *FindConfigRPCSendBuffSizeInBytesParams) (*FindConfigRPCSendBuffSizeInBytesOK, error)
+
+	FindConfigRPCServerType(params *FindConfigRPCServerTypeParams) (*FindConfigRPCServerTypeOK, error)
+
+	FindConfigSavedCachesDirectory(params *FindConfigSavedCachesDirectoryParams) (*FindConfigSavedCachesDirectoryOK, error)
+
+	FindConfigSeedProvider(params *FindConfigSeedProviderParams) (*FindConfigSeedProviderOK, error)
+
+	FindConfigServerEncryptionOptions(params *FindConfigServerEncryptionOptionsParams) (*FindConfigServerEncryptionOptionsOK, error)
+
+	FindConfigShadowRoundMs(params *FindConfigShadowRoundMsParams) (*FindConfigShadowRoundMsOK, error)
+
+	FindConfigShutdownAnnounceInMs(params *FindConfigShutdownAnnounceInMsParams) (*FindConfigShutdownAnnounceInMsOK, error)
+
+	FindConfigSkipWaitForGossipToSettle(params *FindConfigSkipWaitForGossipToSettleParams) (*FindConfigSkipWaitForGossipToSettleOK, error)
+
+	FindConfigSnapshotBeforeCompaction(params *FindConfigSnapshotBeforeCompactionParams) (*FindConfigSnapshotBeforeCompactionOK, error)
+
+	FindConfigSslStoragePort(params *FindConfigSslStoragePortParams) (*FindConfigSslStoragePortOK, error)
+
+	FindConfigSstablePreemptiveOpenIntervalInMb(params *FindConfigSstablePreemptiveOpenIntervalInMbParams) (*FindConfigSstablePreemptiveOpenIntervalInMbOK, error)
+
+	FindConfigSstableSummaryRatio(params *FindConfigSstableSummaryRatioParams) (*FindConfigSstableSummaryRatioOK, error)
+
+	FindConfigStartNativeTransport(params *FindConfigStartNativeTransportParams) (*FindConfigStartNativeTransportOK, error)
+
+	FindConfigStartRPC(params *FindConfigStartRPCParams) (*FindConfigStartRPCOK, error)
+
+	FindConfigStoragePort(params *FindConfigStoragePortParams) (*FindConfigStoragePortOK, error)
+
+	FindConfigStreamThroughputOutboundMegabitsPerSec(params *FindConfigStreamThroughputOutboundMegabitsPerSecParams) (*FindConfigStreamThroughputOutboundMegabitsPerSecOK, error)
+
+	FindConfigStreamingSocketTimeoutInMs(params *FindConfigStreamingSocketTimeoutInMsParams) (*FindConfigStreamingSocketTimeoutInMsOK, error)
+
+	FindConfigThriftFramedTransportSizeInMb(params *FindConfigThriftFramedTransportSizeInMbParams) (*FindConfigThriftFramedTransportSizeInMbOK, error)
+
+	FindConfigThriftMaxMessageLengthInMb(params *FindConfigThriftMaxMessageLengthInMbParams) (*FindConfigThriftMaxMessageLengthInMbOK, error)
+
+	FindConfigTombstoneFailureThreshold(params *FindConfigTombstoneFailureThresholdParams) (*FindConfigTombstoneFailureThresholdOK, error)
+
+	FindConfigTombstoneWarnThreshold(params *FindConfigTombstoneWarnThresholdParams) (*FindConfigTombstoneWarnThresholdOK, error)
+
+	FindConfigTrickleFsync(params *FindConfigTrickleFsyncParams) (*FindConfigTrickleFsyncOK, error)
+
+	FindConfigTrickleFsyncIntervalInKb(params *FindConfigTrickleFsyncIntervalInKbParams) (*FindConfigTrickleFsyncIntervalInKbOK, error)
+
+	FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncateRequestTimeoutInMsParams) (*FindConfigTruncateRequestTimeoutInMsOK, error)
+
+	FindConfigViewBuilding(params *FindConfigViewBuildingParams) (*FindConfigViewBuildingOK, error)
+
+	FindConfigViewHintsDirectory(params *FindConfigViewHintsDirectoryParams) (*FindConfigViewHintsDirectoryOK, error)
+
+	FindConfigVirtualDirtySoftLimit(params *FindConfigVirtualDirtySoftLimitParams) (*FindConfigVirtualDirtySoftLimitOK, error)
+
+	FindConfigVolatileSystemKeyspaceForTesting(params *FindConfigVolatileSystemKeyspaceForTestingParams) (*FindConfigVolatileSystemKeyspaceForTestingOK, error)
+
+	FindConfigWriteRequestTimeoutInMs(params *FindConfigWriteRequestTimeoutInMsParams) (*FindConfigWriteRequestTimeoutInMsOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
-FindConfigAbortOnLsaBadAlloc Abort when allocation in LSA region fails
+  FindConfigAbortOnLsaBadAlloc Abort when allocation in LSA region fails
 */
 func (a *Client) FindConfigAbortOnLsaBadAlloc(params *FindConfigAbortOnLsaBadAllocParams) (*FindConfigAbortOnLsaBadAllocOK, error) {
 	// TODO: Validate the params before sending
@@ -58,7 +428,7 @@ func (a *Client) FindConfigAbortOnLsaBadAlloc(params *FindConfigAbortOnLsaBadAll
 }
 
 /*
-FindConfigAlternatorAddress The listen address for Alternator client connections
+  FindConfigAlternatorAddress The listen address for Alternator client connections
 */
 func (a *Client) FindConfigAlternatorAddress(params *FindConfigAlternatorAddressParams) (*FindConfigAlternatorAddressOK, error) {
 	// TODO: Validate the params before sending
@@ -91,7 +461,7 @@ func (a *Client) FindConfigAlternatorAddress(params *FindConfigAlternatorAddress
 }
 
 /*
-FindConfigAlternatorEnforceAuthorization Whether alternator requires authorization
+  FindConfigAlternatorEnforceAuthorization Whether alternator requires authorization
 */
 func (a *Client) FindConfigAlternatorEnforceAuthorization(params *FindConfigAlternatorEnforceAuthorizationParams) (*FindConfigAlternatorEnforceAuthorizationOK, error) {
 	// TODO: Validate the params before sending
@@ -124,7 +494,7 @@ func (a *Client) FindConfigAlternatorEnforceAuthorization(params *FindConfigAlte
 }
 
 /*
-FindConfigAlternatorHTTPSPort The listen port for Alternator HTTPS client connections
+  FindConfigAlternatorHTTPSPort The listen port for Alternator HTTPS client connections
 */
 func (a *Client) FindConfigAlternatorHTTPSPort(params *FindConfigAlternatorHTTPSPortParams) (*FindConfigAlternatorHTTPSPortOK, error) {
 	// TODO: Validate the params before sending
@@ -157,7 +527,7 @@ func (a *Client) FindConfigAlternatorHTTPSPort(params *FindConfigAlternatorHTTPS
 }
 
 /*
-FindConfigAlternatorPort The listen port for Alternator client connections
+  FindConfigAlternatorPort The listen port for Alternator client connections
 */
 func (a *Client) FindConfigAlternatorPort(params *FindConfigAlternatorPortParams) (*FindConfigAlternatorPortOK, error) {
 	// TODO: Validate the params before sending
@@ -190,7 +560,7 @@ func (a *Client) FindConfigAlternatorPort(params *FindConfigAlternatorPortParams
 }
 
 /*
-FindConfigAPIAddress Http Rest API address
+  FindConfigAPIAddress Http Rest API address
 */
 func (a *Client) FindConfigAPIAddress(params *FindConfigAPIAddressParams) (*FindConfigAPIAddressOK, error) {
 	// TODO: Validate the params before sending
@@ -223,7 +593,7 @@ func (a *Client) FindConfigAPIAddress(params *FindConfigAPIAddressParams) (*Find
 }
 
 /*
-FindConfigAPIDocDir The API definition file directory
+  FindConfigAPIDocDir The API definition file directory
 */
 func (a *Client) FindConfigAPIDocDir(params *FindConfigAPIDocDirParams) (*FindConfigAPIDocDirOK, error) {
 	// TODO: Validate the params before sending
@@ -256,7 +626,7 @@ func (a *Client) FindConfigAPIDocDir(params *FindConfigAPIDocDirParams) (*FindCo
 }
 
 /*
-FindConfigAPIPort Http Rest API port
+  FindConfigAPIPort Http Rest API port
 */
 func (a *Client) FindConfigAPIPort(params *FindConfigAPIPortParams) (*FindConfigAPIPortOK, error) {
 	// TODO: Validate the params before sending
@@ -289,7 +659,7 @@ func (a *Client) FindConfigAPIPort(params *FindConfigAPIPortParams) (*FindConfig
 }
 
 /*
-FindConfigAPIUIDir The directory location of the API GUI
+  FindConfigAPIUIDir The directory location of the API GUI
 */
 func (a *Client) FindConfigAPIUIDir(params *FindConfigAPIUIDirParams) (*FindConfigAPIUIDirOK, error) {
 	// TODO: Validate the params before sending
@@ -322,7 +692,7 @@ func (a *Client) FindConfigAPIUIDir(params *FindConfigAPIUIDirParams) (*FindConf
 }
 
 /*
-FindConfigAuthenticator The authentication backend, used to identify users. The available authenticators are:
+  FindConfigAuthenticator The authentication backend, used to identify users. The available authenticators are:
 
  org.apache.cassandra.auth.AllowAllAuthenticator : Disables authentication; no checks are performed.
  org.apache.cassandra.auth.PasswordAuthenticator : Authenticates users with user names and hashed passwords stored in the system_auth.credentials table. If you use the default, 1, and the node with the lone replica goes down, you will not be able to log into the cluster because the system_auth keyspace was not replicated.
@@ -359,7 +729,7 @@ func (a *Client) FindConfigAuthenticator(params *FindConfigAuthenticatorParams) 
 }
 
 /*
-FindConfigAuthorizer The authorization backend. It implements IAuthenticator, which limits access and provides permissions. The available authorizers are:
+  FindConfigAuthorizer The authorization backend. It implements IAuthenticator, which limits access and provides permissions. The available authorizers are:
 
  AllowAllAuthorizer : Disables authorization; allows any action to any user.
  CassandraAuthorizer : Stores permissions in system_auth.permissions table. If you use the default, 1, and the node with the lone replica goes down, you will not be able to log into the cluster because the system_auth keyspace was not replicated.
@@ -396,7 +766,7 @@ func (a *Client) FindConfigAuthorizer(params *FindConfigAuthorizerParams) (*Find
 }
 
 /*
-FindConfigAutoAdjustFlushQuota true: auto-adjust memtable shares for flush processes
+  FindConfigAutoAdjustFlushQuota true: auto-adjust memtable shares for flush processes
 */
 func (a *Client) FindConfigAutoAdjustFlushQuota(params *FindConfigAutoAdjustFlushQuotaParams) (*FindConfigAutoAdjustFlushQuotaOK, error) {
 	// TODO: Validate the params before sending
@@ -429,7 +799,7 @@ func (a *Client) FindConfigAutoAdjustFlushQuota(params *FindConfigAutoAdjustFlus
 }
 
 /*
-FindConfigAutoBootstrap This setting has been removed from default configuration. It makes new (non-seed) nodes automatically migrate the right data to themselves. Do not set this to false unless you really know what you are doing.
+  FindConfigAutoBootstrap This setting has been removed from default configuration. It makes new (non-seed) nodes automatically migrate the right data to themselves. Do not set this to false unless you really know what you are doing.
 Related information: Initializing a multiple node cluster (single data center) and Initializing a multiple node cluster (multiple data centers).
 */
 func (a *Client) FindConfigAutoBootstrap(params *FindConfigAutoBootstrapParams) (*FindConfigAutoBootstrapOK, error) {
@@ -463,7 +833,7 @@ func (a *Client) FindConfigAutoBootstrap(params *FindConfigAutoBootstrapParams) 
 }
 
 /*
-FindConfigAutoSnapshot Enable or disable whether a snapshot is taken of the data before keyspace truncation or dropping of tables. To prevent data loss, using the default setting is strongly advised. If you set to false, you will lose data on truncation or drop.
+  FindConfigAutoSnapshot Enable or disable whether a snapshot is taken of the data before keyspace truncation or dropping of tables. To prevent data loss, using the default setting is strongly advised. If you set to false, you will lose data on truncation or drop.
 */
 func (a *Client) FindConfigAutoSnapshot(params *FindConfigAutoSnapshotParams) (*FindConfigAutoSnapshotOK, error) {
 	// TODO: Validate the params before sending
@@ -496,7 +866,7 @@ func (a *Client) FindConfigAutoSnapshot(params *FindConfigAutoSnapshotParams) (*
 }
 
 /*
-FindConfigBackgroundWriterSchedulingQuota max cpu usage ratio (between 0 and 1) for compaction process. Not intended for setting in normal operations. Setting it to 1 or higher will disable it, recommended operational setting is 0.5.
+  FindConfigBackgroundWriterSchedulingQuota max cpu usage ratio (between 0 and 1) for compaction process. Not intended for setting in normal operations. Setting it to 1 or higher will disable it, recommended operational setting is 0.5.
 */
 func (a *Client) FindConfigBackgroundWriterSchedulingQuota(params *FindConfigBackgroundWriterSchedulingQuotaParams) (*FindConfigBackgroundWriterSchedulingQuotaOK, error) {
 	// TODO: Validate the params before sending
@@ -529,7 +899,7 @@ func (a *Client) FindConfigBackgroundWriterSchedulingQuota(params *FindConfigBac
 }
 
 /*
-FindConfigBatchSizeFailThresholdInKb Fail any multiple-partition batch exceeding this value. 50kb (10x warn threshold) by default.
+  FindConfigBatchSizeFailThresholdInKb Fail any multiple-partition batch exceeding this value. 50kb (10x warn threshold) by default.
 */
 func (a *Client) FindConfigBatchSizeFailThresholdInKb(params *FindConfigBatchSizeFailThresholdInKbParams) (*FindConfigBatchSizeFailThresholdInKbOK, error) {
 	// TODO: Validate the params before sending
@@ -562,7 +932,7 @@ func (a *Client) FindConfigBatchSizeFailThresholdInKb(params *FindConfigBatchSiz
 }
 
 /*
-FindConfigBatchSizeWarnThresholdInKb Log WARN on any batch size exceeding this value in kilobytes. Caution should be taken on increasing the size of this threshold as it can lead to node instability.
+  FindConfigBatchSizeWarnThresholdInKb Log WARN on any batch size exceeding this value in kilobytes. Caution should be taken on increasing the size of this threshold as it can lead to node instability.
 */
 func (a *Client) FindConfigBatchSizeWarnThresholdInKb(params *FindConfigBatchSizeWarnThresholdInKbParams) (*FindConfigBatchSizeWarnThresholdInKbOK, error) {
 	// TODO: Validate the params before sending
@@ -595,7 +965,7 @@ func (a *Client) FindConfigBatchSizeWarnThresholdInKb(params *FindConfigBatchSiz
 }
 
 /*
-FindConfigBatchlogReplayThrottleInKb Total maximum throttle. Throttling is reduced proportionally to the number of nodes in the cluster.
+  FindConfigBatchlogReplayThrottleInKb Total maximum throttle. Throttling is reduced proportionally to the number of nodes in the cluster.
 */
 func (a *Client) FindConfigBatchlogReplayThrottleInKb(params *FindConfigBatchlogReplayThrottleInKbParams) (*FindConfigBatchlogReplayThrottleInKbOK, error) {
 	// TODO: Validate the params before sending
@@ -628,7 +998,7 @@ func (a *Client) FindConfigBatchlogReplayThrottleInKb(params *FindConfigBatchlog
 }
 
 /*
-FindConfigBroadcastAddress The IP address a node tells other nodes in the cluster to contact it by. It allows public and private address to be different. For example, use the broadcast_address parameter in topologies where not all nodes have access to other nodes by their private IP addresses.
+  FindConfigBroadcastAddress The IP address a node tells other nodes in the cluster to contact it by. It allows public and private address to be different. For example, use the broadcast_address parameter in topologies where not all nodes have access to other nodes by their private IP addresses.
 If your Scylla cluster is deployed across multiple Amazon EC2 regions and you use the EC2MultiRegionSnitch , set the broadcast_address to public IP address of the node and the listen_address to the private IP.
 */
 func (a *Client) FindConfigBroadcastAddress(params *FindConfigBroadcastAddressParams) (*FindConfigBroadcastAddressOK, error) {
@@ -662,7 +1032,7 @@ func (a *Client) FindConfigBroadcastAddress(params *FindConfigBroadcastAddressPa
 }
 
 /*
-FindConfigBroadcastRPCAddress RPC address to broadcast to drivers and other Scylla nodes. This cannot be set to 0.0.0.0. If blank, it is set to the value of the rpc_address or rpc_interface. If rpc_address or rpc_interfaceis set to 0.0.0.0, this property must be set.
+  FindConfigBroadcastRPCAddress RPC address to broadcast to drivers and other Scylla nodes. This cannot be set to 0.0.0.0. If blank, it is set to the value of the rpc_address or rpc_interface. If rpc_address or rpc_interfaceis set to 0.0.0.0, this property must be set.
 
 */
 func (a *Client) FindConfigBroadcastRPCAddress(params *FindConfigBroadcastRPCAddressParams) (*FindConfigBroadcastRPCAddressOK, error) {
@@ -696,7 +1066,7 @@ func (a *Client) FindConfigBroadcastRPCAddress(params *FindConfigBroadcastRPCAdd
 }
 
 /*
-FindConfigCacheHitRateReadBalancing This boolean controls whether the replicas for read query will be choosen based on cache hit ratio
+  FindConfigCacheHitRateReadBalancing This boolean controls whether the replicas for read query will be choosen based on cache hit ratio
 */
 func (a *Client) FindConfigCacheHitRateReadBalancing(params *FindConfigCacheHitRateReadBalancingParams) (*FindConfigCacheHitRateReadBalancingOK, error) {
 	// TODO: Validate the params before sending
@@ -729,7 +1099,7 @@ func (a *Client) FindConfigCacheHitRateReadBalancing(params *FindConfigCacheHitR
 }
 
 /*
-FindConfigCasContentionTimeoutInMs The time that the coordinator continues to retry a CAS (compare and set) operation that contends with other proposals for the same row.
+  FindConfigCasContentionTimeoutInMs The time that the coordinator continues to retry a CAS (compare and set) operation that contends with other proposals for the same row.
 */
 func (a *Client) FindConfigCasContentionTimeoutInMs(params *FindConfigCasContentionTimeoutInMsParams) (*FindConfigCasContentionTimeoutInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -762,7 +1132,7 @@ func (a *Client) FindConfigCasContentionTimeoutInMs(params *FindConfigCasContent
 }
 
 /*
-FindConfigClientEncryptionOptions Enable or disable client-to-node encryption. You must also generate keys and provide the appropriate key and certificate. No custom encryption options are currently enabled. The available options are:
+  FindConfigClientEncryptionOptions Enable or disable client-to-node encryption. You must also generate keys and provide the appropriate key and certificate. No custom encryption options are currently enabled. The available options are:
 
  enabled : (Default: false ) To enable, set to true.
  certificate: (Default: conf/scylla.crt) The location of a PEM-encoded x509 certificate used to identify and encrypt the client/server communication.
@@ -806,7 +1176,7 @@ func (a *Client) FindConfigClientEncryptionOptions(params *FindConfigClientEncry
 }
 
 /*
-FindConfigClusterName The name of the cluster; used to prevent machines in one logical cluster from joining another. All nodes participating in a cluster must have the same value.
+  FindConfigClusterName The name of the cluster; used to prevent machines in one logical cluster from joining another. All nodes participating in a cluster must have the same value.
 */
 func (a *Client) FindConfigClusterName(params *FindConfigClusterNameParams) (*FindConfigClusterNameOK, error) {
 	// TODO: Validate the params before sending
@@ -839,7 +1209,7 @@ func (a *Client) FindConfigClusterName(params *FindConfigClusterNameParams) (*Fi
 }
 
 /*
-FindConfigColumnIndexSizeInKb Granularity of the index of rows within a partition. For huge rows, decrease this setting to improve seek time. If you use key cache, be careful not to make this setting too large because key cache will be overwhelmed. If you're unsure of the size of the rows, it's best to use the default setting.
+  FindConfigColumnIndexSizeInKb Granularity of the index of rows within a partition. For huge rows, decrease this setting to improve seek time. If you use key cache, be careful not to make this setting too large because key cache will be overwhelmed. If you're unsure of the size of the rows, it's best to use the default setting.
 */
 func (a *Client) FindConfigColumnIndexSizeInKb(params *FindConfigColumnIndexSizeInKbParams) (*FindConfigColumnIndexSizeInKbOK, error) {
 	// TODO: Validate the params before sending
@@ -872,7 +1242,7 @@ func (a *Client) FindConfigColumnIndexSizeInKb(params *FindConfigColumnIndexSize
 }
 
 /*
-FindConfigCommitFailurePolicy Policy for commit disk failures:
+  FindConfigCommitFailurePolicy Policy for commit disk failures:
 
  die          Shut down gossip and Thrift and kill the JVM, so the node can be replaced.
  stop         Shut down gossip and Thrift, leaving the node effectively dead, but can be inspected using JMX.
@@ -910,7 +1280,7 @@ func (a *Client) FindConfigCommitFailurePolicy(params *FindConfigCommitFailurePo
 }
 
 /*
-FindConfigCommitlogDirectory The directory where the commit log is stored. For optimal write performance, it is recommended the commit log be on a separate disk partition (ideally, a separate physical device) from the data file directories.
+  FindConfigCommitlogDirectory The directory where the commit log is stored. For optimal write performance, it is recommended the commit log be on a separate disk partition (ideally, a separate physical device) from the data file directories.
 */
 func (a *Client) FindConfigCommitlogDirectory(params *FindConfigCommitlogDirectoryParams) (*FindConfigCommitlogDirectoryOK, error) {
 	// TODO: Validate the params before sending
@@ -943,7 +1313,7 @@ func (a *Client) FindConfigCommitlogDirectory(params *FindConfigCommitlogDirecto
 }
 
 /*
-FindConfigCommitlogReuseSegments Whether or not to re-use commitlog segments when finished instead of deleting them. Can improve commitlog latency on some file systems.
+  FindConfigCommitlogReuseSegments Whether or not to re-use commitlog segments when finished instead of deleting them. Can improve commitlog latency on some file systems.
 
 */
 func (a *Client) FindConfigCommitlogReuseSegments(params *FindConfigCommitlogReuseSegmentsParams) (*FindConfigCommitlogReuseSegmentsOK, error) {
@@ -977,7 +1347,7 @@ func (a *Client) FindConfigCommitlogReuseSegments(params *FindConfigCommitlogReu
 }
 
 /*
-FindConfigCommitlogSegmentSizeInMb Sets the size of the individual commitlog file segments. A commitlog segment may be archived, deleted, or recycled after all its data has been flushed to SSTables. This amount of data can potentially include commitlog segments from every table in the system. The default size is usually suitable for most commitlog archiving, but if you want a finer granularity, 8 or 16 MB is reasonable. See Commit log archive configuration.
+  FindConfigCommitlogSegmentSizeInMb Sets the size of the individual commitlog file segments. A commitlog segment may be archived, deleted, or recycled after all its data has been flushed to SSTables. This amount of data can potentially include commitlog segments from every table in the system. The default size is usually suitable for most commitlog archiving, but if you want a finer granularity, 8 or 16 MB is reasonable. See Commit log archive configuration.
 Related information: Commit log archive configuration
 */
 func (a *Client) FindConfigCommitlogSegmentSizeInMb(params *FindConfigCommitlogSegmentSizeInMbParams) (*FindConfigCommitlogSegmentSizeInMbOK, error) {
@@ -1011,7 +1381,7 @@ func (a *Client) FindConfigCommitlogSegmentSizeInMb(params *FindConfigCommitlogS
 }
 
 /*
-FindConfigCommitlogSync The method that Scylla uses to acknowledge writes in milliseconds:
+  FindConfigCommitlogSync The method that Scylla uses to acknowledge writes in milliseconds:
 
  periodic : Used with commitlog_sync_period_in_ms (Default: 10000 - 10 seconds ) to control how often the commit log is synchronized to disk. Periodic syncs are acknowledged immediately.
  batch : Used with commitlog_sync_batch_window_in_ms (Default: disabled **) to control how long Scylla waits for other writes before performing a sync. When using this method, writes are not acknowledged until fsynced to disk.
@@ -1048,7 +1418,7 @@ func (a *Client) FindConfigCommitlogSync(params *FindConfigCommitlogSyncParams) 
 }
 
 /*
-FindConfigCommitlogSyncBatchWindowInMs Controls how long the system waits for other writes before performing a sync in ''batch'' mode.
+  FindConfigCommitlogSyncBatchWindowInMs Controls how long the system waits for other writes before performing a sync in ''batch'' mode.
 */
 func (a *Client) FindConfigCommitlogSyncBatchWindowInMs(params *FindConfigCommitlogSyncBatchWindowInMsParams) (*FindConfigCommitlogSyncBatchWindowInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -1081,7 +1451,7 @@ func (a *Client) FindConfigCommitlogSyncBatchWindowInMs(params *FindConfigCommit
 }
 
 /*
-FindConfigCommitlogSyncPeriodInMs Controls how long the system waits for other writes before performing a sync in ''periodic'' mode.
+  FindConfigCommitlogSyncPeriodInMs Controls how long the system waits for other writes before performing a sync in ''periodic'' mode.
 */
 func (a *Client) FindConfigCommitlogSyncPeriodInMs(params *FindConfigCommitlogSyncPeriodInMsParams) (*FindConfigCommitlogSyncPeriodInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -1114,7 +1484,7 @@ func (a *Client) FindConfigCommitlogSyncPeriodInMs(params *FindConfigCommitlogSy
 }
 
 /*
-FindConfigCommitlogTotalSpaceInMb Total space used for commitlogs. If the used space goes above this value, Scylla rounds up to the next nearest segment multiple and flushes memtables to disk for the oldest commitlog segments, removing those log segments. This reduces the amount of data to replay on startup, and prevents infrequently-updated tables from indefinitely keeping commitlog segments. A small total commitlog space tends to cause more flush activity on less-active tables.
+  FindConfigCommitlogTotalSpaceInMb Total space used for commitlogs. If the used space goes above this value, Scylla rounds up to the next nearest segment multiple and flushes memtables to disk for the oldest commitlog segments, removing those log segments. This reduces the amount of data to replay on startup, and prevents infrequently-updated tables from indefinitely keeping commitlog segments. A small total commitlog space tends to cause more flush activity on less-active tables.
 Related information: Configuring memtable throughput
 */
 func (a *Client) FindConfigCommitlogTotalSpaceInMb(params *FindConfigCommitlogTotalSpaceInMbParams) (*FindConfigCommitlogTotalSpaceInMbOK, error) {
@@ -1148,7 +1518,7 @@ func (a *Client) FindConfigCommitlogTotalSpaceInMb(params *FindConfigCommitlogTo
 }
 
 /*
-FindConfigCommitlogUseoDsync Whether or not to use O_DSYNC mode for commitlog segments IO. Can improve commitlog latency on some file systems.
+  FindConfigCommitlogUseoDsync Whether or not to use O_DSYNC mode for commitlog segments IO. Can improve commitlog latency on some file systems.
 
 */
 func (a *Client) FindConfigCommitlogUseoDsync(params *FindConfigCommitlogUseoDsyncParams) (*FindConfigCommitlogUseODsyncOK, error) {
@@ -1182,7 +1552,7 @@ func (a *Client) FindConfigCommitlogUseoDsync(params *FindConfigCommitlogUseoDsy
 }
 
 /*
-FindConfigCompactionEnforceMinThreshold If set to true, enforce the min_threshold option for compactions strictly. If false (default), Scylla may decide to compact even if below min_threshold
+  FindConfigCompactionEnforceMinThreshold If set to true, enforce the min_threshold option for compactions strictly. If false (default), Scylla may decide to compact even if below min_threshold
 */
 func (a *Client) FindConfigCompactionEnforceMinThreshold(params *FindConfigCompactionEnforceMinThresholdParams) (*FindConfigCompactionEnforceMinThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -1215,7 +1585,7 @@ func (a *Client) FindConfigCompactionEnforceMinThreshold(params *FindConfigCompa
 }
 
 /*
-FindConfigCompactionLargeCellWarningThresholdMb Log a warning when writing cells larger than this value
+  FindConfigCompactionLargeCellWarningThresholdMb Log a warning when writing cells larger than this value
 */
 func (a *Client) FindConfigCompactionLargeCellWarningThresholdMb(params *FindConfigCompactionLargeCellWarningThresholdMbParams) (*FindConfigCompactionLargeCellWarningThresholdMbOK, error) {
 	// TODO: Validate the params before sending
@@ -1248,7 +1618,7 @@ func (a *Client) FindConfigCompactionLargeCellWarningThresholdMb(params *FindCon
 }
 
 /*
-FindConfigCompactionLargePartitionWarningThresholdMb Log a warning when writing partitions larger than this value
+  FindConfigCompactionLargePartitionWarningThresholdMb Log a warning when writing partitions larger than this value
 */
 func (a *Client) FindConfigCompactionLargePartitionWarningThresholdMb(params *FindConfigCompactionLargePartitionWarningThresholdMbParams) (*FindConfigCompactionLargePartitionWarningThresholdMbOK, error) {
 	// TODO: Validate the params before sending
@@ -1281,7 +1651,7 @@ func (a *Client) FindConfigCompactionLargePartitionWarningThresholdMb(params *Fi
 }
 
 /*
-FindConfigCompactionLargeRowWarningThresholdMb Log a warning when writing rows larger than this value
+  FindConfigCompactionLargeRowWarningThresholdMb Log a warning when writing rows larger than this value
 */
 func (a *Client) FindConfigCompactionLargeRowWarningThresholdMb(params *FindConfigCompactionLargeRowWarningThresholdMbParams) (*FindConfigCompactionLargeRowWarningThresholdMbOK, error) {
 	// TODO: Validate the params before sending
@@ -1314,7 +1684,7 @@ func (a *Client) FindConfigCompactionLargeRowWarningThresholdMb(params *FindConf
 }
 
 /*
-FindConfigCompactionPreheatKeyCache When set to true , cached row keys are tracked during compaction, and re-cached to their new positions in the compacted SSTable. If you have extremely large key caches for tables, set the value to false ; see Global row and key caches properties.
+  FindConfigCompactionPreheatKeyCache When set to true , cached row keys are tracked during compaction, and re-cached to their new positions in the compacted SSTable. If you have extremely large key caches for tables, set the value to false ; see Global row and key caches properties.
 */
 func (a *Client) FindConfigCompactionPreheatKeyCache(params *FindConfigCompactionPreheatKeyCacheParams) (*FindConfigCompactionPreheatKeyCacheOK, error) {
 	// TODO: Validate the params before sending
@@ -1347,7 +1717,7 @@ func (a *Client) FindConfigCompactionPreheatKeyCache(params *FindConfigCompactio
 }
 
 /*
-FindConfigCompactionRowsCountWarningThreshold Log a warning when writing a number of rows larger than this value
+  FindConfigCompactionRowsCountWarningThreshold Log a warning when writing a number of rows larger than this value
 */
 func (a *Client) FindConfigCompactionRowsCountWarningThreshold(params *FindConfigCompactionRowsCountWarningThresholdParams) (*FindConfigCompactionRowsCountWarningThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -1380,7 +1750,7 @@ func (a *Client) FindConfigCompactionRowsCountWarningThreshold(params *FindConfi
 }
 
 /*
-FindConfigCompactionStaticShares If set to higher than 0, ignore the controller's output and set the compaction shares statically. Do not set this unless you know what you are doing and suspect a problem in the controller. This option will be retired when the controller reaches more maturity
+  FindConfigCompactionStaticShares If set to higher than 0, ignore the controller's output and set the compaction shares statically. Do not set this unless you know what you are doing and suspect a problem in the controller. This option will be retired when the controller reaches more maturity
 */
 func (a *Client) FindConfigCompactionStaticShares(params *FindConfigCompactionStaticSharesParams) (*FindConfigCompactionStaticSharesOK, error) {
 	// TODO: Validate the params before sending
@@ -1413,7 +1783,7 @@ func (a *Client) FindConfigCompactionStaticShares(params *FindConfigCompactionSt
 }
 
 /*
-FindConfigCompactionThroughputMbPerSec Throttles compaction to the specified total throughput across the entire system. The faster you insert data, the faster you need to compact in order to keep the SSTable count down. The recommended Value is 16 to 32 times the rate of write throughput (in MBs/second). Setting the value to 0 disables compaction throttling.
+  FindConfigCompactionThroughputMbPerSec Throttles compaction to the specified total throughput across the entire system. The faster you insert data, the faster you need to compact in order to keep the SSTable count down. The recommended Value is 16 to 32 times the rate of write throughput (in MBs/second). Setting the value to 0 disables compaction throttling.
 Related information: Configuring compaction
 */
 func (a *Client) FindConfigCompactionThroughputMbPerSec(params *FindConfigCompactionThroughputMbPerSecParams) (*FindConfigCompactionThroughputMbPerSecOK, error) {
@@ -1447,7 +1817,7 @@ func (a *Client) FindConfigCompactionThroughputMbPerSec(params *FindConfigCompac
 }
 
 /*
-FindConfigConcurrentCompactors Sets the number of concurrent compaction processes allowed to run simultaneously on a node, not including validation compactions for anti-entropy repair. Simultaneous compactions help preserve read performance in a mixed read-write workload by mitigating the tendency of small SSTables to accumulate during a single long-running compaction. If compactions run too slowly or too fast, change compaction_throughput_mb_per_sec first.
+  FindConfigConcurrentCompactors Sets the number of concurrent compaction processes allowed to run simultaneously on a node, not including validation compactions for anti-entropy repair. Simultaneous compactions help preserve read performance in a mixed read-write workload by mitigating the tendency of small SSTables to accumulate during a single long-running compaction. If compactions run too slowly or too fast, change compaction_throughput_mb_per_sec first.
 */
 func (a *Client) FindConfigConcurrentCompactors(params *FindConfigConcurrentCompactorsParams) (*FindConfigConcurrentCompactorsOK, error) {
 	// TODO: Validate the params before sending
@@ -1480,7 +1850,7 @@ func (a *Client) FindConfigConcurrentCompactors(params *FindConfigConcurrentComp
 }
 
 /*
-FindConfigConcurrentCounterWrites Counter writes read the current values before incrementing and writing them back. The recommended value is (16 × number_of_drives) .
+  FindConfigConcurrentCounterWrites Counter writes read the current values before incrementing and writing them back. The recommended value is (16 × number_of_drives) .
 */
 func (a *Client) FindConfigConcurrentCounterWrites(params *FindConfigConcurrentCounterWritesParams) (*FindConfigConcurrentCounterWritesOK, error) {
 	// TODO: Validate the params before sending
@@ -1513,7 +1883,7 @@ func (a *Client) FindConfigConcurrentCounterWrites(params *FindConfigConcurrentC
 }
 
 /*
-FindConfigConcurrentReads For workloads with more data than can fit in memory, the bottleneck is reads fetching data from disk. Setting to (16 × number_of_drives) allows operations to queue low enough in the stack so that the OS and drives can reorder them.
+  FindConfigConcurrentReads For workloads with more data than can fit in memory, the bottleneck is reads fetching data from disk. Setting to (16 × number_of_drives) allows operations to queue low enough in the stack so that the OS and drives can reorder them.
 */
 func (a *Client) FindConfigConcurrentReads(params *FindConfigConcurrentReadsParams) (*FindConfigConcurrentReadsOK, error) {
 	// TODO: Validate the params before sending
@@ -1546,7 +1916,7 @@ func (a *Client) FindConfigConcurrentReads(params *FindConfigConcurrentReadsPara
 }
 
 /*
-FindConfigConcurrentWrites Writes in Cassandra are rarely I/O bound, so the ideal number of concurrent writes depends on the number of CPU cores in your system. The recommended value is (8 x number_of_cpu_cores).
+  FindConfigConcurrentWrites Writes in Cassandra are rarely I/O bound, so the ideal number of concurrent writes depends on the number of CPU cores in your system. The recommended value is (8 x number_of_cpu_cores).
 */
 func (a *Client) FindConfigConcurrentWrites(params *FindConfigConcurrentWritesParams) (*FindConfigConcurrentWritesOK, error) {
 	// TODO: Validate the params before sending
@@ -1579,7 +1949,7 @@ func (a *Client) FindConfigConcurrentWrites(params *FindConfigConcurrentWritesPa
 }
 
 /*
-FindConfigConsistentRangemovement When set to true, range movements will be consistent. It means: 1) it will refuse to bootstrap a new node if other bootstrapping/leaving/moving nodes detected. 2) data will be streamed to a new node only from the node which is no longer responsible for the token range. Same as -Dcassandra.consistent.rangemovement in cassandra
+  FindConfigConsistentRangemovement When set to true, range movements will be consistent. It means: 1) it will refuse to bootstrap a new node if other bootstrapping/leaving/moving nodes detected. 2) data will be streamed to a new node only from the node which is no longer responsible for the token range. Same as -Dcassandra.consistent.rangemovement in cassandra
 */
 func (a *Client) FindConfigConsistentRangemovement(params *FindConfigConsistentRangemovementParams) (*FindConfigConsistentRangemovementOK, error) {
 	// TODO: Validate the params before sending
@@ -1612,7 +1982,7 @@ func (a *Client) FindConfigConsistentRangemovement(params *FindConfigConsistentR
 }
 
 /*
-FindConfigCounterCacheKeysToSave Number of keys from the counter cache to save. When disabled all keys are saved.
+  FindConfigCounterCacheKeysToSave Number of keys from the counter cache to save. When disabled all keys are saved.
 */
 func (a *Client) FindConfigCounterCacheKeysToSave(params *FindConfigCounterCacheKeysToSaveParams) (*FindConfigCounterCacheKeysToSaveOK, error) {
 	// TODO: Validate the params before sending
@@ -1645,7 +2015,7 @@ func (a *Client) FindConfigCounterCacheKeysToSave(params *FindConfigCounterCache
 }
 
 /*
-FindConfigCounterCacheSavePeriod Duration after which Cassandra should save the counter cache (keys only). Caches are saved to saved_caches_directory.
+  FindConfigCounterCacheSavePeriod Duration after which Cassandra should save the counter cache (keys only). Caches are saved to saved_caches_directory.
 */
 func (a *Client) FindConfigCounterCacheSavePeriod(params *FindConfigCounterCacheSavePeriodParams) (*FindConfigCounterCacheSavePeriodOK, error) {
 	// TODO: Validate the params before sending
@@ -1678,7 +2048,7 @@ func (a *Client) FindConfigCounterCacheSavePeriod(params *FindConfigCounterCache
 }
 
 /*
-FindConfigCounterCacheSizeInMb When no value is specified a minimum of 2.5% of Heap or 50MB. If you perform counter deletes and rely on low gc_grace_seconds, you should disable the counter cache. To disable, set to 0
+  FindConfigCounterCacheSizeInMb When no value is specified a minimum of 2.5% of Heap or 50MB. If you perform counter deletes and rely on low gc_grace_seconds, you should disable the counter cache. To disable, set to 0
 */
 func (a *Client) FindConfigCounterCacheSizeInMb(params *FindConfigCounterCacheSizeInMbParams) (*FindConfigCounterCacheSizeInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -1711,7 +2081,7 @@ func (a *Client) FindConfigCounterCacheSizeInMb(params *FindConfigCounterCacheSi
 }
 
 /*
-FindConfigCounterWriteRequestTimeoutInMs The time that the coordinator waits for counter writes to complete.
+  FindConfigCounterWriteRequestTimeoutInMs The time that the coordinator waits for counter writes to complete.
 */
 func (a *Client) FindConfigCounterWriteRequestTimeoutInMs(params *FindConfigCounterWriteRequestTimeoutInMsParams) (*FindConfigCounterWriteRequestTimeoutInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -1744,7 +2114,7 @@ func (a *Client) FindConfigCounterWriteRequestTimeoutInMs(params *FindConfigCoun
 }
 
 /*
-FindConfigCPUScheduler Enable cpu scheduling
+  FindConfigCPUScheduler Enable cpu scheduling
 */
 func (a *Client) FindConfigCPUScheduler(params *FindConfigCPUSchedulerParams) (*FindConfigCPUSchedulerOK, error) {
 	// TODO: Validate the params before sending
@@ -1777,7 +2147,7 @@ func (a *Client) FindConfigCPUScheduler(params *FindConfigCPUSchedulerParams) (*
 }
 
 /*
-FindConfigCrossNodeTimeout Enable or disable operation timeout information exchange between nodes (to accurately measure request timeouts). If disabled Cassandra assumes the request was forwarded to the replica instantly by the coordinator.
+  FindConfigCrossNodeTimeout Enable or disable operation timeout information exchange between nodes (to accurately measure request timeouts). If disabled Cassandra assumes the request was forwarded to the replica instantly by the coordinator.
 CAUTION:
 Before enabling this property make sure NTP (network time protocol) is installed and the times are synchronized between the nodes.
 */
@@ -1812,7 +2182,7 @@ func (a *Client) FindConfigCrossNodeTimeout(params *FindConfigCrossNodeTimeoutPa
 }
 
 /*
-FindConfigDataFileDirectories The directory location where table data (SSTables) is stored
+  FindConfigDataFileDirectories The directory location where table data (SSTables) is stored
 */
 func (a *Client) FindConfigDataFileDirectories(params *FindConfigDataFileDirectoriesParams) (*FindConfigDataFileDirectoriesOK, error) {
 	// TODO: Validate the params before sending
@@ -1845,7 +2215,7 @@ func (a *Client) FindConfigDataFileDirectories(params *FindConfigDataFileDirecto
 }
 
 /*
-FindConfigDefaultLogLevel find config default log level API
+  FindConfigDefaultLogLevel find config default log level API
 */
 func (a *Client) FindConfigDefaultLogLevel(params *FindConfigDefaultLogLevelParams) (*FindConfigDefaultLogLevelOK, error) {
 	// TODO: Validate the params before sending
@@ -1878,7 +2248,7 @@ func (a *Client) FindConfigDefaultLogLevel(params *FindConfigDefaultLogLevelPara
 }
 
 /*
-FindConfigDefragmentMemoryOnIdle When set to true, will defragment memory when the cpu is idle.  This reduces the amount of work Scylla performs when processing client requests.
+  FindConfigDefragmentMemoryOnIdle When set to true, will defragment memory when the cpu is idle.  This reduces the amount of work Scylla performs when processing client requests.
 */
 func (a *Client) FindConfigDefragmentMemoryOnIdle(params *FindConfigDefragmentMemoryOnIdleParams) (*FindConfigDefragmentMemoryOnIdleOK, error) {
 	// TODO: Validate the params before sending
@@ -1911,7 +2281,7 @@ func (a *Client) FindConfigDefragmentMemoryOnIdle(params *FindConfigDefragmentMe
 }
 
 /*
-FindConfigDeveloperMode Relax environment checks. Setting to true can reduce performance and reliability significantly.
+  FindConfigDeveloperMode Relax environment checks. Setting to true can reduce performance and reliability significantly.
 */
 func (a *Client) FindConfigDeveloperMode(params *FindConfigDeveloperModeParams) (*FindConfigDeveloperModeOK, error) {
 	// TODO: Validate the params before sending
@@ -1944,7 +2314,7 @@ func (a *Client) FindConfigDeveloperMode(params *FindConfigDeveloperModeParams) 
 }
 
 /*
-FindConfigDiskFailurePolicy Sets how Scylla responds to disk failure. Recommend settings are stop or best_effort.
+  FindConfigDiskFailurePolicy Sets how Scylla responds to disk failure. Recommend settings are stop or best_effort.
 
  die              Shut down gossip and Thrift and kill the JVM for any file system errors or single SSTable errors, so the node can be replaced.
  stop_paranoid    Shut down gossip and Thrift even for single SSTable errors.
@@ -1986,7 +2356,7 @@ func (a *Client) FindConfigDiskFailurePolicy(params *FindConfigDiskFailurePolicy
 }
 
 /*
-FindConfigDynamicSnitchBadnessThreshold Sets the performance threshold for dynamically routing requests away from a poorly performing node. A value of 0.2 means Cassandra continues to prefer the static snitch values until the node response time is 20% worse than the best performing node. Until the threshold is reached, incoming client requests are statically routed to the closest replica (as determined by the snitch). Having requests consistently routed to a given replica can help keep a working set of data hot when read repair is less than 1.
+  FindConfigDynamicSnitchBadnessThreshold Sets the performance threshold for dynamically routing requests away from a poorly performing node. A value of 0.2 means Cassandra continues to prefer the static snitch values until the node response time is 20% worse than the best performing node. Until the threshold is reached, incoming client requests are statically routed to the closest replica (as determined by the snitch). Having requests consistently routed to a given replica can help keep a working set of data hot when read repair is less than 1.
 */
 func (a *Client) FindConfigDynamicSnitchBadnessThreshold(params *FindConfigDynamicSnitchBadnessThresholdParams) (*FindConfigDynamicSnitchBadnessThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -2019,7 +2389,7 @@ func (a *Client) FindConfigDynamicSnitchBadnessThreshold(params *FindConfigDynam
 }
 
 /*
-FindConfigDynamicSnitchResetIntervalInMs Time interval in milliseconds to reset all node scores, which allows a bad node to recover.
+  FindConfigDynamicSnitchResetIntervalInMs Time interval in milliseconds to reset all node scores, which allows a bad node to recover.
 */
 func (a *Client) FindConfigDynamicSnitchResetIntervalInMs(params *FindConfigDynamicSnitchResetIntervalInMsParams) (*FindConfigDynamicSnitchResetIntervalInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -2052,7 +2422,7 @@ func (a *Client) FindConfigDynamicSnitchResetIntervalInMs(params *FindConfigDyna
 }
 
 /*
-FindConfigDynamicSnitchUpdateIntervalInMs The time interval for how often the snitch calculates node scores. Because score calculation is CPU intensive, be careful when reducing this interval.
+  FindConfigDynamicSnitchUpdateIntervalInMs The time interval for how often the snitch calculates node scores. Because score calculation is CPU intensive, be careful when reducing this interval.
 */
 func (a *Client) FindConfigDynamicSnitchUpdateIntervalInMs(params *FindConfigDynamicSnitchUpdateIntervalInMsParams) (*FindConfigDynamicSnitchUpdateIntervalInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -2085,7 +2455,7 @@ func (a *Client) FindConfigDynamicSnitchUpdateIntervalInMs(params *FindConfigDyn
 }
 
 /*
-FindConfigEnableCache Enable cache
+  FindConfigEnableCache Enable cache
 */
 func (a *Client) FindConfigEnableCache(params *FindConfigEnableCacheParams) (*FindConfigEnableCacheOK, error) {
 	// TODO: Validate the params before sending
@@ -2118,7 +2488,7 @@ func (a *Client) FindConfigEnableCache(params *FindConfigEnableCacheParams) (*Fi
 }
 
 /*
-FindConfigEnableCommitlog Enable commitlog
+  FindConfigEnableCommitlog Enable commitlog
 */
 func (a *Client) FindConfigEnableCommitlog(params *FindConfigEnableCommitlogParams) (*FindConfigEnableCommitlogOK, error) {
 	// TODO: Validate the params before sending
@@ -2151,7 +2521,7 @@ func (a *Client) FindConfigEnableCommitlog(params *FindConfigEnableCommitlogPara
 }
 
 /*
-FindConfigEnableDangerousDirectImportOfCassandraCounters Only turn this option on if you want to import tables from Cassandra containing counters, and you are SURE that no counters in that table were created in a version earlier than Cassandra 2.1. It is not enough to have ever since upgraded to newer versions of Cassandra. If you EVER used a version earlier than 2.1 in the cluster where these SSTables come from, DO NOT TURN ON THIS OPTION! You will corrupt your data. You have been warned.
+  FindConfigEnableDangerousDirectImportOfCassandraCounters Only turn this option on if you want to import tables from Cassandra containing counters, and you are SURE that no counters in that table were created in a version earlier than Cassandra 2.1. It is not enough to have ever since upgraded to newer versions of Cassandra. If you EVER used a version earlier than 2.1 in the cluster where these SSTables come from, DO NOT TURN ON THIS OPTION! You will corrupt your data. You have been warned.
 */
 func (a *Client) FindConfigEnableDangerousDirectImportOfCassandraCounters(params *FindConfigEnableDangerousDirectImportOfCassandraCountersParams) (*FindConfigEnableDangerousDirectImportOfCassandraCountersOK, error) {
 	// TODO: Validate the params before sending
@@ -2184,7 +2554,7 @@ func (a *Client) FindConfigEnableDangerousDirectImportOfCassandraCounters(params
 }
 
 /*
-FindConfigEnableDeprecatedPartitioners Enable the byteordered and murmurs partitioners. These partitioners are deprecated and will be removed in a future version.
+  FindConfigEnableDeprecatedPartitioners Enable the byteordered and murmurs partitioners. These partitioners are deprecated and will be removed in a future version.
 */
 func (a *Client) FindConfigEnableDeprecatedPartitioners(params *FindConfigEnableDeprecatedPartitionersParams) (*FindConfigEnableDeprecatedPartitionersOK, error) {
 	// TODO: Validate the params before sending
@@ -2217,7 +2587,7 @@ func (a *Client) FindConfigEnableDeprecatedPartitioners(params *FindConfigEnable
 }
 
 /*
-FindConfigEnableInMemoryDataStore Enable in memory mode (system tables are always persisted)
+  FindConfigEnableInMemoryDataStore Enable in memory mode (system tables are always persisted)
 */
 func (a *Client) FindConfigEnableInMemoryDataStore(params *FindConfigEnableInMemoryDataStoreParams) (*FindConfigEnableInMemoryDataStoreOK, error) {
 	// TODO: Validate the params before sending
@@ -2250,7 +2620,7 @@ func (a *Client) FindConfigEnableInMemoryDataStore(params *FindConfigEnableInMem
 }
 
 /*
-FindConfigEnableKeyspaceColumnFamilyMetrics Enable per keyspace and per column family metrics reporting
+  FindConfigEnableKeyspaceColumnFamilyMetrics Enable per keyspace and per column family metrics reporting
 */
 func (a *Client) FindConfigEnableKeyspaceColumnFamilyMetrics(params *FindConfigEnableKeyspaceColumnFamilyMetricsParams) (*FindConfigEnableKeyspaceColumnFamilyMetricsOK, error) {
 	// TODO: Validate the params before sending
@@ -2283,7 +2653,7 @@ func (a *Client) FindConfigEnableKeyspaceColumnFamilyMetrics(params *FindConfigE
 }
 
 /*
-FindConfigEnableShardAwareDrivers Enable native transport drivers to use connection-per-shard for better performance
+  FindConfigEnableShardAwareDrivers Enable native transport drivers to use connection-per-shard for better performance
 */
 func (a *Client) FindConfigEnableShardAwareDrivers(params *FindConfigEnableShardAwareDriversParams) (*FindConfigEnableShardAwareDriversOK, error) {
 	// TODO: Validate the params before sending
@@ -2316,7 +2686,7 @@ func (a *Client) FindConfigEnableShardAwareDrivers(params *FindConfigEnableShard
 }
 
 /*
-FindConfigEnableSstableDataIntegrityCheck Enable interposer which checks for integrity of every sstable write. Performance is affected to some extent as a result. Useful to help debugging problems that may arise at another layers.
+  FindConfigEnableSstableDataIntegrityCheck Enable interposer which checks for integrity of every sstable write. Performance is affected to some extent as a result. Useful to help debugging problems that may arise at another layers.
 */
 func (a *Client) FindConfigEnableSstableDataIntegrityCheck(params *FindConfigEnableSstableDataIntegrityCheckParams) (*FindConfigEnableSstableDataIntegrityCheckOK, error) {
 	// TODO: Validate the params before sending
@@ -2349,7 +2719,7 @@ func (a *Client) FindConfigEnableSstableDataIntegrityCheck(params *FindConfigEna
 }
 
 /*
-FindConfigEnableSstablesMcFormat Enable SSTables 'mc' format to be used as the default file format
+  FindConfigEnableSstablesMcFormat Enable SSTables 'mc' format to be used as the default file format
 */
 func (a *Client) FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstablesMcFormatParams) (*FindConfigEnableSstablesMcFormatOK, error) {
 	// TODO: Validate the params before sending
@@ -2382,7 +2752,7 @@ func (a *Client) FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstabl
 }
 
 /*
-FindConfigEndpointSnitch Set to a class that implements the IEndpointSnitch. Scylla uses snitches for locating nodes and routing requests.
+  FindConfigEndpointSnitch Set to a class that implements the IEndpointSnitch. Scylla uses snitches for locating nodes and routing requests.
 
  SimpleSnitch: Use for single-data center deployments or single-zone in public clouds. Does not recognize data center or rack information. It treats strategy order as proximity, which can improve cache locality when disabling read repair.
 
@@ -2430,7 +2800,7 @@ func (a *Client) FindConfigEndpointSnitch(params *FindConfigEndpointSnitchParams
 }
 
 /*
-FindConfigExperimental Set to true to unlock experimental features.
+  FindConfigExperimental Set to true to unlock experimental features.
 */
 func (a *Client) FindConfigExperimental(params *FindConfigExperimentalParams) (*FindConfigExperimentalOK, error) {
 	// TODO: Validate the params before sending
@@ -2463,7 +2833,7 @@ func (a *Client) FindConfigExperimental(params *FindConfigExperimentalParams) (*
 }
 
 /*
-FindConfigFdInitialValueMs The initial failure_detector interval time in milliseconds.
+  FindConfigFdInitialValueMs The initial failure_detector interval time in milliseconds.
 */
 func (a *Client) FindConfigFdInitialValueMs(params *FindConfigFdInitialValueMsParams) (*FindConfigFdInitialValueMsOK, error) {
 	// TODO: Validate the params before sending
@@ -2496,7 +2866,7 @@ func (a *Client) FindConfigFdInitialValueMs(params *FindConfigFdInitialValueMsPa
 }
 
 /*
-FindConfigFdMaxIntervalMs The maximum failure_detector interval time in milliseconds. Interval larger than the maximum will be ignored. Larger cluster may need to increase the default.
+  FindConfigFdMaxIntervalMs The maximum failure_detector interval time in milliseconds. Interval larger than the maximum will be ignored. Larger cluster may need to increase the default.
 */
 func (a *Client) FindConfigFdMaxIntervalMs(params *FindConfigFdMaxIntervalMsParams) (*FindConfigFdMaxIntervalMsOK, error) {
 	// TODO: Validate the params before sending
@@ -2529,7 +2899,7 @@ func (a *Client) FindConfigFdMaxIntervalMs(params *FindConfigFdMaxIntervalMsPara
 }
 
 /*
-FindConfigFileCacheSizeInMb Total memory to use for SSTable-reading buffers.
+  FindConfigFileCacheSizeInMb Total memory to use for SSTable-reading buffers.
 */
 func (a *Client) FindConfigFileCacheSizeInMb(params *FindConfigFileCacheSizeInMbParams) (*FindConfigFileCacheSizeInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -2562,7 +2932,7 @@ func (a *Client) FindConfigFileCacheSizeInMb(params *FindConfigFileCacheSizeInMb
 }
 
 /*
-FindConfigHintedHandoffEnabled Enable or disable hinted handoff. To enable per data center, add data center list. For example: hinted_handoff_enabled: DC1,DC2. A hint indicates that the write needs to be replayed to an unavailable node. Related information: About hinted handoff writes
+  FindConfigHintedHandoffEnabled Enable or disable hinted handoff. To enable per data center, add data center list. For example: hinted_handoff_enabled: DC1,DC2. A hint indicates that the write needs to be replayed to an unavailable node. Related information: About hinted handoff writes
 */
 func (a *Client) FindConfigHintedHandoffEnabled(params *FindConfigHintedHandoffEnabledParams) (*FindConfigHintedHandoffEnabledOK, error) {
 	// TODO: Validate the params before sending
@@ -2595,7 +2965,7 @@ func (a *Client) FindConfigHintedHandoffEnabled(params *FindConfigHintedHandoffE
 }
 
 /*
-FindConfigHintedHandoffThrottleInKb Maximum throttle per delivery thread in kilobytes per second. This rate reduces proportionally to the number of nodes in the cluster. For example, if there are two nodes in the cluster, each delivery thread will use the maximum rate. If there are three, each node will throttle to half of the maximum, since the two nodes are expected to deliver hints simultaneously.
+  FindConfigHintedHandoffThrottleInKb Maximum throttle per delivery thread in kilobytes per second. This rate reduces proportionally to the number of nodes in the cluster. For example, if there are two nodes in the cluster, each delivery thread will use the maximum rate. If there are three, each node will throttle to half of the maximum, since the two nodes are expected to deliver hints simultaneously.
 */
 func (a *Client) FindConfigHintedHandoffThrottleInKb(params *FindConfigHintedHandoffThrottleInKbParams) (*FindConfigHintedHandoffThrottleInKbOK, error) {
 	// TODO: Validate the params before sending
@@ -2628,7 +2998,7 @@ func (a *Client) FindConfigHintedHandoffThrottleInKb(params *FindConfigHintedHan
 }
 
 /*
-FindConfigHintsDirectory The directory where hints files are stored if hinted handoff is enabled.
+  FindConfigHintsDirectory The directory where hints files are stored if hinted handoff is enabled.
 */
 func (a *Client) FindConfigHintsDirectory(params *FindConfigHintsDirectoryParams) (*FindConfigHintsDirectoryOK, error) {
 	// TODO: Validate the params before sending
@@ -2661,7 +3031,7 @@ func (a *Client) FindConfigHintsDirectory(params *FindConfigHintsDirectoryParams
 }
 
 /*
-FindConfigInMemoryCompactionLimitInMb Size limit for rows being compacted in memory. Larger rows spill to disk and use a slower two-pass compaction process. When this occurs, a message is logged specifying the row key. The recommended value is 5 to 10 percent of the available Java heap size.
+  FindConfigInMemoryCompactionLimitInMb Size limit for rows being compacted in memory. Larger rows spill to disk and use a slower two-pass compaction process. When this occurs, a message is logged specifying the row key. The recommended value is 5 to 10 percent of the available Java heap size.
 */
 func (a *Client) FindConfigInMemoryCompactionLimitInMb(params *FindConfigInMemoryCompactionLimitInMbParams) (*FindConfigInMemoryCompactionLimitInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -2694,7 +3064,7 @@ func (a *Client) FindConfigInMemoryCompactionLimitInMb(params *FindConfigInMemor
 }
 
 /*
-FindConfigIncrementalBackups Backs up data updated since the last snapshot was taken. When enabled, Scylla creates a hard link to each SSTable flushed or streamed locally in a backups/ subdirectory of the keyspace data. Removing these links is the operator's responsibility.
+  FindConfigIncrementalBackups Backs up data updated since the last snapshot was taken. When enabled, Scylla creates a hard link to each SSTable flushed or streamed locally in a backups/ subdirectory of the keyspace data. Removing these links is the operator's responsibility.
 Related information: Enabling incremental backups
 */
 func (a *Client) FindConfigIncrementalBackups(params *FindConfigIncrementalBackupsParams) (*FindConfigIncrementalBackupsOK, error) {
@@ -2728,7 +3098,7 @@ func (a *Client) FindConfigIncrementalBackups(params *FindConfigIncrementalBacku
 }
 
 /*
-FindConfigIndexSummaryCapacityInMb Fixed memory pool size in MB for SSTable index summaries. If the memory usage of all index summaries exceeds this limit, any SSTables with low read rates shrink their index summaries to meet this limit. This is a best-effort process. In extreme conditions, Cassandra may need to use more than this amount of memory.
+  FindConfigIndexSummaryCapacityInMb Fixed memory pool size in MB for SSTable index summaries. If the memory usage of all index summaries exceeds this limit, any SSTables with low read rates shrink their index summaries to meet this limit. This is a best-effort process. In extreme conditions, Cassandra may need to use more than this amount of memory.
 */
 func (a *Client) FindConfigIndexSummaryCapacityInMb(params *FindConfigIndexSummaryCapacityInMbParams) (*FindConfigIndexSummaryCapacityInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -2761,7 +3131,7 @@ func (a *Client) FindConfigIndexSummaryCapacityInMb(params *FindConfigIndexSumma
 }
 
 /*
-FindConfigIndexSummaryResizeIntervalInMinutes How frequently index summaries should be re-sampled. This is done periodically to redistribute memory from the fixed-size pool to SSTables proportional their recent read rates. To disable, set to -1. This leaves existing index summaries at their current sampling level.
+  FindConfigIndexSummaryResizeIntervalInMinutes How frequently index summaries should be re-sampled. This is done periodically to redistribute memory from the fixed-size pool to SSTables proportional their recent read rates. To disable, set to -1. This leaves existing index summaries at their current sampling level.
 */
 func (a *Client) FindConfigIndexSummaryResizeIntervalInMinutes(params *FindConfigIndexSummaryResizeIntervalInMinutesParams) (*FindConfigIndexSummaryResizeIntervalInMinutesOK, error) {
 	// TODO: Validate the params before sending
@@ -2794,7 +3164,7 @@ func (a *Client) FindConfigIndexSummaryResizeIntervalInMinutes(params *FindConfi
 }
 
 /*
-FindConfigInitialToken Used in the single-node-per-token architecture, where a node owns exactly one contiguous range in the ring space. Setting this property overrides num_tokens.
+  FindConfigInitialToken Used in the single-node-per-token architecture, where a node owns exactly one contiguous range in the ring space. Setting this property overrides num_tokens.
 If you not using vnodes or have num_tokens set it to 1 or unspecified (#num_tokens), you should always specify this parameter when setting up a production cluster for the first time and when adding capacity. For more information, see this parameter in the Cassandra 1.1 Node and Cluster Configuration documentation.
 This parameter can be used with num_tokens (vnodes ) in special cases such as Restoring from a snapshot.
 */
@@ -2829,7 +3199,7 @@ func (a *Client) FindConfigInitialToken(params *FindConfigInitialTokenParams) (*
 }
 
 /*
-FindConfigInterDcStreamThroughputOutboundMegabitsPerSec Throttles all streaming file transfer between the data centers. This setting allows throttles streaming throughput betweens data centers in addition to throttling all network stream traffic as configured with stream_throughput_outbound_megabits_per_sec.
+  FindConfigInterDcStreamThroughputOutboundMegabitsPerSec Throttles all streaming file transfer between the data centers. This setting allows throttles streaming throughput betweens data centers in addition to throttling all network stream traffic as configured with stream_throughput_outbound_megabits_per_sec.
 */
 func (a *Client) FindConfigInterDcStreamThroughputOutboundMegabitsPerSec(params *FindConfigInterDcStreamThroughputOutboundMegabitsPerSecParams) (*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK, error) {
 	// TODO: Validate the params before sending
@@ -2862,7 +3232,7 @@ func (a *Client) FindConfigInterDcStreamThroughputOutboundMegabitsPerSec(params 
 }
 
 /*
-FindConfigInterDcTCPNodelay Enable or disable tcp_nodelay for inter-data center communication. When disabled larger, but fewer, network packets are sent. This reduces overhead from the TCP protocol itself. However, if cross data-center responses are blocked, it will increase latency.
+  FindConfigInterDcTCPNodelay Enable or disable tcp_nodelay for inter-data center communication. When disabled larger, but fewer, network packets are sent. This reduces overhead from the TCP protocol itself. However, if cross data-center responses are blocked, it will increase latency.
 */
 func (a *Client) FindConfigInterDcTCPNodelay(params *FindConfigInterDcTCPNodelayParams) (*FindConfigInterDcTCPNodelayOK, error) {
 	// TODO: Validate the params before sending
@@ -2895,7 +3265,7 @@ func (a *Client) FindConfigInterDcTCPNodelay(params *FindConfigInterDcTCPNodelay
 }
 
 /*
-FindConfigInternodeAuthenticator Internode authentication backend. It implements org.apache.cassandra.auth.AllowAllInternodeAuthenticator to allows or disallow connections from peer nodes.
+  FindConfigInternodeAuthenticator Internode authentication backend. It implements org.apache.cassandra.auth.AllowAllInternodeAuthenticator to allows or disallow connections from peer nodes.
 */
 func (a *Client) FindConfigInternodeAuthenticator(params *FindConfigInternodeAuthenticatorParams) (*FindConfigInternodeAuthenticatorOK, error) {
 	// TODO: Validate the params before sending
@@ -2928,7 +3298,7 @@ func (a *Client) FindConfigInternodeAuthenticator(params *FindConfigInternodeAut
 }
 
 /*
-FindConfigInternodeCompression Controls whether traffic between nodes is compressed. The valid values are:
+  FindConfigInternodeCompression Controls whether traffic between nodes is compressed. The valid values are:
 
  all: All traffic is compressed.
  dc : Traffic between data centers is compressed.
@@ -2965,7 +3335,7 @@ func (a *Client) FindConfigInternodeCompression(params *FindConfigInternodeCompr
 }
 
 /*
-FindConfigInternodeRecvBuffSizeInBytes Sets the receiving socket buffer size in bytes for inter-node calls.
+  FindConfigInternodeRecvBuffSizeInBytes Sets the receiving socket buffer size in bytes for inter-node calls.
 */
 func (a *Client) FindConfigInternodeRecvBuffSizeInBytes(params *FindConfigInternodeRecvBuffSizeInBytesParams) (*FindConfigInternodeRecvBuffSizeInBytesOK, error) {
 	// TODO: Validate the params before sending
@@ -2998,7 +3368,7 @@ func (a *Client) FindConfigInternodeRecvBuffSizeInBytes(params *FindConfigIntern
 }
 
 /*
-FindConfigInternodeSendBuffSizeInBytes Sets the sending socket buffer size in bytes for inter-node calls.
+  FindConfigInternodeSendBuffSizeInBytes Sets the sending socket buffer size in bytes for inter-node calls.
 When setting this parameter and internode_recv_buff_size_in_bytes, the buffer size is limited by net.core.wmem_max. When unset, buffer size is defined by net.ipv4.tcp_wmem. See man tcp and:
 
  /proc/sys/net/core/wmem_max
@@ -3038,7 +3408,7 @@ func (a *Client) FindConfigInternodeSendBuffSizeInBytes(params *FindConfigIntern
 }
 
 /*
-FindConfigJoinRing When set to true, a node will join the token ring. When set to false, a node will not join the token ring. User can use nodetool join to initiate ring joinging later. Same as -Dcassandra.join_ring in cassandra.
+  FindConfigJoinRing When set to true, a node will join the token ring. When set to false, a node will not join the token ring. User can use nodetool join to initiate ring joinging later. Same as -Dcassandra.join_ring in cassandra.
 */
 func (a *Client) FindConfigJoinRing(params *FindConfigJoinRingParams) (*FindConfigJoinRingOK, error) {
 	// TODO: Validate the params before sending
@@ -3071,7 +3441,7 @@ func (a *Client) FindConfigJoinRing(params *FindConfigJoinRingParams) (*FindConf
 }
 
 /*
-FindConfigKeyCacheKeysToSave Number of keys from the key cache to save. (0: all)
+  FindConfigKeyCacheKeysToSave Number of keys from the key cache to save. (0: all)
 */
 func (a *Client) FindConfigKeyCacheKeysToSave(params *FindConfigKeyCacheKeysToSaveParams) (*FindConfigKeyCacheKeysToSaveOK, error) {
 	// TODO: Validate the params before sending
@@ -3104,7 +3474,7 @@ func (a *Client) FindConfigKeyCacheKeysToSave(params *FindConfigKeyCacheKeysToSa
 }
 
 /*
-FindConfigKeyCacheSavePeriod Duration in seconds that keys are saved in cache. Caches are saved to saved_caches_directory. Saved caches greatly improve cold-start speeds and has relatively little effect on I/O.
+  FindConfigKeyCacheSavePeriod Duration in seconds that keys are saved in cache. Caches are saved to saved_caches_directory. Saved caches greatly improve cold-start speeds and has relatively little effect on I/O.
 */
 func (a *Client) FindConfigKeyCacheSavePeriod(params *FindConfigKeyCacheSavePeriodParams) (*FindConfigKeyCacheSavePeriodOK, error) {
 	// TODO: Validate the params before sending
@@ -3137,7 +3507,7 @@ func (a *Client) FindConfigKeyCacheSavePeriod(params *FindConfigKeyCacheSavePeri
 }
 
 /*
-FindConfigKeyCacheSizeInMb A global cache setting for tables. It is the maximum size of the key cache in memory. To disable set to 0.
+  FindConfigKeyCacheSizeInMb A global cache setting for tables. It is the maximum size of the key cache in memory. To disable set to 0.
 Related information: nodetool setcachecapacity.
 */
 func (a *Client) FindConfigKeyCacheSizeInMb(params *FindConfigKeyCacheSizeInMbParams) (*FindConfigKeyCacheSizeInMbOK, error) {
@@ -3171,7 +3541,7 @@ func (a *Client) FindConfigKeyCacheSizeInMb(params *FindConfigKeyCacheSizeInMbPa
 }
 
 /*
-FindConfigLargeMemoryAllocationWarningThreshold Warn about memory allocations above this size; set to zero to disable
+  FindConfigLargeMemoryAllocationWarningThreshold Warn about memory allocations above this size; set to zero to disable
 */
 func (a *Client) FindConfigLargeMemoryAllocationWarningThreshold(params *FindConfigLargeMemoryAllocationWarningThresholdParams) (*FindConfigLargeMemoryAllocationWarningThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -3204,7 +3574,7 @@ func (a *Client) FindConfigLargeMemoryAllocationWarningThreshold(params *FindCon
 }
 
 /*
-FindConfigListenAddress The IP address or hostname that Scylla binds to for connecting to other Scylla nodes. Set this parameter or listen_interface, not both. You must change the default setting for multiple nodes to communicate:
+  FindConfigListenAddress The IP address or hostname that Scylla binds to for connecting to other Scylla nodes. Set this parameter or listen_interface, not both. You must change the default setting for multiple nodes to communicate:
 
 Generally set to empty. If the node is properly configured (host name, name resolution, and so on), Scylla uses InetAddress.getLocalHost() to get the local address from the system.
 For a single node cluster, you can use the default setting (localhost).
@@ -3242,7 +3612,7 @@ func (a *Client) FindConfigListenAddress(params *FindConfigListenAddressParams) 
 }
 
 /*
-FindConfigListenInterface The interface that Scylla binds to for connecting to other Scylla nodes. Interfaces must correspond to a single address, IP aliasing is not supported. See listen_address.
+  FindConfigListenInterface The interface that Scylla binds to for connecting to other Scylla nodes. Interfaces must correspond to a single address, IP aliasing is not supported. See listen_address.
 */
 func (a *Client) FindConfigListenInterface(params *FindConfigListenInterfaceParams) (*FindConfigListenInterfaceOK, error) {
 	// TODO: Validate the params before sending
@@ -3275,7 +3645,7 @@ func (a *Client) FindConfigListenInterface(params *FindConfigListenInterfacePara
 }
 
 /*
-FindConfigListenOnBroadcastAddress When using multiple physical network interfaces, set this to true to listen on broadcast_address in addition to the listen_address, allowing nodes to communicate in both interfaces.  Ignore this property if the network configuration automatically routes between the public and private networks such as EC2.
+  FindConfigListenOnBroadcastAddress When using multiple physical network interfaces, set this to true to listen on broadcast_address in addition to the listen_address, allowing nodes to communicate in both interfaces.  Ignore this property if the network configuration automatically routes between the public and private networks such as EC2.
 */
 func (a *Client) FindConfigListenOnBroadcastAddress(params *FindConfigListenOnBroadcastAddressParams) (*FindConfigListenOnBroadcastAddressOK, error) {
 	// TODO: Validate the params before sending
@@ -3308,7 +3678,7 @@ func (a *Client) FindConfigListenOnBroadcastAddress(params *FindConfigListenOnBr
 }
 
 /*
-FindConfigLoadBalance CQL request load balancing: 'none' or round-robin'
+  FindConfigLoadBalance CQL request load balancing: 'none' or round-robin'
 */
 func (a *Client) FindConfigLoadBalance(params *FindConfigLoadBalanceParams) (*FindConfigLoadBalanceOK, error) {
 	// TODO: Validate the params before sending
@@ -3341,7 +3711,7 @@ func (a *Client) FindConfigLoadBalance(params *FindConfigLoadBalanceParams) (*Fi
 }
 
 /*
-FindConfigLoadRingState When set to true, load tokens and host_ids previously saved. Same as -Dcassandra.load_ring_state in cassandra.
+  FindConfigLoadRingState When set to true, load tokens and host_ids previously saved. Same as -Dcassandra.load_ring_state in cassandra.
 */
 func (a *Client) FindConfigLoadRingState(params *FindConfigLoadRingStateParams) (*FindConfigLoadRingStateOK, error) {
 	// TODO: Validate the params before sending
@@ -3374,7 +3744,7 @@ func (a *Client) FindConfigLoadRingState(params *FindConfigLoadRingStateParams) 
 }
 
 /*
-FindConfigLogToStdout find config log to stdout API
+  FindConfigLogToStdout find config log to stdout API
 */
 func (a *Client) FindConfigLogToStdout(params *FindConfigLogToStdoutParams) (*FindConfigLogToStdoutOK, error) {
 	// TODO: Validate the params before sending
@@ -3407,7 +3777,7 @@ func (a *Client) FindConfigLogToStdout(params *FindConfigLogToStdoutParams) (*Fi
 }
 
 /*
-FindConfigLogToSyslog find config log to syslog API
+  FindConfigLogToSyslog find config log to syslog API
 */
 func (a *Client) FindConfigLogToSyslog(params *FindConfigLogToSyslogParams) (*FindConfigLogToSyslogOK, error) {
 	// TODO: Validate the params before sending
@@ -3440,7 +3810,7 @@ func (a *Client) FindConfigLogToSyslog(params *FindConfigLogToSyslogParams) (*Fi
 }
 
 /*
-FindConfigLoggerLogLevel find config logger log level API
+  FindConfigLoggerLogLevel find config logger log level API
 */
 func (a *Client) FindConfigLoggerLogLevel(params *FindConfigLoggerLogLevelParams) (*FindConfigLoggerLogLevelOK, error) {
 	// TODO: Validate the params before sending
@@ -3473,7 +3843,7 @@ func (a *Client) FindConfigLoggerLogLevel(params *FindConfigLoggerLogLevelParams
 }
 
 /*
-FindConfigLsaReclamationStep Minimum number of segments to reclaim in a single step
+  FindConfigLsaReclamationStep Minimum number of segments to reclaim in a single step
 */
 func (a *Client) FindConfigLsaReclamationStep(params *FindConfigLsaReclamationStepParams) (*FindConfigLsaReclamationStepOK, error) {
 	// TODO: Validate the params before sending
@@ -3506,7 +3876,7 @@ func (a *Client) FindConfigLsaReclamationStep(params *FindConfigLsaReclamationSt
 }
 
 /*
-FindConfigMaxHintWindowInMs Maximum amount of time that hints are generates hints for an unresponsive node. After this interval, new hints are no longer generated until the node is back up and responsive. If the node goes down again, a new interval begins. This setting can prevent a sudden demand for resources when a node is brought back online and the rest of the cluster attempts to replay a large volume of hinted writes.
+  FindConfigMaxHintWindowInMs Maximum amount of time that hints are generates hints for an unresponsive node. After this interval, new hints are no longer generated until the node is back up and responsive. If the node goes down again, a new interval begins. This setting can prevent a sudden demand for resources when a node is brought back online and the rest of the cluster attempts to replay a large volume of hinted writes.
 Related information: Failure detection and recovery
 */
 func (a *Client) FindConfigMaxHintWindowInMs(params *FindConfigMaxHintWindowInMsParams) (*FindConfigMaxHintWindowInMsOK, error) {
@@ -3540,7 +3910,7 @@ func (a *Client) FindConfigMaxHintWindowInMs(params *FindConfigMaxHintWindowInMs
 }
 
 /*
-FindConfigMaxHintsDeliveryThreads Number of threads with which to deliver hints. In multiple data-center deployments, consider increasing this number because cross data-center handoff is generally slower.
+  FindConfigMaxHintsDeliveryThreads Number of threads with which to deliver hints. In multiple data-center deployments, consider increasing this number because cross data-center handoff is generally slower.
 */
 func (a *Client) FindConfigMaxHintsDeliveryThreads(params *FindConfigMaxHintsDeliveryThreadsParams) (*FindConfigMaxHintsDeliveryThreadsOK, error) {
 	// TODO: Validate the params before sending
@@ -3573,7 +3943,7 @@ func (a *Client) FindConfigMaxHintsDeliveryThreads(params *FindConfigMaxHintsDel
 }
 
 /*
-FindConfigMemoryAllocator The off-heap memory allocator. In addition to caches, this property affects storage engine meta data. Supported values:
+  FindConfigMemoryAllocator The off-heap memory allocator. In addition to caches, this property affects storage engine meta data. Supported values:
  NativeAllocator
  JEMallocAllocator
 
@@ -3610,7 +3980,7 @@ func (a *Client) FindConfigMemoryAllocator(params *FindConfigMemoryAllocatorPara
 }
 
 /*
-FindConfigMemtableAllocationType Specify the way Cassandra allocates and manages memtable memory. See Off-heap memtables in Cassandra 2.1. Options are:
+  FindConfigMemtableAllocationType Specify the way Cassandra allocates and manages memtable memory. See Off-heap memtables in Cassandra 2.1. Options are:
  heap_buffers     On heap NIO (non-blocking I/O) buffers.
  offheap_buffers  Off heap (direct) NIO buffers.
  offheap_objects  Native memory, eliminating NIO buffer heap overhead.
@@ -3646,7 +4016,7 @@ func (a *Client) FindConfigMemtableAllocationType(params *FindConfigMemtableAllo
 }
 
 /*
-FindConfigMemtableCleanupThreshold Ratio of occupied non-flushing memtable size to total permitted size for triggering a flush of the largest memtable. Larger values mean larger flushes and less compaction, but also less concurrent flush activity, which can make it difficult to keep your disks saturated under heavy write load.
+  FindConfigMemtableCleanupThreshold Ratio of occupied non-flushing memtable size to total permitted size for triggering a flush of the largest memtable. Larger values mean larger flushes and less compaction, but also less concurrent flush activity, which can make it difficult to keep your disks saturated under heavy write load.
 */
 func (a *Client) FindConfigMemtableCleanupThreshold(params *FindConfigMemtableCleanupThresholdParams) (*FindConfigMemtableCleanupThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -3679,7 +4049,7 @@ func (a *Client) FindConfigMemtableCleanupThreshold(params *FindConfigMemtableCl
 }
 
 /*
-FindConfigMemtableFlushQueueSize The number of full memtables to allow pending flush (memtables waiting for a write thread). At a minimum, set to the maximum number of indexes created on a single table.
+  FindConfigMemtableFlushQueueSize The number of full memtables to allow pending flush (memtables waiting for a write thread). At a minimum, set to the maximum number of indexes created on a single table.
 Related information: Flushing data from the memtable
 */
 func (a *Client) FindConfigMemtableFlushQueueSize(params *FindConfigMemtableFlushQueueSizeParams) (*FindConfigMemtableFlushQueueSizeOK, error) {
@@ -3713,7 +4083,7 @@ func (a *Client) FindConfigMemtableFlushQueueSize(params *FindConfigMemtableFlus
 }
 
 /*
-FindConfigMemtableFlushStaticShares If set to higher than 0, ignore the controller's output and set the memtable shares statically. Do not set this unless you know what you are doing and suspect a problem in the controller. This option will be retired when the controller reaches more maturity
+  FindConfigMemtableFlushStaticShares If set to higher than 0, ignore the controller's output and set the memtable shares statically. Do not set this unless you know what you are doing and suspect a problem in the controller. This option will be retired when the controller reaches more maturity
 */
 func (a *Client) FindConfigMemtableFlushStaticShares(params *FindConfigMemtableFlushStaticSharesParams) (*FindConfigMemtableFlushStaticSharesOK, error) {
 	// TODO: Validate the params before sending
@@ -3746,7 +4116,7 @@ func (a *Client) FindConfigMemtableFlushStaticShares(params *FindConfigMemtableF
 }
 
 /*
-FindConfigMemtableFlushWriters Sets the number of memtable flush writer threads. These threads are blocked by disk I/O, and each one holds a memtable in memory while blocked. If you have a large Java heap size and many data directories, you can increase the value for better flush performance.
+  FindConfigMemtableFlushWriters Sets the number of memtable flush writer threads. These threads are blocked by disk I/O, and each one holds a memtable in memory while blocked. If you have a large Java heap size and many data directories, you can increase the value for better flush performance.
 */
 func (a *Client) FindConfigMemtableFlushWriters(params *FindConfigMemtableFlushWritersParams) (*FindConfigMemtableFlushWritersOK, error) {
 	// TODO: Validate the params before sending
@@ -3779,7 +4149,7 @@ func (a *Client) FindConfigMemtableFlushWriters(params *FindConfigMemtableFlushW
 }
 
 /*
-FindConfigMemtableHeapSpaceInMb Total permitted memory to use for memtables. Triggers a flush based on memtable_cleanup_threshold. Cassandra stops accepting writes when the limit is exceeded until a flush completes. If unset, sets to default.
+  FindConfigMemtableHeapSpaceInMb Total permitted memory to use for memtables. Triggers a flush based on memtable_cleanup_threshold. Cassandra stops accepting writes when the limit is exceeded until a flush completes. If unset, sets to default.
 */
 func (a *Client) FindConfigMemtableHeapSpaceInMb(params *FindConfigMemtableHeapSpaceInMbParams) (*FindConfigMemtableHeapSpaceInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -3812,7 +4182,7 @@ func (a *Client) FindConfigMemtableHeapSpaceInMb(params *FindConfigMemtableHeapS
 }
 
 /*
-FindConfigMemtableOffheapSpaceInMb See memtable_heap_space_in_mb
+  FindConfigMemtableOffheapSpaceInMb See memtable_heap_space_in_mb
 */
 func (a *Client) FindConfigMemtableOffheapSpaceInMb(params *FindConfigMemtableOffheapSpaceInMbParams) (*FindConfigMemtableOffheapSpaceInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -3845,7 +4215,7 @@ func (a *Client) FindConfigMemtableOffheapSpaceInMb(params *FindConfigMemtableOf
 }
 
 /*
-FindConfigMemtableTotalSpaceInMb Specifies the total memory used for all memtables on a node. This replaces the per-table storage settings memtable_operations_in_millions and memtable_throughput_in_mb.
+  FindConfigMemtableTotalSpaceInMb Specifies the total memory used for all memtables on a node. This replaces the per-table storage settings memtable_operations_in_millions and memtable_throughput_in_mb.
 */
 func (a *Client) FindConfigMemtableTotalSpaceInMb(params *FindConfigMemtableTotalSpaceInMbParams) (*FindConfigMemtableTotalSpaceInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -3878,7 +4248,7 @@ func (a *Client) FindConfigMemtableTotalSpaceInMb(params *FindConfigMemtableTota
 }
 
 /*
-FindConfigMurmur3PartitionerIgnoreMsbBits Number of most siginificant token bits to ignore in murmur3 partitioner; increase for very large clusters
+  FindConfigMurmur3PartitionerIgnoreMsbBits Number of most siginificant token bits to ignore in murmur3 partitioner; increase for very large clusters
 */
 func (a *Client) FindConfigMurmur3PartitionerIgnoreMsbBits(params *FindConfigMurmur3PartitionerIgnoreMsbBitsParams) (*FindConfigMurmur3PartitionerIgnoreMsbBitsOK, error) {
 	// TODO: Validate the params before sending
@@ -3911,7 +4281,7 @@ func (a *Client) FindConfigMurmur3PartitionerIgnoreMsbBits(params *FindConfigMur
 }
 
 /*
-FindConfigNativeTransportMaxFrameSizeInMb The maximum size of allowed frame. Frame (requests) larger than this are rejected as invalid.
+  FindConfigNativeTransportMaxFrameSizeInMb The maximum size of allowed frame. Frame (requests) larger than this are rejected as invalid.
 */
 func (a *Client) FindConfigNativeTransportMaxFrameSizeInMb(params *FindConfigNativeTransportMaxFrameSizeInMbParams) (*FindConfigNativeTransportMaxFrameSizeInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -3944,7 +4314,7 @@ func (a *Client) FindConfigNativeTransportMaxFrameSizeInMb(params *FindConfigNat
 }
 
 /*
-FindConfigNativeTransportMaxThreads The maximum number of thread handling requests. The meaning is the same as rpc_max_threads.
+  FindConfigNativeTransportMaxThreads The maximum number of thread handling requests. The meaning is the same as rpc_max_threads.
 Default is different (128 versus unlimited).
 No corresponding native_transport_min_threads.
 Idle threads are stopped after 30 seconds.
@@ -3981,7 +4351,7 @@ func (a *Client) FindConfigNativeTransportMaxThreads(params *FindConfigNativeTra
 }
 
 /*
-FindConfigNativeTransportPort Port on which the CQL native transport listens for clients.
+  FindConfigNativeTransportPort Port on which the CQL native transport listens for clients.
 */
 func (a *Client) FindConfigNativeTransportPort(params *FindConfigNativeTransportPortParams) (*FindConfigNativeTransportPortOK, error) {
 	// TODO: Validate the params before sending
@@ -4014,7 +4384,7 @@ func (a *Client) FindConfigNativeTransportPort(params *FindConfigNativeTransport
 }
 
 /*
-FindConfigNativeTransportPortSsl Port on which the CQL TLS native transport listens for clients.Enabling client encryption and keeping native_transport_port_ssl disabled will use encryptionfor native_transport_port. Setting native_transport_port_ssl to a different valuefrom native_transport_port will use encryption for native_transport_port_ssl whilekeeping native_transport_port unencrypted
+  FindConfigNativeTransportPortSsl Port on which the CQL TLS native transport listens for clients.Enabling client encryption and keeping native_transport_port_ssl disabled will use encryptionfor native_transport_port. Setting native_transport_port_ssl to a different valuefrom native_transport_port will use encryption for native_transport_port_ssl whilekeeping native_transport_port unencrypted
 */
 func (a *Client) FindConfigNativeTransportPortSsl(params *FindConfigNativeTransportPortSslParams) (*FindConfigNativeTransportPortSslOK, error) {
 	// TODO: Validate the params before sending
@@ -4047,7 +4417,7 @@ func (a *Client) FindConfigNativeTransportPortSsl(params *FindConfigNativeTransp
 }
 
 /*
-FindConfigNumTokens Defines the number of tokens randomly assigned to this node on the ring when using virtual nodes (vnodes). The more tokens, relative to other nodes, the larger the proportion of data that the node stores. Generally all nodes should have the same number of tokens assuming equal hardware capability. The recommended value is 256. If unspecified (#num_tokens), Scylla uses 1 (equivalent to #num_tokens : 1) for legacy compatibility and uses the initial_token setting.
+  FindConfigNumTokens Defines the number of tokens randomly assigned to this node on the ring when using virtual nodes (vnodes). The more tokens, relative to other nodes, the larger the proportion of data that the node stores. Generally all nodes should have the same number of tokens assuming equal hardware capability. The recommended value is 256. If unspecified (#num_tokens), Scylla uses 1 (equivalent to #num_tokens : 1) for legacy compatibility and uses the initial_token setting.
 If not using vnodes, comment #num_tokens : 256 or set num_tokens : 1 and use initial_token. If you already have an existing cluster with one token per node and wish to migrate to vnodes, see Enabling virtual nodes on an existing production cluster.
 Note: If using DataStax Enterprise, the default setting of this property depends on the type of node and type of install.
 */
@@ -4082,7 +4452,7 @@ func (a *Client) FindConfigNumTokens(params *FindConfigNumTokensParams) (*FindCo
 }
 
 /*
-FindConfigOverrideDecommission Set true to force a decommissioned node to join the cluster
+  FindConfigOverrideDecommission Set true to force a decommissioned node to join the cluster
 */
 func (a *Client) FindConfigOverrideDecommission(params *FindConfigOverrideDecommissionParams) (*FindConfigOverrideDecommissionOK, error) {
 	// TODO: Validate the params before sending
@@ -4115,7 +4485,7 @@ func (a *Client) FindConfigOverrideDecommission(params *FindConfigOverrideDecomm
 }
 
 /*
-FindConfigPartitioner Distributes rows (by partition key) across all nodes in the cluster. Any IPartitioner may be used, including your own as long as it is in the class path. For new clusters use the default partitioner.
+  FindConfigPartitioner Distributes rows (by partition key) across all nodes in the cluster. Any IPartitioner may be used, including your own as long as it is in the class path. For new clusters use the default partitioner.
 Scylla provides the following partitioners for backwards compatibility:
 
  RandomPartitioner
@@ -4155,7 +4525,7 @@ func (a *Client) FindConfigPartitioner(params *FindConfigPartitionerParams) (*Fi
 }
 
 /*
-FindConfigPermissionsCacheMaxEntries Maximum cached permission entries. Must have a non-zero value if permissions caching is enabled (see a permissions_validity_in_ms description).
+  FindConfigPermissionsCacheMaxEntries Maximum cached permission entries. Must have a non-zero value if permissions caching is enabled (see a permissions_validity_in_ms description).
 */
 func (a *Client) FindConfigPermissionsCacheMaxEntries(params *FindConfigPermissionsCacheMaxEntriesParams) (*FindConfigPermissionsCacheMaxEntriesOK, error) {
 	// TODO: Validate the params before sending
@@ -4188,7 +4558,7 @@ func (a *Client) FindConfigPermissionsCacheMaxEntries(params *FindConfigPermissi
 }
 
 /*
-FindConfigPermissionsUpdateIntervalInMs Refresh interval for permissions cache (if enabled). After this interval, cache entries become eligible for refresh. An async reload is scheduled every permissions_update_interval_in_ms time period and the old value is returned until it completes. If permissions_validity_in_ms has a non-zero value, then this property must also have a non-zero value. It's recommended to set this value to be at least 3 times smaller than the permissions_validity_in_ms.
+  FindConfigPermissionsUpdateIntervalInMs Refresh interval for permissions cache (if enabled). After this interval, cache entries become eligible for refresh. An async reload is scheduled every permissions_update_interval_in_ms time period and the old value is returned until it completes. If permissions_validity_in_ms has a non-zero value, then this property must also have a non-zero value. It's recommended to set this value to be at least 3 times smaller than the permissions_validity_in_ms.
 */
 func (a *Client) FindConfigPermissionsUpdateIntervalInMs(params *FindConfigPermissionsUpdateIntervalInMsParams) (*FindConfigPermissionsUpdateIntervalInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -4221,7 +4591,7 @@ func (a *Client) FindConfigPermissionsUpdateIntervalInMs(params *FindConfigPermi
 }
 
 /*
-FindConfigPermissionsValidityInMs How long permissions in cache remain valid. Depending on the authorizer, such as CassandraAuthorizer, fetching permissions can be resource intensive. Permissions caching is disabled when this property is set to 0 or when AllowAllAuthorizer is used. The cached value is considered valid as long as both its value is not older than the permissions_validity_in_ms and the cached value has been read at least once during the permissions_validity_in_ms time frame. If any of these two conditions doesn't hold the cached value is going to be evicted from the cache.
+  FindConfigPermissionsValidityInMs How long permissions in cache remain valid. Depending on the authorizer, such as CassandraAuthorizer, fetching permissions can be resource intensive. Permissions caching is disabled when this property is set to 0 or when AllowAllAuthorizer is used. The cached value is considered valid as long as both its value is not older than the permissions_validity_in_ms and the cached value has been read at least once during the permissions_validity_in_ms time frame. If any of these two conditions doesn't hold the cached value is going to be evicted from the cache.
 Related information: Object permissions
 */
 func (a *Client) FindConfigPermissionsValidityInMs(params *FindConfigPermissionsValidityInMsParams) (*FindConfigPermissionsValidityInMsOK, error) {
@@ -4255,7 +4625,7 @@ func (a *Client) FindConfigPermissionsValidityInMs(params *FindConfigPermissions
 }
 
 /*
-FindConfigPhiConvictThreshold Adjusts the sensitivity of the failure detector on an exponential scale. Generally this setting never needs adjusting.
+  FindConfigPhiConvictThreshold Adjusts the sensitivity of the failure detector on an exponential scale. Generally this setting never needs adjusting.
 Related information: Failure detection and recovery
 */
 func (a *Client) FindConfigPhiConvictThreshold(params *FindConfigPhiConvictThresholdParams) (*FindConfigPhiConvictThresholdOK, error) {
@@ -4289,7 +4659,7 @@ func (a *Client) FindConfigPhiConvictThreshold(params *FindConfigPhiConvictThres
 }
 
 /*
-FindConfigPreheatKernelPageCache Enable or disable kernel page cache preheating from contents of the key cache after compaction. When enabled it preheats only first page (4KB) of each row to optimize for sequential access. It can be harmful for fat rows, see CASSANDRA-4937 for more details.
+  FindConfigPreheatKernelPageCache Enable or disable kernel page cache preheating from contents of the key cache after compaction. When enabled it preheats only first page (4KB) of each row to optimize for sequential access. It can be harmful for fat rows, see CASSANDRA-4937 for more details.
 */
 func (a *Client) FindConfigPreheatKernelPageCache(params *FindConfigPreheatKernelPageCacheParams) (*FindConfigPreheatKernelPageCacheOK, error) {
 	// TODO: Validate the params before sending
@@ -4322,7 +4692,7 @@ func (a *Client) FindConfigPreheatKernelPageCache(params *FindConfigPreheatKerne
 }
 
 /*
-FindConfigPrometheusAddress Prometheus listening address
+  FindConfigPrometheusAddress Prometheus listening address
 */
 func (a *Client) FindConfigPrometheusAddress(params *FindConfigPrometheusAddressParams) (*FindConfigPrometheusAddressOK, error) {
 	// TODO: Validate the params before sending
@@ -4355,7 +4725,7 @@ func (a *Client) FindConfigPrometheusAddress(params *FindConfigPrometheusAddress
 }
 
 /*
-FindConfigPrometheusPort Prometheus port, set to zero to disable
+  FindConfigPrometheusPort Prometheus port, set to zero to disable
 */
 func (a *Client) FindConfigPrometheusPort(params *FindConfigPrometheusPortParams) (*FindConfigPrometheusPortOK, error) {
 	// TODO: Validate the params before sending
@@ -4388,7 +4758,7 @@ func (a *Client) FindConfigPrometheusPort(params *FindConfigPrometheusPortParams
 }
 
 /*
-FindConfigPrometheusPrefix Set the prefix of the exported Prometheus metrics. Changing this will break Scylla's dashboard compatibility, do not change unless you know what you are doing.
+  FindConfigPrometheusPrefix Set the prefix of the exported Prometheus metrics. Changing this will break Scylla's dashboard compatibility, do not change unless you know what you are doing.
 */
 func (a *Client) FindConfigPrometheusPrefix(params *FindConfigPrometheusPrefixParams) (*FindConfigPrometheusPrefixOK, error) {
 	// TODO: Validate the params before sending
@@ -4421,7 +4791,7 @@ func (a *Client) FindConfigPrometheusPrefix(params *FindConfigPrometheusPrefixPa
 }
 
 /*
-FindConfigRangeRequestTimeoutInMs The time in milliseconds that the coordinator waits for sequential or index scans to complete.
+  FindConfigRangeRequestTimeoutInMs The time in milliseconds that the coordinator waits for sequential or index scans to complete.
 */
 func (a *Client) FindConfigRangeRequestTimeoutInMs(params *FindConfigRangeRequestTimeoutInMsParams) (*FindConfigRangeRequestTimeoutInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -4454,7 +4824,7 @@ func (a *Client) FindConfigRangeRequestTimeoutInMs(params *FindConfigRangeReques
 }
 
 /*
-FindConfigReadRequestTimeoutInMs The time that the coordinator waits for read operations to complete
+  FindConfigReadRequestTimeoutInMs The time that the coordinator waits for read operations to complete
 */
 func (a *Client) FindConfigReadRequestTimeoutInMs(params *FindConfigReadRequestTimeoutInMsParams) (*FindConfigReadRequestTimeoutInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -4487,7 +4857,7 @@ func (a *Client) FindConfigReadRequestTimeoutInMs(params *FindConfigReadRequestT
 }
 
 /*
-FindConfigReduceCacheCapacityTo Sets the size percentage to which maximum cache capacity is reduced when Java heap usage reaches the threshold defined by reduce_cache_sizes_at. Together with flush_largest_memtables_at, these properties constitute an emergency measure for preventing sudden out-of-memory (OOM) errors.
+  FindConfigReduceCacheCapacityTo Sets the size percentage to which maximum cache capacity is reduced when Java heap usage reaches the threshold defined by reduce_cache_sizes_at. Together with flush_largest_memtables_at, these properties constitute an emergency measure for preventing sudden out-of-memory (OOM) errors.
 */
 func (a *Client) FindConfigReduceCacheCapacityTo(params *FindConfigReduceCacheCapacityToParams) (*FindConfigReduceCacheCapacityToOK, error) {
 	// TODO: Validate the params before sending
@@ -4520,7 +4890,7 @@ func (a *Client) FindConfigReduceCacheCapacityTo(params *FindConfigReduceCacheCa
 }
 
 /*
-FindConfigReduceCacheSizesAt When Java heap usage (after a full concurrent mark sweep (CMS) garbage collection) exceeds this percentage, Cassandra reduces the cache capacity to the fraction of the current size as specified by reduce_cache_capacity_to. To disable, set the value to 1.0.
+  FindConfigReduceCacheSizesAt When Java heap usage (after a full concurrent mark sweep (CMS) garbage collection) exceeds this percentage, Cassandra reduces the cache capacity to the fraction of the current size as specified by reduce_cache_capacity_to. To disable, set the value to 1.0.
 */
 func (a *Client) FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizesAtParams) (*FindConfigReduceCacheSizesAtOK, error) {
 	// TODO: Validate the params before sending
@@ -4553,7 +4923,7 @@ func (a *Client) FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizes
 }
 
 /*
-FindConfigReplaceAddress The listen_address or broadcast_address of the dead node to replace. Same as -Dcassandra.replace_address.
+  FindConfigReplaceAddress The listen_address or broadcast_address of the dead node to replace. Same as -Dcassandra.replace_address.
 */
 func (a *Client) FindConfigReplaceAddress(params *FindConfigReplaceAddressParams) (*FindConfigReplaceAddressOK, error) {
 	// TODO: Validate the params before sending
@@ -4586,7 +4956,7 @@ func (a *Client) FindConfigReplaceAddress(params *FindConfigReplaceAddressParams
 }
 
 /*
-FindConfigReplaceAddressFirstBoot Like replace_address option, but if the node has been bootstrapped successfully it will be ignored. Same as -Dcassandra.replace_address_first_boot.
+  FindConfigReplaceAddressFirstBoot Like replace_address option, but if the node has been bootstrapped successfully it will be ignored. Same as -Dcassandra.replace_address_first_boot.
 */
 func (a *Client) FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddressFirstBootParams) (*FindConfigReplaceAddressFirstBootOK, error) {
 	// TODO: Validate the params before sending
@@ -4619,7 +4989,7 @@ func (a *Client) FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddr
 }
 
 /*
-FindConfigReplaceNode The UUID of the node to replace. Same as -Dcassandra.replace_node in cssandra.
+  FindConfigReplaceNode The UUID of the node to replace. Same as -Dcassandra.replace_node in cssandra.
 */
 func (a *Client) FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*FindConfigReplaceNodeOK, error) {
 	// TODO: Validate the params before sending
@@ -4652,7 +5022,7 @@ func (a *Client) FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*Fi
 }
 
 /*
-FindConfigReplaceToken The tokens of the node to replace. Same as -Dcassandra.replace_token in cassandra.
+  FindConfigReplaceToken The tokens of the node to replace. Same as -Dcassandra.replace_token in cassandra.
 */
 func (a *Client) FindConfigReplaceToken(params *FindConfigReplaceTokenParams) (*FindConfigReplaceTokenOK, error) {
 	// TODO: Validate the params before sending
@@ -4685,7 +5055,7 @@ func (a *Client) FindConfigReplaceToken(params *FindConfigReplaceTokenParams) (*
 }
 
 /*
-FindConfigRequestScheduler Defines a scheduler to handle incoming client requests according to a defined policy. This scheduler is useful for throttling client requests in single clusters containing multiple keyspaces. This parameter is specifically for requests from the client and does not affect inter-node communication. Valid values are:
+  FindConfigRequestScheduler Defines a scheduler to handle incoming client requests according to a defined policy. This scheduler is useful for throttling client requests in single clusters containing multiple keyspaces. This parameter is specifically for requests from the client and does not affect inter-node communication. Valid values are:
 
  org.apache.cassandra.scheduler.NoScheduler   No scheduling takes place.
  org.apache.cassandra.scheduler.RoundRobinScheduler   Round robin of client requests to a node with a separate queue for each request_scheduler_id property.
@@ -4722,7 +5092,7 @@ func (a *Client) FindConfigRequestScheduler(params *FindConfigRequestSchedulerPa
 }
 
 /*
-FindConfigRequestSchedulerID An identifier on which to perform request scheduling. Currently the only valid value is keyspace. See weights.
+  FindConfigRequestSchedulerID An identifier on which to perform request scheduling. Currently the only valid value is keyspace. See weights.
 */
 func (a *Client) FindConfigRequestSchedulerID(params *FindConfigRequestSchedulerIDParams) (*FindConfigRequestSchedulerIDOK, error) {
 	// TODO: Validate the params before sending
@@ -4755,7 +5125,7 @@ func (a *Client) FindConfigRequestSchedulerID(params *FindConfigRequestScheduler
 }
 
 /*
-FindConfigRequestSchedulerOptions Contains a list of properties that define configuration options for request_scheduler:
+  FindConfigRequestSchedulerOptions Contains a list of properties that define configuration options for request_scheduler:
 
  throttle_limit: The number of in-flight requests per client. Requests beyond this limit are queued up until running requests complete. Recommended value is ((concurrent_reads + concurrent_writes) × 2)
  default_weight: (Default: 1 **)  How many requests are handled during each turn of the RoundRobin.
@@ -4792,7 +5162,7 @@ func (a *Client) FindConfigRequestSchedulerOptions(params *FindConfigRequestSche
 }
 
 /*
-FindConfigRequestTimeoutInMs The default timeout for other, miscellaneous operations.
+  FindConfigRequestTimeoutInMs The default timeout for other, miscellaneous operations.
 Related information: About hinted handoff writes
 */
 func (a *Client) FindConfigRequestTimeoutInMs(params *FindConfigRequestTimeoutInMsParams) (*FindConfigRequestTimeoutInMsOK, error) {
@@ -4826,7 +5196,7 @@ func (a *Client) FindConfigRequestTimeoutInMs(params *FindConfigRequestTimeoutIn
 }
 
 /*
-FindConfigRingDelayMs Time a node waits to hear from other nodes before joining the ring in milliseconds. Same as -Dcassandra.ring_delay_ms in cassandra.
+  FindConfigRingDelayMs Time a node waits to hear from other nodes before joining the ring in milliseconds. Same as -Dcassandra.ring_delay_ms in cassandra.
 */
 func (a *Client) FindConfigRingDelayMs(params *FindConfigRingDelayMsParams) (*FindConfigRingDelayMsOK, error) {
 	// TODO: Validate the params before sending
@@ -4859,7 +5229,7 @@ func (a *Client) FindConfigRingDelayMs(params *FindConfigRingDelayMsParams) (*Fi
 }
 
 /*
-FindConfigRoleManager The role-management backend, used to maintain grantts and memberships between roles.
+  FindConfigRoleManager The role-management backend, used to maintain grantts and memberships between roles.
 The available role-managers are:
  CassandraRoleManager : Stores role data in the system_auth keyspace.
 */
@@ -4894,7 +5264,7 @@ func (a *Client) FindConfigRoleManager(params *FindConfigRoleManagerParams) (*Fi
 }
 
 /*
-FindConfigRowCacheKeysToSave Number of keys from the row cache to save.
+  FindConfigRowCacheKeysToSave Number of keys from the row cache to save.
 */
 func (a *Client) FindConfigRowCacheKeysToSave(params *FindConfigRowCacheKeysToSaveParams) (*FindConfigRowCacheKeysToSaveOK, error) {
 	// TODO: Validate the params before sending
@@ -4927,7 +5297,7 @@ func (a *Client) FindConfigRowCacheKeysToSave(params *FindConfigRowCacheKeysToSa
 }
 
 /*
-FindConfigRowCacheSavePeriod Duration in seconds that rows are saved in cache. Caches are saved to saved_caches_directory.
+  FindConfigRowCacheSavePeriod Duration in seconds that rows are saved in cache. Caches are saved to saved_caches_directory.
 */
 func (a *Client) FindConfigRowCacheSavePeriod(params *FindConfigRowCacheSavePeriodParams) (*FindConfigRowCacheSavePeriodOK, error) {
 	// TODO: Validate the params before sending
@@ -4960,7 +5330,7 @@ func (a *Client) FindConfigRowCacheSavePeriod(params *FindConfigRowCacheSavePeri
 }
 
 /*
-FindConfigRowCacheSizeInMb Maximum size of the row cache in memory. Row cache can save more time than key_cache_size_in_mb, but is space-intensive because it contains the entire row. Use the row cache only for hot rows or static rows. If you reduce the size, you may not get you hottest keys loaded on start up.
+  FindConfigRowCacheSizeInMb Maximum size of the row cache in memory. Row cache can save more time than key_cache_size_in_mb, but is space-intensive because it contains the entire row. Use the row cache only for hot rows or static rows. If you reduce the size, you may not get you hottest keys loaded on start up.
 */
 func (a *Client) FindConfigRowCacheSizeInMb(params *FindConfigRowCacheSizeInMbParams) (*FindConfigRowCacheSizeInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -4993,7 +5363,7 @@ func (a *Client) FindConfigRowCacheSizeInMb(params *FindConfigRowCacheSizeInMbPa
 }
 
 /*
-FindConfigRPCAddress The listen address for client connections (Thrift RPC service and native transport).Valid values are:
+  FindConfigRPCAddress The listen address for client connections (Thrift RPC service and native transport).Valid values are:
 
  unset:   Resolves the address using the hostname configuration of the node. If left unset, the hostname must resolve to the IP address of this node using /etc/hostname, /etc/hosts, or DNS.
  0.0.0.0 : Listens on all configured interfaces, but you must set the broadcast_rpc_address to a value other than 0.0.0.0.
@@ -5033,7 +5403,7 @@ func (a *Client) FindConfigRPCAddress(params *FindConfigRPCAddressParams) (*Find
 }
 
 /*
-FindConfigRPCInterface The listen address for client connections. Interfaces must correspond to a single address, IP aliasing is not supported. See rpc_address.
+  FindConfigRPCInterface The listen address for client connections. Interfaces must correspond to a single address, IP aliasing is not supported. See rpc_address.
 */
 func (a *Client) FindConfigRPCInterface(params *FindConfigRPCInterfaceParams) (*FindConfigRPCInterfaceOK, error) {
 	// TODO: Validate the params before sending
@@ -5066,7 +5436,7 @@ func (a *Client) FindConfigRPCInterface(params *FindConfigRPCInterfaceParams) (*
 }
 
 /*
-FindConfigRPCKeepalive Enable or disable keepalive on client connections (RPC or native).
+  FindConfigRPCKeepalive Enable or disable keepalive on client connections (RPC or native).
 */
 func (a *Client) FindConfigRPCKeepalive(params *FindConfigRPCKeepaliveParams) (*FindConfigRPCKeepaliveOK, error) {
 	// TODO: Validate the params before sending
@@ -5099,7 +5469,7 @@ func (a *Client) FindConfigRPCKeepalive(params *FindConfigRPCKeepaliveParams) (*
 }
 
 /*
-FindConfigRPCMaxThreads Regardless of your choice of RPC server (rpc_server_type), the number of maximum requests in the RPC thread pool dictates how many concurrent requests are possible. However, if you are using the parameter sync in the rpc_server_type, it also dictates the number of clients that can be connected. For a large number of client connections, this could cause excessive memory usage for the thread stack. Connection pooling on the client side is highly recommended. Setting a maximum thread pool size acts as a safeguard against misbehaved clients. If the maximum is reached, Cassandra blocks additional connections until a client disconnects.
+  FindConfigRPCMaxThreads Regardless of your choice of RPC server (rpc_server_type), the number of maximum requests in the RPC thread pool dictates how many concurrent requests are possible. However, if you are using the parameter sync in the rpc_server_type, it also dictates the number of clients that can be connected. For a large number of client connections, this could cause excessive memory usage for the thread stack. Connection pooling on the client side is highly recommended. Setting a maximum thread pool size acts as a safeguard against misbehaved clients. If the maximum is reached, Cassandra blocks additional connections until a client disconnects.
 */
 func (a *Client) FindConfigRPCMaxThreads(params *FindConfigRPCMaxThreadsParams) (*FindConfigRPCMaxThreadsOK, error) {
 	// TODO: Validate the params before sending
@@ -5132,7 +5502,7 @@ func (a *Client) FindConfigRPCMaxThreads(params *FindConfigRPCMaxThreadsParams) 
 }
 
 /*
-FindConfigRPCMinThreads Sets the minimum thread pool size for remote procedure calls.
+  FindConfigRPCMinThreads Sets the minimum thread pool size for remote procedure calls.
 */
 func (a *Client) FindConfigRPCMinThreads(params *FindConfigRPCMinThreadsParams) (*FindConfigRPCMinThreadsOK, error) {
 	// TODO: Validate the params before sending
@@ -5165,7 +5535,7 @@ func (a *Client) FindConfigRPCMinThreads(params *FindConfigRPCMinThreadsParams) 
 }
 
 /*
-FindConfigRPCPort Thrift port for client connections.
+  FindConfigRPCPort Thrift port for client connections.
 */
 func (a *Client) FindConfigRPCPort(params *FindConfigRPCPortParams) (*FindConfigRPCPortOK, error) {
 	// TODO: Validate the params before sending
@@ -5198,7 +5568,7 @@ func (a *Client) FindConfigRPCPort(params *FindConfigRPCPortParams) (*FindConfig
 }
 
 /*
-FindConfigRPCRecvBuffSizeInBytes Sets the receiving socket buffer size for remote procedure calls.
+  FindConfigRPCRecvBuffSizeInBytes Sets the receiving socket buffer size for remote procedure calls.
 */
 func (a *Client) FindConfigRPCRecvBuffSizeInBytes(params *FindConfigRPCRecvBuffSizeInBytesParams) (*FindConfigRPCRecvBuffSizeInBytesOK, error) {
 	// TODO: Validate the params before sending
@@ -5231,7 +5601,7 @@ func (a *Client) FindConfigRPCRecvBuffSizeInBytes(params *FindConfigRPCRecvBuffS
 }
 
 /*
-FindConfigRPCSendBuffSizeInBytes Sets the sending socket buffer size in bytes for remote procedure calls.
+  FindConfigRPCSendBuffSizeInBytes Sets the sending socket buffer size in bytes for remote procedure calls.
 */
 func (a *Client) FindConfigRPCSendBuffSizeInBytes(params *FindConfigRPCSendBuffSizeInBytesParams) (*FindConfigRPCSendBuffSizeInBytesOK, error) {
 	// TODO: Validate the params before sending
@@ -5264,7 +5634,7 @@ func (a *Client) FindConfigRPCSendBuffSizeInBytes(params *FindConfigRPCSendBuffS
 }
 
 /*
-FindConfigRPCServerType Cassandra provides three options for the RPC server. On Windows, sync is about 30% slower than hsha. On Linux, sync and hsha performance is about the same, but hsha uses less memory.
+  FindConfigRPCServerType Cassandra provides three options for the RPC server. On Windows, sync is about 30% slower than hsha. On Linux, sync and hsha performance is about the same, but hsha uses less memory.
 
  sync    (Default One thread per Thrift connection.) For a very large number of clients, memory is the limiting factor. On a 64-bit JVM, 180KB is the minimum stack size per thread and corresponds to your use of virtual memory. Physical memory may be limited depending on use of stack space.
  hsh      Half synchronous, half asynchronous. All Thrift clients are handled asynchronously using a small number of threads that does not vary with the number of clients and thus scales well to many clients. The RPC requests are synchronous (one thread per active request).
@@ -5302,7 +5672,7 @@ func (a *Client) FindConfigRPCServerType(params *FindConfigRPCServerTypeParams) 
 }
 
 /*
-FindConfigSavedCachesDirectory The directory location where table key and row caches are stored.
+  FindConfigSavedCachesDirectory The directory location where table key and row caches are stored.
 */
 func (a *Client) FindConfigSavedCachesDirectory(params *FindConfigSavedCachesDirectoryParams) (*FindConfigSavedCachesDirectoryOK, error) {
 	// TODO: Validate the params before sending
@@ -5335,7 +5705,7 @@ func (a *Client) FindConfigSavedCachesDirectory(params *FindConfigSavedCachesDir
 }
 
 /*
-FindConfigSeedProvider The addresses of hosts deemed contact points. Scylla nodes use the -seeds list to find each other and learn the topology of the ring.
+  FindConfigSeedProvider The addresses of hosts deemed contact points. Scylla nodes use the -seeds list to find each other and learn the topology of the ring.
 
   class_name (Default: org.apache.cassandra.locator.SimpleSeedProvider)
    The class within Scylla that handles the seed logic. It can be customized, but this is typically not required.
@@ -5374,7 +5744,7 @@ func (a *Client) FindConfigSeedProvider(params *FindConfigSeedProviderParams) (*
 }
 
 /*
-FindConfigServerEncryptionOptions Enable or disable inter-node encryption. You must also generate keys and provide the appropriate key and trust store locations and passwords. No custom encryption options are currently enabled. The available options are:
+  FindConfigServerEncryptionOptions Enable or disable inter-node encryption. You must also generate keys and provide the appropriate key and trust store locations and passwords. No custom encryption options are currently enabled. The available options are:
 
 internode_encryption : (Default: none ) Enable or disable encryption of inter-node communication using the TLS_RSA_WITH_AES_128_CBC_SHA cipher suite for authentication, key exchange, and encryption of data transfers. The available inter-node options are:
  all : Encrypt all inter-node communications.
@@ -5422,7 +5792,7 @@ func (a *Client) FindConfigServerEncryptionOptions(params *FindConfigServerEncry
 }
 
 /*
-FindConfigShadowRoundMs The maximum gossip shadow round time. Can be used to reduce the gossip feature check time during node boot up.
+  FindConfigShadowRoundMs The maximum gossip shadow round time. Can be used to reduce the gossip feature check time during node boot up.
 */
 func (a *Client) FindConfigShadowRoundMs(params *FindConfigShadowRoundMsParams) (*FindConfigShadowRoundMsOK, error) {
 	// TODO: Validate the params before sending
@@ -5455,7 +5825,7 @@ func (a *Client) FindConfigShadowRoundMs(params *FindConfigShadowRoundMsParams) 
 }
 
 /*
-FindConfigShutdownAnnounceInMs Time a node waits after sending gossip shutdown message in milliseconds. Same as -Dcassandra.shutdown_announce_in_ms in cassandra.
+  FindConfigShutdownAnnounceInMs Time a node waits after sending gossip shutdown message in milliseconds. Same as -Dcassandra.shutdown_announce_in_ms in cassandra.
 */
 func (a *Client) FindConfigShutdownAnnounceInMs(params *FindConfigShutdownAnnounceInMsParams) (*FindConfigShutdownAnnounceInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -5488,7 +5858,7 @@ func (a *Client) FindConfigShutdownAnnounceInMs(params *FindConfigShutdownAnnoun
 }
 
 /*
-FindConfigSkipWaitForGossipToSettle An integer to configure the wait for gossip to settle. -1: wait normally, 0: do not wait at all, n: wait for at most n polls. Same as -Dcassandra.skip_wait_for_gossip_to_settle in cassandra.
+  FindConfigSkipWaitForGossipToSettle An integer to configure the wait for gossip to settle. -1: wait normally, 0: do not wait at all, n: wait for at most n polls. Same as -Dcassandra.skip_wait_for_gossip_to_settle in cassandra.
 */
 func (a *Client) FindConfigSkipWaitForGossipToSettle(params *FindConfigSkipWaitForGossipToSettleParams) (*FindConfigSkipWaitForGossipToSettleOK, error) {
 	// TODO: Validate the params before sending
@@ -5521,7 +5891,7 @@ func (a *Client) FindConfigSkipWaitForGossipToSettle(params *FindConfigSkipWaitF
 }
 
 /*
-FindConfigSnapshotBeforeCompaction Enable or disable taking a snapshot before each compaction. This option is useful to back up data when there is a data format change. Be careful using this option because Cassandra does not clean up older snapshots automatically.
+  FindConfigSnapshotBeforeCompaction Enable or disable taking a snapshot before each compaction. This option is useful to back up data when there is a data format change. Be careful using this option because Cassandra does not clean up older snapshots automatically.
 Related information: Configuring compaction
 */
 func (a *Client) FindConfigSnapshotBeforeCompaction(params *FindConfigSnapshotBeforeCompactionParams) (*FindConfigSnapshotBeforeCompactionOK, error) {
@@ -5555,7 +5925,7 @@ func (a *Client) FindConfigSnapshotBeforeCompaction(params *FindConfigSnapshotBe
 }
 
 /*
-FindConfigSslStoragePort The SSL port for encrypted communication. Unused unless enabled in encryption_options.
+  FindConfigSslStoragePort The SSL port for encrypted communication. Unused unless enabled in encryption_options.
 */
 func (a *Client) FindConfigSslStoragePort(params *FindConfigSslStoragePortParams) (*FindConfigSslStoragePortOK, error) {
 	// TODO: Validate the params before sending
@@ -5588,7 +5958,7 @@ func (a *Client) FindConfigSslStoragePort(params *FindConfigSslStoragePortParams
 }
 
 /*
-FindConfigSstablePreemptiveOpenIntervalInMb When compacting, the replacement opens SSTables before they are completely written and uses in place of the prior SSTables for any range previously written. This setting helps to smoothly transfer reads between the SSTables by reducing page cache churn and keeps hot rows hot.
+  FindConfigSstablePreemptiveOpenIntervalInMb When compacting, the replacement opens SSTables before they are completely written and uses in place of the prior SSTables for any range previously written. This setting helps to smoothly transfer reads between the SSTables by reducing page cache churn and keeps hot rows hot.
 */
 func (a *Client) FindConfigSstablePreemptiveOpenIntervalInMb(params *FindConfigSstablePreemptiveOpenIntervalInMbParams) (*FindConfigSstablePreemptiveOpenIntervalInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -5621,7 +5991,7 @@ func (a *Client) FindConfigSstablePreemptiveOpenIntervalInMb(params *FindConfigS
 }
 
 /*
-FindConfigSstableSummaryRatio Enforces that 1 byte of summary is written for every N (2000 by default) bytes written to data file. Value must be between 0 and 1.
+  FindConfigSstableSummaryRatio Enforces that 1 byte of summary is written for every N (2000 by default) bytes written to data file. Value must be between 0 and 1.
 */
 func (a *Client) FindConfigSstableSummaryRatio(params *FindConfigSstableSummaryRatioParams) (*FindConfigSstableSummaryRatioOK, error) {
 	// TODO: Validate the params before sending
@@ -5654,7 +6024,7 @@ func (a *Client) FindConfigSstableSummaryRatio(params *FindConfigSstableSummaryR
 }
 
 /*
-FindConfigStartNativeTransport Enable or disable the native transport server. Uses the same address as the rpc_address, but the port is different from the rpc_port. See native_transport_port.
+  FindConfigStartNativeTransport Enable or disable the native transport server. Uses the same address as the rpc_address, but the port is different from the rpc_port. See native_transport_port.
 */
 func (a *Client) FindConfigStartNativeTransport(params *FindConfigStartNativeTransportParams) (*FindConfigStartNativeTransportOK, error) {
 	// TODO: Validate the params before sending
@@ -5687,7 +6057,7 @@ func (a *Client) FindConfigStartNativeTransport(params *FindConfigStartNativeTra
 }
 
 /*
-FindConfigStartRPC Starts the Thrift RPC server
+  FindConfigStartRPC Starts the Thrift RPC server
 */
 func (a *Client) FindConfigStartRPC(params *FindConfigStartRPCParams) (*FindConfigStartRPCOK, error) {
 	// TODO: Validate the params before sending
@@ -5720,7 +6090,7 @@ func (a *Client) FindConfigStartRPC(params *FindConfigStartRPCParams) (*FindConf
 }
 
 /*
-FindConfigStoragePort The port for inter-node communication.
+  FindConfigStoragePort The port for inter-node communication.
 */
 func (a *Client) FindConfigStoragePort(params *FindConfigStoragePortParams) (*FindConfigStoragePortOK, error) {
 	// TODO: Validate the params before sending
@@ -5753,7 +6123,7 @@ func (a *Client) FindConfigStoragePort(params *FindConfigStoragePortParams) (*Fi
 }
 
 /*
-FindConfigStreamThroughputOutboundMegabitsPerSec Throttles all outbound streaming file transfers on a node to the specified throughput. Cassandra does mostly sequential I/O when streaming data during bootstrap or repair, which can lead to saturating the network connection and degrading client (RPC) performance.
+  FindConfigStreamThroughputOutboundMegabitsPerSec Throttles all outbound streaming file transfers on a node to the specified throughput. Cassandra does mostly sequential I/O when streaming data during bootstrap or repair, which can lead to saturating the network connection and degrading client (RPC) performance.
 */
 func (a *Client) FindConfigStreamThroughputOutboundMegabitsPerSec(params *FindConfigStreamThroughputOutboundMegabitsPerSecParams) (*FindConfigStreamThroughputOutboundMegabitsPerSecOK, error) {
 	// TODO: Validate the params before sending
@@ -5786,7 +6156,7 @@ func (a *Client) FindConfigStreamThroughputOutboundMegabitsPerSec(params *FindCo
 }
 
 /*
-FindConfigStreamingSocketTimeoutInMs Enable or disable socket timeout for streaming operations. When a timeout occurs during streaming, streaming is retried from the start of the current file. Avoid setting this value too low, as it can result in a significant amount of data re-streaming.
+  FindConfigStreamingSocketTimeoutInMs Enable or disable socket timeout for streaming operations. When a timeout occurs during streaming, streaming is retried from the start of the current file. Avoid setting this value too low, as it can result in a significant amount of data re-streaming.
 */
 func (a *Client) FindConfigStreamingSocketTimeoutInMs(params *FindConfigStreamingSocketTimeoutInMsParams) (*FindConfigStreamingSocketTimeoutInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -5819,7 +6189,7 @@ func (a *Client) FindConfigStreamingSocketTimeoutInMs(params *FindConfigStreamin
 }
 
 /*
-FindConfigThriftFramedTransportSizeInMb Frame size (maximum field length) for Thrift. The frame is the row or part of the row the application is inserting.
+  FindConfigThriftFramedTransportSizeInMb Frame size (maximum field length) for Thrift. The frame is the row or part of the row the application is inserting.
 */
 func (a *Client) FindConfigThriftFramedTransportSizeInMb(params *FindConfigThriftFramedTransportSizeInMbParams) (*FindConfigThriftFramedTransportSizeInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -5852,7 +6222,7 @@ func (a *Client) FindConfigThriftFramedTransportSizeInMb(params *FindConfigThrif
 }
 
 /*
-FindConfigThriftMaxMessageLengthInMb The maximum length of a Thrift message in megabytes, including all fields and internal Thrift overhead (1 byte of overhead for each frame). Message length is usually used in conjunction with batches. A frame length greater than or equal to 24 accommodates a batch with four inserts, each of which is 24 bytes. The required message length is greater than or equal to 24+24+24+24+4 (number of frames).
+  FindConfigThriftMaxMessageLengthInMb The maximum length of a Thrift message in megabytes, including all fields and internal Thrift overhead (1 byte of overhead for each frame). Message length is usually used in conjunction with batches. A frame length greater than or equal to 24 accommodates a batch with four inserts, each of which is 24 bytes. The required message length is greater than or equal to 24+24+24+24+4 (number of frames).
 */
 func (a *Client) FindConfigThriftMaxMessageLengthInMb(params *FindConfigThriftMaxMessageLengthInMbParams) (*FindConfigThriftMaxMessageLengthInMbOK, error) {
 	// TODO: Validate the params before sending
@@ -5885,7 +6255,7 @@ func (a *Client) FindConfigThriftMaxMessageLengthInMb(params *FindConfigThriftMa
 }
 
 /*
-FindConfigTombstoneFailureThreshold The maximum number of tombstones a query can scan before aborting.
+  FindConfigTombstoneFailureThreshold The maximum number of tombstones a query can scan before aborting.
 */
 func (a *Client) FindConfigTombstoneFailureThreshold(params *FindConfigTombstoneFailureThresholdParams) (*FindConfigTombstoneFailureThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -5918,7 +6288,7 @@ func (a *Client) FindConfigTombstoneFailureThreshold(params *FindConfigTombstone
 }
 
 /*
-FindConfigTombstoneWarnThreshold The maximum number of tombstones a query can scan before warning.
+  FindConfigTombstoneWarnThreshold The maximum number of tombstones a query can scan before warning.
 */
 func (a *Client) FindConfigTombstoneWarnThreshold(params *FindConfigTombstoneWarnThresholdParams) (*FindConfigTombstoneWarnThresholdOK, error) {
 	// TODO: Validate the params before sending
@@ -5951,7 +6321,7 @@ func (a *Client) FindConfigTombstoneWarnThreshold(params *FindConfigTombstoneWar
 }
 
 /*
-FindConfigTrickleFsync When doing sequential writing, enabling this option tells fsync to force the operating system to flush the dirty buffers at a set interval trickle_fsync_interval_in_kb. Enable this parameter to avoid sudden dirty buffer flushing from impacting read latencies. Recommended to use on SSDs, but not on HDDs.
+  FindConfigTrickleFsync When doing sequential writing, enabling this option tells fsync to force the operating system to flush the dirty buffers at a set interval trickle_fsync_interval_in_kb. Enable this parameter to avoid sudden dirty buffer flushing from impacting read latencies. Recommended to use on SSDs, but not on HDDs.
 */
 func (a *Client) FindConfigTrickleFsync(params *FindConfigTrickleFsyncParams) (*FindConfigTrickleFsyncOK, error) {
 	// TODO: Validate the params before sending
@@ -5984,7 +6354,7 @@ func (a *Client) FindConfigTrickleFsync(params *FindConfigTrickleFsyncParams) (*
 }
 
 /*
-FindConfigTrickleFsyncIntervalInKb Sets the size of the fsync in kilobytes.
+  FindConfigTrickleFsyncIntervalInKb Sets the size of the fsync in kilobytes.
 */
 func (a *Client) FindConfigTrickleFsyncIntervalInKb(params *FindConfigTrickleFsyncIntervalInKbParams) (*FindConfigTrickleFsyncIntervalInKbOK, error) {
 	// TODO: Validate the params before sending
@@ -6017,7 +6387,7 @@ func (a *Client) FindConfigTrickleFsyncIntervalInKb(params *FindConfigTrickleFsy
 }
 
 /*
-FindConfigTruncateRequestTimeoutInMs The time that the coordinator waits for truncates (remove all data from a table) to complete. The long default value allows for a snapshot to be taken before removing the data. If auto_snapshot is disabled (not recommended), you can reduce this time.
+  FindConfigTruncateRequestTimeoutInMs The time that the coordinator waits for truncates (remove all data from a table) to complete. The long default value allows for a snapshot to be taken before removing the data. If auto_snapshot is disabled (not recommended), you can reduce this time.
 */
 func (a *Client) FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncateRequestTimeoutInMsParams) (*FindConfigTruncateRequestTimeoutInMsOK, error) {
 	// TODO: Validate the params before sending
@@ -6050,7 +6420,7 @@ func (a *Client) FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncate
 }
 
 /*
-FindConfigViewBuilding Enable view building; should only be set to false when the node is experience issues due to view building
+  FindConfigViewBuilding Enable view building; should only be set to false when the node is experience issues due to view building
 */
 func (a *Client) FindConfigViewBuilding(params *FindConfigViewBuildingParams) (*FindConfigViewBuildingOK, error) {
 	// TODO: Validate the params before sending
@@ -6083,7 +6453,7 @@ func (a *Client) FindConfigViewBuilding(params *FindConfigViewBuildingParams) (*
 }
 
 /*
-FindConfigViewHintsDirectory The directory where materialized-view updates are stored while a view replica is unreachable.
+  FindConfigViewHintsDirectory The directory where materialized-view updates are stored while a view replica is unreachable.
 */
 func (a *Client) FindConfigViewHintsDirectory(params *FindConfigViewHintsDirectoryParams) (*FindConfigViewHintsDirectoryOK, error) {
 	// TODO: Validate the params before sending
@@ -6116,7 +6486,7 @@ func (a *Client) FindConfigViewHintsDirectory(params *FindConfigViewHintsDirecto
 }
 
 /*
-FindConfigVirtualDirtySoftLimit Soft limit of virtual dirty memory expressed as a portion of the hard limit
+  FindConfigVirtualDirtySoftLimit Soft limit of virtual dirty memory expressed as a portion of the hard limit
 */
 func (a *Client) FindConfigVirtualDirtySoftLimit(params *FindConfigVirtualDirtySoftLimitParams) (*FindConfigVirtualDirtySoftLimitOK, error) {
 	// TODO: Validate the params before sending
@@ -6149,7 +6519,7 @@ func (a *Client) FindConfigVirtualDirtySoftLimit(params *FindConfigVirtualDirtyS
 }
 
 /*
-FindConfigVolatileSystemKeyspaceForTesting Don't persist system keyspace - testing only!
+  FindConfigVolatileSystemKeyspaceForTesting Don't persist system keyspace - testing only!
 */
 func (a *Client) FindConfigVolatileSystemKeyspaceForTesting(params *FindConfigVolatileSystemKeyspaceForTestingParams) (*FindConfigVolatileSystemKeyspaceForTestingOK, error) {
 	// TODO: Validate the params before sending
@@ -6182,7 +6552,7 @@ func (a *Client) FindConfigVolatileSystemKeyspaceForTesting(params *FindConfigVo
 }
 
 /*
-FindConfigWriteRequestTimeoutInMs The time in milliseconds that the coordinator waits for write operations to complete.
+  FindConfigWriteRequestTimeoutInMs The time in milliseconds that the coordinator waits for write operations to complete.
 Related information: About hinted handoff writes
 */
 func (a *Client) FindConfigWriteRequestTimeoutInMs(params *FindConfigWriteRequestTimeoutInMsParams) (*FindConfigWriteRequestTimeoutInMsOK, error) {

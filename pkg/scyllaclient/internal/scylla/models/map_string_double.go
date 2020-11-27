@@ -6,14 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // MapStringDouble map_string_double
 //
 // A key value mapping between a string and a double
+//
 // swagger:model map_string_double
 type MapStringDouble struct {
 

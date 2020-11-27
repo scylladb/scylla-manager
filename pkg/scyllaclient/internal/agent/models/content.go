@@ -6,13 +6,12 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
-	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // Content content
+//
 // swagger:model Content
 type Content struct {
 
@@ -23,26 +22,6 @@ type Content struct {
 
 // Validate validates this content
 func (m *Content) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateContent(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *Content) validateContent(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Content) { // not required
-		return nil
-	}
-
-	// Format "byte" (base64 string) is already validated when unmarshalled
-
 	return nil
 }
 

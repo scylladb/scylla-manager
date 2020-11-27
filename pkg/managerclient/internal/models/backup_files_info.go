@@ -8,13 +8,13 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // BackupFilesInfo backup files info
+//
 // swagger:model BackupFilesInfo
 type BackupFilesInfo struct {
 
@@ -86,6 +86,7 @@ func (m *BackupFilesInfo) UnmarshalBinary(b []byte) error {
 }
 
 // BackupFilesInfoFilesItems0 backup files info files items0
+//
 // swagger:model BackupFilesInfoFilesItems0
 type BackupFilesInfoFilesItems0 struct {
 

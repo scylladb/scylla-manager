@@ -8,14 +8,14 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // RepairProgress repair progress
+//
 // swagger:model RepairProgress
 type RepairProgress struct {
 
@@ -176,6 +176,7 @@ func (m *RepairProgress) UnmarshalBinary(b []byte) error {
 }
 
 // RepairProgressHostsItems0 repair progress hosts items0
+//
 // swagger:model RepairProgressHostsItems0
 type RepairProgressHostsItems0 struct {
 

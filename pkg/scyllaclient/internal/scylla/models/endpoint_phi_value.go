@@ -6,14 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // EndpointPhiValue endpoint_phi_value
 //
 // Holds phi value for a single end point
+//
 // swagger:model endpoint_phi_value
 type EndpointPhiValue struct {
 
