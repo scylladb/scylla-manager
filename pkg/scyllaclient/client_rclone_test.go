@@ -407,6 +407,15 @@ func TestRcloneDiskUsage(t *testing.T) {
 	if got.Total <= 0 || got.Free <= 0 || got.Used <= 0 {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
 	}
+
+	got, err = client.RcloneDiskUsage(ctx, scyllaclienttest.TestHost, "rclonetest:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.Total <= 0 || got.Free <= 0 || got.Used <= 0 {
+		t.Errorf("Expected usage bigger than zero, got: %+v", got)
+	}
 }
 
 func TestRcloneMoveFile(t *testing.T) {

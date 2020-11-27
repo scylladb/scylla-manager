@@ -1376,7 +1376,7 @@ func TestBackupSnapshotDeleteIntegration(t *testing.T) {
 
 	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
 	if firstTaskTags.Size() != 1 {
-		t.Fatal("Expected have single snapshot in first task")
+		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
 	}
 
 	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, firstTaskTags.Pop()); err != nil {

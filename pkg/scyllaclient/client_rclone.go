@@ -212,6 +212,7 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemo
 	if err != nil {
 		return 0, err
 	}
+	c.logger.Debug(ctx, "RcloneCopyDir", "DstFs", dstFs, "DstRemote", dstRemote, "SrcFs", srcFs, "SrcRemote", srcRemote)
 	p := operations.SyncCopyDirParams{
 		Context: forceHost(ctx, host),
 		Copydir2: &models.MoveOrCopyFileOptions{

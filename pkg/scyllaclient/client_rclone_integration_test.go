@@ -40,23 +40,18 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	}
 	defer client.RcloneDeleteJobStats(ctx, scyllaclienttest.TestHost, id)
 
-	var job *scyllaclient.RcloneJobInfo
-	WaitCond(t, func() bool {
-		job, err = client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id, longPollingTimeoutSeconds)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return len(job.Transferred) == 2
-	}, 50*time.Millisecond, time.Second)
+	job, err := client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id, longPollingTimeoutSeconds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(job.Transferred) != 2 {
+		t.Errorf("Expected 2 transfered files got %d", len(job.Transferred))
+	}
 
 	for _, r := range job.Transferred {
 		if r.Error != "" {
 			t.Errorf("Expected no error got: %s, %v", r.Error, r)
 		}
-	}
-
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	if !job.Job.Finished || !job.Job.Success {
