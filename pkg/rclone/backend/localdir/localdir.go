@@ -7,6 +7,7 @@ package localdir
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/backend/local"
@@ -114,7 +115,14 @@ func NewFs(rootDir string) func(name, root string, m configmap.Mapper) (fs.Fs, e
 			// empty path then we received invalid path.
 			return nil, errors.Wrap(fs.ErrorObjectNotFound, "accessing path outside of root")
 		}
-		return local.NewFs(name, filepath.Join(rootDir, p), m)
+		var path string
+		if filepath.IsAbs(p) && strings.HasPrefix(p, rootDir) {
+			path = p
+		} else {
+			path = filepath.Join(rootDir, p)
+		}
+
+		return local.NewFs(name, path, m)
 	}
 }
 
