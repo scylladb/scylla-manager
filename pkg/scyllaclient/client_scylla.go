@@ -16,11 +16,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client/operations"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/models"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/pkg/util/prom"
+	"github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/client/operations"
+	"github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
 	"go.uber.org/multierr"
 )
 
@@ -710,7 +710,7 @@ func (c *Client) checkRepairLongPolling(ctx context.Context, h string) bool {
 	})
 	s, m := StatusCodeAndMessageOf(err)
 
-	// search for explicit "not found" string at the start of the response to
+	// Search for explicit "not found" string at the start of the response to
 	// exclude situations where 404 is fired for unrelated cause.
 	return !(s == http.StatusNotFound && endpointNotFoundRegex.MatchString(m))
 }

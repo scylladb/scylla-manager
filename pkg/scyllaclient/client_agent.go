@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/client/operations"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/models"
 	scyllaversion "github.com/scylladb/scylla-manager/pkg/util/version"
+	"github.com/scylladb/scylla-manager/swagger/gen/agent/client/operations"
+	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
 )
 
 // NodeInfo provides basic information about Scylla node.

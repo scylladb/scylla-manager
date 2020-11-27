@@ -17,11 +17,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/auth"
-	agentClient "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/client"
-	agentOperations "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/client/operations"
-	scyllaClient "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client"
-	scyllaOperations "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/client/operations"
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	agentClient "github.com/scylladb/scylla-manager/swagger/gen/agent/client"
+	agentOperations "github.com/scylladb/scylla-manager/swagger/gen/agent/client/operations"
+	scyllaClient "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/client"
+	scyllaOperations "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/client/operations"
 )
 
 var setOpenAPIGlobalsOnce sync.Once
@@ -68,8 +68,8 @@ type Client struct {
 	config Config
 	logger log.Logger
 
-	scyllaOps *scyllaOperations.Client
-	agentOps  *agentOperations.Client
+	scyllaOps scyllaOperations.ClientService
+	agentOps  agentOperations.ClientService
 	transport http.RoundTripper
 
 	mu      sync.RWMutex

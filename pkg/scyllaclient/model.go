@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla/models"
+	"github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
 )
 
 // HostDC is a tuple of host and DC.

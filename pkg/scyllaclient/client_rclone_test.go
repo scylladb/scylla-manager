@@ -16,8 +16,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/models"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
 )
 
 func TestRcloneSplitRemotePath(t *testing.T) {
