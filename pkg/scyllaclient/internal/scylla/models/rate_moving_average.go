@@ -6,14 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // RateMovingAverage rate_moving_average
 //
 // A meter metric which measures mean throughput and one, five, and fifteen-minute exponentially-weighted moving average throughputs
+//
 // swagger:model rate_moving_average
 type RateMovingAverage struct {
 

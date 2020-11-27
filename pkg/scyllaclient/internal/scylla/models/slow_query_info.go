@@ -6,14 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // SlowQueryInfo slow_query_info
 //
 // Slow query triggering information
+//
 // swagger:model slow_query_info
 type SlowQueryInfo struct {
 

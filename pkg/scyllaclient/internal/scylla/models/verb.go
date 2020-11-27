@@ -8,13 +8,13 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // Verb Verb
+//
 // swagger:model Verb
 type Verb string
 
@@ -98,7 +98,7 @@ func init() {
 }
 
 func (m Verb) validateVerbEnum(path, location string, value Verb) error {
-	if err := validate.Enum(path, location, value, verbEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, verbEnum, true); err != nil {
 		return err
 	}
 	return nil

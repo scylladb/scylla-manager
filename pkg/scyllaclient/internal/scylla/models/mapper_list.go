@@ -6,14 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // MapperList mapper_list
 //
 // Holds a key value which is a list
+//
 // swagger:model mapper_list
 type MapperList struct {
 

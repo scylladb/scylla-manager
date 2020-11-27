@@ -10,10 +10,9 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	models "github.com/scylladb/scylla-manager/pkg/managerclient/internal/models"
+	"github.com/scylladb/scylla-manager/pkg/managerclient/internal/models"
 )
 
 // PutClusterClusterIDTaskTaskTypeTaskIDReader is a Reader for the PutClusterClusterIDTaskTaskTypeTaskID structure.

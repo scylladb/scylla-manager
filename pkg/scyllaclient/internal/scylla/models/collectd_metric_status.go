@@ -6,15 +6,15 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // CollectdMetricStatus collectd_metric_status
 //
 // Holds a collectd id and an enable flag
+//
 // swagger:model collectd_metric_status
 type CollectdMetricStatus struct {
 

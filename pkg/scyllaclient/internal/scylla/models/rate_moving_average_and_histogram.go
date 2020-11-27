@@ -6,15 +6,15 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // RateMovingAverageAndHistogram rate_moving_average_and_histogram
 //
 // A timer metric which aggregates timing durations and provides duration statistics, plus throughput statistics
+//
 // swagger:model rate_moving_average_and_histogram
 type RateMovingAverageAndHistogram struct {
 

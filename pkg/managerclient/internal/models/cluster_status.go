@@ -8,13 +8,13 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // ClusterStatus cluster status
+//
 // swagger:model ClusterStatus
 type ClusterStatus []*ClusterStatusItems0
 
@@ -45,6 +45,7 @@ func (m ClusterStatus) Validate(formats strfmt.Registry) error {
 }
 
 // ClusterStatusItems0 cluster status items0
+//
 // swagger:model ClusterStatusItems0
 type ClusterStatusItems0 struct {
 

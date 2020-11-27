@@ -8,14 +8,14 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // JobProgress job progress
+//
 // swagger:model JobProgress
 type JobProgress struct {
 
@@ -121,7 +121,7 @@ const (
 
 // prop value enum
 func (m *JobProgress) validateStatusEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, jobProgressTypeStatusPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, jobProgressTypeStatusPropEnum, true); err != nil {
 		return err
 	}
 	return nil

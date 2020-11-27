@@ -8,8 +8,7 @@ package client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/client/config"
 )
@@ -56,9 +55,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Scylla2 {
 
 	cli := new(Scylla2)
 	cli.Transport = transport
-
 	cli.Config = config.New(transport, formats)
-
 	return cli
 }
 
@@ -103,7 +100,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Scylla2 is a client for scylla2
 type Scylla2 struct {
-	Config *config.Client
+	Config config.ClientService
 
 	Transport runtime.ClientTransport
 }
@@ -111,7 +108,5 @@ type Scylla2 struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Scylla2) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
-
 	c.Config.SetTransport(transport)
-
 }

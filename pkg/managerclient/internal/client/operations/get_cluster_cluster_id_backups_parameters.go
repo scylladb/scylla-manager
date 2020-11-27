@@ -13,9 +13,8 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-
-	strfmt "github.com/go-openapi/strfmt"
 )
 
 // NewGetClusterClusterIDBackupsParams creates a new GetClusterClusterIDBackupsParams object
@@ -65,7 +64,7 @@ type GetClusterClusterIDBackupsParams struct {
 	/*ClusterID*/
 	ClusterID string
 	/*ClusterID*/
-	QueryClusterID *string
+	ClusterID *string
 	/*Keyspace*/
 	Keyspace []string
 	/*Locations*/
@@ -124,15 +123,15 @@ func (o *GetClusterClusterIDBackupsParams) SetClusterID(clusterID string) {
 	o.ClusterID = clusterID
 }
 
-// WithQueryClusterID adds the clusterID to the get cluster cluster ID backups params
-func (o *GetClusterClusterIDBackupsParams) WithQueryClusterID(clusterID *string) *GetClusterClusterIDBackupsParams {
-	o.SetQueryClusterID(clusterID)
+// WithClusterID adds the clusterID to the get cluster cluster ID backups params
+func (o *GetClusterClusterIDBackupsParams) WithClusterID(clusterID *string) *GetClusterClusterIDBackupsParams {
+	o.SetClusterID(clusterID)
 	return o
 }
 
-// SetQueryClusterID adds the clusterId to the get cluster cluster ID backups params
-func (o *GetClusterClusterIDBackupsParams) SetQueryClusterID(clusterID *string) {
-	o.QueryClusterID = clusterID
+// SetClusterID adds the clusterId to the get cluster cluster ID backups params
+func (o *GetClusterClusterIDBackupsParams) SetClusterID(clusterID *string) {
+	o.ClusterID = clusterID
 }
 
 // WithKeyspace adds the keyspace to the get cluster cluster ID backups params
@@ -192,12 +191,12 @@ func (o *GetClusterClusterIDBackupsParams) WriteToRequest(r runtime.ClientReques
 		return err
 	}
 
-	if o.QueryClusterID != nil {
+	if o.ClusterID != nil {
 
 		// query param cluster_id
 		var qrClusterID string
-		if o.QueryClusterID != nil {
-			qrClusterID = *o.QueryClusterID
+		if o.ClusterID != nil {
+			qrClusterID = *o.ClusterID
 		}
 		qClusterID := qrClusterID
 		if qClusterID != "" {
