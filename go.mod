@@ -6,27 +6,27 @@ require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/aws/aws-sdk-go v1.25.31
 	github.com/cenkalti/backoff/v4 v4.0.0
-	github.com/cespare/xxhash v1.0.0
+	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-chi/render v1.0.0
-	github.com/go-openapi/analysis v0.19.2
-	github.com/go-openapi/errors v0.19.2
-	github.com/go-openapi/jsonpointer v0.19.2
-	github.com/go-openapi/jsonreference v0.19.2
-	github.com/go-openapi/loads v0.19.2
-	github.com/go-openapi/runtime v0.19.2
-	github.com/go-openapi/spec v0.19.2
-	github.com/go-openapi/strfmt v0.19.0
-	github.com/go-openapi/swag v0.19.2
-	github.com/go-openapi/validate v0.19.2
+	github.com/go-openapi/errors v0.19.6
+	github.com/go-openapi/jsonreference v0.19.4 // indirect
+	github.com/go-openapi/loads v0.19.5
+	github.com/go-openapi/runtime v0.19.20
+	github.com/go-openapi/spec v0.19.8
+	github.com/go-openapi/strfmt v0.19.5
+	github.com/go-openapi/swag v0.19.9
+	github.com/go-openapi/validate v0.19.10
 	github.com/gobwas/glob v0.2.3
 	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.2
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
-	github.com/mitchellh/mapstructure v1.2.2
+	github.com/kr/pretty v0.2.0 // indirect
+	github.com/mitchellh/mapstructure v1.3.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/client_model v0.2.0
@@ -38,19 +38,22 @@ require (
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.2.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
+	go.mongodb.org/mongo-driver v1.3.5 // indirect
 	go.uber.org/atomic v1.5.0
 	go.uber.org/config v1.4.0
 	go.uber.org/goleak v1.0.0
 	go.uber.org/multierr v1.4.0
 	go.uber.org/zap v1.14.0
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200828194041-157a740278f4
 	golang.org/x/tools v0.0.0-20200828161849-5deb26317202
-	gopkg.in/yaml.v2 v2.2.5
+	google.golang.org/protobuf v1.25.0 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 )
 
 replace (
