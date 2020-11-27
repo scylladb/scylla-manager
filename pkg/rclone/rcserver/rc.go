@@ -330,14 +330,16 @@ func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
 	w := time.Second * time.Duration(wait)
 	done := make(chan struct{})
 
-	if err := jobs.OnFinish(jobid, func() {
+	stop, err := jobs.OnFinish(jobid, func() {
 		close(done)
-	}); err != nil {
+	})
+	if err != nil {
 		// Returning errJobNotFound because jobs.OnFinish can fail only if job
 		// is not available and it doesn't return any specific error to signal
 		// that higher up the call chain.
 		return errJobNotFound
 	}
+	defer stop()
 
 	timer := time.NewTimer(w)
 	defer timer.Stop()
