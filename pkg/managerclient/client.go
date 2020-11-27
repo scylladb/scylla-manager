@@ -16,18 +16,16 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/managerclient/internal/client/operations"
-	"github.com/scylladb/scylla-manager/pkg/managerclient/internal/models"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/client/operations"
+	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
 )
 
 var disableOpenAPIDebugOnce sync.Once
 
-//go:generate ./internalgen.sh
-
 // Client provides means to interact with Scylla Manager.
 type Client struct {
-	operations *operations.Client
+	operations operations.ClientService
 }
 
 // DefaultTLSConfig specifies default TLS configuration used when creating a new

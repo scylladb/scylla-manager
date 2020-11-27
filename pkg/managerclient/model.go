@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/scylladb/scylla-manager/pkg/managerclient/internal/models"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
 	"github.com/scylladb/scylla-manager/pkg/util/version"
+	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
 	"github.com/scylladb/termtables"
 )
 

@@ -15,7 +15,7 @@ echo "==> Download swagger-ui ${VERSION}"
 curl -sSq -L ${URL} | tar zxf - --strip 1 --no-wildcards "swagger-ui-${VERSION}/dist"
 
 echo "==> Deploy scylla-manager.json"
-cp ../pkg/managerclient/scylla-manager.json dist
+cp ../swagger/scylla-manager.json dist
 sed -i 's/url: ".*",/url: "scylla-manager.json",/' dist/index.html
 
 echo "==> Complete!"

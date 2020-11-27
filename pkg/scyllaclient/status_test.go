@@ -7,10 +7,10 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
-	rcloneOperations "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/client/operations"
-	agentModels "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/agent/models"
-	scylla2ConfigOperations "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/client/config"
-	scylla2Models "github.com/scylladb/scylla-manager/pkg/scyllaclient/internal/scylla_v2/models"
+	rcloneOperations "github.com/scylladb/scylla-manager/swagger/gen/agent/client/operations"
+	agentModels "github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	scylla2ConfigOperations "github.com/scylladb/scylla-manager/swagger/gen/scylla/v2/client/config"
+	scylla2Models "github.com/scylladb/scylla-manager/swagger/gen/scylla/v2/models"
 )
 
 func TestStatusCodeOf(t *testing.T) {
