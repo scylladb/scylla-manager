@@ -135,6 +135,9 @@ func RegisterS3Provider(opts S3Options) error {
 		fs.ConfigFileSet(name, "env_auth", "true"),
 		fs.ConfigFileSet(name, "disable_checksum", "true"),
 		fs.ConfigFileSet(name, "list_chunk", "200"),
+		// Because of access denied issues with Minio.
+		// see https://github.com/rclone/rclone/issues/4633
+		fs.ConfigFileSet(name, "no_check_bucket", "true"),
 
 		registerProvider(name, opts),
 	)
