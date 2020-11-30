@@ -14,15 +14,11 @@ $(GO_BUNDLE):
 
 .PHONY: install
 install: $(GO_BUNDLE)
-install: TARGET=$(shell dirname $(GOROOT))/go$(GO_VERSION).linux-amd64
+install: TARGET=$(shell realpath -m $(shell which go)../../../../../go$(GO_VERSION).linux-amd64)
 install:
-ifndef GOROOT
-	$(error set GOROOT environment variable as '/PATH/TO/GO/SDKS/latest')
-endif
 	@echo "==> Installing Go $(GO_VERSION) to $(TARGET)..."
 	@[ -d $(TARGET) ] || (mkdir -p $(TARGET) && tar -xzf $(GO_BUNDLE) -C $(TARGET))
-	@rm -f `dirname $(TARGET)`/latest
-	@ln -sf $(TARGET)/go `dirname $(TARGET)`/latest
+	@rm -f latest && ln -sf $(TARGET)/go latest
 
 .PHONY: clean
 clean:

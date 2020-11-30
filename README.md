@@ -13,13 +13,13 @@ Scylla Manager consists of tree components:
 
 The desired Go version is specified in `.go-version` file.
 You can install or update Go version by running `make install` in `go` directory.
+It would install the required version alongside your current version assuming that go is extracted from an official tar package.
+If you do not have any Go installed at this point you can pass TARGET variable to specify a directory where to install Go. 
 
 **Procedure**:
 
-1. Define `GOROOT` environment variable as `/PATH/TO/GO/SDKS/latest`
-1. Run `make -C go install`
-
-This would download required go version and install it at `GOROOT`.
+1. Run `make -C go install TARGET=/path/to/go/sdks/goversion` example `make install TARGET=~/tools/go/go1.15.5.linux-amd64`
+1. Define `GOROOT` environment variable as `<git-root>/go/latest`
 
 ## Installing other packages needed for development
 
