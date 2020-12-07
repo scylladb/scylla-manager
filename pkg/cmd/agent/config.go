@@ -41,17 +41,18 @@ type scyllaConfig struct {
 
 // config specifies the agent and scylla configuration.
 type config struct {
-	AuthToken   string            `yaml:"auth_token"`
-	HTTPS       string            `yaml:"https"`
-	TLSCertFile string            `yaml:"tls_cert_file"`
-	TLSKeyFile  string            `yaml:"tls_key_file"`
-	Prometheus  string            `yaml:"prometheus"`
-	Debug       string            `yaml:"debug"`
-	CPU         int               `yaml:"cpu"`
-	Logger      logConfig         `yaml:"logger"`
-	Scylla      scyllaConfig      `yaml:"scylla"`
-	S3          rclone.S3Options  `yaml:"s3"`
-	GCS         rclone.GCSOptions `yaml:"gcs"`
+	AuthToken   string              `yaml:"auth_token"`
+	HTTPS       string              `yaml:"https"`
+	TLSCertFile string              `yaml:"tls_cert_file"`
+	TLSKeyFile  string              `yaml:"tls_key_file"`
+	Prometheus  string              `yaml:"prometheus"`
+	Debug       string              `yaml:"debug"`
+	CPU         int                 `yaml:"cpu"`
+	Logger      logConfig           `yaml:"logger"`
+	Scylla      scyllaConfig        `yaml:"scylla"`
+	S3          rclone.S3Options    `yaml:"s3"`
+	GCS         rclone.GCSOptions   `yaml:"gcs"`
+	Azure       rclone.AzureOptions `yaml:"azure"`
 }
 
 func defaultConfig() config {

@@ -115,6 +115,10 @@ func (s *server) init(ctx context.Context) error {
 		return err
 	}
 
+	if err := rclone.RegisterAzureProvider(s.config.Azure); err != nil {
+		return err
+	}
+
 	return nil
 }
 

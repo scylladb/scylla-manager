@@ -148,3 +148,18 @@
 # Default value is 50M and string representation of the value can be provided,
 # for e.g. 1M, 1G, off.
 #  chunk_size: 50M
+
+# Client configuration for Microsoft Azure storage blob service.
+#azure:
+# Storage account name.
+#  account:
+# Storage account authentication key.
+#  key:
+# Maximum size (in bytes) of body of single request to GCS when uploading files.
+# Files are cut into chunks, this value allows to specify how much data
+# single request to GCS can carry. Bigger value allows to reduce number of
+# requests needed to upload files, increasing it may help with rate limiting
+# responses from GCS.
+# Default value is 50M and string representation of the value can be provided,
+# for e.g. 1M, 1G, off.
+#  chunk_size: 50M

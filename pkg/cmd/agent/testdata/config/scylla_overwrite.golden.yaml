@@ -30,3 +30,7 @@ s3:
 gcs:
   service_account_file: ""
   chunk_size: ""
+azure:
+  account: ""
+  key: ""
+  chunk_size: ""

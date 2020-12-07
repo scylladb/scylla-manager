@@ -168,20 +168,11 @@ type GCSOptions struct {
 	ChunkSize          string `yaml:"chunk_size"`
 }
 
-// Validate returns error if option values are not set properly.
-func (opts *GCSOptions) Validate() error {
-	// Nothing to check yet
-	return nil
-}
-
 // RegisterGCSProvider must be called before server is started.
 // It allows for adding dynamically adding gcs provider named gcs.
 func RegisterGCSProvider(opts GCSOptions) error {
 	const name = "gcs"
 
-	if err := opts.Validate(); err != nil {
-		return err
-	}
 	if opts.ChunkSize == "" {
 		opts.ChunkSize = defaultChunkSize
 	}
@@ -204,6 +195,35 @@ func RegisterGCSProvider(opts GCSOptions) error {
 	return nil
 }
 
+// AzureOptions represents a selected subset of rclone Azure backend options
+// for togged with yaml for inclusion in config objects.
+type AzureOptions struct {
+	Account   string `yaml:"account"`
+	Key       string `yaml:"key"`
+	ChunkSize string `yaml:"chunk_size"`
+}
+
+// RegisterAzureProvider must be called before server is started.
+// It allows for adding dynamically adding gcs provider named gcs.
+func RegisterAzureProvider(opts AzureOptions) error {
+	const name = "azure"
+
+	if opts.ChunkSize == "" {
+		opts.ChunkSize = defaultChunkSize
+	}
+
+	err := multierr.Combine(
+		fs.ConfigFileSet(name, "type", "azureblob"),
+
+		registerProvider(name, opts),
+	)
+	if err != nil {
+		return errors.Wrap(err, "configure provider")
+	}
+
+	return nil
+}
+
 func registerProvider(name string, options interface{}) error {
 	var (
 		m     = reflectx.NewMapper("yaml").FieldMap(reflect.ValueOf(options))
@@ -213,7 +233,7 @@ func registerProvider(name string, options interface{}) error {
 	for key, rval := range m {
 		if s := rval.String(); s != "" {
 			errs = multierr.Append(errs, fs.ConfigFileSet(name, key, s))
-			if strings.Contains(key, "secret") {
+			if strings.Contains(key, "secret") || strings.Contains(key, "key") {
 				extra = append(extra, key+"="+strings.Repeat("*", len(s)))
 			} else {
 				extra = append(extra, key+"="+s)

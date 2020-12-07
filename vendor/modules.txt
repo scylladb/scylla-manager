@@ -1,5 +1,9 @@
 # cloud.google.com/go v0.70.0
 cloud.google.com/go/compute/metadata
+# github.com/Azure/azure-pipeline-go v0.2.3
+github.com/Azure/azure-pipeline-go/pipeline
+# github.com/Azure/azure-storage-blob-go v0.11.0
+github.com/Azure/azure-storage-blob-go/azblob
 # github.com/OneOfOne/xxhash v1.2.5
 ## explicit
 # github.com/PuerkitoBio/purell v1.1.1
@@ -159,6 +163,8 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/uuid v1.1.1
+github.com/google/uuid
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
@@ -183,6 +189,8 @@ github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
 # github.com/mattn/go-colorable v0.1.7
 github.com/mattn/go-colorable
+# github.com/mattn/go-ieproxy v0.0.1
+github.com/mattn/go-ieproxy
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.9
@@ -220,6 +228,7 @@ github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 # github.com/rclone/rclone v1.51.0 => github.com/scylladb/rclone v1.53.3-ajankovic-4
 ## explicit
+github.com/rclone/rclone/backend/azureblob
 github.com/rclone/rclone/backend/crypt
 github.com/rclone/rclone/backend/crypt/pkcs7
 github.com/rclone/rclone/backend/googlecloudstorage
@@ -379,6 +388,7 @@ golang.org/x/mod/semver
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
+golang.org/x/net/http/httpproxy
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
@@ -400,6 +410,7 @@ golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
 # golang.org/x/text v0.3.3
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
