@@ -15,7 +15,6 @@ Scylla Manager
    health-check
    sctool/index
    config/index
-   swagger/index
    scylla-monitoring
    troubleshooting
    older-versions
