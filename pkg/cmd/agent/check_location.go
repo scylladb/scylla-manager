@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/pkg/util/location"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -22,8 +22,6 @@ var checkLocationArgs = struct {
 	location   string
 	debug      bool
 }{}
-
-var errInvalidLocation = errors.Errorf("invalid location, the format is [dc:]<provider>:<path> ex. s3:my-bucket, the path must be DNS compliant")
 
 var checkLocationCmd = &cobra.Command{
 	Use:   "check-location",
@@ -36,61 +34,77 @@ var checkLocationCmd = &cobra.Command{
 			}
 		}()
 
-		c, err := parseConfigFile(checkLocationArgs.configFile)
+		c, _, err := setupAgentCommand(checkLocationArgs.configFile, checkLocationArgs.debug)
 		if err != nil {
 			return err
 		}
 
-		l := zap.FatalLevel
-		if checkLocationArgs.debug {
-			l = zap.DebugLevel
+		if err := registerConfiguredProviders(c); err != nil {
+			return errors.Wrap(err, "register providers")
 		}
-		logger, err := log.NewProduction(log.Config{
-			Mode:  log.StderrMode,
-			Level: l,
-		})
+
+		location, err := location.StripDC(checkLocationArgs.location)
 		if err != nil {
 			return err
 		}
 
-		// Redirect standard logger to the logger
-		zap.RedirectStdLog(log.BaseOf(logger))
-
-		// Redirect rclone logger to the logger
-		rclone.RedirectLogPrint(logger.Named("rclone"))
-		// Init rclone config options
-		rclone.InitFsConfig()
-		// Register rclone providers
-		if err := rclone.RegisterS3Provider(c.S3); err != nil {
-			return err
-		}
-		if err := rclone.RegisterGCSProvider(c.GCS); err != nil {
-			return err
-		}
-		if err := rclone.RegisterAzureProvider(c.Azure); err != nil {
-			return err
-		}
-
-		// Providers require that resource names are DNS compliant.
-		// The following is a super simplified DNS (plus provider prefix)
-		// matching regexp.
-		pattern := regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
-
-		m := pattern.FindStringSubmatch(checkLocationArgs.location)
-		if m == nil {
-			return errInvalidLocation
-		}
-
-		f, err := fs.NewFs(m[3] + ":" + m[4])
+		f, err := fs.NewFs(location)
 		if err != nil {
 			if errors.Cause(err) == fs.ErrorNotFoundInConfigFile {
-				return errInvalidLocation
+				return fmt.Errorf("unknown provider %s", location)
 			}
 			return errors.Wrap(err, "init fs")
 		}
 
 		return operations.CheckPermissions(context.Background(), f)
 	},
+}
+
+func registerConfiguredProviders(c config) error {
+	if err := rclone.RegisterS3Provider(c.S3); err != nil {
+		return err
+	}
+	if err := rclone.RegisterGCSProvider(c.GCS); err != nil {
+		return err
+	}
+	if err := rclone.RegisterAzureProvider(c.Azure); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setupAgentCommand(configFile []string, debug bool) (config, log.Logger, error) {
+	c, err := parseConfigFile(configFile)
+	if err != nil {
+		return c, log.Logger{}, err
+	}
+
+	l := zap.FatalLevel
+	if debug {
+		l = zap.DebugLevel
+	}
+	logger, err := log.NewProduction(log.Config{
+		Mode:  log.StderrMode,
+		Level: l,
+	})
+	if err != nil {
+		return c, logger, err
+	}
+
+	// Redirect standard logger to the logger
+	zap.RedirectStdLog(log.BaseOf(logger))
+
+	// Redirect rclone logger to the logger
+	rclone.RedirectLogPrint(logger.Named("rclone"))
+	// Init rclone config options
+	rclone.InitFsConfig()
+
+	if err := registerConfiguredProviders(c); err != nil {
+		return c, logger, errors.Wrap(err, "register providers")
+	}
+
+	return c, logger, nil
 }
 
 func init() {
