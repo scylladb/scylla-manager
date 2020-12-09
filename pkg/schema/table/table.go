@@ -58,6 +58,17 @@ var (
 		PartKey: []string{"id"},
 	})
 
+	Drawer = table.New(table.Metadata{
+		Name: "drawer",
+		Columns: []string{
+			"cluster_id",
+			"key",
+			"value",
+		},
+		PartKey: []string{"cluster_id"},
+		SortKey: []string{"key"},
+	})
+
 	RepairRun = table.New(table.Metadata{
 		Name: "repair_run",
 		Columns: []string{
