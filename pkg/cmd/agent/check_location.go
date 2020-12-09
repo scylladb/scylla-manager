@@ -36,7 +36,7 @@ var checkLocationCmd = &cobra.Command{
 			}
 		}()
 
-		c, err := parseConfigFile(rootArgs.configFiles)
+		c, err := parseConfigFile(checkLocationArgs.configFile)
 		if err != nil {
 			return err
 		}
