@@ -18,10 +18,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets/dbsecrets"
+	"github.com/scylladb/scylla-manager/pkg/secrets"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -33,54 +33,8 @@ func TestStatusIntegration(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
 
-	secretsStore, err := dbsecrets.New(session)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testStatusIntegration(t, secretsStore)
-}
-
-type testStore []byte
-
-var _ secrets.Store = &testStore{}
-
-func (t *testStore) Put(secret secrets.KeyValue) error {
-	if _, ok := secret.(*secrets.CQLCreds); !ok {
-		return nil
-	}
-
-	v, err := secret.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	*t = v
-	return nil
-}
-
-func (t *testStore) Get(secret secrets.KeyValue) error {
-	if _, ok := secret.(*secrets.CQLCreds); !ok {
-		return service.ErrNotFound
-	}
-
-	if len(*t) == 0 {
-		return service.ErrNotFound
-	}
-	return secret.UnmarshalBinary(*t)
-}
-
-func (t *testStore) Delete(secret secrets.KeyValue) error {
-	panic("not implemented")
-}
-
-func (t *testStore) DeleteAll(clusterID uuid.UUID) error {
-	panic("not implemented")
-}
-
-func (t *testStore) version() byte {
-	if len(*t) == 0 {
-		return 0
-	}
-	return []byte(*t)[0]
+	s := store.NewTableStore(session, table.Secrets)
+	testStatusIntegration(t, s)
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
@@ -89,16 +43,18 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
 
-	secretsStore := &testStore{}
-	secretsStore.Put(&secrets.CQLCreds{
+	s := store.NewTableStore(session, table.Secrets)
+	if err := s.Put(&secrets.CQLCreds{
 		Username: username,
 		Password: password,
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
-	testStatusIntegration(t, secretsStore)
+	testStatusIntegration(t, s)
 }
 
-func testStatusIntegration(t *testing.T, secretsStore secrets.Store) {
+func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())

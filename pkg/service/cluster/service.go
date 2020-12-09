@@ -16,8 +16,9 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/secrets"
 	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -42,13 +43,13 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          gocqlx.Session
-	secretsStore     secrets.Store
+	secretsStore     store.Store
 	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session gocqlx.Session, secretsStore secrets.Store, l log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, secretsStore store.Store, l log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -319,7 +320,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}()
 
 	if len(c.SSLUserCertFile) != 0 && len(c.SSLUserKeyFile) != 0 {
-		r, err := secrets.PutWithRollback(s.secretsStore, &secrets.TLSIdentity{
+		r, err := store.PutWithRollback(s.secretsStore, &secrets.TLSIdentity{
 			ClusterID:  c.ID,
 			Cert:       c.SSLUserCertFile,
 			PrivateKey: c.SSLUserKeyFile,
@@ -331,7 +332,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}
 
 	if c.Username != "" {
-		r, err := secrets.PutWithRollback(s.secretsStore, &secrets.CQLCreds{
+		r, err := store.PutWithRollback(s.secretsStore, &secrets.CQLCreds{
 			ClusterID: c.ID,
 			Username:  c.Username,
 			Password:  c.Password,

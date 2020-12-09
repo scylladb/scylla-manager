@@ -2,7 +2,7 @@
 
 // +build all integration
 
-package dbsecrets_test
+package store_test
 
 import (
 	"fmt"
@@ -11,62 +11,59 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets/dbsecrets"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-const truthKey = "truth"
+const questionKey = "Ultimate Question of Life, the Universe, and Everything"
 
-type Truth struct {
+type question struct {
 	ClusterID uuid.UUID
 	Answer    string `json:"answer"`
 }
 
-func (t *Truth) Key() (clusterID uuid.UUID, key string) {
-	return t.ClusterID, truthKey
+func (q *question) Key() (clusterID uuid.UUID, key string) {
+	return q.ClusterID, questionKey
 }
 
-func (t *Truth) MarshalBinary() (data []byte, err error) {
-	if t.Answer == "" {
+func (q *question) MarshalBinary() (data []byte, err error) {
+	if q.Answer == "" {
 		return nil, nil
 	}
-	return []byte(t.Answer), nil
+	return []byte(q.Answer), nil
 }
 
-func (t *Truth) UnmarshalBinary(data []byte) error {
-	t.Answer = string(data)
+func (q *question) UnmarshalBinary(data []byte) error {
+	q.Answer = string(data)
 	return nil
 }
 
 func TestStorageIntegration(t *testing.T) {
 	session := CreateSession(t)
 
-	s, err := dbsecrets.New(session)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := store.NewTableStore(session, table.Drawer)
 
 	setup := func(t *testing.T) {
 		t.Helper()
-		ExecStmt(t, session, fmt.Sprintf("TRUNCATE %s", table.Secrets.Name()))
+		ExecStmt(t, session, fmt.Sprintf("TRUNCATE %s", table.Drawer.Name()))
 	}
 
 	clusterID := uuid.MustRandom()
 	answer := "42"
-	truth := &Truth{
+	truth := &question{
 		ClusterID: clusterID,
 		Answer:    answer,
 	}
 
-	t.Run("Put new secret", func(t *testing.T) {
+	t.Run("Put new entry", func(t *testing.T) {
 		setup(t)
 		if err := s.Put(truth); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("Get existing secret", func(t *testing.T) {
+	t.Run("Get existing entry", func(t *testing.T) {
 		setup(t)
 		if err := s.Put(truth); err != nil {
 			t.Fatal(err)
@@ -79,18 +76,18 @@ func TestStorageIntegration(t *testing.T) {
 		}
 
 		if cmp.Diff(truth.Answer, answer) != "" {
-			t.Fatal("invalid secret value")
+			t.Fatal("invalid entry value")
 		}
 	})
 
-	t.Run("ErrNotFound is returned on non existing secret lookup", func(t *testing.T) {
+	t.Run("ErrNotFound is returned on non existing entry lookup", func(t *testing.T) {
 		setup(t)
 		if err := s.Get(truth); err == nil || err != service.ErrNotFound {
 			t.Fatal("expected to get NotFound error")
 		}
 	})
 
-	t.Run("Update secret", func(t *testing.T) {
+	t.Run("Update entry", func(t *testing.T) {
 		setup(t)
 
 		if err := s.Put(truth); err != nil {
@@ -106,11 +103,11 @@ func TestStorageIntegration(t *testing.T) {
 		}
 
 		if cmp.Diff(truth.Answer, answer) != "" {
-			t.Fatal("invalid secret value")
+			t.Fatal("invalid entry value")
 		}
 	})
 
-	t.Run("ErrNotFound is returned on deleted secret lookup", func(t *testing.T) {
+	t.Run("ErrNotFound is returned on deleted entry lookup", func(t *testing.T) {
 		setup(t)
 		if err := s.Put(truth); err != nil {
 			t.Fatal(err)

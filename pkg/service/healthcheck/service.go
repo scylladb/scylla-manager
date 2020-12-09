@@ -17,8 +17,9 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/pkg/ping/dynamoping"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/pkg/secrets"
 	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -70,7 +71,7 @@ type Service struct {
 	config       Config
 	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
-	secretsStore secrets.Store
+	secretsStore store.Store
 
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
@@ -81,7 +82,7 @@ type Service struct {
 }
 
 func NewService(config Config, clusterName ClusterNameFunc,
-	scyllaClient scyllaclient.ProviderFunc, secretsStore secrets.Store, logger log.Logger) (*Service, error) {
+	scyllaClient scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) (*Service, error) {
 	if clusterName == nil {
 		return nil, errors.New("invalid cluster name provider")
 	}

@@ -7,17 +7,17 @@ package cluster_test
 import (
 	"context"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/secrets"
 	"github.com/scylladb/scylla-manager/pkg/service"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets/dbsecrets"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -25,18 +25,8 @@ import (
 func TestServiceStorageIntegration(t *testing.T) {
 	session := CreateSession(t)
 
-	dir, err := ioutil.TempDir("", "scylla-manager.cluster.TestServiceStorageIntegration")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		os.Remove(dir)
-	}()
+	secretsStore := store.NewTableStore(session, table.Secrets)
 
-	secretsStore, err := dbsecrets.New(session)
-	if err != nil {
-		t.Fatal(err)
-	}
 	s, err := cluster.NewService(session, secretsStore, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)

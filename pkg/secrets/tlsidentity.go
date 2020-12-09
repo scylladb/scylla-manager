@@ -5,11 +5,8 @@ package secrets
 import (
 	"encoding/json"
 
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-)
-
-const (
-	tlsIdentityKey = "tls_identity"
 )
 
 // TLSIdentity defines TLS credentials to cluster.
@@ -19,12 +16,12 @@ type TLSIdentity struct {
 	PrivateKey []byte    `json:"private_key"`
 }
 
-// Key returns pair of `clusterID` and `key` used for identifying credentials.
+var _ store.Entry = &TLSIdentity{}
+
 func (v *TLSIdentity) Key() (clusterID uuid.UUID, key string) {
-	return v.ClusterID, tlsIdentityKey
+	return v.ClusterID, "tls_identity"
 }
 
-// MarshalBinary implements encoding.BinaryMarshaler.
 func (v *TLSIdentity) MarshalBinary() (data []byte, err error) {
 	if v.Cert == nil && v.PrivateKey == nil {
 		return nil, nil
@@ -32,7 +29,6 @@ func (v *TLSIdentity) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(v)
 }
 
-// UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (v *TLSIdentity) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, v)
 }
