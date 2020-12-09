@@ -15,12 +15,13 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
 	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/service/secrets/dbsecrets"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
 	"github.com/scylladb/scylla-manager/pkg/util/prom"
 	"go.uber.org/multierr"
@@ -72,10 +73,9 @@ func newServer(config *config.ServerConfig, logger log.Logger) (*server, error) 
 }
 
 func (s *server) makeServices(mw *prom.MetricsWatcher) error {
-	secretsStore, err := dbsecrets.New(s.session)
-	if err != nil {
-		return errors.Wrap(err, "db secrets service")
-	}
+	var err error
+
+	secretsStore := store.NewTableStore(s.session, table.Secrets)
 
 	s.clusterSvc, err = cluster.NewService(s.session, secretsStore, s.logger.Named("cluster"))
 	if err != nil {

@@ -5,11 +5,8 @@ package secrets
 import (
 	"encoding/json"
 
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-)
-
-const (
-	cqlCredsKey = "cql_creds"
 )
 
 // CQLCreds specifies CQL credentials to cluster.
@@ -19,12 +16,12 @@ type CQLCreds struct {
 	Password  string    `json:"password"`
 }
 
-// Key returns pair of `clusterID` and `key` used for identifying credentials.
+var _ store.Entry = &CQLCreds{}
+
 func (v *CQLCreds) Key() (clusterID uuid.UUID, key string) {
-	return v.ClusterID, cqlCredsKey
+	return v.ClusterID, "cql_creds"
 }
 
-// MarshalBinary implements encoding.BinaryMarshaler.
 func (v *CQLCreds) MarshalBinary() (data []byte, err error) {
 	if v.Username == "" {
 		return nil, nil
@@ -32,7 +29,6 @@ func (v *CQLCreds) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(v)
 }
 
-// UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (v *CQLCreds) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, v)
 }

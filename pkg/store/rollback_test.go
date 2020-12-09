@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package secrets
+package store
 
 import (
 	"testing"
@@ -9,21 +9,21 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-type testSecret []byte
+type testEntry []byte
 
-func newTestSecret(version byte) *testSecret {
-	return &testSecret{version}
+func newTestEntry(version byte) *testEntry {
+	return &testEntry{version}
 }
 
-func (v *testSecret) Key() (clusterID uuid.UUID, key string) {
+func (v *testEntry) Key() (clusterID uuid.UUID, key string) {
 	return uuid.Nil, "test"
 }
 
-func (v *testSecret) MarshalBinary() (data []byte, err error) {
+func (v *testEntry) MarshalBinary() (data []byte, err error) {
 	return *v, nil
 }
 
-func (v *testSecret) UnmarshalBinary(data []byte) error {
+func (v *testEntry) UnmarshalBinary(data []byte) error {
 	*v = data
 	return nil
 }
@@ -32,8 +32,8 @@ type testStore []byte
 
 var _ Store = &testStore{}
 
-func (t *testStore) Put(secret KeyValue) error {
-	v, err := secret.MarshalBinary()
+func (t *testStore) Put(e Entry) error {
+	v, err := e.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -41,16 +41,16 @@ func (t *testStore) Put(secret KeyValue) error {
 	return nil
 }
 
-func (t *testStore) Get(secret KeyValue) error {
+func (t *testStore) Get(e Entry) error {
 	if len(*t) == 0 {
 		return service.ErrNotFound
 	}
-	return secret.UnmarshalBinary(*t)
+	return e.UnmarshalBinary(*t)
 }
 
 const deleted = 0xf
 
-func (t *testStore) Delete(secret KeyValue) error {
+func (t *testStore) Delete(e Entry) error {
 	*t = testStore{deleted}
 	return nil
 }
@@ -72,7 +72,7 @@ func TestPutWithRollback(t *testing.T) {
 
 	t.Run("delete", func(t *testing.T) {
 		s := &testStore{}
-		r, err := PutWithRollback(s, newTestSecret(1))
+		r, err := PutWithRollback(s, newTestEntry(1))
 		if err != nil {
 			t.Fatal("PutWithRollback() error ", err)
 		}
@@ -87,11 +87,11 @@ func TestPutWithRollback(t *testing.T) {
 
 	t.Run("update", func(t *testing.T) {
 		s := &testStore{}
-		r, err := PutWithRollback(s, newTestSecret(1))
+		r, err := PutWithRollback(s, newTestEntry(1))
 		if err != nil {
 			t.Fatal("PutWithRollback() error ", err)
 		}
-		r, err = PutWithRollback(s, newTestSecret(2))
+		r, err = PutWithRollback(s, newTestEntry(2))
 		if err != nil {
 			t.Fatal("PutWithRollback() error ", err)
 		}
