@@ -3,12 +3,14 @@
 package scheduler
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -29,6 +31,15 @@ const (
 
 	mockTask TaskType = "mock"
 )
+
+// IgnoreSuspended returns true if task should run even when scheduler is suspended.
+func (t TaskType) IgnoreSuspended() bool {
+	switch t {
+	case HealthCheckAlternatorTask, HealthCheckCQLTask, HealthCheckRESTTask:
+		return true
+	}
+	return false
+}
 
 func (t TaskType) String() string {
 	return string(t)
@@ -275,4 +286,24 @@ func (t *Task) newRun(id uuid.UUID) *Run {
 		Status:    StatusNew,
 		StartTime: timeutc.Now(),
 	}
+}
+
+type suspendInfo struct {
+	ClusterID    uuid.UUID   `json:"-"`
+	PendingTasks []uuid.UUID `json:"pending_tasks"`
+	RunningTask  []uuid.UUID `json:"running_tasks"`
+}
+
+var _ store.Entry = &suspendInfo{}
+
+func (v *suspendInfo) Key() (clusterID uuid.UUID, key string) {
+	return v.ClusterID, "scheduler_suspended"
+}
+
+func (v *suspendInfo) MarshalBinary() (data []byte, err error) {
+	return json.Marshal(v)
+}
+
+func (v *suspendInfo) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, v)
 }

@@ -29,7 +29,7 @@ type trigger struct {
 
 func newTrigger(t *Task) *trigger {
 	return &trigger{
-		ClusterID: t.ID,
+		ClusterID: t.ClusterID,
 		Type:      t.Type,
 		TaskID:    t.ID,
 		RunID:     uuid.NewTime(),
