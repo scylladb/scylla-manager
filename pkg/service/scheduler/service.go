@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -30,12 +31,13 @@ type Service struct {
 	session     gocqlx.Session
 	clusterName ClusterNameFunc
 	logger      log.Logger
-
-	mu      sync.Mutex
-	runners map[TaskType]Runner
-	tasks   map[uuid.UUID]*trigger
-	closing bool
-	wg      sync.WaitGroup
+	wg          sync.WaitGroup
+	mu          sync.Mutex
+	runners     map[TaskType]Runner
+	tasks       map[uuid.UUID]*trigger
+	drawer      store.Store
+	suspended   map[uuid.UUID]struct{}
+	closing     bool
 }
 
 // overridable knobs for tests
@@ -45,7 +47,7 @@ var (
 	startTaskNowSlack = 10 * time.Second
 )
 
-func NewService(session gocqlx.Session, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, drawer store.Store, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -54,13 +56,41 @@ func NewService(session gocqlx.Session, clusterName ClusterNameFunc, logger log.
 		return nil, errors.New("invalid cluster name provider")
 	}
 
-	return &Service{
+	s := &Service{
 		session:     session,
 		clusterName: clusterName,
 		logger:      logger,
 		runners:     make(map[TaskType]Runner),
 		tasks:       make(map[uuid.UUID]*trigger),
-	}, nil
+		drawer:      drawer,
+		suspended:   make(map[uuid.UUID]struct{}),
+	}
+
+	if err := s.initSuspended(); err != nil {
+		return nil, errors.Wrap(err, "init suspended")
+	}
+
+	return s, nil
+}
+
+func (s *Service) initSuspended() error {
+	var clusters []uuid.UUID
+	if err := qb.Select(table.SchedTask.Name()).Distinct("cluster_id").Query(s.session).SelectRelease(&clusters); err != nil {
+		return errors.Wrap(err, "list clusters")
+	}
+
+	for _, c := range clusters {
+		si := &suspendInfo{ClusterID: c}
+		if err := s.drawer.Get(si); err != nil {
+			if err != service.ErrNotFound {
+				return err
+			}
+		} else {
+			s.suspended[c] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 // SetRunner assigns runner for a given task type. All runners need to be
@@ -90,6 +120,26 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks from database")
 
+	err := s.forEachTask(func(t *Task) error {
+		if err := s.fixRunStatus(ctx, t); err != nil {
+			return errors.Wrap(err, "fix run status")
+		}
+		if err := s.initMetrics(ctx, t); err != nil {
+			return errors.Wrap(err, "init metrics")
+		}
+		s.schedule(ctx, t)
+
+		return nil
+	})
+	if err != nil {
+		s.logger.Info(ctx, "Failed to load task from database")
+	} else {
+		s.logger.Info(ctx, "All tasks scheduled")
+	}
+	return err
+}
+
+func (s *Service) forEachTask(f func(t *Task) error) error {
 	var tasks []*Task
 	q := qb.Select(table.SchedTask.Name()).Query(s.session)
 	if err := q.SelectRelease(&tasks); err != nil {
@@ -97,18 +147,10 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	}
 
 	for _, t := range tasks {
-		if err := s.fixRunStatus(ctx, t); err != nil {
-			return errors.Wrap(err, "fix run status")
-		}
-		if err := s.initMetrics(ctx, t); err != nil {
-			return errors.Wrap(err, "init metrics")
+		if err := f(t); err != nil {
+			return err
 		}
 	}
-
-	for _, t := range tasks {
-		s.schedule(ctx, t)
-	}
-	s.logger.Info(ctx, "All tasks scheduled")
 
 	return nil
 }
@@ -182,6 +224,12 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 	// Cancel pending trigger for task, and skip if task is running
 	if tg := s.tasks[t.ID]; !tg.CancelPending() && tg.State() == triggerRan {
 		s.logger.Info(ctx, "Task not scheduled because it's already running, will be scheduled on task completion", "task", t)
+		return
+	}
+
+	// Skip if service is suspended
+	if _, ok := s.suspended[t.ClusterID]; ok && !t.Type.IgnoreSuspended() {
+		s.logger.Info(ctx, "Task not scheduled because service is suspended for cluster", "task", t)
 		return
 	}
 
@@ -467,7 +515,12 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Prevent starting an already running task.
+	// Prevent starting in suspended mode
+	if s.isSuspendedLocked(t.ClusterID) && !t.Type.IgnoreSuspended() {
+		return service.ErrValidate(errors.New("cluster is suspended"))
+	}
+
+	// Prevent starting an already running task
 	tg := s.tasks[t.ID]
 	if tg != nil {
 		if s.taskIsRunning(ctx, t, tg.RunID) {
@@ -524,6 +577,138 @@ func (s *Service) cancelLocked(ctx context.Context, taskID uuid.UUID) {
 		)
 		delete(s.tasks, taskID)
 	}
+}
+
+// IsSuspended returns true iff cluster is suspended.
+func (s *Service) IsSuspended(ctx context.Context, clusterID uuid.UUID) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.isSuspendedLocked(clusterID)
+}
+
+func (s *Service) isSuspendedLocked(clusterID uuid.UUID) bool {
+	_, ok := s.suspended[clusterID]
+	return ok
+}
+
+// Suspend stops scheduler for a given cluster. Running tasks will be stopped.
+// Scheduled task executions will be canceled.
+// Scheduler can be later resumed, see `Resume` function.
+func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Ignore if already suspended
+	if _, ok := s.suspended[clusterID]; ok {
+		return errors.New("cluster already suspended")
+	}
+
+	// Mark service as suspended
+	s.suspended[clusterID] = struct{}{}
+	s.logger.Info(ctx, "Service suspended, cancelling tasks...")
+
+	// Cancel tasks
+	si := &suspendInfo{
+		ClusterID: clusterID,
+	}
+	for _, tg := range s.tasks {
+		if tg.ClusterID != clusterID {
+			continue
+		}
+		if tg.Type.IgnoreSuspended() {
+			continue
+		}
+
+		if tg.CancelPending() {
+			s.logger.Info(ctx, "Canceled scheduled task ",
+				"cluster_id", tg.ClusterID,
+				"task_type", tg.Type,
+				"task_id", tg.TaskID,
+				"run_id", tg.RunID,
+			)
+			si.PendingTasks = append(si.PendingTasks, tg.TaskID)
+		} else {
+			if tg.Cancel() {
+				s.logger.Info(ctx, "Canceled running task",
+					"cluster_id", tg.ClusterID,
+					"task_type", tg.Type,
+					"task_id", tg.TaskID,
+					"run_id", tg.RunID,
+				)
+			} else {
+				// This should never happen
+				s.logger.Error(ctx, "Could not cancel task", "task", tg.TaskID)
+			}
+			si.RunningTask = append(si.RunningTask, tg.TaskID)
+		}
+	}
+	s.logger.Info(ctx, "Canceled tasks", "count", len(si.PendingTasks)+len(si.RunningTask))
+
+	// Persist canceled tasks info
+	if err := s.drawer.Put(si); err != nil {
+		return errors.Wrap(err, "save canceled tasks")
+	}
+
+	return nil
+}
+
+// Resume resumes scheduler for a suspended cluster.
+func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error {
+	s.mu.Lock()
+
+	if _, ok := s.suspended[clusterID]; !ok {
+		s.mu.Unlock()
+		return errors.New("cluster is not suspended")
+	}
+
+	// Resume early, if something goes wrong scheduler would still be usable...
+	delete(s.suspended, clusterID)
+	s.logger.Info(ctx, "Service resumed, rescheduling tasks...")
+
+	// Get canceled tasks
+	si := &suspendInfo{ClusterID: clusterID}
+	if err := s.drawer.Get(si); err != nil {
+		if err == service.ErrNotFound {
+			s.logger.Error(ctx, "Expected canceled tasks got none")
+		} else {
+			s.mu.Unlock()
+			return errors.Wrap(err, "get canceled tasks")
+		}
+	}
+	// Delete canceled tasks
+	if err := s.drawer.Delete(si); err != nil {
+		s.logger.Error(ctx, "Failed to delete canceled tasks", "error", err)
+	}
+
+	// Release lock and schedule tasks
+	s.mu.Unlock()
+
+	s.forEachTask(func(t *Task) error { // nolint: errcheck
+		// Reschedule pending tasks
+		for _, id := range si.PendingTasks {
+			if t.ID == id {
+				s.schedule(ctx, t)
+				return nil
+			}
+		}
+		// Start or reschedule running tasks
+		for _, id := range si.RunningTask {
+			if t.ID == id {
+				if startTasks {
+					if err := s.StartTask(ctx, t); err != nil {
+						s.logger.Error(ctx, "Failed to start task, falling back to schedule", "task", t)
+						s.schedule(ctx, t)
+					}
+				} else {
+					s.schedule(ctx, t)
+				}
+				return nil
+			}
+		}
+		return nil
+	})
+
+	return nil
 }
 
 // GetTask returns a task based on ID or name. If nothing was found

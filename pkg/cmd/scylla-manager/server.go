@@ -75,6 +75,7 @@ func newServer(config *config.ServerConfig, logger log.Logger) (*server, error) 
 func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 	var err error
 
+	drawerStore := store.NewTableStore(s.session, table.Drawer)
 	secretsStore := store.NewTableStore(s.session, table.Secrets)
 
 	s.clusterSvc, err = cluster.NewService(s.session, secretsStore, s.logger.Named("cluster"))
@@ -121,6 +122,7 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 
 	s.schedSvc, err = scheduler.NewService(
 		s.session,
+		drawerStore,
 		s.clusterSvc.GetClusterName,
 		s.logger.Named("scheduler"),
 	)

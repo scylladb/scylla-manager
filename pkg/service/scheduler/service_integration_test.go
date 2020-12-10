@@ -7,6 +7,7 @@ package scheduler_test
 import (
 	"context"
 	"encoding/json"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/pkg/store"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -130,6 +132,7 @@ type schedTestHelper struct {
 }
 
 func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedTestHelper {
+	ExecStmt(t, session, "TRUNCATE TABLE drawer")
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task")
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task_run")
 
@@ -152,6 +155,16 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedTestHelper {
 	s.SetRunner(mockTask, h.runner)
 
 	return h
+}
+
+func (h *schedTestHelper) assertError(err error, msg string) {
+	h.t.Helper()
+
+	if !regexp.MustCompile(msg).MatchString(err.Error()) {
+		h.t.Errorf("Expected error %s, got %s", msg, err.Error())
+	} else {
+		h.t.Logf("Error message: %s", err.Error())
+	}
 }
 
 func (h *schedTestHelper) assertStatus(ctx context.Context, task *scheduler.Task, s scheduler.Status) {
@@ -217,6 +230,7 @@ func newTestService(t *testing.T, session gocqlx.Session) *scheduler.Service {
 
 	s, err := scheduler.NewService(
 		session,
+		store.NewTableStore(session, table.Drawer),
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
@@ -509,7 +523,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
 
-		Print("And: task is not executed in future")
+		Print("And: task is not executed")
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
 	})
 
@@ -549,7 +563,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.runner.Error()
 		h.assertStatus(ctx, task, scheduler.StatusError)
 
-		Print("And: task is not executed in future")
+		Print("And: task is not executed")
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
 
 		Print("And: properties are preserved")
@@ -682,7 +696,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		Print("Then: task is not executed in future")
+		Print("Then: task is not executed")
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
 	})
 
@@ -718,7 +732,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: task stops with the status done")
 		h.assertStatus(ctx, task, scheduler.StatusDone)
 
-		Print("And: task is not executed in future")
+		Print("And: task is not executed")
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
 	})
 
@@ -789,4 +803,139 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
 	})
 
+	t.Run("suspend and resume", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task0 is scheduled now")
+		task0 := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 runs")
+		h.assertStatus(ctx, task0, scheduler.StatusRunning)
+
+		Print("When: task1 is scheduled in future")
+		task1 := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		task1.ID = uuid.MustRandom()
+		if err := h.service.PutTask(ctx, task1); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task1 is not executed")
+		h.assertNotStatus(ctx, task1, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports suspended status")
+		if !h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("And: task0 status is StatusStopped")
+		h.assertStatus(ctx, task0, scheduler.StatusStopped)
+
+		Print("And: task0 cannot be started")
+		h.assertError(h.service.StartTask(ctx, task0), "suspended")
+
+		Print("And: task1 cannot be started")
+		h.assertError(h.service.StartTask(ctx, task0), "suspended")
+
+		Print("When: scheduler is resumed with start tasks option")
+		if err := h.service.Resume(ctx, h.clusterID, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports not suspended status")
+		if h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected not suspended")
+		}
+
+		Print("And: task0 status is StatusRunning")
+		h.assertStatus(ctx, task0, scheduler.StatusRunning)
+
+		Print("And: task1 is not executed")
+		h.assertNotStatus(ctx, task1, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 status is StatusStopped")
+		h.assertStatus(ctx, task0, scheduler.StatusStopped)
+
+		Print("When: scheduler is resumed")
+		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 is not executed")
+		h.assertNotStatus(ctx, task0, scheduler.StatusRunning)
+
+		Print("And: task1 is not executed")
+		h.assertNotStatus(ctx, task1, scheduler.StatusRunning)
+
+		Print("When: scheduler is resumed again it fails")
+		if err := h.service.Resume(ctx, h.clusterID, false); err == nil {
+			t.Fatal("Resume(), expected error")
+		} else {
+			t.Log("Resume() error", err)
+		}
+	})
+
+	t.Run("load tasks when suspended", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled now")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task status is StatusStopped")
+		h.assertStatus(ctx, task, scheduler.StatusStopped)
+
+		Print("When: service is restarted")
+		h.service.Close()
+		h.service = newTestService(t, session)
+		h.service.SetRunner(mockTask, h.runner)
+
+		Print("And: load tasks")
+		if err := h.service.LoadTasks(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is not executed")
+		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("When: scheduler is resumed with start tasks option")
+		if err := h.service.Resume(ctx, h.clusterID, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task status is StatusRunning")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+	})
 }
