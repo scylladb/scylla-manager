@@ -600,7 +600,7 @@ func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID) error {
 
 	// Ignore if already suspended
 	if _, ok := s.suspended[clusterID]; ok {
-		return errors.New("cluster already suspended")
+		return service.ErrValidate(errors.New("cluster already suspended"))
 	}
 
 	// Mark service as suspended
@@ -658,7 +658,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 
 	if _, ok := s.suspended[clusterID]; !ok {
 		s.mu.Unlock()
-		return errors.New("cluster is not suspended")
+		return service.ErrValidate(errors.New("cluster is not suspended"))
 	}
 
 	// Resume early, if something goes wrong scheduler would still be usable...

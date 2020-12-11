@@ -154,7 +154,7 @@
           "format": "date-time",
           "x-nullable": true
         },
-        "duration_ms":{
+        "duration_ms": {
           "type": "integer"
         },
         "dcs": {
@@ -163,10 +163,10 @@
             "type": "string"
           }
         },
-        "intensity":{
+        "intensity": {
           "type": "number"
         },
-        "parallel":{
+        "parallel": {
           "type": "integer"
         },
         "hosts": {
@@ -218,7 +218,7 @@
           "format": "date-time",
           "x-nullable": true
         },
-        "duration_ms":{
+        "duration_ms": {
           "type": "integer"
         },
         "keyspace": {
@@ -740,6 +740,9 @@
           "x-nullable": true
         }
       }
+    },
+    "Suspended": {
+      "type": "boolean"
     },
     "ErrorResponse": {
       "type": "object",
@@ -1550,6 +1553,64 @@
           {
             "type": "integer",
             "name": "parallel",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Suspended"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/suspended": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Suspended"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "name": "suspended",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Suspended"
+            }
+          },
+          {
+            "type": "boolean",
+            "name": "start_tasks",
             "in": "query",
             "required": true
           }

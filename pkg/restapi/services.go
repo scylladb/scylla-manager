@@ -70,4 +70,7 @@ type SchedService interface {
 	StopTask(ctx context.Context, t *scheduler.Task) error
 	GetRun(ctx context.Context, t *scheduler.Task, runID uuid.UUID) (*scheduler.Run, error)
 	GetLastRun(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
+	IsSuspended(ctx context.Context, clusterID uuid.UUID) bool
+	Suspend(ctx context.Context, clusterID uuid.UUID) error
+	Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error
 }

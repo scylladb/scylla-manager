@@ -306,7 +306,7 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 			id = "*" + id
 		}
 		r := FormatTime(t.NextActivation)
-		if t.Schedule.Interval != "" {
+		if r != "" && t.Schedule.Interval != "" {
 			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
 		}
 		s := t.Status
