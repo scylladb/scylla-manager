@@ -471,3 +471,43 @@ func (c Client) SetRepairParallel(ctx context.Context, clusterID string, paralle
 	_, err := c.operations.PutClusterClusterIDRepairsParallel(p) // nolint: errcheck
 	return err
 }
+
+// IsSuspended returns true iff the current cluster is suspended.
+func (c Client) IsSuspended(ctx context.Context, clusterID string) (bool, error) {
+	p := &operations.GetClusterClusterIDSuspendedParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	}
+
+	s, err := c.operations.GetClusterClusterIDSuspended(p)
+	if err != nil {
+		return false, err
+	}
+
+	return bool(s.Payload), nil
+}
+
+// Suspend updates cluster suspended property.
+func (c Client) Suspend(ctx context.Context, clusterID string) error {
+	p := &operations.PutClusterClusterIDSuspendedParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Suspended: true,
+	}
+
+	_, err := c.operations.PutClusterClusterIDSuspended(p) // nolint: errcheck
+	return err
+}
+
+// Resume updates cluster suspended property.
+func (c Client) Resume(ctx context.Context, clusterID string, startTasks bool) error {
+	p := &operations.PutClusterClusterIDSuspendedParams{
+		Context:    ctx,
+		ClusterID:  clusterID,
+		StartTasks: startTasks,
+		Suspended:  false,
+	}
+
+	_, err := c.operations.PutClusterClusterIDSuspended(p) // nolint: errcheck
+	return err
+}

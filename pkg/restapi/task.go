@@ -157,10 +157,11 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 
 		now := timeutc.Now()
-		if a := t.Sched.NextActivation(now, runs); a.After(now) {
-			e.NextActivation = &a
+		if !h.Scheduler.IsSuspended(r.Context(), t.ClusterID) || t.Type.IgnoreSuspended() {
+			if a := t.Sched.NextActivation(now, runs); a.After(now) {
+				e.NextActivation = &a
+			}
 		}
-
 		e.Failures = t.Sched.ConsecutiveErrorCount(runs, now)
 
 		hist = append(hist, e)

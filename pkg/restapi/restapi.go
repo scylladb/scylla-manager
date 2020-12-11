@@ -44,6 +44,7 @@ func New(services Services, swaggerUIPath string, logger log.Logger) http.Handle
 	r.Mount("/api/v1/", newClusterHandler(services.Cluster))
 	f := clusterFilter{svc: services.Cluster}.clusterCtx
 	r.With(f).Mount("/api/v1/cluster/{cluster_id}/status", newStatusHandler(services.Cluster, services.HealthCheck))
+	r.With(f).Mount("/api/v1/cluster/{cluster_id}/suspended", newSuspendHandler(services))
 	r.With(f).Mount("/api/v1/cluster/{cluster_id}/tasks", newTasksHandler(services))
 	r.With(f).Mount("/api/v1/cluster/{cluster_id}/task", newTaskHandler(services))
 	r.With(f).Mount("/api/v1/cluster/{cluster_id}/backups", newBackupHandler(services))

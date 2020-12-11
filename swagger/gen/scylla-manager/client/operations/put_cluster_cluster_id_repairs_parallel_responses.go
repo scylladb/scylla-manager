@@ -51,13 +51,23 @@ func NewPutClusterClusterIDRepairsParallelOK() *PutClusterClusterIDRepairsParall
 OK
 */
 type PutClusterClusterIDRepairsParallelOK struct {
+	Payload models.Suspended
 }
 
 func (o *PutClusterClusterIDRepairsParallelOK) Error() string {
-	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repairs/parallel][%d] putClusterClusterIdRepairsParallelOK ", 200)
+	return fmt.Sprintf("[PUT /cluster/{cluster_id}/repairs/parallel][%d] putClusterClusterIdRepairsParallelOK  %+v", 200, o.Payload)
+}
+
+func (o *PutClusterClusterIDRepairsParallelOK) GetPayload() models.Suspended {
+	return o.Payload
 }
 
 func (o *PutClusterClusterIDRepairsParallelOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// response payload
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

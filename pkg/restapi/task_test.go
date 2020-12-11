@@ -77,6 +77,7 @@ func TestListTaskStatusFiltering(t *testing.T) {
 	sm.EXPECT().ListTasks(gomock.Any(), testutils.NewUUIDMatcher(c.ID), t0.Type).Return([]*scheduler.Task{t0, t1}, nil)
 	sm.EXPECT().GetLastRun(gomock.Any(), testutils.NewTaskMatcher(t0), gomock.Any()).Return([]*scheduler.Run{run0}, nil)
 	sm.EXPECT().GetLastRun(gomock.Any(), testutils.NewTaskMatcher(t1), gomock.Any()).Return([]*scheduler.Run{run1}, nil)
+	sm.EXPECT().IsSuspended(gomock.Any(), testutils.NewUUIDMatcher(c.ID)).Return(false)
 
 	h.ServeHTTP(w, r)
 

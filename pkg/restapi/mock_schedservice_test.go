@@ -94,6 +94,20 @@ func (mr *MockSchedServiceMockRecorder) GetTask(arg0, arg1, arg2, arg3 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTask", reflect.TypeOf((*MockSchedService)(nil).GetTask), arg0, arg1, arg2, arg3)
 }
 
+// IsSuspended mocks base method
+func (m *MockSchedService) IsSuspended(arg0 context.Context, arg1 uuid.UUID) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsSuspended", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsSuspended indicates an expected call of IsSuspended
+func (mr *MockSchedServiceMockRecorder) IsSuspended(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSuspended", reflect.TypeOf((*MockSchedService)(nil).IsSuspended), arg0, arg1)
+}
+
 // ListTasks mocks base method
 func (m *MockSchedService) ListTasks(arg0 context.Context, arg1 uuid.UUID, arg2 scheduler.TaskType) ([]*scheduler.Task, error) {
 	m.ctrl.T.Helper()
@@ -137,6 +151,20 @@ func (mr *MockSchedServiceMockRecorder) PutTaskOnce(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutTaskOnce", reflect.TypeOf((*MockSchedService)(nil).PutTaskOnce), arg0, arg1)
 }
 
+// Resume mocks base method
+func (m *MockSchedService) Resume(arg0 context.Context, arg1 uuid.UUID, arg2 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Resume", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Resume indicates an expected call of Resume
+func (mr *MockSchedServiceMockRecorder) Resume(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resume", reflect.TypeOf((*MockSchedService)(nil).Resume), arg0, arg1, arg2)
+}
+
 // StartTask mocks base method
 func (m *MockSchedService) StartTask(arg0 context.Context, arg1 *scheduler.Task, arg2 ...scheduler.Opt) error {
 	m.ctrl.T.Helper()
@@ -168,4 +196,18 @@ func (m *MockSchedService) StopTask(arg0 context.Context, arg1 *scheduler.Task) 
 func (mr *MockSchedServiceMockRecorder) StopTask(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopTask", reflect.TypeOf((*MockSchedService)(nil).StopTask), arg0, arg1)
+}
+
+// Suspend mocks base method
+func (m *MockSchedService) Suspend(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Suspend", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Suspend indicates an expected call of Suspend
+func (mr *MockSchedServiceMockRecorder) Suspend(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Suspend", reflect.TypeOf((*MockSchedService)(nil).Suspend), arg0, arg1)
 }
