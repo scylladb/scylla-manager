@@ -23,17 +23,22 @@ var statusCmd = &cobra.Command{
 		}
 
 		w := cmd.OutOrStdout()
+		h := func(clusterID string) error {
+			status, err := client.ClusterStatus(ctx, clusterID)
+			if err != nil {
+				return err
+			}
+			if err := render(w, status); err != nil {
+				return err
+			}
+			return nil
+		}
 		for _, c := range clusters {
 			if cfgCluster == "" {
 				managerclient.FormatClusterName(w, c)
 			}
-			status, err := client.ClusterStatus(ctx, c.ID)
-			if err != nil {
-				return err
-			}
-
-			if err := render(w, status); err != nil {
-				return err
+			if err := h(c.ID); err != nil {
+				printError(w, err)
 			}
 		}
 
