@@ -73,20 +73,23 @@ var taskListCmd = &cobra.Command{
 		}
 
 		w := cmd.OutOrStdout()
-		for _, c := range clusters {
-			// display cluster id if it's not specified.
-			if cfgCluster == "" {
-				managerclient.FormatClusterName(w, c)
-			}
-			tasks, err := client.ListTasks(ctx, c.ID, taskType, all, status)
+		h := func(clusterID string) error {
+			tasks, err := client.ListTasks(ctx, clusterID, taskType, all, status)
 			if err != nil {
 				return err
 			}
-
 			sortTasks(tasks, taskListSortKey(sortKey))
-
 			if err := render(w, tasks); err != nil {
 				return err
+			}
+			return nil
+		}
+		for _, c := range clusters {
+			if cfgCluster == "" {
+				managerclient.FormatClusterName(w, c)
+			}
+			if err := h(c.ID); err != nil {
+				printError(w, err)
 			}
 		}
 
