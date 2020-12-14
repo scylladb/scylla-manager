@@ -13,6 +13,7 @@ CLI sctool
    backup
    repair
    status
+   suspend-resume
    task
    version
 
