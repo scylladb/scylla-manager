@@ -12,6 +12,10 @@ ExecStart=/usr/bin/scylla-manager
 TimeoutStartSec=900
 KillMode=process
 Restart=on-failure
+RestartPreventExitStatus=1
+StandardOutput=journal
+StandardError=journal
+SyslogLevelPrefix=false
 
 [Install]
 WantedBy=multi-user.target

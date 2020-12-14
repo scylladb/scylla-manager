@@ -13,6 +13,10 @@ ExecStart=/usr/bin/scylla-manager-agent
 TimeoutStartSec=900
 KillMode=process
 Restart=on-failure
+RestartPreventExitStatus=1
+StandardOutput=journal
+StandardError=journal
+SyslogLevelPrefix=false
 Slice=scylla-helper.slice
 
 [Install]
