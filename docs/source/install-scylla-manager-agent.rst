@@ -25,6 +25,7 @@ Run the scyllamgr_agent_setup script
 
 The Scylla Manager Agent setup script automates configuration of Scylla Manager Agent by asking you some questions.
 It can be run in non-interactive mode by using flags.
+You will need to run this command as root or with sudo.
 
 .. note:: Make sure you run the Scylla Manager Agent setup script, and enable Scylla helper slice.
    The helper slice contains a cgroup definition that governs Scylla Manager Agent resources usage.
@@ -43,7 +44,13 @@ It can be run in non-interactive mode by using flags.
 
    Interactive mode is enabled when no flags are provided.
 
-Run the ``scyllamgr_agent_setup`` script to configure the service.
+Run the ``scyllamgr_agent_setup`` script to configure the service. You will need to run this command as root or with sudo.
+
+For example:
+
+.. code-block:: none
+
+   sudo scyllamgr_agent_setup -y
 
 .. _configure-auth-token:
 
