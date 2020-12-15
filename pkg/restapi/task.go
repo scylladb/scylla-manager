@@ -91,6 +91,7 @@ type extendedTask struct {
 	StartTime      *time.Time       `json:"start_time,omitempty"`
 	EndTime        *time.Time       `json:"end_time,omitempty"`
 	NextActivation *time.Time       `json:"next_activation,omitempty"`
+	Suspended      bool             `json:"suspended"`
 	Failures       int              `json:"failures,omitempty"`
 }
 
@@ -127,6 +128,8 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clusterSuspended := map[uuid.UUID]bool{}
+
 	hist := make([]extendedTask, 0, len(tasks))
 	for _, t := range tasks {
 		if !all && !t.Enabled {
@@ -157,11 +160,20 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 
 		now := timeutc.Now()
-		if !h.Scheduler.IsSuspended(r.Context(), t.ClusterID) || t.Type.IgnoreSuspended() {
-			if a := t.Sched.NextActivation(now, runs); a.After(now) {
-				e.NextActivation = &a
-			}
+		if a := t.Sched.NextActivation(now, runs); a.After(now) {
+			e.NextActivation = &a
 		}
+
+		if !t.Type.IgnoreSuspended() {
+			var suspended, ok bool
+			suspended, ok = clusterSuspended[t.ClusterID]
+			if !ok {
+				suspended = h.Scheduler.IsSuspended(r.Context(), t.ClusterID)
+				clusterSuspended[t.ClusterID] = suspended
+			}
+			e.Suspended = suspended
+		}
+
 		e.Failures = t.Sched.ConsecutiveErrorCount(runs, now)
 
 		hist = append(hist, e)
