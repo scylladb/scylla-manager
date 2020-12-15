@@ -7,13 +7,16 @@ on:
     - 'branch-**'
     paths:
       - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      latestVersion:
+        description: 'LATEST_VERSION, if set triggers deploy-root'
+        required: false
 
 jobs:
   build:
     name: Release docs
     runs-on: ubuntu-latest
-    env:
-      LATEST_VERSION: 2.2
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -31,7 +34,12 @@ jobs:
 
       - run: make -C docs multiversion
 
-      - name: Deploy
-        run : ./docs/_utils/deploy.sh
+      - run : make -C docs deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run : make -C docs deploy-root
+        if: github.event.inputs.latestVersion != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST_VERSION: ${{ github.event.inputs.latestVersion }}
