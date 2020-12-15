@@ -5,7 +5,7 @@
 
 set -eu -o pipefail
 
-cat <<- _EOF_
+cat <<- EOF
 <!DOCTYPE html>
 <html>
   <head>
@@ -15,4 +15,4 @@ cat <<- _EOF_
     <link rel="canonical" href="./${LATEST_VERSION}/index.html">
   </head>
 </html>
-_EOF_
+EOF
