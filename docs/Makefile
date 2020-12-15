@@ -67,13 +67,35 @@ dummy: setup
 linkcheck: setup
 	$(SPHINXBUILD) -b linkcheck $(SOURCEDIR) $(BUILDDIR)/linkcheck
 
-GIT_BRANCH = $(shell git branch --show-current)
+GIT_BRANCH           = $(shell git branch --show-current)
+GIT_BRANCH_FORMATTED = $(GIT_BRANCH:branch-%=%)
 
 .PHONY: multiversion
 multiversion: setup
 	@mkdir -p $(HOME)/.cache/pypoetry/virtualenvs
 	$(POETRY) run sphinx-multiversion --pre-build ./_utils/pre-build.sh \
-	-D smv_branch_whitelist=$(GIT_BRANCH) -D smv_outputdir_format=$(GIT_BRANCH:branch-%=%) \
+	-D smv_branch_whitelist=$(GIT_BRANCH) -D smv_outputdir_format=$(GIT_BRANCH_FORMATTED) \
 	$(SOURCEDIR) $(BUILDDIR)/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
+
+# Deploy targets does not have dependency to multiversion to
+
+GH_PAGES_DIR := $(HOME)/gh-pages
+
+.PHONY: deploy
+deploy:
+	./_utils/checkout-gh-pages.sh $(GH_PAGES_DIR)
+	rm -rf $(GH_PAGES_DIR)/$(GIT_BRANCH_FORMATTED)
+	cp -r $(BUILDDIR)/dirhtml/$(GIT_BRANCH_FORMATTED) $(GH_PAGES_DIR)
+	./_utils/commit-gh-pages.sh $(GH_PAGES_DIR) "Update $(GIT_BRANCH_FORMATTED)"
+
+.PHONY: deploy-root
+deploy-root:
+	./_utils/checkout-gh-pages.sh $(GH_PAGES_DIR)
+	rm -rf $(GH_PAGES_DIR)/_static
+	cp -r $(BUILDDIR)/dirhtml/_static $(GH_PAGES_DIR)
+	rm -rf $(GH_PAGES_DIR)/*.html
+	cp $(BUILDDIR)/dirhtml/*.html $(GH_PAGES_DIR)
+	./_utils/redirect.sh > $(GH_PAGES_DIR)/index.html
+	./_utils/commit-gh-pages.sh $(GH_PAGES_DIR) "Update root"
