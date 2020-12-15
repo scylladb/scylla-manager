@@ -23,7 +23,7 @@ pristine: clean
 .PHONY: setup
 setup:
 	./_utils/setup.sh
-	./_utils/copy_files.sh
+	./_utils/pre-build.sh
 
 .PHONY: clean
 clean:
@@ -72,8 +72,7 @@ GIT_BRANCH = $(shell git branch --show-current)
 .PHONY: multiversion
 multiversion: setup
 	@mkdir -p $(HOME)/.cache/pypoetry/virtualenvs
-	$(POETRY) run sphinx-multiversion \
-	--pre-build ./_utils/copy_files.sh \
+	$(POETRY) run sphinx-multiversion --pre-build ./_utils/pre-build.sh \
 	-D smv_branch_whitelist=$(GIT_BRANCH) -D smv_outputdir_format=$(GIT_BRANCH:branch-%=%) \
 	$(SOURCEDIR) $(BUILDDIR)/dirhtml
 	@echo
