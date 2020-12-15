@@ -74,12 +74,6 @@ var taskListCmd = &cobra.Command{
 
 		w := cmd.OutOrStdout()
 		h := func(clusterID string) error {
-			if s, err := client.IsSuspended(ctx, clusterID); err != nil {
-				return err
-			} else if s {
-				fmt.Fprintln(w, "SUSPENDED")
-			}
-
 			tasks, err := client.ListTasks(ctx, clusterID, taskType, all, status)
 			if err != nil {
 				return err

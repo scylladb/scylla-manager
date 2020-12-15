@@ -327,6 +327,9 @@
           "type": "string",
           "format": "date-time"
         },
+        "suspended": {
+          "type": "boolean"
+        },
         "failures": {
           "type": "integer"
         }

@@ -309,6 +309,9 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 		if r != "" && t.Schedule.Interval != "" {
 			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
 		}
+		if t.Suspended {
+			r = "[SUSPENDED] " + r
+		}
 		s := t.Status
 		if t.Status == "ERROR" && t.Schedule.NumRetries > 0 {
 			s += fmt.Sprintf(" (%d/%d)", t.Failures, t.Schedule.NumRetries+1)

@@ -56,6 +56,9 @@ type ExtendedTask struct {
 	// status
 	Status string `json:"status,omitempty"`
 
+	// suspended
+	Suspended bool `json:"suspended,omitempty"`
+
 	// tags
 	Tags []string `json:"tags"`
 
