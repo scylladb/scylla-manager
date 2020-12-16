@@ -75,13 +75,20 @@ Unauthenticated requests are rejected.
 
    .. code-block:: none
 
-      $ cat /etc/scylla-manager-agent/scylla-manager-agent.yaml
+      cat /etc/scylla-manager-agent/scylla-manager-agent.yaml
+
+   Results in:
+
+   .. code-block:: none
+
       # Scylla Manager Agent config YAML
 
       # Specify authentication token, the auth_token needs to be the same for all the
       # nodes in a cluster. Use scyllamgr_auth_token_gen to generate the auth_token
       # value.
       auth_token: 6Es3dm24U72NzAu9ANWmU3C4ALyVZhwwPZZPWtK10eYGHJ24wMoh9SQxRZEluWMc0qDrsWCCshvfhk9uewOimQS2x5yNTYUEoIkO1VpSmTFu5fsFyoDgEkmNrCJpXtfM
+
+      ...
 
    .. note:: Use the same token on all the nodes in a cluster
 
