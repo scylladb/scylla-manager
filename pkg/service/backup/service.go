@@ -599,11 +599,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return err
 	}
 
-	clusterSession, sessionErr := s.clusterSession(ctx, clusterID)
-	if sessionErr != nil {
-		s.logger.Error(ctx, "Cannot establish cluster session", "error", sessionErr)
-	}
-
 	// Create a worker
 	w := &worker{
 		ClusterID:            clusterID,
@@ -622,7 +617,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				return &bytes.Buffer{}
 			},
 		},
-		clusterSession: clusterSession,
 	}
 
 	runProgress := func(ctx context.Context) (*Run, Progress, error) {
@@ -647,10 +641,36 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// If not resuming...
 	if run.PrevID == uuid.Nil {
-		// Await schema agreement
-		s.updateStage(ctx, run, StageAwaitSchema)
-		w = w.WithLogger(s.logger.Named("await_schema"))
-		_ = w.AwaitSchema(ctx) // nolint: errcheck
+		var schemaArchive *bytes.Buffer
+
+		// If CQL session is available, await schema agreement and dump schema
+		// to an in memory buffer. This is intentionally kept together to keep
+		// the CQL session short.
+		err = func(logger log.Logger) error {
+			clusterSession, err := s.clusterSession(ctx, clusterID)
+			if err != nil {
+				logger.Info(ctx, "No CQL cluster session, backup of schema as CQL files would be skipped", "error", err)
+				return nil
+			}
+			defer clusterSession.Close()
+
+			// Await schema agreement
+			s.updateStage(ctx, run, StageAwaitSchema)
+			w = w.WithLogger(logger)
+			w.AwaitSchemaAgreement(ctx, clusterSession)
+
+			// Dump schema
+			a, err := createSchemaArchive(ctx, run.Units, clusterSession)
+			if err != nil {
+				return errors.Wrap(err, "get schema")
+			}
+
+			schemaArchive = a
+			return nil
+		}(s.logger.Named("schema"))
+		if err != nil {
+			return err
+		}
 
 		// Take snapshot
 		s.updateStage(ctx, run, StageSnapshot)
@@ -659,13 +679,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return errors.Wrap(err, "snapshot")
 		}
 
-		// Upload schema
-		s.updateStage(ctx, run, StageSchema)
-		w = w.WithLogger(s.logger.Named("schema"))
-		if err := w.UploadSchema(ctx, hi); err != nil {
-			return errors.Wrap(err, "upload schema")
+		// Upload schema if available
+		if schemaArchive != nil {
+			s.updateStage(ctx, run, StageSchema)
+			w = w.WithLogger(s.logger.Named("schema"))
+			if err := w.UploadSchema(ctx, hi, schemaArchive); err != nil {
+				return errors.Wrap(err, "upload schema")
+			}
+			w.cleanup(ctx, hi)
 		}
-		w.cleanup(ctx, hi)
 	}
 
 	// Index files
