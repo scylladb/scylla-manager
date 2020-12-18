@@ -590,7 +590,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 		h              = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx            = context.Background()
 	)
@@ -832,7 +832,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 		h              = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx            = context.Background()
 	)
@@ -893,7 +893,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1189,7 +1189,7 @@ func TestPurgeIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx = context.Background()
@@ -1318,7 +1318,7 @@ func TestBackupSnapshotDeleteIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx = context.Background()
@@ -1453,7 +1453,7 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 		h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx, cancel = context.WithCancel(context.Background())
@@ -1535,7 +1535,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 
 	var (
 		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
 		ctx = context.Background()
