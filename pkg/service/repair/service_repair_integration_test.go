@@ -441,7 +441,7 @@ func multipleUnits() repair.Target {
 
 func TestServiceGetTargetIntegration(t *testing.T) {
 	// Clear keyspaces
-	CreateManagedClusterSession(t)
+	CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 	// Test names
 	testNames := []string{
@@ -501,7 +501,7 @@ func TestServiceRepairSmokeIntegration(t *testing.T) {
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
-	clusterSession := CreateManagedClusterSession(t)
+	clusterSession := CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 	createKeyspace(t, clusterSession, "test_repair")
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
@@ -1226,7 +1226,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	t.Skip("nodetool repair is executing too fast skipping until solution is found")
-	clusterSession := CreateManagedClusterSession(t)
+	clusterSession := CreateManagedClusterSessionAndDropAllKeyspaces(t)
 	const ks = "test_repair"
 
 	createKeyspace(t, clusterSession, ks)
@@ -1274,7 +1274,7 @@ func generateTableNames(n int) []string {
 }
 
 func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *testing.T) {
-	clusterSession := CreateManagedClusterSession(t)
+	clusterSession := CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
 	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_0 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_0.test_table_0 (id int PRIMARY KEY)")
