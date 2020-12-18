@@ -516,7 +516,7 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 		}
 		err := s.secretsStore.Get(&credentials)
 		if err == service.ErrNotFound {
-			return session, errors.Wrap(err, "cluster requires CQL authentication but username/password is not registered")
+			return session, errors.New("cluster requires CQL authentication but username/password was not set")
 		}
 		if err != nil {
 			return session, errors.Wrap(err, "get credentials")

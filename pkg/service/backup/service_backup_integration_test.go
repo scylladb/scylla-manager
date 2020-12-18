@@ -50,7 +50,7 @@ type backupTestHelper struct {
 	t *testing.T
 }
 
-func newBackupTestHelper(t *testing.T, session, clusterSession gocqlx.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
@@ -60,7 +60,7 @@ func newBackupTestHelper(t *testing.T, session, clusterSession gocqlx.Session, c
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service := newTestService(t, session, clusterSession, client, config, clusterID, logger)
+	service := newTestService(t, session, client, config, clusterID, logger)
 
 	for _, ip := range ManagedClusterHosts() {
 		if err := client.RcloneResetStats(context.Background(), ip); err != nil {
@@ -99,7 +99,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session, clusterSession gocqlx.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
 	logger log.Logger) *backup.Service {
 	t.Helper()
 
@@ -113,7 +113,7 @@ func newTestService(t *testing.T, session, clusterSession gocqlx.Session, client
 			return client, nil
 		},
 		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
-			return clusterSession, nil
+			return CreateManagedClusterSession(t), nil
 		},
 		logger.Named("backup"),
 		nil,
@@ -337,10 +337,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target"
 
 	var (
-		session        = CreateSessionWithoutMigration(t)
-		clusterSession = CreateManagedClusterSession(t)
-		h              = newBackupTestHelper(t, session, clusterSession, backup.DefaultConfig(), s3Location(testBucket), nil)
-		ctx            = context.Background()
+		session = CreateSessionWithoutMigration(t)
+		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		ctx     = context.Background()
 	)
 
 	for _, test := range table {
@@ -440,10 +439,9 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target-error"
 
 	var (
-		session        = CreateSessionWithoutMigration(t)
-		clusterSession = CreateManagedClusterSession(t)
-		h              = newBackupTestHelper(t, session, clusterSession, backup.DefaultConfig(), s3Location(testBucket), nil)
-		ctx            = context.Background()
+		session = CreateSessionWithoutMigration(t)
+		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		ctx     = context.Background()
 	)
 
 	S3InitBucket(t, testBucket)
@@ -470,10 +468,9 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	config := backup.DefaultConfig()
 
 	var (
-		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSession(t)
-		h              = newBackupTestHelper(t, session, clusterSession, config, s3Location(testBucket), nil)
-		ctx            = context.Background()
+		session = CreateSession(t)
+		h       = newBackupTestHelper(t, session, config, s3Location(testBucket), nil)
+		ctx     = context.Background()
 	)
 
 	putRun := func(t *testing.T, r *backup.Run) {
@@ -591,7 +588,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-		h              = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
 	)
 
@@ -833,7 +830,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-		h              = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
 	)
 
@@ -954,7 +951,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	t.Run("resume after stop", func(t *testing.T) {
 		var (
-			h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+			h           = newBackupTestHelper(t, session, config, location, nil)
 			ctx, cancel = context.WithCancel(context.Background())
 			done        = make(chan struct{})
 		)
@@ -1021,7 +1018,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		clientConf.Backoff.MaxRetries = 5
 
 		var (
-			h           = newBackupTestHelper(t, session, clusterSession, config, location, &clientConf)
+			h           = newBackupTestHelper(t, session, config, location, &clientConf)
 			ctx, cancel = context.WithCancel(context.Background())
 			done        = make(chan struct{})
 		)
@@ -1061,7 +1058,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	t.Run("resume after snapshot failed", func(t *testing.T) {
 		var (
-			h          = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+			h          = newBackupTestHelper(t, session, config, location, nil)
 			brokenHost string
 			mu         sync.Mutex
 		)
@@ -1118,7 +1115,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	t.Run("continue false", func(t *testing.T) {
 		var (
-			h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+			h           = newBackupTestHelper(t, session, config, location, nil)
 			ctx, cancel = context.WithCancel(context.Background())
 			done        = make(chan struct{})
 		)
@@ -1191,7 +1188,7 @@ func TestPurgeIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
-		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		h   = newBackupTestHelper(t, session, config, location, nil)
 		ctx = context.Background()
 	)
 
@@ -1320,7 +1317,7 @@ func TestBackupSnapshotDeleteIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 
-		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
+		h   = newBackupTestHelper(t, session, config, location, nil)
 		ctx = context.Background()
 	)
 
@@ -1454,10 +1451,9 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-
-		h           = newBackupTestHelper(t, session, clusterSession, config, location, nil)
-		ctx, cancel = context.WithCancel(context.Background())
-		done        = make(chan struct{})
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx, cancel    = context.WithCancel(context.Background())
+		done           = make(chan struct{})
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1536,9 +1532,8 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-
-		h   = newBackupTestHelper(t, session, clusterSession, config, location, nil)
-		ctx = context.Background()
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
 	)
 
 	// Test cluster nodes has different node IDs then prepared test data.

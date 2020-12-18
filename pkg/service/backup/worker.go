@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -65,9 +64,6 @@ type worker struct {
 
 	rings      map[string]scyllaclient.Ring
 	memoryPool *sync.Pool
-
-	// Note: clusterSession may be nil.
-	clusterSession gocqlx.Session
 }
 
 func (w *worker) WithLogger(logger log.Logger) *worker {
