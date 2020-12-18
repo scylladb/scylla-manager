@@ -5,11 +5,11 @@ package backup
 import (
 	"bytes"
 	"context"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/retry"
@@ -48,14 +48,28 @@ func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx
 		w.Logger.Info(ctx, "Schema agreement not reached, retrying...", "error", err, "wait", wait)
 	}
 
+	const (
+		peerSchemasStmt = "SELECT schema_version FROM system.peers"
+		localSchemaStmt = "SELECT schema_version FROM system.local WHERE key='local'"
+	)
+
 	stepError = retry.WithNotify(ctx, func() error {
-		if err := clusterSession.AwaitSchemaAgreement(ctx); err != nil {
-			w.Logger.Info(ctx, "Schema agreement error", "error", err)
-			if strings.Contains(err.Error(), "cluster schema versions not consistent") {
-				return err
-			}
+		var v []string
+		if err := clusterSession.Query(peerSchemasStmt, nil).SelectRelease(&v); err != nil {
 			return retry.Permanent(err)
 		}
+		var lv string
+		if err := clusterSession.Query(localSchemaStmt, nil).GetRelease(&lv); err != nil {
+			return retry.Permanent(err)
+		}
+
+		// Join all versions
+		m := strset.New(v...)
+		m.Add(lv)
+		if m.Size() > 1 {
+			return errors.Errorf("cluster schema versions not consistent: %s", m.List())
+		}
+
 		return nil
 	}, backoff, notify)
 }
