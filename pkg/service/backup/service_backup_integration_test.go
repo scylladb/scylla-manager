@@ -342,6 +342,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
+	CreateManagedClusterSessionAndDropAllKeyspaces(t).Close()
+	S3InitBucket(t, testBucket)
+
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
 			b, err := ioutil.ReadFile(test.Input)
@@ -444,6 +447,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
+	CreateManagedClusterSessionAndDropAllKeyspaces(t).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
