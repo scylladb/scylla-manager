@@ -16,15 +16,20 @@ RUN yum makecache && \
     yum clean all
 RUN mkdir /var/run/sshd && /usr/sbin/sshd-keygen
 
+# Add symbolic links for the db key and cert
+RUN ln -s /etc/scylla/certs/db.key /etc/scylla/db.key && \
+    ln -s /etc/scylla/certs/db.crt /etc/scylla/db.crt && \
+    ln -s /etc/scylla/certs/ca.crt /etc/scylla/ca.crt
+
+# Add cqlsh configuration
+RUN rm -f /root/.cqlshrc
+COPY cqlshrc /root/.cassandra/cqlshrc
+
 # Add sshd configuration
 COPY etc/ssh/sshd_config /etc/ssh/sshd_config
 
 # Add supervisord configuration for sshd
 ADD etc/supervisord.conf.d/sshd.conf /etc/supervisord.conf.d/sshd.conf
-
-# Install SSL certificate
-ADD db.crt db.key /etc/scylla/
-RUN chown scylla:scylla /etc/scylla/db.*
 
 # Add supervisord configuration for agent
 ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scylla-manager-agent.conf

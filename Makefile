@@ -11,9 +11,12 @@ endif
 # Default package
 PKG := ./pkg/...
 
+GIT_ROOT = $(shell git rev-parse --show-toplevel)
+TESTING_ROOT = $(GIT_ROOT)/testing
 GOBIN ?= $(shell pwd)/bin
 GO111MODULE := on
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
+
 
 .PHONY: fmt
 fmt: ## Format source code
@@ -107,12 +110,17 @@ INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -schema-dir $(PWD)/schema \
 -agent-auth-token token \
 -s3-data-dir $(PWD)/testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
 
+SSL_FLAGS := -ssl-ca-file $(TESTING_ROOT)/$(SSL_AUTHORITY_CRT) \
+-ssl-key-file $(TESTING_ROOT)/$(SSL_CLIENT_KEY) \
+-ssl-cert-file $(TESTING_ROOT)/$(SSL_CLIENT_CRT) \
+-gocql.port $(SSL_PORT)
+
 .PHONY: pkg-integration-test
 pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
 pkg-integration-test: RUN=Integration
 pkg-integration-test:
 	@echo "==> Running integration tests for package $(PKG)"
-	@go test -cover -v -tags integration -run $(RUN) $(PKG) $(INTEGRATION_TEST_ARGS) $(ARGS)
+	@go test -cover -v -tags integration -run $(RUN) $(PKG) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter

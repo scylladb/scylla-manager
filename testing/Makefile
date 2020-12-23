@@ -1,26 +1,42 @@
 all: help
 
 COMPOSE=docker-compose
-CQLSH=cqlsh --cqlversion=3.3.1
-CQLSH_WITH_USER=$(CQLSH) -u cassandra -p cassandra
+DOCKER_NODE=scylla_manager_dc1_node_1_1
+CQLSH=docker exec -t $(DOCKER_NODE) cqlsh -f /root/.cassandra/cqlshrc
+CQLSH_PORT=9042
+ifdef SSL_ENABLED
+	CQLSH_SSL=--ssl
+	CQLSH_PORT=9142
+	SCYLLA_SSL_CONFIG=scylla/etc/server/scylla-ssl.yaml
+endif
+CQLSH_NODE=$(CQLSH) -u cassandra -p cassandra $(CQLSH_SSL) 192.168.100.11 $(CQLSH_PORT)
 
 include .env
 
 .PHONY: build
 build: ## Build custom docker image
 	@echo "==> Building custom Scylla image for testing"
-	@make -C scylla
-	docker build --network=host --build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) -t scylladb/scylla-ssh:$(SCYLLA_VERSION) scylla
+	@docker build --network=host --build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) -t scylladb/scylla-ssh:$(SCYLLA_VERSION) scylla
 
 .PHONY: up
 up: ## Start docker containers
+up:
+	@echo "==> Generating encryption files"
+	@cd scylla/certs && ./generate.sh
+	@echo "==> Generating Scylla configuration"
+ifdef SSL_ENABLED
+	@yq merge -x scylla/etc/server/scylla.yaml $(SCYLLA_SSL_CONFIG) > scylla/scylla.yaml
+else
+	@cp scylla/etc/server/scylla.yaml scylla/scylla.yaml
+endif
 	@echo "==> Starting containers"
 	@mkdir -p $(MINIO_DATA_DIR)
 	@. ./.env && $(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH_WITH_USER) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
+	@until $(CQLSH_NODE) -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
 	@echo "==> Creating tables"
-	@$(CQLSH_WITH_USER) 192.168.100.11 -f init.cql
+	@docker cp init.cql $(DOCKER_NODE):/tmp/
+	@$(CQLSH_NODE) -f /tmp/init.cql
 	@echo "==> Installing root SSH key"
 	@./install_root_key
 	@echo "==> Adding Minio user"
@@ -46,7 +62,7 @@ cqlsh-manager: ## CQL shell to manager backend storage
 
 .PHONY: cqlsh-node
 cqlsh-node: ## CQL shell to a managed node 192.168.100.11
-	@$(CQLSH_WITH_USER) 192.168.100.11
+	$(CQLSH_NODE)
 
 .PHONY: drop-keyspace
 drop-keyspace: ## Drop Scylla Manager keyspace

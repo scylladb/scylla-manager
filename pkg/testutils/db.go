@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -21,9 +22,14 @@ import (
 var (
 	flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
 
-	flagTimeout  = flag.Duration("gocql.timeout", 10*time.Second, "sets the connection `timeout` for all operations")
-	flagUser     = flag.String("user", "", "CQL user")
-	flagPassword = flag.String("password", "", "CQL password")
+	flagTimeout      = flag.Duration("gocql.timeout", 10*time.Second, "sets the connection `timeout` for all operations")
+	flagPort         = flag.Int("gocql.port", 9042, "sets the port used to connect to the database cluster")
+	flagUser         = flag.String("user", "", "CQL user")
+	flagPassword     = flag.String("password", "", "CQL password")
+	flagCAFile       = flag.String("ssl-ca-file", "", "Certificate Authority file")
+	flagUserCertFile = flag.String("ssl-cert-file", "", "User SSL certificate file")
+	flagUserKeyFile  = flag.String("ssl-key-file", "", "User SSL key file")
+	flagValidate     = flag.Bool("ssl-validate", false, "Enable host verification")
 
 	flagManagedCluster = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
 	flagSchemaDir      = flag.String("schema-dir", "", "path to schema dir")
@@ -113,6 +119,15 @@ func createManagedClusterSession(tb testing.TB, empty bool) gocqlx.Session {
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: *flagUser,
 		Password: *flagPassword,
+	}
+	if os.Getenv("SSL_ENABLED") != "" {
+		cluster.SslOpts = &gocql.SslOptions{
+			CaPath:                 *flagCAFile,
+			CertPath:               *flagUserCertFile,
+			KeyPath:                *flagUserKeyFile,
+			EnableHostVerification: *flagValidate,
+		}
+		cluster.Port = *flagPort
 	}
 
 	session, err := gocqlx.WrapSession(cluster.CreateSession())

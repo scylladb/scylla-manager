@@ -1,0 +1,11 @@
+# Scylla SSL enabled configuration.
+
+# Disable default port access but leave option for debugging.
+native_transport_port: 9999
+native_transport_port_ssl: 9142
+client_encryption_options:
+    enabled: true
+    certificate: /etc/scylla/db.crt
+    keyfile: /etc/scylla/db.key
+    truststore: /etc/scylla/ca.crt
+    require_client_auth: true
