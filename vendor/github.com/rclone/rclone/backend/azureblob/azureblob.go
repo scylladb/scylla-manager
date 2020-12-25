@@ -1468,8 +1468,8 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	}
 
 	putBlobOptions := azblob.UploadStreamToBlockBlobOptions{
-		BufferSize:      int(o.fs.opt.ChunkSize),
-		MaxBuffers:      4,
+		SyncPool:        &poolWrapper{o.fs.pool},
+		MaxBuffers:      1,
 		Metadata:        o.meta,
 		BlobHTTPHeaders: httpHeaders,
 	}
@@ -1512,6 +1512,18 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 
 	// Now, set blob tier based on configured access tier
 	return o.SetTier(o.fs.opt.AccessTier)
+}
+
+type poolWrapper struct {
+	pool *pool.Pool
+}
+
+func (p *poolWrapper) Put(x interface{}) {
+	p.pool.Put(x.([]byte))
+}
+
+func (p *poolWrapper) Get() interface{} {
+	return p.pool.Get()
 }
 
 // Remove an object

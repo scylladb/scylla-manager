@@ -35,8 +35,6 @@ cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 github.com/Azure/azure-pipeline-go v0.2.3 h1:7U9HBg1JFK3jHl5qmo4CTZKFTVgMwdFHMVtCdfBE21U=
 github.com/Azure/azure-pipeline-go v0.2.3/go.mod h1:x841ezTBIMG6O3lAcl8ATHnsOPVl2bqk7S3ta6S6u4k=
-github.com/Azure/azure-storage-blob-go v0.11.0 h1:WCTHKKNkHlzm7lzUNXRSD11784LwJqdrxnwWJxsJQHg=
-github.com/Azure/azure-storage-blob-go v0.11.0/go.mod h1:A0u4VjtpgZJ7Y7um/+ix2DHBuEKFC6sEIlj0xc13a4Q=
 github.com/Azure/go-autorest v14.2.0+incompatible h1:V5VMDjClD3GiElqLWO7mz2MxNAK/vTfRHdAubSIPRgs=
 github.com/Azure/go-autorest v14.2.0+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSWATqVooLgysK6ZNox3g/xq24=
 github.com/Azure/go-autorest/autorest/adal v0.9.2 h1:Aze/GQeAN1RRbGmnUJvUj+tFGBzFdIg3293/A9rbxC4=
@@ -68,6 +66,8 @@ github.com/aalpar/deheap v0.0.0-20200318053559-9a0c2883bd56/go.mod h1:EJFoWbcEEV
 github.com/abbot/go-http-auth v0.4.0 h1:QjmvZ5gSC7jm3Zg54DqWE/T5m1t2AfDu6QlXJT0EVT0=
 github.com/abbot/go-http-auth v0.4.0/go.mod h1:Cz6ARTIzApMJDzh5bRMSUou6UMSp0IEXg9km/ci7TJM=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
+github.com/ajankovic/azure-storage-blob-go v0.11.0-patched h1:Hv10zt2sIsn1K52x/BAOs3w82/cBvbS1d178UHsWrTg=
+github.com/ajankovic/azure-storage-blob-go v0.11.0-patched/go.mod h1:A0u4VjtpgZJ7Y7um/+ix2DHBuEKFC6sEIlj0xc13a4Q=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
@@ -518,8 +518,8 @@ github.com/scylladb/gocql v1.4.3/go.mod h1:S154F0u6zQlF3JjuHAidQIExQf9H45yT8z68h
 github.com/scylladb/gocqlx/v2 v2.2.0 h1:dJ2+HrmMkY1sSOXI2eVkcvA01RFJX9KDOkKob+E/v+A=
 github.com/scylladb/gocqlx/v2 v2.2.0/go.mod h1:G1Cuw/NcqM0Mnj5zTRihdx7aW3yBk9zxR+XqCV3aCAA=
 github.com/scylladb/google-api-go-client v0.30.1-0.20200901094148-b1d4e0b17dda/go.mod h1:CL+9IBCa2WWU6gRuBWaKqGWLFFwbEUXkfeMkHLQWYWo=
-github.com/scylladb/rclone v1.53.3-ajankovic-4 h1:SZVScskrNDa9smMc0Tq93Fo7mX5F5dtYCa9pYVO9Dew=
-github.com/scylladb/rclone v1.53.3-ajankovic-4/go.mod h1:lgodSXXQwJwPBEfXPftELuYnSPM7xkwRtCW8JQehTd8=
+github.com/scylladb/rclone v1.53.3-ajankovic-5 h1:HdKihPh2Tbo3k4CdeazdEcDeCrojC2q2S7q3vJG62j4=
+github.com/scylladb/rclone v1.53.3-ajankovic-5/go.mod h1:XHqsQmrF0afRAHA8gKJtrH9tV1zyGYfUx5MLRAvLHLY=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/sevlyar/go-daemon v0.1.5/go.mod h1:6dJpPatBT9eUwM5VCw9Bt6CdX9Tk6UWvhW3MebLDRKE=

@@ -371,6 +371,7 @@ type UploadStreamToBlockBlobOptions struct {
 	AccessConditions BlobAccessConditions
 	BlobAccessTier   AccessTierType
 	BlobTagsMap      BlobTagsMap
+	SyncPool         BufferPool
 }
 
 func (u *UploadStreamToBlockBlobOptions) defaults() {

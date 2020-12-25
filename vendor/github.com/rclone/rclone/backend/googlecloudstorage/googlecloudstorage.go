@@ -40,6 +40,7 @@ import (
 	"github.com/rclone/rclone/lib/env"
 	"github.com/rclone/rclone/lib/oauthutil"
 	"github.com/rclone/rclone/lib/pacer"
+	"github.com/rclone/rclone/lib/pool"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/googleapi"
@@ -251,31 +252,28 @@ Docs: https://cloud.google.com/storage/docs/bucket-policy-only
 				Value: "DURABLE_REDUCED_AVAILABILITY",
 				Help:  "Durable reduced availability storage class",
 			}},
-		},
-			{
-				Name:     config.ConfigEncoding,
-				Help:     config.ConfigEncodingHelp,
-				Advanced: true,
-				Default: (encoder.Base |
-					encoder.EncodeCrLf |
-					encoder.EncodeInvalidUtf8),
-			},
-			{
-				Name:     "memory_pool_flush_time",
-				Default:  memoryPoolFlushTime,
-				Advanced: true,
-				Help: `How often internal memory buffer pools will be flushed.
+		}, {
+			Name:     config.ConfigEncoding,
+			Help:     config.ConfigEncodingHelp,
+			Advanced: true,
+			Default: (encoder.Base |
+				encoder.EncodeCrLf |
+				encoder.EncodeInvalidUtf8),
+		}, {
+			Name:     "memory_pool_flush_time",
+			Default:  memoryPoolFlushTime,
+			Advanced: true,
+			Help: `How often internal memory buffer pools will be flushed.
 Uploads which requires additional buffers (f.e multipart) will use memory pool for allocations.
 This option controls how often unused buffers will be removed from the pool.`,
-			}, {
-				Name:     "memory_pool_use_mmap",
-				Default:  memoryPoolUseMmap,
-				Advanced: true,
-				Help:     `Whether to use mmap buffers in internal memory pool.`,
-			},
-			{
-				Name: "chunk_size",
-				Help: `Chunk size to use for uploading.
+		}, {
+			Name:     "memory_pool_use_mmap",
+			Default:  memoryPoolUseMmap,
+			Advanced: true,
+			Help:     `Whether to use mmap buffers in internal memory pool.`,
+		}, {
+			Name: "chunk_size",
+			Help: `Chunk size to use for uploading.
 
 When uploading large files or files with unknown
 size (eg from "rclone rcat" or uploaded with "rclone mount" or google
@@ -286,20 +284,19 @@ Files which contains fewer than size bytes will be uploaded in a single request.
 Files which contains size bytes or more will be uploaded in separate chunks.
 If size is zero, media will be uploaded in a single request.
 `,
-				Default:  googleapi.DefaultUploadChunkSize,
-				Advanced: true,
-			}, {
-				Name:     "list_chunk",
-				Help:     `How many items are returned in one chunk during directory listing`,
-				Advanced: true,
-				Default:  listChunks,
-			}, {
-				Name: "allow_create_bucket",
-				Help: `Whether to create bucket if it doesn't exists.
+			Default:  googleapi.DefaultUploadChunkSize,
+			Advanced: true,
+		}, {
+			Name:     "list_chunk",
+			Help:     `How many items are returned in one chunk during directory listing`,
+			Advanced: true,
+			Default:  listChunks,
+		}, {
+			Name: "allow_create_bucket",
+			Help: `Whether to create bucket if it doesn't exists.
 If bucket doesn't exists, error will be returned.'`,
-				Default: true,
-			},
-		}...),
+			Default: true,
+		}}...),
 	})
 }
 
@@ -333,6 +330,7 @@ type Fs struct {
 	rootDirectory string           // directory part of root (if any)
 	cache         *bucket.Cache    // cache of bucket status
 	pacer         *fs.Pacer        // To pace the API calls
+	pool          *pool.Pool
 }
 
 // Object describes a storage object
@@ -483,6 +481,12 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		opt:   *opt,
 		pacer: fs.NewPacer(pacer.NewGoogleDrive(pacer.MinSleep(minSleep))),
 		cache: bucket.NewCache(),
+		pool: pool.New(
+			time.Duration(opt.MemoryPoolFlushTime),
+			int(opt.ChunkSize),
+			fs.Config.Transfers,
+			opt.MemoryPoolUseMmap,
+		),
 	}
 	f.setRoot(root)
 	f.features = (&fs.Features{
@@ -1153,9 +1157,18 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 			}
 		}
 	}
+
+	buf := o.fs.pool.Get()
+	defer o.fs.pool.Put(buf)
+
 	var newObject *storage.Object
 	err = o.fs.pacer.CallNoRetry(func() (bool, error) {
-		insertObject := o.fs.svc.Objects.Insert(bucket, &object).Media(in, googleapi.ContentType("")).Name(object.Name)
+		mediaOpts := []googleapi.MediaOption{
+			googleapi.ContentType(""),
+			googleapi.ChunkSize(int(o.fs.opt.ChunkSize)),
+			googleapi.WithBuffer(buf),
+		}
+		insertObject := o.fs.svc.Objects.Insert(bucket, &object).Media(in, mediaOpts...).Name(object.Name)
 		if !o.fs.opt.BucketPolicyOnly {
 			insertObject.PredefinedAcl(o.fs.opt.ObjectACL)
 		}
