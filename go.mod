@@ -55,5 +55,5 @@ replace (
 	github.com/Azure/azure-storage-blob-go v0.11.0 => github.com/ajankovic/azure-storage-blob-go v0.11.0-patched
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.4.3
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.53.3-ajankovic-5
-	google.golang.org/api v0.30.0 => github.com/scylladb/google-api-go-client v0.30.1-0.20200901094148-b1d4e0b17dda
+	google.golang.org/api v0.33.0 => github.com/scylladb/google-api-go-client v0.33.0-patched-1
 )
