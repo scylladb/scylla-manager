@@ -109,27 +109,21 @@ to override the default choice.`,
 
 func NewFs(rootDir string) func(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	return func(name, root string, m configmap.Mapper) (fs.Fs, error) {
-		p := cleanPath(root)
-		if len(root) > 1 && p == "" {
+		// filepath.Clean will turn everything that goes up and beyond root into
+		// a single /.
+		// We are prepending slash to turn input into an absolute path.
+		p := filepath.Clean("/" + root)
+		if len(root) > 1 && p == "/" {
 			// If root has more than one byte and after cleanPath we end up with
-			// empty path then we received invalid path.
+			// empty path then we received invalid input.
 			return nil, errors.Wrap(fs.ErrorObjectNotFound, "accessing path outside of root")
 		}
 		var path string
-		if filepath.IsAbs(p) && strings.HasPrefix(p, rootDir) {
+		if strings.HasPrefix(p, rootDir) {
 			path = p
 		} else {
 			path = filepath.Join(rootDir, p)
 		}
-
 		return local.NewFs(name, path, m)
 	}
-}
-
-func cleanPath(path string) string {
-	// filepath.Clean will turn everything that goes up and beyond root into
-	// single /.
-	// We are prepending slash to turn it into absolute path and then returning
-	// result without the slash.
-	return filepath.Clean("/" + path)[1:]
 }
