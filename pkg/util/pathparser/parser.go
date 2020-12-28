@@ -56,11 +56,27 @@ func String(ptr *string) Parser {
 	}
 }
 
-// Static parser validates if given static string is present in next part.
-func Static(s string) Parser {
+// Static validates a path part is one of the provided values.
+func Static(s ...string) Parser {
+	if len(s) == 0 {
+		panic("Expected list of values")
+	}
 	return func(v string) error {
-		if v != s {
-			return errors.Errorf("expected %s got %s", s, v)
+		if len(s) == 1 {
+			if v != s[0] {
+				return errors.Errorf("expected %s got %s", s[0], v)
+			}
+		} else {
+			var ok bool
+			for i := range s {
+				if v == s[i] {
+					ok = true
+					break
+				}
+			}
+			if !ok {
+				return errors.Errorf("expected one of %s got %s", s, v)
+			}
 		}
 		return nil
 	}

@@ -16,7 +16,7 @@ func TestPartParser(t *testing.T) {
 	goldenID := uuid.MustRandom()
 	goldenString := "42"
 	goldenInt := 42
-	p := New(fmt.Sprintf("static/%s/%s/%d", goldenID.String(), goldenString, goldenInt), "/")
+	p := New(fmt.Sprintf("static/a/%s/%s/%d", goldenID.String(), goldenString, goldenInt), "/")
 
 	var s string
 	var id uuid.UUID
@@ -32,6 +32,7 @@ func TestPartParser(t *testing.T) {
 
 	parsers := []Parser{
 		Static("static"),
+		Static("a", "b"),
 		ID(&id),
 		String(&s),
 		customIntParser(&i),
@@ -59,9 +60,14 @@ func TestPartParserErrorCases(t *testing.T) {
 		Parsers []Parser
 	}{
 		{
-			Name:    "Different static value",
+			Name:    "Static value mismatch",
 			Value:   "asdf",
 			Parsers: []Parser{Static("static")},
+		},
+		{
+			Name:    "Multiple static values mismatch",
+			Value:   "asdf",
+			Parsers: []Parser{Static("static", "static1")},
 		},
 		{
 			Name:    "Not parsable uuid",
