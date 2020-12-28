@@ -83,9 +83,9 @@ func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, v
 type dirKind string
 
 const (
+	schemaDirKind = dirKind("schema")
 	sstDirKind    = dirKind("sst")
 	metaDirKind   = dirKind("meta")
-	schemaDirKind = dirKind("schema")
 )
 
 func remoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {

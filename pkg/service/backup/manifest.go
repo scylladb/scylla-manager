@@ -127,7 +127,7 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 	p := pathparser.New(s, sep)
 	err := p.Parse(
 		pathparser.Static("backup"),
-		pathparser.Static("meta"),
+		pathparser.Static(string(metaDirKind)),
 		pathparser.Static("cluster"),
 		pathparser.ID(&m.ClusterID),
 		pathparser.Static("dc"),

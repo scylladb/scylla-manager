@@ -345,7 +345,7 @@ func (m *manifestV1) ParsePartialPath(s string) error {
 
 	err := p.Parse(
 		pathparser.Static("backup"),
-		pathparser.Static("meta"),
+		pathparser.Static(string(metaDirKind)),
 		pathparser.Static("cluster"),
 		pathparser.ID(&m.ClusterID),
 		pathparser.Static("dc"),
