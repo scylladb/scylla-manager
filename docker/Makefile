@@ -4,7 +4,10 @@ all: scylla-manager-agent scylla-manager ## Build all images
 
 .PHONY: clean
 clean: ## Remove images from the local repository
-	docker image rm -f "scylladb/scylla-manager-agent:${SCYLLA_MANAGER_VERSION}" "scylladb/scylla-manager:${SCYLLA_MANAGER_VERSION}"
+	docker image rm -f \
+	"scylladb/scylla-manager-agent:${SCYLLA_MANAGER_VERSION}" \
+	"scylladb/scylla-manager:${SCYLLA_MANAGER_VERSION}" \
+	"scylladb/scylla-with-agent:${SCYLLA_MANAGER_VERSION}"
 
 .PHONY: scylla-manager-agent
 scylla-manager-agent: ## Build Scylla Manager Agent docker image
