@@ -37,18 +37,18 @@ services:
       - scylla_manager_db_data:/var/lib/scylla
     networks:
       public:
-    command: --smp 1 --memory 1G
+    command: --smp 1 --memory 100M
 
   scylla:
     build:
       context: .
-    image: scylladb/scylla-with-agent
+    image: scylladb/scylla-with-agent:${SCYLLA_MANAGER_VERSION}
     volumes:
       - scylla_data:/var/lib/scylla
     networks:
       public:
         ipv4_address: 192.168.100.100
-    command: --smp 1
+    command: --smp 1 --memory 1G
 
   minio:
     image: minio/minio:latest
