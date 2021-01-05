@@ -1,13 +1,10 @@
 FROM centos:7 as base
 
-COPY docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
-COPY scylla-manager.repo /etc/yum.repos.d/
-RUN yum -y install epel-release && \
-    yum -y clean expire-cache && \
-    yum -y update && \
-    yum install -y scylla-manager-agent && \
+ADD http://downloads.scylladb.com.s3.amazonaws.com/manager/rpm/unstable/centos/master/latest/scylla-manager.repo /etc/yum.repos.d/
+RUN yum -y install epel-release scylla-manager-agent && \
     yum clean all && \
-    rm /etc/yum.repos.d/scylla-manager.repo
+    rm -f /etc/yum.repos.d/scylla-manager.repo
+COPY docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
 
 RUN rm -f /var/lib/scylla-manager/scylla_manager.crt && \
     rm -f /var/lib/scylla-manager/scylla_manager.key && \
