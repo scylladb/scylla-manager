@@ -1,6 +1,6 @@
 include .env
 
-all: scylla-manager-agent scylla-manager ## Build all images
+all: scylla-manager-agent scylla-manager README.md ## Build all images and README
 
 .PHONY: clean
 clean: ## Remove images from the local repository
