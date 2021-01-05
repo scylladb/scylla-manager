@@ -19,7 +19,7 @@ services:
   scylla:
     build:
       context: .
-    image: scylladb/scylla-with-agent
+    image: scylladb/scylla-with-agent:${SCYLLA_MANAGER_VERSION}
     volumes:
       - scylla_data:/var/lib/scylla
     networks:
