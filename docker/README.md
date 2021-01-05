@@ -19,6 +19,7 @@ Once you have the example up and running you can try out the various commands fo
 __Procedure__
 
 1. Copy the following yaml and save it to your current working directory as `docker-compose.yaml`.
+
 ```yaml
 version: "3.7"
 
@@ -83,116 +84,76 @@ Please bear in mind that this is not a production setup as that would most requi
 2. Copy the following `Dockerfile` to the same directory as the `docker-compose.yaml` file you saved in item 1.
 This docker file is used to create a ScyllaDB image with the Scylla Manager Agent patched on top of it.
 The reason for this is that the Agent needs access to ScyllaDB's data files in order to create backups.
+
 ```Dockerfile
 FROM scylladb/scylla:latest
 
-RUN echo -e "#!/usr/bin/env bash\n\
-set -eu -o pipefail\n\
-if [[ ! -f \"/var/lib/scylla-manager/scylla_manager.crt\" || ! -f \"/var/lib/scylla-manager/scylla_manager.key\" ]]; then\n\
-   /sbin/scyllamgr_ssl_cert_gen\n\
-fi\n\
-exec /usr/bin/scylla-manager-agent $@" > /scylla-manager-agent-docker-entrypoint.sh
-
-RUN echo -e "[scylla-manager]\n\
-name=Scylla Manager for Centos \$releasever - \$basearch\n\
-baseurl=http://downloads.scylladb.com/manager/rpm/unstable/centos/branch-2.0/latest/scylla-manager/\7/\$basearch/\n\
-enabled=1\n\
-gpgcheck=0\n" > /etc/yum.repos.d/scylla-manager.repo
+ADD http://downloads.scylladb.com.s3.amazonaws.com/manager/rpm/unstable/centos/master/latest/scylla-manager.repo /etc/yum.repos.d/
+RUN yum -y install epel-release scylla-manager-agent && \
+    yum clean all && \
+    rm -f /etc/yum.repos.d/scylla-manager.repo
 
 RUN echo -e "[program:scylla-manager-agent]\n\
-command=/scylla-manager-agent-docker-entrypoint.sh\n\
+command=/usr/bin/scylla-manager-agent\n\
 autorestart=true\n\
 stdout_logfile=/dev/stdout\n\
 stdout_logfile_maxbytes=0\n\
 stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0" > /etc/supervisord.conf.d/scylla-manager-agent.conf
 
-RUN yum -y install epel-release && \
-    yum -y clean expire-cache && \
-    yum -y update && \
-    yum install -y scylla-manager-agent && \
-    yum clean all && \
-    rm /etc/yum.repos.d/scylla-manager.repo
-
 RUN echo -e "auth_token: token\n\
 s3:\n\
     access_key_id: minio\n\
     secret_access_key: minio123\n\
+    provider: Minio\n\
     endpoint: http://minio:9000" > /etc/scylla-manager-agent/scylla-manager-agent.yaml
 
-RUN rm -f /var/lib/scylla-manager/scylla_manager.crt && \
-    rm -f /var/lib/scylla-manager/scylla_manager.key && \
-    chmod --reference=/usr/bin/scylla-manager-agent /scylla-manager-agent-docker-entrypoint.sh
 ```
 
-3. Create and start the containers by running the `docker-compose up` command.
+3. Create the containers by running the `docker-compose build` command.
+
 ```bash
-SCYLLA_MANAGER_VERSION=2.0.1 docker-compose up -d
+docker-compose build
 ```
 
-4. Verify that Scylla Manager started by using the `logs` command.
+4. Start the containers by running the `docker-compose up` command.
+
+```bash
+docker-compose up -d
+```
+
+5. Verify that Scylla Manager started by using the `logs` command.
+
 ```bash
 docker-compose logs -f scylla-manager
 ```
 
-## Docker example
-
-It is quite possible to setup this using docker directly without letting Docker Compose do the heavy lifting.
-
-To avoid bootstrapping issues it can be best to start with periferal services first. In this case MinIO.
-Start MinIO in a container like this and link it to the scylla instance you created above.
-```bash
-docker run -d -p 9000:9000 --name minio1 \
-    -e "MINIO_ACCESS_KEY=minio" \
-    -e "MINIO_SECRET_KEY=minio123" \
-    -v /mnt/data:/data minio/minio server /data
-```
-
-Now you need to copy the same `Dockerfile` that the Docker Compose example uses and save it to your working directory.
-This `Dockerfile` patches a regular ScyllaDB image with a Scylla Manager Agent to allow for proper communication between ScyllaDB and Scylla Manager.
-
-Execute the build like this:
-```bash
-docker build -t scylladb/scylla-with-agent .
-```
-
-Create a new ScyllaDB instance using the image you just built. This instance will hold the data of your own application.
-We need to link it with the MinIO instance to allow the Scylla Manager Agent to access the MinIO instance.
-```bash
-docker run -d --name scylla --link minio1 --mount type=volume,source=scylla_db_data,target=/var/lib/scylla scylladb/scylla-with-agent --smp 1 --memory=1G
-```
-
-Now you can start a regular ScyllaDB instance that Scylla Manager will use to store it's internal data in with the following command.
-```bash
-docker run -d --name scylla-manager-db --mount type=volume,source=scylla_manager_db_data,target=/var/lib/scylla scylladb/scylla --smp 1 --memory=1G
-```
-
-Finally it's time to start Scylla manager using the following command. We need to link this instance to both of the ScyllaDB instances.
-```bash
-docker run -d --name scylla-manager --link scylla-manager-db --link scylla scylladb/scylla-manager:2.0.1
-```
-
 ## Using sctool
 
-Use docker exec to invoke bash in the `scylla-manager` container to add the one node cluster you created above to Scylla Manager.
+Use docker-compose exec to invoke bash in the `scylla-manager` container to add the one node cluster you created above to Scylla Manager.
+
 ```bash
-docker exec -it scylla-manager sctool cluster add -c cluster --host=scylla --auth-token=token
-1a0feeba-5b38-4cc4-949e-6bd704667552
- __  
+docker-compose exec scylla-manager sctool cluster add --name test --host=scylla --auth-token=token
+defe1ffe-c992-4ca2-9fad-82a61f39ad9e
+ __
 /  \     Cluster added! You can set it as default, by exporting its name or ID as env variable:
-@  @     $ export SCYLLA_MANAGER_CLUSTER=1a0feeba-5b38-4cc4-949e-6bd704667552
+@  @     $ export SCYLLA_MANAGER_CLUSTER=defe1ffe-c992-4ca2-9fad-82a61f39ad9e
 |  |     $ export SCYLLA_MANAGER_CLUSTER=<name>
-|| |/    
+|| |/
 || ||    Now run:
-|\_/|    $ sctool status -c cluster
-\___/    $ sctool task list -c cluster
-docker exec -it scylla-manager  sctool status -c cluster
-Datacenter: datacenter1
-+----------+-----+----------+-----------------+
-| CQL      | SSL | REST     | Host            |
-+----------+-----+----------+-----------------+
-| UP (0ms) | OFF | UP (0ms) | 192.168.100.100 |
-+----------+-----+----------+-----------------+
+|\_/|    $ sctool status -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
+\___/    $ sctool task list -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
 ```
 
-See the complete [sctool reference](https://docs.scylladb.com/operating-scylla/manager/2.0/sctool/) for further details.
+```bash
+docker-compose exec scylla-manager sctool status
+Cluster: cluster (defe1ffe-c992-4ca2-9fad-82a61f39ad9e)
+Datacenter: datacenter1
++----+----------+----------+-----------------+----------+------+----------+--------+-----------------------------+--------------------------------------+
+|    | CQL      | REST     | Address         | Uptime   | CPUs | Memory   | Scylla | Agent                       | Host ID                              |
++----+----------+----------+-----------------+----------+------+----------+--------+-----------------------------+--------------------------------------+
+| UN | UP (0ms) | UP (0ms) | 192.168.100.100 | 7h39m45s | 4    | 31.13GiB | 4.2.1  | 666.dev-0.20201230.d4b270c9 | 1987c401-9609-4d92-b8ef-25cfe81b101a |
++----+----------+----------+-----------------+----------+------+----------+--------+-----------------------------+--------------------------------------+
+```
+
+See [online docs](https://scylladb.github.io/scylla-manager/) for further details.
