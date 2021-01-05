@@ -32,6 +32,7 @@ RUN echo -e "auth_token: token\n\
 s3:\n\
     access_key_id: minio\n\
     secret_access_key: minio123\n\
+    provider: Minio\n\
     endpoint: http://minio:9000" > /etc/scylla-manager-agent/scylla-manager-agent.yaml
 
 RUN rm -f /var/lib/scylla-manager/scylla_manager.crt && \
