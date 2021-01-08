@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
-	"github.com/rclone/rclone/fs/object"
 	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
@@ -412,7 +411,7 @@ func init() {
 }
 
 func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	fs, remote, err := rc.GetFsAndRemote(in)
+	f, remote, err := rc.GetFsAndRemote(in)
 	if err != nil {
 		return nil, err
 	}
@@ -427,8 +426,12 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		return nil, err
 	}
 
-	src := object.NewStaticObjectInfo(remote, timeutc.Now(), size, true, nil, nil)
-	_, err = fs.Put(ctx, body.(io.Reader), src)
+	obj, err := rcops.RcatSize(ctx, f, remote, body.(io.ReadCloser), size, timeutc.Now())
+	if err != nil {
+		return nil, err
+	}
+	fs.Debugf(obj, "Upload Succeeded")
+
 	return rc.Params{}, err
 }
 
