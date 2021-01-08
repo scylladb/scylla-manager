@@ -421,52 +421,31 @@ func TestRcloneDiskUsage(t *testing.T) {
 func TestRcloneMoveFile(t *testing.T) {
 	t.Parallel()
 
-	dir, err := ioutil.TempDir("", "scylla-manager.scyllaclient.TestRcloneMoveFile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(dir)
-
-	if err := ioutil.WriteFile(path.Join(dir, "a"), []byte{'a'}, 0600); err != nil {
-		t.Fatal(err)
-	}
-
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
 
-	tmpRemotePath := func(file string) string {
-		return "tmp:" + path.Join(strings.TrimPrefix(dir, "/tmp/"), file)
+	// Create "a"
+	if err := ioutil.WriteFile(path.Join(rth.tmpDir, "a"), []byte{'a'}, 0600); err != nil {
+		t.Fatal(err)
 	}
-
-	if err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("b"), tmpRemotePath("a")); err != nil {
-		t.Fatal("RcloneMoveFile() error", err)
+	// Move to "b"
+	if err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, "tmp:b", "tmp:a"); err != nil {
+		t.Fatal("RcloneMoveFile() error", err, rth.tmpDir)
 	}
-
-	if _, err := os.Stat(path.Join(dir, "a")); !os.IsNotExist(err) {
-		t.Error("File a should not exist", err)
-	}
-	if _, err := os.Stat(path.Join(dir, "b")); err != nil {
+	// Assert "b" exits
+	if _, err := os.Stat(path.Join(rth.tmpDir, "b")); err != nil {
 		t.Error("File b should exist", err)
 	}
-}
-
-func TestRcloneMoveNotExistingFile(t *testing.T) {
-	t.Parallel()
-
-	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
-	defer closeServer()
-
-	ctx := context.Background()
-
-	tmpRemotePath := func(file string) string {
-		return "tmp:" + path.Join("/tmp", file)
+	// Assert "a" does not exits
+	if _, err := os.Stat(path.Join(rth.tmpDir, "a")); !os.IsNotExist(err) {
+		t.Error("File a should not exist", err)
 	}
 
-	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, tmpRemotePath("d"), tmpRemotePath("c"))
+	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, "tmp:d", "tmp:c")
 	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
-		t.Fatal("RcloneMoveFile() expected 404 error, got", err)
+		t.Fatalf("RcloneMoveFile() error %s, expected 404", err)
 	}
 }
 

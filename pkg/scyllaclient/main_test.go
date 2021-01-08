@@ -3,6 +3,7 @@
 package scyllaclient_test
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -13,12 +14,26 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setupRclone()
-	os.Exit(m.Run())
+	rth.setup()
+	ret := m.Run()
+	rth.tearDown()
+
+	os.Exit(ret)
 }
 
-func setupRclone() {
+var rth rcloneTestHelper
+
+type rcloneTestHelper struct {
+	tmpDir string
+}
+
+func (r *rcloneTestHelper) setup() {
 	rootDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	r.tmpDir, err = ioutil.TempDir("", "scylla-manager-rclone")
 	if err != nil {
 		panic(err)
 	}
@@ -26,8 +41,12 @@ func setupRclone() {
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
 	rclone.InitFsConfig()
 	rclone.MustRegisterLocalDirProvider("dev", "", "/dev")
-	rclone.MustRegisterLocalDirProvider("tmp", "", "/tmp")
+	rclone.MustRegisterLocalDirProvider("tmp", "", r.tmpDir)
 	rclone.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
 	rclone.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
 	rclone.MustRegisterS3Provider(S3Credentials())
+}
+
+func (r *rcloneTestHelper) tearDown() {
+	os.RemoveAll(r.tmpDir)
 }
