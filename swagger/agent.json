@@ -288,58 +288,6 @@
         "security": []
       }
     },
-    "/rclone/operations/copyfile": {
-      "post": {
-        "description": "Copy a file from source remote to destination remote",
-        "summary": "Copy a file",
-        "operationId": "OperationsCopyfile",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "_async",
-            "description": "Async request",
-            "type": "boolean",
-            "required": true,
-            "default": true
-          },
-          {
-            "in": "query",
-            "name": "_group",
-            "description": "Place this operation under this stat group",
-            "type": "string",
-            "required": true
-          },
-          {
-            "in": "body",
-            "name": "copyfile",
-            "description": "copyfile",
-            "schema": {
-              "$ref": "#/definitions/MoveOrCopyFileOptions"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job",
-            "schema": {
-              "$ref": "#/definitions/Jobid"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
     "/rclone/sync/copydir": {
       "post": {
         "description": "Copy contents from path on source fs to path on destination fs",

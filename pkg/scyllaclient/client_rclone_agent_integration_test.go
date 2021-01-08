@@ -6,7 +6,6 @@ package scyllaclient_test
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -126,22 +125,22 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		}
 	}()
 
-	// Create big enough file on the test host to keep running for long enough.
-	// 1024*102400
+	// Create big enough file on the test host to keep running for long enough
+	// 100MiB = 1024 * 102400.
 	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy count=1024 bs=102400")
 	_, _, err = ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		cmd := fmt.Sprintf("rm -rf %s/tmp/copy", scyllaDataDir)
+		cmd := injectDataDir("rm -rf %s/tmp")
 		_, _, err := ExecOnHost(testHost, cmd)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	id, err := client.RcloneCopyFile(ctx, testHost, remotePath("/copy"), "data:tmp/copy")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp")
 	if err != nil {
 		t.Fatal(err)
 	}

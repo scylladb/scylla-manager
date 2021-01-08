@@ -4,6 +4,6 @@
 #
 
 rm -f internal/rclone_supported_calls.go
-jq '.paths | [keys[] | select(. | startswith("/rclone")) | sub("^/rclone/"; "")]' ../../scyllaclient/agent.json | \
+jq '.paths | [keys[] | select(. | startswith("/rclone")) | sub("^/rclone/"; "")]' $(git rev-parse --show-toplevel)/swagger/agent.json | \
   go run internal/templates/jsontemplate.go internal/templates/rclone_supported_calls.gotmpl > \
   internal/rclone_supported_calls.go
