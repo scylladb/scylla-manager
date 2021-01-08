@@ -20,6 +20,11 @@ func InitFsConfig() {
 	// Pass all logs, our logger decides which one to print.
 	fs.Config.LogLevel = fs.LogLevelDebug
 
+	// With this option set, files will be created and deleted as requested,
+	// but existing files will never be updated. If an existing file does not
+	// match between the source and destination, rclone will give the error
+	// Source and destination exist but do not match: immutable file modified.
+	fs.Config.Immutable = true
 	// Skip post copy check of checksums.
 	fs.Config.IgnoreChecksum = true
 	// Skip based on size only, not mod-time or checksum.
