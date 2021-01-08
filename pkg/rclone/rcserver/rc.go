@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sort"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
+	"github.com/rclone/rclone/fs/object"
 	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
@@ -425,14 +427,45 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if size == 0 {
+		size = -1
+	}
 
-	obj, err := rcops.RcatSize(ctx, f, remote, body.(io.ReadCloser), size, timeutc.Now())
+	info := object.NewStaticObjectInfo(remote, timeutc.Now(), size, true, nil, f)
+
+	dst, err := f.NewObject(ctx, remote)
+	drainBody := func() {
+		var err error
+		if size > 0 {
+			_, err = io.CopyN(ioutil.Discard, body.(io.ReadCloser), size)
+		} else {
+			err = body.(io.ReadCloser).Close()
+		}
+		if err != nil {
+			fs.Errorf(dst, "Drain body error %s", err)
+		}
+	}
+	if err == nil {
+		if rcops.Equal(ctx, info, dst) {
+			drainBody()
+			return nil, nil
+		} else if fs.Config.Immutable {
+			fs.Errorf(dst, "Source and destination exist but do not match: immutable file modified")
+			drainBody()
+			return nil, fs.ErrorImmutableModified
+		}
+	} else if err != fs.ErrorObjectNotFound {
+		drainBody()
+		return nil, err
+	}
+
+	obj, err := rcops.RcatSize(ctx, f, remote, body.(io.ReadCloser), size, info.ModTime(ctx))
 	if err != nil {
 		return nil, err
 	}
 	fs.Debugf(obj, "Upload Succeeded")
 
-	return rc.Params{}, err
+	return nil, err
 }
 
 // rcCheckPermissions checks if location is available for listing, getting,

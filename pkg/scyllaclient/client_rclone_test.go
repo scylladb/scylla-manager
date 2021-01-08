@@ -426,40 +426,60 @@ func TestRcloneMoveFile(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Create "a"
-	if err := ioutil.WriteFile(path.Join(rth.tmpDir, "a"), []byte{'a'}, 0600); err != nil {
-		t.Fatal(err)
+	// Put "a"
+	if err := client.RclonePut(ctx, scyllaclienttest.TestHost, "tmp:move/a", bytes.NewBufferString("a"), 1); err != nil {
+		t.Fatal("RclonePut() error", err)
 	}
-	// Move to "b"
-	if err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, "tmp:b", "tmp:a"); err != nil {
+	// Move "b"
+	if err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, "tmp:move/b", "tmp:move/a"); err != nil {
 		t.Fatal("RcloneMoveFile() error", err, rth.tmpDir)
 	}
 	// Assert "b" exits
-	if _, err := os.Stat(path.Join(rth.tmpDir, "b")); err != nil {
+	if _, err := os.Stat(path.Join(rth.tmpDir, "move/b")); err != nil {
 		t.Error("File b should exist", err)
 	}
 	// Assert "a" does not exits
-	if _, err := os.Stat(path.Join(rth.tmpDir, "a")); !os.IsNotExist(err) {
+	if _, err := os.Stat(path.Join(rth.tmpDir, "move/a")); !os.IsNotExist(err) {
 		t.Error("File a should not exist", err)
 	}
 
-	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, "tmp:d", "tmp:c")
+	// Try move not existing
+	err := client.RcloneMoveFile(ctx, scyllaclienttest.TestHost, "tmp:move/d", "tmp:move/c")
 	if err == nil || scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 		t.Fatalf("RcloneMoveFile() error %s, expected 404", err)
 	}
 }
 
-func TestRcloneUploadFile(t *testing.T) {
+func TestRclonePut(t *testing.T) {
 	t.Parallel()
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 
 	ctx := context.Background()
-	content := []byte("hello")
-	path := "tmp:put"
 
-	if err := client.RclonePut(ctx, scyllaclienttest.TestHost, path, bytes.NewReader(content), int64(len(content))); err != nil {
+	const path = "tmp:put/a"
+	putString := func(s string) error {
+		b := bytes.NewBufferString(s)
+		err := client.RclonePut(ctx, scyllaclienttest.TestHost, path, b, int64(b.Len()))
+		if err != nil {
+			t.Logf("RclonePut(%s) error = %s", s, err)
+		}
+		return err
+	}
+
+	// New file
+	if err := putString("hello"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Same size file is ignored
+	if err := putString("olleh"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Different size file is rejected
+	if err := putString("hello world"); err == nil {
 		t.Fatal(err)
 	}
 
@@ -467,8 +487,7 @@ func TestRcloneUploadFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if cmp.Diff(string(content), string(buf)) != "" {
-		t.Fatalf("Expected file content to equal '%s' got '%s'", string(content), string(buf))
+	if cmp.Diff("hello", string(buf)) != "" {
+		t.Fatalf("Expected file content to equal '%s' got '%s'", "hello", string(buf))
 	}
 }
