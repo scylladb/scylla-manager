@@ -19,21 +19,24 @@ func InitFsConfig() {
 	fs.Config.UseJSONLog = false
 	// Pass all logs, our logger decides which one to print.
 	fs.Config.LogLevel = fs.LogLevelDebug
-	// Delete even if there are I/O errors.
-	fs.Config.IgnoreErrors = true
-	// Do not compare hash post upload, prevents from calculating hashes in
-	// rclone versions >= 1.48.
+
+	// Skip post copy check of checksums.
 	fs.Config.IgnoreChecksum = true
-	// Only use size to compare files.
+	// Skip based on size only, not mod-time or checksum.
 	fs.Config.SizeOnly = true
 	// Don't update destination mod-time if files identical.
 	fs.Config.NoUpdateModTime = true
+
+	// Number of low level retries to do. (default 10)
+	// This applies to operations like S3 chunk upload.
+	fs.Config.LowLevelRetries = 20
+
+	// Delete even if there are I/O errors.
+	fs.Config.IgnoreErrors = true
+	// Maximum number of stats groups to keep in memory. On max oldest is discarded. (default 1000).
+	fs.Config.MaxStatsGroups = 1000
 	// Set proper agent for backend clients.
 	fs.Config.UserAgent = UserAgent()
-	// How many times to retry low level operations like s3 chunk upload.
-	fs.Config.LowLevelRetries = 20
-	// How many stat groups to keep in memory.
-	fs.Config.MaxStatsGroups = 1000
 }
 
 func initInMemoryConfig() {
