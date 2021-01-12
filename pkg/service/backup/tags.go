@@ -6,7 +6,13 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+)
+
+var (
+	tagDateFormat = "20060102150405"
+	tagRegexp     = regexp.MustCompile("^sm_([0-9]{14})UTC$")
 )
 
 func newSnapshotTag() string {
@@ -14,11 +20,17 @@ func newSnapshotTag() string {
 }
 
 func snapshotTagAt(t time.Time) string {
-	return "sm_" + t.UTC().Format("20060102150405") + "UTC"
+	return "sm_" + t.UTC().Format(tagDateFormat) + "UTC"
 }
-
-var tagRegexp = regexp.MustCompile("^sm_[0-9]{14}UTC$")
 
 func isSnapshotTag(tag string) bool {
 	return tagRegexp.MatchString(tag)
+}
+
+func snapshotTagTime(tag string) (time.Time, error) {
+	m := tagRegexp.FindStringSubmatch(tag)
+	if m == nil {
+		return time.Time{}, errors.New("wrong format")
+	}
+	return timeutc.Parse(tagDateFormat, m[1])
 }
