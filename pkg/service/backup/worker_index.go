@@ -147,6 +147,11 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			dirs = append(dirs, d)
 		}
 	}
+
+	if len(dirs) == 0 {
+		return nil, errors.New("could not find any files")
+	}
+
 	w.Logger.Debug(ctx, "Found snapshot directories", "host", h.IP, "count", len(dirs))
 	return dirs, nil
 }
