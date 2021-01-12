@@ -343,6 +343,14 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task status is changed from StatusRunning to status StatusAborted")
 		h.assertStatus(ctx, task, scheduler.StatusAborted)
+		Print("And: end time is set")
+		runs, err := h.service.GetLastRun(ctx, task, 1)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if runs[0].EndTime == nil {
+			t.Fatal("Expected end time got nil")
+		}
 
 		Print("And: aborted tasks are immediately resumed")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)

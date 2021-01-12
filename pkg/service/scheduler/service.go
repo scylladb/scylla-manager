@@ -120,8 +120,9 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks from database")
 
+	now := timeutc.Now()
 	err := s.forEachTask(func(t *Task) error {
-		if err := s.fixRunStatus(ctx, t); err != nil {
+		if err := s.fixRunStatus(ctx, t, now); err != nil {
 			return errors.Wrap(err, "fix run status")
 		}
 		if err := s.initMetrics(ctx, t); err != nil {
@@ -155,7 +156,7 @@ func (s *Service) forEachTask(f func(t *Task) error) error {
 	return nil
 }
 
-func (s *Service) fixRunStatus(ctx context.Context, t *Task) error {
+func (s *Service) fixRunStatus(ctx context.Context, t *Task, now time.Time) error {
 	runs, err := s.GetLastRun(ctx, t, 1)
 	if err != nil {
 		return err
@@ -170,6 +171,7 @@ func (s *Service) fixRunStatus(ctx context.Context, t *Task) error {
 
 	r.Status = StatusAborted
 	r.Cause = "service stopped"
+	r.EndTime = &now
 	return s.putRun(r)
 }
 
