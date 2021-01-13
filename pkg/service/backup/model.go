@@ -156,6 +156,35 @@ func (s Stage) Resumable() bool {
 	}
 }
 
+// Index returns stage position among all stages, stage with index n+1 happens
+// after stage n.
+func (s Stage) Index() int {
+	switch s {
+	case StageInit:
+		return 0
+	case StageAwaitSchema:
+		return 1
+	case StageSnapshot:
+		return 2
+	case StageSchema:
+		return 3
+	case StageIndex:
+		return 4
+	case StageUpload:
+		return 5
+	case StageManifest:
+		return 6
+	case StageMigrate:
+		return 7
+	case StagePurge:
+		return 8
+	case StageDone:
+		return 9
+	default:
+		panic("Unknown stage")
+	}
+}
+
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
 	ClusterID uuid.UUID
