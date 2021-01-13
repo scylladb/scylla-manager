@@ -149,10 +149,10 @@ const (
 // Resumable run can be continued.
 func (s Stage) Resumable() bool {
 	switch s {
-	case StageInit, StageAwaitSchema, StageSnapshot, StageSchema, StageDone, stageNone:
-		return false
-	default:
+	case StageUpload, StageManifest, StageMigrate, StagePurge:
 		return true
+	default:
+		return false
 	}
 }
 
