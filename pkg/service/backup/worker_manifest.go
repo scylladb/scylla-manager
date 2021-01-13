@@ -8,9 +8,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
+
+func (w *worker) InitRings(ctx context.Context) error {
+	w.rings = make(map[string]scyllaclient.Ring, len(w.Units))
+	for _, u := range w.Units {
+		ring, err := w.Client.DescribeRing(ctx, u.Keyspace)
+		if err != nil {
+			return errors.Wrapf(err, "describe ring for keyspace %s", u.Keyspace)
+		}
+		w.rings[u.Keyspace] = ring
+	}
+	return nil
+}
 
 func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo, limits []DCLimit) (stepError error) {
 	w.Logger.Info(ctx, "Uploading manifest files...")
