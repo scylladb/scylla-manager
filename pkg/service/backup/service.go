@@ -635,10 +635,22 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	stop := s.watchProgressMetrics(ctx, runProgress)
 	defer stop()
 
-	// If not resuming...
+	var shouldRun func(stage Stage) bool
 	if run.PrevID == uuid.Nil {
-		var schemaArchive *bytes.Buffer
+		shouldRun = func(stage Stage) bool {
+			return true
+		}
+	} else {
+		prevStage := run.Stage
+		shouldRun = func(stage Stage) bool {
+			return stage.Index() >= prevStage.Index()
+		}
+	}
 
+	var schemaArchive *bytes.Buffer
+
+	// Await schema agreement and generate schemaArchive
+	if shouldRun(StageAwaitSchema) {
 		// If CQL session is available, await schema agreement and dump schema
 		// to an in memory buffer. This is intentionally kept together to keep
 		// the CQL session short.
@@ -667,64 +679,76 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		if err != nil {
 			return err
 		}
+	}
 
-		// Take snapshot
+	// Take snapshot
+	if shouldRun(StageSnapshot) {
 		s.updateStage(ctx, run, StageSnapshot)
 		w = w.WithLogger(s.logger.Named("snapshot"))
 		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
 			return errors.Wrap(err, "snapshot")
 		}
+	}
 
-		// Upload schema if available
-		if schemaArchive != nil {
-			s.updateStage(ctx, run, StageSchema)
-			w = w.WithLogger(s.logger.Named("schema"))
-			if err := w.UploadSchema(ctx, hi, schemaArchive); err != nil {
-				return errors.Wrap(err, "upload schema")
-			}
-			w.cleanup(ctx, hi)
+	// Upload schema if available
+	if shouldRun(StageSchema) && schemaArchive != nil {
+		s.updateStage(ctx, run, StageSchema)
+		w = w.WithLogger(s.logger.Named("schema"))
+		if err := w.UploadSchema(ctx, hi, schemaArchive); err != nil {
+			return errors.Wrap(err, "upload schema")
 		}
+		w.cleanup(ctx, hi)
 	}
 
-	// Index files
-	s.updateStage(ctx, run, StageIndex)
-	w = w.WithLogger(s.logger.Named("index"))
-	if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
-		return errors.Wrap(err, "index")
+	// Index files, files are needed only in upload and manifest stages
+	if shouldRun(StageUpload) || shouldRun(StageManifest) {
+		s.updateStage(ctx, run, StageIndex)
+		w = w.WithLogger(s.logger.Named("index"))
+		if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
+			return errors.Wrap(err, "index")
+		}
+		w.cleanup(ctx, hi)
 	}
-	w.cleanup(ctx, hi)
 
 	// Upload files
-	s.updateStage(ctx, run, StageUpload)
-	w = w.WithLogger(s.logger.Named("upload"))
-	if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
-		return errors.Wrap(err, "upload")
+	if shouldRun(StageUpload) {
+		s.updateStage(ctx, run, StageUpload)
+		w = w.WithLogger(s.logger.Named("upload"))
+		if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
+			return errors.Wrap(err, "upload")
+		}
+		w.cleanup(ctx, hi)
 	}
-	w.cleanup(ctx, hi)
 
 	// Aggregate and upload manifests
-	s.updateStage(ctx, run, StageManifest)
-	w = w.WithLogger(s.logger.Named("manifest"))
-	if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
-		return errors.Wrap(err, "upload manifest")
+	if shouldRun(StageManifest) {
+		s.updateStage(ctx, run, StageManifest)
+		w = w.WithLogger(s.logger.Named("manifest"))
+		if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
+			return errors.Wrap(err, "upload manifest")
+		}
+		w.cleanup(ctx, hi)
 	}
-	w.cleanup(ctx, hi)
 
 	// Migrate V1 manifests
-	s.updateStage(ctx, run, StageMigrate)
-	w = w.WithLogger(s.logger.Named("migrate"))
-	if err := w.MigrateManifests(ctx, hi, target.UploadParallel); err != nil {
-		return errors.Wrap(err, "migrate manifest")
+	if shouldRun(StageMigrate) {
+		s.updateStage(ctx, run, StageMigrate)
+		w = w.WithLogger(s.logger.Named("migrate"))
+		if err := w.MigrateManifests(ctx, hi, target.UploadParallel); err != nil {
+			return errors.Wrap(err, "migrate manifest")
+		}
+		w.cleanup(ctx, hi)
 	}
-	w.cleanup(ctx, hi)
 
 	// Purge remote data
-	s.updateStage(ctx, run, StagePurge)
-	w = w.WithLogger(s.logger.Named("purge"))
-	if err := w.Purge(ctx, hi, target.Retention); err != nil {
-		return errors.Wrap(err, "purge")
+	if shouldRun(StagePurge) {
+		s.updateStage(ctx, run, StagePurge)
+		w = w.WithLogger(s.logger.Named("purge"))
+		if err := w.Purge(ctx, hi, target.Retention); err != nil {
+			return errors.Wrap(err, "purge")
+		}
+		w.cleanup(ctx, hi)
 	}
-	w.cleanup(ctx, hi)
 
 	s.updateStage(ctx, run, StageDone)
 
@@ -768,6 +792,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	run.Units = prev.Units
 	run.DC = prev.DC
 	run.Nodes = prev.Nodes
+	run.Stage = prev.Stage
 
 	return nil
 }
