@@ -748,9 +748,23 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 	// Check if can continue from prev
 	s.logger.Info(ctx, "Found previous run", "run_id", prev.ID)
-	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
-		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
-		return nil
+	if s.config.AgeMax > 0 {
+		t, err := snapshotTagTime(prev.SnapshotTag)
+		if err != nil {
+			s.logger.Info(ctx, "Starting from scratch: cannot parse snapshot tag",
+				"snapshot_tag", prev.SnapshotTag,
+				"error", err,
+			)
+			return nil
+		}
+
+		if timeutc.Since(t) > s.config.AgeMax {
+			s.logger.Info(ctx, "Starting from scratch: snapshot is too old",
+				"snapshot_tag", prev.SnapshotTag,
+				"age_max", s.config.AgeMax,
+			)
+			return nil
+		}
 	}
 
 	run.PrevID = prev.ID
