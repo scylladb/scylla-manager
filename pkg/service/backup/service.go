@@ -426,12 +426,6 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 	res := make(chan manifestsError)
 	for _, item := range hosts {
 		go func(h string, l Location) {
-			s.logger.Info(ctx, "Listing remote manifests",
-				"cluster_id", clusterID,
-				"host", h,
-				"location", l,
-			)
-
 			mh := newMultiVersionManifestLister(h, l, client, s.logger.Named("list"))
 			m, err := mh.ListManifests(ctx, filter)
 			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", h, l)}

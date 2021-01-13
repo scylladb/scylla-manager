@@ -37,24 +37,22 @@ func newManifestV1Helper(host string, location Location, client *scyllaclient.Cl
 		host:     host,
 		location: location,
 		client:   client,
-		logger:   logger,
+		logger:   logger.With("host", host, "manifest_version", "v1"),
 	}
 }
 
 // ListManifests return list of manifests present under provided location.
 // Manifests are being read in order to collect information about backups.
 func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+	h.logger.Info(ctx, "Listing manifests")
+
 	manifestsPaths, err := h.listPaths(ctx, f)
 	if err != nil {
 		return nil, errors.Wrap(err, "listing manifests")
 	}
-
-	if len(manifestsPaths) > 0 {
-		h.logger.Info(ctx, "Found v1 manifests", "manifests", len(manifestsPaths))
-	}
+	h.logger.Debug(ctx, "Found manifests", "manifests", manifestsPaths)
 
 	manifests := make([]*remoteManifest, len(manifestsPaths))
-
 	for i, mp := range manifestsPaths {
 		var err error
 		manifests[i], err = h.readManifest(ctx, mp)
@@ -242,11 +240,14 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 }
 
 func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
+	h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
+
 	for _, idx := range m.Content.Index {
 		tagsDir := h.paths.RemoteTagsDir(m.ClusterID, m.TaskID, m.DC, m.NodeID, idx.Keyspace, idx.Table)
+		path := h.location.RemotePath(path.Join(tagsDir, m.SnapshotTag))
 
-		h.logger.Debug(ctx, "Deleting v1 snapshot", "tag", m.SnapshotTag, "keyspace", idx.Keyspace, "table", idx.Table)
-		err := h.client.RcloneDeleteDir(ctx, h.host, h.location.RemotePath(path.Join(tagsDir, m.SnapshotTag)))
+		h.logger.Debug(ctx, "Delete dir", "dst", path)
+		err := h.client.RcloneDeleteDir(ctx, h.host, path)
 		if err != nil {
 			return err
 		}

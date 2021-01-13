@@ -34,18 +34,20 @@ func newManifestV2Helper(host string, location Location, client *scyllaclient.Cl
 		host:     host,
 		location: location,
 		client:   client,
-		logger:   logger,
+		logger:   logger.With("host", host, "manifest_version", "v2"),
 	}
 }
 
 func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+	h.logger.Info(ctx, "Listing manifests")
+
 	manifestsPaths, err := h.listPaths(ctx, f)
 	if err != nil {
 		return nil, errors.Wrap(err, "listing manifests")
 	}
+	h.logger.Debug(ctx, "Found manifests", "manifests", manifestsPaths)
 
 	manifests := make([]*remoteManifest, len(manifestsPaths))
-
 	for i, mp := range manifestsPaths {
 		manifests[i], err = h.readManifest(ctx, mp)
 		if err != nil {
@@ -56,7 +58,7 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	return manifests, nil
 }
 func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
-	h.logger.Debug(ctx, "Deleting v2 snapshot", "tag", m.SnapshotTag)
+	h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
 
 	if m.Content.Schema != "" {
 		if err := h.deleteFile(ctx, m.Content.Schema); err != nil {
