@@ -63,4 +63,5 @@ issues:
     - should merge variable declaration with assignment on next line
     - at least one file in a package should have a package comment
     - has json tag but is not exported
+    - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
