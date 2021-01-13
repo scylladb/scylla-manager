@@ -310,8 +310,8 @@ func newMultiVersionManifestDeleter(host string, location Location, client *scyl
 	logger log.Logger) manifestDeleter {
 	return &multiVersionManifestDeleter{
 		deleters: map[string]manifestDeleter{
-			"v1": newManifestV1Helper(host, location, client, logger.Named("v1")),
-			"v2": newManifestV2Helper(host, location, client, logger.Named("v2")),
+			"v1": newManifestV1Helper(host, location, client, logger),
+			"v2": newManifestV2Helper(host, location, client, logger),
 		}}
 }
 
@@ -342,8 +342,8 @@ func newMultiVersionManifestLister(host string, location Location, client *scyll
 		location: location,
 		client:   client,
 		listers: map[string]manifestLister{
-			"v1": newManifestV1Helper(host, location, client, logger.Named("v1")),
-			"v2": newManifestV2Helper(host, location, client, logger.Named("v2")),
+			"v1": newManifestV1Helper(host, location, client, logger),
+			"v2": newManifestV2Helper(host, location, client, logger),
 		}}
 }
 

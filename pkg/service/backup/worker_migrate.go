@@ -85,7 +85,7 @@ func (w *worker) uploadMetadataVersionFile(ctx context.Context, h hostInfo, vers
 
 // migrateHostManifests migrates all V1 manifests into V2 format.
 func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
-	helper := newManifestV1Helper(h.IP, h.Location, w.Client, w.Logger.Named("v1"))
+	helper := newManifestV1Helper(h.IP, h.Location, w.Client, w.Logger)
 
 	filter := ListFilter{
 		ClusterID: w.ClusterID,
