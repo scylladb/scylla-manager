@@ -560,16 +560,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "initialize: get client proxy")
 	}
 
-	// Collect ring information
-	rings := make(map[string]scyllaclient.Ring, len(run.Units))
-	for _, u := range run.Units {
-		ring, err := client.DescribeRing(ctx, u.Keyspace)
-		if err != nil {
-			return errors.Wrap(err, "initialize: describe keyspace ring")
-		}
-		rings[u.Keyspace] = ring
-	}
-
 	// Get live nodes
 	var liveNodes scyllaclient.NodeStatusInfoSlice
 
@@ -586,11 +576,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		if len(liveNodes) != len(run.Nodes) {
 			return errors.New("missing hosts to resume backup")
 		}
-	}
-
-	// Register the run
-	if err := s.putRun(run); err != nil {
-		return errors.Wrap(err, "initialize: register the run")
 	}
 
 	// Create hostInfo for run hosts
@@ -611,12 +596,23 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Client:               client,
 		OnRunProgress:        s.putRunProgressLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
-		rings:                rings,
 		memoryPool: &sync.Pool{
 			New: func() interface{} {
 				return &bytes.Buffer{}
 			},
 		},
+	}
+
+	// Init rings before uploading files.
+	// This should be completely migrated to upload manifests once we upload
+	// manifests and move them see https://github.com/scylladb/scylla-manager/issues/2450
+	if err := w.InitRings(ctx); err != nil {
+		return errors.Wrap(err, "initialize")
+	}
+
+	// Register the run
+	if err := s.putRun(run); err != nil {
+		return errors.Wrap(err, "initialize: register the run")
 	}
 
 	runProgress := func(ctx context.Context) (*Run, Progress, error) {
