@@ -206,6 +206,7 @@ func (p *purger) deleteFile(ctx context.Context, path string) error {
 	p.Logger.Debug(ctx, "Deleting file", "host", p.Host, "path", path)
 	err := p.Client.RcloneDeleteFile(ctx, p.Host, path)
 	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+		p.Logger.Info(ctx, "File missing on delete", "host", p.Host, "path", path)
 		err = nil
 	}
 	return err
