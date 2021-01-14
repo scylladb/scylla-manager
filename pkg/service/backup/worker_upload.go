@@ -73,8 +73,8 @@ func (w *worker) attachToJob(ctx context.Context, h hostInfo, d snapshotDir) (bo
 	}
 	w.Logger.Info(ctx, "Attaching to the previous agent job",
 		"host", h.IP,
+		"snapshot_tag", w.SnapshotTag,
 		"keyspace", d.Keyspace,
-		"tag", w.SnapshotTag,
 		"job_id", jobID,
 	)
 	err := w.waitJob(ctx, jobID, d)

@@ -36,13 +36,13 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 	if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
 		w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
 			"host", h.IP,
-			"tag", w.SnapshotTag,
+			"snapshot_tag", w.SnapshotTag,
 			"error", err,
 		)
 	} else {
 		w.Logger.Info(ctx, "Deleted uploaded snapshot",
 			"host", h.IP,
-			"tag", w.SnapshotTag,
+			"snapshot_tag", w.SnapshotTag,
 		)
 	}
 
