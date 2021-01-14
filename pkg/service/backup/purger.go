@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 	"sort"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -30,8 +31,7 @@ type purger struct {
 // PurgeSnapshot allows to delete data and metadata associated
 // with provided snapshotTag.
 func (p *purger) PurgeSnapshot(ctx context.Context, snapshotTag string) error {
-	p.Logger.Info(ctx, "Purging snapshot on host",
-		"host", p.Host,
+	p.Logger.Info(ctx, "Purging snapshot",
 		"location", p.Location,
 		"snapshot_tag", snapshotTag,
 	)
@@ -63,10 +63,7 @@ func (p *purger) PurgeSnapshot(ctx context.Context, snapshotTag string) error {
 // PurgeTask analyzes existing manifests and keeps only `policy` latest task snapshots.
 // Expired snapshots are removed from storage.
 func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) error {
-	p.Logger.Info(ctx, "Analysing",
-		"host", p.Host,
-		"location", p.Location,
-	)
+	p.Logger.Info(ctx, "Analysing", "location", p.Location)
 
 	// Load manifests from all tasks
 	manifests, err := p.loadAllManifests(ctx)
@@ -84,15 +81,20 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 
 	// Exit if there are no tags to purge
 	if len(taskTags) <= policy {
-		p.Logger.Debug(ctx, "Nothing to do")
+		p.Logger.Info(ctx, "No snapshots to purge", "snapshot_count", len(taskTags), "policy", policy)
 		return nil
 	}
 
 	// Sort by date ascending
 	sort.Strings(taskTags)
-
 	// Select tags to delete
 	staleTags := taskTags[:len(taskTags)-policy]
+
+	p.Logger.Info(ctx, "Found snapshots to delete",
+		"snapshot_count", len(taskTags),
+		"policy", policy,
+		"delete", staleTags,
+	)
 
 	staleTagsSet := strset.New(staleTags...)
 	isStaleManifest := func(m *remoteManifest) bool {
@@ -102,61 +104,6 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 	return p.purge(ctx, manifests, isStaleManifest)
 }
 
-func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStaleManifest func(*remoteManifest) bool) error {
-	// Select stale sst files in the form of full path to file.
-	staleFiles := strset.New()
-	for _, m := range manifests {
-		if isStaleManifest(m) {
-			baseDir := remoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
-			for _, fi := range m.Content.Index {
-				for _, f := range fi.Files {
-					staleFiles.Add(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))
-				}
-			}
-		}
-	}
-	// Remove alive files from staleFiles
-	for _, m := range manifests {
-		if !isStaleManifest(m) {
-			baseDir := remoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
-			for _, fi := range m.Content.Index {
-				for _, f := range fi.Files {
-					staleFiles.Remove(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))
-				}
-			}
-		}
-	}
-
-	// Skip if there are no orphan files
-	if !staleFiles.IsEmpty() {
-		// Delete sstables that are not alive
-		p.Logger.Debug(ctx, "Stale files are", "files", staleFiles)
-
-		if err := p.deleteSSTables(ctx, staleFiles); err != nil {
-			return errors.Wrap(err, "delete stale data")
-		}
-	}
-
-	// Delete stale tags
-	for _, m := range manifests {
-		if isStaleManifest(m) {
-			if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
-				return errors.Wrap(err, "delete stale tag")
-			}
-
-			p.Logger.Info(ctx, "Deleted metadata according to retention policy",
-				"host", p.Host,
-				"location", p.Location,
-				"tag", m.SnapshotTag,
-				"size", m.Content.Size,
-				"files", staleFiles.Size(),
-			)
-		}
-	}
-
-	return nil
-}
-
 // loadAllManifests loads manifests belonging to all tasks.
 func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error) {
 	filter := p.Filter
@@ -164,49 +111,104 @@ func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error
 	return p.ManifestHelper.ListManifests(ctx, filter)
 }
 
-func (p *purger) deleteSSTables(ctx context.Context, staleFiles *strset.Set) error {
-	deleted, err := p.deleteFiles(ctx, staleFiles.List())
+func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStaleManifest func(*remoteManifest) bool) error {
+	// Select stale sst files in the form of full path to file.
+	staleFiles := strset.New()
+
+	// Add files from manifests to be deleted.
+	p.forEachFile(p.filterManifests(manifests, isStaleManifest), func(path string) {
+		staleFiles.Add(path)
+	})
+	// From that remove files from active manifests.
+	isActiveManifest := func(m *remoteManifest) bool {
+		return !isStaleManifest(m)
+	}
+	p.forEachFile(p.filterManifests(manifests, isActiveManifest), func(path string) {
+		staleFiles.Remove(path)
+	})
+
+	// Delete SSTables
+	deletedFiles, err := p.deleteFiles(ctx, staleFiles)
 	if err != nil {
-		p.Logger.Error(ctx, "Failed to delete orphaned data files",
-			"host", p.Host,
-			"location", p.Location,
-			"files", deleted,
-			"error", err,
-		)
-		return err
+		return errors.Wrap(err, "delete files")
 	}
 
-	p.Logger.Info(ctx, "Deleted orphaned data files",
-		"host", p.Host,
-		"location", p.Location,
-		"files", deleted,
-	)
+	// Delete manifests
+	var deletedManifests int
+	for _, m := range p.filterManifests(manifests, isStaleManifest) {
+		if err := p.ManifestHelper.DeleteManifest(ctx, m); err != nil {
+			return errors.Wrap(err, "delete manifest")
+		}
+		deletedManifests++
+	}
+
+	p.Logger.Info(ctx, "Deleted", "files", deletedFiles, "manifests", deletedManifests)
 
 	return nil
 }
 
-func (p *purger) deleteFiles(ctx context.Context, files []string) (n int64, err error) {
-	const limit = 5
+func (p *purger) filterManifests(manifests []*remoteManifest, filter func(*remoteManifest) bool) (out []*remoteManifest) {
+	for _, m := range manifests {
+		if filter(m) {
+			out = append(out, m)
+		}
+	}
+	return
+}
 
-	var deleted atomic.Int64
+func (p *purger) forEachFile(manifests []*remoteManifest, callback func(path string)) {
+	for _, m := range manifests {
+		baseDir := remoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
+		for _, fi := range m.Content.Index {
+			for _, f := range fi.Files {
+				callback(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))
+			}
+		}
+	}
+}
 
-	err = parallel.Run(len(files), limit, func(i int) error {
-		l := p.Location.RemotePath(files[i])
-		if err := p.deleteFile(ctx, l); err != nil {
+func (p *purger) deleteFiles(ctx context.Context, staleFiles *strset.Set) (int64, error) {
+	if staleFiles.Size() == 0 {
+		return 0, nil
+	}
+
+	const (
+		limit   = 5
+		logEach = 100
+	)
+
+	var (
+		// mu protects staleFiles concurrent access
+		mu sync.Mutex
+
+		total   = staleFiles.Size()
+		success atomic.Int64
+	)
+	err := parallel.Run(total, limit, func(i int) error {
+		mu.Lock()
+		f := staleFiles.Pop()
+		mu.Unlock()
+
+		if err := p.deleteFile(ctx, p.Location.RemotePath(f)); err != nil {
 			return err
 		}
-		deleted.Inc()
+
+		cur := success.Inc()
+		if cur >= logEach && cur%logEach == 0 {
+			p.Logger.Info(ctx, "Deleted files", "count", cur, "total", total)
+		}
+
 		return nil
 	})
 
-	return deleted.Load(), err
+	return success.Load(), err
 }
 
 func (p *purger) deleteFile(ctx context.Context, path string) error {
-	p.Logger.Debug(ctx, "Deleting file", "host", p.Host, "path", path)
+	p.Logger.Debug(ctx, "Deleting file", "path", path)
 	err := p.Client.RcloneDeleteFile(ctx, p.Host, path)
 	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-		p.Logger.Info(ctx, "File missing on delete", "host", p.Host, "path", path)
+		p.Logger.Info(ctx, "File missing on delete", "path", path)
 		err = nil
 	}
 	return err
