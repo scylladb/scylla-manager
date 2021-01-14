@@ -4,8 +4,10 @@ package scyllaclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -380,11 +382,23 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 
 	resp, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return errors.Wrap(err, "put file round trip")
+		return errors.Wrap(err, "round trip")
 	}
-	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "read body")
+	}
+	resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
-		return errors.Wrap(err, "unexpected code")
+		v := struct {
+			Message string `json:"message"`
+			Status  int    `json:"status"`
+		}{}
+		if err := json.Unmarshal(b, &v); err != nil {
+			return errors.Errorf("agent [HTTP %d] cannot read response: %s", resp.StatusCode, err)
+		}
+		return errors.Errorf("agent [HTTP %d] %s", v.Status, v.Message)
 	}
 
 	return nil
