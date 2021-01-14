@@ -73,7 +73,7 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 	for _, uPos := range rand.Perm(len(w.Units)) {
 		u := w.Units[uPos]
 
-		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "tag", w.SnapshotTag)
+		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "snapshot_tag", w.SnapshotTag)
 		var tables []string
 		if !u.AllTables {
 			tables = u.Tables

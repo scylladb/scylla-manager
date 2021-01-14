@@ -49,7 +49,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 	for i, u := range w.Units {
 		w.Logger.Debug(ctx, "Finding table snapshot directories",
 			"host", h.IP,
-			"tag", w.SnapshotTag,
+			"snapshot_tag", w.SnapshotTag,
 			"keyspace", u.Keyspace,
 		)
 
@@ -94,7 +94,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 
 			w.Logger.Debug(ctx, "Found snapshot directory",
 				"host", h.IP,
-				"tag", w.SnapshotTag,
+				"snapshot_tag", w.SnapshotTag,
 				"keyspace", d.Keyspace,
 				"table", d.Table,
 				"dir", d.Path,
