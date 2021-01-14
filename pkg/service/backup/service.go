@@ -989,7 +989,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 			},
 			Client:         client,
 			ManifestHelper: newPurgerManifestHelper(h.IP, h.Location, client, s.logger),
-			Logger:         s.logger,
+			Logger:         s.logger.With("host", h.IP),
 		}
 
 		if err := p.PurgeSnapshot(ctx, snapshotTag); err != nil {

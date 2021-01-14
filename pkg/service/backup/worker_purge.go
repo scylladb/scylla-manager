@@ -56,7 +56,7 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 		Location:       h.Location,
 		Client:         w.Client,
 		ManifestHelper: newPurgerManifestHelper(h.IP, h.Location, w.Client, w.Logger),
-		Logger:         w.Logger,
+		Logger:         w.Logger.With("host", h.IP),
 	}
 
 	if err := p.PurgeTask(ctx, w.TaskID, policy); err != nil {
