@@ -942,6 +942,15 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 	return r, nil
 }
 
+// GetLastRunWithStatus returns most recent run with a given status.
+func (s *Service) GetLastRunWithStatus(t *Task, status Status) (*Run, error) {
+	run := t.newRun(uuid.Nil)
+	run.Status = status
+
+	q := table.SchedRun.SelectBuilder().Where(qb.Eq("status")).AllowFiltering().Limit(1).Query(s.session).BindStruct(run)
+	return run, q.GetRelease(run)
+}
+
 // GetLastRun returns at most limit recent runs of the task.
 func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, error) {
 	s.logger.Debug(ctx, "GetLastRun", "task", t, "limit", limit)
