@@ -326,7 +326,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			StartDate: future,
 		})
 
-		Print("And: task runs")
+		Print("And: task runs are created")
 		putRun := func(status scheduler.Status) *scheduler.Run {
 			r := task.NewRun()
 			r.Status = status
@@ -340,6 +340,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		putRun(scheduler.StatusError)
 		putRun(scheduler.StatusRunning)
 
+		Print("Then: last run is returned")
 		v, err := h.service.GetLastRunWithStatus(task, scheduler.StatusDone)
 		if err != nil {
 			t.Fatal("GetLastRunWithStatus() error", err)
