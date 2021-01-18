@@ -16,7 +16,8 @@ import (
 
 func givenCluster() *cluster.Cluster {
 	return &cluster.Cluster{
-		ID: uuid.NewTime(),
+		ID:   uuid.NewTime(),
+		Name: "test-cluster",
 	}
 }
 

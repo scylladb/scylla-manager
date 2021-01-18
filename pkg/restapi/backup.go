@@ -130,11 +130,11 @@ func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 		}
 
 		c := mustClusterFromCtx(r)
-		if v := r.FormValue("cluster_id"); v != "" {
-			if v == c.Name || v == c.ID.String() {
+		if v := r.FormValue("query_cluster_id"); v != "" {
+			if c.ID.String() == v || c.Name == v {
 				filter.ClusterID = c.ID
 			} else if err := filter.ClusterID.UnmarshalText([]byte(v)); err != nil {
-				respondBadRequest(w, r, errors.Wrap(err, "invalid cluster_id"))
+				respondBadRequest(w, r, errors.Wrap(err, "invalid query_cluster_id"))
 				return
 			}
 		}
