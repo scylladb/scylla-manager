@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
@@ -313,6 +314,38 @@ func TestServiceScheduleIntegration(t *testing.T) {
 					t.Fatalf("Expected task %+v, got %+v", task.Sched, ts.Sched)
 				}
 			}
+		}
+	})
+
+	t.Run("get last run with status", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+
+		Print("When: task is scheduled")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+
+		Print("And: task runs")
+		putRun := func(status scheduler.Status) *scheduler.Run {
+			r := task.NewRun()
+			r.Status = status
+			if err := table.SchedRun.InsertQuery(session).BindStruct(r).ExecRelease(); err != nil {
+				t.Fatal(err)
+			}
+			return r
+		}
+		run := putRun(scheduler.StatusDone)
+		putRun(scheduler.StatusError)
+		putRun(scheduler.StatusError)
+		putRun(scheduler.StatusRunning)
+
+		v, err := h.service.GetLastRunWithStatus(task, scheduler.StatusDone)
+		if err != nil {
+			t.Fatal("GetLastRunWithStatus() error", err)
+		}
+		if diff := cmp.Diff(run, v, UUIDComparer(), cmpopts.IgnoreTypes(time.Time{})); diff != "" {
+			t.Fatalf("GetLastRunWithStatus() = %v, expected %v, diff\n%s", v, run, diff)
 		}
 	})
 
