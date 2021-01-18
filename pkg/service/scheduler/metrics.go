@@ -23,6 +23,13 @@ var (
 		Help:      "Total number of task runs.",
 	}, []string{"cluster", "type", "task", "status"})
 
+	taskLastSuccess = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "scylla_manager",
+		Subsystem: "task",
+		Name:      "last_success",
+		Help:      "Start time of the last successful run as a Unix timestamp.",
+	}, []string{"cluster", "type", "task"})
+
 	taskLastRunDurationSeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "task",
@@ -36,6 +43,7 @@ func init() {
 	prometheus.MustRegister(
 		taskActiveCount,
 		taskRunTotal,
+		taskLastSuccess,
 		taskLastRunDurationSeconds,
 	)
 }

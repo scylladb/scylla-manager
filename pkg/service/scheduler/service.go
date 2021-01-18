@@ -207,6 +207,24 @@ func (s *Service) initMetrics(ctx context.Context, t *Task) error {
 		}).Observe(0)
 	}
 
+	r, err := s.GetLastRunWithStatus(t, StatusDone)
+	if err != nil {
+		if err != service.ErrNotFound {
+			return errors.Wrap(err, "get last run with status done")
+		}
+		taskLastSuccess.With(prometheus.Labels{
+			"cluster": clusterName,
+			"task":    t.ID.String(),
+			"type":    t.Type.String(),
+		}).Set(0)
+	} else {
+		taskLastSuccess.With(prometheus.Labels{
+			"cluster": clusterName,
+			"task":    t.ID.String(),
+			"type":    t.Type.String(),
+		}).Set(float64(r.StartTime.Unix()))
+	}
+
 	return nil
 }
 
@@ -503,6 +521,14 @@ wait:
 		"task":    t.ID.String(),
 		"status":  run.Status.String(),
 	}).Inc()
+
+	if run.Status == StatusDone {
+		taskLastSuccess.With(prometheus.Labels{
+			"cluster": clusterName,
+			"type":    t.Type.String(),
+			"task":    t.ID.String(),
+		}).Set(float64(run.StartTime.Unix()))
+	}
 }
 
 // StartTask starts execution of a task immediately, regardless of the task's schedule.
