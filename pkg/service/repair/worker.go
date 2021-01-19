@@ -16,22 +16,22 @@ import (
 
 var errTableDeleted = errors.New("table deleted during repair")
 
+// maxParallelRepairs returns the maximal number of parallel repairs calculated
+// as max_parallel = floor(# of nodes / keyspace RF).
 func maxParallelRepairs(ranges []scyllaclient.TokenRange) int {
-	var replicas = make(map[uint64][]string)
-	for _, tr := range ranges {
-		replicas[replicaHash(tr.Replicas)] = tr.Replicas
+	if len(ranges) == 0 {
+		return 0
 	}
 
-	busy := strset.New()
-	size := 0
-	for _, items := range replicas {
-		if !busy.HasAny(items...) {
-			busy.Add(items...)
-			size++
+	allNodes := strset.New()
+	for _, tr := range ranges {
+		for _, node := range tr.Replicas {
+			allNodes.Add(node)
 		}
 	}
+	rf := len(ranges[0].Replicas)
 
-	return size
+	return allNodes.Size() / rf
 }
 
 type worker struct {
