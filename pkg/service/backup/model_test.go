@@ -223,7 +223,6 @@ func TestCatLimitIsEnoughToDownloadManifest(t *testing.T) {
 	Printf("Given: manifest with %d keyspaces each having %d tables, each having %d SST files, %d files in total", keyspaces, tables, filesPerTable, totalFiles)
 
 	manifest.Index = make([]filesInfo, 0, tables)
-	manifest.TokenRanges = make(map[string][]int64, keyspaces)
 
 	for k := 0; k < keyspaces; k++ {
 		keyspaceName := uuid.MustRandom()
@@ -245,12 +244,10 @@ func TestCatLimitIsEnoughToDownloadManifest(t *testing.T) {
 			manifest.Index = append(manifest.Index, idx)
 		}
 
-		tr := make([]int64, 0, 2*tokensRanges)
-		for i := 0; i < 2*tokensRanges; i++ {
-			tr = append(tr, rand.Int63())
+		manifest.Tokens = make([]int64, tokensRanges, tokensRanges)
+		for i := 0; i < tokensRanges; i++ {
+			manifest.Tokens[i] = rand.Int63()
 		}
-
-		manifest.TokenRanges[keyspaceName.String()] = tr
 	}
 
 	var buf bytes.Buffer

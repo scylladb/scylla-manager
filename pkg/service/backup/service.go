@@ -597,13 +597,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 	}
 
-	// Init rings before uploading files.
-	// This should be completely migrated to upload manifests once we upload
-	// manifests and move them see https://github.com/scylladb/scylla-manager/issues/2450
-	if err := w.InitRings(ctx); err != nil {
-		return errors.Wrap(err, "initialize")
-	}
-
 	// Register the run
 	if err := s.putRun(run); err != nil {
 		return errors.Wrap(err, "initialize: register the run")

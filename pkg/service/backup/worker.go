@@ -62,7 +62,6 @@ type worker struct {
 	snapshotDirs map[string][]snapshotDir
 	mu           sync.Mutex
 
-	rings      map[string]scyllaclient.Ring
 	memoryPool *sync.Pool
 }
 

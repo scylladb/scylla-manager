@@ -4,47 +4,47 @@
       "keyspace": "system_auth",
       "tables": [
         "role_members",
-        "roles",
-        "role_permissions"
+        "role_permissions",
+        "roles"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_distributed",
       "tables": [
+        "view_build_status",
         "cdc_generations",
-        "cdc_streams",
-        "view_build_status"
+        "cdc_streams"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_schema",
       "tables": [
-        "indexes",
+        "functions",
         "columns",
-        "types",
         "tables",
+        "types",
         "view_virtual_columns",
-        "keyspaces",
         "scylla_tables",
         "views",
-        "computed_columns",
-        "dropped_columns",
         "triggers",
+        "indexes",
+        "computed_columns",
+        "keyspaces",
         "aggregates",
-        "functions"
+        "dropped_columns"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_traces",
       "tables": [
-        "node_slow_log_time_idx",
-        "node_slow_log",
-        "events",
         "sessions",
-        "sessions_time_idx"
+        "node_slow_log",
+        "sessions_time_idx",
+        "node_slow_log_time_idx",
+        "events"
       ],
       "all_tables": true
     }
