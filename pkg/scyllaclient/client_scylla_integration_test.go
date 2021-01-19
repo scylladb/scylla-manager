@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
@@ -203,6 +204,32 @@ func TestScyllaFeaturesIntegration(t *testing.T) {
 		}
 		if sf[h].RepairLongPolling {
 			t.Errorf("%s host supports long polling repair but it shouldn't", h)
+		}
+	}
+}
+
+func TestClientTokensIntegration(t *testing.T) {
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	allTokens := i64set.New()
+	for _, h := range ManagedClusterHosts() {
+		tokens, err := client.Tokens(ctx, h)
+		if err != nil {
+			t.Error(err)
+		}
+		if len(tokens) != 256 {
+			t.Fatalf("len(Tokens()) = %d, expected 256", len(tokens))
+		}
+		for _, v := range tokens {
+			if allTokens.Has(v) {
+				t.Errorf("Token %d already present", v)
+			}
+			allTokens.Add(v)
 		}
 	}
 }
