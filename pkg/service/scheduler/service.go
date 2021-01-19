@@ -122,10 +122,14 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 
 	now := timeutc.Now()
 	err := s.forEachTask(func(t *Task) error {
-		if err := s.fixRunStatus(ctx, t, now); err != nil {
+		r, err := s.getLastRun(t)
+		if err != nil && err != service.ErrNotFound {
+			return errors.Wrap(err, "get last run")
+		}
+		if err := s.fixRunStatus(r, now); err != nil {
 			return errors.Wrap(err, "fix run status")
 		}
-		if err := s.initMetrics(ctx, t); err != nil {
+		if err := s.initMetrics(ctx, t, r); err != nil {
 			return errors.Wrap(err, "init metrics")
 		}
 		s.schedule(ctx, t)
@@ -156,26 +160,22 @@ func (s *Service) forEachTask(f func(t *Task) error) error {
 	return nil
 }
 
-func (s *Service) fixRunStatus(ctx context.Context, t *Task, now time.Time) error {
-	runs, err := s.GetLastRun(ctx, t, 1)
-	if err != nil {
-		return err
-	}
-	if len(runs) == 0 {
-		return nil
-	}
-	r := runs[0]
-	if r.Status != StatusRunning {
+func (s *Service) fixRunStatus(r *Run, now time.Time) error {
+	if r == nil {
 		return nil
 	}
 
-	r.Status = StatusAborted
-	r.Cause = "service stopped"
-	r.EndTime = &now
-	return s.putRun(r)
+	if r.Status == StatusRunning {
+		r.Status = StatusAborted
+		r.Cause = "service stopped"
+		r.EndTime = &now
+		return s.putRun(r)
+	}
+
+	return nil
 }
 
-func (s *Service) initMetrics(ctx context.Context, t *Task) error {
+func (s *Service) initMetrics(ctx context.Context, t *Task, r *Run) error {
 	clusterName, err := s.clusterName(ctx, t.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "get cluster name")
@@ -183,21 +183,31 @@ func (s *Service) initMetrics(ctx context.Context, t *Task) error {
 
 	// Using Add(0) to not override existing values.
 
+	// Init active_count
 	taskActiveCount.With(prometheus.Labels{
 		"cluster": clusterName,
 		"type":    t.Type.String(),
 		"task":    t.ID.String(),
 	}).Add(0)
 
+	// Init run_total and last_run_duration_seconds
 	statuses := []Status{StatusNew, StatusRunning, StatusStopped, StatusDone, StatusError, StatusAborted}
-
 	for _, s := range statuses {
+		// If last run was aborted record it with taskRunTotal.
+		// Otherwise it is impossible to notice ABORTED runs since they belong
+		// to the last service run.
+		// Counting all rows does not make sense either because the run rows
+		// are TTLed, and after a while they would flatten out or could decrease.
+		v := float64(0)
+		if a := StatusAborted; s == a && r != nil && r.Status == a {
+			v = 1
+		}
 		taskRunTotal.With(prometheus.Labels{
 			"cluster": clusterName,
 			"type":    t.Type.String(),
 			"task":    t.ID.String(),
 			"status":  s.String(),
-		}).Add(0)
+		}).Add(v)
 
 		taskLastRunDurationSeconds.With(prometheus.Labels{
 			"cluster": clusterName,
@@ -207,25 +217,41 @@ func (s *Service) initMetrics(ctx context.Context, t *Task) error {
 		}).Observe(0)
 	}
 
-	r, err := s.GetLastRunWithStatus(t, StatusDone)
+	// Init last_success
+	st, err := s.lastDoneRunStartTime(t, r)
 	if err != nil {
-		if err != service.ErrNotFound {
-			return errors.Wrap(err, "get last run with status done")
-		}
-		taskLastSuccess.With(prometheus.Labels{
-			"cluster": clusterName,
-			"task":    t.ID.String(),
-			"type":    t.Type.String(),
-		}).Set(0)
-	} else {
-		taskLastSuccess.With(prometheus.Labels{
-			"cluster": clusterName,
-			"task":    t.ID.String(),
-			"type":    t.Type.String(),
-		}).Set(float64(r.StartTime.Unix()))
+		return err
 	}
+	taskLastSuccess.With(prometheus.Labels{
+		"cluster": clusterName,
+		"task":    t.ID.String(),
+		"type":    t.Type.String(),
+	}).Set(float64(st.Unix()))
 
 	return nil
+}
+
+func (s *Service) lastDoneRunStartTime(t *Task, r *Run) (time.Time, error) {
+	zero := time.Time{}
+
+	// If there is no last run there is no previous run with some status.
+	if r == nil {
+		return zero, nil
+	}
+
+	if r.Status == StatusDone {
+		return r.StartTime, nil
+	}
+
+	dr, err := s.GetLastRunWithStatus(t, StatusDone)
+	if err != nil {
+		if err == service.ErrNotFound {
+			err = nil
+		}
+		return zero, errors.Wrap(err, "get last run with status done")
+	}
+
+	return dr.StartTime, nil
 }
 
 // schedule cancels any pending triggers for task and adds new trigger if needed.
@@ -881,7 +907,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	s.schedule(ctx, t)
 
 	if create {
-		if err := s.initMetrics(ctx, t); err != nil {
+		if err := s.initMetrics(ctx, t, nil); err != nil {
 			return errors.Wrap(err, "init metrics")
 		}
 	}
@@ -989,30 +1015,33 @@ func (s *Service) GetLastRun(ctx context.Context, t *Task, limit int) ([]*Run, e
 		return nil, service.ErrValidate(errors.New("limit must be > 0"))
 	}
 
-	b := qb.Select(table.SchedRun.Name()).Where(
+	q := qb.Select(table.SchedRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("type"),
 		qb.Eq("task_id"),
-	)
-	b.Limit(uint(limit))
-
-	q := b.Query(s.session).BindMap(qb.M{
+	).Limit(uint(limit)).Query(s.session).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"task_id":    t.ID,
 	})
-	defer q.Release()
 
-	if err := q.Err(); err != nil {
-		return nil, err
-	}
+	var runs []*Run
+	return runs, q.SelectRelease(&runs)
+}
 
-	var r []*Run
-	if err := q.Select(&r); err != nil && err != service.ErrNotFound {
-		return nil, err
-	}
+func (s *Service) getLastRun(t *Task) (*Run, error) {
+	q := qb.Select(table.SchedRun.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("type"),
+		qb.Eq("task_id"),
+	).Limit(1).Query(s.session).BindMap(qb.M{
+		"cluster_id": t.ClusterID,
+		"type":       t.Type,
+		"task_id":    t.ID,
+	})
 
-	return r, nil
+	var run Run
+	return &run, q.GetRelease(&run)
 }
 
 func (s *Service) putRun(r *Run) error {
