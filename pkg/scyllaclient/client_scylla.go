@@ -241,22 +241,24 @@ func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) 
 	return tables, nil
 }
 
-// Tokens returns list of tokens in a cluster.
-func (c *Client) Tokens(ctx context.Context) ([]int64, error) {
-	resp, err := c.scyllaOps.StorageServiceTokensEndpointGet(&operations.StorageServiceTokensEndpointGetParams{Context: ctx})
+// Tokens returns list of tokens for a node.
+func (c *Client) Tokens(ctx context.Context, host string) ([]int64, error) {
+	resp, err := c.scyllaOps.StorageServiceTokensByEndpointGet(&operations.StorageServiceTokensByEndpointGetParams{
+		Endpoint: host,
+		Context:  ctx,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	tokens := make([]int64, len(resp.Payload))
-	for i, p := range resp.Payload {
-		v, err := strconv.ParseInt(p.Key, 10, 64)
+	for i, s := range resp.Payload {
+		v, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return tokens, fmt.Errorf("parsing failed at pos %d: %s", i, err)
 		}
 		tokens[i] = v
 	}
-
 	return tokens, nil
 }
 

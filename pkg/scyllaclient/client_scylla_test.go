@@ -159,14 +159,14 @@ func TestCheckHostsNotChanged(t *testing.T) {
 func TestClientTokens(t *testing.T) {
 	t.Parallel()
 
-	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/tokens_endpoint.json")
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_tokens.json")
 	defer closeServer()
 
-	v, err := client.Tokens(context.Background())
+	v, err := client.Tokens(context.Background(), scyllaclienttest.TestHost)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(v) != 3*256 {
+	if len(v) != 256 {
 		t.Fatal(len(v))
 	}
 }
