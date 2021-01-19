@@ -26,13 +26,12 @@ type fileInfo struct {
 	Size int64  `json:"size"`
 }
 
-// V1 backups lacks token ranges info, so it may be empty.
 type manifestContent struct {
-	Version     string             `json:"version"`
-	Index       []filesInfo        `json:"index"`
-	Size        int64              `json:"size"`
-	TokenRanges map[string][]int64 `json:"token_ranges"`
-	Schema      string             `json:"schema"`
+	Version string      `json:"version"`
+	Index   []filesInfo `json:"index"`
+	Size    int64       `json:"size"`
+	Tokens  []int64     `json:"tokens"`
+	Schema  string      `json:"schema"`
 }
 
 func (m *manifestContent) Read(r io.Reader) error {

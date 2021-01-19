@@ -799,7 +799,7 @@ func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTe
 	}
 
 	opts := []cmp.Option{
-		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size", "TokenRanges", "Schema"),
+		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size", "Tokens", "Schema"),
 		cmpopts.IgnoreFields(backup.ModelFilesInfo{}, "Version", "Size"),
 	}
 	if diff := cmp.Diff(golden, manifest, opts...); diff != "" {
@@ -813,8 +813,8 @@ func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTe
 			t.Errorf("%d: expected non zero table %s size", i, fi.Table)
 		}
 	}
-	if len(manifest.TokenRanges) == 0 {
-		t.Error("expected token ranges in manifest")
+	if len(manifest.Tokens) != 256 {
+		t.Errorf("expected 256 tokens in manifest, got %d", len(manifest.Tokens))
 	}
 
 	if !strset.New(schemas...).Has(manifest.Schema) {

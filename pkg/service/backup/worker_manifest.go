@@ -8,23 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
-
-func (w *worker) InitRings(ctx context.Context) error {
-	w.rings = make(map[string]scyllaclient.Ring, len(w.Units))
-	for _, u := range w.Units {
-		ring, err := w.Client.DescribeRing(ctx, u.Keyspace)
-		if err != nil {
-			return errors.Wrapf(err, "describe ring for keyspace %s", u.Keyspace)
-		}
-		w.rings[u.Keyspace] = ring
-	}
-	return nil
-}
 
 func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo, limits []DCLimit) (stepError error) {
 	w.Logger.Info(ctx, "Uploading manifest files...")
@@ -42,18 +28,32 @@ func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo, limits []
 	workerCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	err := inParallelWithLimits(hosts, limits, func(h hostInfo) error {
-		m := w.aggregateHostManifest(ctx, h)
-		rollback, err := w.uploadHostManifest(workerCtx, h, m)
-		if err != nil {
+	err := inParallelWithLimits(hosts, limits, func(h hostInfo) (hostErr error) {
+		defer func() {
 			// Fail fast in case of any errors
-			cancel()
-			w.Logger.Error(ctx, "Uploading aggregated manifest file failed", "host", h.IP, "error", err)
-			return parallel.Abort(err)
+			if hostErr != nil {
+				cancel()
+				w.Logger.Error(ctx, "Uploading manifest failed", "host", h.IP, "error", hostErr)
+				hostErr = parallel.Abort(hostErr)
+			}
+		}()
+
+		// Get tokens
+		tokens, err := w.Client.Tokens(ctx, h.IP)
+		if err != nil {
+			return err
 		}
 
+		// Create manifest
+		m := w.createHostManifest(ctx, h, tokens)
+		r, err := w.uploadHostManifest(workerCtx, h, m)
+		if err != nil {
+			return err
+		}
+
+		// Register rollback
 		rollbacksMu.Lock()
-		rollbacks = append(rollbacks, rollback)
+		rollbacks = append(rollbacks, r)
 		rollbacksMu.Unlock()
 
 		return nil
@@ -74,11 +74,10 @@ func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo, limits []
 	return nil
 }
 
-func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteManifest {
-	w.Logger.Info(ctx, "Aggregating manifest files on host", "host", h.IP)
+func (w *worker) createHostManifest(ctx context.Context, h hostInfo, tokens []int64) *remoteManifest {
+	w.Logger.Info(ctx, "Creating manifest files on host", "host", h.IP)
 
 	dirs := w.hostSnapshotDirs(h)
-	tokenRanges := w.hostTokenRanges(h)
 
 	m := &remoteManifest{
 		Location:    h.Location,
@@ -88,30 +87,15 @@ func (w *worker) aggregateHostManifest(ctx context.Context, h hostInfo) *remoteM
 		TaskID:      w.TaskID,
 		SnapshotTag: w.SnapshotTag,
 		Content: manifestContent{
-			Version:     "v2",
-			Index:       make([]filesInfo, len(dirs)),
-			TokenRanges: tokenRanges,
+			Version: "v2",
+			Index:   make([]filesInfo, len(dirs)),
+			Tokens:  tokens,
 		},
 	}
 	if w.SchemaUploaded {
 		m.Content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
-	w.transformSnapshotIndexIntoManifest(dirs, m)
-
-	w.Logger.Info(ctx, "Done aggregating manifest file on host", "host", h.IP)
-	return m
-}
-
-func (w *worker) hostTokenRanges(h hostInfo) map[string][]int64 {
-	tr := make(map[string][]int64)
-	for _, u := range w.Units {
-		tr[u.Keyspace] = w.rings[u.Keyspace].HostTokenRanges(h.IP)
-	}
-	return tr
-}
-
-func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *remoteManifest) {
 	for i, d := range dirs {
 		idx := &m.Content.Index[i]
 		idx.Keyspace = d.Keyspace
@@ -124,6 +108,9 @@ func (w *worker) transformSnapshotIndexIntoManifest(dirs []snapshotDir, m *remot
 		}
 		m.Content.Size += d.Progress.Size
 	}
+
+	w.Logger.Info(ctx, "Done creating manifest file on host", "host", h.IP)
+	return m
 }
 
 func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *remoteManifest) (rollback func(context.Context) error, err error) {
