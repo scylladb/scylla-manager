@@ -88,7 +88,7 @@ func (w *worker) createHostManifest(ctx context.Context, h hostInfo, tokens []in
 		SnapshotTag: w.SnapshotTag,
 		Content: manifestContent{
 			Version: "v2",
-			Index:   make([]filesInfo, len(dirs)),
+			IP:      h.IP,
 			Tokens:  tokens,
 		},
 	}
@@ -96,6 +96,7 @@ func (w *worker) createHostManifest(ctx context.Context, h hostInfo, tokens []in
 		m.Content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
+	m.Content.Index = make([]filesInfo, len(dirs))
 	for i, d := range dirs {
 		idx := &m.Content.Index[i]
 		idx.Keyspace = d.Keyspace
