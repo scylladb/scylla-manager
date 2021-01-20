@@ -30,6 +30,7 @@ type manifestContent struct {
 	Version string      `json:"version"`
 	Index   []filesInfo `json:"index"`
 	Size    int64       `json:"size"`
+	IP      string      `json:"ip"`
 	Tokens  []int64     `json:"tokens"`
 	Schema  string      `json:"schema"`
 }

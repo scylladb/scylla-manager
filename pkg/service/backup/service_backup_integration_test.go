@@ -764,10 +764,10 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	h.assertMetadataVersion(ctx, "v2")
 
-	thenManifestHasCorrectFormat(t, ctx, h, manifests[0], goldenManifestPath, schemas)
+	assertManifestHasCorrectFormat(t, ctx, h, manifests[0], goldenManifestPath, schemas)
 }
 
-func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper,
+func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper,
 	manifestPath, goldenManifestPath string, schemas []string) {
 	manifestsContent, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
 	if err != nil {
@@ -812,6 +812,9 @@ func thenManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTe
 		if fi.Size == 0 {
 			t.Errorf("%d: expected non zero table %s size", i, fi.Table)
 		}
+	}
+	if manifest.IP == "" {
+		t.Errorf("expected IP address")
 	}
 	if len(manifest.Tokens) != 256 {
 		t.Errorf("expected 256 tokens in manifest, got %d", len(manifest.Tokens))
