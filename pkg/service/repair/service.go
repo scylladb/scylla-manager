@@ -387,7 +387,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	var ctl controller
 	if enableRowLevelRepairOpt {
-		ctl = newRowLevelRepairController(ih, hostRangesLimits)
+		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
 		s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
 	} else {
 		ctl = newDefaultController(ih, hostRangesLimits)

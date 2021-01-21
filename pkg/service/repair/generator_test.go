@@ -219,7 +219,7 @@ func (s *generatorTestSuite) newController(intensity float64, parallel, maxParal
 
 	var ctl controller
 	if s.rowLevelRepair {
-		ctl = newRowLevelRepairController(ih, s.hostRangesLimits)
+		ctl = newRowLevelRepairController(ih, s.hostRangesLimits, 6, 2)
 	} else {
 		ctl = newDefaultController(ih, s.hostRangesLimits)
 	}
