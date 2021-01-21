@@ -26,8 +26,9 @@ type controller interface {
 type defaultController struct {
 	intensity *intensityHandler
 	limits    hostRangesLimit
-	busy      *strset.Set
-	jobs      int
+
+	busy *strset.Set
+	jobs int
 }
 
 var _ controller = &defaultController{}
@@ -135,8 +136,11 @@ func (c *defaultController) MaxWorkerCount() int {
 // If parallel is set it caps the number of distinct replica sets that can be
 // repaired at the same time.
 type rowLevelRepairController struct {
-	intensity    *intensityHandler
-	limits       hostRangesLimit
+	intensity      *intensityHandler
+	limits         hostRangesLimit
+	maxWorkerCount int
+
+	allJobs      int
 	jobs         map[string]int
 	busyRanges   map[string]int
 	busyReplicas map[uint64]int
@@ -144,7 +148,7 @@ type rowLevelRepairController struct {
 
 var _ controller = &rowLevelRepairController{}
 
-func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit) *rowLevelRepairController {
+func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit, nodes, minRf int) *rowLevelRepairController {
 	if ih.MaxParallel() == 0 {
 		panic("No available workers")
 	}
@@ -153,11 +157,12 @@ func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit) *rowL
 	}
 
 	return &rowLevelRepairController{
-		intensity:    ih,
-		limits:       hl,
-		jobs:         make(map[string]int),
-		busyRanges:   make(map[string]int),
-		busyReplicas: make(map[uint64]int),
+		intensity:      ih,
+		limits:         hl,
+		maxWorkerCount: hl.MaxShards() * nodes / minRf,
+		jobs:           make(map[string]int),
+		busyRanges:     make(map[string]int),
+		busyReplicas:   make(map[uint64]int),
 	}
 }
 
@@ -208,20 +213,26 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 	}
 
 	// DENY if there is too much parallel replicas being repaired
-	if c.intensity.Parallel() != defaultParallel {
+	if parallel := c.intensity.Parallel(); parallel != defaultParallel {
 		hash := replicaHash(hosts)
 		if _, ok := c.busyReplicas[hash]; !ok {
 			l := len(c.busyReplicas) + 1
-			if l > c.intensity.Parallel() || l > c.intensity.MaxParallel() {
+			if l > parallel || l > c.intensity.MaxParallel() {
 				return false
 			}
 		}
+	}
+
+	// DENY if all workers are busy
+	if c.allJobs == c.maxWorkerCount {
+		return false
 	}
 
 	return true
 }
 
 func (c *rowLevelRepairController) block(hosts []string, ranges int) {
+	c.allJobs++
 	for _, h := range hosts {
 		c.jobs[h]++
 		c.busyRanges[h] += ranges
@@ -257,6 +268,7 @@ func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity 
 }
 
 func (c *rowLevelRepairController) Unblock(a allowance) {
+	c.allJobs--
 	for _, h := range a.Replicas {
 		c.jobs[h]--
 		c.busyRanges[h] -= a.Ranges
@@ -277,8 +289,6 @@ func (c *rowLevelRepairController) Busy() bool {
 	return len(c.busyReplicas) > 0
 }
 
-// MaxWorkerCount returns maximal number of shards in all nodes times maximal
-// parallelism as reported by intensity.
 func (c *rowLevelRepairController) MaxWorkerCount() int {
-	return c.limits.MaxShards() * c.intensity.MaxParallel()
+	return c.maxWorkerCount
 }

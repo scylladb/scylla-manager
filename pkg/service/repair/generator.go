@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"math"
 	"strings"
 	"time"
 
@@ -55,7 +56,7 @@ type generator struct {
 	replicas      map[uint64][]string
 	replicasIndex map[uint64]int
 	ranges        map[uint64][]*tableTokenRange
-	hostCount     int
+	minRf         int
 	smallTables   *strset.Set
 	deletedTables *strset.Set
 	lastPercent   int
@@ -89,6 +90,7 @@ func newGenerator(gracefulStopTimeout time.Duration, progress progressManager, l
 		replicas:      make(map[uint64][]string),
 		replicasIndex: make(map[uint64]int),
 		ranges:        make(map[uint64][]*tableTokenRange),
+		minRf:         math.MaxInt8,
 		smallTables:   strset.New(),
 		deletedTables: strset.New(),
 		lastPercent:   -1,
@@ -118,6 +120,10 @@ func (g *generator) add(ctx context.Context, ttr *tableTokenRange) {
 		g.replicasIndex[hash] = len(g.replicasIndex)
 	}
 	g.ranges[hash] = append(g.ranges[hash], ttr)
+
+	if l := len(ttr.Replicas); l < g.minRf {
+		g.minRf = l
+	}
 }
 
 func (g *generator) Hosts() *strset.Set {
@@ -126,6 +132,10 @@ func (g *generator) Hosts() *strset.Set {
 		all.Add(v...)
 	}
 	return all
+}
+
+func (g *generator) MinReplicationFactor() int {
+	return g.minRf
 }
 
 func (g *generator) Size() int {
@@ -153,7 +163,6 @@ func (g *generator) Init(ctx context.Context, ctl controller, hp hostPriority, o
 	for hash, i := range g.replicasIndex {
 		g.keys[i] = hash
 	}
-	g.hostCount = g.Hosts().Size()
 
 	g.next = make(chan job, ctl.MaxWorkerCount())
 	g.result = make(chan jobResult)
