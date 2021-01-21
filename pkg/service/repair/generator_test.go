@@ -201,7 +201,7 @@ func (s *generatorTestSuite) newGenerator(ctx context.Context, target Target, sm
 		g.markSmallTable(kt.Keyspace, kt.Table)
 	}
 
-	ctl, ih := s.newController(target.Intensity, target.Parallel, maxParallelRepairs(s.ranges))
+	ctl, ih := s.newController(target.Intensity, target.Parallel, b.MaxParallelRepairs())
 	if err := g.Init(ctx, ctl, s.hostPriority); err != nil {
 		panic(err)
 	}
@@ -249,7 +249,7 @@ func (s *generatorTestSuite) Basic(t *testing.T) {
 					g.Add(ctx, b.Build(u))
 				}
 
-				ctl, _ := s.newController(target.Intensity, target.Parallel, maxParallelRepairs(s.ranges))
+				ctl, _ := s.newController(target.Intensity, target.Parallel, b.MaxParallelRepairs())
 				if err := g.Init(ctx, ctl, s.hostPriority); err != nil {
 					t.Fatal(err)
 				}

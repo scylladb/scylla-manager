@@ -8,31 +8,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/dht"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 )
 
 var errTableDeleted = errors.New("table deleted during repair")
-
-// maxParallelRepairs returns the maximal number of parallel repairs calculated
-// as max_parallel = floor(# of nodes / keyspace RF).
-func maxParallelRepairs(ranges []scyllaclient.TokenRange) int {
-	if len(ranges) == 0 {
-		return 0
-	}
-
-	allNodes := strset.New()
-	for _, tr := range ranges {
-		for _, node := range tr.Replicas {
-			allNodes.Add(node)
-		}
-	}
-	rf := len(ranges[0].Replicas)
-
-	return allNodes.Size() / rf
-}
 
 type worker struct {
 	run                       *Run

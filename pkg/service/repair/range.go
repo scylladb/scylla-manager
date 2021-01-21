@@ -161,6 +161,24 @@ func (b *tableTokenRangeBuilder) filteredReplicas(replicas []string) (out []stri
 	return
 }
 
+// MaxParallelRepairs returns the maximal number of parallel repairs calculated
+// as max_parallel = floor(# of nodes / keyspace RF).
+func (b *tableTokenRangeBuilder) MaxParallelRepairs() int {
+	if len(b.prototypes) == 0 {
+		return 0
+	}
+
+	allNodes := strset.New()
+	for _, tr := range b.prototypes {
+		for _, node := range tr.Replicas {
+			allNodes.Add(node)
+		}
+	}
+	rf := len(b.prototypes[0].Replicas)
+
+	return allNodes.Size() / rf
+}
+
 func (b *tableTokenRangeBuilder) Build(unit Unit) (out []*tableTokenRange) {
 	for _, table := range unit.Tables {
 		for _, p := range b.prototypes {
