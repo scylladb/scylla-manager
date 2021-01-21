@@ -148,6 +148,9 @@ func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit) *rowL
 	if ih.MaxParallel() == 0 {
 		panic("No available workers")
 	}
+	if hl.MaxShards() == 0 {
+		panic("No available ranges")
+	}
 
 	return &rowLevelRepairController{
 		intensity:    ih,
@@ -277,15 +280,5 @@ func (c *rowLevelRepairController) Busy() bool {
 // MaxWorkerCount returns maximal number of shards in all nodes times maximal
 // parallelism as reported by intensity.
 func (c *rowLevelRepairController) MaxWorkerCount() int {
-	maxShards := 0
-	for _, l := range c.limits {
-		if v := l.Default; v > maxShards {
-			maxShards = v
-		}
-	}
-	if maxShards == 0 {
-		panic("No available ranges")
-	}
-
-	return maxShards * c.intensity.MaxParallel()
+	return c.limits.MaxShards() * c.intensity.MaxParallel()
 }

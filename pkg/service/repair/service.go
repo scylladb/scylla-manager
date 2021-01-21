@@ -501,6 +501,17 @@ type rangesLimit struct {
 
 type hostRangesLimit map[string]rangesLimit
 
+// MaxShards returns max number of shards for all hosts.
+func (hrl hostRangesLimit) MaxShards() int {
+	max := 0
+	for _, l := range hrl {
+		if v := l.Default; v > max {
+			max = v
+		}
+	}
+	return max
+}
+
 func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {
 	var (
 		out = make(hostRangesLimit, len(hosts))
