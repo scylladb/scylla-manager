@@ -282,13 +282,17 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
 		}
 
-		// Transform ring to tableTokenRanges and init generator
-		gen.Add(ctx, newTableTokenRangeBuilder(target, ring.HostDC).Add(ring.Tokens).Build(u))
+		// Transform ring to tableTokenRanges
+		b := newTableTokenRangeBuilder(target, ring.HostDC)
+		b.Add(ring.Tokens)
 
-		// Estimate worker count
-		if v := maxParallelRepairs(ring.Tokens); v > maxParallel {
+		// Calculate worker count
+		if v := b.MaxParallelRepairs(); v > maxParallel {
 			maxParallel = v
 		}
+
+		// Add token ranges to generator
+		gen.Add(ctx, b.Build(u))
 	}
 
 	// Check if there is anything to repair if not there is something wrong

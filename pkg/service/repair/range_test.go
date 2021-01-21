@@ -3,6 +3,8 @@
 package repair
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -152,6 +154,60 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 
 			if diff := cmp.Diff(v, test.Golden); diff != "" {
 				t.Errorf("Build()=%+#v expected %+#v, diff %s", v, test.Golden, diff)
+			}
+		})
+	}
+}
+
+func TestTestTableTokenRangeBuilderMaxParallelRepairs(t *testing.T) {
+	table := []struct {
+		Name      string
+		InputFile string
+		Count     int
+	}{
+		{
+			Name:      "RF=2",
+			InputFile: "testdata/worker_count/simple_rf2.json",
+			Count:     3,
+		},
+		{
+			Name:      "RF=3",
+			InputFile: "testdata/worker_count/simple_rf3.json",
+			Count:     2,
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+		t.Run(test.Name, func(t *testing.T) {
+			var content []struct {
+				Endpoints []string `json:"endpoints"`
+			}
+			data, err := ioutil.ReadFile(test.InputFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal(data, &content); err != nil {
+				t.Fatal(err)
+			}
+			var ranges []scyllaclient.TokenRange
+			for i := range content {
+				ranges = append(ranges, scyllaclient.TokenRange{Replicas: content[i].Endpoints})
+			}
+
+			target := Target{DC: []string{"dc1"}}
+			hostDC := map[string]string{
+				"192.168.100.11": "dc1",
+				"192.168.100.12": "dc1",
+				"192.168.100.13": "dc1",
+				"192.168.100.21": "dc1",
+				"192.168.100.22": "dc1",
+				"192.168.100.23": "dc1",
+			}
+			b := newTableTokenRangeBuilder(target, hostDC).Add(ranges)
+
+			if v := b.MaxParallelRepairs(); v != test.Count {
+				t.Errorf("maxParallelRepairs()=%d expected %d", v, test.Count)
 			}
 		})
 	}
