@@ -805,16 +805,19 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	if diff := cmp.Diff(golden, manifest, opts...); diff != "" {
 		t.Fatal(diff)
 	}
-	if manifest.Size == 0 {
-		t.Error("expected non zero backup size")
+	if manifest.ClusterName != "test_cluster" {
+		t.Errorf("expected cluster name")
+	}
+	if manifest.IP == "" {
+		t.Errorf("expected IP address")
 	}
 	for i, fi := range manifest.Index {
 		if fi.Size == 0 {
 			t.Errorf("%d: expected non zero table %s size", i, fi.Table)
 		}
 	}
-	if manifest.IP == "" {
-		t.Errorf("expected IP address")
+	if manifest.Size == 0 {
+		t.Error("expected non zero backup size")
 	}
 	if len(manifest.Tokens) != 256 {
 		t.Errorf("expected 256 tokens in manifest, got %d", len(manifest.Tokens))

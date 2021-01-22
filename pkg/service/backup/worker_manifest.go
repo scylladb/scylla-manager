@@ -79,26 +79,19 @@ func (w *worker) createHostManifest(ctx context.Context, h hostInfo, tokens []in
 
 	dirs := w.hostSnapshotDirs(h)
 
-	m := &remoteManifest{
-		Location:    h.Location,
-		DC:          h.DC,
-		ClusterID:   w.ClusterID,
-		NodeID:      h.ID,
-		TaskID:      w.TaskID,
-		SnapshotTag: w.SnapshotTag,
-		Content: manifestContent{
-			Version: "v2",
-			IP:      h.IP,
-			Tokens:  tokens,
-		},
+	content := manifestContent{
+		Version:     "v2",
+		ClusterName: w.ClusterName,
+		IP:          h.IP,
+		Index:       make([]filesInfo, len(dirs)),
+		Tokens:      tokens,
 	}
 	if w.SchemaUploaded {
-		m.Content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+		content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
-	m.Content.Index = make([]filesInfo, len(dirs))
 	for i, d := range dirs {
-		idx := &m.Content.Index[i]
+		idx := &content.Index[i]
 		idx.Keyspace = d.Keyspace
 		idx.Table = d.Table
 		idx.Version = d.Version
@@ -107,7 +100,17 @@ func (w *worker) createHostManifest(ctx context.Context, h hostInfo, tokens []in
 			idx.Files = append(idx.Files, f.Name)
 			idx.Size += f.Size
 		}
-		m.Content.Size += d.Progress.Size
+		content.Size += d.Progress.Size
+	}
+
+	m := &remoteManifest{
+		Location:    h.Location,
+		DC:          h.DC,
+		ClusterID:   w.ClusterID,
+		NodeID:      h.ID,
+		TaskID:      w.TaskID,
+		SnapshotTag: w.SnapshotTag,
+		Content:     content,
 	}
 
 	w.Logger.Info(ctx, "Done creating manifest file on host", "host", h.IP)
