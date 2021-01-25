@@ -686,7 +686,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		w.cleanup(ctx, hi)
 	}
 
-	// Create and upload manifests
+	// Create and upload manifests to a temporary location
 	if shouldRun(StageManifest) {
 		s.updateStage(ctx, run, StageManifest)
 		w = w.WithLogger(s.logger.Named("manifest"))
@@ -712,6 +712,16 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		w = w.WithLogger(s.logger.Named("upload"))
 		if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
 			return errors.Wrap(err, "upload")
+		}
+		w.cleanup(ctx, hi)
+	}
+
+	// Move manifests to final location, remove temp suffix
+	if shouldRun(StageMoveManifest) {
+		s.updateStage(ctx, run, StageMoveManifest)
+		w = w.WithLogger(s.logger.Named("manifest"))
+		if err := w.MoveManifest(ctx, hi); err != nil {
+			return errors.Wrap(err, "move manifest")
 		}
 		w.cleanup(ctx, hi)
 	}

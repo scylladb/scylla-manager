@@ -24,7 +24,9 @@ const (
 	manifest        = "manifest.json.gz"
 	schema          = "schema.tar.gz"
 	metadataVersion = ".version"
-	sep             = string(os.PathSeparator)
+
+	sep         = string(os.PathSeparator)
+	tempFileExt = ".tmp"
 )
 
 func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
@@ -138,6 +140,10 @@ func remoteMetaVersionFile(clusterID uuid.UUID, dc, nodeID string) string {
 		remoteManifestDir(clusterID, dc, nodeID),
 		metadataVersion,
 	)
+}
+
+func tempFile(f string) string {
+	return f + tempFileExt
 }
 
 // Adapted from Scylla's sstable detection code

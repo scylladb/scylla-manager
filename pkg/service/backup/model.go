@@ -132,16 +132,17 @@ type Stage string
 
 // Stage enumeration.
 const (
-	StageInit        Stage = "INIT"
-	StageAwaitSchema Stage = "AWAIT_SCHEMA"
-	StageSnapshot    Stage = "SNAPSHOT"
-	StageIndex       Stage = "INDEX"
-	StageManifest    Stage = "MANIFEST"
-	StageSchema      Stage = "SCHEMA"
-	StageUpload      Stage = "UPLOAD"
-	StageMigrate     Stage = "MIGRATE"
-	StagePurge       Stage = "PURGE"
-	StageDone        Stage = "DONE"
+	StageInit         Stage = "INIT"
+	StageAwaitSchema  Stage = "AWAIT_SCHEMA"
+	StageSnapshot     Stage = "SNAPSHOT"
+	StageIndex        Stage = "INDEX"
+	StageManifest     Stage = "MANIFEST"
+	StageSchema       Stage = "SCHEMA"
+	StageUpload       Stage = "UPLOAD"
+	StageMoveManifest Stage = "MOVE_MANIFEST"
+	StageMigrate      Stage = "MIGRATE"
+	StagePurge        Stage = "PURGE"
+	StageDone         Stage = "DONE"
 
 	stageNone Stage = ""
 )
@@ -154,6 +155,7 @@ var stageOrder = []Stage{
 	StageManifest,
 	StageSchema,
 	StageUpload,
+	StageMoveManifest,
 	StageMigrate,
 	StagePurge,
 	StageDone,
@@ -162,7 +164,7 @@ var stageOrder = []Stage{
 // Resumable run can be continued.
 func (s Stage) Resumable() bool {
 	switch s {
-	case StageIndex, StageManifest, StageUpload, StageMigrate, StagePurge:
+	case StageIndex, StageManifest, StageUpload, StageMoveManifest, StageMigrate, StagePurge:
 		return true
 	default:
 		return false

@@ -5,9 +5,11 @@ package backup
 import (
 	"bytes"
 	"context"
-	"sync"
+	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
@@ -130,7 +132,7 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *remoteMa
 		return nil, err
 	}
 
-	manifestDst := h.Location.RemotePath(remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, h.DC, h.ID))
+	manifestDst := h.Location.RemotePath(m.TempRemoteManifestFile())
 	if err := w.Client.RclonePut(ctx, h.IP, manifestDst, buf, int64(buf.Len())); err != nil {
 		return nil, err
 	}
@@ -144,4 +146,62 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *remoteMa
 func (w *worker) deleteHostFile(ctx context.Context, host, path string) error {
 	w.Logger.Debug(ctx, "Deleting file", "path", path, "host", host)
 	return w.Client.RcloneDeleteFile(ctx, host, path)
+}
+
+func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error) {
+	w.Logger.Info(ctx, "Moving manifest files...")
+	defer func(start time.Time) {
+		if err != nil {
+			w.Logger.Error(ctx, "Moving manifest files failed see exact errors above", "duration", timeutc.Since(start))
+		} else {
+			w.Logger.Info(ctx, "Done moving manifest files", "duration", timeutc.Since(start))
+		}
+	}(timeutc.Now())
+
+	rollbacks := make([]func(context.Context) error, len(hosts))
+
+	if err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) (hostErr error) {
+		h := hosts[i]
+		defer func() {
+			hostErr = errors.Wrap(hostErr, h.String())
+		}()
+
+		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
+		dst := h.Location.RemotePath(remoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
+		src := tempFile(dst)
+
+		// Register rollback
+		rollbacks[i] = func(ctx context.Context) error { return w.Client.RcloneMoveFile(ctx, h.IP, src, dst) }
+
+		// Try to move
+		err := w.Client.RcloneMoveFile(ctx, h.IP, dst, src)
+		if err != nil {
+			w.Logger.Error(ctx, "Moving manifest file on host", "host", h.IP, "error", err)
+		} else {
+			w.Logger.Info(ctx, "Done moving manifest file on host", "host", h.IP)
+		}
+
+		return err
+	}); err != nil {
+		w.rollbackMoveManifest(ctx, hosts, rollbacks)
+		return err
+	}
+
+	return nil
+}
+
+func (w *worker) rollbackMoveManifest(ctx context.Context, hosts []hostInfo, rollbacks []func(context.Context) error) {
+	w.Logger.Info(ctx, "Rolling back manifest files move")
+	for i := range rollbacks {
+		// Parent context might be already canceled, use background context.
+		// Request timeout is configured on transport layer.
+		if rollbacks[i] != nil {
+			if err := rollbacks[i](context.Background()); err != nil {
+				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+					continue
+				}
+				w.Logger.Info(ctx, "Cannot rollback manifest move", "host", hosts[i].IP, "error", err)
+			}
+		}
+	}
 }
