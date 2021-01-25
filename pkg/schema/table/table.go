@@ -84,26 +84,13 @@ var (
 			"token_ranges",
 			"success",
 			"error",
+			"started_at",
+			"completed_at",
+			"duration",
+			"duration_started_at",
 		},
 		PartKey: []string{"cluster_id", "task_id", "run_id"},
 		SortKey: []string{"host", "keyspace_name", "table_name"},
-	})
-
-	RepairJobExecution = table.New(table.Metadata{
-		Name: "repair_job_execution",
-		Columns: []string{
-			"cluster_id",
-			"task_id",
-			"run_id",
-			"keyspace_name",
-			"table_name",
-			"host",
-			"job_id",
-			"start",
-			"end",
-		},
-		PartKey: []string{"cluster_id", "task_id", "run_id"},
-		SortKey: []string{"keyspace_name", "table_name", "host", "job_id"},
 	})
 
 	RepairRunState = table.New(table.Metadata{
