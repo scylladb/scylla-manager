@@ -3,6 +3,7 @@
 package testutils
 
 import (
+	"math"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -22,7 +23,7 @@ func DateTimeComparer() cmp.Option {
 	})
 }
 
-// NearTimeComparer creates a cmp.Comparer for comparing time.Time values
+// NearTimeComparer creates a cmp.Comparer for comparing *time.Time values
 // that are within a threshold duration.
 // First value has to be before second.
 func NearTimeComparer(d time.Duration) cmp.Option {
@@ -40,5 +41,13 @@ func NearTimeComparer(d time.Duration) cmp.Option {
 			return b.Sub(*a) < d
 		}
 		return a.Sub(*b) < d
+	})
+}
+
+// NearDurationComparer creates a cmp.Comparer for comparing time.Duration
+// values that are within a threshold duration.
+func NearDurationComparer(d time.Duration) cmp.Option {
+	return cmp.Comparer(func(a, b time.Duration) bool {
+		return math.Abs(float64(a-b)) < float64(d)
 	})
 }
