@@ -676,6 +676,26 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	// Index files, files are needed in manifest and upload stages.
+	if shouldRun(StageManifest) || shouldRun(StageUpload) {
+		s.updateStage(ctx, run, StageIndex)
+		w = w.WithLogger(s.logger.Named("index"))
+		if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
+			return errors.Wrap(err, "index")
+		}
+		w.cleanup(ctx, hi)
+	}
+
+	// Create and upload manifests
+	if shouldRun(StageManifest) {
+		s.updateStage(ctx, run, StageManifest)
+		w = w.WithLogger(s.logger.Named("manifest"))
+		if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
+			return errors.Wrap(err, "upload manifest")
+		}
+		w.cleanup(ctx, hi)
+	}
+
 	// Upload schema if available
 	if shouldRun(StageSchema) && schemaArchive != nil {
 		s.updateStage(ctx, run, StageSchema)
@@ -686,32 +706,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		w.cleanup(ctx, hi)
 	}
 
-	// Index files, files are needed only in upload and manifest stages
-	if shouldRun(StageUpload) || shouldRun(StageManifest) {
-		s.updateStage(ctx, run, StageIndex)
-		w = w.WithLogger(s.logger.Named("index"))
-		if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
-			return errors.Wrap(err, "index")
-		}
-		w.cleanup(ctx, hi)
-	}
-
 	// Upload files
 	if shouldRun(StageUpload) {
 		s.updateStage(ctx, run, StageUpload)
 		w = w.WithLogger(s.logger.Named("upload"))
 		if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
 			return errors.Wrap(err, "upload")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Aggregate and upload manifests
-	if shouldRun(StageManifest) {
-		s.updateStage(ctx, run, StageManifest)
-		w = w.WithLogger(s.logger.Named("manifest"))
-		if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
-			return errors.Wrap(err, "upload manifest")
 		}
 		w.cleanup(ctx, hi)
 	}

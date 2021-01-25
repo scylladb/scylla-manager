@@ -135,10 +135,10 @@ const (
 	StageInit        Stage = "INIT"
 	StageAwaitSchema Stage = "AWAIT_SCHEMA"
 	StageSnapshot    Stage = "SNAPSHOT"
-	StageSchema      Stage = "SCHEMA"
 	StageIndex       Stage = "INDEX"
-	StageUpload      Stage = "UPLOAD"
 	StageManifest    Stage = "MANIFEST"
+	StageSchema      Stage = "SCHEMA"
+	StageUpload      Stage = "UPLOAD"
 	StageMigrate     Stage = "MIGRATE"
 	StagePurge       Stage = "PURGE"
 	StageDone        Stage = "DONE"
@@ -150,10 +150,10 @@ var stageOrder = []Stage{
 	StageInit,
 	StageAwaitSchema,
 	StageSnapshot,
-	StageSchema,
 	StageIndex,
-	StageUpload,
 	StageManifest,
+	StageSchema,
+	StageUpload,
 	StageMigrate,
 	StagePurge,
 	StageDone,
@@ -162,7 +162,7 @@ var stageOrder = []Stage{
 // Resumable run can be continued.
 func (s Stage) Resumable() bool {
 	switch s {
-	case StageUpload, StageManifest, StageMigrate, StagePurge:
+	case StageIndex, StageManifest, StageUpload, StageMigrate, StagePurge:
 		return true
 	default:
 		return false
