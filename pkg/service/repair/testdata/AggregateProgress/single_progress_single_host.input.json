@@ -1,13 +1,13 @@
 [
   {
-    "progress": {
-      "Host": "h1",
-      "Keyspace": "k1",
-      "Table": "t1",
-      "TokenRanges": 10,
-      "Success": 10,
-      "Error": 0
-    },
-    "intervals": [{"Start": "2019-01-01T00:00:00Z","End": "2019-01-01T00:01:00Z"}]
+    "Host": "h1",
+    "Keyspace": "k1",
+    "Table": "t1",
+    "TokenRanges": 10,
+    "Success": 10,
+    "Error": 0,
+    "StartedAt": "2019-01-01T00:00:00Z",
+    "CompletedAt": "2019-01-01T00:01:00Z",
+    "Duration": 60000000000
   }
 ]

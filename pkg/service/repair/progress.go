@@ -16,7 +16,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-	"go.uber.org/multierr"
 )
 
 // progressManager manages state and progress.
@@ -25,15 +24,15 @@ type progressManager interface {
 	// State from previous run will be used to resume progress.
 	Init(ctx context.Context, ttrs []*tableTokenRange) error
 	// OnJobResult must be called when worker is done with processing a job.
-	// ttrs must contain ranges for a single table.
+	// ttrs must contain ranges only for a single table.
 	// Requires Init() to be called first.
 	OnJobResult(ctx context.Context, result jobResult) error
 	// OnScyllaJobStart must be called when single job for the repair has started.
-	// Job must contain ranges for a single table.
+	// Job must contain ranges only for a single table.
 	// Requires Init() to be called first.
 	OnScyllaJobStart(ctx context.Context, job job, jobID int32) error
 	// OnScyllaJobEnd must be called when single job for the repair is finished.
-	// Job must contain ranges for a single table.
+	// Job must contain ranges only for a single table.
 	// Must be called after OnScyllaJobStart.
 	// Requires Init() to be called first.
 	OnScyllaJobEnd(ctx context.Context, job job, jobID int32) error
@@ -54,9 +53,10 @@ type stateKey struct {
 }
 
 type dbProgressManager struct {
-	logger   log.Logger
-	session  gocqlx.Session
-	run      *Run
+	logger  log.Logger
+	session gocqlx.Session
+	run     *Run
+
 	mu       sync.Mutex
 	progress map[progressKey]*RunProgress
 	state    map[stateKey]*RunState
@@ -165,6 +165,9 @@ func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobI
 
 	pm.logger.Debug(ctx, "OnScyllaJobStart", "host", job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "job_id", jobID, "start", start, "ranges", len(job.Ranges))
 
+	q := table.RepairRunProgress.InsertQuery(pm.session)
+	defer q.Release()
+
 	for _, h := range ttr.Replicas {
 		l := prometheus.Labels{
 			"cluster": pm.run.clusterName,
@@ -173,14 +176,27 @@ func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobI
 		}
 		repairInflightJobs.With(l).Add(1)
 		repairInflightTokenRanges.With(l).Add(float64(len(job.Ranges)))
-	}
 
-	q := table.RepairJobExecution.InsertQuery(pm.session)
-	defer q.Release()
-	for _, h := range ttr.Replicas {
-		if err := q.BindStruct(pm.newJobExecution(JobIDTuple{job.Host, jobID}, interval{Start: start}, ttr, h)).Exec(); err != nil {
-			return errors.Wrap(err, "repair progress")
+		pk := progressKey{
+			host:     h,
+			keyspace: ttr.Keyspace,
+			table:    ttr.Table,
 		}
+
+		pm.mu.Lock()
+		pm.progress[pk].runningJobCount++
+		if pm.progress[pk].StartedAt == nil {
+			pm.progress[pk].StartedAt = &start
+		}
+		if pm.progress[pk].DurationStartedAt == nil {
+			pm.progress[pk].DurationStartedAt = &start
+		}
+
+		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
+			pm.mu.Unlock()
+			return errors.Wrap(err, "update repair progress")
+		}
+		pm.mu.Unlock()
 	}
 
 	return nil
@@ -202,31 +218,38 @@ func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID 
 		}
 		repairInflightJobs.With(l).Sub(1)
 		repairInflightTokenRanges.With(l).Sub(float64(len(job.Ranges)))
-	}
 
-	q := table.RepairJobExecution.UpdateQuery(pm.session, "end")
-	defer q.Release()
-	for _, h := range ttr.Replicas {
-		if err := q.BindStruct(pm.newJobExecution(
-			JobIDTuple{job.Host, jobID}, interval{End: &end}, ttr, h),
-		).Exec(); err != nil {
-			return errors.Wrap(err, "update job execution interval")
+		pk := progressKey{
+			host:     h,
+			keyspace: ttr.Keyspace,
+			table:    ttr.Table,
 		}
+
+		pm.mu.Lock()
+
+		pm.progress[pk].runningJobCount--
+		if pm.progress[pk].runningJobCount == 0 {
+			pm.progress[pk].AddDuration(end)
+		}
+		pm.mu.Unlock()
 	}
 
 	return nil
 }
 
 func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error {
-	ttr := r.Ranges[0]
+	var (
+		end = timeutc.Now()
+		ttr = r.Ranges[0]
+	)
 
 	pm.logger.Debug(ctx, "OnJobResult", "host", r.job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "ranges", len(r.Ranges))
 
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
 	q := table.RepairRunProgress.InsertQuery(pm.session)
 	defer q.Release()
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
 
 	for _, h := range ttr.Replicas {
 		pk := progressKey{
@@ -250,6 +273,10 @@ func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error
 		repairSegmentsTotal.With(labels).Set(float64(pm.progress[pk].TokenRanges))
 		repairSegmentsSuccess.With(labels).Set(float64(pm.progress[pk].Success))
 		repairSegmentsError.With(labels).Set(float64(pm.progress[pk].Error))
+
+		if pm.progress[pk].Completed() {
+			pm.progress[pk].CompletedAt = &end
+		}
 
 		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
 			return errors.Wrap(err, "update repair progress")
@@ -275,19 +302,6 @@ func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error
 	}
 
 	return table.RepairRunState.InsertQuery(pm.session).BindStruct(pm.state[sk]).ExecRelease()
-}
-
-func (pm *dbProgressManager) newJobExecution(jobID JobIDTuple, i interval, ttr *tableTokenRange, h string) JobExecution {
-	return JobExecution{
-		interval:  i,
-		ClusterID: pm.run.ClusterID,
-		TaskID:    pm.run.TaskID,
-		RunID:     pm.run.ID,
-		Keyspace:  ttr.Keyspace,
-		Table:     ttr.Table,
-		Host:      h,
-		JobID:     jobID,
-	}
 }
 
 func (pm *dbProgressManager) CheckRepaired(ttr *tableTokenRange) bool {
@@ -324,7 +338,6 @@ type tableKey struct {
 
 type perTableAggregate struct {
 	replication int64
-	intervals   intervalSlice
 	progress    TableProgress
 }
 
@@ -333,12 +346,13 @@ func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (
 		p        Progress
 		perHost  = make(map[string][]TableProgress)
 		perTable = make(map[tableKey]*perTableAggregate)
+		now      = timeutc.Now()
 	)
 
 	p.Intensity, p.Parallel = intensityFunc()
 
-	if err := v.ForEach(func(pr *RunProgress, intervals intervalSlice) {
-		tp := newTableProgress(pr, intervals)
+	if err := v.ForEach(func(pr *RunProgress) {
+		tp := newTableProgress(pr, now)
 		// Aggregate per host.
 		perHost[pr.Host] = append(perHost[pr.Host], tp)
 
@@ -351,14 +365,12 @@ func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (
 			// Sum up number of replications so we can get progress numbers
 			// across an entire cluster by dividing them up equally.
 			perTable[tk].replication++
-			perTable[tk].intervals = append(perTable[tk].intervals, intervals...)
 			perTable[tk].progress.TokenRanges += pr.TokenRanges
 			perTable[tk].progress.Success += pr.Success
 			perTable[tk].progress.Error += pr.Error
 		} else {
 			perTable[tk] = &perTableAggregate{
 				replication: 1,
-				intervals:   intervals,
 				progress:    tp,
 			}
 		}
@@ -389,23 +401,10 @@ func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (
 		p.Error += tp.Error
 		tp.TokenRanges /= v.replication
 		p.TokenRanges += tp.TokenRanges
-		sort.Sort(v.intervals)
+		p.Duration += tp.Duration
 		calculateTimestamps(&p.progress, v.progress)
 
 		p.Tables = append(p.Tables, tp)
-	}
-
-	// Duration depends on maximum interval ending time, which is bounded by
-	// the run completion time, which is dependent on the status of the task.
-	// Task may end in error state for example when end interval can't be
-	// recorded so we want to bound interval end time by the task completion.
-	for i := range p.Tables {
-		tk := tableKey{
-			keyspace: p.Tables[i].Keyspace,
-			table:    p.Tables[i].Table,
-		}
-		p.Tables[i].Duration = perTable[tk].intervals.Duration(p.Tables[i].CompletedAt).Milliseconds()
-		p.Duration += p.Tables[i].Duration
 	}
 
 	sort.Slice(p.Tables, func(i, j int) bool {
@@ -415,23 +414,15 @@ func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (
 	return p, nil
 }
 
-func newTableProgress(pr *RunProgress, intervals intervalSlice) TableProgress {
-	var completedAt *time.Time
-	var duration time.Duration
-	if intervals.MinStart() != nil && pr.Success+pr.Error == pr.TokenRanges {
-		completedAt = intervals.MaxEnd()
-	}
-	if intervals.MinStart() != nil {
-		duration = intervals.Duration(completedAt)
-	}
+func newTableProgress(pr *RunProgress, now time.Time) TableProgress {
 	tp := TableProgress{
 		progress: progress{
 			Success:     pr.Success,
 			Error:       pr.Error,
 			TokenRanges: pr.TokenRanges,
-			StartedAt:   intervals.MinStart(),
-			CompletedAt: completedAt,
-			Duration:    duration.Milliseconds(),
+			StartedAt:   pr.StartedAt,
+			CompletedAt: pr.CompletedAt,
+			Duration:    pr.CurrentDuration(now).Milliseconds(),
 		},
 		Keyspace: pr.Keyspace,
 		Table:    pr.Table,
@@ -473,7 +464,7 @@ func calculateTimestamps(p *progress, tp TableProgress) {
 
 // ProgressVisitor knows how to iterate over list of RunProgress results.
 type ProgressVisitor interface {
-	ForEach(func(*RunProgress, intervalSlice)) error
+	ForEach(func(*RunProgress)) error
 }
 
 type progressVisitor struct {
@@ -490,9 +481,9 @@ func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
 }
 
 // ForEach iterates over each run progress and runs visit function on it.
-// If visit wants to reuse RunProgress it must copy it because memory is reused
+// To reuse RunProgress in visit it must make a copy because memory is reused
 // between calls.
-func (i *progressVisitor) ForEach(visit func(*RunProgress, intervalSlice)) error {
+func (i *progressVisitor) ForEach(visit func(*RunProgress)) error {
 	iter := table.RepairRunProgress.SelectQuery(i.session).BindMap(qb.M{
 		"cluster_id": i.run.ClusterID,
 		"task_id":    i.run.TaskID,
@@ -500,19 +491,8 @@ func (i *progressVisitor) ForEach(visit func(*RunProgress, intervalSlice)) error
 	}).Iter()
 
 	pr := &RunProgress{}
-	q := table.RepairJobExecution.SelectBuilder("start", "end").
-		Where(
-			qb.Eq("keyspace_name"),
-			qb.Eq("table_name"),
-			qb.Eq("host"),
-		).Query(i.session)
-	defer q.Release()
 	for iter.StructScan(pr) {
-		var intervals intervalSlice
-		if err := q.BindStruct(pr).Select(&intervals); err != nil {
-			return multierr.Combine(err, iter.Close())
-		}
-		visit(pr, intervals)
+		visit(pr)
 	}
 
 	return iter.Close()
