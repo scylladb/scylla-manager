@@ -690,7 +690,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	if shouldRun(StageManifest) {
 		s.updateStage(ctx, run, StageManifest)
 		w = w.WithLogger(s.logger.Named("manifest"))
-		if err := w.UploadManifest(ctx, hi, target.UploadParallel); err != nil {
+		if err := w.UploadManifest(ctx, hi); err != nil {
 			return errors.Wrap(err, "upload manifest")
 		}
 		w.cleanup(ctx, hi)

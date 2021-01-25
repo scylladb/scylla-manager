@@ -72,11 +72,11 @@ type remoteManifest struct {
 }
 
 func (m *remoteManifest) RemoteManifestFile() string {
-	return remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
-}
-
-func (m *remoteManifest) TempRemoteManifestFile() string {
-	return tempFile(remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID))
+	f := remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
+	if m.Temporary {
+		f = tempFile(f)
+	}
+	return f
 }
 
 func (m *remoteManifest) RemoteSSTableVersionDir(keyspace, table, version string) string {
