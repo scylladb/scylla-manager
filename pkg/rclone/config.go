@@ -24,7 +24,7 @@ func InitFsConfig() {
 	// but existing files will never be updated. If an existing file does not
 	// match between the source and destination, rclone will give the error
 	// Source and destination exist but do not match: immutable file modified.
-	fs.Config.Immutable = true
+	fs.Config.Immutable = false
 	// Skip post copy check of checksums.
 	fs.Config.IgnoreChecksum = true
 	// Skip based on size only, not mod-time or checksum.

@@ -478,11 +478,6 @@ func TestRclonePut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Different size file is rejected
-	if err := putString("hello world"); err == nil {
-		t.Fatal(err)
-	}
-
 	buf, err := client.RcloneCat(ctx, scyllaclienttest.TestHost, path)
 	if err != nil {
 		t.Fatal(err)
