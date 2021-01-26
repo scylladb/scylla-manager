@@ -157,66 +157,6 @@ func (pm *dbProgressManager) restoreState() error {
 	return nil
 }
 
-func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error {
-	ttr := r.Ranges[0]
-
-	pm.logger.Debug(ctx, "OnJobResult", "host", r.job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "ranges", len(r.Ranges))
-
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
-	q := table.RepairRunProgress.InsertQuery(pm.session)
-	defer q.Release()
-
-	for _, h := range ttr.Replicas {
-		pk := progressKey{
-			host:     h,
-			keyspace: ttr.Keyspace,
-			table:    ttr.Table,
-		}
-
-		if r.Err != nil && !errors.Is(r.Err, errTableDeleted) {
-			pm.progress[pk].Error += int64(len(r.Ranges))
-		} else {
-			pm.progress[pk].Success += int64(len(r.Ranges))
-		}
-
-		labels := prometheus.Labels{
-			"cluster":  pm.run.clusterName,
-			"task":     pm.run.TaskID.String(),
-			"keyspace": ttr.Keyspace,
-			"host":     r.Host,
-		}
-		repairSegmentsTotal.With(labels).Set(float64(pm.progress[pk].TokenRanges))
-		repairSegmentsSuccess.With(labels).Set(float64(pm.progress[pk].Success))
-		repairSegmentsError.With(labels).Set(float64(pm.progress[pk].Error))
-
-		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
-			return errors.Wrap(err, "update repair progress")
-		}
-	}
-
-	sk := stateKey{
-		keyspace: ttr.Keyspace,
-		table:    ttr.Table,
-	}
-	if _, ok := pm.state[sk]; ok {
-		pm.state[sk].UpdatePositions(r)
-	} else {
-		rs := &RunState{
-			ClusterID: pm.run.ClusterID,
-			TaskID:    pm.run.TaskID,
-			RunID:     pm.run.ID,
-			Keyspace:  ttr.Keyspace,
-			Table:     ttr.Table,
-		}
-		rs.UpdatePositions(r)
-		pm.state[sk] = rs
-	}
-
-	return table.RepairRunState.InsertQuery(pm.session).BindStruct(pm.state[sk]).ExecRelease()
-}
-
 func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobID int32) error {
 	var (
 		start = timeutc.Now()
@@ -275,6 +215,66 @@ func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID 
 	}
 
 	return nil
+}
+
+func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error {
+	ttr := r.Ranges[0]
+
+	pm.logger.Debug(ctx, "OnJobResult", "host", r.job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "ranges", len(r.Ranges))
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	q := table.RepairRunProgress.InsertQuery(pm.session)
+	defer q.Release()
+
+	for _, h := range ttr.Replicas {
+		pk := progressKey{
+			host:     h,
+			keyspace: ttr.Keyspace,
+			table:    ttr.Table,
+		}
+
+		if r.Err != nil && !errors.Is(r.Err, errTableDeleted) {
+			pm.progress[pk].Error += int64(len(r.Ranges))
+		} else {
+			pm.progress[pk].Success += int64(len(r.Ranges))
+		}
+
+		labels := prometheus.Labels{
+			"cluster":  pm.run.clusterName,
+			"task":     pm.run.TaskID.String(),
+			"keyspace": ttr.Keyspace,
+			"host":     r.Host,
+		}
+		repairSegmentsTotal.With(labels).Set(float64(pm.progress[pk].TokenRanges))
+		repairSegmentsSuccess.With(labels).Set(float64(pm.progress[pk].Success))
+		repairSegmentsError.With(labels).Set(float64(pm.progress[pk].Error))
+
+		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
+			return errors.Wrap(err, "update repair progress")
+		}
+	}
+
+	sk := stateKey{
+		keyspace: ttr.Keyspace,
+		table:    ttr.Table,
+	}
+	if _, ok := pm.state[sk]; ok {
+		pm.state[sk].UpdatePositions(r)
+	} else {
+		rs := &RunState{
+			ClusterID: pm.run.ClusterID,
+			TaskID:    pm.run.TaskID,
+			RunID:     pm.run.ID,
+			Keyspace:  ttr.Keyspace,
+			Table:     ttr.Table,
+		}
+		rs.UpdatePositions(r)
+		pm.state[sk] = rs
+	}
+
+	return table.RepairRunState.InsertQuery(pm.session).BindStruct(pm.state[sk]).ExecRelease()
 }
 
 func (pm *dbProgressManager) newJobExecution(jobID JobIDTuple, i interval, ttr *tableTokenRange, h string) JobExecution {
