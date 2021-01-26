@@ -577,25 +577,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return err
 	}
 
-	// Create a worker
-	w := &worker{
-		ClusterID:            clusterID,
-		ClusterName:          clusterName,
-		TaskID:               taskID,
-		RunID:                runID,
-		SnapshotTag:          run.SnapshotTag,
-		Config:               s.config,
-		Units:                run.Units,
-		Client:               client,
-		OnRunProgress:        s.putRunProgressLogError,
-		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
-		memoryPool: &sync.Pool{
-			New: func() interface{} {
-				return &bytes.Buffer{}
-			},
-		},
-	}
-
 	// Register the run
 	if err := s.putRun(run); err != nil {
 		return errors.Wrap(err, "initialize: register the run")
@@ -621,36 +602,38 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	stop := s.watchProgressMetrics(ctx, runProgress)
 	defer stop()
 
-	var shouldRun func(stage Stage) bool
-	if run.PrevID == uuid.Nil {
-		shouldRun = func(stage Stage) bool {
-			return true
-		}
-	} else {
-		prevStage := run.Stage
-		shouldRun = func(stage Stage) bool {
-			return stage.Index() >= prevStage.Index()
-		}
+	// Create a worker
+	w := &worker{
+		ClusterID:            clusterID,
+		ClusterName:          clusterName,
+		TaskID:               taskID,
+		RunID:                runID,
+		SnapshotTag:          run.SnapshotTag,
+		Config:               s.config,
+		Units:                run.Units,
+		Client:               client,
+		OnRunProgress:        s.putRunProgressLogError,
+		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
+		memoryPool: &sync.Pool{
+			New: func() interface{} {
+				return &bytes.Buffer{}
+			},
+		},
 	}
 
+	// Keep schemaArchive between StageAwaitSchema and StageSchema
 	var schemaArchive *bytes.Buffer
 
-	// Await schema agreement and generate schemaArchive
-	if shouldRun(StageAwaitSchema) {
-		// If CQL session is available, await schema agreement and dump schema
-		// to an in memory buffer. This is intentionally kept together to keep
-		// the CQL session short.
-		err = func(logger log.Logger) error {
+	// Map stages to worker functions
+	stageFunc := map[Stage]func() error{
+		StageAwaitSchema: func() error {
 			clusterSession, err := s.clusterSession(ctx, clusterID)
 			if err != nil {
-				logger.Info(ctx, "No CQL cluster session, backup of schema as CQL files would be skipped", "error", err)
+				w.Logger.Info(ctx, "No CQL cluster session, backup of schema as CQL files would be skipped", "error", err)
 				return nil
 			}
 			defer clusterSession.Close()
 
-			// Await schema agreement
-			s.updateStage(ctx, run, StageAwaitSchema)
-			w = w.WithLogger(logger)
 			w.AwaitSchemaAgreement(ctx, clusterSession)
 
 			// Dump schema
@@ -660,95 +643,78 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			}
 
 			schemaArchive = a
+
 			return nil
-		}(s.logger.Named("schema"))
-		if err != nil {
-			return err
+		},
+		StageSnapshot: func() error {
+			return w.Snapshot(ctx, hi, target.SnapshotParallel)
+		},
+		StageIndex: func() error {
+			return w.Index(ctx, hi, target.UploadParallel)
+		},
+		StageManifest: func() error {
+			return w.UploadManifest(ctx, hi)
+		},
+		StageSchema: func() error {
+			if schemaArchive == nil {
+				return nil
+			}
+			return w.UploadSchema(ctx, hi, schemaArchive)
+		},
+		StageUpload: func() error {
+			return w.Upload(ctx, hi, target.UploadParallel)
+		},
+		StageMoveManifest: func() error {
+			return w.MoveManifest(ctx, hi)
+		},
+		StageMigrate: func() error {
+			return w.MigrateManifests(ctx, hi, target.UploadParallel)
+		},
+		StagePurge: func() error {
+			return w.Purge(ctx, hi, target.Retention)
+		},
+		StageDone: func() error {
+			return nil
+		},
+	}
+
+	// Execute stages according to the stage order.
+	execStage := func(stage Stage, f func() error) error {
+		// Skip completed stages
+		if run.PrevID != uuid.Nil {
+			prevStage := run.Stage
+
+			// Indexing is a special case, it lists files that are needed
+			// in manifest and upload stages.
+			if stage == StageIndex {
+				if prevStage.Index() > StageUpload.Index() {
+					return nil
+				}
+			} else if stage.Index() < prevStage.Index() {
+				return nil
+			}
+		}
+
+		// Prepare worker
+		s.updateStage(ctx, run, stage)
+		name := strings.ToLower(string(stage))
+		w = w.WithLogger(s.logger.Named(name))
+
+		// Always cleanup stats
+		defer w.cleanup(ctx, hi)
+
+		// Run function
+		return errors.Wrap(f(), strings.ReplaceAll(name, "_", " "))
+	}
+	for _, s := range stageOrder {
+		if f, ok := stageFunc[s]; ok {
+			if err := execStage(s, f); err != nil {
+				return err
+			}
 		}
 	}
 
-	// Take snapshot
-	if shouldRun(StageSnapshot) {
-		s.updateStage(ctx, run, StageSnapshot)
-		w = w.WithLogger(s.logger.Named("snapshot"))
-		if err := w.Snapshot(ctx, hi, target.SnapshotParallel); err != nil {
-			return errors.Wrap(err, "snapshot")
-		}
-	}
-
-	// Index files, files are needed in manifest and upload stages.
-	if shouldRun(StageManifest) || shouldRun(StageUpload) {
-		s.updateStage(ctx, run, StageIndex)
-		w = w.WithLogger(s.logger.Named("index"))
-		if err := w.Index(ctx, hi, target.UploadParallel); err != nil {
-			return errors.Wrap(err, "index")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Create and upload manifests to a temporary location
-	if shouldRun(StageManifest) {
-		s.updateStage(ctx, run, StageManifest)
-		w = w.WithLogger(s.logger.Named("manifest"))
-		if err := w.UploadManifest(ctx, hi); err != nil {
-			return errors.Wrap(err, "upload manifest")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Upload schema if available
-	if shouldRun(StageSchema) && schemaArchive != nil {
-		s.updateStage(ctx, run, StageSchema)
-		w = w.WithLogger(s.logger.Named("schema"))
-		if err := w.UploadSchema(ctx, hi, schemaArchive); err != nil {
-			return errors.Wrap(err, "upload schema")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Upload files
-	if shouldRun(StageUpload) {
-		s.updateStage(ctx, run, StageUpload)
-		w = w.WithLogger(s.logger.Named("upload"))
-		if err := w.Upload(ctx, hi, target.UploadParallel); err != nil {
-			return errors.Wrap(err, "upload")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Move manifests to final location, remove temp suffix
-	if shouldRun(StageMoveManifest) {
-		s.updateStage(ctx, run, StageMoveManifest)
-		w = w.WithLogger(s.logger.Named("manifest"))
-		if err := w.MoveManifest(ctx, hi); err != nil {
-			return errors.Wrap(err, "move manifest")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Migrate V1 manifests
-	if shouldRun(StageMigrate) {
-		s.updateStage(ctx, run, StageMigrate)
-		w = w.WithLogger(s.logger.Named("migrate"))
-		if err := w.MigrateManifests(ctx, hi, target.UploadParallel); err != nil {
-			return errors.Wrap(err, "migrate manifest")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	// Purge remote data
-	if shouldRun(StagePurge) {
-		s.updateStage(ctx, run, StagePurge)
-		w = w.WithLogger(s.logger.Named("purge"))
-		if err := w.Purge(ctx, hi, target.Retention); err != nil {
-			return errors.Wrap(err, "purge")
-		}
-		w.cleanup(ctx, hi)
-	}
-
-	s.updateStage(ctx, run, StageDone)
-
-	return err
+	return nil
 }
 
 // decorateWithPrevRun gets task previous run and if it can be continued
