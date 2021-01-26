@@ -59,7 +59,11 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 }
 
 func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
-	h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
+	if !m.Temporary {
+		h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
+	} else {
+		h.logger.Info(ctx, "Delete orphaned temporary manifest", "snapshot_tag", m.SnapshotTag)
+	}
 
 	if m.Content.Schema != "" {
 		if err := h.deleteFile(ctx, m.Content.Schema); err != nil {

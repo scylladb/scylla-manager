@@ -37,7 +37,7 @@ func (p *purger) PurgeSnapshot(ctx context.Context, snapshotTag string) error {
 	)
 
 	// Load manifests from all tasks
-	manifests, err := p.loadAllManifests(ctx)
+	manifests, err := p.loadAllManifests(ctx, false)
 	if err != nil {
 		return errors.Wrap(err, "find and load remote manifests")
 	}
@@ -66,14 +66,14 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 	p.Logger.Info(ctx, "Analysing", "location", p.Location)
 
 	// Load manifests from all tasks
-	manifests, err := p.loadAllManifests(ctx)
+	manifests, err := p.loadAllManifests(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "find and load remote manifests")
 	}
 
 	manifestTaskTags := strset.New()
 	for _, m := range manifests {
-		if m.TaskID == taskID {
+		if !m.Temporary && m.TaskID == taskID {
 			manifestTaskTags.Add(m.SnapshotTag)
 		}
 	}
@@ -98,17 +98,18 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 
 	staleTagsSet := strset.New(staleTags...)
 	isStaleManifest := func(m *remoteManifest) bool {
-		return staleTagsSet.Has(m.SnapshotTag)
+		return m.Temporary || staleTagsSet.Has(m.SnapshotTag)
 	}
 
 	return p.purge(ctx, manifests, isStaleManifest)
 }
 
 // loadAllManifests loads manifests belonging to all tasks.
-func (p *purger) loadAllManifests(ctx context.Context) ([]*remoteManifest, error) {
-	filter := p.Filter
-	filter.TaskID = uuid.Nil
-	return p.ManifestHelper.ListManifests(ctx, filter)
+func (p *purger) loadAllManifests(ctx context.Context, temporary bool) ([]*remoteManifest, error) {
+	f := p.Filter
+	f.TaskID = uuid.Nil
+	f.Temporary = temporary
+	return p.ManifestHelper.ListManifests(ctx, f)
 }
 
 func (p *purger) purge(ctx context.Context, manifests []*remoteManifest, isStaleManifest func(*remoteManifest) bool) error {
