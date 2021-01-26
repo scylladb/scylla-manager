@@ -25,7 +25,7 @@ import (
 func TestRemoteManifestParsePath(t *testing.T) {
 	t.Parallel()
 
-	var cmpOpts = cmp.Options{
+	opts := cmp.Options{
 		UUIDComparer(),
 		cmpopts.IgnoreFields(remoteManifest{}, "CleanPath"),
 		cmpopts.IgnoreUnexported(remoteManifest{}),
@@ -39,12 +39,16 @@ func TestRemoteManifestParsePath(t *testing.T) {
 		SnapshotTag: newSnapshotTag(),
 	}
 
-	var m remoteManifest
-	if err := m.ParsePartialPath(golden.RemoteManifestFile()); err != nil {
-		t.Fatal("ParsePartialPath() error", err)
-	}
-	if diff := cmp.Diff(m, golden, cmpOpts); diff != "" {
-		t.Fatal("ParsePartialPath() diff", diff)
+	for _, temporary := range []bool{false, true} {
+		golden.Temporary = temporary
+
+		var m remoteManifest
+		if err := m.ParsePartialPath(golden.RemoteManifestFile()); err != nil {
+			t.Fatal("ParsePartialPath() error", err)
+		}
+		if diff := cmp.Diff(m, golden, opts); diff != "" {
+			t.Fatal("ParsePartialPath() diff", diff)
+		}
 	}
 }
 
@@ -108,7 +112,7 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		{
 			Name:  "not a manifest file",
 			Path:  remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID") + ".old",
-			Error: "expected manifest.json",
+			Error: "expected one of [manifest.json.gz manifest.json.gz.tmp]",
 		},
 		{
 			Name:  "sSTable dir",
@@ -348,6 +352,22 @@ func TestListManifests(t *testing.T) {
 			Filter: ListFilter{
 				ClusterID:   uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
 				SnapshotTag: "sm_20200128120927UTC",
+			},
+		},
+		{
+			Name:       "List temporary manifests",
+			Location:   Location{Provider: "walker", Path: "temporary"},
+			GoldenFile: "testdata/walker/temporary/with.golden.json",
+			Filter: ListFilter{
+				Temporary: true,
+			},
+		},
+		{
+			Name:       "Don't list temporary manifests",
+			Location:   Location{Provider: "walker", Path: "temporary"},
+			GoldenFile: "testdata/walker/temporary/without.golden.json",
+			Filter: ListFilter{
+				Temporary: false,
 			},
 		},
 	}

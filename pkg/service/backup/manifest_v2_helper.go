@@ -174,9 +174,9 @@ func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string
 			return errors.Wrapf(err, "listing dir %s on host %s", baseDir, h.host)
 		}
 
-		for _, f := range files {
+		for i := range files {
 			// Filter out unwanted items
-			p := path.Join(baseDir, f.Path)
+			p := path.Join(baseDir, files[i].Path)
 			if dirPrune(p) {
 				continue
 			}
@@ -190,6 +190,10 @@ func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string
 					"location", h.location,
 					"path", p,
 				)
+				continue
+			}
+			// Ignore temporary files
+			if m.Temporary && !f.Temporary {
 				continue
 			}
 

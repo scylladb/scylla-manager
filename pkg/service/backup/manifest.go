@@ -126,7 +126,7 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 				m.SnapshotTag = tag
 				return nil
 			},
-			pathparser.Static(manifest),
+			pathparser.Static(manifest, tempFile(manifest)),
 		)
 	}
 
@@ -145,6 +145,8 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 	if err != nil {
 		return err
 	}
+
+	m.Temporary = strings.HasSuffix(s, tempFileExt)
 
 	return nil
 }

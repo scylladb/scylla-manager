@@ -29,6 +29,7 @@ type ListFilter struct {
 	SnapshotTag string    `json:"snapshot_tag"`
 	MinDate     time.Time `json:"min_date"`
 	MaxDate     time.Time `json:"max_date"`
+	Temporary   bool      `json:"temporary"`
 }
 
 // SnapshotInfo contains detailed information about snapshot.
