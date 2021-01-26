@@ -95,7 +95,7 @@ html_style = ''
 #
 html_theme_options = {
     'header_links': [
-    ('Scylla Manager', 'https://scylladb.github.io/scylla-manager/'),
+    ('Scylla Manager', 'https://manager.docs.scylladb.com/'),
     ('Scylla Monitor', 'https://scylladb.github.io/scylla-monitoring/'),
     ('Scylla Cloud', 'https://docs.scylladb.com/scylla-cloud/'),
     ('Scylla University', 'https://university.scylladb.com/'),
@@ -125,7 +125,7 @@ html_sidebars = {'**': ['side-nav.html']}
 htmlhelp_basename = 'ScyllaDocumentationdoc'
 
 # URL which points to the root of the HTML documentation. 
-html_baseurl = 'https://scylladb.github.io/scylla-manager'
+html_baseurl = 'https://manager.docs.scylladb.com'
 
 # Dictionary of values to pass into the template engine’s context for all pages
 html_context = {'html_baseurl': html_baseurl}

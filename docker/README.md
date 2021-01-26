@@ -156,4 +156,4 @@ Datacenter: datacenter1
 +----+----------+----------+-----------------+----------+------+----------+--------+-----------------------------+--------------------------------------+
 ```
 
-See [online docs](https://scylladb.github.io/scylla-manager/) for further details.
+See [online docs](https://manager.docs.scylladb.com/) for further details.

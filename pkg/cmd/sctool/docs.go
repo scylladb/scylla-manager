@@ -48,7 +48,7 @@ func commandDocsURL(cmd *cobra.Command) string {
 	return docsURL(link)
 }
 
-const docsBaseURL = "https://scylladb.github.io/scylla-manager/master"
+const docsBaseURL = "https://manager.docs.scylladb.com/stable"
 
 func docsURL(link string) string {
 	return docsBaseURL + "/sctool/" + link
