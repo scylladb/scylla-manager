@@ -42,6 +42,11 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
 
 	for _, d := range dirs {
+		// Skip snapshots that are empty.
+		if d.Progress.Size == 0 {
+			w.Logger.Info(ctx, "Table is empty skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
+			continue
+		}
 		// Skip snapshots that are already uploaded.
 		if d.Progress.IsUploaded() {
 			w.Logger.Info(ctx, "Snapshot already uploaded skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
