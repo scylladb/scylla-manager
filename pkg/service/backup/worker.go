@@ -3,6 +3,7 @@
 package backup
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -42,17 +43,17 @@ func (sd snapshotDir) String() string {
 }
 
 type worker struct {
-	ClusterID      uuid.UUID
-	ClusterName    string
-	TaskID         uuid.UUID
-	RunID          uuid.UUID
-	SnapshotTag    string
-	Config         Config
-	Units          []Unit
-	SchemaUploaded bool
-	Client         *scyllaclient.Client
-	Logger         log.Logger
-	OnRunProgress  func(ctx context.Context, p *RunProgress)
+	ClusterID     uuid.UUID
+	ClusterName   string
+	TaskID        uuid.UUID
+	RunID         uuid.UUID
+	SnapshotTag   string
+	Config        Config
+	Units         []Unit
+	Schema        *bytes.Buffer
+	Client        *scyllaclient.Client
+	Logger        log.Logger
+	OnRunProgress func(ctx context.Context, p *RunProgress)
 	// ResumeUploadProgress populates upload stats of the provided run progress
 	// with previous run progress.
 	// If there is no previous run there should be no update.

@@ -621,9 +621,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 	}
 
-	// Keep schemaArchive between StageAwaitSchema and StageSchema
-	var schemaArchive *bytes.Buffer
-
 	// Map stages to worker functions
 	stageFunc := map[Stage]func() error{
 		StageAwaitSchema: func() error {
@@ -636,15 +633,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 			w.AwaitSchemaAgreement(ctx, clusterSession)
 
-			// Dump schema
-			a, err := createSchemaArchive(ctx, run.Units, clusterSession)
-			if err != nil {
-				return errors.Wrap(err, "get schema")
-			}
-
-			schemaArchive = a
-
-			return nil
+			return w.DumpSchema(ctx, clusterSession)
 		},
 		StageSnapshot: func() error {
 			return w.Snapshot(ctx, hi, target.SnapshotParallel)
@@ -656,10 +645,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.UploadManifest(ctx, hi)
 		},
 		StageSchema: func() error {
-			if schemaArchive == nil {
-				return nil
-			}
-			return w.UploadSchema(ctx, hi, schemaArchive)
+			return w.UploadSchema(ctx, hi)
 		},
 		StageUpload: func() error {
 			return w.Upload(ctx, hi, target.UploadParallel)

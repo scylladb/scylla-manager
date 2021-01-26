@@ -73,7 +73,20 @@ func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx
 	}, backoff, notify)
 }
 
-func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo, b *bytes.Buffer) (stepError error) {
+func (w *worker) DumpSchema(ctx context.Context, clusterSession gocqlx.Session) error {
+	b, err := createSchemaArchive(ctx, w.Units, clusterSession)
+	if err != nil {
+		return errors.Wrap(err, "get schema")
+	}
+	w.Schema = b
+	return nil
+}
+
+func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError error) {
+	if w.Schema == nil {
+		return nil
+	}
+
 	w.Logger.Info(ctx, "Uploading schema...")
 
 	defer func(start time.Time) {
@@ -96,6 +109,6 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo, b *bytes.Bu
 
 	return hostsInParallel(hostPerLocation, parallel.NoLimit, func(h hostInfo) error {
 		dst := h.Location.RemotePath(remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag))
-		return w.Client.RclonePut(ctx, h.IP, dst, bytes.NewReader(b.Bytes()), int64(b.Len()))
+		return w.Client.RclonePut(ctx, h.IP, dst, bytes.NewReader(w.Schema.Bytes()), int64(w.Schema.Len()))
 	})
 }

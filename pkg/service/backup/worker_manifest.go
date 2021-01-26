@@ -62,7 +62,7 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *remoteMani
 		Index:       make([]filesInfo, len(dirs)),
 		Tokens:      tokens,
 	}
-	if w.SchemaUploaded {
+	if w.Schema != nil {
 		content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
