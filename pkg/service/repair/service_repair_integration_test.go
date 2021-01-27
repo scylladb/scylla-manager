@@ -252,7 +252,7 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 			return nil, nil
 		}
 
-		resp := makeResponse(req)
+		resp := httpx.MakeResponse(req, 200)
 
 		switch req.Method {
 		case http.MethodGet:
@@ -272,7 +272,7 @@ func repairStatusNoResponseInterceptor(ctx context.Context) http.RoundTripper {
 			return nil, nil
 		}
 
-		resp := makeResponse(req)
+		resp := httpx.MakeResponse(req, 200)
 
 		switch req.Method {
 		case http.MethodGet:
@@ -315,24 +315,12 @@ func countInterceptor(counter *int32, path, method string, next http.RoundTrippe
 func holdRepairInterceptor() http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodGet {
-			resp := makeResponse(req)
+			resp := httpx.MakeResponse(req, 200)
 			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
 			return resp, nil
 		}
 		return nil, nil
 	})
-}
-
-func makeResponse(req *http.Request) *http.Response {
-	return &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Request:    req,
-		Header:     make(http.Header, 0),
-	}
 }
 
 func unstableRepairInterceptor() http.RoundTripper {
