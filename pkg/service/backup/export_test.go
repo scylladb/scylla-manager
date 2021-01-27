@@ -40,6 +40,7 @@ func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 const (
 	ScyllaManifest  = scyllaManifest
 	MetadataVersion = metadataVersion
+	TempFileExt = tempFileExt
 )
 
 func (p *RunProgress) Files() []FileInfo {

@@ -240,8 +240,8 @@ func (h *backupTestHelper) waitTransfersStarted() {
 				h.t.Fatal(err)
 			}
 			for _, tr := range job.Stats.Transferring {
-				if tr.Name != backup.ScyllaManifest {
-					Print("And: upload is underway")
+				if strings.HasSuffix(tr.Name, ".db") {
+					Print("And: upload is underway with " + tr.Name)
 					return true
 				}
 			}
@@ -581,9 +581,8 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 
 func TestBackupSmokeIntegration(t *testing.T) {
 	const (
-		testBucket         = "backuptest-smoke"
-		testKeyspace       = "backuptest_data"
-		goldenManifestPath = "testdata/manifest_format/golden.json.gz"
+		testBucket   = "backuptest-smoke"
+		testKeyspace = "backuptest_data"
 	)
 
 	location := s3Location(testBucket)
@@ -645,9 +644,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	// Schema meta per snapshot
-	expectedNumberOfSchemas := 2
-	if len(schemas) != expectedNumberOfSchemas {
-		t.Fatalf("expected %d schemas, got %d", expectedNumberOfSchemas, len(schemas))
+	const schemasCount = 2
+	if len(schemas) != schemasCount {
+		t.Fatalf("expected %d schemas, got %d", schemasCount, len(schemas))
 	}
 
 	filesInfo, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
@@ -735,7 +734,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: user is able to list backup files using filters")
-	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{"some-other-keyspace"}})
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{
+		ClusterID: h.clusterID,
+		Keyspace:  []string{"some-other-keyspace"}})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
@@ -752,7 +753,10 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		}
 	}
 
-	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID, Keyspace: []string{testKeyspace}})
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{
+		ClusterID: h.clusterID,
+		Keyspace:  []string{testKeyspace},
+	})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
@@ -764,11 +768,10 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	h.assertMetadataVersion(ctx, "v2")
 
-	assertManifestHasCorrectFormat(t, ctx, h, manifests[0], goldenManifestPath, schemas)
+	assertManifestHasCorrectFormat(t, ctx, h, manifests[0], schemas)
 }
 
-func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper,
-	manifestPath, goldenManifestPath string, schemas []string) {
+func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper, manifestPath string, schemas []string) {
 	manifestsContent, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
 	if err != nil {
 		t.Fatal(err)
@@ -779,52 +782,25 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 		t.Fatalf("Cannot read manifest created by backup: %s", err)
 	}
 
-	if UpdateGoldenFiles() {
-		var buf bytes.Buffer
-		if err := manifest.Write(&buf); err != nil {
-			t.Error(err)
-		}
-		if err := ioutil.WriteFile(goldenManifestPath, buf.Bytes(), 0666); err != nil {
-			t.Error(err)
-		}
-	}
-
-	buf, err := ioutil.ReadFile(goldenManifestPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var golden backup.ManifestContent
-	if err := golden.Read(bytes.NewReader(buf)); err != nil {
-		t.Error(err)
-	}
-
-	opts := []cmp.Option{
-		cmpopts.IgnoreFields(backup.ManifestContent{}, "Size", "Tokens", "Schema"),
-		cmpopts.IgnoreFields(backup.ModelFilesInfo{}, "Version", "Size"),
-	}
-	if diff := cmp.Diff(golden, manifest, opts...); diff != "" {
-		t.Fatal(diff)
-	}
 	if manifest.ClusterName != "test_cluster" {
-		t.Errorf("expected cluster name")
+		t.Errorf("ClusterName=%s, expected test_cluster", manifest.ClusterName)
 	}
-	if manifest.IP == "" {
-		t.Errorf("expected IP address")
+	if !strings.HasPrefix(manifest.IP, "192.168.100.") {
+		t.Errorf("IP=%s, expected IP address", manifest.IP)
 	}
-	for i, fi := range manifest.Index {
+	for _, fi := range manifest.Index {
 		if fi.Size == 0 {
-			t.Errorf("%d: expected non zero table %s size", i, fi.Table)
+			t.Errorf("Size=0 for table %s, expected non zero size", fi.Table)
 		}
 	}
 	if manifest.Size == 0 {
-		t.Error("expected non zero backup size")
+		t.Error("Size=0 for backup, expected non zero size")
 	}
 	if len(manifest.Tokens) != 256 {
-		t.Errorf("expected 256 tokens in manifest, got %d", len(manifest.Tokens))
+		t.Errorf("len(Tokens)=%d, expected 256 tokens", len(manifest.Tokens))
 	}
-
 	if !strset.New(schemas...).Has(manifest.Schema) {
-		t.Error("path from manifest not found in schemas")
+		t.Errorf("Schema=%s, not found in schemas %s", manifest.Schema, schemas)
 	}
 }
 
@@ -1449,7 +1425,7 @@ func getTaskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID
 	return taskFilesPaths
 }
 
-func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
+func TestBackupManifestRollbackOnErrorIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-rollback"
 		testKeyspace = "backuptest_rollback"
@@ -1462,8 +1438,7 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
 		h              = newBackupTestHelper(t, session, config, location, nil)
-		ctx, cancel    = context.WithCancel(context.Background())
-		done           = make(chan struct{})
+		ctx            = context.Background()
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1482,51 +1457,45 @@ func TestBackupManifestIsRolledBackInCaseOfAnyErrorIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	putCounter := atomic.NewInt64(0)
-
+	movedManifests := atomic.NewInt64(0)
 	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") &&
-			strings.Contains(req.URL.RawQuery, "manifest") {
-			if putCounter.Load() >= 1 {
-				h.waitCond(func() bool {
-					manifests, _, _ := h.listS3Files()
-					return len(manifests) > 0
-				})
-				Print("And: context is canceled")
-				cancel()
-			}
-			putCounter.Inc()
+		if req.URL.Path != "/agent/rclone/operations/movefile" {
+			return nil, nil
+		}
+
+		// Fail 3rd manifest move and do not retry
+		if c := movedManifests.Add(1); c == 3 {
+			return httpx.MakeAgentErrorResponse(req, 400, "explicit failure"), nil
 		}
 
 		return nil, nil
 	}))
 
-	go func() {
-		defer close(done)
-		Print("When: backup is running")
-		err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
-		if err == nil {
-			t.Error("Expected error on run but got nil")
-		} else {
-			if !strings.Contains(err.Error(), "context") {
-				t.Errorf("Expected context error but got: %+v", err)
-			}
-		}
-	}()
-
-	<-ctx.Done()
-
-	select {
-	case <-time.After(backupTimeout):
-		t.Fatalf("Backup failed to complete in under %s", backupTimeout)
-	case <-done:
-		Print("Then: backup completed execution")
+	Print("When: backup runs")
+	err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
+	Print("Then: it ends with error")
+	if err == nil {
+		t.Error("Expected error on run but got nil")
+	} else {
+		t.Log("Backup() error", err)
 	}
 
-	manifests, _, _ := h.listS3Files()
+	Print("And: manifest move is rolled back")
+	var (
+		manifests, _, _   = h.listS3Files()
+		manifestCount     int
+		tempManifestCount int
+	)
+	for _, m := range manifests {
+		if strings.HasSuffix(m, backup.TempFileExt) {
+			tempManifestCount++
+		} else {
+			manifestCount++
+		}
+	}
 
-	if len(manifests) != 0 {
-		t.Fatalf("Expected to have 0 manifests, found %d", len(manifests))
+	if tempManifestCount != 3 || manifestCount != 0 {
+		t.Fatalf("Expected to have 3 temp manifests, found %d and %d manifests", tempManifestCount, manifestCount)
 	}
 }
 
@@ -1700,15 +1669,7 @@ func overwriteClusterIDs(t *testing.T, dc string, nodeIDs []string, h *backupTes
 
 	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if req.URL.Path == "/storage_service/host_id" {
-			resp := &http.Response{
-				Status:     "200 OK",
-				StatusCode: 200,
-				Proto:      "HTTP/1.1",
-				ProtoMajor: 1,
-				ProtoMinor: 1,
-				Request:    req,
-				Header:     make(http.Header, 0),
-			}
+			resp := httpx.MakeResponse(req, 200)
 
 			buf, err := json.Marshal(fakeMapping)
 			if err != nil {
