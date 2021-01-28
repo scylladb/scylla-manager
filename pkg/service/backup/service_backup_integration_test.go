@@ -689,7 +689,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: manifests are in metadata directory")
 	for _, m := range manifests {
-		if err := backup.ParsePartialPath(m); err != nil {
+		if _, err := backup.ParsePartialPath(m); err != nil {
 			t.Fatal("manifest file in wrong path", m)
 		}
 	}
@@ -1161,6 +1161,189 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 }
 
+func TestBackupTemporaryManifestsIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-temporary-manifests"
+		testKeyspace = "backuptest_temporary_manifests"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	Print("Given: retention policy of 1")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 1,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("And: add a fake temporary manifest")
+	manifests, _, _ := h.listS3Files()
+
+	// Sleep to avoid tag collision
+	time.Sleep(time.Second)
+	// Parse manifest
+	f := manifests[0]
+	m, err := backup.ParsePartialPath(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Load manifest
+	b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(f))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ReadContent(bytes.NewReader(b)); err != nil {
+		t.Fatal(err)
+	}
+	// Mark manifest as temporary, change snapshot tag
+	m.Temporary = true
+	m.SnapshotTag = backup.NewSnapshotTag()
+	// Add "xxx" file to a table
+	fi := &m.Content.Index[0]
+	fi.Files = append(fi.Files, "xxx")
+	// Save changed modified manifest as temporary
+	buf := bytes.NewBuffer(nil)
+	if err = m.DumpContent(buf); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(m.RemoteManifestFile()), buf, int64(buf.Len())); err != nil {
+		t.Fatal(err)
+	}
+	// Create the "xxx" file
+	xxx := path.Join(backup.RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version), "xxx")
+	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(xxx), bytes.NewBufferString("xxx"), 3); err != nil {
+		t.Fatal(err)
+	}
+	// Sleep to avoid tag collision
+	time.Sleep(time.Second)
+
+	Print("Then: there is one backup in listing")
+	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("List() = %v, expected one item", items)
+	}
+
+	Print("When: run backup")
+	h.runID = uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	manifests, _, files := h.listS3Files()
+
+	Print("Then: temporary manifest is removed")
+	if len(manifests) != 3 {
+		t.Fatalf("Expected 3 manifest got %d", len(manifests))
+	}
+
+	Print("And: xxx file is removed")
+	for _, f := range files {
+		if path.Base(f) == "xxx" {
+			t.Fatalf("Found %s that should have been removed", f)
+		}
+	}
+}
+
+func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-rollback"
+		testKeyspace = "backuptest_rollback"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 3)
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 3,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	movedManifests := atomic.NewInt64(0)
+	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Path != "/agent/rclone/operations/movefile" {
+			return nil, nil
+		}
+
+		// Fail 3rd manifest move and do not retry
+		if c := movedManifests.Add(1); c == 3 {
+			return httpx.MakeAgentErrorResponse(req, 400, "explicit failure"), nil
+		}
+
+		return nil, nil
+	}))
+
+	Print("When: backup runs")
+	err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
+	Print("Then: it ends with error")
+	if err == nil {
+		t.Error("Expected error on run but got nil")
+	} else {
+		t.Log("Backup() error", err)
+	}
+
+	Print("And: manifest move is rolled back")
+	var (
+		manifests, _, _   = h.listS3Files()
+		manifestCount     int
+		tempManifestCount int
+	)
+	for _, m := range manifests {
+		if strings.HasSuffix(m, backup.TempFileExt) {
+			tempManifestCount++
+		} else {
+			manifestCount++
+		}
+	}
+
+	if tempManifestCount != 3 || manifestCount != 0 {
+		t.Fatalf("Expected to have 3 temp manifests, found %d and %d manifests", tempManifestCount, manifestCount)
+	}
+}
+
 func TestPurgeIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-purge"
@@ -1425,80 +1608,6 @@ func getTaskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID
 	return taskFilesPaths
 }
 
-func TestBackupManifestRollbackOnErrorIntegration(t *testing.T) {
-	const (
-		testBucket   = "backuptest-rollback"
-		testKeyspace = "backuptest_rollback"
-	)
-
-	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
-
-	var (
-		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-		h              = newBackupTestHelper(t, session, config, location, nil)
-		ctx            = context.Background()
-	)
-
-	WriteData(t, clusterSession, testKeyspace, 3)
-
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backup.Location{location},
-		Retention: 3,
-	}
-	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
-		t.Fatal(err)
-	}
-
-	movedManifests := atomic.NewInt64(0)
-	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if req.URL.Path != "/agent/rclone/operations/movefile" {
-			return nil, nil
-		}
-
-		// Fail 3rd manifest move and do not retry
-		if c := movedManifests.Add(1); c == 3 {
-			return httpx.MakeAgentErrorResponse(req, 400, "explicit failure"), nil
-		}
-
-		return nil, nil
-	}))
-
-	Print("When: backup runs")
-	err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
-	Print("Then: it ends with error")
-	if err == nil {
-		t.Error("Expected error on run but got nil")
-	} else {
-		t.Log("Backup() error", err)
-	}
-
-	Print("And: manifest move is rolled back")
-	var (
-		manifests, _, _   = h.listS3Files()
-		manifestCount     int
-		tempManifestCount int
-	)
-	for _, m := range manifests {
-		if strings.HasSuffix(m, backup.TempFileExt) {
-			tempManifestCount++
-		} else {
-			manifestCount++
-		}
-	}
-
-	if tempManifestCount != 3 || manifestCount != 0 {
-		t.Fatalf("Expected to have 3 temp manifests, found %d and %d manifests", tempManifestCount, manifestCount)
-	}
-}
-
 func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-purge-v1"
@@ -1583,7 +1692,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		}
 	}
 	if len(manifests) != 2*3 {
-		t.Fatalf("Expected 3 manifests got %d", len(manifests))
+		t.Fatalf("Expected 6 manifests got %d", len(manifests))
 	}
 
 	Print("Then: old files are removed")

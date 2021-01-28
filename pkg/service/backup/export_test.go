@@ -23,15 +23,14 @@ func SnapshotTagFromManifestPath(t *testing.T, s string) string {
 	return m.SnapshotTag
 }
 
-func ParsePartialPath(s string) error {
+func ParsePartialPath(s string) (remoteManifest, error) {
 	var m remoteManifest
-	return m.ParsePartialPath(s)
+	return m, m.ParsePartialPath(s)
 }
 
 type RemoteManifest = remoteManifest
 type ManifestContent = manifestContent
 type FileInfo = fileInfo
-type ModelFilesInfo = filesInfo
 
 func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return remoteManifestDir(clusterID, dc, nodeID)
@@ -40,7 +39,7 @@ func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 const (
 	ScyllaManifest  = scyllaManifest
 	MetadataVersion = metadataVersion
-	TempFileExt = tempFileExt
+	TempFileExt     = tempFileExt
 )
 
 func (p *RunProgress) Files() []FileInfo {
@@ -70,4 +69,8 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 
 func (t Target) Hosts() []string {
 	return t.liveNodes.Hosts()
+}
+
+func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
+	return remoteSSTableVersionDir(clusterID, dc, nodeID, keyspace, table, version)
 }
