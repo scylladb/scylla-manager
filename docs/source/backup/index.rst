@@ -9,6 +9,7 @@ Backup
    setup-aws-s3
    setup-s3-compatible-storage
    setup-gcs
+   setup-azure-blobstorage
    examples
 
 .. contents::
@@ -60,3 +61,4 @@ Details may differ depending on the storage engine, please consult:
 * :doc:`Setup AWS S3 <setup-aws-s3>`
 * :doc:`Setup S3 compatible storage <setup-s3-compatible-storage>`
 * :doc:`Setup Google Cloud Storage <setup-gcs>`
+* :doc:`Setup Azure Blob Storage <setup-azure-blobstorage>`

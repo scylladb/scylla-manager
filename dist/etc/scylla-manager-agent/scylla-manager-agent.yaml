@@ -150,6 +150,42 @@
 #  chunk_size: 50M
 
 # Client configuration for Microsoft Azure storage blob service.
+#
+# Access can be provided with account/key pair but it is recommended to use
+# Azure RBAC to the backup storage with IAM policy defined.
+# More about role based access https://docs.microsoft.com/en-us/azure/role-based-access-control/.
+#
+# Sample role JSON definition scoped to the *ScyllaManagerBackup* resource group:
+#
+# {
+#   "properties": {
+#     "roleName": "Scylla Backup Storage Contributor",
+#     "description": "Contributor access to the blob service for Scylla cluster backups",
+#     "assignableScopes": [
+#       "/subscriptions/<subscription_uuid>/resourceGroups/ScyllaManagerBackup"
+#     ],
+#     "permissions": [
+#       {
+#         "actions": [
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/delete",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/read",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/write",
+#           "Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey/action"
+#         ],
+#         "notActions": [],
+#         "dataActions": [
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/delete",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action"
+#         ],
+#         "notDataActions": []
+#       }
+#     ]
+#   }
+# }
+#
 #azure:
 # Storage account name.
 #  account:
