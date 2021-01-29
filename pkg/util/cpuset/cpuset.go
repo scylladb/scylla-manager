@@ -147,7 +147,7 @@ func osTasks(pid int) ([]int, error) {
 
 	var pids []int
 	for _, f := range files {
-		p, _ := strconv.ParseInt(f.Name(), 10, 64) //nolint: errcheck
+		p, _ := strconv.ParseInt(f.Name(), 10, 64) // nolint: errcheck
 		pids = append(pids, int(p))
 	}
 

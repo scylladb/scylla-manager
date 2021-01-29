@@ -28,7 +28,7 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 		Context:       forceHost(ctx, host),
 		BandwidthRate: &models.Bandwidth{Rate: fmt.Sprintf("%dM", limit)},
 	}
-	_, err := c.agentOps.CoreBwlimit(&p) //nolint:errcheck
+	_, err := c.agentOps.CoreBwlimit(&p) // nolint: errcheck
 	return err
 }
 
@@ -38,7 +38,7 @@ func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) er
 		Context: forceHost(ctx, host),
 		Jobid:   &models.Jobid{Jobid: jobID},
 	}
-	_, err := c.agentOps.JobStop(&p) //nolint:errcheck
+	_, err := c.agentOps.JobStop(&p) // nolint: errcheck
 	return err
 }
 
@@ -125,7 +125,7 @@ func (c *Client) RcloneDeleteJobStats(ctx context.Context, host string, jobID in
 			Group: rcloneDefaultGroup(jobID),
 		},
 	}
-	_, err := c.agentOps.CoreStatsDelete(&p) //nolint:errcheck
+	_, err := c.agentOps.CoreStatsDelete(&p) // nolint: errcheck
 	return err
 }
 
@@ -134,7 +134,7 @@ func (c *Client) RcloneResetStats(ctx context.Context, host string) error {
 	p := operations.CoreStatsResetParams{
 		Context: forceHost(ctx, host),
 	}
-	_, err := c.agentOps.CoreStatsReset(&p) //nolint:errcheck
+	_, err := c.agentOps.CoreStatsReset(&p) // nolint: errcheck
 	return err
 }
 

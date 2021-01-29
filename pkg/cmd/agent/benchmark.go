@@ -130,7 +130,7 @@ func init() {
 	f.StringSliceVarP(&benchmarkArgs.scenarioGlob, "scenario", "d", []string{},
 		"local glob path to scenario directories that will be copied to the provided location and benchmarked as single scenario")
 	f.StringVarP(&benchmarkArgs.location, "location", "L", "",
-		"backup location in the format [<dc>:]<provider>:<bucket> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: s3, gcs, azure") //nolint: lll
+		"backup location in the format [<dc>:]<provider>:<bucket> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: s3, gcs, azure") // nolint: lll
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "specify directory path for saving memory profiles. If not provided profiles will not be generated")
 	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
 

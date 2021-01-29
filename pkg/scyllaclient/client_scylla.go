@@ -532,7 +532,7 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 func (c *Client) KillAllRepairs(ctx context.Context, hosts ...string) error {
 	ctx = noRetry(ctx)
 
-	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error { //nolint: errcheck
+	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error { // nolint: errcheck
 		host := hosts[i]
 		_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
 			Context: forceHost(ctx, host),

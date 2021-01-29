@@ -31,7 +31,7 @@ func init() {
 
 	fs := checkForUpdatesCmd.Flags()
 	fs.Bool("install", false, "use installation status when performing check")
-	fs.MarkHidden("install") // nolint:errcheck
+	fs.MarkHidden("install") // nolint: errcheck
 }
 
 func checkForUpdate(ctx context.Context, cmd *cobra.Command, install bool) error {

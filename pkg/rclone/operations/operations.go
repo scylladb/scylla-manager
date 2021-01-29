@@ -80,7 +80,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	if err != nil {
 		return errors.Wrap(err, "create local tmp directory")
 	}
-	defer os.RemoveAll(tmpDir) //nolint: errcheck
+	defer os.RemoveAll(tmpDir) // nolint: errcheck
 
 	// Create tmp file.
 	var (
@@ -104,7 +104,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		if err := sync.CopyDir(ctx, l, rd, true); err != nil {
 			// Special handling of permissions errors
 			if errors.Cause(err) == credentials.ErrNoValidProvidersFoundInChain {
-				return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") //nolint:lll
+				return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") // nolint: lll
 			}
 			return PermissionError{err, "put"}
 		}

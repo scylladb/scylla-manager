@@ -319,7 +319,7 @@ func parseContentType(headers http.Header) (string, error) {
 	return contentType, nil
 }
 
-func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { //nolint:unparam
+func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { // nolint: unparam
 	fs.Errorf(nil, "rc: received unsupported GET request")
 	http.Error(w, notFoundJSON, http.StatusNotFound)
 }

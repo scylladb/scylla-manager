@@ -35,9 +35,9 @@ func PutWithRollback(store Store, e Entry) (func(), error) {
 	}
 	return func() {
 		if old.data == nil {
-			store.Delete(old) // nolint:errcheck
+			store.Delete(old) // nolint: errcheck
 		} else {
-			store.Put(old) // nolint:errcheck
+			store.Put(old) // nolint: errcheck
 		}
 	}, nil
 }

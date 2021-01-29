@@ -44,7 +44,7 @@ func ValidateToken(token string, penalty time.Duration,
 					time.Sleep(penalty)
 				}
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write(unauthorizedBody) // nolint:errcheck
+				w.Write(unauthorizedBody) // nolint: errcheck
 			} else {
 				next.ServeHTTP(w, r)
 			}

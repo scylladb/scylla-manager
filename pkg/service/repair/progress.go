@@ -380,7 +380,7 @@ func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (
 
 	for k, v := range perHost {
 		sort.Slice(v, func(i, j int) bool {
-			return v[i].Keyspace+v[i].Table < v[j].Keyspace+v[j].Table //nolint:scopelint
+			return v[i].Keyspace+v[i].Table < v[j].Keyspace+v[j].Table // nolint: scopelint
 		})
 		p.Hosts = append(p.Hosts, HostProgress{
 			progress: sumTableProgress(v),
