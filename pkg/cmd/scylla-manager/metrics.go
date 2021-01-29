@@ -7,14 +7,12 @@ import (
 	"github.com/scylladb/scylla-manager/pkg"
 )
 
-var (
-	currentVersion = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "server",
-		Name:      "current_version",
-		Help:      "Current Scylla Manager version.",
-	}, []string{"version"})
-)
+var currentVersion = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: "scylla_manager",
+	Subsystem: "server",
+	Name:      "current_version",
+	Help:      "Current Scylla Manager version.",
+}, []string{"version"})
 
 func init() {
 	prometheus.MustRegister(currentVersion)

@@ -7,7 +7,7 @@ import (
 	"math/big"
 )
 
-// Full token range
+// Full token range.
 const (
 	Murmur3MinToken = int64(math.MinInt64)
 	Murmur3MaxToken = int64(math.MaxInt64)
@@ -104,7 +104,7 @@ func (p *Murmur3Partitioner) PrevShard(shard uint) uint {
 	return prev - 1
 }
 
-// TokenForPrevShard returns the start token for the shard -1
+// TokenForPrevShard returns the start token for the shard -1.
 func (p *Murmur3Partitioner) TokenForPrevShard(t int64, shard uint) int64 {
 	z := zeroBased(t)
 	s := p.zeroBasedShardOf(z)

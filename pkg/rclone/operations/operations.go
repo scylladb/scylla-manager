@@ -18,7 +18,7 @@ import (
 	"github.com/rclone/rclone/lib/pacer"
 )
 
-// wrap a Reader and a Closer together into a ReadCloser
+// wrap a Reader and a Closer together into a ReadCloser.
 type readCloser struct {
 	io.Reader
 	io.Closer

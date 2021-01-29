@@ -57,6 +57,7 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 
 	return manifests, nil
 }
+
 func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
 	h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
 

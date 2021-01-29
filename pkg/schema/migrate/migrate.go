@@ -11,11 +11,9 @@ import (
 	"github.com/scylladb/gocqlx/v2/migrate"
 )
 
-var (
-	// Logger allows for setting a custom logger that can be used by migration
-	// callback functions, default is log.NopLogger.
-	Logger = log.NopLogger
-)
+// Logger allows for setting a custom logger that can be used by migration
+// callback functions, default is log.NopLogger.
+var Logger = log.NopLogger
 
 type callback func(ctx context.Context, session gocqlx.Session, logger log.Logger) error
 

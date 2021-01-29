@@ -18,7 +18,7 @@ type HostDC struct {
 // NodeStatus represents nodetool Status=Up/Down.
 type NodeStatus bool
 
-// NodeStatus enumeration
+// NodeStatus enumeration.
 const (
 	NodeStatusUp   NodeStatus = true
 	NodeStatusDown NodeStatus = false
@@ -31,10 +31,10 @@ func (s NodeStatus) String() string {
 	return "D"
 }
 
-// NodeState represents nodetool State=Normal/Leaving/Joining/Moving
+// NodeState represents nodetool State=Normal/Leaving/Joining/Moving.
 type NodeState string
 
-// NodeState enumeration
+// NodeState enumeration.
 const (
 	NodeStateNormal  NodeState = ""
 	NodeStateLeaving NodeState = "LEAVING"
@@ -138,17 +138,17 @@ func (s NodeStatusInfoSlice) LiveHostDCs() []HostDC {
 	return dcs
 }
 
-// CommandStatus specifies a result of a command
+// CommandStatus specifies a result of a command.
 type CommandStatus string
 
-// Command statuses
+// Command statuses.
 const (
 	CommandRunning    CommandStatus = "RUNNING"
 	CommandSuccessful CommandStatus = "SUCCESSFUL"
 	CommandFailed     CommandStatus = "FAILED"
 )
 
-// Partitioners
+// Partitioners.
 const (
 	Murmur3Partitioner = "org.apache.cassandra.dht.Murmur3Partitioner"
 )
@@ -156,7 +156,7 @@ const (
 // ReplicationStrategy specifies type of a keyspace replication strategy.
 type ReplicationStrategy string
 
-// Replication strategies
+// Replication strategies.
 const (
 	LocalStrategy           = "org.apache.cassandra.locator.LocalStrategy"
 	SimpleStrategy          = "org.apache.cassandra.locator.SimpleStrategy"

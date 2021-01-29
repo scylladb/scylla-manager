@@ -313,7 +313,8 @@ func newMultiVersionManifestDeleter(host string, location Location, client *scyl
 		deleters: map[string]manifestDeleter{
 			"v1": newManifestV1Helper(host, location, client, logger),
 			"v2": newManifestV2Helper(host, location, client, logger),
-		}}
+		},
+	}
 }
 
 func (m *multiVersionManifestDeleter) DeleteManifest(ctx context.Context, rm *remoteManifest) error {
@@ -345,7 +346,8 @@ func newMultiVersionManifestLister(host string, location Location, client *scyll
 		listers: map[string]manifestLister{
 			"v1": newManifestV1Helper(host, location, client, logger),
 			"v2": newManifestV2Helper(host, location, client, logger),
-		}}
+		},
+	}
 }
 
 func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {

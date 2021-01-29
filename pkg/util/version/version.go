@@ -72,9 +72,7 @@ func TransformReleaseCandidate(v string) string {
 	return v
 }
 
-var (
-	verRe = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?`)
-)
+var verRe = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?`)
 
 // CheckConstraint returns whether version fulfills given constraint.
 func CheckConstraint(ver, constraint string) (bool, error) {

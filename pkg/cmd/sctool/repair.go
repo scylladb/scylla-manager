@@ -170,7 +170,6 @@ var repairControlCmd = &cobra.Command{
 ` + parallelLongDesc + `
 ` + intensityLongDesc,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		if !cmd.Flag("intensity").Changed && !cmd.Flag("parallel").Changed {
 			return errors.New("at least one of intensity or parallel flags needs to be specified")
 		}
@@ -219,7 +218,7 @@ func (fl *IntensityFlag) String() string {
 
 // Set validates and sets intensity value.
 func (fl *IntensityFlag) Set(s string) error {
-	var errValidation = errors.New("intensity must be an integer >= 1 or a decimal between (0,1)")
+	errValidation := errors.New("intensity must be an integer >= 1 or a decimal between (0,1)")
 
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {

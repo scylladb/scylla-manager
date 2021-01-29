@@ -76,7 +76,7 @@ func (s *server) init(ctx context.Context) error {
 	}
 
 	// Try to get a CPU to pin to
-	var cpu = s.config.CPU
+	cpu := s.config.CPU
 	if cpu == noCPU {
 		if c, err := findFreeCPU(); err != nil {
 			if cause := errors.Cause(err); os.IsNotExist(cause) || cause == cpuset.ErrNoCPUSetConfig {

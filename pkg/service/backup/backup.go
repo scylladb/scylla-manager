@@ -137,7 +137,7 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 		errs      error
 	)
 
-	var p = struct {
+	p := struct {
 		Location []Location `json:"location"`
 	}{}
 	for i := range properties {

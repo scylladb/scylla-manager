@@ -38,6 +38,7 @@ linters:
     - gomnd
     - interfacer
     - maligned
+    - nolintlint
     - prealloc
     - wsl
 

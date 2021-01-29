@@ -4,7 +4,7 @@ package table
 
 import "github.com/scylladb/gocqlx/v2/table"
 
-// Table models
+// Table models.
 var (
 	BackupRun = table.New(table.Metadata{
 		Name: "backup_run",

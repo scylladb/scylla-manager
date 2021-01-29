@@ -40,7 +40,7 @@ type Service struct {
 	closing     bool
 }
 
-// overridable knobs for tests
+// overridable knobs for tests.
 var (
 	retryTaskWait     = 10 * time.Minute
 	stopTaskWait      = 60 * time.Second

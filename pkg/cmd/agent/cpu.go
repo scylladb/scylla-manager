@@ -45,7 +45,7 @@ var cpuTestCmd = &cobra.Command{
 	Hidden:        true,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cpu = cpuTestArgs.cpu
+		cpu := cpuTestArgs.cpu
 		if cpu >= 0 {
 			if err := pinToCPU(cpu); err != nil {
 				return errors.Wrapf(err, "pin to CPU %d", cpu)

@@ -9,12 +9,10 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
-var (
-	walkerListDirsOpts = &scyllaclient.RcloneListDirOpts{
-		DirsOnly:  true,
-		NoModTime: true,
-	}
-)
+var walkerListDirsOpts = &scyllaclient.RcloneListDirOpts{
+	DirsOnly:  true,
+	NoModTime: true,
+}
 
 // walker performs a recursive walk in location that is proxied over agent at
 // host, it should be avoided as much possible.

@@ -124,7 +124,7 @@ func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backup.Location {
 
 func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var filter = backup.ListFilter{
+		filter := backup.ListFilter{
 			Keyspace:    r.Form["keyspace"],
 			SnapshotTag: r.FormValue("snapshot_tag"),
 		}

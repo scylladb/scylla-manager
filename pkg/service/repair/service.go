@@ -378,7 +378,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Enable generator row-level repair optimisation if all hosts support
 	// row-level repair.
-	var enableRowLevelRepairOpt = true
+	enableRowLevelRepairOpt := true
 	for _, p := range hostPartitioner {
 		if p != nil {
 			enableRowLevelRepairOpt = false

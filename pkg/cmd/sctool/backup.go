@@ -321,7 +321,7 @@ var backupFilesCmd = &cobra.Command{
 		}
 		// Schema files first
 		for _, schemaPath := range schemaPaths.List() {
-			var filePath = strings.Replace(schemaPath, ":", "://", 1)
+			filePath := strings.Replace(schemaPath, ":", "://", 1)
 			_, err = fmt.Fprintln(w, filePath, d, "./")
 			if err != nil {
 				return err
@@ -334,7 +334,7 @@ var backupFilesCmd = &cobra.Command{
 					dir += "-" + t.Version
 				}
 				for _, f := range t.Files {
-					var filePath = strings.Replace(path.Join(fi.Location, t.Path, f), ":", "://", 1)
+					filePath := strings.Replace(path.Join(fi.Location, t.Path, f), ":", "://", 1)
 
 					_, err = fmt.Fprintln(w, filePath, d, dir)
 					if err != nil {

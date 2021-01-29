@@ -26,7 +26,7 @@ import (
 // ChangeType specifies type on Change.
 type ChangeType int8
 
-// ChangeType enumeration
+// ChangeType enumeration.
 const (
 	Create ChangeType = iota
 	Update

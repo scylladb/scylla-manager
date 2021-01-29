@@ -49,10 +49,7 @@ func (cs ClusterSlice) Render(w io.Writer) error {
 type ClusterStatus models.ClusterStatus
 
 func (cs ClusterStatus) tableHeaders() []interface{} {
-	var (
-		headers = []interface{}{"Address", "Uptime", "CPUs", "Memory", "Scylla", "Agent", "Host ID"}
-	)
-
+	headers := []interface{}{"Address", "Uptime", "CPUs", "Memory", "Scylla", "Agent", "Host ID"}
 	apis := []interface{}{"CQL", "REST"}
 
 	if cs.hasAnyAlternator() {

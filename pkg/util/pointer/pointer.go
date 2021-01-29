@@ -2,7 +2,7 @@
 
 package pointer
 
-// Int32Ptr returns a pointer to an int32
+// Int32Ptr returns a pointer to an int32.
 func Int32Ptr(i int32) *int32 {
 	return &i
 }
@@ -16,7 +16,7 @@ func Int32PtrDerefOr(ptr *int32, def int32) int32 {
 	return def
 }
 
-// Int64Ptr returns a pointer to an int64
+// Int64Ptr returns a pointer to an int64.
 func Int64Ptr(i int64) *int64 {
 	return &i
 }
@@ -30,7 +30,7 @@ func Int64PtrDerefOr(ptr *int64, def int64) int64 {
 	return def
 }
 
-// BoolPtr returns a pointer to a bool
+// BoolPtr returns a pointer to a bool.
 func BoolPtr(b bool) *bool {
 	return &b
 }

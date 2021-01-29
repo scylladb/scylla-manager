@@ -37,7 +37,7 @@ func ManagedClusterHosts() []string {
 	return strings.Split(*flagManagedCluster, ",")
 }
 
-// ManagedClusterHost returns ManagedClusterHosts()[0]
+// ManagedClusterHost returns ManagedClusterHosts()[0].
 func ManagedClusterHost() string {
 	s := ManagedClusterHosts()
 	if len(s) == 0 {

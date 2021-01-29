@@ -20,7 +20,7 @@ import (
 // TaskType specifies the type of a Task.
 type TaskType string
 
-// TaskType enumeration
+// TaskType enumeration.
 const (
 	UnknownTask               TaskType = "unknown"
 	BackupTask                TaskType = "backup"

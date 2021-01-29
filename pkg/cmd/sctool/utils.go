@@ -49,7 +49,7 @@ func readFile(filename string) ([]byte, error) {
 }
 
 // accommodate for escaping of bash expansions, we can safely remove '\'
-// as it's not a valid char in keyspace or table name
+// as it's not a valid char in keyspace or table name.
 func unescapeFilters(strs []string) []string {
 	for i := range strs {
 		strs[i] = strings.ReplaceAll(strs[i], "\\", "")

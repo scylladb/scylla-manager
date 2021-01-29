@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Common errors
+// Common errors.
 var (
 	ErrNotFound = gocql.ErrNotFound
 	ErrNilPtr   = errors.New("nil")

@@ -12,10 +12,8 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-var (
-	// ErrInvalidKey is returned when Entry have nil clusterID or empty key.
-	ErrInvalidKey = errors.New("Missing clusterID or key")
-)
+// ErrInvalidKey is returned when Entry have nil clusterID or empty key.
+var ErrInvalidKey = errors.New("Missing clusterID or key")
 
 // Entry is key value pair that can be persisted in Store.
 // Key is obtained by Key method. Value is obtained by marshalling.
@@ -34,7 +32,7 @@ type Store interface {
 	DeleteAll(clusterID uuid.UUID) error
 }
 
-// TableStore stores entries in a table, table must
+// TableStore stores entries in a table, table must.
 type TableStore struct {
 	session gocqlx.Session
 	table   *table.Table

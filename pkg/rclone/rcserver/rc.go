@@ -98,9 +98,7 @@ transferred: transferred stats
 
 // rcJobProgress aggregates and returns prepared job progress information.
 func rcJobProgress(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	var (
-		jobOut, statsOut, transOut map[string]interface{}
-	)
+	var jobOut, statsOut, transOut map[string]interface{}
 	jobid, err := in.GetInt64("jobid")
 	if err != nil {
 		return rc.Params{}, err
@@ -229,14 +227,14 @@ func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
 	filesSet := strset.New()
 
 	// Calculating stats for running transfers.
-	var transferringBytes = make(map[string]int64, len(stats.Transferring))
+	transferringBytes := make(map[string]int64, len(stats.Transferring))
 	for _, tr := range stats.Transferring {
 		filesSet.Add(tr.Name)
 		transferringBytes[tr.Name] = tr.Bytes
 	}
 
 	// Calculating stats for completed transfers.
-	var fileTransfers = make(map[string][]accounting.TransferSnapshot, len(trans.Transferred))
+	fileTransfers := make(map[string][]accounting.TransferSnapshot, len(trans.Transferred))
 	for _, tr := range trans.Transferred {
 		filesSet.Add(tr.Name)
 		fileTransfers[tr.Name] = append(fileTransfers[tr.Name], tr)

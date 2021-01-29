@@ -12,10 +12,8 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 )
 
-var (
-	// ErrTimeout is returned when request times out.
-	ErrTimeout = errors.New("timeout")
-)
+// ErrTimeout is returned when request times out.
+var ErrTimeout = errors.New("timeout")
 
 // body defers context cancellation until response body is closed.
 type body struct {

@@ -41,5 +41,5 @@ func NewTicker(d time.Duration, f func()) func() {
 	}
 }
 
-// for test purposes
+// for test purposes.
 var overrideTickerChanTestHook func() <-chan time.Time

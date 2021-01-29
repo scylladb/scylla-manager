@@ -125,7 +125,7 @@ func FormatRepairProgress(total, success, failed int64) string {
 	return out
 }
 
-// FormatUploadProgress calculates percentage of success and failed uploads
+// FormatUploadProgress calculates percentage of success and failed uploads.
 func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 	if size == 0 {
 		return "100%"
@@ -178,7 +178,7 @@ var (
 // This is opposite of StringByteCount function.
 func ParseByteCount(s string) (int64, error) {
 	const unit = 1024
-	var exps = []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
+	exps := []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
 	parts := byteCountRe.FindStringSubmatch(s)
 	if len(parts) != 3 {
 		return 0, errors.Errorf("invalid byte size string: %q; it must be real number with unit suffix: %s", s, strings.Join(exps, ","))
@@ -209,7 +209,7 @@ func FormatTime(t strfmt.DateTime) string {
 	return time.Time(t).Local().Format(rfc822WithSec)
 }
 
-// FormatTimePointer see FormatTime
+// FormatTimePointer see FormatTime.
 func FormatTimePointer(t *strfmt.DateTime) string {
 	var tf strfmt.DateTime
 	if t != nil {

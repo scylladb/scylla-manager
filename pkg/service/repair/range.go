@@ -47,7 +47,7 @@ func replicaHash(replicas []string) uint64 {
 
 // fixRanges ensures that start token < end token at all times.
 func fixRanges(ranges []*tableTokenRange) []*tableTokenRange {
-	var needsSplitting = 0
+	needsSplitting := 0
 	for _, tr := range ranges {
 		if tr.StartToken > tr.EndToken {
 			needsSplitting++
@@ -182,7 +182,7 @@ func (b *tableTokenRangeBuilder) MaxParallelRepairs() int {
 func (b *tableTokenRangeBuilder) Build(unit Unit) (out []*tableTokenRange) {
 	for _, table := range unit.Tables {
 		for _, p := range b.prototypes {
-			var ttr = *p
+			ttr := *p
 			ttr.Keyspace = unit.Keyspace
 			ttr.Table = table
 			out = append(out, &ttr)

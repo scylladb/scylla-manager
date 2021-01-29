@@ -110,7 +110,6 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo, b *bytes.Bu
 
 		return errors.Wrapf(err, "host %s", h.IP)
 	})
-
 	if err != nil {
 		// Parent context might be already canceled, use background context
 		// Request timeout is configured on transport layer
