@@ -13,6 +13,8 @@ import (
 )
 
 func NewFakeRcloneServer(t *testing.T, matchers ...Matcher) (client *scyllaclient.Client, closeServer func()) {
+	t.Helper()
+
 	rc := rcserver.New()
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

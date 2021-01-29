@@ -50,7 +50,7 @@ var checkLocationCmd = &cobra.Command{
 
 		f, err := fs.NewFs(location)
 		if err != nil {
-			if errors.Cause(err) == fs.ErrorNotFoundInConfigFile {
+			if errors.Is(err, fs.ErrorNotFoundInConfigFile) {
 				return fmt.Errorf("unknown provider %s", location)
 			}
 			return errors.Wrap(err, "init fs")

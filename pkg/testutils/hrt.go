@@ -29,13 +29,16 @@ func (h *HackableRoundTripper) SetInterceptor(rt http.RoundTripper) {
 	h.interceptor = rt
 }
 
+// Interceptor returns the current interceptor.
+func (h *HackableRoundTripper) Interceptor() http.RoundTripper {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.interceptor
+}
+
 // RoundTrip implements http.RoundTripper.
 func (h *HackableRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	h.mu.Lock()
-	rt := h.interceptor
-	h.mu.Unlock()
-
-	if rt != nil {
+	if rt := h.Interceptor(); rt != nil {
 		resp, err = rt.RoundTrip(req)
 	}
 	if resp == nil && err == nil {

@@ -4,7 +4,6 @@ package scyllaclient
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"regexp"
 	"runtime"
@@ -255,7 +254,7 @@ func (c *Client) Tokens(ctx context.Context, host string) ([]int64, error) {
 	for i, s := range resp.Payload {
 		v, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			return tokens, fmt.Errorf("parsing failed at pos %d: %s", i, err)
+			return tokens, errors.Wrapf(err, "parsing error at pos %d", i)
 		}
 		tokens[i] = v
 	}

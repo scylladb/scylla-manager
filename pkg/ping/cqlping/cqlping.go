@@ -48,7 +48,7 @@ func simplePing(ctx context.Context, config Config) (rtt time.Duration, err erro
 	t := timeutc.Now()
 	defer func() {
 		rtt = timeutc.Since(t)
-		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		if netErr, ok := err.(net.Error); ok && netErr.Timeout() { // nolint: errorlint
 			err = ping.ErrTimeout
 		}
 	}()

@@ -81,15 +81,14 @@ func New() Server {
 // writeError writes a formatted error to the output.
 func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err error, status int) {
 	// Ignore if response was already written
-	if errors.Cause(err) == errResponseWritten {
+	if errors.Is(err, errResponseWritten) {
 		return
 	}
 
 	fs.Errorf(nil, "rc: %q: error: %v", path, err)
 	// Adjust the error return for some well known errors
-	errOrig := errors.Cause(err)
 	switch {
-	case isCheckErr(err) || isNotFoundErr(errOrig):
+	case isCheckErr(err) || isNotFoundErr(err):
 		status = http.StatusNotFound
 	case isBadRequestErr(err):
 		status = http.StatusBadRequest
@@ -125,28 +124,31 @@ func (s Server) writeJSON(w http.ResponseWriter, out rc.Params) error {
 	return err
 }
 
+// nolint: errorlint
 func isBadRequestErr(err error) bool {
-	errOrig := errors.Cause(err)
+	cause := errors.Cause(err)
 	return rc.IsErrParamInvalid(err) ||
 		rc.IsErrParamNotFound(err) ||
 		IsErrParamInvalid(err) ||
-		errOrig == fs.ErrorIsFile ||
-		errOrig == fs.ErrorNotAFile ||
-		errOrig == fs.ErrorDirectoryNotEmpty ||
-		errOrig == fs.ErrorDirExists ||
-		errOrig == fs.ErrorListBucketRequired
+		cause == fs.ErrorIsFile ||
+		cause == fs.ErrorNotAFile ||
+		cause == fs.ErrorDirectoryNotEmpty ||
+		cause == fs.ErrorDirExists ||
+		cause == fs.ErrorListBucketRequired
 }
 
 func isCheckErr(err error) bool {
-	_, ok := err.(operations.PermissionError)
+	_, ok := err.(operations.PermissionError) // nolint: errorlint
 	return ok
 }
 
+// nolint: errorlint
 func isNotFoundErr(err error) bool {
-	return err == fs.ErrorDirNotFound ||
-		err == fs.ErrorObjectNotFound ||
-		err == fs.ErrorNotFoundInConfigFile ||
-		err == errJobNotFound
+	cause := errors.Cause(err)
+	return cause == fs.ErrorDirNotFound ||
+		cause == fs.ErrorObjectNotFound ||
+		cause == fs.ErrorNotFoundInConfigFile ||
+		cause == errJobNotFound
 }
 
 func isForbiddenErr(err error) bool {
@@ -286,7 +288,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		out, err = fn(r.Context(), inExt)
 	}
 
-	if rc.IsErrParamNotFound(err) || err == ErrNotFound {
+	if rc.IsErrParamNotFound(err) || errors.Is(err, ErrNotFound) {
 		s.writeError(path, in, w, err, http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -353,6 +355,6 @@ type errParamInvalid struct {
 // IsErrParamInvalid checks if the provided error is invalid.
 // Added as a workaround for private error field of fs.ErrParamInvalid.
 func IsErrParamInvalid(err error) bool {
-	_, ok := err.(errParamInvalid)
+	_, ok := err.(errParamInvalid) // nolint: errorlint
 	return ok
 }

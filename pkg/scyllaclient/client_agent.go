@@ -24,7 +24,7 @@ func (c *Client) NodeInfo(ctx context.Context, host string) (*NodeInfo, error) {
 	}
 	resp, err := c.agentOps.NodeInfo(&p)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "node info")
 	}
 	return (*NodeInfo)(resp.Payload), nil
 }
@@ -36,7 +36,7 @@ func (c *Client) AnyNodeInfo(ctx context.Context) (*NodeInfo, error) {
 	}
 	resp, err := c.agentOps.NodeInfo(&p)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "node info")
 	}
 	return (*NodeInfo)(resp.Payload), nil
 }
@@ -171,5 +171,5 @@ func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 		Context: forceHost(ctx, host),
 	}
 	_, err := c.agentOps.FreeOSMemory(&p)
-	return err
+	return errors.Wrap(err, "free OS memory")
 }

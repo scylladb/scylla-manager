@@ -23,7 +23,7 @@ func Abort(err error) ErrAbort {
 }
 
 func isErrAbort(err error) (bool, error) {
-	a, ok := err.(ErrAbort)
+	a, ok := err.(ErrAbort) // nolint: errorlint
 	if !ok {
 		return false, nil
 	}

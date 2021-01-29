@@ -119,7 +119,7 @@ func (h *repairTestHelper) assertRunning(wait time.Duration) {
 	WaitCond(h.t, func() bool {
 		_, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
 		if err != nil {
-			if err == service.ErrNotFound {
+			if errors.Is(err, service.ErrNotFound) {
 				return false
 			}
 			h.t.Fatal(err)

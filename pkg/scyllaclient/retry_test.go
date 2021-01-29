@@ -161,7 +161,7 @@ func TestRetryCancelContext(t *testing.T) {
 			if err == nil {
 				t.Fatalf("NodeInfo() expected error")
 			}
-			if errors.Cause(err) != context.Canceled {
+			if !errors.Is(err, context.Canceled) {
 				t.Fatalf("NodeInfo() error=%s, expected context.Canceled", err)
 			}
 		})

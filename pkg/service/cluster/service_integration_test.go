@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/secrets"
@@ -94,7 +95,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		setup(t)
 
 		c, err := s.GetClusterByID(ctx, uuid.MustRandom())
-		if err != service.ErrNotFound {
+		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal("expected not found")
 		}
 		if c != nil {
@@ -288,13 +289,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 		cqlCreds := &secrets.CQLCreds{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(cqlCreds); err != service.ErrNotFound {
+		if err := secretsStore.Get(cqlCreds); !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 		tlsIdentity := &secrets.TLSIdentity{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(tlsIdentity); err != service.ErrNotFound {
+		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -315,7 +316,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		cqlCreds := &secrets.CQLCreds{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(cqlCreds); err != service.ErrNotFound {
+		if err := secretsStore.Get(cqlCreds); !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -336,7 +337,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		tlsIdentity := &secrets.TLSIdentity{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(tlsIdentity); err != service.ErrNotFound {
+		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -404,7 +405,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := s.DeleteCluster(ctx, c.ID); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.GetClusterByID(ctx, c.ID); err != service.ErrNotFound {
+		if _, err := s.GetClusterByID(ctx, c.ID); !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 		if change.ID != c.ID {

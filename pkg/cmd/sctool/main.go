@@ -27,7 +27,7 @@ func main() {
 }
 
 func printError(w io.Writer, err error) {
-	v, ok := err.(interface {
+	v, ok := err.(interface { // nolint: errorlint
 		GetPayload() *managerclient.ErrorResponse
 	})
 	if ok {

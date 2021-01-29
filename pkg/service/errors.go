@@ -28,7 +28,7 @@ func ErrValidate(err error) error {
 
 // IsErrValidate checks if given error is a validation error.
 func IsErrValidate(err error) bool {
-	_, ok := err.(errValidate)
+	_, ok := err.(errValidate) // nolint: errorlint
 	return ok
 }
 

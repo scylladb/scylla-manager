@@ -56,7 +56,7 @@ func parseConfigFile(name string) ([]int, error) {
 		return nil, err
 	}
 	if groups == nil {
-		return nil, ErrNoCPUSetConfig
+		return nil, ErrNoCPUSetConfig // nolint: errorlint
 	}
 
 	idx := 0

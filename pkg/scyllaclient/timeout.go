@@ -47,7 +47,7 @@ func timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
 				}
 			}
 
-			if errors.Cause(err) == context.DeadlineExceeded && ctx.Err() == context.DeadlineExceeded {
+			if errors.Is(err, context.DeadlineExceeded) && errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				err = errors.Wrapf(ErrTimeout, "after %s", d)
 			}
 		}()

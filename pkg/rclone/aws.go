@@ -3,6 +3,7 @@
 package rclone
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -17,7 +18,7 @@ import (
 func awsRegionFromMetadataAPI() string {
 	const url = "http://169.254.169.254/latest/dynamic/instance-identity/document"
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		fs.Errorf(nil, "create metadata request: %+v", err)
 		return ""

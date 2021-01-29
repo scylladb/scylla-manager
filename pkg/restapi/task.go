@@ -466,7 +466,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		// If we can't find any repair progress reference then just return what we have (prog.Run).
 		// prog.Progress is assigned separately to force nil on the returned value instead of an empty object.
 		// This is required for correct JSON representation and detection if Progress is empty.
-		if err != service.ErrNotFound {
+		if !errors.Is(err, service.ErrNotFound) {
 			respondError(w, r, errors.Wrapf(err, "load progress for task %q", t.ID))
 			return
 		}

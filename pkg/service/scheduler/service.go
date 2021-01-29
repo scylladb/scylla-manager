@@ -82,7 +82,7 @@ func (s *Service) initSuspended() error {
 	for _, c := range clusters {
 		si := &suspendInfo{ClusterID: c}
 		if err := s.drawer.Get(si); err != nil {
-			if err != service.ErrNotFound {
+			if !errors.Is(err, service.ErrNotFound) {
 				return err
 			}
 		} else {
@@ -123,7 +123,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	now := timeutc.Now()
 	err := s.forEachTask(func(t *Task) error {
 		r, err := s.getLastRun(t)
-		if err != nil && err != service.ErrNotFound {
+		if err != nil && !errors.Is(err, service.ErrNotFound) {
 			return errors.Wrap(err, "get last run")
 		}
 		if err := s.fixRunStatus(r, now); err != nil {
@@ -245,7 +245,7 @@ func (s *Service) lastDoneRunStartTime(t *Task, r *Run) (time.Time, error) {
 
 	dr, err := s.GetLastRunWithStatus(t, StatusDone)
 	if err != nil {
-		if err == service.ErrNotFound {
+		if errors.Is(err, service.ErrNotFound) {
 			err = nil
 		}
 		return zero, errors.Wrap(err, "get last run with status done")
@@ -332,7 +332,7 @@ func (s *Service) rescheduleIfNeeded(ctx context.Context, t *Task, run *Run) {
 	q := table.SchedTask.GetQuery(s.session).BindStruct(t)
 	if err := q.GetRelease(&newTask); err != nil {
 		// Do not reschedule if deleted
-		if err == service.ErrNotFound {
+		if errors.Is(err, service.ErrNotFound) {
 			return
 		}
 		// Otherwise log and recover
@@ -722,7 +722,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	// Get canceled tasks
 	si := &suspendInfo{ClusterID: clusterID}
 	if err := s.drawer.Get(si); err != nil {
-		if err == service.ErrNotFound {
+		if errors.Is(err, service.ErrNotFound) {
 			s.logger.Error(ctx, "Expected canceled tasks got none")
 		} else {
 			s.mu.Unlock()

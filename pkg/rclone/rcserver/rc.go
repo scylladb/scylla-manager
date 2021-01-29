@@ -452,7 +452,7 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 			drainBody()
 			return nil, fs.ErrorImmutableModified
 		}
-	} else if err != fs.ErrorObjectNotFound {
+	} else if !errors.Is(err, fs.ErrorObjectNotFound) {
 		drainBody()
 		return nil, err
 	}

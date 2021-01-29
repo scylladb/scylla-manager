@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/service"
 	"github.com/scylladb/scylla-manager/pkg/store"
@@ -82,7 +83,7 @@ func TestStorageIntegration(t *testing.T) {
 
 	t.Run("ErrNotFound is returned on non existing entry lookup", func(t *testing.T) {
 		setup(t)
-		if err := s.Get(truth); err == nil || err != service.ErrNotFound {
+		if err := s.Get(truth); err == nil || !errors.Is(err, service.ErrNotFound) {
 			t.Fatal("expected to get NotFound error")
 		}
 	})
@@ -115,7 +116,7 @@ func TestStorageIntegration(t *testing.T) {
 		if err := s.Delete(truth); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Get(truth); err == nil || err != service.ErrNotFound {
+		if err := s.Get(truth); err == nil || !errors.Is(err, service.ErrNotFound) {
 			t.Fatal("expected to get NotFound error")
 		}
 	})
@@ -132,7 +133,7 @@ func TestStorageIntegration(t *testing.T) {
 		if err := s.DeleteAll(clusterID); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Get(truth); err == nil || err != service.ErrNotFound {
+		if err := s.Get(truth); err == nil || !errors.Is(err, service.ErrNotFound) {
 			t.Fatal("expected to get NotFound error")
 		}
 	})

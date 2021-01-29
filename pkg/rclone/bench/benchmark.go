@@ -193,7 +193,7 @@ func NewBenchmark(ctx context.Context, loc string) (*Benchmark, error) {
 
 	f, err := fs.NewFs(l)
 	if err != nil {
-		if errors.Cause(err) == fs.ErrorNotFoundInConfigFile {
+		if errors.Is(err, fs.ErrorNotFoundInConfigFile) {
 			return nil, location.ErrInvalid
 		}
 		return nil, errors.Wrapf(err, loc)

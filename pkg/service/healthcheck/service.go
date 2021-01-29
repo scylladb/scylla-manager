@@ -468,7 +468,7 @@ func (s *Service) tlsConfig(clusterID uuid.UUID, clientCertAuth bool) (*tls.Conf
 		err := s.secretsStore.Get(id)
 		// If there is no user certificate return nil, user will be notified about
 		// unauthorized error.
-		if err == service.ErrNotFound {
+		if errors.Is(err, service.ErrNotFound) {
 			return nil, nil
 		}
 		if err != nil {
@@ -491,7 +491,7 @@ func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQ
 	err := s.secretsStore.Get(cqlCreds)
 	if err != nil {
 		cqlCreds = nil
-		if err != service.ErrNotFound {
+		if !errors.Is(err, service.ErrNotFound) {
 			s.logger.Error(ctx, "Failed to load CQL credentials from secrets store", "cluster_id", clusterID, "error", err)
 		}
 	}

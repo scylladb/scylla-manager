@@ -79,7 +79,7 @@ func (s *server) init(ctx context.Context) error {
 	cpu := s.config.CPU
 	if cpu == noCPU {
 		if c, err := findFreeCPU(); err != nil {
-			if cause := errors.Cause(err); os.IsNotExist(cause) || cause == cpuset.ErrNoCPUSetConfig {
+			if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
 				// Ignore if there is no cpuset file
 				s.logger.Debug(ctx, "Failed to find CPU to pin to", "error", err)
 			} else {

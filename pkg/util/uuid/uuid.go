@@ -26,7 +26,7 @@ type UUID struct {
 func NewRandom() (UUID, error) {
 	u, err := gocql.RandomUUID()
 	if err != nil {
-		return Nil, err
+		return Nil, errors.Wrap(err, "random")
 	}
 	return UUID{u}, nil
 }

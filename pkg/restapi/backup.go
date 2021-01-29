@@ -105,7 +105,7 @@ func (h backupHandler) extractLocations(r *http.Request) ([]backup.Location, err
 	if err != nil {
 		return nil, err
 	}
-	properties := make([]json.RawMessage, len(tasks))
+	properties := make([]json.RawMessage, 0, len(tasks))
 	for _, t := range tasks {
 		if t.Enabled {
 			properties = append(properties, t.Properties)

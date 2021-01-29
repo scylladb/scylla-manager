@@ -22,6 +22,7 @@ type ServerOption func(*httptest.Server)
 // ServerListenOnAddr is ServerOption that allows to specify listen address
 // (host and/or port).
 func ServerListenOnAddr(t *testing.T, addr string) ServerOption {
+	t.Helper()
 	return func(server *httptest.Server) {
 		t.Helper()
 
@@ -59,6 +60,7 @@ func MakeServer(t *testing.T, h http.Handler, opts ...ServerOption) (host, port 
 
 // SendFile streams a file given by name to HTTP response.
 func SendFile(t *testing.T, w http.ResponseWriter, file string) {
+	t.Helper()
 	f, err := os.Open(file)
 	if err != nil {
 		t.Error(err)
@@ -91,6 +93,7 @@ func statusCodeFromFile(file string) (statusCode int) {
 
 // RespondStatus returns statusCodes in subsequent calls.
 func RespondStatus(t *testing.T, statusCodes ...int) http.Handler {
+	t.Helper()
 	calls := atomic.NewInt32(-1)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idx := int(calls.Inc())
@@ -103,6 +106,7 @@ func RespondStatus(t *testing.T, statusCodes ...int) http.Handler {
 
 // RespondHostStatus returns a fixed status based on target host.
 func RespondHostStatus(t *testing.T, statusCode map[string]int) http.Handler {
+	t.Helper()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host, _, _ := net.SplitHostPort(r.Host)
 		c, ok := statusCode[host]

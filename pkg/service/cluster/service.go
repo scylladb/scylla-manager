@@ -260,7 +260,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		// User may set ID on his own
 		_, err := s.GetClusterByID(ctx, c.ID)
 		if err != nil {
-			if err != service.ErrNotFound {
+			if !errors.Is(err, service.ErrNotFound) {
 				return err
 			}
 			t = Create
@@ -281,7 +281,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	// Check for conflicting cluster names.
 	if c.Name != "" {
 		conflict, err := s.GetClusterByName(ctx, c.Name)
-		if err != service.ErrNotFound {
+		if !errors.Is(err, service.ErrNotFound) {
 			if err != nil {
 				return err
 			}
@@ -516,7 +516,7 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 			ClusterID: clusterID,
 		}
 		err := s.secretsStore.Get(&credentials)
-		if err == service.ErrNotFound {
+		if errors.Is(err, service.ErrNotFound) {
 			return session, errors.New("cluster requires CQL authentication but username/password was not set")
 		}
 		if err != nil {
@@ -535,28 +535,35 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 				InsecureSkipVerify: true,
 			},
 		}
-
 		if ni.ClientEncryptionRequireAuth {
-			tlsIdentity := secrets.TLSIdentity{
-				ClusterID: clusterID,
-			}
-			err := s.secretsStore.Get(&tlsIdentity)
-			if err == service.ErrNotFound {
-				return session, errors.Wrap(err, "cluster requires CQL TLS but key/cert is not registered")
-			}
+			keyPair, err := s.loadTLSIdentity(clusterID)
 			if err != nil {
-				return session, errors.Wrap(err, "get tls identity")
-			}
-
-			keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
-			if err != nil {
-				return session, errors.Wrap(err, "invalid SSL user key pair")
+				return session, err
 			}
 			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
 		}
 	}
 
 	return gocqlx.WrapSession(scyllaCluster.CreateSession())
+}
+
+func (s *Service) loadTLSIdentity(clusterID uuid.UUID) (tls.Certificate, error) {
+	tlsIdentity := secrets.TLSIdentity{
+		ClusterID: clusterID,
+	}
+	err := s.secretsStore.Get(&tlsIdentity)
+	if errors.Is(err, service.ErrNotFound) {
+		return tls.Certificate{}, errors.Wrap(err, "TLS/SSL key/cert is not registered")
+	}
+	if err != nil {
+		return tls.Certificate{}, errors.Wrap(err, "get TLS/SSL identity")
+	}
+
+	keyPair, err := tls.X509KeyPair(tlsIdentity.Cert, tlsIdentity.PrivateKey)
+	if err != nil {
+		return tls.Certificate{}, errors.Wrap(err, "invalid TLS/SSL user key pair")
+	}
+	return keyPair, nil
 }
 
 func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {

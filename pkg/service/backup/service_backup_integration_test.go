@@ -509,7 +509,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		putRun(t, r1)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
-		if err != service.ErrNotFound {
+		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -539,7 +539,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		putRun(t, r1)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
-		if err != service.ErrNotFound {
+		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})

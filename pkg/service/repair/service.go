@@ -435,7 +435,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	})
 
 	if err := eg.Wait(); err != nil {
-		if err == context.Canceled || target.FailFast {
+		if errors.Is(err, context.Canceled) || target.FailFast {
 			// Send kill repair request to all hosts.
 			s.killAllRepairs(ctx, client, repairHosts.List())
 		}
@@ -587,7 +587,7 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, 
 // PrevID on the given run.
 func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
-	if err == service.ErrNotFound {
+	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
 	if err != nil {

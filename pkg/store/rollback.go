@@ -27,7 +27,7 @@ func PutWithRollback(store Store, e Entry) (func(), error) {
 		Entry: e,
 	}
 
-	if err := store.Get(old); err != nil && err != service.ErrNotFound {
+	if err := store.Get(old); err != nil && !errors.Is(err, service.ErrNotFound) {
 		return nil, errors.Wrap(err, "get")
 	}
 	if err := store.Put(e); err != nil {

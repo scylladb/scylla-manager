@@ -16,8 +16,8 @@ import (
 // by the error or it's cause.
 // If not status can be found it returns 0.
 func StatusCodeAndMessageOf(err error) (status int, message string) {
-	err = errors.Cause(err)
-	switch v := err.(type) {
+	cause := errors.Cause(err)
+	switch v := cause.(type) { // nolint: errorlint
 	case *runtime.APIError:
 		return v.Code, fmt.Sprint(v.Response)
 	case interface {

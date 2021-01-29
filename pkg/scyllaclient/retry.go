@@ -162,7 +162,7 @@ func noBackoff(maxRetries int) retry.Backoff {
 }
 
 func unpackURLError(err error) error {
-	if e, ok := err.(*url.Error); ok {
+	if e, ok := err.(*url.Error); ok { // nolint: errorlint
 		return e.Err
 	}
 

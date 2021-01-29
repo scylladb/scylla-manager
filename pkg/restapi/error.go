@@ -31,6 +31,7 @@ func respondBadRequest(w http.ResponseWriter, r *http.Request, err error) {
 	})
 }
 
+// nolint: errorlint
 func respondError(w http.ResponseWriter, r *http.Request, err error) {
 	cause := errors.Cause(err)
 

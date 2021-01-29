@@ -745,7 +745,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // sets PrevID on the given run.
 func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
-	if err == service.ErrNotFound {
+	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
 	if err != nil {
@@ -990,7 +990,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 				"location", h.Location,
 				"error", err,
 			)
-			if errors.Cause(err) == service.ErrNotFound {
+			if errors.Is(err, service.ErrNotFound) {
 				notFoundErrors++
 				return nil
 			}

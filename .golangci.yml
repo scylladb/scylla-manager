@@ -23,23 +23,33 @@ linters-settings:
       - evalOrder
       - hugeParam
       - importShadow
+      - regexpSimplify
       - yodaStyleExpr
       - whyNoLint
   lll:
     line-length: 180
+  nestif:
+    min-complexity: 6
 
 linters:
   enable-all: true
   disable:
+    - exhaustive
+    - exhaustivestruct
+    - forbidigo
     - funlen
     - gas
     - gochecknoglobals
     - gochecknoinits
+    - goerr113
     - gomnd
+    - ifshort
     - interfacer
     - maligned
+    - nlreturn
     - nolintlint
     - prealloc
+    - wrapcheck
     - wsl
 
 issues:
