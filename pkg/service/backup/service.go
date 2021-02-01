@@ -942,7 +942,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 				DC:        h.DC,
 			},
 			Client:         client,
-			ManifestHelper: newPurgerManifestHelper(h.IP, h.Location, client, s.logger),
+			ManifestHelper: newManifestV2Helper(h.IP, h.Location, client, s.logger),
 			Logger:         s.logger.With("host", h.IP),
 		}
 

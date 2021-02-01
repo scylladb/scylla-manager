@@ -214,19 +214,3 @@ func (p *purger) deleteFile(ctx context.Context, path string) error {
 	}
 	return err
 }
-
-// newPurgerManifestHelper returns manifestHelper for purging purposes. Purging
-// should support V2 manifest listing, and V1 + V2 purging. We list only V2
-// manifests, because V1 manifests are migrated to V2 during backup procedure,
-// so there is not point of listing them. Although once backup snapshot expires
-// we would like to delete both of the versions.
-func newPurgerManifestHelper(host string, location Location, client *scyllaclient.Client,
-	logger log.Logger) manifestHelper {
-	return &struct {
-		manifestLister
-		manifestDeleter
-	}{
-		manifestLister:  newManifestV2Helper(host, location, client, logger),
-		manifestDeleter: newMultiVersionManifestDeleter(host, location, client, logger),
-	}
-}

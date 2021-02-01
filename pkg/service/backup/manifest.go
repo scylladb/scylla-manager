@@ -311,31 +311,6 @@ type manifestHelper interface {
 	manifestLister
 }
 
-// multiVersionManifestDeleter allows to delete manifest files based on it's version
-// taken from the manifest content.
-// It supports V1 and V2 manifests.
-type multiVersionManifestDeleter struct {
-	deleters map[string]manifestDeleter
-}
-
-func newMultiVersionManifestDeleter(host string, location Location, client *scyllaclient.Client,
-	logger log.Logger) manifestDeleter {
-	return &multiVersionManifestDeleter{
-		deleters: map[string]manifestDeleter{
-			"v1": newManifestV1Helper(host, location, client, logger),
-			"v2": newManifestV2Helper(host, location, client, logger),
-		},
-	}
-}
-
-func (m *multiVersionManifestDeleter) DeleteManifest(ctx context.Context, rm *remoteManifest) error {
-	h, ok := m.deleters[rm.Content.Version]
-	if !ok {
-		return errors.Errorf("unsupported manifest version: %s", rm.Content.Version)
-	}
-	return h.DeleteManifest(ctx, rm)
-}
-
 // multiVersionManifestLister allows to list manifests depending on bucket metadata
 // version. It looks up version of metadata by reading version file from location,
 // and lists manifests matching it.

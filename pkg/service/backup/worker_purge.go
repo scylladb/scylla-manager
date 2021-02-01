@@ -55,7 +55,7 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 		Host:           h.IP,
 		Location:       h.Location,
 		Client:         w.Client,
-		ManifestHelper: newPurgerManifestHelper(h.IP, h.Location, w.Client, w.Logger),
+		ManifestHelper: newManifestV2Helper(h.IP, h.Location, w.Client, w.Logger),
 		Logger:         w.Logger.With("host", h.IP),
 	}
 
