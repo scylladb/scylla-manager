@@ -772,35 +772,35 @@ func TestBackupSmokeIntegration(t *testing.T) {
 }
 
 func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper, manifestPath string, schemas []string) {
-	manifestsContent, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
+	b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var manifest backup.ManifestContent
-	if err := manifest.Read(bytes.NewReader(manifestsContent)); err != nil {
+	var mc backup.ManifestContent
+	if err := mc.Read(bytes.NewReader(b)); err != nil {
 		t.Fatalf("Cannot read manifest created by backup: %s", err)
 	}
 
-	if manifest.ClusterName != "test_cluster" {
-		t.Errorf("ClusterName=%s, expected test_cluster", manifest.ClusterName)
+	if mc.ClusterName != "test_cluster" {
+		t.Errorf("ClusterName=%s, expected test_cluster", mc.ClusterName)
 	}
-	if !strings.HasPrefix(manifest.IP, "192.168.100.") {
-		t.Errorf("IP=%s, expected IP address", manifest.IP)
+	if !strings.HasPrefix(mc.IP, "192.168.100.") {
+		t.Errorf("IP=%s, expected IP address", mc.IP)
 	}
-	for _, fi := range manifest.Index {
+	for _, fi := range mc.Index {
 		if fi.Size == 0 {
 			t.Errorf("Size=0 for table %s, expected non zero size", fi.Table)
 		}
 	}
-	if manifest.Size == 0 {
+	if mc.Size == 0 {
 		t.Error("Size=0 for backup, expected non zero size")
 	}
-	if len(manifest.Tokens) != 256 {
-		t.Errorf("len(Tokens)=%d, expected 256 tokens", len(manifest.Tokens))
+	if len(mc.Tokens) != 256 {
+		t.Errorf("len(Tokens)=%d, expected 256 tokens", len(mc.Tokens))
 	}
-	if !strset.New(schemas...).Has(manifest.Schema) {
-		t.Errorf("Schema=%s, not found in schemas %s", manifest.Schema, schemas)
+	if !strset.New(schemas...).Has(mc.Schema) {
+		t.Errorf("Schema=%s, not found in schemas %s", mc.Schema, schemas)
 	}
 }
 
