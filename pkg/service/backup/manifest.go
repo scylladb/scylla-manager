@@ -79,6 +79,10 @@ func (m *remoteManifest) RemoteManifestFile() string {
 	return f
 }
 
+func (m *remoteManifest) RemoteSchemaFile() string {
+	return remoteSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
+}
+
 func (m *remoteManifest) RemoteSSTableVersionDir(keyspace, table, version string) string {
 	return remoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
 }

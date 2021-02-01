@@ -65,13 +65,11 @@ func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *remoteManifest
 		h.logger.Info(ctx, "Delete orphaned temporary manifest", "snapshot_tag", m.SnapshotTag)
 	}
 
-	if m.Content.Schema != "" {
-		if err := h.deleteFile(ctx, m.Content.Schema); err != nil {
-			return errors.Wrap(err, "delete schema file")
-		}
+	if err := h.deleteFile(ctx, m.RemoteSchemaFile()); err != nil {
+		return errors.Wrap(err, "delete schema file")
 	}
 
-	if err := h.deleteFile(ctx, path.Join(m.CleanPath...)); err != nil {
+	if err := h.deleteFile(ctx, m.RemoteManifestFile()); err != nil {
 		return errors.Wrap(err, "delete manifest file")
 	}
 
