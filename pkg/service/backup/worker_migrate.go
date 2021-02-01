@@ -108,7 +108,7 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 				TaskID:      m.TaskID,
 				SnapshotTag: m.SnapshotTag,
 				Content: manifestContent{
-					Version: "v1",
+					Version: "v2",
 				},
 			}
 		}
@@ -118,8 +118,10 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 
 	for _, m := range snapshotMapping {
 		if err := w.uploadHostManifest(ctx, h, m); err != nil {
-			w.Logger.Error(ctx, "Uploading migrated manifest file failed", "host", h.IP, "error", err)
-			return err
+			return errors.Wrap(err, "upload migrated manifest")
+		}
+		if err := helper.DeleteManifest(ctx, m); err != nil {
+			return errors.Wrap(err, "delete legacy manifests")
 		}
 	}
 

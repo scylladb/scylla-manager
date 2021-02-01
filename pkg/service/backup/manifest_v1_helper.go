@@ -253,10 +253,7 @@ func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *remoteManifest
 		}
 	}
 
-	// V1 manifests are copied to V2 format during migration step. Delete V2
-	// format manifest too when snapshot tag is expired.
-	v2ManifestPath := remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
-	return h.client.RcloneDeleteFile(ctx, h.host, h.location.RemotePath(v2ManifestPath))
+	return nil
 }
 
 func (h *manifestV1Helper) makeLegacyListFilterPruneDirFunc(ksf *ksfilter.Filter, f ListFilter) func(string) bool {

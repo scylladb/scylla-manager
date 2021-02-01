@@ -1669,15 +1669,16 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
 		}
 	}
+
+	Print("Than: manifests are migrated")
 	// 10 tables * 3 nodes + 3 v1 migrated to v2 + 3 v2
-	v1Manifests := 10 * 3
+	v1Manifests := 0
 	v2Manifests := 3 + 3
 	if len(manifests) != v1Manifests+v2Manifests {
-		t.Fatalf("Expected 3 manifests got %d", len(manifests))
+		t.Fatalf("Expected %d manifests got %d", v1Manifests+v2Manifests, len(manifests))
 	}
 
 	Print("When: another backup is run")
-
 	WriteData(t, clusterSession, testKeyspace, 3)
 	runID = uuid.NewTime()
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
@@ -1695,8 +1696,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		t.Fatalf("Expected 6 manifests got %d", len(manifests))
 	}
 
-	Print("Then: old files are removed")
-
+	Print("And: old files are removed")
 	for _, filePath := range uploadedFiles {
 		files, err := h.client.RcloneListDir(ctx, ManagedClusterHost(), filepath.Dir(filePath), nil)
 		if err != nil {
@@ -1707,8 +1707,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		}
 	}
 
-	Print("Then: V1 directory structure is removed at node level")
-
+	Print("And: V1 directory structure is removed at node level")
 	opts := &scyllaclient.RcloneListDirOpts{
 		DirsOnly:  true,
 		NoModTime: true,
