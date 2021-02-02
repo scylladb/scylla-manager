@@ -3,6 +3,10 @@
 package scyllaclient
 
 import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/go-openapi/runtime"
@@ -68,5 +72,31 @@ func TestStatusCodeOf(t *testing.T) {
 				t.Errorf("StatusCodeOf() = %d, %s, expected %d, %s", s, m, test.Status, test.Message)
 			}
 		})
+	}
+}
+
+func TestAgentError(t *testing.T) {
+	p := agentModels.ErrorResponse{
+		Status:  400,
+		Message: "test",
+	}
+	b, err := p.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := &http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(b)),
+	}
+
+	ae := makeAgentError(resp)
+
+	status, msg := StatusCodeAndMessageOf(ae)
+	if status != 400 || msg != "test" {
+		t.Fatalf("StatusCodeAndMessageOf() = %d, %s", status, msg)
+	}
+
+	if !regexp.MustCompile(`^agent \[HTTP \d+\]`).MatchString(ae.Error()) {
+		t.Fatalf("Error = %s not matching expected pattern", ae)
 	}
 }

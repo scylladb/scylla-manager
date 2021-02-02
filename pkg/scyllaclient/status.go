@@ -3,7 +3,10 @@
 package scyllaclient
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
@@ -56,4 +59,33 @@ func StatusCodeAndMessageOf(err error) (status int, message string) {
 func StatusCodeOf(err error) int {
 	s, _ := StatusCodeAndMessageOf(err)
 	return s
+}
+
+// agentError replicates OpenAPI behaviour in situations where agent needs to
+// be accessed manually i.e. with custom logic to handle HTTP request and response.
+type agentError struct {
+	payload *agentModels.ErrorResponse
+}
+
+func makeAgentError(resp *http.Response) error {
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "read body")
+	}
+	ae := agentError{
+		payload: new(agentModels.ErrorResponse),
+	}
+	if err := json.Unmarshal(b, ae.payload); err != nil {
+		return errors.Errorf("agent [HTTP %d] cannot read response: %s", resp.StatusCode, err)
+	}
+
+	return ae
+}
+
+func (ae agentError) GetPayload() *agentModels.ErrorResponse {
+	return ae.payload
+}
+
+func (ae agentError) Error() string {
+	return fmt.Sprintf("agent [HTTP %d] %s", ae.payload.Status, ae.payload.Message)
 }
