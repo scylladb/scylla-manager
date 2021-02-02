@@ -123,7 +123,7 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 
 	rollbacks := make([]func(context.Context) error, len(hosts))
 
-	if err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) (hostErr error) {
+	err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) (hostErr error) {
 		h := hosts[i]
 		defer func() {
 			hostErr = errors.Wrap(hostErr, h.String())
@@ -145,12 +145,13 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 		}
 
 		return err
-	}); err != nil {
+	})
+
+	if err != nil {
 		w.rollbackMoveManifest(ctx, hosts, rollbacks)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 func (w *worker) rollbackMoveManifest(ctx context.Context, hosts []hostInfo, rollbacks []func(context.Context) error) {
