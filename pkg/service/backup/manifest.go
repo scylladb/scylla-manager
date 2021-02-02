@@ -298,17 +298,9 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 
 const manifestFileSuffix = "-Data.db"
 
-type manifestLister interface {
-	ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error)
-}
-
-type manifestDeleter interface {
-	DeleteManifest(ctx context.Context, m *remoteManifest) error
-}
-
 type manifestHelper interface {
-	manifestDeleter
-	manifestLister
+	ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error)
+	DeleteManifest(ctx context.Context, m *remoteManifest) error
 }
 
 // multiVersionManifestLister allows to list manifests depending on bucket metadata
@@ -320,30 +312,29 @@ type multiVersionManifestLister struct {
 	host     string
 	location Location
 	client   *scyllaclient.Client
-	listers  map[string]manifestLister
+	helpers  map[string]manifestHelper
 }
 
-func newMultiVersionManifestLister(host string, location Location, client *scyllaclient.Client,
-	logger log.Logger) manifestLister {
+func newMultiVersionManifestLister(host string, location Location, client *scyllaclient.Client, logger log.Logger) *multiVersionManifestLister {
 	return &multiVersionManifestLister{
 		host:     host,
 		location: location,
 		client:   client,
-		listers: map[string]manifestLister{
+		helpers: map[string]manifestHelper{
 			"v1": newManifestV1Helper(host, location, client, logger),
 			"v2": newManifestV2Helper(host, location, client, logger),
 		},
 	}
 }
 
-func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
+func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error) {
 	if f.ClusterID != uuid.Nil && f.DC != "" && f.NodeID != "" {
 		version, err := getMetadataVersion(ctx, l.host, l.location, l.client, f.ClusterID, f.DC, f.NodeID)
 		if err != nil {
 			return nil, err
 		}
 
-		lister, ok := l.listers[version]
+		lister, ok := l.helpers[version]
 		if !ok {
 			return nil, errors.Errorf("not supported metadata version: %s", version)
 		}
@@ -361,7 +352,7 @@ func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFil
 
 	manifests := make(map[key][]*remoteManifest)
 
-	for _, lister := range l.listers {
+	for _, lister := range l.helpers {
 		ms, err := lister.ListManifests(ctx, f)
 		if err != nil {
 			return nil, err
@@ -375,7 +366,7 @@ func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFil
 
 	var out []*remoteManifest
 	for k := range manifests {
-		out = append(out, removeDuplicates(manifests[k])...)
+		out = append(out, l.removeDuplicates(manifests[k])...)
 	}
 
 	// Sort for repeatable listing.
@@ -389,7 +380,7 @@ func (l multiVersionManifestLister) ListManifests(ctx context.Context, f ListFil
 // removeDuplicates scans list of manifests and returns only manifests of the
 // single version with preference for v2.
 // Only manifests from the same node should be provided.
-func removeDuplicates(ms []*remoteManifest) []*remoteManifest {
+func (l *multiVersionManifestLister) removeDuplicates(ms []*remoteManifest) []*remoteManifest {
 	if len(ms) <= 1 {
 		return ms
 	}
