@@ -84,7 +84,7 @@ func (s *Service) Runner() Runner {
 	return Runner{service: s}
 }
 
-// GetTarget converts runner properties into repair Target.
+// GetTarget converts runner properties into backup Target.
 // It also ensures configuration for the backup providers is registered on the
 // targeted hosts.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
@@ -231,7 +231,7 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 	// Get hosts in all DCs
 	status, err := client.Status(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "get status")
+		return nil, errors.Wrap(err, "get result")
 	}
 
 	// Filter live nodes

@@ -270,6 +270,10 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, errors.Wrap(err, "create repair target"))
 			return
 		}
+	case scheduler.ValidateBackupTask:
+		if _, err := h.Backup.GetValidationTarget(r.Context(), newTask.ClusterID, newTask.Properties); err != nil {
+			respondError(w, r, errors.Wrap(err, "create validate backup target"))
+		}
 	}
 
 	if newTask.Type == scheduler.HealthCheckCQLTask {

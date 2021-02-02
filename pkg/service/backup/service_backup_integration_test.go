@@ -275,6 +275,44 @@ func (h *backupTestHelper) waitNoTransfers() {
 	})
 }
 
+func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath string, f func(*backup.RemoteManifest) bool) {
+	h.t.Helper()
+
+	// Parse manifest path
+	m, err := backupservice.ParsePartialPath(manifestsPath)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	// Load manifest
+	b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestsPath))
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	if err := m.ReadContent(bytes.NewReader(b)); err != nil {
+		h.t.Fatal(err)
+	}
+	// Decorate, if not changed return early
+	if !f(&m) {
+		return
+	}
+	// Save modified manifest
+	buf := bytes.NewBuffer(nil)
+	if err = m.DumpContent(buf); err != nil {
+		h.t.Fatal(err)
+	}
+	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(m.RemoteManifestFile()), buf, int64(buf.Len())); err != nil {
+		h.t.Fatal(err)
+	}
+}
+
+func (h *backupTestHelper) touchFile(ctx context.Context, dir, file, content string) {
+	h.t.Helper()
+	buf := bytes.NewBufferString(content)
+	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(path.Join(dir, file)), buf, int64(buf.Len())); err != nil {
+		h.t.Fatal(err)
+	}
+}
+
 func s3Location(bucket string) backup.Location {
 	return backup.Location{
 		Provider: backup.S3,
@@ -1203,43 +1241,21 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	Print("And: add a fake temporary manifest")
 	manifests, _, _ := h.listS3Files()
 
-	// Sleep to avoid tag collision
+	// Sleep to avoid tag collision.
 	time.Sleep(time.Second)
-	// Parse manifest
-	f := manifests[0]
-	m, err := backupservice.ParsePartialPath(f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Load manifest
-	b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(f))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := m.ReadContent(bytes.NewReader(b)); err != nil {
-		t.Fatal(err)
-	}
-	// Mark manifest as temporary, change snapshot tag
-	m.Temporary = true
-	m.SnapshotTag = backupservice.NewSnapshotTag()
-	// Add "xxx" file to a table
-	fi := &m.Content.Index[0]
-	fi.Files = append(fi.Files, "xxx")
-	// Save changed modified manifest as temporary
-	buf := bytes.NewBuffer(nil)
-	if err = m.DumpContent(buf); err != nil {
-		t.Fatal(err)
-	}
-	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(m.RemoteManifestFile()), buf, int64(buf.Len())); err != nil {
-		t.Fatal(err)
-	}
-	// Create the "xxx" file
-	xxx := path.Join(backup.RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version), "xxx")
-	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(xxx), bytes.NewBufferString("xxx"), 3); err != nil {
-		t.Fatal(err)
-	}
-	// Sleep to avoid tag collision
-	time.Sleep(time.Second)
+	h.tamperWithManifest(ctx, manifests[0], func(m *backup.RemoteManifest) bool {
+		// Mark manifest as temporary, change snapshot tag
+		m.Temporary = true
+		m.SnapshotTag = backup.NewSnapshotTag()
+		// Add "xxx" file to a table
+		fi := &m.Content.Index[0]
+		fi.Files = append(fi.Files, "xxx")
+
+		// Create the "xxx" file
+		h.touchFile(ctx, path.Join(backup.RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
+
+		return true
+	})
 
 	Print("Then: there is one backup in listing")
 	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backupservice.ListFilter{ClusterID: h.clusterID})
@@ -1249,6 +1265,9 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("List() = %v, expected one item", items)
 	}
+
+	// Sleep to avoid tag collision.
+	time.Sleep(time.Second)
 
 	Print("When: run backup")
 	h.runID = uuid.NewTime()
@@ -1711,7 +1730,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backupservice.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -1722,8 +1741,8 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	)
 
 	Print("Given: retention policy of 1 for the both task")
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backupservice.Target{
+		Units: []backupservice.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1818,4 +1837,232 @@ func filterOutVersionFiles(files []string) []string {
 		}
 	}
 	return filtered
+}
+
+func TestGetValidationTargetErrorIntegration(t *testing.T) {
+	table := []struct {
+		Name  string
+		JSON  string
+		Error string
+	}{
+		{
+			Name:  "empty",
+			JSON:  `{}`,
+			Error: "missing location",
+		},
+		{
+			Name:  "inaccessible location",
+			JSON:  `{"location": ["s3:foo", "dc1:s3:bar"]}`,
+			Error: "location is not accessible",
+		},
+	}
+
+	const testBucket = "backuptest-get-validation-target-error"
+
+	var (
+		session = CreateSessionWithoutMigration(t)
+		h       = newBackupTestHelper(t, session, backupservice.DefaultConfig(), s3Location(testBucket), nil)
+		ctx     = context.Background()
+	)
+
+	CreateManagedClusterSessionAndDropAllKeyspaces(t).Close()
+	S3InitBucket(t, testBucket)
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			_, err := h.service.GetValidationTarget(ctx, h.clusterID, json.RawMessage(test.JSON))
+			if err == nil {
+				t.Fatal("GetValidationTarget() expected error")
+			}
+
+			if !strings.Contains(err.Error(), test.Error) {
+				t.Fatalf("GetValidationTarget() = %v, expected %v", err, test.Error)
+			} else {
+				t.Log("GetValidationTarget():", err)
+			}
+		})
+	}
+}
+
+func TestValidateIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-validate"
+		testKeyspace = "backuptest_validate"
+	)
+
+	location := s3Location(testBucket)
+	config := backupservice.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	target := backupservice.Target{
+		Units: []backupservice.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 3,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	validationTarget := backupservice.ValidationTarget{
+		Location:            target.Location,
+		DeleteOrphanedFiles: true,
+	}
+
+	var (
+		validateTaskID = uuid.MustRandom()
+		validateRunID  uuid.UUID
+	)
+	serviceValidate := func() ([]backupservice.ValidationResult, error) {
+		validateRunID = uuid.NewTime()
+		return h.service.Validate(ctx, h.clusterID, validateTaskID, validateRunID, validationTarget)
+	}
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("And: add a fake file")
+	manifests, _, preFiles := h.listS3Files()
+	var host string
+	h.tamperWithManifest(ctx, manifests[0], func(m *backup.RemoteManifest) bool {
+		fi := &m.Content.Index[0]
+		// Create the "xxx" file
+		h.touchFile(ctx, path.Join(backup.RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
+		// Save the host
+		host = m.Content.IP
+		return false
+	})
+
+	Print("When: run Validate")
+	result, err := h.service.Validate(ctx, h.clusterID, uuid.MustRandom(), uuid.NewTime(), validationTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, postFiles := h.listS3Files()
+
+	Print("Then: xxx file is removed")
+	for _, f := range postFiles {
+		if path.Base(f) == "xxx" {
+			t.Fatalf("Found %s that should have been removed", f)
+		}
+	}
+
+	Print("And: other files are not affected")
+	if len(postFiles) != len(preFiles) {
+		t.Fatalf("Missing files got %d expected %d", len(postFiles), len(preFiles))
+	}
+
+	Print("And: orphaned file is in report")
+	for _, r := range result {
+		if r.Host != host {
+			continue
+		}
+		if r.OrphanedFiles != 1 {
+			t.Fatalf("OrphanedFiles = %d, expected %d", r.OrphanedFiles, 1)
+		}
+		if r.OrphanedBytes != 3 {
+			t.Fatalf("OrphanedBytes = %d, expected %d", r.OrphanedBytes, 3)
+		}
+		if r.DeletedFiles != 1 {
+			t.Fatalf("DeletedFiles = %d, expected %d", r.DeletedFiles, 1)
+		}
+	}
+
+	Print("When: temporary manifest is added referencing a new file")
+	// Sleep to avoid tag collision.
+	time.Sleep(time.Second)
+	h.tamperWithManifest(ctx, manifests[0], func(m *backup.RemoteManifest) bool {
+		// Mark manifest as temporary, change snapshot tag
+		m.Temporary = true
+		m.SnapshotTag = backup.NewSnapshotTag()
+		// Add "xxx" file to a table
+		fi := &m.Content.Index[0]
+		fi.Files = append(fi.Files, "xxx")
+
+		// Create the "xxx" file
+		h.touchFile(ctx, path.Join(backup.RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
+
+		return true
+	})
+
+	Print("And: run Validate")
+	result, err = h.service.Validate(ctx, h.clusterID, uuid.MustRandom(), uuid.NewTime(), validationTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, postFiles = h.listS3Files()
+
+	Print("Then: xxx file is NOT removed")
+	ok := false
+	for _, f := range postFiles {
+		if path.Base(f) == "xxx" {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		t.Fatalf("Did not found xxx referenced in temporary manifest")
+	}
+
+	Print("When: manifest is missing a file")
+	brokenSnapshot := backup.NewSnapshotTag()
+	h.tamperWithManifest(ctx, manifests[0], func(m *backup.RemoteManifest) bool {
+		// Change snapshot tag
+		m.SnapshotTag = brokenSnapshot
+		// Add "yyy" file to a table
+		fi := &m.Content.Index[0]
+		fi.Files = append(fi.Files, "yyy")
+		return true
+	})
+
+	Print("And: run Validate")
+	result, err = h.service.Validate(ctx, h.clusterID, uuid.MustRandom(), uuid.NewTime(), validationTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: broken manifest reported")
+	for _, r := range result {
+		if r.Host != host {
+			continue
+		}
+		if r.MissingFiles != 1 {
+			t.Fatalf("MissingFiles = %d, expected %d", r.MissingFiles, 1)
+		}
+		if len(r.BrokenSnapshots) != 1 {
+			t.Fatalf("BrokenSnapshots = %s, expected len %d", r.BrokenSnapshots, 1)
+		}
+	}
+
+	Print("And: progress returns result")
+	progress, err := h.service.GetValidationProgress(ctx, h.clusterID, validateTaskID, validateRunID)
+	if err != nil {
+		t.Fatal("GetValidationProgress() error", err)
+	}
+
+	if diff := cmp.Diff(progress, result, cmpopts.SortSlices(func(a, b backupservice.ValidationResult) bool {
+		if a.DC > b.DC {
+			return false
+		}
+		if a.Host > b.Host {
+			return false
+		}
+		return true
+	})); diff != "" {
+		t.Fatal("Progress mismatch, diff", diff, "got", progress, "expected", result)
+	}
 }

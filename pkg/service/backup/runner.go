@@ -10,7 +10,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-// Runner implements sched.Runner.
+// Runner implements scheduler.Runner.
 type Runner struct {
 	service *Service
 }
