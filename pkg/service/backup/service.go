@@ -24,7 +24,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-	"go.uber.org/multierr"
 )
 
 const defaultRateLimit = 100 // 100MiB
@@ -419,29 +418,26 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []bac
 	}
 
 	// List manifests
-	type manifestsError struct {
-		Manifests []*backup.RemoteManifest
-		Err       error
-	}
-	res := make(chan manifestsError)
-	for _, item := range hosts {
-		go func(h string, l backup.Location) {
-			mh := newMultiVersionManifestLister(h, l, client, s.logger.Named("list"))
-			m, err := mh.ListManifests(ctx, filter)
-			res <- manifestsError{m, errors.Wrapf(err, "%s: list remote files at location %s", h, l)}
-		}(item.IP, item.Location)
-	}
-
 	var (
 		manifests []*backup.RemoteManifest
-		errs      error
+		mu        sync.Mutex
 	)
-	for range hosts {
-		r := <-res
-		manifests = append(manifests, r.Manifests...)
-		errs = multierr.Append(errs, r.Err)
-	}
-	return manifests, errs
+
+	err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+		h := hosts[i]
+		v, err := newMultiVersionManifestLister(h.IP, h.Location, client, s.logger.Named("list")).ListManifests(ctx, filter)
+		if err != nil {
+			return errors.Wrapf(err, "%s: list remote files at location %s", h.IP, h.Location)
+		}
+
+		mu.Lock()
+		manifests = append(manifests, v...)
+		mu.Unlock()
+
+		return nil
+	})
+
+	return manifests, err
 }
 
 func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo) error {
