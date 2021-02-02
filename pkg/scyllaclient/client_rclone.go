@@ -3,17 +3,18 @@
 package scyllaclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	agentClient "github.com/scylladb/scylla-manager/swagger/gen/agent/client"
 	"github.com/scylladb/scylla-manager/swagger/gen/agent/client/operations"
 	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
@@ -311,6 +312,105 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	return resp.Payload.List, nil
 }
 
+// RcloneListDirIterItem allows to pass error alongside RcloneListDirItem in
+// RcloneListDirIter when items are passed over a channel.
+type RcloneListDirIterItem struct {
+	Value models.ListItem
+	Error error
+}
+
+// RcloneListDirIter lists contents of a directory specified by the path.
+// Remote path format is "name:bucket/path".
+// Listed item path is relative to the remote path root directory.
+// When context is canceled error is returned to user.
+func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) (ch <-chan RcloneListDirIterItem, err error) {
+	// Response contains all files available in directory without paging,
+	// default request constraints might be not sufficient to list millions
+	// of files, which may be a case for SSTable directories.
+	ctx = noTimeout(ctx)
+
+	// Due to OpenAPI limitations we manually construct and sent the request
+	// object to stream process the response body.
+	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/list"
+
+	listOpts := &models.ListOptions{
+		Fs:     &remotePath,
+		Remote: pointer.StringPtr(""),
+		Opt:    opts,
+	}
+	b, err := listOpts.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.newURL(host, urlPath)
+	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := c.transport.RoundTrip(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "round trip")
+	}
+	defer func() {
+		if err != nil {
+			resp.Body.Close()
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, makeAgentError(resp)
+	}
+
+	dec := json.NewDecoder(resp.Body)
+
+	// Skip tokens down to array opening
+	expected := []string{"{", "list", "["}
+	for i := range expected {
+		tok, err := dec.Token()
+		if err != nil {
+			return nil, errors.Wrap(err, "read token")
+		}
+		if fmt.Sprint(tok) != expected[i] {
+			return nil, errors.Errorf("json unexpected token %s expected %s", tok, expected[i])
+		}
+	}
+
+	out := make(chan RcloneListDirIterItem)
+
+	go func() (err error) {
+		defer func() {
+			resp.Body.Close()
+
+			if err != nil {
+				out <- RcloneListDirIterItem{Error: err}
+			}
+			close(out)
+		}()
+
+		var v models.ListItem
+		for dec.More() {
+			// Detect context cancellation
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+
+			// Read value
+			v = models.ListItem{}
+			if err := dec.Decode(&v); err != nil {
+				return err
+			}
+			out <- RcloneListDirIterItem{Value: v}
+		}
+
+		return nil
+	}() // nolint: errcheck
+
+	return out, nil
+}
+
 // RcloneCheckPermissions checks if location is available for listing, getting,
 // creating, and deleting objects.
 func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string) error {
@@ -325,8 +425,6 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	return err
 }
 
-const rcloneOperationPutPath = agentClient.DefaultBasePath + "/rclone/operations/put"
-
 // RclonePut uploads file with provided content under remotePath.
 func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content io.Reader, size int64) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
@@ -336,7 +434,9 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 
 	// Due to missing generator for Swagger 3.0, and poor implementation of 2.0 file upload
 	// we are uploading manually.
-	u := c.newURL(host, rcloneOperationPutPath)
+	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/put"
+
+	u := c.newURL(host, urlPath)
 	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), content)
 	if err != nil {
 		return err
@@ -354,21 +454,10 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 	if err != nil {
 		return errors.Wrap(err, "round trip")
 	}
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "read body")
-	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		v := struct {
-			Message string `json:"message"`
-			Status  int    `json:"status"`
-		}{}
-		if err := json.Unmarshal(b, &v); err != nil {
-			return errors.Errorf("agent [HTTP %d] cannot read response: %s", resp.StatusCode, err)
-		}
-		return errors.Errorf("agent [HTTP %d] %s", v.Status, v.Message)
+		return makeAgentError(resp)
 	}
 
 	return nil

@@ -274,6 +274,78 @@ func TestRcloneListDir(t *testing.T) {
 	})
 }
 
+func TestRcloneListDirIter(t *testing.T) {
+	t.Parallel()
+
+	f := func(file string, isDir bool) models.ListItem {
+		return models.ListItem{
+			Path:  file,
+			Name:  path.Base(file),
+			IsDir: isDir,
+		}
+	}
+	opts := cmpopts.IgnoreFields(models.ListItem{}, "MimeType", "ModTime", "Size")
+
+	table := []struct {
+		Name     string
+		Opts     *scyllaclient.RcloneListDirOpts
+		Expected []models.ListItem
+	}{
+		{
+			Name:     "default",
+			Expected: []models.ListItem{f("file.txt", false), f("subdir", true)},
+		},
+		{
+			Name:     "recursive",
+			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true},
+			Expected: []models.ListItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
+		},
+		{
+			Name:     "recursive files",
+			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, FilesOnly: true},
+			Expected: []models.ListItem{f("file.txt", false), f("subdir/file.txt", false)},
+		},
+		{
+			Name:     "recursive dirs",
+			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, DirsOnly: true},
+			Expected: []models.ListItem{f("subdir", true)},
+		},
+	}
+
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
+
+	t.Run("group", func(t *testing.T) {
+		for i := range table {
+			test := table[i]
+
+			t.Run(test.Name, func(t *testing.T) {
+				t.Parallel()
+
+				filesCh, err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var files []models.ListItem
+				for {
+					f, ok := <-filesCh
+					if !ok {
+						break
+					}
+					if f.Error != nil {
+						t.Error(f.Error)
+					}
+					files = append(files, f.Value)
+				}
+
+				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
+					t.Fatal("RcloneListDir() diff", diff)
+				}
+			})
+		}
+	})
+}
+
 func TestRcloneListDirNotFound(t *testing.T) {
 	t.Parallel()
 
