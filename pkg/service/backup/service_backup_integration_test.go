@@ -282,7 +282,7 @@ func s3Location(bucket string) backup.Location {
 	}
 }
 
-func TestServiceGetTargetIntegration(t *testing.T) {
+func TestGetTargetIntegration(t *testing.T) {
 	table := []struct {
 		Name   string
 		Input  string
@@ -382,7 +382,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 }
 
-func TestServiceGetTargetErrorIntegration(t *testing.T) {
+func TestGetTargetErrorIntegration(t *testing.T) {
 	table := []struct {
 		Name  string
 		JSON  string
@@ -467,7 +467,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 	}
 }
 
-func TestServiceGetLastResumableRunIntegration(t *testing.T) {
+func TestGetLastResumableRunIntegration(t *testing.T) {
 	const testBucket = "backuptest-void"
 
 	config := backupservice.DefaultConfig()
