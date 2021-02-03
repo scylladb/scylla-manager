@@ -1474,122 +1474,6 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 }
 
-func TestBackupSnapshotDeleteIntegration(t *testing.T) {
-	const (
-		testBucket   = "backuptest-delete"
-		testKeyspace = "backuptest_delete"
-	)
-
-	location := s3Location(testBucket)
-	config := backupservice.DefaultConfig()
-
-	var (
-		session        = CreateSession(t)
-		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-
-		h   = newBackupTestHelper(t, session, config, location, nil)
-		ctx = context.Background()
-	)
-
-	Print("Given: retention policy of 1 for the both task")
-	target := backupservice.Target{
-		Units: []backupservice.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backup.Location{location},
-		Retention: 1,
-	}
-
-	Print("Given: given same data in shared keyspace")
-	WriteData(t, clusterSession, testKeyspace, 3)
-
-	Print("When: both tasks backup same data")
-	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
-		t.Fatal(err)
-	}
-	runID := uuid.NewTime()
-	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
-		t.Fatal(err)
-	}
-
-	// Ensure second task has different snapshot tag
-	time.Sleep(1 * time.Second)
-
-	task2ID := uuid.NewTime()
-	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
-		t.Fatal(err)
-	}
-
-	runID = uuid.NewTime()
-	if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target); err != nil {
-		t.Fatal(err)
-	}
-
-	Print("Then: both tasks references same data")
-
-	firstTaskFilePaths := getTaskFiles(t, ctx, h, h.taskID)
-	secondTaskFilePaths := getTaskFiles(t, ctx, h, task2ID)
-
-	filesSymmetricDifference := strset.New(firstTaskFilePaths...)
-	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
-	if !filesSymmetricDifference.IsEmpty() {
-		t.Fatal("Expected to have same SST files in both tasks")
-	}
-
-	Print("When: first task snapshot is deleted")
-
-	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
-	if firstTaskTags.Size() != 1 {
-		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
-	}
-
-	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, firstTaskTags.Pop()); err != nil {
-		t.Fatal(err)
-	}
-
-	Print("Then: no files are removed")
-	_, _, files := h.listS3Files()
-	if len(files) == 0 {
-		t.Fatal("Expected to have second task files in storage")
-	}
-	filesSymmetricDifference = strset.New(filterOutVersionFiles(files)...)
-	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
-
-	if !filesSymmetricDifference.IsEmpty() {
-		t.Fatal("Second task files were removed during first task snapshot delete")
-	}
-
-	Print("When: last snapshot is removed")
-	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
-	if secondTaskTags.Size() != 1 {
-		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
-	}
-
-	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, secondTaskTags.Pop()); err != nil {
-		t.Fatal(err)
-	}
-
-	Print("Then: bucket is empty")
-	manifests, schemas, files := h.listS3Files()
-	sstFiles := filterOutVersionFiles(files)
-	if len(manifests) != 0 || len(schemas) != 0 || len(sstFiles) != 0 {
-		t.Errorf("Not all files were removed.\nmanifests: %s\nschemas: %s\nsstfiles: %s", manifests, schemas, sstFiles)
-	}
-}
-
-func filterOutVersionFiles(files []string) []string {
-	filtered := files[:0]
-	for _, f := range files {
-		if !strings.HasSuffix(f, backup.MetadataVersion) {
-			filtered = append(filtered, f)
-		}
-	}
-	return filtered
-}
-
 func getTaskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) []string {
 	t.Helper()
 
@@ -1818,4 +1702,120 @@ func uploadV1Backup(t *testing.T, ctx context.Context, localPath string, locatio
 	}
 
 	return uploadedFiles
+}
+
+func TestDeleteSnapshotIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-delete"
+		testKeyspace = "backuptest_delete"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+
+		h   = newBackupTestHelper(t, session, config, location, nil)
+		ctx = context.Background()
+	)
+
+	Print("Given: retention policy of 1 for the both task")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []backup.Location{location},
+		Retention: 1,
+	}
+
+	Print("Given: given same data in shared keyspace")
+	WriteData(t, clusterSession, testKeyspace, 3)
+
+	Print("When: both tasks backup same data")
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+	runID := uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	// Ensure second task has different snapshot tag
+	time.Sleep(1 * time.Second)
+
+	task2ID := uuid.NewTime()
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	runID = uuid.NewTime()
+	if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: both tasks references same data")
+
+	firstTaskFilePaths := getTaskFiles(t, ctx, h, h.taskID)
+	secondTaskFilePaths := getTaskFiles(t, ctx, h, task2ID)
+
+	filesSymmetricDifference := strset.New(firstTaskFilePaths...)
+	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
+	if !filesSymmetricDifference.IsEmpty() {
+		t.Fatal("Expected to have same SST files in both tasks")
+	}
+
+	Print("When: first task snapshot is deleted")
+
+	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
+	if firstTaskTags.Size() != 1 {
+		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
+	}
+
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, firstTaskTags.Pop()); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: no files are removed")
+	_, _, files := h.listS3Files()
+	if len(files) == 0 {
+		t.Fatal("Expected to have second task files in storage")
+	}
+	filesSymmetricDifference = strset.New(filterOutVersionFiles(files)...)
+	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
+
+	if !filesSymmetricDifference.IsEmpty() {
+		t.Fatal("Second task files were removed during first task snapshot delete")
+	}
+
+	Print("When: last snapshot is removed")
+	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
+	if secondTaskTags.Size() != 1 {
+		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
+	}
+
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []backup.Location{h.location}, secondTaskTags.Pop()); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: bucket is empty")
+	manifests, schemas, files := h.listS3Files()
+	sstFiles := filterOutVersionFiles(files)
+	if len(manifests) != 0 || len(schemas) != 0 || len(sstFiles) != 0 {
+		t.Errorf("Not all files were removed.\nmanifests: %s\nschemas: %s\nsstfiles: %s", manifests, schemas, sstFiles)
+	}
+}
+
+func filterOutVersionFiles(files []string) []string {
+	filtered := files[:0]
+	for _, f := range files {
+		if !strings.HasSuffix(f, backup.MetadataVersion) {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
 }
