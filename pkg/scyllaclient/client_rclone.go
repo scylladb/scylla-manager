@@ -288,7 +288,7 @@ type RcloneListDirItem = models.ListItem
 // RcloneListDir lists contents of a directory specified by the path.
 // Remote path format is "name:bucket/path".
 // Listed item path is relative to the remote path root directory.
-func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*models.ListItem, error) {
+func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*RcloneListDirItem, error) {
 	// Response contains all files available in directory without paging,
 	// default request constraints might be not sufficient to list millions
 	// of files, which may be a case for SSTable directories.
@@ -315,7 +315,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 // RcloneListDirIterItem allows to pass error alongside RcloneListDirItem in
 // RcloneListDirIter when items are passed over a channel.
 type RcloneListDirIterItem struct {
-	Value models.ListItem
+	Value RcloneListDirItem
 	Error error
 }
 
@@ -390,7 +390,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 			close(out)
 		}()
 
-		var v models.ListItem
+		var v RcloneListDirItem
 		for dec.More() {
 			// Detect context cancellation
 			if ctx.Err() != nil {
@@ -398,7 +398,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 			}
 
 			// Read value
-			v = models.ListItem{}
+			v = RcloneListDirItem{}
 			if err := dec.Decode(&v); err != nil {
 				return err
 			}

@@ -17,7 +17,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
-	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
 )
 
 func TestRcloneSplitRemotePath(t *testing.T) {
@@ -217,38 +216,38 @@ func TestRcloneCatLimit(t *testing.T) {
 func TestRcloneListDir(t *testing.T) {
 	t.Parallel()
 
-	f := func(file string, isDir bool) *models.ListItem {
-		return &models.ListItem{
+	f := func(file string, isDir bool) *scyllaclient.RcloneListDirItem {
+		return &scyllaclient.RcloneListDirItem{
 			Path:  file,
 			Name:  path.Base(file),
 			IsDir: isDir,
 		}
 	}
-	opts := cmpopts.IgnoreFields(models.ListItem{}, "MimeType", "ModTime", "Size")
+	opts := cmpopts.IgnoreFields(scyllaclient.RcloneListDirItem{}, "MimeType", "ModTime", "Size")
 
 	table := []struct {
 		Name     string
 		Opts     *scyllaclient.RcloneListDirOpts
-		Expected []*models.ListItem
+		Expected []*scyllaclient.RcloneListDirItem
 	}{
 		{
 			Name:     "default",
-			Expected: []*models.ListItem{f("file.txt", false), f("subdir", true)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir", true)},
 		},
 		{
 			Name:     "recursive",
 			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true},
-			Expected: []*models.ListItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
 		},
 		{
 			Name:     "recursive files",
 			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, FilesOnly: true},
-			Expected: []*models.ListItem{f("file.txt", false), f("subdir/file.txt", false)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir/file.txt", false)},
 		},
 		{
 			Name:     "recursive dirs",
 			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, DirsOnly: true},
-			Expected: []*models.ListItem{f("subdir", true)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("subdir", true)},
 		},
 	}
 
@@ -277,38 +276,38 @@ func TestRcloneListDir(t *testing.T) {
 func TestRcloneListDirIter(t *testing.T) {
 	t.Parallel()
 
-	f := func(file string, isDir bool) models.ListItem {
-		return models.ListItem{
+	f := func(file string, isDir bool) scyllaclient.RcloneListDirItem {
+		return scyllaclient.RcloneListDirItem{
 			Path:  file,
 			Name:  path.Base(file),
 			IsDir: isDir,
 		}
 	}
-	opts := cmpopts.IgnoreFields(models.ListItem{}, "MimeType", "ModTime", "Size")
+	opts := cmpopts.IgnoreFields(scyllaclient.RcloneListDirItem{}, "MimeType", "ModTime", "Size")
 
 	table := []struct {
 		Name     string
 		Opts     *scyllaclient.RcloneListDirOpts
-		Expected []models.ListItem
+		Expected []scyllaclient.RcloneListDirItem
 	}{
 		{
 			Name:     "default",
-			Expected: []models.ListItem{f("file.txt", false), f("subdir", true)},
+			Expected: []scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir", true)},
 		},
 		{
 			Name:     "recursive",
 			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true},
-			Expected: []models.ListItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
+			Expected: []scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
 		},
 		{
 			Name:     "recursive files",
 			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, FilesOnly: true},
-			Expected: []models.ListItem{f("file.txt", false), f("subdir/file.txt", false)},
+			Expected: []scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir/file.txt", false)},
 		},
 		{
 			Name:     "recursive dirs",
 			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, DirsOnly: true},
-			Expected: []models.ListItem{f("subdir", true)},
+			Expected: []scyllaclient.RcloneListDirItem{f("subdir", true)},
 		},
 	}
 
@@ -326,7 +325,7 @@ func TestRcloneListDirIter(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				var files []models.ListItem
+				var files []scyllaclient.RcloneListDirItem
 				for {
 					f, ok := <-filesCh
 					if !ok {
@@ -378,26 +377,26 @@ func TestRcloneListDirPermissionDenied(t *testing.T) {
 func TestRcloneListDirEscapeJail(t *testing.T) {
 	t.Parallel()
 
-	f := func(file string, isDir bool) *models.ListItem {
-		return &models.ListItem{
+	f := func(file string, isDir bool) *scyllaclient.RcloneListDirItem {
+		return &scyllaclient.RcloneListDirItem{
 			Path:  file,
 			Name:  path.Base(file),
 			IsDir: isDir,
 		}
 	}
-	opts := cmpopts.IgnoreFields(models.ListItem{}, "MimeType", "ModTime", "Size")
+	opts := cmpopts.IgnoreFields(scyllaclient.RcloneListDirItem{}, "MimeType", "ModTime", "Size")
 
 	table := []struct {
 		Name     string
 		Opts     *scyllaclient.RcloneListDirOpts
 		Path     string
-		Expected []*models.ListItem
+		Expected []*scyllaclient.RcloneListDirItem
 		Error    bool
 	}{
 		{
 			Name:     "list subdir 1",
 			Path:     "rclonejail:subdir1",
-			Expected: []*models.ListItem{f("foo.txt", false), f("subdir2", true)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("foo.txt", false), f("subdir2", true)},
 			Error:    false,
 		},
 		{
@@ -406,13 +405,13 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 				Recurse: true,
 			},
 			Path:     "rclonejail:subdir1",
-			Expected: []*models.ListItem{f("foo.txt", false), f("subdir2", true), f("subdir2/file.txt", false)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("foo.txt", false), f("subdir2", true), f("subdir2/file.txt", false)},
 			Error:    false,
 		},
 		{
 			Name:     "list just root",
 			Path:     "rclonejail:/",
-			Expected: []*models.ListItem{f("subdir1", true)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("subdir1", true)},
 			Error:    false,
 		},
 		{
@@ -430,7 +429,7 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 		{
 			Name:     "access root directory",
 			Path:     "rclonejail:.",
-			Expected: []*models.ListItem{f("subdir1", true)},
+			Expected: []*scyllaclient.RcloneListDirItem{f("subdir1", true)},
 			Error:    false,
 		},
 	}
