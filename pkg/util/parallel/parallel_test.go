@@ -112,3 +112,11 @@ func TestAbort(t *testing.T) {
 		t.Errorf("Called %d times expected 1", c)
 	}
 }
+
+func TestEmpty(t *testing.T) {
+	t.Parallel()
+
+	if err := Run(0, NoLimit, nil); err != nil {
+		t.Fatal("Run() error", err)
+	}
+}

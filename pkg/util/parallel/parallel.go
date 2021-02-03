@@ -34,6 +34,13 @@ func isErrAbort(err error) (bool, error) {
 // most limit in parallel.
 // If limit is 0 it runs f(0),f(1),...,f(n-1) in parallel.
 func Run(n, limit int, f func(i int) error) error {
+	if n == 0 {
+		return nil
+	}
+	if n == 1 {
+		return f(0)
+	}
+
 	if limit <= 0 || limit > n {
 		limit = n
 	}
