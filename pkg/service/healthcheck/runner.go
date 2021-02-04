@@ -55,27 +55,26 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 		return errors.Wrap(err, "status")
 	}
 
-	hostDCs := status.LiveHostDCs()
-
-	r.removeMetricsForMissingHosts(clusterName, hostDCs)
-	r.checkHosts(ctx, clusterID, clusterName, hostDCs)
+	live := status.Live()
+	r.removeMetricsForMissingHosts(clusterName, live)
+	r.checkHosts(ctx, clusterID, clusterName, live)
 
 	return nil
 }
 
-func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, hostDCs []scyllaclient.HostDC) {
-	parallel.Run(len(hostDCs), parallel.NoLimit, func(i int) error { // nolint: errcheck
+func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, status []scyllaclient.NodeStatusInfo) {
+	parallel.Run(len(status), parallel.NoLimit, func(i int) error { // nolint: errcheck
 		hl := prometheus.Labels{
 			clusterKey: clusterName,
-			hostKey:    hostDCs[i].Host,
+			hostKey:    status[i].Addr,
 		}
 		dl := prometheus.Labels{
 			clusterKey: clusterName,
-			dcKey:      hostDCs[i].Datacenter,
+			dcKey:      status[i].Datacenter,
 		}
 
-		timeout, saveNext := r.timeout(clusterID, hostDCs[i].Datacenter)
-		rtt, err := r.ping(ctx, clusterID, hostDCs[i].Host, timeout)
+		timeout, saveNext := r.timeout(clusterID, status[i].Datacenter)
+		rtt, err := r.ping(ctx, clusterID, status[i].Addr, timeout)
 		if err != nil {
 			r.metrics.status.With(hl).Set(-1)
 		} else {
@@ -117,10 +116,10 @@ func (r Runner) removeMetricsForCluster(clusterName string) {
 	})
 }
 
-func (r Runner) removeMetricsForMissingHosts(clusterName string, hostDCs []scyllaclient.HostDC) {
+func (r Runner) removeMetricsForMissingHosts(clusterName string, status []scyllaclient.NodeStatusInfo) {
 	m := strset.New()
-	for _, hd := range hostDCs {
-		m.Add(hd.Host)
+	for _, node := range status {
+		m.Add(node.Addr)
 	}
 
 	apply(collect(r.metrics.status), func(cluster, dc, host, pt string, v float64) {

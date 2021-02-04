@@ -393,7 +393,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	}
 
 	// Get live hosts
-	live := status.LiveHosts()
+	live := status.Live().Hosts()
 	if len(live) == 0 {
 		return service.ErrValidate(errors.New("no live nodes"))
 	}

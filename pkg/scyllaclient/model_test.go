@@ -32,11 +32,11 @@ func TestNodeStatusInfo(t *testing.T) {
 	}); diff != "" {
 		t.Errorf("Hosts() = %+v, diff %s", test.Hosts(), diff)
 	}
-	if diff := cmp.Diff(test.LiveHosts(), []string{"192.168.100.22"}); diff != "" {
-		t.Errorf("LiveHosts() = %+v, diff %s", test.LiveHosts(), diff)
+	if diff := cmp.Diff(test.Live().Hosts(), []string{"192.168.100.22"}); diff != "" {
+		t.Errorf("LiveHosts() = %+v, diff %s", test.Live().Hosts(), diff)
 	}
-	if diff := cmp.Diff(test.DownHosts(), []string{"192.168.100.13", "192.168.100.23"}); diff != "" {
-		t.Errorf("DownHosts() = %+v, diff %s", test.DownHosts(), diff)
+	if diff := cmp.Diff(test.Down().Hosts(), []string{"192.168.100.13", "192.168.100.23"}); diff != "" {
+		t.Errorf("DownHosts() = %+v, diff %s", test.Down().Hosts(), diff)
 	}
 }
 

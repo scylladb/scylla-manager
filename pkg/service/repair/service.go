@@ -320,7 +320,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Validate that all hosts to repair are up
-	if down := status.DownHosts(); repairHosts.HasAny(down...) {
+	if down := status.Down().Hosts(); repairHosts.HasAny(down...) {
 		return errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down, ","))
 	}
 
