@@ -8,4 +8,4 @@ run:
 linters:
   disable-all: true
   enable:
-    - goimports
+    - gofumpt

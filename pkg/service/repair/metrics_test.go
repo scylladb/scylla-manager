@@ -53,5 +53,4 @@ func TestRepairUpdateMetrics(t *testing.T) {
 	if err := testutil.CollectAndCompare(repairProgress, bytes.NewBufferString(golden)); err != nil {
 		t.Fatal(err)
 	}
-
 }

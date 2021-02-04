@@ -96,7 +96,7 @@ func TestValidateTokenFailure(t *testing.T) {
 	verify := func(t *testing.T, r *http.Request, penalty time.Duration) {
 		t.Helper()
 
-		var bodyError = json.RawMessage(`{"message":"unauthorized","code":401}`)
+		bodyError := json.RawMessage(`{"message":"unauthorized","code":401}`)
 
 		w := httptest.NewRecorder()
 		ValidateToken("token", penalty, bodyError)(h).ServeHTTP(w, r)

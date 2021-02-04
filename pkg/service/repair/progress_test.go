@@ -12,8 +12,7 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
-type nopProgressManager struct {
-}
+type nopProgressManager struct{}
 
 var _ progressManager = &nopProgressManager{}
 

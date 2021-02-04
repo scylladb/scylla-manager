@@ -16,8 +16,10 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 )
 
-type configClientFunc func(context.Context) (string, error)
-type configClientBindFunc func(client *scyllaclient.ConfigClient) configClientFunc
+type (
+	configClientFunc     func(context.Context) (string, error)
+	configClientBindFunc func(client *scyllaclient.ConfigClient) configClientFunc
+)
 
 func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 	t.Parallel()

@@ -14,7 +14,7 @@ import (
 func TestDurationString(t *testing.T) {
 	t.Parallel()
 
-	var table = []struct {
+	table := []struct {
 		S string
 		D time.Duration
 	}{

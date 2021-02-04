@@ -64,11 +64,10 @@ func TestCustomTimeout(t *testing.T) {
 			_, err := client.Ping(test.Context, host, test.Timeout)
 			close(done)
 
-			var golden = fmt.Sprintf("after %s: timeout", test.ExpectedTimeout)
+			golden := fmt.Sprintf("after %s: timeout", test.ExpectedTimeout)
 			if err == nil || err.Error() != golden {
 				t.Fatalf("Ping() error = %v, expected %s", err, golden)
 			}
 		})
 	}
-
 }

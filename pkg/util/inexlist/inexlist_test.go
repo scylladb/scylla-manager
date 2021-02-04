@@ -10,7 +10,7 @@ import (
 )
 
 func TestParseInExList(t *testing.T) {
-	var table = []struct {
+	table := []struct {
 		P []string
 		E InExList
 	}{
@@ -94,7 +94,7 @@ func TestParseInExList(t *testing.T) {
 }
 
 func TestInExListFilter(t *testing.T) {
-	var table = []struct {
+	table := []struct {
 		P   []string
 		I   []string
 		out []string

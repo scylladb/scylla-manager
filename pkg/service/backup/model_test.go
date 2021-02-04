@@ -208,7 +208,7 @@ func TestCatLimitIsEnoughToDownloadManifest(t *testing.T) {
 		tokensRanges  = 256
 	)
 
-	var metaFilesFormats = []string{
+	metaFilesFormats := []string{
 		"mc-%d-big-Data.db",
 		"mc-%d-big-Index.db",
 		"mc-%d-big-Scylla.db",

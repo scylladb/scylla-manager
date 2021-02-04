@@ -63,7 +63,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v1.0.0",
 			},
 			Status: "md",
-		}, {
+		},
+		{
 			Name:             "daily install equal version",
 			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
 			LatestVersion:    "v1.0.0",
@@ -75,7 +76,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v1.0.0",
 			},
 			Status: "mi",
-		}, {
+		},
+		{
 			Name:             "docker equal version",
 			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
 			LatestVersion:    "v1.0.0",
@@ -87,7 +89,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v1.0.0",
 			},
 			Status: "mdd",
-		}, {
+		},
+		{
 			Name:             "docker install equal version",
 			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
 			LatestVersion:    "v1.0.0",
@@ -99,7 +102,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v1.0.0",
 			},
 			Status: "mdi",
-		}, {
+		},
+		{
 			Name:             "version outdated",
 			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
 			LatestVersion:    "v1.0.1",
@@ -109,7 +113,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v1.0.1",
 			},
 			Status: "md",
-		}, {
+		},
+		{
 			Name:             "check version ahead",
 			InstalledVersion: "v1.0.0-0.20200123.7cf18f6b",
 			LatestVersion:    "v0.9.1",
@@ -119,7 +124,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v0.9.1",
 			},
 			Status: "md",
-		}, {
+		},
+		{
 			Name:             "master version",
 			InstalledVersion: "666.dev-0.20200902.a6a8ce8e",
 			LatestVersion:    "v0.9.1",
@@ -129,7 +135,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v0.9.1",
 			},
 			Status: "md",
-		}, {
+		},
+		{
 			Name:             "long master version",
 			InstalledVersion: "666.development-0.20200325.9fee712d62",
 			LatestVersion:    "v0.9.1",
@@ -139,7 +146,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v0.9.1",
 			},
 			Status: "md",
-		}, {
+		},
+		{
 			Name:             "master version with v prefix",
 			InstalledVersion: "v666.dev-0.20200902.a6a8ce8e",
 			LatestVersion:    "v0.9.1",
@@ -149,7 +157,8 @@ func TestChecker(t *testing.T) {
 				Available:       "v0.9.1",
 			},
 			Status: "md",
-		}, {
+		},
+		{
 			Name:             "long master version with v prefix",
 			InstalledVersion: "v666.development-0.20200325.9fee712d62",
 			LatestVersion:    "v0.9.1",

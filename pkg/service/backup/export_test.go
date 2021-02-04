@@ -28,9 +28,11 @@ func ParsePartialPath(s string) (remoteManifest, error) {
 	return m, m.ParsePartialPath(s)
 }
 
-type RemoteManifest = remoteManifest
-type ManifestContent = manifestContent
-type FileInfo = fileInfo
+type (
+	RemoteManifest  = remoteManifest
+	ManifestContent = manifestContent
+	FileInfo        = fileInfo
+)
 
 func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return remoteManifestDir(clusterID, dc, nodeID)

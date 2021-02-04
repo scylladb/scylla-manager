@@ -85,7 +85,7 @@ func TestSortUnits(t *testing.T) {
 
 	defaultTables := []string{"t"}
 
-	var table = []struct {
+	table := []struct {
 		P []string
 		U []string
 		E []string
