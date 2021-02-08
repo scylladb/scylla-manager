@@ -155,7 +155,7 @@ func commonFlagsUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 		t.Schedule.NumRetries = nr
 	}
 
-	if f := cmd.Flag("keyspace"); f.Changed {
+	if f := cmd.Flag("keyspace"); f != nil && f.Changed {
 		keyspace, err := cmd.Flags().GetStringSlice("keyspace")
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func commonFlagsUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 		props["keyspace"] = unescapeFilters(keyspace)
 	}
 
-	if f := cmd.Flag("dc"); f.Changed {
+	if f := cmd.Flag("dc"); f != nil && f.Changed {
 		dc, err := cmd.Flags().GetStringSlice("dc")
 		if err != nil {
 			return err
@@ -457,4 +457,66 @@ func backupFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
 
 	return fs
+}
+
+var backupValidateCmd = &cobra.Command{
+	Use:   "validate",
+	Short: "Validates all backups in location(s)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		t := &managerclient.Task{
+			Type:       "validate_backup",
+			Enabled:    true,
+			Schedule:   new(managerclient.Schedule),
+			Properties: make(map[string]interface{}),
+		}
+
+		if err := commonFlagsUpdate(t, cmd); err != nil {
+			return err
+		}
+
+		props := t.Properties.(map[string]interface{})
+		if f := cmd.Flag("location"); f.Changed {
+			v, err := cmd.Flags().GetStringSlice("location")
+			if err != nil {
+				return err
+			}
+			props["location"] = v
+		}
+
+		if f := cmd.Flag("delete-orphaned-files"); f.Changed {
+			v, err := cmd.Flags().GetBool("delete-orphaned-files")
+			if err != nil {
+				return err
+			}
+			props["delete_orphaned_files"] = v
+		}
+
+		if f := cmd.Flag("parallel"); f.Changed {
+			v, err := cmd.Flags().GetInt("parallel")
+			if err != nil {
+				return err
+			}
+			props["parallel"] = v
+		}
+
+		id, err := client.CreateTask(ctx, cfgCluster, t)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(t.Type, id))
+
+		return nil
+	},
+}
+
+func init() {
+	cmd := backupValidateCmd
+	fs := cmd.Flags()
+	fs.StringSliceP("location", "L", nil,
+		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3, gcs, azure") // nolint: lll
+	fs.Bool("delete-orphaned-files", false, "should we delete data files not belonging to any snapshot if they are found")
+	fs.Int("parallel", 0, "Number of hosts to analyze in parallel")
+	taskInitCommonFlags(fs)
+	register(cmd, backupCmd)
 }

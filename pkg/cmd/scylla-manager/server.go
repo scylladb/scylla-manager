@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -131,11 +132,39 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 	}
 
 	// Register the runners
+	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.backupSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.HealthCheckAlternatorTask, s.healthSvc.AlternatorRunner())
 	s.schedSvc.SetRunner(scheduler.HealthCheckCQLTask, s.healthSvc.CQLRunner())
 	s.schedSvc.SetRunner(scheduler.HealthCheckRESTTask, s.healthSvc.RESTRunner())
-	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.backupSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.repairSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
+
+	s.schedSvc.SetTaskOpt(func(ctx context.Context, task scheduler.Task) (scheduler.Properties, error) {
+		switch task.Type {
+		// This is a bit hacky way of supporting empty locations in tasks.
+		// The locations are evaluated at runtime, scheduler and backup are
+		// agnostic of implementation details.
+		case scheduler.ValidateBackupTask:
+			locations := s.backupSvc.ExtractLocations(ctx, []json.RawMessage{task.Properties.AsJSON()})
+			if len(locations) > 0 {
+				return task.Properties, nil
+			}
+
+			tasks, err := s.schedSvc.ListTasks(ctx, task.ClusterID, scheduler.BackupTask)
+			if err != nil {
+				return nil, err
+			}
+			properties := make([]json.RawMessage, 0, len(tasks))
+			for _, t := range tasks {
+				if t.Enabled {
+					properties = append(properties, t.Properties.AsJSON())
+				}
+			}
+			return task.Properties.Set("location", s.backupSvc.ExtractLocations(ctx, properties)), nil
+		default:
+			return task.Properties, nil
+		}
+	})
 
 	return nil
 }

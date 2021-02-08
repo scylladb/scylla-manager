@@ -217,11 +217,16 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p, err := h.Services.Scheduler.EvalTaskOpts(r.Context(), newTask)
+	if err != nil {
+		respondBadRequest(w, r, errors.Wrap(err, "evaluate properties"))
+	}
+
 	var t interface{}
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties.AsJSON())
+		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON())
 		if err != nil {
 			respondError(w, r, errors.Wrap(err, "get backup target"))
 			return
@@ -236,7 +241,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			Size:   size,
 		}
 	case scheduler.RepairTask:
-		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties.AsJSON()); err != nil {
+		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
 			respondError(w, r, errors.Wrap(err, "get repair target"))
 			return
 		}
@@ -259,20 +264,26 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p, err := h.Services.Scheduler.EvalTaskOpts(r.Context(), newTask)
+	if err != nil {
+		respondBadRequest(w, r, errors.Wrap(err, "evaluate properties"))
+	}
+
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties.AsJSON()); err != nil {
+		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
 			respondError(w, r, errors.Wrap(err, "create backup target"))
 			return
 		}
 	case scheduler.RepairTask:
-		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, newTask.Properties.AsJSON()); err != nil {
+		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
 			respondError(w, r, errors.Wrap(err, "create repair target"))
 			return
 		}
 	case scheduler.ValidateBackupTask:
-		if _, err := h.Backup.GetValidationTarget(r.Context(), newTask.ClusterID, newTask.Properties.AsJSON()); err != nil {
+		if _, err := h.Backup.GetValidationTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
 			respondError(w, r, errors.Wrap(err, "create validate backup target"))
+			return
 		}
 	}
 

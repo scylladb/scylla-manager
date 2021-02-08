@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	backupTaskType = "backup"
-	repairTaskType = "repair"
+	backupTaskType         = "backup"
+	repairTaskType         = "repair"
+	validateBackupTaskType = "validate_backup"
 )
 
 // CmdRenderType defines CmdRenderer output type.
@@ -152,6 +153,10 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--intensity", "intensity")
 			rc.writeProp("--parallel", "parallel")
 			rc.writeProp("--small-table-threshold", "small_table_threshold", byteCount)
+		case validateBackupTaskType:
+			rc.writeProp("-L", "location")
+			rc.writeProp("--delete-orphaned-files", "delete_orphaned_files")
+			rc.writeProp("--parallel", "parallel")
 		}
 	}
 

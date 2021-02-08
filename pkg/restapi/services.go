@@ -58,7 +58,8 @@ type BackupService interface {
 	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backupservice.ListFilter) ([]backup.FilesInfo, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backupservice.Progress, error)
 	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, snapshotTag string) error
-	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
+	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backupservice.ValidationTarget, error)
+	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backupservice.ValidationResult, error)
 }
 
 // SchedService service interface for the REST API handlers.
@@ -75,4 +76,5 @@ type SchedService interface {
 	IsSuspended(ctx context.Context, clusterID uuid.UUID) bool
 	Suspend(ctx context.Context, clusterID uuid.UUID) error
 	Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error
+	EvalTaskOpts(ctx context.Context, t *scheduler.Task) (scheduler.Properties, error)
 }

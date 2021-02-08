@@ -28,6 +28,7 @@ const (
 	HealthCheckCQLTask        TaskType = "healthcheck"
 	HealthCheckRESTTask       TaskType = "healthcheck_rest"
 	RepairTask                TaskType = "repair"
+	ValidateBackupTask        TaskType = "validate_backup"
 
 	mockTask TaskType = "mock"
 )
@@ -65,6 +66,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = HealthCheckRESTTask
 	case RepairTask:
 		*t = RepairTask
+	case ValidateBackupTask:
+		*t = ValidateBackupTask
 	case mockTask:
 		*t = mockTask
 	default:

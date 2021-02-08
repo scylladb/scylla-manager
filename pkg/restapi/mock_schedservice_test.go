@@ -49,6 +49,21 @@ func (mr *MockSchedServiceMockRecorder) DeleteTask(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTask", reflect.TypeOf((*MockSchedService)(nil).DeleteTask), arg0, arg1)
 }
 
+// EvalTaskOpts mocks base method
+func (m *MockSchedService) EvalTaskOpts(arg0 context.Context, arg1 *scheduler.Task) (scheduler.Properties, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EvalTaskOpts", arg0, arg1)
+	ret0, _ := ret[0].(scheduler.Properties)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EvalTaskOpts indicates an expected call of EvalTaskOpts
+func (mr *MockSchedServiceMockRecorder) EvalTaskOpts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EvalTaskOpts", reflect.TypeOf((*MockSchedService)(nil).EvalTaskOpts), arg0, arg1)
+}
+
 // GetLastRun mocks base method
 func (m *MockSchedService) GetLastRun(arg0 context.Context, arg1 *scheduler.Task, arg2 int) ([]*scheduler.Run, error) {
 	m.ctrl.T.Helper()
