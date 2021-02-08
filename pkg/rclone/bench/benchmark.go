@@ -15,8 +15,8 @@ import (
 	"github.com/rclone/rclone/fs"
 	roperations "github.com/rclone/rclone/fs/operations"
 	rsync "github.com/rclone/rclone/fs/sync"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/pkg/util/location"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
@@ -186,7 +186,7 @@ type Benchmark struct {
 
 // NewBenchmark setups new benchmark object for the provided location.
 func NewBenchmark(ctx context.Context, loc string) (*Benchmark, error) {
-	l, err := location.StripDC(loc)
+	l, err := backup.StripDC(loc)
 	if err != nil {
 		return nil, errors.Wrapf(err, loc)
 	}
@@ -194,7 +194,7 @@ func NewBenchmark(ctx context.Context, loc string) (*Benchmark, error) {
 	f, err := fs.NewFs(l)
 	if err != nil {
 		if errors.Is(err, fs.ErrorNotFoundInConfigFile) {
-			return nil, location.ErrInvalid
+			return nil, backup.ErrInvalid
 		}
 		return nil, errors.Wrapf(err, loc)
 	}

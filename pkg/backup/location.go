@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package location
+package backup
 
 import (
 	"regexp"

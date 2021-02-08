@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/pkg/util/location"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -43,7 +43,7 @@ var checkLocationCmd = &cobra.Command{
 			return errors.Wrap(err, "register providers")
 		}
 
-		location, err := location.StripDC(checkLocationArgs.location)
+		location, err := backup.StripDC(checkLocationArgs.location)
 		if err != nil {
 			return err
 		}
