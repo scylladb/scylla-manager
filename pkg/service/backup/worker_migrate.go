@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
@@ -69,7 +70,7 @@ func (w *worker) checkV1ToV2MigrationNeeded(ctx context.Context, h hostInfo) (bo
 }
 
 func (w *worker) uploadMetadataVersionFile(ctx context.Context, h hostInfo, version string) error {
-	p := h.Location.RemotePath(remoteMetaVersionFile(w.ClusterID, h.DC, h.ID))
+	p := h.Location.RemotePath(backup.RemoteMetaVersionFile(w.ClusterID, h.DC, h.ID))
 
 	mv := struct {
 		Version string `json:"version"`

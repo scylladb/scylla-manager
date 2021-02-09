@@ -160,7 +160,7 @@ func (p *purger) filterManifests(manifests []*remoteManifest, filter func(*remot
 
 func (p *purger) forEachFile(manifests []*remoteManifest, callback func(path string)) {
 	for _, m := range manifests {
-		baseDir := remoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
+		baseDir := backup.RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
 		for _, fi := range m.Content.Index {
 			for _, f := range fi.Files {
 				callback(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))

@@ -25,10 +25,11 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	backup_service "github.com/scylladb/scylla-manager/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -40,7 +41,7 @@ type backupTestHelper struct {
 	session  gocqlx.Session
 	hrt      *HackableRoundTripper
 	client   *scyllaclient.Client
-	service  *backup.Service
+	service  *backup_service.Service
 	location backup.Location
 
 	clusterID uuid.UUID
@@ -50,7 +51,7 @@ type backupTestHelper struct {
 	t *testing.T
 }
 
-func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup_service.Config, location backup.Location, clientConf *scyllaclient.Config) *backupTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
@@ -99,11 +100,11 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
-	logger log.Logger) *backup.Service {
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup_service.Config, clusterID uuid.UUID,
+	logger log.Logger) *backup_service.Service {
 	t.Helper()
 
-	s, err := backup.NewService(
+	s, err := backup_service.NewService(
 		session,
 		c,
 		func(_ context.Context, id uuid.UUID) (string, error) {
@@ -158,11 +159,11 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	}).Iter()
 	defer iter.Close()
 
-	pr := &backup.RunProgress{}
+	pr := &backup_service.RunProgress{}
 	for iter.StructScan(pr) {
 		fs := pr.Files()
 		for i := range fs {
-			if strings.Contains(fs[i].Name, backup.ScyllaManifest) {
+			if strings.Contains(fs[i].Name, backup_service.ScyllaManifest) {
 				continue
 			}
 			files.Add(fs[i].Name)
@@ -338,7 +339,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, backup_service.DefaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -369,12 +370,12 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var golden backup.Target
+			var golden backup_service.Target
 			if err := json.Unmarshal(b, &golden); err != nil {
 				t.Error(err)
 			}
 
-			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b }), cmpopts.IgnoreUnexported(backup.Target{})); diff != "" {
+			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b }), cmpopts.IgnoreUnexported(backup_service.Target{})); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -443,7 +444,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, backup_service.DefaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -469,7 +470,7 @@ func TestServiceGetTargetErrorIntegration(t *testing.T) {
 func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	const testBucket = "backuptest-void"
 
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session = CreateSession(t)
@@ -477,7 +478,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	putRun := func(t *testing.T, r *backup.Run) {
+	putRun := func(t *testing.T, r *backup_service.Run) {
 		t.Helper()
 		if err := table.BackupRun.InsertQuery(session).BindStruct(r).ExecRelease(); err != nil {
 			t.Fatal(err)
@@ -490,21 +491,21 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		clusterID := uuid.MustRandom()
 		taskID := uuid.MustRandom()
 
-		r0 := &backup.Run{
+		r0 := &backup_service.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     backup.StageInit,
+			Units:     []backup_service.Unit{{Keyspace: "test"}},
+			Stage:     backup_service.StageInit,
 		}
 		putRun(t, r0)
 
-		r1 := &backup.Run{
+		r1 := &backup_service.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     backup.StageInit,
+			Units:     []backup_service.Unit{{Keyspace: "test"}},
+			Stage:     backup_service.StageInit,
 		}
 		putRun(t, r1)
 
@@ -520,21 +521,21 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		clusterID := uuid.MustRandom()
 		taskID := uuid.MustRandom()
 
-		r0 := &backup.Run{
+		r0 := &backup_service.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     backup.StageUpload,
+			Units:     []backup_service.Unit{{Keyspace: "test"}},
+			Stage:     backup_service.StageUpload,
 		}
 		putRun(t, r0)
 
-		r1 := &backup.Run{
+		r1 := &backup_service.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     backup.StageDone,
+			Units:     []backup_service.Unit{{Keyspace: "test"}},
+			Stage:     backup_service.StageDone,
 		}
 		putRun(t, r1)
 
@@ -550,21 +551,21 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		clusterID := uuid.MustRandom()
 		taskID := uuid.MustRandom()
 
-		r0 := &backup.Run{
+		r0 := &backup_service.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test1"}},
-			Stage:     backup.StageUpload,
+			Units:     []backup_service.Unit{{Keyspace: "test1"}},
+			Stage:     backup_service.StageUpload,
 		}
 		putRun(t, r0)
 
-		r1 := &backup.Run{
+		r1 := &backup_service.Run{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
-			Units:     []backup.Unit{{Keyspace: "test2"}},
-			Stage:     backup.StageInit,
+			Units:     []backup_service.Unit{{Keyspace: "test2"}},
+			Stage:     backup_service.StageInit,
 		}
 		putRun(t, r1)
 
@@ -573,7 +574,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(r, r0, UUIDComparer(), cmp.AllowUnexported(backup.Run{}), cmp.AllowUnexported(backup.Unit{})); diff != "" {
+		if diff := cmp.Diff(r, r0, UUIDComparer(), cmp.AllowUnexported(backup_service.Run{}), cmp.AllowUnexported(backup_service.Unit{})); diff != "" {
 			t.Fatal(diff)
 		}
 	})
@@ -586,7 +587,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -597,8 +598,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 1)
 
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -623,7 +624,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there are two backups")
-	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backup_service.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -649,7 +650,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("expected %d schemas, got %d", schemasCount, len(schemas))
 	}
 
-	filesInfo, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	filesInfo, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup_service.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
@@ -670,7 +671,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 			Print("And: Scylla manifests are not uploaded")
 			for _, rfn := range remoteFileNames {
-				if strings.Contains(rfn, backup.ScyllaManifest) {
+				if strings.Contains(rfn, backup_service.ScyllaManifest) {
 					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
 				}
 			}
@@ -689,7 +690,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: manifests are in metadata directory")
 	for _, m := range manifests {
-		if _, err := backup.ParsePartialPath(m); err != nil {
+		if _, err := backup_service.ParsePartialPath(m); err != nil {
 			t.Fatal("manifest file in wrong path", m)
 		}
 	}
@@ -704,7 +705,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there are three backups")
-	items, err = h.service.List(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	items, err = h.service.List(ctx, h.clusterID, []backup.Location{location}, backup_service.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -734,7 +735,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: user is able to list backup files using filters")
-	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup_service.ListFilter{
 		ClusterID: h.clusterID,
 		Keyspace:  []string{"some-other-keyspace"}})
 	if err != nil {
@@ -753,7 +754,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		}
 	}
 
-	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []backup.Location{location}, backup_service.ListFilter{
 		ClusterID: h.clusterID,
 		Keyspace:  []string{testKeyspace},
 	})
@@ -777,7 +778,7 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 		t.Fatal(err)
 	}
 
-	var mc backup.ManifestContent
+	var mc backup_service.ManifestContent
 	if err := mc.Read(bytes.NewReader(b)); err != nil {
 		t.Fatalf("Cannot read manifest created by backup: %s", err)
 	}
@@ -811,7 +812,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -829,8 +830,8 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	defer ExecOnHost("192.168.100.11", CmdUnblockScyllaREST)
 
 	Print("When: get target")
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -872,7 +873,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -881,8 +882,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -890,7 +891,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		DC:        []string{"dc1"},
 		Location:  []backup.Location{location},
 		Retention: 2,
-		RateLimit: []backup.DCLimit{
+		RateLimit: []backup_service.DCLimit{
 			{"dc1", 1},
 		},
 		Continue: true,
@@ -914,7 +915,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		manifests, _, files := h.listS3Files()
 		c := 0
 		for _, m := range manifests {
-			if backup.SnapshotTagFromManifestPath(t, m) > tag {
+			if backup_service.SnapshotTagFromManifestPath(t, m) > tag {
 				c += 1
 			}
 		}
@@ -927,7 +928,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	}
 
 	getTagAndWait := func() string {
-		tag := backup.NewSnapshotTag()
+		tag := backup_service.NewSnapshotTag()
 
 		// Wait for new tag as they have a second resolution
 		time.Sleep(time.Second)
@@ -1168,7 +1169,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -1180,8 +1181,8 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("Given: retention policy of 1")
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1206,7 +1207,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	time.Sleep(time.Second)
 	// Parse manifest
 	f := manifests[0]
-	m, err := backup.ParsePartialPath(f)
+	m, err := backup_service.ParsePartialPath(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1220,7 +1221,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	}
 	// Mark manifest as temporary, change snapshot tag
 	m.Temporary = true
-	m.SnapshotTag = backup.NewSnapshotTag()
+	m.SnapshotTag = backup_service.NewSnapshotTag()
 	// Add "xxx" file to a table
 	fi := &m.Content.Index[0]
 	fi.Files = append(fi.Files, "xxx")
@@ -1241,7 +1242,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	time.Sleep(time.Second)
 
 	Print("Then: there is one backup in listing")
-	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	items, err := h.service.List(ctx, h.clusterID, []backup.Location{location}, backup_service.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1277,7 +1278,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -1288,8 +1289,8 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1332,7 +1333,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 		tempManifestCount int
 	)
 	for _, m := range manifests {
-		if strings.HasSuffix(m, backup.TempFileExt) {
+		if strings.HasSuffix(m, backup_service.TempFileExt) {
 			tempManifestCount++
 		} else {
 			manifestCount++
@@ -1351,7 +1352,7 @@ func TestPurgeIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -1362,8 +1363,8 @@ func TestPurgeIntegration(t *testing.T) {
 	)
 
 	Print("Given: retention policy of 2 for the first task")
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1374,8 +1375,8 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	Print("And: retention policy of 1 for the second task")
-	target2 := backup.Target{
-		Units: []backup.Unit{
+	target2 := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1447,7 +1448,7 @@ func TestPurgeIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		rm := backup.RemoteManifest{}
+		rm := backup_service.RemoteManifest{}
 		if err := rm.ReadContent(bytes.NewReader(b)); err != nil {
 			t.Fatal(err)
 		}
@@ -1480,7 +1481,7 @@ func TestBackupSnapshotDeleteIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -1491,8 +1492,8 @@ func TestBackupSnapshotDeleteIntegration(t *testing.T) {
 	)
 
 	Print("Given: retention policy of 1 for the both task")
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1592,7 +1593,7 @@ func filterOutVersionFiles(files []string) []string {
 func getTaskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) []string {
 	t.Helper()
 
-	filesFilter := backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID}
+	filesFilter := backup_service.ListFilter{ClusterID: h.clusterID, TaskID: taskID}
 	taskFiles, err := h.service.ListFiles(ctx, h.clusterID, []backup.Location{h.location}, filesFilter)
 	if err != nil {
 		t.Fatal(err)
@@ -1615,7 +1616,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := backup_service.DefaultConfig()
 
 	var (
 		session        = CreateSession(t)
@@ -1643,8 +1644,8 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 3)
 
 	Print("Given: retention policy 1")
-	target := backup.Target{
-		Units: []backup.Unit{
+	target := backup_service.Target{
+		Units: []backup_service.Unit{
 			{
 				Keyspace: testKeyspace,
 			},
@@ -1729,7 +1730,7 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 
 func getTaskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) *strset.Set {
 	backups, err := h.service.List(ctx, h.clusterID, []backup.Location{h.location},
-		backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID})
+		backup_service.ListFilter{ClusterID: h.clusterID, TaskID: taskID})
 	if err != nil {
 		t.Fatal(err)
 	}

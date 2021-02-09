@@ -80,16 +80,16 @@ func (h *manifestV1Helper) listPaths(ctx context.Context, f ListFilter) ([]strin
 		PruneDir: dirPrune,
 	}
 
-	baseDir := path.Join("backup", string(metaDirKind))
+	baseDir := path.Join("backup", string(backup.MetaDirKind))
 	if f.ClusterID != uuid.Nil {
 		if f.DC != "" {
 			if f.NodeID != "" {
 				baseDir = h.paths.RemoteMetaNodeDir(f.ClusterID, f.DC, f.NodeID)
 			} else {
-				baseDir = path.Join(remoteMetaClusterDCDir(f.ClusterID), f.DC)
+				baseDir = path.Join(backup.RemoteMetaClusterDCDir(f.ClusterID), f.DC)
 			}
 		} else {
-			baseDir = remoteMetaClusterDCDir(f.ClusterID)
+			baseDir = backup.RemoteMetaClusterDCDir(f.ClusterID)
 		}
 	}
 
@@ -344,7 +344,7 @@ func (m *manifestV1) ParsePartialPath(s string) error {
 
 	err := p.Parse(
 		pathparser.Static("backup"),
-		pathparser.Static(string(metaDirKind)),
+		pathparser.Static(string(backup.MetaDirKind)),
 		pathparser.Static("cluster"),
 		pathparser.ID(&m.ClusterID),
 		pathparser.Static("dc"),
@@ -381,7 +381,7 @@ func (m manifestV1) RemoteManifestFile() string {
 }
 
 func (m manifestV1) RemoteSSTableVersionDir() string {
-	return remoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
+	return backup.RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
 }
 
 type manifestV1Paths struct{}
@@ -389,7 +389,7 @@ type manifestV1Paths struct{}
 func (p manifestV1Paths) RemoteMetaNodeDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return path.Join(
 		"backup",
-		string(metaDirKind),
+		string(backup.MetaDirKind),
 		"cluster",
 		clusterID.String(),
 		"dc",

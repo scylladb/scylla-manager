@@ -101,7 +101,7 @@ func TestListFilterPruneFunc(t *testing.T) {
 
 	var (
 		snapshotTag = newSnapshotTag()
-		dir         = remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), snapshotTag, "dc", "nodeID")
+		dir         = backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), snapshotTag, "dc", "nodeID")
 	)
 
 	table := []struct {

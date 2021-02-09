@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -34,14 +35,9 @@ type (
 	FileInfo        = fileInfo
 )
 
-func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
-	return remoteManifestDir(clusterID, dc, nodeID)
-}
-
 const (
-	ScyllaManifest  = scyllaManifest
-	MetadataVersion = metadataVersion
-	TempFileExt     = tempFileExt
+	ScyllaManifest = scyllaManifest
+	TempFileExt    = tempFileExt
 )
 
 func (p *RunProgress) Files() []FileInfo {
@@ -74,5 +70,5 @@ func (t Target) Hosts() []string {
 }
 
 func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
-	return remoteSSTableVersionDir(clusterID, dc, nodeID, keyspace, table, version)
+	return backup.RemoteSSTableVersionDir(clusterID, dc, nodeID, keyspace, table, version)
 }

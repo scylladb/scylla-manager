@@ -73,7 +73,7 @@ type remoteManifest struct {
 }
 
 func (m *remoteManifest) RemoteManifestFile() string {
-	f := remoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
+	f := backup.RemoteManifestFile(m.ClusterID, m.TaskID, m.SnapshotTag, m.DC, m.NodeID)
 	if m.Temporary {
 		f = tempFile(f)
 	}
@@ -81,11 +81,11 @@ func (m *remoteManifest) RemoteManifestFile() string {
 }
 
 func (m *remoteManifest) RemoteSchemaFile() string {
-	return remoteSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
+	return backup.RemoteSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
 }
 
 func (m *remoteManifest) RemoteSSTableVersionDir(keyspace, table, version string) string {
-	return remoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
+	return backup.RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
 }
 
 func (m *remoteManifest) ReadContent(r io.Reader) error {
@@ -131,14 +131,14 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 				m.SnapshotTag = tag
 				return nil
 			},
-			pathparser.Static(manifest, tempFile(manifest)),
+			pathparser.Static(backup.Manifest, tempFile(backup.Manifest)),
 		)
 	}
 
 	p := pathparser.New(s, sep)
 	err := p.Parse(
 		pathparser.Static("backup"),
-		pathparser.Static(string(metaDirKind)),
+		pathparser.Static(string(backup.MetaDirKind)),
 		pathparser.Static("cluster"),
 		pathparser.ID(&m.ClusterID),
 		pathparser.Static("dc"),
@@ -413,7 +413,7 @@ func (l *multiVersionManifestLister) removeDuplicates(ms []*remoteManifest) []*r
 // clean path for the v2 manifest.
 func v2CleanPathLength() int {
 	m := remoteManifest{}
-	if err := m.ParsePartialPath(remoteManifestFile(
+	if err := m.ParsePartialPath(backup.RemoteManifestFile(
 		uuid.NewTime(), uuid.NewTime(), "sm_20091110230000UTC", "b", "c",
 	)); err != nil {
 		panic(err)
@@ -424,7 +424,7 @@ func v2CleanPathLength() int {
 
 func getMetadataVersion(ctx context.Context, host string, location backup.Location, client *scyllaclient.Client,
 	clusterID uuid.UUID, dc, nodeID string) (string, error) {
-	p := location.RemotePath(remoteMetaVersionFile(clusterID, dc, nodeID))
+	p := location.RemotePath(backup.RemoteMetaVersionFile(clusterID, dc, nodeID))
 	content, err := client.RcloneCat(ctx, host, p)
 	if err != nil {
 		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {

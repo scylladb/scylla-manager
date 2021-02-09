@@ -112,12 +112,12 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		},
 		{
 			Name:  "not a manifest file",
-			Path:  remoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID") + ".old",
+			Path:  backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID") + ".old",
 			Error: "expected one of [manifest.json.gz manifest.json.gz.tmp]",
 		},
 		{
 			Name:  "sSTable dir",
-			Path:  remoteSSTableVersionDir(uuid.MustRandom(), "dc", "nodeID", "keyspace", "table", "version"),
+			Path:  backup.RemoteSSTableVersionDir(uuid.MustRandom(), "dc", "nodeID", "keyspace", "table", "version"),
 			Error: "expected meta",
 		},
 	}

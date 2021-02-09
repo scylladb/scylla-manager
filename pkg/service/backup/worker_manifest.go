@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -63,7 +64,7 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *remoteMani
 		Tokens:      tokens,
 	}
 	if w.Schema != nil {
-		content.Schema = remoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+		content.Schema = backup.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
 	for i, d := range dirs {
@@ -130,7 +131,7 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 		}()
 
 		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
-		dst := h.Location.RemotePath(remoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
+		dst := h.Location.RemotePath(backup.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
 		src := tempFile(dst)
 
 		// Register rollback

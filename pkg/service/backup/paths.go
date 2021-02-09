@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -19,127 +20,17 @@ func keyspaceDir(keyspace string) string {
 }
 
 const (
-	scyllaManifest  = "manifest.json"
-	scyllaSchema    = "schema.cql"
-	manifest        = "manifest.json.gz"
-	schema          = "schema.tar.gz"
-	metadataVersion = ".version"
+	scyllaManifest = "manifest.json"
+	scyllaSchema   = "schema.cql"
 
 	sep         = string(os.PathSeparator)
 	tempFileExt = ".tmp"
 )
 
-func remoteMetaClusterDCDir(clusterID uuid.UUID) string {
-	return path.Join(
-		"backup",
-		string(metaDirKind),
-		"cluster",
-		clusterID.String(),
-		"dc",
-	)
-}
-
 func remoteManifestLevel(baseDir string) int {
-	a := len(strings.Split(remoteManifestDir(uuid.Nil, "a", "b"), sep))
+	a := len(strings.Split(backup.RemoteManifestDir(uuid.Nil, "a", "b"), sep))
 	b := len(strings.Split(baseDir, sep))
 	return a - b
-}
-
-func remoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID string) string {
-	manifestName := strings.Join([]string{
-		"task",
-		taskID.String(),
-		"tag",
-		snapshotTag,
-		manifest,
-	}, "_")
-
-	return path.Join(
-		remoteManifestDir(clusterID, dc, nodeID),
-		manifestName,
-	)
-}
-
-func remoteSchemaFile(clusterID, taskID uuid.UUID, snapshotTag string) string {
-	manifestName := strings.Join([]string{
-		"task",
-		taskID.String(),
-		"tag",
-		snapshotTag,
-		schema,
-	}, "_")
-
-	return path.Join(
-		remoteSchemaDir(clusterID),
-		manifestName,
-	)
-}
-
-func remoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
-	return path.Join(
-		remoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
-		version,
-	)
-}
-
-type dirKind string
-
-const (
-	schemaDirKind = dirKind("schema")
-	sstDirKind    = dirKind("sst")
-	metaDirKind   = dirKind("meta")
-)
-
-func remoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
-	return path.Join(
-		"backup",
-		string(sstDirKind),
-		"cluster",
-		clusterID.String(),
-		"dc",
-		dc,
-		"node",
-		nodeID,
-	)
-}
-
-func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
-	return path.Join(
-		remoteSSTableBaseDir(clusterID, dc, nodeID),
-		"keyspace",
-		keyspace,
-		"table",
-		table,
-	)
-}
-
-func remoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
-	return path.Join(
-		"backup",
-		string(metaDirKind),
-		"cluster",
-		clusterID.String(),
-		"dc",
-		dc,
-		"node",
-		nodeID,
-	)
-}
-
-func remoteSchemaDir(clusterID uuid.UUID) string {
-	return path.Join(
-		"backup",
-		string(schemaDirKind),
-		"cluster",
-		clusterID.String(),
-	)
-}
-
-func remoteMetaVersionFile(clusterID uuid.UUID, dc, nodeID string) string {
-	return path.Join(
-		remoteManifestDir(clusterID, dc, nodeID),
-		metadataVersion,
-	)
 }
 
 func tempFile(f string) string {

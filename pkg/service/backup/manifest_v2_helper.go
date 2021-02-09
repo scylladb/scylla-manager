@@ -120,17 +120,17 @@ func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string
 // listPaths return list of paths to manifests present under provided location.
 func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string, error) {
 	// Filter out other clusters to speed up common case
-	baseDir := path.Join("backup", string(metaDirKind))
+	baseDir := path.Join("backup", string(backup.MetaDirKind))
 
 	if f.ClusterID != uuid.Nil {
 		if f.DC != "" {
 			if f.NodeID != "" {
-				baseDir = remoteManifestDir(f.ClusterID, f.DC, f.NodeID)
+				baseDir = backup.RemoteManifestDir(f.ClusterID, f.DC, f.NodeID)
 			} else {
-				baseDir = path.Join(remoteMetaClusterDCDir(f.ClusterID), f.DC)
+				baseDir = path.Join(backup.RemoteMetaClusterDCDir(f.ClusterID), f.DC)
 			}
 		} else {
-			baseDir = remoteMetaClusterDCDir(f.ClusterID)
+			baseDir = backup.RemoteMetaClusterDCDir(f.ClusterID)
 		}
 	}
 
