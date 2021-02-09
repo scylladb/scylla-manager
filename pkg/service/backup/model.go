@@ -4,7 +4,6 @@ package backup
 
 import (
 	"fmt"
-	"path"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -12,8 +11,8 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -64,9 +63,9 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 // Note that a backup for a table usually consists of multiple instances of
 // FilesInfo since data is replicated across many nodes.
 type FilesInfo struct {
-	Location Location    `json:"location"`
-	Schema   string      `json:"schema"`
-	Files    []filesInfo `json:"files"`
+	Location backup.Location `json:"location"`
+	Schema   string          `json:"schema"`
+	Files    []filesInfo     `json:"files"`
 }
 
 // filesInfo contains information about SST files of particular keyspace/table.
@@ -99,14 +98,14 @@ func makeFilesInfo(m *remoteManifest, filter *ksfilter.Filter) FilesInfo {
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units            []Unit     `json:"units,omitempty"`
-	DC               []string   `json:"dc,omitempty"`
-	Location         []Location `json:"location"`
-	Retention        int        `json:"retention"`
-	RateLimit        []DCLimit  `json:"rate_limit"`
-	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit  `json:"upload_parallel"`
-	Continue         bool       `json:"continue"`
+	Units            []Unit            `json:"units,omitempty"`
+	DC               []string          `json:"dc,omitempty"`
+	Location         []backup.Location `json:"location"`
+	Retention        int               `json:"retention"`
+	RateLimit        []DCLimit         `json:"rate_limit"`
+	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit         `json:"upload_parallel"`
+	Continue         bool              `json:"continue"`
 	// liveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
@@ -194,7 +193,7 @@ type Run struct {
 	Units       []Unit
 	DC          []string
 	Nodes       []string
-	Location    []Location
+	Location    []backup.Location
 	StartTime   time.Time
 	Stage       Stage
 
@@ -286,99 +285,6 @@ type TableProgress struct {
 	Error string `json:"error,omitempty"`
 }
 
-// Provider specifies type of remote storage like S3 etc.
-type Provider string
-
-// Provider enumeration.
-const (
-	S3    = Provider("s3")
-	GCS   = Provider("gcs")
-	Azure = Provider("azure")
-)
-
-func (p Provider) String() string {
-	return string(p)
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (p Provider) MarshalText() (text []byte, err error) {
-	return []byte(p.String()), nil
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (p *Provider) UnmarshalText(text []byte) error {
-	if s := string(text); !providers.Has(s) {
-		return errors.Errorf("unrecognised provider %q", text)
-	}
-	*p = Provider(text)
-	return nil
-}
-
-var providers = strset.New(S3.String(), GCS.String(), Azure.String())
-
-// Location specifies storage provider and container/resource for a DC.
-type Location struct {
-	DC       string   `json:"dc"`
-	Provider Provider `json:"provider"`
-	Path     string   `json:"path"`
-}
-
-func (l Location) String() string {
-	p := l.Provider.String() + ":" + l.Path
-	if l.DC != "" {
-		p = l.DC + ":" + p
-	}
-	return p
-}
-
-func (l Location) MarshalText() (text []byte, err error) {
-	return []byte(l.String()), nil
-}
-
-func (l *Location) UnmarshalText(text []byte) error {
-	// Providers require that resource names are DNS compliant.
-	// The following is a super simplified DNS (plus provider prefix)
-	// matching regexp.
-	pattern := regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
-
-	m := pattern.FindSubmatch(text)
-	if m == nil {
-		return errors.Errorf("invalid location %q, the format is [dc:]<provider>:<path> ex. s3:my-bucket, the path must be DNS compliant", string(text))
-	}
-
-	if err := l.Provider.UnmarshalText(m[3]); err != nil {
-		return errors.Wrapf(err, "invalid location %q", string(text))
-	}
-
-	l.DC = string(m[2])
-	l.Path = string(m[4])
-
-	return nil
-}
-
-func (l Location) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
-	return l.MarshalText()
-}
-
-func (l *Location) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
-	return l.UnmarshalText(data)
-}
-
-// RemoteName returns the rclone remote name for that location.
-func (l Location) RemoteName() string {
-	return l.Provider.String()
-}
-
-// RemotePath returns string that can be used with rclone to specify a path in
-// the given location.
-func (l Location) RemotePath(p string) string {
-	r := l.RemoteName()
-	if r != "" {
-		r += ":"
-	}
-	return path.Join(r+l.Path, p)
-}
-
 // DCLimit specifies a rate limit for a DC.
 type DCLimit struct {
 	DC    string `json:"dc"`
@@ -424,14 +330,14 @@ func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace         []string   `json:"keyspace"`
-	DC               []string   `json:"dc"`
-	Location         []Location `json:"location"`
-	Retention        int        `json:"retention"`
-	RateLimit        []DCLimit  `json:"rate_limit"`
-	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit  `json:"upload_parallel"`
-	Continue         bool       `json:"continue"`
+	Keyspace         []string          `json:"keyspace"`
+	DC               []string          `json:"dc"`
+	Location         []backup.Location `json:"location"`
+	Retention        int               `json:"retention"`
+	RateLimit        []DCLimit         `json:"rate_limit"`
+	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit         `json:"upload_parallel"`
+	Continue         bool              `json:"continue"`
 }
 
 func defaultTaskProperties() taskProperties {

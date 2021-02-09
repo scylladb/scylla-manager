@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -321,23 +322,23 @@ func TestListManifests(t *testing.T) {
 
 	ts := []struct {
 		Name       string
-		Location   Location
+		Location   backup.Location
 		GoldenFile string
 		Filter     ListFilter
 	}{
 		{
 			Name:       "Smoke manifest listing",
-			Location:   Location{Provider: "walker", Path: "list"},
+			Location:   backup.Location{Provider: "walker", Path: "list"},
 			GoldenFile: "testdata/walker/list/golden.json",
 		},
 		{
 			Name:       "Support for v1 and v2 manifest at once",
-			Location:   Location{Provider: "walker", Path: "v1-support"},
+			Location:   backup.Location{Provider: "walker", Path: "v1-support"},
 			GoldenFile: "testdata/walker/v1-support/golden.json",
 		},
 		{
 			Name:       "List only manifests from metadata version file",
-			Location:   Location{Provider: "walker", Path: "version-file"},
+			Location:   backup.Location{Provider: "walker", Path: "version-file"},
 			GoldenFile: "testdata/walker/version-file/golden.json",
 			Filter: ListFilter{
 				ClusterID: uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
@@ -347,7 +348,7 @@ func TestListManifests(t *testing.T) {
 		},
 		{
 			Name:       "List overlapping snapshots",
-			Location:   Location{Provider: "walker", Path: "overlap-snapshots"},
+			Location:   backup.Location{Provider: "walker", Path: "overlap-snapshots"},
 			GoldenFile: "testdata/walker/overlap-snapshots/golden.json",
 			Filter: ListFilter{
 				ClusterID:   uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
@@ -356,7 +357,7 @@ func TestListManifests(t *testing.T) {
 		},
 		{
 			Name:       "List temporary manifests",
-			Location:   Location{Provider: "walker", Path: "temporary"},
+			Location:   backup.Location{Provider: "walker", Path: "temporary"},
 			GoldenFile: "testdata/walker/temporary/with.golden.json",
 			Filter: ListFilter{
 				Temporary: true,
@@ -364,7 +365,7 @@ func TestListManifests(t *testing.T) {
 		},
 		{
 			Name:       "Don't list temporary manifests",
-			Location:   Location{Provider: "walker", Path: "temporary"},
+			Location:   backup.Location{Provider: "walker", Path: "temporary"},
 			GoldenFile: "testdata/walker/temporary/without.golden.json",
 			Filter: ListFilter{
 				Temporary: false,

@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
@@ -23,7 +24,7 @@ type purger struct {
 	Client         *scyllaclient.Client
 	Filter         ListFilter
 	Host           string
-	Location       Location
+	Location       backup.Location
 	ManifestHelper manifestHelper
 	Logger         log.Logger
 }

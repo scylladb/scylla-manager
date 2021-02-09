@@ -7,10 +7,12 @@ package restapi
 import (
 	context "context"
 	json "encoding/json"
-	gomock "github.com/golang/mock/gomock"
-	backup "github.com/scylladb/scylla-manager/pkg/service/backup"
-	uuid "github.com/scylladb/scylla-manager/pkg/util/uuid"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	"github.com/scylladb/scylla-manager/pkg/backup"
+	backup_service "github.com/scylladb/scylla-manager/pkg/service/backup"
+	uuid "github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // MockBackupService is a mock of BackupService interface
@@ -65,10 +67,10 @@ func (mr *MockBackupServiceMockRecorder) ExtractLocations(arg0, arg1 interface{}
 }
 
 // GetProgress mocks base method
-func (m *MockBackupService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.Progress, error) {
+func (m *MockBackupService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup_service.Progress, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProgress", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(backup.Progress)
+	ret0, _ := ret[0].(backup_service.Progress)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -80,10 +82,10 @@ func (mr *MockBackupServiceMockRecorder) GetProgress(arg0, arg1, arg2, arg3 inte
 }
 
 // GetTarget mocks base method
-func (m *MockBackupService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup.Target, error) {
+func (m *MockBackupService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup_service.Target, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTarget", arg0, arg1, arg2)
-	ret0, _ := ret[0].(backup.Target)
+	ret0, _ := ret[0].(backup_service.Target)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -95,7 +97,7 @@ func (mr *MockBackupServiceMockRecorder) GetTarget(arg0, arg1, arg2 interface{})
 }
 
 // GetTargetSize mocks base method
-func (m *MockBackupService) GetTargetSize(arg0 context.Context, arg1 uuid.UUID, arg2 backup.Target) (int64, error) {
+func (m *MockBackupService) GetTargetSize(arg0 context.Context, arg1 uuid.UUID, arg2 backup_service.Target) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTargetSize", arg0, arg1, arg2)
 	ret0, _ := ret[0].(int64)
@@ -110,10 +112,10 @@ func (mr *MockBackupServiceMockRecorder) GetTargetSize(arg0, arg1, arg2 interfac
 }
 
 // List mocks base method
-func (m *MockBackupService) List(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.Location, arg3 backup.ListFilter) ([]backup.ListItem, error) {
+func (m *MockBackupService) List(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.Location, arg3 backup_service.ListFilter) ([]backup_service.ListItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]backup.ListItem)
+	ret0, _ := ret[0].([]backup_service.ListItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -125,10 +127,10 @@ func (mr *MockBackupServiceMockRecorder) List(arg0, arg1, arg2, arg3 interface{}
 }
 
 // ListFiles mocks base method
-func (m *MockBackupService) ListFiles(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.Location, arg3 backup.ListFilter) ([]backup.FilesInfo, error) {
+func (m *MockBackupService) ListFiles(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.Location, arg3 backup_service.ListFilter) ([]backup_service.FilesInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListFiles", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]backup.FilesInfo)
+	ret0, _ := ret[0].([]backup_service.FilesInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

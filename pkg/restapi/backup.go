@@ -10,7 +10,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/backup"
+	backup_service "github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 )
 
@@ -124,7 +125,7 @@ func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backup.Location {
 
 func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		filter := backup.ListFilter{
+		filter := backup_service.ListFilter{
 			Keyspace:    r.Form["keyspace"],
 			SnapshotTag: r.FormValue("snapshot_tag"),
 		}
@@ -158,8 +159,8 @@ func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (h backupHandler) mustListFilterFromCtx(r *http.Request) backup.ListFilter {
-	v, ok := r.Context().Value(ctxBackupListFilter).(backup.ListFilter)
+func (h backupHandler) mustListFilterFromCtx(r *http.Request) backup_service.ListFilter {
+	v, ok := r.Context().Value(ctxBackupListFilter).(backup_service.ListFilter)
 	if !ok {
 		panic("missing filter in context")
 	}

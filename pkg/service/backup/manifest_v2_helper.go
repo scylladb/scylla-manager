@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -22,14 +23,14 @@ import (
 // them using provided ListFilter.
 type manifestV2Helper struct {
 	host     string
-	location Location
+	location backup.Location
 	client   *scyllaclient.Client
 	logger   log.Logger
 }
 
 var _ manifestHelper = &manifestV2Helper{}
 
-func newManifestV2Helper(host string, location Location, client *scyllaclient.Client, logger log.Logger) *manifestV2Helper {
+func newManifestV2Helper(host string, location backup.Location, client *scyllaclient.Client, logger log.Logger) *manifestV2Helper {
 	return &manifestV2Helper{
 		host:     host,
 		location: location,

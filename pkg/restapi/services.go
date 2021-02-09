@@ -6,7 +6,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/backup"
+	backup_service "github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
@@ -50,12 +51,12 @@ type RepairService interface {
 
 // BackupService service interface for the REST API handlers.
 type BackupService interface {
-	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.Target, error)
-	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
+	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup_service.Target, error)
+	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup_service.Target) (int64, error)
 	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backup.Location
-	List(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup.ListFilter) ([]backup.ListItem, error)
-	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup.ListFilter) ([]backup.FilesInfo, error)
-	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
+	List(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup_service.ListFilter) ([]backup_service.ListItem, error)
+	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backup_service.ListFilter) ([]backup_service.FilesInfo, error)
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup_service.Progress, error)
 	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, snapshotTag string) error
 }
 

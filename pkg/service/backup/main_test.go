@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"go.uber.org/zap/zapcore"
 )
@@ -25,7 +26,6 @@ func setupRclone() {
 
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
 	rclone.InitFsConfig()
-	rclone.MustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
 
-	providers.Add("walker")
+	backup.MustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"path"
 
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
@@ -18,7 +19,7 @@ var walkerListDirsOpts = &scyllaclient.RcloneListDirOpts{
 // host, it should be avoided as much possible.
 type walker struct {
 	Host     string
-	Location Location
+	Location backup.Location
 	Client   *scyllaclient.Client
 	PruneDir func(dir string) bool
 }

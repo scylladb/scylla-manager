@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
@@ -23,7 +24,7 @@ import (
 // V1 means backups taken pre 2.1 release.
 type manifestV1Helper struct {
 	host     string
-	location Location
+	location backup.Location
 	client   *scyllaclient.Client
 	logger   log.Logger
 
@@ -32,7 +33,7 @@ type manifestV1Helper struct {
 
 var _ manifestHelper = &manifestV1Helper{}
 
-func newManifestV1Helper(host string, location Location, client *scyllaclient.Client, logger log.Logger) *manifestV1Helper {
+func newManifestV1Helper(host string, location backup.Location, client *scyllaclient.Client, logger log.Logger) *manifestV1Helper {
 	return &manifestV1Helper{
 		host:     host,
 		location: location,
@@ -316,7 +317,7 @@ type manifestV1 struct {
 	Version     string
 
 	// Location and Files requires loading manifest.
-	Location      Location
+	Location      backup.Location
 	Files         []string
 	FilesExpanded []string
 }

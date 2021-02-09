@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -43,7 +44,7 @@ func TestWalkerDirsAtLevelN(t *testing.T) {
 
 	w := walker{
 		Host:     scyllaclienttest.TestHost,
-		Location: Location{Provider: "walker", Path: "simple"},
+		Location: backup.Location{Provider: "walker", Path: "simple"},
 		Client:   client,
 	}
 
@@ -74,7 +75,7 @@ func TestWalkerDirsAtLevelNPrune(t *testing.T) {
 
 	w := walker{
 		Host:     scyllaclienttest.TestHost,
-		Location: Location{Provider: "walker", Path: "simple"},
+		Location: backup.Location{Provider: "walker", Path: "simple"},
 		Client:   client,
 		PruneDir: func(dir string) bool {
 			return dir == "c"

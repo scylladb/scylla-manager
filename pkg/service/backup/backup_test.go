@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 )
 
 func TestFilterDCLocations(t *testing.T) {
@@ -14,49 +15,49 @@ func TestFilterDCLocations(t *testing.T) {
 
 	table := []struct {
 		Name      string
-		Locations []Location
+		Locations []backup.Location
 		DCs       []string
-		Expect    []Location
+		Expect    []backup.Location
 	}{
 		{
 			Name:      "empty locations",
-			Locations: []Location{},
+			Locations: []backup.Location{},
 			DCs:       []string{"dc1"},
 			Expect:    nil,
 		},
 		{
 			Name:      "empty dcs",
-			Locations: []Location{{DC: "dc1"}},
+			Locations: []backup.Location{{DC: "dc1"}},
 			DCs:       []string{},
 			Expect:    nil,
 		},
 		{
 			Name:      "one location with matching dc",
-			Locations: []Location{{DC: "dc1"}},
+			Locations: []backup.Location{{DC: "dc1"}},
 			DCs:       []string{"dc1"},
-			Expect:    []Location{{DC: "dc1"}},
+			Expect:    []backup.Location{{DC: "dc1"}},
 		},
 		{
 			Name:      "one location with no matching dcs",
-			Locations: []Location{{DC: "dc1"}},
+			Locations: []backup.Location{{DC: "dc1"}},
 			DCs:       []string{"dc2"},
 			Expect:    nil,
 		},
 		{
 			Name:      "multiple locations with matching dcs",
-			Locations: []Location{{DC: "dc1"}, {DC: "dc2"}},
+			Locations: []backup.Location{{DC: "dc1"}, {DC: "dc2"}},
 			DCs:       []string{"dc1", "dc2"},
-			Expect:    []Location{{DC: "dc1"}, {DC: "dc2"}},
+			Expect:    []backup.Location{{DC: "dc1"}, {DC: "dc2"}},
 		},
 		{
 			Name:      "multiple locations with matching and non-matching dcs",
-			Locations: []Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
+			Locations: []backup.Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
 			DCs:       []string{"dc1", "dc2"},
-			Expect:    []Location{{DC: "dc1"}, {DC: "dc2"}},
+			Expect:    []backup.Location{{DC: "dc1"}, {DC: "dc2"}},
 		},
 		{
 			Name:      "multiple locations with non-matching dcs",
-			Locations: []Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
+			Locations: []backup.Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
 			DCs:       []string{"dc4", "dc5"},
 			Expect:    nil,
 		},
@@ -147,7 +148,7 @@ func TestExtractLocations(t *testing.T) {
 	table := []struct {
 		Name     string
 		Json     string
-		Location []Location
+		Location []backup.Location
 	}{
 		{
 			Name: "Empty",
@@ -160,9 +161,9 @@ func TestExtractLocations(t *testing.T) {
 		{
 			Name: "Duplicates",
 			Json: `{"location": ["dc:s3:foo", "s3:foo", "s3:bar"]}`,
-			Location: []Location{
-				{DC: "dc", Provider: S3, Path: "foo"},
-				{Provider: S3, Path: "bar"},
+			Location: []backup.Location{
+				{DC: "dc", Provider: backup.S3, Path: "foo"},
+				{Provider: backup.S3, Path: "bar"},
 			},
 		},
 	}

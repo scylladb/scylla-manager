@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -19,7 +20,7 @@ type hostInfo struct {
 	DC        string
 	IP        string
 	ID        string
-	Location  Location
+	Location  backup.Location
 	RateLimit DCLimit
 }
 

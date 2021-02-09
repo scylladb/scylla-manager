@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -61,7 +62,7 @@ func (m *manifestContent) Write(w io.Writer) error {
 type remoteManifest struct {
 	CleanPath []string
 
-	Location    Location
+	Location    backup.Location
 	DC          string
 	ClusterID   uuid.UUID
 	NodeID      string
@@ -310,12 +311,12 @@ type manifestHelper interface {
 // manifests available in location are listed.
 type multiVersionManifestLister struct {
 	host     string
-	location Location
+	location backup.Location
 	client   *scyllaclient.Client
 	helpers  map[string]manifestHelper
 }
 
-func newMultiVersionManifestLister(host string, location Location, client *scyllaclient.Client, logger log.Logger) *multiVersionManifestLister {
+func newMultiVersionManifestLister(host string, location backup.Location, client *scyllaclient.Client, logger log.Logger) *multiVersionManifestLister {
 	return &multiVersionManifestLister{
 		host:     host,
 		location: location,
@@ -421,7 +422,7 @@ func v2CleanPathLength() int {
 	return len(m.CleanPath)
 }
 
-func getMetadataVersion(ctx context.Context, host string, location Location, client *scyllaclient.Client,
+func getMetadataVersion(ctx context.Context, host string, location backup.Location, client *scyllaclient.Client,
 	clusterID uuid.UUID, dc, nodeID string) (string, error) {
 	p := location.RemotePath(remoteMetaVersionFile(clusterID, dc, nodeID))
 	content, err := client.RcloneCat(ctx, host, p)
