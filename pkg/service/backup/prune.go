@@ -2,7 +2,10 @@
 
 package backup
 
-import "github.com/scylladb/scylla-manager/pkg/util/uuid"
+import (
+	"github.com/scylladb/scylla-manager/pkg/backup"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+)
 
 func pruneDC(dc string, filter ListFilter) bool {
 	if dc != "" && filter.DC != "" {
@@ -46,10 +49,10 @@ func pruneSnapshotTag(snapshotTag string, f ListFilter) bool {
 		if f.SnapshotTag != "" {
 			return snapshotTag != f.SnapshotTag
 		}
-		if !f.MinDate.IsZero() && snapshotTag < snapshotTagAt(f.MinDate) {
+		if !f.MinDate.IsZero() && snapshotTag < backup.SnapshotTagAt(f.MinDate) {
 			return true
 		}
-		if !f.MaxDate.IsZero() && snapshotTag > snapshotTagAt(f.MaxDate) {
+		if !f.MaxDate.IsZero() && snapshotTag > backup.SnapshotTagAt(f.MaxDate) {
 			return true
 		}
 	}

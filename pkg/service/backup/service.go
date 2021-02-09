@@ -545,7 +545,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Generate snapshot tag
 	if run.SnapshotTag == "" {
-		run.SnapshotTag = newSnapshotTag()
+		run.SnapshotTag = backup.NewSnapshotTag()
 	}
 
 	// Get the cluster client
@@ -717,7 +717,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 	// Check if can continue from prev
 	if s.config.AgeMax > 0 {
-		t, err := snapshotTagTime(prev.SnapshotTag)
+		t, err := backup.SnapshotTagTime(prev.SnapshotTag)
 		if err != nil {
 			s.logger.Info(ctx, "Starting from scratch: cannot parse snapshot tag form previous run",
 				"snapshot_tag", prev.SnapshotTag,

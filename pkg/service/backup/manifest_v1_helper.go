@@ -359,7 +359,7 @@ func (m *manifestV1) ParsePartialPath(s string) error {
 		pathparser.ID(&m.TaskID),
 		pathparser.Static("tag"),
 		func(v string) error {
-			if !isSnapshotTag(v) {
+			if !backup.IsSnapshotTag(v) {
 				return errors.Errorf("invalid snapshot tag %s", v)
 			}
 			m.SnapshotTag = v

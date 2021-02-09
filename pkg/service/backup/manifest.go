@@ -125,7 +125,7 @@ func (m *remoteManifest) ParsePartialPath(s string) error {
 			pathparser.Static("sm"),
 			func(v string) error {
 				tag := "sm_" + v
-				if !isSnapshotTag(tag) {
+				if !backup.IsSnapshotTag(tag) {
 					return errors.Errorf("invalid snapshot tag %s", tag)
 				}
 				m.SnapshotTag = tag

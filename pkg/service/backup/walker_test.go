@@ -100,7 +100,7 @@ func TestListFilterPruneFunc(t *testing.T) {
 	t.Parallel()
 
 	var (
-		snapshotTag = newSnapshotTag()
+		snapshotTag = backup.NewSnapshotTag()
 		dir         = backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), snapshotTag, "dc", "nodeID")
 	)
 

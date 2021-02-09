@@ -13,7 +13,7 @@ import (
 )
 
 func NewSnapshotTag() string {
-	return newSnapshotTag()
+	return backup.NewSnapshotTag()
 }
 
 func SnapshotTagFromManifestPath(t *testing.T, s string) string {

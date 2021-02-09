@@ -37,7 +37,7 @@ func TestRemoteManifestParsePath(t *testing.T) {
 		DC:          "a",
 		NodeID:      "b",
 		TaskID:      uuid.MustRandom(),
-		SnapshotTag: newSnapshotTag(),
+		SnapshotTag: backup.NewSnapshotTag(),
 	}
 
 	for _, temporary := range []bool{false, true} {
@@ -112,7 +112,7 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		},
 		{
 			Name:  "not a manifest file",
-			Path:  backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), newSnapshotTag(), "dc", "nodeID") + ".old",
+			Path:  backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), backup.NewSnapshotTag(), "dc", "nodeID") + ".old",
 			Error: "expected one of [manifest.json.gz manifest.json.gz.tmp]",
 		},
 		{
@@ -157,9 +157,9 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	n1 := "node1"
 
 	now := timeutc.Now()
-	s0 := snapshotTagAt(now.Add(1 * time.Hour))
-	s1 := snapshotTagAt(now.Add(2 * time.Hour))
-	s3 := snapshotTagAt(now.Add(3 * time.Hour))
+	s0 := backup.SnapshotTagAt(now.Add(1 * time.Hour))
+	s1 := backup.SnapshotTagAt(now.Add(2 * time.Hour))
+	s3 := backup.SnapshotTagAt(now.Add(3 * time.Hour))
 
 	ks0 := "keyspace0"
 	ks1 := "keyspace1"
