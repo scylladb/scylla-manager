@@ -109,7 +109,7 @@ func (h backupHandler) extractLocations(r *http.Request) ([]backup.Location, err
 	properties := make([]json.RawMessage, 0, len(tasks))
 	for _, t := range tasks {
 		if t.Enabled {
-			properties = append(properties, t.Properties)
+			properties = append(properties, t.Properties.AsJSON())
 		}
 	}
 	return h.svc.ExtractLocations(r.Context(), properties), nil

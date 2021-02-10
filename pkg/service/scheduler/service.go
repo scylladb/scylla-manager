@@ -34,6 +34,7 @@ type Service struct {
 	wg          sync.WaitGroup
 	mu          sync.Mutex
 	runners     map[TaskType]Runner
+	taskOpt     TaskOptFunc
 	tasks       map[uuid.UUID]*trigger
 	drawer      store.Store
 	suspended   map[uuid.UUID]struct{}
@@ -117,6 +118,33 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 		panic("no runner")
 	}
 	return r
+}
+
+// SetTaskOpt sets a global task properties decorator.
+// If set taskOpt is called before task Opts.
+func (s *Service) SetTaskOpt(taskOpt TaskOptFunc) {
+	s.taskOpt = taskOpt
+}
+
+// EvalTaskOpts runs all the task properties decorators and returns the final
+// properties as used when running.
+func (s *Service) EvalTaskOpts(ctx context.Context, t *Task) (Properties, error) {
+	var (
+		props Properties
+		err   error
+	)
+	if s.taskOpt != nil {
+		props, err = s.taskOpt(ctx, *t)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		props = t.Properties
+	}
+	for _, f := range t.opts {
+		props = f(props)
+	}
+	return props, nil
 }
 
 // LoadTasks should be called on start it loads and schedules task from database.
@@ -437,28 +465,24 @@ func (s *Service) run(t *Task, tg *trigger) {
 	// Register the run
 	run.Status = StatusRunning
 	if err := s.putRun(run); err != nil {
-		s.logger.Error(ctx, "Failed to register task run",
-			"cluster_id", t.ClusterID,
-			"task_type", t.Type,
-			"task_id", t.ID,
-			"run_id", run.ID,
-			"error", err,
-		)
 		run.Status = StatusError
+		run.Cause = errors.Wrap(err, "register task run").Error()
 		return
 	}
 
 	// Get cluster name
 	clusterName, err := s.clusterName(ctx, t.ClusterID)
 	if err != nil {
-		s.logger.Error(ctx, "Failed to get cluster name",
-			"cluster_id", t.ClusterID,
-			"task_type", t.Type,
-			"task_id", t.ID,
-			"run_id", run.ID,
-			"error", err,
-		)
 		run.Status = StatusError
+		run.Cause = errors.Wrap(err, "get cluster name").Error()
+		return
+	}
+
+	// Decorate task properties
+	props, err := s.EvalTaskOpts(ctx, t)
+	if err != nil {
+		run.Status = StatusError
+		run.Cause = errors.Wrap(err, "decorate task properties").Error()
 		return
 	}
 
@@ -469,17 +493,11 @@ func (s *Service) run(t *Task, tg *trigger) {
 		"task":    t.ID.String(),
 	}).Inc()
 
-	// Decorate task properties
-	props := t.Properties
-	for _, f := range t.opts {
-		props = f(props)
-	}
-
 	// Run task async
 	result := make(chan error, 1)
 
 	go func() {
-		result <- s.mustRunner(t.Type).Run(ctx, t.ClusterID, t.ID, run.ID, props)
+		result <- s.mustRunner(t.Type).Run(ctx, t.ClusterID, t.ID, run.ID, props.AsJSON())
 	}()
 
 	// Wait for run result

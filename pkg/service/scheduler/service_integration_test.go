@@ -44,7 +44,7 @@ const (
 
 type mockRunner struct {
 	in      chan error
-	props   []json.RawMessage
+	props   []scheduler.Properties
 	propsMu sync.Mutex
 	called  atomic.Int64
 }
@@ -68,11 +68,11 @@ func (r *mockRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 func (r *mockRunner) recordProperties(v json.RawMessage) {
 	r.propsMu.Lock()
-	r.props = append(r.props, v)
+	r.props = append(r.props, scheduler.Properties(v))
 	r.propsMu.Unlock()
 }
 
-func (r *mockRunner) Properties() []json.RawMessage {
+func (r *mockRunner) Properties() []scheduler.Properties {
 	r.propsMu.Lock()
 	defer r.propsMu.Unlock()
 	return r.props
@@ -610,9 +610,9 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
 
 		Print("And: properties are preserved")
-		if diff := cmp.Diff(h.runner.Properties(), []json.RawMessage{
-			[]byte(`{"b":1}`),
-			[]byte(`{"b":1}`),
+		if diff := cmp.Diff(h.runner.Properties(), []scheduler.Properties{
+			scheduler.Properties(`{"b":1}`),
+			scheduler.Properties(`{"b":1}`),
 		}); diff != "" {
 			t.Fatal(diff)
 		}
@@ -846,6 +846,49 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
 	})
 
+	t.Run("global task options", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		props := []scheduler.Properties{
+			scheduler.Properties(`{"a":1}`),
+			scheduler.Properties(`{"b":1}`),
+		}
+		pos := atomic.NewInt32(-1)
+
+		Print("Given: global task opts")
+		h.service.SetTaskOpt(func(ctx context.Context, task scheduler.Task) (scheduler.Properties, error) {
+			return props[pos.Inc()], nil
+		})
+
+		Print("When: task is scheduled with retry once")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate:  now(),
+			NumRetries: 1,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is ran two times and properties were preserved")
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(ctx, task, scheduler.StatusError)
+
+		h.assertStatus(ctx, task, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(ctx, task, scheduler.StatusError)
+
+		Print("And: task is not executed")
+		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("And: properties are preserved")
+		if diff := cmp.Diff(h.runner.Properties(), props); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
 	t.Run("suspend and resume", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
@@ -1021,7 +1064,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
 	})
 
-	t.Run("issue 2496", func(t *testing.T) {
+	t.Run("suspend issue 2496", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()

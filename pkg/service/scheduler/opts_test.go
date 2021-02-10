@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-func TestSetValue(t *testing.T) {
-	p := setValue([]byte("{}"), "foobar", 10)
+func TestPropertiesSet(t *testing.T) {
+	p := Properties("{}").Set("foobar", 10)
 	if string(p) != `{"foobar":10}` {
 		t.Fatal(string(p))
 	}
 }
 
-func TestSetValuePanicOnError(t *testing.T) {
+func TestPropertiesSetPanicOnError(t *testing.T) {
 	defer func() {
 		if v := recover(); v == nil {
 			t.Fatal("expected panic")
 		}
 	}()
-	setValue(nil, "foobar", 10)
+	Properties(nil).Set("foobar", 10)
 }
