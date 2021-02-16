@@ -5,10 +5,12 @@ package managerclient
 import (
 	"fmt"
 	"io"
+	"sort"
 	"text/template"
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
@@ -755,6 +757,159 @@ func (bp BackupProgress) status() string {
 		s += " (" + stage + ")"
 	}
 	return s
+}
+
+// ValidateBackupProgress prints validate_backup task progress.
+type ValidateBackupProgress struct {
+	*models.TaskRunValidateBackupProgress
+	Task     *Task
+	Detailed bool
+
+	hostFilter inexlist.InExList
+}
+
+// SetHostFilter adds filtering rules used for rendering for host details.
+func (p *ValidateBackupProgress) SetHostFilter(filters []string) (err error) {
+	p.hostFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+func (p ValidateBackupProgress) hideHost(host string) bool {
+	if p.hostFilter.Size() > 0 {
+		return p.hostFilter.FirstMatch(host) == -1
+	}
+	return false
+}
+
+// Render implements Renderer interface.
+func (p ValidateBackupProgress) Render(w io.Writer) error {
+	if err := p.addHeader(w); err != nil {
+		return err
+	}
+	if p.Detailed {
+		if err := p.addHostProgress(w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+var validateBackupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
+{{ end -}}
+{{ with .Run }}Status:		{{ .Status }}
+{{- if .Cause }}
+Cause:		{{ FormatError .Cause }}
+
+{{- end }}
+{{- if not (isZero .StartTime) }}
+Start time:	{{ FormatTime .StartTime }}
+{{- end -}}
+{{- if not (isZero .EndTime) }}
+End time:	{{ FormatTime .EndTime }}
+{{- end }}
+Duration:	{{ FormatDuration .StartTime .EndTime }}
+{{ end }}
+{{ with progress -}}
+Scanned files:	{{ .ScannedFiles }}
+Missing files:	{{ .MissingFiles }}
+Orphaned files:	{{ .OrphanedFiles }} {{ if gt .OrphanedFiles 0 }}({{ StringByteCount .OrphanedBytes }}){{ end }}
+{{- if gt .DeletedFiles 0 }}
+Deleted files:	{{ .DeletedFiles }}
+{{- end }}
+{{- if gt .DeleteErrors 0 }}
+Delete errors:	{{ .DeleteErrors }}
+{{- end }}
+{{- if .BrokenSnapshots }}
+
+Broken snapshots:	{{ range .BrokenSnapshots }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+`
+
+func (p ValidateBackupProgress) addHeader(w io.Writer) error {
+	temp := template.Must(template.New("validate_backup_progress").Funcs(template.FuncMap{
+		"isZero":               isZero,
+		"FormatTime":           FormatTime,
+		"FormatDuration":       FormatDuration,
+		"FormatError":          FormatError,
+		"FormatUploadProgress": FormatUploadProgress,
+		"StringByteCount":      StringByteCount,
+		"arguments":            p.arguments,
+		"progress":             p.aggregatedProgress,
+	}).Parse(validateBackupProgressTemplate))
+	return temp.Execute(w, p)
+}
+
+// arguments returns task arguments that task was created with.
+func (p ValidateBackupProgress) arguments() string {
+	return NewCmdRenderer(p.Task, RenderTypeArgs).String()
+}
+
+func (p ValidateBackupProgress) aggregatedProgress() models.ValidateBackupProgress {
+	var a models.ValidateBackupProgress
+
+	bs := strset.New()
+	for _, i := range p.Progress {
+		a.Manifests += i.Manifests
+		a.ScannedFiles += i.ScannedFiles
+		bs.Add(a.BrokenSnapshots...)
+		a.MissingFiles += i.MissingFiles
+		a.OrphanedFiles += i.OrphanedFiles
+		a.OrphanedBytes += i.OrphanedBytes
+		a.DeletedFiles += i.DeletedFiles
+		a.DeleteErrors += i.DeleteErrors
+	}
+	a.BrokenSnapshots = bs.List()
+	sort.Strings(a.BrokenSnapshots)
+
+	return a
+}
+
+func (p ValidateBackupProgress) addHostProgress(w io.Writer) error {
+	t := table.New(
+		"Host",
+		"Manifests",
+		"Scanned files",
+		"Missing files",
+		"Orphaned files",
+		"Orphaned bytes",
+		"Deleted files",
+		"Delete errors",
+	)
+	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5, 6, 7)
+	lastLocation := ""
+
+	fmt.Fprintln(w)
+	for _, hp := range p.Progress {
+		if hp.Location != lastLocation {
+			if t.Size() > 0 {
+				fmt.Fprintf(w, "Location: %s\n%s\n", lastLocation, t)
+			}
+			t.Reset()
+			lastLocation = hp.Location
+		}
+		if p.hideHost(hp.Host) {
+			continue
+		}
+		t.AddRow(
+			hp.Host,
+			hp.Manifests,
+			hp.ScannedFiles,
+			hp.MissingFiles,
+			hp.OrphanedFiles,
+			StringByteCount(hp.OrphanedBytes),
+			hp.DeletedFiles,
+			hp.DeleteErrors,
+		)
+	}
+	if t.Size() > 0 {
+		fmt.Fprintf(w, "Location: %s\n%s\n", lastLocation, t)
+	}
+
+	return nil
 }
 
 // BackupListItems is a []backup.ListItem representation.

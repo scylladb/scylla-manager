@@ -406,6 +406,8 @@ var taskProgressCmd = &cobra.Command{
 			return renderRepairProgress(cmd, w, t, runID)
 		case scheduler.BackupTask:
 			return renderBackupProgress(cmd, w, t, runID)
+		case scheduler.ValidateBackupTask:
+			return renderValidateBackupProgress(cmd, w, t, runID)
 		}
 
 		return nil
@@ -413,12 +415,12 @@ var taskProgressCmd = &cobra.Command{
 }
 
 func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task, runID string) error {
-	rp, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
+	p, err := client.RepairProgress(ctx, cfgCluster, t.ID, runID)
 	if err != nil {
 		return err
 	}
 
-	rp.Detailed, err = cmd.Flags().GetBool("details")
+	p.Detailed, err = cmd.Flags().GetBool("details")
 	if err != nil {
 		return err
 	}
@@ -427,7 +429,7 @@ func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task
 	if err != nil {
 		return err
 	}
-	if err := rp.SetHostFilter(hf); err != nil {
+	if err := p.SetHostFilter(hf); err != nil {
 		return err
 	}
 
@@ -435,22 +437,22 @@ func renderRepairProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task
 	if err != nil {
 		return err
 	}
-	if err := rp.SetKeyspaceFilter(kf); err != nil {
+	if err := p.SetKeyspaceFilter(kf); err != nil {
 		return err
 	}
 
-	rp.Task = t
+	p.Task = t
 
-	return render(w, rp)
+	return render(w, p)
 }
 
 func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task, runID string) error {
-	rp, err := client.BackupProgress(ctx, cfgCluster, t.ID, runID)
+	p, err := client.BackupProgress(ctx, cfgCluster, t.ID, runID)
 	if err != nil {
 		return err
 	}
 
-	rp.Detailed, err = cmd.Flags().GetBool("details")
+	p.Detailed, err = cmd.Flags().GetBool("details")
 	if err != nil {
 		return err
 	}
@@ -459,7 +461,7 @@ func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task
 	if err != nil {
 		return err
 	}
-	if err := rp.SetHostFilter(hf); err != nil {
+	if err := p.SetHostFilter(hf); err != nil {
 		return err
 	}
 
@@ -467,14 +469,38 @@ func renderBackupProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task
 	if err != nil {
 		return err
 	}
-	if err := rp.SetKeyspaceFilter(kf); err != nil {
+	if err := p.SetKeyspaceFilter(kf); err != nil {
 		return err
 	}
 
-	rp.Task = t
-	rp.AggregateErrors()
+	p.Task = t
+	p.AggregateErrors()
 
-	return render(w, rp)
+	return render(w, p)
+}
+
+func renderValidateBackupProgress(cmd *cobra.Command, w io.Writer, t *managerclient.Task, runID string) error {
+	p, err := client.ValidateBackupProgress(ctx, cfgCluster, t.ID, runID)
+	if err != nil {
+		return err
+	}
+
+	p.Detailed, err = cmd.Flags().GetBool("details")
+	if err != nil {
+		return err
+	}
+
+	hf, err := cmd.Flags().GetStringSlice("host")
+	if err != nil {
+		return err
+	}
+	if err := p.SetHostFilter(hf); err != nil {
+		return err
+	}
+
+	p.Task = t
+
+	return render(w, p)
 }
 
 func init() {

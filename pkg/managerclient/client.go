@@ -373,6 +373,23 @@ func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID str
 	}, nil
 }
 
+// ValidateBackupProgress returns validate backup progress.
+func (c Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, runID string) (ValidateBackupProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskValidateBackupTaskIDRunID(&operations.GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return ValidateBackupProgress{}, err
+	}
+
+	return ValidateBackupProgress{
+		TaskRunValidateBackupProgress: resp.Payload,
+	}, nil
+}
+
 // ListBackups returns listing of available backups.
 func (c Client) ListBackups(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, minDate, maxDate strfmt.DateTime) (BackupListItems, error) {
