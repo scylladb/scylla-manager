@@ -744,6 +744,71 @@
         }
       }
     },
+    "TaskRunValidateBackupProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/TaskRun"
+        },
+        "progress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ValidateBackupProgress"
+          }
+        }
+      }
+    },
+    "ValidateBackupProgress": {
+      "type": "object",
+      "properties": {
+        "dc": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "manifests": {
+          "type": "integer"
+        },
+        "scanned_files": {
+          "type": "integer"
+        },
+        "broken_snapshots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_files": {
+          "type": "integer"
+        },
+        "orphaned_files": {
+          "type": "integer"
+        },
+        "orphaned_bytes": {
+          "type": "integer"
+        },
+        "deleted_files": {
+          "type": "integer"
+        },
+        "delete_errors": {
+          "type": "integer"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        }
+      }
+    },
     "Suspended": {
       "type": "boolean"
     },
@@ -1349,6 +1414,44 @@
             "description": "Backup progress",
             "schema": {
               "$ref": "#/definitions/TaskRunBackupProgress"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/validate_backup/{task_id}/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup validation progress",
+            "schema": {
+              "$ref": "#/definitions/TaskRunValidateBackupProgress"
             }
           },
           "default": {

@@ -470,6 +470,8 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		pr, err = h.Repair.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	case scheduler.BackupTask:
 		pr, err = h.Backup.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+	case scheduler.ValidateBackupTask:
+		pr, err = h.Backup.GetValidationProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	default:
 		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
 		return

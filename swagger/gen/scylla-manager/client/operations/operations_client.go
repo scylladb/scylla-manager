@@ -49,6 +49,8 @@ type ClientService interface {
 
 	GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) (*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK, error)
 
+	GetClusterClusterIDTaskValidateBackupTaskIDRunID(params *GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams) (*GetClusterClusterIDTaskValidateBackupTaskIDRunIDOK, error)
+
 	GetClusterClusterIDTasks(params *GetClusterClusterIDTasksParams) (*GetClusterClusterIDTasksOK, error)
 
 	GetClusterClusterIDTasksBackupTarget(params *GetClusterClusterIDTasksBackupTargetParams) (*GetClusterClusterIDTasksBackupTargetOK, error)
@@ -473,6 +475,39 @@ func (a *Client) GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetCluster
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  GetClusterClusterIDTaskValidateBackupTaskIDRunID get cluster cluster ID task validate backup task ID run ID API
+*/
+func (a *Client) GetClusterClusterIDTaskValidateBackupTaskIDRunID(params *GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams) (*GetClusterClusterIDTaskValidateBackupTaskIDRunIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTaskValidateBackupTaskIDRunIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTaskValidateBackupTaskIDRunID",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/task/validate_backup/{task_id}/{run_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTaskValidateBackupTaskIDRunIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDTaskValidateBackupTaskIDRunIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDTaskValidateBackupTaskIDRunIDDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
