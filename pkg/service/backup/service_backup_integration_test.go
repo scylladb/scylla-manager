@@ -1948,7 +1948,7 @@ func TestValidateIntegration(t *testing.T) {
 	})
 
 	Print("When: run Validate")
-	result, err := h.service.Validate(ctx, h.clusterID, uuid.MustRandom(), uuid.NewTime(), validationTarget)
+	result, err := serviceValidate()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2000,7 +2000,7 @@ func TestValidateIntegration(t *testing.T) {
 	})
 
 	Print("And: run Validate")
-	result, err = h.service.Validate(ctx, h.clusterID, uuid.MustRandom(), uuid.NewTime(), validationTarget)
+	result, err = serviceValidate()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2030,7 +2030,7 @@ func TestValidateIntegration(t *testing.T) {
 	})
 
 	Print("And: run Validate")
-	result, err = h.service.Validate(ctx, h.clusterID, uuid.MustRandom(), uuid.NewTime(), validationTarget)
+	result, err = serviceValidate()
 	if err != nil {
 		t.Fatal(err)
 	}

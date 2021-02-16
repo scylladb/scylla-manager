@@ -162,4 +162,28 @@ var (
 		PartKey: []string{"cluster_id"},
 		SortKey: []string{"key"},
 	})
+
+	ValidateBackupRunProgress = table.New(table.Metadata{
+		Name: "validate_backup_run_progress",
+		Columns: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+			"dc",
+			"host",
+			"location",
+			"manifests",
+			"scanned_files",
+			"broken_snapshots",
+			"missing_files",
+			"orphaned_files",
+			"orphaned_bytes",
+			"deleted_files",
+			"delete_errors",
+			"started_at",
+			"completed_at",
+		},
+		PartKey: []string{"cluster_id", "task_id", "run_id"},
+		SortKey: []string{"dc", "host", "location"},
+	})
 )
