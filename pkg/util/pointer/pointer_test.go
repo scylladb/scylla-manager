@@ -4,6 +4,9 @@ package pointer
 
 import (
 	"testing"
+	"time"
+
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
 func TestInt32Ptr(t *testing.T) {
@@ -171,5 +174,33 @@ func TestFloat64PtrDerefOr(t *testing.T) {
 	out = Float64PtrDerefOr(nil, def)
 	if out != def {
 		t.Errorf("expected %f, got %f", def, out)
+	}
+}
+
+func TestTimePtr(t *testing.T) {
+	val := timeutc.Now()
+	ptr := TimePtr(val)
+	if *ptr != val {
+		t.Errorf("expected %v, got %v", val, *ptr)
+	}
+
+	val = timeutc.Now()
+	ptr = TimePtr(val)
+	if *ptr != val {
+		t.Errorf("expected %v, got %v", val, *ptr)
+	}
+}
+
+func TestTimePtrDerefOr(t *testing.T) {
+	var val, def time.Time = timeutc.Now(), time.Time{}
+
+	out := TimePtrDerefOr(&val, def)
+	if out != val {
+		t.Errorf("expected %v, got %v", val, out)
+	}
+
+	out = TimePtrDerefOr(nil, def)
+	if out != def {
+		t.Errorf("expected %v, got %v", def, out)
 	}
 }

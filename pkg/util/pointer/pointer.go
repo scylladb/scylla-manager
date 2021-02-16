@@ -2,6 +2,8 @@
 
 package pointer
 
+import "time"
+
 // Int32Ptr returns a pointer to an int32.
 func Int32Ptr(i int32) *int32 {
 	return &i
@@ -80,6 +82,20 @@ func Float64Ptr(i float64) *float64 {
 // Float64PtrDerefOr dereference the float64 ptr and returns it if not nil,
 // else returns def.
 func Float64PtrDerefOr(ptr *float64, def float64) float64 {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
+}
+
+// TimePtr returns a pointer to the passed Time.
+func TimePtr(i time.Time) *time.Time {
+	return &i
+}
+
+// TimePtrDerefOr dereference the time.Time ptr and returns it if not nil,
+// else returns def.
+func TimePtrDerefOr(ptr *time.Time, def time.Time) time.Time {
 	if ptr != nil {
 		return *ptr
 	}
