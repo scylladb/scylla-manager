@@ -155,7 +155,7 @@ redirects_file = "_utils/redirections.yaml"
 # Whitelist pattern for tags (set to None to ignore all tags)
 smv_tag_whitelist = ""
 # Whitelist pattern for branches (set to None to ignore all branches)
-smv_branch_whitelist = ""
+smv_branch_whitelist = "master, branch-2.2"
 # Whitelist pattern for remotes (set to None to use local branches only)
 smv_remote_whitelist = r"^origin$"
 # Pattern for released versions
