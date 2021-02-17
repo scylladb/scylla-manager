@@ -52,25 +52,21 @@ func New(header ...interface{}) *Table {
 	}
 }
 
-// AddRow adds another row to the table.
-func (t *Table) AddRow(items ...interface{}) *termtables.Row {
-	for i := range items {
-		if _, ok := t.colProps[i]; !ok {
-			t.colProps[i] = &colProps{}
-		}
-		w := cellWidth(items[i])
-		if w > t.colProps[i].width {
-			t.colProps[i].width = w
-		}
-	}
-	t.rows = append(t.rows, items)
-	t.separator = append(t.separator, false)
-	return nil
-}
-
 func cellWidth(val interface{}) int {
 	c := termtables.CreateCell(val, defaultCellStyle)
 	return c.Width()
+}
+
+// SetColumnAlignment changes the alignment for elements in a column of the table;
+// alignments are stored with each cell, so cells added after a call to
+// SetColumnAlignment will not pick up the change.
+// Columns are numbered from 0.
+func (t *Table) SetColumnAlignment(alignment termtables.TableAlignment, cols ...int) {
+	for _, col := range cols {
+		if colProp, ok := t.colProps[col]; ok {
+			colProp.alignment = alignment
+		}
+	}
 }
 
 // LimitColumnLength sets column to mask it's content that is overflowing
@@ -93,10 +89,37 @@ func (t *Table) LimitColumnLength(index ...int) {
 	}
 }
 
+// AddRow adds another row to the table.
+func (t *Table) AddRow(items ...interface{}) *termtables.Row {
+	for i := range items {
+		if _, ok := t.colProps[i]; !ok {
+			t.colProps[i] = &colProps{}
+		}
+		w := cellWidth(items[i])
+		if w > t.colProps[i].width {
+			t.colProps[i].width = w
+		}
+	}
+	t.rows = append(t.rows, items)
+	t.separator = append(t.separator, false)
+	return nil
+}
+
 // AddSeparator adds a line to the table content, where the line
 // consists of separator characters.
 func (t *Table) AddSeparator() {
 	t.separator[len(t.separator)-1] = true
+}
+
+// Size returns number of rows in a table.
+func (t *Table) Size() int {
+	return len(t.rows)
+}
+
+// Reset removes all rows from the table.
+func (t *Table) Reset() {
+	t.rows = nil
+	t.separator = nil
 }
 
 // Render returns a string representation of a fully rendered table.
@@ -126,18 +149,6 @@ func (t *Table) Render() string {
 	}
 
 	return tbl.Render()
-}
-
-// SetColumnAlignment changes the alignment for elements in a column of the table;
-// alignments are stored with each cell, so cells added after a call to
-// SetColumnAlignment will not pick up the change.
-// Columns are numbered from 0.
-func (t *Table) SetColumnAlignment(alignment termtables.TableAlignment, cols ...int) {
-	for _, col := range cols {
-		if colProp, ok := t.colProps[col]; ok {
-			colProp.alignment = alignment
-		}
-	}
 }
 
 func (t *Table) widthLimit() int {
