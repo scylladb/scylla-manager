@@ -71,15 +71,11 @@ func TestParseStartDate(t *testing.T) {
 	}{
 		{
 			S: "now",
-			D: nowSafety,
+			D: 0,
 		},
 		{
 			S: "now-5s",
 			E: "start date cannot be in the past"},
-		{
-			S: "now+5s",
-			E: "start date must be at least in",
-		},
 		{
 			S: "now+1h",
 			D: time.Hour,
@@ -87,10 +83,6 @@ func TestParseStartDate(t *testing.T) {
 		{
 			S: timeutc.Now().Add(-5 * time.Second).Format(time.RFC3339),
 			E: "start date cannot be in the past"},
-		{
-			S: timeutc.Now().Add(5 * time.Second).Format(time.RFC3339),
-			E: "start date must be at least in",
-		},
 		{
 			S: timeutc.Now().Add(time.Hour).Format(time.RFC3339),
 			D: time.Hour,

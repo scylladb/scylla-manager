@@ -20,10 +20,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-const (
-	nowSafety     = 30 * time.Second
-	rfc822WithSec = "02 Jan 06 15:04:05 MST"
-)
+const rfc822WithSec = "02 Jan 06 15:04:05 MST"
 
 // TaskSplit attempts to split a string into type and id.
 func TaskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
@@ -45,7 +42,7 @@ func ParseStartDate(value string) (strfmt.DateTime, error) {
 	now := timeutc.Now()
 
 	if value == "now" {
-		return strfmt.DateTime(now.Add(nowSafety)), nil
+		return strfmt.DateTime(now), nil
 	}
 
 	if strings.HasPrefix(value, "now") {
@@ -55,9 +52,6 @@ func ParseStartDate(value string) (strfmt.DateTime, error) {
 		}
 		if d < 0 {
 			return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
-		}
-		if d.Duration() < nowSafety {
-			return strfmt.DateTime(time.Time{}), errors.Errorf("start date must be at least in %s", nowSafety)
 		}
 		return strfmt.DateTime(now.Add(d.Duration())), nil
 	}
@@ -69,9 +63,6 @@ func ParseStartDate(value string) (strfmt.DateTime, error) {
 	}
 	if t.Before(now) {
 		return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
-	}
-	if t.Before(now.Add(nowSafety)) {
-		return strfmt.DateTime(time.Time{}), errors.Errorf("start date must be at least in %s", nowSafety)
 	}
 	return strfmt.DateTime(t), nil
 }
