@@ -1,8 +1,9 @@
 Suspend & Resume
 ----------------
 
-The suspend command stops execution of all tasks that are running on a cluster.
-It can be resumed using the resume command.
+The suspend command stops execution of **all** tasks that are running on a cluster.
+The tasks can be resumed using the resume command.
+If you want to stop a specific task, use the :ref:`task stop command <task-stop>`.
 
 .. _suspend:
 
@@ -11,12 +12,12 @@ suspend
 
 When the suspend command is executed:
 
-* The running tasks are stopped
-* The scheduled tasks are canceled
-* The :ref:`sctool task list <task-list>` command shows no next activation time
-* Starting a task manually fails
+* The running tasks are stopped.
+* The scheduled tasks are canceled.
+* The :ref:`sctool task list <task-list>` command shows no next activation time.
+* Starting a task manually fails.
 
-The health check tasks are an exception, they would run even after suspend.
+The health check tasks are an exception and they run even after suspend.
 
 **Syntax:**
 

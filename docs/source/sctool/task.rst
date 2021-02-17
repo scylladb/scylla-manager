@@ -481,10 +481,13 @@ This can be retrieved using the command ``sctool task list``.
 
    sctool task start -c prod-cluster repair/143d160f-e53c-4890-a9e7-149561376cfd
 
+.. _task-stop:
+
 task stop
 =========
 
 Stops a specified task, stopping an already stopped task has no effect.
+If you want to stop all tasks see :doc:`Suspend and Resume </sctool/suspend-resume>`.
 
 **Syntax:**
 
