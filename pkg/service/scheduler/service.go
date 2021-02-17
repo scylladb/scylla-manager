@@ -42,9 +42,10 @@ type Service struct {
 
 // Overridable knobs for tests
 var (
-	retryTaskWait      = 10 * time.Minute
-	stopTaskWait       = 60 * time.Second
-	startDateThreshold = time.Hour
+	retryTaskWait = 10 * time.Minute
+	stopTaskWait  = 60 * time.Second
+
+	startDateThreshold          = -time.Hour
 )
 
 func NewService(session gocqlx.Session, drawer store.Store, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
@@ -895,7 +896,8 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	if create {
-		if t.Sched.StartDate.Before(timeutc.Now()) {
+		// Prevent scheduling task with too old start dates
+		if t.Sched.StartDate.Before(timeutc.Now().Add(startDateThreshold)) {
 			return service.ErrValidate(errors.New("start date in the past"))
 		}
 	}
