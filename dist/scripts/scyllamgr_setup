@@ -119,7 +119,7 @@ if command -v scylla_setup > /dev/null && [[ ${SETUP_SCYLLA} == 1 ]]; then
     elif [[ -f /etc/sysconfig/scylla-server ]]; then
         f=/etc/sysconfig/scylla-server
     fi
-    if [[ f != "" ]]; then
+    if [[ "$f" != "" ]]; then
       sed -i -e 's/^SCYLLA_ARGS=.*/SCYLLA_ARGS="--memory 100M --log-to-syslog 0 --log-to-stdout 1 --default-log-level info --network-stack posix"/g' ${f}
     fi
 fi
