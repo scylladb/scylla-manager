@@ -40,11 +40,11 @@ type Service struct {
 	closing     bool
 }
 
-// overridable knobs for tests
+// Overridable knobs for tests
 var (
-	retryTaskWait     = 10 * time.Minute
-	stopTaskWait      = 60 * time.Second
-	startTaskNowSlack = 10 * time.Second
+	retryTaskWait      = 10 * time.Minute
+	stopTaskWait       = 60 * time.Second
+	startDateThreshold = time.Hour
 )
 
 func NewService(session gocqlx.Session, drawer store.Store, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {

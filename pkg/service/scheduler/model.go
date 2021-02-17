@@ -152,8 +152,11 @@ type Schedule struct {
 // NextActivation generates new start time based on schedule and run history.
 func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	// if not started yet report scheduled start date
-	if len(runs) == 0 && s.StartDate.After(now.Add(startTaskNowSlack)) {
-		return s.StartDate
+	if len(runs) == 0 {
+		if s.StartDate.After(now) {
+			return s.StartDate
+		}
+		return now
 	}
 
 	lastStart := s.StartDate
@@ -180,7 +183,7 @@ func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
 	t := lastStart.Add(retryTaskWait)
 	if t.Before(now) {
 		// previous activation was is in the past, and didn't occur, try again now
-		return now.Add(startTaskNowSlack)
+		return now
 	}
 	return t
 }
