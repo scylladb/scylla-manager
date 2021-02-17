@@ -145,29 +145,29 @@ func TestSchedNextActivation(t *testing.T) {
 		// no history, old start with retries
 		{
 			S: makeSchedule(t0, week, 2),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
-		// no history, start in future > startTaskNowSlack
+		// no history, start now
 		{
-			S: makeSchedule(now.Add(startTaskNowSlack+time.Second), week, 2),
-			A: now.Add(startTaskNowSlack + time.Second),
+			S: makeSchedule(now.Add(-time.Second), week, 2),
+			A: now,
 		},
-		// no history, start in future < tastStartNowSlack
+		// no history, start in future
 		{
 			S: makeSchedule(now.Add(time.Second), week, 2),
-			A: now.Add(retryTaskWait + time.Second),
+			A: now.Add(time.Second),
 		},
 		// short history 1, retry
 		{
 			S: makeSchedule(t0, week, 2),
 			H: makeHistory(t1, StatusError),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// short history 2, retry
 		{
 			S: makeSchedule(t0, week, 2),
 			H: makeHistory(t1, StatusError, StatusError),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// short (recent) history, retry
 		{
@@ -185,31 +185,31 @@ func TestSchedNextActivation(t *testing.T) {
 		{
 			S: makeSchedule(t0, week, 2),
 			H: append(makeHistory(t1, StatusError), makeHistory(now.AddDate(0, 0, -5), StatusError, StatusError)...),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// full history with DONE, retry
 		{
 			S: makeSchedule(t0, week, 2),
 			H: makeHistory(t1, StatusError, StatusDone, StatusError),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// full history with STOPPED, retry
 		{
 			S: makeSchedule(t0, week, 2),
 			H: makeHistory(t1, StatusError, StatusStopped, StatusError),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// one shot, short history 1, retry
 		{
 			S: makeSchedule(t0, week, 2),
 			H: makeHistory(t1, StatusError),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// one shot, short history 2, retry
 		{
 			S: makeSchedule(t0, week, 2),
 			H: makeHistory(t1, StatusError, StatusError),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// one shot, full history, too many activations to retry, no retry
 		{
@@ -227,13 +227,13 @@ func TestSchedNextActivation(t *testing.T) {
 		{
 			S: makeSchedule(t0, 0, 2),
 			H: makeHistory(t1, StatusError, StatusError, StatusAborted),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 		// no retry aborted, short history 1, retry
 		{
 			S: makeSchedule(t0, week, 0),
 			H: makeHistory(t1, StatusAborted),
-			A: now.Add(startTaskNowSlack),
+			A: now,
 		},
 	}
 

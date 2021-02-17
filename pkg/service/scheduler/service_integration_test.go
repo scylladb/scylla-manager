@@ -36,9 +36,8 @@ const (
 	_interval = 2 * time.Millisecond
 	_wait     = 2 * time.Second
 
-	retryTaskWait     = 50 * time.Millisecond
-	stopTaskWait      = 10 * time.Millisecond
-	startTaskNowSlack = 5 * time.Millisecond
+	retryTaskWait = 50 * time.Millisecond
+	stopTaskWait  = 10 * time.Millisecond
 
 	interval = duration.Duration(10 * retryTaskWait)
 )
@@ -139,7 +138,6 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedTestHelper {
 
 	scheduler.SetRetryTaskWait(retryTaskWait)
 	scheduler.SetStopTaskWait(stopTaskWait)
-	scheduler.SetStartTaskNowSlack(startTaskNowSlack)
 
 	s := newTestService(t, session)
 	h := &schedTestHelper{
@@ -247,7 +245,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	session := CreateSession(t)
 
 	now := func() time.Time {
-		return timeutc.Now().Add(2 * startTaskNowSlack)
+		return timeutc.Now()
 	}
 	future := time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 
