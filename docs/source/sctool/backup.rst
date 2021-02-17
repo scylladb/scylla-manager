@@ -19,6 +19,8 @@ You cannot initiate a backup without a cluster. Make sure you add a cluster (:re
      - Usage
    * - :ref:`sctool-backup`
      - Schedule a backup (ad-hoc or scheduled).
+   * - `backup validate`_
+     - Validate backup files in remote locations.
    * - `backup update`_
      - Modify properties of the existing backup task.
    * - `backup files`_
@@ -215,6 +217,94 @@ Additional examples are available in `Backup Scylla Clusters <../backup/>`_
 
    sctool backup -c prod-cluster -s '2019-12-09T15:16:05Z' -i 24h -L 's3:my-backups'
    backup/3208ff15-6e8f-48b2-875c-d3c73f545410
+
+backup validate
+===============
+
+This command schedules a backup validation task.
+It checks that all needed files are in tact, and that there are no unexpected files occupying your storage.
+To delete the unexpected files provide the ``--delete-orphaned-files`` parameter.
+To see the validation results use :ref:`task-progress` command.
+It is safe to run backup and backup validation at the same time.
+
+**Syntax:**
+
+.. code-block:: none
+
+    sctool backup validate --cluster <id|name> [--delete-orphaned-files]
+    [--interval <time-unit>] [--location <list of locations>]
+    [--num-retries <times to rerun a failed task>]
+    [--parallel <limit>] [--start-date <date>] [global flags]
+
+backup validate parameters
+..........................
+
+In addition to the :ref:`global-flags`, backup list takes the following parameters:
+
+=====
+
+.. _backup-validate-param-delete-orphaned-files:
+
+``--delete-orphaned-files``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If set data files not belonging to any snapshot will be deleted after the validation.
+
+=====
+
+.. _backup-validate-param-i:
+
+``-i, --interval <time-unit>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Scheduled Intervals for backups to repeat every X time, where X can be:
+
+* ``d`` - days
+* ``h`` - hours
+* ``m`` - minutes
+* ``s`` - seconds
+
+For example: .. _backup-validate-param-i:
+
+``-i 3d2h10m``
+
+**Default: 0** - this means the task does not recur.
+
+=====
+
+.. _backup-validate-param-L:
+
+``-L, --location <list of backup locations>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optionally limit validation to the specified location.
+By default uses all locations for the cluster.
+
+=====
+
+.. _backup-validate-param-parallel:
+
+``--parallel <limit>``
+^^^^^^^^^^^^^^^^^^^^^^
+
+Number of hosts to analyze in parallel.
+
+=====
+
+.. _backup-validate-param-s:
+
+``-s, --start-date <date>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Specifies the task start date expressed in the RFC3339 format or ``now[+duration]``, e.g. ``now+3d2h10m``, valid units are:
+
+* ``d`` - days
+* ``h`` - hours
+* ``m`` - minutes
+* ``s`` - seconds
+* ``now`` - happens immediately
+
+**Default: now**
 
 backup update
 =============
