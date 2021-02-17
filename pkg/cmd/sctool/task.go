@@ -21,9 +21,9 @@ import (
 )
 
 func taskInitCommonFlags(fs *pflag.FlagSet) {
-	fs.StringP("start-date", "s", "now", "specifies the task start date expressed in the RFC3339 format or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
+	fs.StringP("start-date", "s", "now", "task start date expressed in the RFC3339 format or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.StringP("interval", "i", "0", "task schedule interval e.g. 3d2h10m, valid units are d, h, m, s")
-	fs.Int64P("num-retries", "r", 3, "the number of times a scheduled task will retry to run before failing")
+	fs.Int64P("num-retries", "r", 3, "number of times a scheduled task will retry to run before failing")
 }
 
 var taskCmd = &cobra.Command{
@@ -507,8 +507,8 @@ func init() {
 	cmd := taskProgressCmd
 	fs := cmd.Flags()
 	fs.Bool("details", false, "show detailed progress")
-	fs.StringSliceP("keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	fs.StringSlice("host", nil, "a comma-separated list of host glob patterns, e.g. '1.1.1.*,!1.2.*.4")
+	fs.StringSliceP("keyspace", "K", nil, "comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
+	fs.StringSlice("host", nil, "comma-separated list of host glob patterns, e.g. '1.1.1.*,!1.2.*.4")
 	fs.String("run", "", "show progress of a particular run, see sctool task history")
 	register(cmd, taskCmd)
 }

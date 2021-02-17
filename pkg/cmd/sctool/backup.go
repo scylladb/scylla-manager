@@ -249,11 +249,11 @@ func init() {
 	cmd := backupListCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
 	fs.Bool("all-clusters", false,
 		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
-		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+		"comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.String("min-date", "",
 		"specifies minimal snapshot date expressed in RFC3339 form or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.String("max-date", "",
@@ -353,11 +353,11 @@ func init() {
 	cmd := backupFilesCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
 	fs.Bool("all-clusters", false,
 		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
-		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+		"comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
 
 	fs.StringP("delimiter", "d", "\t", "use `delimiter` instead of TAB for field delimiter")
@@ -398,7 +398,7 @@ func init() {
 	cmd := backupDeleteCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
 	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
 	requireFlags(cmd, "snapshot-tag")
 	register(cmd, backupCmd)
@@ -439,19 +439,19 @@ func init() {
 func backupFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs := cmd.Flags()
 	fs.StringSliceP("keyspace", "K", nil,
-		"a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
+		"comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*' used to include or exclude keyspaces from backup")
 	fs.StringSlice("dc", nil,
-		"a comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*' used to specify the DCs to include or exclude from backup")
+		"comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*' used to specify the DCs to include or exclude from backup")
 	fs.StringSliceP("location", "L", nil,
-		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
 	fs.Int("retention", 3,
-		"The number of backups which are to be stored")
+		"number of backups which are to be stored")
 	fs.StringSlice("rate-limit", nil,
-		"a comma-separated `list` of megabytes (MiB) per second rate limits expressed in the format [<dc>:]<limit>. The <dc>: part is optional and only needed when different datacenters need different upload limits. Set to 0 for no limit (default 100)") // nolint: lll
+		"comma-separated `list` of megabytes (MiB) per second rate limits expressed in the format [<dc>:]<limit>. The <dc>: part is optional and only needed when different datacenters need different upload limits. Set to 0 for no limit (default 100)") // nolint: lll
 	fs.StringSlice("snapshot-parallel", nil,
-		"a comma-separated `list` of snapshot parallelism limits in the format [<dc>:]<limit>. The <dc>: part is optional and allows for specifying different limits in selected datacenters. If The <dc>: part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") // nolint: lll
+		"comma-separated `list` of snapshot parallelism limits in the format [<dc>:]<limit>. The <dc>: part is optional and allows for specifying different limits in selected datacenters. If The <dc>: part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") // nolint: lll
 	fs.StringSlice("upload-parallel", nil,
-		"a comma-separated `list` of upload parallelism limits in the format [<dc>:]<limit>. The <dc>: part is optional and allows for specifying different limits in selected datacenters. If The <dc>: part is not set the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") // nolint: lll
+		"comma-separated `list` of upload parallelism limits in the format [<dc>:]<limit>. The <dc>: part is optional and allows for specifying different limits in selected datacenters. If The <dc>: part is not set the limit is global (e.g. 'dc1:2,5') the runs are parallel in n nodes (2 in dc1) and n nodes in all the other datacenters") // nolint: lll
 	fs.Bool("dry-run", false,
 		"validates and prints backup information without scheduling a backup")
 	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
@@ -461,7 +461,7 @@ func backupFlags(cmd *cobra.Command) *pflag.FlagSet {
 
 var backupValidateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Validates all backups in location(s)",
+	Short: "Validates backup files in remote locations",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		t := &managerclient.Task{
 			Type:       "validate_backup",
@@ -514,9 +514,9 @@ func init() {
 	cmd := backupValidateCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"a comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3, gcs, azure") // nolint: lll
-	fs.Bool("delete-orphaned-files", false, "should we delete data files not belonging to any snapshot if they are found")
-	fs.Int("parallel", 0, "Number of hosts to analyze in parallel")
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3, gcs, azure") // nolint: lll
+	fs.Bool("delete-orphaned-files", false, "delete data files not belonging to any snapshot if they are found")
+	fs.Int("parallel", 0, "number of hosts to analyze in parallel")
 	taskInitCommonFlags(fs)
 	register(cmd, backupCmd)
 }
