@@ -154,11 +154,17 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedTestHelper {
 func (h *schedTestHelper) assertError(err error, msg string) {
 	h.t.Helper()
 
+	if err == nil {
+		h.t.Fatalf("Expected error %s, got nil", msg)
+	}
+
 	if !regexp.MustCompile(msg).MatchString(err.Error()) {
 		h.t.Errorf("Expected error %s, got %s", msg, err.Error())
 	} else {
 		h.t.Logf("Error message: %s", err.Error())
 	}
+
+	h.t.Log("Got error", err)
 }
 
 func (h *schedTestHelper) assertStatus(ctx context.Context, task *scheduler.Task, s scheduler.Status) {
@@ -259,7 +265,6 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: task is added")
 
 		Print("When: another task of the same type is scheduled")
-		task.ID = uuid.MustRandom()
 		if err := h.service.PutTaskOnce(ctx, task); err != nil {
 			Print("Then: the task is rejected")
 		} else {
@@ -858,7 +863,6 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		task1 := h.makeTask(scheduler.Schedule{
 			StartDate: future,
 		})
-		task1.ID = uuid.MustRandom()
 		if err := h.service.PutTask(ctx, task1); err != nil {
 			t.Fatal(err)
 		}
@@ -925,6 +929,46 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal("Resume(), expected error")
 		} else {
 			t.Log("Resume() error", err)
+		}
+	})
+
+	t.Run("put task when suspended", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: scheduler is suspended")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: task is scheduled in future")
+		task0 := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		task0.ID = uuid.Nil
+		Print("Then: task is added")
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: task is scheduled now")
+		task1 := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		task1.ID = uuid.Nil
+		Print("Then: task is rejected")
+		h.assertError(h.service.PutTask(ctx, task1), "suspended")
+
+		Print("When: health check task is scheduled now")
+		task2 := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		task2.Type = scheduler.HealthCheckRESTTask
+		task2.ID = uuid.Nil
+		Print("Then: task is added")
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
 		}
 	})
 
