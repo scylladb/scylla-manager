@@ -151,34 +151,41 @@ type Schedule struct {
 
 // NextActivation generates new start time based on schedule and run history.
 func (s *Schedule) NextActivation(now time.Time, suspended bool, runs []*Run) time.Time {
-	// If not started returned scheduled start date
 	if len(runs) == 0 {
-		if s.StartDate.After(now) {
-			return s.StartDate
+		var a time.Time
+		switch {
+		// Start time in future just use that.
+		case s.StartDate.After(now):
+			a = s.StartDate
+		// Cluster is suspended one-offs are not activated and normal runs
+		// follow the next activation.
+		case suspended:
+			a = s.nextActivation(now)
+		// Start date is just slightly off run it now.
+		default:
+			a = now
 		}
-		if suspended {
-			return s.nextActivation(now)
-		}
-		return now
+		return a
 	}
 
-	lastStart := s.StartDate
-	lastStatus := StatusError
+	var (
+		lastStart  = s.StartDate
+		lastStatus = StatusError
+	)
 	if len(runs) > 0 {
 		lastStart = runs[0].StartTime
 		lastStatus = runs[0].Status
 	}
-
 	switch lastStatus {
 	case StatusAborted:
-		// skip, always retry aborted
+		// Skip, always retry aborted
 	case StatusError:
+		// If no retries available report next activation according to schedule.
 		if s.ConsecutiveErrorCount(runs, now) > s.NumRetries {
-			// if no retries available report next activation according to schedule
 			return s.nextActivation(now)
 		}
 	default:
-		// if running or done report next activation according to schedule
+		// If running or done report next activation according to schedule
 		return s.nextActivation(now)
 	}
 

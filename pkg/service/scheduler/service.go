@@ -44,8 +44,9 @@ type Service struct {
 var (
 	retryTaskWait = 10 * time.Minute
 	stopTaskWait  = 60 * time.Second
-
-	startDateThreshold          = -time.Hour
+	// startDateThreshold specifies how old initial task start can be to assume
+	// it's still relevant to run it.
+	startDateThreshold          = -time.Minute
 	suspendedStartDateThreshold = 8 * time.Hour
 )
 
@@ -297,7 +298,7 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 
 	var (
 		now        = timeutc.Now()
-		activation = t.Sched.NextActivation(now, false, runs)
+		activation = t.Sched.NextActivation(now, isResumeContext(ctx), runs)
 	)
 
 	// Skip if not runnable
@@ -740,6 +741,10 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 
 	// Release lock and schedule tasks
 	s.mu.Unlock()
+
+	// Mark context as "on resume", this is to inform schedule to use the same
+	// time table that is returned to user when listing tasks in suspended state.
+	ctx = markContextAsOnResume(ctx)
 
 	s.forEachTask(func(t *Task) error { // nolint: errcheck
 		// Reschedule pending tasks
