@@ -256,16 +256,19 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("When: task is scheduled")
-		task := h.makeTask(scheduler.Schedule{
+		task0 := h.makeTask(scheduler.Schedule{
 			StartDate: future,
 		})
-		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+		if err := h.service.PutTaskOnce(ctx, task0); err != nil {
 			t.Fatal(err)
 		}
 		Print("Then: task is added")
 
 		Print("When: another task of the same type is scheduled")
-		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+		task1 := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTaskOnce(ctx, task1); err != nil {
 			Print("Then: the task is rejected")
 		} else {
 			t.Fatal("two tasks of the same type could be added")
