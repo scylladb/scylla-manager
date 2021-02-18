@@ -1020,4 +1020,39 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: task status is StatusRunning")
 		h.assertStatus(ctx, task, scheduler.StatusRunning)
 	})
+
+	t.Run("issue 2496", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		wait := time.Second
+
+		Print("When: task0 is scheduled in a second")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: now().Add(wait),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: scheduler is suspended during the start time")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is not executed")
+		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+
+		Print("When: task start date passes by")
+		time.Sleep(wait)
+
+		Print("And: scheduler is resumed")
+		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task is not executed")
+		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+	})
 }
