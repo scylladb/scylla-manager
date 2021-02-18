@@ -43,65 +43,65 @@ func TestStatusMarshalText(t *testing.T) {
 
 func TestTaskValidate(t *testing.T) {
 	table := []struct {
-		T Task
-		V bool
+		Task  Task
+		Valid bool
 	}{
 		{
-			T: Task{
+			Task: Task{
 				ClusterID: uuid.MustRandom(),
 				ID:        uuid.MustRandom(),
 				Type:      RepairTask,
 				Sched:     makeSchedule(timeutc.Now(), 1*time.Minute, 3),
 			},
-			V: false,
+			Valid: false,
 		},
 		{
-			T: Task{
+			Task: Task{
 				ClusterID: uuid.MustRandom(),
 				ID:        uuid.MustRandom(),
 				Type:      RepairTask,
 				Sched:     makeSchedule(timeutc.Now(), 3*time.Minute, 3),
 			},
-			V: false,
+			Valid: false,
 		},
 		{
-			T: Task{
+			Task: Task{
 				ClusterID: uuid.MustRandom(),
 				ID:        uuid.MustRandom(),
 				Type:      RepairTask,
 				Sched:     makeSchedule(timeutc.Now(), 3*2*retryTaskWait, 3),
 			},
-			V: false,
+			Valid: false,
 		},
 		{
-			T: Task{
+			Task: Task{
 				ClusterID: uuid.MustRandom(),
 				ID:        uuid.MustRandom(),
 				Type:      RepairTask,
 				Sched:     makeSchedule(timeutc.Now(), 3*2*retryTaskWait+1, 3),
 			},
-			V: true,
+			Valid: true,
 		},
 		{
-			T: Task{
+			Task: Task{
 				ClusterID: uuid.MustRandom(),
 				ID:        uuid.MustRandom(),
 				Type:      RepairTask,
 				Sched:     makeSchedule(timeutc.Now(), 10*24*time.Hour, 3),
 			},
-			V: true,
+			Valid: true,
 		},
 	}
 
 	for i, task := range table {
-		err := task.T.Validate()
-		if task.V {
+		err := task.Task.Validate()
+		if task.Valid {
 			if err != nil {
-				t.Errorf("Expected valid task nr %d, error=%s, %v ", i, err, task.T)
+				t.Errorf("Expected valid task nr %d, error=%s, %v ", i, err, task.Task)
 			}
 		} else {
 			if err == nil {
-				t.Errorf("Expected invalid task nr %d, error=%s, %v ", i, err, task.T)
+				t.Errorf("Expected invalid task nr %d, error=%s, %v ", i, err, task.Task)
 			}
 		}
 	}
@@ -133,114 +133,120 @@ func makeHistory(startDate time.Time, runStatus ...Status) []*Run {
 func TestSchedNextActivation(t *testing.T) {
 	t.Parallel()
 
-	now := timeutc.Now()
-	t0 := now.AddDate(0, 0, -7)
-	t1 := now.AddDate(0, 0, -2)
+	var (
+		now = timeutc.Now()
+		t0  = now.AddDate(0, 0, -7)
+		t1  = now.AddDate(0, 0, -2)
+	)
 
 	table := []struct {
-		S Schedule
-		H []*Run
-		A time.Time
+		Name       string
+		Schedule   Schedule
+		Suspended  bool
+		History    []*Run
+		Activation time.Time
 	}{
-		// no history, old start with retries
 		{
-			S: makeSchedule(t0, week, 2),
-			A: now,
+			Name:       "no history old start with retries",
+			Schedule:   makeSchedule(t0, week, 2),
+			Activation: now,
 		},
-		// no history, start now
 		{
-			S: makeSchedule(now.Add(-time.Second), week, 2),
-			A: now,
+			Name:       "no history start now",
+			Schedule:   makeSchedule(now.Add(-time.Second), week, 2),
+			Activation: now,
 		},
-		// no history, start in future
 		{
-			S: makeSchedule(now.Add(time.Second), week, 2),
-			A: now.Add(time.Second),
+			Name:       "no history start in future",
+			Schedule:   makeSchedule(now.Add(time.Second), week, 2),
+			Activation: now.Add(time.Second),
 		},
-		// short history 1, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError),
-			A: now,
+			Name:       "short history 1 retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError),
+			Activation: now,
 		},
-		// short history 2, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError, StatusError),
-			A: now,
+			Name:       "short history 2 retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError, StatusError),
+			Activation: now,
 		},
-		// short (recent) history, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(now.Add(-retryTaskWait/2), StatusError),
-			A: now.Add(retryTaskWait / 2),
+			Name:       "short (recent) history, retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(now.Add(-retryTaskWait/2), StatusError),
+			Activation: now.Add(retryTaskWait / 2),
 		},
-		// full history, too many activations to retry, full interval
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError, StatusError, StatusError),
-			A: t0.AddDate(0, 0, 7),
+			Name:       "full history too many activations to retry, full interval",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError, StatusError, StatusError),
+			Activation: t0.AddDate(0, 0, 7),
 		},
-		// full history, old activations, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: append(makeHistory(t1, StatusError), makeHistory(now.AddDate(0, 0, -5), StatusError, StatusError)...),
-			A: now,
+			Name:       "full history old activations retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    append(makeHistory(t1, StatusError), makeHistory(now.AddDate(0, 0, -5), StatusError, StatusError)...),
+			Activation: now,
 		},
-		// full history with DONE, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError, StatusDone, StatusError),
-			A: now,
+			Name:       "full history with DONE retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError, StatusDone, StatusError),
+			Activation: now,
 		},
-		// full history with STOPPED, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError, StatusStopped, StatusError),
-			A: now,
+			Name:       "full history with STOPPED retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError, StatusStopped, StatusError),
+			Activation: now,
 		},
-		// one shot, short history 1, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError),
-			A: now,
+			Name:       "one shot short history 1 retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError),
+			Activation: now,
 		},
-		// one shot, short history 2, retry
 		{
-			S: makeSchedule(t0, week, 2),
-			H: makeHistory(t1, StatusError, StatusError),
-			A: now,
+			Name:       "one shot short history 2 retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			History:    makeHistory(t1, StatusError, StatusError),
+			Activation: now,
 		},
-		// one shot, full history, too many activations to retry, no retry
 		{
-			S: makeSchedule(t0, 0, 2),
-			H: makeHistory(t1, StatusError, StatusError, StatusError),
-			A: time.Time{},
+			Name:       "one shot full history too many activations to retry no retry",
+			Schedule:   makeSchedule(t0, 0, 2),
+			History:    makeHistory(t1, StatusError, StatusError, StatusError),
+			Activation: time.Time{},
 		},
-		// no retry, short history 1, full interval
 		{
-			S: makeSchedule(t0, week, 0),
-			H: makeHistory(t1, StatusError),
-			A: t0.AddDate(0, 0, 7),
+			Name:       "no retry short history 1 full interval",
+			Schedule:   makeSchedule(t0, week, 0),
+			History:    makeHistory(t1, StatusError),
+			Activation: t0.AddDate(0, 0, 7),
 		},
-		// one shot aborted, full history, retry
 		{
-			S: makeSchedule(t0, 0, 2),
-			H: makeHistory(t1, StatusError, StatusError, StatusAborted),
-			A: now,
+			Name:       "one shot aborted full history retry",
+			Schedule:   makeSchedule(t0, 0, 2),
+			History:    makeHistory(t1, StatusError, StatusError, StatusAborted),
+			Activation: now,
 		},
-		// no retry aborted, short history 1, retry
 		{
-			S: makeSchedule(t0, week, 0),
-			H: makeHistory(t1, StatusAborted),
-			A: now,
+			Name:       "no retry aborted short history 1 retry",
+			Schedule:   makeSchedule(t0, week, 0),
+			History:    makeHistory(t1, StatusAborted),
+			Activation: now,
 		},
 	}
 
-	for i, test := range table {
-		if activation := test.S.NextActivation(now, test.H); activation != test.A {
-			t.Error(i, "expected", test.A, "got", activation)
-		}
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			if activation := test.Schedule.NextActivation(now, test.History); activation != test.Activation {
+				t.Errorf("NextActivation() = %s, expected %s", activation, test.Activation)
+			}
+		})
 	}
 }
 
@@ -250,10 +256,10 @@ func TestConsecutiveErrorCount(t *testing.T) {
 	t1 := now.Add(-15 * time.Minute)
 
 	table := []struct {
-		N string
-		S Schedule
-		R []*Run
-		E int
+		Name       string
+		Schedule   Schedule
+		History    []*Run
+		ErrorCount int
 	}{
 		{
 			"counting no running errors",
@@ -282,9 +288,9 @@ func TestConsecutiveErrorCount(t *testing.T) {
 	}
 
 	for _, test := range table {
-		t.Run(test.N, func(t *testing.T) {
-			if got := test.S.ConsecutiveErrorCount(test.R, now); got != test.E {
-				t.Errorf("Got %d, expects %d", got, test.E)
+		t.Run(test.Name, func(t *testing.T) {
+			if got := test.Schedule.ConsecutiveErrorCount(test.History, now); got != test.ErrorCount {
+				t.Errorf("Got %d, expects %d", got, test.ErrorCount)
 			}
 		})
 	}
