@@ -275,9 +275,11 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 	}
 
 	// Skip if service is suspended
-	if _, ok := s.suspended[t.ClusterID]; ok && !t.Type.IgnoreSuspended() {
-		s.logger.Info(ctx, "Task not scheduled because service is suspended for cluster", "task", t)
-		return
+	if !t.Type.IgnoreSuspended() {
+		if _, ok := s.suspended[t.ClusterID]; ok {
+			s.logger.Info(ctx, "Task not scheduled because service is suspended for cluster", "task", t)
+			return
+		}
 	}
 
 	// Skip if service is closing
@@ -571,7 +573,7 @@ func (s *Service) StartTask(ctx context.Context, t *Task, opts ...Opt) error {
 	defer s.mu.Unlock()
 
 	// Prevent starting in suspended mode
-	if s.isSuspendedLocked(t.ClusterID) && !t.Type.IgnoreSuspended() {
+	if !t.Type.IgnoreSuspended() && s.isSuspendedLocked(t.ClusterID) {
 		return service.ErrValidate(errors.New("cluster is suspended"))
 	}
 
