@@ -212,14 +212,15 @@ func (s *Schedule) ConsecutiveErrorCount(runs []*Run, now time.Time) int {
 }
 
 func (s *Schedule) nextActivation(now time.Time) time.Time {
-	if s.Interval > 0 {
-		lastStart := s.StartDate.Add(now.Sub(s.StartDate).Round(s.Interval.Duration()))
-		for lastStart.Before(now) {
-			lastStart = lastStart.Add(s.Interval.Duration())
-		}
-		return lastStart
+	if s.Interval == 0 {
+		return time.Time{}
 	}
-	return time.Time{}
+
+	lastStart := s.StartDate.Add(now.Sub(s.StartDate).Round(s.Interval.Duration()))
+	for lastStart.Before(now) {
+		lastStart = lastStart.Add(s.Interval.Duration())
+	}
+	return lastStart
 }
 
 // Task is a schedulable entity.
