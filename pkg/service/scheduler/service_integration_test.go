@@ -125,7 +125,6 @@ type schedTestHelper struct {
 	runner  *mockRunner
 
 	clusterID uuid.UUID
-	taskID    uuid.UUID
 	runID     uuid.UUID
 
 	t *testing.T
@@ -141,15 +140,11 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedTestHelper {
 
 	s := newTestService(t, session)
 	h := &schedTestHelper{
-		session: session,
-		service: s,
-		runner:  newMockRunner(),
-
+		session:   session,
+		service:   s,
+		runner:    newMockRunner(),
 		clusterID: uuid.MustRandom(),
-		taskID:    uuid.MustRandom(),
-		runID:     uuid.NewTime(),
-
-		t: t,
+		t:         t,
 	}
 	s.SetRunner(mockTask, h.runner)
 
@@ -218,7 +213,7 @@ func (h *schedTestHelper) makeTask(s scheduler.Schedule) *scheduler.Task {
 	return &scheduler.Task{
 		ClusterID: h.clusterID,
 		Type:      mockTask,
-		ID:        h.taskID,
+		ID:        uuid.MustRandom(),
 		Enabled:   true,
 		Sched:     s,
 	}
