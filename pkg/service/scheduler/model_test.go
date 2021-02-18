@@ -239,11 +239,35 @@ func TestSchedNextActivation(t *testing.T) {
 			History:    makeHistory(t1, StatusAborted),
 			Activation: now,
 		},
+		{
+			Name:      "suspended one shot no history start now",
+			Schedule:  makeSchedule(now.Add(-time.Second), 0, 2),
+			Suspended: true,
+		},
+		{
+			Name:       "suspended one shot no history start in future",
+			Schedule:   makeSchedule(now.Add(time.Second), 0, 2),
+			Suspended:  true,
+			Activation: now.Add(time.Second),
+		},
+		{
+			Name:       "suspended no history start now",
+			Schedule:   makeSchedule(now.Add(-time.Second), week, 2),
+			Suspended:  true,
+			Activation: now.Add(-time.Second).Add(week),
+		},
+		{
+			Name:       "suspended short history 1 retry",
+			Schedule:   makeSchedule(t0, week, 2),
+			Suspended:  true,
+			History:    makeHistory(t1, StatusError),
+			Activation: now,
+		},
 	}
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			if activation := test.Schedule.NextActivation(now, test.History); activation != test.Activation {
+			if activation := test.Schedule.NextActivation(now, test.Suspended, test.History); activation != test.Activation {
 				t.Errorf("NextActivation() = %s, expected %s", activation, test.Activation)
 			}
 		})

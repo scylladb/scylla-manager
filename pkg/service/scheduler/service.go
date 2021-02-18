@@ -297,7 +297,7 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 
 	var (
 		now        = timeutc.Now()
-		activation = t.Sched.NextActivation(now, runs)
+		activation = t.Sched.NextActivation(now, false, runs)
 	)
 
 	// Skip if not runnable

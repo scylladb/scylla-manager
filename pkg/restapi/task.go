@@ -154,14 +154,8 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			}
 			e.EndTime = runs[0].EndTime
 		}
-
 		if status != "" && e.Status != status {
 			continue
-		}
-
-		now := timeutc.Now()
-		if a := t.Sched.NextActivation(now, runs); a.After(now) {
-			e.NextActivation = &a
 		}
 
 		if !t.Type.IgnoreSuspended() {
@@ -174,6 +168,10 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			e.Suspended = suspended
 		}
 
+		now := timeutc.Now()
+		if a := t.Sched.NextActivation(now, e.Suspended, runs); a.After(now) {
+			e.NextActivation = &a
+		}
 		e.Failures = t.Sched.ConsecutiveErrorCount(runs, now)
 
 		hist = append(hist, e)

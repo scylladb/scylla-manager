@@ -150,11 +150,14 @@ type Schedule struct {
 }
 
 // NextActivation generates new start time based on schedule and run history.
-func (s *Schedule) NextActivation(now time.Time, runs []*Run) time.Time {
-	// if not started yet report scheduled start date
+func (s *Schedule) NextActivation(now time.Time, suspended bool, runs []*Run) time.Time {
+	// If not started returned scheduled start date
 	if len(runs) == 0 {
 		if s.StartDate.After(now) {
 			return s.StartDate
+		}
+		if suspended {
+			return s.nextActivation(now)
 		}
 		return now
 	}
