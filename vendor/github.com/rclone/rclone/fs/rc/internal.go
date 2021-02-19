@@ -172,7 +172,7 @@ func init() {
 		Help: `
 This shows the current version of go and the go runtime
 
-- version - rclone version, eg "v1.53.0"
+- version - rclone version, e.g. "v1.53.0"
 - decomposed - version number as [major, minor, patch]
 - isGit - boolean - true if this was compiled from the git version
 - isBeta - boolean - true if this is a beta version
@@ -353,17 +353,22 @@ func init() {
 - command - a string with the command name
 - arg - a list of arguments for the backend command
 - opt - a map of string to string of options
+- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT", "STREAM_ONLY_STDERR")
+    - defaults to "COMBINED_OUTPUT" if not set
+    - the STREAM returnTypes will write the output to the body of the HTTP message
+    - the COMBINED_OUTPUT will write the output to the "result" parameter
 
 Returns
 
 - result - result from the backend command
+    - only set when using returnType "COMBINED_OUTPUT"
 - error	 - set if rclone exits with an error code
-- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT". "STREAM_ONLY_STDERR")
+- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT", "STREAM_ONLY_STDERR")
 
 For example
 
     rclone rc core/command command=ls -a mydrive:/ -o max-depth=1
-	rclone rc core/command -a ls -a mydrive:/ -o max-depth=1
+    rclone rc core/command -a ls -a mydrive:/ -o max-depth=1
 
 Returns
 
@@ -386,7 +391,6 @@ OR
 
 // rcRunCommand runs an rclone command with the given args and flags
 func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
-
 	command, err := in.GetString("command")
 	if err != nil {
 		command = ""
@@ -409,7 +413,7 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 		returnType = "COMBINED_OUTPUT"
 	}
 
-	var httpResponse *http.ResponseWriter
+	var httpResponse http.ResponseWriter
 	httpResponse, err = in.GetHTTPResponseWriter()
 	if err != nil {
 		return nil, errors.Errorf("response object is required\n" + err.Error())
@@ -417,7 +421,7 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 
 	var allArgs = []string{}
 	if command != "" {
-		// Add the command eg: ls to the args
+		// Add the command e.g.: ls to the args
 		allArgs = append(allArgs, command)
 	}
 	// Add all from arg
@@ -425,7 +429,7 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 		allArgs = append(allArgs, cur)
 	}
 
-	// Add flags to args for eg --max-depth 1 comes in as { max-depth 1 }.
+	// Add flags to args for e.g. --max-depth 1 comes in as { max-depth 1 }.
 	// Convert it to [ max-depth, 1 ] and append to args list
 	for key, value := range opt {
 		if len(key) == 1 {
@@ -460,12 +464,14 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 			"error":  false,
 		}, nil
 	} else if returnType == "STREAM_ONLY_STDOUT" {
-		cmd.Stdout = *httpResponse
+		cmd.Stdout = httpResponse
 	} else if returnType == "STREAM_ONLY_STDERR" {
-		cmd.Stderr = *httpResponse
+		cmd.Stderr = httpResponse
 	} else if returnType == "STREAM" {
-		cmd.Stdout = *httpResponse
-		cmd.Stderr = *httpResponse
+		cmd.Stdout = httpResponse
+		cmd.Stderr = httpResponse
+	} else {
+		return nil, errors.Errorf("Unknown returnType %q", returnType)
 	}
 
 	err = cmd.Run()

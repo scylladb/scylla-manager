@@ -97,7 +97,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 
 	// Copy local tmp dir contents to the destination.
 	{
-		rd, err := fs.NewFs(tmpDir)
+		rd, err := fs.NewFs(context.Background(), tmpDir)
 		if err != nil {
 			return PermissionError{err, "init temp dir"}
 		}
@@ -136,7 +136,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 
 	// Remove remote dir.
 	{
-		rd, err := fs.NewFs(fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), testDirName))
+		rd, err := fs.NewFs(ctx, fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), testDirName))
 		if err != nil {
 			return errors.Wrap(err, "init remote temp dir")
 		}

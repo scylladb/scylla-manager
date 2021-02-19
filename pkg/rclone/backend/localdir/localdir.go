@@ -6,6 +6,7 @@
 package localdir
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -107,8 +108,8 @@ to override the default choice.`,
 	fs.Register(fsi)
 }
 
-func NewFs(rootDir string) func(name, root string, m configmap.Mapper) (fs.Fs, error) {
-	return func(name, root string, m configmap.Mapper) (fs.Fs, error) {
+func NewFs(rootDir string) func(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, error) {
+	return func(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, error) {
 		// filepath.Clean will turn everything that goes up and beyond root into
 		// a single /.
 		// We are prepending slash to turn input into an absolute path.
@@ -124,6 +125,6 @@ func NewFs(rootDir string) func(name, root string, m configmap.Mapper) (fs.Fs, e
 		} else {
 			path = filepath.Join(rootDir, p)
 		}
-		return local.NewFs(name, path, m)
+		return local.NewFs(ctx, name, path, m)
 	}
 }

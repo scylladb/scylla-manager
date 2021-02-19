@@ -355,7 +355,7 @@ func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
 
 // Cat a remote object.
 func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, remote, err := rc.GetFsAndRemote(in)
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +411,7 @@ func init() {
 }
 
 func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, remote, err := rc.GetFsAndRemote(in)
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +447,7 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		if rcops.Equal(ctx, info, dst) {
 			drainBody()
 			return nil, nil
-		} else if fs.Config.Immutable {
+		} else if fs.GetConfig(nil).Immutable { // nolint: staticcheck
 			fs.Errorf(dst, "Source and destination exist but do not match: immutable file modified")
 			drainBody()
 			return nil, fs.ErrorImmutableModified
@@ -469,7 +469,7 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 // rcCheckPermissions checks if location is available for listing, getting,
 // creating, and deleting objects.
 func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	l, err := rc.GetFs(in)
+	l, err := rc.GetFs(ctx, in)
 	if err != nil {
 		return nil, errors.Wrap(err, "init location")
 	}
@@ -499,7 +499,7 @@ func init() {
 
 // rcChunkedList supports streaming output of the listing.
 func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, remote, err := rc.GetFsAndRemote(in)
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
 		return rc.Params{}, err
 	}
@@ -562,11 +562,11 @@ func filterRcCalls() {
 // rcCopyFiles copies files from source to destination directory.
 // Only works for directories with single level depth.
 func rcCopyFiles(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	srcFs, srcRemote, err := getFsAndRemoteNamed(in, "srcFs", "srcRemote")
+	srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
 	if err != nil {
 		return rc.Params{}, err
 	}
-	dstFs, dstRemote, err := getFsAndRemoteNamed(in, "dstFs", "dstRemote")
+	dstFs, dstRemote, err := getFsAndRemoteNamed(ctx, in, "dstFs", "dstRemote")
 	if err != nil {
 		return rc.Params{}, err
 	}
@@ -577,12 +577,12 @@ func rcCopyFiles(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 // getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't
 // fail if remote path is not provided.
 // In that case it is assumed that path is empty and root of the fs is used.
-func getFsAndRemoteNamed(in rc.Params, fsName, remoteName string) (f fs.Fs, remote string, err error) {
+func getFsAndRemoteNamed(ctx context.Context, in rc.Params, fsName, remoteName string) (f fs.Fs, remote string, err error) {
 	remote, err = in.GetString(remoteName)
 	if err != nil && !rc.IsErrParamNotFound(err) {
 		return
 	}
-	f, err = rc.GetFsNamed(in, fsName)
+	f, err = rc.GetFsNamed(ctx, in, fsName)
 	return
 }
 

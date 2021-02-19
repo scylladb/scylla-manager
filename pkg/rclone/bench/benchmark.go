@@ -191,7 +191,7 @@ func NewBenchmark(ctx context.Context, loc string) (*Benchmark, error) {
 		return nil, errors.Wrapf(err, loc)
 	}
 
-	f, err := fs.NewFs(l)
+	f, err := fs.NewFs(ctx, l)
 	if err != nil {
 		if errors.Is(err, fs.ErrorNotFoundInConfigFile) {
 			return nil, backup.ErrInvalid
@@ -232,7 +232,7 @@ func copyDir(ctx context.Context, scenarioPath string, dstFs fs.Fs) (cleanup fun
 		return roperations.Purge(ctx, dstFs, benchmarkDir)
 	}
 
-	srcFs, err := fs.NewFs(scenarioPath)
+	srcFs, err := fs.NewFs(ctx, scenarioPath)
 	if err != nil {
 		return deleteFiles, err
 	}

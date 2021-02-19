@@ -4,6 +4,7 @@ package config
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -25,15 +26,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/Unknwon/goconfig"
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
-	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/config/configmap"
 	"github.com/rclone/rclone/fs/config/configstruct"
 	"github.com/rclone/rclone/fs/config/obscure"
 	"github.com/rclone/rclone/fs/driveletter"
-	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/fspath"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/lib/random"
@@ -113,7 +112,7 @@ func init() {
 
 func getConfigData() *goconfig.ConfigFile {
 	if configFile == nil {
-		LoadConfig()
+		LoadConfig(context.Background())
 	}
 	return configFile
 }
@@ -212,30 +211,8 @@ func makeConfigPath() string {
 }
 
 // LoadConfig loads the config file
-func LoadConfig() {
-	// Set RCLONE_CONFIG_DIR for backend config and subprocesses
-	_ = os.Setenv("RCLONE_CONFIG_DIR", filepath.Dir(ConfigPath))
-
-	// Load configuration file.
-	var err error
-	configFile, err = loadConfigFile()
-	if err == errorConfigFileNotFound {
-		fs.Logf(nil, "Config file %q not found - using defaults", ConfigPath)
-		configFile, _ = goconfig.LoadFromReader(&bytes.Buffer{})
-	} else if err != nil {
-		log.Fatalf("Failed to load config file %q: %v", ConfigPath, err)
-	} else {
-		fs.Debugf(nil, "Using config file from %q", ConfigPath)
-	}
-
-	// Start the token bucket limiter
-	accounting.StartTokenBucket()
-
-	// Start the bandwidth update ticker
-	accounting.StartTokenTicker()
-
-	// Start the transactions per second limiter
-	fshttp.StartHTTPTokenBucket()
+func LoadConfig(ctx context.Context) {
+	panic("loading config from file")
 }
 
 var errorConfigFileNotFound = errors.New("config file not found")
@@ -243,6 +220,8 @@ var errorConfigFileNotFound = errors.New("config file not found")
 // loadConfigFile will load a config file, and
 // automatically decrypt it.
 func loadConfigFile() (*goconfig.ConfigFile, error) {
+	ctx := context.Background()
+	ci := fs.GetConfig(ctx)
 	var usingPasswordCommand bool
 
 	b, err := ioutil.ReadFile(ConfigPath)
@@ -277,11 +256,11 @@ func loadConfigFile() (*goconfig.ConfigFile, error) {
 	}
 
 	if len(configKey) == 0 {
-		if len(fs.Config.PasswordCommand) != 0 {
+		if len(ci.PasswordCommand) != 0 {
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
 
-			cmd := exec.Command(fs.Config.PasswordCommand[0], fs.Config.PasswordCommand[1:]...)
+			cmd := exec.Command(ci.PasswordCommand[0], ci.PasswordCommand[1:]...)
 
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
@@ -357,7 +336,7 @@ func loadConfigFile() (*goconfig.ConfigFile, error) {
 				if usingPasswordCommand {
 					return nil, errors.New("using --password-command derived password, unable to decrypt configuration")
 				}
-				if !fs.Config.AskPassword {
+				if !ci.AskPassword {
 					return nil, errors.New("unable to decrypt configuration and not allowed to ask for password - set RCLONE_CONFIG_PASS to your configuration password")
 				}
 				getConfigPassword("Enter configuration password:")
@@ -599,15 +578,17 @@ func saveConfig() error {
 // SaveConfig calling function which saves configuration file.
 // if saveConfig returns error trying again after sleep.
 func SaveConfig() {
+	ctx := context.Background()
+	ci := fs.GetConfig(ctx)
 	var err error
-	for i := 0; i < fs.Config.LowLevelRetries+1; i++ {
+	for i := 0; i < ci.LowLevelRetries+1; i++ {
 		if err = saveConfig(); err == nil {
 			return
 		}
 		waitingTimeMs := mathrand.Intn(1000)
 		time.Sleep(time.Duration(waitingTimeMs) * time.Millisecond)
 	}
-	log.Fatalf("Failed to save config after %d tries: %v", fs.Config.LowLevelRetries, err)
+	log.Fatalf("Failed to save config after %d tries: %v", ci.LowLevelRetries, err)
 
 	return
 }
@@ -744,8 +725,9 @@ func Confirm(Default bool) bool {
 // If AutoConfirm is set, it will look up the value in m and return
 // that, but if it isn't set then it will return the Default value
 // passed in
-func ConfirmWithConfig(m configmap.Getter, configName string, Default bool) bool {
-	if fs.Config.AutoConfirm {
+func ConfirmWithConfig(ctx context.Context, m configmap.Getter, configName string, Default bool) bool {
+	ci := fs.GetConfig(ctx)
+	if ci.AutoConfirm {
 		configString, ok := m.Get(configName)
 		if ok {
 			configValue, err := strconv.ParseBool(configString)
@@ -896,12 +878,12 @@ func MustFindByName(name string) *fs.RegInfo {
 }
 
 // RemoteConfig runs the config helper for the remote if needed
-func RemoteConfig(name string) {
+func RemoteConfig(ctx context.Context, name string) {
 	fmt.Printf("Remote config\n")
 	f := MustFindByName(name)
 	if f.Config != nil {
 		m := fs.ConfigMap(f, name)
-		f.Config(name, m)
+		f.Config(ctx, name, m)
 	}
 }
 
@@ -1022,18 +1004,16 @@ func ChooseOption(o *fs.Option, name string) string {
 	return in
 }
 
-// Suppress the confirm prompts and return a function to undo that
-func suppressConfirm() func() {
-	old := fs.Config.AutoConfirm
-	fs.Config.AutoConfirm = true
-	return func() {
-		fs.Config.AutoConfirm = old
-	}
+// Suppress the confirm prompts by altering the context config
+func suppressConfirm(ctx context.Context) context.Context {
+	newCtx, ci := fs.AddConfig(ctx)
+	ci.AutoConfirm = true
+	return newCtx
 }
 
 // UpdateRemote adds the keyValues passed in to the remote of name.
 // keyValues should be key, value pairs.
-func UpdateRemote(name string, keyValues rc.Params, doObscure, noObscure bool) error {
+func UpdateRemote(ctx context.Context, name string, keyValues rc.Params, doObscure, noObscure bool) error {
 	if doObscure && noObscure {
 		return errors.New("can't use --obscure and --no-obscure together")
 	}
@@ -1041,7 +1021,7 @@ func UpdateRemote(name string, keyValues rc.Params, doObscure, noObscure bool) e
 	if err != nil {
 		return err
 	}
-	defer suppressConfirm()()
+	ctx = suppressConfirm(ctx)
 
 	// Work out which options need to be obscured
 	needsObscure := map[string]struct{}{}
@@ -1078,7 +1058,7 @@ func UpdateRemote(name string, keyValues rc.Params, doObscure, noObscure bool) e
 		}
 		getConfigData().SetValue(name, k, vStr)
 	}
-	RemoteConfig(name)
+	RemoteConfig(ctx, name)
 	SaveConfig()
 	return nil
 }
@@ -1086,7 +1066,7 @@ func UpdateRemote(name string, keyValues rc.Params, doObscure, noObscure bool) e
 // CreateRemote creates a new remote with name, provider and a list of
 // parameters which are key, value pairs.  If update is set then it
 // adds the new keys rather than replacing all of them.
-func CreateRemote(name string, provider string, keyValues rc.Params, doObscure, noObscure bool) error {
+func CreateRemote(ctx context.Context, name string, provider string, keyValues rc.Params, doObscure, noObscure bool) error {
 	err := fspath.CheckConfigName(name)
 	if err != nil {
 		return err
@@ -1096,21 +1076,21 @@ func CreateRemote(name string, provider string, keyValues rc.Params, doObscure, 
 	// Set the type
 	getConfigData().SetValue(name, "type", provider)
 	// Set the remaining values
-	return UpdateRemote(name, keyValues, doObscure, noObscure)
+	return UpdateRemote(ctx, name, keyValues, doObscure, noObscure)
 }
 
 // PasswordRemote adds the keyValues passed in to the remote of name.
 // keyValues should be key, value pairs.
-func PasswordRemote(name string, keyValues rc.Params) error {
+func PasswordRemote(ctx context.Context, name string, keyValues rc.Params) error {
+	ctx = suppressConfirm(ctx)
 	err := fspath.CheckConfigName(name)
 	if err != nil {
 		return err
 	}
-	defer suppressConfirm()()
 	for k, v := range keyValues {
 		keyValues[k] = obscure.MustObscure(fmt.Sprint(v))
 	}
-	return UpdateRemote(name, keyValues, false, true)
+	return UpdateRemote(ctx, name, keyValues, false, true)
 }
 
 // JSONListProviders prints all the providers and options in JSON format
@@ -1205,7 +1185,7 @@ func editOptions(ri *fs.RegInfo, name string, isNew bool) {
 }
 
 // NewRemote make a new remote from its name
-func NewRemote(name string) {
+func NewRemote(ctx context.Context, name string) {
 	var (
 		newType string
 		ri      *fs.RegInfo
@@ -1225,16 +1205,16 @@ func NewRemote(name string) {
 	getConfigData().SetValue(name, "type", newType)
 
 	editOptions(ri, name, true)
-	RemoteConfig(name)
+	RemoteConfig(ctx, name)
 	if OkRemote(name) {
 		SaveConfig()
 		return
 	}
-	EditRemote(ri, name)
+	EditRemote(ctx, ri, name)
 }
 
 // EditRemote gets the user to edit a remote
-func EditRemote(ri *fs.RegInfo, name string) {
+func EditRemote(ctx context.Context, ri *fs.RegInfo, name string) {
 	ShowRemote(name)
 	fmt.Printf("Edit remote\n")
 	for {
@@ -1244,7 +1224,7 @@ func EditRemote(ri *fs.RegInfo, name string) {
 		}
 	}
 	SaveConfig()
-	RemoteConfig(name)
+	RemoteConfig(ctx, name)
 }
 
 // DeleteRemote gets the user to delete a remote
@@ -1306,7 +1286,7 @@ func ShowConfig() {
 }
 
 // EditConfig edits the config file interactively
-func EditConfig() {
+func EditConfig(ctx context.Context) {
 	for {
 		haveRemotes := len(getConfigData().GetSectionList()) != 0
 		what := []string{"eEdit existing remote", "nNew remote", "dDelete remote", "rRename remote", "cCopy remote", "sSet configuration password", "qQuit config"}
@@ -1323,9 +1303,9 @@ func EditConfig() {
 		case 'e':
 			name := ChooseRemote()
 			fs := MustFindByName(name)
-			EditRemote(fs, name)
+			EditRemote(ctx, fs, name)
 		case 'n':
-			NewRemote(NewRemoteName())
+			NewRemote(ctx, NewRemoteName())
 		case 'd':
 			name := ChooseRemote()
 			DeleteRemote(name)
@@ -1386,8 +1366,8 @@ func SetPassword() {
 //
 //   rclone authorize "fs name"
 //   rclone authorize "fs name" "client id" "client secret"
-func Authorize(args []string, noAutoBrowser bool) {
-	defer suppressConfirm()()
+func Authorize(ctx context.Context, args []string, noAutoBrowser bool) {
+	ctx = suppressConfirm(ctx)
 	switch len(args) {
 	case 1, 3:
 	default:
@@ -1416,7 +1396,7 @@ func Authorize(args []string, noAutoBrowser bool) {
 	}
 
 	m := fs.ConfigMap(f, name)
-	f.Config(name, m)
+	f.Config(ctx, name, m)
 }
 
 // FileGetFlag gets the config key under section returning the

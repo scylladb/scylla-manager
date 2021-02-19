@@ -50,10 +50,11 @@ type Marcher interface {
 }
 
 // init sets up a march over opt.Fsrc, and opt.Fdst calling back callback for each match
-func (m *March) init() {
-	m.srcListDir = m.makeListDir(m.Fsrc, m.SrcDir, m.SrcIncludeAll)
+func (m *March) init(ctx context.Context) {
+	ci := fs.GetConfig(ctx)
+	m.srcListDir = m.makeListDir(ctx, m.Fsrc, m.SrcDir, m.SrcIncludeAll)
 	if !m.NoTraverse {
-		m.dstListDir = m.makeListDir(m.Fdst, m.DstDir, m.DstIncludeAll)
+		m.dstListDir = m.makeListDir(ctx, m.Fdst, m.DstDir, m.DstIncludeAll)
 	}
 	// Now create the matching transform
 	// ..normalise the UTF8 first
@@ -66,7 +67,7 @@ func (m *March) init() {
 	//                  | Yes | No  | No                 |
 	//                  | No  | Yes | Yes                |
 	//                  | Yes | Yes | Yes                |
-	if m.Fdst.Features().CaseInsensitive || fs.Config.IgnoreCaseSync {
+	if m.Fdst.Features().CaseInsensitive || ci.IgnoreCaseSync {
 		m.transforms = append(m.transforms, strings.ToLower)
 	}
 }
@@ -76,9 +77,11 @@ type listDirFn func(dir string) (entries fs.DirEntries, err error)
 
 // makeListDir makes constructs a listing function for the given fs
 // and includeAll flags for marching through the file system.
-func (m *March) makeListDir(f fs.Fs, remote string, includeAll bool) listDirFn {
-	if !(fs.Config.UseListR && f.Features().ListR != nil) && // !--fast-list active and
-		!(fs.Config.NoTraverse && filter.Active.HaveFilesFrom()) { // !(--files-from and --no-traverse)
+func (m *March) makeListDir(ctx context.Context, f fs.Fs, remote string, includeAll bool) listDirFn {
+	ci := fs.GetConfig(ctx)
+	fi := filter.GetConfig(ctx)
+	if !(ci.UseListR && f.Features().ListR != nil) && // !--fast-list active and
+		!(ci.NoTraverse && fi.HaveFilesFrom()) { // !(--files-from and --no-traverse)
 		return func(dir string) (entries fs.DirEntries, err error) {
 			return list.DirSorted(m.Ctx, f, includeAll, dir)
 		}
@@ -96,7 +99,7 @@ func (m *March) makeListDir(f fs.Fs, remote string, includeAll bool) listDirFn {
 		mu.Lock()
 		defer mu.Unlock()
 		if !started {
-			dirs, dirsErr = walk.NewDirTree(m.Ctx, f, remote, includeAll, fs.Config.MaxDepth)
+			dirs, dirsErr = walk.NewDirTree(m.Ctx, f, remote, includeAll, ci.MaxDepth)
 			started = true
 		}
 		if dirsErr != nil {
@@ -123,15 +126,17 @@ type listDirJob struct {
 }
 
 // Run starts the matching process off
-func (m *March) Run() error {
-	m.init()
+func (m *March) Run(ctx context.Context) error {
+	ci := fs.GetConfig(ctx)
+	fi := filter.GetConfig(ctx)
+	m.init(ctx)
 
-	srcDepth := fs.Config.MaxDepth
+	srcDepth := ci.MaxDepth
 	if srcDepth < 0 {
 		srcDepth = fs.MaxLevel
 	}
 	dstDepth := srcDepth
-	if filter.Active.Opt.DeleteExcluded {
+	if fi.Opt.DeleteExcluded {
 		dstDepth = fs.MaxLevel
 	}
 
@@ -142,8 +147,9 @@ func (m *March) Run() error {
 	// Start some directory listing go routines
 	var wg sync.WaitGroup         // sync closing of go routines
 	var traversing sync.WaitGroup // running directory traversals
-	in := make(chan listDirJob, fs.Config.Checkers)
-	for i := 0; i < fs.Config.Checkers; i++ {
+	checkers := ci.Checkers
+	in := make(chan listDirJob, checkers)
+	for i := 0; i < checkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -413,7 +419,8 @@ func (m *March) processJob(job listDirJob) ([]listDirJob, error) {
 
 	// If NoTraverse is set, then try to find a matching object
 	// for each item in the srcList to head dst object
-	limiter := make(chan struct{}, fs.Config.Checkers)
+	ci := fs.GetConfig(m.Ctx)
+	limiter := make(chan struct{}, ci.Checkers)
 	if m.NoTraverse && !m.NoCheckDest {
 		for _, src := range srcList {
 			wg.Add(1)

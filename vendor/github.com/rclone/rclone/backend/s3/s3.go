@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
@@ -58,7 +59,7 @@ import (
 func init() {
 	fs.Register(&fs.RegInfo{
 		Name:        "s3",
-		Description: "Amazon S3 Compliant Storage Provider (AWS, Alibaba, Ceph, Digital Ocean, Dreamhost, IBM COS, Minio, Tencent COS, etc)",
+		Description: "Amazon S3 Compliant Storage Providers including AWS, Alibaba, Ceph, Digital Ocean, Dreamhost, IBM COS, Minio, and Tencent COS",
 		NewFs:       NewFs,
 		CommandHelp: commandHelp,
 		Options: []fs.Option{{
@@ -130,7 +131,7 @@ func init() {
 			Provider: "AWS",
 			Examples: []fs.OptionExample{{
 				Value: "us-east-1",
-				Help:  "The default endpoint - a good choice if you are unsure.\nUS Region, Northern Virginia or Pacific Northwest.\nLeave location constraint empty.",
+				Help:  "The default endpoint - a good choice if you are unsure.\nUS Region, Northern Virginia, or Pacific Northwest.\nLeave location constraint empty.",
 			}, {
 				Value: "us-east-2",
 				Help:  "US East (Ohio) Region\nNeeds location constraint us-east-2.",
@@ -224,7 +225,7 @@ func init() {
 				Help:  "Use this if unsure. Will use v4 signatures and an empty region.",
 			}, {
 				Value: "other-v2-signature",
-				Help:  "Use this only if v4 signatures don't work, eg pre Jewel/v10 CEPH.",
+				Help:  "Use this only if v4 signatures don't work, e.g. pre Jewel/v10 CEPH.",
 			}},
 		}, {
 			Name:     "endpoint",
@@ -611,7 +612,7 @@ func init() {
 			Provider: "AWS",
 			Examples: []fs.OptionExample{{
 				Value: "",
-				Help:  "Empty for US Region, Northern Virginia or Pacific Northwest.",
+				Help:  "Empty for US Region, Northern Virginia, or Pacific Northwest.",
 			}, {
 				Value: "us-east-2",
 				Help:  "US East (Ohio) Region.",
@@ -798,7 +799,7 @@ This ACL is used for creating objects and if bucket_acl isn't set, for creating 
 
 For more info visit https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl
 
-Note that this ACL is applied when server side copying objects as S3
+Note that this ACL is applied when server-side copying objects as S3
 doesn't copy the ACL from the source but rather writes a fresh one.`,
 			Examples: []fs.OptionExample{{
 				Value:    "default",
@@ -867,6 +868,12 @@ isn't set then "acl" is used instead.`,
 				Value: "authenticated-read",
 				Help:  "Owner gets FULL_CONTROL. The AuthenticatedUsers group gets READ access.",
 			}},
+		}, {
+			Name:     "requester_pays",
+			Help:     "Enables requester pays option when interacting with S3 bucket.",
+			Provider: "AWS",
+			Default:  false,
+			Advanced: true,
 		}, {
 			Name:     "server_side_encryption",
 			Help:     "The server-side encryption algorithm used when storing this object in S3.",
@@ -1018,14 +1025,14 @@ The minimum is 0 and the maximum is 5GB.`,
 			Help: `Chunk size to use for uploading.
 
 When uploading files larger than upload_cutoff or files with unknown
-size (eg from "rclone rcat" or uploaded with "rclone mount" or google
+size (e.g. from "rclone rcat" or uploaded with "rclone mount" or google
 photos or google docs) they will be uploaded as multipart uploads
 using this chunk size.
 
 Note that "--s3-upload-concurrency" chunks of this size are buffered
 in memory per transfer.
 
-If you are transferring large files over high speed links and you have
+If you are transferring large files over high-speed links and you have
 enough memory, then increasing this will speed up the transfers.
 
 Rclone will automatically increase the chunk size when uploading a
@@ -1034,7 +1041,7 @@ large file of known size to stay below the 10,000 chunks limit.
 Files of unknown size are uploaded with the configured
 chunk_size. Since the default chunk size is 5MB and there can be at
 most 10,000 chunks, this means that by default the maximum size of
-file you can stream upload is 48GB.  If you wish to stream upload
+a file you can stream upload is 48GB.  If you wish to stream upload
 larger files then you will need to increase chunk_size.`,
 			Default:  minChunkSize,
 			Advanced: true,
@@ -1057,7 +1064,7 @@ large file of a known size to stay below this number of chunks limit.
 			Name: "copy_cutoff",
 			Help: `Cutoff for switching to multipart copy
 
-Any files larger than this that need to be server side copied will be
+Any files larger than this that need to be server-side copied will be
 copied in chunks of this size.
 
 The minimum is 0 and the maximum is 5GB.`,
@@ -1109,7 +1116,7 @@ If empty it will default to the environment variable "AWS_PROFILE" or
 This is the number of chunks of the same file that are uploaded
 concurrently.
 
-If you are uploading small numbers of large file over high speed link
+If you are uploading small numbers of large files over high-speed links
 and these uploads do not fully utilize your bandwidth, then increasing
 this may help to speed up the transfers.`,
 			Default:  4,
@@ -1123,7 +1130,7 @@ if false then rclone will use virtual path style. See [the AWS S3
 docs](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro)
 for more info.
 
-Some providers (eg AWS, Aliyun OSS, Netease COS or Tencent COS) require this set to
+Some providers (e.g. AWS, Aliyun OSS, Netease COS, or Tencent COS) require this set to
 false - rclone will do this automatically based on the provider
 setting.`,
 			Default:  true,
@@ -1135,7 +1142,7 @@ setting.`,
 If this is false (the default) then rclone will use v4 authentication.
 If it is set then rclone will use v2 authentication.
 
-Use this only if v4 signatures don't work, eg pre Jewel/v10 CEPH.`,
+Use this only if v4 signatures don't work, e.g. pre Jewel/v10 CEPH.`,
 			Default:  false,
 			Advanced: true,
 		}, {
@@ -1170,10 +1177,47 @@ In Ceph, this can be increased with the "rgw list buckets max chunk" option.
 			Advanced: true,
 		}, {
 			Name: "no_check_bucket",
-			Help: `If set don't attempt to check the bucket exists or create it
+			Help: `If set, don't attempt to check the bucket exists or create it
 
 This can be useful when trying to minimise the number of transactions
 rclone does if you know the bucket exists already.
+
+It can also be needed if the user you are using does not have bucket
+creation permissions. Before v1.52.0 this would have passed silently
+due to a bug.
+`,
+			Default:  false,
+			Advanced: true,
+		}, {
+			Name: "no_head",
+			Help: `If set, don't HEAD uploaded objects to check integrity
+
+This can be useful when trying to minimise the number of transactions
+rclone does.
+
+Setting it means that if rclone receives a 200 OK message after
+uploading an object with PUT then it will assume that it got uploaded
+properly.
+
+In particular it will assume:
+
+- the metadata, including modtime, storage class and content type was as uploaded
+- the size was as uploaded
+
+It reads the following items from the response for a single part PUT:
+
+- the MD5SUM
+- The uploaded date
+
+For multipart uploads these items aren't read.
+
+If an source object of unknown length is uploaded then rclone **will** do a
+HEAD request.
+
+Setting this flag increases the chance for undetected upload failures,
+in particular an incorrect size, so it isn't recommended for normal
+operation. In practice the chance of an undetected upload failure is
+very small even with this flag.
 `,
 			Default:  false,
 			Advanced: true,
@@ -1206,13 +1250,26 @@ This option controls how often unused buffers will be removed from the pool.`,
 			Default:  memoryPoolUseMmap,
 			Advanced: true,
 			Help:     `Whether to use mmap buffers in internal memory pool.`,
+		}, {
+			Name:     "disable_http2",
+			Default:  false,
+			Advanced: true,
+			Help: `Disable usage of http2 for S3 backends
+
+There is currently an unsolved issue with the s3 (specifically minio) backend
+and HTTP/2.  HTTP/2 is enabled by default for the s3 backend but can be
+disabled here.  When the issue is solved this flag will be removed.
+
+See: https://github.com/rclone/rclone/issues/4673, https://github.com/rclone/rclone/issues/3631
+
+`,
 		},
 		}})
 }
 
 // Constants
 const (
-	metaMtime   = "Mtime"     // the meta key to store mtime in - eg X-Amz-Meta-Mtime
+	metaMtime   = "Mtime"     // the meta key to store mtime in - e.g. X-Amz-Meta-Mtime
 	metaMD5Hash = "Md5chksum" // the meta key to store md5hash in
 	// The maximum size of object we can COPY - this should be 5GiB but is < 5GB for b2 compatibility
 	// See https://forum.rclone.org/t/copying-files-within-a-b2-bucket/16680/76
@@ -1239,6 +1296,7 @@ type Options struct {
 	LocationConstraint    string               `config:"location_constraint"`
 	ACL                   string               `config:"acl"`
 	BucketACL             string               `config:"bucket_acl"`
+	RequesterPays         bool                 `config:"requester_pays"`
 	ServerSideEncryption  string               `config:"server_side_encryption"`
 	SSEKMSKeyID           string               `config:"sse_kms_key_id"`
 	SSECustomerAlgorithm  string               `config:"sse_customer_algorithm"`
@@ -1260,9 +1318,11 @@ type Options struct {
 	LeavePartsOnError     bool                 `config:"leave_parts_on_error"`
 	ListChunk             int64                `config:"list_chunk"`
 	NoCheckBucket         bool                 `config:"no_check_bucket"`
+	NoHead                bool                 `config:"no_head"`
 	Enc                   encoder.MultiEncoder `config:"encoding"`
 	MemoryPoolFlushTime   fs.Duration          `config:"memory_pool_flush_time"`
 	MemoryPoolUseMmap     bool                 `config:"memory_pool_use_mmap"`
+	DisableHTTP2          bool                 `config:"disable_http2"`
 }
 
 // Fs represents a remote s3 server
@@ -1270,6 +1330,8 @@ type Fs struct {
 	name          string                // the name of the remote
 	root          string                // root of the bucket - ignore all objects above this
 	opt           Options               // parsed options
+	ci            *fs.ConfigInfo        // global config
+	ctx           context.Context       // global context for reading config
 	features      *fs.Features          // optional features
 	c             *s3.S3                // the connection to the s3 server
 	ses           *session.Session      // the s3 session
@@ -1296,7 +1358,7 @@ type Object struct {
 	lastModified time.Time          // Last modified
 	meta         map[string]*string // The object metadata if known - may be nil
 	mimeType     string             // MimeType of object - may be ""
-	storageClass string             // eg GLACIER
+	storageClass string             // e.g. GLACIER
 }
 
 // ------------------------------------------------------------
@@ -1387,8 +1449,21 @@ func (o *Object) split() (bucket, bucketPath string) {
 	return o.fs.split(o.remote)
 }
 
+// getClient makes an http client according to the options
+func getClient(ctx context.Context, opt *Options) *http.Client {
+	// TODO: Do we need cookies too?
+	t := fshttp.NewTransportCustom(ctx, func(t *http.Transport) {
+		if opt.DisableHTTP2 {
+			t.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+		}
+	})
+	return &http.Client{
+		Transport: t,
+	}
+}
+
 // s3Connection makes a connection to s3
-func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
+func s3Connection(ctx context.Context, opt *Options) (*s3.S3, *session.Session, error) {
 	// Make the auth
 	v := credentials.Value{
 		AccessKeyID:     opt.AccessKeyID,
@@ -1397,6 +1472,7 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 	}
 
 	lowTimeoutClient := &http.Client{Timeout: 1 * time.Second} // low timeout to ec2 metadata service
+
 	def := defaults.Get()
 	def.Config.HTTPClient = lowTimeoutClient
 
@@ -1465,7 +1541,7 @@ func s3Connection(opt *Options) (*s3.S3, *session.Session, error) {
 	awsConfig := aws.NewConfig().
 		WithMaxRetries(0). // Rely on rclone's retry logic
 		WithCredentials(cred).
-		WithHTTPClient(fshttp.NewClient(fs.Config)).
+		WithHTTPClient(getClient(ctx, opt)).
 		WithS3ForcePathStyle(opt.ForcePathStyle).
 		WithS3UseAccelerate(opt.UseAccelerateEndpoint).
 		WithS3UsEast1RegionalEndpoint(endpoints.RegionalS3UsEast1Endpoint)
@@ -1546,7 +1622,7 @@ func (f *Fs) setRoot(root string) {
 }
 
 // NewFs constructs an Fs from the path, bucket:path
-func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
+func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, error) {
 	// Parse config into Options struct
 	opt := new(Options)
 	err := configstruct.Set(m, opt)
@@ -1572,11 +1648,12 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		md5sumBinary := md5.Sum([]byte(opt.SSECustomerKey))
 		opt.SSECustomerKeyMD5 = base64.StdEncoding.EncodeToString(md5sumBinary[:])
 	}
-	c, ses, err := s3Connection(opt)
+	c, ses, err := s3Connection(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
 
+	ci := fs.GetConfig(ctx)
 	concurrency := opt.UploadConcurrency
 	if concurrency < 1 {
 		concurrency = 1
@@ -1585,15 +1662,17 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 	f := &Fs{
 		name:  name,
 		opt:   *opt,
+		ci:    ci,
+		ctx:   ctx,
 		c:     c,
 		ses:   ses,
-		pacer: fs.NewPacer(pacer.NewS3(pacer.MinSleep(minSleep))),
+		pacer: fs.NewPacer(ctx, pacer.NewS3(pacer.MinSleep(minSleep))),
 		cache: bucket.NewCache(),
-		srv:   fshttp.NewClient(fs.Config),
+		srv:   getClient(ctx, opt),
 		pool: pool.New(
 			time.Duration(opt.MemoryPoolFlushTime),
 			int(opt.ChunkSize),
-			opt.UploadConcurrency*fs.Config.Transfers,
+			opt.UploadConcurrency*ci.Transfers,
 			opt.MemoryPoolUseMmap,
 		),
 		tokens: pacer.NewTokenDispenser(concurrency),
@@ -1617,13 +1696,13 @@ func NewFs(name, root string, m configmap.Mapper) (fs.Fs, error) {
 		SetTier:           true,
 		GetTier:           true,
 		SlowModTime:       true,
-	}).Fill(f)
+	}).Fill(ctx, f)
 	if f.rootBucket != "" && f.rootDirectory != "" {
 		// Check to see if the (bucket,directory) is actually an existing file
 		oldRoot := f.root
 		newRoot, leaf := path.Split(oldRoot)
 		f.setRoot(newRoot)
-		_, err := f.NewObject(context.Background(), leaf)
+		_, err := f.NewObject(ctx, leaf)
 		if err != nil {
 			if err == fs.ErrorObjectNotFound || err == fs.ErrorNotAFile {
 				// File doesn't exist or is a directory so return old f
@@ -1707,7 +1786,7 @@ func (f *Fs) updateRegionForBucket(bucket string) error {
 	// Make a new session with the new region
 	oldRegion := f.opt.Region
 	f.opt.Region = region
-	c, ses, err := s3Connection(&f.opt)
+	c, ses, err := s3Connection(f.ctx, &f.opt)
 	if err != nil {
 		return errors.Wrap(err, "creating new session failed")
 	}
@@ -1766,6 +1845,9 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 		}
 		if urlEncodeListings {
 			req.EncodingType = aws.String(s3.EncodingTypeUrl)
+		}
+		if f.opt.RequesterPays {
+			req.RequestPayer = aws.String(s3.RequestPayerRequester)
 		}
 		var resp *s3.ListObjectsOutput
 		var err error
@@ -2132,7 +2214,7 @@ func pathEscape(s string) string {
 	return strings.Replace(rest.URLPathEscape(s), "+", "%2B", -1)
 }
 
-// copy does a server side copy
+// copy does a server-side copy
 //
 // It adds the boiler plate to the req passed in and calls the s3
 // method
@@ -2142,6 +2224,9 @@ func (f *Fs) copy(ctx context.Context, req *s3.CopyObjectInput, dstBucket, dstPa
 	req.Key = &dstPath
 	source := pathEscape(path.Join(srcBucket, srcPath))
 	req.CopySource = &source
+	if f.opt.RequesterPays {
+		req.RequestPayer = aws.String(s3.RequestPayerRequester)
+	}
 	if f.opt.ServerSideEncryption != "" {
 		req.ServerSideEncryption = &f.opt.ServerSideEncryption
 	}
@@ -2278,7 +2363,7 @@ func (f *Fs) copyMultipart(ctx context.Context, copyReq *s3.CopyObjectInput, dst
 	})
 }
 
-// Copy src to this remote using server side copy operations.
+// Copy src to this remote using server-side copy operations.
 //
 // This is stored with the remote path given
 //
@@ -2322,7 +2407,7 @@ func (f *Fs) getMemoryPool(size int64) *pool.Pool {
 	return pool.New(
 		time.Duration(f.opt.MemoryPoolFlushTime),
 		int(size),
-		f.opt.UploadConcurrency*fs.Config.Transfers,
+		f.opt.UploadConcurrency*f.ci.Transfers,
 		f.opt.MemoryPoolUseMmap,
 	)
 }
@@ -2369,7 +2454,7 @@ All the objects shown will be marked for restore, then
     rclone backend restore --include "*.txt" s3:bucket/path -o priority=Standard
 
 It returns a list of status dictionaries with Remote and Status
-keys. The Status will be OK if it was successfull or an error message
+keys. The Status will be OK if it was successful or an error message
 if not.
 
     [
@@ -2534,7 +2619,7 @@ func (f *Fs) Command(ctx context.Context, name string, arg []string, opt map[str
 // listMultipartUploads lists all outstanding multipart uploads for (bucket, key)
 //
 // Note that rather lazily we treat key as a prefix so it matches
-// directories and objects. This could suprise the user if they ask
+// directories and objects. This could surprise the user if they ask
 // for "dir" and it returns "dirKey"
 func (f *Fs) listMultipartUploads(ctx context.Context, bucket, key string) (uploads []*s3.MultipartUpload, err error) {
 	var (
@@ -2713,6 +2798,9 @@ func (o *Object) headObject(ctx context.Context) (resp *s3.HeadObjectOutput, err
 		Bucket: &bucket,
 		Key:    &bucketPath,
 	}
+	if o.fs.opt.RequesterPays {
+		req.RequestPayer = aws.String(s3.RequestPayerRequester)
+	}
 	if o.fs.opt.SSECustomerAlgorithm != "" {
 		req.SSECustomerAlgorithm = &o.fs.opt.SSECustomerAlgorithm
 	}
@@ -2789,7 +2877,7 @@ func (o *Object) readMetaData(ctx context.Context) (err error) {
 // It attempts to read the objects mtime and if that isn't present the
 // LastModified returned in the http headers
 func (o *Object) ModTime(ctx context.Context) time.Time {
-	if fs.Config.UseServerModTime {
+	if o.fs.ci.UseServerModTime {
 		return o.lastModified
 	}
 	err := o.readMetaData(ctx)
@@ -2831,6 +2919,9 @@ func (o *Object) SetModTime(ctx context.Context, modTime time.Time) error {
 		Metadata:          o.meta,
 		MetadataDirective: aws.String(s3.MetadataDirectiveReplace), // replace metadata with that passed in
 	}
+	if o.fs.opt.RequesterPays {
+		req.RequestPayer = aws.String(s3.RequestPayerRequester)
+	}
 	return o.fs.copy(ctx, &req, bucket, bucketPath, bucket, bucketPath, o)
 }
 
@@ -2845,6 +2936,9 @@ func (o *Object) Open(ctx context.Context, options ...fs.OpenOption) (in io.Read
 	req := s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &bucketPath,
+	}
+	if o.fs.opt.RequesterPays {
+		req.RequestPayer = aws.String(s3.RequestPayerRequester)
 	}
 	if o.fs.opt.SSECustomerAlgorithm != "" {
 		req.SSECustomerAlgorithm = &o.fs.opt.SSECustomerAlgorithm
@@ -3094,7 +3188,7 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	}
 
 	// read the md5sum if available
-	// - for non multpart
+	// - for non multipart
 	//    - so we can add a ContentMD5
 	//    - so we can add the md5sum in the metadata as metaMD5Hash if using SSE/SSE-C
 	// - for multipart provided checksums aren't disabled
@@ -3128,6 +3222,9 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 	}
 	if md5sum != "" {
 		req.ContentMD5 = &md5sum
+	}
+	if o.fs.opt.RequesterPays {
+		req.RequestPayer = aws.String(s3.RequestPayerRequester)
 	}
 	if o.fs.opt.ServerSideEncryption != "" {
 		req.ServerSideEncryption = &o.fs.opt.ServerSideEncryption
@@ -3177,6 +3274,7 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		}
 	}
 
+	var resp *http.Response // response from PUT
 	if multipart {
 		err = o.uploadMultipart(ctx, &req, size, in)
 		if err != nil {
@@ -3217,7 +3315,8 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		httpReq.ContentLength = size
 
 		err = o.fs.pacer.CallNoRetry(func() (bool, error) {
-			resp, err := o.fs.srv.Do(httpReq)
+			var err error
+			resp, err = o.fs.srv.Do(httpReq)
 			if err != nil {
 				return o.fs.shouldRetry(err)
 			}
@@ -3236,6 +3335,26 @@ func (o *Object) Update(ctx context.Context, in io.Reader, src fs.ObjectInfo, op
 		}
 	}
 
+	// User requested we don't HEAD the object after uploading it
+	// so make up the object as best we can assuming it got
+	// uploaded properly. If size < 0 then we need to do the HEAD.
+	if o.fs.opt.NoHead && size >= 0 {
+		o.md5 = md5sum
+		o.bytes = size
+		o.lastModified = time.Now()
+		o.meta = req.Metadata
+		o.mimeType = aws.StringValue(req.ContentType)
+		o.storageClass = aws.StringValue(req.StorageClass)
+		// If we have done a single part PUT request then we can read these
+		if resp != nil {
+			if date, err := http.ParseTime(resp.Header.Get("Date")); err == nil {
+				o.lastModified = date
+			}
+			o.setMD5FromEtag(resp.Header.Get("Etag"))
+		}
+		return nil
+	}
+
 	// Read the metadata from the newly created object
 	o.meta = nil // wipe old metadata
 	err = o.readMetaData(ctx)
@@ -3248,6 +3367,9 @@ func (o *Object) Remove(ctx context.Context) error {
 	req := s3.DeleteObjectInput{
 		Bucket: &bucket,
 		Key:    &bucketPath,
+	}
+	if o.fs.opt.RequesterPays {
+		req.RequestPayer = aws.String(s3.RequestPayerRequester)
 	}
 	err := o.fs.pacer.CallContext(ctx, func() (bool, error) {
 		_, err := o.fs.c.DeleteObjectWithContext(ctx, &req)

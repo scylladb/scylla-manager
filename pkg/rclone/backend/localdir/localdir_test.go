@@ -32,27 +32,28 @@ func TestNewFsWithGlobalCache(t *testing.T) {
 	if errs != nil {
 		t.Fatal(errs)
 	}
-	f, err := rc.GetFs(map[string]interface{}{"fs": providerName + ":"})
+	ctx := context.Background()
+	f, err := rc.GetFs(ctx, map[string]interface{}{"fs": providerName + ":"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = f.Features().About(context.Background())
+	_, err = f.Features().About(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f, err = rc.GetFs(map[string]interface{}{"fs": providerName + ":"})
+	f, err = rc.GetFs(ctx, map[string]interface{}{"fs": providerName + ":"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = f.Features().About(context.Background())
+	_, err = f.Features().About(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f, err = rc.GetFs(map[string]interface{}{"fs": providerName + ":subdir"})
+	f, err = rc.GetFs(ctx, map[string]interface{}{"fs": providerName + ":subdir"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = f.Features().About(context.Background())
+	_, err = f.Features().About(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

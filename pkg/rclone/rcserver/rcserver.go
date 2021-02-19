@@ -7,6 +7,7 @@ package rcserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,7 +24,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
-	"github.com/rclone/rclone/fs/fshttp"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
@@ -56,11 +56,11 @@ func New() Server {
 		// Disable finished transfer statistics purging
 		accounting.MaxCompletedTransfers = -1
 		// Start the token bucket limiter
-		accounting.StartTokenBucket()
+		accounting.TokenBucket.StartTokenBucket(context.Background())
 		// Start the bandwidth update ticker
-		accounting.StartTokenTicker()
+		accounting.TokenBucket.StartTokenTicker(context.Background())
 		// Start the transactions per second limiter
-		fshttp.StartHTTPTokenBucket()
+		accounting.StartLimitTPS(context.Background())
 		// Set jobs options
 		opts := rc.DefaultOpt
 		opts.JobExpireDuration = 12 * time.Hour

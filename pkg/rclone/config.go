@@ -15,33 +15,35 @@ import (
 func InitFsConfig() {
 	initInMemoryConfig()
 
+	c := fs.GetConfig(nil) // nolint: staticcheck
+
 	// Don't use JSON log format in logging.
-	fs.Config.UseJSONLog = false
+	c.UseJSONLog = false
 	// Pass all logs, our logger decides which one to print.
-	fs.Config.LogLevel = fs.LogLevelDebug
+	c.LogLevel = fs.LogLevelDebug
 
 	// With this option set, files will be created and deleted as requested,
 	// but existing files will never be updated. If an existing file does not
 	// match between the source and destination, rclone will give the error
 	// Source and destination exist but do not match: immutable file modified.
-	fs.Config.Immutable = false
+	c.Immutable = false
 	// Skip post copy check of checksums.
-	fs.Config.IgnoreChecksum = true
+	c.IgnoreChecksum = true
 	// Skip based on size only, not mod-time or checksum.
-	fs.Config.SizeOnly = true
+	c.SizeOnly = true
 	// Don't update destination mod-time if files identical.
-	fs.Config.NoUpdateModTime = true
+	c.NoUpdateModTime = true
 
 	// Number of low level retries to do. (default 10)
 	// This applies to operations like S3 chunk upload.
-	fs.Config.LowLevelRetries = 20
+	c.LowLevelRetries = 20
 
 	// Delete even if there are I/O errors.
-	fs.Config.IgnoreErrors = true
+	c.IgnoreErrors = true
 	// Maximum number of stats groups to keep in memory. On max oldest is discarded. (default 1000).
-	fs.Config.MaxStatsGroups = 1000
+	c.MaxStatsGroups = 1000
 	// Set proper agent for backend clients.
-	fs.Config.UserAgent = UserAgent()
+	c.UserAgent = UserAgent()
 }
 
 func initInMemoryConfig() {
