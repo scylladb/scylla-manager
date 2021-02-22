@@ -58,6 +58,20 @@ func TestClientStatusIntegration(t *testing.T) {
 	}
 }
 
+func TestClientRepairStatusIntegration(t *testing.T) {
+	t.Skip("This test is skipped because the longpolling API is broken see #2502")
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, longPolling := range []int{0, 1} {
+		_, err = client.RepairStatus(context.Background(), ManagedClusterHost(), "system_auth", 999, longPolling)
+		if !strings.Contains(err.Error(), "1 attempts") {
+			t.Fatalf("RepairStatus() error %s, expected 1 attempt", err)
+		}
+	}
+}
+
 func TestClientActiveRepairsIntegration(t *testing.T) {
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
