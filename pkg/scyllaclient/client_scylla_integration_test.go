@@ -34,7 +34,7 @@ func TestClientAuthIntegration(t *testing.T) {
 	}
 }
 
-func TestClientStatus(t *testing.T) {
+func TestClientStatusIntegration(t *testing.T) {
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
