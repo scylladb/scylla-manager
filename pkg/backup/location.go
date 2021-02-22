@@ -5,10 +5,10 @@ package backup
 import (
 	"path"
 	"regexp"
+	"unsafe"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 )
 
 // StripDC returns valid location string after stripping the dc prefix.
@@ -31,7 +31,21 @@ const (
 	Azure = Provider("azure")
 )
 
-var providers = strset.New(S3.String(), GCS.String(), Azure.String())
+var providers = []Provider{S3, GCS, Azure}
+
+// Providers returns a list of all supported providers as a list of strings.
+func Providers() []string {
+	return *(*[]string)(unsafe.Pointer(&providers))
+}
+
+func hasProvider(s string) bool {
+	for i := range providers {
+		if providers[i].String() == s {
+			return true
+		}
+	}
+	return false
+}
 
 func (p Provider) String() string {
 	return string(p)
@@ -44,7 +58,7 @@ func (p Provider) MarshalText() (text []byte, err error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (p *Provider) UnmarshalText(text []byte) error {
-	if s := string(text); !providers.Has(s) {
+	if s := string(text); !hasProvider(s) {
 		return errors.Errorf("unrecognised provider %q", text)
 	}
 	*p = Provider(text)
