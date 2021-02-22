@@ -65,18 +65,18 @@ func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, v
 
 type dirKind string
 
+// Enumeration of dirKinds.
 const (
-	schemaDirKind = dirKind("schema")
-	sstDirKind    = dirKind("sst")
-	// MetaDirKind is name of the meta prefix.
-	MetaDirKind = dirKind("meta")
+	SchemaDirKind = dirKind("schema")
+	SSTDirKind    = dirKind("sst")
+	MetaDirKind   = dirKind("meta")
 )
 
 // RemoteSSTableBaseDir returns path to the sstable base directory.
 func RemoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return path.Join(
 		"backup",
-		string(sstDirKind),
+		string(SSTDirKind),
 		"cluster",
 		clusterID.String(),
 		"dc",
@@ -124,7 +124,7 @@ func RemoteMetaClusterDCDir(clusterID uuid.UUID) string {
 func remoteSchemaDir(clusterID uuid.UUID) string {
 	return path.Join(
 		"backup",
-		string(schemaDirKind),
+		string(SchemaDirKind),
 		"cluster",
 		clusterID.String(),
 	)
