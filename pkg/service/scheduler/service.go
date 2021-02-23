@@ -660,6 +660,7 @@ func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID) error {
 	// Cancel tasks
 	si := &suspendInfo{
 		ClusterID: clusterID,
+		StartedAt: timeutc.Now(),
 	}
 	for _, tg := range s.tasks {
 		if tg.ClusterID != clusterID {

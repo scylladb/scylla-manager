@@ -294,6 +294,7 @@ func (t *Task) newRun(id uuid.UUID) *Run {
 
 type suspendInfo struct {
 	ClusterID    uuid.UUID   `json:"-"`
+	StartedAt    time.Time   `json:"started_at"`
 	PendingTasks []uuid.UUID `json:"pending_tasks"`
 	RunningTask  []uuid.UUID `json:"running_tasks"`
 }
