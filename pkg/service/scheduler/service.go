@@ -326,7 +326,7 @@ func (s *Service) schedule(ctx context.Context, t *Task) {
 
 	var (
 		now        = timeutc.Now()
-		activation = t.Sched.NextActivation(now, isResumeContext(ctx), runs)
+		activation = t.Sched.NextActivation(now, false, runs)
 	)
 
 	// Skip if not runnable
@@ -752,15 +752,17 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	// Release lock and schedule tasks
 	s.mu.Unlock()
 
-	// Mark context as "on resume", this is to inform schedule to use the same
-	// time table that is returned to user when listing tasks in suspended state.
-	ctx = markContextAsOnResume(ctx)
-
+	now := timeutc.Now()
 	s.forEachTask(func(t *Task) error { // nolint: errcheck
 		// Reschedule pending tasks
 		for _, id := range si.PendingTasks {
 			if t.ID == id {
+				if err := s.markTaskAsMissedIfNeeded(ctx, t, now, si.StartedAt); err != nil {
+					s.logger.Error(ctx, "Failed to mark task as missed", "task", t, "error", err)
+				}
 				s.schedule(ctx, t)
+
+				// Next task
 				return nil
 			}
 		}
@@ -769,19 +771,43 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 			if t.ID == id {
 				if startTasks {
 					if err := s.StartTask(ctx, t); err != nil {
-						s.logger.Error(ctx, "Failed to start task, falling back to schedule", "task", t)
+						s.logger.Error(ctx, "Failed to start task, falling back to schedule", "task", t, "error", err)
 						s.schedule(ctx, t)
 					}
 				} else {
 					s.schedule(ctx, t)
 				}
+
+				// Next task
 				return nil
 			}
 		}
+
 		return nil
 	})
 
 	return nil
+}
+
+func (s *Service) markTaskAsMissedIfNeeded(ctx context.Context, t *Task, now, suspendedAt time.Time) error {
+	// Calculate activation time on suspend.
+	runs, err := s.GetLastRun(ctx, t, t.Sched.NumRetries+1)
+	if err != nil {
+		return err
+	}
+	a := t.Sched.NextActivation(suspendedAt, false, runs)
+
+	// It task has no activation or activation is in future ignore.
+	if a.IsZero() || !a.Before(now) {
+		return nil
+	}
+
+	// Mark the execution as MISSED.
+	r := t.newRun(uuid.NewTime())
+	r.StartTime = a
+	r.EndTime = &a
+	r.Status = StatusMissed
+	return s.putRun(r)
 }
 
 // GetTask returns a task based on ID or name. If nothing was found
