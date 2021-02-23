@@ -24,6 +24,7 @@ func TestStatusMarshalText(t *testing.T) {
 		StatusDone,
 		StatusError,
 		StatusAborted,
+		StatusMissed,
 	}
 
 	var v Status
