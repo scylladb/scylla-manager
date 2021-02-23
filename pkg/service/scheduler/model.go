@@ -120,16 +120,6 @@ func (s *Status) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func (s Status) isFinal() bool {
-	switch s {
-	case StatusDone:
-	case StatusStopped:
-	case StatusAborted:
-		return true
-	}
-	return false
-}
-
 // Run describes a running instance of a Task.
 type Run struct {
 	ID        uuid.UUID  `json:"id"`
