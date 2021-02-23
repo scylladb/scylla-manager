@@ -331,11 +331,10 @@ func (s *Service) runAfter(t *Task, tg *trigger, after time.Duration) {
 	}
 }
 
-func (s *Service) rescheduleIfNeeded(ctx context.Context, t *Task, run *Run) {
-	// Try to update task from db
+func (s *Service) reschedule(ctx context.Context, t *Task) {
+	// Update task from db
 	var newTask Task
-	q := table.SchedTask.GetQuery(s.session).BindStruct(t)
-	if err := q.GetRelease(&newTask); err != nil {
+	if err := table.SchedTask.GetQuery(s.session).BindStruct(t).GetRelease(&newTask); err != nil {
 		// Do not reschedule if deleted
 		if err == service.ErrNotFound {
 			return
@@ -347,21 +346,13 @@ func (s *Service) rescheduleIfNeeded(ctx context.Context, t *Task, run *Run) {
 
 	// Copy custom options
 	newTask.opts = t.opts
-
-	// Copy schedule for retries
-	if !run.Status.isFinal() {
-		newTask.Sched = t.Sched
-	}
+	// Copy schedule
+	newTask.Sched = t.Sched
 
 	// Remove task run before scheduling
 	s.mu.Lock()
 	delete(s.tasks, t.ID)
 	s.mu.Unlock()
-
-	// Don't schedule if done or error
-	if newTask.Sched.Interval == 0 && run.Status.isFinal() {
-		return
-	}
 
 	s.schedule(ctx, &newTask)
 }
@@ -392,7 +383,7 @@ func (s *Service) run(t *Task, tg *trigger) {
 	}()
 
 	// Upon returning reschedule
-	defer s.rescheduleIfNeeded(ctx, t, run)
+	defer s.reschedule(ctx, t)
 
 	// Log task start and end
 	s.logInfoOrDebug(t.Type)(ctx, "Task started",
