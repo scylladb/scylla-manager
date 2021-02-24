@@ -97,6 +97,7 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 	if err != nil {
 		return err
 	}
+	w.Logger.Info(ctx, "Found v1 manifests", "manifests", len(manifests))
 
 	snapshotMapping := make(map[string]*backup.RemoteManifest)
 	for _, m := range manifests {
@@ -109,7 +110,9 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 				TaskID:      m.TaskID,
 				SnapshotTag: m.SnapshotTag,
 				Content: backup.ManifestContent{
-					Version: "v2",
+					IP:          h.IP,
+					ClusterName: w.ClusterName,
+					Version:     "v2",
 				},
 			}
 		}
@@ -118,6 +121,7 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 	}
 
 	for _, m := range snapshotMapping {
+		w.Logger.Info(ctx, "Creating v2 manifest", "snapshot_tag", m.SnapshotTag)
 		if err := w.uploadHostManifest(ctx, h, m); err != nil {
 			return errors.Wrap(err, "upload migrated manifest")
 		}
