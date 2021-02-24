@@ -806,7 +806,7 @@ func (s *Service) markTaskAsMissedIfNeeded(ctx context.Context, t *Task, now, su
 	r := t.newRun(uuid.NewTime())
 	r.StartTime = a
 	r.EndTime = &a
-	r.Status = StatusMissed
+	r.Status = StatusSkipped
 	return s.putRun(r)
 }
 
