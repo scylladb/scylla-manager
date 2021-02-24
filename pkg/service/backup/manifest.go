@@ -164,8 +164,6 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 	return h.Sum64()
 }
 
-const manifestFileSuffix = "-Data.db"
-
 type manifestHelper interface {
 	ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error)
 	DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error

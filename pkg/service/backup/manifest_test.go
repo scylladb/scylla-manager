@@ -142,61 +142,6 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	}
 }
 
-func TestGroupingKey(t *testing.T) {
-	table := []struct {
-		Name     string
-		FilePath string
-		Golden   string
-		Error    bool
-	}{
-		{
-			Name:     "valid mc path",
-			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big-Summary.db",
-			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big",
-		},
-		{
-			Name:     "valid crc32 path",
-			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big-Digest.crc32",
-			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/mc-20-big",
-		},
-		{
-			Name:     "valid la path",
-			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/la-111-big-TOC.db",
-			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/la-111-big",
-		},
-		{
-			Name:     "valid ka path",
-			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516-Scylla.db",
-			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/system_schema-columns-ka-2516",
-		},
-		{
-			Name:     "valid manifest path",
-			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/manifest.json",
-			Golden:   "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/manifest.json",
-		},
-		{
-			Name:     "invalid path",
-			FilePath: "keyspace/my_keyspace/table/my_table/24101c25a2ae3af787c1b40ee1aca33f/invalid-123-file.txt",
-			Error:    true,
-		},
-	}
-
-	for i := range table {
-		test := table[i]
-		t.Run(test.Name, func(t *testing.T) {
-			key, err := groupingKey(test.FilePath)
-			if test.Error && err == nil {
-				t.Fatal("groupingKey()=nil, expected error")
-			} else if !test.Error && err != nil {
-				t.Fatalf("groupingKey()= %+v", err)
-			}
-			if key != test.Golden {
-				t.Fatalf("groupingKey()=%v, expected %v", key, test.Golden)
-			}
-		})
-	}
-}
-
 func TestListManifests(t *testing.T) {
 	t.Parallel()
 
