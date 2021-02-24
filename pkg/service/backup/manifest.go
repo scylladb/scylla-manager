@@ -284,8 +284,6 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 	return h.Sum64()
 }
 
-const manifestFileSuffix = "-Data.db"
-
 type manifestLister interface {
 	ListManifests(ctx context.Context, f ListFilter) ([]*remoteManifest, error)
 }

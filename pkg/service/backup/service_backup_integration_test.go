@@ -1615,6 +1615,9 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(files) != 0 {
+			for _, f := range files {
+				t.Logf("%v", *f)
+			}
 			t.Fatalf("expected to find 0 files, got %d", len(files))
 		}
 	}

@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
@@ -56,7 +55,6 @@ func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	manifests := make([]*remoteManifest, len(manifestsPaths))
 
 	for i, mp := range manifestsPaths {
-		var err error
 		manifests[i], err = h.readManifest(ctx, mp)
 		if err != nil {
 			return nil, errors.Wrapf(err, "reading manifest %s", mp)
@@ -162,48 +160,29 @@ func (h *manifestV1Helper) listPaths(ctx context.Context, f ListFilter) ([]strin
 }
 
 func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteManifest, error) {
+	// Load manifest content
 	m := manifestV1{}
 	if err := m.ParsePartialPath(p); err != nil {
 		return nil, err
 	}
-
-	var (
-		fileNames []string
-		totalSize int64
-	)
-
-	content, err := h.client.RcloneCat(ctx, h.host, h.location.RemotePath(p))
+	mc, err := h.client.RcloneCat(ctx, h.host, h.location.RemotePath(p))
 	if err != nil {
 		return nil, err
 	}
-
 	v := struct {
 		Files []string `json:"files"`
 	}{}
-
-	if err := json.Unmarshal(content, &v); err != nil {
+	if err := json.Unmarshal(mc, &v); err != nil {
 		return nil, err
 	}
 
-	m.Files = v.Files
-
-	// Filter files based on manifest
-	files, err := h.client.RcloneListDir(ctx, h.host, h.location.RemotePath(m.RemoteSSTableVersionDir()), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	fileNames = make([]string, 0, len(files))
-	s := strset.New(h.extractGroupingKeys(m)...)
-	for _, f := range files {
-		k, err := groupingKey(path.Join("keyspace", m.Keyspace, "table", m.Table, m.Version, f.Path))
-		if err != nil {
-			h.logger.Debug(ctx, "GroupingKey error", "error", err)
-		}
-		if s.Has(k) {
-			fileNames = append(fileNames, f.Name)
-			totalSize += f.Size
-		}
+	// Get all sstable components / files.
+	// Scylla's manifest.json contains only one component the mc-XXX-Data.db.
+	// In v2 we keep all the components, the list of components is fixed for
+	// all the versions supported by Scylla.
+	files := make([]string, 0, 9*len(v.Files))
+	for _, s := range v.Files {
+		files = append(files, h.allComponents(s)...)
 	}
 
 	return &remoteManifest{
@@ -221,12 +200,27 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*remoteM
 					Keyspace: m.Keyspace,
 					Table:    m.Table,
 					Version:  m.Version,
-					Files:    fileNames,
+					Files:    files,
 				},
 			},
-			Size: totalSize,
+			Size: 0,
 		},
 	}, nil
+}
+
+func (h *manifestV1Helper) allComponents(s string) []string {
+	base := strings.TrimSuffix(s, "Data.db")
+	return []string{
+		base + "CompressionInfo.db",
+		base + "Data.db",
+		base + "Digest.crc32",
+		base + "Filter.db",
+		base + "Index.db",
+		base + "Scylla.db",
+		base + "Statistics.db",
+		base + "Summary.db",
+		base + "TOC.txt",
+	}
 }
 
 func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *remoteManifest) error {
@@ -268,15 +262,6 @@ func (h *manifestV1Helper) makeLegacyListFilterPruneDirFunc(ksf *ksfilter.Filter
 
 		return false
 	}
-}
-
-func (h *manifestV1Helper) extractGroupingKeys(m manifestV1) []string {
-	var s []string
-	for _, f := range m.Files {
-		v := path.Join("keyspace", m.Keyspace, "table", m.Table, m.Version, strings.TrimSuffix(f, manifestFileSuffix))
-		s = append(s, v)
-	}
-	return s
 }
 
 const dirsInParallelLimit = 5
