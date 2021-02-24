@@ -361,9 +361,6 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []bac
 		"locations", locations,
 		"filter", filter,
 	)
-	// Loading files in V1 is expensive, we skip it here
-	// because file list is not needed.
-	ctx = context.WithValue(ctx, ctxManifestV1DoNotLoadFiles, false)
 	manifests, err := s.list(ctx, clusterID, locations, filter)
 	if err != nil {
 		return nil, err

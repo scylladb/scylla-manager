@@ -160,16 +160,6 @@ func (h *manifestV1Helper) listPaths(ctx context.Context, f ListFilter) ([]strin
 	return allManifests, nil
 }
 
-// ctxt is a context key type.
-type ctxt byte
-
-const ctxManifestV1DoNotLoadFiles ctxt = iota
-
-func (h *manifestV1Helper) skipLoadingFiles(ctx context.Context) bool {
-	_, ok := ctx.Value(ctxManifestV1DoNotLoadFiles).(bool)
-	return ok
-}
-
 func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*backup.RemoteManifest, error) {
 	m := manifestV1{}
 	if err := m.ParsePartialPath(p); err != nil {
@@ -181,39 +171,37 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*backup.
 		totalSize int64
 	)
 
-	if !h.skipLoadingFiles(ctx) {
-		content, err := h.client.RcloneCat(ctx, h.host, h.location.RemotePath(p))
+	content, err := h.client.RcloneCat(ctx, h.host, h.location.RemotePath(p))
+	if err != nil {
+		return nil, err
+	}
+
+	v := struct {
+		Files []string `json:"files"`
+	}{}
+
+	if err := json.Unmarshal(content, &v); err != nil {
+		return nil, err
+	}
+
+	m.Files = v.Files
+
+	// Filter files based on manifest
+	files, err := h.client.RcloneListDir(ctx, h.host, h.location.RemotePath(m.RemoteSSTableVersionDir()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	fileNames = make([]string, 0, len(files))
+	s := strset.New(h.extractGroupingKeys(m)...)
+	for _, f := range files {
+		k, err := groupingKey(path.Join("keyspace", m.Keyspace, "table", m.Table, m.Version, f.Path))
 		if err != nil {
-			return nil, err
+			h.logger.Debug(ctx, "GroupingKey error", "error", err)
 		}
-
-		v := struct {
-			Files []string `json:"files"`
-		}{}
-
-		if err := json.Unmarshal(content, &v); err != nil {
-			return nil, err
-		}
-
-		m.Files = v.Files
-
-		// Filter files based on manifest
-		files, err := h.client.RcloneListDir(ctx, h.host, h.location.RemotePath(m.RemoteSSTableVersionDir()), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		fileNames = make([]string, 0, len(files))
-		s := strset.New(h.extractGroupingKeys(m)...)
-		for _, f := range files {
-			k, err := groupingKey(path.Join("keyspace", m.Keyspace, "table", m.Table, m.Version, f.Path))
-			if err != nil {
-				h.logger.Debug(ctx, "GroupingKey error", "error", err)
-			}
-			if s.Has(k) {
-				fileNames = append(fileNames, f.Name)
-				totalSize += f.Size
-			}
+		if s.Has(k) {
+			fileNames = append(fileNames, f.Name)
+			totalSize += f.Size
 		}
 	}
 
