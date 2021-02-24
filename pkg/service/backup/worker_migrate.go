@@ -117,9 +117,9 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 	}
 
 	for _, m := range snapshotMapping {
+		w.Logger.Info(ctx, "Creating v2 manifest", "host", h.IP, "snapshot_tag", m.SnapshotTag)
 		if _, err := w.uploadHostManifest(ctx, h, m); err != nil {
-			w.Logger.Error(ctx, "Uploading migrated manifest file failed", "host", h.IP, "error", err)
-			return err
+			return errors.Wrap(err, "upload migrated manifest")
 		}
 	}
 
