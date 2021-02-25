@@ -321,20 +321,14 @@ func TestRcloneListDirIter(t *testing.T) {
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
-				filesCh, err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts)
+				var files []scyllaclient.RcloneListDirItem
+
+				f := func(item *scyllaclient.RcloneListDirItem) {
+					files = append(files, *item)
+				}
+				err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts, f)
 				if err != nil {
 					t.Fatal(err)
-				}
-				var files []scyllaclient.RcloneListDirItem
-				for {
-					f, ok := <-filesCh
-					if !ok {
-						break
-					}
-					if f.Error != nil {
-						t.Error(f.Error)
-					}
-					files = append(files, f.Value)
 				}
 
 				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {

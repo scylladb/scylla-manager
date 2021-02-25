@@ -286,7 +286,7 @@ func (w *validator) Validate(ctx context.Context) (ValidationResult, error) {
 	result.Manifests = len(manifests)
 
 	// List all files and validate against manifests
-	handler := func(item scyllaclient.RcloneListDirItem) {
+	handler := func(item *scyllaclient.RcloneListDirItem) {
 		result.ScannedFiles++
 
 		// File from manifest
@@ -395,31 +395,19 @@ func (w *validator) extractFiles(manifests []*backup.RemoteManifest) (files, tem
 	return
 }
 
-func (w *validator) forEachFile(ctx context.Context, f func(scyllaclient.RcloneListDirItem)) error {
+// forEachFile calls f for each file in RemoteSSTableBaseDir.
+func (w *validator) forEachFile(ctx context.Context, f func(*scyllaclient.RcloneListDirItem)) error {
 	baseDir := backup.RemoteSSTableBaseDir(w.clusterID, w.host.DC, w.host.ID)
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
 		Recurse:   true,
 	}
-	filesCh, err := w.client.RcloneListDirIter(ctx, w.host.IP, w.host.Location.RemotePath(baseDir), &opts)
-	if err != nil {
-		return err
-	}
 
-	// Context cancellation is handled by RcloneListDirIter
-	for {
-		v, ok := <-filesCh
-		if !ok {
-			return nil
-		}
-		if v.Error != nil {
-			return v.Error
-		}
-
-		// Prepend path with base dir.
-		v.Value.Path = path.Join(baseDir, v.Value.Path)
-		f(v.Value)
+	wrapper := func(item *scyllaclient.RcloneListDirItem) {
+		item.Path = path.Join(baseDir, item.Path)
+		f(item)
 	}
+	return w.client.RcloneListDirIter(ctx, w.host.IP, w.host.Location.RemotePath(baseDir), &opts, wrapper)
 }
 
 func (w *validator) deleteFile(ctx context.Context, path string) bool {

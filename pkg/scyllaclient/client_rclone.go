@@ -312,17 +312,10 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	return resp.Payload.List, nil
 }
 
-// RcloneListDirIterItem allows to pass error alongside RcloneListDirItem in
-// RcloneListDirIter when items are passed over a channel.
-type RcloneListDirIterItem struct {
-	Value RcloneListDirItem
-	Error error
-}
-
 // RcloneListDirIter returns contents of a directory specified by remotePath.
 // The remotePath is given in the following format "provider:bucket/path".
 // Resulting item path is relative to the remote path.
-func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) (ch <-chan RcloneListDirIterItem, err error) {
+func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts, f func(item *RcloneListDirItem)) error {
 	ctx = customTimeout(ctx, c.config.ListTimeout)
 
 	// Due to OpenAPI limitations we manually construct and sent the request
@@ -336,28 +329,24 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	}
 	b, err := listOpts.MarshalBinary()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	u := c.newURL(host, urlPath)
 	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), bytes.NewReader(b))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "round trip")
+		return errors.Wrap(err, "round trip")
 	}
-	defer func() {
-		if err != nil {
-			resp.Body.Close()
-		}
-	}()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, makeAgentError(resp)
+		return makeAgentError(resp)
 	}
 
 	dec := json.NewDecoder(resp.Body)
@@ -367,44 +356,29 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	for i := range expected {
 		tok, err := dec.Token()
 		if err != nil {
-			return nil, errors.Wrap(err, "read token")
+			return errors.Wrap(err, "read token")
 		}
 		if fmt.Sprint(tok) != expected[i] {
-			return nil, errors.Errorf("json unexpected token %s expected %s", tok, expected[i])
+			return errors.Errorf("json unexpected token %s expected %s", tok, expected[i])
 		}
 	}
 
-	out := make(chan RcloneListDirIterItem)
-
-	go func() (err error) {
-		defer func() {
-			resp.Body.Close()
-
-			if err != nil {
-				out <- RcloneListDirIterItem{Error: err}
-			}
-			close(out)
-		}()
-
-		var v RcloneListDirItem
-		for dec.More() {
-			// Detect context cancellation
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-
-			// Read value
-			v = RcloneListDirItem{}
-			if err := dec.Decode(&v); err != nil {
-				return err
-			}
-			out <- RcloneListDirIterItem{Value: v}
+	var v RcloneListDirItem
+	for dec.More() {
+		// Detect context cancellation
+		if ctx.Err() != nil {
+			return ctx.Err()
 		}
 
-		return nil
-	}() // nolint: errcheck
+		// Read value
+		v = RcloneListDirItem{}
+		if err := dec.Decode(&v); err != nil {
+			return err
+		}
+		f(&v)
+	}
 
-	return out, nil
+	return nil
 }
 
 // RcloneCheckPermissions checks if location is available for listing, getting,
