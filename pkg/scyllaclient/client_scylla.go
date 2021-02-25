@@ -603,30 +603,22 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 
 // TakeSnapshot flushes and takes a snapshot of a keyspace.
 // Multiple keyspaces may have the same tag.
+// Flush is taken care of by Scylla see table::snapshot for details.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
 	ctx = customTimeout(ctx, snapshotTimeout)
 
-	var cfPtr *string
-
+	var cf *string
 	if len(tables) > 0 {
-		v := strings.Join(tables, ",")
-		cfPtr = &v
+		cf = pointer.StringPtr(strings.Join(tables, ","))
 	}
 
-	if _, err := c.scyllaOps.StorageServiceKeyspaceFlushByKeyspacePost(&operations.StorageServiceKeyspaceFlushByKeyspacePostParams{ // nolint: errcheck
-		Context:  forceHost(ctx, host),
-		Keyspace: keyspace,
-		Cf:       cfPtr,
-	}); err != nil {
-		return err
-	}
-
-	if _, err := c.scyllaOps.StorageServiceSnapshotsPost(&operations.StorageServiceSnapshotsPostParams{ // nolint: errcheck
+	p := operations.StorageServiceSnapshotsPostParams{
 		Context: forceHost(ctx, host),
 		Tag:     &tag,
 		Kn:      &keyspace,
-		Cf:      cfPtr,
-	}); err != nil {
+		Cf:      cf,
+	}
+	if _, err := c.scyllaOps.StorageServiceSnapshotsPost(&p); err != nil {
 		return err
 	}
 
