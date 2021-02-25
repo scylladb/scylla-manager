@@ -44,7 +44,7 @@ func TestClientStatusIntegration(t *testing.T) {
 		t.Fatal("Status() error", err)
 	}
 
-	golden := []scyllaclient.NodeStatusInfo{
+	golden := scyllaclient.NodeStatusInfoSlice{
 		{Datacenter: "dc1", Addr: "192.168.100.11", State: "", Status: true},
 		{Datacenter: "dc1", Addr: "192.168.100.12", State: "", Status: true},
 		{Datacenter: "dc1", Addr: "192.168.100.13", State: "", Status: true},
