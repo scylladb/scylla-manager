@@ -285,22 +285,22 @@ type RcloneListDirOpts = models.ListOptionsOpt
 // RcloneListDirItem represents a file in a listing with RcloneListDir.
 type RcloneListDirItem = models.ListItem
 
-// RcloneListDir lists contents of a directory specified by the path.
-// Remote path format is "name:bucket/path".
-// Listed item path is relative to the remote path root directory.
+// RcloneListDir returns contents of a directory specified by remotePath.
+// The remotePath is given in the following format "provider:bucket/path".
+// Resulting item path is relative to the remote path.
+//
+// LISTING REMOTE DIRECTORIES IS KNOWN TO BE EXTREMELY SLOW.
+// DO NOT USE THIS FUNCTION FOR ANYTHING BUT A FLAT DIRECTORY LISTING.
+// FOR OTHER NEEDS, OR WHEN THE NUMBER OF FILES CAN BE BIG, USE RcloneListDirIter.
+//
+// This function must execute in the standard Timeout (15s by default) and
+// will be retried if failed.
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*RcloneListDirItem, error) {
-	// Response contains all files available in directory without paging,
-	// default request constraints might be not sufficient to list millions
-	// of files, which may be a case for SSTable directories.
-	// NoTimeout can be removed once we get rid of backup v1 migration.
-	ctx = noTimeout(ctx)
-
-	empty := ""
 	p := operations.OperationsListParams{
 		Context: forceHost(ctx, host),
 		ListOpts: &models.ListOptions{
 			Fs:     &remotePath,
-			Remote: &empty,
+			Remote: pointer.StringPtr(""),
 			Opt:    opts,
 		},
 	}
@@ -319,15 +319,11 @@ type RcloneListDirIterItem struct {
 	Error error
 }
 
-// RcloneListDirIter lists contents of a directory specified by the path.
-// Remote path format is "name:bucket/path".
-// Listed item path is relative to the remote path root directory.
-// When context is canceled error is returned to user.
+// RcloneListDirIter returns contents of a directory specified by remotePath.
+// The remotePath is given in the following format "provider:bucket/path".
+// Resulting item path is relative to the remote path.
 func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) (ch <-chan RcloneListDirIterItem, err error) {
-	// Response contains all files available in directory without paging,
-	// default request constraints might be not sufficient to list millions
-	// of files, which may be a case for SSTable directories.
-	ctx = noTimeout(ctx)
+	ctx = customTimeout(ctx, c.config.ListTimeout)
 
 	// Due to OpenAPI limitations we manually construct and sent the request
 	// object to stream process the response body.

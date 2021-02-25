@@ -29,10 +29,6 @@ func (b body) Close() error {
 // timeout sets request context timeout for individual requests.
 func timeout(next http.RoundTripper, timeout time.Duration) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
-		if ok := hasNoTimeout(req.Context()); ok {
-			return next.RoundTrip(req)
-		}
-
 		d, ok := hasCustomTimeout(req.Context())
 		if !ok {
 			d = timeout

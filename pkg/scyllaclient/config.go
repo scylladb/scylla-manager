@@ -24,6 +24,10 @@ type Config struct {
 	// Timeout specifies time to complete a single request to Scylla REST API
 	// possibly including opening a TCP connection.
 	Timeout time.Duration
+	// ListTimeout specifies maximum time to complete a remote directory listing.
+	// The listing can be recursive, if the number of files is significant such
+	// listing can easily take a couple of hours.
+	ListTimeout time.Duration
 	// Backoff specifies parameters of exponential backoff used when requests
 	// from Scylla Manager to Scylla Agent fail.
 	Backoff BackoffConfig
@@ -51,9 +55,10 @@ type BackoffConfig struct {
 // DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
-		Port:    "10001",
-		Scheme:  "https",
-		Timeout: 15 * time.Second,
+		Port:        "10001",
+		Scheme:      "https",
+		Timeout:     15 * time.Second,
+		ListTimeout: 12 * time.Hour,
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,
 			WaitMax:    30 * time.Second,
@@ -77,6 +82,7 @@ func TestConfig(hosts []string, token string) Config {
 	config.AuthToken = token
 
 	config.Timeout = 5 * time.Second
+	config.ListTimeout = 30 * time.Second
 	config.Backoff.MaxRetries = 2
 	config.Backoff.WaitMin = 200 * time.Millisecond
 
