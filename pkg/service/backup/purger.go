@@ -12,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -24,7 +24,7 @@ type purger struct {
 	Client         *scyllaclient.Client
 	Filter         ListFilter
 	Host           string
-	Location       backup.Location
+	Location       Location
 	ManifestHelper manifestHelper
 	Logger         log.Logger
 }
@@ -54,7 +54,7 @@ func (p *purger) PurgeSnapshot(ctx context.Context, snapshotTag string) error {
 		return service.ErrNotFound
 	}
 
-	isStaleManifest := func(m *backup.RemoteManifest) bool {
+	isStaleManifest := func(m *RemoteManifest) bool {
 		return m.SnapshotTag == snapshotTag
 	}
 
@@ -98,7 +98,7 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 	)
 
 	staleTagsSet := strset.New(staleTags...)
-	isStaleManifest := func(m *backup.RemoteManifest) bool {
+	isStaleManifest := func(m *RemoteManifest) bool {
 		return m.Temporary || staleTagsSet.Has(m.SnapshotTag)
 	}
 
@@ -106,14 +106,14 @@ func (p *purger) PurgeTask(ctx context.Context, taskID uuid.UUID, policy int) er
 }
 
 // loadAllManifests loads manifests belonging to all tasks.
-func (p *purger) loadAllManifests(ctx context.Context, temporary bool) ([]*backup.RemoteManifest, error) {
+func (p *purger) loadAllManifests(ctx context.Context, temporary bool) ([]*RemoteManifest, error) {
 	f := p.Filter
 	f.TaskID = uuid.Nil
 	f.Temporary = temporary
 	return p.ManifestHelper.ListManifests(ctx, f)
 }
 
-func (p *purger) purge(ctx context.Context, manifests []*backup.RemoteManifest, isStaleManifest func(*backup.RemoteManifest) bool) error {
+func (p *purger) purge(ctx context.Context, manifests []*RemoteManifest, isStaleManifest func(*RemoteManifest) bool) error {
 	// Select stale sst files in the form of full path to file.
 	staleFiles := strset.New()
 
@@ -122,7 +122,7 @@ func (p *purger) purge(ctx context.Context, manifests []*backup.RemoteManifest, 
 		staleFiles.Add(path)
 	})
 	// From that remove files from active manifests.
-	isActiveManifest := func(m *backup.RemoteManifest) bool {
+	isActiveManifest := func(m *RemoteManifest) bool {
 		return !isStaleManifest(m)
 	}
 	p.forEachFile(p.filterManifests(manifests, isActiveManifest), func(path string) {
@@ -149,7 +149,7 @@ func (p *purger) purge(ctx context.Context, manifests []*backup.RemoteManifest, 
 	return nil
 }
 
-func (p *purger) filterManifests(manifests []*backup.RemoteManifest, filter func(*backup.RemoteManifest) bool) (out []*backup.RemoteManifest) {
+func (p *purger) filterManifests(manifests []*RemoteManifest, filter func(*RemoteManifest) bool) (out []*RemoteManifest) {
 	for _, m := range manifests {
 		if filter(m) {
 			out = append(out, m)
@@ -158,9 +158,9 @@ func (p *purger) filterManifests(manifests []*backup.RemoteManifest, filter func
 	return
 }
 
-func (p *purger) forEachFile(manifests []*backup.RemoteManifest, callback func(path string)) {
+func (p *purger) forEachFile(manifests []*RemoteManifest, callback func(path string)) {
 	for _, m := range manifests {
-		baseDir := backup.RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
+		baseDir := RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
 		for _, fi := range m.Content.Index {
 			for _, f := range fi.Files {
 				callback(path.Join(baseDir, ssTablePathWithKeyspacePrefix(fi.Keyspace, fi.Table, fi.Version, f)))

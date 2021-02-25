@@ -10,8 +10,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/backup"
-	backupservice "github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 )
 
@@ -43,14 +43,14 @@ func newBackupHandler(services Services) *chi.Mux {
 func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			locations []backup.Location
+			locations []backupspec.Location
 			err       error
 		)
 
 		// Read locations from the request
 		if v := r.FormValue("locations"); v != "" {
 			for _, v := range r.Form["locations"] {
-				var l backup.Location
+				var l backupspec.Location
 				if err := l.UnmarshalText([]byte(v)); err != nil {
 					respondBadRequest(w, r, err)
 					return
@@ -101,7 +101,7 @@ func (h backupHandler) mustSnapshotTagFromCtx(r *http.Request) string {
 	return v
 }
 
-func (h backupHandler) extractLocations(r *http.Request) ([]backup.Location, error) {
+func (h backupHandler) extractLocations(r *http.Request) ([]backupspec.Location, error) {
 	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), scheduler.BackupTask)
 	if err != nil {
 		return nil, err
@@ -115,8 +115,8 @@ func (h backupHandler) extractLocations(r *http.Request) ([]backup.Location, err
 	return h.svc.ExtractLocations(r.Context(), properties), nil
 }
 
-func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backup.Location {
-	v, ok := r.Context().Value(ctxBackupLocations).([]backup.Location)
+func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backupspec.Location {
+	v, ok := r.Context().Value(ctxBackupLocations).([]backupspec.Location)
 	if !ok {
 		panic("missing locations in context")
 	}
@@ -125,7 +125,7 @@ func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backup.Location {
 
 func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		filter := backupservice.ListFilter{
+		filter := backup.ListFilter{
 			Keyspace:    r.Form["keyspace"],
 			SnapshotTag: r.FormValue("snapshot_tag"),
 		}
@@ -159,8 +159,8 @@ func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (h backupHandler) mustListFilterFromCtx(r *http.Request) backupservice.ListFilter {
-	v, ok := r.Context().Value(ctxBackupListFilter).(backupservice.ListFilter)
+func (h backupHandler) mustListFilterFromCtx(r *http.Request) backup.ListFilter {
+	v, ok := r.Context().Value(ctxBackupListFilter).(backup.ListFilter)
 	if !ok {
 		panic("missing filter in context")
 	}

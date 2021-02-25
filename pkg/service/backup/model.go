@@ -12,8 +12,8 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -59,14 +59,14 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units            []Unit            `json:"units,omitempty"`
-	DC               []string          `json:"dc,omitempty"`
-	Location         []backup.Location `json:"location"`
-	Retention        int               `json:"retention"`
-	RateLimit        []DCLimit         `json:"rate_limit"`
-	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit         `json:"upload_parallel"`
-	Continue         bool              `json:"continue"`
+	Units            []Unit     `json:"units,omitempty"`
+	DC               []string   `json:"dc,omitempty"`
+	Location         []Location `json:"location"`
+	Retention        int        `json:"retention"`
+	RateLimit        []DCLimit  `json:"rate_limit"`
+	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit  `json:"upload_parallel"`
+	Continue         bool       `json:"continue"`
 	// liveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
@@ -154,7 +154,7 @@ type Run struct {
 	Units       []Unit
 	DC          []string
 	Nodes       []string
-	Location    []backup.Location
+	Location    []Location
 	StartTime   time.Time
 	Stage       Stage
 
@@ -291,14 +291,14 @@ func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace         []string          `json:"keyspace"`
-	DC               []string          `json:"dc"`
-	Location         []backup.Location `json:"location"`
-	Retention        int               `json:"retention"`
-	RateLimit        []DCLimit         `json:"rate_limit"`
-	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit         `json:"upload_parallel"`
-	Continue         bool              `json:"continue"`
+	Keyspace         []string   `json:"keyspace"`
+	DC               []string   `json:"dc"`
+	Location         []Location `json:"location"`
+	Retention        int        `json:"retention"`
+	RateLimit        []DCLimit  `json:"rate_limit"`
+	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit  `json:"upload_parallel"`
+	Continue         bool       `json:"continue"`
 }
 
 func defaultTaskProperties() taskProperties {

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
@@ -53,18 +53,18 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 	return w.uploadHostManifest(ctx, h, w.createTemporaryManifest(h, tokens))
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *backup.RemoteManifest {
+func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *RemoteManifest {
 	dirs := w.hostSnapshotDirs(h)
 
-	content := backup.ManifestContent{
+	content := ManifestContent{
 		Version:     "v2",
 		ClusterName: w.ClusterName,
 		IP:          h.IP,
-		Index:       make([]backup.FilesMeta, len(dirs)),
+		Index:       make([]FilesMeta, len(dirs)),
 		Tokens:      tokens,
 	}
 	if w.Schema != nil {
-		content.Schema = backup.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+		content.Schema = RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
 	for i, d := range dirs {
@@ -80,7 +80,7 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *backup.Rem
 		content.Size += d.Progress.Size
 	}
 
-	m := &backup.RemoteManifest{
+	m := &RemoteManifest{
 		Location:    h.Location,
 		DC:          h.DC,
 		ClusterID:   w.ClusterID,
@@ -94,7 +94,7 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *backup.Rem
 	return m
 }
 
-func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *backup.RemoteManifest) error {
+func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *RemoteManifest) error {
 	// Get memory buffer for gzip compressed output
 	buf := w.memoryPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -131,8 +131,8 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 		}()
 
 		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
-		dst := h.Location.RemotePath(backup.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
-		src := backup.TempFile(dst)
+		dst := h.Location.RemotePath(RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
+		src := TempFile(dst)
 
 		// Register rollback
 		rollbacks[i] = func(ctx context.Context) error { return w.Client.RcloneMoveFile(ctx, h.IP, src, dst) }

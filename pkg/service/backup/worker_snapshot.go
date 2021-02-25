@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/backup"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
@@ -105,7 +105,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	}()
 
 	for _, t := range tags {
-		if backup.IsSnapshotTag(t) && t != w.SnapshotTag {
+		if IsSnapshotTag(t) && t != w.SnapshotTag {
 			if err := w.Client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err
 			}

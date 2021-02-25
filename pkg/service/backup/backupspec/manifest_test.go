@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package backup
+package backupspec
 
 import (
 	"strings"

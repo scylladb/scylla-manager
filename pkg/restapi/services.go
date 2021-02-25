@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/scylladb/scylla-manager/pkg/backup"
-	backupservice "github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
@@ -51,15 +51,15 @@ type RepairService interface {
 
 // BackupService service interface for the REST API handlers.
 type BackupService interface {
-	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backupservice.Target, error)
-	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backupservice.Target) (int64, error)
-	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backup.Location
-	List(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backupservice.ListFilter) ([]backupservice.ListItem, error)
-	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter backupservice.ListFilter) ([]backup.FilesInfo, error)
-	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backupservice.Progress, error)
-	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, snapshotTag string) error
-	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backupservice.ValidationTarget, error)
-	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backupservice.ValidationResult, error)
+	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.Target, error)
+	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
+	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupspec.Location
+	List(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backup.ListItem, error)
+	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backupspec.FilesInfo, error)
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
+	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, snapshotTag string) error
+	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
+	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationResult, error)
 }
 
 // SchedService service interface for the REST API handlers.

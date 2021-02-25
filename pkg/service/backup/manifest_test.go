@@ -15,8 +15,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -37,9 +37,9 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	n1 := "node1"
 
 	now := timeutc.Now()
-	s0 := backup.SnapshotTagAt(now.Add(1 * time.Hour))
-	s1 := backup.SnapshotTagAt(now.Add(2 * time.Hour))
-	s3 := backup.SnapshotTagAt(now.Add(3 * time.Hour))
+	s0 := SnapshotTagAt(now.Add(1 * time.Hour))
+	s1 := SnapshotTagAt(now.Add(2 * time.Hour))
+	s3 := SnapshotTagAt(now.Add(3 * time.Hour))
 
 	ks0 := "keyspace0"
 	ks1 := "keyspace1"
@@ -50,27 +50,27 @@ func TestAggregateRemoteManifests(t *testing.T) {
 	manifestSize := int64(1024)
 	nodeCount := int64(2)
 
-	var input []*backup.RemoteManifest
+	var input []*RemoteManifest
 
 	// Add product of all the possibilities 2^5 items
 	for _, c := range []uuid.UUID{c0, c1} {
 		for _, n := range []string{n0, n1} {
 			for _, s := range []string{s0, s1} {
-				var idx []backup.FilesMeta
+				var idx []FilesMeta
 				for _, ks := range []string{ks0, ks1} {
 					for _, tb := range []string{tb0, tb1} {
-						idx = append(idx, backup.FilesMeta{
+						idx = append(idx, FilesMeta{
 							Keyspace: ks,
 							Table:    tb,
 						})
 					}
 				}
 
-				m := &backup.RemoteManifest{
+				m := &RemoteManifest{
 					ClusterID:   c,
 					NodeID:      n,
 					SnapshotTag: s,
-					Content: backup.ManifestContent{
+					Content: ManifestContent{
 						Version: "v2",
 						Index:   idx,
 						Size:    manifestSize,
@@ -81,12 +81,12 @@ func TestAggregateRemoteManifests(t *testing.T) {
 		}
 	}
 	// Add extra items
-	input = append(input, &backup.RemoteManifest{
+	input = append(input, &RemoteManifest{
 		ClusterID:   c0,
 		SnapshotTag: s3,
-		Content: backup.ManifestContent{
+		Content: ManifestContent{
 			Version: "v2",
-			Index: []backup.FilesMeta{
+			Index: []FilesMeta{
 				{
 					Keyspace: ks0,
 					Table:    tb0,
@@ -147,23 +147,23 @@ func TestListManifests(t *testing.T) {
 
 	ts := []struct {
 		Name       string
-		Location   backup.Location
+		Location   Location
 		GoldenFile string
 		Filter     ListFilter
 	}{
 		{
 			Name:       "Smoke manifest listing",
-			Location:   backup.Location{Provider: "walker", Path: "list"},
+			Location:   Location{Provider: "walker", Path: "list"},
 			GoldenFile: "testdata/walker/list/golden.json",
 		},
 		{
 			Name:       "Support for v1 and v2 manifest at once",
-			Location:   backup.Location{Provider: "walker", Path: "v1-support"},
+			Location:   Location{Provider: "walker", Path: "v1-support"},
 			GoldenFile: "testdata/walker/v1-support/golden.json",
 		},
 		{
 			Name:       "List only manifests from metadata version file",
-			Location:   backup.Location{Provider: "walker", Path: "version-file"},
+			Location:   Location{Provider: "walker", Path: "version-file"},
 			GoldenFile: "testdata/walker/version-file/golden.json",
 			Filter: ListFilter{
 				ClusterID: uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
@@ -173,7 +173,7 @@ func TestListManifests(t *testing.T) {
 		},
 		{
 			Name:       "List overlapping snapshots",
-			Location:   backup.Location{Provider: "walker", Path: "overlap-snapshots"},
+			Location:   Location{Provider: "walker", Path: "overlap-snapshots"},
 			GoldenFile: "testdata/walker/overlap-snapshots/golden.json",
 			Filter: ListFilter{
 				ClusterID:   uuid.MustParse("45e7257a-fe1d-439b-9759-918f34abf83c"),
@@ -182,7 +182,7 @@ func TestListManifests(t *testing.T) {
 		},
 		{
 			Name:       "List temporary manifests",
-			Location:   backup.Location{Provider: "walker", Path: "temporary"},
+			Location:   Location{Provider: "walker", Path: "temporary"},
 			GoldenFile: "testdata/walker/temporary/with.golden.json",
 			Filter: ListFilter{
 				Temporary: true,
@@ -190,7 +190,7 @@ func TestListManifests(t *testing.T) {
 		},
 		{
 			Name:       "Don't list temporary manifests",
-			Location:   backup.Location{Provider: "walker", Path: "temporary"},
+			Location:   Location{Provider: "walker", Path: "temporary"},
 			GoldenFile: "testdata/walker/temporary/without.golden.json",
 			Filter: ListFilter{
 				Temporary: false,

@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/scylladb/scylla-manager/pkg/backup"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -25,7 +25,7 @@ const (
 )
 
 func remoteManifestLevel(baseDir string) int {
-	a := len(strings.Split(backup.RemoteManifestDir(uuid.Nil, "a", "b"), sep))
+	a := len(strings.Split(RemoteManifestDir(uuid.Nil, "a", "b"), sep))
 	b := len(strings.Split(baseDir, sep))
 	return a - b
 }

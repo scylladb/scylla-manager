@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/pkg/backup"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -109,7 +109,7 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 	}
 
 	return hostsInParallel(hostPerLocation, parallel.NoLimit, func(h hostInfo) error {
-		dst := h.Location.RemotePath(backup.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag))
+		dst := h.Location.RemotePath(RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag))
 		return w.Client.RclonePut(ctx, h.IP, dst, bytes.NewReader(w.Schema.Bytes()), int64(w.Schema.Len()))
 	})
 }

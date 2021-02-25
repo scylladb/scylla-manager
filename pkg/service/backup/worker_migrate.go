@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/backup"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
@@ -70,7 +70,7 @@ func (w *worker) checkV1ToV2MigrationNeeded(ctx context.Context, h hostInfo) (bo
 }
 
 func (w *worker) uploadMetadataVersionFile(ctx context.Context, h hostInfo, version string) error {
-	p := h.Location.RemotePath(backup.RemoteMetaVersionFile(w.ClusterID, h.DC, h.ID))
+	p := h.Location.RemotePath(RemoteMetaVersionFile(w.ClusterID, h.DC, h.ID))
 
 	mv := struct {
 		Version string `json:"version"`
@@ -99,17 +99,17 @@ func (w *worker) migrateHostManifests(ctx context.Context, h hostInfo) error {
 	}
 	w.Logger.Info(ctx, "Found v1 manifests", "host", h.IP, "manifests", len(manifests))
 
-	snapshotMapping := make(map[string]*backup.RemoteManifest)
+	snapshotMapping := make(map[string]*RemoteManifest)
 	for _, m := range manifests {
 		if _, ok := snapshotMapping[m.SnapshotTag]; !ok {
-			snapshotMapping[m.SnapshotTag] = &backup.RemoteManifest{
+			snapshotMapping[m.SnapshotTag] = &RemoteManifest{
 				Location:    m.Location,
 				DC:          m.DC,
 				ClusterID:   m.ClusterID,
 				NodeID:      m.NodeID,
 				TaskID:      m.TaskID,
 				SnapshotTag: m.SnapshotTag,
-				Content: backup.ManifestContent{
+				Content: ManifestContent{
 					IP:          h.IP,
 					ClusterName: w.ClusterName,
 					Version:     "v2",

@@ -7,25 +7,21 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-func NewSnapshotTag() string {
-	return backup.NewSnapshotTag()
-}
-
 func SnapshotTagFromManifestPath(t *testing.T, s string) string {
-	var m backup.RemoteManifest
+	var m RemoteManifest
 	if err := m.ParsePartialPath(s); err != nil {
 		t.Fatal(t)
 	}
 	return m.SnapshotTag
 }
 
-func ParsePartialPath(s string) (backup.RemoteManifest, error) {
-	var m backup.RemoteManifest
+func ParsePartialPath(s string) (RemoteManifest, error) {
+	var m RemoteManifest
 	return m, m.ParsePartialPath(s)
 }
 
@@ -64,8 +60,4 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 
 func (t Target) Hosts() []string {
 	return t.liveNodes.Hosts()
-}
-
-func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
-	return backup.RemoteSSTableVersionDir(clusterID, dc, nodeID, keyspace, table, version)
 }

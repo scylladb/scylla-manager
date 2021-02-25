@@ -8,8 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"go.uber.org/multierr"
 )
 
@@ -31,7 +31,7 @@ func checkDCs(dcAtPos func(int) (string, string), n int, dcMap map[string][]stri
 	return
 }
 
-func checkAllDCsCovered(locations []backup.Location, dcs []string) error {
+func checkAllDCsCovered(locations []Location, dcs []string) error {
 	hasDCs := strset.New()
 	hasDefault := false
 
@@ -56,9 +56,9 @@ func checkAllDCsCovered(locations []backup.Location, dcs []string) error {
 	return nil
 }
 
-func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []backup.Location, rateLimits []DCLimit) ([]hostInfo, error) {
+func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rateLimits []DCLimit) ([]hostInfo, error) {
 	// DC location index
-	dcl := map[string]backup.Location{}
+	dcl := map[string]Location{}
 	for _, l := range locations {
 		dcl[l.DC] = l
 	}
@@ -107,8 +107,8 @@ func sliceContains(str string, items []string) bool {
 
 // filterDCLocations takes list of locations and returns only locations that
 // belong to the provided list of datacenters.
-func filterDCLocations(locations []backup.Location, dcs []string) []backup.Location {
-	var filtered []backup.Location
+func filterDCLocations(locations []Location, dcs []string) []Location {
+	var filtered []Location
 	for _, l := range locations {
 		if l.DC == "" || sliceContains(l.DC, dcs) {
 			filtered = append(filtered, l)
@@ -131,15 +131,15 @@ func filterDCLimits(limits []DCLimit, dcs []string) []DCLimit {
 	return filtered
 }
 
-func extractLocations(properties []json.RawMessage) ([]backup.Location, error) {
+func extractLocations(properties []json.RawMessage) ([]Location, error) {
 	var (
 		m         = strset.New()
-		locations []backup.Location
+		locations []Location
 		errs      error
 	)
 
 	p := struct {
-		Location []backup.Location `json:"location"`
+		Location []Location `json:"location"`
 	}{}
 	for i := range properties {
 		if err := json.Unmarshal(properties[i], &p); err != nil {

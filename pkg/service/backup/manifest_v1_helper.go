@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/pathparser"
@@ -23,7 +23,7 @@ import (
 // V1 means backups taken pre 2.1 release.
 type manifestV1Helper struct {
 	host     string
-	location backup.Location
+	location Location
 	client   *scyllaclient.Client
 	logger   log.Logger
 
@@ -32,7 +32,7 @@ type manifestV1Helper struct {
 
 var _ manifestHelper = &manifestV1Helper{}
 
-func newManifestV1Helper(host string, location backup.Location, client *scyllaclient.Client, logger log.Logger) *manifestV1Helper {
+func newManifestV1Helper(host string, location Location, client *scyllaclient.Client, logger log.Logger) *manifestV1Helper {
 	return &manifestV1Helper{
 		host:     host,
 		location: location,
@@ -43,7 +43,7 @@ func newManifestV1Helper(host string, location backup.Location, client *scyllacl
 
 // ListManifests return list of manifests present under provided location.
 // Manifests are being read in order to collect information about backups.
-func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error) {
+func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*RemoteManifest, error) {
 	h.logger.Info(ctx, "Listing manifests")
 
 	manifestsPaths, err := h.listPaths(ctx, f)
@@ -52,7 +52,7 @@ func (h *manifestV1Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	}
 	h.logger.Debug(ctx, "Found manifests", "manifests", manifestsPaths)
 
-	manifests := make([]*backup.RemoteManifest, len(manifestsPaths))
+	manifests := make([]*RemoteManifest, len(manifestsPaths))
 	for i, mp := range manifestsPaths {
 		manifests[i], err = h.readManifest(ctx, mp)
 		if err != nil {
@@ -78,16 +78,16 @@ func (h *manifestV1Helper) listPaths(ctx context.Context, f ListFilter) ([]strin
 		PruneDir: dirPrune,
 	}
 
-	baseDir := path.Join("backup", string(backup.MetaDirKind))
+	baseDir := path.Join("backup", string(MetaDirKind))
 	if f.ClusterID != uuid.Nil {
 		if f.DC != "" {
 			if f.NodeID != "" {
 				baseDir = h.paths.RemoteMetaNodeDir(f.ClusterID, f.DC, f.NodeID)
 			} else {
-				baseDir = path.Join(backup.RemoteMetaClusterDCDir(f.ClusterID), f.DC)
+				baseDir = path.Join(RemoteMetaClusterDCDir(f.ClusterID), f.DC)
 			}
 		} else {
-			baseDir = backup.RemoteMetaClusterDCDir(f.ClusterID)
+			baseDir = RemoteMetaClusterDCDir(f.ClusterID)
 		}
 	}
 
@@ -158,7 +158,7 @@ func (h *manifestV1Helper) listPaths(ctx context.Context, f ListFilter) ([]strin
 	return allManifests, nil
 }
 
-func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*backup.RemoteManifest, error) {
+func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*RemoteManifest, error) {
 	// Load manifest content
 	m := manifestV1{}
 	if err := m.ParsePartialPath(p); err != nil {
@@ -184,7 +184,7 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*backup.
 		files = append(files, h.allComponents(s)...)
 	}
 
-	return &backup.RemoteManifest{
+	return &RemoteManifest{
 		CleanPath:   m.CleanPath,
 		Location:    h.location,
 		ClusterID:   m.ClusterID,
@@ -192,9 +192,9 @@ func (h *manifestV1Helper) readManifest(ctx context.Context, p string) (*backup.
 		NodeID:      m.NodeID,
 		TaskID:      m.TaskID,
 		SnapshotTag: m.SnapshotTag,
-		Content: backup.ManifestContent{
+		Content: ManifestContent{
 			Version: "v1",
-			Index: []backup.FilesMeta{
+			Index: []FilesMeta{
 				{
 					Keyspace: m.Keyspace,
 					Table:    m.Table,
@@ -222,7 +222,7 @@ func (h *manifestV1Helper) allComponents(s string) []string {
 	}
 }
 
-func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error {
+func (h *manifestV1Helper) DeleteManifest(ctx context.Context, m *RemoteManifest) error {
 	h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
 
 	for _, idx := range m.Content.Index {
@@ -290,7 +290,7 @@ type manifestV1 struct {
 	Version     string
 
 	// Location and Files requires loading manifest.
-	Location      backup.Location
+	Location      Location
 	Files         []string
 	FilesExpanded []string
 }
@@ -317,7 +317,7 @@ func (m *manifestV1) ParsePartialPath(s string) error {
 
 	err := p.Parse(
 		pathparser.Static("backup"),
-		pathparser.Static(string(backup.MetaDirKind)),
+		pathparser.Static(string(MetaDirKind)),
 		pathparser.Static("cluster"),
 		pathparser.ID(&m.ClusterID),
 		pathparser.Static("dc"),
@@ -332,7 +332,7 @@ func (m *manifestV1) ParsePartialPath(s string) error {
 		pathparser.ID(&m.TaskID),
 		pathparser.Static("tag"),
 		func(v string) error {
-			if !backup.IsSnapshotTag(v) {
+			if !IsSnapshotTag(v) {
 				return errors.Errorf("invalid snapshot tag %s", v)
 			}
 			m.SnapshotTag = v
@@ -354,7 +354,7 @@ func (m manifestV1) RemoteManifestFile() string {
 }
 
 func (m manifestV1) RemoteSSTableVersionDir() string {
-	return backup.RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
+	return RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, m.Keyspace, m.Table, m.Version)
 }
 
 type manifestV1Paths struct{}
@@ -362,7 +362,7 @@ type manifestV1Paths struct{}
 func (p manifestV1Paths) RemoteMetaNodeDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return path.Join(
 		"backup",
-		string(backup.MetaDirKind),
+		string(MetaDirKind),
 		"cluster",
 		clusterID.String(),
 		"dc",

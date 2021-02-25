@@ -3,7 +3,7 @@
 package backup
 
 import (
-	"github.com/scylladb/scylla-manager/pkg/backup"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -49,10 +49,10 @@ func pruneSnapshotTag(snapshotTag string, f ListFilter) bool {
 		if f.SnapshotTag != "" {
 			return snapshotTag != f.SnapshotTag
 		}
-		if !f.MinDate.IsZero() && snapshotTag < backup.SnapshotTagAt(f.MinDate) {
+		if !f.MinDate.IsZero() && snapshotTag < SnapshotTagAt(f.MinDate) {
 			return true
 		}
-		if !f.MaxDate.IsZero() && snapshotTag > backup.SnapshotTagAt(f.MaxDate) {
+		if !f.MaxDate.IsZero() && snapshotTag > SnapshotTagAt(f.MaxDate) {
 			return true
 		}
 	}
@@ -61,7 +61,7 @@ func pruneSnapshotTag(snapshotTag string, f ListFilter) bool {
 
 func makeListFilterPruneDirFunc(f ListFilter) func(string) bool {
 	return func(dir string) bool {
-		var m backup.RemoteManifest
+		var m RemoteManifest
 
 		// Discard invalid paths
 		if err := m.ParsePartialPath(dir); err != nil {

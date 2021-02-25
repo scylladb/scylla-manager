@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -44,7 +44,7 @@ func TestWalkerDirsAtLevelN(t *testing.T) {
 
 	w := walker{
 		Host:     scyllaclienttest.TestHost,
-		Location: backup.Location{Provider: "walker", Path: "simple"},
+		Location: Location{Provider: "walker", Path: "simple"},
 		Client:   client,
 	}
 
@@ -75,7 +75,7 @@ func TestWalkerDirsAtLevelNPrune(t *testing.T) {
 
 	w := walker{
 		Host:     scyllaclienttest.TestHost,
-		Location: backup.Location{Provider: "walker", Path: "simple"},
+		Location: Location{Provider: "walker", Path: "simple"},
 		Client:   client,
 		PruneDir: func(dir string) bool {
 			return dir == "c"
@@ -100,8 +100,8 @@ func TestListFilterPruneFunc(t *testing.T) {
 	t.Parallel()
 
 	var (
-		snapshotTag = backup.NewSnapshotTag()
-		dir         = backup.RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), snapshotTag, "dc", "nodeID")
+		snapshotTag = NewSnapshotTag()
+		dir         = RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), snapshotTag, "dc", "nodeID")
 	)
 
 	table := []struct {

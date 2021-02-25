@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -23,7 +23,7 @@ type fileInfo struct {
 	Size int64  `json:"size"`
 }
 
-func aggregateRemoteManifests(manifests []*backup.RemoteManifest) []ListItem {
+func aggregateRemoteManifests(manifests []*RemoteManifest) []ListItem {
 	// Group by Snapshot tag
 	type key struct {
 		ClusterID   uuid.UUID
@@ -165,8 +165,8 @@ func hashSortedUnits(marker string, units []Unit) uint64 {
 }
 
 type manifestHelper interface {
-	ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error)
-	DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error
+	ListManifests(ctx context.Context, f ListFilter) ([]*RemoteManifest, error)
+	DeleteManifest(ctx context.Context, m *RemoteManifest) error
 }
 
 // multiVersionManifestLister allows to list manifests depending on bucket metadata
@@ -176,12 +176,12 @@ type manifestHelper interface {
 // manifests available in location are listed.
 type multiVersionManifestLister struct {
 	host     string
-	location backup.Location
+	location Location
 	client   *scyllaclient.Client
 	helpers  map[string]manifestHelper
 }
 
-func newMultiVersionManifestLister(host string, location backup.Location, client *scyllaclient.Client, logger log.Logger) *multiVersionManifestLister {
+func newMultiVersionManifestLister(host string, location Location, client *scyllaclient.Client, logger log.Logger) *multiVersionManifestLister {
 	return &multiVersionManifestLister{
 		host:     host,
 		location: location,
@@ -193,7 +193,7 @@ func newMultiVersionManifestLister(host string, location backup.Location, client
 	}
 }
 
-func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error) {
+func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFilter) ([]*RemoteManifest, error) {
 	if f.ClusterID != uuid.Nil && f.DC != "" && f.NodeID != "" {
 		version, err := getMetadataVersion(ctx, l.host, l.location, l.client, f.ClusterID, f.DC, f.NodeID)
 		if err != nil {
@@ -216,7 +216,7 @@ func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFi
 		SnapshotTag string
 	}
 
-	manifests := make(map[key][]*backup.RemoteManifest)
+	manifests := make(map[key][]*RemoteManifest)
 
 	for _, lister := range l.helpers {
 		ms, err := lister.ListManifests(ctx, f)
@@ -230,7 +230,7 @@ func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFi
 		}
 	}
 
-	var out []*backup.RemoteManifest
+	var out []*RemoteManifest
 	for k := range manifests {
 		out = append(out, l.removeDuplicates(manifests[k])...)
 	}
@@ -246,7 +246,7 @@ func (l *multiVersionManifestLister) ListManifests(ctx context.Context, f ListFi
 // removeDuplicates scans list of manifests and returns only manifests of the
 // single version with preference for v2.
 // Only manifests from the same node should be provided.
-func (l *multiVersionManifestLister) removeDuplicates(ms []*backup.RemoteManifest) []*backup.RemoteManifest {
+func (l *multiVersionManifestLister) removeDuplicates(ms []*RemoteManifest) []*RemoteManifest {
 	if len(ms) <= 1 {
 		return ms
 	}
@@ -265,7 +265,7 @@ func (l *multiVersionManifestLister) removeDuplicates(ms []*backup.RemoteManifes
 			for j := range ms {
 				if len(ms[j].CleanPath) == v2CleanPathLength {
 					// There should be only one manifest per node in v2.
-					return []*backup.RemoteManifest{ms[j]}
+					return []*RemoteManifest{ms[j]}
 				}
 			}
 		}
@@ -277,8 +277,8 @@ func (l *multiVersionManifestLister) removeDuplicates(ms []*backup.RemoteManifes
 // v2CleanPathLength uses dummy data to parse v2 path and return length of the
 // clean path for the v2 manifest.
 func v2CleanPathLength() int {
-	m := backup.RemoteManifest{}
-	if err := m.ParsePartialPath(backup.RemoteManifestFile(
+	m := RemoteManifest{}
+	if err := m.ParsePartialPath(RemoteManifestFile(
 		uuid.NewTime(), uuid.NewTime(), "sm_20091110230000UTC", "b", "c",
 	)); err != nil {
 		panic(err)
@@ -287,9 +287,9 @@ func v2CleanPathLength() int {
 	return len(m.CleanPath)
 }
 
-func getMetadataVersion(ctx context.Context, host string, location backup.Location, client *scyllaclient.Client,
+func getMetadataVersion(ctx context.Context, host string, location Location, client *scyllaclient.Client,
 	clusterID uuid.UUID, dc, nodeID string) (string, error) {
-	p := location.RemotePath(backup.RemoteMetaVersionFile(clusterID, dc, nodeID))
+	p := location.RemotePath(RemoteMetaVersionFile(clusterID, dc, nodeID))
 	content, err := client.RcloneCat(ctx, host, p)
 	if err != nil {
 		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {

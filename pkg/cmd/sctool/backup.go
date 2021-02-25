@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/spf13/cobra"
@@ -249,7 +249,7 @@ func init() {
 	cmd := backupListCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	fs.Bool("all-clusters", false,
 		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
@@ -353,7 +353,7 @@ func init() {
 	cmd := backupFilesCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	fs.Bool("all-clusters", false,
 		"show backups of all clusters stored in location")
 	fs.StringSliceP("keyspace", "K", nil,
@@ -398,7 +398,7 @@ func init() {
 	cmd := backupDeleteCmd
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
-		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	fs.StringP("snapshot-tag", "T", "", "snapshot `tag` as read from backup listing")
 	requireFlags(cmd, "snapshot-tag")
 	register(cmd, backupCmd)
@@ -443,7 +443,7 @@ func backupFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.StringSlice("dc", nil,
 		"comma-separated `list` of datacenter glob patterns, e.g. 'dc1,!otherdc*' used to specify the DCs to include or exclude from backup")
 	fs.StringSliceP("location", "L", nil,
-		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) // nolint: lll
+		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	fs.Int("retention", 3,
 		"number of backups which are to be stored")
 	fs.StringSlice("rate-limit", nil,

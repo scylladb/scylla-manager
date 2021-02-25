@@ -15,10 +15,10 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
@@ -273,12 +273,13 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 
 // checkLocationsAvailableFromNodes checks if each node has access location for
 // its dataceneter.
-func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client, nodes scyllaclient.NodeStatusInfoSlice, locations []backup.Location) error {
+func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
+	nodes scyllaclient.NodeStatusInfoSlice, locations []Location) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
 
 	// DC location index
-	dcl := map[string]backup.Location{}
+	dcl := map[string]Location{}
 	for _, l := range locations {
 		dcl[l.DC] = l
 	}
@@ -295,7 +296,7 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 	}))
 }
 
-func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l backup.Location) error {
+func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
 	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(""))
 	if err != nil {
 		s.logger.Info(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
@@ -346,7 +347,7 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 // ExtractLocations parses task properties and returns list of locations.
 // Each location is returned once. Same locations with different DCs are
 // assumed equal.
-func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMessage) []backup.Location {
+func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMessage) []Location {
 	l, err := extractLocations(properties)
 	if err != nil {
 		s.logger.Debug(ctx, "Failed to extract some locations", "error", err)
@@ -355,7 +356,7 @@ func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMes
 }
 
 // List returns available snapshots in remote locations.
-func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]ListItem, error) {
+func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]ListItem, error) {
 	s.logger.Info(ctx, "Listing backups",
 		"cluster_id", clusterID,
 		"locations", locations,
@@ -369,7 +370,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []bac
 }
 
 // ListFiles returns info on available backup files based on filtering criteria.
-func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]backup.FilesInfo, error) {
+func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]FilesInfo, error) {
 	s.logger.Info(ctx, "Listing backup files",
 		"cluster_id", clusterID,
 		"locations", locations,
@@ -386,14 +387,14 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 		return nil, err
 	}
 
-	var files []backup.FilesInfo
+	var files []FilesInfo
 	for i := range manifests {
-		files = append(files, backup.MakeFilesInfo(manifests[i], ksf))
+		files = append(files, MakeFilesInfo(manifests[i], ksf))
 	}
 	return files, nil
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, filter ListFilter) ([]*backup.RemoteManifest, error) {
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]*RemoteManifest, error) {
 	// Validate inputs
 	if len(locations) == 0 {
 		return nil, service.ErrValidate(errors.New("empty locations"))
@@ -416,7 +417,7 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []bac
 
 	// List manifests
 	var (
-		manifests []*backup.RemoteManifest
+		manifests []*RemoteManifest
 		mu        sync.Mutex
 	)
 
@@ -538,7 +539,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Generate snapshot tag
 	if run.SnapshotTag == "" {
-		run.SnapshotTag = backup.NewSnapshotTag()
+		run.SnapshotTag = NewSnapshotTag()
 	}
 
 	// Get the cluster client
@@ -710,7 +711,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 	// Check if can continue from prev
 	if s.config.AgeMax > 0 {
-		t, err := backup.SnapshotTagTime(prev.SnapshotTag)
+		t, err := SnapshotTagTime(prev.SnapshotTag)
 		if err != nil {
 			s.logger.Info(ctx, "Starting from scratch: cannot parse snapshot tag form previous run",
 				"snapshot_tag", prev.SnapshotTag,
@@ -900,7 +901,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 }
 
 // DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.
-func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backup.Location, snapshotTag string) error {
+func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTag string) error {
 	s.logger.Debug(ctx, "DeleteSnapshot",
 		"cluster_id", clusterID,
 		"snapshot_tag", snapshotTag,

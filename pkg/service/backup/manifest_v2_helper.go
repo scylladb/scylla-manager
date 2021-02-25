@@ -13,8 +13,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -23,14 +23,14 @@ import (
 // them using provided ListFilter.
 type manifestV2Helper struct {
 	host     string
-	location backup.Location
+	location Location
 	client   *scyllaclient.Client
 	logger   log.Logger
 }
 
 var _ manifestHelper = &manifestV2Helper{}
 
-func newManifestV2Helper(host string, location backup.Location, client *scyllaclient.Client, logger log.Logger) *manifestV2Helper {
+func newManifestV2Helper(host string, location Location, client *scyllaclient.Client, logger log.Logger) *manifestV2Helper {
 	return &manifestV2Helper{
 		host:     host,
 		location: location,
@@ -39,7 +39,7 @@ func newManifestV2Helper(host string, location backup.Location, client *scyllacl
 	}
 }
 
-func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*backup.RemoteManifest, error) {
+func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*RemoteManifest, error) {
 	h.logger.Info(ctx, "Listing manifests")
 
 	manifestsPaths, err := h.listPaths(ctx, f)
@@ -48,7 +48,7 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	}
 	h.logger.Debug(ctx, "Found manifests", "manifests", manifestsPaths)
 
-	manifests := make([]*backup.RemoteManifest, len(manifestsPaths))
+	manifests := make([]*RemoteManifest, len(manifestsPaths))
 	for i, mp := range manifestsPaths {
 		manifests[i], err = h.readManifest(ctx, mp)
 		if err != nil {
@@ -59,7 +59,7 @@ func (h *manifestV2Helper) ListManifests(ctx context.Context, f ListFilter) ([]*
 	return manifests, nil
 }
 
-func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *backup.RemoteManifest) error {
+func (h *manifestV2Helper) DeleteManifest(ctx context.Context, m *RemoteManifest) error {
 	if !m.Temporary {
 		h.logger.Info(ctx, "Delete manifest", "snapshot_tag", m.SnapshotTag)
 	} else {
@@ -85,8 +85,8 @@ func (h *manifestV2Helper) deleteFile(ctx context.Context, path string) error {
 	return err
 }
 
-func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string) (*backup.RemoteManifest, error) {
-	m := &backup.RemoteManifest{}
+func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string) (*RemoteManifest, error) {
+	m := &RemoteManifest{}
 	if err := m.ParsePartialPath(manifestPath); err != nil {
 		return nil, err
 	}
@@ -120,17 +120,17 @@ func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string
 // listPaths return list of paths to manifests present under provided location.
 func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string, error) {
 	// Filter out other clusters to speed up common case
-	baseDir := path.Join("backup", string(backup.MetaDirKind))
+	baseDir := path.Join("backup", string(MetaDirKind))
 
 	if f.ClusterID != uuid.Nil {
 		if f.DC != "" {
 			if f.NodeID != "" {
-				baseDir = backup.RemoteManifestDir(f.ClusterID, f.DC, f.NodeID)
+				baseDir = RemoteManifestDir(f.ClusterID, f.DC, f.NodeID)
 			} else {
-				baseDir = path.Join(backup.RemoteMetaClusterDCDir(f.ClusterID), f.DC)
+				baseDir = path.Join(RemoteMetaClusterDCDir(f.ClusterID), f.DC)
 			}
 		} else {
-			baseDir = backup.RemoteMetaClusterDCDir(f.ClusterID)
+			baseDir = RemoteMetaClusterDCDir(f.ClusterID)
 		}
 	}
 
@@ -183,7 +183,7 @@ func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string
 			if dirPrune(p) {
 				continue
 			}
-			m := &backup.RemoteManifest{}
+			m := &RemoteManifest{}
 
 			// It's unlikely but the list may contain manifests and all its
 			// sibling files, we want to clear everything but the manifests.

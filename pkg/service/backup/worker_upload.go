@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/backup"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
@@ -271,5 +271,5 @@ func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
 }
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
-	return backup.RemoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
+	return RemoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
 }
