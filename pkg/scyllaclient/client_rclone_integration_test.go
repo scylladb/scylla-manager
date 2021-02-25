@@ -9,6 +9,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
@@ -74,13 +75,13 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	Print("Then: Job fails")
-	if !job.Job.Finished || job.Job.Success {
-		t.Log(job.Job)
-		t.Errorf("Expected copy-modified dir job to fail")
+	if fs.GetConfig(nil).Immutable {
+		t.Fatal("Immutable shall be disabled")
 	}
-	if job.Job.Error != "immutable file modified" {
-		t.Errorf("Job error %s, Expected immutable file modified", job.Job.Error)
+	Print("Then: Job ends successfully")
+	if !job.Job.Finished || !job.Job.Success {
+		t.Log(job.Job)
+		t.Errorf("Expected copy-modified dir job to finish successfully")
 	}
 
 	Print("When: Delete dir")
