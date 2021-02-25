@@ -55,10 +55,12 @@ linters:
 issues:
   exclude-use-default: false
   exclude:
+    - at least one file in a package should have a package comment
+    - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
+    - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
     - composite literal uses unkeyed fields
     - exported function `New.+` should have comment or be unexported
     - exported method `.+\.Key` should have comment or be unexported
-    - exported method `Runner.Run` should have comment or be unexported
     - exported method `.+\.MarshalBinary` should have comment or be unexported
     - exported method `.+\.MarshalCQL` should have comment or be unexported
     - exported method `.+\.MarshalText` should have comment or be unexported
@@ -67,13 +69,11 @@ issues:
     - exported method `.+\.UnmarshalCQL` should have comment or be unexported
     - exported method `.+\.UnmarshalText` should have comment or be unexported
     - exported method `.+\.UnmarshalUDT` should have comment or be unexported
+    - exported method `Runner.Run` should have comment or be unexported
     - exported var `Default.+` should have comment or be unexported
-    - Error return value of `.+\.Close` is not checked
-    - Error return value of `net.SplitHostPort` is not checked
-    - Error return value of `strconv.ParseBool` is not checked
-    - should merge variable declaration with assignment on next line
-    - at least one file in a package should have a package comment
     - has json tag but is not exported
-    - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
-    - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
+    - return value of `.+\.Close` is not checked
+    - return value of `net.SplitHostPort` is not checked
+    - return value of `strconv.ParseBool` is not checked
+    - should merge variable declaration with assignment on next line
     - should not use dot imports
