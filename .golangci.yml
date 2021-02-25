@@ -76,3 +76,4 @@ issues:
     - has json tag but is not exported
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
+    - should not use dot imports
