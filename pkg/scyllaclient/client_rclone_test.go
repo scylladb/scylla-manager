@@ -5,6 +5,7 @@ package scyllaclient_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -213,6 +214,13 @@ func TestRcloneCatLimit(t *testing.T) {
 	}
 }
 
+func rcloneListDirIterAppendFunc(files *[]*scyllaclient.RcloneListDirItem) func(item *scyllaclient.RcloneListDirItem) {
+	return func(item *scyllaclient.RcloneListDirItem) {
+		i := *item
+		*files = append(*files, &i)
+	}
+}
+
 func TestRcloneListDir(t *testing.T) {
 	t.Parallel()
 
@@ -261,79 +269,25 @@ func TestRcloneListDir(t *testing.T) {
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
-				files, err := client.RcloneListDir(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
-					t.Fatal("RcloneListDir() diff", diff)
-				}
-			})
-		}
-	})
-}
-
-func TestRcloneListDirIter(t *testing.T) {
-	t.Parallel()
-
-	f := func(file string, isDir bool) scyllaclient.RcloneListDirItem {
-		return scyllaclient.RcloneListDirItem{
-			Path:  file,
-			Name:  path.Base(file),
-			IsDir: isDir,
-		}
-	}
-	opts := cmpopts.IgnoreFields(scyllaclient.RcloneListDirItem{}, "MimeType", "ModTime", "Size")
-
-	table := []struct {
-		Name     string
-		Opts     *scyllaclient.RcloneListDirOpts
-		Expected []scyllaclient.RcloneListDirItem
-	}{
-		{
-			Name:     "default",
-			Expected: []scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir", true)},
-		},
-		{
-			Name:     "recursive",
-			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true},
-			Expected: []scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir", true), f("subdir/file.txt", false)},
-		},
-		{
-			Name:     "recursive files",
-			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, FilesOnly: true},
-			Expected: []scyllaclient.RcloneListDirItem{f("file.txt", false), f("subdir/file.txt", false)},
-		},
-		{
-			Name:     "recursive dirs",
-			Opts:     &scyllaclient.RcloneListDirOpts{Recurse: true, DirsOnly: true},
-			Expected: []scyllaclient.RcloneListDirItem{f("subdir", true)},
-		},
-	}
-
-	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
-	defer closeServer()
-
-	t.Run("group", func(t *testing.T) {
-		for i := range table {
-			test := table[i]
-
-			t.Run(test.Name, func(t *testing.T) {
-				t.Parallel()
-
-				var files []scyllaclient.RcloneListDirItem
-
-				f := func(item *scyllaclient.RcloneListDirItem) {
-					files = append(files, *item)
-				}
-				err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts, f)
-				if err != nil {
-					t.Fatal(err)
+				check := func(t *testing.T, files []*scyllaclient.RcloneListDirItem, err error) {
+					t.Helper()
+					if err != nil {
+						t.Fatal(err)
+					}
+					if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
+						t.Fatal("diff", diff)
+					}
 				}
 
-				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
-					t.Fatal("RcloneListDir() diff", diff)
-				}
+				t.Run("default", func(t *testing.T) {
+					files, err := client.RcloneListDir(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts)
+					check(t, files, err)
+				})
+				t.Run("iter", func(t *testing.T) {
+					var files []*scyllaclient.RcloneListDirItem
+					err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", test.Opts, rcloneListDirIterAppendFunc(&files))
+					check(t, files, err)
+				})
 			})
 		}
 	})
@@ -344,13 +298,23 @@ func TestRcloneListDirNotFound(t *testing.T) {
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
-
 	ctx := context.Background()
 
-	_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/not-found", nil)
-	if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
-		t.Fatal("expected not found")
+	check := func(t *testing.T, err error) {
+		t.Helper()
+		if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+			t.Fatal("expected not found")
+		}
 	}
+
+	t.Run("default", func(t *testing.T) {
+		_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/not-found", nil)
+		check(t, err)
+	})
+	t.Run("iter", func(t *testing.T) {
+		err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/not-found", nil, func(_ *scyllaclient.RcloneListDirItem) {})
+		check(t, err)
+	})
 }
 
 func TestRcloneListDirPermissionDenied(t *testing.T) {
@@ -359,13 +323,23 @@ func TestRcloneListDirPermissionDenied(t *testing.T) {
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t, scyllaclienttest.PathFileMatcher("/agent/rclone/core/stats", "testdata/rclone/stats/permission_denied_error.json"))
 	defer closeServer()
-
 	ctx := context.Background()
 
-	_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", nil)
-	if err == nil || strings.Contains(err.Error(), "permission denied") {
-		t.Fatal("expected error about permission denied, got", err)
+	check := func(t *testing.T, err error) {
+		t.Helper()
+		if err == nil || strings.Contains(err.Error(), "permission denied") {
+			t.Fatal("expected error about permission denied, got", err)
+		}
 	}
+
+	t.Run("default", func(t *testing.T) {
+		_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", nil)
+		check(t, err)
+	})
+	t.Run("iter", func(t *testing.T) {
+		err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", nil, func(_ *scyllaclient.RcloneListDirItem) {})
+		check(t, err)
+	})
 }
 
 func TestRcloneListDirEscapeJail(t *testing.T) {
@@ -438,22 +412,55 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 			t.Run(test.Name, func(t *testing.T) {
 				t.Parallel()
 
-				files, err := client.RcloneListDir(context.Background(), scyllaclienttest.TestHost, test.Path, test.Opts)
-				if test.Error && err == nil {
-					for _, f := range files {
-						t.Log(f)
+				check := func(t *testing.T, files []*scyllaclient.RcloneListDirItem, err error) {
+					t.Helper()
+					if test.Error && err == nil {
+						for _, f := range files {
+							t.Log(f)
+						}
+						t.Fatal("Expected error")
+					} else if !test.Error && err != nil {
+						t.Fatal(err)
 					}
-					t.Fatal("Expected error")
-				} else if !test.Error && err != nil {
-					t.Fatal(err)
+					if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
+						t.Fatal("diff", diff)
+					}
 				}
 
-				if diff := cmp.Diff(files, test.Expected, opts); diff != "" {
-					t.Fatal("RcloneListDir() diff", diff)
-				}
+				t.Run("default", func(t *testing.T) {
+					files, err := client.RcloneListDir(context.Background(), scyllaclienttest.TestHost, test.Path, test.Opts)
+					check(t, files, err)
+				})
+				t.Run("iter", func(t *testing.T) {
+					var files []*scyllaclient.RcloneListDirItem
+					err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, test.Path, test.Opts, rcloneListDirIterAppendFunc(&files))
+					check(t, files, err)
+				})
 			})
 		}
 	})
+}
+
+func TestRcloneListDirIterCancelContext(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var files []scyllaclient.RcloneListDirItem
+	f := func(item *scyllaclient.RcloneListDirItem) {
+		files = append(files, *item)
+		cancel()
+	}
+
+	err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:testdata/rclone/list", nil, f)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("RcloneListDirIter() error %s, expected context cancelation", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("Files = %+v, expected one item", files)
+	}
 }
 
 func TestRcloneDiskUsage(t *testing.T) {
