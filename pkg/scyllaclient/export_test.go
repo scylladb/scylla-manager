@@ -19,6 +19,10 @@ func WithShouldRetryHandler(ctx context.Context, f func(error) *bool) context.Co
 	return withShouldRetryHandler(ctx, f)
 }
 
+func TakeSnapshotShouldRetryHandler(err error) *bool {
+	return takeSnapshotShouldRetryHandler(err)
+}
+
 func PickNRandomHosts(n int, hosts []string) []string {
 	return pickNRandomHosts(n, hosts)
 }

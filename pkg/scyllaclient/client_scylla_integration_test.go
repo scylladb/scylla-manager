@@ -138,6 +138,12 @@ func TestClientSnapshotIntegration(t *testing.T) {
 		t.Fatal("missing snapshot", tag)
 	}
 
+	Print("When: snapshot is taken again with the same tag")
+	Print("Then: nothing happens")
+	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
+		t.Fatal(err)
+	}
+
 	Print("When: snapshot is removed")
 	if err := client.DeleteSnapshot(ctx, host, tag); err != nil {
 		t.Fatal(err)

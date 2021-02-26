@@ -603,9 +603,11 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 
 // TakeSnapshot flushes and takes a snapshot of a keyspace.
 // Multiple keyspaces may have the same tag.
-// Flush is taken care of by Scylla see table::snapshot for details.
+// Flush is taken care of by Scylla, see table::snapshot for details.
+// If snapshot already exists no error is returned.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
 	ctx = customTimeout(ctx, snapshotTimeout)
+	ctx = withShouldRetryHandler(ctx, takeSnapshotShouldRetryHandler)
 
 	var cf *string
 	if len(tables) > 0 {
@@ -618,10 +620,27 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 		Kn:      &keyspace,
 		Cf:      cf,
 	}
-	if _, err := c.scyllaOps.StorageServiceSnapshotsPost(&p); err != nil {
-		return err
+	_, err := c.scyllaOps.StorageServiceSnapshotsPost(&p)
+
+	// Ignore SnapshotAlreadyExists error
+	if err != nil && isSnapshotAlreadyExists(err) {
+		err = nil
 	}
 
+	return err
+}
+
+var snapshotAlreadyExistsRegex = regexp.MustCompile(`snapshot \w+ already exists`)
+
+func isSnapshotAlreadyExists(err error) bool {
+	_, msg := StatusCodeAndMessageOf(err)
+	return snapshotAlreadyExistsRegex.MatchString(msg)
+}
+
+func takeSnapshotShouldRetryHandler(err error) *bool {
+	if isSnapshotAlreadyExists(err) {
+		return pointer.BoolPtr(false)
+	}
 	return nil
 }
 

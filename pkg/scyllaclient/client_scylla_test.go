@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	agentModels "github.com/scylladb/scylla-manager/swagger/gen/agent/models"
 )
 
 func TestClientClusterName(t *testing.T) {
@@ -503,4 +504,24 @@ func TestScyllaFeatures(t *testing.T) {
 	if !sf[scyllaclienttest.TestHost].RepairLongPolling {
 		t.Error("Expected host to support long polling repair")
 	}
+}
+
+func TestTakeSnapshotShouldRetryHandler(t *testing.T) {
+	t.Run("positive", func(t *testing.T) {
+		err := scyllaclienttest.MakeAgentError(agentModels.ErrorResponse{
+			Status:  500,
+			Message: "std::runtime_error (Keyspace system_auth: snapshot test_snap_1614337496 already exists.)",
+		})
+		if b := scyllaclient.TakeSnapshotShouldRetryHandler(err); b == nil || *b {
+			t.Fatalf("TakeSnapshotShouldRetryHandler() = %v, expected false", b)
+		}
+	})
+	t.Run("negative", func(t *testing.T) {
+		err := scyllaclienttest.MakeAgentError(agentModels.ErrorResponse{
+			Status: 500,
+		})
+		if b := scyllaclient.TakeSnapshotShouldRetryHandler(err); b != nil {
+			t.Fatalf("TakeSnapshotShouldRetryHandler() = %v, expected nil", b)
+		}
+	})
 }
