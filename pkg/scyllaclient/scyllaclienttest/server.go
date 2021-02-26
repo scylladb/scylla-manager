@@ -3,6 +3,7 @@
 package scyllaclienttest
 
 import (
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	agentModels "github.com/scylladb/scylla-manager/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 )
 
@@ -100,7 +102,7 @@ func RespondStatus(t *testing.T, statusCodes ...int) http.Handler {
 		if idx >= len(statusCodes) {
 			t.Fatal("Too many requests statusCodes out of range")
 		}
-		w.WriteHeader(statusCodes[idx])
+		writeAgentErrorHeader(t, w, statusCodes[idx])
 	})
 }
 
@@ -113,6 +115,16 @@ func RespondHostStatus(t *testing.T, statusCode map[string]int) http.Handler {
 		if !ok {
 			t.Fatalf("Unexpected host %s", host)
 		}
-		w.WriteHeader(c)
+		writeAgentErrorHeader(t, w, c)
 	})
+}
+
+func writeAgentErrorHeader(t *testing.T, w http.ResponseWriter, statusCode int) {
+	t.Helper()
+	w.WriteHeader(statusCode)
+	if statusCode >= 400 {
+		if err := json.NewEncoder(w).Encode(agentModels.ErrorResponse{Status: int64(statusCode)}); err != nil {
+			t.Fatal("Unexpected Encode error", err)
+		}
+	}
 }
