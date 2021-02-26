@@ -18,6 +18,7 @@ import (
 	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/pkg/util/slice"
 )
 
 func TestClientAuthIntegration(t *testing.T) {
@@ -133,7 +134,7 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !contains(snaps, tag) {
+	if !slice.ContainsString(snaps, tag) {
 		t.Fatal("missing snapshot", tag)
 	}
 
@@ -147,7 +148,7 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contains(snaps, tag) {
+	if slice.ContainsString(snaps, tag) {
 		t.Fatal("snapshot was not deleted", tag)
 	}
 }
@@ -246,13 +247,4 @@ func TestClientTokensIntegration(t *testing.T) {
 			allTokens.Add(v)
 		}
 	}
-}
-
-func contains(v []string, s string) bool {
-	for _, e := range v {
-		if e == s {
-			return true
-		}
-	}
-	return false
 }

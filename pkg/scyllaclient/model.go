@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
 )
 
@@ -178,7 +179,7 @@ func (r Ring) Datacenters() []string {
 func (r Ring) HostTokenRanges(host string) []int64 {
 	var tr []int64
 	for _, t := range r.Tokens {
-		if contains(t.Replicas, host) {
+		if slice.ContainsString(t.Replicas, host) {
 			tr = append(tr, t.StartToken, t.EndToken)
 		}
 	}
@@ -232,18 +233,9 @@ func makeScyllaFeatures(endpointStates []*models.EndpointState) map[string]Scyll
 	sfs := make(map[string]ScyllaFeatures, len(supportedFeatures))
 	for host, sf := range supportedFeatures {
 		sfs[host] = ScyllaFeatures{
-			RowLevelRepair: contains(sf, rowLevelRepair),
+			RowLevelRepair: slice.ContainsString(sf, rowLevelRepair),
 		}
 	}
 
 	return sfs
-}
-
-func contains(v []string, s string) bool {
-	for _, e := range v {
-		if e == s {
-			return true
-		}
-	}
-	return false
 }
