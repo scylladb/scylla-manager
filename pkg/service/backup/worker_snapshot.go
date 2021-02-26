@@ -71,8 +71,8 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 	// Taking a snapshot can be a costly operation. To optimise that clusterwise
 	// we randomise order of taking snapshots (kesypace only!) on different
 	// hosts.
-	for _, uPos := range rand.Perm(len(w.Units)) {
-		u := w.Units[uPos]
+	for _, i := range rand.Perm(len(w.Units)) {
+		u := w.Units[i]
 
 		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "snapshot_tag", w.SnapshotTag)
 		var tables []string
