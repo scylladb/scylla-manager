@@ -16,6 +16,7 @@ const (
 	ctxHost
 	ctxNoRetry
 	ctxCustomTimeout
+	ctxShouldRetryHandler
 )
 
 // Interactive context means that it should be processed fast without too much
@@ -57,4 +58,19 @@ func customTimeout(ctx context.Context, d time.Duration) context.Context {
 func hasCustomTimeout(ctx context.Context) (time.Duration, bool) {
 	v, ok := ctx.Value(ctxCustomTimeout).(time.Duration)
 	return v, ok
+}
+
+// shouldRetryHandlerFunc returns
+// true if error should be retried,
+// false if error is permanent,
+// nil if handler cannot decide.
+type shouldRetryHandlerFunc func(err error) *bool
+
+func withShouldRetryHandler(ctx context.Context, f shouldRetryHandlerFunc) context.Context {
+	return context.WithValue(ctx, ctxShouldRetryHandler, f)
+}
+
+func shouldRetryHandler(ctx context.Context) shouldRetryHandlerFunc {
+	f, _ := ctx.Value(ctxShouldRetryHandler).(shouldRetryHandlerFunc)
+	return f
 }

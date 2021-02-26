@@ -15,6 +15,10 @@ func CustomTimeout(ctx context.Context, d time.Duration) context.Context {
 	return customTimeout(ctx, d)
 }
 
+func WithShouldRetryHandler(ctx context.Context, f func(error) *bool) context.Context {
+	return withShouldRetryHandler(ctx, f)
+}
+
 func PickNRandomHosts(n int, hosts []string) []string {
 	return pickNRandomHosts(n, hosts)
 }

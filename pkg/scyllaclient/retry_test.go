@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 )
 
 func fastRetry(config *scyllaclient.Config) {
@@ -163,6 +164,63 @@ func TestRetryCancelContext(t *testing.T) {
 			}
 			if !errors.Is(err, context.Canceled) {
 				t.Fatalf("NodeInfo() error=%s, expected context.Canceled", err)
+			}
+		})
+	}
+}
+
+func TestRetryShouldRetryHandler(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name               string
+		Handler            http.Handler
+		ShouldRetryHandler func(err error) *bool
+		Error              string
+	}{
+		{
+			Name:    "Always retry",
+			Handler: scyllaclienttest.RespondStatus(t, 400, 400, 400, 400),
+			ShouldRetryHandler: func(err error) *bool {
+				return pointer.BoolPtr(true)
+			},
+			Error: "giving up after 4 attempts: agent [HTTP 400]",
+		},
+		{
+			Name:    "Never retry",
+			Handler: scyllaclienttest.RespondStatus(t, 999, 999, 999, 999),
+			ShouldRetryHandler: func(err error) *bool {
+				return pointer.BoolPtr(false)
+			},
+			Error: "giving up after 1 attempts: agent [HTTP 999]",
+		},
+		{
+			Name:    "Fallback",
+			Handler: scyllaclienttest.RespondStatus(t, 999, 400, 400, 400, 400),
+			ShouldRetryHandler: func(err error) *bool {
+				return nil
+			},
+			Error: "giving up after 2 attempts: agent [HTTP 400]",
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			host, port, closeServer := scyllaclienttest.MakeServer(t, test.Handler)
+			defer closeServer()
+			client := scyllaclienttest.MakeClient(t, host, port, fastRetry)
+
+			ctx := scyllaclient.WithShouldRetryHandler(context.Background(), test.ShouldRetryHandler)
+			_, err := client.NodeInfo(ctx, host)
+			t.Log("NodeInfo() error", err)
+
+			if err == nil || test.Error == "" {
+				t.Error("Expected error")
+			}
+			if !strings.Contains(err.Error(), test.Error) {
+				t.Errorf("Wrong error %s, expected %s", err, test.Error)
 			}
 		})
 	}

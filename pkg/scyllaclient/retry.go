@@ -107,6 +107,14 @@ func (o *retryableOperation) shouldRetry(err error) bool {
 		return false
 	}
 
+	// Check if there is a retry handler attached to the context.
+	// If handler cannot decide move on to the default handler.
+	if h := shouldRetryHandler(o.operation.Context); h != nil {
+		if shouldRetry := h(err); shouldRetry != nil {
+			return *shouldRetry
+		}
+	}
+
 	// Check the response code. We retry on 500-range responses to allow
 	// the server time to recover, as 500's are typically not permanent
 	// errors and may relate to outages on the server side. This will catch
