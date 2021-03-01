@@ -6,7 +6,6 @@ package scyllaclient_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/slice"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
 func TestClientAuthIntegration(t *testing.T) {
@@ -122,7 +122,7 @@ func TestClientSnapshotIntegration(t *testing.T) {
 
 	ctx := context.Background()
 	host := ManagedClusterHost()
-	tag := fmt.Sprint("test_snap_", time.Now().Unix())
+	tag := "sm_" + timeutc.Now().Format("20060102150405") + "UTC"
 
 	Print("When: snapshot is taken")
 	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
