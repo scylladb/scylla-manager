@@ -687,7 +687,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		// Run function
 		return errors.Wrap(f(), strings.ReplaceAll(name, "_", " "))
 	}
-	for _, s := range stageOrder {
+	for _, s := range StageOrder() {
 		if f, ok := stageFunc[s]; ok {
 			if err := execStage(s, f); err != nil {
 				return err
