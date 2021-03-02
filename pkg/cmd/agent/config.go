@@ -73,6 +73,7 @@ func defaultConfig() config {
 
 			DataDirectory: "/var/lib/scylla/data",
 		},
+		S3: rclone.DefaultS3Options(),
 	}
 }
 

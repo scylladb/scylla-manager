@@ -3,10 +3,8 @@
 package rclone
 
 import (
-	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -55,75 +53,19 @@ func MustRegisterLocalDirProvider(name, description, rootDir string) {
 	}
 }
 
-var s3Providers = strset.New(
-	"AWS", "Minio", "Alibaba", "Ceph", "DigitalOcean",
-	"IBMCOS", "Wasabi", "Dreamhost", "Netease", "Other",
-)
-
-// Validate returns error if option values are not set properly.
-func (opts *S3Options) Validate() error {
-	if opts.Endpoint != "" && opts.Provider == "" {
-		return fmt.Errorf("specify provider for the endpoint %s, available providers are: %s", opts.Endpoint, s3Providers)
-	}
-
-	if opts.Provider != "" && !s3Providers.Has(opts.Provider) {
-		return fmt.Errorf("unknown provider: %s", opts.Provider)
-	}
-
-	return nil
-}
-
-const (
-	// In order to reduce memory footprint, by default we allow at most two
-	// concurrent requests.
-	// upload_concurrency * chunk_size gives rough estimate how much upload
-	// buffers will be allocated.
-	defaultUploadConcurrency = 2
-
-	// Default value of 5MB caused that we encountered problems with S3
-	// returning 5xx. In order to reduce number of requests to S3, we are
-	// increasing chunk size by ten times, which should decrease number of
-	// requests by ten times.
-	defaultChunkSize = "50M"
-)
-
 // RegisterS3Provider must be called before server is started.
 // It allows for adding dynamically adding s3 provider named s3.
 func RegisterS3Provider(opts S3Options) error {
 	const name = "s3"
 
+	opts.AutoFill()
 	if err := opts.Validate(); err != nil {
 		return err
-	}
-
-	if opts.Provider == "" {
-		opts.Provider = "AWS"
-	}
-
-	// Auto set region if needed
-	if opts.Region == "" && opts.Endpoint == "" {
-		opts.Region = awsRegionFromMetadataAPI()
-	}
-
-	if opts.UploadConcurrency == "" {
-		opts.UploadConcurrency = strconv.Itoa(defaultUploadConcurrency)
-	}
-
-	if opts.ChunkSize == "" {
-		opts.ChunkSize = defaultChunkSize
 	}
 
 	// Set common properties
 	errs := multierr.Combine(
 		fs.ConfigFileSet(name, "type", "s3"),
-		fs.ConfigFileSet(name, "provider", opts.Provider),
-		fs.ConfigFileSet(name, "env_auth", "true"),
-		fs.ConfigFileSet(name, "disable_checksum", "true"),
-		fs.ConfigFileSet(name, "list_chunk", "200"),
-		// Because of access denied issues with Minio.
-		// see https://github.com/rclone/rclone/issues/4633
-		fs.ConfigFileSet(name, "no_check_bucket", "true"),
-
 		registerProvider(name, opts),
 	)
 	// Check for errors
@@ -136,12 +78,13 @@ func RegisterS3Provider(opts S3Options) error {
 
 // MustRegisterS3Provider calls RegisterS3Provider and panics on error.
 func MustRegisterS3Provider(provider, endpoint, accessKeyID, secretAccessKey string) {
-	if err := RegisterS3Provider(S3Options{
-		Provider:        provider,
-		Endpoint:        endpoint,
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-	}); err != nil {
+	opts := DefaultS3Options()
+	opts.Provider = provider
+	opts.Endpoint = endpoint
+	opts.AccessKeyID = accessKeyID
+	opts.SecretAccessKey = secretAccessKey
+
+	if err := RegisterS3Provider(opts); err != nil {
 		panic(err)
 	}
 }
