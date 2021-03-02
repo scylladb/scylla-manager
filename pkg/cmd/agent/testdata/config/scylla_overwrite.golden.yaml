@@ -86,11 +86,11 @@ azure:
   use_emulator: ""
   endpoint: ""
   upload_cutoff: ""
-  chunk_size: ""
+  chunk_size: 50M
   list_chunk: ""
   access_tier: ""
   archive_tier_delete: ""
-  disable_checksum: ""
+  disable_checksum: "true"
   memory_pool_flush_time: ""
   memory_pool_use_mmap: ""
   encoding: ""

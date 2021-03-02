@@ -73,8 +73,9 @@ func defaultConfig() config {
 
 			DataDirectory: "/var/lib/scylla/data",
 		},
-		S3:  rclone.DefaultS3Options(),
-		GCS: rclone.DefaultGCSOptions(),
+		S3:    rclone.DefaultS3Options(),
+		GCS:   rclone.DefaultGCSOptions(),
+		Azure: rclone.DefaultAzureOptions(),
 	}
 }
 

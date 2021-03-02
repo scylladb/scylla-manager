@@ -103,25 +103,9 @@ func RegisterAzureProvider(opts AzureOptions) error {
 		backend = "azureblob"
 	)
 
-	if opts.ChunkSize == "" {
-		opts.ChunkSize = defaultChunkSize
-	}
+	opts.AutoFill()
 
-	err := multierr.Combine(
-		func() error {
-			if opts.Account != "" && opts.Key != "" {
-				return nil
-			}
-			return fs.ConfigFileSet(name, "use_msi", "true")
-		}(),
-
-		registerProvider(name, backend, opts),
-	)
-	if err != nil {
-		return errors.Wrap(err, "configure provider")
-	}
-
-	return nil
+	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
 
 func registerProvider(name, backend string, options interface{}) error {

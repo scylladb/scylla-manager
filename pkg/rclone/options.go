@@ -88,3 +88,19 @@ func (o *GCSOptions) AutoFill() {
 		}
 	}
 }
+
+// DefaultAzureOptions returns a AzureOptions initialized with default values.
+func DefaultAzureOptions() AzureOptions {
+	return AzureOptions{
+		ChunkSize:       defaultChunkSize,
+		DisableChecksum: "true",
+	}
+}
+
+// AutoFill sets region (if empty) from identity service, it only works when
+// running in AWS.
+func (o *AzureOptions) AutoFill() {
+	if o.Account != "" && o.Key != "" {
+		o.UseMsi = "true"
+	}
+}
