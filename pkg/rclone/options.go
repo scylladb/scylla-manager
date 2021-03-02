@@ -24,6 +24,9 @@ const (
 	// increasing chunk size by ten times, which should decrease number of
 	// requests by ten times.
 	defaultChunkSize = "50M"
+
+	_true  = "true"
+	_false = "false"
 )
 
 var s3Providers = strset.New(
@@ -36,11 +39,11 @@ func DefaultS3Options() S3Options {
 	return S3Options{
 		Provider:        "AWS",
 		ChunkSize:       defaultChunkSize,
-		DisableChecksum: "true",
-		EnvAuth:         "true",
+		DisableChecksum: _true,
+		EnvAuth:         _true,
 		// Because of access denied issues with Minio.
 		// see https://github.com/rclone/rclone/issues/4633
-		NoCheckBucket:     "true",
+		NoCheckBucket:     _true,
 		UploadConcurrency: strconv.Itoa(defaultUploadConcurrency),
 	}
 }
@@ -69,11 +72,11 @@ func (o *S3Options) AutoFill() {
 // DefaultGCSOptions returns a GCSOptions initialized with default values.
 func DefaultGCSOptions() GCSOptions {
 	return GCSOptions{
-		AllowCreateBucket: "false",
+		AllowCreateBucket: _false,
 		// fine-grained buckets, and IAM bucket-level settings for uniform buckets.
 		// each object. Permissions will be controlled by the ACL rules for
-		// This option must be true if we don't want rclone to set permission on
-		BucketPolicyOnly: "true",
+		// This option must be _true if we don't want rclone to set permission on
+		BucketPolicyOnly: _true,
 		ChunkSize:        defaultChunkSize,
 	}
 }
@@ -93,7 +96,7 @@ func (o *GCSOptions) AutoFill() {
 func DefaultAzureOptions() AzureOptions {
 	return AzureOptions{
 		ChunkSize:       defaultChunkSize,
-		DisableChecksum: "true",
+		DisableChecksum: _true,
 	}
 }
 
@@ -101,6 +104,6 @@ func DefaultAzureOptions() AzureOptions {
 // running in AWS.
 func (o *AzureOptions) AutoFill() {
 	if o.Account != "" && o.Key != "" {
-		o.UseMsi = "true"
+		o.UseMsi = _true
 	}
 }
