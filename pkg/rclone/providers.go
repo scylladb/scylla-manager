@@ -56,24 +56,17 @@ func MustRegisterLocalDirProvider(name, description, rootDir string) {
 // RegisterS3Provider must be called before server is started.
 // It allows for adding dynamically adding s3 provider named s3.
 func RegisterS3Provider(opts S3Options) error {
-	const name = "s3"
+	const (
+		name    = "s3"
+		backend = "s3"
+	)
 
 	opts.AutoFill()
 	if err := opts.Validate(); err != nil {
 		return err
 	}
 
-	// Set common properties
-	errs := multierr.Combine(
-		fs.ConfigFileSet(name, "type", "s3"),
-		registerProvider(name, opts),
-	)
-	// Check for errors
-	if errs != nil {
-		return errors.Wrap(errs, "register provider")
-	}
-
-	return nil
+	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
 
 // MustRegisterS3Provider calls RegisterS3Provider and panics on error.
@@ -94,6 +87,7 @@ func MustRegisterS3Provider(provider, endpoint, accessKeyID, secretAccessKey str
 func RegisterGCSProvider(opts GCSOptions) error {
 	const (
 		name               = "gcs"
+		backend            = "gcs"
 		serviceAccountPath = "/etc/scylla-manager-agent/gcs-service-account.json"
 	)
 
@@ -108,7 +102,6 @@ func RegisterGCSProvider(opts GCSOptions) error {
 	}
 
 	err := multierr.Combine(
-		fs.ConfigFileSet(name, "type", name),
 		// Disable bucket creation if it doesn't exists
 		fs.ConfigFileSet(name, "allow_create_bucket", "false"),
 		// This option must be true if we don't want rclone to set permission on
@@ -116,7 +109,7 @@ func RegisterGCSProvider(opts GCSOptions) error {
 		// for fine-grained buckets, and IAM bucket-level settings for uniform buckets.
 		fs.ConfigFileSet(name, "bucket_policy_only", "true"),
 
-		registerProvider(name, opts),
+		registerProvider(name, backend, opts),
 	)
 	if err != nil {
 		return errors.Wrap(err, "configure provider")
@@ -128,14 +121,16 @@ func RegisterGCSProvider(opts GCSOptions) error {
 // RegisterAzureProvider must be called before server is started.
 // It allows for adding dynamically adding gcs provider named gcs.
 func RegisterAzureProvider(opts AzureOptions) error {
-	const name = "azure"
+	const (
+		name    = "azure"
+		backend = "azureblob"
+	)
 
 	if opts.ChunkSize == "" {
 		opts.ChunkSize = defaultChunkSize
 	}
 
 	err := multierr.Combine(
-		fs.ConfigFileSet(name, "type", "azureblob"),
 		func() error {
 			if opts.Account != "" && opts.Key != "" {
 				return nil
@@ -143,7 +138,7 @@ func RegisterAzureProvider(opts AzureOptions) error {
 			return fs.ConfigFileSet(name, "use_msi", "true")
 		}(),
 
-		registerProvider(name, opts),
+		registerProvider(name, backend, opts),
 	)
 	if err != nil {
 		return errors.Wrap(err, "configure provider")
@@ -152,12 +147,17 @@ func RegisterAzureProvider(opts AzureOptions) error {
 	return nil
 }
 
-func registerProvider(name string, options interface{}) error {
+func registerProvider(name, backend string, options interface{}) error {
 	var (
 		m     = reflectx.NewMapper("yaml").FieldMap(reflect.ValueOf(options))
 		extra = []string{"name=" + name}
 		errs  error
 	)
+
+	// Set type
+	errs = multierr.Append(errs, fs.ConfigFileSet(name, "type", backend))
+
+	// Set and log options
 	for key, rval := range m {
 		if s := rval.String(); s != "" {
 			errs = multierr.Append(errs, fs.ConfigFileSet(name, key, s))
