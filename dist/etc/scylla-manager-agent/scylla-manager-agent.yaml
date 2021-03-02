@@ -108,6 +108,9 @@
 #  server_side_encryption:
 #  sse_kms_key_id:
 #
+# The storage class to use when storing new objects in S3.
+#  storage_class:
+#
 # Number of files uploaded concurrently, by default it's 2.
 #  upload_concurrency: 2
 #
@@ -131,6 +134,8 @@
 # if possible, otherwise set path to credentials here.
 #  service_account_file: /etc/scylla-manager-agent/gcs-service-account.json
 #
+# The storage class to use when storing new objects in Google Cloud Storage.
+#  storage_class:
 
 # Backup Microsoft Azure blob storage configuration.
 #
