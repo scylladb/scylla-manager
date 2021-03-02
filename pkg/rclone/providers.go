@@ -86,36 +86,13 @@ func MustRegisterS3Provider(provider, endpoint, accessKeyID, secretAccessKey str
 // It allows for adding dynamically adding gcs provider named gcs.
 func RegisterGCSProvider(opts GCSOptions) error {
 	const (
-		name               = "gcs"
-		backend            = "gcs"
-		serviceAccountPath = "/etc/scylla-manager-agent/gcs-service-account.json"
+		name    = "gcs"
+		backend = "gcs"
 	)
 
-	if opts.ChunkSize == "" {
-		opts.ChunkSize = defaultChunkSize
-	}
+	opts.AutoFill()
 
-	if opts.ServiceAccountFile == "" {
-		if _, err := os.Stat(serviceAccountPath); err == nil {
-			opts.ServiceAccountFile = serviceAccountPath
-		}
-	}
-
-	err := multierr.Combine(
-		// Disable bucket creation if it doesn't exists
-		fs.ConfigFileSet(name, "allow_create_bucket", "false"),
-		// This option must be true if we don't want rclone to set permission on
-		// each object. Permissions will be controlled by the ACL rules
-		// for fine-grained buckets, and IAM bucket-level settings for uniform buckets.
-		fs.ConfigFileSet(name, "bucket_policy_only", "true"),
-
-		registerProvider(name, backend, opts),
-	)
-	if err != nil {
-		return errors.Wrap(err, "configure provider")
-	}
-
-	return nil
+	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
 
 // RegisterAzureProvider must be called before server is started.

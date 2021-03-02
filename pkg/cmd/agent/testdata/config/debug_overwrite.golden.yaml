@@ -65,15 +65,15 @@ gcs:
   anonymous: ""
   object_acl: ""
   bucket_acl: ""
-  bucket_policy_only: ""
+  bucket_policy_only: "true"
   location: ""
   storage_class: ""
   encoding: ""
   memory_pool_flush_time: ""
   memory_pool_use_mmap: ""
-  chunk_size: ""
+  chunk_size: 50M
   list_chunk: ""
-  allow_create_bucket: ""
+  allow_create_bucket: "false"
 azure:
   account: ""
   service_principal_file: ""

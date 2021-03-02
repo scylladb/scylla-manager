@@ -4,6 +4,7 @@ package rclone
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/scylladb/go-set/strset"
@@ -62,5 +63,28 @@ func (o *S3Options) Validate() error {
 func (o *S3Options) AutoFill() {
 	if o.Region == "" && o.Endpoint == "" {
 		o.Region = awsRegionFromMetadataAPI()
+	}
+}
+
+// DefaultGCSOptions returns a GCSOptions initialized with default values.
+func DefaultGCSOptions() GCSOptions {
+	return GCSOptions{
+		AllowCreateBucket: "false",
+		// fine-grained buckets, and IAM bucket-level settings for uniform buckets.
+		// each object. Permissions will be controlled by the ACL rules for
+		// This option must be true if we don't want rclone to set permission on
+		BucketPolicyOnly: "true",
+		ChunkSize:        defaultChunkSize,
+	}
+}
+
+// AutoFill sets ServiceAccountFile if the default file exists.
+func (o *GCSOptions) AutoFill() {
+	const defaultServiceAccountFile = "/etc/scylla-manager-agent/gcs-service-account.json"
+
+	if o.ServiceAccountFile == "" {
+		if _, err := os.Stat(defaultServiceAccountFile); err == nil {
+			o.ServiceAccountFile = defaultServiceAccountFile
+		}
 	}
 }
