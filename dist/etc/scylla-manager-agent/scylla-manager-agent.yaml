@@ -40,7 +40,7 @@
 #  api_address: 0.0.0.0
 #  api_port: 10000
 
-# Backup S3 client configuration.
+# Backup S3 configuration.
 #
 # Note that when running in AWS Scylla Manger Agent can read hosts IAM role.
 # It's recommended to define access rules based on IAM roles.
@@ -111,20 +111,11 @@
 # Number of files uploaded concurrently, by default it's 2.
 #  upload_concurrency: 2
 #
-# Maximum size (in bytes) of body of single request to S3 when uploading
-# big files. Big files are cut into chunks, this value allows to specify
-# how much data single request to S3 can carry.
-# Bigger value allows to reduce number of requests needed to upload files,
-# increasing it may help with 5xx responses returned by S3.
-# Default value is 50M and string representation of the value can be provided,
-# for e.g. 1M, 1G, off.
-#  chunk_size: 50M
-#
 # AWS S3 Transfer acceleration
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
 #  use_accelerate_endpoint: false
 
-# Backup GCS client configuration.
+# Backup GCS configuration.
 #
 # Note that when running in GCP Scylla Manger Agent can use instance
 # Service Account. It's recommended to define access rules based on IAM roles
@@ -140,16 +131,8 @@
 # if possible, otherwise set path to credentials here.
 #  service_account_file: /etc/scylla-manager-agent/gcs-service-account.json
 #
-# Maximum size (in bytes) of body of single request to GCS when uploading files.
-# Files are cut into chunks, this value allows to specify how much data
-# single request to GCS can carry. Bigger value allows to reduce number of
-# requests needed to upload files, increasing it may help with rate limiting
-# responses from GCS.
-# Default value is 50M and string representation of the value can be provided,
-# for e.g. 1M, 1G, off.
-#  chunk_size: 50M
 
-# Client configuration for Microsoft Azure storage blob service.
+# Backup Microsoft Azure blob storage configuration.
 #
 # Access can be provided with account/key pair but it is recommended to use
 # Azure RBAC to the backup storage with IAM policy defined.
@@ -191,11 +174,3 @@
 #  account:
 # Storage account authentication key.
 #  key:
-# Maximum size (in bytes) of body of single request to GCS when uploading files.
-# Files are cut into chunks, this value allows to specify how much data
-# single request to GCS can carry. Bigger value allows to reduce number of
-# requests needed to upload files, increasing it may help with rate limiting
-# responses from GCS.
-# Default value is 50M and string representation of the value can be provided,
-# for e.g. 1M, 1G, off.
-#  chunk_size: 50M
