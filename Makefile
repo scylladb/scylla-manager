@@ -34,7 +34,8 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 .PHONY: .check-copyright
 .check-copyright:
 	@set -e; for f in `$(GOFILES)`; do \
-		[[ $$f =~ /mock_.*_test[.]go ]] || \
+		[[ $$f =~ /mock_.*_test\.go ]] || \
+		[[ $$f =~ _gen\.go ]] || \
 		[[ `head -n 1 $$f` =~ '// Copyright (C) ' ]] || \
 		(echo $$f; false); \
 	done

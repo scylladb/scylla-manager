@@ -2,8 +2,9 @@ run:
   deadline: 5m
   tests: false
   skip-files:
-    - mock_.*\.go$
+    - _gen\.go$
     - _string\.go$
+    - mock_.*\.go$
   silent: true
 
 linters-settings:
