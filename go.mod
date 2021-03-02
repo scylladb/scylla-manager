@@ -39,6 +39,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
+	github.com/stoewer/go-strcase v1.2.0
 	go.uber.org/atomic v1.7.0
 	go.uber.org/config v1.4.0
 	go.uber.org/goleak v1.0.0

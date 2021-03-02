@@ -55,21 +55,6 @@ func MustRegisterLocalDirProvider(name, description, rootDir string) {
 	}
 }
 
-// S3Options represents a selected subset of rclone S3 backend options for
-// togged with yaml for inclusion in config objects.
-type S3Options struct {
-	AccessKeyID           string `yaml:"access_key_id"`
-	SecretAccessKey       string `yaml:"secret_access_key"`
-	Provider              string `yaml:"provider"`
-	Region                string `yaml:"region"`
-	Endpoint              string `yaml:"endpoint"`
-	ServerSideEncryption  string `yaml:"server_side_encryption"`
-	SSEKMSKeyID           string `yaml:"sse_kms_key_id"`
-	UploadConcurrency     string `yaml:"upload_concurrency"`
-	ChunkSize             string `yaml:"chunk_size"`
-	UseAccelerateEndpoint string `yaml:"use_accelerate_endpoint"`
-}
-
 var s3Providers = strset.New(
 	"AWS", "Minio", "Alibaba", "Ceph", "DigitalOcean",
 	"IBMCOS", "Wasabi", "Dreamhost", "Netease", "Other",
@@ -161,13 +146,6 @@ func MustRegisterS3Provider(provider, endpoint, accessKeyID, secretAccessKey str
 	}
 }
 
-// GCSOptions represents a selected subset of rclone GCS backend options for
-// togged with yaml for inclusion in config objects.
-type GCSOptions struct {
-	ServiceAccountFile string `yaml:"service_account_file"`
-	ChunkSize          string `yaml:"chunk_size"`
-}
-
 // RegisterGCSProvider must be called before server is started.
 // It allows for adding dynamically adding gcs provider named gcs.
 func RegisterGCSProvider(opts GCSOptions) error {
@@ -202,14 +180,6 @@ func RegisterGCSProvider(opts GCSOptions) error {
 	}
 
 	return nil
-}
-
-// AzureOptions represents a selected subset of rclone Azure backend options
-// for togged with yaml for inclusion in config objects.
-type AzureOptions struct {
-	Account   string `yaml:"account"`
-	Key       string `yaml:"key"`
-	ChunkSize string `yaml:"chunk_size"`
 }
 
 // RegisterAzureProvider must be called before server is started.
