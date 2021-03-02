@@ -28,21 +28,9 @@ func RegisterLocalDirProvider(name, description, rootDir string) error {
 	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
 		return errors.Wrapf(err, "register local dir provider %s", rootDir)
 	}
-
 	localdir.Init(name, description, rootDir)
 
-	errs := multierr.Combine(
-		fs.ConfigFileSet(name, "type", name),
-		fs.ConfigFileSet(name, "disable_checksum", "true"),
-	)
-	if errs != nil {
-		return errors.Wrapf(errs, "register localdir provider %s", name)
-	}
-	fs.Infof(nil, "registered localdir provider [name=%s, root=%s]", name, rootDir)
-
-	providers.Add(name)
-
-	return nil
+	return errors.Wrap(registerProvider(name, name, LocalOptions{}), "register provider")
 }
 
 // MustRegisterLocalDirProvider calls RegisterLocalDirProvider and panics on
