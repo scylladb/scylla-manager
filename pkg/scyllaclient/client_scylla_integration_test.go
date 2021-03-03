@@ -60,7 +60,6 @@ func TestClientStatusIntegration(t *testing.T) {
 }
 
 func TestClientRepairStatusIntegration(t *testing.T) {
-	t.Skip("This test is skipped because the longpolling API is broken see #2502")
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
