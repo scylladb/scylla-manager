@@ -175,8 +175,13 @@ type FilesMeta struct {
 // MakeFilesInfo creates new files info from the provided manifest with applied
 // filter.
 func MakeFilesInfo(m *RemoteManifest, filter *ksfilter.Filter) FilesInfo {
+	// Clear DC from location. DC part litters files listing and makes it
+	// incompatible with other tools like AWS cli.
+	l := m.Location
+	l.DC = ""
+
 	fi := FilesInfo{
-		Location: m.Location,
+		Location: l,
 		Schema:   m.Content.Schema,
 	}
 
