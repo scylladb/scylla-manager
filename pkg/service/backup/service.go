@@ -166,6 +166,22 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	if err != nil {
 		return t, errors.Wrapf(err, "read keyspaces")
 	}
+
+	// Always backup system_schema.
+	//
+	// Some schema changes, like dropping columns, are applied lazily to
+	// sstables during compaction. Information about those schema changes is
+	// recorded in the system schema tables, but not in the output of "desc schema".
+	// Using output of "desc schema" is not enough to restore all schema changes.
+	// As a result, writes in sstables may be incorrectly interpreted.
+	// For example, writes of deleted columns which were later recreated may be
+	// resurrected.
+	systemSchemaUnit := Unit{
+		Keyspace: systemSchema,
+		// Tables are added later
+		AllTables: true,
+	}
+
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
@@ -191,8 +207,12 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		// Collect ring information
 		rings[keyspace] = ring
 
-		// Add to the filter
-		f.Add(keyspace, tables)
+		// Do not filter system_schema
+		if keyspace == systemSchema {
+			systemSchemaUnit.Tables = tables
+		} else {
+			f.Add(keyspace, tables)
+		}
 	}
 
 	// Get the filtered units
@@ -201,15 +221,15 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, err
 	}
 
-	// Copy units
+	// Copy units and add system_schema by the end.
 	for _, u := range v {
-		uu := Unit{
+		t.Units = append(t.Units, Unit{
 			Keyspace:  u.Keyspace,
 			Tables:    u.Tables,
 			AllTables: u.AllTables,
-		}
-		t.Units = append(t.Units, uu)
+		})
 	}
+	t.Units = append(t.Units, systemSchemaUnit)
 
 	// Get live nodes
 	t.liveNodes, err = s.getLiveNodes(ctx, client, t, rings)

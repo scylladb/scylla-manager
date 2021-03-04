@@ -13,8 +13,19 @@
       "keyspace": "system_distributed",
       "tables": [
         "view_build_status",
-        "cdc_generations",
-        "cdc_streams"
+        "cdc_streams",
+        "cdc_generations"
+      ],
+      "all_tables": true
+    },
+    {
+      "keyspace": "system_traces",
+      "tables": [
+        "sessions",
+        "node_slow_log_time_idx",
+        "sessions_time_idx",
+        "events",
+        "node_slow_log"
       ],
       "all_tables": true
     },
@@ -23,28 +34,17 @@
       "tables": [
         "functions",
         "types",
-        "dropped_columns",
-        "view_virtual_columns",
-        "triggers",
         "columns",
         "scylla_tables",
+        "view_virtual_columns",
         "views",
+        "triggers",
         "indexes",
         "computed_columns",
         "tables",
+        "keyspaces",
         "aggregates",
-        "keyspaces"
-      ],
-      "all_tables": true
-    },
-    {
-      "keyspace": "system_traces",
-      "tables": [
-        "sessions",
-        "sessions_time_idx",
-        "node_slow_log_time_idx",
-        "events",
-        "node_slow_log"
+        "dropped_columns"
       ],
       "all_tables": true
     }

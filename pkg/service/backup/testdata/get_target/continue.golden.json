@@ -19,32 +19,32 @@
       "all_tables": true
     },
     {
-      "keyspace": "system_schema",
+      "keyspace": "system_traces",
       "tables": [
-        "functions",
-        "view_virtual_columns",
-        "triggers",
-        "tables",
-        "types",
-        "scylla_tables",
-        "indexes",
-        "computed_columns",
-        "aggregates",
-        "views",
-        "keyspaces",
-        "dropped_columns",
-        "columns"
+        "sessions",
+        "sessions_time_idx",
+        "node_slow_log_time_idx",
+        "events",
+        "node_slow_log"
       ],
       "all_tables": true
     },
     {
-      "keyspace": "system_traces",
+      "keyspace": "system_schema",
       "tables": [
-        "sessions",
-        "node_slow_log",
-        "sessions_time_idx",
-        "node_slow_log_time_idx",
-        "events"
+        "functions",
+        "types",
+        "columns",
+        "scylla_tables",
+        "view_virtual_columns",
+        "views",
+        "triggers",
+        "indexes",
+        "computed_columns",
+        "tables",
+        "keyspaces",
+        "aggregates",
+        "dropped_columns"
       ],
       "all_tables": true
     }

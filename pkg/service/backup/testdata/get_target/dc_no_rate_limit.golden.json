@@ -4,8 +4,8 @@
       "keyspace": "system_auth",
       "tables": [
         "role_members",
-        "role_permissions",
-        "roles"
+        "roles",
+        "role_permissions"
       ],
       "all_tables": true
     },
@@ -13,8 +13,19 @@
       "keyspace": "system_distributed",
       "tables": [
         "view_build_status",
-        "cdc_generations",
-        "cdc_streams"
+        "cdc_streams",
+        "cdc_generations"
+      ],
+      "all_tables": true
+    },
+    {
+      "keyspace": "system_traces",
+      "tables": [
+        "sessions",
+        "sessions_time_idx",
+        "node_slow_log_time_idx",
+        "events",
+        "node_slow_log"
       ],
       "all_tables": true
     },
@@ -28,23 +39,12 @@
         "scylla_tables",
         "triggers",
         "indexes",
-        "computed_columns",
         "tables",
         "keyspaces",
         "views",
+        "computed_columns",
         "aggregates",
         "dropped_columns"
-      ],
-      "all_tables": true
-    },
-    {
-      "keyspace": "system_traces",
-      "tables": [
-        "node_slow_log",
-        "sessions",
-        "sessions_time_idx",
-        "node_slow_log_time_idx",
-        "events"
       ],
       "all_tables": true
     }

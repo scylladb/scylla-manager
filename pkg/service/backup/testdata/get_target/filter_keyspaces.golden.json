@@ -8,6 +8,25 @@
         "role_permissions"
       ],
       "all_tables": true
+    },
+    {
+      "keyspace": "system_schema",
+      "tables": [
+        "columns",
+        "functions",
+        "types",
+        "view_virtual_columns",
+        "scylla_tables",
+        "triggers",
+        "indexes",
+        "tables",
+        "keyspaces",
+        "views",
+        "computed_columns",
+        "aggregates",
+        "dropped_columns"
+      ],
+      "all_tables": true
     }
   ],
   "dc": [
