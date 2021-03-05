@@ -71,24 +71,26 @@ var benchmarkCmd = &cobra.Command{
 				return errors.Wrap(err, "listing scenarios")
 			}
 			for _, match := range matches {
-				scenarioPath, err := filepath.Abs(match)
+				dir, err := filepath.Abs(match)
 				if err != nil {
 					return errors.Wrapf(err, "absolute path %s", match)
 				}
-				s, err := b.StartScenario(ctx, scenarioPath)
+				s, err := b.StartScenario(ctx, dir)
 				if err != nil {
-					return errors.Wrap(err, "benchmark "+benchmarkArgs.location)
+					return errors.Wrapf(err, "benchmark %s", dir)
 				}
-				fmt.Fprintln(w, s.String())
+				if _, err := s.WriteTo(w); err != nil {
+					return errors.Wrapf(err, "summary %s", dir)
+				}
 
 				if benchmarkArgs.memProfileDir != "" {
 					err := os.MkdirAll(benchmarkArgs.memProfileDir, 0755)
 					if err != nil {
 						return errors.Wrap(err, "create memory profile dir")
 					}
-					name := benchmarkArgs.location + "_" + path.Base(scenarioPath)
+					name := benchmarkArgs.location + "_" + path.Base(dir)
 					if err := writeProfile(benchmarkArgs.memProfileDir, name); err != nil {
-						logger.Error(ctx, "Writing memory profile", "error", err)
+						return errors.Wrap(err, "write memory profile")
 					}
 				}
 			}

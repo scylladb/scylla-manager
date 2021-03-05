@@ -5,9 +5,10 @@ package bench
 import (
 	"context"
 	"fmt"
+	"io"
+	"path"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -24,15 +25,13 @@ import (
 // Scenario contains memory stats recorded at the scenario start, end, and
 // overall peak for the duration of the scenario.
 type Scenario struct {
-	Name        string
-	StartedAt   time.Time
-	CompletedAt time.Time
-	StartMemory memoryStats
-	EndMemory   memoryStats
-	Err         error
-
-	mu         sync.Mutex
-	peakMemory memoryStats
+	name        string
+	startedAt   time.Time
+	completedAt time.Time
+	startMemory memoryStats
+	endMemory   memoryStats
+	maxMemory   memoryStats
+	err         error
 
 	done chan struct{}
 }
@@ -40,93 +39,80 @@ type Scenario struct {
 // StartScenario starts recording stats for a new benchmarking scenario.
 func StartScenario(name string) *Scenario {
 	ms := readMemoryStats()
-	ss := Scenario{
-		Name:        name,
-		StartedAt:   timeutc.Now(),
-		StartMemory: ms,
+
+	s := Scenario{
+		name:        name,
+		startedAt:   timeutc.Now(),
+		startMemory: ms,
+		maxMemory:   ms,
 		done:        make(chan struct{}),
 	}
-	// Observe peak memory usage.
-	go ss.updatePeakMemory()
+	go s.observeMemory()
 
-	return &ss
+	return &s
 }
 
-func (ss *Scenario) updatePeakMemory() {
-	const peakMemoryCheckInterval = 50 * time.Millisecond
+func (s *Scenario) observeMemory() {
+	const interval = 300 * time.Millisecond
 	func() {
-		t := time.NewTicker(peakMemoryCheckInterval)
+		t := time.NewTicker(interval)
 		defer t.Stop()
 		for {
 			select {
 			case <-t.C:
-			case <-ss.done:
+			case <-s.done:
 				return
 			}
-			ms := readMemoryStats()
-			ss.mu.Lock()
-			if ss.peakMemory.HeapInuse < ms.HeapInuse {
-				ss.peakMemory.HeapInuse = ms.HeapInuse
-			}
-			if ss.peakMemory.HeapIdle < ms.HeapIdle {
-				ss.peakMemory.HeapIdle = ms.HeapIdle
-			}
-			if ss.peakMemory.Alloc < ms.Alloc {
-				ss.peakMemory.Alloc = ms.Alloc
-			}
-			if ss.peakMemory.TotalAlloc < ms.TotalAlloc {
-				ss.peakMemory.TotalAlloc = ms.TotalAlloc
-			}
-			if ss.peakMemory.Sys < ms.Sys {
-				ss.peakMemory.Sys = ms.Sys
-			}
-			if ss.peakMemory.ResidentMemory < ms.ResidentMemory {
-				ss.peakMemory.ResidentMemory = ms.ResidentMemory
-			}
-			if ss.peakMemory.VirtualMemory < ms.VirtualMemory {
-				ss.peakMemory.VirtualMemory = ms.VirtualMemory
-			}
-			ss.mu.Unlock()
+			s.maxMemory.max(readMemoryStats())
 		}
 	}()
 }
 
 // EndScenario finishes recording stats for benchmarking scenario.
 // Must be called after scenario is done to release resources.
-func (ss *Scenario) EndScenario() {
-	close(ss.done)
-	ss.EndMemory = readMemoryStats()
-	ss.CompletedAt = timeutc.Now()
+func (s *Scenario) EndScenario() {
+	s.completedAt = timeutc.Now()
+
+	close(s.done)
+	ms := readMemoryStats()
+	s.endMemory = ms
+	s.maxMemory.max(ms)
 }
 
-func (ss *Scenario) String() string {
-	var b strings.Builder
+// WriteTo prints a textual report of the memory usage in the scenario.
+// It must be called after EndScenario.
+func (s *Scenario) WriteTo(w io.Writer) (int64, error) {
+	b := &strings.Builder{}
 
-	fmt.Fprintln(&b, "Scenario:	", ss.Name)
-	if ss.Err != nil {
-		fmt.Fprintln(&b, "Err:	", ss.Err)
-	} else {
-		fmt.Fprintln(&b, "Duration:	", ss.CompletedAt.Sub(ss.StartedAt))
-		fmt.Fprintln(&b, "StartMemory:	", ss.StartMemory)
-		fmt.Fprintln(&b, "EndMemory:	", ss.EndMemory)
-		ss.mu.Lock()
-		if ss.peakMemory.ResidentMemory > 0 {
-			fmt.Fprintln(&b, "PeakMemory:	", ss.peakMemory)
-		}
-		ss.mu.Unlock()
+	fmt.Fprintf(b, "Scenario:\t%s\n", path.Base(s.name))
+	if s.err != nil {
+		fmt.Fprintf(b, "Error:\t%s\n", s.err)
 	}
+	fmt.Fprintf(b, "Duration:\t%s\n", s.completedAt.Sub(s.startedAt))
+	fmt.Fprintf(b, "HeapInuse:\t%d/%d/%d MiB\n", bToMb(s.startMemory.HeapInuse), bToMb(s.endMemory.HeapInuse), bToMb(s.maxMemory.HeapInuse))
+	fmt.Fprintf(b, "Alloc:\t\t%d/%d/%d MiB\n", bToMb(s.startMemory.Alloc), bToMb(s.endMemory.Alloc), bToMb(s.maxMemory.Alloc))
+	fmt.Fprintf(b, "TotalAlloc:\t%d/%d/%d MiB\n", bToMb(s.startMemory.TotalAlloc), bToMb(s.endMemory.TotalAlloc), bToMb(s.maxMemory.TotalAlloc))
+	fmt.Fprintf(b, "Sys:\t\t%d/%d/%d MiB\n", bToMb(s.startMemory.Sys), bToMb(s.endMemory.Sys), bToMb(s.maxMemory.Sys))
+	fmt.Fprintf(b, "Resident:\t%d/%d/%d MiB\n", bToMb(s.startMemory.Resident), bToMb(s.endMemory.Resident), bToMb(s.maxMemory.Resident))
+	fmt.Fprintf(b, "Virtual:\t%d/%d/%d MiB\n", bToMb(s.startMemory.Virtual), bToMb(s.endMemory.Virtual), bToMb(s.maxMemory.Virtual))
 
-	return b.String()
+	n, err := w.Write([]byte(b.String()))
+	return int64(n), err
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }
 
 type memoryStats struct {
-	HeapInuse      uint64
-	HeapIdle       uint64
-	Alloc          uint64
-	TotalAlloc     uint64
-	Sys            uint64
-	ResidentMemory uint64
-	VirtualMemory  uint64
+	HeapInuse  uint64
+	HeapIdle   uint64
+	Alloc      uint64
+	TotalAlloc uint64
+	Sys        uint64
+
+	Resident uint64
+	Virtual  uint64
 }
 
 func readMemoryStats() memoryStats {
@@ -141,41 +127,40 @@ func readMemoryStats() memoryStats {
 		Sys:        m.Sys,
 	}
 
-	p, err := procfs.Self()
-	// Failure to read memory will be manifested as ResidentMemory = 0.
-	if err == nil {
+	// Failure to read memory will be manifested as Resident = 0.
+	if p, err := procfs.Self(); err == nil {
 		stat, err := p.Stat()
 		if err == nil {
-			ms.ResidentMemory = uint64(stat.ResidentMemory())
-			ms.VirtualMemory = uint64(stat.VirtualMemory())
+			ms.Resident = uint64(stat.ResidentMemory())
+			ms.Virtual = uint64(stat.VirtualMemory())
 		}
 	}
 
 	return ms
 }
 
-func (ms memoryStats) String() string {
-	tmp := "HeapInuse:%dM,	" +
-		"HeapIdle:%dM,	" +
-		"Alloc:%dM,	" +
-		"TotalAlloc:%dM,	" +
-		"Sys:%dM,	" +
-		"Resident:%dM,	" +
-		"Virtual:%dM"
-
-	return fmt.Sprintf(tmp,
-		bToMb(ms.HeapInuse),
-		bToMb(ms.HeapIdle),
-		bToMb(ms.Alloc),
-		bToMb(ms.TotalAlloc),
-		bToMb(ms.Sys),
-		bToMb(ms.ResidentMemory),
-		bToMb(ms.VirtualMemory),
-	)
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
+func (ms *memoryStats) max(v memoryStats) {
+	if ms.HeapInuse < v.HeapInuse {
+		ms.HeapInuse = v.HeapInuse
+	}
+	if ms.HeapIdle < v.HeapIdle {
+		ms.HeapIdle = v.HeapIdle
+	}
+	if ms.Alloc < v.Alloc {
+		ms.Alloc = v.Alloc
+	}
+	if ms.TotalAlloc < v.TotalAlloc {
+		ms.TotalAlloc = v.TotalAlloc
+	}
+	if ms.Sys < v.Sys {
+		ms.Sys = v.Sys
+	}
+	if ms.Resident < v.Resident {
+		ms.Resident = v.Resident
+	}
+	if ms.Virtual < v.Virtual {
+		ms.Virtual = v.Virtual
+	}
 }
 
 // Benchmark allows setting up and running rclone copy scenarios against
@@ -204,9 +189,7 @@ func NewBenchmark(ctx context.Context, loc string) (*Benchmark, error) {
 		return nil, err
 	}
 
-	return &Benchmark{
-		dst: f,
-	}, nil
+	return &Benchmark{dst: f}, nil
 }
 
 // StartScenario copies files from the provided dir to the benchmark location.
@@ -215,29 +198,31 @@ func (b *Benchmark) StartScenario(ctx context.Context, dir string) (*Scenario, e
 	s := StartScenario(dir)
 	cleanup, err := copyDir(ctx, dir, b.dst)
 	if err != nil {
-		s.Err = err
+		s.err = err
 	}
 	s.EndScenario()
+
 	if err := cleanup(); err != nil {
-		s.Err = multierr.Combine(s.Err, errors.Wrap(err, "cleanup"))
+		s.err = multierr.Combine(s.err, errors.Wrap(err, "cleanup"))
 	}
 
 	return s, nil
 }
 
-func copyDir(ctx context.Context, scenarioPath string, dstFs fs.Fs) (cleanup func() error, err error) {
+func copyDir(ctx context.Context, dir string, dstFs fs.Fs) (cleanup func() error, err error) {
 	const benchmarkDir = "benchmark"
-	deleteFiles := func() error {
+
+	cleanup = func() error {
 		return roperations.Purge(ctx, dstFs, benchmarkDir)
 	}
 
-	srcFs, err := fs.NewFs(ctx, scenarioPath)
+	srcFs, err := fs.NewFs(ctx, dir)
 	if err != nil {
-		return deleteFiles, err
+		return cleanup, err
 	}
 	if err := rsync.CopyDir2(ctx, dstFs, benchmarkDir, srcFs, "", false); err != nil {
-		return deleteFiles, err
+		return cleanup, err
 	}
 
-	return deleteFiles, nil
+	return cleanup, err
 }
