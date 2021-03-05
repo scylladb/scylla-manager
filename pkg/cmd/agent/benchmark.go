@@ -10,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"runtime/pprof"
 	"strings"
 
@@ -94,13 +93,6 @@ var benchmarkCmd = &cobra.Command{
 				}
 			}
 		}
-
-		// Release memory after running benchmark to check how much of the
-		// memory is reclaimed.
-		stats := bench.StartScenario("FreeOSMemory")
-		debug.FreeOSMemory()
-		stats.EndScenario()
-		fmt.Fprintln(w, stats.String())
 
 		return nil
 	},
