@@ -42,7 +42,7 @@ var benchmarkCmd = &cobra.Command{
 			}
 		}()
 
-		c, logger, err := setupAgentCommand(benchmarkArgs.configFile, benchmarkArgs.debug)
+		c, logger, err := setupCommand(benchmarkArgs.configFile, benchmarkArgs.debug)
 		if err != nil {
 			return err
 		}
