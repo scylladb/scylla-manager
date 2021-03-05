@@ -28,6 +28,7 @@ var benchmarkArgs = struct {
 	configFile    []string
 	debug         bool
 	memProfileDir string
+	prometheus    string
 }{}
 
 var benchmarkCmd = &cobra.Command{
@@ -47,15 +48,15 @@ var benchmarkCmd = &cobra.Command{
 			return err
 		}
 
-		if c.Prometheus != "" {
+		if benchmarkArgs.prometheus != "" {
 			go func() {
 				prometheusServer := &http.Server{
-					Addr:    c.Prometheus,
+					Addr:    benchmarkArgs.prometheus,
 					Handler: promhttp.Handler(),
 				}
-				logger.Info(ctx, "Starting Prometheus server", "address", prometheusServer.Addr)
-				if err := errors.Wrap(prometheusServer.ListenAndServe(), "prometheus server start"); err != nil {
-					logger.Error(ctx, "Error in Prometheus server", "error", err)
+				logger.Info(ctx, "Starting Prometheus server", "addr", benchmarkArgs.prometheus)
+				if err := prometheusServer.ListenAndServe(); err != nil {
+					logger.Error(ctx, "Failed to start prometheus server", "error", err)
 				}
 			}()
 		}
@@ -137,6 +138,7 @@ func init() {
 	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
 	f.StringSliceVarP(&benchmarkArgs.configFile, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")
+	f.StringVar(&benchmarkArgs.prometheus, "prometheus", "", "address to bind prometheus metrics endpoint ex. 0.0.0.0:5091")
 
 	rootCmd.AddCommand(cmd)
 }
