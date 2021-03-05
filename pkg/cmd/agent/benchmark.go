@@ -15,6 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/bench"
 	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -29,6 +30,7 @@ var benchmarkArgs = struct {
 	debug         bool
 	memProfileDir string
 	prometheus    string
+	rateLimit     int
 }{}
 
 var benchmarkCmd = &cobra.Command{
@@ -48,6 +50,7 @@ var benchmarkCmd = &cobra.Command{
 			return err
 		}
 
+		// Run Prometheus if needed
 		if benchmarkArgs.prometheus != "" {
 			go func() {
 				prometheusServer := &http.Server{
@@ -61,6 +64,11 @@ var benchmarkCmd = &cobra.Command{
 			}()
 		}
 
+		// Set rate limit
+		rclone.StartAccountingOperations()
+		rclone.SetRateLimit(benchmarkArgs.rateLimit)
+
+		// Run the scenarios
 		w := cmd.OutOrStderr()
 		b, err := bench.NewBenchmark(ctx, benchmarkArgs.location)
 		if err != nil {
@@ -139,6 +147,7 @@ func init() {
 	f.StringSliceVarP(&benchmarkArgs.configFile, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")
 	f.StringVar(&benchmarkArgs.prometheus, "prometheus", "", "address to bind prometheus metrics endpoint ex. 0.0.0.0:5091")
+	f.IntVar(&benchmarkArgs.rateLimit, "rate-limit", 100, "rate limit in megabytes (MiB) per second, set to 0 for no limit")
 
 	rootCmd.AddCommand(cmd)
 }
