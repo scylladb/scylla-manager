@@ -156,12 +156,10 @@ var defaultScenarios = []struct {
 	size  int
 	count int
 }{
-	{50, 1},
-	{300, 1},
-	{2000, 1},
+	{1, 1000},
 	{50, 20},
 	{300, 20},
-	{1, 1000},
+	{2000, 1},
 }
 
 var createScenarioCmd = &cobra.Command{
@@ -199,7 +197,7 @@ func init() {
 	f.StringVarP(&createFilesArgs.dir, "dir", "d", "", "path to the directory that will be used for generating temporary files")
 	f.IntVarP(&createFilesArgs.sizeMb, "size", "s", 0, "size of each file in MiB")
 	f.IntVarP(&createFilesArgs.count, "count", "c", 0, "number of files to create")
-	f.BoolVar(&createFilesArgs.createDefault, "default", false, "create default scenarios")
+	f.BoolVar(&createFilesArgs.createDefault, "default", false, "create a default scenario containing 1000x1MiB, 20x50MiB, 20x300MiB and 1x2000MiB files")
 
 	if err := cmd.MarkFlagRequired("dir"); err != nil {
 		panic(err)
