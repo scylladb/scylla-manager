@@ -75,7 +75,7 @@ var benchmarkCmd = &cobra.Command{
 				if err != nil {
 					return errors.Wrapf(err, "absolute path %s", match)
 				}
-				s, err := b.CopyDir(ctx, scenarioPath)
+				s, err := b.StartScenario(ctx, scenarioPath)
 				if err != nil {
 					return errors.Wrap(err, "benchmark "+benchmarkArgs.location)
 				}

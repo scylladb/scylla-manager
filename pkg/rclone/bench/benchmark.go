@@ -209,21 +209,20 @@ func NewBenchmark(ctx context.Context, loc string) (*Benchmark, error) {
 	}, nil
 }
 
-// CopyDir performs directory copy of files from the provided scenario path to
-// the benchmarked location.
-// It returns Stats collected during execution.
-func (b *Benchmark) CopyDir(ctx context.Context, scenarioPath string) (*Scenario, error) {
-	stats := StartScenario(scenarioPath)
-	cleanup, err := copyDir(ctx, scenarioPath, b.dst)
+// StartScenario copies files from the provided dir to the benchmark location.
+// It returns memory stats collected during the execution.
+func (b *Benchmark) StartScenario(ctx context.Context, dir string) (*Scenario, error) {
+	s := StartScenario(dir)
+	cleanup, err := copyDir(ctx, dir, b.dst)
 	if err != nil {
-		stats.Err = err
+		s.Err = err
 	}
-	stats.EndScenario()
+	s.EndScenario()
 	if err := cleanup(); err != nil {
-		stats.Err = multierr.Combine(stats.Err, err)
+		s.Err = multierr.Combine(s.Err, errors.Wrap(err, "cleanup"))
 	}
 
-	return stats, nil
+	return s, nil
 }
 
 func copyDir(ctx context.Context, scenarioPath string, dstFs fs.Fs) (cleanup func() error, err error) {
