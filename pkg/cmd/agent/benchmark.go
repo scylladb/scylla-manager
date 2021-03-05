@@ -23,16 +23,17 @@ import (
 )
 
 var benchmarkArgs = struct {
+	dirGlob  []string
+	location string
+
 	configFile    []string
-	scenarioGlob  []string
-	location      string
-	memProfileDir string
 	debug         bool
+	memProfileDir string
 }{}
 
 var benchmarkCmd = &cobra.Command{
 	Use:   "benchmark",
-	Short: "Runs directory copy on provided scenario paths against provided locations",
+	Short: "Executes benchmark scenarios, copies all files in each scenario directory to the location",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		ctx := context.Background()
 		defer func() {
@@ -65,22 +66,22 @@ var benchmarkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(w, "Benchmarking location: "+benchmarkArgs.location)
-		for _, scenarioGlob := range benchmarkArgs.scenarioGlob {
-			matches, err := filepath.Glob(scenarioGlob)
+		for _, g := range benchmarkArgs.dirGlob {
+			matches, err := filepath.Glob(g)
 			if err != nil {
 				return errors.Wrap(err, "listing scenarios")
 			}
 			for _, match := range matches {
 				scenarioPath, err := filepath.Abs(match)
 				if err != nil {
-					return errors.Wrap(err, "loading path "+match)
+					return errors.Wrapf(err, "absolute path %s", match)
 				}
 				s, err := b.CopyDir(ctx, scenarioPath)
 				if err != nil {
 					return errors.Wrap(err, "benchmark "+benchmarkArgs.location)
 				}
-				fmt.Fprint(w, s.String())
+				fmt.Fprintln(w, s.String())
+
 				if benchmarkArgs.memProfileDir != "" {
 					err := os.MkdirAll(benchmarkArgs.memProfileDir, 0755)
 					if err != nil {
@@ -93,6 +94,7 @@ var benchmarkCmd = &cobra.Command{
 				}
 			}
 		}
+
 		// Release memory after running benchmark to check how much of the
 		// memory is reclaimed.
 		stats := bench.StartScenario("FreeOSMemory")
@@ -127,32 +129,33 @@ func init() {
 	cmd := benchmarkCmd
 
 	f := cmd.Flags()
-	f.StringSliceVarP(&benchmarkArgs.configFile, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
-	f.StringSliceVarP(&benchmarkArgs.scenarioGlob, "scenario", "d", []string{},
-		"local glob path to scenario directories that will be copied to the provided location and benchmarked as single scenario")
+	f.StringSliceVarP(&benchmarkArgs.dirGlob, "dir", "d", []string{},
+		"comma-separated `list of glob patterns` pointing to schema directories generated with create-scenario subcommand")
+	if err := cmd.MarkFlagRequired("dir"); err != nil {
+		panic(err)
+	}
 	f.StringVarP(&benchmarkArgs.location, "location", "L", "",
 		"backup location in the format [<dc>:]<provider>:<bucket> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
-	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "specify directory path for saving memory profiles. If not provided profiles will not be generated")
-	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
-
 	if err := cmd.MarkFlagRequired("location"); err != nil {
 		panic(err)
 	}
-	if err := cmd.MarkFlagRequired("scenario"); err != nil {
-		panic(err)
-	}
+
+	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
+	f.StringSliceVarP(&benchmarkArgs.configFile, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
+	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")
 
 	rootCmd.AddCommand(cmd)
 }
 
 var createFilesArgs = struct {
-	dir           string
-	sizeMb        int
-	count         int
-	createDefault bool
+	defaultScenario bool
+
+	dir    string
+	sizeMb int
+	count  int
 }{}
 
-var defaultScenarios = []struct {
+var defaultScenario = []struct {
 	size  int
 	count int
 }{
@@ -164,7 +167,7 @@ var defaultScenarios = []struct {
 
 var createScenarioCmd = &cobra.Command{
 	Use:   "create-scenario",
-	Short: "Create scenario files of specified size and count",
+	Short: "Adds files of specified size to a scenario directory",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		defer func() {
 			if err != nil {
@@ -173,17 +176,17 @@ var createScenarioCmd = &cobra.Command{
 			}
 		}()
 
-		if createFilesArgs.createDefault {
-			for _, s := range defaultScenarios {
+		if createFilesArgs.defaultScenario {
+			for _, s := range defaultScenario {
 				if err := bench.CreateFiles(createFilesArgs.dir, s.size, s.count); err != nil {
-					return errors.Wrap(err, "create default scenario files")
+					return errors.Wrap(err, "create default scenario")
 				}
 			}
 			return nil
 		}
 
 		if createFilesArgs.sizeMb == 0 || createFilesArgs.count == 0 {
-			return errors.New("notting to create")
+			return errors.New("provide size and count parameters")
 		}
 
 		return bench.CreateFiles(createFilesArgs.dir, createFilesArgs.sizeMb, createFilesArgs.count)
@@ -194,14 +197,13 @@ func init() {
 	cmd := createScenarioCmd
 
 	f := cmd.Flags()
-	f.StringVarP(&createFilesArgs.dir, "dir", "d", "", "path to the directory that will be used for generating temporary files")
-	f.IntVarP(&createFilesArgs.sizeMb, "size", "s", 0, "size of each file in MiB")
-	f.IntVarP(&createFilesArgs.count, "count", "c", 0, "number of files to create")
-	f.BoolVar(&createFilesArgs.createDefault, "default", false, "create a default scenario containing 1000x1MiB, 20x50MiB, 20x300MiB and 1x2000MiB files")
-
+	f.StringVarP(&createFilesArgs.dir, "dir", "d", "", "path to the scenario directory, files will be put in that directory")
 	if err := cmd.MarkFlagRequired("dir"); err != nil {
 		panic(err)
 	}
+	f.BoolVar(&createFilesArgs.defaultScenario, "default", false, "create a default scenario consisting of 1000x1MiB, 20x50MiB, 20x300MiB and 1x2000MiB files")
+	f.IntVarP(&createFilesArgs.count, "count", "c", 0, "number of files to create")
+	f.IntVarP(&createFilesArgs.sizeMb, "size", "s", 0, "file size in MiB")
 
 	benchmarkCmd.AddCommand(cmd)
 }
