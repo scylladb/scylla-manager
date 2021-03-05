@@ -14,7 +14,7 @@ func setupCommand(configFile []string, debug bool) (log.Logger, error) {
 		return log.Logger{}, err
 	}
 
-	l := zap.FatalLevel
+	l := zap.ErrorLevel
 	if debug {
 		l = zap.DebugLevel
 	}
