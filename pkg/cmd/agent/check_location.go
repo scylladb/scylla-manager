@@ -32,7 +32,7 @@ var checkLocationCmd = &cobra.Command{
 			}
 		}()
 
-		_, _, err = setupCommand(checkLocationArgs.configFile, checkLocationArgs.debug)
+		_, err = setupCommand(checkLocationArgs.configFile, checkLocationArgs.debug)
 		if err != nil {
 			return err
 		}
