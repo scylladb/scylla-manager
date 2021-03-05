@@ -60,6 +60,7 @@ issues:
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
     - composite literal uses unkeyed fields
+    - do not pass a nil Context
     - exported function `New.+` should have comment or be unexported
     - exported method `.+\.Key` should have comment or be unexported
     - exported method `.+\.MarshalBinary` should have comment or be unexported
