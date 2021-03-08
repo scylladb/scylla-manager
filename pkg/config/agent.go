@@ -43,18 +43,19 @@ func (c ScyllaConfig) Validate() (errs error) {
 
 // AgentConfig specifies the agent and scylla configuration.
 type AgentConfig struct {
-	AuthToken   string              `yaml:"auth_token"`
-	HTTPS       string              `yaml:"https"`
-	TLSCertFile string              `yaml:"tls_cert_file"`
-	TLSKeyFile  string              `yaml:"tls_key_file"`
-	Prometheus  string              `yaml:"prometheus"`
-	Debug       string              `yaml:"debug"`
-	CPU         int                 `yaml:"cpu"`
-	Logger      LogConfig           `yaml:"logger"`
-	Scylla      ScyllaConfig        `yaml:"scylla"`
-	S3          rclone.S3Options    `yaml:"s3"`
-	GCS         rclone.GCSOptions   `yaml:"gcs"`
-	Azure       rclone.AzureOptions `yaml:"azure"`
+	AuthToken   string               `yaml:"auth_token"`
+	HTTPS       string               `yaml:"https"`
+	TLSCertFile string               `yaml:"tls_cert_file"`
+	TLSKeyFile  string               `yaml:"tls_key_file"`
+	Prometheus  string               `yaml:"prometheus"`
+	Debug       string               `yaml:"debug"`
+	CPU         int                  `yaml:"cpu"`
+	Logger      LogConfig            `yaml:"logger"`
+	Scylla      ScyllaConfig         `yaml:"scylla"`
+	Rclone      rclone.GlobalOptions `yaml:"rclone"`
+	S3          rclone.S3Options     `yaml:"s3"`
+	GCS         rclone.GCSOptions    `yaml:"gcs"`
+	Azure       rclone.AzureOptions  `yaml:"azure"`
 }
 
 func DefaultAgentConfig() AgentConfig {
@@ -70,9 +71,10 @@ func DefaultAgentConfig() AgentConfig {
 			APIPort:       "10000",
 			DataDirectory: "/var/lib/scylla/data",
 		},
-		S3:    rclone.DefaultS3Options(),
-		GCS:   rclone.DefaultGCSOptions(),
-		Azure: rclone.DefaultAzureOptions(),
+		Rclone: rclone.DefaultGlobalOptions(),
+		S3:     rclone.DefaultS3Options(),
+		GCS:    rclone.DefaultGCSOptions(),
+		Azure:  rclone.DefaultAzureOptions(),
 	}
 }
 

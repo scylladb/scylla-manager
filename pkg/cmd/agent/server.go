@@ -104,7 +104,7 @@ func (s *server) init(ctx context.Context) error {
 	// Redirect rclone logger to the ogger
 	rclone.RedirectLogPrint(s.logger.Named("rclone"))
 	// Init rclone config options
-	rclone.InitFsConfig()
+	rclone.InitFsConfigWithOptions(s.config.Rclone)
 	// Register rclone providers
 	if err := rclone.RegisterLocalDirProvider("data", "Jailed Scylla data", s.config.Scylla.DataDirectory); err != nil {
 		return err

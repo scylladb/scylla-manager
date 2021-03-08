@@ -33,7 +33,7 @@ func setupCommand(configFiles []string, debug bool) (log.Logger, error) {
 	// Redirect rclone logger to the logger
 	rclone.RedirectLogPrint(logger.Named("rclone"))
 	// Init rclone config options
-	rclone.InitFsConfig()
+	rclone.InitFsConfigWithOptions(c.Rclone)
 	// Register rclone providers
 	if err := rclone.RegisterS3Provider(c.S3); err != nil {
 		return logger, err
