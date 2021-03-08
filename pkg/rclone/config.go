@@ -10,12 +10,17 @@ import (
 	"github.com/scylladb/scylla-manager/pkg"
 )
 
+// GetConfig returns the rclone global config.
+func GetConfig() *fs.ConfigInfo {
+	return fs.GetConfig(nil) // nolint: staticcheck
+}
+
 // InitFsConfig enables in-memory config and sets default config values
 // expected for correct agent behaviour.
 func InitFsConfig() {
 	initInMemoryConfig()
 
-	c := fs.GetConfig(nil) // nolint: staticcheck
+	c := GetConfig()
 
 	// Don't use JSON log format in logging.
 	c.UseJSONLog = false

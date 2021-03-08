@@ -9,7 +9,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/rclone/rclone/fs"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
@@ -75,7 +75,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fs.GetConfig(nil).Immutable {
+	if rclone.GetConfig().Immutable {
 		t.Fatal("Immutable shall be disabled")
 	}
 	Print("Then: Job ends successfully")

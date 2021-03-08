@@ -23,6 +23,7 @@ import (
 	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/rclone/rclone/fs/sync"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver/internal"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -447,7 +448,7 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		if rcops.Equal(ctx, info, dst) {
 			drainBody()
 			return nil, nil
-		} else if fs.GetConfig(nil).Immutable { // nolint: staticcheck
+		} else if rclone.GetConfig().Immutable {
 			fs.Errorf(dst, "Source and destination exist but do not match: immutable file modified")
 			drainBody()
 			return nil, fs.ErrorImmutableModified
