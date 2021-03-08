@@ -15,40 +15,16 @@ func GetConfig() *fs.ConfigInfo {
 	return fs.GetConfig(nil) // nolint: staticcheck
 }
 
-// InitFsConfig enables in-memory config and sets default config values
-// expected for correct agent behaviour.
+// InitFsConfig enables in-memory config and sets default config values.
 func InitFsConfig() {
+	InitFsConfigWithOptions(DefaultGlobalOptions())
+}
+
+// InitFsConfigWithOptions enables in-memory config and sets custom config
+// values.
+func InitFsConfigWithOptions(o GlobalOptions) {
 	initInMemoryConfig()
-
-	c := GetConfig()
-
-	// Don't use JSON log format in logging.
-	c.UseJSONLog = false
-	// Pass all logs, our logger decides which one to print.
-	c.LogLevel = fs.LogLevelDebug
-
-	// With this option set, files will be created and deleted as requested,
-	// but existing files will never be updated. If an existing file does not
-	// match between the source and destination, rclone will give the error
-	// Source and destination exist but do not match: immutable file modified.
-	c.Immutable = false
-	// Skip post copy check of checksums.
-	c.IgnoreChecksum = true
-	// Skip based on size only, not mod-time or checksum.
-	c.SizeOnly = true
-	// Don't update destination mod-time if files identical.
-	c.NoUpdateModTime = true
-
-	// Number of low level retries to do. (default 10)
-	// This applies to operations like S3 chunk upload.
-	c.LowLevelRetries = 20
-
-	// Delete even if there are I/O errors.
-	c.IgnoreErrors = true
-	// Maximum number of stats groups to keep in memory. On max oldest is discarded. (default 1000).
-	c.MaxStatsGroups = 1000
-	// Set proper agent for backend clients.
-	c.UserAgent = UserAgent()
+	*GetConfig() = o
 }
 
 func initInMemoryConfig() {
