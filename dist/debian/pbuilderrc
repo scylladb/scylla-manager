@@ -6,7 +6,7 @@ BUILDRESULT="/var/cache/pbuilder/scylla-manager-$DIST/result/"
 APTCACHE="/var/cache/pbuilder/scylla-manager-$DIST/aptcache/"
 ALLOWUNTRUSTED=yes
 
-if [ "$DIST" = "trusty" ] || [ "$DIST" = "xenial" ] || [ "$DIST" = "yakkety" ] || [ "$DIST" = "zesty" ] || [ "$DIST" = "artful" ] || [ "$DIST" = "bionic" ]; then
+if [ "$DIST" = "trusty" ] || [ "$DIST" = "xenial" ] || [ "$DIST" = "yakkety" ] || [ "$DIST" = "zesty" ] || [ "$DIST" = "artful" ] || [ "$DIST" = "bionic" ] || [ "$DIST" = "focal" ]; then
     MIRRORSITE="http://archive.ubuntu.com/ubuntu/"
     COMPONENTS="main restricted universe multiverse"
     DEBOOTSTRAPOPTS="--keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg"
