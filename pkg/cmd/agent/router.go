@@ -9,7 +9,7 @@ import (
 	"net/http/httputil"
 	"time"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/auth"
 	"github.com/scylladb/scylla-manager/pkg/util/httphandler"

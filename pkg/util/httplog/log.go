@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/scylladb/go-log"
 )
 
@@ -48,7 +48,7 @@ type logEntry struct {
 	err error
 }
 
-func (le *logEntry) Write(status, bytes int, elapsed time.Duration) {
+func (le *logEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
 	f := []interface{}{
 		"from", le.r.RemoteAddr,
 		"method", le.r.Method,

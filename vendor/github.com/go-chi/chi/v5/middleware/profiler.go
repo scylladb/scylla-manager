@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 // Profiler is a convenient subrouter used for mounting net/http/pprof. ie.
@@ -23,10 +23,10 @@ func Profiler() http.Handler {
 	r.Use(NoCache)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, r.RequestURI+"/pprof/", 301)
+		http.Redirect(w, r, r.RequestURI+"/pprof/", http.StatusMovedPermanently)
 	})
 	r.HandleFunc("/pprof", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, r.RequestURI+"/", 301)
+		http.Redirect(w, r, r.RequestURI+"/", http.StatusMovedPermanently)
 	})
 
 	r.HandleFunc("/pprof/*", pprof.Index)

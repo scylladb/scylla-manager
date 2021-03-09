@@ -9,7 +9,7 @@ require (
 	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/go-chi/chi v4.0.2+incompatible
+	github.com/go-chi/chi/v5 v5.0.0
 	github.com/go-chi/render v1.0.0
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/jsonreference v0.19.4 // indirect

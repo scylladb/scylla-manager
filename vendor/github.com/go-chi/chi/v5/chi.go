@@ -1,7 +1,7 @@
 //
 // Package chi is a small, idiomatic and composable router for building HTTP services.
 //
-// chi requires Go 1.7 or newer.
+// chi requires Go 1.10 or newer.
 //
 // Example:
 //  package main
@@ -9,8 +9,8 @@
 //  import (
 //  	"net/http"
 //
-//  	"github.com/go-chi/chi"
-//  	"github.com/go-chi/chi/middleware"
+//  	"github.com/go-chi/chi/v5"
+//  	"github.com/go-chi/chi/v5/middleware"
 //  )
 //
 //  func main() {
@@ -68,7 +68,7 @@ type Router interface {
 	http.Handler
 	Routes
 
-	// Use appends one of more middlewares onto the Router stack.
+	// Use appends one or more middlewares onto the Router stack.
 	Use(middlewares ...func(http.Handler) http.Handler)
 
 	// With adds inline middlewares for an endpoint handler.
