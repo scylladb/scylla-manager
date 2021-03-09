@@ -1327,22 +1327,21 @@ type Options struct {
 
 // Fs represents a remote s3 server
 type Fs struct {
-	name          string                // the name of the remote
-	root          string                // root of the bucket - ignore all objects above this
-	opt           Options               // parsed options
-	ci            *fs.ConfigInfo        // global config
-	ctx           context.Context       // global context for reading config
-	features      *fs.Features          // optional features
-	c             *s3.S3                // the connection to the s3 server
-	ses           *session.Session      // the s3 session
-	rootBucket    string                // bucket part of root (if any)
-	rootDirectory string                // directory part of root (if any)
-	cache         *bucket.Cache         // cache for bucket creation status
-	pacer         *fs.Pacer             // To pace the API calls
-	srv           *http.Client          // a plain http client
-	tokens        *pacer.TokenDispenser // upload concurency tokens
-	pool          *pool.Pool            // memory pool
-	etagIsNotMD5  bool                  // if set ETags are not MD5s
+	name          string           // the name of the remote
+	root          string           // root of the bucket - ignore all objects above this
+	opt           Options          // parsed options
+	ci            *fs.ConfigInfo   // global config
+	ctx           context.Context  // global context for reading config
+	features      *fs.Features     // optional features
+	c             *s3.S3           // the connection to the s3 server
+	ses           *session.Session // the s3 session
+	rootBucket    string           // bucket part of root (if any)
+	rootDirectory string           // directory part of root (if any)
+	cache         *bucket.Cache    // cache for bucket creation status
+	pacer         *fs.Pacer        // To pace the API calls
+	srv           *http.Client     // a plain http client
+	pool          *pool.Pool       // memory pool
+	etagIsNotMD5  bool             // if set ETags are not MD5s
 }
 
 // Object describes a s3 object
@@ -1654,11 +1653,6 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, e
 	}
 
 	ci := fs.GetConfig(ctx)
-	concurrency := opt.UploadConcurrency
-	if concurrency < 1 {
-		concurrency = 1
-	}
-
 	f := &Fs{
 		name:  name,
 		opt:   *opt,
@@ -1675,7 +1669,6 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, e
 			opt.UploadConcurrency*ci.Transfers,
 			opt.MemoryPoolUseMmap,
 		),
-		tokens: pacer.NewTokenDispenser(concurrency),
 	}
 	if opt.ServerSideEncryption == "aws:kms" || opt.SSECustomerAlgorithm != "" {
 		// From: https://docs.aws.amazon.com/AmazonS3/latest/API/RESTCommonResponseHeaders.html
@@ -2988,6 +2981,13 @@ var warnStreamUpload sync.Once
 func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, size int64, in io.Reader) (err error) {
 	f := o.fs
 
+	// make concurrency machinery
+	concurrency := f.opt.UploadConcurrency
+	if concurrency < 1 {
+		concurrency = 1
+	}
+	tokens := pacer.NewTokenDispenser(concurrency)
+
 	uploadParts := f.opt.MaxUploadParts
 	if uploadParts < 1 {
 		uploadParts = 1
@@ -3058,13 +3058,13 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 
 	for partNum := int64(1); !finished; partNum++ {
 		// Get a block of memory from the pool and token which limits concurrency.
-		o.fs.tokens.Get()
+		tokens.Get()
 		buf := memPool.Get()
 
 		free := func() {
 			// return the memory and token
 			memPool.Put(buf)
-			o.fs.tokens.Put()
+			tokens.Put()
 		}
 
 		// Fail fast, in case an errgroup managed function returns an error
@@ -3116,10 +3116,6 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 				}
 				uout, err := f.c.UploadPartWithContext(gCtx, uploadPartReq)
 				if err != nil {
-					concurrency := f.opt.UploadConcurrency
-					if concurrency < 1 {
-						concurrency = 1
-					}
 					if partNum <= int64(concurrency) {
 						return f.shouldRetry(err)
 					}
@@ -3135,7 +3131,6 @@ func (o *Object) uploadMultipart(ctx context.Context, req *s3.PutObjectInput, si
 
 				return false, nil
 			})
-
 			if err != nil {
 				return errors.Wrap(err, "multipart upload failed to upload part")
 			}

@@ -27,6 +27,7 @@ type March struct {
 	DstDir                 string          // destination directory
 	Fsrc                   fs.Fs           // dest Fs
 	SrcDir                 string          // source directory
+	Paths                  []string        // List of specific paths in source to traverse
 	NoTraverse             bool            // don't traverse the destination
 	SrcIncludeAll          bool            // don't include all files in the src
 	DstIncludeAll          bool            // don't include all files in the destination
@@ -52,7 +53,11 @@ type Marcher interface {
 // init sets up a march over opt.Fsrc, and opt.Fdst calling back callback for each match
 func (m *March) init(ctx context.Context) {
 	ci := fs.GetConfig(ctx)
-	m.srcListDir = m.makeListDir(ctx, m.Fsrc, m.SrcDir, m.SrcIncludeAll)
+	if m.Paths != nil {
+		m.srcListDir = m.listPaths(ctx, m.Fsrc, m.SrcDir)
+	} else {
+		m.srcListDir = m.makeListDir(ctx, m.Fsrc, m.SrcDir, m.SrcIncludeAll)
+	}
 	if !m.NoTraverse {
 		m.dstListDir = m.makeListDir(ctx, m.Fdst, m.DstDir, m.DstIncludeAll)
 	}
@@ -80,6 +85,7 @@ type listDirFn func(dir string) (entries fs.DirEntries, err error)
 func (m *March) makeListDir(ctx context.Context, f fs.Fs, remote string, includeAll bool) listDirFn {
 	ci := fs.GetConfig(ctx)
 	fi := filter.GetConfig(ctx)
+
 	if !(ci.UseListR && f.Features().ListR != nil) && // !--fast-list active and
 		!(ci.NoTraverse && fi.HaveFilesFrom()) { // !(--files-from and --no-traverse)
 		return func(dir string) (entries fs.DirEntries, err error) {
@@ -112,6 +118,21 @@ func (m *March) makeListDir(ctx context.Context, f fs.Fs, remote string, include
 			delete(dirs, dir)
 		}
 		return entries, err
+	}
+}
+
+func (m *March) listPaths(ctx context.Context, f fs.Fs, remote string) listDirFn {
+	return func(dir string) (fs.DirEntries, error) {
+		var entries fs.DirEntries
+		for _, p := range m.Paths {
+			o, err := f.NewObject(ctx, path.Join(remote, p))
+			if err != nil {
+				return nil, err
+			}
+			entries = append(entries, o)
+		}
+
+		return entries, nil
 	}
 }
 

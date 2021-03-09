@@ -30,6 +30,7 @@ type syncCopyMove struct {
 	deleteEmptySrcDirs bool
 	dstDir             string
 	srcDir             string
+	paths              []string
 	// internal state
 	ci                     *fs.ConfigInfo         // global config
 	fi                     *filter.Filter         // filter config
@@ -97,7 +98,7 @@ func (strategy trackRenamesStrategy) leaf() bool {
 	return (strategy & trackRenamesStrategyLeaf) != 0
 }
 
-func newSyncCopyMove(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, deleteMode fs.DeleteMode, DoMove bool, deleteEmptySrcDirs bool, copyEmptySrcDirs bool, useSrcBaseName bool) (*syncCopyMove, error) {
+func newSyncCopyMove(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, paths []string, deleteMode fs.DeleteMode, DoMove bool, deleteEmptySrcDirs bool, copyEmptySrcDirs bool, useSrcBaseName bool) (*syncCopyMove, error) {
 	if (deleteMode != fs.DeleteModeOff || DoMove) && operations.Overlapping(fdst, fsrc) {
 		return nil, fserrors.FatalError(fs.ErrorOverlapping)
 	}
@@ -110,6 +111,7 @@ func newSyncCopyMove(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.
 		dstDir:                 remoteDst,
 		fsrc:                   fsrc,
 		srcDir:                 remoteSrc,
+		paths:                  paths,
 		deleteMode:             deleteMode,
 		DoMove:                 DoMove,
 		copyEmptySrcDirs:       copyEmptySrcDirs,
@@ -827,6 +829,8 @@ func (s *syncCopyMove) tryRename(src fs.Object) bool {
 
 // Syncs fsrc into fdst
 //
+// If paths is provided then only those paths will be synced
+//
 // If Delete is true then it deletes any files in fdst that aren't in fsrc
 //
 // If DoMove is true then files will be moved instead of copied
@@ -856,6 +860,7 @@ func (s *syncCopyMove) run() error {
 		DstDir:                 s.dstDir,
 		Fsrc:                   s.fsrc,
 		SrcDir:                 s.srcDir,
+		Paths:                  s.paths,
 		NoTraverse:             s.noTraverse,
 		Callback:               s,
 		DstIncludeAll:          s.fi.Opt.DeleteExcluded,
@@ -1083,7 +1088,7 @@ func runSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 			return fserrors.FatalError(errors.New("can't use --delete-before with --track-renames"))
 		}
 		// only delete stuff during in this pass
-		do, err := newSyncCopyMove(ctx, fdst, "", fsrc, "", fs.DeleteModeOnly, false, deleteEmptySrcDirs, copyEmptySrcDirs, false)
+		do, err := newSyncCopyMove(ctx, fdst, "", fsrc, "", nil, fs.DeleteModeOnly, false, deleteEmptySrcDirs, copyEmptySrcDirs, false)
 		if err != nil {
 			return err
 		}
@@ -1094,7 +1099,7 @@ func runSyncCopyMove(ctx context.Context, fdst, fsrc fs.Fs, deleteMode fs.Delete
 		// Next pass does a copy only
 		deleteMode = fs.DeleteModeOff
 	}
-	do, err := newSyncCopyMove(ctx, fdst, "", fsrc, "", deleteMode, DoMove, deleteEmptySrcDirs, copyEmptySrcDirs, false)
+	do, err := newSyncCopyMove(ctx, fdst, "", fsrc, "", nil, deleteMode, DoMove, deleteEmptySrcDirs, copyEmptySrcDirs, false)
 	if err != nil {
 		return err
 	}
@@ -1114,7 +1119,16 @@ func CopyDir(ctx context.Context, fdst, fsrc fs.Fs, copyEmptySrcDirs bool) error
 
 // CopyDir2 copies files from  fsrc/remoteSrc into fdst/remoteDst.
 func CopyDir2(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, copyEmptySrcDirs bool) error {
-	do, err := newSyncCopyMove(ctx, fdst, remoteDst, fsrc, remoteSrc, fs.DeleteModeOff, false, false, copyEmptySrcDirs, true)
+	do, err := newSyncCopyMove(ctx, fdst, remoteDst, fsrc, remoteSrc, nil, fs.DeleteModeOff, false, false, copyEmptySrcDirs, true)
+	if err != nil {
+		return err
+	}
+	return do.run()
+}
+
+// CopyPaths copies provided list of paths from fsrc/remoteSrc/path into fdst/remoteDst/path.
+func CopyPaths(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, paths []string, copyEmptySrcDirs bool) error {
+	do, err := newSyncCopyMove(ctx, fdst, remoteDst, fsrc, remoteSrc, paths, fs.DeleteModeOff, false, false, copyEmptySrcDirs, true)
 	if err != nil {
 		return err
 	}

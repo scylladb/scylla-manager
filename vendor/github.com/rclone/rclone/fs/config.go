@@ -41,87 +41,87 @@ var (
 
 // ConfigInfo is filesystem config options
 type ConfigInfo struct {
-	LogLevel               LogLevel
-	StatsLogLevel          LogLevel
-	UseJSONLog             bool
-	DryRun                 bool
-	Interactive            bool
-	CheckSum               bool
-	SizeOnly               bool
-	IgnoreTimes            bool
-	IgnoreExisting         bool
-	IgnoreErrors           bool
-	ModifyWindow           time.Duration
-	Checkers               int
-	Transfers              int
-	ConnectTimeout         time.Duration // Connect timeout
-	Timeout                time.Duration // Data channel timeout
-	ExpectContinueTimeout  time.Duration
-	Dump                   DumpFlags
-	InsecureSkipVerify     bool // Skip server certificate verification
-	DeleteMode             DeleteMode
-	MaxDelete              int64
-	TrackRenames           bool   // Track file renames.
-	TrackRenamesStrategy   string // Comma separated list of strategies used to track renames
-	LowLevelRetries        int
-	UpdateOlder            bool // Skip files that are newer on the destination
-	NoGzip                 bool // Disable compression
-	MaxDepth               int
-	IgnoreSize             bool
-	IgnoreChecksum         bool
-	IgnoreCaseSync         bool
-	NoTraverse             bool
-	CheckFirst             bool
-	NoCheckDest            bool
-	NoUnicodeNormalization bool
-	NoUpdateModTime        bool
-	DataRateUnit           string
-	CompareDest            string
-	CopyDest               string
-	BackupDir              string
-	Suffix                 string
-	SuffixKeepExtension    bool
-	UseListR               bool
-	BufferSize             SizeSuffix
-	BwLimit                BwTimetable
-	BwLimitFile            BwTimetable
-	TPSLimit               float64
-	TPSLimitBurst          int
-	BindAddr               net.IP
-	DisableFeatures        []string
-	UserAgent              string
-	Immutable              bool
-	AutoConfirm            bool
-	StreamingUploadCutoff  SizeSuffix
-	StatsFileNameLength    int
-	AskPassword            bool
-	PasswordCommand        SpaceSepList
-	UseServerModTime       bool
-	MaxTransfer            SizeSuffix
-	MaxDuration            time.Duration
-	CutoffMode             CutoffMode
-	MaxBacklog             int
-	MaxStatsGroups         int
-	StatsOneLine           bool
-	StatsOneLineDate       bool   // If we want a date prefix at all
-	StatsOneLineDateFormat string // If we want to customize the prefix
-	ErrorOnNoTransfer      bool   // Set appropriate exit code if no files transferred
-	Progress               bool
-	ProgressTerminalTitle  bool
-	Cookie                 bool
-	UseMmap                bool
-	CaCert                 string // Client Side CA
-	ClientCert             string // Client Side Cert
-	ClientKey              string // Client Side Key
-	MultiThreadCutoff      SizeSuffix
-	MultiThreadStreams     int
-	MultiThreadSet         bool   // whether MultiThreadStreams was set (set in fs/config/configflags)
-	OrderBy                string // instructions on how to order the transfer
-	UploadHeaders          []*HTTPOption
-	DownloadHeaders        []*HTTPOption
-	Headers                []*HTTPOption
-	RefreshTimes           bool
-	NoConsole              bool
+	LogLevel               LogLevel      `yaml:"log_level"`
+	StatsLogLevel          LogLevel      `yaml:"stats_log_level"`
+	UseJSONLog             bool          `yaml:"use_json_log"`
+	DryRun                 bool          `yaml:"dry_run"`
+	Interactive            bool          `yaml:"interactive"`
+	CheckSum               bool          `yaml:"check_sum"`
+	SizeOnly               bool          `yaml:"size_only"`
+	IgnoreTimes            bool          `yaml:"ignore_times"`
+	IgnoreExisting         bool          `yaml:"ignore_existing"`
+	IgnoreErrors           bool          `yaml:"ignore_errors"`
+	ModifyWindow           time.Duration `yaml:"modify_window"`
+	Checkers               int           `yaml:"checkers"`
+	Transfers              int           `yaml:"transfers"`
+	ConnectTimeout         time.Duration `yaml:"connect_timeout"` // Connect timeout
+	Timeout                time.Duration `yaml:"timeout"`         // Data channel timeout
+	ExpectContinueTimeout  time.Duration `yaml:"expect_continue_timeout"`
+	Dump                   DumpFlags     `yaml:"dump"`
+	InsecureSkipVerify     bool          `yaml:"insecure_skip_verify"` // Skip server certificate verification
+	DeleteMode             DeleteMode    `yaml:"delete_mode"`
+	MaxDelete              int64         `yaml:"max_delete"`
+	TrackRenames           bool          `yaml:"track_renames"`          // Track file renames
+	TrackRenamesStrategy   string        `yaml:"track_renames_strategy"` // Comma separated list of strategies used to track renames
+	LowLevelRetries        int           `yaml:"low_level_retries"`
+	UpdateOlder            bool          `yaml:"update_older"` // Skip files that are newer on the destination
+	NoGzip                 bool          `yaml:"no_gzip"`      // Disable compression
+	MaxDepth               int           `yaml:"max_depth"`
+	IgnoreSize             bool          `yaml:"ignore_size"`
+	IgnoreChecksum         bool          `yaml:"ignore_checksum"`
+	IgnoreCaseSync         bool          `yaml:"ignore_case_sync"`
+	NoTraverse             bool          `yaml:"no_traverse"`
+	CheckFirst             bool          `yaml:"check_first"`
+	NoCheckDest            bool          `yaml:"no_check_dest"`
+	NoUnicodeNormalization bool          `yaml:"no_unicode_normalization"`
+	NoUpdateModTime        bool          `yaml:"no_update_mod_time"`
+	DataRateUnit           string        `yaml:"data_rate_unit"`
+	CompareDest            string        `yaml:"compare_dest"`
+	CopyDest               string        `yaml:"copy_dest"`
+	BackupDir              string        `yaml:"backup_dir"`
+	Suffix                 string        `yaml:"suffix"`
+	SuffixKeepExtension    bool          `yaml:"suffix_keep_extension"`
+	UseListR               bool          `yaml:"use_list_r"`
+	BufferSize             SizeSuffix    `yaml:"buffer_size"`
+	BwLimit                BwTimetable   `yaml:"bw_limit"`
+	BwLimitFile            BwTimetable   `yaml:"bw_limit_file"`
+	TPSLimit               float64       `yaml:"tps_limit"`
+	TPSLimitBurst          int           `yaml:"tps_limit_burst"`
+	BindAddr               net.IP        `yaml:"bind_addr"`
+	DisableFeatures        []string      `yaml:"disable_features"`
+	UserAgent              string        `yaml:"user_agent"`
+	Immutable              bool          `yaml:"immutable"`
+	AutoConfirm            bool          `yaml:"auto_confirm"`
+	StreamingUploadCutoff  SizeSuffix    `yaml:"streaming_upload_cutoff"`
+	StatsFileNameLength    int           `yaml:"stats_file_name_length"`
+	AskPassword            bool          `yaml:"ask_password"`
+	PasswordCommand        SpaceSepList  `yaml:"password_command"`
+	UseServerModTime       bool          `yaml:"use_server_mod_time"`
+	MaxTransfer            SizeSuffix    `yaml:"max_transfer"`
+	MaxDuration            time.Duration `yaml:"max_duration"`
+	CutoffMode             CutoffMode    `yaml:"cutoff_mode"`
+	MaxBacklog             int           `yaml:"max_backlog"`
+	MaxStatsGroups         int           `yaml:"max_stats_groups"`
+	StatsOneLine           bool          `yaml:"stats_one_line"`
+	StatsOneLineDate       bool          `yaml:"stats_one_line_date"`        // If we want a date prefix at all
+	StatsOneLineDateFormat string        `yaml:"stats_one_line_date_format"` // If we want to customize the prefix
+	ErrorOnNoTransfer      bool          `yaml:"error_on_no_transfer"`       // Set appropriate exit code if no files transferred
+	Progress               bool          `yaml:"progress"`
+	ProgressTerminalTitle  bool          `yaml:"progress_terminal_title"`
+	Cookie                 bool          `yaml:"cookie"`
+	UseMmap                bool          `yaml:"use_mmap"`
+	CaCert                 string        `yaml:"ca_cert"`     // Client Side CA
+	ClientCert             string        `yaml:"client_cert"` // Client Side Cert
+	ClientKey              string        `yaml:"client_key"`  // Client Side Key
+	MultiThreadCutoff      SizeSuffix    `yaml:"multi_thread_cutoff"`
+	MultiThreadStreams     int           `yaml:"multi_thread_streams"`
+	MultiThreadSet         bool          `yaml:"multi_thread_set"` // whether MultiThreadStreams was set (set in fs/config/configflags)
+	OrderBy                string        `yaml:"order_by"`         // instructions on how to order the transfer
+	UploadHeaders          []*HTTPOption `yaml:"upload_headers"`
+	DownloadHeaders        []*HTTPOption `yaml:"download_headers"`
+	Headers                []*HTTPOption `yaml:"headers"`
+	RefreshTimes           bool          `yaml:"refresh_times"`
+	NoConsole              bool          `yaml:"no_console"`
 }
 
 // NewConfig creates a new config with everything set to the default
