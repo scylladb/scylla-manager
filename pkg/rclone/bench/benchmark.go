@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"path"
 	"runtime"
 	"strings"
@@ -26,6 +27,7 @@ import (
 // overall peak for the duration of the scenario.
 type Scenario struct {
 	name        string
+	size        uint64
 	startedAt   time.Time
 	completedAt time.Time
 	startMemory memoryStats
@@ -37,19 +39,34 @@ type Scenario struct {
 }
 
 // StartScenario starts recording stats for a new benchmarking scenario.
-func StartScenario(name string) *Scenario {
-	ms := readMemoryStats()
-
-	s := Scenario{
-		name:        name,
-		startedAt:   timeutc.Now(),
-		startMemory: ms,
-		maxMemory:   ms,
-		done:        make(chan struct{}),
+func StartScenario(dir string) *Scenario {
+	s := &Scenario{
+		name: dir,
+		done: make(chan struct{}),
 	}
+
+	s.size, s.err = dirSize(dir)
+
+	ms := readMemoryStats()
+	s.startMemory = ms
+	s.maxMemory = ms
 	go s.observeMemory()
 
-	return &s
+	s.startedAt = timeutc.Now()
+
+	return s
+}
+
+func dirSize(dir string) (uint64, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return 0, err
+	}
+	var sum uint64
+	for _, f := range files {
+		sum += uint64(f.Size())
+	}
+	return sum, err
 }
 
 func (s *Scenario) observeMemory() {
@@ -88,6 +105,7 @@ func (s *Scenario) WriteTo(w io.Writer) (int64, error) {
 	if s.err != nil {
 		fmt.Fprintf(b, "Error:\t%s\n", s.err)
 	}
+	fmt.Fprintf(b, "Size:\t\t%dMiB\n", bToMb(s.size))
 	fmt.Fprintf(b, "Duration:\t%s\n", s.completedAt.Sub(s.startedAt))
 	fmt.Fprintf(b, "HeapInuse:\t%d/%d/%d MiB\n", bToMb(s.startMemory.HeapInuse), bToMb(s.endMemory.HeapInuse), bToMb(s.maxMemory.HeapInuse))
 	fmt.Fprintf(b, "Alloc:\t\t%d/%d/%d MiB\n", bToMb(s.startMemory.Alloc), bToMb(s.endMemory.Alloc), bToMb(s.maxMemory.Alloc))
@@ -198,7 +216,7 @@ func (b *Benchmark) StartScenario(ctx context.Context, dir string) (*Scenario, e
 	s := StartScenario(dir)
 	cleanup, err := copyDir(ctx, dir, b.dst)
 	if err != nil {
-		s.err = err
+		s.err = multierr.Append(s.err, errors.Wrap(err, "copy dir"))
 	}
 	s.EndScenario()
 
