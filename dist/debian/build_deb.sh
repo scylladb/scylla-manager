@@ -33,7 +33,7 @@ is_debian() {
 }
 is_ubuntu() {
     case "$1" in
-        trusty|xenial|bionic) return 0;;
+        trusty|xenial|bionic|focal) return 0;;
         *) return 1;;
     esac
 }
