@@ -44,13 +44,13 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Read configuration
-		config, err := config.ParseServerConfigFiles(rootArgs.configFiles)
+		c, err := config.ParseServerConfigFiles(rootArgs.configFiles)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
 		}
-		if err := config.Validate(); err != nil {
+		if err := c.Validate(); err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
 			return
@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 		ctx := log.WithNewTraceID(context.Background())
 
 		// Create logger
-		logger, err := makeLogger(config.Logger)
+		logger, err := makeLogger(c.Logger)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -83,7 +83,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		// Log config
-		logger.Info(ctx, "Using config", "config", obfuscatePasswords(config), "config_files", rootArgs.configFiles)
+		logger.Info(ctx, "Using config", "c", config.ObfuscatedServerConfig(c), "config_files", rootArgs.configFiles)
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))
@@ -98,38 +98,38 @@ var rootCmd = &cobra.Command{
 
 		// Wait for database
 		logger.Info(ctx, "Checking database connectivity...")
-		initHost, err := netwait.AnyHostPort(ctx, config.Database.Hosts, "9042")
+		initHost, err := netwait.AnyHostPort(ctx, c.Database.Hosts, "9042")
 		if err != nil {
 			return errors.Wrapf(
 				err,
-				"no connection to database, make sure Scylla server is running and that database section in config file(s) %s is set correctly",
+				"no connection to database, make sure Scylla server is running and that database section in c file(s) %s is set correctly",
 				strings.Join(rootArgs.configFiles, ", "),
 			)
 		}
-		config.Database.InitAddr = net.JoinHostPort(initHost, "9042")
+		c.Database.InitAddr = net.JoinHostPort(initHost, "9042")
 
 		// Create keyspace if needed
-		ok, err := keyspaceExists(config)
+		ok, err := keyspaceExists(c)
 		if err != nil {
 			return errors.Wrapf(err, "db init")
 		}
 		if !ok {
-			logger.Info(ctx, "Creating keyspace", "keyspace", config.Database.Keyspace)
-			if err := createKeyspace(config); err != nil {
+			logger.Info(ctx, "Creating keyspace", "keyspace", c.Database.Keyspace)
+			if err := createKeyspace(c); err != nil {
 				return errors.Wrapf(err, "db init")
 			}
-			logger.Info(ctx, "Keyspace created", "keyspace", config.Database.Keyspace)
+			logger.Info(ctx, "Keyspace created", "keyspace", c.Database.Keyspace)
 		}
 
 		// Migrate schema
-		logger.Info(ctx, "Migrating schema", "keyspace", config.Database.Keyspace, "dir", config.Database.MigrateDir)
-		if err := migrateSchema(config, logger); err != nil {
+		logger.Info(ctx, "Migrating schema", "keyspace", c.Database.Keyspace, "dir", c.Database.MigrateDir)
+		if err := migrateSchema(c, logger); err != nil {
 			return errors.Wrapf(err, "db init")
 		}
-		logger.Info(ctx, "Schema up to date", "keyspace", config.Database.Keyspace)
+		logger.Info(ctx, "Schema up to date", "keyspace", c.Database.Keyspace)
 
 		// Start server
-		server, err := newServer(config, logger)
+		server, err := newServer(c, logger)
 		if err != nil {
 			return errors.Wrapf(err, "server init")
 		}
@@ -167,12 +167,6 @@ func makeLogger(c config.LogConfig) (log.Logger, error) {
 		Mode:  c.Mode,
 		Level: zap.NewAtomicLevelAt(c.Level),
 	})
-}
-
-func obfuscatePasswords(config *config.ServerConfig) config.ServerConfig {
-	cfg := *config
-	cfg.Database.Password = strings.Repeat("*", len(cfg.Database.Password))
-	return cfg
 }
 
 func init() {

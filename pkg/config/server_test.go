@@ -30,7 +30,7 @@ func TestConfigModification(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := &config.ServerConfig{
+	golden := config.ServerConfig{
 		HTTP:          "127.0.0.1:80",
 		HTTPS:         "127.0.0.1:443",
 		TLSCertFile:   "tls.cert",
@@ -89,7 +89,7 @@ func TestConfigModification(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(c, e, serverConfigCmpOpts); diff != "" {
+	if diff := cmp.Diff(c, golden, serverConfigCmpOpts); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -100,6 +100,7 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := config.DefaultServerConfig()
+
 	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(config.ServerConfig{}, "HTTP", "HTTPS")); diff != "" {
 		t.Fatal(diff)
 	}

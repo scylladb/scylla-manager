@@ -3,6 +3,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -57,8 +58,8 @@ type ServerConfig struct {
 	Repair        repair.Config      `yaml:"repair"`
 }
 
-func DefaultServerConfig() *ServerConfig {
-	config := &ServerConfig{
+func DefaultServerConfig() ServerConfig {
+	config := ServerConfig{
 		TLSCertFile:   "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:    "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:    ":5090",
@@ -88,13 +89,13 @@ func DefaultServerConfig() *ServerConfig {
 
 // ParseServerConfigFiles takes list of configuration file paths and returns parsed
 // config struct with merged configuration from all provided files.
-func ParseServerConfigFiles(files []string) (*ServerConfig, error) {
+func ParseServerConfigFiles(files []string) (ServerConfig, error) {
 	c := DefaultServerConfig()
-	return c, cfgutil.ParseYAML(c, files...)
+	return c, cfgutil.ParseYAML(&c, files...)
 }
 
 // Validate checks if config contains correct values.
-func (c *ServerConfig) Validate() error {
+func (c ServerConfig) Validate() error {
 	if c.HTTP == "" && c.HTTPS == "" {
 		return errors.New("missing http or https")
 	}
@@ -121,4 +122,10 @@ func (c *ServerConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// ObfuscatedServerConfig returns ServerConfig with secrets replaced with ******.
+func ObfuscatedServerConfig(c ServerConfig) ServerConfig {
+	c.Database.Password = strings.Repeat("*", len(c.Database.Password))
+	return c
 }

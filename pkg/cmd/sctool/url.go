@@ -9,15 +9,15 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/config"
 )
 
-func urlFromConfig(cfg *config.ServerConfig) string {
+func urlFromConfig(c config.ServerConfig) string {
 	const ipv4Zero, ipv6Zero1, ipv6Zero2 = "0.0.0.0", "::0", "::"
 	const ipv4Localhost, ipv6Localhost = "127.0.0.1", "::1"
 
 	var addr, scheme string
-	if cfg.HTTP != "" {
-		addr, scheme = cfg.HTTP, "http"
+	if c.HTTP != "" {
+		addr, scheme = c.HTTP, "http"
 	} else {
-		addr, scheme = cfg.HTTPS, "https"
+		addr, scheme = c.HTTPS, "https"
 	}
 	if addr == "" {
 		return ""

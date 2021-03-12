@@ -30,7 +30,7 @@ import (
 )
 
 type server struct {
-	config  *config.ServerConfig
+	config  config.ServerConfig
 	session gocqlx.Session
 	logger  log.Logger
 
@@ -48,14 +48,14 @@ type server struct {
 	errCh chan error
 }
 
-func newServer(config *config.ServerConfig, logger log.Logger) (*server, error) {
-	session, err := gocqlx.WrapSession(gocqlClusterConfig(config).CreateSession())
+func newServer(c config.ServerConfig, logger log.Logger) (*server, error) {
+	session, err := gocqlx.WrapSession(gocqlClusterConfig(c).CreateSession())
 	if err != nil {
 		return nil, errors.Wrapf(err, "database")
 	}
 
 	s := &server{
-		config:  config,
+		config:  c,
 		session: session,
 		logger:  logger,
 
