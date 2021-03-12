@@ -31,7 +31,7 @@ require (
 	github.com/prometheus/common v0.14.0
 	github.com/prometheus/procfs v0.2.0
 	github.com/rclone/rclone v1.51.0
-	github.com/scylladb/go-log v0.0.4
+	github.com/scylladb/go-log v0.0.5
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.2.0

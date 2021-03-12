@@ -287,7 +287,7 @@ github.com/rclone/rclone/lib/structs
 github.com/rclone/rclone/lib/terminal
 # github.com/rfjakob/eme v1.1.1
 github.com/rfjakob/eme
-# github.com/scylladb/go-log v0.0.4
+# github.com/scylladb/go-log v0.0.5
 ## explicit
 github.com/scylladb/go-log
 github.com/scylladb/go-log/gocqllog

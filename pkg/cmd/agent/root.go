@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 var rootArgs = struct {
@@ -43,7 +44,7 @@ var rootCmd = &cobra.Command{
 		// Get a base context with tracing id
 		ctx := log.WithNewTraceID(context.Background())
 
-		logger, err := logger(config)
+		logger, err := makeLogger(config.Logger)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -81,14 +82,14 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func logger(c config) (log.Logger, error) {
-	if c.Logger.Development {
-		return log.NewDevelopmentWithLevel(c.Logger.Level), nil
+func makeLogger(c logConfig) (log.Logger, error) {
+	if c.Development {
+		return log.NewDevelopmentWithLevel(c.Level), nil
 	}
 
 	return log.NewProduction(log.Config{
-		Mode:  c.Logger.Mode,
-		Level: c.Logger.Level,
+		Mode:  c.Mode,
+		Level: zap.NewAtomicLevelAt(c.Level),
 	})
 }
 

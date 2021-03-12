@@ -11,7 +11,7 @@ import (
 func setupCommand(configFile []string, debug bool) (log.Logger, error) {
 	c, err := parseConfigFile(configFile)
 	if err != nil {
-		return log.Logger{}, err
+		return log.NopLogger, err
 	}
 
 	l := zap.ErrorLevel
@@ -20,7 +20,7 @@ func setupCommand(configFile []string, debug bool) (log.Logger, error) {
 	}
 	logger, err := log.NewProduction(log.Config{
 		Mode:  log.StderrMode,
-		Level: l,
+		Level: zap.NewAtomicLevelAt(l),
 	})
 	if err != nil {
 		return logger, err

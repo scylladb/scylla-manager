@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 		ctx := log.WithNewTraceID(context.Background())
 
 		// Create logger
-		logger, err := logger(config)
+		logger, err := makeLogger(config.Logger)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -158,14 +158,14 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func logger(config *config.ServerConfig) (log.Logger, error) {
-	if config.Logger.Development {
-		return log.NewDevelopmentWithLevel(config.Logger.Level), nil
+func makeLogger(c config.LogConfig) (log.Logger, error) {
+	if c.Development {
+		return log.NewDevelopmentWithLevel(c.Level), nil
 	}
 
 	return log.NewProduction(log.Config{
-		Mode:  config.Logger.Mode,
-		Level: config.Logger.Level,
+		Mode:  c.Mode,
+		Level: zap.NewAtomicLevelAt(c.Level),
 	})
 }
 
