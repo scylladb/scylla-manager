@@ -7,13 +7,14 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/enrich"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/pkg/util/cpuset"
@@ -24,7 +25,7 @@ import (
 )
 
 type server struct {
-	config config
+	config config.AgentConfig
 	logger log.Logger
 
 	httpsServer      *http.Server
@@ -34,9 +35,9 @@ type server struct {
 	errCh chan error
 }
 
-func newServer(config config, logger log.Logger) *server {
+func newServer(c config.AgentConfig, logger log.Logger) *server {
 	return &server{
-		config: config,
+		config: c,
 		logger: logger,
 		errCh:  make(chan error, 4),
 	}
@@ -61,11 +62,11 @@ func (s *server) init(ctx context.Context) error {
 	}
 
 	// Update configuration from the REST API
-	if err := s.config.enrichConfigFromAPI(ctx, addr); err != nil {
+	if err := enrich.AgentConfigFromAPI(ctx, addr, &s.config); err != nil {
 		return err
 	}
 
-	s.logger.Info(ctx, "Using config", "config", obfuscateSecrets(s.config), "config_file", rootArgs.configFiles)
+	s.logger.Info(ctx, "Using config", "config", config.ObfuscatedAgentConfig(s.config), "config_file", rootArgs.configFiles)
 
 	// Instruct users to set auth token
 	if s.config.AuthToken == "" {
@@ -77,7 +78,7 @@ func (s *server) init(ctx context.Context) error {
 
 	// Try to get a CPU to pin to
 	cpu := s.config.CPU
-	if cpu == noCPU {
+	if cpu == config.NoCPU {
 		if c, err := findFreeCPU(); err != nil {
 			if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
 				// Ignore if there is no cpuset file
@@ -90,7 +91,7 @@ func (s *server) init(ctx context.Context) error {
 		}
 	}
 	// Pin to CPU if possible
-	if cpu == noCPU {
+	if cpu == config.NoCPU {
 		s.logger.Info(ctx, "Running on all CPUs")
 	} else {
 		if err := pinToCPU(cpu); err != nil {
@@ -139,12 +140,6 @@ func (s *server) makeHTTPServers() {
 			Handler: httppprof.Handler(),
 		}
 	}
-}
-
-func obfuscateSecrets(c config) config {
-	cfg := c
-	cfg.AuthToken = strings.Repeat("*", len(cfg.AuthToken))
-	return cfg
 }
 
 func (s *server) startServers(ctx context.Context) {

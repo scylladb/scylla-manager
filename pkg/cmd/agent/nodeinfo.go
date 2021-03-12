@@ -15,19 +15,20 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"golang.org/x/sys/unix"
 )
 
 type nodeInfoHandler struct {
-	config config
+	config config.AgentConfig
 
 	cachedScyllaVersion string
 	mu                  sync.Mutex
 }
 
-func newNodeInfoHandler(config config) *nodeInfoHandler {
-	return &nodeInfoHandler{config: config}
+func newNodeInfoHandler(c config.AgentConfig) *nodeInfoHandler {
+	return &nodeInfoHandler{config: c}
 }
 
 func (h *nodeInfoHandler) getNodeInfo(w http.ResponseWriter, r *http.Request) {

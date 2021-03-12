@@ -10,12 +10,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/config"
 )
 
-func newAgentHandler(config config, rclone http.Handler) *chi.Mux {
+func newAgentHandler(c config.AgentConfig, rclone http.Handler) *chi.Mux {
 	m := chi.NewMux()
 
-	m.Get("/node_info", newNodeInfoHandler(config).getNodeInfo)
+	m.Get("/node_info", newNodeInfoHandler(c).getNodeInfo)
 	m.Post("/terminate", selfSigterm())
 	m.Post("/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
 		debug.FreeOSMemory()

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/util/cpuset"
 	"github.com/spf13/cobra"
 )
@@ -16,11 +17,11 @@ import (
 func findFreeCPU() (int, error) {
 	busy, err := cpuset.ParseScyllaConfigFile()
 	if err != nil {
-		return noCPU, errors.Wrapf(err, "cpuset parse error")
+		return config.NoCPU, errors.Wrapf(err, "cpuset parse error")
 	}
 	cpus, err := cpuset.AvailableCPUs(busy, 1)
 	if err != nil {
-		return noCPU, err
+		return config.NoCPU, err
 	}
 	return cpus[0], nil
 }

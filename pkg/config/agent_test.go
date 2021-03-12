@@ -1,11 +1,10 @@
 // Copyright (C) 2017 ScyllaDB
 
-package main
+package config_test
 
 import (
 	"bytes"
 	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -15,10 +14,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/enrich"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"gopkg.in/yaml.v2"
 )
-
-var update = flag.Bool("update", false, "update .golden files")
 
 func TestParsingConfig(t *testing.T) {
 	table := []struct {
@@ -28,38 +28,38 @@ func TestParsingConfig(t *testing.T) {
 	}{
 		{
 			Name:   "basic",
-			Input:  []string{"./testdata/config/basic.input.yaml"},
-			Golden: "./testdata/config/basic.golden.yaml",
+			Input:  []string{"./testdata/agent/basic.input.yaml"},
+			Golden: "./testdata/agent/basic.golden.yaml",
 		},
 		{
 			Name:   "scylla overwrite",
-			Input:  []string{"./testdata/config/scylla_overwrite.input.yaml"},
-			Golden: "./testdata/config/scylla_overwrite.golden.yaml",
+			Input:  []string{"./testdata/agent/scylla_overwrite.input.yaml"},
+			Golden: "./testdata/agent/scylla_overwrite.golden.yaml",
 		},
 		{
 			Name:   "scylla overwrite multiple files",
-			Input:  []string{"./testdata/config/basic.input.yaml", "./testdata/config/scylla_overwrite.input.yaml"},
-			Golden: "./testdata/config/scylla_overwrite.golden.yaml",
+			Input:  []string{"./testdata/agent/basic.input.yaml", "./testdata/agent/scylla_overwrite.input.yaml"},
+			Golden: "./testdata/agent/scylla_overwrite.golden.yaml",
 		},
 		{
 			Name:   "auth token overwrite",
-			Input:  []string{"./testdata/config/auth_token_overwrite.input.yaml"},
-			Golden: "./testdata/config/auth_token_overwrite.golden.yaml",
+			Input:  []string{"./testdata/agent/auth_token_overwrite.input.yaml"},
+			Golden: "./testdata/agent/auth_token_overwrite.golden.yaml",
 		},
 		{
 			Name:   "https overwrite",
-			Input:  []string{"./testdata/config/https_overwrite.input.yaml"},
-			Golden: "./testdata/config/https_overwrite.golden.yaml",
+			Input:  []string{"./testdata/agent/https_overwrite.input.yaml"},
+			Golden: "./testdata/agent/https_overwrite.golden.yaml",
 		},
 		{
 			Name:   "debug overwrite",
-			Input:  []string{"./testdata/config/debug_overwrite.input.yaml"},
-			Golden: "./testdata/config/debug_overwrite.golden.yaml",
+			Input:  []string{"./testdata/agent/debug_overwrite.input.yaml"},
+			Golden: "./testdata/agent/debug_overwrite.golden.yaml",
 		},
 		{
 			Name:   "prometheus overwrite",
-			Input:  []string{"./testdata/config/prometheus_overwrite.input.yaml"},
-			Golden: "./testdata/config/prometheus_overwrite.golden.yaml",
+			Input:  []string{"./testdata/agent/prometheus_overwrite.input.yaml"},
+			Golden: "./testdata/agent/prometheus_overwrite.golden.yaml",
 		},
 	}
 
@@ -88,11 +88,11 @@ func TestParsingConfig(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			c, err := parseAndValidateConfigFile(test.Input)
+			c, err := config.ParseAgentConfigFiles(test.Input)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := c.enrichConfigFromAPI(context.Background(), net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)); err != nil {
+			if err := enrich.AgentConfigFromAPI(context.Background(), net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort), &c); err != nil {
 				t.Fatal(err)
 			}
 			buf := bytes.Buffer{}
@@ -100,7 +100,7 @@ func TestParsingConfig(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if *update {
+			if UpdateGoldenFiles() {
 				if err := ioutil.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
 					t.Error(err)
 				}

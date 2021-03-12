@@ -4,12 +4,13 @@ package main
 
 import (
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"go.uber.org/zap"
 )
 
 func setupCommand(configFile []string, debug bool) (log.Logger, error) {
-	c, err := parseConfigFile(configFile)
+	c, err := config.ParseAgentConfigFiles(configFile)
 	if err != nil {
 		return log.NopLogger, err
 	}

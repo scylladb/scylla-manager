@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -36,15 +37,18 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		config, err := parseAndValidateConfigFile(rootArgs.configFiles)
+		c, err := config.ParseAgentConfigFiles(rootArgs.configFiles)
 		if err != nil {
 			return err
+		}
+		if err := c.Validate(); err != nil {
+			return errors.Wrap(err, "invalid config")
 		}
 
 		// Get a base context with tracing id
 		ctx := log.WithNewTraceID(context.Background())
 
-		logger, err := makeLogger(config.Logger)
+		logger, err := makeLogger(c.Logger)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -58,7 +62,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		// Start server
-		server := newServer(config, logger)
+		server := newServer(c, logger)
 		if err := server.init(ctx); err != nil {
 			return errors.Wrapf(err, "server init")
 		}
@@ -82,7 +86,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func makeLogger(c logConfig) (log.Logger, error) {
+func makeLogger(c config.LogConfig) (log.Logger, error) {
 	if c.Development {
 		return log.NewDevelopmentWithLevel(c.Level), nil
 	}
