@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package config
+package config_test
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
@@ -18,18 +19,18 @@ import (
 
 var serverConfigCmpOpts = cmp.Options{
 	testutils.UUIDComparer(),
-	cmpopts.IgnoreUnexported(DBConfig{}),
+	cmpopts.IgnoreUnexported(config.DBConfig{}),
 }
 
 func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := ParseServerConfigFiles([]string{"testdata/scylla-manager.yaml"})
+	c, err := config.ParseServerConfigFiles([]string{"testdata/server/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	e := &ServerConfig{
+	e := &config.ServerConfig{
 		HTTP:          "127.0.0.1:80",
 		HTTPS:         "127.0.0.1:443",
 		TLSCertFile:   "tls.cert",
@@ -38,11 +39,11 @@ func TestConfigModification(t *testing.T) {
 		Prometheus:    "127.0.0.1:9090",
 		Debug:         "127.0.0.1:112",
 		SwaggerUIPath: "path",
-		Logger: LogConfig{
+		Logger: config.LogConfig{
 			Mode:  log.StderrMode,
 			Level: zapcore.DebugLevel,
 		},
-		Database: DBConfig{
+		Database: config.DBConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			SSL:                           true,
 			User:                          "user",
@@ -56,7 +57,7 @@ func TestConfigModification(t *testing.T) {
 			Timeout:                       600 * time.Millisecond,
 			TokenAware:                    false,
 		},
-		SSL: SSLConfig{
+		SSL: config.SSLConfig{
 			CertFile:     "ca.pem",
 			Validate:     false,
 			UserCertFile: "ssl.cert",
@@ -94,16 +95,12 @@ func TestConfigModification(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := ParseServerConfigFiles([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
+	c, err := config.ParseServerConfigFiles([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := DefaultServerConfig()
-	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(ServerConfig{}, "HTTP", "HTTPS")); diff != "" {
+	e := config.DefaultServerConfig()
+	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(config.ServerConfig{}, "HTTP", "HTTPS")); diff != "" {
 		t.Fatal(diff)
 	}
-}
-
-func TestValidateConfig(t *testing.T) {
-	// TODO add validation tests
 }
