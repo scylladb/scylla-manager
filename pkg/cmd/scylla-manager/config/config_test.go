@@ -18,7 +18,7 @@ import (
 
 var serverConfigCmpOpts = cmp.Options{
 	testutils.UUIDComparer(),
-	cmpopts.IgnoreUnexported(dbConfig{}),
+	cmpopts.IgnoreUnexported(DBConfig{}),
 }
 
 func TestConfigModification(t *testing.T) {
@@ -38,11 +38,11 @@ func TestConfigModification(t *testing.T) {
 		Prometheus:    "127.0.0.1:9090",
 		Debug:         "127.0.0.1:112",
 		SwaggerUIPath: "path",
-		Logger: logConfig{
+		Logger: LogConfig{
 			Mode:  log.StderrMode,
 			Level: zapcore.DebugLevel,
 		},
-		Database: dbConfig{
+		Database: DBConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			SSL:                           true,
 			User:                          "user",
@@ -56,7 +56,7 @@ func TestConfigModification(t *testing.T) {
 			Timeout:                       600 * time.Millisecond,
 			TokenAware:                    false,
 		},
-		SSL: sslConfig{
+		SSL: SSLConfig{
 			CertFile:     "ca.pem",
 			Validate:     false,
 			UserCertFile: "ssl.cert",

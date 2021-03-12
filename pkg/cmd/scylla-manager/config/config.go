@@ -14,13 +14,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type logConfig struct {
+// LogConfig specifies logger configuration options.
+type LogConfig struct {
 	Mode        log.Mode      `yaml:"mode"`
 	Level       zapcore.Level `yaml:"level"`
 	Development bool          `yaml:"development"`
 }
 
-type dbConfig struct {
+// DBConfig specifies Scylla Manager backend database configuration options.
+type DBConfig struct {
 	Hosts                         []string      `yaml:"hosts"`
 	SSL                           bool          `yaml:"ssl"`
 	User                          string        `yaml:"user"`
@@ -37,15 +39,16 @@ type dbConfig struct {
 	initAddr string
 }
 
-func (dbc *dbConfig) SetInitAddr(initAddr string) {
+func (dbc *DBConfig) SetInitAddr(initAddr string) {
 	dbc.initAddr = initAddr
 }
 
-func (dbc *dbConfig) InitAddr() string {
+func (dbc *DBConfig) InitAddr() string {
 	return dbc.initAddr
 }
 
-type sslConfig struct {
+// SSLConfig specifies Scylla Manager backend database SSL configuration options.
+type SSLConfig struct {
 	CertFile     string `yaml:"cert_file"`
 	Validate     bool   `yaml:"validate"`
 	UserCertFile string `yaml:"user_cert_file"`
@@ -62,9 +65,9 @@ type ServerConfig struct {
 	Prometheus    string             `yaml:"prometheus"`
 	Debug         string             `yaml:"debug"`
 	SwaggerUIPath string             `yaml:"swagger_ui_path"`
-	Logger        logConfig          `yaml:"logger"`
-	Database      dbConfig           `yaml:"database"`
-	SSL           sslConfig          `yaml:"ssl"`
+	Logger        LogConfig          `yaml:"logger"`
+	Database      DBConfig           `yaml:"database"`
+	SSL           SSLConfig          `yaml:"ssl"`
 	Healthcheck   healthcheck.Config `yaml:"healthcheck"`
 	Backup        backup.Config      `yaml:"backup"`
 	Repair        repair.Config      `yaml:"repair"`
@@ -77,12 +80,12 @@ func defaultConfig() *ServerConfig {
 		Prometheus:    ":5090",
 		Debug:         "127.0.0.1:5112",
 		SwaggerUIPath: "/var/lib/scylla-manager/swagger-ui",
-		Logger: logConfig{
+		Logger: LogConfig{
 			Mode:        log.StderrMode,
 			Level:       zapcore.InfoLevel,
 			Development: false,
 		},
-		Database: dbConfig{
+		Database: DBConfig{
 			Hosts:                         []string{"127.0.0.1"},
 			Keyspace:                      "scylla_manager",
 			MigrateDir:                    "/etc/scylla-manager/cql",
@@ -92,7 +95,7 @@ func defaultConfig() *ServerConfig {
 			Timeout:                       600 * time.Millisecond,
 			TokenAware:                    true,
 		},
-		SSL: sslConfig{
+		SSL: SSLConfig{
 			Validate: true,
 		},
 		Healthcheck: healthcheck.DefaultConfig(),
