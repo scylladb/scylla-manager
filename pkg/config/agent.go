@@ -64,7 +64,7 @@ func DefaultAgentConfig() AgentConfig {
 		Prometheus:  ":5090",
 		Debug:       "127.0.0.1:5112",
 		CPU:         NoCPU,
-		Logger:      DefaultLogConfig(),
+		Logger:      DefaultAgentLogConfig(),
 		Scylla: ScyllaConfig{
 			APIAddress:    "0.0.0.0",
 			APIPort:       "10000",

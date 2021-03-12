@@ -8,7 +8,9 @@ cpu: -1
 logger:
   mode: stderr
   level: info
-  sampling: null
+  sampling:
+    initial: 1
+    thereafter: 100
   development: false
 scylla:
   api_address: 0.0.0.0

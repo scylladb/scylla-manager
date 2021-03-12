@@ -14,11 +14,25 @@ type LogConfig struct {
 	Development bool `yaml:"development"`
 }
 
-func DefaultLogConfig() LogConfig {
+func DefaultServerLogConfig() LogConfig {
 	return LogConfig{
 		Config: log.Config{
 			Mode:  log.StderrMode,
 			Level: zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		},
+		Development: false,
+	}
+}
+
+func DefaultAgentLogConfig() LogConfig {
+	return LogConfig{
+		Config: log.Config{
+			Mode:  log.StderrMode,
+			Level: zap.NewAtomicLevelAt(zapcore.InfoLevel),
+			Sampling: &zap.SamplingConfig{
+				Initial:    1,
+				Thereafter: 100,
+			},
 		},
 		Development: false,
 	}

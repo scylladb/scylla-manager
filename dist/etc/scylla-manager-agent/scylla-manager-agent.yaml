@@ -31,8 +31,18 @@
 
 # Logging configuration.
 #logger:
-# Available log levels are error, info and debug.
+# Where to print logs, stderr or stdout.
+#  mode: stderr
+# How much logs to print, available levels are: error, info, debug.
 #  level: info
+# Sampling reduces number of logs by not printing duplicated log entries within
+# a second. The first N (initial) entries with a given level and message are
+# printed. If more entries with the same level and message are seen during
+# the same interval, every Mth (thereafter) message is logged and the rest is
+# dropped.
+#  sampling:
+#    initial: 1
+#    thereafter: 100
 
 # Copy api_address and api_port values from /etc/scylla/scylla.yaml. All the
 # needed Scylla configuration options are read from the API.

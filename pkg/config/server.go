@@ -65,7 +65,7 @@ func DefaultServerConfig() ServerConfig {
 		Prometheus:    ":5090",
 		Debug:         "127.0.0.1:5112",
 		SwaggerUIPath: "/var/lib/scylla-manager/swagger-ui",
-		Logger:        DefaultLogConfig(),
+		Logger:        DefaultServerLogConfig(),
 		Database: DBConfig{
 			Hosts:                         []string{"127.0.0.1"},
 			Keyspace:                      "scylla_manager",
