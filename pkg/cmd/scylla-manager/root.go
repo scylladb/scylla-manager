@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 		ctx := log.WithNewTraceID(context.Background())
 
 		// Create logger
-		logger, err := makeLogger(c.Logger)
+		logger, err := config.MakeLogger(c.Logger)
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -156,17 +156,6 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func makeLogger(c config.LogConfig) (log.Logger, error) {
-	if c.Development {
-		return log.NewDevelopmentWithLevel(c.Level), nil
-	}
-
-	return log.NewProduction(log.Config{
-		Mode:  c.Mode,
-		Level: zap.NewAtomicLevelAt(c.Level),
-	})
 }
 
 func init() {

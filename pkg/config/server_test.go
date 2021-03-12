@@ -14,12 +14,14 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var serverConfigCmpOpts = cmp.Options{
 	testutils.UUIDComparer(),
 	cmpopts.IgnoreUnexported(config.DBConfig{}),
+	cmpopts.IgnoreTypes(zap.AtomicLevel{}),
 }
 
 func TestConfigModification(t *testing.T) {
@@ -40,8 +42,10 @@ func TestConfigModification(t *testing.T) {
 		Debug:         "127.0.0.1:112",
 		SwaggerUIPath: "path",
 		Logger: config.LogConfig{
-			Mode:  log.StderrMode,
-			Level: zapcore.DebugLevel,
+			Config: log.Config{
+				Mode:  log.StderrMode,
+				Level: zap.NewAtomicLevelAt(zapcore.DebugLevel),
+			},
 		},
 		Database: config.DBConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
