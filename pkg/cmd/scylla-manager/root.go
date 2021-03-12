@@ -106,7 +106,7 @@ var rootCmd = &cobra.Command{
 				strings.Join(rootArgs.configFiles, ", "),
 			)
 		}
-		config.Database.SetInitAddr(net.JoinHostPort(initHost, "9042"))
+		config.Database.InitAddr = net.JoinHostPort(initHost, "9042")
 
 		// Create keyspace if needed
 		ok, err := keyspaceExists(config)

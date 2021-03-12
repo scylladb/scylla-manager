@@ -131,7 +131,7 @@ func gocqlClusterConfigForDBInit(config *config.ServerConfig) *gocql.ClusterConf
 	// Use only a single host for migrations, using multiple hosts may lead to
 	// conflicting schema changes. This can be avoided by awaiting schema
 	// changes see https://github.com/scylladb/gocqlx/issues/106.
-	c.Hosts = []string{config.Database.InitAddr()}
+	c.Hosts = []string{config.Database.InitAddr}
 	c.DisableInitialHostLookup = true
 
 	return c

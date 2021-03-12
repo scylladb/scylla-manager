@@ -35,16 +35,9 @@ type DBConfig struct {
 	ReplicationFactor             int           `yaml:"replication_factor"`
 	Timeout                       time.Duration `yaml:"timeout"`
 	TokenAware                    bool          `yaml:"token_aware"`
-	// initAddr specifies address used to create manager keyspace and tables.
-	initAddr string
-}
 
-func (dbc *DBConfig) SetInitAddr(initAddr string) {
-	dbc.initAddr = initAddr
-}
-
-func (dbc *DBConfig) InitAddr() string {
-	return dbc.initAddr
+	// InitAddr specifies address used to create manager keyspace and tables.
+	InitAddr string
 }
 
 // SSLConfig specifies Scylla Manager backend database SSL configuration options.
