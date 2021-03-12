@@ -243,7 +243,6 @@ type Task struct {
 	opts []Opt
 }
 
-// Validate checks if all the required fields are properly set.
 func (t *Task) Validate() error {
 	if t == nil {
 		return service.ErrNilPtr

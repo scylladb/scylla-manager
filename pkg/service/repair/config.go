@@ -42,7 +42,6 @@ func DefaultConfig() Config {
 	}
 }
 
-// Validate checks if all the fields are properly set.
 func (c *Config) Validate() error {
 	if c == nil {
 		return service.ErrNilPtr

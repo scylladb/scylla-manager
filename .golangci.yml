@@ -72,6 +72,7 @@ issues:
     - exported method `.+\.UnmarshalCQL` should have comment or be unexported
     - exported method `.+\.UnmarshalText` should have comment or be unexported
     - exported method `.+\.UnmarshalUDT` should have comment or be unexported
+    - exported method `.+\.Validate` should have comment or be unexported
     - exported method `Runner.Run` should have comment or be unexported
     - exported var `Default.+` should have comment or be unexported
     - has json tag but is not exported

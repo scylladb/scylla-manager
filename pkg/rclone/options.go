@@ -47,7 +47,6 @@ func DefaultS3Options() S3Options {
 	}
 }
 
-// Validate returns error if option values are not set properly.
 func (o *S3Options) Validate() error {
 	if o.Endpoint != "" && o.Provider == "" {
 		return fmt.Errorf("specify provider for the endpoint %s, available providers are: %s", o.Endpoint, s3Providers)

@@ -88,7 +88,6 @@ func TestConfig(hosts []string, token string) Config {
 	return config
 }
 
-// Validate checks if all the fields are properly set.
 func (c Config) Validate() error {
 	var err error
 	if len(c.Hosts) == 0 {

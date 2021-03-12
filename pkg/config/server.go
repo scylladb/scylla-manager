@@ -94,7 +94,6 @@ func ParseServerConfigFiles(files []string) (ServerConfig, error) {
 	return c, cfgutil.ParseYAML(&c, files...)
 }
 
-// Validate checks if config contains correct values.
 func (c ServerConfig) Validate() error {
 	if c.HTTP == "" && c.HTTPS == "" {
 		return errors.New("missing http or https")

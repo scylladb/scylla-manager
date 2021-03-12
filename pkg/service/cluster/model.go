@@ -37,7 +37,6 @@ func (c *Cluster) String() string {
 	return c.ID.String()
 }
 
-// Validate checks if all the fields are properly set.
 func (c *Cluster) Validate() error {
 	if c == nil {
 		return errors.Wrap(service.ErrNilPtr, "invalid filter")
@@ -72,7 +71,6 @@ type Filter struct {
 	Name string
 }
 
-// Validate checks if all the fields are properly set.
 func (f *Filter) Validate() error {
 	if f == nil {
 		return service.ErrNilPtr
