@@ -66,13 +66,13 @@ func (s *server) init(ctx context.Context) error {
 		return err
 	}
 
-	s.logger.Info(ctx, "Using config", "config", config.ObfuscatedAgentConfig(s.config), "config_file", rootArgs.configFiles)
+	s.logger.Info(ctx, "Using config", "config", config.ObfuscatedAgentConfig(s.config), "config_files", rootArgs.configFiles)
 
 	// Instruct users to set auth token
 	if s.config.AuthToken == "" {
 		ip, _, _ := net.SplitHostPort(s.config.HTTPS)
 		s.logger.Info(ctx, "WARNING! Scylla data may be exposed on IP "+ip+", "+
-			"protect it by specifying auth_token in config file", "config_file", rootArgs.configFiles,
+			"protect it by specifying auth_token in config file", "config_files", rootArgs.configFiles,
 		)
 	}
 

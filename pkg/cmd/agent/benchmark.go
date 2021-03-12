@@ -26,7 +26,7 @@ var benchmarkArgs = struct {
 	dirGlob  []string
 	location string
 
-	configFile    []string
+	configFiles   []string
 	debug         bool
 	memProfileDir string
 	prometheus    string
@@ -45,7 +45,7 @@ var benchmarkCmd = &cobra.Command{
 			}
 		}()
 
-		logger, err := setupCommand(benchmarkArgs.configFile, benchmarkArgs.debug)
+		logger, err := setupCommand(benchmarkArgs.configFiles, benchmarkArgs.debug)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func init() {
 	}
 
 	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
-	f.StringSliceVarP(&benchmarkArgs.configFile, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
+	f.StringSliceVarP(&benchmarkArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")
 	f.StringVar(&benchmarkArgs.prometheus, "prometheus", "", "address to bind prometheus metrics endpoint ex. 0.0.0.0:5091")
 	f.IntVar(&benchmarkArgs.rateLimit, "rate-limit", 100, "rate limit in megabytes (MiB) per second, set to 0 for no limit")

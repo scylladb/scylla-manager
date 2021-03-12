@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func setupCommand(configFile []string, debug bool) (log.Logger, error) {
-	c, err := config.ParseAgentConfigFiles(configFile)
+func setupCommand(configFiles []string, debug bool) (log.Logger, error) {
+	c, err := config.ParseAgentConfigFiles(configFiles)
 	if err != nil {
 		return log.NopLogger, err
 	}
