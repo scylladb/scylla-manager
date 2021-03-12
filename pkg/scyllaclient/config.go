@@ -52,7 +52,6 @@ type BackoffConfig struct {
 	Jitter     float64
 }
 
-// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		Port:        "10001",

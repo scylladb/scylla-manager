@@ -32,7 +32,6 @@ type Config struct {
 	Murmur3PartitionerIgnoreMSBBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
-// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		PollInterval:                    50 * time.Millisecond,

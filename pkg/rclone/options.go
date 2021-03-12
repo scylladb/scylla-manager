@@ -34,7 +34,6 @@ var s3Providers = strset.New(
 	"IBMCOS", "Wasabi", "Dreamhost", "Netease", "Other",
 )
 
-// DefaultS3Options returns a S3Options initialized with default values.
 func DefaultS3Options() S3Options {
 	return S3Options{
 		Provider:        "AWS",
@@ -69,7 +68,6 @@ func (o *S3Options) AutoFill() {
 	}
 }
 
-// DefaultGCSOptions returns a GCSOptions initialized with default values.
 func DefaultGCSOptions() GCSOptions {
 	return GCSOptions{
 		AllowCreateBucket: _false,
@@ -92,7 +90,6 @@ func (o *GCSOptions) AutoFill() {
 	}
 }
 
-// DefaultAzureOptions returns a AzureOptions initialized with default values.
 func DefaultAzureOptions() AzureOptions {
 	return AzureOptions{
 		ChunkSize:       defaultChunkSize,

@@ -46,7 +46,6 @@ type DynamicTimeoutConfig struct {
 	StdDevMultiplier int `yaml:"stddev_multiplier"`
 }
 
-// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		Timeout:    250 * time.Millisecond,

@@ -17,7 +17,6 @@ type Config struct {
 	AgeMax                    time.Duration `yaml:"age_max"`
 }
 
-// DefaultConfig returns a Config initialized with default values.
 func DefaultConfig() Config {
 	return Config{
 		DiskSpaceFreeMinPercent:   10,
