@@ -51,8 +51,6 @@ type logEntry struct {
 func (le *logEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
 	f := []interface{}{
 		"from", le.r.RemoteAddr,
-		"method", le.r.Method,
-		"uri", le.r.URL.RequestURI(),
 		"status", status,
 		"bytes", bytes,
 		"duration", fmt.Sprintf("%dms", elapsed.Milliseconds()),
@@ -60,9 +58,9 @@ func (le *logEntry) Write(status, bytes int, header http.Header, elapsed time.Du
 	if le.err != nil {
 		f = append(f, "error", le.err)
 	}
-	le.l.Info(le.r.Context(), "HTTP", f...)
+	le.l.Info(le.r.Context(), le.r.Method+" "+le.r.URL.RequestURI(), f...)
 }
 
 func (le *logEntry) Panic(v interface{}, stack []byte) {
-	le.l.Error(le.r.Context(), "Panic", "panic", v)
+	le.l.Error(le.r.Context(), "Panic", "panic", v, "stack", stack)
 }
