@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Read configuration
-		config, err := config.ParseConfigFile(rootArgs.configFiles)
+		config, err := config.ParseServerConfigFiles(rootArgs.configFiles)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)

@@ -6,20 +6,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
-	"go.uber.org/zap/zapcore"
 )
-
-// LogConfig specifies logger configuration options.
-type LogConfig struct {
-	Mode        log.Mode      `yaml:"mode"`
-	Level       zapcore.Level `yaml:"level"`
-	Development bool          `yaml:"development"`
-}
 
 // DBConfig specifies Scylla Manager backend database configuration options.
 type DBConfig struct {
@@ -66,18 +57,14 @@ type ServerConfig struct {
 	Repair        repair.Config      `yaml:"repair"`
 }
 
-func defaultConfig() *ServerConfig {
+func DefaultServerConfig() *ServerConfig {
 	config := &ServerConfig{
 		TLSCertFile:   "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:    "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:    ":5090",
 		Debug:         "127.0.0.1:5112",
 		SwaggerUIPath: "/var/lib/scylla-manager/swagger-ui",
-		Logger: LogConfig{
-			Mode:        log.StderrMode,
-			Level:       zapcore.InfoLevel,
-			Development: false,
-		},
+		Logger:        DefaultLogConfig(),
 		Database: DBConfig{
 			Hosts:                         []string{"127.0.0.1"},
 			Keyspace:                      "scylla_manager",
@@ -99,10 +86,10 @@ func defaultConfig() *ServerConfig {
 	return config
 }
 
-// ParseConfigFile takes list of configuration file paths and returns parsed
+// ParseServerConfigFiles takes list of configuration file paths and returns parsed
 // config struct with merged configuration from all provided files.
-func ParseConfigFile(files []string) (*ServerConfig, error) {
-	c := defaultConfig()
+func ParseServerConfigFiles(files []string) (*ServerConfig, error) {
+	c := DefaultServerConfig()
 	return c, cfgutil.ParseYAML(c, files...)
 }
 

@@ -89,7 +89,7 @@ func init() {
 	// Attempt to read local Scylla Manager configuration only if default URL
 	// is not set by the environment variable.
 	if apiURL == "" {
-		cfg, err := config.ParseConfigFile([]string{"/etc/scylla-manager/scylla-manager.yaml"})
+		cfg, err := config.ParseServerConfigFiles([]string{"/etc/scylla-manager/scylla-manager.yaml"})
 		if err == nil {
 			apiURL = urlFromConfig(cfg)
 		}

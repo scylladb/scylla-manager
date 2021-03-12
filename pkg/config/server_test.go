@@ -24,7 +24,7 @@ var serverConfigCmpOpts = cmp.Options{
 func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := ParseConfigFile([]string{"testdata/scylla-manager.yaml"})
+	c, err := ParseServerConfigFiles([]string{"testdata/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,11 +94,11 @@ func TestConfigModification(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := ParseConfigFile([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
+	c, err := ParseServerConfigFiles([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := defaultConfig()
+	e := DefaultServerConfig()
 	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(ServerConfig{}, "HTTP", "HTTPS")); diff != "" {
 		t.Fatal(diff)
 	}
