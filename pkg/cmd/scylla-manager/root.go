@@ -18,7 +18,7 @@ import (
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/scylladb/scylla-manager/pkg/callhome"
-	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/util/netwait"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"

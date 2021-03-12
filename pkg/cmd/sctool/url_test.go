@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
+	"github.com/scylladb/scylla-manager/pkg/config"
 )
 
 func TestApiURL(t *testing.T) {

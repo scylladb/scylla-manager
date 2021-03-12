@@ -12,7 +12,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	gocqlxtable "github.com/scylladb/gocqlx/v2/table"
-	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	schemamigrate "github.com/scylladb/scylla-manager/pkg/schema/migrate"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 )

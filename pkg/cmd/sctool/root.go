@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
 )

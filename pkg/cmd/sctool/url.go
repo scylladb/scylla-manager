@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/scylladb/scylla-manager/pkg/cmd/scylla-manager/config"
+	"github.com/scylladb/scylla-manager/pkg/config"
 )
 
 func urlFromConfig(cfg *config.ServerConfig) string {
