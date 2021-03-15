@@ -836,10 +836,7 @@ func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
 // putRunProgressLogError executes putRunProgress and consumes the error.
 func (s *Service) putRunProgressLogError(ctx context.Context, p *RunProgress) {
 	if err := s.putRunProgress(ctx, p); err != nil {
-		s.logger.Error(ctx, "Failed to update file progress",
-			"progress", p,
-			"error", err,
-		)
+		s.logger.Error(ctx, "Failed to update file progress", "error", err)
 	}
 }
 
