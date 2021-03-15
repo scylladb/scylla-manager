@@ -136,7 +136,7 @@
 # The storage class to use when storing new objects in S3.
 #  storage_class:
 #
-# Number of files uploaded concurrently, by default it's 2.
+# Concurrency for multipart uploads.
 #  upload_concurrency: 2
 #
 # AWS S3 Transfer acceleration
