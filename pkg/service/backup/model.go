@@ -119,15 +119,15 @@ type Run struct {
 // again. In summary Failed is supposed to mean, out of uploaded bytes how much
 // bytes have to be uploaded again.
 type RunProgress struct {
-	ClusterID  uuid.UUID
-	TaskID     uuid.UUID
-	RunID      uuid.UUID
-	AgentJobID int64
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
 
 	Host      string
 	Unit      int64
 	TableName string
 
+	AgentJobID  int64
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string
