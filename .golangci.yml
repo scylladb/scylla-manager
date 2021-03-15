@@ -68,6 +68,7 @@ issues:
     - exported method `.+\.MarshalCQL` should have comment or be unexported
     - exported method `.+\.MarshalText` should have comment or be unexported
     - exported method `.+\.MarshalUDT` should have comment or be unexported
+    - exported function `New` should have comment or be unexported
     - exported method `.+\.UnmarshalBinary` should have comment or be unexported
     - exported method `.+\.UnmarshalCQL` should have comment or be unexported
     - exported method `.+\.UnmarshalText` should have comment or be unexported

@@ -1,0 +1,11 @@
+[
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-CompressionInfo.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Data.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Digest.crc32",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Filter.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Index.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Scylla.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Statistics.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-Summary.db",
+  "system_auth/roles-5bc52802de2535edaeab188eecebb090/mc-2-big-TOC.txt"
+]
