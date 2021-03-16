@@ -33,3 +33,6 @@ ADD etc/supervisord.conf.d/sshd.conf /etc/supervisord.conf.d/sshd.conf
 
 # Add supervisord configuration for agent
 ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scylla-manager-agent.conf
+
+# Overwrite supervisord configuration for scylla
+ADD etc/supervisord.conf.d/scylla-server.conf /etc/supervisord.conf.d/scylla-server.conf
