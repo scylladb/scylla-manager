@@ -52,8 +52,12 @@ status: ## Cluster containers status and nodetool status
 	@$(COMPOSE) ps
 	@$(COMPOSE) exec dc1_node_1 nodetool status
 
+.PHONY: agent-logs
+agent-logs: ## Show logs for the managed scylla cluster
+	@$(MAKE) logs SRV='dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3'
+
 .PHONY: logs
-logs: ## Show logs
+logs: ## Show logs for a service specified with SRV parameter or all services if not set
 	@$(COMPOSE) logs --tail 10 -f $(SRV)
 
 .PHONY: cqlsh-manager
