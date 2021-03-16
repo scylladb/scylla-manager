@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   dc1_node_1:
-    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
     command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
@@ -20,7 +20,7 @@ services:
         ipv4_address: 192.168.100.11
 
   dc1_node_2:
-    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
     command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
@@ -38,7 +38,7 @@ services:
         ipv4_address: 192.168.100.12
 
   dc1_node_3:
-    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
     command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
@@ -56,7 +56,7 @@ services:
         ipv4_address: 192.168.100.13
 
   dc2_node_1:
-    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
     command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
@@ -74,7 +74,7 @@ services:
         ipv4_address: 192.168.100.21
 
   dc2_node_2:
-    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
     command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
@@ -92,7 +92,7 @@ services:
         ipv4_address: 192.168.100.22
 
   dc2_node_3:
-    image: scylladb/scylla-ssh:${SCYLLA_VERSION}
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
     command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
     volumes:
