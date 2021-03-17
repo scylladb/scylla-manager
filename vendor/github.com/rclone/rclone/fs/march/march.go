@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs/object"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/dirtree"
@@ -123,15 +124,10 @@ func (m *March) makeListDir(ctx context.Context, f fs.Fs, remote string, include
 
 func (m *March) listPaths(ctx context.Context, f fs.Fs, remote string) listDirFn {
 	return func(dir string) (fs.DirEntries, error) {
-		var entries fs.DirEntries
-		for _, p := range m.Paths {
-			o, err := f.NewObject(ctx, path.Join(remote, p))
-			if err != nil {
-				return nil, err
-			}
-			entries = append(entries, o)
+		entries := make(fs.DirEntries, len(m.Paths))
+		for i, p := range m.Paths {
+			entries[i] = object.NewLazyObject(ctx, f, path.Join(remote, p))
 		}
-
 		return entries, nil
 	}
 }
