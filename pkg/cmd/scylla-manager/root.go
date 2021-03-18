@@ -160,8 +160,6 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	f := rootCmd.Flags()
-	f.StringSliceVarP(&rootArgs.configFiles, "config-file", "c",
-		[]string{"/etc/scylla-manager/scylla-manager.yaml"},
-		"repeatable argument to supply one or more configuration file `paths`")
-	f.BoolVar(&rootArgs.version, "version", false, "print product version and exit")
+	f.StringSliceVarP(&rootArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager/scylla-manager.yaml"}, "configuration file `path`")
+	f.BoolVar(&rootArgs.version, "version", false, "print version and exit")
 }
