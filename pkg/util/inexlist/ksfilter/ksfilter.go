@@ -172,3 +172,11 @@ func sortUnits(units []Unit, inclExcl inexlist.InExList) {
 		}
 	})
 }
+
+// Filters returns the original filters used to create the instance.
+func (f *Filter) Filters() []string {
+	if f == nil {
+		return nil
+	}
+	return f.filters
+}
