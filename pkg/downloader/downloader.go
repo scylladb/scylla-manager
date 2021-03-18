@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 )
 
 // TableDir specifies type of desired download.
@@ -113,11 +114,12 @@ func (d *Downloader) Download(ctx context.Context, m *backup.RemoteManifest) err
 		"dry-run", d.dryRun,
 	)
 
-	for _, u := range m.Content.Index {
-		if !d.shouldDownload(u.Keyspace, u.Table) {
-			d.logger.Debug(ctx, "Table filtered out", "keyspace", u.Keyspace, "table", u.Table)
-			continue
-		}
+	index := d.filteredIndex(ctx, m)
+
+	// Spawn all downloads at the same time, we rely on rclone ability to limit
+	// nr. of transfers.
+	return parallel.Run(len(index), parallel.NoLimit, func(i int) error {
+		u := index[i]
 
 		if err := d.clearTableIfNeeded(ctx, u); err != nil {
 			return errors.Wrapf(err, "clear table %s.%s", u.Keyspace, u.Table)
@@ -125,15 +127,31 @@ func (d *Downloader) Download(ctx context.Context, m *backup.RemoteManifest) err
 
 		if len(u.Files) == 0 {
 			d.logger.Info(ctx, "Skipping empty", "keyspace", u.Keyspace, "table", u.Table)
-			continue
+			return nil
 		}
 
 		if err := d.downloadFiles(ctx, m, u); err != nil {
 			return errors.Wrapf(err, "download table %s.%s", u.Keyspace, u.Table)
 		}
+
+		return nil
+	})
+}
+
+func (d *Downloader) filteredIndex(ctx context.Context, m *backup.RemoteManifest) []backup.FilesMeta {
+	if d.keyspace == nil {
+		return m.Content.Index
 	}
 
-	return nil
+	var index []backup.FilesMeta
+	for _, u := range m.Content.Index {
+		if !d.shouldDownload(u.Keyspace, u.Table) {
+			d.logger.Debug(ctx, "Table filtered out", "keyspace", u.Keyspace, "table", u.Table)
+		} else {
+			index = append(index, u)
+		}
+	}
+	return index
 }
 
 func (d *Downloader) shouldDownload(keyspace, table string) bool {
