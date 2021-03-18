@@ -63,9 +63,6 @@ func init() {
 		"backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
-	if err := cmd.MarkFlagRequired("location"); err != nil {
-		panic(err)
-	}
-
+	requireFlags(cmd, "location")
 	rootCmd.AddCommand(cmd)
 }
