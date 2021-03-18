@@ -7,21 +7,18 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-func setupCommand(configFiles []string, debug bool) (log.Logger, error) {
+func setupCommand(configFiles []string, level zapcore.Level) (log.Logger, error) {
 	c, err := config.ParseAgentConfigFiles(configFiles)
 	if err != nil {
 		return log.NopLogger, err
 	}
 
-	l := zap.ErrorLevel
-	if debug {
-		l = zap.DebugLevel
-	}
 	logger, err := log.NewProduction(log.Config{
 		Mode:  log.StderrMode,
-		Level: zap.NewAtomicLevelAt(l),
+		Level: zap.NewAtomicLevelAt(level),
 	})
 	if err != nil {
 		return logger, err

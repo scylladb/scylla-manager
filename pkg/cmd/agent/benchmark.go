@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap/zapcore"
 )
 
 var benchmarkArgs = struct {
@@ -45,7 +46,11 @@ var benchmarkCmd = &cobra.Command{
 			}
 		}()
 
-		logger, err := setupCommand(benchmarkArgs.configFiles, benchmarkArgs.debug)
+		level := zapcore.ErrorLevel
+		if benchmarkArgs.debug {
+			level = zapcore.DebugLevel
+		}
+		logger, err := setupCommand(benchmarkArgs.configFiles, level)
 		if err != nil {
 			return err
 		}

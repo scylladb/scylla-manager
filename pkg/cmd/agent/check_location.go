@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
 	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap/zapcore"
 )
 
 var checkLocationArgs = struct {
@@ -32,7 +33,11 @@ var checkLocationCmd = &cobra.Command{
 			}
 		}()
 
-		_, err = setupCommand(checkLocationArgs.configFiles, checkLocationArgs.debug)
+		level := zapcore.ErrorLevel
+		if checkLocationArgs.debug {
+			level = zapcore.DebugLevel
+		}
+		_, err = setupCommand(checkLocationArgs.configFiles, level)
 		if err != nil {
 			return err
 		}
