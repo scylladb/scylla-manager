@@ -14,7 +14,6 @@ import (
 	"github.com/scylladb/go-log"
 	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 // TableDir specifies type of desired download.
@@ -38,12 +37,7 @@ const (
 // It also supports downloading to upload directory and downloading in a format
 // suitable for sstable loader see TableDir.
 type Downloader struct {
-	clusterID   uuid.UUID
-	dc          string
-	nodeID      uuid.UUID
-	snapshotTag string
 	logger      log.Logger
-
 	keyspace    *ksfilter.Filter
 	mode        TableDir
 	clearTables bool
@@ -53,13 +47,13 @@ type Downloader struct {
 	fdst fs.Fs
 }
 
-func New(location backup.Location, clusterID uuid.UUID, dc string, nodeID uuid.UUID, snapshotTag, dataDir string, logger log.Logger) (*Downloader, error) {
+func New(l backup.Location, dataDir string, logger log.Logger) (*Downloader, error) {
 	// Temporary context to satisfy rclone
 	ctx := context.Background()
 
 	// Init file systems, we want to reuse the rclone Fs instances as they
 	// hold memory buffers.
-	fsrc, err := fs.NewFs(ctx, location.RemotePath(""))
+	fsrc, err := fs.NewFs(ctx, l.RemotePath(""))
 	if err != nil {
 		return nil, errors.Wrap(err, "init location")
 	}
@@ -69,14 +63,9 @@ func New(location backup.Location, clusterID uuid.UUID, dc string, nodeID uuid.U
 	}
 
 	return &Downloader{
-		clusterID:   clusterID,
-		dc:          dc,
-		nodeID:      nodeID,
-		snapshotTag: snapshotTag,
-		logger:      logger,
-
-		fsrc: fsrc,
-		fdst: fdst,
+		logger: logger,
+		fsrc:   fsrc,
+		fdst:   fdst,
 	}, nil
 }
 
@@ -112,12 +101,17 @@ func (d *Downloader) WithDryRun() *Downloader {
 
 // Download executes download operation by taking snapshot files from configured
 // locations and downloading them to the data directory.
-func (d *Downloader) Download(ctx context.Context) error {
-	m, err := d.manifest(ctx)
-	if err != nil {
-		return err
-	}
-	d.logger.Info(ctx, "Loaded manifest", "path", m.RemoteManifestFile())
+func (d *Downloader) Download(ctx context.Context, m *backup.RemoteManifest) error {
+	d.logger.Info(ctx, "Initializing downloader",
+		"cluster_id", m.ClusterID,
+		"cluster_name", m.Content.ClusterName,
+		"node_id", m.NodeID,
+		"node_ip", m.Content.IP,
+		"filter", d.keyspace.Filters(),
+		"mode", d.mode,
+		"clear_tables", d.clearTables,
+		"dry-run", d.dryRun,
+	)
 
 	for _, u := range m.Content.Index {
 		if !d.shouldDownload(u.Keyspace, u.Table) {
@@ -130,7 +124,7 @@ func (d *Downloader) Download(ctx context.Context) error {
 		}
 
 		if len(u.Files) == 0 {
-			d.logger.Info(ctx, "Empty", "keyspace", u.Keyspace, "table", u.Table)
+			d.logger.Info(ctx, "Skipping empty", "keyspace", u.Keyspace, "table", u.Table)
 			continue
 		}
 
@@ -140,59 +134,6 @@ func (d *Downloader) Download(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (d *Downloader) manifest(ctx context.Context) (*backup.RemoteManifest, error) {
-	dir := backup.RemoteManifestDir(d.clusterID, d.dc, d.nodeID.String())
-
-	entries, err := d.fsrc.List(ctx, dir)
-	if err != nil {
-		return nil, err
-	}
-	if len(entries) == 0 {
-		return nil, errors.New("no manifests found")
-	}
-
-	var (
-		m         backup.RemoteManifest
-		snapshots []string
-	)
-	for _, entry := range entries {
-		d.logger.Debug(ctx, "Found manifest dir entry", "path", entry.String())
-
-		o, ok := entry.(fs.Object)
-		if !ok {
-			continue
-		}
-		if err := m.ParsePartialPath(o.String()); err != nil {
-			continue
-		}
-		if m.SnapshotTag == "" {
-			continue
-		}
-		if m.SnapshotTag == d.snapshotTag {
-			if m.Temporary {
-				return nil, errors.New("temporary manifest, files may be missing")
-			}
-			if err := readManifestContentFromObject(ctx, &m, o); err != nil {
-				return nil, errors.Wrap(err, "read content")
-			}
-			return &m, nil
-		}
-
-		snapshots = append(snapshots, m.SnapshotTag)
-	}
-
-	return nil, errors.Errorf("no manifest found, available snapshots are: %s", snapshots)
-}
-
-func readManifestContentFromObject(ctx context.Context, m *backup.RemoteManifest, o fs.Object) error {
-	r, err := o.Open(ctx)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	return m.ReadContent(r)
 }
 
 func (d *Downloader) shouldDownload(keyspace, table string) bool {
@@ -211,6 +152,9 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 
 	// List all tables and versions
 	entries, err := d.fdst.List(ctx, u.Keyspace)
+	if errors.Is(err, fs.ErrorDirNotFound) {
+		return nil
+	}
 	if err != nil {
 		return errors.Wrap(err, "list tables")
 	}
@@ -246,7 +190,12 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 }
 
 func (d *Downloader) downloadFiles(ctx context.Context, m *backup.RemoteManifest, u backup.FilesMeta) error {
-	d.logger.Info(ctx, "Downloading", "keyspace", u.Keyspace, "table", u.Table, "files", len(u.Files), "size", u.Size)
+	d.logger.Info(ctx, "Downloading",
+		"keyspace", u.Keyspace,
+		"table", u.Table,
+		"files", len(u.Files),
+		"size", u.Size,
+	)
 
 	if d.dryRun {
 		return nil

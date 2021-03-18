@@ -15,7 +15,7 @@ import (
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/downloader"
-	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
@@ -23,11 +23,11 @@ import (
 
 func TestDownload(t *testing.T) {
 	var (
-		clusterID   = uuid.MustParse("e2ba9ec5-8a8f-48d9-bcd9-0569706e9e84")
-		nodeID      = uuid.MustParse("942ba1b6-30a3-441e-ac3c-158864d8b861")
-		dc          = "dc1"
-		snapshotTag = "sm_20210215151954UTC"
-		location    = backupspec.Location{Provider: "testdata"}
+		location = backup.Location{Provider: "testdata"}
+		criteria = downloader.ManifestLookupCriteria{
+			NodeID:      uuid.MustParse("942ba1b6-30a3-441e-ac3c-158864d8b861"),
+			SnapshotTag: "sm_20210215151954UTC",
+		}
 	)
 
 	tmpDir, err := ioutil.TempDir("", "scylla-manager-rclone")
@@ -88,13 +88,18 @@ func TestDownload(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			dir := path.Join(tmpDir, path.Base(t.Name()))
 
-			d, err := downloader.New(location, clusterID, dc, nodeID, snapshotTag, dir, logger)
+			d, err := downloader.New(location, dir, logger)
 			if err != nil {
 				t.Fatal("New() error", err)
 			}
 			test.Decorate(d)
 
-			if err := d.Download(ctx); err != nil {
+			m, err := d.LookupManifest(ctx, criteria)
+			if err != nil {
+				t.Fatal("LookupManifest() error", err)
+			}
+
+			if err := d.Download(ctx, m); err != nil {
 				t.Error(err)
 			}
 			var files []string
