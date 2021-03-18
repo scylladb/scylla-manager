@@ -5,10 +5,6 @@ package backup
 import (
 	"os"
 	"path"
-	"strings"
-
-	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
 const dataDir = "data:"
@@ -23,12 +19,6 @@ const (
 
 	sep = string(os.PathSeparator)
 )
-
-func remoteManifestLevel(baseDir string) int {
-	a := len(strings.Split(RemoteManifestDir(uuid.Nil, "a", "b"), sep))
-	b := len(strings.Split(baseDir, sep))
-	return a - b
-}
 
 func ssTablePathWithKeyspacePrefix(keyspace, table, version, name string) string {
 	return path.Join(

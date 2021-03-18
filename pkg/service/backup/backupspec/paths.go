@@ -23,6 +23,14 @@ const (
 	sep = string(os.PathSeparator)
 )
 
+// RemoteManifestLevel calculates maximal depth of recursive listing starting at
+// baseDir to list all manifests.
+func RemoteManifestLevel(baseDir string) int {
+	a := len(strings.Split(RemoteManifestDir(uuid.Nil, "a", "b"), sep))
+	b := len(strings.Split(baseDir, sep))
+	return a - b
+}
+
 // RemoteManifestFile returns path to the manifest file.
 func RemoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID string) string {
 	manifestName := strings.Join([]string{

@@ -142,9 +142,9 @@ func (h manifestV2Helper) listPaths(ctx context.Context, f ListFilter) ([]string
 		PruneDir: dirPrune,
 	}
 
-	searchLevel := remoteManifestLevel(baseDir)
-	h.logger.Debug(ctx, "Searching dirs", "base", baseDir, "level", searchLevel)
-	dirs, err := w.DirsAtLevelN(ctx, baseDir, searchLevel)
+	n := RemoteManifestLevel(baseDir)
+	h.logger.Debug(ctx, "Searching dirs", "base", baseDir, "level", n)
+	dirs, err := w.DirsAtLevelN(ctx, baseDir, n)
 	if err != nil {
 		return nil, errors.Wrapf(err, "traversing dir %s on host %s", baseDir, h.host)
 	}
