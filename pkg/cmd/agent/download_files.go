@@ -124,19 +124,19 @@ func init() {
 
 	f.StringSliceVarP(&a.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.VarP(&a.location, "location", "L", "backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) //nolint: lll
-	f.StringVarP(&a.dataDir, "data-dir", "d", "", "`path` to Scylla data directory (/var/lib/scylla/data) or other directory to use for downloading the files")
+	f.StringVarP(&a.dataDir, "data-dir", "d", "", "`path` to Scylla data directory (typically /var/lib/scylla/data) or other directory to use for downloading the files (default current directory)")
 	f.StringSliceVarP(&a.keyspace, "keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	f.Var(&a.mode, "mode", "`upload|sstableloader`, use an alternate table directory structure, upload for table upload directories, sstableloader for <keyspace>/<table>")
+	f.Var(&a.mode, "mode", "`upload|sstableloader`, use an alternate table directory structure, set 'upload' to use table upload directories, set 'sstableloader' for <keyspace>/<table> directories layout")
 	f.BoolVar(&a.clearTables, "clear-tables", false, "remove sstables before downloading")
 	f.BoolVar(&a.dryRun, "dry-run", false, "validates and prints backup information without downloading (or clearing) any files")
-	f.VarP(&a.nodeID, "node", "n", "`ID` of node whose snapshot you want to download, you can obtain ID from nodetool status")
-	f.VarP(&a.snapshotTag, "snapshot-tag", "T", "snapshot `tag` as read from backup listing")
-	f.IntVar(&a.rateLimit, "rate-limit", 0, "rate limit in megabytes (MiB) per second, set to 0 for no limit")
+	f.VarP(&a.nodeID, "node", "n", "nodetool status Host `ID` of node you want to restore")
+	f.VarP(&a.snapshotTag, "snapshot-tag", "T", "Scylla Manager snapshot `tag` as read from backup listing ex. sm_20060102150405UTC")
+	f.IntVar(&a.rateLimit, "rate-limit", 0, "rate limit in megabytes (MiB) per second (default no limit)")
 	f.IntVarP(&a.parallel, "parallel", "p", 2*runtime.NumCPU(), "how many files to download in parallel")
 	f.BoolVar(&a.debug, "debug", false, "enable debug logs")
-	f.BoolVar(&a.dumpManifest, "dump-manifest", false, "print Scylla Manager backup manifest as json")
+	f.BoolVar(&a.dumpManifest, "dump-manifest", false, "print Scylla Manager backup manifest as JSON")
 	f.BoolVar(&a.dumpTokens, "dump-tokens", false, "print list of tokens owned by the snapshoted node")
 
-	requireFlags(cmd, "location", "data-dir", "node", "snapshot-tag")
+	requireFlags(cmd, "location", "node", "snapshot-tag")
 	rootCmd.AddCommand(cmd)
 }
