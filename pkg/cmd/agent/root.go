@@ -24,7 +24,7 @@ var rootArgs = struct {
 
 var rootCmd = &cobra.Command{
 	Use:           "scylla-manager",
-	Short:         "Scylla Manager server",
+	Short:         "Scylla Manager agent",
 	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
