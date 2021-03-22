@@ -4,6 +4,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"runtime"
 	"strings"
 
@@ -31,6 +33,9 @@ var downloadFilesArgs = struct {
 	rateLimit int
 	parallel  int
 	debug     bool
+
+	dumpManifest bool
+	dumpTokens   bool
 }{}
 
 var downloadFilesCmd = &cobra.Command{
@@ -86,6 +91,24 @@ var downloadFilesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		w := cmd.OutOrStdout()
+		if a.dumpManifest {
+			enc := json.NewEncoder(w)
+			enc.SetIndent("", "  ")
+			return enc.Encode(m.Content)
+		}
+		if a.dumpTokens {
+			for i := range m.Content.Tokens {
+				if i > 0 {
+					fmt.Fprint(w, ",")
+				}
+				fmt.Fprintf(w, "%d", m.Content.Tokens[i])
+			}
+			fmt.Fprintln(w)
+			return nil
+		}
+
 		if !a.dryRun && !a.debug {
 			stop := rclone.StartProgress()
 			defer stop()
@@ -111,6 +134,8 @@ func init() {
 	f.IntVar(&a.rateLimit, "rate-limit", 0, "rate limit in megabytes (MiB) per second, set to 0 for no limit")
 	f.IntVarP(&a.parallel, "parallel", "p", 2*runtime.NumCPU(), "how many files to download in parallel")
 	f.BoolVar(&a.debug, "debug", false, "enable debug logs")
+	f.BoolVar(&a.dumpManifest, "dump-manifest", false, "print Scylla Manager backup manifest as json")
+	f.BoolVar(&a.dumpTokens, "dump-tokens", false, "print list of tokens owned by the snapshoted node")
 
 	requireFlags(cmd, "location", "data-dir", "node", "snapshot-tag")
 	rootCmd.AddCommand(cmd)
