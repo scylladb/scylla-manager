@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -2067,5 +2069,135 @@ func TestValidateIntegration(t *testing.T) {
 		return true
 	})); diff != "" {
 		t.Fatal("Progress mismatch, diff", diff, "got", progress, "expected", result)
+	}
+}
+
+func TestBackupRestoreIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-restore"
+		testKeyspace = "backuptest_restore"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session         = CreateSession(t)
+		clusterSession  = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+		h               = newBackupTestHelper(t, session, config, location, nil)
+		ctx             = context.Background()
+		initialRowCount = 100
+		addedRowCount   = 150
+	)
+
+	Print("When: cluster has data")
+	ExecStmt(t, clusterSession, "CREATE KEYSPACE IF NOT EXISTS "+testKeyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+	ExecStmt(t, clusterSession, "CREATE TABLE IF NOT EXISTS "+testKeyspace+".test_table (id int PRIMARY KEY)")
+	for i := 1; i <= initialRowCount; i++ {
+		ExecStmt(t, clusterSession, "INSERT INTO "+testKeyspace+".test_table (id) VALUES "+fmt.Sprintf("(%d)", i))
+	}
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+				Tables:   []string{"test_table"},
+			},
+			{
+				Keyspace:  "system_schema",
+				AllTables: true,
+			},
+		},
+		DC:        []string{"dc1", "dc2"},
+		Location:  []Location{location},
+		Retention: 3,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("And: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: there is one backup")
+	items, err := h.service.List(ctx, h.clusterID, []Location{location}, backup.ListFilter{ClusterID: h.clusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("List() = %v, expected one item", items)
+	}
+	item := items[0]
+	if len(item.SnapshotInfo) != 1 {
+		t.Fatalf("List() = %v, expected one SnapshotTag", items)
+	}
+	snapshotTag := item.SnapshotInfo[0].SnapshotTag
+
+	Print("And: add more data")
+	for i := initialRowCount + 1; i <= addedRowCount; i++ {
+		ExecStmt(t, clusterSession, "INSERT INTO "+testKeyspace+".test_table (id) VALUES "+fmt.Sprintf("(%d)", i))
+	}
+
+	Print("Then: there is 15 rows")
+	count := func() int {
+		c := 0
+		if err := clusterSession.Query("SELECT COUNT(*) FROM "+testKeyspace+".test_table;", nil).Scan(&c); err != nil {
+			t.Fatal("select count:", err)
+		}
+		return c
+	}
+	if c := count(); c != addedRowCount {
+		t.Errorf("SELECT COUNT(*) = %d, expected %d", c, addedRowCount)
+	}
+
+	Print("When: delete data")
+	q := clusterSession.Query("TRUNCATE "+testKeyspace+".test_table", nil)
+	q.Consistency(gocql.All)
+	if err := q.ExecRelease(); err != nil {
+		t.Fatal("TRUNCATE error", err)
+	}
+
+	Print("And: restore snapshot")
+	status, err := h.client.Status(ctx)
+	if err != nil {
+		t.Fatal("Status() error", err)
+	}
+
+	downloadFilesCmd := func(hostID string) string {
+		cmd := []string{
+			"scylla-manager-agent",
+			"download-files",
+			"-d", "/var/lib/scylla/data",
+			"-L", location.String(),
+			"-n", hostID,
+			"-T", snapshotTag,
+			"-K", testKeyspace,
+			"--mode", "upload",
+		}
+		return strings.Join(cmd, " ")
+	}
+
+	for _, nis := range status {
+		stdout, stderr, err := ExecOnHost(nis.Addr, downloadFilesCmd(nis.HostID))
+		if err != nil {
+			t.Log("stdout", stdout)
+			t.Log("stderr", stderr)
+			t.Fatal("Command failed on host", nis.Addr, err)
+		}
+	}
+	for _, nis := range status {
+		stdout, stderr, err := ExecOnHost(nis.Addr, "nodetool refresh "+testKeyspace+" test_table")
+		if err != nil {
+			t.Log("stdout", stdout)
+			t.Log("stderr", stderr)
+			t.Fatal("Command failed on host", nis.Addr, err)
+		}
+	}
+
+	Print("Then: there is previous number of rows")
+	if c := count(); c != initialRowCount {
+		t.Errorf("SELECT COUNT(*) = %d, expected %d", c, addedRowCount)
 	}
 }
