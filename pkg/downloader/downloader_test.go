@@ -45,12 +45,12 @@ func TestDownload(t *testing.T) {
 			Decorate: func(*downloader.Downloader) {},
 		},
 		{
-			Name:     "Upload dir",
-			Decorate: func(d *downloader.Downloader) { d.WithMode(downloader.UploadTableDir) },
+			Name:     "Upload dir mode",
+			Decorate: func(d *downloader.Downloader) { d.WithTableDirMode(downloader.UploadTableDirMode) },
 		},
 		{
-			Name:     "Flat dir",
-			Decorate: func(d *downloader.Downloader) { d.WithMode(downloader.FlatTableDir) },
+			Name:     "SSTable dir mode",
+			Decorate: func(d *downloader.Downloader) { d.WithTableDirMode(downloader.SSTableLoaderTableDirMode) },
 		},
 		{
 			Name:     "Filter single table",

@@ -17,30 +17,14 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 )
 
-// TableDir specifies type of desired download.
-type TableDir byte
-
-const (
-	// DefaultTableDir is intended for normal on node download when Scylla
-	// server is shutdown. It downloads files directly to versioned table
-	// directory.
-	DefaultTableDir TableDir = iota
-	// UploadTableDir uses upload dir inside versioned table directory.
-	// It should be used for downloads when Scylla server is running.
-	UploadTableDir
-	// FlatTableDir is intended for use with sstable loader where the resulting
-	// data structure it keyspace/table/files.
-	FlatTableDir
-)
-
 // Downloader reads manifest for the provided snapshot tag, cluster and node.
 // It then downloads files for tables matching the filter to the provided data dir.
 // It also supports downloading to upload directory and downloading in a format
-// suitable for sstable loader see TableDir.
+// suitable for sstable loader see TableDirMode.
 type Downloader struct {
 	logger      log.Logger
 	keyspace    *ksfilter.Filter
-	mode        TableDir
+	mode        TableDirMode
 	clearTables bool
 	dryRun      bool
 
@@ -82,14 +66,14 @@ func (d *Downloader) WithKeyspace(filters []string) (*Downloader, error) {
 }
 
 // WithClearTables would delete any data forom a table before downloading new
-// files. It does not work with FlatTableDir mode.
+// files. It does not work with SSTableLoaderTableDirMode mode.
 func (d *Downloader) WithClearTables() *Downloader {
 	d.clearTables = true
 	return d
 }
 
-// WithMode specifies type of resulting directory structure.
-func (d *Downloader) WithMode(mode TableDir) *Downloader {
+// WithTableDirMode specifies type of resulting directory structure.
+func (d *Downloader) WithTableDirMode(mode TableDirMode) *Downloader {
 	d.mode = mode
 	return d
 }
@@ -163,7 +147,7 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 		return nil
 	}
 
-	if d.mode == FlatTableDir {
+	if d.mode == SSTableLoaderTableDirMode {
 		d.logger.Info(ctx, "Clear tables is not supported with flat table dir")
 		return nil
 	}
@@ -224,11 +208,11 @@ func (d *Downloader) downloadFiles(ctx context.Context, m *backup.RemoteManifest
 
 func (d *Downloader) dstDir(u backup.FilesMeta) (dir string) {
 	switch d.mode {
-	case DefaultTableDir:
+	case DefaultTableDirMode:
 		dir = path.Join(u.Keyspace, u.Table+"-"+u.Version)
-	case UploadTableDir:
+	case UploadTableDirMode:
 		dir = path.Join(u.Keyspace, u.Table+"-"+u.Version, "upload")
-	case FlatTableDir:
+	case SSTableLoaderTableDirMode:
 		dir = path.Join(u.Keyspace, u.Table)
 	}
 	return

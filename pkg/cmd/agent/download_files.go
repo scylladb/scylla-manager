@@ -21,7 +21,7 @@ var downloadFilesArgs = struct {
 	location    backup.LocationValue
 	dataDir     string
 	keyspace    []string
-	mode        downloader.TableDir
+	mode        downloader.TableDirModeValue
 	clearTables bool
 	dryRun      bool
 
@@ -68,6 +68,8 @@ var downloadFilesCmd = &cobra.Command{
 				return err
 			}
 		}
+		d.WithTableDirMode(a.mode.Value())
+
 		if a.clearTables {
 			d.WithClearTables()
 		}
@@ -101,7 +103,7 @@ func init() {
 	f.VarP(&a.location, "location", "L", "backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backup.Providers(), ", ")) //nolint: lll
 	f.StringVarP(&a.dataDir, "data-dir", "d", "", "`path` to Scylla data directory (/var/lib/scylla/data) or other directory to use for downloading the files")
 	f.StringSliceVarP(&a.keyspace, "keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	// mode
+	f.Var(&a.mode, "mode", "`upload|sstableloader`, use an alternate table directory structure, upload for table upload directories, sstableloader for <keyspace>/<table>")
 	f.BoolVar(&a.clearTables, "clear-tables", false, "remove sstables before downloading")
 	f.BoolVar(&a.dryRun, "dry-run", false, "validates and prints backup information without downloading (or clearing) any files")
 	f.VarP(&a.nodeID, "node", "n", "`ID` of node whose snapshot you want to download, you can obtain ID from nodetool status")
