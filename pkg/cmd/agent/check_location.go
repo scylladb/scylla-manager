@@ -18,7 +18,7 @@ import (
 
 var checkLocationArgs = struct {
 	configFiles []string
-	location    string
+	location    backupspec.LocationValue
 	debug       bool
 }{}
 
@@ -42,17 +42,9 @@ var checkLocationCmd = &cobra.Command{
 			return err
 		}
 
-		location, err := backupspec.StripDC(checkLocationArgs.location)
+		f, err := fs.NewFs(context.Background(), checkLocationArgs.location.Value().RemotePath(""))
 		if err != nil {
-			return err
-		}
-
-		f, err := fs.NewFs(context.Background(), location)
-		if err != nil {
-			if errors.Is(err, fs.ErrorNotFoundInConfigFile) {
-				return fmt.Errorf("unknown provider %s", location)
-			}
-			return errors.Wrap(err, "init fs")
+			return errors.Wrap(err, "init location")
 		}
 
 		return operations.CheckPermissions(context.Background(), f)
@@ -64,8 +56,7 @@ func init() {
 
 	f := cmd.Flags()
 	f.StringSliceVarP(&checkLocationArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
-	f.StringVarP(&checkLocationArgs.location, "location", "L", "",
-		"backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
+	f.VarP(&checkLocationArgs.location, "location", "L", "backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
 	requireFlags(cmd, "location")

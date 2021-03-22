@@ -11,16 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// StripDC returns valid location string after stripping the dc prefix.
-func StripDC(location string) (string, error) {
-	l, err := NewLocation(location)
-	if err != nil {
-		return "", err
-	}
-
-	return l.RemotePath(""), nil
-}
-
 // Provider specifies type of remote storage like S3 etc.
 type Provider string
 

@@ -25,7 +25,7 @@ import (
 
 var benchmarkArgs = struct {
 	dirGlob  []string
-	location string
+	location backupspec.LocationValue
 
 	configFiles   []string
 	debug         bool
@@ -75,7 +75,7 @@ var benchmarkCmd = &cobra.Command{
 
 		// Run the scenarios
 		w := cmd.OutOrStderr()
-		b, err := bench.NewBenchmark(ctx, benchmarkArgs.location)
+		b, err := bench.NewBenchmark(ctx, benchmarkArgs.location.Value().RemotePath(""))
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ var benchmarkCmd = &cobra.Command{
 					if err != nil {
 						return errors.Wrap(err, "create memory profile dir")
 					}
-					name := benchmarkArgs.location + "_" + path.Base(dir)
+					name := benchmarkArgs.location.String() + "_" + path.Base(dir)
 					if err := writeProfile(benchmarkArgs.memProfileDir, name); err != nil {
 						return errors.Wrap(err, "write memory profile")
 					}
@@ -139,8 +139,7 @@ func init() {
 	f := cmd.Flags()
 	f.StringSliceVarP(&benchmarkArgs.dirGlob, "dir", "d", []string{},
 		"comma-separated `list of glob patterns` pointing to schema directories generated with create-scenario subcommand")
-	f.StringVarP(&benchmarkArgs.location, "location", "L", "",
-		"backup location in the format [<dc>:]<provider>:<bucket> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
+	f.VarP(&benchmarkArgs.location, "location", "L", "backup location in the format [<dc>:]<provider>:<bucket> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
 	f.StringSliceVarP(&benchmarkArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")
@@ -201,7 +200,7 @@ func init() {
 	cmd := createScenarioCmd
 
 	f := cmd.Flags()
-	f.StringVarP(&createFilesArgs.dir, "dir", "d", "", "path to the scenario directory, files will be put in that directory")
+	f.StringVarP(&createFilesArgs.dir, "dir", "d", "", "`path` to the scenario directory, files will be put in that directory")
 	f.BoolVar(&createFilesArgs.defaultScenario, "default", false, "create a default scenario consisting of 1000x1MiB, 20x50MiB, 20x300MiB and 1x2000MiB files")
 	f.IntVarP(&createFilesArgs.count, "count", "c", 0, "number of files to create")
 	f.IntVarP(&createFilesArgs.sizeMb, "size", "s", 0, "file size in MiB")

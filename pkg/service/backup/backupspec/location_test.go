@@ -66,16 +66,6 @@ func TestNewLocation(t *testing.T) {
 	}
 }
 
-func TestStripDC(t *testing.T) {
-	res, err := StripDC("dc1:s3:bucket")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res != "s3:bucket" {
-		t.Errorf("StripDC = %s, expected s3:bucket", res)
-	}
-}
-
 func TestProviderMarshalUnmarshalText(t *testing.T) {
 	t.Parallel()
 
