@@ -64,22 +64,21 @@ var downloadFilesCmd = &cobra.Command{
 		// Start accounting after setting all options
 		rclone.StartAccountingOperations()
 
-		d, err := downloader.New(a.location.Value(), a.dataDir, logger)
-		if err != nil {
-			return err
+		opts := []downloader.Option{
+			downloader.WithTableDirMode(a.mode.Value()),
 		}
 		if len(a.keyspace) != 0 {
-			if _, err := d.WithKeyspace(a.keyspace); err != nil {
-				return err
-			}
+			opts = append(opts, downloader.WithKeyspace(a.keyspace))
 		}
-		d.WithTableDirMode(a.mode.Value())
-
 		if a.clearTables {
-			d.WithClearTables()
+			opts = append(opts, downloader.WithClearTables())
 		}
 		if a.dryRun {
-			d.WithDryRun()
+			opts = append(opts, downloader.WithDryRun())
+		}
+		d, err := downloader.New(a.location.Value(), a.dataDir, logger, opts...)
+		if err != nil {
+			return err
 		}
 
 		ctx := context.Background()

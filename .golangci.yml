@@ -77,6 +77,7 @@ issues:
     - exported method `.+\.WriteTo` should have comment or be unexported
     - exported method `Runner\.Run` should have comment or be unexported
     - exported type `.*Value` should have comment or be unexported
+    - exported type `Option` should have comment or be unexported
     - exported var `Default.+` should have comment or be unexported
     - has json tag but is not exported
     - naked return in func `WriteTo`

@@ -32,7 +32,7 @@ type Downloader struct {
 	fdst fs.Fs
 }
 
-func New(l backup.Location, dataDir string, logger log.Logger) (*Downloader, error) {
+func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (*Downloader, error) {
 	// Temporary context to satisfy rclone
 	ctx := context.Background()
 
@@ -47,41 +47,17 @@ func New(l backup.Location, dataDir string, logger log.Logger) (*Downloader, err
 		return nil, errors.Wrap(err, "init data dir")
 	}
 
-	return &Downloader{
+	d := &Downloader{
 		logger: logger,
 		fsrc:   fsrc,
 		fdst:   fdst,
-	}, nil
-}
-
-// WithKeyspace sets the keyspace/table filters.
-func (d *Downloader) WithKeyspace(filters []string) (*Downloader, error) {
-	ksf, err := ksfilter.NewFilter(filters)
-	if err != nil {
-		return d, errors.Wrap(err, "keyspace/table filter")
 	}
-	d.keyspace = ksf
-
+	for _, o := range opts {
+		if err := o(d); err != nil {
+			return nil, err
+		}
+	}
 	return d, nil
-}
-
-// WithClearTables would delete any data forom a table before downloading new
-// files. It does not work with SSTableLoaderTableDirMode mode.
-func (d *Downloader) WithClearTables() *Downloader {
-	d.clearTables = true
-	return d
-}
-
-// WithTableDirMode specifies type of resulting directory structure.
-func (d *Downloader) WithTableDirMode(mode TableDirMode) *Downloader {
-	d.mode = mode
-	return d
-}
-
-// WithDryRun turns on the dry-run mode where no data operations are performed.
-func (d *Downloader) WithDryRun() *Downloader {
-	d.dryRun = true
-	return d
 }
 
 // Download executes download operation by taking snapshot files from configured

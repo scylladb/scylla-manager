@@ -37,45 +37,59 @@ func TestDownload(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	table := []struct {
-		Name     string
-		Decorate func(*downloader.Downloader)
+		Name   string
+		Option downloader.Option
 	}{
 		{
-			Name:     "Default",
-			Decorate: func(*downloader.Downloader) {},
+			Name:   "Default",
+			Option: func(d *downloader.Downloader) error { return nil },
 		},
 		{
-			Name:     "Upload dir mode",
-			Decorate: func(d *downloader.Downloader) { d.WithTableDirMode(downloader.UploadTableDirMode) },
+			Name:   "Upload dir mode",
+			Option: downloader.WithTableDirMode(downloader.UploadTableDirMode),
 		},
 		{
-			Name:     "SSTable dir mode",
-			Decorate: func(d *downloader.Downloader) { d.WithTableDirMode(downloader.SSTableLoaderTableDirMode) },
+			Name:   "SSTable dir mode",
+			Option: downloader.WithTableDirMode(downloader.SSTableLoaderTableDirMode),
 		},
 		{
-			Name:     "Filter single table",
-			Decorate: func(d *downloader.Downloader) { d.WithKeyspace([]string{"system_auth.roles"}) },
+			Name:   "Filter single table",
+			Option: downloader.WithKeyspace([]string{"system_auth.roles"}),
 		},
 		{
-			Name:     "Filter many tables",
-			Decorate: func(d *downloader.Downloader) { d.WithKeyspace([]string{"system_a*"}) },
+			Name:   "Filter many tables",
+			Option: downloader.WithKeyspace([]string{"system_a*"}),
 		},
 		{
 			Name: "Clear table",
-			Decorate: func(d *downloader.Downloader) {
-				d.WithKeyspace([]string{"system_auth.role_permissions"})
-
+			Option: func(d *downloader.Downloader) error {
 				dir := path.Join(d.Root(), "system_auth", "role_permissions-f4d5d0c0671be202bc241807c243e80b")
-				os.MkdirAll(dir, 0755)
-				ioutil.WriteFile(path.Join(dir, "a"), []byte("foo"), 0755)
-				ioutil.WriteFile(path.Join(dir, "b"), []byte("bar"), 0755)
+				if err := os.MkdirAll(dir, 0755); err != nil {
+					return err
+				}
+				if err := ioutil.WriteFile(path.Join(dir, "a"), []byte("foo"), 0755); err != nil {
+					return err
+				}
+				if err := ioutil.WriteFile(path.Join(dir, "b"), []byte("bar"), 0755); err != nil {
+					return err
+				}
 
-				d.WithClearTables()
+				opts := []downloader.Option{
+					downloader.WithKeyspace([]string{"system_auth.role_permissions"}),
+					downloader.WithClearTables(),
+				}
+				for _, o := range opts {
+					if err := o(d); err != nil {
+						return err
+					}
+				}
+
+				return nil
 			},
 		},
 		{
-			Name:     "Dry run",
-			Decorate: func(d *downloader.Downloader) { d.WithDryRun() },
+			Name:   "Dry run",
+			Option: downloader.WithDryRun(),
 		},
 	}
 
@@ -88,11 +102,10 @@ func TestDownload(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			dir := path.Join(tmpDir, path.Base(t.Name()))
 
-			d, err := downloader.New(location, dir, logger)
+			d, err := downloader.New(location, dir, logger, test.Option)
 			if err != nil {
 				t.Fatal("New() error", err)
 			}
-			test.Decorate(d)
 
 			m, err := d.LookupManifest(ctx, criteria)
 			if err != nil {
