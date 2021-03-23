@@ -56,7 +56,7 @@ func init() {
 
 	f := cmd.Flags()
 	f.StringSliceVarP(&checkLocationArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
-	f.VarP(&checkLocationArgs.location, "location", "L", "backup location in the format [<dc>:]<provider>:<name> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
+	f.VarP(&checkLocationArgs.location, "location", "L", "backup location in the format [<dc>:]<provider>:<name> e.g. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
 	requireFlags(cmd, "location")

@@ -17,7 +17,7 @@ const parallelLongDesc = `
 The --parallel flag specifies the maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
 Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
 The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
-The formula to calculate it is as follows: number of nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.`
+The formula to calculate it is as follows: number of nodes / RF, e.g. for 6 node cluster with RF=3 the maximum parallelism is 2.`
 
 const intensityLongDesc = `
 The --intensity flag specifies how many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.

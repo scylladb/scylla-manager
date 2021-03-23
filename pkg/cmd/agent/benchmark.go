@@ -140,11 +140,11 @@ func init() {
 	f := cmd.Flags()
 	f.StringSliceVarP(&benchmarkArgs.dirGlob, "dir", "d", []string{},
 		"comma-separated `list of glob patterns` pointing to schema directories generated with create-scenario subcommand")
-	f.VarP(&benchmarkArgs.location, "location", "L", "backup location in the format [<dc>:]<provider>:<bucket> ex. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
+	f.VarP(&benchmarkArgs.location, "location", "L", "backup location in the format [<dc>:]<provider>:<bucket> e.g. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different location. The supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
 	f.StringSliceVarP(&benchmarkArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")
-	f.StringVar(&benchmarkArgs.prometheus, "prometheus", "", "address to bind prometheus metrics endpoint ex. 0.0.0.0:5091")
+	f.StringVar(&benchmarkArgs.prometheus, "prometheus", "", "address to bind prometheus metrics endpoint e.g. 0.0.0.0:5091")
 	f.IntVar(&benchmarkArgs.rateLimit, "rate-limit", 100, "rate limit in megabytes (MiB) per second, set to 0 for no limit")
 
 	requireFlags(cmd, "dir", "location")
