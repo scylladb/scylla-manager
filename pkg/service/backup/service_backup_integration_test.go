@@ -2165,22 +2165,17 @@ func TestBackupRestoreIntegration(t *testing.T) {
 		t.Fatal("Status() error", err)
 	}
 
-	downloadFilesCmd := func(hostID string) string {
-		cmd := []string{
-			"scylla-manager-agent",
-			"download-files",
-			"-d", "/var/lib/scylla/data",
-			"-L", location.String(),
-			"-n", hostID,
-			"-T", snapshotTag,
-			"-K", testKeyspace,
-			"--mode", "upload",
-		}
-		return strings.Join(cmd, " ")
+	downloadFilesCmd := []string{
+		"scylla-manager-agent",
+		"download-files",
+		"-d", "/var/lib/scylla/data",
+		"-L", location.String(),
+		"-T", snapshotTag,
+		"-K", testKeyspace,
+		"--mode", "upload",
 	}
-
 	for _, nis := range status {
-		stdout, stderr, err := ExecOnHost(nis.Addr, downloadFilesCmd(nis.HostID))
+		stdout, stderr, err := ExecOnHost(nis.Addr, strings.Join(downloadFilesCmd, " "))
 		if err != nil {
 			t.Log("stdout", stdout)
 			t.Log("stderr", stderr)

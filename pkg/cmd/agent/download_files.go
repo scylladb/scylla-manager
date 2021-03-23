@@ -6,13 +6,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"runtime"
 	"strings"
 
+	api "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/downloader"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	scyllaOperations "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/client/operations"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 )
@@ -51,7 +56,7 @@ var downloadFilesCmd = &cobra.Command{
 		if a.debug {
 			level = zapcore.DebugLevel
 		}
-		_, logger, err := setupCommand(a.configFiles, level)
+		c, logger, err := setupCommand(a.configFiles, level)
 		if err != nil {
 			return err
 		}
@@ -76,17 +81,30 @@ var downloadFilesCmd = &cobra.Command{
 		if a.dryRun {
 			opts = append(opts, downloader.WithDryRun())
 		}
+		if a.dataDir == "" {
+			a.dataDir = "."
+		}
 		d, err := downloader.New(a.location.Value(), a.dataDir, logger, opts...)
 		if err != nil {
 			return err
 		}
 
 		ctx := context.Background()
-		c := downloader.ManifestLookupCriteria{
+
+		crit := downloader.ManifestLookupCriteria{
 			NodeID:      a.nodeID.Value(),
 			SnapshotTag: a.snapshotTag.Value(),
 		}
-		m, err := d.LookupManifest(ctx, c)
+		if crit.NodeID == uuid.Nil {
+			addr := net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)
+			crit.NodeID, err = localNodeID(ctx, addr)
+			if err != nil {
+				logger.Info(ctx, "Failed to get node ID from Scylla", "error", err)
+				return errors.Errorf("set %q flag could not get it from Scylla", "node")
+			}
+		}
+
+		m, err := d.LookupManifest(ctx, crit)
 		if err != nil {
 			return err
 		}
@@ -116,6 +134,15 @@ var downloadFilesCmd = &cobra.Command{
 	},
 }
 
+func localNodeID(ctx context.Context, addr string) (uuid.UUID, error) {
+	c := scyllaOperations.New(api.New(addr, "/", []string{"http"}), strfmt.Default)
+	resp, err := c.StorageServiceHostidLocalGet(scyllaOperations.NewStorageServiceHostidLocalGetParamsWithContext(ctx))
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uuid.Parse(resp.Payload)
+}
+
 func init() {
 	cmd := downloadFilesCmd
 	f := cmd.Flags()
@@ -128,7 +155,7 @@ func init() {
 	f.Var(&a.mode, "mode", "`upload|sstableloader`, use an alternate table directory structure, set 'upload' to use table upload directories, set 'sstableloader' for <keyspace>/<table> directories layout") //nolint: lll
 	f.BoolVar(&a.clearTables, "clear-tables", false, "remove sstables before downloading")
 	f.BoolVar(&a.dryRun, "dry-run", false, "validates and prints backup information without downloading (or clearing) any files")
-	f.VarP(&a.nodeID, "node", "n", "nodetool status Host `ID` of node you want to restore")
+	f.VarP(&a.nodeID, "node", "n", "nodetool status Host `ID` of node you want to restore (default local node)")
 	f.VarP(&a.snapshotTag, "snapshot-tag", "T", "Scylla Manager snapshot `tag` as read from backup listing e.g. sm_20060102150405UTC")
 	f.IntVar(&a.rateLimit, "rate-limit", 0, "rate limit in megabytes (MiB) per second (default no limit)")
 	f.IntVarP(&a.parallel, "parallel", "p", 2*runtime.NumCPU(), "how many files to download in parallel")
@@ -136,6 +163,6 @@ func init() {
 	f.BoolVar(&a.dumpManifest, "dump-manifest", false, "print Scylla Manager backup manifest as JSON")
 	f.BoolVar(&a.dumpTokens, "dump-tokens", false, "print list of tokens owned by the snapshoted node")
 
-	requireFlags(cmd, "location", "node", "snapshot-tag")
+	requireFlags(cmd, "location", "snapshot-tag")
 	rootCmd.AddCommand(cmd)
 }
