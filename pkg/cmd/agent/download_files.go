@@ -51,7 +51,7 @@ var downloadFilesCmd = &cobra.Command{
 		if a.debug {
 			level = zapcore.DebugLevel
 		}
-		logger, err := setupCommand(a.configFiles, level)
+		_, logger, err := setupCommand(a.configFiles, level)
 		if err != nil {
 			return err
 		}

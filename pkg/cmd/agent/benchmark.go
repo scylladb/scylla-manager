@@ -50,7 +50,7 @@ var benchmarkCmd = &cobra.Command{
 		if benchmarkArgs.debug {
 			level = zapcore.DebugLevel
 		}
-		logger, err := setupCommand(benchmarkArgs.configFiles, level)
+		_, logger, err := setupCommand(benchmarkArgs.configFiles, level)
 		if err != nil {
 			return err
 		}

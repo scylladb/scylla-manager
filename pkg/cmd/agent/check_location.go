@@ -37,7 +37,7 @@ var checkLocationCmd = &cobra.Command{
 		if checkLocationArgs.debug {
 			level = zapcore.DebugLevel
 		}
-		_, err = setupCommand(checkLocationArgs.configFiles, level)
+		_, _, err = setupCommand(checkLocationArgs.configFiles, level)
 		if err != nil {
 			return err
 		}

@@ -10,10 +10,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func setupCommand(configFiles []string, level zapcore.Level) (log.Logger, error) {
+func setupCommand(configFiles []string, level zapcore.Level) (config.AgentConfig, log.Logger, error) {
 	c, err := config.ParseAgentConfigFiles(configFiles)
 	if err != nil {
-		return log.NopLogger, err
+		return c, log.NopLogger, err
 	}
 
 	logger, err := log.NewProduction(log.Config{
@@ -21,7 +21,7 @@ func setupCommand(configFiles []string, level zapcore.Level) (log.Logger, error)
 		Level: zap.NewAtomicLevelAt(level),
 	})
 	if err != nil {
-		return logger, err
+		return c, logger, err
 	}
 
 	// Redirect standard logger to the logger
@@ -33,14 +33,14 @@ func setupCommand(configFiles []string, level zapcore.Level) (log.Logger, error)
 	rclone.InitFsConfigWithOptions(c.Rclone)
 	// Register rclone providers
 	if err := rclone.RegisterS3Provider(c.S3); err != nil {
-		return logger, err
+		return c, logger, err
 	}
 	if err := rclone.RegisterGCSProvider(c.GCS); err != nil {
-		return logger, err
+		return c, logger, err
 	}
 	if err := rclone.RegisterAzureProvider(c.Azure); err != nil {
-		return logger, err
+		return c, logger, err
 	}
 
-	return logger, nil
+	return c, logger, nil
 }
