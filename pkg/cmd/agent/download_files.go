@@ -50,9 +50,6 @@ var downloadFilesCmd = &cobra.Command{
 		a := downloadFilesArgs
 
 		level := zapcore.ErrorLevel
-		if a.dryRun {
-			level = zapcore.InfoLevel
-		}
 		if a.debug {
 			level = zapcore.DebugLevel
 		}
@@ -77,9 +74,6 @@ var downloadFilesCmd = &cobra.Command{
 		}
 		if a.clearTables {
 			opts = append(opts, downloader.WithClearTables())
-		}
-		if a.dryRun {
-			opts = append(opts, downloader.WithDryRun())
 		}
 		if a.dataDir == "" {
 			a.dataDir = "."
@@ -125,8 +119,21 @@ var downloadFilesCmd = &cobra.Command{
 			fmt.Fprintln(w)
 			return nil
 		}
+		if a.dryRun {
+			plan, err := d.DryRun(ctx, m)
+			if err != nil {
+				return err
+			}
+			if a.dataDir != "." {
+				plan.BaseDir = a.dataDir
+			}
+			if _, err := plan.WriteTo(w); err != nil {
+				return err
+			}
+			return nil
+		}
 
-		if !a.dryRun && !a.debug {
+		if !a.debug {
 			stop := rclone.StartProgress()
 			defer stop()
 		}

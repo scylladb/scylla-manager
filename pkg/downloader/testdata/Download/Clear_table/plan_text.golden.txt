@@ -1,0 +1,11 @@
+Cluster:	test (e2ba9ec5-8a8f-48d9-bcd9-0569706e9e84)
+Datacenter:	dc1
+Node:		192.168.100.13 (942ba1b6-30a3-441e-ac3c-158864d8b861)
+Time:		2021-02-15 15:19:54 +0000 UTC
+Size:		5.719k
+
+Clear:
+  - system_auth.role_permissions at system_auth/role_permissions-f4d5d0c0671be202bc241807c243e80b
+
+Download:
+  - system_auth.role_permissions (5.719k) to system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c

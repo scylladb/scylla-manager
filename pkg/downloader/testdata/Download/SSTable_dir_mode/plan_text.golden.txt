@@ -1,0 +1,22 @@
+Cluster:	test (e2ba9ec5-8a8f-48d9-bcd9-0569706e9e84)
+Datacenter:	dc1
+Node:		192.168.100.13 (942ba1b6-30a3-441e-ac3c-158864d8b861)
+Time:		2021-02-15 15:19:54 +0000 UTC
+Size:		925.814k
+
+Download:
+  - system_auth.role_permissions (5.719k) to system_auth/role_permissions
+  - system_auth.roles (5.348k) to system_auth/roles
+  - system_schema.aggregates (38.300k) to system_schema/aggregates
+  - system_schema.columns (143.657k) to system_schema/columns
+  - system_schema.computed_columns (43.353k) to system_schema/computed_columns
+  - system_schema.dropped_columns (43.629k) to system_schema/dropped_columns
+  - system_schema.functions (38.395k) to system_schema/functions
+  - system_schema.indexes (43.681k) to system_schema/indexes
+  - system_schema.keyspaces (133.152k) to system_schema/keyspaces
+  - system_schema.scylla_tables (134.802k) to system_schema/scylla_tables
+  - system_schema.tables (141.681k) to system_schema/tables
+  - system_schema.triggers (38.135k) to system_schema/triggers
+  - system_schema.types (38.194k) to system_schema/types
+  - system_schema.view_virtual_columns (38.218k) to system_schema/view_virtual_columns
+  - system_schema.views (39.553k) to system_schema/views

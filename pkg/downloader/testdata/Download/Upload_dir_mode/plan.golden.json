@@ -1,0 +1,95 @@
+{
+  "clear_actions": null,
+  "download_actions": [
+    {
+      "keyspace": "system_auth",
+      "table": "role_permissions",
+      "size": 5856,
+      "dir": "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload"
+    },
+    {
+      "keyspace": "system_auth",
+      "table": "roles",
+      "size": 5476,
+      "dir": "system_auth/roles-5bc52802de2535edaeab188eecebb090/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "aggregates",
+      "size": 39219,
+      "dir": "system_schema/aggregates-924c55872e3a345bb10c12f37c1ba895/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "columns",
+      "size": 147105,
+      "dir": "system_schema/columns-24101c25a2ae3af787c1b40ee1aca33f/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "computed_columns",
+      "size": 44393,
+      "dir": "system_schema/computed_columns-cc7c7069374033c192a4c3de78dbd2c4/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "dropped_columns",
+      "size": 44676,
+      "dir": "system_schema/dropped_columns-5e7583b5f3f43af19a39b7e1d6f5f11f/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "functions",
+      "size": 39316,
+      "dir": "system_schema/functions-96489b7980be3e14a70166a0b9159450/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "indexes",
+      "size": 44729,
+      "dir": "system_schema/indexes-0feb57ac311f382fba6d9024d305702f/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "keyspaces",
+      "size": 136348,
+      "dir": "system_schema/keyspaces-abac5682dea631c5b535b3d6cffd0fb6/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "scylla_tables",
+      "size": 138037,
+      "dir": "system_schema/scylla_tables-5d912ff1f7593665b2c88042ab5103dd/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "tables",
+      "size": 145081,
+      "dir": "system_schema/tables-afddfb9dbc1e30688056eed6c302ba09/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "triggers",
+      "size": 39050,
+      "dir": "system_schema/triggers-4df70b666b05325195a132b54005fd48/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "types",
+      "size": 39111,
+      "dir": "system_schema/types-5a8b1ca866023f77a0459273d308917a/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "view_virtual_columns",
+      "size": 39135,
+      "dir": "system_schema/view_virtual_columns-08843b6345dc3be29798a0418295cfaa/upload"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "views",
+      "size": 40502,
+      "dir": "system_schema/views-9786ac1cdd583201a7cdad556410c985/upload"
+    }
+  ]
+}

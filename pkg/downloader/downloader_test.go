@@ -8,9 +8,11 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/scylladb/go-log"
@@ -87,10 +89,6 @@ func TestDownload(t *testing.T) {
 				return nil
 			},
 		},
-		{
-			Name:   "Dry run",
-			Option: downloader.WithDryRun(),
-		},
 	}
 
 	var (
@@ -112,26 +110,57 @@ func TestDownload(t *testing.T) {
 				t.Fatal("LookupManifest() error", err)
 			}
 
-			if err := d.Download(ctx, m); err != nil {
-				t.Error(err)
-			}
-			var files []string
-
-			fdst, err := fs.NewFs(ctx, dir)
-			if err != nil {
-				t.Fatal("NewFs() error", err)
-			}
-			operations.ListJSON(ctx, fdst, "", &operations.ListJSONOpt{Recurse: true, FilesOnly: true}, func(item *operations.ListJSONItem) error {
-				files = append(files, item.Path)
-				return nil
+			t.Run("plan", func(t *testing.T) {
+				plan, err := d.DryRun(ctx, m)
+				if err != nil {
+					t.Fatal(err)
+				}
+				testutils.SaveGoldenJSONFileIfNeeded(t, plan)
+				var golden downloader.Plan
+				testutils.LoadGoldenJSONFile(t, &golden)
+				if diff := cmp.Diff(plan, golden, testutils.UUIDComparer(), cmpopts.IgnoreUnexported(plan)); diff != "" {
+					t.Error(diff)
+				}
 			})
-			sort.Strings(files)
-			testutils.SaveGoldenJSONFileIfNeeded(t, files)
-			var golden []string
-			testutils.LoadGoldenJSONFile(t, &golden)
-			if diff := cmp.Diff(files, golden); diff != "" {
-				t.Error(diff)
-			}
+
+			t.Run("plan text", func(t *testing.T) {
+				plan, err := d.DryRun(ctx, m)
+				if err != nil {
+					t.Fatal(err)
+				}
+				b := &strings.Builder{}
+				plan.WriteTo(b)
+				text := b.String()
+
+				testutils.SaveGoldenTextFileIfNeeded(t, text)
+				golden := testutils.LoadGoldenTextFile(t)
+				if diff := cmp.Diff(text, golden); diff != "" {
+					t.Error(diff)
+				}
+			})
+
+			t.Run("files", func(t *testing.T) {
+				if err := d.Download(ctx, m); err != nil {
+					t.Fatal(err)
+				}
+				var files []string
+
+				fdst, err := fs.NewFs(ctx, dir)
+				if err != nil {
+					t.Fatal("NewFs() error", err)
+				}
+				operations.ListJSON(ctx, fdst, "", &operations.ListJSONOpt{Recurse: true, FilesOnly: true}, func(item *operations.ListJSONItem) error {
+					files = append(files, item.Path)
+					return nil
+				})
+				sort.Strings(files)
+				testutils.SaveGoldenJSONFileIfNeeded(t, files)
+				var golden []string
+				testutils.LoadGoldenJSONFile(t, &golden)
+				if diff := cmp.Diff(files, golden); diff != "" {
+					t.Error(diff)
+				}
+			})
 		})
 	}
 }

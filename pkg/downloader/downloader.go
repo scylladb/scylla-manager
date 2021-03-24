@@ -27,6 +27,7 @@ type Downloader struct {
 	mode        TableDirMode
 	clearTables bool
 	dryRun      bool
+	plan        Plan
 
 	fsrc fs.Fs
 	fdst fs.Fs
@@ -60,9 +61,21 @@ func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (
 	return d, nil
 }
 
+// DryRun returns an action plan without performing any disk operations.
+func (d *Downloader) DryRun(ctx context.Context, m *backup.RemoteManifest) (Plan, error) {
+	d.dryRun = true
+	d.plan = Plan{m: m}
+	return d.plan, d.download(ctx, m, 1)
+}
+
 // Download executes download operation by taking snapshot files from configured
 // locations and downloading them to the data directory.
 func (d *Downloader) Download(ctx context.Context, m *backup.RemoteManifest) error {
+	d.dryRun = false
+	return d.download(ctx, m, parallel.NoLimit)
+}
+
+func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, workers int) error {
 	d.logger.Info(ctx, "Initializing downloader",
 		"cluster_id", m.ClusterID,
 		"cluster_name", m.Content.ClusterName,
@@ -71,14 +84,13 @@ func (d *Downloader) Download(ctx context.Context, m *backup.RemoteManifest) err
 		"filter", d.keyspace.Filters(),
 		"mode", d.mode,
 		"clear_tables", d.clearTables,
-		"dry-run", d.dryRun,
 	)
 
 	index := d.filteredIndex(ctx, m)
 
 	// Spawn all downloads at the same time, we rely on rclone ability to limit
 	// nr. of transfers.
-	return parallel.Run(len(index), parallel.NoLimit, func(i int) error {
+	return parallel.Run(len(index), workers, func(i int) error {
 		u := index[i]
 
 		if err := d.clearTableIfNeeded(ctx, u); err != nil {
@@ -150,6 +162,11 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 	for _, dir := range tableDirs {
 		d.logger.Info(ctx, "Clearing table dir", "path", dir.String())
 		if d.dryRun {
+			d.plan.ClearActions = append(d.plan.ClearActions, ClearAction{
+				Keyspace: u.Keyspace,
+				Table:    u.Table,
+				Dir:      dir.String(),
+			})
 			continue
 		}
 
@@ -176,6 +193,12 @@ func (d *Downloader) downloadFiles(ctx context.Context, m *backup.RemoteManifest
 	)
 
 	if d.dryRun {
+		d.plan.DownloadActions = append(d.plan.DownloadActions, DownloadAction{
+			Keyspace: u.Keyspace,
+			Table:    u.Table,
+			Size:     u.Size,
+			Dir:      d.dstDir(u),
+		})
 		return nil
 	}
 

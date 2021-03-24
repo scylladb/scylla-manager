@@ -1,0 +1,17 @@
+{
+  "clear_actions": null,
+  "download_actions": [
+    {
+      "keyspace": "system_auth",
+      "table": "role_permissions",
+      "size": 5856,
+      "dir": "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c"
+    },
+    {
+      "keyspace": "system_auth",
+      "table": "roles",
+      "size": 5476,
+      "dir": "system_auth/roles-5bc52802de2535edaeab188eecebb090"
+    }
+  ]
+}

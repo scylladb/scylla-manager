@@ -1,0 +1,95 @@
+{
+  "clear_actions": null,
+  "download_actions": [
+    {
+      "keyspace": "system_auth",
+      "table": "role_permissions",
+      "size": 5856,
+      "dir": "system_auth/role_permissions"
+    },
+    {
+      "keyspace": "system_auth",
+      "table": "roles",
+      "size": 5476,
+      "dir": "system_auth/roles"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "aggregates",
+      "size": 39219,
+      "dir": "system_schema/aggregates"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "columns",
+      "size": 147105,
+      "dir": "system_schema/columns"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "computed_columns",
+      "size": 44393,
+      "dir": "system_schema/computed_columns"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "dropped_columns",
+      "size": 44676,
+      "dir": "system_schema/dropped_columns"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "functions",
+      "size": 39316,
+      "dir": "system_schema/functions"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "indexes",
+      "size": 44729,
+      "dir": "system_schema/indexes"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "keyspaces",
+      "size": 136348,
+      "dir": "system_schema/keyspaces"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "scylla_tables",
+      "size": 138037,
+      "dir": "system_schema/scylla_tables"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "tables",
+      "size": 145081,
+      "dir": "system_schema/tables"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "triggers",
+      "size": 39050,
+      "dir": "system_schema/triggers"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "types",
+      "size": 39111,
+      "dir": "system_schema/types"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "view_virtual_columns",
+      "size": 39135,
+      "dir": "system_schema/view_virtual_columns"
+    },
+    {
+      "keyspace": "system_schema",
+      "table": "views",
+      "size": 40502,
+      "dir": "system_schema/views"
+    }
+  ]
+}

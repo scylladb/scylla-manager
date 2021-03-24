@@ -1,0 +1,11 @@
+{
+  "clear_actions": null,
+  "download_actions": [
+    {
+      "keyspace": "system_auth",
+      "table": "roles",
+      "size": 5476,
+      "dir": "system_auth/roles-5bc52802de2535edaeab188eecebb090"
+    }
+  ]
+}

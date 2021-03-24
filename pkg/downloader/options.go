@@ -37,11 +37,3 @@ func WithTableDirMode(mode TableDirMode) Option {
 		return nil
 	}
 }
-
-// WithDryRun turns on the dry-run mode where no data operations are performed.
-func WithDryRun() Option {
-	return func(d *Downloader) error {
-		d.dryRun = true
-		return nil
-	}
-}
