@@ -24,14 +24,13 @@ func UpdateGoldenFiles() bool {
 	return *flagUpdate
 }
 
-// SaveGoldenJSONFileIfNeeded puts v as JSON to a new file named after test
-// name in directory dir.
+// SaveGoldenJSONFileIfNeeded puts v as JSON to a new file named after test name.
 func SaveGoldenJSONFileIfNeeded(t testing.TB, v interface{}) {
+	t.Helper()
+
 	if !UpdateGoldenFiles() {
 		return
 	}
-
-	t.Helper()
 
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -67,4 +66,37 @@ func goldenJSONFileName(t testing.TB) string {
 	name := t.Name()
 	name = strings.TrimPrefix(name, "Test")
 	return "testdata/" + name + ".golden.json"
+}
+
+// SaveGoldenTextFileIfNeeded puts s to a new file named after test name.
+func SaveGoldenTextFileIfNeeded(t testing.TB, s string) {
+	t.Helper()
+
+	if !UpdateGoldenFiles() {
+		return
+	}
+
+	if err := os.MkdirAll(path.Dir(goldenTextFileName(t)), 0777); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(goldenTextFileName(t), []byte(s), 0666); err != nil {
+		t.Error(err)
+	}
+}
+
+// LoadGoldenTextFile loads files written by SaveGoldenTextFileIfNeeded.
+func LoadGoldenTextFile(t testing.TB) string {
+	t.Helper()
+
+	b, err := ioutil.ReadFile(goldenTextFileName(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+func goldenTextFileName(t testing.TB) string {
+	name := t.Name()
+	name = strings.TrimPrefix(name, "Test")
+	return "testdata/" + name + ".golden.txt"
 }
