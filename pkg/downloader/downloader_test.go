@@ -32,12 +32,6 @@ func TestDownload(t *testing.T) {
 		}
 	)
 
-	tmpDir, err := ioutil.TempDir("", "scylla-manager-rclone")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
-
 	table := []struct {
 		Name   string
 		Option downloader.Option
@@ -98,7 +92,11 @@ func TestDownload(t *testing.T) {
 	for i := range table {
 		test := table[i]
 		t.Run(test.Name, func(t *testing.T) {
-			dir := path.Join(tmpDir, path.Base(t.Name()))
+			dir, err := ioutil.TempDir("", "scylla-manager-downloader")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(dir)
 
 			d, err := downloader.New(location, dir, logger, test.Option)
 			if err != nil {

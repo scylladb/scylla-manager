@@ -88,6 +88,21 @@ func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, wor
 
 	index := d.filteredIndex(ctx, m)
 
+	// Check if we have enough disk space.
+	var size int64
+	for _, u := range index {
+		size += u.Size
+	}
+	usage, err := d.fdst.(fs.Abouter).About(ctx)
+	if err != nil {
+		return errors.Wrap(err, "check disk size")
+	}
+	if usage.Free == nil {
+		d.logger.Info(ctx, "Failed to get free bytes", "usage", usage)
+	} else if *usage.Free < size {
+		return errors.Errorf("not enought disk space free %s required %s", fs.SizeSuffix(*usage.Free), fs.SizeSuffix(size))
+	}
+
 	// Spawn all downloads at the same time, we rely on rclone ability to limit
 	// nr. of transfers.
 	return parallel.Run(len(index), workers, func(i int) error {
