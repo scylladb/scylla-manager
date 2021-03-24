@@ -105,21 +105,51 @@ func (s *Scenario) WriteTo(w io.Writer) (int64, error) {
 	if s.err != nil {
 		fmt.Fprintf(b, "Error:\t%s\n", s.err)
 	}
-	fmt.Fprintf(b, "Size:\t\t%dMiB\n", bToMb(s.size))
+	fmt.Fprintf(b, "Size:\t\t%s\n", fs.SizeSuffix(s.size))
 	fmt.Fprintf(b, "Duration:\t%s\n", s.completedAt.Sub(s.startedAt))
-	fmt.Fprintf(b, "HeapInuse:\t%d/%d/%d MiB\n", bToMb(s.startMemory.HeapInuse), bToMb(s.endMemory.HeapInuse), bToMb(s.maxMemory.HeapInuse))
-	fmt.Fprintf(b, "Alloc:\t\t%d/%d/%d MiB\n", bToMb(s.startMemory.Alloc), bToMb(s.endMemory.Alloc), bToMb(s.maxMemory.Alloc))
-	fmt.Fprintf(b, "TotalAlloc:\t%d/%d/%d MiB\n", bToMb(s.startMemory.TotalAlloc), bToMb(s.endMemory.TotalAlloc), bToMb(s.maxMemory.TotalAlloc))
-	fmt.Fprintf(b, "Sys:\t\t%d/%d/%d MiB\n", bToMb(s.startMemory.Sys), bToMb(s.endMemory.Sys), bToMb(s.maxMemory.Sys))
-	fmt.Fprintf(b, "Resident:\t%d/%d/%d MiB\n", bToMb(s.startMemory.Resident), bToMb(s.endMemory.Resident), bToMb(s.maxMemory.Resident))
-	fmt.Fprintf(b, "Virtual:\t%d/%d/%d MiB\n", bToMb(s.startMemory.Virtual), bToMb(s.endMemory.Virtual), bToMb(s.maxMemory.Virtual))
+
+	rows := []struct {
+		Field string
+		Value func(m *memoryStats) fs.SizeSuffix
+	}{
+		{
+			Field: "HeapInuse",
+			Value: func(m *memoryStats) fs.SizeSuffix { return fs.SizeSuffix(m.HeapInuse) },
+		},
+		{
+			Field: "Alloc",
+			Value: func(m *memoryStats) fs.SizeSuffix { return fs.SizeSuffix(m.Alloc) },
+		},
+		{
+			Field: "TotalAlloc",
+			Value: func(m *memoryStats) fs.SizeSuffix { return fs.SizeSuffix(m.TotalAlloc) },
+		},
+		{
+			Field: "Sys",
+			Value: func(m *memoryStats) fs.SizeSuffix { return fs.SizeSuffix(m.Sys) },
+		},
+		{
+			Field: "Resident",
+			Value: func(m *memoryStats) fs.SizeSuffix { return fs.SizeSuffix(m.Resident) },
+		},
+		{
+			Field: "Virtual",
+			Value: func(m *memoryStats) fs.SizeSuffix { return fs.SizeSuffix(m.Virtual) },
+		},
+	}
+
+	for _, r := range rows {
+		if len(r.Field) < 6 {
+			fmt.Fprintf(b, "%s:\t\t", r.Field)
+		} else {
+			fmt.Fprintf(b, "%s:\t", r.Field)
+		}
+		fmt.Fprintf(b, "%s/%s/%s", r.Value(&s.startMemory), r.Value(&s.endMemory), r.Value(&s.maxMemory))
+		fmt.Fprintln(b)
+	}
 
 	n, err := w.Write([]byte(b.String()))
 	return int64(n), err
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
 }
 
 type memoryStats struct {
