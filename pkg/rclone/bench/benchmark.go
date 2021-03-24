@@ -96,10 +96,14 @@ func (s *Scenario) EndScenario() {
 	s.maxMemory.max(ms)
 }
 
-// WriteTo prints a textual report of the memory usage in the scenario.
-// It must be called after EndScenario.
-func (s *Scenario) WriteTo(w io.Writer) (int64, error) {
+func (s *Scenario) WriteTo(w io.Writer) (n int64, err error) {
 	b := &strings.Builder{}
+	defer func() {
+		if err == nil {
+			m, e := w.Write([]byte(b.String()))
+			n, err = int64(m), e
+		}
+	}()
 
 	fmt.Fprintf(b, "Scenario:\t%s\n", path.Base(s.name))
 	if s.err != nil {
@@ -148,8 +152,7 @@ func (s *Scenario) WriteTo(w io.Writer) (int64, error) {
 		fmt.Fprintln(b)
 	}
 
-	n, err := w.Write([]byte(b.String()))
-	return int64(n), err
+	return
 }
 
 type memoryStats struct {

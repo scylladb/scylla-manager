@@ -72,9 +72,11 @@ issues:
     - exported method `.+\.UnmarshalText` should have comment or be unexported
     - exported method `.+\.UnmarshalUDT` should have comment or be unexported
     - exported method `.+\.Validate` should have comment or be unexported
+    - exported method `.+\.WriteTo` should have comment or be unexported
     - exported method `Runner.Run` should have comment or be unexported
     - exported var `Default.+` should have comment or be unexported
     - has json tag but is not exported
+    - naked return in func `WriteTo`
     - return value of `.+\.Close` is not checked
     - return value of `net.SplitHostPort` is not checked
     - return value of `strconv.ParseBool` is not checked
