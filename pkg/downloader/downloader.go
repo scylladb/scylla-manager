@@ -4,7 +4,10 @@ package downloader
 
 import (
 	"context"
+	"os"
+	"os/user"
 	"path"
+	"path/filepath"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -34,8 +37,29 @@ type Downloader struct {
 }
 
 func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (*Downloader, error) {
-	// Temporary context to satisfy rclone
+	// Temporary context to satisfy rclone.
 	ctx := context.Background()
+
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		return nil, errors.Wrap(err, "get data directory absolute path")
+	}
+
+	// Check if the current user is the data directory owner.
+	o, err := dirOwner(absDataDir)
+	if os.IsNotExist(err) {
+		return nil, err
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, absDataDir)
+	}
+	u, err := user.Current()
+	if err != nil {
+		return nil, errors.Wrap(err, "get current user")
+	}
+	if o.Uid != u.Uid {
+		return nil, errors.Errorf("run command as %s (UID:%s)", o.Name, o.Uid)
+	}
 
 	// Init file systems, we want to reuse the rclone Fs instances as they
 	// hold memory buffers.
@@ -43,7 +67,7 @@ func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (
 	if err != nil {
 		return nil, errors.Wrap(err, "init location")
 	}
-	fdst, err := fs.NewFs(ctx, dataDir)
+	fdst, err := fs.NewFs(ctx, absDataDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "init data dir")
 	}

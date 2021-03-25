@@ -182,3 +182,11 @@ func TestDownload(t *testing.T) {
 		})
 	}
 }
+
+func TestDownloadOwnerCheck(t *testing.T) {
+	location := backup.Location{Provider: "testdata"}
+	_, err := downloader.New(location, "/root/", log.NewDevelopment())
+	if err == nil || !strings.Contains(err.Error(), "run command as root") {
+		t.Fatalf("New() error %s, expected run command as root", err)
+	}
+}

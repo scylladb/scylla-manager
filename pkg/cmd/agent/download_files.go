@@ -75,9 +75,6 @@ var downloadFilesCmd = &cobra.Command{
 		if a.clearTables {
 			opts = append(opts, downloader.WithClearTables())
 		}
-		if a.dataDir == "" {
-			a.dataDir = "."
-		}
 		d, err := downloader.New(a.location.Value(), a.dataDir, logger, opts...)
 		if err != nil {
 			return err
@@ -124,7 +121,7 @@ var downloadFilesCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			if a.dataDir != "." {
+			if a.dataDir != "" {
 				plan.BaseDir = a.dataDir
 			}
 			if _, err := plan.WriteTo(w); err != nil {

@@ -4,6 +4,8 @@ package downloader_test
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -40,6 +42,12 @@ func TestLookupErrors(t *testing.T) {
 		},
 	}
 
+	dir, err := ioutil.TempDir("", "scylla-manager-downloader")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
 	var (
 		ctx    = context.Background()
 		logger = log.NewDevelopmentWithLevel(zapcore.InfoLevel)
@@ -47,7 +55,7 @@ func TestLookupErrors(t *testing.T) {
 	for i := range table {
 		test := table[i]
 		t.Run(test.Name, func(t *testing.T) {
-			d, err := downloader.New(location, "dir", logger)
+			d, err := downloader.New(location, dir, logger)
 			if err != nil {
 				t.Fatal("New() error", err)
 			}
