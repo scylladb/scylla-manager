@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
@@ -75,6 +76,9 @@ func (s *server) init(ctx context.Context) error {
 			"protect it by specifying auth_token in config file", "config_files", rootArgs.configFiles,
 		)
 	}
+
+	// Inform Go to execute on one CPU.
+	runtime.GOMAXPROCS(1)
 
 	// Try to get a CPU to pin to
 	cpu := s.config.CPU
