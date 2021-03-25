@@ -39,8 +39,10 @@ var downloadFilesArgs = struct {
 	parallel  int
 	debug     bool
 
-	dumpManifest bool
-	dumpTokens   bool
+	dumpManifest  bool
+	dumpTokens    bool
+	listSnapshots bool
+	listNodes     bool
 }{}
 
 var downloadFilesCmd = &cobra.Command{
@@ -49,6 +51,19 @@ var downloadFilesCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		a := downloadFilesArgs
 
+		// Validate action flags
+		actionFlags := 0
+		for _, b := range []bool{a.dryRun, a.dumpManifest, a.dumpTokens, a.listSnapshots, a.listNodes} {
+			if b {
+				actionFlags++
+			}
+		}
+		if actionFlags > 1 {
+			return errors.Errorf("you can specify only one of the flags: %q, %q, %q, %q, %q",
+				"dry-run", "dump-manifest", "dump-tokens", "list-snapshots", "list-nodes")
+		}
+
+		// Setup command
 		level := zapcore.ErrorLevel
 		if a.debug {
 			level = zapcore.DebugLevel
@@ -66,6 +81,7 @@ var downloadFilesCmd = &cobra.Command{
 		// Start accounting after setting all options
 		rclone.StartAccountingOperations()
 
+		// Create downloader
 		opts := []downloader.Option{
 			downloader.WithTableDirMode(a.mode.Value()),
 		}
@@ -80,33 +96,65 @@ var downloadFilesCmd = &cobra.Command{
 			return err
 		}
 
-		ctx := context.Background()
+		var (
+			ctx = context.Background()
+			w   = cmd.OutOrStdout()
+		)
 
-		crit := downloader.ManifestLookupCriteria{
-			NodeID:      a.nodeID.Value(),
-			SnapshotTag: a.snapshotTag.Value(),
+		// Handle list nodes
+		if a.listNodes {
+			nodes, err := d.ListNodes(ctx)
+			if err != nil {
+				return err
+			}
+			if _, err := nodes.WriteTo(w); err != nil {
+				return err
+			}
+			return nil
 		}
-		if crit.NodeID == uuid.Nil {
+
+		// Get node ID
+		nodeID := a.nodeID.Value()
+		if nodeID == uuid.Nil {
 			addr := net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)
-			crit.NodeID, err = localNodeID(ctx, addr)
+			nodeID, err = localNodeID(ctx, addr)
 			if err != nil {
 				logger.Info(ctx, "Failed to get node ID from Scylla", "error", err)
-				return errors.Errorf("set %q flag could not get it from Scylla", "node")
+				return errors.Errorf("could not get node ID from Scylla, set flag %q", "node")
 			}
 		}
 
-		m, err := d.LookupManifest(ctx, crit)
-		if err != nil {
-			return err
+		// Handle list snapshots
+		if a.listSnapshots {
+			snapshots, err := d.ListNodeSnapshots(ctx, nodeID)
+			if err != nil {
+				return err
+			}
+			for _, s := range snapshots {
+				fmt.Fprintln(w, s)
+			}
+			return nil
 		}
 
-		w := cmd.OutOrStdout()
-		if a.dumpManifest {
+		// Validate if snapshot tag is set
+		snapshotTag := a.snapshotTag.Value()
+		if snapshotTag == "" {
+			return errors.Errorf("required flag(s) %q not set", "snapshot-tag")
+		}
+
+		// Get manifest
+		m, err := d.LookupManifest(ctx, downloader.ManifestLookupCriteria{NodeID: nodeID, SnapshotTag: snapshotTag})
+		if err != nil {
+			return errors.Wrap(err, "lookup manifest")
+		}
+
+		// Handle action flags that work with the manifest
+		switch {
+		case a.dumpManifest:
 			enc := json.NewEncoder(w)
 			enc.SetIndent("", "  ")
 			return enc.Encode(m.Content)
-		}
-		if a.dumpTokens {
+		case a.dumpTokens:
 			for i := range m.Content.Tokens {
 				if i > 0 {
 					fmt.Fprint(w, ",")
@@ -115,8 +163,7 @@ var downloadFilesCmd = &cobra.Command{
 			}
 			fmt.Fprintln(w)
 			return nil
-		}
-		if a.dryRun {
+		case a.dryRun:
 			plan, err := d.DryRun(ctx, m)
 			if err != nil {
 				return err
@@ -130,6 +177,7 @@ var downloadFilesCmd = &cobra.Command{
 			return nil
 		}
 
+		// Download files
 		if !a.debug {
 			stop := rclone.StartProgress()
 			defer stop()
@@ -156,17 +204,19 @@ func init() {
 	f.VarP(&a.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backup.Providers(), ", "))                   //nolint: lll
 	f.StringVarP(&a.dataDir, "data-dir", "d", "", "`path` to Scylla data directory (typically /var/lib/scylla/data) or other directory to use for downloading the files (default current directory)") //nolint: lll
 	f.StringSliceVarP(&a.keyspace, "keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
-	f.Var(&a.mode, "mode", "`upload|sstableloader`, use an alternate table directory structure, set 'upload' to use table upload directories, set 'sstableloader' for <keyspace>/<table> directories layout") //nolint: lll
+	f.Var(&a.mode, "mode", "mode changes resulting directory structure, supported values are: `upload, sstableloader`, set 'upload' to use table upload directories, set 'sstableloader' for <keyspace>/<table> directories layout") // nolint: lll
 	f.BoolVar(&a.clearTables, "clear-tables", false, "remove sstables before downloading")
-	f.BoolVar(&a.dryRun, "dry-run", false, "validates and prints backup information without downloading (or clearing) any files")
-	f.VarP(&a.nodeID, "node", "n", "nodetool status Host `ID` of node you want to restore (default local node)")
-	f.VarP(&a.snapshotTag, "snapshot-tag", "T", "Scylla Manager snapshot `tag` as read from backup listing e.g. sm_20060102150405UTC")
+	f.BoolVar(&a.dryRun, "dry-run", false, "validates and prints a plan without downloading (or clearing) any files")
+	f.VarP(&a.nodeID, "node", "n", "'Host `ID`' value from nodetool status command output of a node you want to restore (default local node)")
+	f.VarP(&a.snapshotTag, "snapshot-tag", "T", "Scylla Manager snapshot `tag` as read from backup listing e.g. sm_20060102150405UTC, use --list-snapshots to get a list of snapshots of the node") // nolint: lll
 	f.IntVar(&a.rateLimit, "rate-limit", 0, "rate limit in megabytes (MiB) per second (default no limit)")
 	f.IntVarP(&a.parallel, "parallel", "p", 2*runtime.NumCPU(), "how many files to download in parallel")
 	f.BoolVar(&a.debug, "debug", false, "enable debug logs")
 	f.BoolVar(&a.dumpManifest, "dump-manifest", false, "print Scylla Manager backup manifest as JSON")
-	f.BoolVar(&a.dumpTokens, "dump-tokens", false, "print list of tokens owned by the snapshoted node")
+	f.BoolVar(&a.dumpTokens, "dump-tokens", false, "print list of tokens from the manifest")
+	f.BoolVar(&a.listSnapshots, "list-snapshots", false, "print list of snapshots of the specified node, this also takes into account keyspace filter and returns only snapshots containing any of requested keyspaces or tables, newest snapshots are printed first") // nolint: lll
+	f.BoolVar(&a.listNodes, "list-nodes", false, "print list of nodes including cluster name and node IP, this command would help you find nodes you can restore data from")                                                                                           // nolint: lll
 
-	requireFlags(cmd, "location", "snapshot-tag")
+	requireFlags(cmd, "location")
 	rootCmd.AddCommand(cmd)
 }

@@ -4,7 +4,11 @@ package downloader
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"path"
+	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
@@ -17,78 +21,217 @@ import (
 // ManifestLookupCriteria specifies which manifest you want to use to download
 // files.
 type ManifestLookupCriteria struct {
-	NodeID      uuid.UUID
-	SnapshotTag string
+	NodeID      uuid.UUID `json:"node_id"`
+	SnapshotTag string    `json:"snapshot_tag"`
 }
 
 func (c ManifestLookupCriteria) matches(m *backup.RemoteManifest) bool {
-	return c.NodeID.String() == m.NodeID && c.SnapshotTag == m.SnapshotTag
+	if c.NodeID != uuid.Nil && c.NodeID.String() != m.NodeID {
+		return false
+	}
+	if c.SnapshotTag != "" && c.SnapshotTag != m.SnapshotTag {
+		return false
+	}
+	return true
 }
 
 // LookupManifest finds and loads manifest base on the lookup criteria.
 func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (*backup.RemoteManifest, error) {
 	d.logger.Info(ctx, "Searching for manifest", "criteria", c)
 
-	baseDir := path.Join("backup", string(backup.MetaDirKind))
+	if c.NodeID == uuid.Nil {
+		return nil, errors.New("invalid criteria: missing node ID")
+	}
+	if c.SnapshotTag == "" {
+		return nil, errors.New("invalid criteria: missing snapshot tag")
+	}
 
 	var (
-		manifest  *backup.RemoteManifest
-		snapshots = strset.New()
-		nodes     = strset.New()
+		m  = new(backup.RemoteManifest)
+		ok bool
 	)
 
-	lookup := func(entries fs.DirEntries) error {
-		if manifest != nil {
+	lookup := func(o fs.Object) error {
+		if ok {
 			return nil
 		}
 
-		var m backup.RemoteManifest
-		for _, entry := range entries {
-			d.logger.Debug(ctx, "Found manifest dir entry", "path", entry.String())
-
-			o, ok := entry.(fs.Object)
-			if !ok {
-				continue
-			}
-			if err := m.ParsePartialPath(o.String()); err != nil {
-				continue
-			}
-			if m.SnapshotTag == "" || m.Temporary {
-				continue
-			}
-			if c.matches(&m) {
-				if err := readManifestContentFromObject(ctx, &m, o); err != nil {
-					return errors.Wrap(err, "read content")
-				}
-
-				// Note: returning error here would stop the walk but it would
-				// also log rclone ERROR. We want to avoid that as it can be
-				// misleading for CLI users.
-				manifest = &m
-				return nil
-			}
-
-			snapshots.Add(m.SnapshotTag)
-			nodes.Add(m.NodeID)
+		if err := m.ParsePartialPath(o.String()); err != nil {
+			return nil
 		}
-
+		if m.SnapshotTag == "" || m.Temporary {
+			return nil
+		}
+		if c.matches(m) {
+			if err := readManifestContentFromObject(ctx, m, o); err != nil {
+				return errors.Wrap(err, "read content")
+			}
+			ok = true
+		}
 		return nil
 	}
-
-	err := walk.ListR(ctx, d.fsrc, baseDir, true, backup.RemoteManifestLevel(baseDir)+1, walk.ListObjects, lookup)
-	if manifest != nil {
-		d.logger.Info(ctx, "Found manifest", "path", manifest.RemoteManifestFile())
-		return manifest, err
+	if err := d.forEachMetaDirObject(ctx, lookup); err != nil {
+		return nil, err
 	}
-	if err != nil {
+	if !ok {
+		return nil, errors.New("no manifests found")
+	}
+
+	return m, nil
+}
+
+// ListNodeSnapshots returns list of snapshots for a given node.
+func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([]string, error) {
+	d.logger.Info(ctx, "Searching for node snapshots", "node_id", nodeID)
+
+	if nodeID == uuid.Nil {
+		return nil, errors.New("invalid criteria: missing node ID")
+	}
+
+	var (
+		snapshotTags []string
+
+		m = new(backup.RemoteManifest)
+		c = ManifestLookupCriteria{NodeID: nodeID}
+	)
+
+	lookup := func(o fs.Object) error {
+		if err := m.ParsePartialPath(o.String()); err != nil {
+			return nil
+		}
+		if m.SnapshotTag == "" || m.Temporary {
+			return nil
+		}
+		if !c.matches(m) {
+			return nil
+		}
+		if d.keyspace != nil {
+			if err := readManifestContentFromObject(ctx, m, o); err != nil {
+				return errors.Wrap(err, "read content")
+			}
+			if len(d.filteredIndex(ctx, m)) == 0 {
+				return nil
+			}
+		}
+		snapshotTags = append(snapshotTags, m.SnapshotTag)
+		return nil
+	}
+	if err := d.forEachMetaDirObject(ctx, lookup); err != nil {
 		return nil, err
 	}
 
-	if !nodes.Has(c.NodeID.String()) {
-		return nil, errors.Errorf("unknown node ID %q", c.NodeID)
+	sort.Slice(snapshotTags, func(i, j int) bool {
+		return snapshotTags[i] > snapshotTags[j]
+	})
+
+	return snapshotTags, nil
+}
+
+// NodeInfo contains selected information on node from manifest.
+type NodeInfo struct {
+	ClusterID   uuid.UUID
+	ClusterName string
+	DC          string
+	NodeID      string
+	IP          string
+}
+
+// NodeInfoSlice adds WriteTo functionality to the slice.
+type NodeInfoSlice []NodeInfo
+
+func (s NodeInfoSlice) WriteTo(w io.Writer) (n int64, err error) {
+	b := &strings.Builder{}
+	defer func() {
+		if err == nil {
+			m, e := w.Write([]byte(b.String()))
+			n, err = int64(m), e
+		}
+	}()
+
+	var (
+		lastClusterID uuid.UUID
+		lastDC        string
+	)
+	for i, n := range s {
+		if n.ClusterID != lastClusterID {
+			if i > 0 {
+				fmt.Fprintln(b)
+			}
+			if n.ClusterName == "" {
+				fmt.Fprintf(b, "Cluster: %s\n", n.ClusterID)
+			} else {
+				fmt.Fprintf(b, "Cluster: %s (%s)\n", n.ClusterName, n.ClusterID)
+			}
+			lastClusterID = n.ClusterID
+			lastDC = ""
+		}
+		if n.DC != lastDC {
+			fmt.Fprintf(b, "%s:\n", n.DC)
+			lastDC = n.DC
+		}
+		fmt.Fprintf(b, "  - %s (%s)\n", n.IP, n.NodeID)
+	}
+	return
+}
+
+// ListNodes returns a listing of all available nodes.
+// Having that one can get a snapshot listing from ListSnapshots.
+func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
+	d.logger.Info(ctx, "Listing nodes")
+
+	var (
+		nodes []NodeInfo
+
+		m   = new(backup.RemoteManifest)
+		ids = strset.New()
+	)
+
+	lookup := func(o fs.Object) error {
+		if err := m.ParsePartialPath(o.String()); err != nil {
+			return nil
+		}
+		if m.SnapshotTag == "" || m.Temporary {
+			return nil
+		}
+		if ids.Has(m.NodeID) {
+			return nil
+		}
+		if err := readManifestContentFromObject(ctx, m, o); err != nil {
+			return errors.Wrap(err, "read content")
+		}
+		nodes = append(nodes, NodeInfo{
+			ClusterID:   m.ClusterID,
+			ClusterName: m.Content.ClusterName,
+			DC:          m.DC,
+			NodeID:      m.NodeID,
+			IP:          m.Content.IP,
+		})
+		ids.Add(m.NodeID)
+		return nil
+	}
+	if err := d.forEachMetaDirObject(ctx, lookup); err != nil {
+		return nil, err
 	}
 
-	return nil, errors.Errorf("unknown snapshot tag %q, available snapshots: %s", c.SnapshotTag, snapshots)
+	sort.Slice(nodes, func(i, j int) bool {
+		if r := strings.Compare(nodes[i].ClusterID.String(), nodes[j].ClusterID.String()); r != 0 {
+			return r < 0
+		}
+		if r := strings.Compare(nodes[i].DC, nodes[j].DC); r != 0 {
+			return r < 0
+		}
+		if r := strings.Compare(nodes[i].IP, nodes[j].IP); r != 0 {
+			return r < 0
+		}
+		return nodes[i].NodeID < nodes[j].NodeID
+	})
+
+	return nodes, nil
+}
+
+func (d *Downloader) forEachMetaDirObject(ctx context.Context, fn func(o fs.Object) error) error {
+	baseDir := path.Join("backup", string(backup.MetaDirKind))
+	return walk.ListR(ctx, d.fsrc, baseDir, true, backup.RemoteManifestLevel(baseDir)+1, walk.ListObjects, func(e fs.DirEntries) error { return e.ForObjectError(fn) })
 }
 
 func readManifestContentFromObject(ctx context.Context, m *backup.RemoteManifest, o fs.Object) error {

@@ -1,0 +1,72 @@
+[
+  {
+    "ClusterID": "95d7d21d-8633-4054-ac39-51be406add32",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "659b2944-ae45-4cf9-aabb-c5e501ee4189",
+    "IP": "192.168.100.11"
+  },
+  {
+    "ClusterID": "95d7d21d-8633-4054-ac39-51be406add32",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "6d329bec-179c-4408-ae69-00dfcd3deb05",
+    "IP": "192.168.100.12"
+  },
+  {
+    "ClusterID": "95d7d21d-8633-4054-ac39-51be406add32",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "5a0abb73-13e4-4e03-ae22-ed682c16d551",
+    "IP": "192.168.100.13"
+  },
+  {
+    "ClusterID": "b3b10a06-f0f2-4288-a508-41e6776a81dd",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "a39125ef-84bd-46a5-a286-007409844da9",
+    "IP": "192.168.100.11"
+  },
+  {
+    "ClusterID": "b3b10a06-f0f2-4288-a508-41e6776a81dd",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "65a9be24-3a06-470a-b1d1-d90434c35960",
+    "IP": "192.168.100.12"
+  },
+  {
+    "ClusterID": "b3b10a06-f0f2-4288-a508-41e6776a81dd",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "9c40f0b9-8b61-4fe5-8a1b-5ad1027600c4",
+    "IP": "192.168.100.13"
+  },
+  {
+    "ClusterID": "b3b10a06-f0f2-4288-a508-41e6776a81dd",
+    "ClusterName": "test",
+    "DC": "dc2",
+    "NodeID": "f78c070d-f064-450b-84b4-e366f68ab80f",
+    "IP": "192.168.100.21"
+  },
+  {
+    "ClusterID": "b3b10a06-f0f2-4288-a508-41e6776a81dd",
+    "ClusterName": "test",
+    "DC": "dc2",
+    "NodeID": "cad4bf48-60dd-4b77-a400-54eb85291b18",
+    "IP": "192.168.100.22"
+  },
+  {
+    "ClusterID": "b3b10a06-f0f2-4288-a508-41e6776a81dd",
+    "ClusterName": "test",
+    "DC": "dc2",
+    "NodeID": "510a3ba7-3f88-4ede-835a-33ba680c9dc0",
+    "IP": "192.168.100.23"
+  },
+  {
+    "ClusterID": "e2ba9ec5-8a8f-48d9-bcd9-0569706e9e84",
+    "ClusterName": "test",
+    "DC": "dc1",
+    "NodeID": "942ba1b6-30a3-441e-ac3c-158864d8b861",
+    "IP": "192.168.100.13"
+  }
+]
