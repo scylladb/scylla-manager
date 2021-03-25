@@ -32,6 +32,27 @@ func TestDownload(t *testing.T) {
 		}
 	)
 
+	clearTableOption := func(dir string, opts ...downloader.Option) func(d *downloader.Downloader) error {
+		return func(d *downloader.Downloader) error {
+			dir := path.Join(d.Root(), dir)
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return err
+			}
+			if err := ioutil.WriteFile(path.Join(dir, "a"), []byte("foo"), 0755); err != nil {
+				return err
+			}
+			if err := ioutil.WriteFile(path.Join(dir, "b"), []byte("bar"), 0755); err != nil {
+				return err
+			}
+			for _, o := range opts {
+				if err := o(d); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
 	table := []struct {
 		Name   string
 		Option downloader.Option
@@ -58,30 +79,29 @@ func TestDownload(t *testing.T) {
 		},
 		{
 			Name: "Clear table",
-			Option: func(d *downloader.Downloader) error {
-				dir := path.Join(d.Root(), "system_auth", "role_permissions-f4d5d0c0671be202bc241807c243e80b")
-				if err := os.MkdirAll(dir, 0755); err != nil {
-					return err
-				}
-				if err := ioutil.WriteFile(path.Join(dir, "a"), []byte("foo"), 0755); err != nil {
-					return err
-				}
-				if err := ioutil.WriteFile(path.Join(dir, "b"), []byte("bar"), 0755); err != nil {
-					return err
-				}
-
-				opts := []downloader.Option{
-					downloader.WithKeyspace([]string{"system_auth.role_permissions"}),
-					downloader.WithClearTables(),
-				}
-				for _, o := range opts {
-					if err := o(d); err != nil {
-						return err
-					}
-				}
-
-				return nil
-			},
+			Option: clearTableOption(
+				"system_auth/role_permissions-f4d5d0c0671be202bc241807c243e80b",
+				downloader.WithKeyspace([]string{"system_auth.role_permissions"}),
+				downloader.WithClearTables(),
+			),
+		},
+		{
+			Name: "Clear table upload dir mode",
+			Option: clearTableOption(
+				"system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload",
+				downloader.WithKeyspace([]string{"system_auth.role_permissions"}),
+				downloader.WithTableDirMode(downloader.UploadTableDirMode),
+				downloader.WithClearTables(),
+			),
+		},
+		{
+			Name: "Clear table sstable dir mode",
+			Option: clearTableOption(
+				"system_auth/role_permissions",
+				downloader.WithKeyspace([]string{"system_auth.role_permissions"}),
+				downloader.WithTableDirMode(downloader.SSTableLoaderTableDirMode),
+				downloader.WithClearTables(),
+			),
 		},
 	}
 

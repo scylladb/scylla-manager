@@ -1,0 +1,11 @@
+[
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-CompressionInfo.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Data.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Digest.crc32",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Filter.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Index.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Scylla.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Statistics.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-Summary.db",
+  "system_auth/role_permissions-3afbe79f219431a7add7f5ab90d8ec9c/upload/mc-2-big-TOC.txt"
+]

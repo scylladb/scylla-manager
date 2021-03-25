@@ -150,11 +150,6 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 		return nil
 	}
 
-	if d.mode == SSTableLoaderTableDirMode {
-		d.logger.Info(ctx, "Clear tables is not supported with flat table dir")
-		return nil
-	}
-
 	// List all tables and versions
 	entries, err := d.fdst.List(ctx, u.Keyspace)
 	if errors.Is(err, fs.ErrorDirNotFound) {
@@ -165,30 +160,41 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 	}
 
 	// Find all versioned table dirs
-	var tableDirs []fs.Directory
-	r := regexp.MustCompile("^" + u.Table + "-([a-f0-9]{32})$")
-	entries.ForDir(func(dir fs.Directory) {
-		if r.MatchString(path.Base(dir.String())) {
-			tableDirs = append(tableDirs, dir)
-		}
-	})
+	var tableDirs []string
+
+	switch d.mode {
+	case DefaultTableDirMode:
+		r := regexp.MustCompile("^" + u.Table + "-([a-f0-9]{32})$")
+		entries.ForDir(func(dir fs.Directory) {
+			if r.MatchString(path.Base(dir.String())) {
+				tableDirs = append(tableDirs, dir.String())
+			}
+		})
+	case UploadTableDirMode, SSTableLoaderTableDirMode:
+		tableDirs = append(tableDirs, d.dstDir(u))
+	}
 
 	// Delete all files in table dir at depth 1
 	for _, dir := range tableDirs {
-		d.logger.Info(ctx, "Clearing table dir", "path", dir.String())
+		entries, err := d.fdst.List(ctx, dir)
+		if errors.Is(err, fs.ErrorDirNotFound) {
+			continue
+		}
+		if err != nil {
+			return errors.Wrapf(err, "list %s", dir)
+		}
+
+		d.logger.Info(ctx, "Clearing table dir", "path", dir)
+
 		if d.dryRun {
 			d.plan.ClearActions = append(d.plan.ClearActions, ClearAction{
 				Keyspace: u.Keyspace,
 				Table:    u.Table,
-				Dir:      dir.String(),
+				Dir:      dir,
 			})
 			continue
 		}
 
-		entries, err := d.fdst.List(ctx, dir.String())
-		if err != nil {
-			return errors.Wrapf(err, "list %s", dir.String())
-		}
 		if err := entries.ForObjectError(func(o fs.Object) error {
 			return errors.Wrapf(operations.DeleteFile(ctx, o), "delete file %s", o)
 		}); err != nil {
