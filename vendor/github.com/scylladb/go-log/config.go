@@ -79,6 +79,7 @@ func NewProduction(c Config, opts ...zap.Option) (Logger, error) {
 	cfg.OutputPaths = []string{c.Mode.String()}
 	cfg.Sampling = c.Sampling
 	cfg.Level = c.Level
+	cfg.DisableCaller = true
 
 	l, err := cfg.Build(opts...)
 	if err != nil {
