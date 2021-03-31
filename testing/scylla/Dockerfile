@@ -4,7 +4,7 @@ FROM scylladb/scylla:${SCYLLA_VERSION}
 
 # Install 3rd party tools
 RUN yum makecache && \
-    yum -y install initscripts net-tools passwd sudo && \
+    yum -y install initscripts less net-tools passwd sudo && \
     yum clean all
 
 # Set root password
