@@ -1,0 +1,4 @@
+# HELP test_test test,
+# TYPE test_test counter
+test_test{cluster="c1"} 1
+test_test{cluster="c2"} 1

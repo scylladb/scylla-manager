@@ -1,0 +1,6 @@
+# HELP scylla_manager_backup_purge_deleted_files Number of files that were deleted.
+# TYPE scylla_manager_backup_purge_deleted_files gauge
+scylla_manager_backup_purge_deleted_files{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h"} 1
+# HELP scylla_manager_backup_purge_files Number of files that need to be deleted due to retention policy.
+# TYPE scylla_manager_backup_purge_files gauge
+scylla_manager_backup_purge_files{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h"} 2

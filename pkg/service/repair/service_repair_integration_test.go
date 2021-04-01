@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
@@ -362,14 +363,11 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	s, err := repair.NewService(
 		session,
 		c,
-		func(_ context.Context, id uuid.UUID) (string, error) {
-			return "test_cluster", nil
-		},
+		metrics.NewRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
 		logger.Named("repair"),
-		nil,
 	)
 	if err != nil {
 		t.Fatal(err)

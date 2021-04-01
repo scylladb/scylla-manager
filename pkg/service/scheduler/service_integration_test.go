@@ -228,14 +228,7 @@ func (h *schedTestHelper) makeTask(s scheduler.Schedule) *scheduler.Task {
 func newTestService(t *testing.T, session gocqlx.Session) *scheduler.Service {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
-	s, err := scheduler.NewService(
-		session,
-		store.NewTableStore(session, table.Drawer),
-		func(_ context.Context, id uuid.UUID) (string, error) {
-			return "test_cluster", nil
-		},
-		logger,
-	)
+	s, err := scheduler.NewService(session, store.NewTableStore(session, table.Drawer), logger)
 	if err != nil {
 		t.Fatal(err)
 	}

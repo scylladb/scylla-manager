@@ -1,0 +1,6 @@
+# HELP scylla_manager_repair_inflight_jobs Number of currently running Scylla repair jobs.
+# TYPE scylla_manager_repair_inflight_jobs gauge
+scylla_manager_repair_inflight_jobs{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h"} 1
+# HELP scylla_manager_repair_inflight_token_ranges Number of token ranges that are being repaired.
+# TYPE scylla_manager_repair_inflight_token_ranges gauge
+scylla_manager_repair_inflight_token_ranges{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h"} 10

@@ -265,6 +265,9 @@ func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllac
 }
 
 func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
+	w.Metrics.SetFilesProgress(w.ClusterID, w.Units[p.Unit].Keyspace, p.TableName, p.Host,
+		p.Size, p.Uploaded, p.Skipped, p.Failed)
+
 	if w.OnRunProgress != nil {
 		w.OnRunProgress(ctx, p)
 	}

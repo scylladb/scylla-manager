@@ -10,12 +10,14 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-// Runner implements sched.Runner.
+// Runner implements scheduler.Runner.
 type Runner struct {
 	service *Service
 }
 
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+	r.service.metrics.DeleteClusterMetrics(clusterID)
+
 	t, err := r.service.GetTarget(ctx, clusterID, properties)
 	if err != nil {
 		return errors.Wrap(err, "get repair target")

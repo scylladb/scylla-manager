@@ -60,9 +60,6 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	s, err := NewService(
 		DefaultConfig(),
-		func(ctx context.Context, id uuid.UUID) (string, error) {
-			return "test_cluster", nil
-		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			conf := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 			conf.Transport = hrt

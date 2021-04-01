@@ -34,7 +34,7 @@ func TestWorkerRun(t *testing.T) {
 		partitioner               = dht.NewMurmur3Partitioner(2, 12)
 		hostPartitioner           = map[string]*dht.Murmur3Partitioner{"h1": partitioner, "h2": partitioner}
 		emptyHostPartitioner      = make(map[string]*dht.Murmur3Partitioner)
-		run                       = &Run{ID: uuid.NewTime(), TaskID: uuid.NewTime(), clusterName: "test-cluster"}
+		run                       = &Run{ID: uuid.NewTime(), TaskID: uuid.NewTime()}
 	)
 
 	t.Run("successful run", func(t *testing.T) {

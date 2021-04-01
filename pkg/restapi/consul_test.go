@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -33,7 +32,7 @@ func TestConsulAPI(t *testing.T) {
 		m := NewMockClusterService(ctrl)
 		m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(clusters, nil)
 
-		h := NewPrometheus(m, &prom.MetricsWatcher{})
+		h := NewPrometheus(m)
 		r := httptest.NewRequest(http.MethodGet, "/v1/catalog/services", nil)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
@@ -71,7 +70,7 @@ func TestConsulAPI(t *testing.T) {
 		m := NewMockClusterService(ctrl)
 		m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(clusters, nil)
 		m.EXPECT().ListNodes(gomock.Any(), clusters[0].ID).Return(nodes, nil)
-		h := NewPrometheus(m, &prom.MetricsWatcher{})
+		h := NewPrometheus(m)
 
 		r := httptest.NewRequest(http.MethodGet, "/v1/catalog/service/scylla", nil)
 		w := httptest.NewRecorder()
@@ -140,7 +139,7 @@ func TestConsulAPI(t *testing.T) {
 		m := NewMockClusterService(ctrl)
 		m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(clusters, nil)
 		m.EXPECT().ListNodes(gomock.Any(), clusters[0].ID).Return(nodes, nil)
-		h := NewPrometheus(m, &prom.MetricsWatcher{})
+		h := NewPrometheus(m)
 
 		r := httptest.NewRequest(http.MethodGet, "/v1/health/service/scylla", nil)
 		w := httptest.NewRecorder()

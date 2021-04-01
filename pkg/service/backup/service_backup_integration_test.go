@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
@@ -63,7 +64,7 @@ func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Con
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service := newTestService(t, session, client, config, clusterID, logger)
+	service := newTestService(t, session, client, config, logger)
 
 	for _, ip := range ManagedClusterHosts() {
 		if err := client.RcloneResetStats(context.Background(), ip); err != nil {
@@ -102,13 +103,13 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, clusterID uuid.UUID,
-	logger log.Logger) *backup.Service {
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger) *backup.Service {
 	t.Helper()
 
 	s, err := backup.NewService(
 		session,
 		c,
+		metrics.NewBackupMetrics(),
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
@@ -119,7 +120,6 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 			return CreateManagedClusterSession(t), nil
 		},
 		logger.Named("backup"),
-		nil,
 	)
 	if err != nil {
 		t.Fatal(err)

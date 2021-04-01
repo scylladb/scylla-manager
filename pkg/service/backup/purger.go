@@ -27,6 +27,9 @@ type purger struct {
 	Location       Location
 	ManifestHelper manifestHelper
 	Logger         log.Logger
+
+	OnPreDelete func(files int)
+	OnDelete    func()
 }
 
 // PurgeSnapshot allows to delete data and metadata associated
@@ -129,6 +132,10 @@ func (p *purger) purge(ctx context.Context, manifests []*RemoteManifest, isStale
 		staleFiles.Remove(path)
 	})
 
+	if p.OnPreDelete != nil {
+		p.OnPreDelete(staleFiles.Size())
+	}
+
 	// Delete SSTables
 	deletedFiles, err := p.deleteFiles(ctx, staleFiles)
 	if err != nil {
@@ -212,6 +219,11 @@ func (p *purger) deleteFile(ctx context.Context, path string) error {
 	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 		p.Logger.Info(ctx, "File missing on delete", "path", path)
 		err = nil
+	}
+	if err == nil {
+		if p.OnDelete != nil {
+			p.OnDelete()
+		}
 	}
 	return err
 }

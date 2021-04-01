@@ -1,0 +1,12 @@
+# HELP scylla_manager_backup_files_failed_bytes Number of bytes failed to upload to backup location.
+# TYPE scylla_manager_backup_files_failed_bytes gauge
+scylla_manager_backup_files_failed_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 2
+# HELP scylla_manager_backup_files_size_bytes Total size of backup files in bytes.
+# TYPE scylla_manager_backup_files_size_bytes gauge
+scylla_manager_backup_files_size_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 10
+# HELP scylla_manager_backup_files_skipped_bytes Number of deduplicated bytes already uploaded to backup location.
+# TYPE scylla_manager_backup_files_skipped_bytes gauge
+scylla_manager_backup_files_skipped_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 3
+# HELP scylla_manager_backup_files_uploaded_bytes Number of bytes uploaded to backup location.
+# TYPE scylla_manager_backup_files_uploaded_bytes gauge
+scylla_manager_backup_files_uploaded_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 5

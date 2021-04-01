@@ -8,11 +8,10 @@ import (
 	"testing"
 
 	"github.com/scylladb/scylla-manager/pkg/restapi"
-	"github.com/scylladb/scylla-manager/pkg/util/prom"
 )
 
 func TestMetrics(t *testing.T) {
-	h := restapi.NewPrometheus(nil, &prom.MetricsWatcher{})
+	h := restapi.NewPrometheus(nil)
 	r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)

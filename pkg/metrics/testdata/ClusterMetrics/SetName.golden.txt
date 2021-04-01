@@ -1,0 +1,4 @@
+# HELP scylla_manager_cluster_name Mapping from cluster ID to name.
+# TYPE scylla_manager_cluster_name gauge
+scylla_manager_cluster_name{cluster="0d61b791-cccc-42fb-a64f-b9c636bbd21c",name="d"} 0
+scylla_manager_cluster_name{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",name="b"} 0

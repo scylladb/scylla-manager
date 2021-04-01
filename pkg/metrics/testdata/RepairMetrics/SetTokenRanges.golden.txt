@@ -1,0 +1,9 @@
+# HELP scylla_manager_repair_token_ranges_error Number of segments that failed to repair.
+# TYPE scylla_manager_repair_token_ranges_error gauge
+scylla_manager_repair_token_ranges_error{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 1
+# HELP scylla_manager_repair_token_ranges_success Number of repaired token ranges.
+# TYPE scylla_manager_repair_token_ranges_success gauge
+scylla_manager_repair_token_ranges_success{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 2
+# HELP scylla_manager_repair_token_ranges_total Total number of token ranges to repair.
+# TYPE scylla_manager_repair_token_ranges_total gauge
+scylla_manager_repair_token_ranges_total{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} 3

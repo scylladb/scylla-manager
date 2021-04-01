@@ -57,6 +57,13 @@ func (w *worker) purgeHost(ctx context.Context, h hostInfo, policy int) error {
 		Client:         w.Client,
 		ManifestHelper: newManifestV2Helper(h.IP, h.Location, w.Client, w.Logger),
 		Logger:         w.Logger.With("host", h.IP),
+
+		OnPreDelete: func(files int) {
+			w.Metrics.SetPurgeFiles(w.ClusterID, h.IP, files)
+		},
+		OnDelete: func() {
+			w.Metrics.IncPurgeDeletedFiles(w.ClusterID, h.IP)
+		},
 	}
 
 	if err := p.PurgeTask(ctx, w.TaskID, policy); err != nil {

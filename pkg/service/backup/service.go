@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
@@ -34,24 +35,20 @@ type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, err
 // SessionFunc returns CQL session for given cluster ID.
 type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
 
-type metricsWatcher interface {
-	RegisterCallback(func()) func()
-}
-
 // Service orchestrates clusterName backups.
 type Service struct {
 	session gocqlx.Session
 	config  Config
+	metrics metrics.BackupMetrics
 
 	clusterName    ClusterNameFunc
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession SessionFunc
 	logger         log.Logger
-	mw             metricsWatcher
 }
 
-func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
-	clusterSession SessionFunc, logger log.Logger, mw metricsWatcher) (*Service, error) {
+func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
+	clusterSession SessionFunc, logger log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -71,11 +68,11 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 	return &Service{
 		session:        session,
 		config:         config,
+		metrics:        metrics,
 		clusterName:    clusterName,
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
 		logger:         logger,
-		mw:             mw,
 	}, nil
 }
 
@@ -533,13 +530,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Stage:     StageInit,
 	}
 
-	// Get cluster name
-	clusterName, err := s.clusterName(ctx, run.ClusterID)
-	if err != nil {
-		return errors.Wrap(err, "invalid cluster")
-	}
-	run.clusterName = clusterName
-
 	s.logger.Info(ctx, "Initializing backup",
 		"cluster_id", run.ClusterID,
 		"task_id", run.TaskID,
@@ -597,25 +587,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "initialize: register the run")
 	}
 
-	runProgress := func(ctx context.Context) (*Run, Progress, error) {
-		p, err := s.GetProgress(ctx, run.ClusterID, run.TaskID, run.ID)
-		if err != nil {
-			return nil, Progress{}, err
-		}
-		r, err := s.GetRun(ctx, run.ClusterID, run.TaskID, run.ID)
-		if err != nil {
-			return nil, p, err
-		}
-		r.clusterName, err = s.clusterName(ctx, run.ClusterID)
-		if err != nil {
-			return r, p, err
-		}
-		return r, p, nil
+	// Get cluster name
+	clusterName, err := s.clusterName(ctx, run.ClusterID)
+	if err != nil {
+		return errors.Wrap(err, "invalid cluster")
 	}
-
-	// Start metrics updater
-	stop := s.watchProgressMetrics(ctx, runProgress)
-	defer stop()
 
 	// Create a worker
 	w := &worker{
@@ -625,6 +601,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		RunID:                runID,
 		SnapshotTag:          run.SnapshotTag,
 		Config:               s.config,
+		Metrics:              s.metrics,
 		Units:                run.Units,
 		Client:               client,
 		OnRunProgress:        s.putRunProgressLogError,
@@ -986,15 +963,4 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
-}
-
-func (s *Service) watchProgressMetrics(ctx context.Context, runProgress runProgressFunc) func() {
-	if s.mw == nil {
-		return func() {}
-	}
-
-	update := updateFunc(ctx, runProgress, s.logger)
-	update()
-
-	return s.mw.RegisterCallback(update)
 }

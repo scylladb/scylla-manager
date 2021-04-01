@@ -1,0 +1,4 @@
+# HELP scylla_manager_backup_snapshot Indicates if snapshot was taken.
+# TYPE scylla_manager_backup_snapshot gauge
+scylla_manager_backup_snapshot{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k0"} 0
+scylla_manager_backup_snapshot{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k1"} 1

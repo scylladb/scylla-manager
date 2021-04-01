@@ -13,7 +13,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
 	"github.com/scylladb/scylla-manager/pkg/util/httplog"
-	"github.com/scylladb/scylla-manager/pkg/util/prom"
 )
 
 func init() {
@@ -72,10 +71,10 @@ func interactive(next http.Handler) http.Handler {
 
 // NewPrometheus returns an http.Handler exposing Prometheus metrics on
 // '/metrics'.
-func NewPrometheus(svc ClusterService, mw *prom.MetricsWatcher) http.Handler {
+func NewPrometheus(svc ClusterService) http.Handler {
 	r := chi.NewRouter()
 
-	r.Get("/metrics", mw.WrapHandler(promhttp.Handler()))
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// Exposing Consul API to Prometheus for discovering nodes.
 	// The idea is to use already working discovering mechanism to avoid

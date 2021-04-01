@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
@@ -26,14 +27,11 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 	s, err := repair.NewService(
 		session,
 		repair.DefaultConfig(),
-		func(context.Context, uuid.UUID) (string, error) {
-			return "", errors.New("not implemented")
-		},
+		metrics.NewRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("repair"),
-		nil,
 	)
 	if err != nil {
 		t.Fatal(err)

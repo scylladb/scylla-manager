@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/restapi"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
@@ -24,7 +25,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
-	"github.com/scylladb/scylla-manager/pkg/util/prom"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
@@ -62,24 +62,23 @@ func newServer(c config.ServerConfig, logger log.Logger) (*server, error) {
 		errCh: make(chan error, 4),
 	}
 
-	var mw prom.MetricsWatcher
-	if err := s.makeServices(&mw); err != nil {
+	if err := s.makeServices(); err != nil {
 		return nil, err
 	}
-	if err := s.makeServers(&mw); err != nil {
+	if err := s.makeServers(); err != nil {
 		return nil, err
 	}
 
 	return s, nil
 }
 
-func (s *server) makeServices(mw *prom.MetricsWatcher) error {
+func (s *server) makeServices() error {
 	var err error
 
 	drawerStore := store.NewTableStore(s.session, table.Drawer)
 	secretsStore := store.NewTableStore(s.session, table.Secrets)
 
-	s.clusterSvc, err = cluster.NewService(s.session, secretsStore, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, metrics.NewClusterMetrics().MustRegister(), secretsStore, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}
@@ -87,7 +86,6 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 
 	s.healthSvc, err = healthcheck.NewService(
 		s.config.Healthcheck,
-		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		secretsStore,
 		s.logger.Named("healthcheck"),
@@ -99,11 +97,11 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 	s.backupSvc, err = backup.NewService(
 		s.session,
 		s.config.Backup,
+		metrics.NewBackupMetrics().MustRegister(),
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.logger.Named("backup"),
-		mw,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "backup service")
@@ -112,10 +110,9 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 	s.repairSvc, err = repair.NewService(
 		s.session,
 		s.config.Repair,
-		s.clusterSvc.GetClusterName,
+		metrics.NewRepairMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.logger.Named("repair"),
-		mw,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "repair service")
@@ -124,7 +121,6 @@ func (s *server) makeServices(mw *prom.MetricsWatcher) error {
 	s.schedSvc, err = scheduler.NewService(
 		s.session,
 		drawerStore,
-		s.clusterSvc.GetClusterName,
 		s.logger.Named("scheduler"),
 	)
 	if err != nil {
@@ -205,7 +201,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) makeServers(mw *prom.MetricsWatcher) error {
+func (s *server) makeServers() error {
 	services := restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
@@ -244,7 +240,7 @@ func (s *server) makeServers(mw *prom.MetricsWatcher) error {
 	if s.config.Prometheus != "" {
 		s.prometheusServer = &http.Server{
 			Addr:    s.config.Prometheus,
-			Handler: restapi.NewPrometheus(s.clusterSvc, mw),
+			Handler: restapi.NewPrometheus(s.clusterSvc),
 		}
 	}
 	if s.config.Debug != "" {
@@ -258,6 +254,9 @@ func (s *server) makeServers(mw *prom.MetricsWatcher) error {
 }
 
 func (s *server) startServices(ctx context.Context) error {
+	if err := s.clusterSvc.Init(ctx); err != nil {
+		return errors.Wrapf(err, "cluster service")
+	}
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
 		return errors.Wrapf(err, "schedule service")
 	}

@@ -20,25 +20,21 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-// ClusterNameFunc returns name for a given ID.
-type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
-
 // Service is a CRON alike scheduler. The scheduler is agnostic of logic it's
 // executing, it can execute a Task of a given type provided that there is
 // a Runner for that TaskType. Runners must be registered with SetRunner
 // function and there can be only one Runner for a TaskType.
 type Service struct {
-	session     gocqlx.Session
-	clusterName ClusterNameFunc
-	logger      log.Logger
-	wg          sync.WaitGroup
-	mu          sync.Mutex
-	runners     map[TaskType]Runner
-	taskOpt     TaskOptFunc
-	tasks       map[uuid.UUID]*trigger
-	drawer      store.Store
-	suspended   map[uuid.UUID]struct{}
-	closing     bool
+	session   gocqlx.Session
+	logger    log.Logger
+	wg        sync.WaitGroup
+	mu        sync.Mutex
+	runners   map[TaskType]Runner
+	taskOpt   TaskOptFunc
+	tasks     map[uuid.UUID]*trigger
+	drawer    store.Store
+	suspended map[uuid.UUID]struct{}
+	closing   bool
 }
 
 // Overridable knobs for tests.
@@ -51,23 +47,18 @@ var (
 	suspendedStartDateThreshold = 8 * time.Hour
 )
 
-func NewService(session gocqlx.Session, drawer store.Store, clusterName ClusterNameFunc, logger log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, drawer store.Store, logger log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
-	if clusterName == nil {
-		return nil, errors.New("invalid cluster name provider")
-	}
-
 	s := &Service{
-		session:     session,
-		clusterName: clusterName,
-		logger:      logger,
-		runners:     make(map[TaskType]Runner),
-		tasks:       make(map[uuid.UUID]*trigger),
-		drawer:      drawer,
-		suspended:   make(map[uuid.UUID]struct{}),
+		session:   session,
+		logger:    logger,
+		runners:   make(map[TaskType]Runner),
+		tasks:     make(map[uuid.UUID]*trigger),
+		drawer:    drawer,
+		suspended: make(map[uuid.UUID]struct{}),
 	}
 
 	if err := s.initSuspended(); err != nil {
@@ -160,7 +151,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 		if err := s.fixRunStatus(r, now); err != nil {
 			return errors.Wrap(err, "fix run status")
 		}
-		if err := s.initMetrics(ctx, t, r); err != nil {
+		if err := s.initMetrics(t, r); err != nil {
 			return errors.Wrap(err, "init metrics")
 		}
 		s.schedule(ctx, t)
@@ -206,17 +197,12 @@ func (s *Service) fixRunStatus(r *Run, now time.Time) error {
 	return nil
 }
 
-func (s *Service) initMetrics(ctx context.Context, t *Task, r *Run) error {
-	clusterName, err := s.clusterName(ctx, t.ClusterID)
-	if err != nil {
-		return errors.Wrap(err, "get cluster name")
-	}
-
+func (s *Service) initMetrics(t *Task, r *Run) error {
 	// Using Add(0) to not override existing values.
 
 	// Init active_count
 	taskActiveCount.With(prometheus.Labels{
-		"cluster": clusterName,
+		"cluster": t.ClusterID.String(),
 		"type":    t.Type.String(),
 		"task":    t.ID.String(),
 	}).Add(0)
@@ -234,14 +220,14 @@ func (s *Service) initMetrics(ctx context.Context, t *Task, r *Run) error {
 			v = 1
 		}
 		taskRunTotal.With(prometheus.Labels{
-			"cluster": clusterName,
+			"cluster": t.ClusterID.String(),
 			"type":    t.Type.String(),
 			"task":    t.ID.String(),
 			"status":  s.String(),
 		}).Add(v)
 
 		taskLastRunDurationSeconds.With(prometheus.Labels{
-			"cluster": clusterName,
+			"cluster": t.ClusterID.String(),
 			"task":    t.ID.String(),
 			"type":    t.Type.String(),
 			"status":  s.String(),
@@ -254,7 +240,7 @@ func (s *Service) initMetrics(ctx context.Context, t *Task, r *Run) error {
 		return err
 	}
 	taskLastSuccess.With(prometheus.Labels{
-		"cluster": clusterName,
+		"cluster": t.ClusterID.String(),
 		"task":    t.ID.String(),
 		"type":    t.Type.String(),
 	}).Set(float64(st.Unix()))
@@ -397,13 +383,8 @@ func (s *Service) run(t *Task, tg *trigger) {
 	ctx := log.WithNewTraceID(context.Background())
 
 	defer func() {
-		clusterName, err := s.clusterName(ctx, t.ClusterID)
-		if err != nil {
-			clusterName = t.ClusterID.String()
-		}
-
 		taskLastRunDurationSeconds.With(prometheus.Labels{
-			"cluster": clusterName,
+			"cluster": t.ClusterID.String(),
 			"task":    t.ID.String(),
 			"type":    t.Type.String(),
 			"status":  run.Status.String(),
@@ -461,14 +442,6 @@ func (s *Service) run(t *Task, tg *trigger) {
 		return
 	}
 
-	// Get cluster name
-	clusterName, err := s.clusterName(ctx, t.ClusterID)
-	if err != nil {
-		run.Status = StatusError
-		run.Cause = errors.Wrap(err, "get cluster name").Error()
-		return
-	}
-
 	// Decorate task properties
 	props, err := s.EvalTaskOpts(ctx, t)
 	if err != nil {
@@ -479,7 +452,7 @@ func (s *Service) run(t *Task, tg *trigger) {
 
 	// Update metrics
 	taskActiveCount.With(prometheus.Labels{
-		"cluster": clusterName,
+		"cluster": t.ClusterID.String(),
 		"type":    t.Type.String(),
 		"task":    t.ID.String(),
 	}).Inc()
@@ -550,13 +523,13 @@ wait:
 
 	// Update metrics
 	taskActiveCount.With(prometheus.Labels{
-		"cluster": clusterName,
+		"cluster": t.ClusterID.String(),
 		"type":    t.Type.String(),
 		"task":    t.ID.String(),
 	}).Dec()
 
 	taskRunTotal.With(prometheus.Labels{
-		"cluster": clusterName,
+		"cluster": t.ClusterID.String(),
 		"type":    t.Type.String(),
 		"task":    t.ID.String(),
 		"status":  run.Status.String(),
@@ -564,7 +537,7 @@ wait:
 
 	if run.Status == StatusDone {
 		taskLastSuccess.With(prometheus.Labels{
-			"cluster": clusterName,
+			"cluster": t.ClusterID.String(),
 			"type":    t.Type.String(),
 			"task":    t.ID.String(),
 		}).Set(float64(run.StartTime.Unix()))
@@ -959,7 +932,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	s.schedule(ctx, t)
 
 	if create {
-		if err := s.initMetrics(ctx, t, nil); err != nil {
+		if err := s.initMetrics(t, nil); err != nil {
 			return errors.Wrap(err, "init metrics")
 		}
 	}

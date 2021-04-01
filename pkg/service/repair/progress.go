@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -53,9 +53,10 @@ type stateKey struct {
 }
 
 type dbProgressManager struct {
-	logger  log.Logger
-	session gocqlx.Session
 	run     *Run
+	session gocqlx.Session
+	metrics metrics.RepairMetrics
+	logger  log.Logger
 
 	mu       sync.Mutex
 	progress map[progressKey]*RunProgress
@@ -64,11 +65,13 @@ type dbProgressManager struct {
 
 var _ progressManager = &dbProgressManager{}
 
-func newProgressManager(run *Run, session gocqlx.Session, logger log.Logger) *dbProgressManager {
+func newProgressManager(run *Run, session gocqlx.Session, metrics metrics.RepairMetrics, logger log.Logger) *dbProgressManager {
 	return &dbProgressManager{
-		logger:   logger.With("run_id", run.ID),
-		session:  session,
-		run:      run,
+		run:     run,
+		session: session,
+		metrics: metrics,
+		logger:  logger.With("run_id", run.ID),
+
 		progress: make(map[progressKey]*RunProgress),
 		state:    make(map[stateKey]*RunState),
 	}
@@ -163,19 +166,20 @@ func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobI
 		ttr   = job.Ranges[0]
 	)
 
-	pm.logger.Debug(ctx, "OnScyllaJobStart", "host", job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "job_id", jobID, "start", start, "ranges", len(job.Ranges))
+	pm.logger.Debug(ctx, "OnScyllaJobStart",
+		"host", job.Host,
+		"keyspace", ttr.Keyspace,
+		"table", ttr.Table,
+		"job_id", jobID,
+		"start", start,
+		"ranges", len(job.Ranges),
+	)
 
 	q := table.RepairRunProgress.InsertQuery(pm.session)
 	defer q.Release()
 
 	for _, h := range ttr.Replicas {
-		l := prometheus.Labels{
-			"cluster": pm.run.clusterName,
-			"task":    pm.run.TaskID.String(),
-			"host":    h,
-		}
-		repairInflightJobs.With(l).Add(1)
-		repairInflightTokenRanges.With(l).Add(float64(len(job.Ranges)))
+		pm.metrics.AddJob(pm.run.ClusterID, h, len(job.Ranges))
 
 		pk := progressKey{
 			host:     h,
@@ -208,16 +212,17 @@ func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID 
 		ttr = job.Ranges[0]
 	)
 
-	pm.logger.Debug(ctx, "OnScyllaJobEnd", "host", job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "job_id", jobID, "end", end, "ranges", len(job.Ranges))
+	pm.logger.Debug(ctx, "OnScyllaJobEnd",
+		"host", job.Host,
+		"keyspace", ttr.Keyspace,
+		"table", ttr.Table,
+		"job_id", jobID,
+		"end", end,
+		"ranges", len(job.Ranges),
+	)
 
 	for _, h := range ttr.Replicas {
-		l := prometheus.Labels{
-			"cluster": pm.run.clusterName,
-			"task":    pm.run.TaskID.String(),
-			"host":    h,
-		}
-		repairInflightJobs.With(l).Sub(1)
-		repairInflightTokenRanges.With(l).Sub(float64(len(job.Ranges)))
+		pm.metrics.SubJob(pm.run.ClusterID, h, len(job.Ranges))
 
 		pk := progressKey{
 			host:     h,
@@ -226,7 +231,6 @@ func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID 
 		}
 
 		pm.mu.Lock()
-
 		pm.progress[pk].runningJobCount--
 		if pm.progress[pk].runningJobCount == 0 {
 			pm.progress[pk].AddDuration(end)
@@ -243,7 +247,12 @@ func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error
 		ttr = r.Ranges[0]
 	)
 
-	pm.logger.Debug(ctx, "OnJobResult", "host", r.job.Host, "keyspace", ttr.Keyspace, "table", ttr.Table, "ranges", len(r.Ranges))
+	pm.logger.Debug(ctx, "OnJobResult",
+		"host", r.job.Host,
+		"keyspace", ttr.Keyspace,
+		"table", ttr.Table,
+		"ranges", len(r.Ranges),
+	)
 
 	q := table.RepairRunProgress.InsertQuery(pm.session)
 	defer q.Release()
@@ -263,24 +272,15 @@ func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error
 		} else {
 			pm.progress[pk].Success += int64(len(r.Ranges))
 		}
-
-		labels := prometheus.Labels{
-			"cluster":  pm.run.clusterName,
-			"task":     pm.run.TaskID.String(),
-			"keyspace": ttr.Keyspace,
-			"host":     r.Host,
-		}
-		repairSegmentsTotal.With(labels).Set(float64(pm.progress[pk].TokenRanges))
-		repairSegmentsSuccess.With(labels).Set(float64(pm.progress[pk].Success))
-		repairSegmentsError.With(labels).Set(float64(pm.progress[pk].Error))
-
 		if pm.progress[pk].Completed() {
 			pm.progress[pk].CompletedAt = &end
 		}
-
 		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
 			return errors.Wrap(err, "update repair progress")
 		}
+
+		pm.metrics.SetTokenRanges(pm.run.ClusterID, ttr.Keyspace, ttr.Table, h,
+			pm.progress[pk].TokenRanges, pm.progress[pk].Success, pm.progress[pk].Error)
 	}
 
 	sk := stateKey{

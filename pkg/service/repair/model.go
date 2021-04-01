@@ -57,8 +57,6 @@ type Run struct {
 	DC        []string
 	PrevID    uuid.UUID
 	StartTime time.Time
-
-	clusterName string
 }
 
 // RunProgress specifies repair progress of a run for a table.

@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/secrets"
 	"github.com/scylladb/scylla-manager/pkg/service"
@@ -28,7 +29,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	secretsStore := store.NewTableStore(session, table.Secrets)
 
-	s, err := cluster.NewService(session, secretsStore, log.NewDevelopment())
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,6 @@ import (
 
 // Runner implements sched.Runner.
 type Runner struct {
-	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	timeout      timeoutProviderFunc
 	metrics      *runnerMetrics
@@ -30,15 +29,10 @@ type runnerMetrics struct {
 	timeout *prometheus.GaugeVec
 }
 
-func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	clusterName, err := r.clusterName(ctx, clusterID)
-	if err != nil {
-		return errors.Wrap(err, "get cluster")
-	}
-
+func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) (err error) {
 	defer func() {
 		if err != nil {
-			r.removeMetricsForCluster(clusterName)
+			r.removeMetricsForCluster(clusterID)
 		}
 	}()
 
@@ -56,20 +50,20 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 	}
 
 	live := status.Live()
-	r.removeMetricsForMissingHosts(clusterName, live)
-	r.checkHosts(ctx, clusterID, clusterName, live)
+	r.removeMetricsForMissingHosts(clusterID, live)
+	r.checkHosts(ctx, clusterID, live)
 
 	return nil
 }
 
-func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName string, status []scyllaclient.NodeStatusInfo) {
+func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []scyllaclient.NodeStatusInfo) {
 	parallel.Run(len(status), parallel.NoLimit, func(i int) error { // nolint: errcheck
 		hl := prometheus.Labels{
-			clusterKey: clusterName,
+			clusterKey: clusterID.String(),
 			hostKey:    status[i].Addr,
 		}
 		dl := prometheus.Labels{
-			clusterKey: clusterName,
+			clusterKey: clusterID.String(),
 			dcKey:      status[i].Datacenter,
 		}
 
@@ -88,22 +82,22 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, clusterName
 	})
 }
 
-func (r Runner) removeMetricsForCluster(clusterName string) {
+func (r Runner) removeMetricsForCluster(clusterID uuid.UUID) {
 	apply(collect(r.metrics.status), func(cluster, dc, host, pt string, v float64) {
-		if clusterName != cluster {
+		if clusterID.String() != cluster {
 			return
 		}
 
 		hl := prometheus.Labels{
-			clusterKey: clusterName,
+			clusterKey: clusterID.String(),
 			hostKey:    host,
 		}
 		dl := prometheus.Labels{
-			clusterKey: clusterName,
+			clusterKey: clusterID.String(),
 			dcKey:      dc,
 		}
 		dpl := prometheus.Labels{
-			clusterKey:  clusterName,
+			clusterKey:  clusterID.String(),
 			dcKey:       dc,
 			pingTypeKey: pt,
 		}
@@ -116,14 +110,14 @@ func (r Runner) removeMetricsForCluster(clusterName string) {
 	})
 }
 
-func (r Runner) removeMetricsForMissingHosts(clusterName string, status []scyllaclient.NodeStatusInfo) {
+func (r Runner) removeMetricsForMissingHosts(clusterID uuid.UUID, status []scyllaclient.NodeStatusInfo) {
 	m := strset.New()
 	for _, node := range status {
 		m.Add(node.Addr)
 	}
 
 	apply(collect(r.metrics.status), func(cluster, dc, host, pt string, v float64) {
-		if clusterName != cluster {
+		if clusterID.String() != cluster {
 			return
 		}
 		if m.Has(host) {
@@ -131,7 +125,7 @@ func (r Runner) removeMetricsForMissingHosts(clusterName string, status []scylla
 		}
 
 		l := prometheus.Labels{
-			clusterKey: clusterName,
+			clusterKey: clusterID.String(),
 			hostKey:    host,
 		}
 		r.metrics.status.Delete(l)

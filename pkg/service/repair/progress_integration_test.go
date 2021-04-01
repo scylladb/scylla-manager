@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
@@ -57,7 +58,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 		)
 
 		ctx := context.Background()
-		pm := newProgressManager(run, session, log.NewDevelopment())
+		pm := newProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
 		Print("When: run progress is initialized with incomplete values")
 		if err := pm.Init(ctx, ttrs); err != nil {
 			t.Fatal(err)
@@ -189,7 +190,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 		ctx := context.Background()
 		run := *run
 		run.PrevID = uuid.NewTime()
-		pm := newProgressManager(&run, session, log.NewDevelopment())
+		pm := newProgressManager(&run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
 
 		Print("When: there is present state of success at position 1")
 		if err := table.RepairRunState.InsertQuery(session).BindStruct(&RunState{

@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/pkg/dht"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service"
@@ -27,35 +28,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ClusterNameFunc returns name for a given ID.
-type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
-
-type metricsWatcher interface {
-	RegisterCallback(func()) func()
-}
-
-// Service orchestrates clusterName repairs.
+// Service orchestrates cluster repairs.
 type Service struct {
 	session gocqlx.Session
 	config  Config
+	metrics metrics.RepairMetrics
 
-	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	logger       log.Logger
-	mw           metricsWatcher
 
 	intensityHandlers map[uuid.UUID]*intensityHandler
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFunc,
-	scyllaClient scyllaclient.ProviderFunc, logger log.Logger, mw metricsWatcher) (*Service, error) {
+func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
-	}
-
-	if clusterName == nil {
-		return nil, errors.New("invalid cluster name provider")
 	}
 
 	if scyllaClient == nil {
@@ -65,10 +53,9 @@ func NewService(session gocqlx.Session, config Config, clusterName ClusterNameFu
 	return &Service{
 		session:           session,
 		config:            config,
-		clusterName:       clusterName,
+		metrics:           metrics,
 		scyllaClient:      scyllaClient,
 		logger:            logger,
-		mw:                mw,
 		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
 	}, nil
 }
@@ -237,13 +224,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrapf(err, "put run")
 	}
 
-	// Get cluster name
-	clusterName, err := s.clusterName(ctx, run.ClusterID)
-	if err != nil {
-		return errors.Wrap(err, "invalid cluster")
-	}
-	run.clusterName = clusterName
-
 	s.logger.Info(ctx, "Initializing repair",
 		"cluster_id", run.ClusterID,
 		"task_id", run.TaskID,
@@ -268,7 +248,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Create generator
 	var (
-		manager = newProgressManager(run, s.session, s.logger)
+		manager = newProgressManager(run, s.session, s.metrics, s.logger)
 		gen     = newGenerator(s.config.GracefulStopTimeout, manager, s.logger)
 	)
 
@@ -409,17 +389,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// shutdown. Generator must receive ctx.
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 
-	// Start updating progress metrics.
-	stop := s.watchProgressMetrics(ctx, run.ClusterID, run.TaskID, run.ID)
-	defer stop()
-
 	// Run Workers and Generator
 	var eg errgroup.Group
 	for i := 0; i < ctl.MaxWorkerCount(); i++ {
 		i := i
 		eg.Go(func() error {
 			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
-				hostPartitioner, scyllaFeatures, s.config.PollInterval, s.config.LongPollingTimeoutSeconds, s.logger.Named(fmt.Sprintf("worker %d", i)))
+				hostPartitioner, scyllaFeatures, s.config.PollInterval,
+				s.config.LongPollingTimeoutSeconds, s.logger.Named(fmt.Sprintf("worker %d", i)),
+			)
 
 			err := w.Run(workerCtx)
 			if errors.Is(err, context.Canceled) {
@@ -679,50 +657,6 @@ func (s *Service) partitioner(ctx context.Context, host string, client *scyllacl
 		return nil, errors.Wrap(err, "get shard count")
 	}
 	return dht.NewMurmur3Partitioner(shardCount, uint(s.config.Murmur3PartitionerIgnoreMSBBits)), nil
-}
-
-func (s *Service) watchProgressMetrics(ctx context.Context, clusterID, taskID, runID uuid.UUID) func() {
-	if s.mw == nil {
-		return func() {}
-	}
-
-	update := func() {
-		run, err := s.GetRun(ctx, clusterID, taskID, runID)
-		if err != nil {
-			s.logger.Error(ctx, "Failed to get run in metrics update",
-				"cluster_id", clusterID,
-				"task_id", taskID,
-				"run_id", runID,
-				"error", err,
-			)
-			return
-		}
-		run.clusterName, err = s.clusterName(ctx, run.ClusterID)
-		if err != nil {
-			s.logger.Error(ctx, "Failed to get cluster name",
-				"cluster_id", clusterID,
-				"task_id", taskID,
-				"run_id", runID,
-				"error", err,
-			)
-			return
-		}
-
-		p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
-		if err != nil {
-			s.logger.Error(ctx, "Failed to aggregate progress in metrics update",
-				"cluster_id", clusterID,
-				"task_id", taskID,
-				"run_id", runID,
-				"error", err,
-			)
-			return
-		}
-		updateMetrics(run, p)
-	}
-	update()
-
-	return s.mw.RegisterCallback(update)
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of

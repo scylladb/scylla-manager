@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/secrets"
@@ -43,25 +44,43 @@ type Change struct {
 // Service manages cluster configurations.
 type Service struct {
 	session          gocqlx.Session
+	metrics          metrics.ClusterMetrics
 	secretsStore     store.Store
 	clientCache      *scyllaclient.CachedProvider
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session gocqlx.Session, secretsStore store.Store, l log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsStore store.Store, l log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	s := &Service{
 		session:      session,
+		metrics:      metrics,
 		secretsStore: secretsStore,
 		logger:       l,
 	}
 	s.clientCache = scyllaclient.NewCachedProvider(s.client)
 
 	return s, nil
+}
+
+// Init initializes metrics from database.
+func (s *Service) Init(ctx context.Context) error {
+	s.logger.Debug(ctx, "Init")
+
+	var clusters []*Cluster
+	if err := s.session.Query(table.Cluster.SelectAll()).SelectRelease(&clusters); err != nil {
+		return err
+	}
+
+	for _, c := range clusters {
+		s.metrics.SetName(c.ID, c.Name)
+	}
+
+	return nil
 }
 
 // SetOnChangeListener sets a function that would be invoked when a cluster
@@ -364,6 +383,8 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		s.logger.Info(ctx, "Cluster updated", "cluster_id", c.ID)
 		s.clientCache.Invalidate(c.ID)
 	}
+
+	s.metrics.SetName(c.ID, c.Name)
 
 	changeEvent := Change{
 		ID:            c.ID,

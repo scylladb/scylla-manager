@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
@@ -50,6 +51,7 @@ type worker struct {
 	RunID         uuid.UUID
 	SnapshotTag   string
 	Config        Config
+	Metrics       metrics.BackupMetrics
 	Units         []Unit
 	Schema        *bytes.Buffer
 	Client        *scyllaclient.Client

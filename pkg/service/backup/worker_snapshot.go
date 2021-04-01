@@ -67,6 +67,11 @@ func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 }
 
 func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
+	// Mark units as pending snapshot
+	for _, u := range w.Units {
+		w.Metrics.SetSnapshot(w.ClusterID, u.Keyspace, h.IP, false)
+	}
+
 	// Taking a snapshot can be a costly operation.
 	// To optimize that we randomise order of taking snapshots on different nodes.
 	for _, i := range unitsPerm(w.Units) {
@@ -80,6 +85,7 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 		if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, tables...); err != nil {
 			return errors.Wrapf(err, "keyspace %s: snapshot", u.Keyspace)
 		}
+		w.Metrics.SetSnapshot(w.ClusterID, u.Keyspace, h.IP, true)
 	}
 	return nil
 }

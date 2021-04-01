@@ -26,9 +26,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ClusterNameFunc returns name for a given ID.
-type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
-
 type clusterIDHost struct {
 	ClusterID uuid.UUID
 	Host      string
@@ -69,7 +66,6 @@ type nodeInfo struct {
 // Service manages health checks.
 type Service struct {
 	config       Config
-	clusterName  ClusterNameFunc
 	scyllaClient scyllaclient.ProviderFunc
 	secretsStore store.Store
 
@@ -81,18 +77,13 @@ type Service struct {
 	logger log.Logger
 }
 
-func NewService(config Config, clusterName ClusterNameFunc,
-	scyllaClient scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) (*Service, error) {
-	if clusterName == nil {
-		return nil, errors.New("invalid cluster name provider")
-	}
+func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) (*Service, error) {
 	if scyllaClient == nil {
 		return nil, errors.New("invalid scylla provider")
 	}
 
 	return &Service{
 		config:          config,
-		clusterName:     clusterName,
 		scyllaClient:    scyllaClient,
 		secretsStore:    secretsStore,
 		nodeInfoCache:   make(map[clusterIDHost]nodeInfo),
@@ -106,7 +97,6 @@ func (s *Service) CQLRunner() Runner {
 	return Runner{
 		scyllaClient: s.scyllaClient,
 		timeout:      s.cqlTimeout,
-		clusterName:  s.clusterName,
 		metrics: &runnerMetrics{
 			status:  cqlStatus,
 			rtt:     cqlRTT,
@@ -122,7 +112,6 @@ func (s *Service) RESTRunner() Runner {
 	return Runner{
 		scyllaClient: s.scyllaClient,
 		timeout:      s.restTimeout,
-		clusterName:  s.clusterName,
 		metrics: &runnerMetrics{
 			status:  restStatus,
 			rtt:     restRTT,
@@ -138,7 +127,6 @@ func (s *Service) AlternatorRunner() Runner {
 	return Runner{
 		scyllaClient: s.scyllaClient,
 		timeout:      s.alternatorTimeout,
-		clusterName:  s.clusterName,
 		metrics: &runnerMetrics{
 			status:  alternatorStatus,
 			rtt:     alternatorRTT,

@@ -106,8 +106,6 @@ type Run struct {
 	Location    []Location
 	StartTime   time.Time
 	Stage       Stage
-
-	clusterName string
 }
 
 // RunProgress describes backup progress on per file basis.
