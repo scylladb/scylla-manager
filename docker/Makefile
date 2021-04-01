@@ -1,5 +1,7 @@
 include .env
 
+BRANCH = $(shell git branch --show-current)
+
 all: scylla-manager-agent scylla-manager README.md ## Build all images and README
 
 .PHONY: clean
