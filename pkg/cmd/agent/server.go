@@ -129,8 +129,9 @@ func (s *server) init(ctx context.Context) error {
 
 func (s *server) makeHTTPServers() {
 	s.httpsServer = &http.Server{
-		Addr:    s.config.HTTPS,
-		Handler: newRouter(s.config, rcserver.New(), s.logger.Named("http")),
+		Addr:      s.config.HTTPS,
+		TLSConfig: s.config.TLSVersion.TLSConfig(),
+		Handler:   newRouter(s.config, rcserver.New(), s.logger.Named("http")),
 	}
 	if s.config.Prometheus != "" {
 		s.prometheusServer = &http.Server{

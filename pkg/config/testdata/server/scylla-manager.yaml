@@ -2,6 +2,7 @@ http: 127.0.0.1:80
 
 https: 127.0.0.1:443
 
+tls_version: TLSv1.3
 tls_cert_file: tls.cert
 tls_key_file: tls.key
 tls_ca_file: ca.cert

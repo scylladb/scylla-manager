@@ -45,6 +45,7 @@ func (c ScyllaConfig) Validate() (errs error) {
 type AgentConfig struct {
 	AuthToken   string               `yaml:"auth_token"`
 	HTTPS       string               `yaml:"https"`
+	TLSVersion  TLSVersion           `yaml:"tls_version"`
 	TLSCertFile string               `yaml:"tls_cert_file"`
 	TLSKeyFile  string               `yaml:"tls_key_file"`
 	Prometheus  string               `yaml:"prometheus"`
@@ -60,6 +61,7 @@ type AgentConfig struct {
 
 func DefaultAgentConfig() AgentConfig {
 	return AgentConfig{
+		TLSVersion:  TLSv12,
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
 		Prometheus:  ":5090",

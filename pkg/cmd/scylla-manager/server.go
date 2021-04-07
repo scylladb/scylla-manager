@@ -223,8 +223,9 @@ func (s *server) makeServers(mw *prom.MetricsWatcher) error {
 	}
 	if s.config.HTTPS != "" {
 		s.httpsServer = &http.Server{
-			Addr:    s.config.HTTPS,
-			Handler: h,
+			Addr:      s.config.HTTPS,
+			TLSConfig: s.config.TLSVersion.TLSConfig(),
+			Handler:   h,
 		}
 
 		if s.config.TLSCAFile != "" {
@@ -236,10 +237,8 @@ func (s *server) makeServers(mw *prom.MetricsWatcher) error {
 			if !pool.AppendCertsFromPEM(b) {
 				return errors.Errorf("https no certificates found in %s", s.config.TLSCAFile)
 			}
-			s.httpsServer.TLSConfig = &tls.Config{
-				ClientCAs:  pool,
-				ClientAuth: tls.RequireAndVerifyClientCert,
-			}
+			s.httpsServer.TLSConfig.ClientCAs = pool
+			s.httpsServer.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
 		}
 	}
 	if s.config.Prometheus != "" {

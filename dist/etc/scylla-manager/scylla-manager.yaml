@@ -6,6 +6,15 @@ http: 127.0.0.1:5080
 # Bind REST API to the specified TCP address using HTTPS protocol.
 #https: 127.0.0.1:5443
 
+# Version of TLS protocol and cipher suites to use with HTTPS.
+# The supported versions are: TLSv1.3, TLSv1.2, TLSv1.0.
+# The TLSv1.2 is restricted to the following cipher suites:
+# ECDHE-ECDSA-WITH-AES-128-GCM-SHA256, ECDHE-RSA-WITH-AES-128-GCM-SHA256,
+# ECDHE-ECDSA-WITH-AES-256-GCM-SHA384, ECDHE-RSA-WITH-AES-256-GCM-SHA384,
+# ECDHE-ECDSA-WITH-CHACHA20-POLY1305, ECDHE-RSA-WITH-CHACHA20-POLY1305.
+# The TLSv1.0 should never be used as it's deprecated.
+#tls_mode: TLSv1.2
+
 # TLS certificate and key files to use with HTTPS. To regenerate the files use
 # scyllamgr_ssl_cert_gen script shipped with the Scylla Manager.
 #tls_cert_file: /var/lib/scylla-manager/scylla_manager.crt

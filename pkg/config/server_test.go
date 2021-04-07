@@ -35,6 +35,7 @@ func TestConfigModification(t *testing.T) {
 	golden := config.ServerConfig{
 		HTTP:          "127.0.0.1:80",
 		HTTPS:         "127.0.0.1:443",
+		TLSVersion:    "TLSv1.3",
 		TLSCertFile:   "tls.cert",
 		TLSKeyFile:    "tls.key",
 		TLSCAFile:     "ca.cert",
