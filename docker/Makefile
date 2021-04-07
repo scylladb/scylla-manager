@@ -1,7 +1,5 @@
 include .env
 
-BRANCH = $(shell git branch --show-current)
-
 all: scylla-manager-agent scylla-manager README.md ## Build all images and README
 
 .PHONY: clean
@@ -14,12 +12,12 @@ clean: ## Remove images from the local repository
 .PHONY: scylla-manager-agent
 scylla-manager-agent: ## Build Scylla Manager Agent docker image
 	@echo "==> Building Scylla Manager Agent docker image..."
-	docker build scylla-manager-agent -t "scylladb/scylla-manager-agent:${SCYLLA_MANAGER_VERSION}"
+	docker build scylla-manager-agent --build-arg BRANCH=${BRANCH} -t "scylladb/scylla-manager-agent:${SCYLLA_MANAGER_VERSION}"
 
 .PHONY: scylla-manager
 scylla-manager: ## Build Scylla Manager docker image
 	@echo "==> Building Scylla Manager docker image..."
-	docker build scylla-manager -t "scylladb/scylla-manager:${SCYLLA_MANAGER_VERSION}"
+	docker build scylla-manager --build-arg BRANCH=${BRANCH} -t "scylladb/scylla-manager:${SCYLLA_MANAGER_VERSION}"
 
 README.md: README.in Dockerfile docker-compose.yaml
 	cp README.in README.md
