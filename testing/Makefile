@@ -37,8 +37,6 @@ endif
 	@echo "==> Creating tables"
 	@docker cp init.cql $(DOCKER_NODE):/tmp/
 	@$(CQLSH_NODE) -f /tmp/init.cql
-	@echo "==> Installing root SSH key"
-	@./install_root_key
 	@echo "==> Adding Minio user"
 	@./minio/add_user.sh
 
