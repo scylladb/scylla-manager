@@ -1,0 +1,9 @@
+[authentication]
+username = cassandra
+password = cassandra
+
+[ui]
+color = on
+
+[cql]
+version = 3.3.1

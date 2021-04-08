@@ -15,10 +15,6 @@ RUN ln -s /etc/scylla/certs/db.key /etc/scylla/db.key && \
     ln -s /etc/scylla/certs/db.crt /etc/scylla/db.crt && \
     ln -s /etc/scylla/certs/ca.crt /etc/scylla/ca.crt
 
-# Add cqlsh configuration
-RUN rm -f /root/.cqlshrc
-COPY cqlshrc /root/.cassandra/cqlshrc
-
 # Add supervisord configuration for agent
 ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scylla-manager-agent.conf
 

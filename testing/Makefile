@@ -1,15 +1,8 @@
 all: help
 
-COMPOSE=docker-compose
-DOCKER_NODE=scylla_manager_dc1_node_1_1
-CQLSH=docker exec -t $(DOCKER_NODE) cqlsh -f /root/.cassandra/cqlshrc
-CQLSH_PORT=9042
-ifdef SSL_ENABLED
-	CQLSH_SSL=--ssl
-	CQLSH_PORT=9142
-	SCYLLA_SSL_CONFIG=scylla/etc/server/scylla-ssl.yaml
-endif
-CQLSH_NODE=$(CQLSH) -u cassandra -p cassandra $(CQLSH_SSL) 192.168.100.11 $(CQLSH_PORT)
+COMPOSE    = docker-compose
+CQLSH      = $(COMPOSE) exec scylla-manager-db cqlsh
+CQLSH_NODE = $(COMPOSE) exec dc1_node_1 cqlsh
 
 include .env
 
@@ -25,18 +18,20 @@ up:
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
 ifdef SSL_ENABLED
-	@yq merge -x scylla/etc/server/scylla.yaml $(SCYLLA_SSL_CONFIG) > scylla/scylla.yaml
+	@yq merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
+	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
 else
-	@cp scylla/etc/server/scylla.yaml scylla/scylla.yaml
+	@cp scylla/config/scylla.yaml scylla/scylla.yaml
+	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 	@echo "==> Starting containers"
 	@mkdir -p $(MINIO_DATA_DIR)
 	@. ./.env && $(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH_NODE) -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
+	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
+	@./nodes_exec rm /root/.cqlshrc
 	@echo "==> Creating tables"
-	@docker cp init.cql $(DOCKER_NODE):/tmp/
-	@$(CQLSH_NODE) -f /tmp/init.cql
+	@$(CQLSH_NODE) 192.168.100.11 -e "`cat init.cql`"
 	@echo "==> Adding Minio user"
 	@./minio/add_user.sh
 
@@ -60,15 +55,17 @@ logs: ## Show logs for a service specified with SRV parameter or all services if
 
 .PHONY: cqlsh-manager
 cqlsh-manager: ## CQL shell to manager backend storage
-	@$(CQLSH) 192.168.100.100
+	@$(CQLSH)
 
 .PHONY: cqlsh-node
 cqlsh-node: ## CQL shell to a managed node 192.168.100.11
-	$(CQLSH_NODE)
+cqlsh-node: IP=192.168.100.11
+cqlsh-node:
+	$(CQLSH_NODE) $(IP)
 
 .PHONY: drop-keyspace
 drop-keyspace: ## Drop Scylla Manager keyspace
-	@$(CQLSH) 192.168.100.100 -e "DROP KEYSPACE scylla_manager"
+	@$(CQLSH) -e "DROP KEYSPACE scylla_manager"
 
 .PHONY: deploy-agent
 deploy-agent: ## Update agent to the latest build on all nodes

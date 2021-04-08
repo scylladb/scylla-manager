@@ -1,0 +1,21 @@
+[authentication]
+username = cassandra
+password = cassandra
+
+[ui]
+color = on
+
+[cql]
+version = 3.3.1
+
+[connection]
+port     = 9142
+ssl      = true
+factory  = cqlshlib.ssl.ssl_transport_factory
+
+[ssl]
+version  = TLSv1_2
+certfile = /etc/scylla/certs/ca.crt
+userkey  = /etc/scylla/certs/cl.key
+usercert = /etc/scylla/certs/cl.crt
+validate = true
