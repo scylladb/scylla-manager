@@ -2165,7 +2165,16 @@ func TestBackupRestoreIntegration(t *testing.T) {
 		t.Fatal("Status() error", err)
 	}
 
+	for _, nis := range status {
+		stdout, stderr, err := ExecOnHost(nis.Addr, "chown scylla:scylla -R /var/lib/scylla/data")
+		if err != nil {
+			t.Log("stdout", stdout)
+			t.Log("stderr", stderr)
+			t.Fatal("Command failed on host", nis.Addr, err)
+		}
+	}
 	downloadFilesCmd := []string{
+		"sudo -u scylla",
 		"scylla-manager-agent",
 		"download-files",
 		"-d", "/var/lib/scylla/data",
