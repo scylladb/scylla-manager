@@ -146,7 +146,7 @@ func DefaultAzureOptions() AzureOptions {
 // AutoFill sets region (if empty) from identity service, it only works when
 // running in AWS.
 func (o *AzureOptions) AutoFill() {
-	if o.Account != "" && o.Key != "" {
+	if o.Account == "" {
 		o.UseMsi = _true
 	}
 }
