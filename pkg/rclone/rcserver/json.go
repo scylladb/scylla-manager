@@ -6,11 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
-
-var errResponseWritten = errors.New("response already written")
 
 type writerFlusher interface {
 	io.Writer

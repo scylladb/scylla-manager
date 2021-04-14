@@ -31,8 +31,11 @@ import (
 
 var initOnce sync.Once
 
-// ErrNotFound is returned when remote call is not available.
-var ErrNotFound = errors.New("not found")
+var (
+	// ErrNotFound is returned when remote call is not available.
+	ErrNotFound        = errors.New("not found")
+	errResponseWritten = errors.New("response already written")
+)
 
 // Server implements http.Handler interface.
 type Server struct {
