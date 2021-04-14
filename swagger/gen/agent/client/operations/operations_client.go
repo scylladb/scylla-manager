@@ -43,8 +43,6 @@ type ClientService interface {
 
 	OperationsAbout(params *OperationsAboutParams) (*OperationsAboutOK, error)
 
-	OperationsCat(params *OperationsCatParams) (*OperationsCatOK, error)
-
 	OperationsCheckPermissions(params *OperationsCheckPermissionsParams) (*OperationsCheckPermissionsOK, error)
 
 	OperationsDeletefile(params *OperationsDeletefileParams) (*OperationsDeletefileOK, error)
@@ -376,41 +374,6 @@ func (a *Client) OperationsAbout(params *OperationsAboutParams) (*OperationsAbou
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*OperationsAboutDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-  OperationsCat cats remote
-
-  Concatenate any files and send them in response
-*/
-func (a *Client) OperationsCat(params *OperationsCatParams) (*OperationsCatOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewOperationsCatParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "OperationsCat",
-		Method:             "POST",
-		PathPattern:        "/rclone/operations/cat",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &OperationsCatReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*OperationsCatOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*OperationsCatDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

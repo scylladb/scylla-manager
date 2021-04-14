@@ -428,6 +428,10 @@ Returns
 - body - file content`,
 		NeedsResponse: true,
 	})
+
+	// Adding it here because it is not part of the agent.json.
+	// It should be removed once we are able to generate client for this call.
+	internal.RcloneSupportedCalls.Add("operations/cat")
 }
 
 func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {

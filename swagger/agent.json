@@ -165,43 +165,6 @@
         "security": []
       }
     },
-    "/rclone/operations/cat": {
-      "post": {
-        "description": "Concatenate any files and send them in response",
-        "summary": "Cat remote",
-        "operationId": "OperationsCat",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "body",
-            "name": "cat",
-            "description": "cat",
-            "schema": {
-              "$ref": "#/definitions/RemotePath"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File system details",
-            "schema": {
-              "$ref": "#/definitions/Content"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
     "/rclone/operations/list": {
       "post": {
         "description": "List the given remote and path",
