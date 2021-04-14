@@ -6,8 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"sort"
 	"time"
@@ -363,13 +361,9 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	if err != nil {
 		return nil, err
 	}
-	v, err := in.Get("response-writer")
+	w, err := in.GetHTTPResponseWriter()
 	if err != nil {
 		return nil, err
-	}
-	w, ok := v.(http.ResponseWriter)
-	if !ok {
-		panic("Invalid response writer type")
 	}
 	r, err := o.Open(ctx)
 	if err != nil {
@@ -405,7 +399,43 @@ func init() {
 Returns
 
 - body - file content`,
+		NeedsResponse: true,
 	})
+}
+
+func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := in.GetHTTPRequest()
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+
+	info := object.NewStaticObjectInfo(remote, timeutc.Now(), r.ContentLength, true, nil, f)
+
+	dst, err := f.NewObject(ctx, remote)
+	if err == nil {
+		if rcops.Equal(ctx, info, dst) {
+			return nil, nil
+		} else if rclone.GetConfig().Immutable {
+			fs.Errorf(dst, "Source and destination exist but do not match: immutable file modified")
+			return nil, fs.ErrorImmutableModified
+		}
+	} else if !errors.Is(err, fs.ErrorObjectNotFound) {
+		return nil, err
+	}
+
+	obj, err := rcops.RcatSize(ctx, f, remote, r.Body, r.ContentLength, info.ModTime(ctx))
+	if err != nil {
+		return nil, err
+	}
+	fs.Debugf(obj, "Upload Succeeded")
+
+	return nil, err
 }
 
 func init() {
@@ -418,67 +448,12 @@ func init() {
 
 - fs - a remote name string eg "s3:path/to/file"
 - body - file content`,
+		NeedsRequest: true,
 	})
 
 	// Adding it here because it is not part of the agent.json.
 	// It should be removed once we are able to generate client for this call.
 	internal.RcloneSupportedCalls.Add("operations/put")
-}
-
-func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, remote, err := rc.GetFsAndRemote(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := in.Get("body")
-	if err != nil {
-		return nil, err
-	}
-
-	size, err := in.GetInt64("size")
-	if err != nil {
-		return nil, err
-	}
-	if size == 0 {
-		size = -1
-	}
-
-	info := object.NewStaticObjectInfo(remote, timeutc.Now(), size, true, nil, f)
-
-	dst, err := f.NewObject(ctx, remote)
-	drainBody := func() {
-		var err error
-		if size > 0 {
-			_, err = io.CopyN(ioutil.Discard, body.(io.ReadCloser), size)
-		} else {
-			err = body.(io.ReadCloser).Close()
-		}
-		if err != nil {
-			fs.Errorf(dst, "Drain body error %s", err)
-		}
-	}
-	if err == nil {
-		if rcops.Equal(ctx, info, dst) {
-			drainBody()
-			return nil, nil
-		} else if rclone.GetConfig().Immutable {
-			fs.Errorf(dst, "Source and destination exist but do not match: immutable file modified")
-			drainBody()
-			return nil, fs.ErrorImmutableModified
-		}
-	} else if !errors.Is(err, fs.ErrorObjectNotFound) {
-		drainBody()
-		return nil, err
-	}
-
-	obj, err := rcops.RcatSize(ctx, f, remote, body.(io.ReadCloser), size, info.ModTime(ctx))
-	if err != nil {
-		return nil, err
-	}
-	fs.Debugf(obj, "Upload Succeeded")
-
-	return nil, err
 }
 
 // rcCheckPermissions checks if location is available for listing, getting,
@@ -523,16 +498,11 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 	if rc.NotErrParamNotFound(err) {
 		return rc.Params{}, err
 	}
-	v, err := in.Get("response-writer")
+	w, err := in.GetHTTPResponseWriter()
 	if err != nil {
 		return rc.Params{}, err
 	}
-	wf, ok := v.(writerFlusher)
-	if !ok {
-		panic("Invalid response writer type")
-	}
-
-	enc := newListJSONEncoder(wf, defaultListEncoderMaxItems)
+	enc := newListJSONEncoder(w.(writerFlusher), defaultListEncoderMaxItems)
 	err = rcops.ListJSON(ctx, f, remote, &opt, enc.Callback)
 	if err != nil {
 		return enc.Result(err)
@@ -551,7 +521,9 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 }
 
 func init() {
-	rc.Calls.Get("operations/list").Fn = rcChunkedList
+	c := rc.Calls.Get("operations/list")
+	c.Fn = rcChunkedList
+	c.NeedsResponse = true
 }
 
 // rcCalls contains the original rc.Calls before filtering with all the added

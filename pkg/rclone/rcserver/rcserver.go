@@ -14,7 +14,6 @@ import (
 	"mime"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -215,25 +214,6 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		}
 	}
 
-	if contentType == "application/octet-stream" {
-		extra["body"] = r.Body
-		defer r.Body.Close()
-
-		extra["size"] = int64(-1)
-		if r.Header.Get("Content-Length") != "" {
-			size, err := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
-			if err != nil {
-				s.writeError(path, in, w, errors.Wrap(err, "cannot parse Content-Size header"), http.StatusBadRequest)
-				return
-			}
-			extra["size"] = size
-		}
-	}
-
-	if path == "operations/list" || path == "operations/cat" {
-		extra["response-writer"] = w
-	}
-
 	// Find the call
 	call := rc.Calls.Get(path)
 	if call == nil {
@@ -241,6 +221,12 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		fs.Errorf(nil, "SECURITY call to unexported endpoint [path=%s, ip=%s]", path, r.RemoteAddr)
 		http.Error(w, notFoundJSON, http.StatusNotFound)
 		return
+	}
+	if call.NeedsRequest {
+		extra["_request"] = r
+	}
+	if call.NeedsResponse {
+		extra["_response"] = w
 	}
 	fn := call.Fn
 
@@ -267,10 +253,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 	if len(extra) == 0 {
 		inExt = in
 	} else {
-		inExt = make(rc.Params)
-		for k, v := range in {
-			inExt[k] = v
-		}
+		inExt = in.Copy()
 		for k, v := range extra {
 			inExt[k] = v
 		}
