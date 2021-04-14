@@ -286,13 +286,14 @@ func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath
 		h.t.Fatal(err)
 	}
 	// Load manifest
-	b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestsPath))
+	r, err := h.client.RcloneOpen(ctx, ManagedClusterHost(), h.location.RemotePath(manifestsPath))
 	if err != nil {
 		h.t.Fatal(err)
 	}
-	if err := m.ReadContent(bytes.NewReader(b)); err != nil {
+	if err := m.ReadContent(r); err != nil {
 		h.t.Fatal(err)
 	}
+	r.Close()
 	// Decorate, if not changed return early
 	if !f(&m) {
 		return
@@ -813,15 +814,15 @@ func TestBackupSmokeIntegration(t *testing.T) {
 }
 
 func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backupTestHelper, manifestPath string, schemas []string) {
-	b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
+	r, err := h.client.RcloneOpen(ctx, ManagedClusterHost(), h.location.RemotePath(manifestPath))
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	var mc ManifestContent
-	if err := mc.Read(bytes.NewReader(b)); err != nil {
+	if err := mc.Read(r); err != nil {
 		t.Fatalf("Cannot read manifest created by backup: %s", err)
 	}
+	r.Close()
 
 	if mc.ClusterName != "test_cluster" {
 		t.Errorf("ClusterName=%s, expected test_cluster", mc.ClusterName)
@@ -1464,15 +1465,15 @@ func TestPurgeIntegration(t *testing.T) {
 	Print("And: old sstable files are removed")
 	var sstPfx []string
 	for _, m := range manifests {
-		b, err := h.client.RcloneCat(ctx, ManagedClusterHost(), location.RemotePath(m))
+		r, err := h.client.RcloneOpen(ctx, ManagedClusterHost(), location.RemotePath(m))
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		rm := RemoteManifest{}
-		if err := rm.ReadContent(bytes.NewReader(b)); err != nil {
+		var rm RemoteManifest
+		if err := rm.ReadContent(r); err != nil {
 			t.Fatal(err)
 		}
+		r.Close()
 
 		for _, fi := range rm.Content.Index {
 			for _, f := range fi.Files {

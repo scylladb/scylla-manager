@@ -3,10 +3,7 @@
 package backup
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/json"
 	"net/http"
 	"path"
 	"sync"
@@ -90,24 +87,17 @@ func (h *manifestV2Helper) readManifest(ctx context.Context, manifestPath string
 	if err := m.ParsePartialPath(manifestPath); err != nil {
 		return nil, err
 	}
+	m.Location = h.location
 
-	// Load manifest
-	b, err := h.client.RcloneCat(ctx, h.host, h.location.RemotePath(manifestPath))
+	r, err := h.client.RcloneOpen(ctx, h.host, h.location.RemotePath(manifestPath))
 	if err != nil {
 		return nil, errors.Wrapf(err, "load manifest %s", manifestPath)
 	}
+	defer r.Close()
 
-	// Manifest is compressed
-	gr, err := gzip.NewReader(bytes.NewReader(b))
-	if err != nil {
-		return nil, errors.Wrapf(err, "uncompressing manifest")
+	if err := m.ReadContent(r); err != nil {
+		return nil, err
 	}
-
-	if err := json.NewDecoder(gr).Decode(&m.Content); err != nil {
-		return nil, errors.Wrapf(err, "parse manifest %s", manifestPath)
-	}
-
-	m.Location = h.location
 
 	h.logger.Debug(ctx, "Loaded manifest",
 		"host", h.host,

@@ -258,8 +258,9 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host, remotePath string) (
 	return resp.Payload, nil
 }
 
-// RcloneCat returns a content of a remote path.
-func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte, error) {
+// RcloneOpen streams remote file content. The stream is an HTTP body.
+// Callers must close the body after use.
+func (c *Client) RcloneOpen(ctx context.Context, host, remotePath string) (io.ReadCloser, error) {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return nil, err
@@ -289,13 +290,22 @@ func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte
 	if err != nil {
 		return nil, errors.Wrap(err, "round trip")
 	}
-	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
 		return nil, makeAgentError(resp)
 	}
 
-	return ioutil.ReadAll(resp.Body)
+	return resp.Body, nil
+}
+
+// RcloneCat returns a content of a remote path.
+func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte, error) {
+	r, err := c.RcloneOpen(ctx, host, remotePath)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return ioutil.ReadAll(r)
 }
 
 // RcloneListDirOpts specifies options for RcloneListDir.
