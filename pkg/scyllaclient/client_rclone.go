@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -177,11 +176,11 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRem
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
-	dstFs, dstRemote, err := rcloneSplitRemoteDirPath(dstRemotePath)
+	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return 0, err
 	}
-	srcFs, srcRemote, err := rcloneSplitRemoteDirPath(srcRemotePath)
+	srcFs, srcRemote, err := rcloneSplitRemotePath(srcRemotePath)
 	if err != nil {
 		return 0, err
 	}
@@ -464,23 +463,6 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 
 // rcloneSplitRemotePath splits string path into file system and file path.
 func rcloneSplitRemotePath(remotePath string) (fs, path string, err error) {
-	parts := strings.Split(remotePath, ":")
-	if len(parts) != 2 {
-		err = errors.New("remote path without file system name")
-		return
-	}
-	if parts[1] == "" {
-		err = errors.New("file path empty")
-		return
-	}
-
-	fs = fmt.Sprintf("%s:%s", parts[0], filepath.Dir(parts[1]))
-	path = filepath.Base(parts[1])
-	return
-}
-
-// rcloneSplitRemoteDirPath splits string path into file system and file path.
-func rcloneSplitRemoteDirPath(remotePath string) (fs, path string, err error) {
 	parts := strings.Split(remotePath, ":")
 	if len(parts) != 2 {
 		err = errors.New("remote path without file system name")

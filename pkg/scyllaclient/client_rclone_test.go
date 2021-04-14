@@ -24,127 +24,58 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
-		Name  string
-		Path  string
-		Fs    string
-		File  string
-		Error bool
+		Input  string
+		Fs     string
+		Remote string
+		Error  bool
 	}{
 		{
-			Name: "single path",
-			Path: "rclonetest:file",
-			Fs:   "rclonetest:.",
-			File: "file",
+			Input:  "rclonetest:bucket",
+			Fs:     "rclonetest:bucket",
+			Remote: "",
 		},
 		{
-			Name: "long path",
-			Path: "rclonetest:dir/file",
-			Fs:   "rclonetest:dir",
-			File: "file",
+			Input:  "rclonetest:dir/subdir",
+			Fs:     "rclonetest:dir",
+			Remote: "subdir",
 		},
 		{
-			Name:  "invalid file path",
-			Path:  "rclonetest:",
+			Input:  "rclonetest:dir/subdir/subdir/subdir",
+			Fs:     "rclonetest:dir",
+			Remote: "subdir/subdir/subdir",
+		},
+		{
+			Input:  "rclonetest:",
+			Fs:     "rclonetest:",
+			Remote: "",
+		},
+		{
 			Error: true,
 		},
 		{
-			Name:  "invalid file system",
-			Path:  "data",
+			Input: "data",
 			Error: true,
 		},
 	}
 
-	t.Run("group", func(t *testing.T) {
-		for i := range table {
-			test := table[i]
+	for i := range table {
+		test := table[i]
 
-			t.Run(test.Name, func(t *testing.T) {
-				t.Parallel()
-
-				fs, file, err := scyllaclient.RcloneSplitRemotePath(test.Path)
-				if err != nil && !test.Error {
-					t.Fatal(err)
-				} else if err == nil && test.Error {
-					t.Fatal("Expected error")
-				}
-				if fs != test.Fs {
-					t.Errorf("Expected fs %q, got %q", test.Fs, fs)
-				}
-				if file != test.File {
-					t.Errorf("Expected file %q, got %q", test.File, file)
-				}
-			})
-		}
-	})
-}
-
-func TestRcloneSplitRemoteDirPath(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		Name    string
-		Path    string
-		Fs      string
-		DirPath string
-		Error   bool
-	}{
-		{
-			Name:    "bucket name",
-			Path:    "rclonetest:bucket",
-			Fs:      "rclonetest:bucket",
-			DirPath: "",
-		},
-		{
-			Name:    "sub dir",
-			Path:    "rclonetest:dir/subdir",
-			Fs:      "rclonetest:dir",
-			DirPath: "subdir",
-		},
-		{
-			Name:    "multi level sub dir",
-			Path:    "rclonetest:dir/subdir/subdir/subdir",
-			Fs:      "rclonetest:dir",
-			DirPath: "subdir/subdir/subdir",
-		},
-		{
-			Name:    "no dir path",
-			Path:    "rclonetest:",
-			Fs:      "rclonetest:",
-			DirPath: "",
-		},
-		{
-			Name:  "empty path",
-			Error: true,
-		},
-		{
-			Name:  "invalid file system",
-			Path:  "data",
-			Error: true,
-		},
+		t.Run(test.Input, func(t *testing.T) {
+			fs, file, err := scyllaclient.RcloneSplitRemotePath(test.Input)
+			if err != nil && !test.Error {
+				t.Fatal(err)
+			} else if err == nil && test.Error {
+				t.Fatal("Expected error")
+			}
+			if fs != test.Fs {
+				t.Errorf("Expected fs %q, got %q", test.Fs, fs)
+			}
+			if file != test.Remote {
+				t.Errorf("Expected dir path %q, got %q", test.Remote, file)
+			}
+		})
 	}
-
-	t.Run("group", func(t *testing.T) {
-		for i := range table {
-			test := table[i]
-
-			t.Run(test.Name, func(t *testing.T) {
-				t.Parallel()
-
-				fs, file, err := scyllaclient.RcloneSplitRemoteDirPath(test.Path)
-				if err != nil && !test.Error {
-					t.Fatal(err)
-				} else if err == nil && test.Error {
-					t.Fatal("Expected error")
-				}
-				if fs != test.Fs {
-					t.Errorf("Expected fs %q, got %q", test.Fs, fs)
-				}
-				if file != test.DirPath {
-					t.Errorf("Expected dir path %q, got %q", test.DirPath, file)
-				}
-			})
-		}
-	})
 }
 
 func TestRcloneCat(t *testing.T) {
