@@ -18,37 +18,6 @@ import (
 	"github.com/rclone/rclone/lib/pacer"
 )
 
-// wrap a Reader and a Closer together into a ReadCloser.
-type readCloser struct {
-	io.Reader
-	io.Closer
-}
-
-// Cat object to the provided io.Writer with limit number of bytes.
-// This is a replacement for rclone operations.Cat because that implementation
-// lists and outputs all files in the file system.
-//
-// if limit < 0 then it will be ignored.
-// if limit >= 0 then only that many characters will be output.
-func Cat(ctx context.Context, o fs.Object, w io.Writer, limit int64) error {
-	var err error
-
-	in, err := o.Open(ctx)
-	if err != nil {
-		fs.Errorf(o, "Failed to open: %v", err)
-		return err
-	}
-	defer in.Close()
-	if limit >= 0 {
-		in = &readCloser{Reader: &io.LimitedReader{R: in, N: limit}, Closer: in}
-	}
-	if _, err = io.Copy(w, in); err != nil {
-		fs.Errorf(o, "Failed to send to output: %v", err)
-		return err
-	}
-	return nil
-}
-
 // PermissionError wraps remote fs errors returned by CheckPermissions function
 // and allows to set a custom message returned to user.
 type PermissionError struct {
@@ -97,11 +66,11 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 
 	// Copy local tmp dir contents to the destination.
 	{
-		rd, err := fs.NewFs(context.Background(), tmpDir)
+		f, err := fs.NewFs(context.Background(), tmpDir)
 		if err != nil {
 			return PermissionError{err, "init temp dir"}
 		}
-		if err := sync.CopyDir(ctx, l, rd, true); err != nil {
+		if err := sync.CopyDir(ctx, l, f, true); err != nil {
 			// Special handling of permissions errors
 			if errors.Is(err, credentials.ErrNoValidProvidersFoundInChain) {
 				return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") // nolint: lll
@@ -125,22 +94,27 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 
 	// Cat remote file.
 	{
-		rf, err := l.NewObject(ctx, filepath.Join(testDirName, testFileName))
+		o, err := l.NewObject(ctx, filepath.Join(testDirName, testFileName))
 		if err != nil {
 			return errors.Wrap(err, "init remote temp file object")
 		}
-		if err := Cat(ctx, rf, ioutil.Discard, 1); err != nil {
+		r, err := o.Open(ctx)
+		if err != nil {
+			return PermissionError{err, "get"}
+		}
+		defer r.Close()
+		if _, err := io.Copy(ioutil.Discard, r); err != nil {
 			return PermissionError{err, "get"}
 		}
 	}
 
 	// Remove remote dir.
 	{
-		rd, err := fs.NewFs(ctx, fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), testDirName))
+		f, err := fs.NewFs(ctx, fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), testDirName))
 		if err != nil {
 			return errors.Wrap(err, "init remote temp dir")
 		}
-		if err := operations.Delete(ctx, rd); err != nil {
+		if err := operations.Delete(ctx, f); err != nil {
 			return PermissionError{err, "delete"}
 		}
 	}

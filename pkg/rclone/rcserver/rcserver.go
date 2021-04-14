@@ -230,7 +230,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) 
 		}
 	}
 
-	if path == "operations/list" {
+	if path == "operations/list" || path == "operations/cat" {
 		extra["response-writer"] = w
 	}
 

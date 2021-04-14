@@ -3,12 +3,11 @@
 package rcserver
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
 	"time"
@@ -364,17 +363,33 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var buf bytes.Buffer
-	w := base64.NewEncoder(base64.StdEncoding, &buf)
-	if err := operations.Cat(ctx, o, w, CatLimit); err != nil {
+	v, err := in.Get("response-writer")
+	if err != nil {
 		return nil, err
 	}
-	w.Close()
+	w, ok := v.(http.ResponseWriter)
+	if !ok {
+		panic("Invalid response writer type")
+	}
+	r, err := o.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
 
-	out = make(rc.Params)
-	out["Content"] = buf.String()
-	return out, nil
+	h := w.Header()
+	h.Set("Content-Type", "application/octet-stream")
+	h.Set("Content-Length", fmt.Sprint(o.Size()))
+
+	n, err := io.Copy(w, r)
+	if err != nil {
+		if n == 0 {
+			return nil, err
+		}
+		fs.Errorf(o, "copy error %s", err)
+	}
+
+	return nil, errResponseWritten
 }
 
 func init() {
@@ -389,8 +404,7 @@ func init() {
 
 Returns
 
-- content - base64 encoded file content
-`,
+- body - file content`,
 	})
 }
 

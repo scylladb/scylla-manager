@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -258,25 +259,43 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host, remotePath string) (
 }
 
 // RcloneCat returns a content of a remote path.
-// Only use that for small files, it loads the whole file to memory on a remote
-// node and only then returns it. This is caused by rclone design.
 func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte, error) {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return nil, err
 	}
-	p := operations.OperationsCatParams{
-		Context: forceHost(ctx, host),
-		Cat: &models.RemotePath{
-			Fs:     fs,
-			Remote: remote,
-		},
-	}
-	resp, err := c.agentOps.OperationsCat(&p)
+
+	// Due to missing generator for Swagger 3.0, and poor implementation of 2.0
+	// raw file download we are downloading manually.
+	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/cat"
+
+	// Body
+	b, err := (&models.RemotePath{
+		Fs:     fs,
+		Remote: remote,
+	}).MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	return resp.Payload.Content, nil
+
+	u := c.newURL(host, urlPath)
+	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), bytes.NewBuffer(b))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.transport.RoundTrip(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "round trip")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, makeAgentError(resp)
+	}
+
+	return ioutil.ReadAll(resp.Body)
 }
 
 // RcloneListDirOpts specifies options for RcloneListDir.
