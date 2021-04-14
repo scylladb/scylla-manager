@@ -149,27 +149,20 @@ func isForbiddenErr(err error) bool {
 	return os.IsPermission(errors.Cause(err))
 }
 
-// ServeHTTP implements http.Handler interface.
-func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimLeft(r.URL.Path, "/")
-
-	switch r.Method {
-	case "POST":
-		s.handlePost(w, r, path)
-	case "GET", "HEAD":
-		s.handleGet(w, r, path)
-	default:
-		s.writeError(path, nil, w, errors.Errorf("method %q not allowed", r.Method), http.StatusMethodNotAllowed)
-		return
-	}
-}
-
 const (
 	bodySizeLimit int64 = 1024 * 1024
 	notFoundJSON        = `{"message":"Not found","status":404}`
 )
 
-func (s Server) handlePost(w http.ResponseWriter, r *http.Request, path string) {
+// ServeHTTP implements http.Handler interface.
+func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimLeft(r.URL.Path, "/")
+
+	if r.Method != http.MethodPost {
+		s.writeError(path, nil, w, errors.Errorf("method %q not allowed", r.Method), http.StatusMethodNotAllowed)
+		return
+	}
+
 	contentType, err := parseContentType(r.Header)
 	if err != nil {
 		s.writeError(path, nil, w, errors.Wrap(err, "parse Content-Type header"), http.StatusBadRequest)
@@ -297,11 +290,6 @@ func parseContentType(headers http.Header) (string, error) {
 	}
 
 	return contentType, nil
-}
-
-func (s Server) handleGet(w http.ResponseWriter, r *http.Request, path string) { // nolint: unparam
-	fs.Errorf(nil, "rc: received unsupported GET request")
-	http.Error(w, notFoundJSON, http.StatusNotFound)
 }
 
 // validateFsName ensures that only allowed file systems can be used in

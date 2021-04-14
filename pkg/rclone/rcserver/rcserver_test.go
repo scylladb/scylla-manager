@@ -142,42 +142,6 @@ func TestMethods(t *testing.T) {
 	testServer(t, tests)
 }
 
-func TestNoFiles(t *testing.T) {
-	tests := []httpTest{{
-		Name:   "file",
-		URL:    "file.txt",
-		Status: http.StatusNotFound,
-		Expected: `{"message":"Not found","status":404}
-`,
-	}, {
-		Name:   "dir",
-		URL:    "dir/",
-		Status: http.StatusNotFound,
-		Expected: `{"message":"Not found","status":404}
-`,
-	}}
-
-	testServer(t, tests)
-}
-
-func TestNoServe(t *testing.T) {
-	tests := []httpTest{{
-		Name:   "file",
-		URL:    "/file.txt",
-		Status: http.StatusNotFound,
-		Expected: `{"message":"Not found","status":404}
-`,
-	}, {
-		Name:   "dir",
-		URL:    "/dir/",
-		Status: http.StatusNotFound,
-		Expected: `{"message":"Not found","status":404}
-`,
-	}}
-
-	testServer(t, tests)
-}
-
 func TestRCAsync(t *testing.T) {
 	tests := []httpTest{{
 		Name:        "ok",
