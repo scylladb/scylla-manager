@@ -15,7 +15,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
 )
@@ -127,21 +126,6 @@ func TestRcloneCat(t *testing.T) {
 				t.Fatal(content, diff)
 			}
 		})
-	}
-}
-
-func TestRcloneCatLimit(t *testing.T) {
-	t.Parallel()
-
-	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
-	defer closeServer()
-
-	got, err := client.RcloneCat(context.Background(), scyllaclienttest.TestHost, "dev:zero")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) > rcserver.CatLimit {
-		t.Errorf("Expected max red bytes to be %d, got %d", rcserver.CatLimit, len(got))
 	}
 }
 
