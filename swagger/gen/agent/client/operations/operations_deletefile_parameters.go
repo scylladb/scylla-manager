@@ -75,6 +75,11 @@ for the operations deletefile operation typically these are written to a http.Re
 */
 type OperationsDeletefileParams struct {
 
+	/*RemotePath
+	  Remote path
+
+	*/
+	RemotePath *models.RemotePath
 	/*Async
 	  Async request
 
@@ -85,11 +90,6 @@ type OperationsDeletefileParams struct {
 
 	*/
 	Group string
-	/*Deletefile
-	  deletefile
-
-	*/
-	Deletefile *models.RemotePath
 
 	timeout    time.Duration
 	Context    context.Context
@@ -129,6 +129,17 @@ func (o *OperationsDeletefileParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithRemotePath adds the remotePath to the operations deletefile params
+func (o *OperationsDeletefileParams) WithRemotePath(remotePath *models.RemotePath) *OperationsDeletefileParams {
+	o.SetRemotePath(remotePath)
+	return o
+}
+
+// SetRemotePath adds the remotePath to the operations deletefile params
+func (o *OperationsDeletefileParams) SetRemotePath(remotePath *models.RemotePath) {
+	o.RemotePath = remotePath
+}
+
 // WithAsync adds the async to the operations deletefile params
 func (o *OperationsDeletefileParams) WithAsync(async bool) *OperationsDeletefileParams {
 	o.SetAsync(async)
@@ -151,17 +162,6 @@ func (o *OperationsDeletefileParams) SetGroup(group string) {
 	o.Group = group
 }
 
-// WithDeletefile adds the deletefile to the operations deletefile params
-func (o *OperationsDeletefileParams) WithDeletefile(deletefile *models.RemotePath) *OperationsDeletefileParams {
-	o.SetDeletefile(deletefile)
-	return o
-}
-
-// SetDeletefile adds the deletefile to the operations deletefile params
-func (o *OperationsDeletefileParams) SetDeletefile(deletefile *models.RemotePath) {
-	o.Deletefile = deletefile
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *OperationsDeletefileParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -169,6 +169,12 @@ func (o *OperationsDeletefileParams) WriteToRequest(r runtime.ClientRequest, reg
 		return err
 	}
 	var res []error
+
+	if o.RemotePath != nil {
+		if err := r.SetBodyParam(o.RemotePath); err != nil {
+			return err
+		}
+	}
 
 	// query param _async
 	qrAsync := o.Async
@@ -184,12 +190,6 @@ func (o *OperationsDeletefileParams) WriteToRequest(r runtime.ClientRequest, reg
 	qGroup := qrGroup
 	if qGroup != "" {
 		if err := r.SetQueryParam("_group", qGroup); err != nil {
-			return err
-		}
-	}
-
-	if o.Deletefile != nil {
-		if err := r.SetBodyParam(o.Deletefile); err != nil {
 			return err
 		}
 	}

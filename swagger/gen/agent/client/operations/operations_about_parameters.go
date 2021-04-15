@@ -62,11 +62,11 @@ for the operations about operation typically these are written to a http.Request
 */
 type OperationsAboutParams struct {
 
-	/*About
-	  about
+	/*RemotePath
+	  Remote path
 
 	*/
-	About *models.RemotePath
+	RemotePath *models.RemotePath
 
 	timeout    time.Duration
 	Context    context.Context
@@ -106,15 +106,15 @@ func (o *OperationsAboutParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAbout adds the about to the operations about params
-func (o *OperationsAboutParams) WithAbout(about *models.RemotePath) *OperationsAboutParams {
-	o.SetAbout(about)
+// WithRemotePath adds the remotePath to the operations about params
+func (o *OperationsAboutParams) WithRemotePath(remotePath *models.RemotePath) *OperationsAboutParams {
+	o.SetRemotePath(remotePath)
 	return o
 }
 
-// SetAbout adds the about to the operations about params
-func (o *OperationsAboutParams) SetAbout(about *models.RemotePath) {
-	o.About = about
+// SetRemotePath adds the remotePath to the operations about params
+func (o *OperationsAboutParams) SetRemotePath(remotePath *models.RemotePath) {
+	o.RemotePath = remotePath
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -125,8 +125,8 @@ func (o *OperationsAboutParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	}
 	var res []error
 
-	if o.About != nil {
-		if err := r.SetBodyParam(o.About); err != nil {
+	if o.RemotePath != nil {
+		if err := r.SetBodyParam(o.RemotePath); err != nil {
 			return err
 		}
 	}

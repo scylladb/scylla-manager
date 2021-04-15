@@ -75,6 +75,11 @@ for the operations purge operation typically these are written to a http.Request
 */
 type OperationsPurgeParams struct {
 
+	/*RemotePath
+	  Remote path
+
+	*/
+	RemotePath *models.RemotePath
 	/*Async
 	  Async request
 
@@ -85,11 +90,6 @@ type OperationsPurgeParams struct {
 
 	*/
 	Group string
-	/*Purge
-	  purge
-
-	*/
-	Purge *models.RemotePath
 
 	timeout    time.Duration
 	Context    context.Context
@@ -129,6 +129,17 @@ func (o *OperationsPurgeParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithRemotePath adds the remotePath to the operations purge params
+func (o *OperationsPurgeParams) WithRemotePath(remotePath *models.RemotePath) *OperationsPurgeParams {
+	o.SetRemotePath(remotePath)
+	return o
+}
+
+// SetRemotePath adds the remotePath to the operations purge params
+func (o *OperationsPurgeParams) SetRemotePath(remotePath *models.RemotePath) {
+	o.RemotePath = remotePath
+}
+
 // WithAsync adds the async to the operations purge params
 func (o *OperationsPurgeParams) WithAsync(async bool) *OperationsPurgeParams {
 	o.SetAsync(async)
@@ -151,17 +162,6 @@ func (o *OperationsPurgeParams) SetGroup(group string) {
 	o.Group = group
 }
 
-// WithPurge adds the purge to the operations purge params
-func (o *OperationsPurgeParams) WithPurge(purge *models.RemotePath) *OperationsPurgeParams {
-	o.SetPurge(purge)
-	return o
-}
-
-// SetPurge adds the purge to the operations purge params
-func (o *OperationsPurgeParams) SetPurge(purge *models.RemotePath) {
-	o.Purge = purge
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *OperationsPurgeParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -169,6 +169,12 @@ func (o *OperationsPurgeParams) WriteToRequest(r runtime.ClientRequest, reg strf
 		return err
 	}
 	var res []error
+
+	if o.RemotePath != nil {
+		if err := r.SetBodyParam(o.RemotePath); err != nil {
+			return err
+		}
+	}
 
 	// query param _async
 	qrAsync := o.Async
@@ -184,12 +190,6 @@ func (o *OperationsPurgeParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	qGroup := qrGroup
 	if qGroup != "" {
 		if err := r.SetQueryParam("_group", qGroup); err != nil {
-			return err
-		}
-	}
-
-	if o.Purge != nil {
-		if err := r.SetBodyParam(o.Purge); err != nil {
 			return err
 		}
 	}

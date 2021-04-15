@@ -62,16 +62,16 @@ for the operations movefile operation typically these are written to a http.Requ
 */
 type OperationsMovefileParams struct {
 
+	/*Options
+	  Options
+
+	*/
+	Options *models.MoveOrCopyFileOptions
 	/*Group
 	  Place this operation under this stat group
 
 	*/
 	Group string
-	/*Copyfile
-	  copyfile
-
-	*/
-	Copyfile *models.MoveOrCopyFileOptions
 
 	timeout    time.Duration
 	Context    context.Context
@@ -111,6 +111,17 @@ func (o *OperationsMovefileParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithOptions adds the options to the operations movefile params
+func (o *OperationsMovefileParams) WithOptions(options *models.MoveOrCopyFileOptions) *OperationsMovefileParams {
+	o.SetOptions(options)
+	return o
+}
+
+// SetOptions adds the options to the operations movefile params
+func (o *OperationsMovefileParams) SetOptions(options *models.MoveOrCopyFileOptions) {
+	o.Options = options
+}
+
 // WithGroup adds the group to the operations movefile params
 func (o *OperationsMovefileParams) WithGroup(group string) *OperationsMovefileParams {
 	o.SetGroup(group)
@@ -122,17 +133,6 @@ func (o *OperationsMovefileParams) SetGroup(group string) {
 	o.Group = group
 }
 
-// WithCopyfile adds the copyfile to the operations movefile params
-func (o *OperationsMovefileParams) WithCopyfile(copyfile *models.MoveOrCopyFileOptions) *OperationsMovefileParams {
-	o.SetCopyfile(copyfile)
-	return o
-}
-
-// SetCopyfile adds the copyfile to the operations movefile params
-func (o *OperationsMovefileParams) SetCopyfile(copyfile *models.MoveOrCopyFileOptions) {
-	o.Copyfile = copyfile
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *OperationsMovefileParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -141,17 +141,17 @@ func (o *OperationsMovefileParams) WriteToRequest(r runtime.ClientRequest, reg s
 	}
 	var res []error
 
+	if o.Options != nil {
+		if err := r.SetBodyParam(o.Options); err != nil {
+			return err
+		}
+	}
+
 	// query param _group
 	qrGroup := o.Group
 	qGroup := qrGroup
 	if qGroup != "" {
 		if err := r.SetQueryParam("_group", qGroup); err != nil {
-			return err
-		}
-	}
-
-	if o.Copyfile != nil {
-		if err := r.SetBodyParam(o.Copyfile); err != nil {
 			return err
 		}
 	}

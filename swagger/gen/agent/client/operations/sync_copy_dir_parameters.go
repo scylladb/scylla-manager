@@ -75,6 +75,11 @@ for the sync copy dir operation typically these are written to a http.Request
 */
 type SyncCopyDirParams struct {
 
+	/*Options
+	  Options
+
+	*/
+	Options *models.MoveOrCopyFileOptions
 	/*Async
 	  Async request
 
@@ -85,11 +90,6 @@ type SyncCopyDirParams struct {
 
 	*/
 	Group string
-	/*Copydir2
-	  copydir2
-
-	*/
-	Copydir2 *models.MoveOrCopyFileOptions
 
 	timeout    time.Duration
 	Context    context.Context
@@ -129,6 +129,17 @@ func (o *SyncCopyDirParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithOptions adds the options to the sync copy dir params
+func (o *SyncCopyDirParams) WithOptions(options *models.MoveOrCopyFileOptions) *SyncCopyDirParams {
+	o.SetOptions(options)
+	return o
+}
+
+// SetOptions adds the options to the sync copy dir params
+func (o *SyncCopyDirParams) SetOptions(options *models.MoveOrCopyFileOptions) {
+	o.Options = options
+}
+
 // WithAsync adds the async to the sync copy dir params
 func (o *SyncCopyDirParams) WithAsync(async bool) *SyncCopyDirParams {
 	o.SetAsync(async)
@@ -151,17 +162,6 @@ func (o *SyncCopyDirParams) SetGroup(group string) {
 	o.Group = group
 }
 
-// WithCopydir2 adds the copydir2 to the sync copy dir params
-func (o *SyncCopyDirParams) WithCopydir2(copydir2 *models.MoveOrCopyFileOptions) *SyncCopyDirParams {
-	o.SetCopydir2(copydir2)
-	return o
-}
-
-// SetCopydir2 adds the copydir2 to the sync copy dir params
-func (o *SyncCopyDirParams) SetCopydir2(copydir2 *models.MoveOrCopyFileOptions) {
-	o.Copydir2 = copydir2
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *SyncCopyDirParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -169,6 +169,12 @@ func (o *SyncCopyDirParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		return err
 	}
 	var res []error
+
+	if o.Options != nil {
+		if err := r.SetBodyParam(o.Options); err != nil {
+			return err
+		}
+	}
 
 	// query param _async
 	qrAsync := o.Async
@@ -184,12 +190,6 @@ func (o *SyncCopyDirParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 	qGroup := qrGroup
 	if qGroup != "" {
 		if err := r.SetQueryParam("_group", qGroup); err != nil {
-			return err
-		}
-	}
-
-	if o.Copydir2 != nil {
-		if err := r.SetBodyParam(o.Copydir2); err != nil {
 			return err
 		}
 	}

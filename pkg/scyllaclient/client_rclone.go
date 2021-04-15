@@ -159,7 +159,7 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRem
 	}
 	p := operations.OperationsMovefileParams{
 		Context: forceHost(ctx, host),
-		Copyfile: &models.MoveOrCopyFileOptions{
+		Options: &models.MoveOrCopyFileOptions{
 			DstFs:     dstFs,
 			DstRemote: dstRemote,
 			SrcFs:     srcFs,
@@ -187,7 +187,7 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemo
 	c.logger.Debug(ctx, "RcloneCopyDir", "DstFs", dstFs, "DstRemote", dstRemote, "SrcFs", srcFs, "SrcRemote", srcRemote)
 	p := operations.SyncCopyDirParams{
 		Context: forceHost(ctx, host),
-		Copydir2: &models.MoveOrCopyFileOptions{
+		Options: &models.MoveOrCopyFileOptions{
 			DstFs:     dstFs,
 			DstRemote: dstRemote,
 			SrcFs:     srcFs,
@@ -212,7 +212,7 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host, remotePath string) e
 	}
 	p := operations.OperationsPurgeParams{
 		Context: forceHost(ctx, host),
-		Purge: &models.RemotePath{
+		RemotePath: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
 		},
@@ -231,7 +231,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host, remotePath string) 
 	}
 	p := operations.OperationsDeletefileParams{
 		Context: forceHost(ctx, host),
-		Deletefile: &models.RemotePath{
+		RemotePath: &models.RemotePath{
 			Fs:     fs,
 			Remote: remote,
 		},
@@ -246,7 +246,7 @@ func (c *Client) RcloneDeleteFile(ctx context.Context, host, remotePath string) 
 func (c *Client) RcloneDiskUsage(ctx context.Context, host, remotePath string) (*models.FileSystemDetails, error) {
 	p := operations.OperationsAboutParams{
 		Context: forceHost(ctx, host),
-		About: &models.RemotePath{
+		RemotePath: &models.RemotePath{
 			Fs: remotePath,
 		},
 	}
@@ -414,7 +414,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string) error {
 	p := operations.OperationsCheckPermissionsParams{
 		Context: forceHost(ctx, host),
-		Fs: &models.RemotePath{
+		RemotePath: &models.RemotePath{
 			Fs:     remotePath,
 			Remote: "",
 		},

@@ -139,8 +139,8 @@
         "parameters": [
           {
             "in": "body",
-            "name": "about",
-            "description": "about",
+            "name": "RemotePath",
+            "description": "Remote path",
             "schema": {
               "$ref": "#/definitions/RemotePath"
             }
@@ -228,8 +228,8 @@
           },
           {
             "in": "body",
-            "name": "copyfile",
-            "description": "copyfile",
+            "name": "Options",
+            "description": "Options",
             "schema": {
               "$ref": "#/definitions/MoveOrCopyFileOptions"
             }
@@ -277,8 +277,8 @@
           },
           {
             "in": "body",
-            "name": "copydir2",
-            "description": "copydir2",
+            "name": "Options",
+            "description": "Options",
             "schema": {
               "$ref": "#/definitions/MoveOrCopyFileOptions"
             }
@@ -391,8 +391,8 @@
           },
           {
             "in": "body",
-            "name": "purge",
-            "description": "purge",
+            "name": "RemotePath",
+            "description": "Remote path",
             "schema": {
               "$ref": "#/definitions/RemotePath"
             }
@@ -443,8 +443,8 @@
           },
           {
             "in": "body",
-            "name": "deletefile",
-            "description": "deletefile",
+            "name": "RemotePath",
+            "description": "Remote path",
             "schema": {
               "$ref": "#/definitions/RemotePath"
             }
@@ -480,8 +480,8 @@
         "parameters": [
           {
             "in": "body",
-            "name": "fs",
-            "description": "FS to check",
+            "name": "RemotePath",
+            "description": "Remote path",
             "schema": {
               "$ref": "#/definitions/RemotePath"
             }
