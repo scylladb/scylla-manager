@@ -28,21 +28,17 @@ type rcloneTestHelper struct {
 }
 
 func (r *rcloneTestHelper) setup() {
-	rootDir, err := os.Getwd()
+	d, err := ioutil.TempDir("", "scylla-manager-rclone")
 	if err != nil {
 		panic(err)
 	}
-
-	r.tmpDir, err = ioutil.TempDir("", "scylla-manager-rclone")
-	if err != nil {
-		panic(err)
-	}
+	r.tmpDir = d
 
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
 	rclone.InitFsConfig()
 	rclone.MustRegisterLocalDirProvider("dev", "", "/dev")
 	rclone.MustRegisterLocalDirProvider("tmp", "", r.tmpDir)
-	rclone.MustRegisterLocalDirProvider("rclonetest", "", rootDir)
+	rclone.MustRegisterLocalDirProvider("rclonetest", "", "testdata/rclone")
 	rclone.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
 	rclone.MustRegisterS3Provider(S3Credentials())
 }

@@ -35,7 +35,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	copyDir := func(dir string) (*scyllaclient.RcloneJobInfo, error) {
-		id, err := client.RcloneCopyDir(ctx, scyllaclienttest.TestHost, remotePath("/copy"), "rclonetest:testdata/rclone/"+dir)
+		id, err := client.RcloneCopyDir(ctx, scyllaclienttest.TestHost, remotePath("/copy"), "rclonetest:"+dir)
 		if err != nil {
 			t.Fatal(err)
 		}
