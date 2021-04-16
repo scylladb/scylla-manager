@@ -43,8 +43,7 @@ var (
 	stopTaskWait  = 60 * time.Second
 	// startDateThreshold specifies how old initial task start can be to assume
 	// it's still relevant to run it.
-	startDateThreshold          = -time.Minute
-	suspendedStartDateThreshold = 8 * time.Hour
+	startDateThreshold = -time.Minute
 )
 
 func NewService(session gocqlx.Session, drawer store.Store, logger log.Logger) (*Service, error) {
@@ -919,9 +918,8 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 			return service.ErrValidate(errors.New("start date in the past"))
 		}
 		// Prevent starting in suspended mode
-		if t.Sched.StartDate.Before(now.Add(suspendedStartDateThreshold)) &&
-			!t.Type.IgnoreSuspended() && s.IsSuspended(ctx, t.ClusterID) {
-			return service.ErrValidate(errors.Errorf("cluster is suspended, scheduling tasks to start within next %s is not allowed", suspendedStartDateThreshold))
+		if !t.Type.IgnoreSuspended() && s.IsSuspended(ctx, t.ClusterID) {
+			return service.ErrValidate(errors.New("cluster is suspended, scheduling tasks is not allowed"))
 		}
 	}
 

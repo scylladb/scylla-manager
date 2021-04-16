@@ -986,25 +986,15 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			StartDate: future,
 		})
 		task0.ID = uuid.Nil
-		Print("Then: task is added")
-		if err := h.service.PutTask(ctx, task0); err != nil {
-			t.Fatal(err)
-		}
+		Print("Then: task is rejected")
+		h.assertError(h.service.PutTask(ctx, task0), "suspended")
 
-		Print("When: task is scheduled now")
+		Print("When: health check task is scheduled now")
 		task1 := h.makeTask(scheduler.Schedule{
 			StartDate: now(),
 		})
+		task1.Type = scheduler.HealthCheckRESTTask
 		task1.ID = uuid.Nil
-		Print("Then: task is rejected")
-		h.assertError(h.service.PutTask(ctx, task1), "suspended")
-
-		Print("When: health check task is scheduled now")
-		task2 := h.makeTask(scheduler.Schedule{
-			StartDate: now(),
-		})
-		task2.Type = scheduler.HealthCheckRESTTask
-		task2.ID = uuid.Nil
 		Print("Then: task is added")
 		if err := h.service.PutTask(ctx, task0); err != nil {
 			t.Fatal(err)
