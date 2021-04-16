@@ -55,8 +55,6 @@ type ClientService interface {
 
 	Reload(params *ReloadParams) (*ReloadOK, error)
 
-	SyncCopy(params *SyncCopyParams) (*SyncCopyOK, error)
-
 	SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
@@ -584,41 +582,6 @@ func (a *Client) Reload(params *ReloadParams) (*ReloadOK, error) {
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ReloadDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-  SyncCopy copies directory
-
-  Copy a directory from source remote to destination remote
-*/
-func (a *Client) SyncCopy(params *SyncCopyParams) (*SyncCopyOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSyncCopyParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "SyncCopy",
-		Method:             "POST",
-		PathPattern:        "/rclone/sync/copy",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SyncCopyReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*SyncCopyOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*SyncCopyDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

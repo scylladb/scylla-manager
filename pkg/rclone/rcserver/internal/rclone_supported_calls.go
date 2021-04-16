@@ -20,6 +20,5 @@ var RcloneSupportedCalls = strset.New(
 	"operations/list",
 	"operations/movefile",
 	"operations/purge",
-	"sync/copy",
 	"sync/copydir",
 )

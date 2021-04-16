@@ -303,68 +303,6 @@
         "security": []
       }
     },
-    "/rclone/sync/copy": {
-      "post": {
-        "description": "Copy a directory from source remote to destination remote",
-        "summary": "Copy directory",
-        "operationId": "SyncCopy",
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "_async",
-            "description": "Async request",
-            "type": "boolean",
-            "required": true,
-            "default": true
-          },
-          {
-            "in": "query",
-            "name": "_group",
-            "description": "Place this operation under this stat group",
-            "type": "string",
-            "required": true
-          },
-          {
-            "in": "body",
-            "name": "copydir",
-            "description": "copydir",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "srcFs": {
-                  "description": "A remote name string eg. drive: for the source",
-                  "type": "string"
-                },
-                "dstFs": {
-                  "description": "A remote name string eg. drive: for the destination",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job ID",
-            "schema": {
-              "$ref": "#/definitions/Jobid"
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorResponse"
-            },
-            "headers": {}
-          }
-        },
-        "security": []
-      }
-    },
     "/rclone/operations/purge": {
       "post": {
         "description": "Remove a directory or container and all of its contents",
