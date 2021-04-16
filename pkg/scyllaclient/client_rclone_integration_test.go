@@ -97,3 +97,24 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 		t.Errorf("Expected bucket to be empty, got: %v", d)
 	}
 }
+
+func TestRcloneS3ToLocalCopyDirIntegration(t *testing.T) {
+	S3InitBucket(t, testBucket)
+
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
+	ctx := context.Background()
+
+	id, err := client.RcloneCopyDir(ctx, scyllaclienttest.TestHost, "rclonetest:foo", remotePath("/copy"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.RcloneDeleteJobStats(ctx, scyllaclienttest.TestHost, id)
+	info, err := client.RcloneJobInfo(ctx, scyllaclienttest.TestHost, id, longPollingTimeoutSeconds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Job.Error != "permission denied" {
+		t.Fatalf("RcloneJobInfo() = %v, expected permission denied", *info.Job)
+	}
+}

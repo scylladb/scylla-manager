@@ -56,3 +56,23 @@ func join(f, remote string) (string, error) {
 	i := strings.Index(p, "/")
 	return p[i+1:], nil
 }
+
+func localToRemote() paramsValidator {
+	return func(ctx context.Context, in rc.Params) error {
+		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
+		if err != nil {
+			return err
+		}
+		if !fsrc.Features().IsLocal {
+			return fs.ErrorPermissionDenied
+		}
+		fdst, err := rc.GetFsNamed(ctx, in, "dstFs")
+		if err != nil {
+			return err
+		}
+		if fdst.Features().IsLocal {
+			return fs.ErrorPermissionDenied
+		}
+		return nil
+	}
+}

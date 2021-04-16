@@ -522,9 +522,9 @@ func init() {
 	c.NeedsResponse = true
 }
 
-// rcCopyFiles copies files from source to destination directory.
+// rcCopyDir copies files from source to destination directory.
 // Only works for directories with single level depth.
-func rcCopyFiles(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+func rcCopyDir(ctx context.Context, in rc.Params) (rc.Params, error) {
 	srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
 	if err != nil {
 		return nil, err
@@ -553,16 +553,14 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/copydir",
 		AuthRequired: true,
-		Fn:           rcCopyFiles,
+		Fn:           wrap(rcCopyDir, localToRemote()),
 		Title:        "Copy contents from source directory to destination",
 		Help: `This takes the following parameters:
 
 - srcFs - a remote name string eg "drive:" for the source
 - srcRemote - a directory path within that remote for the source
 - dstFs - a remote name string eg "drive2:" for the destination
-- dstRemote - a directory path within that remote for the destination
-
-`,
+- dstRemote - a directory path within that remote for the destination`,
 	})
 }
 
