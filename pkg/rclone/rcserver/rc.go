@@ -7,17 +7,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
-	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
-	"github.com/rclone/rclone/fs/fspath"
 	"github.com/rclone/rclone/fs/object"
 	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
@@ -353,9 +349,6 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := viewable(in); err != nil {
-		return nil, err
-	}
 	o, err := f.NewObject(ctx, remote)
 	if err != nil {
 		return nil, err
@@ -385,39 +378,11 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	return nil, errResponseWritten
 }
 
-func viewable(in rc.Params) error {
-	f, err := in.GetString("fs")
-	if err != nil {
-		return err
-	}
-	remote, err := in.GetString("remote")
-	if err != nil {
-		return err
-	}
-	_, root, err := fspath.Parse(f)
-	if err != nil {
-		return err
-	}
-
-	// Get absolute object path
-	p := path.Join(root, remote)
-	p = filepath.Clean(p)
-	// Remove bucket name
-	i := strings.Index(p, "/")
-	p = p[i+1:]
-	// Ensure backup/meta prefix
-	if !strings.HasPrefix(p, "backup/meta/") {
-		return fs.ErrorPermissionDenied
-	}
-
-	return nil
-}
-
 func init() {
 	rc.Add(rc.Call{
 		Path:         "operations/cat",
 		AuthRequired: true,
-		Fn:           rcCat,
+		Fn:           wrap(rcCat, pathHasPrefix("backup/meta/")),
 		Title:        "Concatenate any files and send them in response",
 		Help: `This takes the following parameters
 
