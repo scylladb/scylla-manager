@@ -85,3 +85,55 @@ func TestLocalToRemote(t *testing.T) {
 		}
 	})
 }
+
+func TestSameDir(t *testing.T) {
+	table := []struct {
+		SrcFs     string
+		SrcRemote string
+		DstFs     string
+		DstRemote string
+		Error     error
+	}{
+		{
+			SrcFs:     "s3:foo",
+			SrcRemote: "bar/a",
+			DstFs:     "s3:foo",
+			DstRemote: "bar/b",
+		},
+		{
+			SrcFs:     "s3:foo/bar",
+			SrcRemote: "a",
+			DstFs:     "s3:foo",
+			DstRemote: "bar/b",
+		},
+		{
+			SrcFs:     "s3:foo",
+			SrcRemote: "bar/a",
+			DstFs:     "gcs:foo",
+			DstRemote: "bar/b",
+			Error:     fs.ErrorPermissionDenied,
+		},
+		{
+			SrcFs:     "s3:foo",
+			SrcRemote: "bar/a",
+			DstFs:     "s3:bar",
+			DstRemote: "bar/b",
+			Error:     fs.ErrorPermissionDenied,
+		},
+	}
+
+	ctx := context.Background()
+
+	for _, test := range table {
+		in := rc.Params{
+			"srcFs":     test.SrcFs,
+			"srcRemote": test.SrcRemote,
+			"dstFs":     test.DstFs,
+			"dstRemote": test.DstRemote,
+			"error":     test.Error,
+		}
+		if err := sameDir()(ctx, in); err != test.Error {
+			t.Fatalf("sameDir() = %s, expected %s", err, test.Error)
+		}
+	}
+}

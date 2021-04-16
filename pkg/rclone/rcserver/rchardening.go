@@ -28,33 +28,20 @@ func wrap(fn rc.Func, v paramsValidator) rc.Func {
 // ensures it has the required prefix.
 func pathHasPrefix(prefix string) paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
-		f, err := in.GetString("fs")
+		_, p, err := joined(in, "fs", "remote")
 		if err != nil {
 			return err
 		}
-		remote, err := in.GetString("remote")
-		if err != nil {
-			return err
-		}
-		p, err := join(f, remote)
-		if err != nil {
-			return err
-		}
+
+		// Strip bucket name
+		i := strings.Index(p, "/")
+		p = p[i+1:]
+
 		if !strings.HasPrefix(p, prefix) {
 			return fs.ErrorPermissionDenied
 		}
 		return nil
 	}
-}
-
-func join(f, remote string) (string, error) {
-	_, fsPath, err := fspath.Parse(f)
-	if err != nil {
-		return "", err
-	}
-	p := filepath.Clean(path.Join(fsPath, remote))
-	i := strings.Index(p, "/")
-	return p[i+1:], nil
 }
 
 func localToRemote() paramsValidator {
@@ -75,4 +62,41 @@ func localToRemote() paramsValidator {
 		}
 		return nil
 	}
+}
+
+func sameDir() paramsValidator {
+	return func(ctx context.Context, in rc.Params) error {
+		srcName, srcPath, err := joined(in, "srcFs", "srcRemote")
+		if err != nil {
+			return err
+		}
+		dstName, dstPath, err := joined(in, "dstFs", "dstRemote")
+		if err != nil {
+			return err
+		}
+		if srcName != dstName || path.Dir(srcPath) != path.Dir(dstPath) {
+			return fs.ErrorPermissionDenied
+		}
+		return nil
+	}
+}
+
+func joined(in rc.Params, fsName, remoteName string) (configName, remotePath string, err error) {
+	f, err := in.GetString(fsName)
+	if err != nil {
+		return "", "", err
+	}
+	remote, err := in.GetString(remoteName)
+	if err != nil {
+		return "", "", err
+	}
+	return join(f, remote)
+}
+
+func join(f, remote string) (configName, remotePath string, err error) {
+	configName, fsPath, err := fspath.Parse(f)
+	if err != nil {
+		return "", "", err
+	}
+	return configName, filepath.Clean(path.Join(fsPath, remote)), nil
 }
