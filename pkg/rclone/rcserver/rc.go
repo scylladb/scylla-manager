@@ -95,36 +95,36 @@ func rcJobProgress(ctx context.Context, in rc.Params) (out rc.Params, err error)
 	var jobOut, statsOut, transOut map[string]interface{}
 	jobid, err := in.GetInt64("jobid")
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	wait, err := in.GetInt64("wait")
 	if err != nil && !rc.IsErrParamNotFound(err) {
-		return rc.Params{}, err
+		return nil, err
 	}
 
 	if wait > 0 {
 		err = waitForJobFinish(ctx, jobid, wait)
 		if err != nil {
-			return rc.Params{}, err
+			return nil, err
 		}
 	}
 
 	jobOut, err = rcCalls.Get("job/status").Fn(ctx, in)
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	in["group"] = fmt.Sprintf("job/%d", jobid)
 	statsOut, err = rcCalls.Get("core/stats").Fn(ctx, in)
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	transOut, err = rcCalls.Get("core/transferred").Fn(ctx, in)
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 
 	if err := rc.Reshape(&out, aggregateJobInfo(jobOut, statsOut, transOut)); err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	return out, nil
 }
@@ -501,7 +501,7 @@ func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err e
 	}
 
 	fs.Infof(nil, "Location check done")
-	return rc.Params{}, nil
+	return nil, nil
 }
 
 func init() {
@@ -522,16 +522,16 @@ func init() {
 func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	var opt rcops.ListJSONOpt
 	err = in.GetStruct("opt", &opt)
 	if rc.NotErrParamNotFound(err) {
-		return rc.Params{}, err
+		return nil, err
 	}
 	w, err := in.GetHTTPResponseWriter()
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	enc := newListJSONEncoder(w.(writerFlusher), defaultListEncoderMaxItems)
 	err = rcops.ListJSON(ctx, f, remote, &opt, enc.Callback)
@@ -582,14 +582,14 @@ func filterRcCalls() {
 func rcCopyFiles(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 	dstFs, dstRemote, err := getFsAndRemoteNamed(ctx, in, "dstFs", "dstRemote")
 	if err != nil {
-		return rc.Params{}, err
+		return nil, err
 	}
 
-	return rc.Params{}, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, false)
+	return nil, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, false)
 }
 
 // getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't
