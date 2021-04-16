@@ -557,26 +557,6 @@ func init() {
 	c.NeedsResponse = true
 }
 
-// rcCalls contains the original rc.Calls before filtering with all the added
-// custom calls in this file.
-var rcCalls *rc.Registry
-
-func init() {
-	rcCalls = rc.Calls
-	filterRcCalls()
-}
-
-// filterRcCalls disables all default calls and whitelists only supported calls.
-func filterRcCalls() {
-	rc.Calls = rc.NewRegistry()
-
-	for _, c := range rcCalls.List() {
-		if internal.RcloneSupportedCalls.Has(c.Path) {
-			rc.Add(*c)
-		}
-	}
-}
-
 // rcCopyFiles copies files from source to destination directory.
 // Only works for directories with single level depth.
 func rcCopyFiles(ctx context.Context, in rc.Params) (out rc.Params, err error) {
@@ -619,4 +599,24 @@ func init() {
 
 `,
 	})
+}
+
+// rcCalls contains the original rc.Calls before filtering with all the added
+// custom calls in this file.
+var rcCalls *rc.Registry
+
+func init() {
+	rcCalls = rc.Calls
+	filterRcCalls()
+}
+
+// filterRcCalls disables all default calls and whitelists only supported calls.
+func filterRcCalls() {
+	rc.Calls = rc.NewRegistry()
+
+	for _, c := range rcCalls.List() {
+		if internal.RcloneSupportedCalls.Has(c.Path) {
+			rc.Add(*c)
+		}
+	}
 }
