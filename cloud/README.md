@@ -5,13 +5,14 @@ It is built with [sup - Simple Deployment Tool](https://pressly.github.io/sup/).
 
 # Getting Started
 
-1. Go to https://front.lab.dbaas.scyop.net/ and create a cluster
-1. Go to AWS console for Cloud Lab:
-  - For every VM in your cluster add tags Key: `keep` Value: `alive` to prevent from garbage collecting your cluster after 2h
-  - Take any VM in your cluster and edit the first Security Group by enabling SSH access from your machine
+1. Create `cloud-lab` aws profile by appending `aws/profile` file to `~/.aws/config`.
+1. Go to https://front.lab.dbaas.scyop.net/ and create a new AWS cluster in `eu-central-1` region.
+   If you create the cluster in a different region please update the region in the `cloud-lab` profile.
+1. Get the cluster ID from URL.
+1. Run the AWS setup script `cd aws; ./setup.sh CLUSTER_ID`
 1. Get [Lab support pem file](https://github.com/scylladb/siren-devops/blob/master/cluster/maintenance/access/lab/support.pem) and save it as `~/.ssh/id_scylla-lab-support.pem`, the `id_` prefix is mandatory for `sup` to automatically load it
 
-## Working with ssh-agent
+**Working with ssh-agent**
 
 If you dislike the `id_` prefix or would like to keep the key elsewhere you can work with `ssh-agent` to load the key.
 
@@ -26,17 +27,14 @@ Identity added: /home/michal/.ssh/scylla-lab-support.pem (/home/michal/.ssh/scyl
 
 *WARNING* do not forget to kill the agent when you are done.
 
-# Scylla Manager Installation
+# Backup and S3 buckets
 
-When you have a cluster up and running and you can SSH to any node, it's time to cook the `sup`.
+The AWS setup script assigns nodes a role that gives them access to all `manager-test*` s3 buckets.
+You may create a new S3 bucket or use `s3:manager-test-demo1`.
 
-## Register nodes in networks
+# Scylla Manager update from a distribution
 
-1. Put all IPs of node VMs (name like `Scylla-Cloud-...-Node-X`) in `networks/agent.hosts` each in a new line, don't forget to add `support@` user prefix to IP
-1. Put IP of monitor node (name like `Scylla-Cloud-...-Monitor`) in `networks/server.host`, don't forget to add `support@` user prefix to IP.
-
-## Let the knife do the sup
-
+1. Run `sup server "stop service"`
 1. Run `sup agent install start`
 1. Run `sup server install`
 1. Go to server edit config file `/etc/scylla-manager/scylla-manager.yaml` db section to use the created cluster (FIXME waiting for a volunteer to fix that step)

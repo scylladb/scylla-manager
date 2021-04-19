@@ -1,0 +1,4 @@
+[profile cloud-lab]
+region = eu-central-1
+source_profile = default
+role_arn = arn:aws:iam::734708892259:role/Admin
