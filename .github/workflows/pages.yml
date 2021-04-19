@@ -4,42 +4,25 @@ on:
   push:
     branches:
     - master
-    - 'branch-**'
     paths:
-      - 'docs/**'
-  workflow_dispatch:
-    inputs:
-      latestVersion:
-        description: 'LATEST_VERSION, if set triggers deploy-root'
-        required: false
-
+    - 'docs/**'
 jobs:
   build:
     name: Release docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-      - uses: actions/cache@v2
-        id: cache-poetry
-        with:
-          path: |
-            ~/.poetry
-            ~/.cache/pypoetry
-          key: ${{ runner.os }}-pypoetry-${{ hashFiles('docs/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pypoetry-
-
-      - run: make -C docs multiversion
-
-      - run : make -C docs deploy
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - run : make -C docs deploy-root
-        if: github.event.inputs.latestVersion != ''
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LATEST_VERSION: ${{ github.event.inputs.latestVersion }}
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Build docs
+      run: make -C docs multiversion
+    - name: Deploy docs to GitHub Pages
+      run : ./docs/_utils/deploy.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

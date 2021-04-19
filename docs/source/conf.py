@@ -5,6 +5,7 @@ from datetime import date
 from sphinx.util import logging
 import recommonmark
 from recommonmark.transform import AutoStructify
+from sphinx_scylladb_theme.utils import multiversion_regex_builder
 
 logger = logging.getLogger(__name__) 
 
@@ -22,7 +23,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.githubpages',
     'sphinx.ext.extlinks',
-#    'sphinx.ext.autosectionlabel',
     'sphinx_scylladb_theme',
     'sphinx_multiversion',
     'recommonmark'
@@ -102,16 +102,9 @@ html_theme_options = {
     ('ScyllaDB Home', 'https://www.scylladb.com/')],
     'github_issues_repository': 'scylladb/scylla-manager-issues',
     'show_sidebar_index':True,
+    'tag_substring_removed': 'scylla-manager-',
+    'branch_substring_removed': 'branch-',
 }
-
-# Add any extra paths that contain custom files (such as robots.txt or
-# .htaccess) here, relative to this directory. These files are copied
-# directly to the root of the documentation.
-#
-# html_extra_path = ['404.html']
-
-# Add ExpertRec Search
-# html_js_files = ['expertrec.js']
 
 # If not None, a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
@@ -153,9 +146,15 @@ redirects_file = "_utils/redirections.yaml"
 # -- Options for multiversion --------------------------------------------
 
 # Whitelist pattern for tags (set to None to ignore all tags)
-smv_tag_whitelist = ""
+TAGS = []
+smv_tag_whitelist = multiversion_regex_builder(TAGS)
 # Whitelist pattern for branches (set to None to ignore all branches)
-smv_branch_whitelist = "master, branch-2.2"
+BRANCHES = ['branch-2.2', 'branch-2.3']
+smv_branch_whitelist = multiversion_regex_builder(BRANCHES)
+# Defines which version is considered to be the latest stable version.
+# Must be listed in smv_tag_whitelist or smv_branch_whitelist.
+smv_latest_version = 'branch-2.3'
+smv_rename_latest_version = 'stable'
 # Whitelist pattern for remotes (set to None to use local branches only)
 smv_remote_whitelist = r"^origin$"
 # Pattern for released versions

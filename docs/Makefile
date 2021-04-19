@@ -1,7 +1,7 @@
 # You can set these variables from the command line.
 POETRY        := $(HOME)/.poetry/bin/poetry
-SPHINXBUILD   := $(POETRY) run sphinx-build
 SPHINXOPTS    :=
+SPHINXBUILD   := $(POETRY) run sphinx-build
 PAPER         :=
 BUILDDIR      := _build
 SOURCEDIR     := source
@@ -67,35 +67,15 @@ dummy: setup
 linkcheck: setup
 	$(SPHINXBUILD) -b linkcheck $(SOURCEDIR) $(BUILDDIR)/linkcheck
 
-GIT_BRANCH           = $(shell git branch --show-current)
-GIT_BRANCH_FORMATTED = $(GIT_BRANCH:branch-%=%)
-
 .PHONY: multiversion
 multiversion: setup
 	@mkdir -p $(HOME)/.cache/pypoetry/virtualenvs
-	$(POETRY) run sphinx-multiversion --pre-build ./_utils/pre-build.sh \
-	-D smv_branch_whitelist=$(GIT_BRANCH) -D smv_outputdir_format=$(GIT_BRANCH_FORMATTED) \
-	$(SOURCEDIR) $(BUILDDIR)/dirhtml
+	$(POETRY) run sphinx-multiversion source _build/dirhtml \
+		--pre-build ./_utils/pre-build.sh
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
 
-# Deploy targets does not have dependency to multiversion to
 
-GH_PAGES_DIR := $(HOME)/gh-pages
-
-.PHONY: deploy
-deploy:
-	./_utils/checkout-gh-pages.sh $(GH_PAGES_DIR)
-	rm -rf $(GH_PAGES_DIR)/$(GIT_BRANCH_FORMATTED)
-	cp -r $(BUILDDIR)/dirhtml/$(GIT_BRANCH_FORMATTED) $(GH_PAGES_DIR)
-	./_utils/commit-gh-pages.sh $(GH_PAGES_DIR) "Update $(GIT_BRANCH_FORMATTED)"
-
-.PHONY: deploy-root
-deploy-root:
-	./_utils/checkout-gh-pages.sh $(GH_PAGES_DIR)
-	rm -rf $(GH_PAGES_DIR)/_static
-	cp -r $(BUILDDIR)/dirhtml/_static $(GH_PAGES_DIR)
-	rm -rf $(GH_PAGES_DIR)/*.html
-	cp $(BUILDDIR)/dirhtml/*.html $(GH_PAGES_DIR)
-	./_utils/redirect.sh > $(GH_PAGES_DIR)/index.html
-	./_utils/commit-gh-pages.sh $(GH_PAGES_DIR) "Update root"
+.PHONY: multiversionpreview
+multiversionpreview: multiversion
+	$(POETRY) run python3 -m http.server 5500 --directory $(BUILDDIR)/dirhtml
