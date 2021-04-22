@@ -20,14 +20,13 @@ The effective parallelism depends on a keyspace replication factor (RF) and the 
 The formula to calculate it is as follows: number of nodes / RF, e.g. for 6 node cluster with RF=3 the maximum parallelism is 2.`
 
 const intensityLongDesc = `
-The --intensity flag specifies how many token ranges (per shard) to repair in a single Scylla repair job. By default this is 1.
-If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
-Valid values are 0 and integers >= 1. Higher values will result in increased cluster load and slightly faster repairs.
-Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
+The --intensity flag specifies how many token ranges per shard to repair in a single Scylla repair job. By default this is 1.
 
-For Scylla clusters that DO NOT SUPPORT ROW-LEVEL REPAIR, intensity can be a decimal between (0,1).
-In that case it specifies percent of shards that can be repaired in parallel on a repair master node.
-For Scylla clusters that are row-level repair enabled, setting intensity below 1 has the same effect as setting intensity 1.`
+It can be a decimal between (0,1). In that case the number of token ranges is a fraction of number of shards.
+For Scylla clusters that do not support row-level repair (Scylla 2019 and earlier), it specifies percent of shards that can be repaired in parallel on a repair master node.
+
+If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.`
 
 var repairCmd = &cobra.Command{
 	Use:   "repair",
