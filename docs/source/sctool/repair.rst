@@ -172,16 +172,14 @@ It can be used in conjunction with dc flag, in such a case the node must belong 
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-How many token ranges per shard to repair in a single Scylla node at the same time. By default this is 1.
-If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
-Valid values are 0 and integers >= 1.
-Higher values will result in increased cluster load and slightly faster repairs.
-Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
+How many token ranges per shard to repair in a single Scylla node at the same time.
+By default this is 1.
 
-.. note::
-   For Scylla clusters that **do not support row-level repair**, intensity can be a decimal between (0,1).
-   In that case it specifies percent of shards that can be repaired in parallel on a repair master node.
-   For Scylla clusters that are row-level repair enabled, setting intensity below 1 has the same effect as setting intensity 1.
+It can be a decimal between (0,1). In that case the number of token ranges is a fraction of number of shards.
+For Scylla clusters that do not support row-level repair (Scylla 2019 and earlier), it specifies percent of shards that can be repaired in parallel on a repair master node.
+
+If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
 
 **Default:** 1
 
@@ -339,10 +337,13 @@ In addition to :ref:`global-flags`, repair takes the following repair control pa
 ``--intensity <float>``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-How many token ranges per shard can be repaired in a Scylla node at every given time. By default this is 1.
+How many token ranges per shard to repair in a single Scylla node at the same time.
+By default this is 1.
+
+It can be a decimal between (0,1). In that case the number of token ranges is a fraction of number of shards.
+For Scylla clusters that do not support row-level repair (Scylla 2019 and earlier), it specifies percent of shards that can be repaired in parallel on a repair master node.
+
 If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
-Valid values are integers >= 1 and decimals between (0,1). Higher values will result in increased cluster load and slightly faster repairs.
-Values below 1 will result in repairing the number of token ranges equal to the specified fraction of shards.
 Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
 
 **Default:** 1

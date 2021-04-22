@@ -203,7 +203,7 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 		case intensity == maxIntensity:
 			ok = r <= c.limits[h].Max
 		case intensity <= 1:
-			ok = r <= c.limits[h].Default
+			ok = r <= int(math.Max(intensity*float64(c.limits[h].Default), 1))
 		default:
 			ok = r <= int(intensity)*c.limits[h].Default && r <= c.limits[h].Max
 		}

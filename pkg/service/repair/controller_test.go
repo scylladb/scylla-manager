@@ -173,6 +173,14 @@ func TestRowLevelRepairController(t *testing.T) {
 		ctl := s.newRowLevelRepairController()
 
 		var queue []allowance
+
+		unblockAll := func() {
+			for _, a := range queue {
+				ctl.Unblock(a)
+			}
+			queue = nil
+		}
+
 		for i := 0; i < controllerTestDefaultRangesLimit; i++ {
 			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
 				t.Fatal("TryBlock() failed to block")
@@ -188,9 +196,8 @@ func TestRowLevelRepairController(t *testing.T) {
 		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
 			t.Fatal("TryBlock() unexpected success - all workers busy")
 		}
-		for _, a := range queue {
-			ctl.Unblock(a)
-		}
+
+		unblockAll()
 
 		for i := 0; i < controllerTestDefaultRangesLimit/2-1; i++ {
 			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
@@ -201,24 +208,41 @@ func TestRowLevelRepairController(t *testing.T) {
 		}
 
 		s.intensityHandler.SetIntensity(ctx, 0)
-		ok, a := ctl.TryBlock([]string{"a", "b", "c"})
+		ok, ma := ctl.TryBlock([]string{"a", "b", "c"})
 		if !ok {
 			t.Fatal("TryBlock() failed to block")
 		}
-		if a.Ranges <= 2 {
-			t.Fatalf("TryBlock() = %v, expected full intensity", a)
+		if ma.Ranges <= 2 {
+			t.Fatalf("TryBlock() = %v, expected full intensity", ma)
 		}
 
 		s.intensityHandler.SetIntensity(ctx, 1)
 		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
 			t.Fatal("TryBlock() unexpected success - too many ranges")
 		}
-		ctl.Unblock(a)
+
+		ctl.Unblock(ma)
 
 		for i := 0; i < 2; i++ {
-			if ok, _ = ctl.TryBlock([]string{"a", "b", "c"}); !ok {
+			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
 				t.Fatal("TryBlock() failed to block")
+			} else {
+				queue = append(queue, a)
 			}
+		}
+
+		unblockAll()
+
+		s.intensityHandler.SetIntensity(ctx, 0.5)
+		for i := 0; i < controllerTestDefaultRangesLimit/2; i++ {
+			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
+				t.Fatal("TryBlock() failed to block")
+			} else {
+				queue = append(queue, a)
+			}
+		}
+		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
+			t.Fatal("TryBlock() unexpected success")
 		}
 	})
 
