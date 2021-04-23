@@ -40,32 +40,15 @@ func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (
 	// Temporary context to satisfy rclone.
 	ctx := context.Background()
 
-	absDataDir, err := filepath.Abs(dataDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "get data directory absolute path")
-	}
-
-	// Check if the current user is the data directory owner.
-	o, err := dirOwner(absDataDir)
-	if os.IsNotExist(err) {
-		return nil, err
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, absDataDir)
-	}
-	u, err := user.Current()
-	if err != nil {
-		return nil, errors.Wrap(err, "get current user")
-	}
-	if o.Uid != u.Uid {
-		return nil, errors.Errorf("run command as %s (UID:%s)", o.Name, o.Uid)
-	}
-
 	// Init file systems, we want to reuse the rclone Fs instances as they
 	// hold memory buffers.
 	fsrc, err := fs.NewFs(ctx, l.RemotePath(""))
 	if err != nil {
 		return nil, errors.Wrap(err, "init location")
+	}
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		return nil, errors.Wrap(err, "get data directory absolute path")
 	}
 	fdst, err := fs.NewFs(ctx, absDataDir)
 	if err != nil {
@@ -109,6 +92,23 @@ func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, wor
 		"mode", d.mode,
 		"clear_tables", d.clearTables,
 	)
+
+	// Check if the current user is the data directory owner.
+	dir := d.fdst.Root()
+	o, err := dirOwner(dir)
+	if os.IsNotExist(err) {
+		return err
+	}
+	if err != nil {
+		return errors.Wrap(err, dir)
+	}
+	u, err := user.Current()
+	if err != nil {
+		return errors.Wrap(err, "get current user")
+	}
+	if o.Uid != u.Uid {
+		return errors.Errorf("run command as %s (UID:%s)", o.Name, o.Uid)
+	}
 
 	index := d.filteredIndex(ctx, m)
 
