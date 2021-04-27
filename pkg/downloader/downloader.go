@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
@@ -93,6 +94,10 @@ func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, wor
 		"clear_tables", d.clearTables,
 	)
 
+	if len(m.Content.Index) == 0 {
+		return errors.New("empty manifest")
+	}
+
 	// Check if the current user is the data directory owner.
 	dir := d.fdst.Root()
 	o, err := dirOwner(dir)
@@ -114,7 +119,11 @@ func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, wor
 		return errors.Errorf("run command as %s (UID:%s)", name, o.Uid)
 	}
 
+	// Apply keyspace filters.
 	index := d.filteredIndex(ctx, m)
+	if len(index) == 0 {
+		return errors.Errorf("no data matching filters %s", strings.Join(d.keyspace.Filters(), " "))
+	}
 
 	// Check if we have enough disk space.
 	var size int64

@@ -185,8 +185,33 @@ func TestDownload(t *testing.T) {
 
 func TestDownloadOwnerCheck(t *testing.T) {
 	location := backup.Location{Provider: "testdata"}
-	_, err := downloader.New(location, "/root/", log.NewDevelopment())
+	d, err := downloader.New(location, "/root/", log.NewDevelopment())
+
+	err = d.Download(context.Background(), dummyManifest())
 	if err == nil || !strings.Contains(err.Error(), "run command as root") {
 		t.Fatalf("New() error %s, expected run command as root", err)
+	}
+}
+
+func TestDownloadFilterCheck(t *testing.T) {
+	location := backup.Location{Provider: "testdata"}
+	d, err := downloader.New(location, ".", log.NewDevelopment(), downloader.WithKeyspace([]string{"bla"}))
+
+	err = d.Download(context.Background(), dummyManifest())
+	if err == nil || !strings.Contains(err.Error(), "no data matching filters bla") {
+		t.Fatalf("New() error %s, expected no data matching filters bla", err)
+	}
+}
+
+func dummyManifest() *backup.RemoteManifest {
+	return &backup.RemoteManifest{
+		Content: backup.ManifestContent{
+			Index: []backup.FilesMeta{
+				{
+					Keyspace: "foo",
+					Table:    "bar",
+				},
+			},
+		},
 	}
 }
