@@ -107,7 +107,11 @@ func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, wor
 		return errors.Wrap(err, "get current user")
 	}
 	if o.Uid != u.Uid {
-		return errors.Errorf("run command as %s (UID:%s)", o.Name, o.Uid)
+		name := o.Name
+		if name == "" {
+			name = "scylla"
+		}
+		return errors.Errorf("run command as %s (UID:%s)", name, o.Uid)
 	}
 
 	index := d.filteredIndex(ctx, m)
