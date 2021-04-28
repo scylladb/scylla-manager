@@ -206,7 +206,7 @@ func init() {
 	f.StringSliceVarP(&a.keyspace, "keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
 	f.Var(&a.mode, "mode", "mode changes resulting directory structure, supported values are: `upload, sstableloader`, set 'upload' to use table upload directories, set 'sstableloader' for <keyspace>/<table> directories layout") // nolint: lll
 	f.BoolVar(&a.clearTables, "clear-tables", false, "remove sstables before downloading")
-	f.BoolVar(&a.dryRun, "dry-run", false, "validates and prints a plan without downloading (or clearing) any files")
+	f.BoolVar(&a.dryRun, "dry-run", false, "validate and print a plan without downloading (or clearing) any files")
 	f.VarP(&a.nodeID, "node", "n", "'Host `ID`' value from nodetool status command output of a node you want to restore (default local node)")
 	f.VarP(&a.snapshotTag, "snapshot-tag", "T", "Scylla Manager snapshot `tag` as read from backup listing e.g. sm_20060102150405UTC, use --list-snapshots to get a list of snapshots of the node") // nolint: lll
 	f.IntVar(&a.rateLimit, "rate-limit", 0, "rate limit in megabytes (MiB) per second (default no limit)")
