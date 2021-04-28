@@ -743,7 +743,7 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 		return 0, errors.New("scylla doest not expose total memory metric")
 	}
 
-	var totalMemory int64 = 0
+	var totalMemory int64
 	for _, m := range metrics[metricName].Metric {
 		totalMemory += int64(*m.Counter.Value)
 	}

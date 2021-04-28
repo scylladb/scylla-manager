@@ -54,7 +54,7 @@ type RcloneTransfer = models.Transfer
 
 // GlobalProgressID represents empty job id.
 // Use this value to return global stats by job info.
-var GlobalProgressID int64 = 0
+var GlobalProgressID int64
 
 // RcloneJobInfo returns job stats, and transfers info about running stats and
 // completed transfers.

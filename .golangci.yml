@@ -35,9 +35,12 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - cyclop
+    - durationcheck
     - exhaustive
     - exhaustivestruct
     - forbidigo
+    - forcetypeassert
     - funlen
     - gas
     - gochecknoglobals
@@ -47,9 +50,11 @@ linters:
     - ifshort
     - interfacer
     - maligned
+    - nilerr
     - nlreturn
     - nolintlint
     - prealloc
+    - scopelint
     - wrapcheck
     - wsl
 
@@ -81,6 +86,7 @@ issues:
     - exported var `Default.+` should have comment or be unexported
     - has json tag but is not exported
     - naked return in func `WriteTo`
+    - replacement are not allowed
     - return value of `.+\.Close` is not checked
     - return value of `net.SplitHostPort` is not checked
     - return value of `strconv.ParseBool` is not checked

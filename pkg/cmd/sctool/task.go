@@ -79,10 +79,7 @@ var taskListCmd = &cobra.Command{
 				return err
 			}
 			sortTasks(tasks, taskListSortKey(sortKey))
-			if err := render(w, tasks); err != nil {
-				return err
-			}
-			return nil
+			return render(w, tasks)
 		}
 		for _, c := range clusters {
 			if cfgCluster == "" {
@@ -199,11 +196,7 @@ var taskStartCmd = &cobra.Command{
 		if f := cmd.Flag("no-continue"); f.Changed {
 			cont = false
 		}
-
-		if err := client.StartTask(ctx, cfgCluster, taskType, taskID, cont); err != nil {
-			return err
-		}
-		return nil
+		return client.StartTask(ctx, cfgCluster, taskType, taskID, cont)
 	},
 }
 
@@ -230,10 +223,7 @@ var taskStopCmd = &cobra.Command{
 			return err
 		}
 
-		if err := client.StopTask(ctx, cfgCluster, taskType, taskID, disable); err != nil {
-			return err
-		}
-		return nil
+		return client.StopTask(ctx, cfgCluster, taskType, taskID, disable)
 	},
 }
 
@@ -329,11 +319,7 @@ var taskUpdateCmd = &cobra.Command{
 			return errors.New("nothing to change")
 		}
 
-		if err := client.UpdateTask(ctx, cfgCluster, t); err != nil {
-			return err
-		}
-
-		return nil
+		return client.UpdateTask(ctx, cfgCluster, t)
 	},
 }
 
@@ -356,10 +342,7 @@ var taskDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		if err := client.DeleteTask(ctx, cfgCluster, taskType, taskID); err != nil {
-			return err
-		}
-		return nil
+		return client.DeleteTask(ctx, cfgCluster, taskType, taskID)
 	},
 }
 

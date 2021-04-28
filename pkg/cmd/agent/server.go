@@ -21,6 +21,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/cpuset"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
 	"github.com/scylladb/scylla-manager/pkg/util/netwait"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -109,22 +110,14 @@ func (s *server) init(ctx context.Context) error {
 	rclone.RedirectLogPrint(s.logger.Named("rclone"))
 	// Init rclone config options
 	rclone.InitFsConfigWithOptions(s.config.Rclone)
+
 	// Register rclone providers
-	if err := rclone.RegisterLocalDirProvider("data", "Jailed Scylla data", s.config.Scylla.DataDirectory); err != nil {
-		return err
-	}
-	if err := rclone.RegisterS3Provider(s.config.S3); err != nil {
-		return err
-	}
-	if err := rclone.RegisterGCSProvider(s.config.GCS); err != nil {
-		return err
-	}
-
-	if err := rclone.RegisterAzureProvider(s.config.Azure); err != nil {
-		return err
-	}
-
-	return nil
+	return multierr.Combine(
+		rclone.RegisterLocalDirProvider("data", "Jailed Scylla data", s.config.Scylla.DataDirectory),
+		rclone.RegisterS3Provider(s.config.S3),
+		rclone.RegisterGCSProvider(s.config.GCS),
+		rclone.RegisterAzureProvider(s.config.Azure),
+	)
 }
 
 func (s *server) makeHTTPServers() {

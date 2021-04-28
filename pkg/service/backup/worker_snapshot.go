@@ -40,10 +40,7 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 	if err := w.checkAvailableDiskSpace(ctx, h); err != nil {
 		return err
 	}
-	if err := w.takeSnapshot(ctx, h); err != nil {
-		return err
-	}
-	return nil
+	return w.takeSnapshot(ctx, h)
 }
 
 func (w *worker) checkAvailableDiskSpace(ctx context.Context, h hostInfo) error {

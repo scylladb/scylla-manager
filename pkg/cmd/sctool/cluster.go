@@ -245,11 +245,7 @@ var clusterUpdateCmd = &cobra.Command{
 		if err := client.DeleteClusterSecrets(ctx, cfgCluster, deleteCQLCredentials, deleteSSLUserCert); err != nil {
 			return err
 		}
-		if err := client.UpdateCluster(ctx, cluster); err != nil {
-			return err
-		}
-
-		return nil
+		return client.UpdateCluster(ctx, cluster)
 	},
 }
 
@@ -266,11 +262,7 @@ var clusterDeleteCmd = &cobra.Command{
 	Short: "Deletes a cluster from manager",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := client.DeleteCluster(ctx, cfgCluster); err != nil {
-			return err
-		}
-
-		return nil
+		return client.DeleteCluster(ctx, cfgCluster)
 	},
 }
 

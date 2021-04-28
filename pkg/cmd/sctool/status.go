@@ -28,10 +28,7 @@ var statusCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			if err := render(w, status); err != nil {
-				return err
-			}
-			return nil
+			return render(w, status)
 		}
 		for _, c := range clusters {
 			if cfgCluster == "" {

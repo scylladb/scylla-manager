@@ -92,11 +92,7 @@ func migrateSchema(c config.ServerConfig, logger log.Logger) error {
 	}
 
 	// Run post migration actions
-	if err := fixSchedulerTaskTTL(session, logger, cluster.Keyspace); err != nil {
-		return err
-	}
-
-	return nil
+	return fixSchedulerTaskTTL(session, logger, cluster.Keyspace)
 }
 
 func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace string) error {
@@ -115,11 +111,8 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 	if err := session.ExecStmt("ALTER TABLE scheduler_task WITH default_time_to_live = 0"); err != nil {
 		return err
 	}
-	if err := gocqlxtable.RewriteRows(session, table.SchedTask); err != nil {
-		return err
-	}
 
-	return nil
+	return gocqlxtable.RewriteRows(session, table.SchedTask)
 }
 
 func gocqlClusterConfigForDBInit(c config.ServerConfig) *gocql.ClusterConfig {

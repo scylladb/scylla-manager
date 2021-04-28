@@ -27,10 +27,7 @@ func ParseYAML(target interface{}, files ...string) error {
 	if err != nil {
 		return err
 	}
-	if err := cfg.Get(config.Root).Populate(target); err != nil {
-		return err
-	}
-	return nil
+	return cfg.Get(config.Root).Populate(target)
 }
 
 func fileExists(filename string) (bool, error) {

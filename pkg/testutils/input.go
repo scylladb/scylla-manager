@@ -10,28 +10,29 @@ import (
 )
 
 // ReadInputFile reads test input file.
-func ReadInputFile(t testing.TB) []byte {
-	t.Helper()
+func ReadInputFile(tb testing.TB) []byte {
+	tb.Helper()
 
-	b, err := ioutil.ReadFile(inputJSONFileName(t))
+	b, err := ioutil.ReadFile(inputJSONFileName(tb))
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 
 	return b
 }
 
 // ReadInputJSONFile reads test input file and unmarshall it into 'v'.
-func ReadInputJSONFile(t testing.TB, v interface{}) {
-	t.Helper()
+func ReadInputJSONFile(tb testing.TB, v interface{}) {
+	tb.Helper()
 
-	if err := json.Unmarshal(ReadInputFile(t), v); err != nil {
-		t.Fatal(err)
+	if err := json.Unmarshal(ReadInputFile(tb), v); err != nil {
+		tb.Fatal(err)
 	}
 }
 
-func inputJSONFileName(t testing.TB) string {
-	name := t.Name()
+func inputJSONFileName(tb testing.TB) string {
+	tb.Helper()
+	name := tb.Name()
 	name = strings.TrimPrefix(name, "Test")
 	return "testdata/" + name + ".input.json"
 }
