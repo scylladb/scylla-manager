@@ -5,7 +5,7 @@
 
 set -eu -o pipefail
 
-VERSION="3.36.2"
+VERSION="3.47.1"
 URL="https://github.com/swagger-api/swagger-ui/archive/v${VERSION}.tar.gz"
 
 echo "==> Cleanup"

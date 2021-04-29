@@ -154,7 +154,7 @@
           "format": "date-time",
           "x-nullable": true
         },
-        "duration_ms":{
+        "duration_ms": {
           "type": "integer"
         },
         "dcs": {
@@ -163,10 +163,10 @@
             "type": "string"
           }
         },
-        "intensity":{
+        "intensity": {
           "type": "number"
         },
-        "parallel":{
+        "parallel": {
           "type": "integer"
         },
         "hosts": {
@@ -218,7 +218,7 @@
           "format": "date-time",
           "x-nullable": true
         },
-        "duration_ms":{
+        "duration_ms": {
           "type": "integer"
         },
         "keyspace": {
@@ -326,6 +326,9 @@
         "next_activation": {
           "type": "string",
           "format": "date-time"
+        },
+        "suspended": {
+          "type": "boolean"
         },
         "failures": {
           "type": "integer"
@@ -740,6 +743,74 @@
           "x-nullable": true
         }
       }
+    },
+    "TaskRunValidateBackupProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/TaskRun"
+        },
+        "progress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ValidateBackupProgress"
+          }
+        }
+      }
+    },
+    "ValidateBackupProgress": {
+      "type": "object",
+      "properties": {
+        "dc": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "manifests": {
+          "type": "integer"
+        },
+        "scanned_files": {
+          "type": "integer"
+        },
+        "broken_snapshots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_files": {
+          "type": "integer"
+        },
+        "orphaned_files": {
+          "type": "integer"
+        },
+        "orphaned_bytes": {
+          "type": "integer"
+        },
+        "deleted_files": {
+          "type": "integer"
+        },
+        "delete_errors": {
+          "type": "integer"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        }
+      }
+    },
+    "Suspended": {
+      "type": "boolean"
     },
     "ErrorResponse": {
       "type": "object",
@@ -1354,6 +1425,44 @@
         }
       }
     },
+    "/cluster/{cluster_id}/task/validate_backup/{task_id}/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup validation progress",
+            "schema": {
+              "$ref": "#/definitions/TaskRunValidateBackupProgress"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/cluster/{cluster_id}/backups": {
       "get": {
         "parameters": [
@@ -1373,7 +1482,7 @@
           },
           {
             "type": "string",
-            "name": "cluster_id",
+            "name": "query_cluster_id",
             "in": "query"
           },
           {
@@ -1486,7 +1595,7 @@
           },
           {
             "type": "string",
-            "name": "cluster_id",
+            "name": "query_cluster_id",
             "in": "query"
           }
         ],
@@ -1550,6 +1659,64 @@
           {
             "type": "integer",
             "name": "parallel",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Suspended"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/suspended": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Suspended"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "name": "suspended",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Suspended"
+            }
+          },
+          {
+            "type": "boolean",
+            "name": "start_tasks",
             "in": "query",
             "required": true
           }
