@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager
 
-go 1.15
+go 1.16
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
@@ -8,7 +8,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.0.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-chi/chi/v5 v5.0.0
 	github.com/go-chi/render v1.0.0
 	github.com/go-openapi/errors v0.19.6
