@@ -41,7 +41,6 @@ func TestConfigModification(t *testing.T) {
 		TLSCAFile:     "ca.cert",
 		Prometheus:    "127.0.0.1:9090",
 		Debug:         "127.0.0.1:112",
-		SwaggerUIPath: "path",
 		Logger: config.LogConfig{
 			Config: log.Config{
 				Mode:  log.StderrMode,

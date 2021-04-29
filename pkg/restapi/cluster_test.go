@@ -31,7 +31,7 @@ func TestClusterList(t *testing.T) {
 	m := restapi.NewMockClusterService(ctrl)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
-	h := restapi.New(restapi.Services{Cluster: m}, "", log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodGet, "/api/v1/clusters", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -52,7 +52,7 @@ func TestClusterCreateGeneratesIDWhenNotProvided(t *testing.T) {
 		e.ID = id
 	}).Return(nil)
 
-	h := restapi.New(restapi.Services{Cluster: m}, "", log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{Name: "name"}))
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -77,7 +77,7 @@ func TestClusterCreateWithProvidedID(t *testing.T) {
 	m := restapi.NewMockClusterService(ctrl)
 	m.EXPECT().PutCluster(gomock.Any(), NewClusterMatcher(&cluster.Cluster{ID: id})).Return(nil)
 
-	h := restapi.New(restapi.Services{Cluster: m}, "", log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/clusters", jsonBody(t, &cluster.Cluster{ID: id}))
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -105,7 +105,7 @@ func TestClusterDeleteCQLCredentials(t *testing.T) {
 		m.EXPECT().DeleteCQLCredentials(gomock.Any(), id).Return(nil),
 	)
 
-	h := restapi.New(restapi.Services{Cluster: m}, "", log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodDelete, fmt.Sprint("/api/v1/cluster/", id), nil)
 	r.URL.RawQuery = "cql_creds=1"
 	r.ParseForm()
@@ -132,7 +132,7 @@ func TestClusterDeleteSSLUserCert(t *testing.T) {
 		m.EXPECT().DeleteSSLUserCert(gomock.Any(), id).Return(nil),
 	)
 
-	h := restapi.New(restapi.Services{Cluster: m}, "", log.Logger{})
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodDelete, fmt.Sprint("/api/v1/cluster/", id), nil)
 	r.URL.RawQuery = "ssl_user_cert=1"
 	r.ParseForm()

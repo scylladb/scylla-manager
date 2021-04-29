@@ -69,7 +69,7 @@ func TestListTaskStatusFiltering(t *testing.T) {
 		Cluster:   cm,
 	}
 
-	h := restapi.New(services, "", log.Logger{})
+	h := restapi.New(services, log.Logger{})
 	r := givenListTasksRequest(c.ID, taskType, scheduler.StatusRunning)
 	w := httptest.NewRecorder()
 

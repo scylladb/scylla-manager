@@ -9,7 +9,6 @@ tls_ca_file: ca.cert
 
 prometheus: 127.0.0.1:9090
 debug: 127.0.0.1:112
-swagger_ui_path: path
 
 logger:
   level: debug

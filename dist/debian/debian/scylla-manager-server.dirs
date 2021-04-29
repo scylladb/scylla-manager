@@ -4,5 +4,4 @@ lib/systemd/system
 usr/bin
 usr/lib/scylla-manager
 var/lib/scylla-manager
-var/lib/scylla-manager/swagger-ui
 usr/share/doc/scylla-manager-server

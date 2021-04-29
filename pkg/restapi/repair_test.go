@@ -46,7 +46,7 @@ func TestRepairSetIntensity(t *testing.T) {
 		Repair:  rm,
 	}
 
-	h := restapi.New(services, "", log.Logger{})
+	h := restapi.New(services, log.Logger{})
 
 	var (
 		cluster = givenCluster()

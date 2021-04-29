@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
 	"github.com/scylladb/scylla-manager/pkg/util/httplog"
+	"github.com/scylladb/scylla-manager/swagger-ui"
 )
 
 func init() {
@@ -20,7 +21,7 @@ func init() {
 }
 
 // New returns an http.Handler implementing scylla-manager v1 REST API.
-func New(services Services, swaggerUIPath string, logger log.Logger) http.Handler {
+func New(services Services, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -31,10 +32,8 @@ func New(services Services, swaggerUIPath string, logger log.Logger) http.Handle
 	)
 
 	// Swagger UI
-	if swaggerUIPath != "" {
-		r.Handle("/ui", http.RedirectHandler("/ui/", http.StatusMovedPermanently))
-		r.Mount("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(swaggerUIPath))))
-	}
+	r.Handle("/ui", http.RedirectHandler("/ui/", http.StatusMovedPermanently))
+	r.Mount("/ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(swagger.UI()))))
 
 	r.Get("/ping", httphandler.Heartbeat())
 	r.Get("/version", httphandler.Version())

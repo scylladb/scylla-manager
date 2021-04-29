@@ -1,7 +1,5 @@
 http: 127.0.0.1:5080
 
-swagger_ui_path: swagger-ui/dist
-
 logger:
   level: info
   development: true

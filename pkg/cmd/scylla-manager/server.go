@@ -209,7 +209,7 @@ func (s *server) makeServers() error {
 		Backup:      s.backupSvc,
 		Scheduler:   s.schedSvc,
 	}
-	h := restapi.New(services, s.config.SwaggerUIPath, s.logger.Named("http"))
+	h := restapi.New(services, s.logger.Named("http"))
 
 	if s.config.HTTP != "" {
 		s.httpServer = &http.Server{
