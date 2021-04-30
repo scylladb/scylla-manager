@@ -21,7 +21,6 @@ type DBConfig struct {
 	Password                      string        `yaml:"password"`
 	LocalDC                       string        `yaml:"local_dc"`
 	Keyspace                      string        `yaml:"keyspace"`
-	MigrateDir                    string        `yaml:"migrate_dir"`
 	MigrateTimeout                time.Duration `yaml:"migrate_timeout"`
 	MigrateMaxWaitSchemaAgreement time.Duration `yaml:"migrate_max_wait_schema_agreement"`
 	ReplicationFactor             int           `yaml:"replication_factor"`
@@ -69,7 +68,6 @@ func DefaultServerConfig() ServerConfig {
 		Database: DBConfig{
 			Hosts:                         []string{"127.0.0.1"},
 			Keyspace:                      "scylla_manager",
-			MigrateDir:                    "/etc/scylla-manager/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,

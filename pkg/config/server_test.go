@@ -33,14 +33,14 @@ func TestConfigModification(t *testing.T) {
 	}
 
 	golden := config.ServerConfig{
-		HTTP:          "127.0.0.1:80",
-		HTTPS:         "127.0.0.1:443",
-		TLSVersion:    "TLSv1.3",
-		TLSCertFile:   "tls.cert",
-		TLSKeyFile:    "tls.key",
-		TLSCAFile:     "ca.cert",
-		Prometheus:    "127.0.0.1:9090",
-		Debug:         "127.0.0.1:112",
+		HTTP:        "127.0.0.1:80",
+		HTTPS:       "127.0.0.1:443",
+		TLSVersion:  "TLSv1.3",
+		TLSCertFile: "tls.cert",
+		TLSKeyFile:  "tls.key",
+		TLSCAFile:   "ca.cert",
+		Prometheus:  "127.0.0.1:9090",
+		Debug:       "127.0.0.1:112",
 		Logger: config.LogConfig{
 			Config: log.Config{
 				Mode:  log.StderrMode,
@@ -54,7 +54,6 @@ func TestConfigModification(t *testing.T) {
 			Password:                      "password",
 			LocalDC:                       "local",
 			Keyspace:                      "scylla_manager",
-			MigrateDir:                    "/etc/scylla-manager/cql",
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             3,

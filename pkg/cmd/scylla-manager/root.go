@@ -122,7 +122,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Migrate schema
-		logger.Info(ctx, "Migrating schema", "keyspace", c.Database.Keyspace, "dir", c.Database.MigrateDir)
+		logger.Info(ctx, "Migrating schema", "keyspace", c.Database.Keyspace)
 		if err := migrateSchema(c, logger); err != nil {
 			return errors.Wrapf(err, "db init")
 		}

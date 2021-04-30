@@ -5,6 +5,5 @@ dist/etc/scylla-manager/* etc/scylla-manager
 dist/systemd/scylla-manager.service lib/systemd/system
 dist/systemd/scylla-manager-check-for-updates.service lib/systemd/system
 dist/systemd/scylla-manager-check-for-updates.timer lib/systemd/system
-schema/*.cql etc/scylla-manager/cql
 license/LICENSE.PROPRIETARY usr/share/doc/scylla-manager-server/LICENSE
 license/LICENSE.3RD_PARTY.scylla-manager-server usr/share/doc/scylla-manager-server/LICENSE.3RD_PARTY

@@ -10,11 +10,12 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/dbutil"
 	"github.com/scylladb/gocqlx/v2/migrate"
-	gocqlxtable "github.com/scylladb/gocqlx/v2/table"
 	"github.com/scylladb/scylla-manager/pkg/config"
 	schemamigrate "github.com/scylladb/scylla-manager/pkg/schema/migrate"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/schema"
 )
 
 func keyspaceExists(c config.ServerConfig) (bool, error) {
@@ -87,7 +88,7 @@ func migrateSchema(c config.ServerConfig, logger log.Logger) error {
 	ctx := context.Background()
 	schemamigrate.Logger = logger
 	migrate.Callback = schemamigrate.Callback
-	if err := migrate.Migrate(ctx, session, c.Database.MigrateDir); err != nil {
+	if err := migrate.FromFS(ctx, session, schema.Files); err != nil {
 		return err
 	}
 
@@ -112,7 +113,7 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 		return err
 	}
 
-	return gocqlxtable.RewriteRows(session, table.SchedTask)
+	return dbutil.RewriteTable(session, table.SchedTask, table.SchedTask, nil)
 }
 
 func gocqlClusterConfigForDBInit(c config.ServerConfig) *gocql.ClusterConfig {

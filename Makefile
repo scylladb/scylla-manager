@@ -105,7 +105,7 @@ integration-test:
 # Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 -schema-dir $(PWD)/schema \
+INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
 -user cassandra -password cassandra \
 -agent-auth-token token \

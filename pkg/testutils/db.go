@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/schema"
 )
 
 var (
@@ -32,7 +33,6 @@ var (
 	flagValidate     = flag.Bool("ssl-validate", false, "Enable host verification")
 
 	flagManagedCluster = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
-	flagSchemaDir      = flag.String("schema-dir", "", "path to schema dir")
 )
 
 // ManagedClusterHosts specifies addresses of nodes in a test cluster.
@@ -60,14 +60,6 @@ func ManagedClusterCredentials() (user, password string) {
 	return *flagUser, *flagPassword
 }
 
-// SchemaDir returns the specified location of CQL files.
-func SchemaDir() string {
-	if !flag.Parsed() {
-		flag.Parse()
-	}
-	return *flagSchemaDir
-}
-
 var initOnce sync.Once
 
 // CreateSession recreates the database on scylla manager cluster and returns
@@ -81,7 +73,7 @@ func CreateSession(tb testing.TB) gocqlx.Session {
 	})
 	session := createSessionFromCluster(tb, cluster)
 
-	if err := migrate.Migrate(context.Background(), session, SchemaDir()); err != nil {
+	if err := migrate.FromFS(context.Background(), session, schema.Files); err != nil {
 		tb.Fatal("migrate:", err)
 	}
 	return session

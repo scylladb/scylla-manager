@@ -1,5 +1,4 @@
 etc/scylla-manager
-etc/scylla-manager/cql
 lib/systemd/system
 usr/bin
 usr/lib/scylla-manager

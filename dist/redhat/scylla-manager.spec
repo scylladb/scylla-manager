@@ -58,7 +58,6 @@ mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_sbindir}/
 mkdir -p %{buildroot}%{_sysconfdir}/bash_completion.d/
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}/
-mkdir -p %{buildroot}%{_sysconfdir}/%{name}/cql/
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}-agent/
 mkdir -p %{buildroot}%{_unitdir}/
 mkdir -p %{buildroot}%{_prefix}/lib/%{name}/
@@ -74,7 +73,6 @@ install -m644 dist/etc/%{name}-agent/* %{buildroot}%{_sysconfdir}/%{name}-agent/
 install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
-install -m644 schema/*.cql %{buildroot}%{_sysconfdir}/%{name}/cql/
 
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_agent_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_auth_token_gen %{buildroot}%{_sbindir}/
@@ -109,7 +107,6 @@ Requires: bash openssl yum-utils
 %{_sbindir}/scyllamgr_setup
 %{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml
-%{_sysconfdir}/%{name}/cql/*.cql
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}-check-for-updates.service
 %{_unitdir}/%{name}-check-for-updates.timer
