@@ -19,7 +19,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
 	github.com/golang/mock v1.4.4
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.4
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
 	github.com/kr/pretty v0.2.0 // indirect
@@ -33,7 +33,7 @@ require (
 	github.com/scylladb/go-log v0.0.6
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
-	github.com/scylladb/gocqlx/v2 v2.2.0
+	github.com/scylladb/gocqlx/v2 v2.4.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v1.1.1
