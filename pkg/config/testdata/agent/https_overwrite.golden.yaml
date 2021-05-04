@@ -20,6 +20,8 @@ scylla:
   prometheusaddress: 192.168.100.11
   prometheusport: "9180"
   datadirectory: /var/lib/scylla/data
+  broadcastrpcaddress: ""
+  rpcaddress: ""
 rclone:
   log_level: 7
   stats_log_level: 6

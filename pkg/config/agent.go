@@ -29,6 +29,9 @@ type ScyllaConfig struct {
 	PrometheusAddress string
 	PrometheusPort    string
 	DataDirectory     string
+
+	BroadcastRPCAddress string
+	RPCAddress          string
 }
 
 func (c ScyllaConfig) Validate() (errs error) {

@@ -12,29 +12,23 @@ import (
 
 // AgentConfigFromAPI fetches address info from the node and updates the configuration.
 func AgentConfigFromAPI(ctx context.Context, addr string, c *config.AgentConfig) error {
-	external, err := fetchScyllaConfig(ctx, addr)
+	scyllaConfig, err := scyllaConfigFromAPI(ctx, addr)
 	if err != nil {
 		return err
 	}
-
-	c.Scylla.ListenAddress = external.ListenAddress
-	c.Scylla.PrometheusAddress = external.PrometheusAddress
-	c.Scylla.PrometheusPort = external.PrometheusPort
+	c.Scylla = scyllaConfig
 
 	if c.HTTPS == "" {
 		c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, config.DefaultAgentHTTPSPort)
 	}
 
-	if external.DataDirectory != "" {
-		c.Scylla.DataDirectory = external.DataDirectory
-	}
-
 	return nil
 }
 
-func fetchScyllaConfig(ctx context.Context, addr string) (c config.ScyllaConfig, err error) {
-	client := scyllaclient.NewConfigClient(addr)
+func scyllaConfigFromAPI(ctx context.Context, addr string) (c config.ScyllaConfig, err error) {
+	c.APIAddress, c.APIPort, _ = net.SplitHostPort(addr)
 
+	client := scyllaclient.NewConfigClient(addr)
 	if c.ListenAddress, err = client.ListenAddress(ctx); err != nil {
 		return
 	}
@@ -47,5 +41,13 @@ func fetchScyllaConfig(ctx context.Context, addr string) (c config.ScyllaConfig,
 	if c.DataDirectory, err = client.DataDirectory(ctx); err != nil {
 		return
 	}
+
+	if c.BroadcastRPCAddress, err = client.BroadcastRPCAddress(ctx); err != nil {
+		return
+	}
+	if c.RPCAddress, err = client.RPCAddress(ctx); err != nil {
+		return
+	}
+
 	return
 }
