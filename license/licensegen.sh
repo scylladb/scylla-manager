@@ -7,7 +7,7 @@ set -eu -o pipefail
 
 export GO111MODULE=on
 
-for pkg in `go list -f '{{ join .Deps  "\n"}}' $1 | cut -d/ -f1-3 | sort | uniq` ; do
+for pkg in $(go list -f '{{ join .Deps  "\n"}}' $1 | cut -d/ -f1-3 | sort | uniq) ; do
     # Ignore stdlib packages
     if [[ ${pkg} =~ ^[a-z]+(/|$) ]]; then
         continue
@@ -21,6 +21,9 @@ for pkg in `go list -f '{{ join .Deps  "\n"}}' $1 | cut -d/ -f1-3 | sort | uniq`
         continue
     fi
 
-    l=`license-detector -f json "../vendor/$pkg" | jq -r '.[0].matches[0].license'`
+    l=$(license-detector -f json "../vendor/$pkg" | jq -r '.[0].matches[0].license')
+    if [[ ${l} == "null" ]]; then
+      continue
+    fi
     echo -e "This product includes software from ${pkg} licensed under ${l} license."
 done
