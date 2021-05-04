@@ -3,7 +3,6 @@
 package config
 
 import (
-	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -64,13 +63,11 @@ type AgentConfig struct {
 
 func DefaultAgentConfig() AgentConfig {
 	return AgentConfig{
-		TLSVersion:  TLSv12,
-		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
-		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
-		Prometheus:  ":5090",
-		Debug:       "127.0.0.1:5112",
-		CPU:         NoCPU,
-		Logger:      DefaultAgentLogConfig(),
+		TLSVersion: TLSv12,
+		Prometheus: ":5090",
+		Debug:      "127.0.0.1:5112",
+		CPU:        NoCPU,
+		Logger:     DefaultAgentLogConfig(),
 		Scylla: ScyllaConfig{
 			APIAddress:    "0.0.0.0",
 			APIPort:       "10000",
@@ -91,17 +88,6 @@ func ParseAgentConfigFiles(files []string) (AgentConfig, error) {
 }
 
 func (c AgentConfig) Validate() (errs error) {
-	// Validate TLS config
-	if c.TLSCertFile == "" {
-		errs = multierr.Append(errs, errors.New("missing tls_cert_file"))
-	} else if _, err := os.Stat(c.TLSCertFile); err != nil {
-		errs = multierr.Append(errs, errors.Wrapf(err, "invalid tls_cert_file %s", c.TLSCertFile))
-	}
-	if c.TLSKeyFile == "" {
-		errs = multierr.Append(errs, errors.New("missing tls_key_file"))
-	} else if _, err := os.Stat(c.TLSKeyFile); err != nil {
-		errs = multierr.Append(errs, errors.Wrapf(err, "invalid tls_key_file %s", c.TLSKeyFile))
-	}
 	// Validate Scylla config
 	errs = multierr.Append(errs, errors.Wrap(c.Scylla.Validate(), "scylla"))
 
@@ -109,6 +95,11 @@ func (c AgentConfig) Validate() (errs error) {
 	errs = multierr.Append(errs, errors.Wrap(c.S3.Validate(), "s3"))
 
 	return
+}
+
+// HasTLSCert returns true iff TLSCertFile or TLSKeyFile is set.
+func (c AgentConfig) HasTLSCert() bool {
+	return c.TLSCertFile != "" || c.TLSKeyFile != ""
 }
 
 // ObfuscatedAgentConfig returns AgentConfig with secrets replaced with ******.

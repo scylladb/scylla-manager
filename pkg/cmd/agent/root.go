@@ -61,19 +61,21 @@ var rootCmd = &cobra.Command{
 		}()
 
 		// Start server
-		server := newServer(c, logger)
-		if err := server.init(ctx); err != nil {
+		s := newServer(c, logger)
+		if err := s.init(ctx); err != nil {
 			return errors.Wrapf(err, "server init")
 		}
-		server.makeHTTPServers()
-		server.startServers(ctx)
-		defer server.shutdownServers(ctx, 30*time.Second)
+		if err := s.makeServers(ctx); err != nil {
+			return errors.Wrapf(err, "make servers")
+		}
+		s.startServers(ctx)
+		defer s.shutdownServers(ctx, 30*time.Second)
 
 		// Wait signal
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 		select {
-		case err := <-server.errCh:
+		case err := <-s.errCh:
 			if err != nil {
 				return err
 			}

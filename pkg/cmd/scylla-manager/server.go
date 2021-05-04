@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/store"
+	"github.com/scylladb/scylla-manager/pkg/util/certutil"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
@@ -54,22 +55,13 @@ func newServer(c config.ServerConfig, logger log.Logger) (*server, error) {
 		return nil, errors.Wrapf(err, "database")
 	}
 
-	s := &server{
+	return &server{
 		config:  c,
 		session: session,
 		logger:  logger,
 
 		errCh: make(chan error, 4),
-	}
-
-	if err := s.makeServices(); err != nil {
-		return nil, err
-	}
-	if err := s.makeServers(); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	}, nil
 }
 
 func (s *server) makeServices() error {
@@ -201,7 +193,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	return nil
 }
 
-func (s *server) makeServers() error {
+func (s *server) makeServers(ctx context.Context) error {
 	services := restapi.Services{
 		Cluster:     s.clusterSvc,
 		HealthCheck: s.healthSvc,
@@ -218,23 +210,14 @@ func (s *server) makeServers() error {
 		}
 	}
 	if s.config.HTTPS != "" {
+		tlsConfig, err := s.tlsConfig(ctx)
+		if err != nil {
+			return errors.Wrapf(err, "tls")
+		}
 		s.httpsServer = &http.Server{
 			Addr:      s.config.HTTPS,
-			TLSConfig: s.config.TLSVersion.TLSConfig(),
+			TLSConfig: tlsConfig,
 			Handler:   h,
-		}
-
-		if s.config.TLSCAFile != "" {
-			pool := x509.NewCertPool()
-			b, err := ioutil.ReadFile(s.config.TLSCAFile)
-			if err != nil {
-				return errors.Wrapf(err, "https read certificate file %s", s.config.TLSCAFile)
-			}
-			if !pool.AppendCertsFromPEM(b) {
-				return errors.Errorf("https no certificates found in %s", s.config.TLSCAFile)
-			}
-			s.httpsServer.TLSConfig.ClientCAs = pool
-			s.httpsServer.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
 		}
 	}
 	if s.config.Prometheus != "" {
@@ -251,6 +234,53 @@ func (s *server) makeServers() error {
 	}
 
 	return nil
+}
+
+func (s *server) tlsConfig(ctx context.Context) (*tls.Config, error) {
+	var (
+		cert tls.Certificate
+		err  error
+	)
+	if s.config.HasTLSCert() {
+		s.logger.Info(ctx, "Loading TLS certificate from disk",
+			"cert_file", s.config.TLSCertFile,
+			"key_file", s.config.TLSKeyFile,
+		)
+		cert, err = tls.LoadX509KeyPair(s.config.TLSCertFile, s.config.TLSKeyFile)
+	} else {
+		hosts := []string{s.config.HTTPS}
+		s.logger.Info(ctx, "Generating TLS certificate", "hosts", hosts)
+		cert, err = certutil.GenerateSelfSignedCertificate(hosts)
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "certificate")
+	}
+	tlsConfig := s.config.TLSVersion.TLSConfig()
+	tlsConfig.Certificates = []tls.Certificate{cert}
+
+	if s.config.TLSCAFile != "" {
+		pool, err := s.certPool(s.config.TLSCAFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "CA")
+		}
+		tlsConfig.ClientCAs = pool
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	}
+
+	return tlsConfig, nil
+}
+
+func (s *server) certPool(file string) (*x509.CertPool, error) {
+	pem, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, errors.Errorf("no certificates found in %s", file)
+	}
+	return pool, nil
 }
 
 func (s *server) startServices(ctx context.Context) error {
@@ -274,7 +304,7 @@ func (s *server) startServers(ctx context.Context) {
 	if s.httpsServer != nil {
 		s.logger.Info(ctx, "Starting HTTPS server", "address", s.httpsServer.Addr, "client_ca", s.config.TLSCAFile)
 		go func() {
-			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile), "HTTPS server start")
+			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS("", ""), "HTTPS server start")
 		}()
 	}
 

@@ -1,4 +1,5 @@
 http: 127.0.0.1:5080
+https: 127.0.0.1:5443
 
 logger:
   level: info

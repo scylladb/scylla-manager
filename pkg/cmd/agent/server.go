@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"os"
@@ -13,11 +14,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/config/enrich"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/pkg/util/certutil"
 	"github.com/scylladb/scylla-manager/pkg/util/cpuset"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
 	"github.com/scylladb/scylla-manager/pkg/util/netwait"
@@ -120,10 +123,14 @@ func (s *server) init(ctx context.Context) error {
 	)
 }
 
-func (s *server) makeHTTPServers() {
+func (s *server) makeServers(ctx context.Context) error {
+	tlsConfig, err := s.tlsConfig(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "tls")
+	}
 	s.httpsServer = &http.Server{
 		Addr:      s.config.HTTPS,
-		TLSConfig: s.config.TLSVersion.TLSConfig(),
+		TLSConfig: tlsConfig,
 		Handler:   newRouter(s.config, rcserver.New(), s.logger.Named("http")),
 	}
 	if s.config.Prometheus != "" {
@@ -138,13 +145,45 @@ func (s *server) makeHTTPServers() {
 			Handler: httppprof.Handler(),
 		}
 	}
+
+	return nil
+}
+
+func (s *server) tlsConfig(ctx context.Context) (*tls.Config, error) {
+	var (
+		cert tls.Certificate
+		err  error
+	)
+	if s.config.HasTLSCert() {
+		s.logger.Info(ctx, "Loading TLS certificate from disk",
+			"cert_file", s.config.TLSCertFile,
+			"key_file", s.config.TLSKeyFile,
+		)
+		cert, err = tls.LoadX509KeyPair(s.config.TLSCertFile, s.config.TLSKeyFile)
+	} else {
+		hosts := strset.New()
+		for _, h := range []string{s.config.Scylla.BroadcastRPCAddress, s.config.Scylla.RPCAddress, s.config.Scylla.ListenAddress} {
+			if h != "" && h != net.IPv4zero.String() && h != net.IPv4zero.String() {
+				hosts.Add(h)
+			}
+		}
+		s.logger.Info(ctx, "Generating TLS certificate", "hosts", hosts.List())
+		cert, err = certutil.GenerateSelfSignedCertificate(hosts.List())
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "certificate")
+	}
+	tlsConfig := s.config.TLSVersion.TLSConfig()
+	tlsConfig.Certificates = []tls.Certificate{cert}
+
+	return tlsConfig, nil
 }
 
 func (s *server) startServers(ctx context.Context) {
 	if s.httpsServer != nil {
 		s.logger.Info(ctx, "Starting HTTPS server", "address", s.httpsServer.Addr)
 		go func() {
-			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile), "HTTPS server start")
+			s.errCh <- errors.Wrap(s.httpsServer.ListenAndServeTLS("", ""), "HTTPS server start")
 		}()
 	}
 

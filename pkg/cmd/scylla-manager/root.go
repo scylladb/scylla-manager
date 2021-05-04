@@ -129,24 +129,30 @@ var rootCmd = &cobra.Command{
 		logger.Info(ctx, "Schema up to date", "keyspace", c.Database.Keyspace)
 
 		// Start server
-		server, err := newServer(c, logger)
+		s, err := newServer(c, logger)
 		if err != nil {
 			return errors.Wrapf(err, "server init")
 		}
-		if err := server.startServices(ctx); err != nil {
+		if err := s.makeServices(); err != nil {
+			return errors.Wrapf(err, "server init")
+		}
+		if err := s.makeServers(ctx); err != nil {
+			return errors.Wrapf(err, "server init")
+		}
+		if err := s.startServices(ctx); err != nil {
 			return errors.Wrapf(err, "server start")
 		}
-		server.startServers(ctx)
+		s.startServers(ctx)
 		defer func() {
-			server.shutdownServers(ctx, 30*time.Second)
-			server.close()
+			s.shutdownServers(ctx, 30*time.Second)
+			s.close()
 		}()
 
 		// Wait signal
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 		select {
-		case err := <-server.errCh:
+		case err := <-s.errCh:
 			if err != nil {
 				return err
 			}

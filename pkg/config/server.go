@@ -59,12 +59,10 @@ type ServerConfig struct {
 
 func DefaultServerConfig() ServerConfig {
 	config := ServerConfig{
-		TLSVersion:  TLSv12,
-		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
-		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
-		Prometheus:  ":5090",
-		Debug:       "127.0.0.1:5112",
-		Logger:      DefaultServerLogConfig(),
+		TLSVersion: TLSv12,
+		Prometheus: ":5090",
+		Debug:      "127.0.0.1:5112",
+		Logger:     DefaultServerLogConfig(),
 		Database: DBConfig{
 			Hosts:                         []string{"127.0.0.1"},
 			Keyspace:                      "scylla_manager",
@@ -96,15 +94,6 @@ func (c ServerConfig) Validate() error {
 	if c.HTTP == "" && c.HTTPS == "" {
 		return errors.New("missing http or https")
 	}
-	if c.HTTPS != "" {
-		if c.TLSCertFile == "" {
-			return errors.New("missing tls_cert_file")
-		}
-		if c.TLSKeyFile == "" {
-			return errors.New("missing tls_key_file")
-		}
-	}
-
 	if len(c.Database.Hosts) == 0 {
 		return errors.New("missing database.hosts")
 	}
@@ -119,6 +108,11 @@ func (c ServerConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// HasTLSCert returns true iff TLSCertFile or TLSKeyFile is set.
+func (c ServerConfig) HasTLSCert() bool {
+	return c.TLSCertFile != "" || c.TLSKeyFile != ""
 }
 
 // ObfuscatedServerConfig returns ServerConfig with secrets replaced with ******.
