@@ -77,7 +77,6 @@ install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_agent_setup %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_auth_token_gen %{buildroot}%{_sbindir}/
 ln -sf %{_prefix}/lib/%{name}/scyllamgr_setup %{buildroot}%{_sbindir}/
-ln -sf %{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen %{buildroot}%{_sbindir}/
 
 install -m644 license/LICENSE.PROPRIETARY %{buildroot}%{_docdir}/%{name}-server/LICENSE
 install -m644 license/LICENSE.3RD_PARTY.%{name}-server %{buildroot}%{_docdir}/%{name}-server/LICENSE.3RD_PARTY
@@ -94,7 +93,7 @@ Summary: Scylla Manager server
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: bash openssl yum-utils
+Requires: bash yum-utils
 
 %description server
 %{common_description} This package provides the Scylla Manager server that manages maintenance tasks for Scylla database clusters.
@@ -103,9 +102,7 @@ Requires: bash openssl yum-utils
 %defattr(-,root,root)
 %{_bindir}/%{name}
 %{_prefix}/lib/%{name}/scyllamgr_setup
-%{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
 %{_sbindir}/scyllamgr_setup
-%{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.yaml
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}-check-for-updates.service
@@ -119,7 +116,6 @@ getent group  %{user} || /usr/sbin/groupadd -r %{user} > /dev/null
 getent passwd %{user} || /usr/sbin/useradd -g %{user} -d %{_sharedstatedir}/%{user} -m -s /sbin/nologin -r %{user} > /dev/null
 
 %post server
-%{_sbindir}/scyllamgr_ssl_cert_gen
 %{_bindir}/scylla-manager check-for-updates --install
 %systemd_post %{name}.service
 
@@ -150,7 +146,6 @@ Summary: Scylla Manager Agent
 
 %{?systemd_requires}
 BuildRequires: systemd
-Requires: openssl
 
 %description agent
 %{common_description} This package provides the Scylla Manager Agent installed alongside Scylla database server.
@@ -160,10 +155,8 @@ Requires: openssl
 %{_bindir}/%{name}-agent
 %{_prefix}/lib/%{name}/scyllamgr_agent_setup
 %{_prefix}/lib/%{name}/scyllamgr_auth_token_gen
-%{_prefix}/lib/%{name}/scyllamgr_ssl_cert_gen
 %{_sbindir}/scyllamgr_agent_setup
 %{_sbindir}/scyllamgr_auth_token_gen
-%{_sbindir}/scyllamgr_ssl_cert_gen
 %config(noreplace) %{_sysconfdir}/%{name}-agent/%{name}-agent.yaml
 %{_unitdir}/%{name}-agent.service
 %license %{_docdir}/%{name}-agent/LICENSE
@@ -178,7 +171,6 @@ getent passwd %{user} || /usr/sbin/useradd -g %{user} -d %{_sharedstatedir}/%{us
 usermod -ou $(id -u scylla) %{user}
 
 %post agent
-%{_sbindir}/scyllamgr_ssl_cert_gen
 %systemd_post %{name}-agent.service
 
 %preun agent
