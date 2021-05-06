@@ -94,7 +94,7 @@ Print list of tokens from the manifest.
 .. _download-files-param-keyspace:
 
 ``-K, --keyspace list``
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 A comma-separated list of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'.
 
@@ -112,7 +112,7 @@ Print list of nodes including cluster name and node IP, this command would help 
 .. _download-files-param-list-snapshots:
 
 ``--list-snapshots``
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 Print list of snapshots of the specified node, this also takes into account keyspace filter and returns only snapshots containing any of requested keyspaces or tables, newest snapshots are printed first.
 
@@ -121,7 +121,7 @@ Print list of snapshots of the specified node, this also takes into account keys
 .. _download-files-param-location:
 
 ``-L, --location string``
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: s3, gcs, azure.
 
@@ -161,7 +161,7 @@ How many files to download in parallel.
 .. _download-files-param-rate-limit:
 
 ``--rate-limit int``
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 Rate limit in megabytes (MiB) per second.
 
@@ -169,7 +169,7 @@ Rate limit in megabytes (MiB) per second.
 
 ====
 
-.. _download-files-param-rate-limit:
+.. _download-files-param-snapshot-tag:
 
 ``-T, --snapshot-tag tag``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
