@@ -70,7 +70,7 @@ install -m755 release/linux_amd64/* %{buildroot}%{_bindir}/
 install -m644 release/bash_completion/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 install -m644 dist/etc/%{name}/* %{buildroot}%{_sysconfdir}/%{name}/
 install -m644 dist/etc/%{name}-agent/* %{buildroot}%{_sysconfdir}/%{name}-agent/
-install -m755 dist/scripts/* %{buildroot}%{_prefix}/lib/%{name}/
+install -m755 scripts/* %{buildroot}%{_prefix}/lib/%{name}/
 install -m644 dist/systemd/*.service %{buildroot}%{_unitdir}/
 install -m644 dist/systemd/*.timer %{buildroot}%{_unitdir}/
 
