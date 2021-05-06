@@ -10,7 +10,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
-//go:generate ./options_gen.sh
+//go:generate go run -tags +ignore generate_options.go
 
 const (
 	// Default value of 5MB caused that we encountered problems with S3
