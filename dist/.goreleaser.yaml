@@ -1,0 +1,212 @@
+project_name: scylla-manager
+dist: release
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^dist:'
+      - '^docs:'
+      - '^makefile:'
+      - '^testing:'
+
+builds:
+  - id: server
+    dir: ../pkg
+    main: ./cmd/scylla-manager
+    binary: scylla-manager
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags '-static'
+      - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
+
+  - id: client
+    dir: ../pkg
+    main: ./cmd/sctool
+    binary: sctool
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags '-static'
+      - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
+
+  - id: agent
+    dir: ../pkg
+    main: ./cmd/agent
+    binary: scylla-manager-agent
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags '-static'
+      - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
+
+nfpms:
+  - id: server
+    builds:
+      - server
+    package_name: "scylla-manager-server"
+    vendor: ScyllaDB
+    homepage: https://www.scylladb.com/product/scylla-manager/
+    maintainer: Michał Jan Matczuk <michal@scylladb.com>
+    description: "Scylla Manager server"
+    license: Proprietary
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+
+    empty_folders:
+      - /var/lib/scylla-manager
+    contents:
+      - src: etc/scylla-manager.yaml
+        dst: /etc/scylla-manager/scylla-manager.yaml
+        type: "config|noreplace"
+      - src: ../scripts/scyllamgr_setup
+        dst: /usr/sbin/scyllamgr_setup
+      - src: systemd/scylla-manager-check-for-updates.service
+        dst: /usr/lib/systemd/system/scylla-manager-check-for-updates.service
+      - src: systemd/scylla-manager-check-for-updates.timer
+        dst: /usr/lib/systemd/system/scylla-manager-check-for-updates.timer
+      - src: systemd/scylla-manager.service
+        dst: /usr/lib/systemd/system/scylla-manager.service
+      - src: ../license/LICENSE.PROPRIETARY
+        dst: /usr/share/doc/scylla-manager-server/LICENSE
+      - src: ../license/LICENSE.3RD_PARTY.scylla-manager-server
+        dst: /usr/share/doc/scylla-manager-server/LICENSE.3RD_PARTY
+    rpm:
+      group: Applications/Databases
+      compression: xz
+    overrides:
+      deb:
+        scripts:
+          preinstall: deb/scylla-manager-server.preinst
+          postinstall: deb/scylla-manager-server.postinst
+          preremove: deb/scylla-manager-server.prerm
+          postremove: deb/scylla-manager-server.postrm
+      rpm:
+        scripts:
+          preinstall: rpm/scylla-manager-server.preinst
+          postinstall: rpm/scylla-manager-server.postinst
+          preremove: rpm/scylla-manager-server.prerm
+          postremove: rpm/scylla-manager-server.postrm
+
+  - id: client
+    builds:
+      - client
+    package_name: "scylla-manager-client"
+    vendor: ScyllaDB
+    homepage: https://www.scylladb.com/product/scylla-manager/
+    maintainer: Michał Jan Matczuk <michal@scylladb.com>
+    description: "Scylla Manager client"
+    license: Proprietary
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+
+    recommends:
+      - bash-completion
+    contents:
+      - dst: /etc/bash_completion.d/sctool.bash
+        type: ghost
+      - src: ../license/LICENSE.PROPRIETARY
+        dst: /usr/share/doc/scylla-manager-client/LICENSE
+      - src: ../license/LICENSE.3RD_PARTY.scylla-manager-client
+        dst: /usr/share/doc/scylla-manager-client/LICENSE.3RD_PARTY
+    rpm:
+      group: Applications/Databases
+      compression: xz
+    overrides:
+      deb:
+        scripts:
+          postinstall: deb/scylla-manager-client.postinst
+      rpm:
+        scripts:
+          postinstall: rpm/scylla-manager-client.postinst
+
+  - id: agent
+    builds:
+      - agent
+    package_name: "scylla-manager-agent"
+    vendor: ScyllaDB
+    homepage: https://www.scylladb.com/product/scylla-manager/
+    maintainer: Michał Jan Matczuk <michal@scylladb.com>
+    description: "Scylla Manager agent"
+    license: Proprietary
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+
+    empty_folders:
+      - /var/lib/scylla-manager
+    contents:
+      - src: etc/scylla-manager-agent.yaml
+        dst: /etc/scylla-manager-agent/scylla-manager-agent.yaml
+        type: "config|noreplace"
+      - src: ../scripts/scyllamgr_agent_setup
+        dst: /usr/sbin/scyllamgr_agent_setup
+      - src: ../scripts/scyllamgr_auth_token_gen
+        dst: /usr/sbin/scyllamgr_auth_token_gen
+      - src: systemd/scylla-manager-agent.service
+        dst: /usr/lib/systemd/system/scylla-manager-agent.service
+      - src: ../license/LICENSE.PROPRIETARY
+        dst: /usr/share/doc/scylla-manager-agent/LICENSE
+      - src: ../license/LICENSE.3RD_PARTY.scylla-manager-agent
+        dst: /usr/share/doc/scylla-manager-agent/LICENSE.3RD_PARTY
+    rpm:
+      group: Applications/Databases
+      compression: xz
+    overrides:
+      deb:
+        scripts:
+          preinstall: deb/scylla-manager-agent.preinst
+          postinstall: deb/scylla-manager-agent.postinst
+          preremove: deb/scylla-manager-agent.prerm
+          postremove: deb/scylla-manager-agent.postrm
+      rpm:
+        scripts:
+          preinstall: rpm/scylla-manager-agent.preinst
+          postinstall: rpm/scylla-manager-agent.postinst
+          preremove: rpm/scylla-manager-agent.prerm
+          postremove: rpm/scylla-manager-agent.postrm
+
+dockers:
+  - ids:
+      - server
+      - client
+    image_templates:
+      - "scylladb/scylla-manager:{{ .Version }}"
+      - "scylladb/scylla-manager:latest"
+    dockerfile: docker/scylla-manager.dockerfile
+    extra_files:
+      - docker/scylla-manager.yaml
+
+  - ids:
+      - agent
+    image_templates:
+      - "scylladb/scylla-manager-agent:{{ .Version }}"
+      - "scylladb/scylla-manager-agent:latest"
+    dockerfile: docker/scylla-manager-agent.dockerfile
+
+checksum:
+  name_template: 'checksums'

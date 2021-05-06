@@ -1,0 +1,1 @@
+/usr/bin/sctool _bashcompletion > /etc/bash_completion.d/sctool.bash || :

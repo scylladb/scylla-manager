@@ -1,0 +1,3 @@
+#!/bin/sh
+set -e
+/usr/bin/scylla-manager check-for-updates --install || :

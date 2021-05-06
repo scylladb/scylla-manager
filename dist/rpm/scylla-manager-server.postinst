@@ -1,0 +1,6 @@
+/usr/bin/scylla-manager check-for-updates --install || :
+
+if [ $1 -eq 1 ] && [ -x /usr/bin/systemctl ]; then
+        # Initial installation
+        /usr/bin/systemctl --no-reload preset scylla-manager.service || :
+fi

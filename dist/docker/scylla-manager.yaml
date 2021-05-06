@@ -1,0 +1,6 @@
+http: ':5080'
+https: ':5443'
+
+database:
+  hosts:
+    - scylla-manager-db
