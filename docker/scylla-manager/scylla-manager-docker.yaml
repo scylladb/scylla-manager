@@ -1,5 +1,0 @@
-http: ':5080'
-
-database:
-  hosts:
-    - scylla-manager-db

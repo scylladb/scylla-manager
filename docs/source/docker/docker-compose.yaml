@@ -2,14 +2,14 @@ version: "3.7"
 
 services:
   scylla-manager:
-    image: scylladb/scylla-manager:${SCYLLA_MANAGER_VERSION}
+    image: scylladb/scylla-manager
     networks:
       public:
     depends_on:
       - scylla-manager-db
 
   scylla-manager-db:
-    image: scylladb/scylla:latest
+    image: scylladb/scylla
     volumes:
       - scylla_manager_db_data:/var/lib/scylla
     networks:
@@ -19,7 +19,7 @@ services:
   scylla:
     build:
       context: .
-    image: scylladb/scylla-with-agent:${SCYLLA_MANAGER_VERSION}
+    image: scylladb/scylla-with-agent
     volumes:
       - scylla_data:/var/lib/scylla
     networks:
@@ -28,7 +28,7 @@ services:
     command: --smp 1 --memory 1G
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio
     volumes:
       - minio_data:/data
     networks:

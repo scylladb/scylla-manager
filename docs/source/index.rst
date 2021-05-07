@@ -6,6 +6,7 @@ Scylla Manager
    :hidden:
    :maxdepth: 2
 
+   docker/index
    install-scylla-manager
    install-scylla-manager-agent
    add-a-cluster
