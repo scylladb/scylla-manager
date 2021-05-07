@@ -98,7 +98,7 @@ func TestConfigModification(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := config.ParseServerConfigFiles([]string{"../../../dist/etc/scylla-manager/scylla-manager.yaml"})
+	c, err := config.ParseServerConfigFiles([]string{"../../../dist/etc/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}

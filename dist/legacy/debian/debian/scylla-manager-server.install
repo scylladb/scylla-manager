@@ -1,6 +1,6 @@
 release/linux_amd64/scylla-manager usr/bin
 scripts/scyllamgr_setup usr/sbin
-dist/etc/scylla-manager/* etc/scylla-manager
+dist/etc/scylla-manager.yaml etc/scylla-manager
 dist/systemd/scylla-manager.service lib/systemd/system
 dist/systemd/scylla-manager-check-for-updates.service lib/systemd/system
 dist/systemd/scylla-manager-check-for-updates.timer lib/systemd/system
