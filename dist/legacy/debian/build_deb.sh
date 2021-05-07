@@ -49,7 +49,7 @@ pkg_install() {
     fi
 }
 
-if [ ! -e dist/debian/build_deb.sh ]; then
+if [ ! -e dist/legacy/debian/build_deb.sh ]; then
     echo "run build_deb.sh in top of scylla dir"
     exit 1
 fi
@@ -120,7 +120,7 @@ else
     BRANCH=$SCYLLA_MANAGER_BRANCH
 fi
 
-cp -a dist/debian/debian debian
+cp -a dist/legacy/debian/debian debian
 PYTHON_SUPPORT=false
 if is_debian $TARGET; then
     REVISION="1~$TARGET"
@@ -136,8 +136,8 @@ export DEBEMAIL="syuu@scylladb.com"
 dch --create --package scylla-manager-server -v $SCYLLA_MANAGER_VERSION-$SCYLLA_MANAGER_RELEASE-$REVISION -D $TARGET "New release"
 
 sudo rm -fv /var/cache/pbuilder/scylla-manager-$TARGET.tgz
-sudo DIST=$TARGET /usr/sbin/pbuilder clean --configfile ./dist/debian/pbuilderrc
-sudo DIST=$TARGET /usr/sbin/pbuilder create --configfile ./dist/debian/pbuilderrc --aptcache /tmp/
-sudo DIST=$TARGET /usr/sbin/pbuilder update --configfile ./dist/debian/pbuilderrc
+sudo DIST=$TARGET /usr/sbin/pbuilder clean --configfile ./dist/legacy/debian/pbuilderrc
+sudo DIST=$TARGET /usr/sbin/pbuilder create --configfile ./dist/legacy/debian/pbuilderrc --aptcache /tmp/
+sudo DIST=$TARGET /usr/sbin/pbuilder update --configfile ./dist/legacy/debian/pbuilderrc
 sudo DIST=$TARGET GO_VERSION="$GO_VERSION" CURL="/usr/bin/curl" VERSION="$SCYLLA_MANAGER_VERSION" RELEASE="$SCYLLA_MANAGER_RELEASE"\
- pdebuild  --configfile ./dist/debian/pbuilderrc --buildresult dist/release/deb
+ pdebuild  --configfile ./dist/legacy/debian/pbuilderrc --buildresult dist/release/deb
