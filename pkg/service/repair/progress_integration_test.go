@@ -109,9 +109,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 			},
 		}
 		start := timeutc.Now()
-		if err := pm.OnScyllaJobStart(ctx, j, jobID); err != nil {
-			t.Fatal(err)
-		}
+		pm.OnScyllaJobStart(ctx, j, jobID)
 		Print("Then: run progress is updated with starting times")
 		goldenProgress[0].StartedAt = &start
 		goldenProgress[0].DurationStartedAt = &start
@@ -125,9 +123,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 		Print("When: OnScyllaJobEnd is called on progress manager")
 		end := timeutc.Now()
-		if err := pm.OnScyllaJobEnd(ctx, j, jobID); err != nil {
-			t.Fatal(err)
-		}
+		pm.OnScyllaJobEnd(ctx, j, jobID)
 
 		Print("Then: there are no changes in the database")
 		updatedProgress = getProgress(run, session)
@@ -136,12 +132,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 		}
 
 		Print("When: OnJobResult is called on progress manager")
-		if err := pm.OnJobResult(ctx, jobResult{
-			job: j,
-			Err: nil,
-		}); err != nil {
-			t.Fatal(err)
-		}
+		pm.OnJobResult(ctx, jobResult{job: j})
 
 		Print("Then: progress is updated with success and duration")
 		goldenProgress[0].Success = 1

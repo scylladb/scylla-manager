@@ -26,16 +26,16 @@ type progressManager interface {
 	// OnJobResult must be called when worker is done with processing a job.
 	// ttrs must contain ranges only for a single table.
 	// Requires Init() to be called first.
-	OnJobResult(ctx context.Context, result jobResult) error
+	OnJobResult(ctx context.Context, result jobResult)
 	// OnScyllaJobStart must be called when single job for the repair has started.
 	// Job must contain ranges only for a single table.
 	// Requires Init() to be called first.
-	OnScyllaJobStart(ctx context.Context, job job, jobID int32) error
+	OnScyllaJobStart(ctx context.Context, job job, jobID int32)
 	// OnScyllaJobEnd must be called when single job for the repair is finished.
 	// Job must contain ranges only for a single table.
 	// Must be called after OnScyllaJobStart.
 	// Requires Init() to be called first.
-	OnScyllaJobEnd(ctx context.Context, job job, jobID int32) error
+	OnScyllaJobEnd(ctx context.Context, job job, jobID int32)
 	// CheckRepaired takes table token range and returns true if it's repaired.
 	// Requires Init() to be called first.
 	CheckRepaired(ttr *tableTokenRange) bool
@@ -157,7 +157,7 @@ func (pm *dbProgressManager) restoreState() error {
 	return nil
 }
 
-func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobID int32) error {
+func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobID int32) {
 	var (
 		start = timeutc.Now()
 		ttr   = job.Ranges[0]
@@ -191,18 +191,16 @@ func (pm *dbProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobI
 		if pm.progress[pk].DurationStartedAt == nil {
 			pm.progress[pk].DurationStartedAt = &start
 		}
-
-		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
-			pm.mu.Unlock()
-			return errors.Wrap(err, "update repair progress")
-		}
+		q.BindStruct(pm.progress[pk])
 		pm.mu.Unlock()
-	}
 
-	return nil
+		if err := q.Exec(); err != nil {
+			pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
+		}
+	}
 }
 
-func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID int32) error {
+func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID int32) {
 	var (
 		end = timeutc.Now()
 		ttr = job.Ranges[0]
@@ -233,11 +231,9 @@ func (pm *dbProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID 
 		}
 		pm.mu.Unlock()
 	}
-
-	return nil
 }
 
-func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error {
+func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) {
 	var (
 		end = timeutc.Now()
 		ttr = r.Ranges[0]
@@ -278,8 +274,10 @@ func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error
 			pm.progress[pk].CompletedAt = &end
 		}
 
-		if err := q.BindStruct(pm.progress[pk]).Exec(); err != nil {
-			return errors.Wrap(err, "update repair progress")
+		q.BindStruct(pm.progress[pk])
+
+		if err := q.Exec(); err != nil {
+			pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
 		}
 	}
 
@@ -301,7 +299,9 @@ func (pm *dbProgressManager) OnJobResult(ctx context.Context, r jobResult) error
 		pm.state[sk] = rs
 	}
 
-	return table.RepairRunState.InsertQuery(pm.session).BindStruct(pm.state[sk]).ExecRelease()
+	if err := table.RepairRunState.InsertQuery(pm.session).BindStruct(pm.state[sk]).ExecRelease(); err != nil {
+		pm.logger.Error(ctx, "Update repair run state", "key", sk, "error", err)
+	}
 }
 
 func (pm *dbProgressManager) CheckRepaired(ttr *tableTokenRange) bool {

@@ -25,16 +25,13 @@ func (pm *nopProgressManager) Init(ctx context.Context, ttrs []*tableTokenRange)
 	return nil
 }
 
-func (pm *nopProgressManager) OnJobResult(ctx context.Context, job jobResult) error {
-	return nil
+func (pm *nopProgressManager) OnJobResult(ctx context.Context, job jobResult) {
 }
 
-func (pm *nopProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobID int32) error {
-	return nil
+func (pm *nopProgressManager) OnScyllaJobStart(ctx context.Context, job job, jobID int32) {
 }
 
-func (pm *nopProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID int32) error {
-	return nil
+func (pm *nopProgressManager) OnScyllaJobEnd(ctx context.Context, job job, jobID int32) {
 }
 
 func (pm *nopProgressManager) CheckRepaired(ttr *tableTokenRange) bool {
