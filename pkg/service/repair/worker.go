@@ -65,11 +65,7 @@ func (w *worker) Run(ctx context.Context) error {
 				job: job,
 				Err: w.handleJob(ctx, job),
 			}
-
-			if err := w.progress.OnJobResult(ctx, r); err != nil {
-				return errors.Wrapf(err, "host %s: job result", job.Host)
-			}
-
+			w.progress.OnJobResult(ctx, r)
 			select {
 			case w.out <- r:
 			case <-ctx.Done():
@@ -116,18 +112,8 @@ func (w *worker) runRepair(ctx context.Context, job job) error {
 		return errors.Wrapf(err, "host %s: schedule repair", host)
 	}
 
-	if err := w.progress.OnScyllaJobStart(ctx, job, jobID); err != nil {
-		w.logger.Error(ctx, "Failed to register OnScyllaJobStart event",
-			"host", host, "job_id", jobID, "error", err,
-		)
-	}
-	defer func() {
-		if err := w.progress.OnScyllaJobEnd(ctx, job, jobID); err != nil {
-			w.logger.Error(ctx, "Failed to register OnScyllaJobEnd event",
-				"host", host, "job_id", jobID, "error", err,
-			)
-		}
-	}()
+	w.progress.OnScyllaJobStart(ctx, job, jobID)
+	defer w.progress.OnScyllaJobEnd(ctx, job, jobID)
 
 	logger := w.logger.With(
 		"keyspace", ttr.Keyspace,
