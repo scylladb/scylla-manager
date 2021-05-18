@@ -114,7 +114,10 @@ func ObfuscatedAgentConfig(c AgentConfig) AgentConfig {
 		&c.AuthToken,
 		&c.S3.AccessKeyID,
 		&c.S3.SecretAccessKey,
+		&c.S3.SseCustomerKey,
 		&c.GCS.Token,
+		&c.GCS.ClientSecret,
+		&c.GCS.ServiceAccountCredentials,
 		&c.Azure.Key,
 	}
 	for _, s := range secrets {
