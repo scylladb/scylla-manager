@@ -306,9 +306,7 @@ func (g *generator) fillNext(ctx context.Context) {
 			)
 			r := jobResult{job: j}
 			g.processResult(ctx, r)
-			if err := g.progress.OnJobResult(ctx, r); err != nil {
-				g.logger.Error(ctx, "Updating deleted table progress", "host", j.Host, "error", err)
-			}
+			g.progress.OnJobResult(ctx, r)
 			continue
 		}
 
