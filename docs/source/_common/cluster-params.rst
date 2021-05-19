@@ -38,9 +38,14 @@ CQL password associated with username.
 
 =====
 
+``--port <int>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Alternate Scylla Manager agent port (default 10001).
+
+=====
+
 ``--without-repair``
 ^^^^^^^^^^^^^^^^^^^^
 
 When cluster is added, Manager schedules repair to repeat every 7 days. To create a cluster without a scheduled repair, use this flag.
-
-
