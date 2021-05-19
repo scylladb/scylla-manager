@@ -19,3 +19,5 @@ CREATE TABLE validate_backup_run_progress (
     completed_at timestamp,
     PRIMARY KEY ((cluster_id, task_id, run_id), dc, host, location)
 );
+
+ALTER TABLE cluster ADD port int;
