@@ -1,0 +1,1 @@
+-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB
