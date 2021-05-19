@@ -488,6 +488,7 @@ func validCluster() *cluster.Cluster {
 		ID:        uuid.MustRandom(),
 		Name:      "name_" + uuid.MustRandom().String(),
 		Host:      ManagedClusterHost(),
+		Port:      10010,
 		AuthToken: AgentAuthToken(),
 	}
 }

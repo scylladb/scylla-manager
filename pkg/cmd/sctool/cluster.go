@@ -26,6 +26,7 @@ var (
 	cfgClusterID              string
 	cfgClusterName            string
 	cfgClusterHost            string
+	cfgClusterPort            int64
 	cfgClusterAuthToken       string
 	cfgClusterUsername        string
 	cfgClusterPassword        string
@@ -36,6 +37,7 @@ var (
 func clusterInitCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cfgClusterName, "name", "n", "", "`alias` you can give to your cluster")
 	cmd.Flags().StringVar(&cfgClusterHost, "host", "", "hostname or IP of one of the cluster nodes")
+	cmd.Flags().Int64Var(&cfgClusterPort, "port", 10001, "alternate Scylla Manager agent port")
 	cmd.Flags().StringVar(&cfgClusterAuthToken, "auth-token", "", "authentication token set on the cluster nodes in agent config file")
 	cmd.Flags().StringVarP(&cfgClusterUsername, "username", "u", "", "CQL `username` used in advanced CQL health check")
 	cmd.Flags().StringVarP(&cfgClusterPassword, "password", "p", "", "CQL `password` associated with user")
@@ -100,6 +102,9 @@ var clusterAddCmd = &cobra.Command{
 			AuthToken: cfgClusterAuthToken,
 			Username:  cfgClusterUsername,
 			Password:  cfgClusterPassword,
+		}
+		if cfgClusterPort != 10001 {
+			c.Port = cfgClusterPort
 		}
 
 		if cfgClusterUsername != "" && cfgClusterPassword == "" {
@@ -182,6 +187,10 @@ var clusterUpdateCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("host") {
 			cluster.Host = cfgClusterHost
+			ok = true
+		}
+		if cmd.Flags().Changed("port") {
+			cluster.Port = cfgClusterPort
 			ok = true
 		}
 		if cmd.Flags().Changed("username") {

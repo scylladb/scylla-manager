@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"sort"
 	"strconv"
 
@@ -123,6 +124,9 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
 	config := scyllaclient.DefaultConfig()
 	config.Hosts = c.KnownHosts
+	if c.Port != 0 {
+		config.Port = fmt.Sprint(c.Port)
+	}
 	config.AuthToken = c.AuthToken
 
 	return scyllaclient.NewClient(config, s.logger.Named("client"))

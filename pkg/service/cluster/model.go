@@ -17,6 +17,7 @@ type Cluster struct {
 	Name       string    `json:"name"`
 	Host       string    `json:"host" db:"-"`
 	KnownHosts []string  `json:"-"`
+	Port       int       `json:"port,omitempty"`
 	AuthToken  string    `json:"auth_token"`
 
 	Username        string `json:"username,omitempty" db:"-"`
