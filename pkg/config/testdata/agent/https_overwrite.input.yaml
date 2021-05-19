@@ -1,4 +1,5 @@
 https: foobar
+https_port: 10010
 
 tls_version: TLSv1.3
 tls_cert_file: ./testdata/auth/scylla_manager.crt

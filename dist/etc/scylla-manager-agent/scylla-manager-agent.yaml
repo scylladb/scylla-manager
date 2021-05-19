@@ -10,6 +10,9 @@
 # the Scylla API (see scylla section).
 #https: 0.0.0.0:10001
 
+# Use custom port instead of default 10001.
+#https_port:
+
 # Version of TLS protocol and cipher suites to use with HTTPS.
 # The supported versions are: TLSv1.3, TLSv1.2, TLSv1.0.
 # The TLSv1.2 is restricted to the following cipher suites:

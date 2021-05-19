@@ -4,6 +4,7 @@ package enrich
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/scylladb/scylla-manager/pkg/config"
@@ -22,7 +23,7 @@ func AgentConfigFromAPI(ctx context.Context, addr string, c *config.AgentConfig)
 	c.Scylla.PrometheusPort = external.PrometheusPort
 
 	if c.HTTPS == "" {
-		c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, config.DefaultAgentHTTPSPort)
+		c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, fmt.Sprint(c.HTTPSPort))
 	}
 
 	if external.DataDirectory != "" {

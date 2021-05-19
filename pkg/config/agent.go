@@ -13,9 +13,6 @@ import (
 )
 
 const (
-	// DefaultAgentHTTPSPort specifies the port Agent should start listening
-	// on for HTTPS requests if not explicitly specified.
-	DefaultAgentHTTPSPort = "10001"
 	// NoCPU is a cpuset marker indicating that no CPU was selected for pinning.
 	NoCPU = -1
 )
@@ -45,6 +42,7 @@ func (c ScyllaConfig) Validate() (errs error) {
 type AgentConfig struct {
 	AuthToken   string               `yaml:"auth_token"`
 	HTTPS       string               `yaml:"https"`
+	HTTPSPort   int                  `yaml:"https_port"`
 	TLSVersion  TLSVersion           `yaml:"tls_version"`
 	TLSCertFile string               `yaml:"tls_cert_file"`
 	TLSKeyFile  string               `yaml:"tls_key_file"`
@@ -61,6 +59,7 @@ type AgentConfig struct {
 
 func DefaultAgentConfig() AgentConfig {
 	return AgentConfig{
+		HTTPSPort:   10001,
 		TLSVersion:  TLSv12,
 		TLSCertFile: "/var/lib/scylla-manager/scylla_manager.crt",
 		TLSKeyFile:  "/var/lib/scylla-manager/scylla_manager.key",
