@@ -1,1 +1,1 @@
-sctool backup --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K '<nil>' --dc '<nil>' --retention <nil> --rate-limit <nil> --snapshot-parallel '<nil>' --upload-parallel '<nil>'
+sctool backup --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d

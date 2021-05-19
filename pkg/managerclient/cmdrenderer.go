@@ -91,11 +91,14 @@ func (rc *CmdRenderer) writeProp(arg, prop string, transformers ...transformer) 
 		return
 	}
 	v, ok := p[prop]
-	if !ok {
+	if !ok || v == nil {
 		return
 	}
 	switch val := v.(type) {
 	case []interface{}:
+		if len(val) == 0 {
+			return
+		}
 		tmp := make([]string, len(val))
 		for i := range tmp {
 			tmp[i] = val[i].(string)
@@ -106,6 +109,9 @@ func (rc *CmdRenderer) writeProp(arg, prop string, transformers ...transformer) 
 		}
 		rc.writeArg(arg, " ", out)
 	case []string:
+		if len(val) == 0 {
+			return
+		}
 		out := strings.Join(val, ",")
 		for i := range transformers {
 			out = transformers[i](out)
