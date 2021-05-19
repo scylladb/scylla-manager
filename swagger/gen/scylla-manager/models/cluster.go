@@ -30,6 +30,9 @@ type Cluster struct {
 	// password
 	Password string `json:"password,omitempty"`
 
+	// port
+	Port int64 `json:"port,omitempty"`
+
 	// ssl user cert file
 	// Format: byte
 	SslUserCertFile strfmt.Base64 `json:"ssl_user_cert_file,omitempty"`

@@ -32,6 +32,9 @@
         "host": {
           "type": "string"
         },
+        "port": {
+          "type": "integer"
+        },
         "auth_token": {
           "type": "string"
         },
