@@ -4,11 +4,13 @@ package managerclient
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
 func TestCmdlineRender(t *testing.T) {
@@ -17,6 +19,7 @@ func TestCmdlineRender(t *testing.T) {
 	repairTask := &Task{
 		ClusterID: "564a4ef1-0f37-40c5-802c-d08d788b8503",
 		Type:      "repair",
+		Name:      "repair",
 		Schedule: &Schedule{
 			Interval:   "7d",
 			StartDate:  strfmt.DateTime(time.Date(2019, 3, 18, 23, 0, 0, 0, time.UTC)),
@@ -35,6 +38,7 @@ func TestCmdlineRender(t *testing.T) {
 	backupTask := &Task{
 		ClusterID: "564a4ef1-0f37-40c5-802c-d08d788b8503",
 		Type:      "backup",
+		Name:      "backup",
 		Schedule: &Schedule{
 			Interval:   "7d",
 			StartDate:  strfmt.DateTime(time.Date(2019, 3, 18, 23, 0, 0, 0, time.UTC)),
@@ -50,47 +54,40 @@ func TestCmdlineRender(t *testing.T) {
 		},
 	}
 
-	table := []struct {
-		Name     string
-		Renderer *CmdRenderer
-		Golden   string
-	}{
-		{
-			"render all",
-			NewCmdRenderer(repairTask, RenderAll),
-			"sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB",
+	backupTaskNilProperties := &Task{
+		ClusterID: "564a4ef1-0f37-40c5-802c-d08d788b8503",
+		Type:      "backup",
+		Name:      "backup nil properties",
+		Schedule: &Schedule{
+			Interval:   "7d",
+			StartDate:  strfmt.DateTime(time.Date(2019, 3, 18, 23, 0, 0, 0, time.UTC)),
+			NumRetries: 3,
 		},
-		{
-			"render args",
-			NewCmdRenderer(repairTask, RenderArgs),
-			"--cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB",
-		},
-		{
-			"render repair task type args",
-			NewCmdRenderer(repairTask, RenderTypeArgs),
-			"-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB",
-		},
-		{
-			"render backup task type args",
-			NewCmdRenderer(backupTask, RenderTypeArgs),
-			"-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc1,dc2' --retention 3 --rate-limit 2 --snapshot-parallel 'dc1:2,dc2:3' --upload-parallel 'dc1:4,dc2:1'",
+		Properties: map[string]interface{}{
+			"keyspace":          nil,
+			"dc":                nil,
+			"snapshot_parallel": nil,
+			"upload_parallel":   nil,
+			"rate_limit":        nil,
+			"retention":         nil,
 		},
 	}
 
-	for i := range table {
-		test := table[i]
+	for _, task := range []*Task{repairTask, backupTask, backupTaskNilProperties} {
+		for _, r := range []CmdRenderType{RenderAll, RenderArgs, RenderTypeArgs} {
+			t.Run(task.Name+" "+fmt.Sprint(r), func(t *testing.T) {
+				var buf bytes.Buffer
+				if err := NewCmdRenderer(task, r).Render(&buf); err != nil {
+					t.Fatal(err)
+				}
+				text := buf.String()
+				testutils.SaveGoldenTextFileIfNeeded(t, text)
+				golden := testutils.LoadGoldenTextFile(t)
 
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-
-			buf := bytes.Buffer{}
-			err := test.Renderer.Render(&buf)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			if diff := cmp.Diff(test.Golden, buf.String()); diff != "" {
-				t.Fatal(diff)
-			}
-		})
+				if diff := cmp.Diff(golden, text); diff != "" {
+					t.Fatal(diff)
+				}
+			})
+		}
 	}
 }

@@ -1,0 +1,1 @@
+-K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc1,dc2' --retention 3 --rate-limit 2 --snapshot-parallel 'dc1:2,dc2:3' --upload-parallel 'dc1:4,dc2:1'
