@@ -6,6 +6,45 @@ Troubleshooting
    :depth: 2
    :local:
 
+Use custom port for Scylla Manager Agent
+========================================
+
+By default Scylla Manager Agent starts API server on port 10001.
+The following procedure changes the default port.
+
+Note that this procedure needs to be repeated for each Scylla node.
+
+**Procedure**
+
+#. Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``.
+#. Uncomment and set ``https_port`` to match your desired port - **all nodes must use the same port**.
+#. Save the file.
+#. Restart Scylla Manager Agent service.
+
+   .. code-block:: none
+
+      sudo systemctl start scylla-manager-agent
+
+#. Verify the Scylla Manager Agent is running.
+
+   .. code-block:: none
+
+      sudo systemctl status scylla-manager-agent -l
+      ● scylla-manager-agent.service - Scylla Manager Agent
+        Loaded: loaded (/usr/lib/systemd/system/scylla-manager-agent.service; disabled; vendor preset: disabled)
+        Active: active (running) since Wed 2019-10-30 10:46:51 UTC; 7s ago
+          Main PID: 14670 (scylla-manager-)
+          CGroup: /system.slice/scylla-manager-agent.service
+                 └─14670 /usr/bin/scylla-manager-agent
+
+After that Change cluster port in Scylla Manager.
+
+.. code-block:: none
+
+   sctool cluster update -c <your cluster> --port <new port>
+
+You can also pass the ``--port`` flag to :ref:`sctool cluster add <cluster-add>` command when registering a new cluster.
+
 Add a Node to a Managed Cluster
 ===============================
 
@@ -34,3 +73,4 @@ Remove a Node from a Managed Cluster
 ====================================
 
 There is no need to perform any action in Scylla Manager after removing a node or datacenter from a Scylla cluster.
+
