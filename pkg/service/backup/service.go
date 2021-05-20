@@ -25,6 +25,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"go.uber.org/atomic"
 )
 
 const defaultRateLimit = 100 // 100MiB
@@ -131,6 +132,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy simple properties
 	t.Retention = p.Retention
+	t.RetentionMap = p.RetentionMap
 	t.Continue = p.Continue
 
 	// Filter DCs
@@ -547,6 +549,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	// In testing when target.RetentionMap is not set generate one from target.Retention.
+	if len(target.RetentionMap) == 0 {
+		target.RetentionMap = map[uuid.UUID]int{taskID: target.Retention}
+	}
+
 	// Generate snapshot tag
 	if run.SnapshotTag == "" {
 		run.SnapshotTag = NewSnapshotTag()
@@ -649,7 +656,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MigrateManifests(ctx, hi, target.UploadParallel)
 		},
 		StagePurge: func() error {
-			return w.Purge(ctx, hi, target.Retention)
+			return w.Purge(ctx, hi, target.RetentionMap)
 		},
 		StageDone: func() error {
 			return nil
@@ -916,49 +923,29 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 		return errors.Wrap(err, "resolve hosts")
 	}
 
-	// Count 'not found' errors, if all hosts returns them, this function
-	// will also return 'not found'.
-	notFoundErrors := 0
-
-	// Delete snapshot files, one host per location.
-	err = hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+	deletedManifests := atomic.NewInt32(0)
+	if err := hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
 		s.logger.Info(ctx, "Purging snapshot data on host", "host", h.IP)
-		p := &purger{
-			Host:     h.IP,
-			Location: h.Location,
-			Filter: ListFilter{
-				ClusterID: clusterID,
-				DC:        h.DC,
-			},
-			Client:         client,
-			ManifestHelper: newManifestV2Helper(h.IP, h.Location, client, s.logger),
-			Logger:         s.logger.With("host", h.IP),
-		}
 
-		if err := p.PurgeSnapshot(ctx, snapshotTag); err != nil {
-			s.logger.Error(ctx, "Failed to delete remote snapshot",
-				"host", h.IP,
-				"location", h.Location,
-				"error", err,
-			)
-			if errors.Is(err, service.ErrNotFound) {
-				notFoundErrors++
-				return nil
-			}
+		manifests, err := listAllManifests(ctx, client, h.IP, h.Location, clusterID)
+		if err != nil {
 			return err
 		}
+		p := newPurger(client, h.IP, s.logger)
+		n, err := p.PurgeSnapshotTags(ctx, manifests, strset.New(snapshotTag))
+		deletedManifests.Add(int32(n))
+
 		if err != nil {
 			s.logger.Error(ctx, "Purging snapshot data failed on host", "host", h.IP, "error", err)
 		} else {
 			s.logger.Info(ctx, "Done purging snapshot data on host", "host", h.IP)
 		}
 		return err
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
-	if notFoundErrors == len(hosts) {
+	if deletedManifests.Load() == 0 {
 		return service.ErrNotFound
 	}
 
