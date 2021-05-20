@@ -30,6 +30,14 @@ func (fs fileSet) Remove(item string) {
 	}
 }
 
+func (fs fileSet) Dirs() []string {
+	var dirs []string
+	for k := range fs {
+		dirs = append(dirs, k)
+	}
+	return dirs
+}
+
 func (fs fileSet) DirSet(dir string) *strset.Set {
 	s, ok := fs[dir]
 	if !ok {

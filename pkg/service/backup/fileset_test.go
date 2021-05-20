@@ -36,6 +36,12 @@ func TestFilesSet(t *testing.T) {
 		}
 	})
 
+	t.Run("dirs", func(t *testing.T) {
+		if len(fs.Dirs()) != 2 {
+			t.Errorf("Dirs() = %s, expected %d elements", fs.Dirs(), 2)
+		}
+	})
+
 	t.Run("size", func(t *testing.T) {
 		if fs.Size() != 3 {
 			t.Errorf("Size() = %d, expected %d", fs.Size(), 3)
