@@ -62,15 +62,17 @@ func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units            []Unit     `json:"units,omitempty"`
-	DC               []string   `json:"dc,omitempty"`
-	Location         []Location `json:"location"`
-	Retention        int        `json:"retention"`
-	RateLimit        []DCLimit  `json:"rate_limit"`
-	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit  `json:"upload_parallel"`
-	Continue         bool       `json:"continue"`
-	// liveNodes caches node status for GetTarget GetTargetSize calls.
+	Units            []Unit            `json:"units,omitempty"`
+	DC               []string          `json:"dc,omitempty"`
+	Location         []Location        `json:"location"`
+	Retention        int               `json:"retention"`
+	RetentionMap     map[uuid.UUID]int `json:"-"` // policy for all tasks, injected in runtime
+	RateLimit        []DCLimit         `json:"rate_limit"`
+	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit         `json:"upload_parallel"`
+	Continue         bool              `json:"continue"`
+
+	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
 
@@ -241,14 +243,15 @@ func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace         []string   `json:"keyspace"`
-	DC               []string   `json:"dc"`
-	Location         []Location `json:"location"`
-	Retention        int        `json:"retention"`
-	RateLimit        []DCLimit  `json:"rate_limit"`
-	SnapshotParallel []DCLimit  `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit  `json:"upload_parallel"`
-	Continue         bool       `json:"continue"`
+	Keyspace         []string          `json:"keyspace"`
+	DC               []string          `json:"dc"`
+	Location         []Location        `json:"location"`
+	Retention        int               `json:"retention"`
+	RetentionMap     map[uuid.UUID]int `json:"retention_map"`
+	RateLimit        []DCLimit         `json:"rate_limit"`
+	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit         `json:"upload_parallel"`
+	Continue         bool              `json:"continue"`
 }
 
 func defaultTaskProperties() taskProperties {
@@ -281,4 +284,13 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 	}
 
 	return locations, errs
+}
+
+// ExtractRetention parses properties as task properties and returns "retention".
+func ExtractRetention(properties json.RawMessage) (int, error) {
+	var p taskProperties
+	if err := json.Unmarshal(properties, &p); err != nil {
+		return 0, err
+	}
+	return p.Retention, nil
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/certutil"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
@@ -127,11 +128,27 @@ func (s *server) makeServices() error {
 	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.repairSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
 
+	// Add additional properties on task run.
+	// This is a bit hacky way of providing selected information on other tasks
+	// such as locations, retention and passing it in context of a task run.
 	s.schedSvc.SetTaskOpt(func(ctx context.Context, task scheduler.Task) (scheduler.Properties, error) {
 		switch task.Type {
-		// This is a bit hacky way of supporting empty locations in tasks.
-		// The locations are evaluated at runtime, scheduler and backup are
-		// agnostic of implementation details.
+		// Generate "retention_map" for backup task.
+		case scheduler.BackupTask:
+			tasks, err := s.schedSvc.ListTasks(ctx, task.ClusterID, scheduler.BackupTask)
+			if err != nil {
+				return nil, err
+			}
+			retentionMap := make(map[uuid.UUID]int)
+			for _, t := range tasks {
+				r, err := backup.ExtractRetention(task.Properties.AsJSON())
+				if err != nil {
+					return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
+				}
+				retentionMap[t.ID] = r
+			}
+			return task.Properties.Set("retention_map", retentionMap), nil
+		// Get locations if not specified for validate backup task.
 		case scheduler.ValidateBackupTask:
 			// If tasks contains locations return
 			if l := s.backupSvc.ExtractLocations(ctx, []json.RawMessage{task.Properties.AsJSON()}); len(l) > 0 {

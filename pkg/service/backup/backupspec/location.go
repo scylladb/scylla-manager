@@ -28,9 +28,23 @@ func Providers() []string {
 	return *(*[]string)(unsafe.Pointer(&providers))
 }
 
+var testProviders = []string{"testdata"}
+
+// AddTestProvider adds a provider for unit testing purposes.
+// The provider is not returned in Providers() call but you can parse a Location
+// with a test provider.
+func AddTestProvider(name string) {
+	testProviders = append(testProviders, name)
+}
+
 func hasProvider(s string) bool {
 	for i := range providers {
 		if providers[i].String() == s {
+			return true
+		}
+	}
+	for i := range testProviders {
+		if testProviders[i] == s {
 			return true
 		}
 	}

@@ -1,0 +1,176 @@
+[
+  {
+    "CleanPath": [
+      "backup",
+      "meta",
+      "cluster",
+      "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+      "dc",
+      "dc2",
+      "node",
+      "88d4c3ac-da6a-4111-8579-b5e16b816b2c",
+      "task_b3fcfce2-d3ae-4de7-96b0-e222125d8558_tag_sm_20210416130831UTC_manifest.json.gz"
+    ],
+    "Location": "testdata:list",
+    "DC": "dc2",
+    "ClusterID": "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+    "NodeID": "88d4c3ac-da6a-4111-8579-b5e16b816b2c",
+    "TaskID": "b3fcfce2-d3ae-4de7-96b0-e222125d8558",
+    "SnapshotTag": "sm_20210416130831UTC",
+    "Content": {
+      "version": "",
+      "cluster_name": "",
+      "ip": "",
+      "index": null,
+      "size": 0,
+      "tokens": null,
+      "schema": ""
+    },
+    "Temporary": false
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "meta",
+      "cluster",
+      "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+      "dc",
+      "dc2",
+      "node",
+      "35ba4eaf-1799-401c-a9ad-102bc98435e2",
+      "task_b3fcfce2-d3ae-4de7-96b0-e222125d8558_tag_sm_20210416130831UTC_manifest.json.gz"
+    ],
+    "Location": "testdata:list",
+    "DC": "dc2",
+    "ClusterID": "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+    "NodeID": "35ba4eaf-1799-401c-a9ad-102bc98435e2",
+    "TaskID": "b3fcfce2-d3ae-4de7-96b0-e222125d8558",
+    "SnapshotTag": "sm_20210416130831UTC",
+    "Content": {
+      "version": "",
+      "cluster_name": "",
+      "ip": "",
+      "index": null,
+      "size": 0,
+      "tokens": null,
+      "schema": ""
+    },
+    "Temporary": false
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "meta",
+      "cluster",
+      "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+      "dc",
+      "dc1",
+      "node",
+      "3dbad07e-1b04-4a3d-ade6-bf6044a4488f",
+      "task_b3fcfce2-d3ae-4de7-96b0-e222125d8558_tag_sm_20210416130831UTC_manifest.json.gz"
+    ],
+    "Location": "testdata:list",
+    "DC": "dc1",
+    "ClusterID": "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+    "NodeID": "3dbad07e-1b04-4a3d-ade6-bf6044a4488f",
+    "TaskID": "b3fcfce2-d3ae-4de7-96b0-e222125d8558",
+    "SnapshotTag": "sm_20210416130831UTC",
+    "Content": {
+      "version": "",
+      "cluster_name": "",
+      "ip": "",
+      "index": null,
+      "size": 0,
+      "tokens": null,
+      "schema": ""
+    },
+    "Temporary": false
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "meta",
+      "cluster",
+      "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+      "dc",
+      "dc1",
+      "node",
+      "01741e67-c4a5-4076-a2f8-464440a34317",
+      "task_b3fcfce2-d3ae-4de7-96b0-e222125d8558_tag_sm_20210416130831UTC_manifest.json.gz"
+    ],
+    "Location": "testdata:list",
+    "DC": "dc1",
+    "ClusterID": "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+    "NodeID": "01741e67-c4a5-4076-a2f8-464440a34317",
+    "TaskID": "b3fcfce2-d3ae-4de7-96b0-e222125d8558",
+    "SnapshotTag": "sm_20210416130831UTC",
+    "Content": {
+      "version": "",
+      "cluster_name": "",
+      "ip": "",
+      "index": null,
+      "size": 0,
+      "tokens": null,
+      "schema": ""
+    },
+    "Temporary": false
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "meta",
+      "cluster",
+      "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+      "dc",
+      "dc1",
+      "node",
+      "28e61d9d-dd4e-4d3a-b564-51237c24fd00",
+      "task_b3fcfce2-d3ae-4de7-96b0-e222125d8558_tag_sm_20210416130831UTC_manifest.json.gz"
+    ],
+    "Location": "testdata:list",
+    "DC": "dc1",
+    "ClusterID": "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+    "NodeID": "28e61d9d-dd4e-4d3a-b564-51237c24fd00",
+    "TaskID": "b3fcfce2-d3ae-4de7-96b0-e222125d8558",
+    "SnapshotTag": "sm_20210416130831UTC",
+    "Content": {
+      "version": "",
+      "cluster_name": "",
+      "ip": "",
+      "index": null,
+      "size": 0,
+      "tokens": null,
+      "schema": ""
+    },
+    "Temporary": false
+  },
+  {
+    "CleanPath": [
+      "backup",
+      "meta",
+      "cluster",
+      "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+      "dc",
+      "dc2",
+      "node",
+      "6fff60d0-bd0d-4f02-aae1-f24e8deacb50",
+      "task_b3fcfce2-d3ae-4de7-96b0-e222125d8558_tag_sm_20210416130831UTC_manifest.json.gz"
+    ],
+    "Location": "testdata:list",
+    "DC": "dc2",
+    "ClusterID": "2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21",
+    "NodeID": "6fff60d0-bd0d-4f02-aae1-f24e8deacb50",
+    "TaskID": "b3fcfce2-d3ae-4de7-96b0-e222125d8558",
+    "SnapshotTag": "sm_20210416130831UTC",
+    "Content": {
+      "version": "",
+      "cluster_name": "",
+      "ip": "",
+      "index": null,
+      "size": 0,
+      "tokens": null,
+      "schema": ""
+    },
+    "Temporary": false
+  }
+]

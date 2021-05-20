@@ -11,9 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -35,6 +33,7 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -1384,7 +1383,12 @@ func TestPurgeIntegration(t *testing.T) {
 		ctx = context.Background()
 	)
 
-	Print("Given: retention policy of 2 for the first task")
+	WriteData(t, clusterSession, testKeyspace, 3)
+
+	task1 := h.taskID
+	task2 := uuid.MustRandom()
+
+	Print("Given: retention policy 1")
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -1393,73 +1397,69 @@ func TestPurgeIntegration(t *testing.T) {
 		},
 		DC:        []string{"dc1"},
 		Location:  []Location{location},
-		Retention: 2,
-	}
-
-	Print("And: retention policy of 1 for the second task")
-	target2 := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
 		Retention: 1,
+		RetentionMap: map[uuid.UUID]int{
+			task1: 1,
+			task2: 1,
+		},
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
 	}
 
-	Print("When: run both backup task 3 times")
-	task2ID := uuid.NewTime()
-	var runID uuid.UUID
-	for i := 0; i < 3; i++ {
-		// Ensure different snapshot tag between tasks
-		time.Sleep(1 * time.Second)
-
-		WriteData(t, clusterSession, testKeyspace, 3)
-		if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
-			t.Fatal(err)
-		}
-		runID = uuid.NewTime()
-		if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
-			t.Fatal(err)
-		}
-
-		// Ensure different snapshot tag between tasks
-		time.Sleep(1 * time.Second)
-
-		if err := h.service.InitTarget(ctx, h.clusterID, &target2); err != nil {
-			t.Fatal(err)
-		}
-		runID = uuid.NewTime()
-		if err := h.service.Backup(ctx, h.clusterID, task2ID, runID, target2); err != nil {
-			t.Fatal(err)
-		}
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
 	}
 
-	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
-	if firstTaskTags.Size() != target.Retention {
-		t.Errorf("First task retention policy is not preserved, expected %d, got %d snapshots", target.Retention, firstTaskTags.Size())
+	// Get manifest prototype
+	manifests, _, _ := h.listS3Files()
+	if len(manifests) != 3 {
+		t.Fatalf("Expected manifest per node, got %d", len(manifests))
+	}
+	now := timeutc.Now()
+
+	Print("And: add manifest for removed node - should be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
+		v.NodeID = uuid.MustRandom().String()
+		return true
+	})
+	Print("And: add manifest for task2 - should NOT be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
+		v.TaskID = task2
+		v.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -1))
+		return true
+	})
+	Print("And: add another manifest for task2 - should be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
+		v.TaskID = task2
+		v.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -2))
+		return true
+	})
+	Print("And: add manifest for removed old task - should be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
+		v.TaskID = uuid.MustRandom()
+		v.SnapshotTag = SnapshotTagAt(now.AddDate(-1, 0, 0))
+		return true
+	})
+	Print("And: add manifest for removed task - should NOT removed")
+	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
+		v.TaskID = uuid.MustRandom()
+		v.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, 3))
+		return true
+	})
+
+	WriteData(t, clusterSession, testKeyspace, 3)
+
+	Print("And: run backup again")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
 	}
 
-	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
-	if secondTaskTags.Size() != target2.Retention {
-		t.Errorf("Second task retention policy is not preserved, expected %d, got %d snapshots", target.Retention, secondTaskTags.Size())
-	}
-
-	allSnapshotTags := getTaskTags(t, ctx, h, uuid.Nil)
-	if !allSnapshotTags.IsSubset(firstTaskTags) {
-		t.Error("First task snapshot was removed during second task purging")
-	}
-
-	Print("Then: there are tree backups in total (2+1)")
+	Print("Then: there should be 3 + 2 manifests")
 	manifests, _, files := h.listS3Files()
-	for _, m := range manifests {
-		if !strings.Contains(m, h.taskID.String()) && !strings.Contains(m, task2ID.String()) {
-			t.Errorf("Unexpected file %s manifest does not belong to tasks %s or %s", m, h.taskID, task2ID)
-		}
-	}
-	if len(manifests) != 9 {
-		t.Fatalf("Expected 9 manifests (3 per each node) got %s", manifests)
+	if len(manifests) != 5 {
+		t.Fatalf("Expected 5 manifests (1 per each node) plus 2 generated, got %d %s", len(manifests), strings.Join(manifests, "\n"))
 	}
 
 	Print("And: old sstable files are removed")
@@ -1496,29 +1496,10 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 }
 
-func getTaskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) []string {
-	t.Helper()
-
-	filesFilter := backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID}
-	taskFiles, err := h.service.ListFiles(ctx, h.clusterID, []Location{h.location}, filesFilter)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var taskFilesPaths []string
-	for _, tf := range taskFiles {
-		for _, fi := range tf.Files {
-			for _, f := range fi.Files {
-				taskFilesPaths = append(taskFilesPaths, path.Join(fi.Path, f))
-			}
-		}
-	}
-	return taskFilesPaths
-}
-
-func TestPurgeOfV1BackupIntegration(t *testing.T) {
+func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	const (
-		testBucket   = "backuptest-purge-v1"
-		testKeyspace = "backuptest_purge_v1"
+		testBucket   = "backuptest-purge-tmp"
+		testKeyspace = "backuptest_purge_tmp"
 	)
 
 	location := s3Location(testBucket)
@@ -1527,29 +1508,14 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 	var (
 		session        = CreateSession(t)
 		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
-		h              = newBackupTestHelper(t, session, config, location, nil)
-		ctx            = context.Background()
+
+		h   = newBackupTestHelper(t, session, config, location, nil)
+		ctx = context.Background()
 	)
-
-	// Test cluster nodes has different node IDs then prepared test data.
-	// Fake mapping in order to make test data visible to backup logic.
-	testDataNodesIDs := []string{
-		"8bf49512-e550-4c3f-a3e4-8add7e3da20c",
-		"99a9e3c8-9d9d-4f24-9094-54ea5e9af41a",
-		"92567557-babc-46e9-a169-cd17b60fa78d",
-	}
-
-	overwriteClusterIDs(t, "dc1", testDataNodesIDs, h)
-	h.clusterID = uuid.MustParse("6a14ea0a-0f7c-4d39-84bf-06413188b029")
-	h.taskID = uuid.MustParse("ea986c36-9c97-4f7d-ac49-ec0166f0c8ca")
-
-	Print("Given: backup using v1 manifests")
-
-	uploadedFiles := uploadV1Backup(t, ctx, "testdata/v1-support", location, h)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
-	Print("Given: retention policy 1")
+	Print("Given: retention policy 2")
 	target := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -1564,169 +1530,32 @@ func TestPurgeOfV1BackupIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Print("When: backup is run")
-	runID := uuid.NewTime()
-	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
 
+	Print("And: add temporary manifest")
 	manifests, _, _ := h.listS3Files()
-	for _, m := range manifests {
-		if !strings.Contains(m, h.taskID.String()) {
-			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
-		}
+	if len(manifests) != 3 {
+		t.Fatalf("Expected manifest per node, got %d", len(manifests))
 	}
-
-	Print("Than: manifests are migrated")
-	// 10 tables * 3 nodes + 3 v1 migrated to v2 + 3 v2
-	v1Manifests := 0
-	v2Manifests := 3 + 3
-	if len(manifests) != v1Manifests+v2Manifests {
-		t.Fatalf("Expected %d manifests got %d", v1Manifests+v2Manifests, len(manifests))
-	}
-
-	Print("When: another backup is run")
-	WriteData(t, clusterSession, testKeyspace, 3)
-	runID = uuid.NewTime()
-	if err := h.service.Backup(ctx, h.clusterID, h.taskID, runID, target); err != nil {
-		t.Fatal(err)
-	}
-
-	Print("Then: only the last task run is preserved")
-	manifests, _, _ = h.listS3Files()
-	for _, m := range manifests {
-		if !strings.Contains(m, h.taskID.String()) {
-			t.Errorf("Unexpected file %s manifest does not belong to task %s", m, h.taskID)
-		}
-	}
-	if len(manifests) != 2*3 {
-		t.Fatalf("Expected 6 manifests got %d", len(manifests))
-	}
-
-	Print("And: old files are removed")
-	for _, filePath := range uploadedFiles {
-		files, err := h.client.RcloneListDir(ctx, ManagedClusterHost(), filepath.Dir(filePath), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(files) != 0 {
-			for _, f := range files {
-				t.Logf("%v", *f)
-			}
-			t.Fatalf("expected to find 0 files, got %d", len(files))
-		}
-	}
-
-	Print("And: V1 directory structure is removed at node level")
-	opts := &scyllaclient.RcloneListDirOpts{
-		DirsOnly:  true,
-		NoModTime: true,
-	}
-
-	for _, nodeID := range testDataNodesIDs {
-		manifestDir := h.location.RemotePath(RemoteManifestDir(h.clusterID, "dc1", nodeID))
-		dirs, err := h.client.RcloneListDir(ctx, ManagedClusterHost(), manifestDir, opts)
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if len(dirs) != 0 {
-			t.Fatalf("Expected to not have any directories at %s path, got %v", manifestDir, dirs)
-		}
-	}
-}
-
-func getTaskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) *strset.Set {
-	backups, err := h.service.List(ctx, h.clusterID, []Location{h.location},
-		backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	taskTags := strset.New()
-	for _, b := range backups {
-		for _, si := range b.SnapshotInfo {
-			taskTags.Add(si.SnapshotTag)
-		}
-	}
-
-	return taskTags
-}
-
-func overwriteClusterIDs(t *testing.T, dc string, nodeIDs []string, h *backupTestHelper) {
-	nodeMapping, err := h.client.HostIDs(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	nodeIPToID := map[string]string{}
-	for nodeIP, nodeID := range nodeMapping {
-		nodeIPToID[nodeIP] = nodeID
-	}
-	dcMap, err := h.client.Datacenters(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	var fakeMapping []map[string]string
-	for d, nodeIps := range dcMap {
-		var k, v string
-		for _, nodeIP := range nodeIps {
-			k = nodeIP
-			if d == dc {
-				v = nodeIDs[0]
-				nodeIDs = nodeIDs[1:]
-			} else {
-				v = nodeIPToID[nodeIP]
-			}
-			fakeMapping = append(fakeMapping, map[string]string{
-				"key":   k,
-				"value": v,
-			})
-		}
-	}
-
-	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if req.URL.Path == "/storage_service/host_id" {
-			resp := httpx.MakeResponse(req, 200)
-
-			buf, err := json.Marshal(fakeMapping)
-			if err != nil {
-				return nil, err
-			}
-
-			resp.Body = ioutil.NopCloser(bytes.NewReader(buf))
-			return resp, nil
-		}
-		return nil, nil
-	}))
-}
-
-func uploadV1Backup(t *testing.T, ctx context.Context, localPath string, location Location, h *backupTestHelper) []string {
-	var uploadedFiles []string
-	root := localPath
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		remotePath := location.RemotePath(strings.TrimPrefix(path, root))
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if err := h.client.RclonePut(ctx, ManagedClusterHost(), remotePath, bytes.NewReader(content), info.Size()); err != nil {
-			return err
-		}
-		uploadedFiles = append(uploadedFiles, remotePath)
-		return nil
+	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
+		v.NodeID = uuid.MustRandom().String()
+		v.Temporary = true
+		return true
 	})
-	if err != nil {
+
+	Print("And: run backup again")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
 
-	return uploadedFiles
+	Print("Then: there should be 3 manifests")
+	manifests, _, _ = h.listS3Files()
+	if len(manifests) != 3 {
+		t.Fatalf("Expected 3 manifests (1 per each node), got %d %s", len(manifests), strings.Join(manifests, "\n"))
+	}
 }
 
 func TestDeleteSnapshotIntegration(t *testing.T) {
@@ -1785,8 +1614,8 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 
 	Print("Then: both tasks references same data")
 
-	firstTaskFilePaths := getTaskFiles(t, ctx, h, h.taskID)
-	secondTaskFilePaths := getTaskFiles(t, ctx, h, task2ID)
+	firstTaskFilePaths := taskFiles(t, ctx, h, h.taskID)
+	secondTaskFilePaths := taskFiles(t, ctx, h, task2ID)
 
 	filesSymmetricDifference := strset.New(firstTaskFilePaths...)
 	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
@@ -1796,7 +1625,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 
 	Print("When: first task snapshot is deleted")
 
-	firstTaskTags := getTaskTags(t, ctx, h, h.taskID)
+	firstTaskTags := taskTags(t, ctx, h, h.taskID)
 	if firstTaskTags.Size() != 1 {
 		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
 	}
@@ -1818,7 +1647,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	}
 
 	Print("When: last snapshot is removed")
-	secondTaskTags := getTaskTags(t, ctx, h, task2ID)
+	secondTaskTags := taskTags(t, ctx, h, task2ID)
 	if secondTaskTags.Size() != 1 {
 		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
 	}
@@ -1833,6 +1662,42 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	if len(manifests) != 0 || len(schemas) != 0 || len(sstFiles) != 0 {
 		t.Errorf("Not all files were removed.\nmanifests: %s\nschemas: %s\nsstfiles: %s", manifests, schemas, sstFiles)
 	}
+}
+
+func taskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) *strset.Set {
+	backups, err := h.service.List(ctx, h.clusterID, []Location{h.location},
+		backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	taskTags := strset.New()
+	for _, b := range backups {
+		for _, si := range b.SnapshotInfo {
+			taskTags.Add(si.SnapshotTag)
+		}
+	}
+
+	return taskTags
+}
+
+func taskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) []string {
+	t.Helper()
+
+	filesFilter := backup.ListFilter{ClusterID: h.clusterID, TaskID: taskID}
+	taskFiles, err := h.service.ListFiles(ctx, h.clusterID, []Location{h.location}, filesFilter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var taskFilesPaths []string
+	for _, tf := range taskFiles {
+		for _, fi := range tf.Files {
+			for _, f := range fi.Files {
+				taskFilesPaths = append(taskFilesPaths, path.Join(fi.Path, f))
+			}
+		}
+	}
+	return taskFilesPaths
 }
 
 func filterOutVersionFiles(files []string) []string {
