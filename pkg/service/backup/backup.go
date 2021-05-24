@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/pkg/util/slice"
 	"go.uber.org/multierr"
 )
 
@@ -95,22 +96,12 @@ func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rat
 	return hi, errs
 }
 
-// sliceContains returns true if str can be found in provided items.
-func sliceContains(str string, items []string) bool {
-	for _, i := range items {
-		if i == str {
-			return true
-		}
-	}
-	return false
-}
-
 // filterDCLocations takes list of locations and returns only locations that
 // belong to the provided list of datacenters.
 func filterDCLocations(locations []Location, dcs []string) []Location {
 	var filtered []Location
 	for _, l := range locations {
-		if l.DC == "" || sliceContains(l.DC, dcs) {
+		if l.DC == "" || slice.ContainsString(dcs, l.DC) {
 			filtered = append(filtered, l)
 			continue
 		}
@@ -123,7 +114,7 @@ func filterDCLocations(locations []Location, dcs []string) []Location {
 func filterDCLimits(limits []DCLimit, dcs []string) []DCLimit {
 	var filtered []DCLimit
 	for _, l := range limits {
-		if l.DC == "" || sliceContains(l.DC, dcs) {
+		if l.DC == "" || slice.ContainsString(dcs, l.DC) {
 			filtered = append(filtered, l)
 			continue
 		}
