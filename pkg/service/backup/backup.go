@@ -3,7 +3,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -120,36 +119,4 @@ func filterDCLimits(limits []DCLimit, dcs []string) []DCLimit {
 		}
 	}
 	return filtered
-}
-
-func extractLocations(properties []json.RawMessage) ([]Location, error) {
-	var (
-		m         = strset.New()
-		locations []Location
-		errs      error
-	)
-
-	p := struct {
-		Location []Location `json:"location"`
-	}{}
-	for i := range properties {
-		if err := json.Unmarshal(properties[i], &p); err != nil {
-			errs = multierr.Append(
-				errs,
-				errors.Wrapf(err, "parse runner properties: %s", properties),
-			)
-			continue
-		}
-		// Add location once
-		for _, l := range p.Location {
-			if key := l.RemotePath(""); !m.Has(key) {
-				m.Add(key)
-				locations = append(locations, l)
-			}
-		}
-		// Clear locations
-		p.Location = nil
-	}
-
-	return locations, errs
 }

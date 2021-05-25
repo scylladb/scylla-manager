@@ -3,6 +3,7 @@
 package backup
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -11,10 +12,12 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 // ListFilter specifies filtering for backup listing.
@@ -253,4 +256,29 @@ func defaultTaskProperties() taskProperties {
 		Retention: 3,
 		Continue:  true,
 	}
+}
+
+func extractLocations(properties []json.RawMessage) ([]Location, error) {
+	var (
+		m         = strset.New()
+		locations []Location
+		errs      error
+	)
+
+	for i := range properties {
+		var p taskProperties
+		if err := json.Unmarshal(properties[i], &p); err != nil {
+			errs = multierr.Append(errs, errors.Wrapf(err, "parse %q", string(properties[i])))
+			continue
+		}
+		// Add location once
+		for _, l := range p.Location {
+			if key := l.RemotePath(""); !m.Has(key) {
+				m.Add(key)
+				locations = append(locations, l)
+			}
+		}
+	}
+
+	return locations, errs
 }
