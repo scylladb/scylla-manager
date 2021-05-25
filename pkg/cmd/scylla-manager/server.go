@@ -141,11 +141,12 @@ func (s *server) makeServices() error {
 		// The locations are evaluated at runtime, scheduler and backup are
 		// agnostic of implementation details.
 		case scheduler.ValidateBackupTask:
-			locations := s.backupSvc.ExtractLocations(ctx, []json.RawMessage{task.Properties.AsJSON()})
-			if len(locations) > 0 {
+			// If tasks contains locations return
+			if l := s.backupSvc.ExtractLocations(ctx, []json.RawMessage{task.Properties.AsJSON()}); len(l) > 0 {
 				return task.Properties, nil
 			}
 
+			// Extract locations from all tasks...
 			tasks, err := s.schedSvc.ListTasks(ctx, task.ClusterID, scheduler.BackupTask)
 			if err != nil {
 				return nil, err
