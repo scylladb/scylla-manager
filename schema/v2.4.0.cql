@@ -14,7 +14,6 @@ CREATE TABLE validate_backup_run_progress (
     orphaned_files int,
     orphaned_bytes bigint,
     deleted_files int,
-    delete_errors int,
     started_at timestamp,
     completed_at timestamp,
     PRIMARY KEY ((cluster_id, task_id, run_id), dc, host, location)

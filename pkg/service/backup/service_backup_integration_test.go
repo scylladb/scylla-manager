@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"path"
 	"strings"
@@ -33,6 +34,7 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -1788,17 +1790,18 @@ func TestValidateIntegration(t *testing.T) {
 	}
 
 	validationTarget := backup.ValidationTarget{
-		Location:            target.Location,
-		DeleteOrphanedFiles: true,
+		Location: target.Location,
 	}
 
 	var (
 		validateTaskID = uuid.MustRandom()
 		validateRunID  uuid.UUID
 	)
-	serviceValidate := func() ([]backup.ValidationResult, error) {
+	runValidate := func() (progress []backup.ValidationHostProgress, err error) {
 		validateRunID = uuid.NewTime()
-		return h.service.Validate(ctx, h.clusterID, validateTaskID, validateRunID, validationTarget)
+		err = h.service.Validate(ctx, h.clusterID, validateTaskID, validateRunID, validationTarget)
+		progress, _ = h.service.GetValidationProgress(ctx, h.clusterID, validateTaskID, validateRunID)
+		return
 	}
 
 	Print("When: run backup")
@@ -1806,135 +1809,134 @@ func TestValidateIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Print("And: add a fake file")
-	manifests, _, preFiles := h.listS3Files()
-	var host string
+	manifests, _, files := h.listS3Files()
+
+	genTag := func() string {
+		return SnapshotTagAt(time.Unix(int64(rand.Uint32()), 0))
+	}
+
+	var (
+		orphanedSnapshotTag = genTag()
+		alienSnapshotTag    = genTag()
+		tamperedSnapshotTag = genTag()
+	)
+
+	Print("And: add orphaned file - should be reported and deleted")
 	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
-		fi := &m.Content.Index[0]
-		// Create the "xxx" file
-		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
-		// Save the host
-		host = m.Content.IP
+		m.SnapshotTag = orphanedSnapshotTag
+		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, "foo", "bar", "f0e76f40662e11ebbe97000000000001")), "xx0", "xxx")
 		return false
 	})
 
-	Print("When: run Validate")
-	result, err := serviceValidate()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, postFiles := h.listS3Files()
-
-	Print("Then: xxx file is removed")
-	for _, f := range postFiles {
-		if path.Base(f) == "xxx" {
-			t.Fatalf("Found %s that should have been removed", f)
-		}
-	}
-
-	Print("And: other files are not affected")
-	if len(postFiles) != len(preFiles) {
-		t.Fatalf("Missing files got %d expected %d", len(postFiles), len(preFiles))
-	}
-
-	Print("And: orphaned file is in report")
-	for _, r := range result {
-		if r.Host != host {
-			continue
-		}
-		if r.OrphanedFiles != 1 {
-			t.Fatalf("OrphanedFiles = %d, expected %d", r.OrphanedFiles, 1)
-		}
-		if r.OrphanedBytes != 3 {
-			t.Fatalf("OrphanedBytes = %d, expected %d", r.OrphanedBytes, 3)
-		}
-		if r.DeletedFiles != 1 {
-			t.Fatalf("DeletedFiles = %d, expected %d", r.DeletedFiles, 1)
-		}
-	}
-
-	Print("When: temporary manifest is added referencing a new file")
-	// Sleep to avoid tag collision.
-	time.Sleep(time.Second)
+	Print("And: copy manifest to a different nodeID - should be reported as broken")
 	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
-		// Mark manifest as temporary, change snapshot tag
+		m.SnapshotTag = alienSnapshotTag
+		m.NodeID = uuid.MustRandom().String()
+		return true
+	})
+
+	Print("And: add file referenced by temporary manifest - should NOT be reported nor deleted")
+	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
+		m.SnapshotTag = genTag()
 		m.Temporary = true
-		m.SnapshotTag = NewSnapshotTag()
-		// Add "xxx" file to a table
 		fi := &m.Content.Index[0]
-		fi.Files = append(fi.Files, "xxx")
-
-		// Create the "xxx" file
-		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
-
+		fi.Files = append(fi.Files, "xx1")
+		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xx1", "xxx")
 		return true
 	})
 
-	Print("And: run Validate")
-	result, err = serviceValidate()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, postFiles = h.listS3Files()
-
-	Print("Then: xxx file is NOT removed")
-	ok := false
-	for _, f := range postFiles {
-		if path.Base(f) == "xxx" {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		t.Fatalf("Did not found xxx referenced in temporary manifest")
-	}
-
-	Print("When: manifest is missing a file")
-	brokenSnapshot := NewSnapshotTag()
-	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
-		// Change snapshot tag
-		m.SnapshotTag = brokenSnapshot
-		// Add "yyy" file to a table
+	Print("And: add tampered manifest - should be reported as broken snapshot")
+	h.tamperWithManifest(ctx, manifests[1], func(m *RemoteManifest) bool {
+		m.SnapshotTag = tamperedSnapshotTag
 		fi := &m.Content.Index[0]
-		fi.Files = append(fi.Files, "yyy")
+		fi.Files = append(fi.Files, "xx2")
 		return true
 	})
 
+	Print("When: run Validate")
+	progress, err := runValidate()
+	var buf []string
+	for i := range progress {
+		buf = append(buf, fmt.Sprintf("%s %+v", progress[i].Host, progress[i].ValidationResult))
+	}
+	t.Logf("Validate() = \n%s", strings.Join(buf, "\n"))
+	t.Logf("Validate() error %s", err)
+
+	Print("Then: error message contains description")
+	if !strings.Contains(fmt.Sprint(err), "orphaned files") {
+		t.Fatalf("Wrong error message: %s", err)
+	}
+	if !strings.Contains(fmt.Sprint(err), "broken snapshots") {
+		t.Fatalf("Wrong error message: %s", err)
+	}
+
+	findRowBySnapshotTag := func(snapshotTag string) backup.ValidationHostProgress {
+		for _, r := range progress {
+			if slice.ContainsString(r.BrokenSnapshots, snapshotTag) {
+				return r
+			}
+		}
+		return backup.ValidationHostProgress{}
+	}
+
+	Print("And: progress is accurate")
+	var deleted = 0
+	for _, r := range progress {
+		deleted += r.DeletedFiles
+		if r.OrphanedFiles == 1 {
+			if r.OrphanedFiles != 1 || r.OrphanedBytes != 3 || r.DeletedFiles != 0 {
+				t.Fatal("Wrong result", r.ValidationResult)
+			}
+		}
+	}
+	if deleted != 0 {
+		t.Fatalf("Wrong nr. of deleted files %d, expected 0", deleted)
+	}
+
+	r := findRowBySnapshotTag(alienSnapshotTag)
+	if r.MissingFiles < 10 {
+		t.Error("Wrong result")
+	}
+	r = findRowBySnapshotTag(tamperedSnapshotTag)
+	if r.MissingFiles != 1 {
+		t.Error("Wrong result")
+	}
+
+	Print("When: delete orphaned files")
+	validationTarget.DeleteOrphanedFiles = true
+
 	Print("And: run Validate")
-	result, err = serviceValidate()
-	if err != nil {
-		t.Fatal(err)
+	progress, err = runValidate()
+
+	Print("Then: error message contains broken snapshots only")
+	if strings.Contains(fmt.Sprint(err), "orphaned files") {
+		t.Fatalf("Wrong error message: %s", err)
+	}
+	if !strings.Contains(fmt.Sprint(err), "broken snapshots") {
+		t.Fatalf("Wrong error message: %s", err)
 	}
 
-	Print("Then: broken manifest reported")
-	for _, r := range result {
-		if r.Host != host {
-			continue
-		}
-		if r.MissingFiles != 1 {
-			t.Fatalf("MissingFiles = %d, expected %d", r.MissingFiles, 1)
-		}
-		if len(r.BrokenSnapshots) != 1 {
-			t.Fatalf("BrokenSnapshots = %s, expected len %d", r.BrokenSnapshots, 1)
+	Print("And: progress is accurate")
+	deleted = 0
+	for _, r := range progress {
+		deleted += r.DeletedFiles
+		if r.OrphanedFiles == 1 {
+			if r.OrphanedFiles != 1 || r.OrphanedBytes != 3 || r.DeletedFiles != 1 {
+				t.Fatal("Wrong result", r.ValidationResult)
+			}
 		}
 	}
-
-	Print("And: progress returns result")
-	progress, err := h.service.GetValidationProgress(ctx, h.clusterID, validateTaskID, validateRunID)
-	if err != nil {
-		t.Fatal("GetValidationProgress() error", err)
+	if deleted != 1 {
+		t.Fatalf("Wrong nr. of deleted files %d, expected 1", deleted)
 	}
 
-	if diff := cmp.Diff(progress, result, cmpopts.SortSlices(func(a, b backup.ValidationResult) bool {
-		if a.DC > b.DC {
-			return false
-		}
-		if a.Host > b.Host {
-			return false
-		}
-		return true
-	})); diff != "" {
-		t.Fatal("Progress mismatch, diff", diff, "got", progress, "expected", result)
+	Print("And: only orphaned files are deleted")
+	_, _, postDeleteFiles := h.listS3Files()
+	if !strset.New(postDeleteFiles...).Has(files...) {
+		t.Fatalf("Missing files")
+	}
+	if len(postDeleteFiles) != len(files)+1 {
+		t.Fatalf("Delete error")
 	}
 }
 

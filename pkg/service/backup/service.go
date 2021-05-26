@@ -927,7 +927,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	if err := hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
 		s.logger.Info(ctx, "Purging snapshot data on host", "host", h.IP)
 
-		manifests, err := listAllManifests(ctx, client, h.IP, h.Location, clusterID)
+		manifests, err := listManifests(ctx, client, h.IP, h.Location, clusterID)
 		if err != nil {
 			return err
 		}

@@ -111,10 +111,10 @@ func (mr *MockBackupServiceMockRecorder) GetTargetSize(arg0, arg1, arg2 interfac
 }
 
 // GetValidationProgress mocks base method
-func (m *MockBackupService) GetValidationProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) ([]backup.ValidationResult, error) {
+func (m *MockBackupService) GetValidationProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) ([]backup.ValidationHostProgress, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetValidationProgress", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]backup.ValidationResult)
+	ret0, _ := ret[0].([]backup.ValidationHostProgress)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -180,7 +180,6 @@ var (
 			"orphaned_files",
 			"orphaned_bytes",
 			"deleted_files",
-			"delete_errors",
 			"started_at",
 			"completed_at",
 		},
