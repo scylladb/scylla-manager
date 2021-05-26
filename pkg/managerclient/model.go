@@ -810,9 +810,6 @@ Orphaned files:	{{ .OrphanedFiles }} {{ if gt .OrphanedFiles 0 }}({{ StringByteC
 {{- if gt .DeletedFiles 0 }}
 Deleted files:	{{ .DeletedFiles }}
 {{- end }}
-{{- if gt .DeleteErrors 0 }}
-Delete errors:	{{ .DeleteErrors }}
-{{- end }}
 {{- if .BrokenSnapshots }}
 
 Broken snapshots:	{{ range .BrokenSnapshots }}
@@ -853,7 +850,6 @@ func (p ValidateBackupProgress) aggregatedProgress() models.ValidateBackupProgre
 		a.OrphanedFiles += i.OrphanedFiles
 		a.OrphanedBytes += i.OrphanedBytes
 		a.DeletedFiles += i.DeletedFiles
-		a.DeleteErrors += i.DeleteErrors
 	}
 	a.BrokenSnapshots = bs.List()
 	sort.Strings(a.BrokenSnapshots)
@@ -870,7 +866,6 @@ func (p ValidateBackupProgress) addHostProgress(w io.Writer) error {
 		"Orphaned files",
 		"Orphaned bytes",
 		"Deleted files",
-		"Delete errors",
 	)
 	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5, 6, 7)
 	lastLocation := ""
@@ -895,7 +890,6 @@ func (p ValidateBackupProgress) addHostProgress(w io.Writer) error {
 			hp.OrphanedFiles,
 			StringByteCount(hp.OrphanedBytes),
 			hp.DeletedFiles,
-			hp.DeleteErrors,
 		)
 	}
 	if t.Size() > 0 {

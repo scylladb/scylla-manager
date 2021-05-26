@@ -91,12 +91,8 @@ func (m BackupMetrics) SetFilesProgress(clusterID uuid.UUID, keyspace, table, ho
 	m.filesFailedBytes.With(l).Set(float64(failed))
 }
 
-// SetPurgeFiles updates "purge_files" metric.
-func (m BackupMetrics) SetPurgeFiles(clusterID uuid.UUID, host string, files int) {
-	m.purgeFiles.WithLabelValues(clusterID.String(), host).Set(float64(files))
-}
-
-// IncPurgeDeletedFiles adds 1 to "purge_deleted_files" metric.
-func (m BackupMetrics) IncPurgeDeletedFiles(clusterID uuid.UUID, host string) {
-	m.purgeDeletedFiles.WithLabelValues(clusterID.String(), host).Add(1)
+// SetPurgeFiles updates "purge_files" and "purge_deleted_files" metrics.
+func (m BackupMetrics) SetPurgeFiles(clusterID uuid.UUID, host string, total, deleted int) {
+	m.purgeFiles.WithLabelValues(clusterID.String(), host).Set(float64(total))
+	m.purgeDeletedFiles.WithLabelValues(clusterID.String(), host).Set(float64(deleted))
 }

@@ -39,9 +39,8 @@ func TestBackupMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("IncDecPurgeFiles", func(t *testing.T) {
-		m.SetPurgeFiles(c, "h", 2)
-		m.IncPurgeDeletedFiles(c, "h")
+	t.Run("SetPurgeFiles", func(t *testing.T) {
+		m.SetPurgeFiles(c, "h", 2, 1)
 
 		text := Dump(t, m.purgeFiles, m.purgeDeletedFiles)
 

@@ -797,9 +797,6 @@
         "deleted_files": {
           "type": "integer"
         },
-        "delete_errors": {
-          "type": "integer"
-        },
         "started_at": {
           "type": "string",
           "format": "date-time",

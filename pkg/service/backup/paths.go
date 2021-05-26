@@ -4,7 +4,6 @@ package backup
 
 import (
 	"os"
-	"path"
 )
 
 const dataDir = "data:"
@@ -19,12 +18,3 @@ const (
 
 	sep = string(os.PathSeparator)
 )
-
-func ssTablePathWithKeyspacePrefix(keyspace, table, version, name string) string {
-	return path.Join(
-		"keyspace", keyspace,
-		"table", table,
-		version,
-		name,
-	)
-}

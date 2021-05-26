@@ -27,9 +27,6 @@ type ValidateBackupProgress struct {
 	// dc
 	Dc string `json:"dc,omitempty"`
 
-	// delete errors
-	DeleteErrors int64 `json:"delete_errors,omitempty"`
-
 	// deleted files
 	DeletedFiles int64 `json:"deleted_files,omitempty"`
 

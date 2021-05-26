@@ -22,7 +22,7 @@ func TestListAllManifests(t *testing.T) {
 
 	ctx := context.Background()
 
-	manifests, error := listAllManifests(ctx, client, scyllaclienttest.TestHost,
+	manifests, error := listManifests(ctx, client, scyllaclienttest.TestHost,
 		Location{Provider: "testdata", Path: "list"},
 		uuid.MustParse("2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21"),
 	)
