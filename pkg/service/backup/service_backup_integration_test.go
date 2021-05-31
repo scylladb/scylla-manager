@@ -678,6 +678,17 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("List() = %v, expected two SnapshotTags", items)
 	}
 
+	Print("And: snapshots are removed from nodes")
+	for _, host := range ManagedClusterHosts() {
+		s, err := h.client.Snapshots(ctx, host)
+		if err != nil {
+			t.Fatal("Snapshots() error", err)
+		}
+		if len(s) > 0 {
+			t.Fatalf("Found snapshots %s on host %s", s, host)
+		}
+	}
+
 	Print("And: files")
 	manifests, schemas, _ := h.listS3Files()
 	// Manifest meta per host per snapshot
