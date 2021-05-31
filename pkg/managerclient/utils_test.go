@@ -157,7 +157,7 @@ func TestFormatError(t *testing.T) {
 		{
 			Name: "many_hosts_wrapped",
 			Msg:  `create cluster: connectivity check failed: 192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`,
-			Golden: `failed to create cluster: connectivity check failed
+			Golden: `create cluster: connectivity check failed
  192.168.100.13: unknown network bla
  192.168.100.22: unknown network bla
  192.168.100.12: unknown network bla
@@ -168,7 +168,7 @@ func TestFormatError(t *testing.T) {
 		{
 			Name: "single_host_wrapped",
 			Msg:  `create cluster: connectivity check failed: 192.168.100.13: unknown network bla`,
-			Golden: `failed to create cluster: connectivity check failed
+			Golden: `create cluster: connectivity check failed
  192.168.100.13: unknown network bla`,
 		},
 		{
