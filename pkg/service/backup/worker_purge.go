@@ -35,6 +35,19 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy map[uuid.UU
 	pop := popNodeIDManifestsForLocation(manifests)
 
 	return hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+		if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
+			w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
+				"host", h.IP,
+				"snapshot_tag", w.SnapshotTag,
+				"error", err,
+			)
+		} else {
+			w.Logger.Info(ctx, "Deleted uploaded snapshot",
+				"host", h.IP,
+				"snapshot_tag", w.SnapshotTag,
+			)
+		}
+
 		var (
 			nodeID    string
 			manifests []*RemoteManifest
