@@ -238,7 +238,6 @@ func isZero(t strfmt.DateTime) bool {
 
 // FormatError formats messages created by using multierror with
 // errors wrapped with host IP so that each host error is in it's own line.
-// It also adds "failed to" prefix if needed.
 func FormatError(msg string) string {
 	const prefix = " "
 
@@ -248,14 +247,8 @@ func FormatError(msg string) string {
 
 	// Move host errors to newline
 	r := regexp.MustCompile(`(^|: |; )(` + ipRegex + `): `)
-	msg = r.ReplaceAllString(msg, "\n"+prefix+"${2}: ")
 
-	// Add "failed to" prefix if needed
-	if !strings.HasPrefix(msg, "failed to") && !strings.HasPrefix(msg, "\n") {
-		msg = "failed to " + msg
-	}
-
-	return msg
+	return r.ReplaceAllString(msg, "\n"+prefix+"${2}: ")
 }
 
 // FormatTables returns tables listing if number of tables is lower than
