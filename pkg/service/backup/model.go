@@ -20,19 +20,6 @@ import (
 	"go.uber.org/multierr"
 )
 
-// ListFilter specifies filtering for backup listing.
-type ListFilter struct {
-	ClusterID   uuid.UUID `json:"cluster_id"`
-	DC          string    `json:"dc"`
-	NodeID      string    `json:"node_id"`
-	TaskID      uuid.UUID `json:"task_id"`
-	Keyspace    []string  `json:"keyspace"`
-	SnapshotTag string    `json:"snapshot_tag"`
-	MinDate     time.Time `json:"min_date"`
-	MaxDate     time.Time `json:"max_date"`
-	Temporary   bool      `json:"temporary"`
-}
-
 // SnapshotInfo contains detailed information about snapshot.
 type SnapshotInfo struct {
 	SnapshotTag string `json:"snapshot_tag"`

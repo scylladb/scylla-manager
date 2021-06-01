@@ -6,6 +6,7 @@ import (
 	"context"
 	"path"
 	"sync"
+	"time"
 
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
@@ -64,6 +65,96 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 		manifests = append(manifests, m)
 	}
 	return manifests, nil
+}
+
+// ListFilter specifies manifest listing criteria.
+type ListFilter struct {
+	ClusterID   uuid.UUID `json:"cluster_id"`
+	DC          string    `json:"dc"`
+	NodeID      string    `json:"node_id"`
+	TaskID      uuid.UUID `json:"task_id"`
+	Keyspace    []string  `json:"keyspace"`
+	SnapshotTag string    `json:"snapshot_tag"`
+	MinDate     time.Time `json:"min_date"`
+	MaxDate     time.Time `json:"max_date"`
+	Temporary   bool      `json:"temporary"`
+}
+
+func (f *ListFilter) prune(m *RemoteManifest) bool {
+	filters := []func(m *RemoteManifest) bool{
+		f.pruneDC,
+		f.pruneNodeID,
+		f.pruneClusterID,
+		f.pruneTaskID,
+		f.pruneSnapshotTag,
+	}
+	for _, f := range filters {
+		if f(m) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneDC(m *RemoteManifest) bool {
+	if m.DC != "" && f.DC != "" {
+		if m.DC != f.DC {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneNodeID(m *RemoteManifest) bool {
+	if m.NodeID != "" && f.NodeID != "" {
+		if m.NodeID != f.NodeID {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneClusterID(m *RemoteManifest) bool {
+	if m.ClusterID != uuid.Nil && f.ClusterID != uuid.Nil {
+		if m.ClusterID != f.ClusterID {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneTaskID(m *RemoteManifest) bool {
+	if m.TaskID != uuid.Nil && f.TaskID != uuid.Nil {
+		if m.TaskID != f.TaskID {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneSnapshotTag(m *RemoteManifest) bool {
+	if m.SnapshotTag != "" {
+		if f.SnapshotTag != "" {
+			return m.SnapshotTag != f.SnapshotTag
+		}
+		if !f.MinDate.IsZero() && m.SnapshotTag < SnapshotTagAt(f.MinDate) {
+			return true
+		}
+		if !f.MaxDate.IsZero() && m.SnapshotTag > SnapshotTagAt(f.MaxDate) {
+			return true
+		}
+	}
+	return false
+}
+
+func filterManifests(manifests []*RemoteManifest, filter ListFilter) []*RemoteManifest {
+	var out []*RemoteManifest
+	for _, m := range manifests {
+		if !filter.prune(m) {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 func groupManifestsByNode(manifests []*RemoteManifest) map[string][]*RemoteManifest {
