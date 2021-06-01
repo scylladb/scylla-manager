@@ -15,7 +15,9 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-func TestListAllManifests(t *testing.T) {
+// TODO add test with support for listing files for all clusters with clusterID=Nil
+
+func TestListManifests(t *testing.T) {
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
 

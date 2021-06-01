@@ -37,8 +37,13 @@ func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Clien
 }
 
 // listManifests returns manifests for all nodes of a given cluster in the location.
+// If cluster is uuid.Nil then it returns manifests for all clusters it can find.
 func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location Location, clusterID uuid.UUID) ([]*RemoteManifest, error) {
 	baseDir := RemoteMetaClusterDCDir(clusterID)
+	if clusterID == uuid.Nil {
+		baseDir = path.Join("backup", string(MetaDirKind))
+	}
+
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
 		Recurse:   true,
