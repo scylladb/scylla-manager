@@ -1843,6 +1843,7 @@ func TestValidateIntegration(t *testing.T) {
 	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
 		m.SnapshotTag = alienSnapshotTag
 		m.NodeID = uuid.MustRandom().String()
+		m.Content.IP = "1.2.3.4"
 		return true
 	})
 
@@ -1905,7 +1906,7 @@ func TestValidateIntegration(t *testing.T) {
 	}
 
 	r := findRowBySnapshotTag(alienSnapshotTag)
-	if r.MissingFiles < 10 {
+	if r.MissingFiles < 10 || r.Host != "1.2.3.4" {
 		t.Error("Wrong result")
 	}
 	r = findRowBySnapshotTag(tamperedSnapshotTag)
