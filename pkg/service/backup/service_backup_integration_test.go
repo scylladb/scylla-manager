@@ -176,39 +176,6 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	return files
 }
 
-func (h *backupTestHelper) assertMetadataVersion(ctx context.Context, expected string) {
-	var versionFiles []string
-
-	_, _, files := h.listS3Files()
-	for _, f := range files {
-		if strings.HasSuffix(f, MetadataVersion) {
-			versionFiles = append(versionFiles, f)
-		}
-	}
-
-	if len(versionFiles) != 3 {
-		h.t.Fatalf("Expected 3 metadata version files, got %d", len(versionFiles))
-	}
-
-	for _, f := range versionFiles {
-		content, err := h.client.RcloneCat(ctx, ManagedClusterHost(), h.location.RemotePath(f))
-		if err != nil {
-			h.t.Fatal(err)
-		}
-
-		var mv struct {
-			Version string `json:"version"`
-		}
-		if err := json.Unmarshal(content, &mv); err != nil {
-			h.t.Fatal(err)
-		}
-
-		if mv.Version != expected {
-			h.t.Fatalf("Expected version %s, got %s", expected, mv.Version)
-		}
-	}
-}
-
 func restartAgents(t *testing.T) {
 	execOnAllHosts(t, "supervisorctl restart scylla-manager-agent")
 }
@@ -819,8 +786,6 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if len(filesInfo) != 3*3 {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), 3*3)
 	}
-
-	h.assertMetadataVersion(ctx, "v2")
 
 	assertManifestHasCorrectFormat(t, ctx, h, manifests[0], schemas)
 }

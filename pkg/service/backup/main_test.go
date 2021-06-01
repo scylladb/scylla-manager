@@ -27,5 +27,4 @@ func setupRclone() {
 	rclone.InitFsConfig()
 
 	rclone.MustRegisterLocalDirProvider("testdata", "", path.Join(rootDir, "testdata"))
-	rclone.MustRegisterLocalDirProvider("walker", "", path.Join(rootDir, "testdata", "walker"))
 }

@@ -433,28 +433,33 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 	if err := s.resolveHosts(ctx, client, hosts); err != nil {
 		return nil, errors.Wrap(err, "resolve hosts")
 	}
+	locationHost := map[Location]string{}
+	for _, h := range hosts {
+		locationHost[h.Location] = h.IP
+	}
 
-	// List manifests
-	var (
-		manifests []*RemoteManifest
-		mu        sync.Mutex
-	)
+	manifests, err := listManifestsInAllLocations(ctx, client, hosts, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "list manifests")
+	}
 
-	err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
-		h := hosts[i]
-		v, err := newMultiVersionManifestLister(h.IP, h.Location, client, s.logger.Named("list")).ListManifests(ctx, filter)
+	manifests = filterManifests(manifests, filter)
+
+	load := func(m *RemoteManifest, c *ManifestContent) error {
+		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.RemoteManifestFile()))
 		if err != nil {
-			return errors.Wrapf(err, "%s: list remote files at location %s", h.IP, h.Location)
+			return err
 		}
+		defer r.Close()
+		return c.Read(r)
+	}
+	for _, m := range manifests {
+		if err := load(m, &m.Content); err != nil {
+			return nil, err
+		}
+	}
 
-		mu.Lock()
-		manifests = append(manifests, v...)
-		mu.Unlock()
-
-		return nil
-	})
-
-	return manifests, err
+	return manifests, nil
 }
 
 func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo) error {
@@ -621,6 +626,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Map stages to worker functions
+	gaurdFunc := func() error {
+		return nil
+	}
 	stageFunc := map[Stage]func() error{
 		StageAwaitSchema: func() error {
 			clusterSession, err := s.clusterSession(ctx, clusterID)
@@ -652,15 +660,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		StageMoveManifest: func() error {
 			return w.MoveManifest(ctx, hi)
 		},
-		StageMigrate: func() error {
-			return w.MigrateManifests(ctx, hi, target.UploadParallel)
-		},
 		StagePurge: func() error {
 			return w.Purge(ctx, hi, target.RetentionMap)
 		},
-		StageDone: func() error {
-			return nil
-		},
+		StageDone: gaurdFunc,
+
+		StageMigrate: gaurdFunc, // migrations from v1 are no longer supported
 	}
 
 	// Execute stages according to the stage order.
