@@ -127,15 +127,6 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 		return err
 	}
 
-	// Init progress for live nodes upfront
-	if err := s.initValidationRunProgress(validationRunProgress{
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		RunID:     runID,
-	}, hosts); err != nil {
-		return errors.Wrap(err, "init progress")
-	}
-
 	// List manifests in all locations
 	manifests, err := listManifestsInAllLocations(ctx, client, hosts, clusterID)
 	if err != nil {
@@ -157,10 +148,38 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 			progress  validationRunProgress
 		)
 
+		p := newPurger(client, h.IP, log.NopLogger)
+
+		hostForNodeID := func() string {
+			for _, h := range hosts {
+				if h.ID == nodeID {
+					return h.IP
+				}
+			}
+			if host := p.Host(nodeID); host != "" {
+				return host
+			}
+			return nodeID
+		}
+
 		putProgress := func() {
+			if progress.Host == "" {
+				progress.Host = hostForNodeID()
+			}
 			if err := s.putValidationRunProgress(progress); err != nil {
 				s.logger.Error(ctx, "Failed to put validation result", "error", err)
 			}
+		}
+
+		p.OnScan = func(scanned, orphaned int, orphanedBytes int64) {
+			progress.ScannedFiles = scanned
+			progress.OrphanedFiles = orphaned
+			progress.OrphanedBytes = orphanedBytes
+			putProgress()
+		}
+		p.OnDelete = func(total, success int) {
+			progress.DeletedFiles = success
+			putProgress()
 		}
 
 		f := func(nodeID string, manifests []*RemoteManifest) error {
@@ -177,36 +196,30 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 				logger.Info(ctx, "Validating node snapshots from host")
 				defer logger.Info(ctx, "Done validating node snapshots from host")
 			}
+			p.logger = logger
 
 			progress = validationRunProgress{
 				ClusterID: clusterID,
 				TaskID:    taskID,
 				RunID:     runID,
 				DC:        h.DC,
-				Host:      h.IP,
+				// Defer host assignment until we get to know the host IP.
+				// We can assign early for known hosts but in general case it's
+				// read from manifest. This is implemented in putProgress
+				// and hostForNodeID but requires reading manifests first.
+				// Host
 				Location:  h.Location,
 				Manifests: len(manifests),
 				StartedAt: pointer.TimePtr(timeutc.Now()),
 			}
-			// Put progress before start to init nodes that were not init on
-			// start i.e. not live nodes
-			putProgress()
+			if h.ID == nodeID {
+				putProgress()
+			}
 			defer func() {
 				progress.CompletedAt = pointer.TimePtr(timeutc.Now())
 				putProgress()
 			}()
 
-			p := newPurger(client, h.IP, logger)
-			p.OnScan = func(scanned, orphaned int, orphanedBytes int64) {
-				progress.ScannedFiles = scanned
-				progress.OrphanedFiles = orphaned
-				progress.OrphanedBytes = orphanedBytes
-				putProgress()
-			}
-			p.OnDelete = func(total, success int) {
-				progress.DeletedFiles = success
-				putProgress()
-			}
 			v, err := p.Validate(ctx, manifests, target.DeleteOrphanedFiles)
 			progress.ValidationResult = v
 
@@ -279,18 +292,6 @@ func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclien
 	}
 
 	return liveNodes, nil
-}
-
-func (s *Service) initValidationRunProgress(prototype validationRunProgress, hi []hostInfo) error {
-	for i := range hi {
-		prototype.DC = hi[i].DC
-		prototype.Host = hi[i].IP
-		prototype.Location = hi[i].Location
-		if err := s.putValidationRunProgress(prototype); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (s *Service) putValidationRunProgress(p validationRunProgress) error {
