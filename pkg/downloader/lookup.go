@@ -56,10 +56,10 @@ func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteri
 			return nil
 		}
 
-		if err := m.ParsePartialPath(o.String()); err != nil {
+		if err := m.ParsePath(o.String()); err != nil {
 			return nil
 		}
-		if m.SnapshotTag == "" || m.Temporary {
+		if m.Temporary {
 			return nil
 		}
 		if c.matches(m) {
@@ -96,10 +96,10 @@ func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([
 	)
 
 	lookup := func(o fs.Object) error {
-		if err := m.ParsePartialPath(o.String()); err != nil {
+		if err := m.ParsePath(o.String()); err != nil {
 			return nil
 		}
-		if m.SnapshotTag == "" || m.Temporary {
+		if m.Temporary {
 			return nil
 		}
 		if !c.matches(m) {
@@ -187,10 +187,10 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 	)
 
 	lookup := func(o fs.Object) error {
-		if err := m.ParsePartialPath(o.String()); err != nil {
+		if err := m.ParsePath(o.String()); err != nil {
 			return nil
 		}
-		if m.SnapshotTag == "" || m.Temporary {
+		if m.Temporary {
 			return nil
 		}
 		if ids.Has(m.NodeID) {

@@ -91,18 +91,10 @@ func (m *RemoteManifest) DumpContent(w io.Writer) error {
 	return m.Content.Write(w)
 }
 
-// ParsePartialPath tries extracting properties from remote path to manifest.
-// This is a reverse process to calling RemoteManifestFile function.
-// It supports path prefixes i.e. paths that may lead to a manifest file,
-// in that case no error is returned but only some fields will be set.
-func (m *RemoteManifest) ParsePartialPath(s string) error {
+// ParsePath extracts properties from full remote path to manifest.
+func (m *RemoteManifest) ParsePath(s string) error {
 	// Clear values
 	*m = RemoteManifest{}
-
-	// Ignore empty strings
-	if s == "" {
-		return nil
-	}
 
 	// Clean path for usage with strings.Split
 	s = strings.TrimPrefix(path.Clean(s), sep)
@@ -110,28 +102,7 @@ func (m *RemoteManifest) ParsePartialPath(s string) error {
 	// Set partial clean path
 	m.CleanPath = strings.Split(s, sep)
 
-	flatParser := func(v string) error {
-		p := pathparser.New(v, "_")
-
-		return p.Parse(
-			pathparser.Static("task"),
-			pathparser.ID(&m.TaskID),
-			pathparser.Static("tag"),
-			pathparser.Static("sm"),
-			func(v string) error {
-				tag := "sm_" + v
-				if !IsSnapshotTag(tag) {
-					return errors.Errorf("invalid snapshot tag %s", tag)
-				}
-				m.SnapshotTag = tag
-				return nil
-			},
-			pathparser.Static(Manifest, TempFile(Manifest)),
-		)
-	}
-
-	p := pathparser.New(s, sep)
-	err := p.Parse(
+	parsers := []pathparser.Parser{
 		pathparser.Static("backup"),
 		pathparser.Static(string(MetaDirKind)),
 		pathparser.Static("cluster"),
@@ -140,14 +111,45 @@ func (m *RemoteManifest) ParsePartialPath(s string) error {
 		pathparser.String(&m.DC),
 		pathparser.Static("node"),
 		pathparser.String(&m.NodeID),
-		flatParser,
-	)
+		m.fileNameParser,
+	}
+	n, err := pathparser.New(s, sep).Parse(parsers...)
 	if err != nil {
 		return err
+	}
+	if n < len(parsers) {
+		return errors.Errorf("no input at position %d", n)
 	}
 
 	m.Temporary = strings.HasSuffix(s, TempFileExt)
 
+	return nil
+}
+
+func (m *RemoteManifest) fileNameParser(v string) error {
+	parsers := []pathparser.Parser{
+		pathparser.Static("task"),
+		pathparser.ID(&m.TaskID),
+		pathparser.Static("tag"),
+		pathparser.Static("sm"),
+		func(v string) error {
+			tag := "sm_" + v
+			if !IsSnapshotTag(tag) {
+				return errors.Errorf("invalid snapshot tag %s", tag)
+			}
+			m.SnapshotTag = tag
+			return nil
+		},
+		pathparser.Static(Manifest, TempFile(Manifest)),
+	}
+
+	n, err := pathparser.New(v, "_").Parse(parsers...)
+	if err != nil {
+		return err
+	}
+	if n < len(parsers) {
+		return errors.Errorf("input too short")
+	}
 	return nil
 }
 

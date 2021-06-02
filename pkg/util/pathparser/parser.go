@@ -28,17 +28,17 @@ func New(v, sep string) *PathParser {
 type Parser func(string) error
 
 // Parse iterates over provided parsers which consumes string parts.
-func (p PathParser) Parse(parsers ...Parser) error {
+func (p PathParser) Parse(parsers ...Parser) (int, error) {
 	parts := strings.Split(p.value, p.sep)
 	for i, p := range parsers {
-		if len(parts) <= i {
-			return nil
+		if i >= len(parts) {
+			return i, nil
 		}
 		if err := p(parts[i]); err != nil {
-			return errors.Wrapf(err, "invalid path element at position %d", i)
+			return i, errors.Wrapf(err, "invalid path element at position %d", i)
 		}
 	}
-	return nil
+	return len(parsers), nil
 }
 
 // ID parser saves UUID value under given ptr.

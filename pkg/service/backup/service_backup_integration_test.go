@@ -249,8 +249,8 @@ func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath
 	h.t.Helper()
 
 	// Parse manifest path
-	m, err := backup.ParsePartialPath(manifestsPath)
-	if err != nil {
+	var m RemoteManifest
+	if err := m.ParsePath(manifestsPath); err != nil {
 		h.t.Fatal(err)
 	}
 	// Load manifest
@@ -710,7 +710,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: manifests are in metadata directory")
 	for _, m := range manifests {
-		if _, err := backup.ParsePartialPath(m); err != nil {
+		var v RemoteManifest
+		if err := v.ParsePath(m); err != nil {
 			t.Fatal("manifest file in wrong path", m)
 		}
 	}

@@ -58,7 +58,7 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 	for _, item := range items {
 		p := path.Join(baseDir, item.Path)
 		m := &RemoteManifest{}
-		if err := m.ParsePartialPath(p); err != nil {
+		if err := m.ParsePath(p); err != nil {
 			continue
 		}
 		m.Location = location

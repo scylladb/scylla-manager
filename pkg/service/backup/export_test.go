@@ -14,15 +14,10 @@ import (
 
 func SnapshotTagFromManifestPath(t *testing.T, s string) string {
 	var m RemoteManifest
-	if err := m.ParsePartialPath(s); err != nil {
+	if err := m.ParsePath(s); err != nil {
 		t.Fatal(t)
 	}
 	return m.SnapshotTag
-}
-
-func ParsePartialPath(s string) (RemoteManifest, error) {
-	var m RemoteManifest
-	return m, m.ParsePartialPath(s)
 }
 
 type (

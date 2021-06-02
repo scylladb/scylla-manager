@@ -129,7 +129,7 @@ func loadManifestInto(dir, fileName string, files *strset.Set) {
 	defer f.Close()
 
 	var m backupspec.RemoteManifest
-	if err := m.ParsePartialPath(fileName); err != nil {
+	if err := m.ParsePath(fileName); err != nil {
 		log.Fatal(err)
 	}
 

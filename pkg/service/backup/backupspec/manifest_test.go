@@ -21,7 +21,7 @@ func TestRemoteManifestParsePath(t *testing.T) {
 		cmpopts.IgnoreUnexported(RemoteManifest{}),
 	}
 
-	golden := RemoteManifest{
+	prototype := RemoteManifest{
 		ClusterID:   uuid.MustRandom(),
 		DC:          "a",
 		NodeID:      "b",
@@ -29,51 +29,30 @@ func TestRemoteManifestParsePath(t *testing.T) {
 		SnapshotTag: NewSnapshotTag(),
 	}
 
-	for _, temporary := range []bool{false, true} {
-		golden.Temporary = temporary
+	t.Run("normal", func(t *testing.T) {
+		golden := prototype
 
 		var m RemoteManifest
-		if err := m.ParsePartialPath(golden.RemoteManifestFile()); err != nil {
-			t.Fatal("ParsePartialPath() error", err)
+		if err := m.ParsePath(golden.RemoteManifestFile()); err != nil {
+			t.Fatal("ParsePath() error", err)
 		}
 		if diff := cmp.Diff(m, golden, opts); diff != "" {
-			t.Fatal("ParsePartialPath() diff", diff)
+			t.Fatal("ParsePath() diff", diff)
 		}
-	}
-}
+	})
 
-func TestRemoteManifestParsePathEmpty(t *testing.T) {
-	t.Parallel()
+	t.Run("temporary", func(t *testing.T) {
+		golden := prototype
+		golden.Temporary = true
 
-	table := []struct {
-		Name string
-		Path string
-	}{
-		{
-			Name: "empty",
-			Path: "",
-		},
-		{
-			Name: "backup prefix",
-			Path: "backup",
-		},
-		{
-			Name: "backup prefix with slash",
-			Path: "/backup",
-		},
-	}
-
-	for i := range table {
-		test := table[i]
-
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-			var p RemoteManifest
-			if err := p.ParsePartialPath(test.Path); err != nil {
-				t.Fatal("ParsePartialPath() error", err)
-			}
-		})
-	}
+		var m RemoteManifest
+		if err := m.ParsePath(golden.RemoteManifestFile()); err != nil {
+			t.Fatal("ParsePath() error", err)
+		}
+		if diff := cmp.Diff(m, golden, opts); diff != "" {
+			t.Fatal("ParsePath() diff", diff)
+		}
+	})
 }
 
 func TestRemoteManifestParsePathErrors(t *testing.T) {
@@ -105,7 +84,12 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 			Error: "expected one of [manifest.json.gz manifest.json.gz.tmp]",
 		},
 		{
-			Name:  "sSTable dir",
+			Name:  "manifest submatch",
+			Path:  strings.Join(strings.Split(RemoteManifestFile(uuid.MustRandom(), uuid.MustRandom(), NewSnapshotTag(), "dc", "nodeID"), sep)[0:5], sep),
+			Error: "no input at position 5",
+		},
+		{
+			Name:  "SSTable dir",
 			Path:  RemoteSSTableVersionDir(uuid.MustRandom(), "dc", "nodeID", "keyspace", "table", "version"),
 			Error: "expected meta",
 		},
@@ -118,14 +102,14 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 			t.Parallel()
 
 			var m RemoteManifest
-			err := m.ParsePartialPath(test.Path)
+			err := m.ParsePath(test.Path)
 			if err == nil {
-				t.Fatal("ParsePartialPath() expected error")
+				t.Fatal("ParsePath() expected error")
 			}
 
-			t.Log("ParsePartialPath():", err)
+			t.Log("ParsePath():", err)
 			if !strings.Contains(err.Error(), test.Error) {
-				t.Fatalf("ParsePartialPath() = %v, expected %v", err, test.Error)
+				t.Fatalf("ParsePath() = %v, expected %v", err, test.Error)
 			}
 		})
 	}

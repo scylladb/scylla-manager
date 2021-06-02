@@ -38,7 +38,7 @@ func TestPartParser(t *testing.T) {
 		customIntParser(&i),
 	}
 
-	if err := p.Parse(parsers...); err != nil {
+	if _, err := p.Parse(parsers...); err != nil {
 		t.Fatal(err)
 	}
 
@@ -82,7 +82,7 @@ func TestPartParserErrorCases(t *testing.T) {
 			t.Parallel()
 
 			p := New(test.Value, "/")
-			if err := p.Parse(test.Parsers...); err == nil {
+			if _, err := p.Parse(test.Parsers...); err == nil {
 				t.Fatal("expected to get error, got nil")
 			}
 		})
