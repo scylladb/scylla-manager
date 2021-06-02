@@ -203,9 +203,9 @@ func TestDownloadFilterCheck(t *testing.T) {
 	}
 }
 
-func dummyManifest() backup.RemoteManifestWithContent {
-	return backup.RemoteManifestWithContent{
-		RemoteManifest: &backup.RemoteManifest{},
+func dummyManifest() backup.ManifestInfoWithContent {
+	return backup.ManifestInfoWithContent{
+		ManifestInfo: &backup.ManifestInfo{},
 		ManifestContent: &backup.ManifestContent{
 			Index: []backup.FilesMeta{
 				{

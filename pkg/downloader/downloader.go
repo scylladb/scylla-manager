@@ -70,7 +70,7 @@ func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (
 }
 
 // DryRun returns an action plan without performing any disk operations.
-func (d *Downloader) DryRun(ctx context.Context, m backup.RemoteManifestWithContent) (Plan, error) {
+func (d *Downloader) DryRun(ctx context.Context, m backup.ManifestInfoWithContent) (Plan, error) {
 	d.dryRun = true
 	d.plan = Plan{m: m}
 	return d.plan, d.download(ctx, m, 1)
@@ -78,12 +78,12 @@ func (d *Downloader) DryRun(ctx context.Context, m backup.RemoteManifestWithCont
 
 // Download executes download operation by taking snapshot files from configured
 // locations and downloading them to the data directory.
-func (d *Downloader) Download(ctx context.Context, m backup.RemoteManifestWithContent) error {
+func (d *Downloader) Download(ctx context.Context, m backup.ManifestInfoWithContent) error {
 	d.dryRun = false
 	return d.download(ctx, m, parallel.NoLimit)
 }
 
-func (d *Downloader) download(ctx context.Context, m backup.RemoteManifestWithContent, workers int) error {
+func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithContent, workers int) error {
 	d.logger.Info(ctx, "Initializing downloader",
 		"cluster_id", m.ClusterID,
 		"cluster_name", m.ClusterName,
@@ -162,7 +162,7 @@ func (d *Downloader) download(ctx context.Context, m backup.RemoteManifestWithCo
 	})
 }
 
-func (d *Downloader) filteredIndex(ctx context.Context, m backup.RemoteManifestWithContent) []backup.FilesMeta {
+func (d *Downloader) filteredIndex(ctx context.Context, m backup.ManifestInfoWithContent) []backup.FilesMeta {
 	if d.keyspace == nil {
 		return m.Index
 	}
@@ -242,7 +242,7 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 	return nil
 }
 
-func (d *Downloader) downloadFiles(ctx context.Context, m backup.RemoteManifestWithContent, u backup.FilesMeta) error {
+func (d *Downloader) downloadFiles(ctx context.Context, m backup.ManifestInfoWithContent, u backup.FilesMeta) error {
 	d.logger.Info(ctx, "Downloading",
 		"keyspace", u.Keyspace,
 		"table", u.Table,
@@ -260,7 +260,7 @@ func (d *Downloader) downloadFiles(ctx context.Context, m backup.RemoteManifestW
 		return nil
 	}
 
-	return sync.CopyPaths(ctx, d.fdst, d.dstDir(u), d.fsrc, m.RemoteSSTableVersionDir(u.Keyspace, u.Table, u.Version), u.Files, false)
+	return sync.CopyPaths(ctx, d.fdst, d.dstDir(u), d.fsrc, m.SSTableVersionDir(u.Keyspace, u.Table, u.Version), u.Files, false)
 }
 
 func (d *Downloader) dstDir(u backup.FilesMeta) (dir string) {

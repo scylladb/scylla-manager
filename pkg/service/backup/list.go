@@ -15,10 +15,10 @@ import (
 
 // listManifestsInAllLocations returns manifests for all nodes of a in all
 // locations specified in hosts.
-func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo, clusterID uuid.UUID) ([]*RemoteManifest, error) {
+func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo, clusterID uuid.UUID) ([]*ManifestInfo, error) {
 	var (
 		locations = make(map[Location]struct{})
-		manifests []*RemoteManifest
+		manifests []*ManifestInfo
 	)
 
 	for _, hi := range hosts {
@@ -39,7 +39,7 @@ func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Clien
 
 // listManifests returns manifests for all nodes of a given cluster in the location.
 // If cluster is uuid.Nil then it returns manifests for all clusters it can find.
-func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location Location, clusterID uuid.UUID) ([]*RemoteManifest, error) {
+func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location Location, clusterID uuid.UUID) ([]*ManifestInfo, error) {
 	baseDir := RemoteMetaClusterDCDir(clusterID)
 	if clusterID == uuid.Nil {
 		baseDir = path.Join("backup", string(MetaDirKind))
@@ -54,10 +54,10 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 		return nil, err
 	}
 
-	var manifests []*RemoteManifest
+	var manifests []*ManifestInfo
 	for _, item := range items {
 		p := path.Join(baseDir, item.Path)
-		m := &RemoteManifest{}
+		m := &ManifestInfo{}
 		if err := m.ParsePath(p); err != nil {
 			continue
 		}
@@ -80,8 +80,8 @@ type ListFilter struct {
 	Temporary   bool      `json:"temporary"`
 }
 
-func (f *ListFilter) prune(m *RemoteManifest) bool {
-	filters := []func(m *RemoteManifest) bool{
+func (f *ListFilter) prune(m *ManifestInfo) bool {
+	filters := []func(m *ManifestInfo) bool{
 		f.pruneDC,
 		f.pruneNodeID,
 		f.pruneClusterID,
@@ -96,7 +96,7 @@ func (f *ListFilter) prune(m *RemoteManifest) bool {
 	return false
 }
 
-func (f *ListFilter) pruneDC(m *RemoteManifest) bool {
+func (f *ListFilter) pruneDC(m *ManifestInfo) bool {
 	if m.DC != "" && f.DC != "" {
 		if m.DC != f.DC {
 			return true
@@ -105,7 +105,7 @@ func (f *ListFilter) pruneDC(m *RemoteManifest) bool {
 	return false
 }
 
-func (f *ListFilter) pruneNodeID(m *RemoteManifest) bool {
+func (f *ListFilter) pruneNodeID(m *ManifestInfo) bool {
 	if m.NodeID != "" && f.NodeID != "" {
 		if m.NodeID != f.NodeID {
 			return true
@@ -114,7 +114,7 @@ func (f *ListFilter) pruneNodeID(m *RemoteManifest) bool {
 	return false
 }
 
-func (f *ListFilter) pruneClusterID(m *RemoteManifest) bool {
+func (f *ListFilter) pruneClusterID(m *ManifestInfo) bool {
 	if m.ClusterID != uuid.Nil && f.ClusterID != uuid.Nil {
 		if m.ClusterID != f.ClusterID {
 			return true
@@ -123,7 +123,7 @@ func (f *ListFilter) pruneClusterID(m *RemoteManifest) bool {
 	return false
 }
 
-func (f *ListFilter) pruneTaskID(m *RemoteManifest) bool {
+func (f *ListFilter) pruneTaskID(m *ManifestInfo) bool {
 	if m.TaskID != uuid.Nil && f.TaskID != uuid.Nil {
 		if m.TaskID != f.TaskID {
 			return true
@@ -132,7 +132,7 @@ func (f *ListFilter) pruneTaskID(m *RemoteManifest) bool {
 	return false
 }
 
-func (f *ListFilter) pruneSnapshotTag(m *RemoteManifest) bool {
+func (f *ListFilter) pruneSnapshotTag(m *ManifestInfo) bool {
 	if m.SnapshotTag != "" {
 		if f.SnapshotTag != "" {
 			return m.SnapshotTag != f.SnapshotTag
@@ -147,8 +147,8 @@ func (f *ListFilter) pruneSnapshotTag(m *RemoteManifest) bool {
 	return false
 }
 
-func filterManifests(manifests []*RemoteManifest, filter ListFilter) []*RemoteManifest {
-	var out []*RemoteManifest
+func filterManifests(manifests []*ManifestInfo, filter ListFilter) []*ManifestInfo {
+	var out []*ManifestInfo
 	for _, m := range manifests {
 		if !filter.prune(m) {
 			out = append(out, m)
@@ -157,16 +157,16 @@ func filterManifests(manifests []*RemoteManifest, filter ListFilter) []*RemoteMa
 	return out
 }
 
-func groupManifestsByNode(manifests []*RemoteManifest) map[string][]*RemoteManifest {
-	v := map[string][]*RemoteManifest{}
+func groupManifestsByNode(manifests []*ManifestInfo) map[string][]*ManifestInfo {
+	v := map[string][]*ManifestInfo{}
 	for _, m := range manifests {
 		v[m.NodeID] = append(v[m.NodeID], m)
 	}
 	return v
 }
 
-func groupManifestsByTask(manifests []*RemoteManifest) map[uuid.UUID][]*RemoteManifest {
-	v := map[uuid.UUID][]*RemoteManifest{}
+func groupManifestsByTask(manifests []*ManifestInfo) map[uuid.UUID][]*ManifestInfo {
+	v := map[uuid.UUID][]*ManifestInfo{}
 	for _, m := range manifests {
 		v[m.TaskID] = append(v[m.TaskID], m)
 	}
@@ -175,10 +175,10 @@ func groupManifestsByTask(manifests []*RemoteManifest) map[uuid.UUID][]*RemoteMa
 
 // popNodeIDManifestsForLocation returns a function that for a given location
 // finds next node and it's manifests from that location.
-func popNodeIDManifestsForLocation(manifests []*RemoteManifest) func(h hostInfo) (string, []*RemoteManifest) {
+func popNodeIDManifestsForLocation(manifests []*ManifestInfo) func(h hostInfo) (string, []*ManifestInfo) {
 	var mu sync.Mutex
 	nodeIDManifests := groupManifestsByNode(manifests)
-	return func(h hostInfo) (string, []*RemoteManifest) {
+	return func(h hostInfo) (string, []*ManifestInfo) {
 		mu.Lock()
 		defer mu.Unlock()
 

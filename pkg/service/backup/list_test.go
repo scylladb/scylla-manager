@@ -32,9 +32,9 @@ func TestListManifests(t *testing.T) {
 			t.Fatal("listManifests() error", error)
 		}
 		testutils.SaveGoldenJSONFileIfNeeded(t, manifests)
-		var golden []*RemoteManifest
+		var golden []*ManifestInfo
 		testutils.LoadGoldenJSONFile(t, &golden)
-		if diff := cmp.Diff(manifests, golden, testutils.UUIDComparer(), cmpopts.SortSlices(func(a, b *RemoteManifest) bool {
+		if diff := cmp.Diff(manifests, golden, testutils.UUIDComparer(), cmpopts.SortSlices(func(a, b *ManifestInfo) bool {
 			if v := strings.Compare(a.NodeID, b.NodeID); v != 0 {
 				return v < 0
 			}

@@ -13,7 +13,7 @@ import (
 )
 
 func SnapshotTagFromManifestPath(t *testing.T, s string) string {
-	var m RemoteManifest
+	var m ManifestInfo
 	if err := m.ParsePath(s); err != nil {
 		t.Fatal(t)
 	}

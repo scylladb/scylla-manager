@@ -54,8 +54,8 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 	return w.uploadHostManifest(ctx, h, m)
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) RemoteManifestWithContent {
-	m := &RemoteManifest{
+func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInfoWithContent {
+	m := &ManifestInfo{
 		Location:    h.Location,
 		DC:          h.DC,
 		ClusterID:   w.ClusterID,
@@ -91,13 +91,13 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) RemoteManif
 		c.Size += d.Progress.Size
 	}
 
-	return RemoteManifestWithContent{
-		RemoteManifest:  m,
+	return ManifestInfoWithContent{
+		ManifestInfo:    m,
 		ManifestContent: c,
 	}
 }
 
-func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m RemoteManifestWithContent) error {
+func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m ManifestInfoWithContent) error {
 	// Get memory buffer for gzip compressed output
 	buf := w.memoryPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -111,7 +111,7 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m RemoteMan
 	}
 
 	// Upload compressed manifest
-	dst := h.Location.RemotePath(m.RemoteManifestFile())
+	dst := h.Location.RemotePath(m.Path())
 	return w.Client.RclonePut(ctx, h.IP, dst, buf, int64(buf.Len()))
 }
 

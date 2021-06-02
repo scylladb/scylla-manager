@@ -16,7 +16,7 @@ type fileInfo struct {
 	Size int64  `json:"size"`
 }
 
-func aggregateRemoteManifests(manifests []RemoteManifestWithContent) []ListItem {
+func aggregateManifestInfos(manifests []ManifestInfoWithContent) []ListItem {
 	// Group by Snapshot tag
 	type key struct {
 		ClusterID   uuid.UUID

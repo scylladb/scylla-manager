@@ -385,7 +385,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 	if err != nil {
 		return nil, err
 	}
-	return aggregateRemoteManifests(manifests), nil
+	return aggregateManifestInfos(manifests), nil
 }
 
 // ListFiles returns info on available backup files based on filtering criteria.
@@ -413,7 +413,7 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 	return files, nil
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]RemoteManifestWithContent, error) {
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]ManifestInfoWithContent, error) {
 	// Validate inputs
 	if len(locations) == 0 {
 		return nil, service.ErrValidate(errors.New("empty locations"))
@@ -445,22 +445,22 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 	manifests = filterManifests(manifests, filter)
 
 	// Load manifest content
-	load := func(m *RemoteManifest, c *ManifestContent) error {
-		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.RemoteManifestFile()))
+	load := func(m *ManifestInfo, c *ManifestContent) error {
+		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.Path()))
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 		return c.Read(r)
 	}
-	out := make([]RemoteManifestWithContent, len(manifests))
+	out := make([]ManifestInfoWithContent, len(manifests))
 	for i, m := range manifests {
 		c := new(ManifestContent)
 		if err := load(m, c); err != nil {
 			return nil, err
 		}
-		out[i] = RemoteManifestWithContent{
-			RemoteManifest:  m,
+		out[i] = ManifestInfoWithContent{
+			ManifestInfo:    m,
 			ManifestContent: c,
 		}
 	}

@@ -144,7 +144,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	if err := hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
 		var (
 			nodeID    string
-			manifests []*RemoteManifest
+			manifests []*ManifestInfo
 			progress  validationRunProgress
 		)
 
@@ -182,7 +182,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 			putProgress()
 		}
 
-		f := func(nodeID string, manifests []*RemoteManifest) error {
+		f := func(nodeID string, manifests []*ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
 				logger = s.logger.Named("validate").With("host", h.IP)

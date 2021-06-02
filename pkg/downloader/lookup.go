@@ -25,7 +25,7 @@ type ManifestLookupCriteria struct {
 	SnapshotTag string    `json:"snapshot_tag"`
 }
 
-func (c ManifestLookupCriteria) matches(m backup.RemoteManifestWithContent) bool {
+func (c ManifestLookupCriteria) matches(m backup.ManifestInfoWithContent) bool {
 	if c.NodeID != uuid.Nil && c.NodeID.String() != m.NodeID {
 		return false
 	}
@@ -36,18 +36,18 @@ func (c ManifestLookupCriteria) matches(m backup.RemoteManifestWithContent) bool
 }
 
 // LookupManifest finds and loads manifest base on the lookup criteria.
-func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (backup.RemoteManifestWithContent, error) {
+func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (backup.ManifestInfoWithContent, error) {
 	d.logger.Info(ctx, "Searching for manifest", "criteria", c)
 
 	if c.NodeID == uuid.Nil {
-		return backup.RemoteManifestWithContent{}, errors.New("invalid criteria: missing node ID")
+		return backup.ManifestInfoWithContent{}, errors.New("invalid criteria: missing node ID")
 	}
 	if c.SnapshotTag == "" {
-		return backup.RemoteManifestWithContent{}, errors.New("invalid criteria: missing snapshot tag")
+		return backup.ManifestInfoWithContent{}, errors.New("invalid criteria: missing snapshot tag")
 	}
 
 	var (
-		m  = backup.NewRemoteManifestWithContent()
+		m  = backup.NewManifestInfoWithContent()
 		ok bool
 	)
 
@@ -71,10 +71,10 @@ func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteri
 		return nil
 	}
 	if err := d.forEachMetaDirObject(ctx, lookup); err != nil {
-		return backup.RemoteManifestWithContent{}, err
+		return backup.ManifestInfoWithContent{}, err
 	}
 	if !ok {
-		return backup.RemoteManifestWithContent{}, errors.New("no manifests found")
+		return backup.ManifestInfoWithContent{}, errors.New("no manifests found")
 	}
 
 	return m, nil
@@ -91,7 +91,7 @@ func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([
 	var (
 		snapshotTags []string
 
-		m = backup.NewRemoteManifestWithContent()
+		m = backup.NewManifestInfoWithContent()
 		c = ManifestLookupCriteria{NodeID: nodeID}
 	)
 
@@ -181,7 +181,7 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 
 	var (
 		nodes []NodeInfo
-		m     = backup.NewRemoteManifestWithContent()
+		m     = backup.NewManifestInfoWithContent()
 		ids   = strset.New()
 	)
 

@@ -35,7 +35,7 @@ type Plan struct {
 	// BaseDir can be set externally to set prefix to paths printed in WriteTo.
 	BaseDir string `json:"-"`
 
-	m backup.RemoteManifestWithContent `json:"-"`
+	m backup.ManifestInfoWithContent `json:"-"`
 }
 
 func (p Plan) WriteTo(w io.Writer) (n int64, err error) {

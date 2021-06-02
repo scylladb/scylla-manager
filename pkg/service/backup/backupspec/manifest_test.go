@@ -12,16 +12,15 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-func TestRemoteManifestParsePath(t *testing.T) {
+func TestManifestInfoParsePath(t *testing.T) {
 	t.Parallel()
 
 	opts := cmp.Options{
 		UUIDComparer(),
-		cmpopts.IgnoreFields(RemoteManifest{}, "CleanPath"),
-		cmpopts.IgnoreUnexported(RemoteManifest{}),
+		cmpopts.IgnoreUnexported(ManifestInfo{}),
 	}
 
-	prototype := RemoteManifest{
+	prototype := ManifestInfo{
 		ClusterID:   uuid.MustRandom(),
 		DC:          "a",
 		NodeID:      "b",
@@ -32,8 +31,8 @@ func TestRemoteManifestParsePath(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		golden := prototype
 
-		var m RemoteManifest
-		if err := m.ParsePath(golden.RemoteManifestFile()); err != nil {
+		var m ManifestInfo
+		if err := m.ParsePath(golden.Path()); err != nil {
 			t.Fatal("ParsePath() error", err)
 		}
 		if diff := cmp.Diff(m, golden, opts); diff != "" {
@@ -45,8 +44,8 @@ func TestRemoteManifestParsePath(t *testing.T) {
 		golden := prototype
 		golden.Temporary = true
 
-		var m RemoteManifest
-		if err := m.ParsePath(golden.RemoteManifestFile()); err != nil {
+		var m ManifestInfo
+		if err := m.ParsePath(golden.Path()); err != nil {
 			t.Fatal("ParsePath() error", err)
 		}
 		if diff := cmp.Diff(m, golden, opts); diff != "" {
@@ -55,7 +54,7 @@ func TestRemoteManifestParsePath(t *testing.T) {
 	})
 }
 
-func TestRemoteManifestParsePathErrors(t *testing.T) {
+func TestManifestInfoParsePathErrors(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
@@ -101,7 +100,7 @@ func TestRemoteManifestParsePathErrors(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			var m RemoteManifest
+			var m ManifestInfo
 			err := m.ParsePath(test.Path)
 			if err == nil {
 				t.Fatal("ParsePath() expected error")

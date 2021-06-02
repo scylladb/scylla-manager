@@ -23,10 +23,19 @@ const (
 	sep = string(os.PathSeparator)
 )
 
+type dirKind string
+
+// Enumeration of dirKinds.
+const (
+	SchemaDirKind = dirKind("schema")
+	SSTDirKind    = dirKind("sst")
+	MetaDirKind   = dirKind("meta")
+)
+
 // RemoteManifestLevel calculates maximal depth of recursive listing starting at
 // baseDir to list all manifests.
 func RemoteManifestLevel(baseDir string) int {
-	a := len(strings.Split(RemoteManifestDir(uuid.Nil, "a", "b"), sep))
+	a := len(strings.Split(remoteManifestDir(uuid.Nil, "a", "b"), sep))
 	b := len(strings.Split(baseDir, sep))
 	return a - b
 }
@@ -42,70 +51,12 @@ func RemoteManifestFile(clusterID, taskID uuid.UUID, snapshotTag, dc, nodeID str
 	}, "_")
 
 	return path.Join(
-		RemoteManifestDir(clusterID, dc, nodeID),
+		remoteManifestDir(clusterID, dc, nodeID),
 		manifestName,
 	)
 }
 
-// RemoteSchemaFile returns path to the schema file.
-func RemoteSchemaFile(clusterID, taskID uuid.UUID, snapshotTag string) string {
-	manifestName := strings.Join([]string{
-		"task",
-		taskID.String(),
-		"tag",
-		snapshotTag,
-		Schema,
-	}, "_")
-
-	return path.Join(
-		remoteSchemaDir(clusterID),
-		manifestName,
-	)
-}
-
-// RemoteSSTableVersionDir returns path to the sstable version directory.
-func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
-	return path.Join(
-		remoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
-		version,
-	)
-}
-
-type dirKind string
-
-// Enumeration of dirKinds.
-const (
-	SchemaDirKind = dirKind("schema")
-	SSTDirKind    = dirKind("sst")
-	MetaDirKind   = dirKind("meta")
-)
-
-// RemoteSSTableBaseDir returns path to the sstable base directory.
-func RemoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
-	return path.Join(
-		"backup",
-		string(SSTDirKind),
-		"cluster",
-		clusterID.String(),
-		"dc",
-		dc,
-		"node",
-		nodeID,
-	)
-}
-
-func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
-	return path.Join(
-		RemoteSSTableBaseDir(clusterID, dc, nodeID),
-		"keyspace",
-		keyspace,
-		"table",
-		table,
-	)
-}
-
-// RemoteManifestDir returns path to the manifest directory.
-func RemoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
+func remoteManifestDir(clusterID uuid.UUID, dc, nodeID string) string {
 	return path.Join(
 		"backup",
 		string(MetaDirKind),
@@ -129,6 +80,22 @@ func RemoteMetaClusterDCDir(clusterID uuid.UUID) string {
 	)
 }
 
+// RemoteSchemaFile returns path to the schema file.
+func RemoteSchemaFile(clusterID, taskID uuid.UUID, snapshotTag string) string {
+	manifestName := strings.Join([]string{
+		"task",
+		taskID.String(),
+		"tag",
+		snapshotTag,
+		Schema,
+	}, "_")
+
+	return path.Join(
+		remoteSchemaDir(clusterID),
+		manifestName,
+	)
+}
+
 func remoteSchemaDir(clusterID uuid.UUID) string {
 	return path.Join(
 		"backup",
@@ -138,11 +105,35 @@ func remoteSchemaDir(clusterID uuid.UUID) string {
 	)
 }
 
-// RemoteMetaVersionFile returns path to the manifest version file.
-func RemoteMetaVersionFile(clusterID uuid.UUID, dc, nodeID string) string {
+// RemoteSSTableVersionDir returns path to the sstable version directory.
+func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		RemoteManifestDir(clusterID, dc, nodeID),
-		MetadataVersion,
+		remoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
+		version,
+	)
+}
+
+// RemoteSSTableBaseDir returns path to the sstable base directory.
+func RemoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
+	return path.Join(
+		"backup",
+		string(SSTDirKind),
+		"cluster",
+		clusterID.String(),
+		"dc",
+		dc,
+		"node",
+		nodeID,
+	)
+}
+
+func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
+	return path.Join(
+		RemoteSSTableBaseDir(clusterID, dc, nodeID),
+		"keyspace",
+		keyspace,
+		"table",
+		table,
 	)
 }
 

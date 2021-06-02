@@ -25,7 +25,7 @@ import (
 // - temporary manifests,
 // - manifests over task retention policy,
 // - manifests older than threshold if retention policy is unknown.
-func staleTags(manifests []*RemoteManifest, policy map[uuid.UUID]int, threshold time.Time) *strset.Set {
+func staleTags(manifests []*ManifestInfo, policy map[uuid.UUID]int, threshold time.Time) *strset.Set {
 	tags := strset.New()
 
 	for taskID, taskManifests := range groupManifestsByTask(manifests) {
@@ -76,7 +76,7 @@ func newPurger(client *scyllaclient.Client, host string, logger log.Logger) purg
 	}
 }
 
-func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*RemoteManifest, tags *strset.Set) (int, error) {
+func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set) (int, error) {
 	if len(manifests) == 0 {
 		return 0, nil
 	}
@@ -97,7 +97,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*RemoteManife
 				"temporary", m.Temporary,
 			)
 			if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-				return 0, errors.Wrapf(err, "load manifest %s", m.RemoteManifestFile())
+				return 0, errors.Wrapf(err, "load manifest %s", m.Path())
 			}
 			p.forEachDir(m, &c, files.AddFiles)
 		}
@@ -108,7 +108,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*RemoteManife
 	for _, m := range manifests {
 		if !tags.Has(m.SnapshotTag) {
 			if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-				return 0, errors.Wrapf(err, "load manifest %s", m.RemoteManifestFile())
+				return 0, errors.Wrapf(err, "load manifest %s", m.Path())
 			}
 			p.forEachDir(m, &c, files.RemoveFiles)
 		}
@@ -119,11 +119,11 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*RemoteManife
 	deletedManifests := 0
 	for _, m := range manifests {
 		if tags.Has(m.SnapshotTag) {
-			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.RemoteSchemaFile())); err != nil {
-				p.logger.Info(ctx, "Failed to remove schema file", "path", m.RemoteSchemaFile(), "error", err)
+			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
+				p.logger.Info(ctx, "Failed to remove schema file", "path", m.SchemaPath(), "error", err)
 			}
-			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.RemoteManifestFile())); err != nil {
-				p.logger.Info(ctx, "Failed to remove manifest", "path", m.RemoteManifestFile(), "error", err)
+			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
+				p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
 			} else {
 				deletedManifests++
 			}
@@ -142,7 +142,7 @@ type ValidationResult struct {
 	DeletedFiles    int      `json:"deleted_files"`
 }
 
-func (p purger) Validate(ctx context.Context, manifests []*RemoteManifest, deleteOrphanedFiles bool) (ValidationResult, error) {
+func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteOrphanedFiles bool) (ValidationResult, error) {
 	var result ValidationResult
 
 	if len(manifests) == 0 {
@@ -161,7 +161,7 @@ func (p purger) Validate(ctx context.Context, manifests []*RemoteManifest, delet
 
 	for _, m := range manifests {
 		if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-			return result, errors.Wrapf(err, "load manifest %s", m.RemoteManifestFile())
+			return result, errors.Wrapf(err, "load manifest %s", m.Path())
 		}
 		if m.Temporary {
 			p.forEachDir(m, &c, tempManifestFiles.AddFiles)
@@ -237,7 +237,7 @@ func (p purger) onScan(ctx context.Context, result ValidationResult) {
 	}
 }
 
-func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*RemoteManifest, missingFiles fileSet) ([]string, error) {
+func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*ManifestInfo, missingFiles fileSet) ([]string, error) {
 	if missingFiles.Size() == 0 {
 		return nil, nil
 	}
@@ -255,7 +255,7 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*RemoteMani
 			if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 				continue
 			}
-			return nil, errors.Wrapf(err, "load manifest %s", m.RemoteManifestFile())
+			return nil, errors.Wrapf(err, "load manifest %s", m.Path())
 		}
 		p.forEachDir(m, &c, func(dir string, files []string) {
 			if missingFiles.HasAnyFiles(dir, files) {
@@ -269,14 +269,14 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*RemoteMani
 	return v, nil
 }
 
-func (p purger) loadManifestContentInto(ctx context.Context, m *RemoteManifest, c *ManifestContent) error {
+func (p purger) loadManifestContentInto(ctx context.Context, m *ManifestInfo, c *ManifestContent) error {
 	p.logger.Info(ctx, "Reading manifest",
 		"task", m.TaskID,
 		"snapshot_tag", m.SnapshotTag,
 	)
 
 	*c = ManifestContent{}
-	r, err := p.client.RcloneOpen(ctx, p.host, m.Location.RemotePath(m.RemoteManifestFile()))
+	r, err := p.client.RcloneOpen(ctx, p.host, m.Location.RemotePath(m.Path()))
 	if err != nil {
 		return err
 	}
@@ -291,14 +291,14 @@ func (p purger) loadManifestContentInto(ctx context.Context, m *RemoteManifest, 
 	return c.Read(r)
 }
 
-func (p purger) forEachDir(m *RemoteManifest, c *ManifestContent, callback func(dir string, files []string)) {
+func (p purger) forEachDir(m *ManifestInfo, c *ManifestContent, callback func(dir string, files []string)) {
 	for _, fi := range c.Index {
 		dir := RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)
 		callback(dir, fi.Files)
 	}
 }
 
-func (p purger) forEachRemoteFile(ctx context.Context, m *RemoteManifest, f func(*scyllaclient.RcloneListDirItem)) error {
+func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {
 	baseDir := RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
 	wrapper := func(item *scyllaclient.RcloneListDirItem) {
 		item.Path = path.Join(baseDir, item.Path)

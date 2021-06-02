@@ -13,9 +13,9 @@ import (
 )
 
 func TestStaleTags(t *testing.T) {
-	gen := func(nodeID string, taskID uuid.UUID, a, b int) (manifests []*RemoteManifest) {
+	gen := func(nodeID string, taskID uuid.UUID, a, b int) (manifests []*ManifestInfo) {
 		for i := a; i < b; i++ {
-			manifests = append(manifests, &RemoteManifest{
+			manifests = append(manifests, &ManifestInfo{
 				NodeID:      nodeID,
 				TaskID:      taskID,
 				SnapshotTag: SnapshotTagAt(time.Unix(int64(i), 0)),
@@ -28,7 +28,7 @@ func TestStaleTags(t *testing.T) {
 		task0     = uuid.MustRandom()
 		task1     = uuid.MustRandom()
 		task2     = uuid.MustRandom()
-		manifests []*RemoteManifest
+		manifests []*ManifestInfo
 	)
 	// Mixed snapshot tags across nodes
 	manifests = append(manifests, gen("a", task0, 0, 7)...)

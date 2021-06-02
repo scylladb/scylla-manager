@@ -50,7 +50,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy map[uuid.UU
 
 		var (
 			nodeID    string
-			manifests []*RemoteManifest
+			manifests []*ManifestInfo
 		)
 
 		p := newPurger(w.Client, h.IP, w.Logger)
@@ -63,7 +63,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy map[uuid.UU
 			w.Metrics.SetPurgeFiles(w.ClusterID, host, total, success)
 		}
 
-		f := func(nodeID string, manifests []*RemoteManifest) error {
+		f := func(nodeID string, manifests []*ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
 				logger := w.Logger.With("host", h.IP)
