@@ -50,13 +50,24 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 		return err
 	}
 
-	return w.uploadHostManifest(ctx, h, w.createTemporaryManifest(h, tokens))
+	m := w.createTemporaryManifest(h, tokens)
+	return w.uploadHostManifest(ctx, h, m)
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *RemoteManifest {
+func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) RemoteManifestWithContent {
+	m := &RemoteManifest{
+		Location:    h.Location,
+		DC:          h.DC,
+		ClusterID:   w.ClusterID,
+		NodeID:      h.ID,
+		TaskID:      w.TaskID,
+		SnapshotTag: w.SnapshotTag,
+		Temporary:   true,
+	}
+
 	dirs := w.hostSnapshotDirs(h)
 
-	content := ManifestContent{
+	c := &ManifestContent{
 		Version:     "v2",
 		ClusterName: w.ClusterName,
 		IP:          h.IP,
@@ -64,11 +75,11 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *RemoteMani
 		Tokens:      tokens,
 	}
 	if w.Schema != nil {
-		content.Schema = RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+		c.Schema = RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	}
 
 	for i, d := range dirs {
-		idx := &content.Index[i]
+		idx := &c.Index[i]
 		idx.Keyspace = d.Keyspace
 		idx.Table = d.Table
 		idx.Version = d.Version
@@ -77,24 +88,16 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) *RemoteMani
 			idx.Files = append(idx.Files, f.Name)
 			idx.Size += f.Size
 		}
-		content.Size += d.Progress.Size
+		c.Size += d.Progress.Size
 	}
 
-	m := &RemoteManifest{
-		Location:    h.Location,
-		DC:          h.DC,
-		ClusterID:   w.ClusterID,
-		NodeID:      h.ID,
-		TaskID:      w.TaskID,
-		SnapshotTag: w.SnapshotTag,
-		Content:     content,
-		Temporary:   true,
+	return RemoteManifestWithContent{
+		RemoteManifest:  m,
+		ManifestContent: c,
 	}
-
-	return m
 }
 
-func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *RemoteManifest) error {
+func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m RemoteManifestWithContent) error {
 	// Get memory buffer for gzip compressed output
 	buf := w.memoryPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -103,7 +106,7 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m *RemoteMa
 	}()
 
 	// Write to the buffer
-	if err := m.DumpContent(buf); err != nil {
+	if err := m.Write(buf); err != nil {
 		return err
 	}
 

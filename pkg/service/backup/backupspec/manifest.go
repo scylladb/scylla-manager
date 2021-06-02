@@ -58,7 +58,6 @@ type RemoteManifest struct {
 	NodeID      string
 	TaskID      uuid.UUID
 	SnapshotTag string
-	Content     ManifestContent
 	Temporary   bool
 }
 
@@ -79,16 +78,6 @@ func (m *RemoteManifest) RemoteSchemaFile() string {
 // RemoteSSTableVersionDir returns path to the sstable version directory.
 func (m *RemoteManifest) RemoteSSTableVersionDir(keyspace, table, version string) string {
 	return RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
-}
-
-// ReadContent decodes reader into RemoteManifest structure.
-func (m *RemoteManifest) ReadContent(r io.Reader) error {
-	return m.Content.Read(r)
-}
-
-// DumpContent dumps content of the RemoteManifest into writer.
-func (m *RemoteManifest) DumpContent(w io.Writer) error {
-	return m.Content.Write(w)
 }
 
 // ParsePath extracts properties from full remote path to manifest.
@@ -153,6 +142,19 @@ func (m *RemoteManifest) fileNameParser(v string) error {
 	return nil
 }
 
+// RemoteManifestWithContent is intended for passing manifest with its content.
+type RemoteManifestWithContent struct {
+	*RemoteManifest
+	*ManifestContent
+}
+
+func NewRemoteManifestWithContent() RemoteManifestWithContent {
+	return RemoteManifestWithContent{
+		RemoteManifest:  new(RemoteManifest),
+		ManifestContent: new(ManifestContent),
+	}
+}
+
 // FilesInfo specifies paths to files backed up for a table (and node) within
 // a location.
 // Note that a backup for a table usually consists of multiple instances of
@@ -176,7 +178,7 @@ type FilesMeta struct {
 
 // MakeFilesInfo creates new files info from the provided manifest with applied
 // filter.
-func MakeFilesInfo(m *RemoteManifest, filter *ksfilter.Filter) FilesInfo {
+func MakeFilesInfo(m RemoteManifestWithContent, filter *ksfilter.Filter) FilesInfo {
 	// Clear DC from location. DC part litters files listing and makes it
 	// incompatible with other tools like AWS cli.
 	l := m.Location
@@ -184,10 +186,10 @@ func MakeFilesInfo(m *RemoteManifest, filter *ksfilter.Filter) FilesInfo {
 
 	fi := FilesInfo{
 		Location: l,
-		Schema:   m.Content.Schema,
+		Schema:   m.Schema,
 	}
 
-	for _, idx := range m.Content.Index {
+	for _, idx := range m.Index {
 		if !filter.Check(idx.Keyspace, idx.Table) {
 			continue
 		}

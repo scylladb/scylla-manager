@@ -245,11 +245,11 @@ func (h *backupTestHelper) waitNoTransfers() {
 	})
 }
 
-func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath string, f func(*RemoteManifest) bool) {
+func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath string, f func(RemoteManifestWithContent) bool) {
 	h.t.Helper()
 
 	// Parse manifest path
-	var m RemoteManifest
+	m := NewRemoteManifestWithContent()
 	if err := m.ParsePath(manifestsPath); err != nil {
 		h.t.Fatal(err)
 	}
@@ -258,17 +258,17 @@ func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath
 	if err != nil {
 		h.t.Fatal(err)
 	}
-	if err := m.ReadContent(r); err != nil {
+	if err := m.Read(r); err != nil {
 		h.t.Fatal(err)
 	}
 	r.Close()
 	// Decorate, if not changed return early
-	if !f(&m) {
+	if !f(m) {
 		return
 	}
 	// Save modified manifest
 	buf := bytes.NewBuffer(nil)
-	if err = m.DumpContent(buf); err != nil {
+	if err = m.Write(buf); err != nil {
 		h.t.Fatal(err)
 	}
 	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(m.RemoteManifestFile()), buf, int64(buf.Len())); err != nil {
@@ -709,10 +709,10 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: manifests are in metadata directory")
-	for _, m := range manifests {
-		var v RemoteManifest
-		if err := v.ParsePath(m); err != nil {
-			t.Fatal("manifest file in wrong path", m)
+	for _, s := range manifests {
+		var m RemoteManifest
+		if err := m.ParsePath(s); err != nil {
+			t.Fatal("manifest file in wrong path", s)
 		}
 	}
 
@@ -1224,12 +1224,12 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 
 	// Sleep to avoid tag collision.
 	time.Sleep(time.Second)
-	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
 		// Mark manifest as temporary, change snapshot tag
 		m.Temporary = true
 		m.SnapshotTag = NewSnapshotTag()
 		// Add "xxx" file to a table
-		fi := &m.Content.Index[0]
+		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xxx")
 
 		// Create the "xxx" file
@@ -1399,32 +1399,32 @@ func TestPurgeIntegration(t *testing.T) {
 	now := timeutc.Now()
 
 	Print("And: add manifest for removed node - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
-		v.NodeID = uuid.MustRandom().String()
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
+		m.NodeID = uuid.MustRandom().String()
 		return true
 	})
 	Print("And: add manifest for task2 - should NOT be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
-		v.TaskID = task2
-		v.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -1))
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
+		m.TaskID = task2
+		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -1))
 		return true
 	})
 	Print("And: add another manifest for task2 - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
-		v.TaskID = task2
-		v.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -2))
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
+		m.TaskID = task2
+		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -2))
 		return true
 	})
 	Print("And: add manifest for removed old task - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
-		v.TaskID = uuid.MustRandom()
-		v.SnapshotTag = SnapshotTagAt(now.AddDate(-1, 0, 0))
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
+		m.TaskID = uuid.MustRandom()
+		m.SnapshotTag = SnapshotTagAt(now.AddDate(-1, 0, 0))
 		return true
 	})
 	Print("And: add manifest for removed task - should NOT removed")
-	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
-		v.TaskID = uuid.MustRandom()
-		v.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, 3))
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
+		m.TaskID = uuid.MustRandom()
+		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, 3))
 		return true
 	})
 
@@ -1448,13 +1448,13 @@ func TestPurgeIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var rm RemoteManifest
-		if err := rm.ReadContent(r); err != nil {
+		var c ManifestContent
+		if err := c.Read(r); err != nil {
 			t.Fatal(err)
 		}
 		r.Close()
 
-		for _, fi := range rm.Content.Index {
+		for _, fi := range c.Index {
 			for _, f := range fi.Files {
 				sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
 			}
@@ -1519,9 +1519,9 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	if len(manifests) != 3 {
 		t.Fatalf("Expected manifest per node, got %d", len(manifests))
 	}
-	h.tamperWithManifest(ctx, manifests[0], func(v *RemoteManifest) bool {
-		v.NodeID = uuid.MustRandom().String()
-		v.Temporary = true
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
+		m.NodeID = uuid.MustRandom().String()
+		m.Temporary = true
 		return true
 	})
 
@@ -1799,34 +1799,34 @@ func TestValidateIntegration(t *testing.T) {
 	)
 
 	Print("And: add orphaned file - should be reported and deleted")
-	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
 		m.SnapshotTag = orphanedSnapshotTag
 		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, "foo", "bar", "f0e76f40662e11ebbe97000000000001")), "xx0", "xxx")
 		return false
 	})
 
 	Print("And: copy manifest to a different nodeID - should be reported as broken")
-	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
 		m.SnapshotTag = alienSnapshotTag
 		m.NodeID = uuid.MustRandom().String()
-		m.Content.IP = "1.2.3.4"
+		m.IP = "1.2.3.4"
 		return true
 	})
 
 	Print("And: add file referenced by temporary manifest - should NOT be reported nor deleted")
-	h.tamperWithManifest(ctx, manifests[0], func(m *RemoteManifest) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m RemoteManifestWithContent) bool {
 		m.SnapshotTag = genTag()
 		m.Temporary = true
-		fi := &m.Content.Index[0]
+		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xx1")
 		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.clusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xx1", "xxx")
 		return true
 	})
 
 	Print("And: add tampered manifest - should be reported as broken snapshot")
-	h.tamperWithManifest(ctx, manifests[1], func(m *RemoteManifest) bool {
+	h.tamperWithManifest(ctx, manifests[1], func(m RemoteManifestWithContent) bool {
 		m.SnapshotTag = tamperedSnapshotTag
-		fi := &m.Content.Index[0]
+		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xx2")
 		return true
 	})

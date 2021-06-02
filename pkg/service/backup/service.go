@@ -413,7 +413,7 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 	return files, nil
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]*RemoteManifest, error) {
+func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]RemoteManifestWithContent, error) {
 	// Validate inputs
 	if len(locations) == 0 {
 		return nil, service.ErrValidate(errors.New("empty locations"))
@@ -442,9 +442,9 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 	if err != nil {
 		return nil, errors.Wrap(err, "list manifests")
 	}
-
 	manifests = filterManifests(manifests, filter)
 
+	// Load manifest content
 	load := func(m *RemoteManifest, c *ManifestContent) error {
 		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.RemoteManifestFile()))
 		if err != nil {
@@ -453,13 +453,18 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		defer r.Close()
 		return c.Read(r)
 	}
-	for _, m := range manifests {
-		if err := load(m, &m.Content); err != nil {
+	out := make([]RemoteManifestWithContent, len(manifests))
+	for i, m := range manifests {
+		c := new(ManifestContent)
+		if err := load(m, c); err != nil {
 			return nil, err
 		}
+		out[i] = RemoteManifestWithContent{
+			RemoteManifest:  m,
+			ManifestContent: c,
+		}
 	}
-
-	return manifests, nil
+	return out, nil
 }
 
 func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo) error {

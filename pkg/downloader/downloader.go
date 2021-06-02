@@ -70,7 +70,7 @@ func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (
 }
 
 // DryRun returns an action plan without performing any disk operations.
-func (d *Downloader) DryRun(ctx context.Context, m *backup.RemoteManifest) (Plan, error) {
+func (d *Downloader) DryRun(ctx context.Context, m backup.RemoteManifestWithContent) (Plan, error) {
 	d.dryRun = true
 	d.plan = Plan{m: m}
 	return d.plan, d.download(ctx, m, 1)
@@ -78,23 +78,23 @@ func (d *Downloader) DryRun(ctx context.Context, m *backup.RemoteManifest) (Plan
 
 // Download executes download operation by taking snapshot files from configured
 // locations and downloading them to the data directory.
-func (d *Downloader) Download(ctx context.Context, m *backup.RemoteManifest) error {
+func (d *Downloader) Download(ctx context.Context, m backup.RemoteManifestWithContent) error {
 	d.dryRun = false
 	return d.download(ctx, m, parallel.NoLimit)
 }
 
-func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, workers int) error {
+func (d *Downloader) download(ctx context.Context, m backup.RemoteManifestWithContent, workers int) error {
 	d.logger.Info(ctx, "Initializing downloader",
 		"cluster_id", m.ClusterID,
-		"cluster_name", m.Content.ClusterName,
+		"cluster_name", m.ClusterName,
 		"node_id", m.NodeID,
-		"node_ip", m.Content.IP,
+		"node_ip", m.IP,
 		"filter", d.keyspace.Filters(),
 		"mode", d.mode,
 		"clear_tables", d.clearTables,
 	)
 
-	if len(m.Content.Index) == 0 {
+	if len(m.Index) == 0 {
 		return errors.New("empty manifest")
 	}
 
@@ -162,13 +162,13 @@ func (d *Downloader) download(ctx context.Context, m *backup.RemoteManifest, wor
 	})
 }
 
-func (d *Downloader) filteredIndex(ctx context.Context, m *backup.RemoteManifest) []backup.FilesMeta {
+func (d *Downloader) filteredIndex(ctx context.Context, m backup.RemoteManifestWithContent) []backup.FilesMeta {
 	if d.keyspace == nil {
-		return m.Content.Index
+		return m.Index
 	}
 
 	var index []backup.FilesMeta
-	for _, u := range m.Content.Index {
+	for _, u := range m.Index {
 		if !d.shouldDownload(u.Keyspace, u.Table) {
 			d.logger.Debug(ctx, "Table filtered out", "keyspace", u.Keyspace, "table", u.Table)
 		} else {
@@ -242,7 +242,7 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 	return nil
 }
 
-func (d *Downloader) downloadFiles(ctx context.Context, m *backup.RemoteManifest, u backup.FilesMeta) error {
+func (d *Downloader) downloadFiles(ctx context.Context, m backup.RemoteManifestWithContent, u backup.FilesMeta) error {
 	d.logger.Info(ctx, "Downloading",
 		"keyspace", u.Keyspace,
 		"table", u.Table,

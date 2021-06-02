@@ -203,9 +203,10 @@ func TestDownloadFilterCheck(t *testing.T) {
 	}
 }
 
-func dummyManifest() *backup.RemoteManifest {
-	return &backup.RemoteManifest{
-		Content: backup.ManifestContent{
+func dummyManifest() backup.RemoteManifestWithContent {
+	return backup.RemoteManifestWithContent{
+		RemoteManifest: &backup.RemoteManifest{},
+		ManifestContent: &backup.ManifestContent{
 			Index: []backup.FilesMeta{
 				{
 					Keyspace: "foo",

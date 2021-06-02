@@ -153,13 +153,13 @@ var downloadFilesCmd = &cobra.Command{
 		case a.dumpManifest:
 			enc := json.NewEncoder(w)
 			enc.SetIndent("", "  ")
-			return enc.Encode(m.Content)
+			return enc.Encode(m.ManifestContent)
 		case a.dumpTokens:
-			for i := range m.Content.Tokens {
+			for i := range m.Tokens {
 				if i > 0 {
 					fmt.Fprint(w, ",")
 				}
-				fmt.Fprintf(w, "%d", m.Content.Tokens[i])
+				fmt.Fprintf(w, "%d", m.Tokens[i])
 			}
 			fmt.Fprintln(w)
 			return nil

@@ -16,7 +16,7 @@ type fileInfo struct {
 	Size int64  `json:"size"`
 }
 
-func aggregateRemoteManifests(manifests []*RemoteManifest) []ListItem {
+func aggregateRemoteManifests(manifests []RemoteManifestWithContent) []ListItem {
 	// Group by Snapshot tag
 	type key struct {
 		ClusterID   uuid.UUID
@@ -35,7 +35,7 @@ func aggregateRemoteManifests(manifests []*RemoteManifest) []ListItem {
 		if ok {
 			ok = false
 			for _, u := range v {
-				for _, fi := range m.Content.Index {
+				for _, fi := range m.Index {
 					if fi.Keyspace == u.Keyspace {
 						u.Tables.Add(fi.Table)
 						ok = true
@@ -45,7 +45,7 @@ func aggregateRemoteManifests(manifests []*RemoteManifest) []ListItem {
 		}
 		if !ok {
 			kt := map[string]*strset.Set{}
-			for _, fi := range m.Content.Index {
+			for _, fi := range m.Index {
 				_, ok := kt[fi.Keyspace]
 				if ok {
 					kt[fi.Keyspace].Add(fi.Table)
@@ -65,9 +65,9 @@ func aggregateRemoteManifests(manifests []*RemoteManifest) []ListItem {
 		k := key{m.ClusterID, m.SnapshotTag}
 		_, ok := sizes[k]
 		if ok {
-			sizes[k] += m.Content.Size
+			sizes[k] += m.Size
 		} else {
-			sizes[k] = m.Content.Size
+			sizes[k] = m.Size
 		}
 	}
 

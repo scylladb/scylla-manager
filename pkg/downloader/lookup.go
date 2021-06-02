@@ -25,7 +25,7 @@ type ManifestLookupCriteria struct {
 	SnapshotTag string    `json:"snapshot_tag"`
 }
 
-func (c ManifestLookupCriteria) matches(m *backup.RemoteManifest) bool {
+func (c ManifestLookupCriteria) matches(m backup.RemoteManifestWithContent) bool {
 	if c.NodeID != uuid.Nil && c.NodeID.String() != m.NodeID {
 		return false
 	}
@@ -36,18 +36,18 @@ func (c ManifestLookupCriteria) matches(m *backup.RemoteManifest) bool {
 }
 
 // LookupManifest finds and loads manifest base on the lookup criteria.
-func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (*backup.RemoteManifest, error) {
+func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (backup.RemoteManifestWithContent, error) {
 	d.logger.Info(ctx, "Searching for manifest", "criteria", c)
 
 	if c.NodeID == uuid.Nil {
-		return nil, errors.New("invalid criteria: missing node ID")
+		return backup.RemoteManifestWithContent{}, errors.New("invalid criteria: missing node ID")
 	}
 	if c.SnapshotTag == "" {
-		return nil, errors.New("invalid criteria: missing snapshot tag")
+		return backup.RemoteManifestWithContent{}, errors.New("invalid criteria: missing snapshot tag")
 	}
 
 	var (
-		m  = new(backup.RemoteManifest)
+		m  = backup.NewRemoteManifestWithContent()
 		ok bool
 	)
 
@@ -63,7 +63,7 @@ func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteri
 			return nil
 		}
 		if c.matches(m) {
-			if err := readManifestContentFromObject(ctx, m, o); err != nil {
+			if err := readManifestContentFromObject(ctx, o, m.ManifestContent); err != nil {
 				return errors.Wrap(err, "read content")
 			}
 			ok = true
@@ -71,10 +71,10 @@ func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteri
 		return nil
 	}
 	if err := d.forEachMetaDirObject(ctx, lookup); err != nil {
-		return nil, err
+		return backup.RemoteManifestWithContent{}, err
 	}
 	if !ok {
-		return nil, errors.New("no manifests found")
+		return backup.RemoteManifestWithContent{}, errors.New("no manifests found")
 	}
 
 	return m, nil
@@ -91,7 +91,7 @@ func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([
 	var (
 		snapshotTags []string
 
-		m = new(backup.RemoteManifest)
+		m = backup.NewRemoteManifestWithContent()
 		c = ManifestLookupCriteria{NodeID: nodeID}
 	)
 
@@ -106,7 +106,7 @@ func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([
 			return nil
 		}
 		if d.keyspace != nil {
-			if err := readManifestContentFromObject(ctx, m, o); err != nil {
+			if err := readManifestContentFromObject(ctx, o, m.ManifestContent); err != nil {
 				return errors.Wrap(err, "read content")
 			}
 			if len(d.filteredIndex(ctx, m)) == 0 {
@@ -181,9 +181,8 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 
 	var (
 		nodes []NodeInfo
-
-		m   = new(backup.RemoteManifest)
-		ids = strset.New()
+		m     = backup.NewRemoteManifestWithContent()
+		ids   = strset.New()
 	)
 
 	lookup := func(o fs.Object) error {
@@ -196,15 +195,15 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 		if ids.Has(m.NodeID) {
 			return nil
 		}
-		if err := readManifestContentFromObject(ctx, m, o); err != nil {
+		if err := readManifestContentFromObject(ctx, o, m.ManifestContent); err != nil {
 			return errors.Wrap(err, "read content")
 		}
 		nodes = append(nodes, NodeInfo{
 			ClusterID:   m.ClusterID,
-			ClusterName: m.Content.ClusterName,
+			ClusterName: m.ClusterName,
 			DC:          m.DC,
 			NodeID:      m.NodeID,
-			IP:          m.Content.IP,
+			IP:          m.IP,
 		})
 		ids.Add(m.NodeID)
 		return nil
@@ -234,11 +233,11 @@ func (d *Downloader) forEachMetaDirObject(ctx context.Context, fn func(o fs.Obje
 	return walk.ListR(ctx, d.fsrc, baseDir, true, backup.RemoteManifestLevel(baseDir)+1, walk.ListObjects, func(e fs.DirEntries) error { return e.ForObjectError(fn) })
 }
 
-func readManifestContentFromObject(ctx context.Context, m *backup.RemoteManifest, o fs.Object) error {
+func readManifestContentFromObject(ctx context.Context, o fs.Object, c *backup.ManifestContent) error {
 	r, err := o.Open(ctx)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
-	return m.ReadContent(r)
+	return c.Read(r)
 }
