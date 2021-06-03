@@ -85,8 +85,7 @@ def setup(sphinx):
 # a list of builtin themes.
 #
 html_theme = 'sphinx_scylladb_theme'
-# html_theme_path = ["../.."]
-
+templates_path = ['_templates', ]
 html_style = ''
 
 # Theme options are theme-specific and customize the look and feel of a theme
