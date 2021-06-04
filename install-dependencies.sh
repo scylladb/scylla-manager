@@ -10,6 +10,7 @@ UBUNTU_PKGS="jq make moreutils sshpass"
 
 GO_PKGS="
 golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.39.0/golangci-lint-1.39.0-linux-amd64.tar.gz
+goreleaser          https://github.com/goreleaser/goreleaser/releases/download/v0.168.0/goreleaser_Linux_x86_64.tar.gz
 sup                 https://github.com/pressly/sup/releases/download/v0.5.3/sup-linux64
 swagger             https://github.com/go-swagger/go-swagger/releases/download/v0.25.0/swagger_linux_amd64
 license-detector    https://github.com/src-d/go-license-detector/releases/download/2.0.2/license-detector.linux_amd64.gz
@@ -47,6 +48,10 @@ echo "==> Installing Go packages at ${LOCAL_BIN}"
 
 function download() {
     case $2 in
+        *goreleaser*.tar.gz)
+          curl -sSq -L $2 | tar zxf - -C ${LOCAL_BIN} $1
+          ;;
+
         *.tar.gz)
             ;&
         *.tgz)
