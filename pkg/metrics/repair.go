@@ -48,8 +48,8 @@ func (m RepairMetrics) MustRegister() RepairMetrics {
 	return m
 }
 
-// DeleteClusterMetrics removes all metrics labeled with the cluster.
-func (m RepairMetrics) DeleteClusterMetrics(clusterID uuid.UUID) {
+// ResetClusterMetrics resets all metrics labeled with the cluster.
+func (m RepairMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
 		DeleteMatching(c.(CollectorDeleter), clusterMatcher(clusterID))
 	}
