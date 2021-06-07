@@ -16,7 +16,7 @@ type Runner struct {
 }
 
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	r.service.metrics.DeleteClusterMetrics(clusterID)
+	r.service.metrics.ResetClusterMetrics(clusterID)
 
 	t, err := r.service.GetTarget(ctx, clusterID, properties)
 	if err != nil {

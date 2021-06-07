@@ -56,8 +56,8 @@ func (m BackupMetrics) MustRegister() BackupMetrics {
 	return m
 }
 
-// DeleteClusterMetrics removes all metrics labeled with the cluster.
-func (m BackupMetrics) DeleteClusterMetrics(clusterID uuid.UUID) {
+// ResetClusterMetrics resets all metrics labeled with the cluster.
+func (m BackupMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
 		DeleteMatching(c.(CollectorDeleter), clusterMatcher(clusterID))
 	}
