@@ -27,6 +27,34 @@ func DeleteMatching(c CollectorDeleter, matcher func(*dto.Metric) bool) {
 	}
 }
 
+const unspecifiedValue = float64(-1)
+
+// setGaugeVecMatching sets metric instances with matching labels to the
+// given value.
+func setGaugeVecMatching(c *prometheus.GaugeVec, value float64, matcher func(*dto.Metric) bool) {
+	var (
+		data   dto.Metric
+		labels []prometheus.Labels
+	)
+
+	for m := range collect(c) {
+		if err := m.Write(&data); err != nil {
+			continue
+		}
+		if matcher(&data) {
+			labels = append(labels, makeLabels(data.Label))
+		}
+	}
+
+	for _, l := range labels {
+		m, err := c.GetMetricWith(l)
+		if err != nil {
+			panic(err)
+		}
+		m.Set(value)
+	}
+}
+
 func collect(c prometheus.Collector) chan prometheus.Metric {
 	ch := make(chan prometheus.Metric)
 	go func() {
