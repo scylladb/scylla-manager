@@ -59,7 +59,7 @@ func (m BackupMetrics) MustRegister() BackupMetrics {
 // ResetClusterMetrics resets all metrics labeled with the cluster.
 func (m BackupMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
-		DeleteMatching(c.(CollectorDeleter), clusterMatcher(clusterID))
+		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
 	}
 }
 
