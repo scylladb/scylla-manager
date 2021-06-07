@@ -126,6 +126,8 @@ func (pm *dbProgressManager) Init(ctx context.Context, ttrs []*tableTokenRange) 
 		if err := q.BindStruct(p).Exec(); err != nil {
 			return errors.Wrap(err, "init repair progress")
 		}
+		pm.metrics.SetTokenRanges(pm.run.ClusterID, p.Keyspace, p.Table, p.Host,
+			p.TokenRanges, p.Success, p.Error)
 	}
 
 	return nil
