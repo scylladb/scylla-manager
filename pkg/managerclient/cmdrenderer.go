@@ -152,6 +152,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--rate-limit", "rate_limit")
 			rc.writeProp("--snapshot-parallel", "snapshot_parallel", quoted)
 			rc.writeProp("--upload-parallel", "upload_parallel", quoted)
+			rc.writeProp("--purge-only", "purge_only")
 		case repairTaskType:
 			rc.writeProp("-K", "keyspace", quoted)
 			rc.writeProp("--dc", "dc", quoted)

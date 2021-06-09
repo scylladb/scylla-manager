@@ -54,10 +54,11 @@ type Target struct {
 	Location         []Location        `json:"location"`
 	Retention        int               `json:"retention"`
 	RetentionMap     map[uuid.UUID]int `json:"-"` // policy for all tasks, injected in runtime
-	RateLimit        []DCLimit         `json:"rate_limit"`
-	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit         `json:"upload_parallel"`
-	Continue         bool              `json:"continue"`
+	RateLimit        []DCLimit         `json:"rate_limit,omitempty"`
+	SnapshotParallel []DCLimit         `json:"snapshot_parallel,omitempty"`
+	UploadParallel   []DCLimit         `json:"upload_parallel,omitempty"`
+	Continue         bool              `json:"continue,omitempty"`
+	PurgeOnly        bool              `json:"purge_only,omitempty"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -239,6 +240,7 @@ type taskProperties struct {
 	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
 	UploadParallel   []DCLimit         `json:"upload_parallel"`
 	Continue         bool              `json:"continue"`
+	PurgeOnly        bool              `json:"purge_only"`
 }
 
 func defaultTaskProperties() taskProperties {
