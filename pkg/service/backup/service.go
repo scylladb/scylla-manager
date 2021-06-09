@@ -134,6 +134,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t.Retention = p.Retention
 	t.RetentionMap = p.RetentionMap
 	t.Continue = p.Continue
+	t.PurgeOnly = p.PurgeOnly
 
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
@@ -665,6 +666,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Execute stages according to the stage order.
 	execStage := func(stage Stage, f func() error) error {
+		// In purge only mode skip all stages before purge.
+		if target.PurgeOnly {
+			if stage.Index() < StagePurge.Index() {
+				return nil
+			}
+		}
+
 		// Skip completed stages
 		if run.PrevID != uuid.Nil {
 			prevStage := run.Stage

@@ -68,6 +68,14 @@ func backupTaskUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 		}
 	}
 
+	if f := cmd.Flag("purge-only"); f.Changed {
+		ok, err := cmd.Flags().GetBool("purge-only")
+		if err != nil {
+			return err
+		}
+		props["purge_only"] = ok
+	}
+
 	t.Properties = props
 
 	dryRun, err := cmd.Flags().GetBool("dry-run")
@@ -455,6 +463,10 @@ func backupFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("dry-run", false,
 		"validate and print backup information without scheduling a backup")
 	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
+
+	// Add hidden option to run purge process only.
+	fs.Bool("purge-only", false, "")
+	fs.MarkHidden("purge-only") // nolint: errcheck
 
 	return fs
 }
