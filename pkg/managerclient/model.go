@@ -906,9 +906,10 @@ type BackupListItems struct {
 	ShowTables  int
 }
 
-const backupListItemTemplate = `Snapshots:
+const backupListItemTemplate = `backup/{{ .TaskID }}
+Snapshots:
 {{- range .SnapshotInfo }}
-  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ StringByteCount .Size }}{{ end }})
+  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ StringByteCount .Size }}{{ end }}, {{ .Nodes }} nodes)
 {{- end }}
 Keyspaces:
 {{- range .Units }}

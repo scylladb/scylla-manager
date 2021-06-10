@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -382,11 +383,86 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		"locations", locations,
 		"filter", filter,
 	)
-	manifests, err := s.list(ctx, clusterID, locations, filter)
-	if err != nil {
+
+	var items []ListItem
+
+	handler := func(mc ManifestInfoWithContent) {
+		// Find list item or create a new one
+		var ptr *ListItem
+		for i, li := range items {
+			if li.ClusterID == mc.ClusterID && li.TaskID == mc.TaskID {
+				ptr = &items[i]
+				break
+			}
+		}
+		if ptr == nil {
+			items = append(items, ListItem{
+				ClusterID: mc.ClusterID,
+				TaskID:    mc.TaskID,
+				unitCache: make(map[string]*strset.Set),
+			})
+			ptr = &items[len(items)-1]
+		}
+
+		// Calculate size on filtered units
+		var size int64
+		for _, u := range mc.Index {
+			size += u.Size
+		}
+
+		// Find snapshot info or create a new one
+		var siptr *SnapshotInfo
+		for i, r := range ptr.SnapshotInfo {
+			if r.SnapshotTag == mc.SnapshotTag {
+				siptr = &ptr.SnapshotInfo[i]
+				break
+			}
+		}
+		if siptr == nil {
+			ptr.SnapshotInfo = append(ptr.SnapshotInfo, SnapshotInfo{
+				SnapshotTag: mc.SnapshotTag,
+				Nodes:       1,
+				Size:        size,
+			})
+		} else {
+			siptr.Nodes++
+			siptr.Size += size
+		}
+
+		// Add unit information from index
+		for _, u := range mc.Index {
+			s, ok := ptr.unitCache[u.Keyspace]
+			if !ok {
+				ptr.unitCache[u.Keyspace] = strset.New(u.Table)
+			} else {
+				s.Add(u.Table)
+			}
+		}
+	}
+	if err := s.forEachManifest(ctx, clusterID, locations, filter, handler); err != nil {
 		return nil, err
 	}
-	return aggregateManifestInfos(manifests), nil
+
+	// Post processing...
+	for k := range items {
+		ptr := &items[k]
+
+		// Sort Snapshots in descending order
+		sort.Slice(ptr.SnapshotInfo, func(i, j int) bool {
+			return ptr.SnapshotInfo[i].SnapshotTag > ptr.SnapshotInfo[j].SnapshotTag
+		})
+		// Create Units from cache
+		for k, s := range ptr.unitCache {
+			u := Unit{
+				Keyspace: k,
+				Tables:   s.List(),
+			}
+			sort.Strings(u.Tables)
+			ptr.Units = append(ptr.Units, u)
+		}
+	}
+
+	return items, nil
 }
 
 // ListFiles returns info on available backup files based on filtering criteria.
@@ -397,33 +473,36 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 		"filter", filter,
 	)
 
-	ksf, err := ksfilter.NewFilter(filter.Keyspace)
-	if err != nil {
-		return nil, errors.Wrap(err, "keyspace filter")
-	}
-
-	manifests, err := s.list(ctx, clusterID, locations, filter)
-	if err != nil {
-		return nil, err
-	}
-
 	var files []FilesInfo
-	for i := range manifests {
-		files = append(files, MakeFilesInfo(manifests[i], ksf))
+
+	handler := func(mc ManifestInfoWithContent) {
+		l := mc.Location
+		l.DC = ""
+
+		fi := FilesInfo{
+			Location: l,
+			Schema:   mc.Schema,
+		}
+		for _, u := range mc.Index {
+			u.Path = mc.SSTableVersionDir(u.Keyspace, u.Table, u.Version)
+			fi.Files = append(fi.Files, u)
+		}
+		files = append(files, fi)
 	}
-	return files, nil
+
+	return files, s.forEachManifest(ctx, clusterID, locations, filter, handler)
 }
 
-func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]ManifestInfoWithContent, error) {
+func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, f func(ManifestInfoWithContent)) error {
 	// Validate inputs
 	if len(locations) == 0 {
-		return nil, service.ErrValidate(errors.New("empty locations"))
+		return service.ErrValidate(errors.New("empty locations"))
 	}
 
 	// Get the cluster client
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return nil, errors.Wrap(err, "get client proxy")
+		return errors.Wrap(err, "get client proxy")
 	}
 
 	// Resolve hosts for locations
@@ -432,7 +511,7 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		hosts[i].Location = locations[i]
 	}
 	if err := s.resolveHosts(ctx, client, hosts); err != nil {
-		return nil, errors.Wrap(err, "resolve hosts")
+		return errors.Wrap(err, "resolve hosts")
 	}
 	locationHost := map[Location]string{}
 	for _, h := range hosts {
@@ -441,31 +520,48 @@ func (s *Service) list(ctx context.Context, clusterID uuid.UUID, locations []Loc
 
 	manifests, err := listManifestsInAllLocations(ctx, client, hosts, clusterID)
 	if err != nil {
-		return nil, errors.Wrap(err, "list manifests")
+		return errors.Wrap(err, "list manifests")
 	}
 	manifests = filterManifests(manifests, filter)
 
+	ksf, err := ksfilter.NewFilter(filter.Keyspace)
+	if err != nil {
+		return errors.Wrap(err, "keyspace filter")
+	}
+
 	// Load manifest content
-	load := func(m *ManifestInfo, c *ManifestContent) error {
+	var c ManifestContent
+
+	load := func(m *ManifestInfo) error {
 		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.Path()))
 		if err != nil {
 			return err
 		}
 		defer r.Close()
+
+		c = ManifestContent{}
 		return c.Read(r)
 	}
-	out := make([]ManifestInfoWithContent, len(manifests))
-	for i, m := range manifests {
-		c := new(ManifestContent)
-		if err := load(m, c); err != nil {
-			return nil, err
+
+	for _, m := range manifests {
+		if m.Temporary {
+			continue
 		}
-		out[i] = ManifestInfoWithContent{
+
+		if err := load(m); err != nil {
+			return err
+		}
+		filterManifestIndex(&c, ksf)
+		if len(c.Index) == 0 {
+			continue
+		}
+
+		f(ManifestInfoWithContent{
 			ManifestInfo:    m,
-			ManifestContent: c,
-		}
+			ManifestContent: &c,
+		})
 	}
-	return out, nil
+	return nil
 }
 
 func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo) error {

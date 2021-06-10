@@ -15,6 +15,9 @@ import (
 // swagger:model SnapshotInfo
 type SnapshotInfo struct {
 
+	// nodes
+	Nodes int64 `json:"nodes,omitempty"`
+
 	// size
 	Size int64 `json:"size,omitempty"`
 

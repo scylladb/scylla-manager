@@ -445,6 +445,9 @@
         "cluster_id": {
           "type": "string"
         },
+        "task_id": {
+          "type": "string"
+        },
         "units": {
           "type": "array",
           "items": {
@@ -580,6 +583,9 @@
       "properties": {
         "snapshot_tag": {
           "type": "string"
+        },
+        "nodes": {
+          "type": "integer"
         },
         "size": {
           "type": "integer"

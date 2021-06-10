@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -169,28 +168,4 @@ type FilesMeta struct {
 	Size     int64    `json:"size"`
 
 	Path string `json:"path,omitempty"`
-}
-
-// MakeFilesInfo creates new files info from the provided manifest with applied
-// filter.
-func MakeFilesInfo(m ManifestInfoWithContent, filter *ksfilter.Filter) FilesInfo {
-	// Clear DC from location. DC part litters files listing and makes it
-	// incompatible with other tools like AWS cli.
-	l := m.Location
-	l.DC = ""
-
-	fi := FilesInfo{
-		Location: l,
-		Schema:   m.Schema,
-	}
-
-	for _, idx := range m.Index {
-		if !filter.Check(idx.Keyspace, idx.Table) {
-			continue
-		}
-		idx.Path = m.SSTableVersionDir(idx.Keyspace, idx.Table, idx.Version)
-		fi.Files = append(fi.Files, idx)
-	}
-
-	return fi
 }

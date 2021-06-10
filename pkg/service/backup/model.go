@@ -23,28 +23,18 @@ import (
 // SnapshotInfo contains detailed information about snapshot.
 type SnapshotInfo struct {
 	SnapshotTag string `json:"snapshot_tag"`
+	Nodes       int    `json:"nodes"`
 	Size        int64  `json:"size"`
 }
 
-// SnapshotInfoSlice slice of SnapshotInfo.
-type SnapshotInfoSlice []SnapshotInfo
-
 // ListItem represents contents of a snapshot within list boundaries.
 type ListItem struct {
-	ClusterID    uuid.UUID         `json:"cluster_id"`
-	Units        []Unit            `json:"units,omitempty"`
-	SnapshotInfo SnapshotInfoSlice `json:"snapshot_info"`
+	ClusterID    uuid.UUID      `json:"cluster_id"`
+	TaskID       uuid.UUID      `json:"task_id"`
+	Units        []Unit         `json:"units"`
+	SnapshotInfo []SnapshotInfo `json:"snapshot_info"`
 
-	unitsHash uint64 // Internal usage only
-}
-
-func (d SnapshotInfoSlice) hasSnapshot(snapshotTag string) bool {
-	for _, sd := range d {
-		if sd.SnapshotTag == snapshotTag {
-			return true
-		}
-	}
-	return false
+	unitCache map[string]*strset.Set `json:"-"`
 }
 
 // Target specifies what should be backed up and where.
@@ -99,6 +89,11 @@ type Run struct {
 	Location    []Location
 	StartTime   time.Time
 	Stage       Stage
+}
+
+type fileInfo struct {
+	Name string
+	Size int64
 }
 
 // RunProgress describes backup progress on per file basis.

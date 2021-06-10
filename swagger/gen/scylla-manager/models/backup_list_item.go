@@ -24,6 +24,9 @@ type BackupListItem struct {
 	// snapshot info
 	SnapshotInfo []*SnapshotInfo `json:"snapshot_info"`
 
+	// task id
+	TaskID string `json:"task_id,omitempty"`
+
 	// units
 	Units []*BackupUnit `json:"units"`
 }
