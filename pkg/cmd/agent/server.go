@@ -81,32 +81,31 @@ func (s *server) init(ctx context.Context) error {
 		)
 	}
 
-	// Inform Go to execute on one CPU.
-	runtime.GOMAXPROCS(1)
-
-	// Try to get a CPU to pin to
-	cpu := s.config.CPU
-	if cpu == config.NoCPU {
-		if c, err := findFreeCPU(); err != nil {
-			if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
-				// Ignore if there is no cpuset file
-				s.logger.Debug(ctx, "Failed to find CPU to pin to", "error", err)
-			} else {
-				s.logger.Error(ctx, "Failed to find CPU to pin to", "error", err)
-			}
+	// Try to get CPUs to pin to
+	var cpus []int
+	if s.config.CPU != config.NoCPU {
+		cpus = []int{s.config.CPU}
+	} else if free, err := findFreeCPUs(); err != nil {
+		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
+			// Ignore if there is no cpuset file
+			s.logger.Debug(ctx, "Failed to find CPUs to pin to", "error", err)
 		} else {
-			cpu = c
+			s.logger.Error(ctx, "Failed to find CPUs to pin to", "error", err)
 		}
-	}
-	// Pin to CPU if possible
-	if cpu == config.NoCPU {
-		s.logger.Info(ctx, "Running on all CPUs")
 	} else {
-		if err := pinToCPU(cpu); err != nil {
-			s.logger.Error(ctx, "Failed to pin to CPU", "cpu", cpu, "error", err)
+		cpus = free
+	}
+	// Pin to CPUs if possible
+	if len(cpus) == 0 {
+		s.logger.Info(ctx, "Running on all CPUs")
+		runtime.GOMAXPROCS(1)
+	} else {
+		if err := pinToCPUs(cpus); err != nil {
+			s.logger.Error(ctx, "Failed to pin to CPUs", "cpus", cpus, "error", err)
 		} else {
-			s.logger.Info(ctx, "Running on CPU", "cpu", cpu)
+			s.logger.Info(ctx, "Running on CPUs", "cpus", cpus)
 		}
+		runtime.GOMAXPROCS(len(cpus))
 	}
 
 	// Redirect rclone logger to the ogger

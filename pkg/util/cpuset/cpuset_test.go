@@ -170,12 +170,13 @@ func TestAvailableCPUs(t *testing.T) {
 		t.Skip("Not enough CPUs")
 	}
 
-	a, err := AvailableCPUs([]int{0}, 1)
+	c := cpus.Count()
+	a, err := AvailableCPUs([]int{0})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(a) != 1 {
-		t.Fatal("expected", 1, "got", len(a))
+	if len(a) != c-1 {
+		t.Fatal("expected", c-1, "got", len(a))
 	}
 	if a[0] == 0 {
 		t.Fatal("expected CPU with a high index got 0")

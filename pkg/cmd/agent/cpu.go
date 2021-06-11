@@ -9,29 +9,28 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/util/cpuset"
 	"github.com/spf13/cobra"
 )
 
-func findFreeCPU() (int, error) {
+func findFreeCPUs() ([]int, error) {
 	busy, err := cpuset.ParseScyllaConfigFile()
 	if err != nil {
-		return config.NoCPU, errors.Wrapf(err, "cpuset parse error")
+		return nil, errors.Wrapf(err, "cpuset parse error")
 	}
-	cpus, err := cpuset.AvailableCPUs(busy, 1)
+	cpus, err := cpuset.AvailableCPUs(busy)
 	if err != nil {
-		return config.NoCPU, err
+		return nil, err
 	}
-	return cpus[0], nil
+	return cpus, nil
 }
 
-func pinToCPU(cpu int) error {
-	return cpuset.SchedSetAffinity([]int{cpu})
+func pinToCPUs(cpus []int) error {
+	return cpuset.SchedSetAffinity(cpus)
 }
 
 var cpuTestArgs = struct {
-	cpu      int
+	cpus     []int
 	duration time.Duration
 	parallel int
 	sleep    time.Duration
@@ -46,14 +45,16 @@ var cpuTestCmd = &cobra.Command{
 	Hidden:        true,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cpu := cpuTestArgs.cpu
-		if cpu >= 0 {
-			if err := pinToCPU(cpu); err != nil {
-				return errors.Wrapf(err, "pin to CPU %d", cpu)
-			}
-			fmt.Println("Pinned to CPU", cpuTestArgs.cpu, "pid", os.Getpid())
-		} else {
+		cpus := cpuTestArgs.cpus
+		if len(cpus) == 0 {
 			fmt.Println("Running on all CPUs", "pid", os.Getpid())
+			runtime.GOMAXPROCS(1)
+		} else {
+			if err := pinToCPUs(cpus); err != nil {
+				return errors.Wrapf(err, "pin to CPUs %v", cpus)
+			}
+			fmt.Println("Pinned to CPUs", cpuTestArgs.cpus, "pid", os.Getpid())
+			runtime.GOMAXPROCS(len(cpus))
 		}
 
 		for i := 0; i < cpuTestArgs.parallel; i++ {
@@ -71,7 +72,7 @@ var cpuTestCmd = &cobra.Command{
 
 func init() {
 	f := cpuTestCmd.Flags()
-	f.IntVarP(&cpuTestArgs.cpu, "cpu", "c", 0, "CPU to pin to")
+	f.IntSliceVarP(&cpuTestArgs.cpus, "cpu", "c", nil, "CPUs to pin to")
 	f.DurationVarP(&cpuTestArgs.duration, "duration", "d", 30*time.Second, "test duration")
 	f.IntVarP(&cpuTestArgs.parallel, "parallel", "p", 10*runtime.NumCPU(), "number of threads")
 	f.DurationVarP(&cpuTestArgs.sleep, "sleep", "s", 10*time.Nanosecond, "sleep in a loop")

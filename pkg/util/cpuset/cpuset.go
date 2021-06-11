@@ -101,7 +101,7 @@ func parseCPUSet(s string) ([]int, error) {
 // any of the busyCPUs. If the conditions cannot be met error is returned.
 // AvailableCPUs selects the CPUs with the highest available indexes to offload
 // shard 0...
-func AvailableCPUs(busyCPUs []int, wantCPUs int) ([]int, error) {
+func AvailableCPUs(busyCPUs []int) ([]int, error) {
 	var cpus unix.CPUSet
 	if err := unix.SchedGetaffinity(os.Getpid(), &cpus); err != nil {
 		return nil, errors.Wrap(err, "get affinity")
@@ -113,16 +113,6 @@ func AvailableCPUs(busyCPUs []int, wantCPUs int) ([]int, error) {
 	n := cpus.Count()
 	if n == 0 {
 		return nil, errors.Errorf("no available CPUs")
-	}
-	if n < wantCPUs {
-		return nil, errors.Errorf("not enough CPUs available, got %d want %d", n, wantCPUs)
-	}
-
-	// Clear all but last wanted CPUs
-	for i := 0; cpus.Count() > wantCPUs; i++ {
-		if cpus.IsSet(i) {
-			cpus.Clear(i)
-		}
 	}
 
 	return cpulist(&cpus), nil
