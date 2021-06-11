@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg"
@@ -106,6 +107,13 @@ func (s *server) init(ctx context.Context) error {
 			s.logger.Info(ctx, "Running on CPUs", "cpus", cpus)
 		}
 		runtime.GOMAXPROCS(len(cpus))
+	}
+
+	// Log memory limit
+	if l, err := cgroupMemoryLimit(); err != nil {
+		s.logger.Debug(ctx, "Failed to get cgroup memory limit", "error", err)
+	} else {
+		s.logger.Info(ctx, "Cgroup memory limit", "limit", fs.SizeSuffix(l))
 	}
 
 	// Redirect rclone logger to the ogger
