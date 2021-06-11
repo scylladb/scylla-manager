@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
@@ -41,31 +42,31 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	}
 
 	dirs := w.hostSnapshotDirs(h)
+	return parallel.Run(len(dirs), 10, func(i int) error {
+		d := dirs[i]
 
-	for _, d := range dirs {
 		// Skip snapshots that are empty.
 		if d.Progress.Size == 0 {
 			w.Logger.Info(ctx, "Table is empty skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
-			continue
+			return nil
 		}
 		// Skip snapshots that are already uploaded.
 		if d.Progress.IsUploaded() {
 			w.Logger.Info(ctx, "Snapshot already uploaded skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
-			continue
+			return nil
 		}
 		// Check if we should attach to a previous job and wait for it to complete.
 		if attached, err := w.attachToJob(ctx, h, d); err != nil {
 			return errors.Wrap(err, "attach to the agent job")
 		} else if attached {
-			continue
+			return nil
 		}
 		// Start new upload with new job.
 		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
 			return errors.Wrap(err, "upload snapshot")
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // attachToJob returns true if previous job was found and wait procedure was
