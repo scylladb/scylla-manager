@@ -756,9 +756,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: user is able to list backup files using filters")
-	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []Location{location}, backup.ListFilter{
-		ClusterID: h.clusterID,
-		Keyspace:  []string{"some-other-keyspace"}})
+	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []Location{location}, backup.ListFilter{ClusterID: h.clusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
@@ -766,13 +764,6 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	// 3 backups * 3 nodes
 	if len(filesInfo) != 3*3 {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), 3*3)
-	}
-
-	// But empty tables because of the filter
-	for _, fi := range filesInfo {
-		if len(fi.Files) != 0 {
-			t.Fatalf("len(ListFiles()) = %d, expected %d", len(fi.Files), 0)
-		}
 	}
 
 	filesInfo, err = h.service.ListFiles(ctx, h.clusterID, []Location{location}, backup.ListFilter{

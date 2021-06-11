@@ -518,7 +518,7 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 		locationHost[h.Location] = h.IP
 	}
 
-	manifests, err := listManifestsInAllLocations(ctx, client, hosts, clusterID)
+	manifests, err := listManifestsInAllLocations(ctx, client, hosts, filter.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "list manifests")
 	}
