@@ -83,14 +83,24 @@ type ListFilter struct {
 
 func (f *ListFilter) prune(m *ManifestInfo) bool {
 	filters := []func(m *ManifestInfo) bool{
+		f.pruneClusterID,
 		f.pruneDC,
 		f.pruneNodeID,
-		f.pruneClusterID,
 		f.pruneTaskID,
 		f.pruneSnapshotTag,
+		f.pruneTemporary,
 	}
 	for _, f := range filters {
 		if f(m) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneClusterID(m *ManifestInfo) bool {
+	if m.ClusterID != uuid.Nil && f.ClusterID != uuid.Nil {
+		if m.ClusterID != f.ClusterID {
 			return true
 		}
 	}
@@ -109,15 +119,6 @@ func (f *ListFilter) pruneDC(m *ManifestInfo) bool {
 func (f *ListFilter) pruneNodeID(m *ManifestInfo) bool {
 	if m.NodeID != "" && f.NodeID != "" {
 		if m.NodeID != f.NodeID {
-			return true
-		}
-	}
-	return false
-}
-
-func (f *ListFilter) pruneClusterID(m *ManifestInfo) bool {
-	if m.ClusterID != uuid.Nil && f.ClusterID != uuid.Nil {
-		if m.ClusterID != f.ClusterID {
 			return true
 		}
 	}
@@ -144,6 +145,13 @@ func (f *ListFilter) pruneSnapshotTag(m *ManifestInfo) bool {
 		if !f.MaxDate.IsZero() && m.SnapshotTag > SnapshotTagAt(f.MaxDate) {
 			return true
 		}
+	}
+	return false
+}
+
+func (f *ListFilter) pruneTemporary(m *ManifestInfo) bool {
+	if m.Temporary {
+		return !f.Temporary
 	}
 	return false
 }

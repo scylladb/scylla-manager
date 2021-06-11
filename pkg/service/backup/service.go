@@ -544,10 +544,6 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	}
 
 	for _, m := range manifests {
-		if m.Temporary {
-			continue
-		}
-
 		if err := load(m); err != nil {
 			return err
 		}
