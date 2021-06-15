@@ -655,6 +655,20 @@ func (c *Client) DeleteSnapshot(ctx context.Context, host, tag string) error {
 	return err
 }
 
+// DeleteTableSnapshot removes a snapshot with a given tag.
+// Removed data is restricted to the provided keyspace and table.
+func (c *Client) DeleteTableSnapshot(ctx context.Context, host, tag, keyspace, table string) error {
+	ctx = customTimeout(ctx, snapshotTimeout)
+
+	_, err := c.scyllaOps.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
+		Context: forceHost(ctx, host),
+		Tag:     &tag,
+		Kn:      pointer.StringPtr(keyspace),
+		Cf:      pointer.StringPtr(table),
+	})
+	return err
+}
+
 // TableDiskSize returns total on disk size of the table in bytes.
 func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string) (int64, error) {
 	resp, err := c.scyllaOps.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(&operations.ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams{

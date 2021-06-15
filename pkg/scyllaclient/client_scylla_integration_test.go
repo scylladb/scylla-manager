@@ -143,6 +143,29 @@ func TestClientSnapshotIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	Print("When: table snapshot is removed")
+	if err := client.DeleteTableSnapshot(ctx, host, tag, "system_auth", "roles"); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: table is missing from snapshot")
+	units, err := client.SnapshotDetails(ctx, host, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var u scyllaclient.Unit
+	for _, u = range units {
+		if u.Keyspace == "system_auth" {
+			break
+		}
+	}
+	if u.Keyspace == "" {
+		t.Fatal("missing snapshot")
+	}
+	if slice.ContainsString(u.Tables, "roles") {
+		t.Fatal("table snapshot not deleted")
+	}
+
 	Print("When: snapshot is removed")
 	if err := client.DeleteSnapshot(ctx, host, tag); err != nil {
 		t.Fatal(err)
