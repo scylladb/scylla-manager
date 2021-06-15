@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
-	"sync"
 
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
@@ -22,9 +21,6 @@ import (
 
 type nodeInfoHandler struct {
 	config config.AgentConfig
-
-	cachedScyllaVersion string
-	mu                  sync.Mutex
 }
 
 func newNodeInfoHandler(c config.AgentConfig) *nodeInfoHandler {
@@ -64,7 +60,6 @@ func (h *nodeInfoHandler) versionInfo(ctx context.Context, info *scyllaclient.No
 	if err != nil {
 		return err
 	}
-
 	info.ScyllaVersion = scyllaVersion
 
 	return nil
@@ -84,13 +79,6 @@ func (h *nodeInfoHandler) sysInfo(info *scyllaclient.NodeInfo) error {
 }
 
 func (h *nodeInfoHandler) getScyllaVersion(ctx context.Context) (string, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	if h.cachedScyllaVersion != "" {
-		return h.cachedScyllaVersion, nil
-	}
-
 	u := url.URL{
 		Host:   h.APIAddr(),
 		Scheme: "http",
@@ -114,13 +102,7 @@ func (h *nodeInfoHandler) getScyllaVersion(ctx context.Context) (string, error) 
 	}
 
 	// Scylla API returns quoted version string.
-	scyllaVersion, err := strconv.Unquote(string(buf))
-	if err != nil {
-		return "", err
-	}
-
-	h.cachedScyllaVersion = scyllaVersion
-	return h.cachedScyllaVersion, nil
+	return strconv.Unquote(string(buf))
 }
 
 func (h *nodeInfoHandler) APIAddr() string {
