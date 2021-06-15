@@ -60,6 +60,11 @@ for the storage service snapshots delete operation typically these are written t
 */
 type StorageServiceSnapshotsDeleteParams struct {
 
+	/*Cf
+	  an optional table name that its snapshot will be deleted
+
+	*/
+	Cf *string
 	/*Kn
 	  Comma seperated keyspaces name to snapshot
 
@@ -109,6 +114,17 @@ func (o *StorageServiceSnapshotsDeleteParams) SetHTTPClient(client *http.Client)
 	o.HTTPClient = client
 }
 
+// WithCf adds the cf to the storage service snapshots delete params
+func (o *StorageServiceSnapshotsDeleteParams) WithCf(cf *string) *StorageServiceSnapshotsDeleteParams {
+	o.SetCf(cf)
+	return o
+}
+
+// SetCf adds the cf to the storage service snapshots delete params
+func (o *StorageServiceSnapshotsDeleteParams) SetCf(cf *string) {
+	o.Cf = cf
+}
+
 // WithKn adds the kn to the storage service snapshots delete params
 func (o *StorageServiceSnapshotsDeleteParams) WithKn(kn *string) *StorageServiceSnapshotsDeleteParams {
 	o.SetKn(kn)
@@ -138,6 +154,22 @@ func (o *StorageServiceSnapshotsDeleteParams) WriteToRequest(r runtime.ClientReq
 		return err
 	}
 	var res []error
+
+	if o.Cf != nil {
+
+		// query param cf
+		var qrCf string
+		if o.Cf != nil {
+			qrCf = *o.Cf
+		}
+		qCf := qrCf
+		if qCf != "" {
+			if err := r.SetQueryParam("cf", qCf); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.Kn != nil {
 

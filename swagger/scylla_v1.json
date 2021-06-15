@@ -9953,6 +9953,13 @@
             "required": false,
             "type": "string",
             "description": "Comma seperated keyspaces name to snapshot"
+          },
+          {
+            "name": "cf",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "an optional table name that its snapshot will be deleted"
           }
         ],
         "responses": {
