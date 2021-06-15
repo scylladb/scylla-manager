@@ -649,6 +649,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		// Update run with previous progress.
 		if run.PrevID != uuid.Nil {
 			s.putRunLogError(ctx, run)
+			if err := s.clonePrevProgress(run); err != nil {
+				return errors.Wrap(err, "clone progress")
+			}
 		}
 	}
 
@@ -855,6 +858,22 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	run.Stage = prev.Stage
 
 	return nil
+}
+
+func (s *Service) clonePrevProgress(run *Run) error {
+	q := table.BackupRunProgress.InsertQuery(s.session)
+	defer q.Release()
+
+	prevRun := &Run{
+		ClusterID: run.ClusterID,
+		TaskID:    run.TaskID,
+		ID:        run.PrevID,
+	}
+	v := NewProgressVisitor(prevRun, s.session)
+	return v.ForEach(func(p *RunProgress) error {
+		p.RunID = run.ID
+		return q.BindStruct(p).Exec()
+	})
 }
 
 // GetLastResumableRun returns the the most recent started but not done run of

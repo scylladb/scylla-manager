@@ -42,12 +42,16 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	}
 
 	dirs := w.hostSnapshotDirs(h)
-	return parallel.Run(len(dirs), 10, func(i int) error {
+	return parallel.Run(len(dirs), 10, func(i int) (err error) {
 		d := dirs[i]
 
 		// Skip snapshots that are empty.
 		if d.Progress.Size == 0 {
 			w.Logger.Info(ctx, "Table is empty skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
+			now := timeutc.Now()
+			d.Progress.StartedAt = &now
+			d.Progress.CompletedAt = &now
+			w.onRunProgress(ctx, d.Progress)
 			return nil
 		}
 		// Skip snapshots that are already uploaded.
@@ -55,6 +59,20 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			w.Logger.Info(ctx, "Snapshot already uploaded skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
 			return nil
 		}
+
+		// Add keyspace table info to error mgs.
+		defer func() {
+			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
+		}()
+
+		// Delete table snapshot.
+		defer func() {
+			if err != nil {
+				return
+			}
+			err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
+		}()
+
 		// Check if we should attach to a previous job and wait for it to complete.
 		if attached, err := w.attachToJob(ctx, h, d); err != nil {
 			return errors.Wrap(err, "attach to the agent job")
@@ -65,6 +83,7 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
 			return errors.Wrap(err, "upload snapshot")
 		}
+
 		return nil
 	})
 }
@@ -237,6 +256,16 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			}
 		}
 	}
+}
+
+func (w *worker) deleteTableSnapshot(ctx context.Context, h hostInfo, d snapshotDir) error {
+	w.Logger.Info(ctx, "Removing table snapshot",
+		"host", h.IP,
+		"keyspace", d.Keyspace,
+		"table", d.Table,
+		"location", h.Location,
+	)
+	return w.Client.DeleteTableSnapshot(ctx, d.Host, w.SnapshotTag, d.Keyspace, d.Table)
 }
 
 func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
