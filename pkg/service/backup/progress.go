@@ -85,8 +85,8 @@ func aggregateProgress(run *Run, vis ProgressVisitor) (Progress, error) {
 
 // aggregateTableProgress aggregates provided run progress per host table and
 // returns it along with list of all aggregated hosts.
-func aggregateTableProgress(run *Run, tableMap map[tableKey]*TableProgress, hosts *strset.Set) func(*RunProgress) {
-	return func(pr *RunProgress) {
+func aggregateTableProgress(run *Run, tableMap map[tableKey]*TableProgress, hosts *strset.Set) func(*RunProgress) error {
+	return func(pr *RunProgress) error {
 		table := &TableProgress{}
 
 		table.Table = pr.TableName
@@ -109,6 +109,8 @@ func aggregateTableProgress(run *Run, tableMap map[tableKey]*TableProgress, host
 		tableMap[tableKey{pr.Host, run.Units[pr.Unit].Keyspace, pr.TableName}] = table
 
 		hosts.Add(pr.Host)
+
+		return nil
 	}
 }
 
@@ -192,7 +194,7 @@ func (p *progress) AvgUploadBandwidth() float64 {
 
 // ProgressVisitor knows how to iterate over list of RunProgress results.
 type ProgressVisitor interface {
-	ForEach(func(*RunProgress)) error
+	ForEach(func(*RunProgress) error) error
 }
 
 type progressVisitor struct {
@@ -211,16 +213,19 @@ func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
 // ForEach iterates over each run progress and runs visit function on it.
 // If visit wants to reuse RunProgress it must copy it because memory is reused
 // between calls.
-func (i *progressVisitor) ForEach(visit func(*RunProgress)) error {
+func (i *progressVisitor) ForEach(visit func(*RunProgress) error) error {
 	iter := table.BackupRunProgress.SelectQuery(i.session).BindMap(qb.M{
 		"cluster_id": i.run.ClusterID,
 		"task_id":    i.run.TaskID,
 		"run_id":     i.run.ID,
 	}).Iter()
 
-	pr := &RunProgress{}
+	pr := new(RunProgress)
 	for iter.StructScan(pr) {
-		visit(pr)
+		if err := visit(pr); err != nil {
+			iter.Close()
+			return err
+		}
 	}
 
 	return iter.Close()

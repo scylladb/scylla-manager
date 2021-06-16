@@ -49,8 +49,9 @@ func TestRunProgressIteratorIntegration(t *testing.T) {
 	q.Release()
 
 	v := NewProgressVisitor(run, session)
-	err := v.ForEach(func(pr *RunProgress) {
+	err := v.ForEach(func(pr *RunProgress) error {
 		prog = append(prog, *pr)
+		return nil
 	})
 	if err != nil {
 		t.Fatal(err)

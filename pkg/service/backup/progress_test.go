@@ -255,9 +255,11 @@ type testVisitor struct {
 	prog []*RunProgress
 }
 
-func (i *testVisitor) ForEach(visit func(*RunProgress)) error {
+func (i *testVisitor) ForEach(visit func(*RunProgress) error) error {
 	for _, pr := range i.prog {
-		visit(pr)
+		if err := visit(pr); err != nil {
+			return err
+		}
 	}
 	return nil
 }
