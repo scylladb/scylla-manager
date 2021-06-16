@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -151,6 +152,12 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 	if len(dirs) == 0 {
 		return nil, errors.New("could not find any files")
 	}
+
+	// Sort dirs in descending order by size so that we upload the big tables
+	// first and remove the data.
+	sort.Slice(dirs, func(i, j int) bool {
+		return dirs[i].Progress.Size > dirs[j].Progress.Size
+	})
 
 	w.Logger.Debug(ctx, "Found snapshot directories", "host", h.IP, "count", len(dirs))
 	return dirs, nil
