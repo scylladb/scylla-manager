@@ -93,16 +93,17 @@ html_style = ''
 # documentation.
 #
 html_theme_options = {
+    'branch_substring_removed': 'branch-',
+    'github_issues_repository': 'scylladb/scylla-manager-issues',
     'header_links': [
     ('Scylla Manager', 'https://manager.docs.scylladb.com/'),
     ('Scylla Monitor', 'https://scylladb.github.io/scylla-monitoring/'),
     ('Scylla Cloud', 'https://docs.scylladb.com/scylla-cloud/'),
     ('Scylla University', 'https://university.scylladb.com/'),
     ('ScyllaDB Home', 'https://www.scylladb.com/')],
-    'github_issues_repository': 'scylladb/scylla-manager-issues',
+    'hide_version_dropdown': ['master'],
     'show_sidebar_index':True,
     'tag_substring_removed': 'scylla-manager-',
-    'branch_substring_removed': 'branch-',
 }
 
 # If not None, a 'Last updated on:' timestamp is inserted at every page
@@ -148,7 +149,7 @@ redirects_file = "_utils/redirections.yaml"
 TAGS = []
 smv_tag_whitelist = multiversion_regex_builder(TAGS)
 # Whitelist pattern for branches (set to None to ignore all branches)
-BRANCHES = ['branch-2.2', 'branch-2.3', 'branch-2.4']
+BRANCHES = ['master', 'branch-2.2', 'branch-2.3', 'branch-2.4']
 smv_branch_whitelist = multiversion_regex_builder(BRANCHES)
 # Defines which version is considered to be the latest stable version.
 # Must be listed in smv_tag_whitelist or smv_branch_whitelist.
