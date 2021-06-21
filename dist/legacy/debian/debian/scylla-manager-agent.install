@@ -1,0 +1,7 @@
+release/linux_amd64/scylla-manager-agent usr/bin
+scripts/scyllamgr_agent_setup usr/sbin
+scripts/scyllamgr_auth_token_gen usr/sbin
+dist/etc/scylla-manager-agent.yaml etc/scylla-manager-agent
+dist/systemd/scylla-manager-agent.service lib/systemd/system
+license/LICENSE.PROPRIETARY usr/share/doc/scylla-manager-agent/LICENSE
+license/LICENSE.3RD_PARTY.scylla-manager-agent usr/share/doc/scylla-manager-agent/LICENSE.3RD_PARTY

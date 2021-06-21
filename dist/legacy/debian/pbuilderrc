@@ -1,0 +1,20 @@
+USENETWORK=yes
+BUILD_HOME=/tmp
+BASETGZ="/var/cache/pbuilder/scylla-manager-$DIST.tgz"
+DISTRIBUTION="$DIST"
+BUILDRESULT="/var/cache/pbuilder/scylla-manager-$DIST/result/"
+APTCACHE="/var/cache/pbuilder/scylla-manager-$DIST/aptcache/"
+ALLOWUNTRUSTED=yes
+
+if [ "$DIST" = "trusty" ] || [ "$DIST" = "xenial" ] || [ "$DIST" = "yakkety" ] || [ "$DIST" = "zesty" ] || [ "$DIST" = "artful" ] || [ "$DIST" = "bionic" ] || [ "$DIST" = "focal" ]; then
+    MIRRORSITE="http://archive.ubuntu.com/ubuntu/"
+    COMPONENTS="main restricted universe multiverse"
+    DEBOOTSTRAPOPTS="--keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+elif [ "$DIST" = "jessie" ] || [ "$DIST" = "stretch" ] || [ "$DIST" = "buster" ] || [ "$DIST" = "sid" ]; then
+    MIRRORSITE="http://deb.debian.org/debian/"
+    COMPONENTS="main contrib non-free"
+    DEBOOTSTRAPOPTS="--keyring=/usr/share/keyrings/debian-archive-keyring.gpg"
+else
+    echo "Unknown distribution: $DIST"
+    exit 1
+fi

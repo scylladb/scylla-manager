@@ -1,0 +1,6 @@
+etc/scylla-manager
+lib/systemd/system
+usr/bin
+usr/lib/scylla-manager
+var/lib/scylla-manager
+usr/share/doc/scylla-manager-server
