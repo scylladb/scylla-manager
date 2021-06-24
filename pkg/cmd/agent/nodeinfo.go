@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"runtime"
 	"strconv"
 
 	"github.com/go-chi/render"
@@ -16,7 +15,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"golang.org/x/sys/unix"
 )
 
 type nodeInfoHandler struct {
@@ -61,19 +59,6 @@ func (h *nodeInfoHandler) versionInfo(ctx context.Context, info *scyllaclient.No
 		return err
 	}
 	info.ScyllaVersion = scyllaVersion
-
-	return nil
-}
-
-func (h *nodeInfoHandler) sysInfo(info *scyllaclient.NodeInfo) error {
-	si := unix.Sysinfo_t{}
-	if err := unix.Sysinfo(&si); err != nil {
-		return err
-	}
-
-	info.MemoryTotal = int64(si.Totalram)
-	info.CPUCount = int64(runtime.NumCPU())
-	info.Uptime = si.Uptime
 
 	return nil
 }
