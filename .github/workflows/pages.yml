@@ -6,6 +6,7 @@ on:
     - master
     paths:
     - 'docs/**'
+
 jobs:
   build:
     name: Release docs
