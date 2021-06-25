@@ -9,7 +9,6 @@ Restore
    download-files-command
 
 The following procedure lets you restore data to a new cluster to get a cluster clone from snapshots stored in a backup location.
-It is implemented as an Ansible playbook in `scylla-ansible-roles <https://github.com/scylladb/scylla-ansible-roles/tree/master/example-playbooks/restore_scylla_manager_backup>`_ repository.
 
 **Prerequisites**
 
@@ -26,8 +25,8 @@ Note that there is no need for Scylla Manager Server installation prior to resto
 Ansible
 =======
 
-Cloning the cluster is automated as an Ansible playbook.
-The playbook has a `readme <https://github.com/scylladb/scylla-ansible-roles/tree/master/example-playbooks/restore_scylla_manager_backup>`_ that explains how to use it.
+Cloning the cluster is automated with Ansible playbook.
+The playbook has a `readme <https://github.com/scylladb/scylla-manager/tree/master/ansible/restore>`_ that explains how to use it.
 For reader's convenience it's repeated here.
 
 Getting the playbook
@@ -35,8 +34,8 @@ Getting the playbook
 
 **Procedure**
 
-#. Clone repository from GitHub ``git clone git@github.com:scylladb/scylla-ansible-roles.git``
-#. Go to playbook directory ``cd scylla-ansible-roles/example-playbooks/restore_scylla_manager_backup``
+#. Clone repository from GitHub ``git clone git@github.com:scylladb/scylla-manager.git``
+#. Go to playbook directory ``cd scylla-manager/ansible/restore``
 
 Playbook parameters
 -------------------
