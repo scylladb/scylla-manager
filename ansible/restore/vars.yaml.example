@@ -1,0 +1,16 @@
+# backup_location specifies the location parameter used in Scylla Manager
+# when scheduling a backup of a cluster.
+backup_location: s3:manager-test-demo1
+
+# snapshot_tag specifies the Scylla Manager snapshot tag you want to restore.
+snapshot_tag: sm_20210422133609UTC
+
+# host_id specifies a mapping from the clone cluster node IP to the source
+# cluster host IDs.
+host_id:
+  3.65.230.34: 7e68421b-acb1-44a7-a1a8-af7eaf1bb482
+  3.66.75.209: adc0a3ce-dade-4672-981e-26f91a3d35cb
+  3.65.102.133: 2a575244-3e3c-44a1-a526-da4394f9525e
+  3.125.251.43: 82f0f486-370d-4cfd-90ac-46464c8012cb
+  3.66.176.252: 9ee92c19-5f78-4865-a287-980218963d96
+  3.66.25.100: aff05f79-7c69-4ecf-a827-5ea790a0fdc6

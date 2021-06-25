@@ -1,0 +1,118 @@
+---
+
+- name: Restore
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+
+    - name: Remove Scylla directories
+      file:
+        path: "/var/lib/scylla/{{ item }}"
+        state: absent
+      loop:
+        - data
+        - commitlog
+        - hints
+        - view_hints
+
+    - name: Recreate Scylla directories
+      file:
+        path: "/var/lib/scylla/{{ item }}"
+        state: directory
+        owner: scylla
+        group: scylla
+        mode: 0755
+      loop:
+        - data
+        - commitlog
+        - hints
+        - view_hints
+
+    - name: Get initial token
+      shell: |
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} --dump-tokens
+      register: _initial_token
+
+    - name: Set initial_token in scylla.yaml
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(#\s*)?initial_token:'
+        line: "initial_token: {{ _initial_token.stdout }}"
+        create: yes
+
+    - name: Get seeds list
+      shell: |
+        grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }' | tr -d '"' | tr -d "'"
+      register: _seeds
+
+    - name: Temporarily make each node a seed
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ groups.all | join(',') }}
+        backrefs: yes
+
+    - name: Start Scylla service
+      service:
+        name: scylla-server
+        state: started
+
+    - name: Wait for CQL port
+      wait_for:
+        port: 9042
+
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+
+    - name: Temporarily make the first node a seed
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ groups.all[0] }}
+        backrefs: yes
+
+    - name: Download data
+      shell: |
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/
+      become_user: scylla
+      async: 604800 # a week 7*24*60*60 seconds
+      poll: 5
+
+    - name: Start Scylla service in the seed
+      service:
+        name: scylla-server
+        state: started
+      when: inventory_hostname == groups.all[0]
+
+    - name: Start Scylla service
+      throttle: 1
+      service:
+        name: scylla-server
+        state: started
+
+    - name: Wait for CQL port
+      wait_for:
+        port: 9042
+
+    - name: Resore seeds list
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ _seeds.stdout }}
+        backrefs: yes
+
+    - name: Restart Scylla service
+      throttle: 1
+      service:
+        name: scylla-server
+        state: restarted
