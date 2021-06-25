@@ -1,7 +1,7 @@
 # Scylla Manager
 
 Welcome to Scylla Manager repository!
-Scylla Manager user docs can be found in [Scylla docs portal](https://docs.scylladb.com/operating-scylla/manager/). 
+Scylla Manager user docs can be found [here](https://manager.docs.scylladb.com/stable/). 
 
 Scylla Manager consists of tree components:
 
