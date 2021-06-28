@@ -42,7 +42,7 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	}
 
 	dirs := w.hostSnapshotDirs(h)
-	return parallel.Run(len(dirs), 10, func(i int) (err error) {
+	return parallel.Run(len(dirs), 1, func(i int) (err error) {
 		d := dirs[i]
 
 		// Skip snapshots that are empty.
