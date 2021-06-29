@@ -52,7 +52,7 @@ done
 
 GROUP_ID="$(sg)"
 CIDR="$(my_cidr)"
-for p in 22 9042 10001; do
+for p in 22 5112 9042 10001; do
     echo "Opening port ${p}"
     ${AWS} ec2 authorize-security-group-ingress --group-id "${GROUP_ID}" --protocol tcp --port ${p} --cidr "${CIDR}"
 done
