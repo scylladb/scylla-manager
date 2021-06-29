@@ -53,7 +53,7 @@ rclone:
   ignore_size: false
   ignore_checksum: true
   ignore_case_sync: false
-  no_traverse: false
+  no_traverse: true
   check_first: false
   no_check_dest: false
   no_unicode_normalization: false

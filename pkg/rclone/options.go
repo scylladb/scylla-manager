@@ -42,6 +42,8 @@ func DefaultGlobalOptions() GlobalOptions {
 	c.IgnoreErrors = true
 	// Don't update destination mod-time if files identical.
 	c.NoUpdateModTime = true
+	// Don't list remote directories while uploading.
+	c.NoTraverse = true
 
 	// The number of checkers to run in parallel.
 	// Checkers do the equality checking of files during a sync.
