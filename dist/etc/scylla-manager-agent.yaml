@@ -66,9 +66,8 @@
 # Backup general configuration.
 #rclone:
 # The number of checkers to run in parallel. Checkers do the equality checking
-# of files during a sync. For some storage systems (e.g. S3, Swift, Dropbox)
-# this can take a significant amount of time so they are run in parallel.
-#  checkers: 8
+# of files (local vs. backup location) at the beginning of backup.
+#  checkers: 100
 #
 # The number of file transfers to run in parallel. It can sometimes be useful
 # to set this to a smaller number if the remote is giving a lot of timeouts or
