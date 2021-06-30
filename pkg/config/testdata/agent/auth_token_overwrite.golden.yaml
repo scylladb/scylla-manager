@@ -35,14 +35,14 @@ rclone:
   ignore_existing: false
   ignore_errors: true
   modify_window: 1ns
-  checkers: 8
+  checkers: 100
   transfers: 2
   connect_timeout: 1m0s
   timeout: 5m0s
   expect_continue_timeout: 1s
   dump: 0
   insecure_skip_verify: false
-  delete_mode: 3
+  delete_mode: 0
   max_delete: -1
   track_renames: false
   track_renames_strategy: hash
@@ -68,7 +68,7 @@ rclone:
   buffer_size: 16777216
   bw_limit: []
   bw_limit_file: []
-  tps_limit: 0
+  tps_limit: 5000
   tps_limit_burst: 1
   bind_addr: ""
   disable_features: []

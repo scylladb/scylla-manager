@@ -48,11 +48,15 @@ func DefaultGlobalOptions() GlobalOptions {
 	c.DeleteMode = fs.DeleteModeOff
 
 	// The number of checkers to run in parallel.
-	// Checkers do the equality checking of files during a sync.
-	// For some storage systems (e.g. S3, Swift, Dropbox) this can take a
-	// significant amount of time so they are run in parallel.
-	// The default is to run 8 checkers in parallel.
-	c.Checkers = 8
+	// Checkers do the equality checking of files (local vs. backup location)
+	// at the beginning of backup.
+	c.Checkers = 100
+	// TPSLimit specifies max nr. of requests per second, we should be far from
+	// reaching it. But in case of Checkers being crazy fast we want to avoid
+	// backpressure from the service provider. AWS S3 can handle 5,500 GET/HEAD
+	// requests per second per prefix in a bucket.
+	c.TPSLimit = 5000
+
 	// The number of file transfers to run in parallel.
 	// It can sometimes be useful to set this to a smaller number if the remote
 	// is giving a lot of timeouts or bigger if you have lots of bandwidth and a fast remote.
