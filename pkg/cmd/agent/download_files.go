@@ -76,6 +76,8 @@ var downloadFilesCmd = &cobra.Command{
 		// Set parallel
 		rclone.GetConfig().Checkers = 2 * a.parallel
 		rclone.GetConfig().Transfers = a.parallel
+		// Prefer local listing of directory to checking one by one
+		rclone.GetConfig().NoTraverse = false
 		// Set rate limit
 		rclone.SetRateLimit(a.rateLimit)
 		// Start accounting after setting all options
