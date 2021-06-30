@@ -44,6 +44,8 @@ func DefaultGlobalOptions() GlobalOptions {
 	c.NoUpdateModTime = true
 	// Don't list remote directories while uploading.
 	c.NoTraverse = true
+	// Explicitly disable deletes as enabling them turns off NoTraverse.
+	c.DeleteMode = fs.DeleteModeOff
 
 	// The number of checkers to run in parallel.
 	// Checkers do the equality checking of files during a sync.
