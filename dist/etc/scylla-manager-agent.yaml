@@ -68,15 +68,15 @@
 # The number of checkers to run in parallel. Checkers do the equality checking
 # of files during a sync. For some storage systems (e.g. S3, Swift, Dropbox)
 # this can take a significant amount of time so they are run in parallel.
-#  checkers = 8
+#  checkers: 8
 #
 # The number of file transfers to run in parallel. It can sometimes be useful
 # to set this to a smaller number if the remote is giving a lot of timeouts or
 # bigger if you have lots of bandwidth and a fast remote.
-#  transfers = 2
+#  transfers: 2
 #
 # Number of low level retries to do. This applies to operations like file chunk upload.
-#  low_level_retries = 20
+#  low_level_retries: 20
 
 # Backup S3 configuration.
 #
