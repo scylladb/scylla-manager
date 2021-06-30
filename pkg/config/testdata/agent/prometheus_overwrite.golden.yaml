@@ -92,7 +92,7 @@ rclone:
   progress: false
   progress_terminal_title: false
   cookie: false
-  use_mmap: false
+  use_mmap: true
   ca_cert: ""
   client_cert: ""
   client_key: ""
@@ -139,8 +139,8 @@ s3:
   no_check_bucket: "true"
   no_head: ""
   encoding: ""
-  memory_pool_flush_time: ""
-  memory_pool_use_mmap: ""
+  memory_pool_flush_time: 5m
+  memory_pool_use_mmap: "true"
   disable_http2: ""
 gcs:
   client_id: ""
@@ -158,8 +158,8 @@ gcs:
   location: ""
   storage_class: ""
   encoding: ""
-  memory_pool_flush_time: ""
-  memory_pool_use_mmap: ""
+  memory_pool_flush_time: 5m
+  memory_pool_use_mmap: "true"
   chunk_size: 50M
   list_chunk: ""
   allow_create_bucket: "false"
@@ -180,6 +180,6 @@ azure:
   access_tier: ""
   archive_tier_delete: ""
   disable_checksum: "true"
-  memory_pool_flush_time: ""
-  memory_pool_use_mmap: ""
+  memory_pool_flush_time: 5m
+  memory_pool_use_mmap: "true"
   encoding: ""

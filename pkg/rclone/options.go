@@ -19,6 +19,10 @@ const (
 	// requests by ten times.
 	defaultChunkSize = "50M"
 
+	// We want to kee the pools longer, in case something gets stuck we want to
+	// avoid buffer reallocation.
+	defaultPoolFlushTime = "5m"
+
 	_true  = "true"
 	_false = "false"
 )
@@ -81,6 +85,10 @@ func DefaultGlobalOptions() GlobalOptions {
 	// Source and destination exist but do not match: immutable file modified.
 	c.Immutable = false
 
+	// Use mmap for async reader buffer pool, this allows to get the buffers out
+	// of GC and return them to the OS faster.
+	c.UseMmap = true
+
 	return *c
 }
 
@@ -97,8 +105,10 @@ func DefaultS3Options() S3Options {
 		EnvAuth:         _true,
 		// Because of access denied issues with Minio.
 		// see https://github.com/rclone/rclone/issues/4633
-		NoCheckBucket:     _true,
-		UploadConcurrency: "2",
+		NoCheckBucket:       _true,
+		UploadConcurrency:   "2",
+		MemoryPoolUseMmap:   _true,
+		MemoryPoolFlushTime: defaultPoolFlushTime,
 	}
 }
 
@@ -128,8 +138,10 @@ func DefaultGCSOptions() GCSOptions {
 		// fine-grained buckets, and IAM bucket-level settings for uniform buckets.
 		// each object. Permissions will be controlled by the ACL rules for
 		// This option must be _true if we don't want rclone to set permission on
-		BucketPolicyOnly: _true,
-		ChunkSize:        defaultChunkSize,
+		BucketPolicyOnly:    _true,
+		ChunkSize:           defaultChunkSize,
+		MemoryPoolUseMmap:   _true,
+		MemoryPoolFlushTime: defaultPoolFlushTime,
 	}
 }
 
@@ -146,8 +158,10 @@ func (o *GCSOptions) AutoFill() {
 
 func DefaultAzureOptions() AzureOptions {
 	return AzureOptions{
-		ChunkSize:       defaultChunkSize,
-		DisableChecksum: _true,
+		ChunkSize:           defaultChunkSize,
+		DisableChecksum:     _true,
+		MemoryPoolUseMmap:   _true,
+		MemoryPoolFlushTime: defaultPoolFlushTime,
 	}
 }
 
