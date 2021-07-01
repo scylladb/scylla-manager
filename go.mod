@@ -3,10 +3,8 @@ module github.com/scylladb/scylla-manager
 go 1.16
 
 require (
-	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/aws/aws-sdk-go v1.35.17
 	github.com/cenkalti/backoff/v4 v4.0.0
-	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1
 	github.com/go-chi/chi/v5 v5.0.0
 	github.com/go-chi/render v1.0.0
@@ -35,10 +33,8 @@ require (
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.4.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
-	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stoewer/go-strcase v1.2.0
 	go.uber.org/atomic v1.7.0
 	go.uber.org/config v1.4.0
 	go.uber.org/goleak v1.0.0
