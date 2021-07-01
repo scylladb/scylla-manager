@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	c     = cache.New()
+	c     = cache.NewPermanentCache()
 	mu    sync.Mutex            // mutex to protect remap
 	remap = map[string]string{} // map user supplied names to canonical names
 )
