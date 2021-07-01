@@ -27,6 +27,14 @@ func New() *Cache {
 	}
 }
 
+// NewPermanentCache creates a new cache that never expires
+func NewPermanentCache() *Cache {
+	return &Cache{
+		cache:         map[string]*cacheEntry{},
+		expireRunning: true,
+	}
+}
+
 // cacheEntry is stored in the cache
 type cacheEntry struct {
 	value    interface{} // cached item
