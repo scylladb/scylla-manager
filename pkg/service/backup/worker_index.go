@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
@@ -45,6 +46,7 @@ func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) 
 func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDir, error) {
 	var dirs []snapshotDir
 
+	nftt := w.newFilesTimeThreshold()
 	r := regexp.MustCompile("^([A-Za-z0-9_]+)-([a-f0-9]{32})$")
 
 	for i, u := range w.Units {
@@ -52,6 +54,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			"host", h.IP,
 			"snapshot_tag", w.SnapshotTag,
 			"keyspace", u.Keyspace,
+			"new_files_time_threshold", nftt,
 		)
 
 		baseDir := keyspaceDir(u.Keyspace)
@@ -120,6 +123,9 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 					Size: f.Size,
 				})
 				size += f.Size
+				if time.Time(f.ModTime).After(nftt) {
+					d.NewFilesSize += size
+				}
 			})
 			if err != nil {
 				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
@@ -150,12 +156,21 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 		return nil, errors.New("could not find any files")
 	}
 
-	// Sort dirs in descending order by size so that we upload the big tables
-	// first and remove the data.
+	// Sort dirs in descending order by size of new files. This gives
+	// the priority to the most active tables. The probability of compaction is
+	// greater in tables that get more writes or were recently compacted.
 	sort.Slice(dirs, func(i, j int) bool {
-		return dirs[i].Progress.Size > dirs[j].Progress.Size
+		return dirs[i].NewFilesSize > dirs[j].NewFilesSize
 	})
 
 	w.Logger.Debug(ctx, "Found snapshot directories", "host", h.IP, "count", len(dirs))
 	return dirs, nil
+}
+
+func (w *worker) newFilesTimeThreshold() time.Time {
+	t, err := SnapshotTagTime(w.SnapshotTag)
+	if err != nil {
+		return time.Time{}
+	}
+	return t.Add(-24 * time.Hour)
 }

@@ -31,13 +31,14 @@ func (h hostInfo) String() string {
 
 // snapshotDir represents a remote directory containing a table snapshot.
 type snapshotDir struct {
-	Host     string
-	Unit     int64
-	Path     string
-	Keyspace string
-	Table    string
-	Version  string
-	Progress *RunProgress
+	Host         string
+	Unit         int64
+	Path         string
+	Keyspace     string
+	Table        string
+	Version      string
+	Progress     *RunProgress
+	NewFilesSize int64
 }
 
 func (sd snapshotDir) String() string {
