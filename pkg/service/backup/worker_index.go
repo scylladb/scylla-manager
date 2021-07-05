@@ -82,28 +82,12 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				continue
 			}
 
-			opts := &scyllaclient.RcloneListDirOpts{
-				FilesOnly: true,
-			}
-			localFiles, err := w.Client.RcloneListDir(ctx, h.IP, d.Path, opts)
-			if err != nil {
-				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-					continue
-				}
-				return nil, errors.Wrap(err, "list table")
-			}
-
 			w.Logger.Debug(ctx, "Found snapshot directory",
 				"host", h.IP,
 				"snapshot_tag", w.SnapshotTag,
 				"keyspace", d.Keyspace,
 				"table", d.Table,
 				"dir", d.Path,
-			)
-
-			var (
-				files = make([]fileInfo, 0, len(localFiles))
-				size  int64
 			)
 
 			mp := path.Join(d.Path, scyllaManifest)
@@ -119,18 +103,31 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				}
 			}
 
-			for _, f := range localFiles {
+			var (
+				files []fileInfo
+				size  int64
+			)
+			opts := &scyllaclient.RcloneListDirOpts{
+				FilesOnly: true,
+			}
+			err := w.Client.RcloneListDirIter(ctx, h.IP, d.Path, opts, func(f *scyllaclient.RcloneListDirItem) {
 				// Filter out Scylla manifest and Schema files, they are not needed.
 				if f.Name == scyllaManifest || f.Name == scyllaSchema {
-					continue
+					return
 				}
-
 				files = append(files, fileInfo{
 					Name: f.Name,
 					Size: f.Size,
 				})
 				size += f.Size
+			})
+			if err != nil {
+				if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+					continue
+				}
+				return nil, errors.Wrap(err, "list table")
 			}
+
 			d.Progress = &RunProgress{
 				ClusterID: w.ClusterID,
 				TaskID:    w.TaskID,
