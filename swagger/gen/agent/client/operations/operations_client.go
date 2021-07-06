@@ -57,6 +57,8 @@ type ClientService interface {
 
 	SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error)
 
+	SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error)
+
 	SetTransport(transport runtime.ClientTransport)
 }
 
@@ -617,6 +619,41 @@ func (a *Client) SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error) 
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*SyncCopyDirDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  SyncMoveDir moves dir contents to directory
+
+  Move contents from path on source fs to path on destination fs
+*/
+func (a *Client) SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSyncMoveDirParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SyncMoveDir",
+		Method:             "POST",
+		PathPattern:        "/rclone/sync/movedir",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SyncMoveDirReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*SyncMoveDirOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*SyncMoveDirDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

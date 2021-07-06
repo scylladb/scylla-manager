@@ -527,19 +527,22 @@ func init() {
 	c.NeedsResponse = true
 }
 
-// rcCopyDir copies files from source to destination directory.
+// rcMoveOrCopyDir returns an rc function that moves or copies files from
+// source to destination directory depending on the constructor argument.
 // Only works for directories with single level depth.
-func rcCopyDir(ctx context.Context, in rc.Params) (rc.Params, error) {
-	srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
-	if err != nil {
-		return nil, err
-	}
-	dstFs, dstRemote, err := getFsAndRemoteNamed(ctx, in, "dstFs", "dstRemote")
-	if err != nil {
-		return nil, err
-	}
+func rcMoveOrCopyDir(doMove bool) func(ctx context.Context, in rc.Params) (rc.Params, error) {
+	return func(ctx context.Context, in rc.Params) (rc.Params, error) {
+		srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
+		if err != nil {
+			return nil, err
+		}
+		dstFs, dstRemote, err := getFsAndRemoteNamed(ctx, in, "dstFs", "dstRemote")
+		if err != nil {
+			return nil, err
+		}
 
-	return nil, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, false)
+		return nil, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, doMove)
+	}
 }
 
 // getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't
@@ -556,9 +559,22 @@ func getFsAndRemoteNamed(ctx context.Context, in rc.Params, fsName, remoteName s
 
 func init() {
 	rc.Add(rc.Call{
+		Path:         "sync/movedir",
+		AuthRequired: true,
+		Fn:           wrap(rcMoveOrCopyDir(true), localToRemote()),
+		Title:        "Move contents of source directory to destination",
+		Help: `This takes the following parameters:
+
+- srcFs - a remote name string eg "drive:" for the source
+- srcRemote - a directory path within that remote for the source
+- dstFs - a remote name string eg "drive2:" for the destination
+- dstRemote - a directory path within that remote for the destination`,
+	})
+
+	rc.Add(rc.Call{
 		Path:         "sync/copydir",
 		AuthRequired: true,
-		Fn:           wrap(rcCopyDir, localToRemote()),
+		Fn:           wrap(rcMoveOrCopyDir(false), localToRemote()),
 		Title:        "Copy contents from source directory to destination",
 		Help: `This takes the following parameters:
 

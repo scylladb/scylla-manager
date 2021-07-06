@@ -303,6 +303,58 @@
         "security": []
       }
     },
+    "/rclone/sync/movedir": {
+      "post": {
+        "description": "Move contents from path on source fs to path on destination fs",
+        "summary": "Move dir contents to directory",
+        "operationId": "SyncMoveDir",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "Options",
+            "description": "Options",
+            "schema": {
+              "$ref": "#/definitions/MoveOrCopyFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/operations/purge": {
       "post": {
         "description": "Remove a directory or container and all of its contents",
@@ -999,7 +1051,12 @@
         "status": {
           "description": "status of the job",
           "type": "string",
-          "enum": ["success", "error", "running", "not_found"]
+          "enum": [
+            "success",
+            "error",
+            "running",
+            "not_found"
+          ]
         },
         "started_at": {
           "description": "time at which job started",
