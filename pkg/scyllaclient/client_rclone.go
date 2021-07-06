@@ -170,12 +170,25 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRem
 	return err
 }
 
+// RcloneMoveDir moves contents of the directory pointed by srcRemotePath to
+// the directory pointed by dstRemotePath.
+// Remotes need to be registered with the server first.
+// Returns ID of the asynchronous job.
+// Remote path format is "name:bucket/path".
+func (c *Client) RcloneMoveDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, true)
+}
+
 // RcloneCopyDir copies contents of the directory pointed by srcRemotePath to
 // the directory pointed by dstRemotePath.
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, false)
+}
+
+func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string, doMove bool) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return 0, err
@@ -184,22 +197,39 @@ func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemo
 	if err != nil {
 		return 0, err
 	}
-	c.logger.Debug(ctx, "RcloneCopyDir", "DstFs", dstFs, "DstRemote", dstRemote, "SrcFs", srcFs, "SrcRemote", srcRemote)
-	p := operations.SyncCopyDirParams{
-		Context: forceHost(ctx, host),
-		Options: &models.MoveOrCopyFileOptions{
-			DstFs:     dstFs,
-			DstRemote: dstRemote,
-			SrcFs:     srcFs,
-			SrcRemote: srcRemote,
-		},
-		Async: true,
+	m := models.MoveOrCopyFileOptions{
+		DstFs:     dstFs,
+		DstRemote: dstRemote,
+		SrcFs:     srcFs,
+		SrcRemote: srcRemote,
 	}
-	resp, err := c.agentOps.SyncCopyDir(&p)
-	if err != nil {
-		return 0, err
+
+	var jobID int64
+	if doMove {
+		p := operations.SyncMoveDirParams{
+			Context: forceHost(ctx, host),
+			Options: &m,
+			Async:   true,
+		}
+		resp, err := c.agentOps.SyncMoveDir(&p)
+		if err != nil {
+			return 0, err
+		}
+		jobID = resp.Payload.Jobid
+	} else {
+		p := operations.SyncCopyDirParams{
+			Context: forceHost(ctx, host),
+			Options: &m,
+			Async:   true,
+		}
+		resp, err := c.agentOps.SyncCopyDir(&p)
+		if err != nil {
+			return 0, err
+		}
+		jobID = resp.Payload.Jobid
 	}
-	return resp.Payload.Jobid, nil
+
+	return jobID, nil
 }
 
 // RcloneDeleteDir removes a directory or container and all of its contents
