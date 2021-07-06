@@ -1118,8 +1118,8 @@ func CopyDir(ctx context.Context, fdst, fsrc fs.Fs, copyEmptySrcDirs bool) error
 }
 
 // CopyDir2 copies files from  fsrc/remoteSrc into fdst/remoteDst.
-func CopyDir2(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, copyEmptySrcDirs bool) error {
-	do, err := newSyncCopyMove(ctx, fdst, remoteDst, fsrc, remoteSrc, nil, fs.DeleteModeOff, false, false, copyEmptySrcDirs, true)
+func CopyDir2(ctx context.Context, fdst fs.Fs, remoteDst string, fsrc fs.Fs, remoteSrc string, doMove bool) error {
+	do, err := newSyncCopyMove(ctx, fdst, remoteDst, fsrc, remoteSrc, nil, fs.DeleteModeOff, doMove, false, false, true)
 	if err != nil {
 		return err
 	}
