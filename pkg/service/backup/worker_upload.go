@@ -259,7 +259,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 }
 
 func (w *worker) deleteTableSnapshot(ctx context.Context, h hostInfo, d snapshotDir) error {
-	w.Logger.Info(ctx, "Removing table snapshot",
+	w.Logger.Debug(ctx, "Removing table snapshot",
 		"host", h.IP,
 		"keyspace", d.Keyspace,
 		"table", d.Table,
