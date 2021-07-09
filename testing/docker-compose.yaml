@@ -140,8 +140,6 @@ services:
       - type: bind
         source: ./prometheus/prometheus.yaml
         target: /etc/prometheus/prometheus.yml
-    ports:
-      - 9090
     network_mode: host
 
   minio:
