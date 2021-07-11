@@ -127,3 +127,7 @@ Before pushing please run `make check` and `make test` to make sure all tests pa
 
 When satisfied create a pull request onto master.
 All pull requests have to go trough review process before they are merged.
+
+## License
+
+Scylla Manager Source Code is available under Scylla Source Available License (SSAL) https://www.scylladb.com/scylla-source-available-license/
