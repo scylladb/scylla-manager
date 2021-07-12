@@ -64,6 +64,7 @@ nfpms:
     builds:
       - server
     package_name: "scylla-manager-server"
+    file_name_template: "{{ .ProjectName }}-server-{{ .Version }}_{{ .Os }}.{{ .Arch }}"
     vendor: ScyllaDB
     homepage: https://www.scylladb.com/product/scylla-manager/
     maintainer: Michał Jan Matczuk <michal@scylladb.com>
@@ -97,12 +98,15 @@ nfpms:
       compression: xz
     overrides:
       deb:
+        file_name_template: "{{ .ProjectName }}-server_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
         scripts:
           preinstall: deb/scylla-manager-server.preinst
           postinstall: deb/scylla-manager-server.postinst
           preremove: deb/scylla-manager-server.prerm
           postremove: deb/scylla-manager-server.postrm
       rpm:
+        replacements:
+          amd64: x86_64
         scripts:
           preinstall: rpm/scylla-manager-server.preinst
           postinstall: rpm/scylla-manager-server.postinst
@@ -113,6 +117,7 @@ nfpms:
     builds:
       - client
     package_name: "scylla-manager-client"
+    file_name_template: "{{ .ProjectName }}-client-{{ .Version }}_{{ .Os }}.{{ .Arch }}"
     vendor: ScyllaDB
     homepage: https://www.scylladb.com/product/scylla-manager/
     maintainer: Michał Jan Matczuk <michal@scylladb.com>
@@ -137,9 +142,12 @@ nfpms:
       compression: xz
     overrides:
       deb:
+        file_name_template: "{{ .ProjectName }}-client_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
         scripts:
           postinstall: deb/scylla-manager-client.postinst
       rpm:
+        replacements:
+          amd64: x86_64
         scripts:
           postinstall: rpm/scylla-manager-client.postinst
 
@@ -147,6 +155,7 @@ nfpms:
     builds:
       - agent
     package_name: "scylla-manager-agent"
+    file_name_template: "{{ .ProjectName }}-agent-{{ .Version }}_{{ .Os }}.{{ .Arch }}"
     vendor: ScyllaDB
     homepage: https://www.scylladb.com/product/scylla-manager/
     maintainer: Michał Jan Matczuk <michal@scylladb.com>
@@ -178,12 +187,15 @@ nfpms:
       compression: xz
     overrides:
       deb:
+        file_name_template: "{{ .ProjectName }}-agent_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
         scripts:
           preinstall: deb/scylla-manager-agent.preinst
           postinstall: deb/scylla-manager-agent.postinst
           preremove: deb/scylla-manager-agent.prerm
           postremove: deb/scylla-manager-agent.postrm
       rpm:
+        replacements:
+          amd64: x86_64
         scripts:
           preinstall: rpm/scylla-manager-agent.preinst
           postinstall: rpm/scylla-manager-agent.postinst
@@ -196,7 +208,6 @@ dockers:
       - client
     image_templates:
       - "scylladb/scylla-manager:{{ .Version }}"
-      - "scylladb/scylla-manager:latest"
     dockerfile: docker/scylla-manager.dockerfile
     extra_files:
       - docker/scylla-manager.yaml
@@ -205,7 +216,6 @@ dockers:
       - agent
     image_templates:
       - "scylladb/scylla-manager-agent:{{ .Version }}"
-      - "scylladb/scylla-manager-agent:latest"
     dockerfile: docker/scylla-manager-agent.dockerfile
 
 checksum:
