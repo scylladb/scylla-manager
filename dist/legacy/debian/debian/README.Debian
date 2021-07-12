@@ -1,6 +1,0 @@
-Scylla Manager
-==============
-
-Scylla is a highly scalable, eventually consistent, distributed, partitioned row
-database. This package provides the Scylla Manager both server and cli.
-

@@ -1,4 +1,0 @@
-release/linux_amd64/sctool usr/bin
-release/bash_completion/sctool.bash etc/bash_completion.d
-license/LICENSE.PROPRIETARY usr/share/doc/scylla-manager-client/LICENSE
-license/LICENSE.3RD_PARTY.scylla-manager-client usr/share/doc/scylla-manager-client/LICENSE.3RD_PARTY
