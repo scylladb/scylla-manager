@@ -36,6 +36,14 @@ If using GoLand update import grouping policy:
 1. Check every checkbox but "Group current project imports"
 1. Press OK
 
+## Increase fs.aio-max-nr
+
+In order to run a Scylla it's required to increase the number of async i/o operations limit. 
+
+```
+echo "fs.aio-max-nr = 1048576" > /etc/sysctl.d/50-scylla.conf
+```
+
 ## Running a development environment 
 
 Let's start the development environment.
