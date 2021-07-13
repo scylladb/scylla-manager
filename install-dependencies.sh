@@ -38,9 +38,6 @@ case ${DISTRO} in
         exit 1
 esac
 
-echo "==> Installing cqlsh from pip"
-python -m pip install cqlsh
-
 echo "==> Cleaning ${LOCAL_BIN}"
 rm -f "${LOCAL_BIN}"/*
 
