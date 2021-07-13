@@ -130,4 +130,4 @@ All pull requests have to go trough review process before they are merged.
 
 ## License
 
-Scylla Manager Source Code is available under Scylla Source Available License (SSAL) https://www.scylladb.com/scylla-source-available-license/
+Scylla Manager Source Code is available under [Scylla Source Available License (SSAL)](https://www.scylladb.com/scylla-source-available-license/).
