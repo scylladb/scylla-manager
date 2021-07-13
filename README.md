@@ -23,7 +23,7 @@ If you do not have any Go installed at this point you can pass TARGET variable t
 
 ## Installing other packages needed for development
 
-1. Install Docker and `docker-compose`
+1. Install Docker
 1. Run installation script `./install-dependencies.sh`
 
 ## Configuring imports formatting in GoLand

@@ -5,8 +5,8 @@
 
 set -eu -o pipefail
 
-FEDORA_PKGS="jq make moreutils sshpass rpm-build"
-UBUNTU_PKGS="jq make moreutils sshpass"
+FEDORA_PKGS="docker-compose jq make moreutils openssl sshpass rpm-build"
+UBUNTU_PKGS="docker-compose jq make moreutils openssl sshpass"
 
 GO_PKGS="
 golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.39.0/golangci-lint-1.39.0-linux-amd64.tar.gz
