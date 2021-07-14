@@ -769,6 +769,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		StageMigrate: gaurdFunc, // migrations from v1 are no longer supported
 	}
 
+	// Save the previous stage
+	prevStage := run.Stage
+
 	// Execute stages according to the stage order.
 	execStage := func(stage Stage, f func() error) error {
 		// In purge only mode skip all stages before purge.
@@ -780,15 +783,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		// Skip completed stages
 		if run.PrevID != uuid.Nil {
-			prevStage := run.Stage
-
-			// Indexing is a special case, it lists files that are needed
-			// in manifest and upload stages.
-			if stage == StageIndex {
-				if prevStage.Index() > StageUpload.Index() {
-					return nil
-				}
-			} else if stage.Index() < prevStage.Index() {
+			// Allow reindexing if previous state is manifest creation or upload
+			if stage == StageIndex && (prevStage == StageManifest || prevStage == StageUpload) {
+				// continue
+			} else if prevStage.Index() > stage.Index() {
 				return nil
 			}
 		}
