@@ -907,7 +907,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		Continue: true,
 	}
 
-	assertDataUploded := func(t *testing.T, h *backupTestHelper) {
+	assertDataUploaded := func(t *testing.T, h *backupTestHelper) {
 		t.Helper()
 
 		manifests, _, files := h.listS3Files()
@@ -919,7 +919,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 	}
 
-	assertDataUplodedAfterTag := func(t *testing.T, h *backupTestHelper, tag string) {
+	assertDataUploadedAfterTag := func(t *testing.T, h *backupTestHelper, tag string) {
 		t.Helper()
 
 		manifests, _, files := h.listS3Files()
@@ -1004,7 +1004,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		assertDataUploded(t, h)
+		assertDataUploaded(t, h)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
@@ -1050,7 +1050,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		h.waitNoTransfers()
 
 		Print("And: data is uploaded")
-		assertDataUploded(t, h)
+		assertDataUploaded(t, h)
 	})
 
 	t.Run("resume after snapshot failed", func(t *testing.T) {
@@ -1104,7 +1104,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		assertDataUplodedAfterTag(t, h, tag)
+		assertDataUploadedAfterTag(t, h, tag)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
@@ -1165,7 +1165,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 
 		Print("Then: data is uploaded")
-		assertDataUplodedAfterTag(t, h, tag)
+		assertDataUploadedAfterTag(t, h, tag)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
