@@ -11,7 +11,6 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"go.uber.org/multierr"
 )
 
 func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
@@ -191,66 +190,47 @@ var errJobNotFound = errors.New("job not found")
 
 func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err error) {
 	defer func() {
-		err = multierr.Combine(
-			err,
-			w.clearJobStats(ctx, id, d.Host),
-		)
+		// Running stop procedure in a different context because original may be canceled
+		stopCtx := context.Background()
+
+		// On error stop job
+		if err != nil {
+			if e := w.Client.RcloneJobStop(stopCtx, d.Host, id); e != nil {
+				w.Logger.Error(ctx, "Failed to stop job",
+					"host", d.Host,
+					"id", id,
+					"error", e,
+				)
+			}
+		}
+
+		// On exit clear stats
+		if e := w.clearJobStats(stopCtx, id, d.Host); e != nil {
+			w.Logger.Error(ctx, "Failed to clear job stats",
+				"host", d.Host,
+				"id", id,
+				"error", e,
+			)
+		}
 	}()
 
-	waitCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	for {
 		select {
-		case <-waitCtx.Done():
-			// Running stop procedure in different context because original
-			// is canceled.
-			stopCtx := context.Background()
-
-			err := w.Client.RcloneJobStop(stopCtx, d.Host, id)
-			if err != nil {
-				w.Logger.Error(waitCtx, "Failed to stop rclone job",
-					"host", d.Host,
-					"keyspace", d.Keyspace,
-					"table", d.Table,
-					"job_id", id,
-					"error", err,
-				)
-			}
-			job, err := w.Client.RcloneJobProgress(stopCtx, d.Host, id, w.Config.LongPollingTimeoutSeconds)
-			if err != nil {
-				w.Logger.Error(waitCtx, "Failed to fetch job info",
-					"host", d.Host,
-					"keyspace", d.Keyspace,
-					"table", d.Table,
-					"job_id", id,
-					"error", err,
-				)
-				return err
-			}
-			w.updateProgress(stopCtx, d, job)
-			return waitCtx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		default:
-			job, err := w.Client.RcloneJobProgress(waitCtx, d.Host, id, w.Config.LongPollingTimeoutSeconds)
+			job, err := w.Client.RcloneJobProgress(ctx, d.Host, id, w.Config.LongPollingTimeoutSeconds)
 			if err != nil {
-				w.Logger.Error(waitCtx, "Failed to fetch job info",
-					"host", d.Host,
-					"keyspace", d.Keyspace,
-					"table", d.Table,
-					"job_id", id,
-					"error", err,
-				)
-				// In case of error execute cancel procedure
-				cancel()
-				continue
+				return errors.Wrap(err, "fetch job info")
 			}
 			switch scyllaclient.RcloneJobStatus(job.Status) {
 			case scyllaclient.JobError:
 				return errors.Errorf("job error (%d): %s", id, job.Error)
 			case scyllaclient.JobSuccess:
-				w.updateProgress(waitCtx, d, job)
+				w.updateProgress(ctx, d, job)
 				return nil
 			case scyllaclient.JobRunning:
-				w.updateProgress(waitCtx, d, job)
+				w.updateProgress(ctx, d, job)
 			case scyllaclient.JobNotFound:
 				return errJobNotFound
 			}
