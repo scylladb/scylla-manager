@@ -973,11 +973,16 @@ func (s *Service) resumeUploadProgress(prevRunID uuid.UUID) func(context.Context
 			return
 		}
 
-		// Only 100% completed tables can be resumed because incomplete ones
-		// will be retried with deduplication which will change the stats.
+		// Copy size as uploaded files are deleted and size of files on disk is diminished.
 		if prev.IsUploaded() {
+			p.Size = prev.Size
 			p.Uploaded = prev.Uploaded
 			p.Skipped = prev.Skipped
+		} else {
+			diskSize := p.Size
+			p.Size = prev.Size
+			p.Uploaded = 0
+			p.Skipped = prev.Size - diskSize
 		}
 	}
 }
