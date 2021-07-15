@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -19,7 +20,6 @@ import (
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
 	"github.com/rclone/rclone/fs/sync"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver/internal"
@@ -192,45 +192,25 @@ type transFields struct {
 }
 
 func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
-	var (
-		p     jobProgress
-		job   jobFields
-		stats statsFields
-		trans transFields
-	)
-
+	// Parse parameters
+	var job jobFields
 	if err := mapstructure.Decode(jobParam, &job); err != nil {
 		panic(err)
 	}
+	var stats statsFields
 	if err := mapstructure.Decode(statsParam, &stats); err != nil {
 		panic(err)
 	}
+	var trans transFields
 	if err := mapstructure.Decode(transParam, &trans); err != nil {
 		panic(err)
 	}
 
-	p.Status = statusOfJob(job)
-	if job.Error != "" {
-		p.Error += job.Error + ";"
+	// Init job progress
+	p := jobProgress{
+		Status: statusOfJob(job),
+		Error:  job.Error,
 	}
-
-	filesSet := strset.New()
-
-	// Calculating stats for running transfers.
-	transferringBytes := make(map[string]int64, len(stats.Transferring))
-	for _, tr := range stats.Transferring {
-		filesSet.Add(tr.Name)
-		transferringBytes[tr.Name] = tr.Bytes
-	}
-
-	// Calculating stats for completed transfers.
-	fileTransfers := make(map[string][]accounting.TransferSnapshot, len(trans.Transferred))
-	for _, tr := range trans.Transferred {
-		filesSet.Add(tr.Name)
-		fileTransfers[tr.Name] = append(fileTransfers[tr.Name], tr)
-	}
-
-	// Set StartedAt and CompletedAt based on Job dates.
 	if t, err := timeutc.Parse(time.RFC3339, job.StartTime); err == nil && !t.IsZero() {
 		p.StartedAt = t
 	}
@@ -238,50 +218,74 @@ func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
 		p.CompletedAt = t
 	}
 
-	var errs error
-
-	// Sorting for more consistent error output.
-	files := filesSet.List()
-	sort.Strings(files)
-	for _, f := range files {
-		ft := fileTransfers[f]
-
-		switch len(ft) {
-		case 0:
-			// Nothing in transferred so inspect transfers in progress
-			p.Uploaded += transferringBytes[f]
-		case 1:
-			if ft[0].Error != nil {
-				p.Failed += ft[0].Size - ft[0].Bytes
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
-			}
-			if ft[0].Checked {
-				// File is already uploaded we just checked.
-				p.Skipped += ft[0].Size
-			} else {
-				p.Uploaded += ft[0].Bytes
-			}
-		case 2:
-			// File is found and updated on remote (check plus transfer).
-			// Order Check > Transfer is expected.
-			failed := false
-			if ft[0].Error != nil {
-				failed = true
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[0].Error))
-			}
-			if ft[1].Error != nil {
-				failed = true
-				errs = multierr.Append(errs, errors.Errorf("%s %s", f, ft[1].Error))
-			}
-			if failed {
-				p.Failed += ft[1].Size - ft[1].Bytes
-			}
-			p.Uploaded += ft[1].Bytes
-		}
+	// Create artificial transferred entries for in progress items
+	transfers := trans.Transferred
+	for _, tr := range stats.Transferring {
+		transfers = append(transfers, accounting.TransferSnapshot{
+			Name:  tr.Name,
+			Bytes: tr.Bytes,
+		})
 	}
 
-	if errs != nil {
-		p.Error = errs.Error()
+	// Sort transfers by name, and event start time in descending order.
+	// This is needed to process the most recent events first.
+	sort.Slice(transfers, func(i, j int) bool {
+		if v := strings.Compare(transfers[i].Name, transfers[j].Name); v != 0 {
+			return v < 0
+		}
+		return !transfers[i].StartedAt.Before(transfers[j].StartedAt)
+	})
+
+	// Process all the transfers
+	g := func(b, e int) (uploaded, failed, skipped int64, err error) {
+		var (
+			size  int64
+			bytes int64
+		)
+		for _, tr := range transfers[b:e] {
+			if size == 0 && tr.Size > 0 {
+				size = tr.Size
+			}
+			if bytes == 0 && !tr.Checked && tr.Bytes > 0 {
+				bytes = tr.Bytes
+			}
+			if tr.Error != nil {
+				err = multierr.Append(err, errors.Errorf("%s %s", tr.Name, tr.Error))
+			}
+		}
+		switch {
+		case err != nil:
+			failed = size
+		case bytes > 0:
+			uploaded = bytes
+		default:
+			skipped = size
+		}
+		return
+	}
+
+	i := 0
+	for {
+		b := i
+		for i < len(transfers) && transfers[b].Name == transfers[i].Name {
+			i++
+		}
+		e := i
+
+		u, f, s, err := g(b, e)
+		p.Uploaded += u
+		p.Failed += f
+		p.Skipped += s
+		if err != nil {
+			if p.Error != "" {
+				p.Error += "; "
+			}
+			p.Error += err.Error()
+		}
+
+		if i >= len(transfers) {
+			break
+		}
 	}
 
 	return p
