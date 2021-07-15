@@ -145,7 +145,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				files:     files,
 			}
 			w.ResumeUploadProgress(ctx, d.Progress)
-
+			d.SkippedBytesOffset = d.Progress.Skipped
 			w.onRunProgress(ctx, d.Progress)
 
 			dirs = append(dirs, d)

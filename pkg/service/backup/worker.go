@@ -31,14 +31,16 @@ func (h hostInfo) String() string {
 
 // snapshotDir represents a remote directory containing a table snapshot.
 type snapshotDir struct {
-	Host         string
-	Unit         int64
-	Path         string
-	Keyspace     string
-	Table        string
-	Version      string
-	Progress     *RunProgress
-	NewFilesSize int64
+	Host     string
+	Unit     int64
+	Path     string
+	Keyspace string
+	Table    string
+	Version  string
+	Progress *RunProgress
+
+	SkippedBytesOffset int64
+	NewFilesSize       int64
 }
 
 func (sd snapshotDir) String() string {
@@ -61,6 +63,7 @@ type worker struct {
 	// ResumeUploadProgress populates upload stats of the provided run progress
 	// with previous run progress.
 	// If there is no previous run there should be no update.
+	// It's required to provide Size as current disk size of files.
 	ResumeUploadProgress func(ctx context.Context, p *RunProgress)
 
 	// Cache for host snapshotDirs

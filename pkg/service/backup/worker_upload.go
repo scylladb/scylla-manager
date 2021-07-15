@@ -59,17 +59,17 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			return nil
 		}
 
-		// Add keyspace table info to error mgs.
-		defer func() {
-			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
-		}()
-
 		// Delete table snapshot.
 		defer func() {
 			if err != nil {
 				return
 			}
 			err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
+		}()
+
+		// Add keyspace table info to error mgs.
+		defer func() {
+			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
 		}()
 
 		// Check if we should attach to a previous job and wait for it to complete.
@@ -195,6 +195,7 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 
 		// On error stop job
 		if err != nil {
+			w.Logger.Info(ctx, "Stop job", "host", d.Host, "id", id)
 			if e := w.Client.RcloneJobStop(stopCtx, d.Host, id); e != nil {
 				w.Logger.Error(ctx, "Failed to stop job",
 					"host", d.Host,
@@ -222,6 +223,9 @@ func (w *worker) waitJob(ctx context.Context, id int64, d snapshotDir) (err erro
 			job, err := w.Client.RcloneJobProgress(ctx, d.Host, id, w.Config.LongPollingTimeoutSeconds)
 			if err != nil {
 				return errors.Wrap(err, "fetch job info")
+			}
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
 			switch scyllaclient.RcloneJobStatus(job.Status) {
 			case scyllaclient.JobError:
@@ -268,7 +272,7 @@ func (w *worker) updateProgress(ctx context.Context, d snapshotDir, job *scyllac
 
 	p.Error = job.Error
 	p.Uploaded = job.Uploaded
-	p.Skipped = job.Skipped
+	p.Skipped = d.SkippedBytesOffset + job.Skipped
 	p.Failed = job.Failed
 
 	w.onRunProgress(ctx, p)
