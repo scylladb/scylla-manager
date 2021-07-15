@@ -59,17 +59,23 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			return nil
 		}
 
+		// NOTE that defers are executed in LIFO order
+		// Abort on cancel.
+		defer func() {
+			if errors.Is(err, context.Canceled) {
+				err = parallel.Abort(err)
+			}
+		}()
+		// Add keyspace table info to error mgs.
+		defer func() {
+			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
+		}()
 		// Delete table snapshot.
 		defer func() {
 			if err != nil {
 				return
 			}
 			err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
-		}()
-
-		// Add keyspace table info to error mgs.
-		defer func() {
-			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
 		}()
 
 		// Check if we should attach to a previous job and wait for it to complete.
