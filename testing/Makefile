@@ -1,8 +1,9 @@
 all: help
 
-COMPOSE    = docker-compose
-CQLSH      = $(COMPOSE) exec scylla-manager-db cqlsh
-CQLSH_NODE = $(COMPOSE) exec dc1_node_1 cqlsh
+COMPOSE    := docker-compose
+CQLSH      := $(COMPOSE) exec scylla-manager-db cqlsh
+CQLSH_NODE := $(COMPOSE) exec dc1_node_1 cqlsh
+YQ         := ../bin/yq
 
 include .env
 
@@ -18,7 +19,7 @@ up:
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
 ifeq ($(SM_SSL_ENABLED),yes)
-	@yq merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
+	@$(YQ) merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
 else
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
