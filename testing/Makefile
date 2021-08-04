@@ -17,7 +17,7 @@ up:
 	@echo "==> Generating encryption files"
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
-ifdef SSL_ENABLED
+ifeq ($(SM_SSL_ENABLED),yes)
 	@yq merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
 else
