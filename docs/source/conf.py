@@ -94,7 +94,7 @@ html_style = ''
 #
 html_theme_options = {
     'branch_substring_removed': 'branch-',
-    'github_issues_repository': 'scylladb/scylla-manager-issues',
+    'github_issues_repository': 'scylladb/scylla-manager',
     'header_links': [
     ('Scylla Manager', 'https://manager.docs.scylladb.com/'),
     ('Scylla Monitor', 'https://scylladb.github.io/scylla-monitoring/'),
