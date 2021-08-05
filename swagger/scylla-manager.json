@@ -100,6 +100,9 @@
             "type": "number",
             "format": "float"
           },
+          "alternator_cause": {
+            "type": "string"
+          },
           "cql_status": {
             "type": "string"
           },
@@ -107,12 +110,18 @@
             "type": "number",
             "format": "float"
           },
+          "cql_cause": {
+            "type": "string"
+          },
           "rest_status": {
             "type": "string"
           },
           "rest_rtt_ms": {
             "type": "number",
             "format": "float"
+          },
+          "rest_cause": {
+            "type": "string"
           },
           "total_ram": {
             "type": "integer"

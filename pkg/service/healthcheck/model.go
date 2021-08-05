@@ -7,11 +7,12 @@ import (
 )
 
 const (
-	statusUp           = `UP`
-	statusDown         = `DOWN`
+	statusUp   = `UP`
+	statusDown = `DOWN`
+
+	statusError        = `ERROR`
 	statusTimeout      = `TIMEOUT`
 	statusUnauthorized = `UNAUTHORIZED`
-	statusError        = `ERROR`
 	statusHTTP         = `HTTP`
 )
 
@@ -24,10 +25,13 @@ type NodeStatus struct {
 	SSL              bool    `json:"ssl"`
 	AlternatorStatus string  `json:"alternator_status"`
 	AlternatorRtt    float64 `json:"alternator_rtt_ms"`
+	AlternatorCause  string  `json:"alternator_cause"`
 	CQLStatus        string  `json:"cql_status"`
 	CQLRtt           float64 `json:"cql_rtt_ms"`
+	CQLCause         string  `json:"cql_cause"`
 	RESTStatus       string  `json:"rest_status"`
 	RESTRtt          float64 `json:"rest_rtt_ms"`
+	RESTCause        string  `json:"rest_cause"`
 	TotalRAM         int64   `json:"total_ram"`
 	Uptime           int64   `json:"uptime"`
 	CPUCount         int64   `json:"cpu_count"`
