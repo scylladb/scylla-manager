@@ -176,10 +176,10 @@ func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID,
 					"host", status[i].Addr,
 					"error", err,
 				)
-				return
 			}
-
-			s.decorateNodeStatus(&out[i], ni)
+			if ni.NodeInfo != nil {
+				s.decorateNodeStatus(&out[i], ni)
+			}
 			return
 		})
 	}
@@ -242,6 +242,8 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				)
 
 				switch {
+				case rtt == 0:
+					out[i].CQLStatus = statusError
 				case errors.Is(err, ping.ErrTimeout):
 					out[i].CQLStatus = statusTimeout
 				case errors.Is(err, ping.ErrUnauthorised):
@@ -317,7 +319,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string,
 	timeout time.Duration) (rtt time.Duration, err error) {
 	ni, err := s.nodeInfo(ctx, clusterID, host)
-	if err != nil {
+	// Proceed if we managed to get required information.
+	if err != nil && ni.NodeInfo == nil {
 		return 0, errors.Wrap(err, "get node info")
 	}
 	if !ni.AlternatorEnabled() {
@@ -414,12 +417,12 @@ func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string
 		return nodeInfo{}, errors.Wrap(err, "create scylla client")
 	}
 
-	ni, err := client.NodeInfo(ctx, host)
-	if err != nil {
+	ni := nodeInfo{}
+	if ni.NodeInfo, err = client.NodeInfo(ctx, host); err != nil {
 		return nodeInfo{}, errors.Wrap(err, "fetch node info")
 	}
 
-	tlsConfigs := make(map[pingType]*tls.Config)
+	ni.TLSConfig = make(map[pingType]*tls.Config, 2)
 	for _, p := range []pingType{alternatorPing, cqlPing} {
 		var tlsEnabled, clientCertAuth bool
 		if p == cqlPing {
@@ -427,21 +430,19 @@ func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string
 		} else if p == alternatorPing {
 			tlsEnabled, clientCertAuth = ni.AlternatorTLSEnabled()
 		}
-		if !tlsEnabled {
-			tlsConfigs[p] = nil
-			continue
+		if tlsEnabled {
+			tlsConfig, err := s.tlsConfig(clusterID, clientCertAuth)
+			if err != nil {
+				return ni, errors.Wrap(err, "fetch TLS config")
+			}
+			ni.TLSConfig[p] = tlsConfig
 		}
-
-		tlsConfig, err := s.tlsConfig(clusterID, clientCertAuth)
-		if err != nil {
-			return nodeInfo{}, errors.Wrap(err, "fetch TLS config")
-		}
-		tlsConfigs[p] = tlsConfig
 	}
 
-	expires := now.Add(s.config.NodeInfoTTL)
-	s.nodeInfoCache[key] = nodeInfo{NodeInfo: ni, TLSConfig: tlsConfigs, Expires: expires}
-	return s.nodeInfoCache[key], nil
+	ni.Expires = now.Add(s.config.NodeInfoTTL)
+	s.nodeInfoCache[key] = ni
+
+	return ni, nil
 }
 
 func (s *Service) tlsConfig(clusterID uuid.UUID, clientCertAuth bool) (*tls.Config, error) {
@@ -453,13 +454,7 @@ func (s *Service) tlsConfig(clusterID uuid.UUID, clientCertAuth bool) (*tls.Conf
 		id := &secrets.TLSIdentity{
 			ClusterID: clusterID,
 		}
-		err := s.secretsStore.Get(id)
-		// If there is no user certificate return nil, user will be notified about
-		// unauthorized error.
-		if errors.Is(err, service.ErrNotFound) {
-			return nil, nil
-		}
-		if err != nil {
+		if err := s.secretsStore.Get(id); err != nil {
 			return nil, errors.Wrap(err, "get SSL user cert from secrets store")
 		}
 		keyPair, err := tls.X509KeyPair(id.Cert, id.PrivateKey)

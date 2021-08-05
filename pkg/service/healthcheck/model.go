@@ -11,6 +11,7 @@ const (
 	statusDown         = `DOWN`
 	statusTimeout      = `TIMEOUT`
 	statusUnauthorized = `UNAUTHORIZED`
+	statusError        = `ERROR`
 	statusHTTP         = `HTTP`
 )
 
