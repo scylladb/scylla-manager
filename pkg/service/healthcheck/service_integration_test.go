@@ -24,8 +24,8 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/store"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	scyllaModels "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -33,8 +33,10 @@ func TestStatusIntegration(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
 
+	clusterID := uuid.MustRandom()
+
 	s := store.NewTableStore(session, table.Secrets)
-	testStatusIntegration(t, s)
+	testStatusIntegration(t, clusterID, s)
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
@@ -43,27 +45,35 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
 
+	clusterID := uuid.MustRandom()
+
 	s := store.NewTableStore(session, table.Secrets)
 	if err := s.Put(&secrets.CQLCreds{
-		Username: username,
-		Password: password,
+		ClusterID: clusterID,
+		Username:  username,
+		Password:  password,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	testStatusIntegration(t, s)
+	testStatusIntegration(t, clusterID, s)
 }
 
-func testStatusIntegration(t *testing.T, secretsStore store.Store) {
+func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store.Store) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
+
+	// Tests here do not test the dynamic t/o functionality
+	c := DefaultConfig()
+	c.DynamicTimeout.Enabled = false
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	s, err := NewService(
-		DefaultConfig(),
+		c,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			conf := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-			conf.Transport = hrt
-			return scyllaclient.NewClient(conf, logger.Named("scylla"))
+			sc := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+			sc.Timeout = time.Second
+			sc.Transport = hrt
+			return scyllaclient.NewClient(sc, logger.Named("scylla"))
 		},
 		secretsStore,
 		logger,
@@ -72,7 +82,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		t.Fatal(err)
 	}
 
-	assertEqual := func(t *testing.T, got, golden []NodeStatus) {
+	assertEqual := func(t *testing.T, golden, status []NodeStatus) {
 		t.Helper()
 
 		opts := cmp.Options{
@@ -80,58 +90,13 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 			cmpopts.IgnoreFields(NodeStatus{}, "HostID", "Status", "CQLRtt", "RESTRtt", "AlternatorRtt",
 				"TotalRAM", "Uptime", "CPUCount", "ScyllaVersion", "AgentVersion"),
 		}
-		if diff := cmp.Diff(got, golden, opts...); diff != "" {
-			t.Errorf("Status() = %+v, diff %s", got, diff)
+		if diff := cmp.Diff(golden, status, opts...); diff != "" {
+			t.Errorf("Status() = %+v, diff %s", status, diff)
 		}
 	}
 
-	t.Run("resolve address via Agent NodeInfo endpoint", func(t *testing.T) {
-		cid := uuid.MustRandom()
-
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.11"}] = nodeInfo{
-			NodeInfo: &scyllaclient.NodeInfo{
-				BroadcastRPCAddress: "127.0.0.1",
-				NativeTransportPort: DefaultCQLPort,
-				AlternatorPort:      "2",
-			},
-			Expires: timeutc.Now().Add(time.Hour),
-		}
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.12"}] = nodeInfo{
-			NodeInfo: &scyllaclient.NodeInfo{
-				BroadcastRPCAddress: "192.168.100.12",
-				NativeTransportPort: "1",
-				AlternatorPort:      "2",
-			},
-			Expires: timeutc.Now().Add(time.Hour),
-		}
-		s.nodeInfoCache[clusterIDHost{ClusterID: cid, Host: "192.168.100.13"}] = nodeInfo{
-			NodeInfo: &scyllaclient.NodeInfo{
-				BroadcastRPCAddress: "400.400.400.400",
-				NativeTransportPort: DefaultCQLPort,
-				AlternatorPort:      "2",
-			},
-			Expires: timeutc.Now().Add(time.Hour),
-		}
-
-		status, err := s.Status(context.Background(), cid)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.100.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-		}
-		assertEqual(t, golden, status)
-	})
-
 	t.Run("all nodes UP", func(t *testing.T) {
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -153,7 +118,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		blockREST(t, host)
 		defer unblockREST(t, host)
 
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -175,7 +140,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		blockCQL(t, host)
 		defer unblockCQL(t, host)
 
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -197,7 +162,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		blockAlternator(t, host)
 		defer unblockAlternator(t, host)
 
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -219,7 +184,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		stopAgent(t, host)
 		defer startAgent(t, host)
 
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -240,7 +205,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		hrt.SetInterceptor(fakeHealthCheckStatus("192.168.100.12", http.StatusUnauthorized))
 		defer hrt.SetInterceptor(nil)
 
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -261,7 +226,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		hrt.SetInterceptor(fakeHealthCheckStatus("192.168.100.12", http.StatusBadGateway))
 		defer hrt.SetInterceptor(nil)
 
-		status, err := s.Status(context.Background(), uuid.MustRandom())
+		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
 			t.Error(err)
 			return
@@ -292,7 +257,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		}()
 
 		msg := ""
-		if _, err := s.Status(ctx, uuid.MustRandom()); err != nil {
+		if _, err := s.Status(ctx, clusterID); err != nil {
 			msg = err.Error()
 		}
 		if !strings.HasPrefix(msg, "status: giving up after") {
@@ -304,7 +269,7 @@ func testStatusIntegration(t *testing.T, secretsStore store.Store) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 		defer cancel()
 
-		_, err := s.Status(ctx, uuid.MustRandom())
+		_, err := s.Status(ctx, clusterID)
 		if err == nil {
 			t.Error("Expected error got nil")
 		}
@@ -394,15 +359,21 @@ func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
 			return nil, err
 		}
 		if h == host && r.Method == http.MethodGet && r.URL.Path == pingPath {
+			body, _ := (&scyllaModels.ErrorModel{
+				Message: "test",
+				Code:    int64(code),
+			}).MarshalBinary()
+
 			resp := &http.Response{
-				Status:     http.StatusText(code),
-				StatusCode: code,
-				Proto:      "HTTP/1.1",
-				ProtoMajor: 1,
-				ProtoMinor: 1,
-				Request:    r,
-				Header:     make(http.Header, 0),
-				Body:       ioutil.NopCloser(bytes.NewReader([]byte{})),
+				Status:        http.StatusText(code),
+				StatusCode:    code,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				Request:       r,
+				Header:        make(http.Header, 0),
+				ContentLength: int64(len(body)),
+				Body:          ioutil.NopCloser(bytes.NewReader(body)),
 			}
 			return resp, nil
 		}
