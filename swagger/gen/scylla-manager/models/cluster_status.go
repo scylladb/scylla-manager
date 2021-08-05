@@ -52,6 +52,9 @@ type ClusterStatusItems0 struct {
 	// agent version
 	AgentVersion string `json:"agent_version,omitempty"`
 
+	// alternator cause
+	AlternatorCause string `json:"alternator_cause,omitempty"`
+
 	// alternator rtt ms
 	AlternatorRttMs float32 `json:"alternator_rtt_ms,omitempty"`
 
@@ -60,6 +63,9 @@ type ClusterStatusItems0 struct {
 
 	// cpu count
 	CPUCount int64 `json:"cpu_count,omitempty"`
+
+	// cql cause
+	CqlCause string `json:"cql_cause,omitempty"`
 
 	// cql rtt ms
 	CqlRttMs float32 `json:"cql_rtt_ms,omitempty"`
@@ -75,6 +81,9 @@ type ClusterStatusItems0 struct {
 
 	// host id
 	HostID string `json:"host_id,omitempty"`
+
+	// rest cause
+	RestCause string `json:"rest_cause,omitempty"`
 
 	// rest rtt ms
 	RestRttMs float32 `json:"rest_rtt_ms,omitempty"`

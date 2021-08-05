@@ -188,6 +188,8 @@ func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID,
 func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
 	return func() error {
 		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			o := &out[i]
+
 			// Ignore check if node is not Un and Normal
 			if !status[i].IsUN() {
 				return
@@ -195,7 +197,7 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 
 			timeout, saveNext := s.restTimeout(clusterID, status[i].Datacenter)
 			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, timeout)
-			out[i].RESTRtt = float64(rtt.Milliseconds())
+			o.RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
 					"cluster_id", clusterID,
@@ -204,16 +206,17 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				)
 				switch {
 				case errors.Is(err, scyllaclient.ErrTimeout):
-					out[i].RESTStatus = statusTimeout
+					o.RESTStatus = statusTimeout
 				case scyllaclient.StatusCodeOf(err) == http.StatusUnauthorized:
-					out[i].RESTStatus = statusUnauthorized
+					o.RESTStatus = statusUnauthorized
 				case scyllaclient.StatusCodeOf(err) != 0:
-					out[i].RESTStatus = fmt.Sprintf("%s %d", statusHTTP, scyllaclient.StatusCodeOf(err))
+					o.RESTStatus = fmt.Sprintf("%s %d", statusHTTP, scyllaclient.StatusCodeOf(err))
 				default:
-					out[i].RESTStatus = statusDown
+					o.RESTStatus = statusDown
+					o.RESTCause = err.Error()
 				}
 			} else {
-				out[i].RESTStatus = statusUp
+				o.RESTStatus = statusUp
 			}
 
 			saveNext(rtt)
@@ -226,6 +229,8 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
 	return func() error {
 		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			o := &out[i]
+
 			// Ignore check if node is not Un and Normal.
 			if !status[i].IsUN() {
 				return
@@ -233,7 +238,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 
 			timeout, saveNext := s.cqlTimeout(clusterID, status[i].Datacenter)
 			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, timeout)
-			out[i].CQLRtt = float64(rtt.Milliseconds())
+			o.CQLRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
 					"cluster_id", clusterID,
@@ -241,18 +246,21 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 					"error", err,
 				)
 
+				o := &out[i]
 				switch {
 				case rtt == 0:
-					out[i].CQLStatus = statusError
+					o.CQLStatus = statusError
+					o.CQLCause = err.Error()
 				case errors.Is(err, ping.ErrTimeout):
-					out[i].CQLStatus = statusTimeout
+					o.CQLStatus = statusTimeout
 				case errors.Is(err, ping.ErrUnauthorised):
-					out[i].CQLStatus = statusUnauthorized
+					o.CQLStatus = statusUnauthorized
 				default:
-					out[i].CQLStatus = statusDown
+					o.CQLStatus = statusDown
+					o.CQLCause = err.Error()
 				}
 			} else {
-				out[i].CQLStatus = statusUp
+				o.CQLStatus = statusUp
 			}
 
 			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
@@ -262,9 +270,9 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 					"host", status[i].Addr,
 					"error", err,
 				)
-				out[i].SSL = false
+				o.SSL = false
 			} else {
-				out[i].SSL = ni.hasTLSConfig(cqlPing)
+				o.SSL = ni.hasTLSConfig(cqlPing)
 			}
 
 			saveNext(rtt)
@@ -278,6 +286,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 	status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
 	return func() error {
 		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+			o := &out[i]
+
 			// Ignore check if node is not Un and Normal.
 			if !status[i].IsUN() {
 				return
@@ -293,18 +303,22 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				)
 
 				switch {
+				case rtt == 0:
+					o.AlternatorStatus = statusError
+					o.AlternatorCause = err.Error()
 				case errors.Is(err, ping.ErrTimeout):
-					out[i].AlternatorStatus = statusTimeout
+					o.AlternatorStatus = statusTimeout
 				case errors.Is(err, ping.ErrUnauthorised):
-					out[i].AlternatorStatus = statusUnauthorized
+					o.AlternatorStatus = statusUnauthorized
 				default:
-					out[i].AlternatorStatus = statusDown
+					o.AlternatorStatus = statusDown
+					o.AlternatorCause = err.Error()
 				}
 			} else if rtt != 0 {
-				out[i].AlternatorStatus = statusUp
+				o.AlternatorStatus = statusUp
 			}
 			if rtt != 0 {
-				out[i].AlternatorRtt = float64(rtt.Milliseconds())
+				o.AlternatorRtt = float64(rtt.Milliseconds())
 			}
 
 			saveNext(rtt)

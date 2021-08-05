@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"text/template"
 	"time"
 
@@ -91,37 +92,29 @@ func (cs ClusterStatus) addRow(t *table.Table, rows ...interface{}) {
 
 // Render renders ClusterStatus in a tabular format.
 func (cs ClusterStatus) Render(w io.Writer) error {
-	const (
-		statusUP         = "UP"
-		progressBarWidth = 10
-	)
-
 	if len(cs) == 0 {
 		return nil
 	}
 
 	var (
-		dc = cs[0].Dc
-		t  = table.New(cs.tableHeaders()...)
+		dc     = cs[0].Dc
+		t      = table.New(cs.tableHeaders()...)
+		errors []string
 	)
 
 	for _, s := range cs {
 		if s.Dc != dc {
-			if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
-				return err
-			}
+			fmt.Fprintf(w, "Datacenter: %s\n%s", dc, t)
 			dc = s.Dc
 			t = table.New(cs.tableHeaders()...)
+
+			if len(errors) > 0 {
+				fmt.Fprintf(w, "Errors:\n- %s\n\n", strings.Join(errors, "\n- "))
+				errors = nil
+			}
 		}
 
-		var (
-			apiStatuses   []interface{}
-			cpus          = "-"
-			mem           = "-"
-			scyllaVersion = "-"
-			agentVersion  = "-"
-			uptime        = "-"
-		)
+		var apiStatuses []interface{}
 
 		if s.AlternatorStatus != "" {
 			status := s.AlternatorStatus
@@ -131,6 +124,9 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 			apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", status, s.AlternatorRttMs))
 		} else if cs.hasAnyAlternator() {
 			apiStatuses = append(apiStatuses, "-")
+		}
+		if s.AlternatorCause != "" {
+			errors = append(errors, fmt.Sprintf("%s alternator: %s", s.Host, s.AlternatorCause))
 		}
 
 		if s.CqlStatus != "" {
@@ -142,28 +138,33 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 		} else {
 			apiStatuses = append(apiStatuses, "-")
 		}
+		if s.CqlCause != "" {
+			errors = append(errors, fmt.Sprintf("%s CQL: %s", s.Host, s.CqlCause))
+		}
 
 		if s.RestStatus != "" {
 			apiStatuses = append(apiStatuses, fmt.Sprintf("%s (%.0fms)", s.RestStatus, s.RestRttMs))
 		} else {
 			apiStatuses = append(apiStatuses, "-")
 		}
-
-		if s.RestStatus == statusUP {
-			cpus = fmt.Sprintf("%d", s.CPUCount)
-			mem = StringByteCount(s.TotalRAM)
-			scyllaVersion = version.Short(s.ScyllaVersion)
-			agentVersion = version.Short(s.AgentVersion)
-			uptime = (time.Duration(s.Uptime) * time.Second).String()
+		if s.RestCause != "" {
+			errors = append(errors, fmt.Sprintf("%s REST: %s", s.Host, s.RestCause))
 		}
 
+		var (
+			cpus          = fmt.Sprintf("%d", s.CPUCount)
+			mem           = StringByteCount(s.TotalRAM)
+			scyllaVersion = version.Short(s.ScyllaVersion)
+			agentVersion  = version.Short(s.AgentVersion)
+			uptime        = (time.Duration(s.Uptime) * time.Second).String()
+		)
 		cs.addRow(t, s.Status, apiStatuses, s.Host, uptime, cpus, mem, scyllaVersion, agentVersion, s.HostID)
 	}
 
-	if _, err := w.Write([]byte("Datacenter: " + dc + "\n" + t.String())); err != nil {
-		return err
+	fmt.Fprintf(w, "Datacenter: %s\n%s", dc, t)
+	if len(errors) > 0 {
+		fmt.Fprintf(w, "Errors:\n- %s\n\n", strings.Join(errors, "\n- "))
 	}
-
 	return nil
 }
 
