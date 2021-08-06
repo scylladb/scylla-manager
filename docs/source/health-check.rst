@@ -35,18 +35,13 @@ We can see three healthcheck related tasks:
 Scylla Health Check
 -------------------
 
-The Scylla health check task ensures that CQL native port is accessible on all the nodes. For each node, in parallel,
-Scylla Manager opens a connection to a CQL port and asks for server options.
-If there is no response or the response takes longer than configured value (as recorded in the Scylla Manager :ref:`configuration-file` the node is considered to be DOWN otherwise the node is considered to be UP.
+The Scylla health check task ensures that CQL native port is accessible on all the nodes.
+Scylla Manager reads CQL IP address and port from the node configuration, and can automatically detect TLS/SSL connection.
+There are two types of CQL health check :ref:`credentials-agnostic-health-check` and :ref:`cql-query-health-check`.
+
 The results are available using the :ref:`sctool status <status>` command.
 
 For example:
-
-.. code-block:: none
-
-   sctool status -c prod-cluster
-
-returns:
 
 .. code-block:: none
 
@@ -61,8 +56,50 @@ returns:
    │ UN │ UP (10ms)  │ UP (4ms)  │ UP (5ms)  │ 10.0.66.115   │ 237h2m1s │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 918a52aa-cc42-43a4-a499-f7b1ccb53b18 │
    ╰────┴────────────┴───────────┴───────────┴───────────────┴──────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
 
-Scylla Manager reads CQL IP address and port from the node configuration, and can automatically detect TLS/SSL connection.
-There are two types of CQL health check :ref:`credentials-agnostic-health-check` and :ref:`cql-query-health-check`.
+The status information is also available as a metric in Scylla Monitoring Manager dashboard.
+The `healthcheck` task checks nodes every 15 seconds, the interval can be changed using :ref:`task-update` command.
+
+The CQL column shows the CQL status, SSL indicator if SSL is enabled on a node, and time the check took.
+
+Available statuses are:
+
+* UP - Situation normal
+* DOWN - Failed to connect to host or CQL error
+* ERROR - Precondition failure, no request was sent
+* UNAUTHORISED - Wrong username or password - only if ``username`` is specified for cluster
+* TIMEOUT - Timeout
+
+The REST column shows the status of Scylla Manager Server to Scylla API communication, and time the check took.
+
+Available statuses are:
+
+* UP - Situation normal
+* DOWN - Failed to connect to host
+* ERROR - Precondition failure, no request was sent
+* HTTP XXX - HTTP failure and its status code
+* UNAUTHORISED - Missing or Incorrect :ref:`Authentication Token <configure-auth-token>` was used
+* TIMEOUT - Timeout
+
+Error information
+-----------------
+
+.. versionadded:: 2.5 Scylla Manager
+
+In case of error (status ERROR or DOWN) there is additional error section below the table describing the errors.
+
+.. code-block:: none
+
+   sctool status -c test-cluster
+   Datacenter: eu-west
+   ╭────┬────────────┬────────────┬──────────┬────────────────┬──────────┬──────┬──────────┬────────┬──────────┬──────────────────────────────────────╮
+   │    │ Alternator │ CQL        │ REST     │ Address        │ Uptime   │ CPUs │ Memory   │ Scylla │ Agent    │ Host ID                              │
+   ├────┼────────────┼────────────┼──────────┼────────────────┼──────────┼──────┼──────────┼────────┼──────────┼──────────────────────────────────────┤
+   │ UN │ UP (12ms)  │ DOWN (0ms) │ UP (3ms) │ 192.168.100.11 │ 1h32m35s │ 4    │ 31.11GiB │ 4.2.1  │ 2.5.0    │ 1edbfd5b-4b1c-4bb0-afab-d69fd25db6af │
+   │ UN │ UP (8ms)   │ UP (3ms)   │ UP (5ms) │ 192.168.100.12 │ 1h32m35s │ 4    │ 31.11GiB │ 4.2.1  │ 2.5.0    │ 0c0999a2-c879-4e69-9924-1641c8487bd5 │
+   │ UN │ UP (10ms)  │ UP (8ms)   │ UP (1ms) │ 192.168.100.13 │ 1h32m35s │ 4    │ 31.11GiB │ 4.2.1  │ 2.5.0    │ 73e9818e-ed8d-4ea8-89e4-cf485dfd4ebe │
+   ╰────┴────────────┴────────────┴──────────┴────────────────┴──────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
+   Errors:
+   - 192.168.100.11 CQL: dial tcp 192.168.100.11:9042: connect: connection refused
 
 Node information
 ----------------
