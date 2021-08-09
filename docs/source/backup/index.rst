@@ -11,6 +11,7 @@ Backup
    setup-gcs
    setup-azure-blobstorage
    examples
+   specification
 
 .. contents::
    :depth: 2
