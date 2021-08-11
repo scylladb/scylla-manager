@@ -74,6 +74,14 @@ func repairTaskUpdate(t *managerclient.Task, cmd *cobra.Command) error {
 		props["host"] = host
 	}
 
+	if f := cmd.Flag("ignore-down-hosts"); f.Changed {
+		ignoreDownHosts, err := cmd.Flags().GetBool("ignore-down-hosts")
+		if err != nil {
+			return err
+		}
+		props["ignore_down_hosts"] = ignoreDownHosts
+	}
+
 	if f := cmd.Flag("intensity"); f.Changed {
 		intensity, err := cmd.Flags().GetFloat64("intensity")
 		if err != nil {
@@ -155,6 +163,7 @@ func repairFlags(cmd *cobra.Command) *pflag.FlagSet {
 	fs.Bool("dry-run", false, "validate and print repair information without scheduling a repair")
 	fs.Bool("fail-fast", false, "stop repair on first error")
 	fs.String("host", "", "host to repair, by default all hosts are repaired")
+	fs.Bool("ignore-down-hosts", false, "do not repair nodes that are down i.e. in status DN")
 	fs.Bool("show-tables", false, "print all table names for a keyspace. Used only in conjunction with --dry-run")
 	fs.Var(&IntensityFlag{Value: 1}, "intensity", "how many token ranges (per shard) to repair in a single Scylla repair job, see the command description for details")
 	fs.String("small-table-threshold", "1GiB", "enable small table optimization for tables of size lower than given threshold. Supported units [B, MiB, GiB, TiB]")

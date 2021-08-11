@@ -425,6 +425,12 @@
         "host": {
           "type": "string"
         },
+        "ignore_hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "dc": {
           "type": "array",
           "items": {

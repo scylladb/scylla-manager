@@ -27,6 +27,9 @@ type RepairTarget struct {
 	// host
 	Host string `json:"host,omitempty"`
 
+	// ignore hosts
+	IgnoreHosts []string `json:"ignore_hosts"`
+
 	// token ranges
 	TokenRanges string `json:"token_ranges,omitempty"`
 
