@@ -32,6 +32,7 @@ type taskProperties struct {
 	Keyspace            []string `json:"keyspace"`
 	DC                  []string `json:"dc"`
 	Host                string   `json:"host"`
+	IgnoreDownHosts     bool     `json:"ignore_down_hosts"`
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`

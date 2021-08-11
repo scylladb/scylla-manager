@@ -179,6 +179,15 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, err
 	}
 
+	// Ignore nodes in status DOWN
+	if p.IgnoreDownHosts {
+		status, err := client.Status(ctx)
+		if err != nil {
+			return t, errors.Wrap(err, "status")
+		}
+		t.IgnoreHosts = status.Datacenter(t.DC).Down().Hosts()
+	}
+
 	return t, nil
 }
 
