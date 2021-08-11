@@ -19,6 +19,7 @@ type Target struct {
 	Units               []Unit   `json:"units"`
 	DC                  []string `json:"dc"`
 	Host                string   `json:"host,omitempty"`
+	IgnoreHosts         []string `json:"ignore_hosts,omitempty"`
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`

@@ -123,6 +123,27 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 			},
 		},
 		{
+			Name: "IgnoreHosts=a",
+			Target: Target{
+				DC:          []string{"dc1", "dc2"},
+				IgnoreHosts: []string{"a"},
+			},
+			Golden: []*tableTokenRange{
+				{
+					Keyspace: "kn", Table: "tn", Pos: 0, StartToken: 1, EndToken: 2,
+					Replicas: []string{"b", "f", "e"},
+				},
+				{
+					Keyspace: "kn", Table: "tn", Pos: 1, StartToken: 3, EndToken: 4,
+					Replicas: []string{"f", "c", "d"},
+				},
+				{
+					Keyspace: "kn", Table: "tn", Pos: 2, StartToken: 5, EndToken: 6,
+					Replicas: []string{"c", "b", "d", "e"},
+				},
+			},
+		},
+		{
 			Name: "DC=dc1",
 			Target: Target{
 				DC: []string{"dc1"},
@@ -152,7 +173,7 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 			b.Add(ranges)
 			v := b.Build(Unit{Keyspace: "kn", Tables: []string{"tn"}})
 
-			if diff := cmp.Diff(v, test.Golden); diff != "" {
+			if diff := cmp.Diff(test.Golden, v); diff != "" {
 				t.Errorf("Build()=%+#v expected %+#v, diff %s", v, test.Golden, diff)
 			}
 		})
