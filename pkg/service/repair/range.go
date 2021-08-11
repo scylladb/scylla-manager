@@ -97,9 +97,10 @@ func dumpRanges(ranges []*tableTokenRange) string {
 // tableTokenRangeBuilder filters out not token ranges and replicas based on
 // target.
 type tableTokenRangeBuilder struct {
-	target Target
-	hostDC map[string]string
-	dcs    *strset.Set
+	target      Target
+	hostDC      map[string]string
+	dcs         *strset.Set
+	ignoreHosts *strset.Set
 
 	prototypes []*tableTokenRange
 	pos        int
@@ -107,9 +108,10 @@ type tableTokenRangeBuilder struct {
 
 func newTableTokenRangeBuilder(target Target, hostDC map[string]string) *tableTokenRangeBuilder {
 	r := &tableTokenRangeBuilder{
-		target: target,
-		hostDC: hostDC,
-		dcs:    strset.New(target.DC...),
+		target:      target,
+		hostDC:      hostDC,
+		dcs:         strset.New(target.DC...),
+		ignoreHosts: strset.New(target.IgnoreHosts...),
 	}
 
 	return r
@@ -153,6 +155,9 @@ func (b *tableTokenRangeBuilder) add(tr scyllaclient.TokenRange) {
 
 func (b *tableTokenRangeBuilder) filteredReplicas(replicas []string) (out []string) {
 	for _, r := range replicas {
+		if b.ignoreHosts.Has(r) {
+			continue
+		}
 		if b.dcs.Has(b.hostDC[r]) {
 			out = append(out, r)
 		}

@@ -569,6 +569,36 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("repair ignore hosts", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		const ignored = "192.168.100.12"
+		unit := singleUnit()
+		unit.IgnoreHosts = []string{ignored}
+
+		Print("When: run repair")
+		h.runRepair(ctx, unit)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("When: repair is done")
+		h.assertDone(2 * longWait)
+
+		Print("Then: ignored node is not repaired")
+		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		for _, h := range prog.Hosts {
+			if h.Host == ignored {
+				t.Error("Found ignored host in progress")
+			}
+		}
+	})
+
 	t.Run("repair host", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
