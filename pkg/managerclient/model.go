@@ -188,19 +188,17 @@ type RepairTarget struct {
 	ShowTables int
 }
 
-const repairTargetTemplate = `{{ if ne .TokenRanges "dcpr" -}}
-Token Ranges: {{ .TokenRanges }}
-{{ end -}}
-{{ if .Host -}}
+const repairTargetTemplate = `{{ if .Host -}}
 
 Host: {{ .Host }}
-{{ end -}}
-{{ if .WithHosts -}}
 
-With Hosts:
-{{ range .WithHosts -}}
-  - {{ . }}
 {{ end -}}
+{{ if .IgnoreHosts -}}
+
+Ignore Hosts:
+{{ range .IgnoreHosts -}}
+  - {{ . }}
+{{ end }}
 {{ end -}}
 
 Data Centers:
