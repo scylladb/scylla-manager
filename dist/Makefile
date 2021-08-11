@@ -1,28 +1,23 @@
 RELEASE      := 0.$(shell date +%Y%m%d).$(shell git describe --always)
+VERSION	     ?= 2.6-dev
 
-ifeq "$(VERSION)" ""
-$(error Please specify VERSION e.g. VERSION=2.0)
+ifdef $$VERSION
+VERSION := $$VERSION
 endif
-
-TAG := $(shell git describe --tags)
 
 VERSION_NAME := $(VERSION)-$(RELEASE)
-
-ifneq "$(TAG)" ""
-$(shell git tag $(VERSION_NAME))
-else
-$(shell git tag -d $(VERSION_NAME))
-endif
+$(shell echo $(VERSION) > .version)
+$(shell echo $(RELEASE) > .release)
 
 GORELEASER := goreleaser --rm-dist
-
 .PHONY: release
 release:
+	git tag $(VERSION_NAME) || true
 	$(GORELEASER) --skip-publish --skip-validate
 
 .PHONY: snapshot
 snapshot:
-	$(GORELEASER) --snapshot
+	GORELEASER_CURRENT_TAG=$(VERSION_NAME) $(GORELEASER) --snapshot
 
 .PHONY: clean
 clean:
