@@ -32,7 +32,7 @@ LICENSE GRANT AND CONDITIONS
 1.1 Subject to the terms and conditions of this Section 1, Licensor hereby grants to You a non-exclusive, royalty-free, worldwide, non-transferable license during the term of this Agreement to: 
 
 a) distribute or make available the Software or your Modifications under the terms of this
-Agreement, only as part of Your Application, so long as you include the following notice on any copy you distribute: “This software is subject to the terms of the Redis Source Available License Agreement”.
+Agreement, only as part of Your Application, so long as you include the following notice on any copy you distribute: “This software is subject to the terms of the Scylla Source Available License Agreement”.
 
 (b) use the Software, or your Modifications, only as part of Your Application, but not in connection
 
@@ -57,6 +57,6 @@ TO THE EXTENT ALLOWABLE UNDER LAW, LICENSOR HEREBY DISCLAIMS ANY AND ALL WARRANT
 
 LIMITATION OF LIABILITY. TO THE EXTENT ALLOWABLE UNDER LAW, LICENSOR WILL NOT BE LIABLE FOR ANY DAMAGES OF ANY KIND, INCLUDING BUT NOT LIMITED TO, LOST PROFITS OR ANY CONSEQUENTIAL, SPECIAL, INCIDENTAL, INDIRECT, OR DIRECT DAMAGES, ARISING OUT OF OR RELATING TO THIS AGREEMENT. 
 GENERAL. You are not authorized to assign Your rights under this Agreement to any third party. Licensor may freely assign its rights under this Agreement to any third party. This Agreement is the entire agreement between the parties on the subject matter hereof. No amendment or modification hereof will be valid or binding upon the parties unless made in writing and signed by the duly authorized representatives of both parties. In the event that any provision, including without limitation any condition, of this Agreement is held to be unenforceable, this Agreement and all licenses and rights granted hereunder will immediately terminate. Failure by Licensor to exercise any right hereunder will not be construed as a waiver of any subsequent breach of that right or as a waiver of any other right. This Agreement will be governed by and interpreted in accordance with the laws of the state of California, without reference to its conflict of laws principles. If You are located within the United States, all disputes arising out of this Agreement are subject to the exclusive jurisdiction of courts located in Santa Clara County, California. USA. If You are located outside of the United States, any dispute, controversy or claim arising out of or relating to this Agreement will be referred to and finally determined by arbitration in accordance with the JAMS before a single arbitrator in Santa Clara County, California. Judgment upon the award rendered by the arbitrator may be entered in any court having jurisdiction thereof.
-This license is base on REDIS SOURCE AVAILABLE LICENSE (RSAL) AGREEMENT with some updates
 
+This license is base on REDIS SOURCE AVAILABLE LICENSE (RSAL) AGREEMENT with some updates
 https://redislabs.com/wp-content/uploads/2019/09/redis-source-available-license.pdf
