@@ -119,8 +119,8 @@ func init() {
 	)
 }
 
-func apply(ch <-chan prometheus.Metric, f func(cluster, dc, host, pt string, v float64)) {
-	for m := range ch {
+func apply(metrics []prometheus.Metric, f func(cluster, dc, host, pt string, v float64)) {
+	for _, m := range metrics {
 		metric := &dto.Metric{}
 		if err := m.Write(metric); err != nil {
 			continue
@@ -145,11 +145,21 @@ func apply(ch <-chan prometheus.Metric, f func(cluster, dc, host, pt string, v f
 	}
 }
 
-func collect(g *prometheus.GaugeVec) chan prometheus.Metric {
+func collect(g *prometheus.GaugeVec) []prometheus.Metric {
 	ch := make(chan prometheus.Metric, metricBufferSize)
 	go func() {
 		g.Collect(ch)
 		close(ch)
 	}()
-	return ch
+
+	// Collect holds RLock during entire call.
+	// Read the entire channel into an array to prevent passing the channel back
+	// where processing particular items could access the same lock and create
+	// a deadlock as the Collect function has nowhere to write to until the items are read.
+	var metrics []prometheus.Metric
+	for m := range ch {
+		metrics = append(metrics, m)
+	}
+
+	return metrics
 }
