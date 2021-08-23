@@ -1,13 +1,11 @@
 RELEASE      := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION	     ?= "2.6-dev"
 
-$(foreach var,$(shell git tag --contains $(git describe --always)),$(shell git tag -d $(var));)
-TAG := $(shell git tag $(VERSION_NAME))
+TAG := $(foreach var,$(shell git tag --contains $(git describe --always)),$(shell git tag -d $(var)))
 
 ifdef $$VERSION
 VERSION := $$VERSION
 endif
-
 
 VERSION_NAME := $(VERSION)-$(RELEASE)
 TAG := $(shell git tag $(VERSION_NAME))
