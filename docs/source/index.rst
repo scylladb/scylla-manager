@@ -18,6 +18,7 @@ Scylla Manager
    config/index
    swagger/index
    scylla-monitoring
+   upgrade/index
    troubleshooting
    older-versions
    Slack <https://scylladb-users.slack.com/archives/C01ERVBPWLU>
@@ -60,4 +61,5 @@ Scylla Manager Server has two connections with each Scylla node:
 Installation
 ============
 
-To proceed with installation go to :doc:`Install Scylla Manager <install-scylla-manager>`.
+* To proceed with a new installation go to :doc:`Install Scylla Manager <install-scylla-manager>`.
+* To upgrade an existing installation go to `Upgrade Guides <upgrade/index>`_.
