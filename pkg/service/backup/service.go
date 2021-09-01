@@ -321,8 +321,13 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(""))
 	if err != nil {
 		s.logger.Info(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
-		tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run \"scylla-manager-agent check-location -L %s --debug\"", h, l)
-		err = errors.Errorf("%s: %s - %s", h, err, tip)
+
+		if scyllaclient.StatusCodeOf(err) > 0 {
+			tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run \"scylla-manager-agent check-location -L %s --debug\"", h, l)
+			err = errors.Errorf("%s: %s - %s", h, err, tip)
+		} else {
+			err = errors.Errorf("%s: %s", h, err)
+		}
 		return err
 	}
 
