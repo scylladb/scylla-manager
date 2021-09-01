@@ -192,7 +192,7 @@ func TestRetryShouldRetryHandler(t *testing.T) {
 			ShouldRetryHandler: func(err error) *bool {
 				return pointer.BoolPtr(false)
 			},
-			Error: "giving up after 1 attempts: agent [HTTP 999]",
+			Error: "agent [HTTP 999]",
 		},
 		{
 			Name:    "Fallback",
