@@ -962,13 +962,6 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task1 is not executed")
 		h.assertNotStatus(ctx, task1, scheduler.StatusRunning)
-
-		Print("When: scheduler is resumed again it fails")
-		if err := h.service.Resume(ctx, h.clusterID, false); err == nil {
-			t.Fatal("Resume(), expected error")
-		} else {
-			t.Log("Resume() error", err)
-		}
 	})
 
 	t.Run("put task when suspended", func(t *testing.T) {
@@ -1080,5 +1073,36 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task is not executed")
 		h.assertNotStatus(ctx, task, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend issue 2849", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: scheduler is suspended")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports suspended status")
+		if !h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("And: suspending it again has no side effects")
+		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: scheduler is resumed")
+		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports not suspended status")
+		if h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected resumed")
+		}
 	})
 }
