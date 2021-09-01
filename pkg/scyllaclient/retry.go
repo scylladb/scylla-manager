@@ -57,7 +57,13 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 func (o *retryableOperation) submit() (interface{}, error) {
 	err := retry.WithNotify(o.operation.Context, o.op, o.backoff(), o.notify)
 	if err != nil {
-		return nil, errors.Wrapf(unpackURLError(err), "giving up after %d attempts", o.attempts)
+		err = unpackURLError(err)
+
+		// Do not print "giving up after 1 attempts" for permanent errors.
+		if o.attempts > 1 {
+			err = errors.Wrapf(err, "giving up after %d attempts", o.attempts)
+		}
+		return nil, err
 	}
 	return o.result, nil
 }
