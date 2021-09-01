@@ -152,12 +152,28 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 		}
 
 		var (
-			cpus          = fmt.Sprintf("%d", s.CPUCount)
-			mem           = StringByteCount(s.TotalRAM)
-			scyllaVersion = version.Short(s.ScyllaVersion)
-			agentVersion  = version.Short(s.AgentVersion)
-			uptime        = (time.Duration(s.Uptime) * time.Second).String()
+			cpus          = "-"
+			mem           = "-"
+			scyllaVersion = "-"
+			agentVersion  = "-"
+			uptime        = "-"
 		)
+		if s.CPUCount > 0 {
+			cpus = fmt.Sprintf("%d", s.CPUCount)
+		}
+		if s.TotalRAM > 0 {
+			mem = StringByteCount(s.TotalRAM)
+		}
+		if s.ScyllaVersion != "" {
+			scyllaVersion = version.Short(s.ScyllaVersion)
+		}
+		if s.AgentVersion != "" {
+			agentVersion = version.Short(s.AgentVersion)
+		}
+		if s.Uptime > 0 {
+			uptime = (time.Duration(s.Uptime) * time.Second).String()
+		}
+
 		cs.addRow(t, s.Status, apiStatuses, s.Host, uptime, cpus, mem, scyllaVersion, agentVersion, s.HostID)
 	}
 
