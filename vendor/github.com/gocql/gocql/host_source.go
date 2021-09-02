@@ -109,27 +109,28 @@ func (c cassVersion) nodeUpDelay() time.Duration {
 type HostInfo struct {
 	// TODO(zariel): reduce locking maybe, not all values will change, but to ensure
 	// that we are thread safe use a mutex to access all fields.
-	mu               sync.RWMutex
-	hostname         string
-	peer             net.IP
-	broadcastAddress net.IP
-	listenAddress    net.IP
-	rpcAddress       net.IP
-	preferredIP      net.IP
-	connectAddress   net.IP
-	port             int
-	dataCenter       string
-	rack             string
-	hostId           string
-	workload         string
-	graph            bool
-	dseVersion       string
-	partitioner      string
-	clusterName      string
-	version          cassVersion
-	state            nodeState
-	schemaVersion    string
-	tokens           []string
+	mu                         sync.RWMutex
+	hostname                   string
+	peer                       net.IP
+	broadcastAddress           net.IP
+	listenAddress              net.IP
+	rpcAddress                 net.IP
+	preferredIP                net.IP
+	connectAddress             net.IP
+	untranslatedConnectAddress net.IP
+	port                       int
+	dataCenter                 string
+	rack                       string
+	hostId                     string
+	workload                   string
+	graph                      bool
+	dseVersion                 string
+	partitioner                string
+	clusterName                string
+	version                    cassVersion
+	state                      nodeState
+	schemaVersion              string
+	tokens                     []string
 }
 
 func (h *HostInfo) Equal(host *HostInfo) bool {
@@ -145,13 +146,6 @@ func (h *HostInfo) Peer() net.IP {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.peer
-}
-
-func (h *HostInfo) setPeer(peer net.IP) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.peer = peer
-	return h
 }
 
 func (h *HostInfo) invalidConnectAddr() bool {
@@ -187,6 +181,20 @@ func (h *HostInfo) connectAddressLocked() (net.IP, string) {
 func (h *HostInfo) ConnectAddress() net.IP {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+
+	if addr, _ := h.connectAddressLocked(); validIpAddr(addr) {
+		return addr
+	}
+	panic(fmt.Sprintf("no valid connect address for host: %v. Is your cluster configured correctly?", h))
+}
+
+func (h *HostInfo) UntranslatedConnectAddress() net.IP {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if len(h.untranslatedConnectAddress) != 0 {
+		return h.untranslatedConnectAddress
+	}
 
 	if addr, _ := h.connectAddressLocked(); validIpAddr(addr) {
 		return addr
@@ -233,13 +241,6 @@ func (h *HostInfo) DataCenter() string {
 	return dc
 }
 
-func (h *HostInfo) setDataCenter(dataCenter string) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.dataCenter = dataCenter
-	return h
-}
-
 func (h *HostInfo) Rack() string {
 	h.mu.RLock()
 	rack := h.rack
@@ -247,24 +248,10 @@ func (h *HostInfo) Rack() string {
 	return rack
 }
 
-func (h *HostInfo) setRack(rack string) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.rack = rack
-	return h
-}
-
 func (h *HostInfo) HostID() string {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.hostId
-}
-
-func (h *HostInfo) setHostID(hostID string) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.hostId = hostID
-	return h
 }
 
 func (h *HostInfo) WorkLoad() string {
@@ -303,13 +290,6 @@ func (h *HostInfo) Version() cassVersion {
 	return h.version
 }
 
-func (h *HostInfo) setVersion(major, minor, patch int) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.version = cassVersion{major, minor, patch}
-	return h
-}
-
 func (h *HostInfo) State() nodeState {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -329,24 +309,10 @@ func (h *HostInfo) Tokens() []string {
 	return h.tokens
 }
 
-func (h *HostInfo) setTokens(tokens []string) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.tokens = tokens
-	return h
-}
-
 func (h *HostInfo) Port() int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.port
-}
-
-func (h *HostInfo) setPort(port int) *HostInfo {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.port = port
-	return h
 }
 
 func (h *HostInfo) update(from *HostInfo) {
@@ -561,7 +527,8 @@ func (s *Session) hostInfoFromMap(row map[string]interface{}, host *HostInfo) (*
 		// Not sure what the port field will be called until the JIRA issue is complete
 	}
 
-	ip, port := s.cfg.translateAddressPort(host.ConnectAddress(), host.port)
+	host.untranslatedConnectAddress = host.ConnectAddress()
+	ip, port := s.cfg.translateAddressPort(host.untranslatedConnectAddress, host.port)
 	host.connectAddress = ip
 	host.port = port
 
@@ -593,7 +560,7 @@ func (r *ringDescriber) getClusterPeerInfo() ([]*HostInfo, error) {
 			return nil, err
 		} else if !isValidPeer(host) {
 			// If it's not a valid peer
-			Logger.Printf("Found invalid peer '%s' "+
+			r.session.logger.Printf("Found invalid peer '%s' "+
 				"Likely due to a gossip or snitch issue, this host will be ignored", host)
 			continue
 		}
@@ -689,13 +656,12 @@ func (r *ringDescriber) refreshRing() error {
 
 	// TODO: move this to session
 	for _, h := range hosts {
-		if filter := r.session.cfg.HostFilter; filter != nil && !filter.Accept(h) {
+		if r.session.cfg.filterHost(h) {
 			continue
 		}
 
 		if host, ok := r.session.ring.addHostIfMissing(h); !ok {
-			r.session.pool.addHost(h)
-			r.session.policy.AddHost(h)
+			r.session.startPoolFill(h)
 		} else {
 			host.update(h)
 		}

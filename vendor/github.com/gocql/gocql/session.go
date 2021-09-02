@@ -62,7 +62,6 @@ type Session struct {
 	schemaEvents *eventDebouncer
 
 	// ring metadata
-	hosts                     []HostInfo
 	useSystemSchema           bool
 	hasAggregatesAndFunctions bool
 
@@ -71,24 +70,31 @@ type Session struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	closeMu  sync.RWMutex
+	// sessionStateMu protects isClosed and isInitialized.
+	sessionStateMu sync.RWMutex
+	// isClosed is true once Session.Close is called.
 	isClosed bool
+	// isInitialized is true once Session.init succeeds.
+	// you can use initialized() to read the value.
+	isInitialized bool
+
+	logger StdLogger
 }
 
 var queryPool = &sync.Pool{
 	New: func() interface{} {
-		return new(Query)
+		return &Query{routingInfo: &queryRoutingInfo{}}
 	},
 }
 
-func addrsToHosts(addrs []string, defaultPort int) ([]*HostInfo, error) {
+func addrsToHosts(addrs []string, defaultPort int, logger StdLogger) ([]*HostInfo, error) {
 	var hosts []*HostInfo
 	for _, hostport := range addrs {
 		resolvedHosts, err := hostInfo(hostport, defaultPort)
 		if err != nil {
 			// Try other hosts if unable to resolve DNS name
 			if _, ok := err.(*net.DNSError); ok {
-				Logger.Printf("gocql: dns error: %v\n", err)
+				logger.Printf("gocql: dns error: %v\n", err)
 				continue
 			}
 			return nil, err
@@ -126,6 +132,7 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 		connectObserver: cfg.ConnectObserver,
 		ctx:             ctx,
 		cancel:          cancel,
+		logger:          cfg.logger(),
 	}
 
 	// Close created resources on error otherwise they'll leak
@@ -138,8 +145,8 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 
 	s.schemaDescriber = newSchemaDescriber(s)
 
-	s.nodeEvents = newEventDebouncer("NodeEvents", s.handleNodeEvent)
-	s.schemaEvents = newEventDebouncer("SchemaEvents", s.handleSchemaEvent)
+	s.nodeEvents = newEventDebouncer("NodeEvents", s.handleNodeEvent, s.logger)
+	s.schemaEvents = newEventDebouncer("SchemaEvents", s.handleSchemaEvent, s.logger)
 
 	s.routingKeyInfoCache.lru = lru.New(cfg.MaxRoutingKeyInfo)
 
@@ -186,7 +193,11 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 }
 
 func (s *Session) init() error {
-	hosts, err := addrsToHosts(s.cfg.Hosts, s.cfg.Port)
+	if s.cfg.disableInit {
+		return nil
+	}
+
+	hosts, err := addrsToHosts(s.cfg.Hosts, s.cfg.Port, s.logger)
 	if err != nil {
 		return err
 	}
@@ -234,26 +245,44 @@ func (s *Session) init() error {
 	}
 
 	hosts = hosts[:0]
-
-	var wg sync.WaitGroup
+	// each host will increment left and decrement it after connecting and once
+	// there's none left, we'll close hostCh
+	var left int64
+	// we will receive up to len(hostMap) of messages so create a buffer so we
+	// don't end up stuck in a goroutine if we stopped listening
+	connectedCh := make(chan struct{}, len(hostMap))
+	// we add one here because we don't want to end up closing hostCh until we're
+	// done looping and the decerement code might be reached before we've looped
+	// again
+	atomic.AddInt64(&left, 1)
 	for _, host := range hostMap {
 		host := s.ring.addOrUpdate(host)
 		if s.cfg.filterHost(host) {
 			continue
 		}
 
-		host.setState(NodeUp)
-		hosts = append(hosts, host)
-
-		wg.Add(1)
+		atomic.AddInt64(&left, 1)
 		go func() {
-			defer wg.Done()
 			s.pool.addHost(host)
+			connectedCh <- struct{}{}
+
+			// if there are no hosts left, then close the hostCh to unblock the loop
+			// below if its still waiting
+			if atomic.AddInt64(&left, -1) == 0 {
+				close(connectedCh)
+			}
 		}()
+
+		hosts = append(hosts, host)
+	}
+	// once we're done looping we subtract the one we initially added and check
+	// to see if we should close
+	if atomic.AddInt64(&left, -1) == 0 {
+		close(connectedCh)
 	}
 
-	wg.Wait()
-
+	// before waiting for them to connect, add them all to the policy so we can
+	// utilize efficiencies by calling AddHosts if the policy supports it
 	type bulkAddHosts interface {
 		AddHosts([]*HostInfo)
 	}
@@ -262,6 +291,15 @@ func (s *Session) init() error {
 	} else {
 		for _, host := range hosts {
 			s.policy.AddHost(host)
+		}
+	}
+
+	readyPolicy, _ := s.policy.(ReadyPolicy)
+	// now loop over connectedCh until it's closed (meaning we've connected to all)
+	// or until the policy says we're ready
+	for range connectedCh {
+		if readyPolicy != nil && readyPolicy.Ready() {
+			break
 		}
 	}
 
@@ -294,6 +332,10 @@ func (s *Session) init() error {
 	if !s.cfg.disableControlConn && s.cfg.Keyspace != "" {
 		s.policy.KeyspaceChanged(KeyspaceUpdateEvent{Keyspace: s.cfg.Keyspace})
 	}
+
+	s.sessionStateMu.Lock()
+	s.isInitialized = true
+	s.sessionStateMu.Unlock()
 
 	return nil
 }
@@ -328,14 +370,15 @@ func (s *Session) reconnectDownedHosts(intv time.Duration) {
 				for _, h := range hosts {
 					buf.WriteString("[" + h.ConnectAddress().String() + ":" + h.State().String() + "]")
 				}
-				Logger.Println(buf.String())
+				s.logger.Println(buf.String())
 			}
 
 			for _, h := range hosts {
 				if h.IsUp() {
 					continue
 				}
-				s.handleNodeUp(h.ConnectAddress(), h.Port(), true)
+				// we let the pool call handleNodeConnected to change the host state
+				s.pool.addHost(h)
 			}
 		case <-s.ctx.Done():
 			return
@@ -388,7 +431,7 @@ func (s *Session) Query(stmt string, values ...interface{}) *Query {
 	qry.stmt = stmt
 	qry.values = values
 	qry.defaultsFromSession()
-	qry.lwt = false
+	qry.routingInfo.lwt = false
 	return qry
 }
 
@@ -411,7 +454,7 @@ func (s *Session) Bind(stmt string, b func(q *QueryInfo) ([]interface{}, error))
 	qry.stmt = stmt
 	qry.binding = b
 	qry.defaultsFromSession()
-	qry.lwt = false
+	qry.routingInfo.lwt = false
 	return qry
 }
 
@@ -419,8 +462,8 @@ func (s *Session) Bind(stmt string, b func(q *QueryInfo) ([]interface{}, error))
 // operation.
 func (s *Session) Close() {
 
-	s.closeMu.Lock()
-	defer s.closeMu.Unlock()
+	s.sessionStateMu.Lock()
+	defer s.sessionStateMu.Unlock()
 	if s.isClosed {
 		return
 	}
@@ -448,10 +491,17 @@ func (s *Session) Close() {
 }
 
 func (s *Session) Closed() bool {
-	s.closeMu.RLock()
+	s.sessionStateMu.RLock()
 	closed := s.isClosed
-	s.closeMu.RUnlock()
+	s.sessionStateMu.RUnlock()
 	return closed
+}
+
+func (s *Session) initialized() bool {
+	s.sessionStateMu.RLock()
+	initialized := s.isInitialized
+	s.sessionStateMu.RUnlock()
+	return initialized
 }
 
 func (s *Session) executeQuery(qry *Query) (it *Iter) {
@@ -566,6 +616,16 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 		return nil, nil
 	}
 
+	table := info.request.columns[0].Table
+	keyspace := info.request.columns[0].Keyspace
+
+	partitioner, err := scyllaGetTablePartitioner(s, keyspace, table)
+	if err != nil {
+		// don't cache this error
+		s.routingKeyInfoCache.Remove(stmt)
+		return nil, inflight.err
+	}
+
 	if len(info.request.pkeyColumns) > 0 {
 		// proto v4 dont need to calculate primary key columns
 		types := make([]TypeInfo, len(info.request.pkeyColumns))
@@ -574,9 +634,10 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 		}
 
 		routingKeyInfo := &routingKeyInfo{
-			indexes: info.request.pkeyColumns,
-			types:   types,
-			lwt:     info.request.lwt,
+			indexes:     info.request.pkeyColumns,
+			types:       types,
+			lwt:         info.request.lwt,
+			partitioner: partitioner,
 		}
 
 		inflight.value = routingKeyInfo
@@ -584,7 +645,6 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 	}
 
 	// get the table metadata
-	table := info.request.columns[0].Table
 
 	var keyspaceMetadata *KeyspaceMetadata
 	keyspaceMetadata, inflight.err = s.KeyspaceMetadata(info.request.columns[0].Keyspace)
@@ -609,9 +669,10 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 
 	size := len(partitionKey)
 	routingKeyInfo := &routingKeyInfo{
-		indexes: make([]int, size),
-		types:   make([]TypeInfo, size),
-		lwt:     info.request.lwt,
+		indexes:     make([]int, size),
+		types:       make([]TypeInfo, size),
+		lwt:         info.request.lwt,
+		partitioner: partitioner,
 	}
 
 	for keyIndex, keyColumn := range partitionKey {
@@ -825,6 +886,7 @@ type Query struct {
 	trace                 Tracer
 	observer              QueryObserver
 	session               *Session
+	conn                  *Conn
 	rt                    RetryPolicy
 	spec                  SpeculativeExecutionPolicy
 	binding               func(q *QueryInfo) ([]interface{}, error)
@@ -846,10 +908,33 @@ type Query struct {
 	// tables in AWS MCS see
 	skipPrepare bool
 
+	// routingInfo is a pointer because Query can be copied and copyable struct can't hold a mutex.
+	routingInfo *queryRoutingInfo
+}
+
+type queryRoutingInfo struct {
+	// mu protects contents of queryRoutingInfo.
+	mu sync.RWMutex
+
 	// "lwt" denotes the query being an LWT operation
 	// In effect if the query is of the form "INSERT/UPDATE/DELETE ... IF ..."
 	// For more details see https://docs.scylladb.com/using-scylla/lwt/
 	lwt bool
+
+	// If not nil, represents a custom partitioner for the table.
+	partitioner partitioner
+}
+
+func (qri *queryRoutingInfo) isLWT() bool {
+	qri.mu.RLock()
+	defer qri.mu.RUnlock()
+	return qri.lwt
+}
+
+func (qri *queryRoutingInfo) getPartitioner() partitioner {
+	qri.mu.RLock()
+	defer qri.mu.RUnlock()
+	return qri.partitioner
 }
 
 func (q *Query) defaultsFromSession() {
@@ -1018,6 +1103,7 @@ func (q *Query) attempt(keyspace string, end, start time.Time, iter *Iter, host 
 		q.observer.ObserveQuery(q.Context(), ObservedQuery{
 			Keyspace:  keyspace,
 			Statement: q.stmt,
+			Values:    q.values,
 			Start:     start,
 			End:       end,
 			Rows:      iter.numRows,
@@ -1068,7 +1154,10 @@ func (q *Query) GetRoutingKey() ([]byte, error) {
 		return nil, err
 	}
 	if routingKeyInfo != nil {
-		q.lwt = routingKeyInfo.lwt
+		q.routingInfo.mu.Lock()
+		q.routingInfo.lwt = routingKeyInfo.lwt
+		q.routingInfo.partitioner = routingKeyInfo.partitioner
+		q.routingInfo.mu.Unlock()
 	}
 	return createRoutingKey(routingKeyInfo, q.values)
 }
@@ -1120,16 +1209,25 @@ func (q *Query) speculativeExecutionPolicy() SpeculativeExecutionPolicy {
 	return q.spec
 }
 
+// IsIdempotent returns whether the query is marked as idempotent.
+// Non-idempotent query won't be retried.
+// See "Retries and speculative execution" in package docs for more details.
 func (q *Query) IsIdempotent() bool {
 	return q.idempotent
 }
 
 func (q *Query) IsLWT() bool {
-	return q.lwt
+	return q.routingInfo.isLWT()
+}
+
+func (q *Query) GetCustomPartitioner() partitioner {
+	return q.routingInfo.getPartitioner()
 }
 
 // Idempotent marks the query as being idempotent or not depending on
 // the value.
+// Non-idempotent query won't be retried.
+// See "Retries and speculative execution" in package docs for more details.
 func (q *Query) Idempotent(value bool) *Query {
 	q.idempotent = value
 	return q
@@ -1197,6 +1295,11 @@ func (q *Query) Iter() *Iter {
 	if isUseStatement(q.stmt) {
 		return &Iter{err: ErrUseStmt}
 	}
+	// if the query was specifically run on a connection then re-use that
+	// connection when fetching the next results
+	if q.conn != nil {
+		return q.conn.executeQuery(q.Context(), q)
+	}
 	return q.session.executeQuery(q)
 }
 
@@ -1228,6 +1331,10 @@ func (q *Query) Scan(dest ...interface{}) error {
 // statement containing an IF clause). If the transaction fails because
 // the existing values did not match, the previous values will be stored
 // in dest.
+//
+// As for INSERT .. IF NOT EXISTS, previous values will be returned as if
+// SELECT * FROM. So using ScanCAS with INSERT is inherently prone to
+// column mismatching. Use MapScanCAS to capture them safely.
 func (q *Query) ScanCAS(dest ...interface{}) (applied bool, err error) {
 	q.disableSkipMetadata = true
 	iter := q.Iter()
@@ -1278,7 +1385,7 @@ func (q *Query) Release() {
 
 // reset zeroes out all fields of a query so that it can be safely pooled.
 func (q *Query) reset() {
-	*q = Query{}
+	*q = Query{routingInfo: &queryRoutingInfo{}}
 }
 
 // Iter represents an iterator that can be used to iterate over all rows that
@@ -1550,6 +1657,8 @@ func (iter *Iter) NumRows() int {
 	return iter.numRows
 }
 
+// nextIter holds state for fetching a single page in an iterator.
+// single page might be attempted multiple times due to retries.
 type nextIter struct {
 	qry   *Query
 	pos   int
@@ -1566,7 +1675,13 @@ func (n *nextIter) fetchAsync() {
 
 func (n *nextIter) fetch() *Iter {
 	n.once.Do(func() {
-		n.next = n.qry.session.executeQuery(n.qry)
+		// if the query was specifically run on a connection then re-use that
+		// connection when fetching the next results
+		if n.qry.conn != nil {
+			n.next = n.qry.conn.executeQuery(n.qry.Context(), n.qry)
+		} else {
+			n.next = n.qry.session.executeQuery(n.qry)
+		}
 	})
 	return n.next
 }
@@ -1576,10 +1691,10 @@ type Batch struct {
 	Entries               []BatchEntry
 	Cons                  Consistency
 	routingKey            []byte
-	routingKeyBuffer      []byte
 	CustomPayload         map[string][]byte
 	rt                    RetryPolicy
 	spec                  SpeculativeExecutionPolicy
+	trace                 Tracer
 	observer              BatchObserver
 	session               *Session
 	serialCons            Consistency
@@ -1590,12 +1705,8 @@ type Batch struct {
 	keyspace              string
 	metrics               *queryMetrics
 
-	// "lwt" denotes the query being an LWT operation
-	// In effect if the query is of the form "INSERT/UPDATE/DELETE ... IF ..."
-	// For more details see https://docs.scylladb.com/using-scylla/lwt/
-	// It is sufficient that one batch entry is a conditional query for the
-	// whole batch to be considered for LWT optimization.
-	lwt bool
+	// routingInfo is a pointer because Query can be copied and copyable struct can't hold a mutex.
+	routingInfo *queryRoutingInfo
 }
 
 // NewBatch creates a new batch operation without defaults from the cluster
@@ -1603,9 +1714,10 @@ type Batch struct {
 // Deprecated: use session.NewBatch instead
 func NewBatch(typ BatchType) *Batch {
 	return &Batch{
-		Type:    typ,
-		metrics: &queryMetrics{m: make(map[string]*hostMetrics)},
-		spec:    &NonSpeculativeExecution{},
+		Type:        typ,
+		metrics:     &queryMetrics{m: make(map[string]*hostMetrics)},
+		spec:        &NonSpeculativeExecution{},
+		routingInfo: &queryRoutingInfo{},
 	}
 }
 
@@ -1616,6 +1728,7 @@ func (s *Session) NewBatch(typ BatchType) *Batch {
 		Type:             typ,
 		rt:               s.cfg.RetryPolicy,
 		serialCons:       s.cfg.SerialConsistency,
+		trace:            s.trace,
 		observer:         s.batchObserver,
 		session:          s,
 		Cons:             s.cons,
@@ -1623,10 +1736,18 @@ func (s *Session) NewBatch(typ BatchType) *Batch {
 		keyspace:         s.cfg.Keyspace,
 		metrics:          &queryMetrics{m: make(map[string]*hostMetrics)},
 		spec:             &NonSpeculativeExecution{},
+		routingInfo:      &queryRoutingInfo{},
 	}
 
 	s.mu.RUnlock()
 	return batch
+}
+
+// Trace enables tracing of this batch. Look at the documentation of the
+// Tracer interface to learn more about tracing.
+func (b *Batch) Trace(trace Tracer) *Batch {
+	b.trace = trace
+	return b
 }
 
 // Observer enables batch-level observer on this batch.
@@ -1687,7 +1808,11 @@ func (b *Batch) IsIdempotent() bool {
 }
 
 func (b *Batch) IsLWT() bool {
-	return b.lwt
+	return b.routingInfo.isLWT()
+}
+
+func (b *Batch) GetCustomPartitioner() partitioner {
+	return b.routingInfo.getPartitioner()
 }
 
 func (b *Batch) speculativeExecutionPolicy() SpeculativeExecutionPolicy {
@@ -1794,13 +1919,17 @@ func (b *Batch) attempt(keyspace string, end, start time.Time, iter *Iter, host 
 	}
 
 	statements := make([]string, len(b.Entries))
+	values := make([][]interface{}, len(b.Entries))
+
 	for i, entry := range b.Entries {
 		statements[i] = entry.Stmt
+		values[i] = entry.Args
 	}
 
 	b.observer.ObserveBatch(b.Context(), ObservedBatch{
 		Keyspace:   keyspace,
 		Statements: statements,
+		Values:     values,
 		Start:      start,
 		End:        end,
 		// Rows not used in batch observations // TODO - might be able to support it when using BatchCAS
@@ -1831,7 +1960,10 @@ func (b *Batch) GetRoutingKey() ([]byte, error) {
 		return nil, err
 	}
 	if routingKeyInfo != nil {
-		b.lwt = routingKeyInfo.lwt
+		b.routingInfo.mu.Lock()
+		b.routingInfo.lwt = routingKeyInfo.lwt
+		b.routingInfo.partitioner = routingKeyInfo.partitioner
+		b.routingInfo.mu.Unlock()
 	}
 
 	return createRoutingKey(routingKeyInfo, entry.Args)
@@ -1907,9 +2039,10 @@ type routingKeyInfoLRU struct {
 }
 
 type routingKeyInfo struct {
-	indexes []int
-	types   []TypeInfo
-	lwt     bool
+	indexes     []int
+	types       []TypeInfo
+	lwt         bool
+	partitioner partitioner
 }
 
 func (r *routingKeyInfo) String() string {
@@ -2008,6 +2141,10 @@ type ObservedQuery struct {
 	Keyspace  string
 	Statement string
 
+	// Values holds a slice of bound values for the query.
+	// Do not modify the values here, they are shared with multiple goroutines.
+	Values []interface{}
+
 	Start time.Time // time immediately before the query was called
 	End   time.Time // time immediately after the query returned
 
@@ -2027,7 +2164,6 @@ type ObservedQuery struct {
 	Err error
 
 	// Attempt is the index of attempt at executing this query.
-	// An attempt might be either retry or fetching next page of a query.
 	// The first attempt is number zero and any retries have non-zero attempt number.
 	Attempt int
 }
@@ -2046,6 +2182,11 @@ type ObservedBatch struct {
 	Keyspace   string
 	Statements []string
 
+	// Values holds a slice of bound values for each statement.
+	// Values[i] are bound values passed to Statements[i].
+	// Do not modify the values here, they are shared with multiple goroutines.
+	Values [][]interface{}
+
 	Start time.Time // time immediately before the batch query was called
 	End   time.Time // time immediately after the batch query returned
 
@@ -2060,7 +2201,6 @@ type ObservedBatch struct {
 	Metrics *hostMetrics
 
 	// Attempt is the index of attempt at executing this query.
-	// An attempt might be either retry or fetching next page of a query.
 	// The first attempt is number zero and any retries have non-zero attempt number.
 	Attempt int
 }

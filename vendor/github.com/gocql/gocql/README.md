@@ -56,6 +56,8 @@ Configuration
 In order to make shard-awareness work, token aware host selection policy has to be enabled.
 Please make sure that the gocql configuration has `PoolConfig.HostSelectionPolicy` properly set like in the example below. 
 
+__When working with a Scylla cluster, `PoolConfig.NumConns` option has no effect - the driver opens one connection for each shard and completely ignores this option.__
+
 ```go
 c := gocql.NewCluster(hosts...)
 
@@ -70,7 +72,53 @@ c.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(fallback)
 if localDC != "" {
 	c.Consistency = gocql.LocalQuorum
 }
+
+// When working with a Scylla cluster the driver always opens one connection per shard, so `NumConns` is ignored.
+// c.NumConns = 4
 ```
+
+### Shard-aware port
+
+This version of gocql supports a more robust method of establishing connection for each shard by using _shard aware port_ for native transport.
+It greatly reduces time and the number of connections needed to establish a connection per shard in some cases - ex. when many clients connect at once, or when there are non-shard-aware clients connected to the same cluster.
+
+If you are using a custom Dialer and if your nodes expose the shard-aware port, it is highly recommended to update it so that it uses a specific source port when connecting.
+
+- If you are using a custom `net.Dialer`, you can make your dialer honor the source port by wrapping it in a `gocql.ScyllaShardAwareDialer`:
+  ```go
+  oldDialer := net.Dialer{...}
+  clusterConfig.Dialer := &gocql.ScyllaShardAwareDialer{oldDialer}
+  ```
+- If you are using a custom type implementing `gocql.Dialer`, you can get the source port by using the `gocql.ScyllaGetSourcePort` function.
+  An example:
+  ```go
+  func (d *myDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+      sourcePort := gocql.ScyllaGetSourcePort(ctx)
+      localAddr, err := net.ResolveTCPAddr(network, fmt.Sprintf(":%d", sourcePort))
+      if err != nil {
+          return nil, err
+      }
+	  d := &net.Dialer{LocalAddr: localAddr}
+	  return d.DialContext(ctx, network, addr)
+  }
+  ```
+  The source port might be already bound by another connection on your system.
+  In such case, you should return an appropriate error so that the driver can retry with a different port suitable for the shard it tries to connect to.
+
+  - If you are using `net.Dialer.DialContext`, this function will return an error in case the source port is unavailable, and you can just return that error from your custom `Dialer`.
+  - Otherwise, if you detect that the source port is unavailable, you can either return `gocql.ErrScyllaSourcePortAlreadyInUse` or `syscall.EADDRINUSE`.
+
+For this feature to work correctly, you need to make sure the following conditions are met:
+
+- Your cluster nodes are configured to listen on the shard-aware port (`native_shard_aware_transport_port` option),
+- Your cluster nodes are not behind a NAT which changes source ports,
+- If you have a custom Dialer, it connects from the correct source port (see the guide above).
+
+The feature is designed to gracefully fall back to the using the non-shard-aware port when it detects that some of the above conditions are not met.
+The driver will print a warning about misconfigured address translation if it detects it.
+Issues with shard-aware port not being reachable are not reported in non-debug mode, because there is no way to detect it without false positives.
+
+If you suspect that this feature is causing you problems, you can completely disable it by setting the `ClusterConfig.DisableShardAwarePort` flag to false.
 
 ---
 
@@ -88,8 +136,8 @@ The following matrix shows the versions of Go and Cassandra that are tested with
 
 Go/Cassandra | 2.1.x | 2.2.x | 3.x.x
 -------------| -------| ------| ---------
-1.14 | yes | yes | yes
 1.15 | yes | yes | yes
+1.16 | yes | yes | yes
 
 Gocql has been tested in production against many different versions of Cassandra. Due to limits in our CI setup we only test against the latest 3 major releases, which coincide with the official support from the Apache project.
 
@@ -183,73 +231,7 @@ statement.
 Example
 -------
 
-```go
-/* Before you execute the program, Launch `cqlsh` and execute:
-create keyspace example with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
-create table example.tweet(timeline text, id UUID, text text, PRIMARY KEY(id));
-create index on example.tweet(timeline);
-*/
-package main
-
-import (
-	"fmt"
-	"log"
-
-	"github.com/scylladb/gocql"
-)
-
-func main() {
-	// connect to the cluster
-	cluster := gocql.NewCluster("192.168.1.1", "192.168.1.2", "192.168.1.3")
-	cluster.Keyspace = "example"
-	cluster.Consistency = gocql.Quorum
-	session, _ := cluster.CreateSession()
-	defer session.Close()
-
-	// insert a tweet
-	if err := session.Query(`INSERT INTO tweet (timeline, id, text) VALUES (?, ?, ?)`,
-		"me", gocql.TimeUUID(), "hello world").Exec(); err != nil {
-		log.Fatal(err)
-	}
-
-	var id gocql.UUID
-	var text string
-
-	/* Search for a specific set of records whose 'timeline' column matches
-	 * the value 'me'. The secondary index that we created earlier will be
-	 * used for optimizing the search */
-	if err := session.Query(`SELECT id, text FROM tweet WHERE timeline = ? LIMIT 1`,
-		"me").Consistency(gocql.One).Scan(&id, &text); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Tweet:", id, text)
-
-	// list all tweets
-	iter := session.Query(`SELECT id, text FROM tweet WHERE timeline = ?`, "me").Iter()
-	for iter.Scan(&id, &text) {
-		fmt.Println("Tweet:", id, text)
-	}
-	if err := iter.Close(); err != nil {
-		log.Fatal(err)
-	}
-}
-```
-
-
-Authentication 
--------
-
-```go
-cluster := gocql.NewCluster("192.168.1.1", "192.168.1.2", "192.168.1.3")
-cluster.Authenticator = gocql.PasswordAuthenticator{
-	Username: "user",
-	Password: "password"
-}
-cluster.Keyspace = "example"
-cluster.Consistency = gocql.Quorum
-session, _ := cluster.CreateSession()
-defer session.Close()
-```
+See [package documentation](https://pkg.go.dev/github.com/scylladb/gocql#pkg-examples).
 
 Data Binding
 ------------

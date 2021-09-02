@@ -50,7 +50,7 @@ type ClusterConfig struct {
 	ConnectTimeout     time.Duration                            // initial connection timeout, used during initial dial to server (default: 600ms)
 	Port               int                                      // port (default: 9042)
 	Keyspace           string                                   // initial keyspace (optional)
-	NumConns           int                                      // number of connections per host (default: 2)
+	NumConns           int                                      // number of connections per host (default: 2), this option has no effect when working with Scylla - instead, one connection for each shard will be created
 	Consistency        Consistency                              // default consistency level (default: Quorum)
 	Compressor         Compressor                               // compression algorithm (default: nil)
 	Authenticator      Authenticator                            // authenticator (default: nil)
@@ -149,8 +149,24 @@ type ClusterConfig struct {
 	// If not provided, a default dialer configured with ConnectTimeout will be used.
 	Dialer Dialer
 
+	// DisableShardAwarePort will prevent the driver from connecting to Scylla's shard-aware port,
+	// even if there are nodes in the cluster that support it.
+	//
+	// It is generally recommended to leave this option turned off because gocql can use
+	// the shard-aware port to make the process of establishing more robust.
+	// However, if you have a cluster with nodes which expose shard-aware port
+	// but the port is unreachable due to network configuration issues, you can use
+	// this option to work around the issue. Set it to true only if you neither can fix
+	// your network nor disable shard-aware port on your nodes.
+	DisableShardAwarePort bool
+
+	// Logger for this ClusterConfig.
+	// If not specified, defaults to the global gocql.Logger.
+	Logger StdLogger
+
 	// internal config for testing
 	disableControlConn bool
+	disableInit        bool
 }
 
 type Dialer interface {
@@ -188,6 +204,13 @@ func NewCluster(hosts ...string) *ClusterConfig {
 	return cfg
 }
 
+func (cfg *ClusterConfig) logger() StdLogger {
+	if cfg.Logger == nil {
+		return Logger
+	}
+	return cfg.Logger
+}
+
 // CreateSession initializes the cluster based on this config and returns a
 // session object that can be used to interact with the database.
 func (cfg *ClusterConfig) CreateSession() (*Session, error) {
@@ -204,7 +227,7 @@ func (cfg *ClusterConfig) translateAddressPort(addr net.IP, port int) (net.IP, i
 	}
 	newAddr, newPort := cfg.AddressTranslator.Translate(addr, port)
 	if gocqlDebug {
-		Logger.Printf("gocql: translating address '%v:%d' to '%v:%d'", addr, port, newAddr, newPort)
+		cfg.logger().Printf("gocql: translating address '%v:%d' to '%v:%d'", addr, port, newAddr, newPort)
 	}
 	return newAddr, newPort
 }
