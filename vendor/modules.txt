@@ -138,7 +138,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537 => github.com/scylladb/gocql v1.4.3
+# github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537 => github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33
 ## explicit
 github.com/gocql/gocql
 github.com/gocql/gocql/internal/lru
@@ -157,7 +157,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.3
 github.com/golang/snappy
 # github.com/google/go-cmp v0.5.4
 ## explicit
@@ -540,5 +540,5 @@ gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2
-# github.com/gocql/gocql => github.com/scylladb/gocql v1.4.3
+# github.com/gocql/gocql => github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33
 # github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20210705142216-c5f5d70605ca

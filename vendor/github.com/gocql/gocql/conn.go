@@ -32,6 +32,8 @@ var (
 		"com.ericsson.bss.cassandra.ecaudit.auth.AuditPasswordAuthenticator",
 		"com.amazon.helenus.auth.HelenusAuthenticator",
 		"com.ericsson.bss.cassandra.ecaudit.auth.AuditAuthenticator",
+		"com.scylladb.auth.SaslauthdAuthenticator",
+		"com.scylladb.auth.TransitionalAuthenticator",
 	}
 )
 
@@ -80,6 +82,19 @@ func (p PasswordAuthenticator) Success(data []byte) error {
 	return nil
 }
 
+// SslOptions configures TLS use.
+//
+// Warning: Due to historical reasons, the SslOptions is insecure by default, so you need to set EnableHostVerification
+// to true if no Config is set. Most users should set SslOptions.Config to a *tls.Config.
+// SslOptions and Config.InsecureSkipVerify interact as follows:
+//
+//  Config.InsecureSkipVerify | EnableHostVerification | Result
+//  Config is nil             | false                  | do not verify host
+//  Config is nil             | true                   | verify host
+//  false                     | false                  | verify host
+//  true                      | false                  | do not verify host
+//  false                     | true                   | verify host
+//  true                      | true                   | verify host
 type SslOptions struct {
 	*tls.Config
 
@@ -89,9 +104,12 @@ type SslOptions struct {
 	CertPath string
 	KeyPath  string
 	CaPath   string //optional depending on server config
-	// If you want to verify the hostname and server cert (like a wildcard for cass cluster) then you should turn this on
-	// This option is basically the inverse of InSecureSkipVerify
-	// See InSecureSkipVerify in http://golang.org/pkg/crypto/tls/ for more info
+	// If you want to verify the hostname and server cert (like a wildcard for cass cluster) then you should turn this
+	// on.
+	// This option is basically the inverse of tls.Config.InsecureSkipVerify.
+	// See InsecureSkipVerify in http://golang.org/pkg/crypto/tls/ for more info.
+	//
+	// See SslOptions documentation to see how EnableHostVerification interacts with the provided tls.Config.
 	EnableHostVerification bool
 }
 
@@ -105,9 +123,17 @@ type ConnConfig struct {
 	Authenticator  Authenticator
 	AuthProvider   func(h *HostInfo) (Authenticator, error)
 	Keepalive      time.Duration
+	Logger         StdLogger
 
 	tlsConfig       *tls.Config
 	disableCoalesce bool
+}
+
+func (c *ConnConfig) logger() StdLogger {
+	if c.Logger == nil {
+		return Logger
+	}
+	return c.Logger
 }
 
 type ConnErrorHandler interface {
@@ -165,6 +191,8 @@ type Conn struct {
 	cancel context.CancelFunc
 
 	timeouts int64
+
+	logger StdLogger
 }
 
 // connect establishes a connection to a Cassandra node using session's connection config.
@@ -172,15 +200,23 @@ func (s *Session) connect(ctx context.Context, host *HostInfo, errorHandler Conn
 	return s.dial(ctx, host, s.connCfg, errorHandler)
 }
 
+func (s *Session) connectWithDialer(ctx context.Context, host *HostInfo, errorHandler ConnErrorHandler, dialer Dialer) (*Conn, error) {
+	return s.dialWithDialer(ctx, host, s.connCfg, errorHandler, dialer)
+}
+
 // dial establishes a connection to a Cassandra node and notifies the session's connectObserver.
 func (s *Session) dial(ctx context.Context, host *HostInfo, connConfig *ConnConfig, errorHandler ConnErrorHandler) (*Conn, error) {
+	return s.dialWithDialer(ctx, host, connConfig, errorHandler, connConfig.Dialer)
+}
+
+func (s *Session) dialWithDialer(ctx context.Context, host *HostInfo, connConfig *ConnConfig, errorHandler ConnErrorHandler, dialer Dialer) (*Conn, error) {
 	var obs ObservedConnect
 	if s.connectObserver != nil {
 		obs.Host = host
 		obs.Start = time.Now()
 	}
 
-	conn, err := s.dialWithoutObserver(ctx, host, connConfig, errorHandler)
+	conn, err := s.dialWithoutObserver(ctx, host, connConfig, errorHandler, dialer)
 
 	if s.connectObserver != nil {
 		obs.End = time.Now()
@@ -194,7 +230,7 @@ func (s *Session) dial(ctx context.Context, host *HostInfo, connConfig *ConnConf
 // dialWithoutObserver establishes connection to a Cassandra node.
 //
 // dialWithoutObserver does not notify the connection observer, so you most probably want to call dial() instead.
-func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *ConnConfig, errorHandler ConnErrorHandler) (*Conn, error) {
+func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *ConnConfig, errorHandler ConnErrorHandler, dialer Dialer) (*Conn, error) {
 	ip := host.ConnectAddress()
 	port := host.port
 
@@ -205,7 +241,6 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		panic(fmt.Sprintf("host missing port: %v", port))
 	}
 
-	dialer := cfg.Dialer
 	if dialer == nil {
 		d := &net.Dialer{
 			Timeout: cfg.ConnectTimeout,
@@ -216,14 +251,26 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		dialer = d
 	}
 
-	conn, err := dialer.DialContext(ctx, "tcp", host.HostnameAndPort())
+	addr := host.HostnameAndPort()
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	if cfg.tlsConfig != nil {
 		// the TLS config is safe to be reused by connections but it must not
 		// be modified after being used.
-		tconn := tls.Client(conn, cfg.tlsConfig)
+		tlsConfig := cfg.tlsConfig
+		if !tlsConfig.InsecureSkipVerify && tlsConfig.ServerName == "" {
+			colonPos := strings.LastIndex(addr, ":")
+			if colonPos == -1 {
+				colonPos = len(addr)
+			}
+			hostname := addr[:colonPos]
+			// clone config to avoid modifying the shared one.
+			tlsConfig = tlsConfig.Clone()
+			tlsConfig.ServerName = hostname
+		}
+		tconn := tls.Client(conn, tlsConfig)
 		if err := tconn.Handshake(); err != nil {
 			conn.Close()
 			return nil, err
@@ -251,6 +298,7 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		},
 		ctx:    ctx,
 		cancel: cancel,
+		logger: cfg.logger(),
 	}
 
 	if err := c.init(ctx); err != nil {
@@ -675,7 +723,7 @@ func (c *Conn) recv(ctx context.Context) error {
 	delete(c.calls, head.stream)
 	c.mu.Unlock()
 	if call == nil || call.framer == nil || !ok {
-		Logger.Printf("gocql: received response for stream which has no handler: header=%v\n", head)
+		c.logger.Printf("gocql: received response for stream which has no handler: header=%v\n", head)
 		return c.discardFrame(head)
 	} else if head.stream != call.streamID {
 		panic(fmt.Sprintf("call has incorrect streamID: got %d expected %d", call.streamID, head.stream))
@@ -863,6 +911,10 @@ func (w *writeCoalescer) writeFlusher(interval time.Duration) {
 }
 
 func (c *Conn) exec(ctx context.Context, req frameWriter, tracer Tracer) (*framer, error) {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+
 	// TODO: move tracer onto conn
 	stream, ok := c.streams.GetStream()
 	if !ok {
@@ -985,7 +1037,7 @@ type inflightPrepare struct {
 }
 
 func (c *Conn) prepareStatement(ctx context.Context, stmt string, tracer Tracer) (*preparedStatment, error) {
-	stmtCacheKey := c.session.stmtsLRU.keyFor(c.addr, c.currentKeyspace, stmt)
+	stmtCacheKey := c.session.stmtsLRU.keyFor(c.host.HostnameAndPort(), c.currentKeyspace, stmt)
 	flight, ok := c.session.stmtsLRU.execIfMissing(stmtCacheKey, func(lru *lru.Cache) *inflightPrepare {
 		flight := &inflightPrepare{
 			done: make(chan struct{}),
@@ -1149,7 +1201,9 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) *Iter {
 		}
 
 		// Set "lwt" property in the query if it is present in preparedMetadata
-		qry.lwt = info.request.lwt
+		qry.routingInfo.mu.Lock()
+		qry.routingInfo.lwt = info.request.lwt
+		qry.routingInfo.mu.Unlock()
 	} else {
 		frame = &writeQueryFrame{
 			statement:     qry.stmt,
@@ -1194,12 +1248,16 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) *Iter {
 		}
 
 		if x.meta.morePages() && !qry.disableAutoPage {
+			newQry := new(Query)
+			*newQry = *qry
+			newQry.pageState = copyBytes(x.meta.pagingState)
+			newQry.metrics = &queryMetrics{m: make(map[string]*hostMetrics)}
+
 			iter.next = &nextIter{
-				qry: qry,
+				qry: newQry,
 				pos: int((1 - qry.prefetch) * float64(x.numRows)),
 			}
 
-			iter.next.qry.pageState = copyBytes(x.meta.pagingState)
 			if iter.next.pos < 1 {
 				iter.next.pos = 1
 			}
@@ -1212,14 +1270,14 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) *Iter {
 		iter := &Iter{framer: framer}
 		if err := c.awaitSchemaAgreement(ctx); err != nil {
 			// TODO: should have this behind a flag
-			Logger.Println(err)
+			c.logger.Println(err)
 		}
 		// dont return an error from this, might be a good idea to give a warning
 		// though. The impact of this returning an error would be that the cluster
 		// is not consistent with regards to its schema.
 		return iter
 	case *RequestErrUnprepared:
-		stmtCacheKey := c.session.stmtsLRU.keyFor(c.addr, c.currentKeyspace, qry.stmt)
+		stmtCacheKey := c.session.stmtsLRU.keyFor(c.host.HostnameAndPort(), c.currentKeyspace, qry.stmt)
 		c.session.stmtsLRU.evictPreparedID(stmtCacheKey, x.StatementId)
 		return c.executeQuery(ctx, qry)
 	case error:
@@ -1303,7 +1361,7 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) *Iter {
 		b := &req.statements[i]
 
 		if len(entry.Args) > 0 || entry.binding != nil {
-			info, err := c.prepareStatement(batch.Context(), entry.Stmt, nil)
+			info, err := c.prepareStatement(batch.Context(), entry.Stmt, batch.trace)
 			if err != nil {
 				return &Iter{err: err}
 			}
@@ -1351,10 +1409,12 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) *Iter {
 
 	// The batch is considered to be conditional if even one of the
 	// statements is conditional.
-	batch.lwt = hasLwtEntries
+	batch.routingInfo.mu.Lock()
+	batch.routingInfo.lwt = hasLwtEntries
+	batch.routingInfo.mu.Unlock()
 
 	// TODO: should batch support tracing?
-	framer, err := c.exec(batch.Context(), req, nil)
+	framer, err := c.exec(batch.Context(), req, batch.trace)
 	if err != nil {
 		return &Iter{err: err}
 	}
@@ -1364,13 +1424,17 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) *Iter {
 		return &Iter{err: err, framer: framer}
 	}
 
+	if len(framer.traceID) > 0 && batch.trace != nil {
+		batch.trace.Trace(framer.traceID)
+	}
+
 	switch x := resp.(type) {
 	case *resultVoidFrame:
 		return &Iter{}
 	case *RequestErrUnprepared:
 		stmt, found := stmts[string(x.StatementId)]
 		if found {
-			key := c.session.stmtsLRU.keyFor(c.addr, c.currentKeyspace, stmt)
+			key := c.session.stmtsLRU.keyFor(c.host.HostnameAndPort(), c.currentKeyspace, stmt)
 			c.session.stmtsLRU.evictPreparedID(key, x.StatementId)
 		}
 		return c.executeBatch(ctx, batch)
@@ -1390,10 +1454,11 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) *Iter {
 }
 
 func (c *Conn) query(ctx context.Context, statement string, values ...interface{}) (iter *Iter) {
-	q := c.session.Query(statement, values...).Consistency(One)
-	q.trace = nil
+	q := c.session.Query(statement, values...).Consistency(One).Trace(nil)
 	q.skipPrepare = true
 	q.disableSkipMetadata = true
+	// we want to keep the query on this connection
+	q.conn = c
 	return c.executeQuery(ctx, q)
 }
 
@@ -1423,7 +1488,7 @@ func (c *Conn) awaitSchemaAgreement(ctx context.Context) (err error) {
 				goto cont
 			}
 			if !isValidPeer(host) || host.schemaVersion == "" {
-				Logger.Printf("invalid peer or peer with empty schema_version: peer=%q", host)
+				c.logger.Printf("invalid peer or peer with empty schema_version: peer=%q", host)
 				continue
 			}
 
