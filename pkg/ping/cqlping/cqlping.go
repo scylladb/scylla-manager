@@ -93,7 +93,7 @@ var cqlUnauthorisedMessage = []string{
 	"Username and/or password are incorrect",
 }
 
-func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
+func queryPing(_ context.Context, config Config) (rtt time.Duration, err error) {
 	host, port, err := net.SplitHostPort(config.Addr)
 	if err != nil {
 		return 0, errors.Wrap(err, "split host port")
@@ -120,15 +120,23 @@ func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 		Password: config.Password,
 	}
 
-	// Avoid openning too much connections
-	cluster.NumConns = 1
-	cluster.DisableInitialHostLookup = true
+	// Skip protocol discovery. We use the protocol 3 to indicate the connection
+	// is for health-check purpose only and should not be included in the
+	// cluster metrics.
+	cluster.ProtoVersion = 3
 	cluster.ReconnectInterval = 0
-	// Do not use TokenAwareHostPolicy as it ignores NumConns
-	cluster.PoolConfig.HostSelectionPolicy = gocql.RoundRobinHostPolicy()
 
 	// Set timeout
 	cluster.ConnectTimeout = config.Timeout
+	cluster.Timeout = config.Timeout
+
+	// Disable all events
+	cluster.Events.DisableNodeStatusEvents = true
+	cluster.Events.DisableTopologyEvents = true
+	cluster.Events.DisableSchemaEvents = true
+
+	// Disable write coalescing
+	cluster.WriteCoalesceWaitTime = 0
 
 	t := timeutc.Now()
 	defer func() {
@@ -147,23 +155,14 @@ func queryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 		}
 	}()
 
-	// Create session
-	session, err := cluster.CreateSession()
+	e, err := gocql.NewSingleHostQueryExecutor(cluster)
 	if err != nil {
-		return 0, errors.Wrap(err, "create session")
+		return 0, err
 	}
-	defer session.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, config.Timeout-timeutc.Since(t))
-	defer cancel()
-
-	const stmt = "SELECT now() FROM system.local"
-	q := session.Query(stmt).WithContext(ctx).Consistency(gocql.One)
+	defer e.Close()
 
 	var date []byte
-	if err := q.Scan(&date); err != nil {
-		return 0, errors.Wrap(err, "scan")
-	}
-
-	return 0, nil
+	iter := e.Iter("SELECT now() FROM system.local")
+	iter.Scan(&date)
+	return 0, iter.Close()
 }

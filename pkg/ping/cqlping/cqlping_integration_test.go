@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/scylla-manager/pkg/ping"
 	"github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
@@ -37,6 +38,18 @@ func TestPingIntegration(t *testing.T) {
 		}
 		t.Logf("queryPing() = %s", d)
 	})
+
+	t.Run("query wrong user", func(t *testing.T) {
+		c := config
+		c.Username = "foo"
+
+		d, err := queryPing(context.Background(), c)
+		if err != ping.ErrUnauthorised {
+			t.Error("got", err, "expected", ping.ErrUnauthorised)
+		}
+		t.Logf("queryPing() = %s", d)
+	})
+
 }
 
 func TestPingTLSIntegration(t *testing.T) {
