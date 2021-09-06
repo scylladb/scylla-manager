@@ -2,11 +2,10 @@ package accounting
 
 import (
 	"context"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-var namespace = "rclone_"
 
 // RcloneCollector is a Prometheus collector for Rclone
 type RcloneCollector struct {
@@ -24,7 +23,11 @@ type RcloneCollector struct {
 }
 
 // NewRcloneCollector make a new RcloneCollector
-func NewRcloneCollector(ctx context.Context) *RcloneCollector {
+func NewRcloneCollector(ctx context.Context, namespace string) *RcloneCollector {
+	if !strings.HasSuffix(namespace, "_") {
+		namespace = namespace + "_"
+	}
+
 	return &RcloneCollector{
 		ctx: ctx,
 		bytesTransferred: prometheus.NewDesc(namespace+"bytes_transferred_total",
