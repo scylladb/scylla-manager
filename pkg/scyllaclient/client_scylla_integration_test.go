@@ -66,7 +66,7 @@ func TestClientRepairStatusIntegration(t *testing.T) {
 	}
 	for _, longPolling := range []int{0, 1} {
 		_, err = client.RepairStatus(context.Background(), ManagedClusterHost(), "system_auth", 999, longPolling)
-		if !strings.Contains(err.Error(), "1 attempts") {
+		if strings.Contains(err.Error(), "attempts") {
 			t.Fatalf("RepairStatus() error %s, expected 1 attempt", err)
 		}
 	}
