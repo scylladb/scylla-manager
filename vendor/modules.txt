@@ -540,13 +540,5 @@ gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2
-<<<<<<< HEAD
 # github.com/gocql/gocql => github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33
-# github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20210705142216-c5f5d70605ca
-||||||| parent of 37f5413e (go mod update github.com/scylladb/rclone)
-# github.com/gocql/gocql => github.com/scylladb/gocql v1.4.3
-# github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20210705142216-c5f5d70605ca
-=======
-# github.com/gocql/gocql => github.com/scylladb/gocql v1.4.3
 # github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20210907140556-f4b0a9bda7a4
->>>>>>> 37f5413e (go mod update github.com/scylladb/rclone)
