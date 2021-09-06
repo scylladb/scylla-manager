@@ -194,12 +194,14 @@ func NewClient(ctx context.Context) *http.Client {
 // Transport is our http Transport which wraps an http.Transport
 // * Sets the User Agent
 // * Does logging
+// * Updates metrics
 type Transport struct {
 	*http.Transport
 	dump          fs.DumpFlags
 	filterRequest func(req *http.Request)
 	userAgent     string
 	headers       []*fs.HTTPOption
+	metrics       *Metrics
 }
 
 // newTransport wraps the http.Transport passed in and logs all
@@ -210,6 +212,7 @@ func newTransport(ci *fs.ConfigInfo, transport *http.Transport) *Transport {
 		dump:      ci.Dump,
 		userAgent: ci.UserAgent,
 		headers:   ci.Headers,
+		metrics:   DefaultMetrics,
 	}
 }
 
@@ -341,6 +344,9 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		fs.Debugf(nil, "%s", separatorResp)
 		logMutex.Unlock()
 	}
+	// Update metrics
+	t.metrics.onResponse(req, resp)
+
 	if err == nil {
 		checkServerTime(req, resp)
 	}
