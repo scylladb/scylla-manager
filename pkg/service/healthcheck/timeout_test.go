@@ -3,137 +3,69 @@
 package healthcheck
 
 import (
+	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
-func TestDynamicTimeoutDoNotExceedMaxTimeout(t *testing.T) {
-	maxTimeout := time.Second
-	probes := 10
+func TestDynamicTimeoutCalculateTimeout(t *testing.T) {
+	relativeTimeout := time.Duration(10)
+	maxTimeout := time.Duration(20)
+	probes := 5
 
-	dt := newDynamicTimeout(maxTimeout, probes)
-
-	for i := 0; i < probes; i++ {
-		dt.SaveProbe(2 * maxTimeout)
-	}
-
-	if dt.Timeout() != maxTimeout {
-		t.Errorf("Expected timeout not not exceed max timeout")
-	}
-}
-
-func TestDynamicTimeoutOverridesOldestProbes(t *testing.T) {
-	maxTimeout := time.Second
-	probes := 10
-
-	dt := newDynamicTimeout(maxTimeout, probes)
-
-	for i := 0; i < probes; i++ {
-		dt.SaveProbe(5 * time.Millisecond)
-	}
-	for i := 0; i < probes; i++ {
-		dt.SaveProbe(10 * time.Millisecond)
-	}
-
-	// All probes are equal so stddev is 0 and mean is equal to value of probes
-	expectedTimeout := 10*time.Millisecond + minStddev
-	if dt.Timeout() != expectedTimeout {
-		t.Errorf("Expected timeout equal to %s got %s", expectedTimeout, dt.Timeout())
-	}
-}
-
-func TestDynamicTimeoutMeanMath(t *testing.T) {
-	td := []struct {
-		Name         string
-		Samples      []time.Duration
-		ExpectedMean time.Duration
+	table := []struct {
+		Name   string
+		Probes []time.Duration
+		Golden time.Duration
 	}{
 		{
-			Name:         "empty samples",
-			Samples:      []time.Duration{},
-			ExpectedMean: 0,
+			Name:   "Simple",
+			Probes: []time.Duration{1, 1, 2, 100, 100},
+			Golden: relativeTimeout + time.Duration(2),
 		},
 		{
-			Name:         "single sample",
-			Samples:      []time.Duration{123},
-			ExpectedMean: 123,
-		},
-		{
-			Name:         "multiple same values",
-			Samples:      []time.Duration{123, 123, 123, 123, 123, 123},
-			ExpectedMean: 123,
-		},
-		{
-			Name:         "multiple different values",
-			Samples:      []time.Duration{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			ExpectedMean: 5,
+			Name:   "Over max",
+			Probes: []time.Duration{1, 1, 100, 100, 100},
+			Golden: maxTimeout,
 		},
 	}
 
-	for i := range td {
-		test := td[i]
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
+	dt := newDynamicTimeout(relativeTimeout, maxTimeout, probes)
 
-			dt := dynamicTimeout{}
-			dt.values = test.Samples
-
-			if test.ExpectedMean != dt.mean() {
-				t.Errorf("expected %s mean got %s", test.ExpectedMean, dt.mean())
-			}
-		})
+	for _, test := range table {
+		copy(dt.probes, test.Probes)
+		timeout := dt.calculateTimeout()
+		if timeout != test.Golden {
+			t.Errorf("calculateTimeout()=%s, expected %s", timeout, test.Golden)
+		}
 	}
 }
 
-func TestDynamicTimeoutStdDevMath(t *testing.T) {
-	td := []struct {
-		Name           string
-		Samples        []time.Duration
-		ExpectedStdDev time.Duration
-	}{
-		{
-			Name:           "empty samples",
-			Samples:        []time.Duration{},
-			ExpectedStdDev: 0,
-		},
-		{
-			Name:           "single sample",
-			Samples:        []time.Duration{123},
-			ExpectedStdDev: 0,
-		},
-		{
-			Name:           "multiple same values",
-			Samples:        []time.Duration{123, 123, 123, 123, 123, 123},
-			ExpectedStdDev: 0,
-		},
-		{
-			Name:           "multiple different values",
-			Samples:        []time.Duration{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			ExpectedStdDev: 3,
-		},
-		{
-			Name:           "multiple different values",
-			Samples:        []time.Duration{1, 1, 2, 3, 4, 1, 2, 3, 2, 1, 2, 3, 1, 4, 1, 5, 1, 6, 1, 6, 1, 7},
-			ExpectedStdDev: 2,
-		},
-		{
-			Name:           "multiple different values",
-			Samples:        []time.Duration{10, 12, 23, 23, 16, 23, 21, 16},
-			ExpectedStdDev: 5,
-		},
+func TestDynamicTimeoutRecord(t *testing.T) {
+	relativeTimeout := time.Duration(100)
+	maxTimeout := time.Duration(1000)
+	probes := 50
+
+	dt := newDynamicTimeout(relativeTimeout, maxTimeout, probes)
+	r := rand.New(rand.NewSource(1944))
+
+	// Fill with U[0, 100) distribution, expected t/o is 50 + 100 (relativeTimeout)
+	for i := 0; i < 100; i++ {
+		dt.Record(time.Duration(r.Intn(100)))
+	}
+	t0 := dt.Timeout()
+	if a, b := testutils.EpsilonRange(150); t0 < a || t0 > b {
+		t.Fatalf("dt.Timeout()=%s, expected %d", t0, 150)
 	}
 
-	for i := range td {
-		test := td[i]
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-
-			dt := dynamicTimeout{}
-			dt.values = test.Samples
-
-			if test.ExpectedStdDev != dt.stddev() {
-				t.Errorf("expected %s stddev got %s", test.ExpectedStdDev, dt.stddev())
-			}
-		})
+	// Fill with U[0, 300) distribution, expected t/o is 150 + 100 (relativeTimeout)
+	for i := 0; i < 100; i++ {
+		dt.Record(time.Duration(r.Intn(300)))
+	}
+	t1 := dt.Timeout()
+	if a, b := testutils.EpsilonRange(250); t1 < a || t1 > b {
+		t.Fatalf("dt.Timeout()=%s, expected %d", t0, 250)
 	}
 }

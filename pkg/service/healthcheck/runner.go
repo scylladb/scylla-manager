@@ -18,7 +18,7 @@ import (
 // Runner implements sched.Runner.
 type Runner struct {
 	scyllaClient scyllaclient.ProviderFunc
-	timeout      timeoutProviderFunc
+	timeout      dynamicTimeoutProviderFunc
 	metrics      *runnerMetrics
 	ping         func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
 }
@@ -67,7 +67,9 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 			dcKey:      status[i].Datacenter,
 		}
 
-		timeout, saveNext := r.timeout(clusterID, status[i].Datacenter)
+		dt := r.timeout(clusterID, status[i].Datacenter)
+		timeout := dt.Timeout()
+
 		rtt, err := r.ping(ctx, clusterID, status[i].Addr, timeout)
 		if err != nil {
 			r.metrics.status.With(hl).Set(-1)
@@ -76,7 +78,8 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 		}
 		r.metrics.rtt.With(hl).Set(float64(rtt.Milliseconds()))
 		r.metrics.timeout.With(dl).Set(float64(timeout.Milliseconds()))
-		saveNext(rtt)
+
+		dt.Record(rtt)
 
 		return nil
 	})
