@@ -88,24 +88,19 @@ http: 127.0.0.1:5080
 #  user_cert_file:
 #  user_key_file
 
-# Healthcheck service configuration.
+# Health-check service configuration.
 #healthcheck:
-# Timeout for CQL status checks.
-#  timeout: 250ms
-#  ssl_timeout: 750ms
-#
-# Dynamic timeout calculates timeout based on past measurements.
-# It takes recent RTTs, calculates mean (m), standard deviation (stddev),
-# and returns timeout of next probe equal to m + stddev_multiplier * max(stddev, 1ms).
-#
-# Higher stddev_multiplier is recommended on stable network environments,
-# because standard deviation may be close to 0.
-#  dynamic_timeout:
-#    enabled: true
-#    probes: 200
-#    max_timeout: 30s
-#    stddev_multiplier: 5
-#
+# relative_timeout specifies timeout over median ping duration in probes.
+# The number of probes kept in memory is specified by the probes parameter.
+# There are separate probes for different DCs and ping types
+# (CQL, REST, Alternator).
+#  relative_timeout: 50ms
+# max_timeout specifies maximum ping timeout, zero means no limit.
+#  max_timeout: 30s
+# Probes specifies how many probes are kept in memory for calculation.
+# For different ping types and datacenters there are different probe sets.
+#  probes: 200
+
 # Backup service configuration.
 #backup:
 # Minimal amount of free disk space required to take a snapshot.
