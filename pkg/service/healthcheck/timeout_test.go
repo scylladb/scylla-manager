@@ -8,41 +8,35 @@ import (
 )
 
 func TestDynamicTimeoutDoNotExceedMaxTimeout(t *testing.T) {
-	config := DynamicTimeoutConfig{
-		Enabled:          true,
-		Probes:           10,
-		MaxTimeout:       time.Second,
-		StdDevMultiplier: 5,
-	}
-	dt := newDynamicTimeout(config)
+	maxTimeout := time.Second
+	probes := 10
 
-	for i := 0; i < config.Probes; i++ {
-		dt.SaveProbe(2 * config.MaxTimeout)
+	dt := newDynamicTimeout(maxTimeout, probes)
+
+	for i := 0; i < probes; i++ {
+		dt.SaveProbe(2 * maxTimeout)
 	}
 
-	if dt.Timeout() != config.MaxTimeout {
+	if dt.Timeout() != maxTimeout {
 		t.Errorf("Expected timeout not not exceed max timeout")
 	}
 }
 
 func TestDynamicTimeoutOverridesOldestProbes(t *testing.T) {
-	config := DynamicTimeoutConfig{
-		Enabled:          true,
-		Probes:           10,
-		MaxTimeout:       time.Second,
-		StdDevMultiplier: 5,
-	}
-	dt := newDynamicTimeout(config)
+	maxTimeout := time.Second
+	probes := 10
 
-	for i := 0; i < config.Probes; i++ {
+	dt := newDynamicTimeout(maxTimeout, probes)
+
+	for i := 0; i < probes; i++ {
 		dt.SaveProbe(5 * time.Millisecond)
 	}
-	for i := 0; i < config.Probes; i++ {
+	for i := 0; i < probes; i++ {
 		dt.SaveProbe(10 * time.Millisecond)
 	}
 
 	// All probes are equal so stddev is 0 and mean is equal to value of probes
-	expectedTimeout := 10*time.Millisecond + time.Duration(config.StdDevMultiplier)*minStddev
+	expectedTimeout := 10*time.Millisecond + minStddev
 	if dt.Timeout() != expectedTimeout {
 		t.Errorf("Expected timeout equal to %s got %s", expectedTimeout, dt.Timeout())
 	}

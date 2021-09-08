@@ -329,8 +329,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 
 // pingAlternator sends ping probe and returns RTT.
 // When Alternator frontend is disabled, it returns 0 and nil error.
-func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string,
-	timeout time.Duration) (rtt time.Duration, err error) {
+func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
 	ni, err := s.nodeInfo(ctx, clusterID, host)
 	// Proceed if we managed to get required information.
 	if err != nil && ni.NodeInfo == nil {
@@ -348,16 +347,12 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 	addr := ni.AlternatorAddr(host)
 	config := dynamoping.Config{
 		Addr:    addr,
-		Timeout: s.config.Timeout,
+		Timeout: timeout,
 	}
 
 	tlsConfig := ni.tlsConfig(alternatorPing)
 	if tlsConfig != nil {
 		config.TLSConfig = tlsConfig.Clone()
-		config.Timeout = s.config.SSLTimeout
-	}
-	if timeout != 0 {
-		config.Timeout = timeout
 	}
 
 	return pingFunc(ctx, config)
@@ -379,17 +374,12 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 	// Try to connect directly to host address.
 	config := cqlping.Config{
 		Addr:    ni.CQLAddr(host),
-		Timeout: s.config.Timeout,
+		Timeout: timeout,
 	}
 
 	tlsConfig := ni.tlsConfig(cqlPing)
 	if tlsConfig != nil {
 		config.TLSConfig = tlsConfig.Clone()
-		config.Timeout = s.config.SSLTimeout
-	}
-
-	if timeout != 0 {
-		config.Timeout = timeout
 	}
 
 	rtt, err = cqlping.Ping(ctx, config)
@@ -506,12 +496,8 @@ func (s *Service) alternatorTimeout(clusterID uuid.UUID, dc string) (timeout tim
 	return s.timeout(clusterID, dc, alternatorPing)
 }
 
-// dcTimeouts returns timeout measured for given clusterID and DC.
+// timeout returns timeout measured for given datacenter and ping type.
 func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout time.Duration, saveNext func(time.Duration)) {
-	if !s.config.DynamicTimeout.Enabled {
-		return s.config.Timeout, func(time.Duration) {}
-	}
-
 	// Try loading from cache.
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
@@ -521,7 +507,7 @@ func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout 
 	if t, ok := s.dynamicTimeouts[key]; ok {
 		dt = t
 	} else {
-		dt = newDynamicTimeout(s.config.DynamicTimeout)
+		dt = newDynamicTimeout(s.config.MaxTimeout, s.config.Probes)
 		s.dynamicTimeouts[key] = dt
 	}
 

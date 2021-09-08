@@ -10,23 +10,22 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-// TimeoutProviderFunc is a function which returns probe timeout for given DC
+// TimeoutProviderFunc is a function that returns probe timeout for given DC
 // and function which should be called with next probe result.
 type timeoutProviderFunc func(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration))
 
 type dynamicTimeout struct {
-	config DynamicTimeoutConfig
+	maxTimeout time.Duration
 
 	mu     sync.Mutex
 	values []time.Duration
 	idx    int
 }
 
-func newDynamicTimeout(config DynamicTimeoutConfig) *dynamicTimeout {
-	values := make([]time.Duration, 0, config.Probes)
+func newDynamicTimeout(maxTimeout time.Duration, probes int) *dynamicTimeout {
 	return &dynamicTimeout{
-		config: config,
-		values: values,
+		maxTimeout: maxTimeout,
+		values:     make([]time.Duration, 0, probes),
 	}
 }
 
@@ -71,18 +70,18 @@ func (dt *dynamicTimeout) Timeout() time.Duration {
 func (dt *dynamicTimeout) timeout() time.Duration {
 	// Calculate dynamic timeout once we collect 10% of total
 	// required probes. Otherwise return max_timeout.
-	if len(dt.values) < int(0.1*float64(dt.config.Probes)) {
-		return dt.config.MaxTimeout
+	if len(dt.values) < int(0.1*float64(cap(dt.values))) {
+		return dt.maxTimeout
 	}
 
 	sd := dt.stddev()
 	m := dt.mean()
 
-	delta := time.Duration(dt.config.StdDevMultiplier) * max(sd, minStddev)
+	delta := max(sd, minStddev)
 	timeout := m + delta
 
-	if dt.config.MaxTimeout != 0 && timeout > dt.config.MaxTimeout {
-		timeout = dt.config.MaxTimeout
+	if timeout > dt.maxTimeout {
+		timeout = dt.maxTimeout
 	}
 	return timeout
 }
@@ -91,7 +90,7 @@ func (dt *dynamicTimeout) SaveProbe(probe time.Duration) {
 	dt.mu.Lock()
 	defer dt.mu.Unlock()
 
-	if len(dt.values) < dt.config.Probes {
+	if len(dt.values) < cap(dt.values) {
 		dt.values = append(dt.values, probe)
 	} else {
 		dt.values[dt.idx] = probe
