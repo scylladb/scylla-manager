@@ -194,8 +194,8 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				return
 			}
 
-			timeout, saveNext := s.restTimeout(clusterID, status[i].Datacenter)
-			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, timeout)
+			dt := s.restTimeout(clusterID, status[i].Datacenter)
+			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, dt.Timeout())
 			o.RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
@@ -218,8 +218,6 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				o.RESTStatus = statusUp
 			}
 
-			saveNext(rtt)
-
 			return
 		})
 	}
@@ -235,8 +233,8 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				return
 			}
 
-			timeout, saveNext := s.cqlTimeout(clusterID, status[i].Datacenter)
-			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, timeout)
+			dt := s.cqlTimeout(clusterID, status[i].Datacenter)
+			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, dt.Timeout())
 			o.CQLRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
@@ -274,8 +272,6 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				o.SSL = ni.hasTLSConfig(cqlPing)
 			}
 
-			saveNext(rtt)
-
 			return
 		})
 	}
@@ -292,8 +288,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				return
 			}
 
-			timeout, saveNext := s.alternatorTimeout(clusterID, status[i].Datacenter)
-			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, timeout)
+			dt := s.alternatorTimeout(clusterID, status[i].Datacenter)
+			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, dt.Timeout())
 			if err != nil {
 				s.logger.Error(ctx, "Alternator ping failed",
 					"cluster_id", clusterID,
@@ -319,8 +315,6 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 			if rtt != 0 {
 				o.AlternatorRtt = float64(rtt.Milliseconds())
 			}
-
-			saveNext(rtt)
 
 			return
 		})
@@ -484,20 +478,22 @@ func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQ
 	return cqlCreds
 }
 
-func (s *Service) cqlTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
+type dynamicTimeoutProviderFunc func(clusterID uuid.UUID, dc string) *dynamicTimeout
+
+func (s *Service) cqlTimeout(clusterID uuid.UUID, dc string) *dynamicTimeout {
 	return s.timeout(clusterID, dc, cqlPing)
 }
 
-func (s *Service) restTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
+func (s *Service) restTimeout(clusterID uuid.UUID, dc string) *dynamicTimeout {
 	return s.timeout(clusterID, dc, restPing)
 }
 
-func (s *Service) alternatorTimeout(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration)) {
+func (s *Service) alternatorTimeout(clusterID uuid.UUID, dc string) *dynamicTimeout {
 	return s.timeout(clusterID, dc, alternatorPing)
 }
 
 // timeout returns timeout measured for given datacenter and ping type.
-func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout time.Duration, saveNext func(time.Duration)) {
+func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) *dynamicTimeout {
 	// Try loading from cache.
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
@@ -507,12 +503,11 @@ func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) (timeout 
 	if t, ok := s.dynamicTimeouts[key]; ok {
 		dt = t
 	} else {
-		dt = newDynamicTimeout(s.config.MaxTimeout, s.config.Probes)
+		dt = newDynamicTimeout(s.config.RelativeTimeout, s.config.MaxTimeout, s.config.Probes)
 		s.dynamicTimeouts[key] = dt
 	}
 
-	t := dt.Timeout()
-	return t, dt.SaveProbe
+	return dt
 }
 
 // InvalidateCache frees all in-memory NodeInfo and TLS configuration

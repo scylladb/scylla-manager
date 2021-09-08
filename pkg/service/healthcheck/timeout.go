@@ -3,104 +3,72 @@
 package healthcheck
 
 import (
-	"math"
+	"sort"
 	"sync"
 	"time"
-
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-// TimeoutProviderFunc is a function that returns probe timeout for given DC
-// and function which should be called with next probe result.
-type timeoutProviderFunc func(clusterID uuid.UUID, dc string) (timeout time.Duration, saveNext func(time.Duration))
-
 type dynamicTimeout struct {
-	maxTimeout time.Duration
+	relativeTimeout time.Duration
+	maxTimeout      time.Duration
 
-	mu     sync.Mutex
-	values []time.Duration
-	idx    int
+	probes                []time.Duration
+	idx                   int
+	sortedProbes          []time.Duration
+	timeoutRecalculateIdx int
+	timeout               time.Duration
+	mu                    sync.RWMutex
 }
 
-func newDynamicTimeout(maxTimeout time.Duration, probes int) *dynamicTimeout {
+func newDynamicTimeout(relativeTimeout, maxTimeout time.Duration, probes int) *dynamicTimeout {
 	return &dynamicTimeout{
-		maxTimeout: maxTimeout,
-		values:     make([]time.Duration, 0, probes),
+		relativeTimeout:       relativeTimeout,
+		maxTimeout:            maxTimeout,
+		probes:                make([]time.Duration, probes),
+		sortedProbes:          make([]time.Duration, probes),
+		idx:                   0,
+		timeoutRecalculateIdx: probes - 1,
+		timeout:               maxTimeout,
 	}
 }
-
-func (dt *dynamicTimeout) mean() time.Duration {
-	if len(dt.values) == 0 {
-		return 0
-	}
-	var m time.Duration
-	for _, v := range dt.values {
-		m += v
-	}
-	return m / time.Duration(len(dt.values))
-}
-
-func (dt *dynamicTimeout) stddev() time.Duration {
-	if len(dt.values) < 2 {
-		return 0
-	}
-
-	m := dt.mean()
-
-	var sd time.Duration
-	for _, v := range dt.values {
-		sd += time.Duration(math.Pow(float64(v-m), 2))
-	}
-	sd = time.Duration(math.Sqrt(float64(sd / time.Duration(len(dt.values)-1))))
-	if sd <= 0 {
-		return 0
-	}
-	return sd
-}
-
-const minStddev = 1 * time.Millisecond
 
 func (dt *dynamicTimeout) Timeout() time.Duration {
+	dt.mu.RLock()
+	defer dt.mu.RUnlock()
+	return dt.timeout
+}
+
+func (dt *dynamicTimeout) Record(rtt time.Duration) {
 	dt.mu.Lock()
 	defer dt.mu.Unlock()
 
-	return dt.timeout()
+	// Save probe
+	dt.probes[dt.idx] = rtt
+
+	n := len(dt.probes)
+
+	// Calculate next index
+	dt.idx = (dt.idx + 1) % n
+
+	// Recalculate timeout if needed
+	if dt.idx == dt.timeoutRecalculateIdx {
+		dt.timeout = dt.calculateTimeoutLocked()
+		dt.timeoutRecalculateIdx = (dt.idx + (n / 10)) % n
+	}
 }
 
-func (dt *dynamicTimeout) timeout() time.Duration {
-	// Calculate dynamic timeout once we collect 10% of total
-	// required probes. Otherwise return max_timeout.
-	if len(dt.values) < int(0.1*float64(cap(dt.values))) {
-		return dt.maxTimeout
-	}
-
-	sd := dt.stddev()
-	m := dt.mean()
-
-	delta := max(sd, minStddev)
-	timeout := m + delta
-
+func (dt *dynamicTimeout) calculateTimeoutLocked() time.Duration {
+	timeout := dt.medianLocked() + dt.relativeTimeout
 	if timeout > dt.maxTimeout {
 		timeout = dt.maxTimeout
 	}
 	return timeout
 }
 
-func (dt *dynamicTimeout) SaveProbe(probe time.Duration) {
-	dt.mu.Lock()
-	defer dt.mu.Unlock()
-
-	if len(dt.values) < cap(dt.values) {
-		dt.values = append(dt.values, probe)
-	} else {
-		dt.values[dt.idx] = probe
-		dt.idx = (dt.idx + 1) % len(dt.values)
-	}
-}
-
-func max(a, b time.Duration) time.Duration {
-	if a > b {
-		return a
-	}
-	return b
+func (dt *dynamicTimeout) medianLocked() time.Duration {
+	copy(dt.sortedProbes, dt.probes)
+	sort.Slice(dt.sortedProbes, func(i, j int) bool {
+		return dt.sortedProbes[i] < dt.sortedProbes[j]
+	})
+	return dt.sortedProbes[len(dt.sortedProbes)/2]
 }

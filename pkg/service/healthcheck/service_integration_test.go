@@ -192,7 +192,7 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 
 		golden := []NodeStatus{
 			{Datacenter: "dc1", Host: "192.168.100.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: "192.168.100.12", CQLStatus: "UP", RESTStatus: "DOWN", RESTCause: "dial tcp 192.168.100.12:10001: connect: connection refused", AlternatorStatus: "UP"},
 			{Datacenter: "dc1", Host: "192.168.100.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 			{Datacenter: "dc2", Host: "192.168.100.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
