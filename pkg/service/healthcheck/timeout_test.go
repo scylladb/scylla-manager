@@ -14,7 +14,7 @@ func TestDynamicTimeoutDoNotExceedMaxTimeout(t *testing.T) {
 		MaxTimeout:       time.Second,
 		StdDevMultiplier: 5,
 	}
-	dt := newDynamicTimeout(config, nil)
+	dt := newDynamicTimeout(config)
 
 	for i := 0; i < config.Probes; i++ {
 		dt.SaveProbe(2 * config.MaxTimeout)
@@ -32,7 +32,7 @@ func TestDynamicTimeoutOverridesOldestProbes(t *testing.T) {
 		MaxTimeout:       time.Second,
 		StdDevMultiplier: 5,
 	}
-	dt := newDynamicTimeout(config, nil)
+	dt := newDynamicTimeout(config)
 
 	for i := 0; i < config.Probes; i++ {
 		dt.SaveProbe(5 * time.Millisecond)
