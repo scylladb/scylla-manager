@@ -79,27 +79,6 @@ var (
 		Name:      "alternator_timeout_ms",
 		Help:      "Host Alternator Timeout",
 	}, []string{clusterKey, dcKey})
-
-	rttMean = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "healthcheck",
-		Name:      "rtt_mean_ms",
-		Help:      "Statistical mean for the collection of recent runs",
-	}, []string{clusterKey, dcKey, pingTypeKey})
-
-	rttStandardDeviation = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "healthcheck",
-		Name:      "standard_deviation_ms",
-		Help:      "Standard deviation for rtt duration over collection of recent runs",
-	}, []string{clusterKey, dcKey, pingTypeKey})
-
-	rttNoise = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "healthcheck",
-		Name:      "noise_ms",
-		Help:      "How much to add to the mean to get timeout value",
-	}, []string{clusterKey, dcKey, pingTypeKey})
 )
 
 func init() {
@@ -113,9 +92,6 @@ func init() {
 		alternatorStatus,
 		alternatorRTT,
 		alternatorTimeout,
-		rttMean,
-		rttStandardDeviation,
-		rttNoise,
 	)
 }
 

@@ -96,17 +96,9 @@ func (r Runner) removeMetricsForCluster(clusterID uuid.UUID) {
 			clusterKey: clusterID.String(),
 			dcKey:      dc,
 		}
-		dpl := prometheus.Labels{
-			clusterKey:  clusterID.String(),
-			dcKey:       dc,
-			pingTypeKey: pt,
-		}
 		r.metrics.status.Delete(hl)
 		r.metrics.rtt.Delete(hl)
 		r.metrics.timeout.Delete(dl)
-		rttMean.Delete(dpl)
-		rttStandardDeviation.Delete(dpl)
-		rttNoise.Delete(dpl)
 	})
 }
 
