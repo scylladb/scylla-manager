@@ -64,7 +64,7 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 
 	// Tests here do not test the dynamic t/o functionality
 	c := DefaultConfig()
-	c.DynamicTimeout.Enabled = false
+	c.MaxTimeout = time.Second
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	s, err := NewService(
