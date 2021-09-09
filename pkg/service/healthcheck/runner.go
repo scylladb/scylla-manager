@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/pkg/ping"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -79,7 +80,10 @@ func (r Runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 		r.metrics.rtt.With(hl).Set(float64(rtt.Milliseconds()))
 		r.metrics.timeout.With(dl).Set(float64(timeout.Milliseconds()))
 
-		dt.Record(rtt)
+		// Record RTT only in case of success or timeout.
+		if err == nil || errors.Is(err, ping.ErrTimeout) {
+			dt.Record(rtt)
+		}
 
 		return nil
 	})
