@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -402,6 +403,27 @@ func TestRcloneDiskUsage(t *testing.T) {
 
 	if got.Total <= 0 || got.Free <= 0 || got.Used <= 0 {
 		t.Errorf("Expected usage bigger than zero, got: %+v", got)
+	}
+}
+
+func TestRcloneFileInfo(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
+	defer closeServer()
+
+	ctx := context.Background()
+
+	info, err := client.RcloneFileInfo(ctx, scyllaclienttest.TestHost, "rclonetest:fileinfo/file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info.Size == 0 {
+		t.Errorf("RcloneFileInfo()=%+v, expected size > 0", *info)
+	}
+	if modTime := time.Time(info.ModTime); modTime.IsZero() {
+		t.Errorf("RcloneFileInfo()=%+v, expected modTime > 0", *info)
 	}
 }
 

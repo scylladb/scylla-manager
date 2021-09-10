@@ -165,6 +165,43 @@
         "security": []
       }
     },
+    "/rclone/operations/fileinfo": {
+      "post": {
+        "description": "Get basic file information",
+        "summary": "Object info",
+        "operationId": "OperationsFileInfo",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "RemotePath",
+            "description": "Remote path",
+            "schema": {
+              "$ref": "#/definitions/RemotePath"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File information",
+            "schema": {
+              "$ref": "#/definitions/FileInfo"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/operations/list": {
       "post": {
         "description": "List the given remote and path",
@@ -817,6 +854,20 @@
         },
         "used": {
           "description": "Used space in bytes",
+          "type": "integer"
+        }
+      }
+    },
+    "FileInfo": {
+      "type": "object",
+      "properties": {
+        "modTime": {
+          "description": "Modification time",
+          "type": "string",
+          "format": "date-time"
+        },
+        "size": {
+          "description": "Size in bytes",
           "type": "integer"
         }
       }

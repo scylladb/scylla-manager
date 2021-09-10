@@ -287,6 +287,27 @@ func (c *Client) RcloneDiskUsage(ctx context.Context, host, remotePath string) (
 	return resp.Payload, nil
 }
 
+// RcloneFileInfo returns basic remote object information.
+func (c *Client) RcloneFileInfo(ctx context.Context, host, remotePath string) (*models.FileInfo, error) {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return nil, err
+	}
+
+	p := operations.OperationsFileInfoParams{
+		Context: forceHost(ctx, host),
+		RemotePath: &models.RemotePath{
+			Fs:     fs,
+			Remote: remote,
+		},
+	}
+	resp, err := c.agentOps.OperationsFileInfo(&p)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload, nil
+}
+
 // RcloneOpen streams remote file content. The stream is an HTTP body.
 // Callers must close the body after use.
 func (c *Client) RcloneOpen(ctx context.Context, host, remotePath string) (io.ReadCloser, error) {
