@@ -441,12 +441,12 @@ func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
 
 // DeleteSnapshot deletes backup snapshot with all data associated with it.
 func (c Client) DeleteSnapshot(ctx context.Context, clusterID string,
-	locations []string, snapshotTag string) error {
+	locations []string, snapshotTags []string) error {
 	p := &operations.DeleteClusterClusterIDBackupsParams{
-		Context:     ctx,
-		ClusterID:   clusterID,
-		Locations:   locations,
-		SnapshotTag: snapshotTag,
+		Context:      ctx,
+		ClusterID:    clusterID,
+		Locations:    locations,
+		SnapshotTags: snapshotTags,
 	}
 
 	_, err := c.operations.DeleteClusterClusterIDBackups(p) // nolint: errcheck

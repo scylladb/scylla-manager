@@ -38,7 +38,7 @@ func (m *MockBackupService) EXPECT() *MockBackupServiceMockRecorder {
 }
 
 // DeleteSnapshot mocks base method
-func (m *MockBackupService) DeleteSnapshot(arg0 context.Context, arg1 uuid.UUID, arg2 []backupspec.Location, arg3 string) error {
+func (m *MockBackupService) DeleteSnapshot(arg0 context.Context, arg1 uuid.UUID, arg2 []backupspec.Location, arg3 []string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSnapshot", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
