@@ -1336,6 +1336,60 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 	}
 }
 
+func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-issue2862"
+		testKeyspace = "backuptest_issue2862"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	Print("Given: retention policy of 1")
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []Location{location},
+		Retention: 1,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("And: interceptor removing tmp suffix from manifests")
+	h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(req.URL.Path, "/rclone/operations/put") {
+			q := req.URL.Query()
+			// Remove .tmp suffix from remote
+			remote := q.Get("remote")
+			remote = strings.TrimSuffix("remote", ".tmp")
+			q.Set("remote", remote)
+			// Update request query
+			req.URL.RawQuery = q.Encode()
+		}
+		return nil, nil
+	}))
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+	Print("Then: it ends with no error")
+}
+
 func TestPurgeIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-purge"

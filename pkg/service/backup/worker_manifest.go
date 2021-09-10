@@ -142,6 +142,17 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 
 		// Try to move
 		err := w.Client.RcloneMoveFile(ctx, h.IP, dst, src)
+
+		// Support resuming backups created with the Scylla Manager versions
+		// without manifest move logic. In that case the manifest is uploaded
+		// upfront.
+		if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
+			if e, _ := w.Client.RcloneFileInfo(ctx, h.IP, dst); e == nil { // nolint: errcheck
+				w.Logger.Info(ctx, "Detected manifest was already in place", "host", h.IP)
+				err = nil
+			}
+		}
+
 		if err != nil {
 			w.Logger.Error(ctx, "Moving manifest file on host", "host", h.IP, "error", err)
 		} else {
