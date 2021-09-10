@@ -347,7 +347,36 @@ func waitForJobFinish(ctx context.Context, jobid, wait int64) error {
 	}
 }
 
-// Cat a remote object.
+// rcFileInfo returns basic object information.
+func rcFileInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	o, err := f.NewObject(ctx, remote)
+	if err != nil {
+		return nil, err
+	}
+	out = rc.Params{
+		"modTime": o.ModTime(ctx),
+		"size":    o.Size(),
+	}
+	return
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "operations/fileinfo",
+		AuthRequired: true,
+		Fn:           rcFileInfo,
+		Title:        "Get basic file information",
+		Help: `This takes the following parameters
+
+- fs - a remote name string eg "drive:path/to/dir"`,
+	})
+}
+
+// rcCat returns the whole remote object in body.
 func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
