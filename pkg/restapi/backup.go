@@ -32,10 +32,8 @@ func newBackupHandler(services Services) *chi.Mux {
 		h.listFilterCtx,
 	)
 	m.Get("/", h.list)
+	m.Delete("/", h.deleteSnapshot)
 	m.Get("/files", h.listFiles)
-
-	m.With(h.snapshotTagCtx).
-		Delete("/", h.deleteSnapshot)
 
 	return m
 }
@@ -78,27 +76,6 @@ func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, ctxBackupLocations, locations)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func (h backupHandler) snapshotTagCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		snapshotTag := r.FormValue("snapshot_tag")
-		if snapshotTag == "" {
-			respondBadRequest(w, r, errors.New("missing snapshot tag"))
-			return
-		}
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, ctxBackupSnapshotTag, snapshotTag)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func (h backupHandler) mustSnapshotTagFromCtx(r *http.Request) string {
-	v, ok := r.Context().Value(ctxBackupSnapshotTag).(string)
-	if !ok {
-		panic("missing snapshot tag in context")
-	}
-	return v
 }
 
 func (h backupHandler) extractLocations(r *http.Request) ([]backupspec.Location, error) {
@@ -198,15 +175,20 @@ func (h backupHandler) listFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h backupHandler) deleteSnapshot(w http.ResponseWriter, r *http.Request) {
-	snapshotTag := h.mustSnapshotTagFromCtx(r)
+	snapshotTags := r.Form["snapshot_tags"]
+	if len(snapshotTags) == 0 {
+		respondBadRequest(w, r, errors.New("missing snapshot tags"))
+		return
+	}
+
 	err := h.svc.DeleteSnapshot(
 		r.Context(),
 		mustClusterIDFromCtx(r),
 		h.mustLocationsFromCtx(r),
-		snapshotTag,
+		snapshotTags,
 	)
 	if err != nil {
-		respondError(w, r, errors.Wrapf(err, "delete snapshot %s", snapshotTag))
+		respondError(w, r, errors.Wrap(err, "delete snapshots"))
 		return
 	}
 
