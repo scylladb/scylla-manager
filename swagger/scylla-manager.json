@@ -1555,8 +1555,11 @@
             "required": true
           },
           {
-            "type": "string",
-            "name": "snapshot_tag",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "snapshot_tags",
             "in": "query",
             "required": true
           },

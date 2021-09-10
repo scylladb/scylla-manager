@@ -65,8 +65,8 @@ type DeleteClusterClusterIDBackupsParams struct {
 	ClusterID string
 	/*Locations*/
 	Locations []string
-	/*SnapshotTag*/
-	SnapshotTag string
+	/*SnapshotTags*/
+	SnapshotTags []string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -128,15 +128,15 @@ func (o *DeleteClusterClusterIDBackupsParams) SetLocations(locations []string) {
 	o.Locations = locations
 }
 
-// WithSnapshotTag adds the snapshotTag to the delete cluster cluster ID backups params
-func (o *DeleteClusterClusterIDBackupsParams) WithSnapshotTag(snapshotTag string) *DeleteClusterClusterIDBackupsParams {
-	o.SetSnapshotTag(snapshotTag)
+// WithSnapshotTags adds the snapshotTags to the delete cluster cluster ID backups params
+func (o *DeleteClusterClusterIDBackupsParams) WithSnapshotTags(snapshotTags []string) *DeleteClusterClusterIDBackupsParams {
+	o.SetSnapshotTags(snapshotTags)
 	return o
 }
 
-// SetSnapshotTag adds the snapshotTag to the delete cluster cluster ID backups params
-func (o *DeleteClusterClusterIDBackupsParams) SetSnapshotTag(snapshotTag string) {
-	o.SnapshotTag = snapshotTag
+// SetSnapshotTags adds the snapshotTags to the delete cluster cluster ID backups params
+func (o *DeleteClusterClusterIDBackupsParams) SetSnapshotTags(snapshotTags []string) {
+	o.SnapshotTags = snapshotTags
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -160,13 +160,12 @@ func (o *DeleteClusterClusterIDBackupsParams) WriteToRequest(r runtime.ClientReq
 		return err
 	}
 
-	// query param snapshot_tag
-	qrSnapshotTag := o.SnapshotTag
-	qSnapshotTag := qrSnapshotTag
-	if qSnapshotTag != "" {
-		if err := r.SetQueryParam("snapshot_tag", qSnapshotTag); err != nil {
-			return err
-		}
+	valuesSnapshotTags := o.SnapshotTags
+
+	joinedSnapshotTags := swag.JoinByFormat(valuesSnapshotTags, "")
+	// query array param snapshot_tags
+	if err := r.SetQueryParam("snapshot_tags", joinedSnapshotTags...); err != nil {
+		return err
 	}
 
 	if len(res) > 0 {

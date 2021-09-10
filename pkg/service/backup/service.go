@@ -1039,10 +1039,10 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 }
 
 // DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.
-func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTag string) error {
+func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTags []string) error {
 	s.logger.Debug(ctx, "DeleteSnapshot",
 		"cluster_id", clusterID,
-		"snapshot_tag", snapshotTag,
+		"snapshot_tags", snapshotTags,
 	)
 
 	// Get the cluster client
@@ -1069,7 +1069,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 			return err
 		}
 		p := newPurger(client, h.IP, s.logger)
-		n, err := p.PurgeSnapshotTags(ctx, manifests, strset.New(snapshotTag))
+		n, err := p.PurgeSnapshotTags(ctx, manifests, strset.New(snapshotTags...))
 		deletedManifests.Add(int32(n))
 
 		if err != nil {
