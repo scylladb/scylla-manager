@@ -21,9 +21,13 @@ import (
 )
 
 func taskInitCommonFlags(fs *pflag.FlagSet) {
+	taskInitCommonFlagsWithParams(fs, 3)
+}
+
+func taskInitCommonFlagsWithParams(fs *pflag.FlagSet, numRetries int64) {
 	fs.StringP("start-date", "s", "now", "task start date expressed in the RFC3339 format or now[+duration], e.g. now+3d2h10m, valid units are d, h, m, s")
 	fs.StringP("interval", "i", "0", "task schedule interval e.g. 3d2h10m, valid units are d, h, m, s")
-	fs.Int64P("num-retries", "r", 3, "number of times a scheduled task will retry to run before failing")
+	fs.Int64P("num-retries", "r", numRetries, "number of times a scheduled task will retry to run before failing")
 }
 
 var taskCmd = &cobra.Command{
