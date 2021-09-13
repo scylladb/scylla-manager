@@ -529,6 +529,6 @@ func init() {
 		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> e.g. s3:my-bucket. The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations. The supported providers are: s3, gcs, azure") // nolint: lll
 	fs.Bool("delete-orphaned-files", false, "delete data files not belonging to any snapshot if they are found")
 	fs.Int("parallel", 0, "number of hosts to analyze in parallel")
-	taskInitCommonFlags(fs)
+	taskInitCommonFlagsWithParams(fs, 0)
 	register(cmd, backupCmd)
 }
