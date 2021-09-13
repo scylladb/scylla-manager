@@ -185,7 +185,6 @@ func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteO
 		}
 		// OK, file added after we started
 		if time.Time(item.ModTime).After(start) {
-			p.logger.Info(ctx, "Unexpected new file", "path", item.Path, "mod_time", time.Time(item.ModTime))
 			return
 		}
 
