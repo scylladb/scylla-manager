@@ -173,6 +173,12 @@ func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteO
 	handler := func(item *scyllaclient.RcloneListDirItem) {
 		result.ScannedFiles++
 
+		defer func() {
+			if result.ScannedFiles%p.notifyEach == 0 {
+				p.onScan(ctx, result)
+			}
+		}()
+
 		// OK, file from manifest
 		if files.Has(item.Path) {
 			files.Remove(item.Path)
@@ -192,10 +198,6 @@ func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteO
 		result.OrphanedFiles++
 		result.OrphanedBytes += item.Size
 		orphanedFiles.Add(item.Path)
-
-		if result.ScannedFiles%p.notifyEach == 0 {
-			p.onScan(ctx, result)
-		}
 	}
 	if err := p.forEachRemoteFile(ctx, manifests[0], handler); err != nil {
 		return result, errors.Wrap(err, "list files")
