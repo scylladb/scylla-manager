@@ -125,9 +125,11 @@ pkg-integration-test:
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
+pkg-stress-test: RUN=Test
+pkg-stress-test:
 	@echo "==> Running stress tests for package $(PKG) (race)"
 	@go test -race -c -o stress.test $(PKG)
-	@cd $(PKG); $(GOBIN)/stress $(PWD)/stress.test
+	@cd $(PKG); $(GOBIN)/stress $(PWD)/stress.test -test.run $(RUN)
 
 .PHONY: start-dev-env
 start-dev-env: ## Start testing containers and run server
