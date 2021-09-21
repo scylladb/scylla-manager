@@ -42,7 +42,7 @@ func startAndWait(ctx context.Context, s *Scheduler) chan struct{} {
 type fakeRunner struct {
 	c *atomic.Int64
 	C chan Key
-	F func(ctx context.Context, key Key, properties Properties) error
+	F RunFunc
 }
 
 func newFakeRunner() *fakeRunner {
@@ -52,13 +52,13 @@ func newFakeRunner() *fakeRunner {
 	}
 }
 
-func (r *fakeRunner) Run(ctx context.Context, key Key, properties Properties) error {
+func (r *fakeRunner) Run(ctx RunContext) error {
 	r.c.Inc()
 	defer func() {
-		r.C <- key
+		r.C <- ctx.Key
 	}()
 	if r.F != nil {
-		return r.F(ctx, key, properties)
+		return r.F(ctx)
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func TestScheduleWhileRunning(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	f.F = func(ctx context.Context, key Key, properties Properties) error {
+	f.F = func(ctx RunContext) error {
 		time.Sleep(200 * time.Millisecond)
 		return nil
 	}
@@ -358,7 +358,7 @@ func TestStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	f.F = func(ctx context.Context, key Key, properties Properties) error {
+	f.F = func(ctx RunContext) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
