@@ -19,17 +19,34 @@ func (k Key) String() string {
 	return uuid.UUID(k).String()
 }
 
-// Properties specify task details and are passed to RunFunc.
-type Properties struct {
-	json.RawMessage
+// Properties are externally defined task parameters.
+// They are JSON encoded.
+type Properties json.RawMessage
+
+// RunContext is a bundle of Context, Key, Properties and additional runtime
+// information.
+type RunContext struct {
+	context.Context
+	Key        Key
+	Properties Properties
+	Retry      int8
 	NoContinue bool
+}
+
+func newRunContext(key Key, properties Properties) (RunContext, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	return RunContext{
+		Context:    log.WithNewTraceID(ctx),
+		Key:        key,
+		Properties: properties,
+	}, cancel
 }
 
 // RunFunc specifies interface for key execution.
 // When the provided context is cancelled function must return with
 // context.Cancelled error, or an error caused by this error.
 // Compatible functions can be passed to Scheduler constructor.
-type RunFunc func(ctx context.Context, key Key, properties Properties) error
+type RunFunc func(ctx RunContext) error
 
 // Trigger provides the next activation date.
 // Implementations must return the same values for the same now parameter.
@@ -157,16 +174,16 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Propert
 	if s.queue.Remove(key) {
 		s.wakeup()
 	}
-	runCtx, cancel := context.WithCancel(context.Background())
-	s.running[key] = cancel
 	p := s.properties[key]
+	runCtx, cancel := newRunContext(key, p)
+	s.running[key] = cancel
 	s.mu.Unlock()
 
 	for _, o := range opts {
 		p = o(p)
 	}
 
-	s.asyncRun(runCtx, key, p)
+	s.asyncRun(runCtx)
 }
 
 // Stop notifies RunFunc to stop by cancelling the context.
@@ -228,11 +245,11 @@ func (s *Scheduler) Start(ctx context.Context) {
 			continue
 		}
 		p := s.properties[a.Key]
-		runCtx, cancel := context.WithCancel(context.Background())
+		runCtx, cancel := newRunContext(a.Key, p)
 		s.running[a.Key] = cancel
 		s.mu.Unlock()
 
-		s.asyncRun(runCtx, a.Key, p)
+		s.asyncRun(runCtx)
 	}
 
 	s.logger.Info(ctx, "Scheduler stopped")
@@ -285,23 +302,21 @@ func (s *Scheduler) wakeup() {
 	}
 }
 
-func (s *Scheduler) asyncRun(ctx context.Context, key Key, p Properties) {
-	ctx = log.WithNewTraceID(ctx)
-	s.logger.Info(ctx, "Run", "key", key)
+func (s *Scheduler) asyncRun(ctx RunContext) {
+	s.logger.Info(ctx, "Run", "key", ctx.Key)
 
 	s.wg.Add(1)
-	go func(ctx context.Context, key Key, p Properties) {
+	go func(ctx RunContext) {
 		defer s.wg.Done()
 
-		err := s.run(ctx, key, p)
-		if err != nil {
-			s.logger.Info(ctx, "Run failed", "key", key, "error", err)
+		if err := s.run(ctx); err != nil {
+			s.logger.Info(ctx, "Run failed", "key", ctx.Key, "error", err)
 		} else {
-			s.logger.Info(ctx, "Run done", "key", key)
+			s.logger.Info(ctx, "Run done", "key", ctx.Key)
 		}
 
-		s.reschedule(key)
-	}(ctx, key, p)
+		s.reschedule(ctx.Key)
+	}(ctx)
 }
 
 // Wait joins all active runs.
