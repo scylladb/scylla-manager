@@ -55,6 +55,12 @@ type Trigger interface {
 	Next(now time.Time) time.Time
 }
 
+// Details holds Properties, Trigger and auxiliary Key configuration.
+type Details struct {
+	Properties Properties
+	Trigger    Trigger
+}
+
 // Scheduler manages keys and triggers.
 // A key uniquely identifies a scheduler task.
 // There can be a single instance of a key scheduled or running at all times.
@@ -66,11 +72,10 @@ type Scheduler struct {
 	logger log.Logger
 	timer  *time.Timer
 
-	queue      *activationQueue
-	properties map[Key]Properties
-	trigger    map[Key]Trigger
-	running    map[Key]context.CancelFunc
-	mu         sync.Mutex
+	queue   *activationQueue
+	details map[Key]Details
+	running map[Key]context.CancelFunc
+	mu      sync.Mutex
 
 	wakeupCh chan struct{}
 	wg       sync.WaitGroup
@@ -78,35 +83,31 @@ type Scheduler struct {
 
 func NewScheduler(now func() time.Time, run RunFunc, logger log.Logger) *Scheduler {
 	return &Scheduler{
-		now:        now,
-		run:        run,
-		logger:     logger,
-		timer:      time.NewTimer(0),
-		queue:      newActivationQueue(),
-		properties: make(map[Key]Properties),
-		trigger:    make(map[Key]Trigger),
-		running:    make(map[Key]context.CancelFunc),
-		wakeupCh:   make(chan struct{}),
+		now:      now,
+		run:      run,
+		logger:   logger,
+		timer:    time.NewTimer(0),
+		queue:    newActivationQueue(),
+		details:  make(map[Key]Details),
+		running:  make(map[Key]context.CancelFunc),
+		wakeupCh: make(chan struct{}),
 	}
 }
 
 // Schedule updates properties and trigger of an existing key or add a new key.
-func (s *Scheduler) Schedule(ctx context.Context, key Key, properties Properties, trigger Trigger) {
+func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	next := trigger.Next(s.now())
-
+	next := d.Trigger.Next(s.now())
 	s.logger.Info(ctx, "Schedule", "key", key, "next", next)
-
 	if next.IsZero() {
 		s.logger.Info(ctx, "No triggers, removing", "key", key)
 		s.unscheduleLocked(key)
 		return
 	}
 
-	s.properties[key] = properties
-	s.trigger[key] = trigger
+	s.details[key] = d
 
 	// If running key will be scheduled when done in reschedule.
 	if _, running := s.running[key]; !running {
@@ -126,12 +127,12 @@ func (s *Scheduler) reschedule(key Key) {
 	}
 	delete(s.running, key)
 
-	t, ok := s.trigger[key]
+	d, ok := s.details[key]
 	if !ok {
 		return
 	}
 
-	next := t.Next(s.now())
+	next := d.Trigger.Next(s.now())
 	if next.IsZero() {
 		s.unscheduleLocked(key)
 		return
@@ -151,8 +152,7 @@ func (s *Scheduler) Unschedule(ctx context.Context, key Key) {
 }
 
 func (s *Scheduler) unscheduleLocked(key Key) {
-	delete(s.properties, key)
-	delete(s.trigger, key)
+	delete(s.details, key)
 	if s.queue.Remove(key) {
 		s.wakeup()
 	}
@@ -174,13 +174,17 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Propert
 	if s.queue.Remove(key) {
 		s.wakeup()
 	}
-	p := s.properties[key]
-	runCtx, cancel := newRunContext(key, p)
+	d := s.details[key]
+	runCtx, cancel := newRunContext(key, d.Properties)
 	s.running[key] = cancel
 	s.mu.Unlock()
 
-	for _, o := range opts {
-		p = o(p)
+	if len(opts) != 0 {
+		p := d.Properties
+		for _, o := range opts {
+			p = o(p)
+		}
+		runCtx.Properties = p
 	}
 
 	s.asyncRun(runCtx)
@@ -244,8 +248,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 			s.mu.Unlock()
 			continue
 		}
-		p := s.properties[a.Key]
-		runCtx, cancel := newRunContext(a.Key, p)
+		runCtx, cancel := newRunContext(a.Key, s.details[a.Key].Properties)
 		s.running[a.Key] = cancel
 		s.mu.Unlock()
 

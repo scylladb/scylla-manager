@@ -94,10 +94,6 @@ func randomKeys(n int) []Key {
 	return keys
 }
 
-func emptyProperties() Properties {
-	return Properties{}
-}
-
 type fakeTrigger struct {
 	a []time.Time
 }
@@ -122,6 +118,12 @@ func (f fakeTrigger) Next(now time.Time) time.Time {
 	return time.Time{}
 }
 
+func details(t Trigger) Details {
+	return Details{
+		Trigger: t,
+	}
+}
+
 func TestStopEmpty(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	f := newFakeRunner()
@@ -142,7 +144,7 @@ func TestScheduleAfterStop(t *testing.T) {
 
 	time.AfterFunc(StartOffset, func() {
 		cancel()
-		s.Schedule(ctx, randomKey(), emptyProperties(), newFakeTrigger(0))
+		s.Schedule(ctx, randomKey(), details(newFakeTrigger(0)))
 	})
 
 	select {
@@ -160,7 +162,7 @@ func TestScheduleBeforeStart(t *testing.T) {
 	defer cancel()
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
-	s.Schedule(ctx, randomKey(), emptyProperties(), newFakeTrigger(100*time.Millisecond))
+	s.Schedule(ctx, randomKey(), details(newFakeTrigger(100*time.Millisecond)))
 
 	select {
 	case <-startAndWait(ctx, s):
@@ -185,10 +187,12 @@ func TestScheduleWhileRunning(t *testing.T) {
 	}
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKey()
-	s.Schedule(ctx, k, emptyProperties(), newFakeTrigger(50*time.Millisecond))
+	s.Schedule(ctx, k, details(newFakeTrigger(50*time.Millisecond)))
 
 	time.AfterFunc(100*time.Millisecond, func() {
-		s.Schedule(ctx, k, emptyProperties(), newFakeTrigger(300*time.Millisecond))
+		s.Schedule(ctx, k, Details{
+			Trigger: newFakeTrigger(300 * time.Millisecond),
+		})
 	})
 
 	select {
@@ -207,7 +211,7 @@ func TestStartSchedule(t *testing.T) {
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 
 	time.AfterFunc(StartOffset, func() {
-		s.Schedule(ctx, randomKey(), emptyProperties(), newFakeTrigger(100*time.Millisecond))
+		s.Schedule(ctx, randomKey(), details(newFakeTrigger(100*time.Millisecond)))
 	})
 
 	select {
@@ -229,7 +233,7 @@ func TestUnscheduleBeforeRun(t *testing.T) {
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKey()
-	s.Schedule(ctx, k, emptyProperties(), newFakeTrigger(500*time.Millisecond))
+	s.Schedule(ctx, k, details(newFakeTrigger(500*time.Millisecond)))
 
 	time.AfterFunc(StartOffset, func() {
 		s.Unschedule(ctx, k)
@@ -250,9 +254,9 @@ func TestUnschduleHead(t *testing.T) {
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKeys(3)
-	s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(500*time.Millisecond))
-	s.Schedule(ctx, k[1], emptyProperties(), newFakeTrigger(600*time.Millisecond))
-	s.Schedule(ctx, k[2], emptyProperties(), newFakeTrigger(700*time.Millisecond))
+	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
+	s.Schedule(ctx, k[2], details(newFakeTrigger(700*time.Millisecond)))
 
 	time.AfterFunc(StartOffset, func() {
 		s.Unschedule(ctx, k[0])
@@ -273,9 +277,9 @@ func TestUnschduleTail(t *testing.T) {
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKeys(3)
-	s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(500*time.Millisecond))
-	s.Schedule(ctx, k[1], emptyProperties(), newFakeTrigger(600*time.Millisecond))
-	s.Schedule(ctx, k[2], emptyProperties(), newFakeTrigger(700*time.Millisecond))
+	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
+	s.Schedule(ctx, k[2], details(newFakeTrigger(700*time.Millisecond)))
 
 	time.AfterFunc(StartOffset, func() {
 		s.Unschedule(ctx, k[1])
@@ -296,12 +300,12 @@ func TestRescheduleHead(t *testing.T) {
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKeys(3)
-	s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(500*time.Millisecond))
-	s.Schedule(ctx, k[1], emptyProperties(), newFakeTrigger(600*time.Millisecond))
-	s.Schedule(ctx, k[2], emptyProperties(), newFakeTrigger(700*time.Millisecond))
+	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
+	s.Schedule(ctx, k[2], details(newFakeTrigger(700*time.Millisecond)))
 
 	time.AfterFunc(StartOffset, func() {
-		s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(800*time.Millisecond))
+		s.Schedule(ctx, k[0], details(newFakeTrigger(800*time.Millisecond)))
 	})
 
 	select {
@@ -319,8 +323,8 @@ func TestRescheduleInterval(t *testing.T) {
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKeys(2)
-	s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(100*time.Millisecond, 300*time.Millisecond, 400*time.Millisecond))
-	s.Schedule(ctx, k[1], emptyProperties(), newFakeTrigger(200*time.Millisecond))
+	s.Schedule(ctx, k[0], details(newFakeTrigger(100*time.Millisecond, 300*time.Millisecond, 400*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(200*time.Millisecond)))
 
 	select {
 	case <-startAndWait(ctx, s):
@@ -337,9 +341,9 @@ func TestTriggerHead(t *testing.T) {
 	f := newFakeRunner()
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKeys(3)
-	s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(500*time.Millisecond))
-	s.Schedule(ctx, k[1], emptyProperties(), newFakeTrigger(600*time.Millisecond))
-	s.Schedule(ctx, k[2], emptyProperties(), newFakeTrigger(700*time.Millisecond))
+	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
+	s.Schedule(ctx, k[2], details(newFakeTrigger(700*time.Millisecond)))
 
 	time.AfterFunc(StartOffset, func() {
 		s.Trigger(ctx, k[0])
@@ -366,8 +370,8 @@ func TestStop(t *testing.T) {
 	}
 	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
 	k := randomKeys(2)
-	s.Schedule(ctx, k[0], emptyProperties(), newFakeTrigger(100*time.Millisecond))
-	s.Schedule(ctx, k[1], emptyProperties(), newFakeTrigger(200*time.Millisecond))
+	s.Schedule(ctx, k[0], details(newFakeTrigger(100*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(200*time.Millisecond)))
 
 	time.AfterFunc(150*time.Millisecond, func() {
 		s.Stop(ctx, k[0])
