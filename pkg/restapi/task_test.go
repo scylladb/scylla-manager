@@ -48,6 +48,31 @@ func givenListTasksRequest(clusterID uuid.UUID, taskType scheduler.TaskType, sta
 	return r
 }
 
+// TaskMatcher gomock.Matcher interface implementation for scheduler.Task.
+type TaskMatcher struct {
+	expected *scheduler.Task
+}
+
+// NewTaskMatcher returns gomock.Matcher for tasks. It compares only ID field.
+func NewTaskMatcher(expected *scheduler.Task) *TaskMatcher {
+	return &TaskMatcher{
+		expected: expected,
+	}
+}
+
+// Matches returns whether v is a match.
+func (m TaskMatcher) Matches(v interface{}) bool {
+	task, ok := v.(*scheduler.Task)
+	if !ok {
+		return false
+	}
+	return cmp.Equal(m.expected.ID, task.ID, testutils.UUIDComparer())
+}
+
+func (m TaskMatcher) String() string {
+	return fmt.Sprintf("is equal to task with ID: %s", m.expected.ID.String())
+}
+
 func TestListTaskStatusFiltering(t *testing.T) {
 	t.Parallel()
 
@@ -75,8 +100,8 @@ func TestListTaskStatusFiltering(t *testing.T) {
 
 	cm.EXPECT().GetCluster(gomock.Any(), c.ID.String()).Return(c, nil)
 	sm.EXPECT().ListTasks(gomock.Any(), testutils.NewUUIDMatcher(c.ID), t0.Type).Return([]*scheduler.Task{t0, t1}, nil)
-	sm.EXPECT().GetLastRun(gomock.Any(), testutils.NewTaskMatcher(t0), gomock.Any()).Return([]*scheduler.Run{run0}, nil)
-	sm.EXPECT().GetLastRun(gomock.Any(), testutils.NewTaskMatcher(t1), gomock.Any()).Return([]*scheduler.Run{run1}, nil)
+	sm.EXPECT().GetLastRun(gomock.Any(), NewTaskMatcher(t0), gomock.Any()).Return([]*scheduler.Run{run0}, nil)
+	sm.EXPECT().GetLastRun(gomock.Any(), NewTaskMatcher(t1), gomock.Any()).Return([]*scheduler.Run{run1}, nil)
 	sm.EXPECT().IsSuspended(gomock.Any(), testutils.NewUUIDMatcher(c.ID)).Return(false)
 
 	h.ServeHTTP(w, r)
