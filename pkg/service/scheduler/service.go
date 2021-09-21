@@ -7,12 +7,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/service"
 	"github.com/scylladb/scylla-manager/pkg/store"
@@ -26,6 +27,7 @@ import (
 // function and there can be only one Runner for a TaskType.
 type Service struct {
 	session   gocqlx.Session
+	metrics   metrics.SchedulerMetrics
 	logger    log.Logger
 	wg        sync.WaitGroup
 	mu        sync.Mutex
@@ -46,13 +48,14 @@ var (
 	startDateThreshold = -time.Minute
 )
 
-func NewService(session gocqlx.Session, drawer store.Store, logger log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer store.Store, logger log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	s := &Service{
 		session:   session,
+		metrics:   metrics,
 		logger:    logger,
 		runners:   make(map[TaskType]Runner),
 		tasks:     make(map[uuid.UUID]*trigger),
@@ -150,9 +153,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 		if err := s.fixRunStatus(r, now); err != nil {
 			return errors.Wrap(err, "fix run status")
 		}
-		if err := s.initMetrics(t, r); err != nil {
-			return errors.Wrap(err, "init metrics")
-		}
+		s.initMetrics(t)
 		s.schedule(ctx, t)
 
 		return nil
@@ -196,78 +197,13 @@ func (s *Service) fixRunStatus(r *Run, now time.Time) error {
 	return nil
 }
 
-func (s *Service) initMetrics(t *Task, r *Run) error {
-	// Using Add(0) to not override existing values.
-
-	// Init active_count
-	taskActiveCount.With(prometheus.Labels{
-		"cluster": t.ClusterID.String(),
-		"type":    t.Type.String(),
-		"task":    t.ID.String(),
-	}).Add(0)
-
-	// Init run_total and last_run_duration_seconds
-	statuses := []Status{StatusNew, StatusRunning, StatusStopped, StatusDone, StatusError, StatusAborted}
-	for _, s := range statuses {
-		// If last run was aborted record it with taskRunTotal.
-		// Otherwise it is impossible to notice ABORTED runs since they belong
-		// to the last service run.
-		// Counting all rows does not make sense either because the run rows
-		// are TTLed, and after a while they would flatten out or could decrease.
-		v := float64(0)
-		if a := StatusAborted; s == a && r != nil && r.Status == a {
-			v = 1
-		}
-		taskRunTotal.With(prometheus.Labels{
-			"cluster": t.ClusterID.String(),
-			"type":    t.Type.String(),
-			"task":    t.ID.String(),
-			"status":  s.String(),
-		}).Add(v)
-
-		taskLastRunDurationSeconds.With(prometheus.Labels{
-			"cluster": t.ClusterID.String(),
-			"task":    t.ID.String(),
-			"type":    t.Type.String(),
-			"status":  s.String(),
-		}).Observe(0)
-	}
-
-	// Init last_success
-	st, err := s.lastDoneRunStartTime(t, r)
-	if err != nil {
-		return err
-	}
-	taskLastSuccess.With(prometheus.Labels{
-		"cluster": t.ClusterID.String(),
-		"task":    t.ID.String(),
-		"type":    t.Type.String(),
-	}).Set(float64(st.Unix()))
-
-	return nil
+func (s *Service) initMetrics(t *Task) {
+	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, statuses()...)
 }
 
-func (s *Service) lastDoneRunStartTime(t *Task, r *Run) (time.Time, error) {
-	zero := time.Time{}
-
-	// If there is no last run there is no previous run with some status.
-	if r == nil {
-		return zero, nil
-	}
-
-	if r.Status == StatusDone {
-		return r.StartTime, nil
-	}
-
-	dr, err := s.GetLastRunWithStatus(t, StatusDone)
-	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
-			err = nil
-		}
-		return zero, errors.Wrap(err, "get last run with status done")
-	}
-
-	return dr.StartTime, nil
+func statuses() []string {
+	statuses := []Status{StatusNew, StatusRunning, StatusStopped, StatusDone, StatusError, StatusAborted}
+	return *(*[]string)(unsafe.Pointer(&statuses))
 }
 
 // schedule cancels any pending triggers for task and adds new trigger if needed.
@@ -381,15 +317,6 @@ func (s *Service) run(t *Task, tg *trigger) {
 	// Create a new context, the context lifecycle is managed by this function
 	ctx := log.WithNewTraceID(context.Background())
 
-	defer func() {
-		taskLastRunDurationSeconds.With(prometheus.Labels{
-			"cluster": t.ClusterID.String(),
-			"task":    t.ID.String(),
-			"type":    t.Type.String(),
-			"status":  run.Status.String(),
-		}).Observe(timeutc.Since(run.StartTime).Seconds())
-	}()
-
 	// Upon returning reschedule
 	defer s.reschedule(ctx, t)
 
@@ -450,11 +377,7 @@ func (s *Service) run(t *Task, tg *trigger) {
 	}
 
 	// Update metrics
-	taskActiveCount.With(prometheus.Labels{
-		"cluster": t.ClusterID.String(),
-		"type":    t.Type.String(),
-		"task":    t.ID.String(),
-	}).Inc()
+	s.metrics.BeginRun(t.ClusterID, t.Type.String(), t.ID)
 
 	// Run task async
 	result := make(chan error, 1)
@@ -521,26 +444,7 @@ wait:
 	s.putRunLogError(ctx, run)
 
 	// Update metrics
-	taskActiveCount.With(prometheus.Labels{
-		"cluster": t.ClusterID.String(),
-		"type":    t.Type.String(),
-		"task":    t.ID.String(),
-	}).Dec()
-
-	taskRunTotal.With(prometheus.Labels{
-		"cluster": t.ClusterID.String(),
-		"type":    t.Type.String(),
-		"task":    t.ID.String(),
-		"status":  run.Status.String(),
-	}).Inc()
-
-	if run.Status == StatusDone {
-		taskLastSuccess.With(prometheus.Labels{
-			"cluster": t.ClusterID.String(),
-			"type":    t.Type.String(),
-			"task":    t.ID.String(),
-		}).Set(float64(run.StartTime.Unix()))
-	}
+	s.metrics.EndRun(t.ClusterID, t.Type.String(), t.ID, run.Status.String())
 }
 
 // StartTask starts execution of a task immediately, regardless of the task's schedule.
@@ -927,13 +831,10 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		return err
 	}
 
-	s.schedule(ctx, t)
-
 	if create {
-		if err := s.initMetrics(t, nil); err != nil {
-			return errors.Wrap(err, "init metrics")
-		}
+		s.initMetrics(t)
 	}
+	s.schedule(ctx, t)
 
 	return nil
 }

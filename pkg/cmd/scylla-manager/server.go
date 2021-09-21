@@ -113,6 +113,7 @@ func (s *server) makeServices() error {
 
 	s.schedSvc, err = scheduler.NewService(
 		s.session,
+		metrics.NewSchedulerMetrics().MustRegister(),
 		drawerStore,
 		s.logger.Named("scheduler"),
 	)
