@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/store"
 
@@ -228,7 +229,7 @@ func (h *schedTestHelper) makeTask(s scheduler.Schedule) *scheduler.Task {
 func newTestService(t *testing.T, session gocqlx.Session) *scheduler.Service {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
-	s, err := scheduler.NewService(session, store.NewTableStore(session, table.Drawer), logger)
+	s, err := scheduler.NewService(session, metrics.NewSchedulerMetrics(), store.NewTableStore(session, table.Drawer), logger)
 	if err != nil {
 		t.Fatal(err)
 	}
