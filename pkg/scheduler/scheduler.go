@@ -175,8 +175,7 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Propert
 		s.wakeup()
 	}
 	d := s.details[key]
-	runCtx, cancel := newRunContext(key, d.Properties)
-	s.running[key] = cancel
+	runCtx := s.newRunContextLocked(activation{Key: key})
 	s.mu.Unlock()
 
 	if len(opts) != 0 {
@@ -248,8 +247,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 			s.mu.Unlock()
 			continue
 		}
-		runCtx, cancel := newRunContext(a.Key, s.details[a.Key].Properties)
-		s.running[a.Key] = cancel
+		runCtx := s.newRunContextLocked(a)
 		s.mu.Unlock()
 
 		s.asyncRun(runCtx)
@@ -303,6 +301,13 @@ func (s *Scheduler) wakeup() {
 	case s.wakeupCh <- struct{}{}:
 	default:
 	}
+}
+
+func (s *Scheduler) newRunContextLocked(a activation) RunContext {
+	ctx, cancel := newRunContext(a.Key, s.details[a.Key].Properties)
+	ctx.Retry = a.Retry
+	s.running[a.Key] = cancel
+	return ctx
 }
 
 func (s *Scheduler) asyncRun(ctx RunContext) {
