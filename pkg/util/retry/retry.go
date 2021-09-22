@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/pkg/errors"
 )
 
 // An Operation is executing by WithNotify().
@@ -26,4 +27,10 @@ func WithNotify(ctx context.Context, op Operation, b Backoff, n Notify) error {
 // This error interrupts further retries and causes retrying mechanism.
 func Permanent(err error) *backoff.PermanentError {
 	return backoff.Permanent(err)
+}
+
+// IsPermanent checks if an error is a permanent error created with Permanent.
+func IsPermanent(err error) bool {
+	var perr *backoff.PermanentError
+	return errors.As(err, &perr)
 }
