@@ -4,11 +4,13 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -71,6 +73,24 @@ func (r *fakeRunner) WaitKeys(keys ...Key) chan struct{} {
 			if key != keys[i] {
 				msg := fmt.Sprintf("Run key=%s, expected %s", key, keys[i])
 				panic(msg)
+			}
+		}
+		close(ch)
+	}()
+	return ch
+}
+
+func (r *fakeRunner) Wait(d time.Duration) chan struct{} {
+	ch := make(chan struct{})
+	go func() {
+		t := time.NewTimer(d)
+		defer t.Stop()
+	loop:
+		for {
+			select {
+			case <-r.C:
+			case <-t.C:
+				break loop
 			}
 		}
 		close(ch)
@@ -386,5 +406,53 @@ func TestStop(t *testing.T) {
 	case <-time.After(Timeout):
 		t.Fatal("expected a run, timeout")
 	case <-f.WaitKeys(k[0], k[1]):
+	}
+}
+
+func TestRetry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := newFakeRunner()
+	f.F = func(ctx RunContext) error {
+		if f.Count() < 4 {
+			return errors.New("test error")
+		}
+		return nil
+	}
+	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	k := randomKey()
+	d := details(newFakeTrigger(100*time.Millisecond, 500*time.Millisecond))
+	d.Backoff = retry.NewExponentialBackoff(50*time.Millisecond, 800*time.Millisecond, 200*time.Millisecond, 2, 0)
+	s.Schedule(ctx, k, d)
+
+	select {
+	case <-startAndWait(ctx, s):
+		t.Fatal("expected a run, scheduler exit")
+	case <-time.After(Timeout):
+		t.Fatal("expected a run, timeout")
+	case <-f.WaitKeys(k, k, k, k, k):
+	}
+}
+
+func TestRetryPermanentError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := newFakeRunner()
+	f.F = func(ctx RunContext) error {
+		return retry.Permanent(errors.New("test error"))
+	}
+	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	k := randomKey()
+	d := details(newFakeTrigger(100 * time.Millisecond))
+	d.Backoff = retry.NewExponentialBackoff(50*time.Millisecond, 800*time.Millisecond, 200*time.Millisecond, 2, 0)
+	s.Schedule(ctx, k, d)
+
+	select {
+	case <-startAndWait(ctx, s):
+		t.Fatal("expected a run, scheduler exit")
+	case <-f.Wait(200 * time.Millisecond):
+		if c := f.Count(); c != 1 {
+			t.Fatal("Unexpected retry")
+		}
 	}
 }

@@ -5,10 +5,12 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -31,11 +33,13 @@ type RunContext struct {
 	Properties Properties
 	Retry      int8
 	NoContinue bool
+
+	err error
 }
 
-func newRunContext(key Key, properties Properties) (RunContext, context.CancelFunc) {
+func newRunContext(key Key, properties Properties) (*RunContext, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
-	return RunContext{
+	return &RunContext{
 		Context:    log.WithNewTraceID(ctx),
 		Key:        key,
 		Properties: properties,
@@ -59,6 +63,7 @@ type Trigger interface {
 type Details struct {
 	Properties Properties
 	Trigger    Trigger
+	Backoff    retry.Backoff
 }
 
 // Scheduler manages keys and triggers.
@@ -117,7 +122,9 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	}
 }
 
-func (s *Scheduler) reschedule(key Key) {
+func (s *Scheduler) reschedule(ctx *RunContext) {
+	key := ctx.Key
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -132,15 +139,36 @@ func (s *Scheduler) reschedule(key Key) {
 		return
 	}
 
-	next := d.Trigger.Next(s.now())
+	var (
+		now   = s.now()
+		next  = d.Trigger.Next(now)
+		retno int8
+	)
+	if d.Backoff != nil {
+		if shouldRetry(ctx.err) {
+			if b := d.Backoff.NextBackOff(); b != retry.Stop {
+				next = now.Add(b)
+				retno = ctx.Retry + 1
+			}
+		} else {
+			d.Backoff.Reset()
+		}
+	}
 	if next.IsZero() {
+		s.logger.Info(ctx, "No triggers, removing", "key", key)
 		s.unscheduleLocked(key)
 		return
 	}
 
-	if s.queue.Push(activation{Key: key, Time: next}) {
+	s.logger.Info(ctx, "Schedule next", "key", key, "next", next, "retry", retno)
+
+	if s.queue.Push(activation{Key: key, Time: next, Retry: retno}) {
 		s.wakeup()
 	}
+}
+
+func shouldRetry(err error) bool {
+	return !(err == nil || errors.Is(err, context.Canceled) || retry.IsPermanent(err))
 }
 
 // Unschedule cancels schedule of a key. It does not stop an active run.
@@ -303,28 +331,35 @@ func (s *Scheduler) wakeup() {
 	}
 }
 
-func (s *Scheduler) newRunContextLocked(a activation) RunContext {
+func (s *Scheduler) newRunContextLocked(a activation) *RunContext {
 	ctx, cancel := newRunContext(a.Key, s.details[a.Key].Properties)
 	ctx.Retry = a.Retry
 	s.running[a.Key] = cancel
 	return ctx
 }
 
-func (s *Scheduler) asyncRun(ctx RunContext) {
+func (s *Scheduler) asyncRun(ctx *RunContext) {
 	s.logger.Info(ctx, "Run", "key", ctx.Key)
 
 	s.wg.Add(1)
-	go func(ctx RunContext) {
+	go func(ctx *RunContext) {
 		defer s.wg.Done()
-
-		if err := s.run(ctx); err != nil {
-			s.logger.Info(ctx, "Run failed", "key", ctx.Key, "error", err)
-		} else {
-			s.logger.Info(ctx, "Run done", "key", ctx.Key)
-		}
-
-		s.reschedule(ctx.Key)
+		ctx.err = s.run(*ctx)
+		s.onRunEnd(ctx)
+		s.reschedule(ctx)
 	}(ctx)
+}
+
+func (s *Scheduler) onRunEnd(ctx *RunContext) {
+	err := ctx.err
+	switch {
+	case err == nil:
+		s.logger.Info(ctx, "Run done", "key", ctx.Key)
+	case errors.Is(err, context.Canceled):
+		s.logger.Info(ctx, "Run stopped", "key", ctx.Key)
+	default:
+		s.logger.Info(ctx, "Run failed", "key", ctx.Key, "error", err)
+	}
 }
 
 // Wait joins all active runs.
