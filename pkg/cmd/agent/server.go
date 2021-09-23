@@ -121,7 +121,7 @@ func (s *server) init(ctx context.Context) error {
 	// Init rclone config options
 	rclone.InitFsConfigWithOptions(s.config.Rclone)
 	// Add prometheus metrics
-	rclone.MustRegisterPrometheusMetrics("scylla_manager_agent")
+	rclone.MustRegisterPrometheusMetrics("scylla_manager_agent_rclone")
 
 	// Register rclone providers
 	return multierr.Combine(
