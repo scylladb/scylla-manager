@@ -407,7 +407,7 @@ func init() {
 	fs := cmd.Flags()
 	fs.StringSliceP("location", "L", nil,
 		"comma-separated `list` of backup locations in the format [<dc>:]<provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backupspec.Providers(), ", ")+". The <dc>: part is optional and is only needed when different datacenters are being used to upload data to different locations") // nolint: lll
-	fs.StringP("snapshot-tag", "T", "", "comma-separated `list` of snapshot tags as read from backup listing")
+	fs.StringSliceP("snapshot-tag", "T", nil, "comma-separated `list` of snapshot tags as read from backup listing")
 	requireFlags(cmd, "snapshot-tag")
 	register(cmd, backupCmd)
 }
