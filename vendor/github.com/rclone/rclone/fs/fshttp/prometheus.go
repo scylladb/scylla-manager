@@ -47,5 +47,13 @@ func (m *Metrics) onResponse(req *http.Request, resp *http.Response) {
 		statusCode = resp.StatusCode
 	}
 
-	m.StatusCode.WithLabelValues(req.Host, req.Method, fmt.Sprint(statusCode)).Inc()
+	host := req.Host
+	if host == "" {
+		host = req.URL.Host
+	}
+	if host == "" {
+		host = req.Header.Get("Host")
+	}
+
+	m.StatusCode.WithLabelValues(host, req.Method, fmt.Sprint(statusCode)).Inc()
 }
