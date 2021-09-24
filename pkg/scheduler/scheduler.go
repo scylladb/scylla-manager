@@ -37,8 +37,17 @@ type RunContext struct {
 	err error
 }
 
-func newRunContext(key Key, properties Properties) (*RunContext, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
+func newRunContext(key Key, properties Properties, stop time.Time) (*RunContext, context.CancelFunc) {
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+	if stop.IsZero() {
+		ctx, cancel = context.WithCancel(context.Background())
+	} else {
+		ctx, cancel = context.WithDeadline(context.Background(), stop)
+	}
+
 	return &RunContext{
 		Context:    log.WithNewTraceID(ctx),
 		Key:        key,
@@ -64,6 +73,7 @@ type Details struct {
 	Properties Properties
 	Trigger    Trigger
 	Backoff    retry.Backoff
+	Window     Window
 }
 
 // Scheduler manages keys and triggers.
@@ -104,22 +114,13 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	next := d.Trigger.Next(s.now())
-	s.logger.Info(ctx, "Schedule", "key", key, "next", next)
-	if next.IsZero() {
-		s.logger.Info(ctx, "No triggers, removing", "key", key)
-		s.unscheduleLocked(key)
+	s.details[key] = d
+	// If running key will be scheduled when done in reschedule.
+	if _, running := s.running[key]; running {
 		return
 	}
-
-	s.details[key] = d
-
-	// If running key will be scheduled when done in reschedule.
-	if _, running := s.running[key]; !running {
-		if s.queue.Push(activation{Key: key, Time: next}) {
-			s.wakeup()
-		}
-	}
+	next := d.Trigger.Next(s.now())
+	s.scheduleLocked(ctx, key, d, next, 0)
 }
 
 func (s *Scheduler) reschedule(ctx *RunContext) {
@@ -144,31 +145,51 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 		next  = d.Trigger.Next(now)
 		retno int8
 	)
-	if d.Backoff != nil {
-		if shouldRetry(ctx.err) {
+	switch {
+	case shouldContinue(ctx.err):
+		next = now
+		retno = ctx.Retry
+	case shouldRetry(ctx.err):
+		if d.Backoff != nil {
 			if b := d.Backoff.NextBackOff(); b != retry.Stop {
 				next = now.Add(b)
 				retno = ctx.Retry + 1
+				s.logger.Debug(ctx, "Retry backoff", "key", key, "backoff", b, "retry", retno)
 			}
-		} else {
+		}
+	default:
+		if d.Backoff != nil {
 			d.Backoff.Reset()
 		}
 	}
+	s.scheduleLocked(ctx, key, d, next, retno)
+}
+
+func shouldContinue(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded)
+}
+
+func shouldRetry(err error) bool {
+	return !(err == nil || errors.Is(err, context.Canceled) || retry.IsPermanent(err))
+}
+
+func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next time.Time, retno int8) {
 	if next.IsZero() {
 		s.logger.Info(ctx, "No triggers, removing", "key", key)
 		s.unscheduleLocked(key)
 		return
 	}
 
-	s.logger.Info(ctx, "Schedule next", "key", key, "next", next, "retry", retno)
+	begin, end := d.Window.Next(next)
+	if begin != next {
+		s.logger.Debug(ctx, "Window aligned", "key", key, "next", begin, "end", end, "offset", begin.Sub(next))
+	}
 
-	if s.queue.Push(activation{Key: key, Time: next, Retry: retno}) {
+	s.logger.Info(ctx, "Schedule next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
+	a := activation{Key: key, Time: begin, Retry: retno, Stop: end}
+	if s.queue.Push(a) {
 		s.wakeup()
 	}
-}
-
-func shouldRetry(err error) bool {
-	return !(err == nil || errors.Is(err, context.Canceled) || retry.IsPermanent(err))
 }
 
 // Unschedule cancels schedule of a key. It does not stop an active run.
@@ -253,9 +274,9 @@ func (s *Scheduler) Start(ctx context.Context) {
 		}
 
 		if d < 0 {
-			s.logger.Debug(ctx, "Waiting...")
+			s.logger.Debug(ctx, "Waiting for signal")
 		} else {
-			s.logger.Debug(ctx, "Waiting for key", "key", top.Key, "sleep", d)
+			s.logger.Debug(ctx, "Waiting", "key", top.Key, "sleep", d)
 		}
 
 		if !s.sleep(ctx, d) {
@@ -332,7 +353,7 @@ func (s *Scheduler) wakeup() {
 }
 
 func (s *Scheduler) newRunContextLocked(a activation) *RunContext {
-	ctx, cancel := newRunContext(a.Key, s.details[a.Key].Properties)
+	ctx, cancel := newRunContext(a.Key, s.details[a.Key].Properties, a.Stop)
 	ctx.Retry = a.Retry
 	s.running[a.Key] = cancel
 	return ctx
@@ -354,11 +375,13 @@ func (s *Scheduler) onRunEnd(ctx *RunContext) {
 	err := ctx.err
 	switch {
 	case err == nil:
-		s.logger.Info(ctx, "Run done", "key", ctx.Key)
+		s.logger.Info(ctx, "Success", "key", ctx.Key)
 	case errors.Is(err, context.Canceled):
-		s.logger.Info(ctx, "Run stopped", "key", ctx.Key)
+		s.logger.Info(ctx, "Stopped", "key", ctx.Key)
+	case errors.Is(err, context.DeadlineExceeded):
+		s.logger.Info(ctx, "Stopped on window end", "key", ctx.Key)
 	default:
-		s.logger.Info(ctx, "Run failed", "key", ctx.Key, "error", err)
+		s.logger.Info(ctx, "Failed", "key", ctx.Key, "error", err)
 	}
 }
 

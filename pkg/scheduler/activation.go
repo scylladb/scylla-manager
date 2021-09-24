@@ -11,6 +11,7 @@ type activation struct {
 	time.Time
 	Key   Key
 	Retry int8
+	Stop  time.Time
 }
 
 // activationHeap implements heap.Interface.

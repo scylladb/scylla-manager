@@ -98,8 +98,8 @@ func (r *fakeRunner) Wait(d time.Duration) chan struct{} {
 	return ch
 }
 
-func (r *fakeRunner) Count() int64 {
-	return r.c.Load()
+func (r *fakeRunner) Count() int {
+	return int(r.c.Load())
 }
 
 func randomKey() Key {
@@ -127,6 +127,10 @@ func newFakeTrigger(d ...time.Duration) fakeTrigger {
 	return fakeTrigger{
 		a: a,
 	}
+}
+
+func newFakeTriggerWithTime(t ...time.Time) fakeTrigger {
+	return fakeTrigger{a: t}
 }
 
 func (f fakeTrigger) Next(now time.Time) time.Time {
@@ -453,6 +457,109 @@ func TestRetryPermanentError(t *testing.T) {
 	case <-f.Wait(200 * time.Millisecond):
 		if c := f.Count(); c != 1 {
 			t.Fatal("Unexpected retry")
+		}
+	}
+}
+
+func TestWindow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := newFakeRunner()
+	f.F = func(ctx RunContext) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	now := timeutc.Now()
+	s := NewScheduler(timeutc.Now, f.Run, log.NewDevelopment())
+	k := randomKey()
+	d := details(newFakeTriggerWithTime(now.Add(50 * time.Millisecond)))
+	wdt := func(d time.Duration) WeekdayTime {
+		return WeekdayTime{
+			Weekday: now.Weekday(),
+			Time:    now.Sub(now.Truncate(24*time.Hour)) + d,
+		}
+	}
+	d.Window, _ = NewWindow(wdt(100*time.Millisecond), wdt(200*time.Millisecond), wdt(300*time.Millisecond), wdt(400*time.Millisecond))
+	s.Schedule(ctx, k, d)
+
+	select {
+	case <-startAndWait(ctx, s):
+		t.Fatal("expected a run, scheduler exit")
+	case <-f.Wait(time.Second):
+		if c := f.Count(); c != 2 {
+			t.Fatal("Run mismatch")
+		}
+	}
+}
+
+type bhv int8
+
+const (
+	returnNil bhv = iota
+	returnErr
+	waitOnCtx
+)
+
+func TestWindowWithBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	e := []bhv{
+		returnNil, // and reschedule
+		waitOnCtx, // and move to the next window
+		returnErr, // and retry in the same window 50ms
+		returnErr, // and retry in the same window 100ms
+		returnErr, // and reschedule in next window
+		returnNil,
+	}
+	f := newFakeRunner()
+	f.F = func(ctx RunContext) error {
+		switch e[f.Count()-1] {
+		case returnNil:
+			return nil
+		case returnErr:
+			return errors.New("test error")
+		case waitOnCtx:
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		default:
+			panic("unsupported behaviour")
+		}
+	}
+	now := timeutc.Now()
+	s := NewScheduler(timeutc.Now, f.Run, log.NewDevelopment())
+	k := randomKey()
+	d := details(newFakeTriggerWithTime(
+		now.Add(50*time.Millisecond),
+		now.Add(150*time.Millisecond),
+		now.Add(1500*time.Millisecond),
+	))
+	d.Backoff = retry.NewExponentialBackoff(50*time.Millisecond, 800*time.Millisecond, 150*time.Millisecond, 2, 0)
+
+	wdt := func(d time.Duration) WeekdayTime {
+		return WeekdayTime{
+			Weekday: now.Weekday(),
+			Time:    now.Sub(now.Truncate(24*time.Hour)) + d,
+		}
+	}
+	d.Window, _ = NewWindow(
+		wdt(10*time.Millisecond), wdt(100*time.Millisecond),
+		wdt(200*time.Millisecond), wdt(300*time.Millisecond),
+		wdt(400*time.Millisecond), wdt(500*time.Millisecond),
+		wdt(600*time.Millisecond), wdt(800*time.Millisecond),
+	)
+	s.Schedule(ctx, k, d)
+
+	select {
+	case <-startAndWait(ctx, s):
+		t.Fatal("expected a run, scheduler exit")
+	case <-f.Wait(time.Second):
+		if c := f.Count(); c != len(e) {
+			t.Fatal("Run mismatch")
 		}
 	}
 }
