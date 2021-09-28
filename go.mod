@@ -28,6 +28,7 @@ require (
 	github.com/prometheus/common v0.14.0
 	github.com/prometheus/procfs v0.2.0
 	github.com/rclone/rclone v1.51.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/scylladb/go-log v0.0.6
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
