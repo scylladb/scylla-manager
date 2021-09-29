@@ -3,17 +3,64 @@
 package scheduler
 
 import (
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 )
+
+// EachDay is a special weekday marker that matches any day.
+const EachDay = time.Weekday(-1)
 
 // WeekdayTime specifies weekday and time in that day.
 // The time must be less than 24h.
 type WeekdayTime struct {
 	Weekday time.Weekday
 	Time    time.Duration
+}
+
+var (
+	weekdayTimeRegexp = regexp.MustCompile("(?i)^((Mon|Tue|Wed|Thu|Fri|Sat|Sun)-)?([0-9]{1,2}):([0-9]{2})$")
+	weekdayRev        = map[string]time.Weekday{
+		"":    EachDay,
+		"mon": time.Monday,
+		"tue": time.Tuesday,
+		"wed": time.Wednesday,
+		"thu": time.Thursday,
+		"fri": time.Friday,
+		"sat": time.Saturday,
+		"sun": time.Sunday,
+	}
+)
+
+func (i *WeekdayTime) UnmarshalText(text []byte) error {
+	m := weekdayTimeRegexp.FindSubmatch(text)
+	if len(m) == 0 {
+		return errors.New("invalid format")
+	}
+	var wdt WeekdayTime
+
+	w, ok := weekdayRev[strings.ToLower(string(m[2]))]
+	if !ok {
+		return errors.Errorf("unknown day of week %q", string(m[2]))
+	}
+	wdt.Weekday = w
+
+	hh, _ := strconv.Atoi(string(m[3])) // nolint: errcheck
+	if hh >= 24 {
+		return errors.Errorf("invalid hour %d", hh)
+	}
+	mm, _ := strconv.Atoi(string(m[4])) // nolint: errcheck
+	if mm >= 60 {
+		return errors.Errorf("invalid minute %d", mm)
+	}
+	wdt.Time = time.Duration(hh*60+mm) * time.Minute
+
+	*i = wdt
+	return nil
 }
 
 const day = 24 * time.Hour

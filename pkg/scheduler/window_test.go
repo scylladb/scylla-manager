@@ -77,6 +77,97 @@ func TestWeekdayTime(t *testing.T) {
 	}
 }
 
+func TestWeekdayTimeUnmarshalText(t *testing.T) {
+	table := []struct {
+		Str    string
+		Golden WeekdayTime
+	}{
+		{
+			Str: "Mon-9:20",
+			Golden: WeekdayTime{
+				Weekday: time.Monday,
+				Time:    time.Duration(9*60+20) * time.Minute,
+			},
+		},
+		{
+			Str: "Mon-09:20",
+			Golden: WeekdayTime{
+				Weekday: time.Monday,
+				Time:    time.Duration(9*60+20) * time.Minute,
+			},
+		},
+		{
+			Str: "19:00",
+			Golden: WeekdayTime{
+				Weekday: EachDay,
+				Time:    time.Duration(19*60) * time.Minute,
+			},
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+		t.Run(test.Str, func(t *testing.T) {
+			var wdt WeekdayTime
+			if err := wdt.UnmarshalText([]byte(test.Str)); err != nil {
+				t.Fatalf("UnmarshalText() error %s", err)
+			}
+			if wdt != test.Golden {
+				t.Fatalf("Have %v, expected %v", wdt, test.Golden)
+			}
+		})
+	}
+}
+
+func TestWeekdayTimeUnmarshalTextError(t *testing.T) {
+	table := []struct {
+		Name string
+		Str  string
+		Err  string
+	}{
+		{
+			Str: "Foo-9:20",
+			Err: "invalid format",
+		},
+		{
+			Str: "Mon-24:20",
+			Err: "invalid hour",
+		},
+		{
+			Str: "Mon-100:20",
+			Err: "invalid format",
+		},
+		{
+			Str: "Mon-05:60",
+			Err: "invalid minute",
+		},
+		{
+			Str: "Mon-05:100",
+			Err: "invalid format",
+		},
+		{
+			Str: "05:60",
+			Err: "invalid minute",
+		},
+		{
+			Str: "05:100",
+			Err: "invalid format",
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+		t.Run(test.Str, func(t *testing.T) {
+			var wdt WeekdayTime
+			err := wdt.UnmarshalText([]byte(test.Str))
+			t.Log(err)
+			if err == nil || !strings.Contains(err.Error(), test.Err) {
+				t.Fatalf("UnmarshalText() error %s, expected to contain %s", err, test.Err)
+			}
+		})
+	}
+}
+
 func TestWindowValidate(t *testing.T) {
 	table := []struct {
 		Name     string
