@@ -1,0 +1,30 @@
+[
+  {
+    "Begin": "Mon-23:00",
+    "End": "Tue-6:00"
+  },
+  {
+    "Begin": "Tue-23:00",
+    "End": "Wed-6:00"
+  },
+  {
+    "Begin": "Wed-23:00",
+    "End": "Thu-6:00"
+  },
+  {
+    "Begin": "Thu-23:00",
+    "End": "Fri-6:00"
+  },
+  {
+    "Begin": "Fri-23:00",
+    "End": "Sat-6:00"
+  },
+  {
+    "Begin": "Sat-23:00",
+    "End": "Sun-6:00"
+  },
+  {
+    "Begin": "Sun-23:00",
+    "End": "Mon-6:00"
+  }
+]

@@ -3,12 +3,17 @@
 package scheduler
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
 
-func TestWeekdayTime(t *testing.T) {
+func TestWeekdayTimeNext(t *testing.T) {
 	const (
 		m = time.Minute
 		h = time.Hour
@@ -90,13 +95,6 @@ func TestWeekdayTimeUnmarshalText(t *testing.T) {
 			},
 		},
 		{
-			Str: "Mon-09:20",
-			Golden: WeekdayTime{
-				Weekday: time.Monday,
-				Time:    time.Duration(9*60+20) * time.Minute,
-			},
-		},
-		{
 			Str: "19:00",
 			Golden: WeekdayTime{
 				Weekday: EachDay,
@@ -114,6 +112,13 @@ func TestWeekdayTimeUnmarshalText(t *testing.T) {
 			}
 			if wdt != test.Golden {
 				t.Fatalf("Have %v, expected %v", wdt, test.Golden)
+			}
+			txt, err := wdt.MarshalText()
+			if err != nil {
+				t.Fatalf("MarshalText() error %s", err)
+			}
+			if string(txt) != test.Str {
+				t.Fatalf("Have %s, expected %v", txt, test.Str)
 			}
 		})
 	}
@@ -168,6 +173,45 @@ func TestWeekdayTimeUnmarshalTextError(t *testing.T) {
 	}
 }
 
+func TestWindowParse(t *testing.T) {
+	table := []struct {
+		Window string
+	}{
+		{
+			Window: "mon-00:00,fri-15:00",
+		},
+		{
+			Window: "23:00,06:00",
+		},
+		{
+			Window: "23:00,06:00,sat-00:00,sun-23:59",
+		},
+	}
+	for i := range table {
+		test := table[i]
+		t.Run(test.Window, func(t *testing.T) {
+			s := bytes.Split([]byte(test.Window), []byte{','})
+			wdt := make([]WeekdayTime, len(s))
+			for i := range wdt {
+				if err := wdt[i].UnmarshalText(s[i]); err != nil {
+					t.Fatalf("UnmarshalText() error %s", err)
+				}
+			}
+			w, err := NewWindow(wdt...)
+			if err != nil {
+				t.Fatalf("NewWindow() error %s", err)
+			}
+			SaveGoldenJSONFileIfNeeded(t, w)
+
+			var golden Window
+			LoadGoldenJSONFile(t, &golden)
+			if diff := cmp.Diff(w, golden, cmpopts.IgnoreUnexported(slot{})); diff != "" {
+				t.Error(diff)
+			}
+		})
+	}
+}
+
 func TestWindowValidate(t *testing.T) {
 	table := []struct {
 		Name   string
@@ -184,18 +228,6 @@ func TestWindowValidate(t *testing.T) {
 			Error: "number of points must be even",
 		},
 		{
-			Name: "Begin end mismatch",
-			Inputs: []WeekdayTime{
-				{
-					Weekday: time.Tuesday,
-				},
-				{
-					Weekday: time.Monday,
-				},
-			},
-			Error: "[0,1]: begin after end",
-		},
-		{
 			Name: "Begin end equal",
 			Inputs: []WeekdayTime{
 				{
@@ -205,25 +237,7 @@ func TestWindowValidate(t *testing.T) {
 					Weekday: time.Monday,
 				},
 			},
-			Error: "[0,1]: begin after end",
-		},
-		{
-			Name: "Overlap",
-			Inputs: []WeekdayTime{
-				{
-					Weekday: time.Monday,
-				},
-				{
-					Weekday: time.Wednesday,
-				},
-				{
-					Weekday: time.Tuesday,
-				},
-				{
-					Weekday: time.Friday,
-				},
-			},
-			Error: "[0,1][2,3]: slots overlap",
+			Error: "[0,1]: equal",
 		},
 		{
 			Name: "EachDay begin normal day end",
@@ -248,27 +262,6 @@ func TestWindowValidate(t *testing.T) {
 				},
 			},
 			Error: "[0,1]: begin and end must be each day",
-		},
-		{
-			Name: "EachDay expand conflict",
-			Inputs: []WeekdayTime{
-				{
-					Weekday: EachDay,
-				},
-				{
-					Weekday: EachDay,
-					Time:    time.Hour,
-				},
-				{
-					Weekday: time.Monday,
-					Time:    15 * time.Minute,
-				},
-				{
-					Weekday: time.Monday,
-					Time:    30 * time.Minute,
-				},
-			},
-			Error: "[0,1][2,3]: slots overlap",
 		},
 	}
 

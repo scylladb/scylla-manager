@@ -3,6 +3,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
@@ -22,9 +23,30 @@ type WeekdayTime struct {
 	Time    time.Duration
 }
 
+func (i WeekdayTime) MarshalText() (text []byte, err error) {
+	day := weekday[i.Weekday]
+	if day != "" {
+		day += "-"
+	}
+	var hh, mm int
+	m := int(i.Time.Minutes())
+	hh = m / 60
+	mm = m % 60
+	return []byte(fmt.Sprintf("%s%d:%02d", day, hh, mm)), nil
+}
+
 var (
 	weekdayTimeRegexp = regexp.MustCompile("(?i)^((Mon|Tue|Wed|Thu|Fri|Sat|Sun)-)?([0-9]{1,2}):([0-9]{2})$")
-	weekdayRev        = map[string]time.Weekday{
+	weekday           = map[time.Weekday]string{
+		time.Monday:    "Mon",
+		time.Tuesday:   "Tue",
+		time.Wednesday: "Wed",
+		time.Thursday:  "Thu",
+		time.Friday:    "Fri",
+		time.Saturday:  "Sat",
+		time.Sunday:    "Sun",
+	}
+	weekdayRev = map[string]time.Weekday{
 		"":    EachDay,
 		"mon": time.Monday,
 		"tue": time.Tuesday,
@@ -77,11 +99,6 @@ func (i WeekdayTime) Next(now time.Time) time.Time {
 	return t.Add(time.Duration(w)*day + i.Time)
 }
 
-func (i WeekdayTime) index() int64 {
-	d := day*time.Duration(i.Weekday) + i.Time
-	return int64(d)
-}
-
 type slot struct {
 	Begin WeekdayTime
 	End   WeekdayTime
@@ -100,8 +117,8 @@ func (s slot) validate() error {
 	if s.End.Time >= 24*time.Hour {
 		return errors.New("time must be less than 24h")
 	}
-	if s.Begin.index() >= s.End.index() {
-		return errors.New("begin after end")
+	if s.Begin == s.End {
+		return errors.New("equal")
 	}
 	return nil
 }
@@ -110,15 +127,18 @@ func (s slot) expand() []slot {
 	if s.Begin.Weekday != EachDay {
 		return []slot{s}
 	}
-	e := make([]slot, 7)
+	w := make([]slot, 7)
 	for i := 0; i < 7; i++ {
-		e[i].Begin.Weekday = time.Weekday(i)
-		e[i].Begin.Time = s.Begin.Time
-		e[i].End.Weekday = time.Weekday(i)
-		e[i].End.Time = s.End.Time
-		e[i].pos = s.pos
+		w[i].Begin.Weekday = time.Weekday(i)
+		w[i].Begin.Time = s.Begin.Time
+		w[i].End.Weekday = time.Weekday(i)
+		w[i].End.Time = s.End.Time
+		if s.Begin.Time > s.End.Time {
+			w[i].End.Weekday++
+			w[i].End.Weekday %= 7
+		}
 	}
-	return e
+	return w
 }
 
 // Window specifies repeatable time windows when scheduler can run a function.
@@ -148,19 +168,51 @@ func NewWindow(wdt ...WeekdayTime) (Window, error) {
 		w = append(w, s.expand()...)
 	}
 
+	index := func(i int) int64 {
+		return w[i].Begin.Next(time.Time{}).UnixNano()
+	}
 	sort.Slice(w, func(i, j int) bool {
-		return w[i].Begin.index() < w[j].Begin.index()
+		return index(i) < index(j)
 	})
 
+	return joinSlots(w), nil
+}
+
+func joinSlots(w Window) Window {
+	out := make(Window, 0, len(w))
+	out = append(out, w[0])
+
+	cur := func() int {
+		return len(out) - 1
+	}
+
+	// Keep rolling time and join overlapping slots.
+	t := time.Time{}
 	for i := 1; i < len(w); i++ {
-		b := w[i].Begin.index()
-		e := w[i-1].End.index()
-		if b <= e {
-			return nil, errors.Errorf("[%d,%d][%d,%d]: slots overlap", w[i-1].pos, w[i-1].pos+1, w[i].pos, w[i].pos+1)
+		b := w[i].Begin.Next(t)
+		e := out[cur()].End.Next(t)
+		if b.After(e) {
+			out = append(out, w[i])
+			t = b
+		} else { // nolint: gocritic
+			if ew := w[i].End.Next(t); ew.After(e) {
+				out[cur()].End = w[i].End
+			}
+		}
+	}
+	// Wrap around and see if the last element can ingest the first.
+	if len(out) > 1 {
+		b := out[0].Begin.Next(t)
+		e := out[cur()].End.Next(t)
+		if !b.After(e) {
+			if ew := out[0].End.Next(t); ew.After(e) {
+				out[cur()].End = out[0].End
+				out = out[1:]
+			}
 		}
 	}
 
-	return w, nil
+	return out
 }
 
 // Next returns the closest open slot begin and end time given now value.
