@@ -13,7 +13,7 @@ import (
 )
 
 // EachDay is a special weekday marker that matches any day.
-const EachDay = time.Weekday(-1)
+const EachDay = time.Weekday(7)
 
 // WeekdayTime specifies weekday and time in that day.
 // The time must be less than 24h.
@@ -82,16 +82,43 @@ func (i WeekdayTime) index() int64 {
 	return int64(d)
 }
 
-func (i WeekdayTime) validate() error {
-	if i.Time >= 24*time.Hour {
+type slot struct {
+	Begin WeekdayTime
+	End   WeekdayTime
+	pos   int
+}
+
+func (s slot) validate() error {
+	if s.Begin.Weekday == EachDay || s.End.Weekday == EachDay {
+		if s.Begin.Weekday != s.End.Weekday {
+			return errors.New("begin and end must be each day")
+		}
+	}
+	if s.Begin.Time >= 24*time.Hour {
 		return errors.New("time must be less than 24h")
+	}
+	if s.End.Time >= 24*time.Hour {
+		return errors.New("time must be less than 24h")
+	}
+	if s.Begin.index() >= s.End.index() {
+		return errors.New("begin after end")
 	}
 	return nil
 }
 
-type slot struct {
-	Begin WeekdayTime
-	End   WeekdayTime
+func (s slot) expand() []slot {
+	if s.Begin.Weekday != EachDay {
+		return []slot{s}
+	}
+	e := make([]slot, 7)
+	for i := 0; i < 7; i++ {
+		e[i].Begin.Weekday = time.Weekday(i)
+		e[i].Begin.Time = s.Begin.Time
+		e[i].End.Weekday = time.Weekday(i)
+		e[i].End.Time = s.End.Time
+		e[i].pos = s.pos
+	}
+	return e
 }
 
 // Window specifies repeatable time windows when scheduler can run a function.
@@ -105,19 +132,20 @@ func NewWindow(wdt ...WeekdayTime) (Window, error) {
 	if len(wdt)%2 != 0 {
 		return nil, errors.New("number of points must be even")
 	}
-	for i := range wdt {
-		if err := wdt[i].validate(); err != nil {
-			return nil, errors.Wrapf(err, "invalid value at pos %d", i)
-		}
-	}
 
-	w := make(Window, len(wdt)/2)
-	for i := range w {
-		w[i].Begin = wdt[2*i]
-		w[i].End = wdt[2*i+1]
-		if w[i].Begin.index() >= w[i].End.index() {
-			return nil, errors.Errorf("start at pos %d after stop at pos %d", 2*i, 2*i+1)
+	l := len(wdt) / 2
+	w := make(Window, 0, l)
+	for i := 0; i < l; i++ {
+		j := 2 * i
+		s := slot{
+			Begin: wdt[j],
+			End:   wdt[j+1],
+			pos:   j,
 		}
+		if err := s.validate(); err != nil {
+			return nil, errors.Wrapf(err, "[%d,%d]", j, j+1)
+		}
+		w = append(w, s.expand()...)
 	}
 
 	sort.Slice(w, func(i, j int) bool {
@@ -128,7 +156,7 @@ func NewWindow(wdt ...WeekdayTime) (Window, error) {
 		b := w[i].Begin.index()
 		e := w[i-1].End.index()
 		if b <= e {
-			return nil, errors.New("slots overlap")
+			return nil, errors.Errorf("[%d,%d][%d,%d]: slots overlap", w[i-1].pos, w[i-1].pos+1, w[i].pos, w[i].pos+1)
 		}
 	}
 
