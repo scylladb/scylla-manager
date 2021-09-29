@@ -170,13 +170,13 @@ func TestWeekdayTimeUnmarshalTextError(t *testing.T) {
 
 func TestWindowValidate(t *testing.T) {
 	table := []struct {
-		Name     string
-		Instants []WeekdayTime
-		Error    string
+		Name   string
+		Inputs []WeekdayTime
+		Error  string
 	}{
 		{
 			Name: "Odd nr. of instances",
-			Instants: []WeekdayTime{
+			Inputs: []WeekdayTime{
 				{
 					Weekday: time.Monday,
 				},
@@ -185,7 +185,7 @@ func TestWindowValidate(t *testing.T) {
 		},
 		{
 			Name: "Begin end mismatch",
-			Instants: []WeekdayTime{
+			Inputs: []WeekdayTime{
 				{
 					Weekday: time.Tuesday,
 				},
@@ -193,11 +193,11 @@ func TestWindowValidate(t *testing.T) {
 					Weekday: time.Monday,
 				},
 			},
-			Error: "after stop",
+			Error: "[0,1]: begin after end",
 		},
 		{
 			Name: "Begin end equal",
-			Instants: []WeekdayTime{
+			Inputs: []WeekdayTime{
 				{
 					Weekday: time.Monday,
 				},
@@ -205,11 +205,11 @@ func TestWindowValidate(t *testing.T) {
 					Weekday: time.Monday,
 				},
 			},
-			Error: "after stop",
+			Error: "[0,1]: begin after end",
 		},
 		{
 			Name: "Overlap",
-			Instants: []WeekdayTime{
+			Inputs: []WeekdayTime{
 				{
 					Weekday: time.Monday,
 				},
@@ -223,14 +223,59 @@ func TestWindowValidate(t *testing.T) {
 					Weekday: time.Friday,
 				},
 			},
-			Error: "overlap",
+			Error: "[0,1][2,3]: slots overlap",
+		},
+		{
+			Name: "EachDay begin normal day end",
+			Inputs: []WeekdayTime{
+				{
+					Weekday: EachDay,
+				},
+				{
+					Weekday: time.Wednesday,
+				},
+			},
+			Error: "[0,1]: begin and end must be each day",
+		},
+		{
+			Name: "Normal day begin EachDay end",
+			Inputs: []WeekdayTime{
+				{
+					Weekday: time.Monday,
+				},
+				{
+					Weekday: EachDay,
+				},
+			},
+			Error: "[0,1]: begin and end must be each day",
+		},
+		{
+			Name: "EachDay expand conflict",
+			Inputs: []WeekdayTime{
+				{
+					Weekday: EachDay,
+				},
+				{
+					Weekday: EachDay,
+					Time:    time.Hour,
+				},
+				{
+					Weekday: time.Monday,
+					Time:    15 * time.Minute,
+				},
+				{
+					Weekday: time.Monday,
+					Time:    30 * time.Minute,
+				},
+			},
+			Error: "[0,1][2,3]: slots overlap",
 		},
 	}
 
 	for i := range table {
 		test := table[i]
 		t.Run(test.Name, func(t *testing.T) {
-			if _, err := NewWindow(test.Instants...); err == nil || !strings.Contains(err.Error(), test.Error) {
+			if _, err := NewWindow(test.Inputs...); err == nil || err.Error() != test.Error {
 				t.Fatalf("NewWindow() error %s, expected %s", err, test.Error)
 			}
 		})
