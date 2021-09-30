@@ -67,6 +67,7 @@ issues:
     - composite literal uses unkeyed fields
     - exported function `Default.+` should have comment or be unexported
     - exported function `New.*` should have comment or be unexported
+    - exported method `+\.Close` should have comment or be unexported
     - exported method `.*Value\..+` should have comment or be unexported
     - exported method `.+\.Key` should have comment or be unexported
     - exported method `.+\.MarshalBinary` should have comment or be unexported
@@ -83,6 +84,7 @@ issues:
     - exported type `.*Metrics` should have comment or be unexported
     - exported type `.*Value` should have comment or be unexported
     - exported type `Option` should have comment or be unexported
+    - exported type `Service` should have comment or be unexported
     - exported var `Default.+` should have comment or be unexported
     - has json tag but is not exported
     - naked return in func `WriteTo`

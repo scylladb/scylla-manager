@@ -26,6 +26,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/certutil"
 	"github.com/scylladb/scylla-manager/pkg/util/httppprof"
+	"github.com/scylladb/scylla-manager/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
@@ -132,45 +133,42 @@ func (s *server) makeServices() error {
 	// Add additional properties on task run.
 	// This is a bit hacky way of providing selected information on other tasks
 	// such as locations, retention and passing it in context of a task run.
-	s.schedSvc.SetTaskOpt(func(ctx context.Context, task scheduler.Task) (scheduler.Properties, error) {
-		switch task.Type {
-		// Generate "retention_map" for backup task.
-		case scheduler.BackupTask:
-			tasks, err := s.schedSvc.ListTasks(ctx, task.ClusterID, scheduler.BackupTask)
-			if err != nil {
-				return nil, err
-			}
-			retentionMap := make(map[uuid.UUID]int)
-			for _, t := range tasks {
-				r, err := backup.ExtractRetention(task.Properties.AsJSON())
-				if err != nil {
-					return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
-				}
-				retentionMap[t.ID] = r
-			}
-			return task.Properties.Set("retention_map", retentionMap), nil
-		// Get locations if not specified for validate backup task.
-		case scheduler.ValidateBackupTask:
-			// If tasks contains locations return
-			if l := s.backupSvc.ExtractLocations(ctx, []json.RawMessage{task.Properties.AsJSON()}); len(l) > 0 {
-				return task.Properties, nil
-			}
 
-			// Extract locations from all tasks...
-			tasks, err := s.schedSvc.ListTasks(ctx, task.ClusterID, scheduler.BackupTask)
-			if err != nil {
-				return nil, err
-			}
-			properties := make([]json.RawMessage, 0, len(tasks))
-			for _, t := range tasks {
-				if t.Enabled {
-					properties = append(properties, t.Properties.AsJSON())
-				}
-			}
-			return task.Properties.Set("location", s.backupSvc.ExtractLocations(ctx, properties)), nil
-		default:
-			return task.Properties, nil
+	// Generate "retention_map" for backup task.
+	s.schedSvc.SetPropertiesDecorator(scheduler.BackupTask, func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.BackupTask)
+		if err != nil {
+			return nil, err
 		}
+		retentionMap := make(map[uuid.UUID]int)
+		for _, t := range tasks {
+			r, err := backup.ExtractRetention(properties)
+			if err != nil {
+				return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
+			}
+			retentionMap[t.ID] = r
+		}
+		return jsonutil.Set(properties, "retention_map", retentionMap), nil
+	})
+
+	// Get locations if not specified for validate backup task.
+	s.schedSvc.SetPropertiesDecorator(scheduler.ValidateBackupTask, func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+		// If tasks contains locations return
+		if l := s.backupSvc.ExtractLocations(ctx, []json.RawMessage{properties}); len(l) > 0 {
+			return properties, nil
+		}
+		// Extract locations from all tasks...
+		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.BackupTask)
+		if err != nil {
+			return nil, err
+		}
+		tp := make([]json.RawMessage, 0, len(tasks))
+		for _, t := range tasks {
+			if t.Enabled {
+				tp = append(tp, t.Properties)
+			}
+		}
+		return jsonutil.Set(properties, "location", s.backupSvc.ExtractLocations(ctx, tp)), nil
 	})
 
 	return nil

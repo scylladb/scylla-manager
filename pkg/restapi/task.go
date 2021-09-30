@@ -19,7 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -67,13 +67,17 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 			respondBadRequest(w, r, err)
 			return
 		}
-		taskID := rctx.URLParam("task_id")
-		if taskID == "" {
+		taskIDStr := rctx.URLParam("task_id")
+		if taskIDStr == "" {
 			respondBadRequest(w, r, errors.New("missing task ID"))
 			return
 		}
+		taskID, err := uuid.Parse(taskIDStr)
+		if err != nil {
+			respondBadRequest(w, r, errors.New("invalid task ID"))
+		}
 
-		t, err := h.Scheduler.GetTask(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
+		t, err := h.Scheduler.GetTaskByID(r.Context(), mustClusterIDFromCtx(r), taskType, taskID)
 		if err != nil {
 			respondError(w, r, errors.Wrapf(err, "load task %q", taskID))
 			return
@@ -141,7 +145,7 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			Status: scheduler.StatusNew,
 		}
 
-		runs, err := h.Scheduler.GetLastRun(r.Context(), t, t.Sched.NumRetries+1)
+		runs, err := h.Scheduler.GetLastRuns(r.Context(), t, t.Sched.NumRetries+1)
 		if err != nil {
 			respondError(w, r, errors.Wrapf(err, "load task %q runs", t.ID))
 			return
@@ -158,22 +162,17 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if !t.Type.IgnoreSuspended() {
-			var suspended, ok bool
-			suspended, ok = clusterSuspended[t.ClusterID]
-			if !ok {
-				suspended = h.Scheduler.IsSuspended(r.Context(), t.ClusterID)
-				clusterSuspended[t.ClusterID] = suspended
-			}
-			e.Suspended = suspended
+		// Listing has to be redone I'm simplifying and breaking things here,
+		// see git log for more details.
+		var suspended, ok bool
+		suspended, ok = clusterSuspended[t.ClusterID]
+		if !ok {
+			suspended = h.Scheduler.IsSuspended(r.Context(), t.ClusterID)
+			clusterSuspended[t.ClusterID] = suspended
 		}
-
-		now := timeutc.Now()
-		if a := t.Sched.NextActivation(now, e.Suspended, runs); a.After(now) {
-			e.NextActivation = &a
-		}
-		e.Failures = t.Sched.ConsecutiveErrorCount(runs, now)
-
+		e.Suspended = suspended
+		e.NextActivation = pointer.TimePtr(time.Date(9999, 1, 1, 1, 1, 1, 1, time.UTC))
+		e.Failures = 10
 		hist = append(hist, e)
 	}
 
@@ -217,16 +216,20 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.Services.Scheduler.EvalTaskOpts(r.Context(), newTask)
-	if err != nil {
-		respondBadRequest(w, r, errors.Wrap(err, "evaluate properties"))
+	d := h.Services.Scheduler.PropertiesDecorator(newTask.Type)
+	p := newTask.Properties
+	if d != nil {
+		p, err = d(r.Context(), newTask.ClusterID, newTask.ID, newTask.Properties)
+		if err != nil {
+			respondBadRequest(w, r, errors.Wrap(err, "evaluate properties"))
+		}
 	}
 
 	var t interface{}
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON())
+		bt, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p)
 		if err != nil {
 			respondError(w, r, errors.Wrap(err, "get backup target"))
 			return
@@ -241,7 +244,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			Size:   size,
 		}
 	case scheduler.RepairTask:
-		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
+		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
 			respondError(w, r, errors.Wrap(err, "get repair target"))
 			return
 		}
@@ -264,24 +267,28 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.Services.Scheduler.EvalTaskOpts(r.Context(), newTask)
-	if err != nil {
-		respondBadRequest(w, r, errors.Wrap(err, "evaluate properties"))
+	d := h.Services.Scheduler.PropertiesDecorator(newTask.Type)
+	p := newTask.Properties
+	if d != nil {
+		p, err = d(r.Context(), newTask.ClusterID, newTask.ID, newTask.Properties)
+		if err != nil {
+			respondBadRequest(w, r, errors.Wrap(err, "evaluate properties"))
+		}
 	}
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
-		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
+		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
 			respondError(w, r, errors.Wrap(err, "create backup target"))
 			return
 		}
 	case scheduler.RepairTask:
-		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
+		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
 			respondError(w, r, errors.Wrap(err, "create repair target"))
 			return
 		}
 	case scheduler.ValidateBackupTask:
-		if _, err := h.Backup.GetValidationTarget(r.Context(), newTask.ClusterID, p.AsJSON()); err != nil {
+		if _, err := h.Backup.GetValidationTarget(r.Context(), newTask.ClusterID, p); err != nil {
 			respondError(w, r, errors.Wrap(err, "create validate backup target"))
 			return
 		}
@@ -337,31 +344,33 @@ func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 
-	opts, err := h.optsFromRequest(r)
+	noContinue, err := h.noContinue(r)
 	if err != nil {
 		respondBadRequest(w, r, err)
 	}
 
-	if err := h.Scheduler.StartTask(r.Context(), t, opts...); err != nil {
+	if noContinue {
+		err = h.Scheduler.StartTaskNoContinue(r.Context(), t)
+	} else {
+		err = h.Scheduler.StartTask(r.Context(), t)
+	}
+	if err != nil {
 		respondError(w, r, errors.Wrapf(err, "start task %q", t.ID))
 		return
 	}
 }
 
-func (h *taskHandler) optsFromRequest(r *http.Request) ([]scheduler.Opt, error) {
-	var opts []scheduler.Opt
-
-	if v := r.FormValue("continue"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			return nil, errors.Wrap(err, "parse continue param")
-		}
-		if !b {
-			opts = append(opts, scheduler.NoContinue)
-		}
+func (h *taskHandler) noContinue(r *http.Request) (bool, error) {
+	v := r.FormValue("continue")
+	if v == "" {
+		return false, nil
 	}
 
-	return opts, nil
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, errors.Wrap(err, "parse continue param")
+	}
+	return !b, nil
 }
 
 func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
@@ -403,7 +412,7 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	runs, err := h.Scheduler.GetLastRun(r.Context(), t, limit)
+	runs, err := h.Scheduler.GetLastRuns(r.Context(), t, limit)
 	if err != nil {
 		respondError(w, r, errors.Wrapf(err, "load task %q history", t.ID))
 		return
@@ -426,7 +435,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	var prog taskRunProgress
 
 	if p := chi.URLParam(r, "run_id"); p == "latest" {
-		runs, err := h.Scheduler.GetLastRun(r.Context(), t, 1)
+		runs, err := h.Scheduler.GetLastRuns(r.Context(), t, 1)
 		if err != nil {
 			respondBadRequest(w, r, err)
 			return

@@ -43,7 +43,7 @@ func TestResolverFind(t *testing.T) {
 
 	r := newResolver()
 	for _, s := range setup {
-		r.Put(extTaskID{TaskID: uuid.MustParse(s)})
+		r.Put(taskInfo{TaskID: uuid.MustParse(s)})
 	}
 
 	for i := range table {
@@ -87,7 +87,7 @@ func TestResolverFindByName(t *testing.T) {
 
 	r := newResolver()
 	for _, s := range setup {
-		r.Put(extTaskID{TaskID: uuid.MustRandom(), TaskName: s})
+		r.Put(taskInfo{TaskID: uuid.MustRandom(), TaskName: s})
 	}
 
 	for i := range table {
@@ -101,39 +101,39 @@ func TestResolverFindByName(t *testing.T) {
 }
 
 func TestResolverChangeName(t *testing.T) {
-	eid := extTaskID{
+	ti := taskInfo{
 		ClusterID: uuid.MustRandom(),
 		TaskID:    uuid.MustRandom(),
 		TaskName:  "name",
 	}
 	r := newResolver()
-	r.Put(eid)
-	eid.TaskName = "new name"
-	r.Put(eid)
+	r.Put(ti)
+	ti.TaskName = "new name"
+	r.Put(ti)
 
 	if _, ok := r.Find("name"); ok {
 		t.Fatalf("Name not removed")
 	}
-	if v, _ := r.Find("new"); v != eid {
-		t.Fatalf("Find() = %v, expected %v", v, eid)
+	if v, _ := r.Find("new"); v != ti {
+		t.Fatalf("Find() = %v, expected %v", v, ti)
 	}
 }
 
 func TestResolverNameUUIDHijacking(t *testing.T) {
-	eid0 := extTaskID{
+	ti0 := taskInfo{
 		ClusterID: uuid.MustRandom(),
 		TaskID:    uuid.MustRandom(),
 	}
-	eid1 := extTaskID{
+	ti1 := taskInfo{
 		ClusterID: uuid.MustRandom(),
 		TaskID:    uuid.MustRandom(),
-		TaskName:  eid0.TaskID.String(),
+		TaskName:  ti0.TaskID.String(),
 	}
 	r := newResolver()
-	r.Put(eid0)
-	r.Put(eid1)
+	r.Put(ti0)
+	r.Put(ti1)
 
-	if eid, _ := r.Find(eid0.TaskID.String()); eid != eid0 {
-		t.Fatalf("Find() = %v, expected %v", eid, eid0)
+	if eid, _ := r.Find(ti0.TaskID.String()); eid != ti0 {
+		t.Fatalf("Find() = %v, expected %v", eid, ti0)
 	}
 }

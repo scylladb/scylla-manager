@@ -64,17 +64,18 @@ type BackupService interface {
 
 // SchedService service interface for the REST API handlers.
 type SchedService interface {
-	GetTask(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType, idOrName string) (*scheduler.Task, error)
+	PropertiesDecorator(tp scheduler.TaskType) scheduler.PropertiesDecorator
+	GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType, id uuid.UUID) (*scheduler.Task, error)
 	PutTask(ctx context.Context, t *scheduler.Task) error
 	PutTaskOnce(ctx context.Context, t *scheduler.Task) error
 	DeleteTask(ctx context.Context, t *scheduler.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType) ([]*scheduler.Task, error)
-	StartTask(ctx context.Context, t *scheduler.Task, opts ...scheduler.Opt) error
+	StartTask(ctx context.Context, t *scheduler.Task) error
+	StartTaskNoContinue(ctx context.Context, t *scheduler.Task) error
 	StopTask(ctx context.Context, t *scheduler.Task) error
 	GetRun(ctx context.Context, t *scheduler.Task, runID uuid.UUID) (*scheduler.Run, error)
-	GetLastRun(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
+	GetLastRuns(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
 	IsSuspended(ctx context.Context, clusterID uuid.UUID) bool
 	Suspend(ctx context.Context, clusterID uuid.UUID) error
 	Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error
-	EvalTaskOpts(ctx context.Context, t *scheduler.Task) (scheduler.Properties, error)
 }

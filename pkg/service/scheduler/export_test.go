@@ -3,19 +3,28 @@
 package scheduler
 
 import (
-	"time"
-
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-func SetRetryTaskWait(d time.Duration) {
-	retryTaskWait = d
-}
-
-func SetStopTaskWait(d time.Duration) {
-	stopTaskWait = d
-}
-
 func (t *Task) NewRun() *Run {
-	return t.newRun(uuid.NewTime())
+	return &Run{
+		ID:        uuid.NewTime(),
+		Type:      t.Type,
+		ClusterID: t.ClusterID,
+		TaskID:    t.ID,
+		StartTime: timeutc.Now(),
+	}
+}
+
+func (s *Service) GetLastRun(t *Task) (*Run, error) {
+	return s.getLastRun(t)
+}
+
+func (s *Service) PutTestRun(r *Run) error {
+	return s.putRun(r)
+}
+
+func (s *Service) PutTestTask(t *Task) error {
+	return s.putTask(t)
 }
