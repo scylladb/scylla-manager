@@ -14,16 +14,14 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-// Key is unique identifier of a task in scheduler.
-type Key uuid.UUID
+type (
+	// Key is unique identifier of a task in scheduler.
+	Key = uuid.UUID
 
-func (k Key) String() string {
-	return uuid.UUID(k).String()
-}
-
-// Properties are externally defined task parameters.
-// They are JSON encoded.
-type Properties json.RawMessage
+	// Properties are externally defined task parameters.
+	// They are JSON encoded.
+	Properties = json.RawMessage
+)
 
 // RunContext is a bundle of Context, Key, Properties and additional runtime
 // information.
@@ -185,7 +183,7 @@ func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next
 		s.logger.Debug(ctx, "Window aligned", "key", key, "next", begin, "end", end, "offset", begin.Sub(next))
 	}
 
-	s.logger.Info(ctx, "Schedule next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
+	s.logger.Info(ctx, "Sched next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
 	a := activation{Key: key, Time: begin, Retry: retno, Stop: end}
 	if s.queue.Push(a) {
 		s.wakeup()
