@@ -184,7 +184,7 @@ func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next
 		s.logger.Debug(ctx, "Window aligned", "key", key, "next", begin, "end", end, "offset", begin.Sub(next))
 	}
 
-	s.logger.Info(ctx, "Sched next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
+	s.logger.Info(ctx, "Schedule next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
 	a := activation{Key: key, Time: begin, Retry: retno, Stop: end}
 	if s.queue.Push(a) {
 		s.wakeup()
