@@ -80,6 +80,17 @@ func (r *fakeRunner) WaitKeys(keys ...Key) chan struct{} {
 	return ch
 }
 
+func (r *fakeRunner) WaitNKeys(n int) chan struct{} {
+	ch := make(chan struct{})
+	go func() {
+		for i := 0; i < n; i++ {
+			<-r.C
+		}
+		close(ch)
+	}()
+	return ch
+}
+
 func (r *fakeRunner) Wait(d time.Duration) chan struct{} {
 	ch := make(chan struct{})
 	go func() {
@@ -410,6 +421,39 @@ func TestStop(t *testing.T) {
 	case <-time.After(Timeout):
 		t.Fatal("expected a run, timeout")
 	case <-f.WaitKeys(k[0], k[1]):
+	}
+}
+
+func TestCloseAndWait(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := newFakeRunner()
+	f.F = func(ctx RunContext) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	k := randomKeys(2)
+	s.Schedule(ctx, k[0], details(newFakeTrigger(100*time.Millisecond)))
+	s.Schedule(ctx, k[1], details(newFakeTrigger(200*time.Millisecond)))
+
+	time.AfterFunc(300*time.Millisecond, func() {
+		s.Close()
+		s.Wait()
+	})
+
+	select {
+	case <-startAndWait(ctx, s):
+	case <-time.After(Timeout):
+		t.Fatal("expected a run, timeout")
+	}
+
+	select {
+	case <-f.WaitNKeys(2):
+	case <-time.After(Timeout):
+		t.Fatal("expected a run, timeout")
 	}
 }
 
