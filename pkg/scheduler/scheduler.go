@@ -88,6 +88,7 @@ type Scheduler struct {
 	queue   *activationQueue
 	details map[Key]Details
 	running map[Key]context.CancelFunc
+	closed  bool
 	mu      sync.Mutex
 
 	wakeupCh chan struct{}
@@ -246,14 +247,21 @@ func (s *Scheduler) Stop(ctx context.Context, key Key) {
 	}
 }
 
-// StopAll is equivalent to calling Stop for every running key.
-func (s *Scheduler) StopAll(ctx context.Context) {
+// Close makes Start function exit, stops all runs, call Wait to wait for the
+// runs to return.
+func (s *Scheduler) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.logger.Info(ctx, "Stop all")
+	s.closed = true
+	s.wakeup()
 	for _, cancel := range s.running {
 		cancel()
 	}
+}
+
+// Wait waits for runs to return call after Close.
+func (s *Scheduler) Wait() {
+	s.wg.Wait()
 }
 
 // Start is the scheduler main loop.
@@ -263,6 +271,11 @@ func (s *Scheduler) Start(ctx context.Context) {
 	for {
 		var d time.Duration
 		s.mu.Lock()
+		if s.closed {
+			s.mu.Unlock()
+			s.logger.Debug(ctx, "Closed")
+			break
+		}
 		top, ok := s.queue.Top()
 		s.mu.Unlock()
 		if !ok {
@@ -381,9 +394,4 @@ func (s *Scheduler) onRunEnd(ctx *RunContext) {
 	default:
 		s.logger.Info(ctx, "Failed", "key", ctx.Key, "error", err)
 	}
-}
-
-// Wait joins all active runs.
-func (s *Scheduler) Wait() {
-	s.wg.Wait()
 }
