@@ -393,6 +393,27 @@ func TestTriggerHead(t *testing.T) {
 	}
 }
 
+func TestTriggerUnknownKey(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	f := newFakeRunner()
+	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	k := randomKey()
+
+	time.AfterFunc(StartOffset, func() {
+		s.Trigger(ctx, k)
+	})
+
+	select {
+	case <-startAndWait(ctx, s):
+		t.Fatal("expected a run, scheduler exit")
+	case <-time.After(100 * time.Millisecond):
+		if f.Count() != 0 {
+			t.Fatal("Unexpected run")
+		}
+	}
+}
+
 func TestStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
