@@ -116,6 +116,7 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	s.details[key] = d
 	// If running key will be scheduled when done in reschedule.
 	if _, running := s.running[key]; running {
+		s.logger.Debug(ctx, "Running scheduling deferred", "key", key)
 		return
 	}
 	next := d.Trigger.Next(s.now())
@@ -223,7 +224,10 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Propert
 		s.wakeup()
 	}
 	d, ok := s.details[key]
-	runCtx := s.newRunContextLocked(activation{Key: key})
+	var runCtx *RunContext
+	if ok {
+		runCtx = s.newRunContextLocked(activation{Key: key})
+	}
 	s.mu.Unlock()
 	if !ok {
 		s.logger.Info(ctx, "Manual trigger ignored - unknown key", "key", key)
