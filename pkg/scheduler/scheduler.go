@@ -212,7 +212,7 @@ func (s *Scheduler) unscheduleLocked(key Key) {
 // Trigger immediately runs a key.
 // If key is already running the call will have no effect.
 // Properties can be modified for this run with options.
-func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Properties) Properties) bool {
+func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 	s.mu.Lock()
 	s.logger.Info(ctx, "Manual trigger", "key", key)
 
@@ -225,7 +225,7 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Propert
 	if s.queue.Remove(key) {
 		s.wakeup()
 	}
-	d, ok := s.details[key]
+	_, ok := s.details[key]
 	var runCtx *RunContext
 	if ok {
 		runCtx = s.newRunContextLocked(activation{Key: key})
@@ -234,14 +234,6 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key, opts ...func(p Propert
 	if !ok {
 		s.logger.Info(ctx, "Manual trigger ignored - unknown key", "key", key)
 		return false
-	}
-
-	if len(opts) != 0 {
-		p := d.Properties
-		for _, o := range opts {
-			p = o(p)
-		}
-		runCtx.Properties = p
 	}
 
 	s.asyncRun(runCtx)
