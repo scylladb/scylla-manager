@@ -9,9 +9,10 @@ import (
 
 type activation struct {
 	time.Time
-	Key   Key
-	Retry int8
-	Stop  time.Time
+	Key        Key
+	Retry      int8
+	Properties Properties
+	Stop       time.Time
 }
 
 // activationHeap implements heap.Interface.

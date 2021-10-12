@@ -30,7 +30,6 @@ type RunContext struct {
 	Key        Key
 	Properties Properties
 	Retry      int8
-	NoContinue bool
 
 	err error
 }
@@ -120,7 +119,7 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 		return
 	}
 	next := d.Trigger.Next(s.now())
-	s.scheduleLocked(ctx, key, d, next, 0)
+	s.scheduleLocked(ctx, key, d, next, 0, nil)
 }
 
 func (s *Scheduler) reschedule(ctx *RunContext) {
@@ -144,16 +143,19 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 		now   = s.now()
 		next  = d.Trigger.Next(now)
 		retno int8
+		p     Properties
 	)
 	switch {
 	case shouldContinue(ctx.err):
 		next = now
 		retno = ctx.Retry
+		p = ctx.Properties
 	case shouldRetry(ctx.err):
 		if d.Backoff != nil {
 			if b := d.Backoff.NextBackOff(); b != retry.Stop {
 				next = now.Add(b)
 				retno = ctx.Retry + 1
+				p = ctx.Properties
 				s.logger.Debug(ctx, "Retry backoff", "key", key, "backoff", b, "retry", retno)
 			}
 		}
@@ -162,7 +164,7 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 			d.Backoff.Reset()
 		}
 	}
-	s.scheduleLocked(ctx, key, d, next, retno)
+	s.scheduleLocked(ctx, key, d, next, retno, p)
 }
 
 func shouldContinue(err error) bool {
@@ -173,7 +175,7 @@ func shouldRetry(err error) bool {
 	return !(err == nil || errors.Is(err, context.Canceled) || retry.IsPermanent(err))
 }
 
-func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next time.Time, retno int8) {
+func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next time.Time, retno int8, p Properties) {
 	if next.IsZero() {
 		s.logger.Info(ctx, "No triggers, removing", "key", key)
 		s.unscheduleLocked(key)
@@ -186,7 +188,7 @@ func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next
 	}
 
 	s.logger.Info(ctx, "Schedule next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
-	a := activation{Key: key, Time: begin, Retry: retno, Stop: end}
+	a := activation{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
 	if s.queue.Push(a) {
 		s.wakeup()
 	}
@@ -309,7 +311,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 		s.mu.Lock()
 		a, ok := s.queue.Pop()
-		if a != top {
+		if a.Key != top.Key {
 			if ok {
 				s.queue.Push(a)
 			}
@@ -373,7 +375,14 @@ func (s *Scheduler) wakeup() {
 }
 
 func (s *Scheduler) newRunContextLocked(a activation) *RunContext {
-	ctx, cancel := newRunContext(a.Key, s.details[a.Key].Properties, a.Stop)
+	var p Properties
+	if a.Properties != nil {
+		p = a.Properties
+	} else {
+		p = s.details[a.Key].Properties
+	}
+
+	ctx, cancel := newRunContext(a.Key, p, a.Stop)
 	ctx.Retry = a.Retry
 	s.running[a.Key] = cancel
 	return ctx

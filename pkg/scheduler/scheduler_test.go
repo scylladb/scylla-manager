@@ -3,6 +3,7 @@
 package scheduler
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -43,21 +44,21 @@ func startAndWait(ctx context.Context, s *Scheduler) chan struct{} {
 
 type fakeRunner struct {
 	c *atomic.Int64
-	C chan Key
+	C chan RunContext
 	F RunFunc
 }
 
 func newFakeRunner() *fakeRunner {
 	return &fakeRunner{
 		c: atomic.NewInt64(0),
-		C: make(chan Key),
+		C: make(chan RunContext),
 	}
 }
 
 func (r *fakeRunner) Run(ctx RunContext) error {
 	r.c.Inc()
 	defer func() {
-		r.C <- ctx.Key
+		r.C <- ctx
 	}()
 	if r.F != nil {
 		return r.F(ctx)
@@ -65,26 +66,36 @@ func (r *fakeRunner) Run(ctx RunContext) error {
 	return nil
 }
 
-func (r *fakeRunner) WaitKeys(keys ...Key) chan struct{} {
+func (r *fakeRunner) WaitNKeys(n int) chan struct{} {
 	ch := make(chan struct{})
 	go func() {
-		for i := 0; i < len(keys); i++ {
-			key := <-r.C
-			if key != keys[i] {
-				msg := fmt.Sprintf("Run key=%s, expected %s", key, keys[i])
-				panic(msg)
-			}
+		for i := 0; i < n; i++ {
+			<-r.C
 		}
 		close(ch)
 	}()
 	return ch
 }
 
-func (r *fakeRunner) WaitNKeys(n int) chan struct{} {
+func (r *fakeRunner) WaitKeys(keys ...Key) chan struct{} {
+	return r.WaitKeysCheckContext(nil, keys...)
+}
+
+func (r *fakeRunner) WaitKeysCheckContext(check func(runCtx RunContext) error, keys ...Key) chan struct{} {
 	ch := make(chan struct{})
 	go func() {
-		for i := 0; i < n; i++ {
-			<-r.C
+		for i := 0; i < len(keys); i++ {
+			runCtx := <-r.C
+			if runCtx.Key != keys[i] {
+				msg := fmt.Sprintf("Run key=%s, expected %s", runCtx.Key, keys[i])
+				panic(msg)
+			}
+			if check != nil {
+				if err := check(runCtx); err != nil {
+					msg := fmt.Sprintf("Run key=%s check error %s", runCtx.Key, err)
+					panic(msg)
+				}
+			}
 		}
 		close(ch)
 	}()
@@ -482,24 +493,40 @@ func TestRetry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
+	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	k := randomKey()
+	d := details(newFakeTrigger(100*time.Millisecond, 500*time.Millisecond))
+	d.Properties = Properties(`{"foo":"bar"}`)
+	d.Backoff = retry.NewExponentialBackoff(50*time.Millisecond, 800*time.Millisecond, 200*time.Millisecond, 2, 0)
+	s.Schedule(ctx, k, d)
+
 	f.F = func(ctx RunContext) error {
-		if f.Count() < 4 {
+		c := f.Count()
+		if c == 1 {
+			d2 := d
+			d2.Trigger = newFakeTrigger()
+			d2.Properties = Properties(`{"baz":"bar"}`)
+			s.Schedule(ctx, k, d2)
+		}
+		if c < 4 {
 			return errors.New("test error")
 		}
 		return nil
 	}
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
-	k := randomKey()
-	d := details(newFakeTrigger(100*time.Millisecond, 500*time.Millisecond))
-	d.Backoff = retry.NewExponentialBackoff(50*time.Millisecond, 800*time.Millisecond, 200*time.Millisecond, 2, 0)
-	s.Schedule(ctx, k, d)
+
+	check := func(runCtx RunContext) error {
+		if !bytes.Equal(runCtx.Properties, d.Properties) {
+			return errors.New("properties mismatch")
+		}
+		return nil
+	}
 
 	select {
 	case <-startAndWait(ctx, s):
 		t.Fatal("expected a run, scheduler exit")
 	case <-time.After(Timeout):
 		t.Fatal("expected a run, timeout")
-	case <-f.WaitKeys(k, k, k, k, k):
+	case <-f.WaitKeysCheckContext(check, k, k, k, k):
 	}
 }
 

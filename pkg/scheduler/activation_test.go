@@ -65,7 +65,7 @@ func TestActivationQueue(t *testing.T) {
 		if ok {
 			t.Fatalf("pop() = %v, %v, expected ok to be false", top, ok)
 		}
-		if pop != top {
+		if pop.Key != top.Key {
 			t.Fatalf("top() = %v, pop() = %v", top, pop)
 		}
 	})
