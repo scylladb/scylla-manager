@@ -24,7 +24,7 @@ var _ heap.Interface = (*activationHeap)(nil)
 func (h activationHeap) Len() int { return len(h) }
 
 func (h activationHeap) Less(i, j int) bool {
-	return h[i].UnixNano() < h[j].UnixNano()
+	return h[i].Time.Before(h[j].Time)
 }
 
 func (h activationHeap) Swap(i, j int) {
