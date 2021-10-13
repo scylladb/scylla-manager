@@ -103,7 +103,7 @@ func NewScheduler(now func() time.Time, run RunFunc, logger log.Logger) *Schedul
 		queue:    newActivationQueue(),
 		details:  make(map[Key]Details),
 		running:  make(map[Key]context.CancelFunc),
-		wakeupCh: make(chan struct{}),
+		wakeupCh: make(chan struct{}, 1),
 	}
 }
 
