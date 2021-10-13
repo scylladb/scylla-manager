@@ -252,14 +252,21 @@ func (s *Scheduler) Stop(ctx context.Context, key Key) {
 
 // Close makes Start function exit, stops all runs, call Wait to wait for the
 // runs to return.
-func (s *Scheduler) Close() {
+// It returns two sets of keys the running that were canceled and pending that
+// were scheduled to run.
+func (s *Scheduler) Close() (running, pending []Key) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.closed = true
 	s.wakeup()
-	for _, cancel := range s.running {
+	for k, cancel := range s.running {
+		running = append(running, k)
 		cancel()
 	}
+	for _, a := range s.queue.h {
+		pending = append(pending, a.Key)
+	}
+	return
 }
 
 // Wait waits for runs to return call after Close.
