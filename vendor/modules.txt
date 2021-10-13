@@ -293,6 +293,7 @@ github.com/scylladb/go-log/gocqllog
 github.com/scylladb/go-reflectx
 # github.com/scylladb/go-set v1.0.2
 ## explicit
+github.com/scylladb/go-set/b16set
 github.com/scylladb/go-set/i64set
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
