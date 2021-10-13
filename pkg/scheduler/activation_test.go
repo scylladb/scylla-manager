@@ -11,7 +11,7 @@ import (
 func makeTestActivation(sec int) activation {
 	return activation{
 		Time: unixTime(sec),
-		Key:  Key(uuid.MustRandom()),
+		Key:  uuid.MustRandom(),
 	}
 }
 
