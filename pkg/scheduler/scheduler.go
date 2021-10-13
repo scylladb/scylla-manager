@@ -134,6 +134,9 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 	}
 	delete(s.running, key)
 
+	if s.closed {
+		return
+	}
 	d, ok := s.details[key]
 	if !ok {
 		return
