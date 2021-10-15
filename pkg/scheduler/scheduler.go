@@ -107,7 +107,7 @@ func NewScheduler(now func() time.Time, run RunFunc, logger log.Logger) *Schedul
 	}
 }
 
-// Schedule updates properties and trigger of an existing key or add a new key.
+// Schedule updates properties and trigger of an existing key or adds a new key.
 func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -119,7 +119,7 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 		return
 	}
 	next := d.Trigger.Next(s.now())
-	s.scheduleLocked(ctx, key, d, next, 0, nil)
+	s.scheduleLocked(ctx, key, next, 0, nil, d.Window)
 }
 
 func (s *Scheduler) reschedule(ctx *RunContext) {
@@ -167,7 +167,7 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 			d.Backoff.Reset()
 		}
 	}
-	s.scheduleLocked(ctx, key, d, next, retno, p)
+	s.scheduleLocked(ctx, key, next, retno, p, d.Window)
 }
 
 func shouldContinue(err error) bool {
@@ -178,14 +178,14 @@ func shouldRetry(err error) bool {
 	return !(err == nil || errors.Is(err, context.Canceled) || retry.IsPermanent(err))
 }
 
-func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, d Details, next time.Time, retno int8, p Properties) {
+func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, next time.Time, retno int8, p Properties, w Window) {
 	if next.IsZero() {
 		s.logger.Info(ctx, "No triggers, removing", "key", key)
 		s.unscheduleLocked(key)
 		return
 	}
 
-	begin, end := d.Window.Next(next)
+	begin, end := w.Next(next)
 	if begin != next {
 		s.logger.Debug(ctx, "Window aligned", "key", key, "next", begin, "end", end, "offset", begin.Sub(next))
 	}
@@ -212,9 +212,9 @@ func (s *Scheduler) unscheduleLocked(key Key) {
 	}
 }
 
-// Trigger immediately runs a key.
-// If key is already running the call will have no effect.
-// Properties can be modified for this run with options.
+// Trigger immediately runs a scheduled key.
+// If key is already running the call will have no effect and true is returned.
+// If key is not scheduled the call will have no effect and false is returned.
 func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 	s.mu.Lock()
 	s.logger.Info(ctx, "Manual trigger", "key", key)
