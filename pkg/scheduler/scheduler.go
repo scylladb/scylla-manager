@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -46,7 +45,7 @@ func newRunContext(key Key, properties Properties, stop time.Time) (*RunContext,
 	}
 
 	return &RunContext{
-		Context:    log.WithNewTraceID(ctx),
+		Context:    ctx,
 		Key:        key,
 		Properties: properties,
 	}, cancel
@@ -79,10 +78,10 @@ type Details struct {
 // Scheduler gets the next activation time for a key from a trigger.
 // On key activation the RunFunc is called.
 type Scheduler struct {
-	now    func() time.Time
-	run    RunFunc
-	logger log.Logger
-	timer  *time.Timer
+	now      func() time.Time
+	run      RunFunc
+	listener Listener
+	timer    *time.Timer
 
 	queue   *activationQueue
 	details map[Key]Details
@@ -94,11 +93,11 @@ type Scheduler struct {
 	wg       sync.WaitGroup
 }
 
-func NewScheduler(now func() time.Time, run RunFunc, logger log.Logger) *Scheduler {
+func NewScheduler(now func() time.Time, run RunFunc, listener Listener) *Scheduler {
 	return &Scheduler{
 		now:      now,
 		run:      run,
-		logger:   logger,
+		listener: listener,
 		timer:    time.NewTimer(0),
 		queue:    newActivationQueue(),
 		details:  make(map[Key]Details),
@@ -115,7 +114,6 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	s.details[key] = d
 	// If running key will be scheduled when done in reschedule.
 	if _, running := s.running[key]; running {
-		s.logger.Debug(ctx, "Running scheduling deferred", "key", key)
 		return
 	}
 	next := d.Trigger.Next(s.now())
@@ -159,7 +157,7 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 				next = now.Add(b)
 				retno = ctx.Retry + 1
 				p = ctx.Properties
-				s.logger.Debug(ctx, "Retry backoff", "key", key, "backoff", b, "retry", retno)
+				s.listener.OnRetryBackoff(ctx, key, b, retno)
 			}
 		}
 	default:
@@ -180,17 +178,14 @@ func shouldRetry(err error) bool {
 
 func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, next time.Time, retno int8, p Properties, w Window) {
 	if next.IsZero() {
-		s.logger.Info(ctx, "No triggers, removing", "key", key)
+		s.listener.OnNoTrigger(ctx, key)
 		s.unscheduleLocked(key)
 		return
 	}
 
 	begin, end := w.Next(next)
-	if begin != next {
-		s.logger.Debug(ctx, "Window aligned", "key", key, "next", begin, "end", end, "offset", begin.Sub(next))
-	}
 
-	s.logger.Info(ctx, "Schedule next", "key", key, "next", begin, "in", begin.Sub(s.now()), "retry", retno)
+	s.listener.OnSchedule(ctx, key, begin, end, retno)
 	a := activation{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
 	if s.queue.Push(a) {
 		s.wakeup()
@@ -199,10 +194,10 @@ func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, next time.Time,
 
 // Unschedule cancels schedule of a key. It does not stop an active run.
 func (s *Scheduler) Unschedule(ctx context.Context, key Key) {
+	s.listener.OnUnschedule(ctx, key)
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.logger.Info(ctx, "Unschedule", "key", key)
 	s.unscheduleLocked(key)
+	s.mu.Unlock()
 }
 
 func (s *Scheduler) unscheduleLocked(key Key) {
@@ -217,11 +212,9 @@ func (s *Scheduler) unscheduleLocked(key Key) {
 // If key is not scheduled the call will have no effect and false is returned.
 func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 	s.mu.Lock()
-	s.logger.Info(ctx, "Manual trigger", "key", key)
-
 	if _, running := s.running[key]; running {
-		s.logger.Info(ctx, "Manual trigger ignored - already running", "key", key)
 		s.mu.Unlock()
+		s.listener.OnTrigger(ctx, key, true)
 		return true
 	}
 
@@ -234,20 +227,19 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 		runCtx = s.newRunContextLocked(activation{Key: key})
 	}
 	s.mu.Unlock()
-	if !ok {
-		s.logger.Info(ctx, "Manual trigger ignored - unknown key", "key", key)
-		return false
-	}
 
-	s.asyncRun(runCtx)
-	return true
+	s.listener.OnTrigger(ctx, key, ok)
+	if ok {
+		s.asyncRun(runCtx)
+	}
+	return ok
 }
 
 // Stop notifies RunFunc to stop by cancelling the context.
 func (s *Scheduler) Stop(ctx context.Context, key Key) {
+	s.listener.OnStop(ctx, key)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.logger.Info(ctx, "Stop", "key", key)
 	if cancel, ok := s.running[key]; ok {
 		cancel()
 	}
@@ -260,6 +252,7 @@ func (s *Scheduler) Stop(ctx context.Context, key Key) {
 func (s *Scheduler) Close() (running, pending []Key) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	s.closed = true
 	s.wakeup()
 	for k, cancel := range s.running {
@@ -279,33 +272,26 @@ func (s *Scheduler) Wait() {
 
 // Start is the scheduler main loop.
 func (s *Scheduler) Start(ctx context.Context) {
-	s.logger.Info(ctx, "Scheduler started")
+	s.listener.OnSchedulerStart(ctx)
 
 	for {
 		var d time.Duration
 		s.mu.Lock()
 		if s.closed {
 			s.mu.Unlock()
-			s.logger.Debug(ctx, "Closed")
 			break
 		}
 		top, ok := s.queue.Top()
 		s.mu.Unlock()
+
 		if !ok {
 			d = -1
 		} else {
 			d = s.activateIn(top)
 		}
-
-		if d < 0 {
-			s.logger.Debug(ctx, "Waiting for signal")
-		} else {
-			s.logger.Debug(ctx, "Waiting", "key", top.Key, "sleep", d)
-		}
-
+		s.listener.OnSleep(ctx, top.Key, d)
 		if !s.sleep(ctx, d) {
 			if ctx.Err() != nil {
-				s.logger.Debug(ctx, "Context canceled")
 				break
 			}
 			continue
@@ -326,7 +312,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 		s.asyncRun(runCtx)
 	}
 
-	s.logger.Info(ctx, "Scheduler stopped")
+	s.listener.OnSchedulerStop(ctx)
 }
 
 func (s *Scheduler) activateIn(a activation) time.Duration {
@@ -391,8 +377,7 @@ func (s *Scheduler) newRunContextLocked(a activation) *RunContext {
 }
 
 func (s *Scheduler) asyncRun(ctx *RunContext) {
-	s.logger.Info(ctx, "Run", "key", ctx.Key)
-
+	s.listener.OnRunStart(ctx)
 	s.wg.Add(1)
 	go func(ctx *RunContext) {
 		defer s.wg.Done()
@@ -406,12 +391,12 @@ func (s *Scheduler) onRunEnd(ctx *RunContext) {
 	err := ctx.err
 	switch {
 	case err == nil:
-		s.logger.Info(ctx, "Success", "key", ctx.Key)
+		s.listener.OnRunSuccess(ctx)
 	case errors.Is(err, context.Canceled):
-		s.logger.Info(ctx, "Stopped", "key", ctx.Key)
+		s.listener.OnRunStop(ctx)
 	case errors.Is(err, context.DeadlineExceeded):
-		s.logger.Info(ctx, "Stopped on window end", "key", ctx.Key)
+		s.listener.OnRunWindowEnd(ctx)
 	default:
-		s.logger.Info(ctx, "Failed", "key", ctx.Key, "error", err)
+		s.listener.OnRunError(ctx, err)
 	}
 }

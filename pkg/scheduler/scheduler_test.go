@@ -170,10 +170,74 @@ func details(t Trigger) Details {
 	}
 }
 
+type logListener struct {
+	logger log.Logger
+}
+
+func (l logListener) OnSchedulerStart(ctx context.Context) {
+	l.logger.Info(ctx, "OnSchedulerStart")
+}
+
+func (l logListener) OnSchedulerStop(ctx context.Context) {
+	l.logger.Info(ctx, "OnSchedulerStop")
+}
+
+func (l logListener) OnRunStart(ctx *RunContext) {
+	l.logger.Info(ctx, "OnRunStart", "key", ctx.Key, "retry", ctx.Retry)
+}
+
+func (l logListener) OnRunSuccess(ctx *RunContext) {
+	l.logger.Info(ctx, "OnRunSuccess", "key", ctx.Key, "retry", ctx.Retry)
+}
+
+func (l logListener) OnRunStop(ctx *RunContext) {
+	l.logger.Info(ctx, "OnRunStop", "key", ctx.Key, "retry", ctx.Retry)
+}
+
+func (l logListener) OnRunWindowEnd(ctx *RunContext) {
+	l.logger.Info(ctx, "OnRunWindowEnd", "key", ctx.Key, "retry", ctx.Retry)
+}
+
+func (l logListener) OnRunError(ctx *RunContext, err error) {
+	l.logger.Info(ctx, "OnRunError", "key", ctx.Key, "retry", ctx.Retry, "error", err)
+}
+
+func (l logListener) OnSchedule(ctx context.Context, key Key, begin, end time.Time, retno int8) {
+	l.logger.Info(ctx, "OnSchedule", "key", key, "begin", begin, "end", end, "retry", retno)
+}
+
+func (l logListener) OnUnschedule(ctx context.Context, key Key) {
+	l.logger.Info(ctx, "OnUnschedule", "key", key)
+}
+
+func (l logListener) OnTrigger(ctx context.Context, key Key, success bool) {
+	l.logger.Info(ctx, "OnTrigger", "key", key, "success", success)
+}
+
+func (l logListener) OnStop(ctx context.Context, key Key) {
+	l.logger.Info(ctx, "OnStop", "key", key)
+}
+
+func (l logListener) OnRetryBackoff(ctx context.Context, key Key, backoff time.Duration, retno int8) {
+	l.logger.Info(ctx, "OnRetryBackoff", "key", key, "backoff", retno)
+}
+
+func (l logListener) OnNoTrigger(ctx context.Context, key Key) {
+	l.logger.Info(ctx, "OnNoTrigger", "key", key)
+}
+
+func (l logListener) OnSleep(ctx context.Context, key Key, d time.Duration) {
+	l.logger.Info(ctx, "OnSleep", "key", key, "duration", d)
+}
+
+var ll = logListener{
+	logger: log.NewDevelopment(),
+}
+
 func TestStopEmpty(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 
 	time.AfterFunc(StartOffset, cancel)
 	select {
@@ -186,7 +250,7 @@ func TestStopEmpty(t *testing.T) {
 func TestScheduleAfterStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 
 	time.AfterFunc(StartOffset, func() {
 		cancel()
@@ -207,7 +271,7 @@ func TestScheduleBeforeStart(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	s.Schedule(ctx, randomKey(), details(newFakeTrigger(100*time.Millisecond)))
 
 	select {
@@ -231,7 +295,7 @@ func TestScheduleWhileRunning(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 		return nil
 	}
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKey()
 	s.Schedule(ctx, k, details(newFakeTrigger(50*time.Millisecond)))
 
@@ -254,7 +318,7 @@ func TestStartSchedule(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 
 	time.AfterFunc(StartOffset, func() {
 		s.Schedule(ctx, randomKey(), details(newFakeTrigger(100*time.Millisecond)))
@@ -277,7 +341,7 @@ func TestUnscheduleBeforeRun(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKey()
 	s.Schedule(ctx, k, details(newFakeTrigger(500*time.Millisecond)))
 
@@ -298,7 +362,7 @@ func TestUnschduleHead(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(3)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
@@ -321,7 +385,7 @@ func TestUnschduleTail(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(3)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
@@ -344,7 +408,7 @@ func TestRescheduleHead(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(3)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
@@ -367,7 +431,7 @@ func TestRescheduleInterval(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(2)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(100*time.Millisecond, 300*time.Millisecond, 400*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(200*time.Millisecond)))
@@ -385,7 +449,7 @@ func TestTriggerHead(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(3)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(500*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(600*time.Millisecond)))
@@ -408,7 +472,7 @@ func TestTriggerUnknownKey(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKey()
 
 	time.AfterFunc(StartOffset, func() {
@@ -435,7 +499,7 @@ func TestStop(t *testing.T) {
 			return ctx.Err()
 		}
 	}
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(2)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(100*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(200*time.Millisecond)))
@@ -466,7 +530,7 @@ func TestCloseAndWait(t *testing.T) {
 			return ctx.Err()
 		}
 	}
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKeys(2)
 	s.Schedule(ctx, k[0], details(newFakeTrigger(100*time.Millisecond)))
 	s.Schedule(ctx, k[1], details(newFakeTrigger(200*time.Millisecond)))
@@ -493,7 +557,7 @@ func TestRetry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	f := newFakeRunner()
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKey()
 	d := details(newFakeTrigger(100*time.Millisecond, 500*time.Millisecond))
 	d.Properties = Properties(`{"foo":"bar"}`)
@@ -537,7 +601,7 @@ func TestRetryPermanentError(t *testing.T) {
 	f.F = func(ctx RunContext) error {
 		return retry.Permanent(errors.New("test error"))
 	}
-	s := NewScheduler(relativeTime(), f.Run, log.NewDevelopment())
+	s := NewScheduler(relativeTime(), f.Run, ll)
 	k := randomKey()
 	d := details(newFakeTrigger(100 * time.Millisecond))
 	d.Backoff = retry.NewExponentialBackoff(50*time.Millisecond, 800*time.Millisecond, 200*time.Millisecond, 2, 0)
@@ -564,7 +628,7 @@ func TestWindow(t *testing.T) {
 		}
 	}
 	now := timeutc.Now()
-	s := NewScheduler(timeutc.Now, f.Run, log.NewDevelopment())
+	s := NewScheduler(timeutc.Now, f.Run, ll)
 	k := randomKey()
 	d := details(newFakeTriggerWithTime(now.Add(50 * time.Millisecond)))
 	wdt := func(d time.Duration) WeekdayTime {
@@ -623,7 +687,7 @@ func TestWindowWithBackoff(t *testing.T) {
 		}
 	}
 	now := timeutc.Now()
-	s := NewScheduler(timeutc.Now, f.Run, log.NewDevelopment())
+	s := NewScheduler(timeutc.Now, f.Run, ll)
 	k := randomKey()
 	d := details(newFakeTriggerWithTime(
 		now.Add(50*time.Millisecond),
