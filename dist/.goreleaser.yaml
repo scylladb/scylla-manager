@@ -81,7 +81,7 @@ nfpms:
       - src: etc/scylla-manager.yaml
         dst: /etc/scylla-manager/scylla-manager.yaml
         type: "config|noreplace"
-      - src: ../scripts/scyllamgr_setup
+      - src: scripts/scyllamgr_setup
         dst: /usr/sbin/scyllamgr_setup
       - src: systemd/scylla-manager-check-for-updates.service
         dst: /usr/lib/systemd/system/scylla-manager-check-for-updates.service
@@ -172,9 +172,9 @@ nfpms:
       - src: etc/scylla-manager-agent.yaml
         dst: /etc/scylla-manager-agent/scylla-manager-agent.yaml
         type: "config|noreplace"
-      - src: ../scripts/scyllamgr_agent_setup
+      - src: scripts/scyllamgr_agent_setup
         dst: /usr/sbin/scyllamgr_agent_setup
-      - src: ../scripts/scyllamgr_auth_token_gen
+      - src: scripts/scyllamgr_auth_token_gen
         dst: /usr/sbin/scyllamgr_auth_token_gen
       - src: systemd/scylla-manager-agent.service
         dst: /usr/lib/systemd/system/scylla-manager-agent.service
