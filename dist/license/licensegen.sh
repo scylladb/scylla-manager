@@ -21,7 +21,7 @@ for pkg in $(go list -f '{{ join .Deps  "\n"}}' $1 | cut -d/ -f1-3 | sort | uniq
         continue
     fi
 
-    l=$(license-detector -f json "../vendor/$pkg" | jq -r '.[0].matches[0].license')
+    l=$(license-detector -f json "../../vendor/$pkg" | jq -r '.[0].matches[0].license')
     if [[ ${l} == "null" ]]; then
       continue
     fi

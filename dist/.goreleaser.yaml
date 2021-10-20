@@ -89,9 +89,9 @@ nfpms:
         dst: /usr/lib/systemd/system/scylla-manager-check-for-updates.timer
       - src: systemd/scylla-manager.service
         dst: /usr/lib/systemd/system/scylla-manager.service
-      - src: ../license/LICENSE.PROPRIETARY
+      - src: license/LICENSE.PROPRIETARY
         dst: /usr/share/doc/scylla-manager-server/LICENSE
-      - src: ../license/LICENSE.3RD_PARTY.scylla-manager-server
+      - src: license/LICENSE.3RD_PARTY.scylla-manager-server
         dst: /usr/share/doc/scylla-manager-server/LICENSE.3RD_PARTY
     rpm:
       group: Applications/Databases
@@ -133,9 +133,9 @@ nfpms:
     contents:
       - dst: /etc/bash_completion.d/sctool.bash
         type: ghost
-      - src: ../license/LICENSE.PROPRIETARY
+      - src: license/LICENSE.PROPRIETARY
         dst: /usr/share/doc/scylla-manager-client/LICENSE
-      - src: ../license/LICENSE.3RD_PARTY.scylla-manager-client
+      - src: license/LICENSE.3RD_PARTY.scylla-manager-client
         dst: /usr/share/doc/scylla-manager-client/LICENSE.3RD_PARTY
     rpm:
       group: Applications/Databases
@@ -178,9 +178,9 @@ nfpms:
         dst: /usr/sbin/scyllamgr_auth_token_gen
       - src: systemd/scylla-manager-agent.service
         dst: /usr/lib/systemd/system/scylla-manager-agent.service
-      - src: ../license/LICENSE.PROPRIETARY
+      - src: license/LICENSE.PROPRIETARY
         dst: /usr/share/doc/scylla-manager-agent/LICENSE
-      - src: ../license/LICENSE.3RD_PARTY.scylla-manager-agent
+      - src: license/LICENSE.3RD_PARTY.scylla-manager-agent
         dst: /usr/share/doc/scylla-manager-agent/LICENSE.3RD_PARTY
     rpm:
       group: Applications/Databases
