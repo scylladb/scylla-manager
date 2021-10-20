@@ -6,7 +6,6 @@ This product includes software from github.com/Azure/azure-pipeline-go licensed 
 This product includes software from github.com/Azure/azure-storage-blob-go licensed under MIT license.
 This product includes software from github.com/Azure/go-autorest licensed under Apache-2.0 license.
 This product includes software from github.com/beorn7/perks licensed under MIT license.
-This product includes software from github.com/cespare/xxhash licensed under MIT license.
 This product includes software from github.com/coreos/go-semver licensed under Apache-2.0 license.
 This product includes software from github.com/form3tech-oss/jwt-go licensed under MIT license.
 This product includes software from github.com/gobwas/glob licensed under MIT license.
