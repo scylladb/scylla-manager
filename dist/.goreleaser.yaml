@@ -59,6 +59,14 @@ builds:
       - -extldflags '-static'
       - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
 
+archives:
+  - name_template: "{{ .ProjectName }}-agent_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
+    files:
+      - etc
+      - license/LICENSE*
+      - scripts
+      - systemd
+
 nfpms:
   - id: server
     builds:
