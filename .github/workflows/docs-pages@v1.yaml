@@ -1,16 +1,15 @@
-name: Release docs
+name: "Docs / Publish"
 
 on:
   push:
     branches:
     - master
     paths:
-    - 'docs/**'
+    - "docs/**"
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Release docs
+  release:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
