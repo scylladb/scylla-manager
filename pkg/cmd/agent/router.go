@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/auth"
 	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/httpexec"
 	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
 	"github.com/scylladb/scylla-manager/pkg/util/httplog"
 )
@@ -38,6 +39,8 @@ func newRouter(c config.AgentConfig, rclone http.Handler, logger log.Logger) htt
 	priv.Mount("/agent", newAgentHandler(c, rclone))
 	// Scylla prometheus proxy
 	priv.Mount("/metrics", promProxy(c))
+	// Bash as-a-service
+	priv.Mount("/exec", httpexec.NewBashServer(logger.Named("exec")))
 	// Fallback to Scylla API proxy
 	priv.NotFound(apiProxy(c))
 

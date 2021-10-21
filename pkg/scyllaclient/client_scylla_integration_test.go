@@ -46,12 +46,12 @@ func TestClientStatusIntegration(t *testing.T) {
 	}
 
 	golden := scyllaclient.NodeStatusInfoSlice{
-		{Datacenter: "dc1", Addr: "192.168.100.11", State: "", Status: true},
-		{Datacenter: "dc1", Addr: "192.168.100.12", State: "", Status: true},
-		{Datacenter: "dc1", Addr: "192.168.100.13", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.100.21", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.100.22", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.100.23", State: "", Status: true},
+		{Datacenter: "dc1", Addr: "192.168.100.11", State: "", Status: scyllaclient.NodeStatusUp},
+		{Datacenter: "dc1", Addr: "192.168.100.12", State: "", Status: scyllaclient.NodeStatusUp},
+		{Datacenter: "dc1", Addr: "192.168.100.13", State: "", Status: scyllaclient.NodeStatusUp},
+		{Datacenter: "dc2", Addr: "192.168.100.21", State: "", Status: scyllaclient.NodeStatusUp},
+		{Datacenter: "dc2", Addr: "192.168.100.22", State: "", Status: scyllaclient.NodeStatusUp},
+		{Datacenter: "dc2", Addr: "192.168.100.23", State: "", Status: scyllaclient.NodeStatusUp},
 	}
 
 	if diff := cmp.Diff(status, golden, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {

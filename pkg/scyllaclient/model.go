@@ -11,19 +11,23 @@ import (
 )
 
 // NodeStatus represents nodetool Status=Up/Down.
-type NodeStatus bool
+type NodeStatus string
 
 // NodeStatus enumeration.
 const (
-	NodeStatusUp   NodeStatus = true
-	NodeStatusDown NodeStatus = false
+	NodeStatusUp   NodeStatus = "UP"
+	NodeStatusDown NodeStatus = "DOWN"
 )
 
 func (s NodeStatus) String() string {
-	if s {
+	switch s {
+	case NodeStatusUp:
 		return "U"
+	case NodeStatusDown:
+		return "D"
+	default:
+		return ""
 	}
-	return "D"
 }
 
 // NodeState represents nodetool State=Normal/Leaving/Joining/Moving.
@@ -74,6 +78,12 @@ func (s NodeStatusInfoSlice) Datacenter(dcs []string) NodeStatusInfoSlice {
 	m := strset.New(dcs...)
 	return s.filter(func(i int) bool {
 		return m.Has(s[i].Datacenter)
+	})
+}
+
+func (s NodeStatusInfoSlice) Status(status NodeStatus) NodeStatusInfoSlice {
+	return s.filter(func(i int) bool {
+		return s[i].Status == status
 	})
 }
 

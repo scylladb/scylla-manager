@@ -1757,6 +1757,49 @@
           }
         }
       }
+    },
+    "/cluster/{cluster_id}/exec": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "parameters": [
+          {
+            "name": "datacenter",
+            "in": "query",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
     }
   }
 }

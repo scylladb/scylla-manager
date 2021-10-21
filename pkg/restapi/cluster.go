@@ -4,6 +4,8 @@ package restapi
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -12,6 +14,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/httpexec"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service/cluster"
 )
 
@@ -62,6 +66,7 @@ func newClusterHandler(svc ClusterService) *chi.Mux {
 		r.Get("/", h.loadCluster)
 		r.Put("/", h.updateCluster)
 		r.Delete("/", h.deleteCluster)
+		r.Post("/exec", h.exec)
 	})
 	return m
 }
@@ -170,5 +175,35 @@ func (h clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, errors.Wrapf(err, "delete SSL user cert for cluster %q", c.ID))
 			return
 		}
+	}
+}
+
+func (h clusterHandler) exec(w http.ResponseWriter, r *http.Request) {
+	c := mustClusterFromCtx(r)
+
+	if err := r.ParseForm(); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	f := cluster.ExecFilter{
+		Datacenter: r.Form["datacenter"],
+		State:      scyllaclient.NodeState(r.FormValue("state")),
+		Status:     scyllaclient.NodeStatus(r.FormValue("status")),
+	}
+	if l := r.FormValue("limit"); l != "" {
+		v, err := strconv.ParseInt(l, 10, 32)
+		if err != nil {
+			respondBadRequest(w, r, errors.Wrap(err, "limit"))
+			return
+		}
+		f.Limit = int(v)
+	}
+
+	var cw io.Writer = w
+	if f, ok := w.(http.Flusher); ok {
+		cw = httpexec.NewFlusher(w, f, '\n')
+	}
+	if err := h.svc.Exec(r.Context(), c.ID, r.Body, cw, f); err != nil {
+		fmt.Println("Exec error", err)
 	}
 }

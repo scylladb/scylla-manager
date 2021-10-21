@@ -32,6 +32,9 @@
         "host": {
           "type": "string"
         },
+        "port": {
+          "type": "integer"
+        },
         "auth_token": {
           "type": "string"
         },
@@ -97,6 +100,9 @@
             "type": "number",
             "format": "float"
           },
+          "alternator_cause": {
+            "type": "string"
+          },
           "cql_status": {
             "type": "string"
           },
@@ -104,12 +110,18 @@
             "type": "number",
             "format": "float"
           },
+          "cql_cause": {
+            "type": "string"
+          },
           "rest_status": {
             "type": "string"
           },
           "rest_rtt_ms": {
             "type": "number",
             "format": "float"
+          },
+          "rest_cause": {
+            "type": "string"
           },
           "total_ram": {
             "type": "integer"
@@ -413,6 +425,12 @@
         "host": {
           "type": "string"
         },
+        "ignore_hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "dc": {
           "type": "array",
           "items": {
@@ -440,6 +458,9 @@
       "type": "object",
       "properties": {
         "cluster_id": {
+          "type": "string"
+        },
+        "task_id": {
           "type": "string"
         },
         "units": {
@@ -577,6 +598,9 @@
       "properties": {
         "snapshot_tag": {
           "type": "string"
+        },
+        "nodes": {
+          "type": "integer"
         },
         "size": {
           "type": "integer"
@@ -792,9 +816,6 @@
           "type": "integer"
         },
         "deleted_files": {
-          "type": "integer"
-        },
-        "delete_errors": {
           "type": "integer"
         },
         "started_at": {
@@ -1534,8 +1555,11 @@
             "required": true
           },
           {
-            "type": "string",
-            "name": "snapshot_tag",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "name": "snapshot_tags",
             "in": "query",
             "required": true
           },
@@ -1719,6 +1743,49 @@
             "name": "start_tasks",
             "in": "query",
             "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/exec": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "parameters": [
+          {
+            "name": "datacenter",
+            "in": "query",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {
