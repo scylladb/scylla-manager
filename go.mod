@@ -19,6 +19,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.4
+	github.com/goware/prefixer v0.0.0-20160118172347-395022866408
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
 	github.com/kr/pretty v0.2.0 // indirect
