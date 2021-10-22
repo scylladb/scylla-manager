@@ -33,7 +33,7 @@ func TestExecIntegration(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		buf.WriteString(fmt.Sprint("echo ", i+1, "; sleep 1\n"))
 	}
-	if err := client.Exec(ctx, hosts, 0, &buf, os.Stdout); err != nil {
+	if err := client.Exec(ctx, hosts, 0, buf.Bytes(), os.Stdout); err != nil {
 		t.Log(err)
 	}
 }

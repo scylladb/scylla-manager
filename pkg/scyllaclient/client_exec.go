@@ -15,35 +15,12 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 )
 
-func (c *Client) Exec(ctx context.Context, host []string, limit int, stdin io.Reader, stdout io.Writer) error {
+func (c *Client) Exec(ctx context.Context, host []string, limit int, stdin []byte, stdout io.Writer) error {
 	ctx = customTimeout(ctx, time.Hour)
 
 	r := make([]io.Reader, len(host))
-	w := make([]io.Writer, len(host))
-	if limit == 0 {
-		for i := range host {
-			r[i], w[i] = io.Pipe()
-		}
-		defer func() {
-			for i := range host {
-				r[i].(io.Closer).Close()
-			}
-		}()
-		go func() {
-			io.Copy(io.MultiWriter(w...), stdin)
-			for i := range host {
-				w[i].(io.Closer).Close()
-			}
-		}()
-	} else {
-		var p [1024]byte
-		n, err := stdin.Read(p[:])
-		if !errors.Is(err, io.EOF) {
-			return errors.New("limit is not supported with streams")
-		}
-		for i := range host {
-			r[i] = bytes.NewReader(p[0:n])
-		}
+	for i := range host {
+		r[i] = bytes.NewReader(stdin)
 	}
 
 	stdout = &syncStdout{w: stdout}

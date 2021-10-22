@@ -18,7 +18,7 @@ type ExecFilter struct {
 	Limit      int
 }
 
-func (s *Service) Exec(ctx context.Context, id uuid.UUID, stdin io.Reader, stdout io.Writer, filter ExecFilter) error {
+func (s *Service) Exec(ctx context.Context, id uuid.UUID, stdin []byte, stdout io.Writer, filter ExecFilter) error {
 	s.logger.Info(ctx, "Exec", "cluster_id", id, "filter", filter)
 
 	client, err := s.Client(ctx, id)

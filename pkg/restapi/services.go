@@ -34,7 +34,7 @@ type ClusterService interface {
 	DeleteCQLCredentials(ctx context.Context, id uuid.UUID) error
 	DeleteSSLUserCert(ctx context.Context, id uuid.UUID) error
 	ListNodes(ctx context.Context, id uuid.UUID) ([]cluster.Node, error)
-	Exec(ctx context.Context, id uuid.UUID, stdin io.Reader, stdout io.Writer, filter cluster.ExecFilter) error
+	Exec(ctx context.Context, id uuid.UUID, stdin []byte, stdout io.Writer, filter cluster.ExecFilter) error
 }
 
 // HealthCheckService service interface for the REST API handlers.
