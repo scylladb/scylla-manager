@@ -165,7 +165,7 @@ build-cli: ## Build development cli binary
 .PHONY: build-server
 build-server: ## Build development server
 	@echo "==> Building scylla-manager"
-	@go build -trimpath -mod=vendor -race -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
+	@CGO_ENABLED=0 go build -trimpath -mod=vendor -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
 
 .PHONY: run-server
 run-server: build-server ## Build and run development server
