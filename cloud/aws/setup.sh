@@ -27,12 +27,12 @@ function my_cidr {
 }
 
 function node_ips {
-    ${AWS} ec2 describe-instances --filter "Name=tag:Name,Values=*${CLUSTER_ID}*Node*" \
+    ${AWS} ec2 describe-instances --filter "Name=tag:Name,Values=*${CLUSTER_ID}*node*" \
     | jq -r '.Reservations[].Instances[].PublicIpAddress'
 }
 
 function manager_ip {
-    ${AWS} ec2 describe-instances --filter "Name=tag:Name,Values=*${CLUSTER_ID}*Manager*" \
+    ${AWS} ec2 describe-instances --filter "Name=tag:Name,Values=*${CLUSTER_ID}*Monitor*" \
     | jq -r '.Reservations[].Instances[].PublicIpAddress'
 }
 
