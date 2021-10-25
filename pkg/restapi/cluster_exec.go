@@ -98,6 +98,7 @@ func pumpStdin(ctx context.Context, ws *websocket.Conn, f func(ctx context.Conte
 	var (
 		execCtx context.Context
 		cancel  context.CancelFunc
+		idx     uint
 	)
 	for {
 		_, message, err := ws.ReadMessage()
@@ -108,11 +109,16 @@ func pumpStdin(ctx context.Context, ws *websocket.Conn, f func(ctx context.Conte
 			cancel()
 		}
 		execCtx, cancel = context.WithCancel(ctx)
-		go func() {
+		go func(idx uint) {
 			if err := f(execCtx, message); err != nil {
 				log.Println("processing error", err)
 			}
-		}()
+			ws.SetWriteDeadline(timeutc.Now().Add(writeWait))
+			if err := ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("___SM_COMMAND_DONE:%d", idx))); err != nil {
+				log.Println("command end", err)
+			}
+		}(idx)
+		idx += 1
 	}
 }
 
