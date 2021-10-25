@@ -15,7 +15,7 @@ function sg {
 }
 
 GROUP_ID="$(sg)"
-for p in 22 5112 9042 10001; do
+for p in 22 5112 5080 5443 9042 10001; do
     echo "Opening port ${p}"
     ${AWS} ec2 authorize-security-group-ingress --group-id "${GROUP_ID}" --protocol tcp --port ${p} --cidr "${CIDR}"
 done
