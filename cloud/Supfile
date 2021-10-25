@@ -20,12 +20,6 @@ networks:
       BIN_DEV: ../scylla-manager.dev
 
 commands:
-  upload repo:
-    upload:
-      - src: scylla-manager.repo
-        dst: /tmp/
-    run: sudo mv /tmp/scylla-manager.repo /etc/yum.repos.d/
-
   upload dev:
     upload:
       - src: ${BIN_DEV}
@@ -33,7 +27,11 @@ commands:
     run: sudo mv /tmp/$(basename ${BIN_DEV}) ${BIN_PKG} && md5sum ${BIN_PKG}
 
   install pkg:
-    run: sudo yum install -y ${PKG}
+    run: |
+      sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 5e08fbd8b5d6ec9c
+      sudo wget -O /etc/apt/sources.list.d/scylla-manager.list http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.5-focal.list
+      sudo apt-get update
+      sudo apt-get install -y ${PKG}
 
   start service:
     run: sudo systemctl start ${SERVICE}
@@ -52,7 +50,6 @@ commands:
 
 targets:
   install:
-    - upload repo
     - install pkg
 
   start:
