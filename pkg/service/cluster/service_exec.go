@@ -12,6 +12,7 @@ import (
 )
 
 type ExecFilter struct {
+	Hosts      []string
 	Datacenter []string
 	Status     scyllaclient.NodeStatus
 	State      scyllaclient.NodeState
@@ -26,16 +27,23 @@ func (s *Service) Exec(ctx context.Context, id uuid.UUID, stdin []byte, stdout i
 		return errors.Wrap(err, "client proxy")
 	}
 
-	status, err := client.Status(ctx)
-	if len(filter.Datacenter) != 0 {
-		status = status.Datacenter(filter.Datacenter)
-	}
-	if filter.Status != "" {
-		status = status.Status(filter.Status)
-	}
-	if filter.State != "" {
-		status = status.State(filter.State)
+	hosts := filter.Hosts
+	if len(hosts) == 0 {
+		status, err := client.Status(ctx)
+		if err != nil {
+			return err
+		}
+		if len(filter.Datacenter) != 0 {
+			status = status.Datacenter(filter.Datacenter)
+		}
+		if filter.Status != "" {
+			status = status.Status(filter.Status)
+		}
+		if filter.State != "" {
+			status = status.State(filter.State)
+		}
+		hosts = status.Hosts()
 	}
 
-	return client.Exec(ctx, status.Hosts(), filter.Limit, stdin, stdout)
+	return client.Exec(ctx, hosts, filter.Limit, stdin, stdout)
 }

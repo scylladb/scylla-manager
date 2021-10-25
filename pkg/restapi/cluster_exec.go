@@ -26,6 +26,7 @@ func (h clusterHandler) execFilter(r *http.Request) (cluster.ExecFilter, error) 
 	}
 
 	f := cluster.ExecFilter{
+		Hosts:      r.Form["host"],
 		Datacenter: r.Form["datacenter"],
 		State:      scyllaclient.NodeState(r.FormValue("state")),
 		Status:     scyllaclient.NodeStatus(r.FormValue("status")),
