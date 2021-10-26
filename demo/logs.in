@@ -1,0 +1,1 @@
+journalctl -u scylla-server --no-pager -l -f --since "1 minutes ago"

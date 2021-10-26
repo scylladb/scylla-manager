@@ -1,0 +1,1 @@
+cqlsh -e "SELECT supported_features FROM system.local" | tr , '\n' | grep CDC
