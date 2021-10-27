@@ -270,6 +270,23 @@ func (s *Scheduler) Wait() {
 	s.wg.Wait()
 }
 
+// Activations returns activation information for given keys.
+func (s *Scheduler) Activations(keys ...Key) []Activation {
+	pos := make(map[Key]int, len(keys))
+	for i, k := range keys {
+		pos[k] = i
+	}
+	r := make([]Activation, len(keys))
+	s.mu.Lock()
+	for _, a := range s.queue.h {
+		if i, ok := pos[a.Key]; ok {
+			r[i] = a
+		}
+	}
+	s.mu.Unlock()
+	return r
+}
+
 // Start is the scheduler main loop.
 func (s *Scheduler) Start(ctx context.Context) {
 	s.listener.OnSchedulerStart(ctx)
