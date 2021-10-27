@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/schema"
 )
 
 func TestCopySSHInfoToClusterAfter006Integration(t *testing.T) {
@@ -85,7 +86,7 @@ ssh:
 		return nil
 	})
 
-	if err := migrate.Migrate(context.Background(), session, SchemaDir()); err != nil {
+	if err := migrate.FromFS(context.Background(), session, schema.Files); err != nil {
 		t.Fatal("migrate:", err)
 	}
 }

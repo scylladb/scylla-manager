@@ -10,6 +10,7 @@ import (
 
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/schema"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2/migrate"
@@ -47,7 +48,7 @@ func TestClusterMoveHostToKnownHostsBefore016Integration(t *testing.T) {
 		return nil
 	})
 
-	if err := migrate.Migrate(context.Background(), session, SchemaDir()); err != nil {
+	if err := migrate.FromFS(context.Background(), session, schema.Files); err != nil {
 		t.Fatal("migrate:", err)
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/schema"
 )
 
 func TestCreateDefaultHealthCheckRestTaskForClusterAfter018Integration(t *testing.T) {
@@ -47,7 +48,7 @@ func TestCreateDefaultHealthCheckRestTaskForClusterAfter018Integration(t *testin
 		return nil
 	})
 
-	if err := migrate.Migrate(context.Background(), session, SchemaDir()); err != nil {
+	if err := migrate.FromFS(context.Background(), session, schema.Files); err != nil {
 		t.Fatal("migrate:", err)
 	}
 }
