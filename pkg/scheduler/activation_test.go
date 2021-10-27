@@ -8,8 +8,8 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-func makeTestActivation(sec int) activation {
-	return activation{
+func makeTestActivation(sec int) Activation {
+	return Activation{
 		Time: unixTime(sec),
 		Key:  uuid.MustRandom(),
 	}
