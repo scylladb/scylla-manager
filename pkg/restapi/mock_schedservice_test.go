@@ -109,10 +109,10 @@ func (mr *MockSchedServiceMockRecorder) IsSuspended(arg0, arg1 interface{}) *gom
 }
 
 // ListTasks mocks base method
-func (m *MockSchedService) ListTasks(arg0 context.Context, arg1 uuid.UUID, arg2 scheduler.TaskType) ([]*scheduler.Task, error) {
+func (m *MockSchedService) ListTasks(arg0 context.Context, arg1 uuid.UUID, arg2 scheduler.ListFilter) ([]*scheduler.TaskListItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTasks", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]*scheduler.Task)
+	ret0, _ := ret[0].([]*scheduler.TaskListItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

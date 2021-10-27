@@ -230,33 +230,6 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 	return r, q.GetRelease(r)
 }
 
-// ListTasks returns all the tasks stored, tp is optional if empty all task
-// types will loaded.
-func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, tp TaskType) ([]*Task, error) {
-	s.logger.Debug(ctx, "ListTasks", "cluster_id", clusterID, "task_type", tp)
-
-	b := qb.Select(table.SchedTask.Name()).Where(qb.Eq("cluster_id"))
-	m := qb.M{
-		"cluster_id": clusterID,
-	}
-
-	if tp != "" {
-		b.Where(qb.Eq("type"))
-		m["type"] = tp
-	}
-
-	q := b.Query(s.session).BindMap(m)
-	defer q.Release()
-
-	if q.Err() != nil {
-		return nil, q.Err()
-	}
-
-	var tasks []*Task
-	err := q.Select(&tasks)
-	return tasks, err
-}
-
 // PutTaskOnce upserts a task. Only one task of the same type can exist for the current cluster.
 // If attempting to create a task of the same type a validation error is returned.
 // The task instance must pass Validate() checks.
@@ -267,24 +240,33 @@ func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
 		return service.ErrNilPtr
 	}
 
-	hs, err := s.ListTasks(ctx, t.ClusterID, t.Type)
+	ids, err := s.hasTaskType(t)
 	if err != nil {
 		return err
 	}
 
-	if len(hs) == 0 {
+	if len(ids) == 0 {
 		// Create a new task
 		return s.PutTask(ctx, t)
 	}
 
-	for _, h := range hs {
-		if h.ID == t.ID {
+	for _, id := range ids {
+		if id == t.ID {
 			// Update an existing task
 			return s.PutTask(ctx, t)
 		}
 	}
 
 	return service.ErrValidate(errors.Errorf("a task of type %s exists for cluster %s", t.Type, t.ClusterID))
+}
+
+func (s *Service) hasTaskType(t *Task) ([]uuid.UUID, error) {
+	q := table.SchedTask.SelectBuilder("id").
+		Where(qb.Eq("type")).
+		Query(s.session).
+		BindStruct(t)
+	var ids []uuid.UUID
+	return ids, q.SelectRelease(&ids)
 }
 
 // PutTask upserts a task.

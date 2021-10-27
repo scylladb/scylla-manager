@@ -4,13 +4,10 @@ package restapi
 
 import (
 	"context"
-	"math"
 	"net/http"
 	"net/url"
 	"path"
-	"sort"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -19,7 +16,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -88,107 +84,43 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 	})
 }
 
-type extendedTask struct {
-	*scheduler.Task
-	Status         scheduler.Status `json:"status,omitempty"`
-	Cause          string           `json:"cause,omitempty"`
-	StartTime      *time.Time       `json:"start_time,omitempty"`
-	EndTime        *time.Time       `json:"end_time,omitempty"`
-	NextActivation *time.Time       `json:"next_activation,omitempty"`
-	Suspended      bool             `json:"suspended"`
-	Failures       int              `json:"failures,omitempty"`
-}
-
 func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
-	all := false
+	filter := scheduler.ListFilter{}
 	if a := r.FormValue("all"); a != "" {
-		var err error
-		all, err = strconv.ParseBool(a)
+		all, err := strconv.ParseBool(a)
 		if err != nil {
 			respondBadRequest(w, r, err)
 			return
 		}
+		if all {
+			filter.Disabled = true
+		}
 	}
-	var taskType scheduler.TaskType
 	if t := r.FormValue("type"); t != "" {
+		var taskType scheduler.TaskType
 		if err := taskType.UnmarshalText([]byte(t)); err != nil {
 			respondBadRequest(w, r, err)
 			return
 		}
+		filter.TaskType = append(filter.TaskType, taskType)
 	}
-
-	var status scheduler.Status
 	if s := r.FormValue("status"); s != "" {
+		var status scheduler.Status
 		if err := status.UnmarshalText([]byte(s)); err != nil {
 			respondBadRequest(w, r, err)
 			return
 		}
+		filter.Status = append(filter.Status, status)
 	}
 
-	cID := mustClusterIDFromCtx(r)
-	tasks, err := h.Scheduler.ListTasks(r.Context(), cID, taskType)
+	cid := mustClusterIDFromCtx(r)
+	tasks, err := h.Scheduler.ListTasks(r.Context(), cid, filter)
 	if err != nil {
-		respondError(w, r, errors.Wrapf(err, "list cluster %q tasks", cID))
+		respondError(w, r, errors.Wrapf(err, "list cluster %q tasks", cid))
 		return
 	}
 
-	clusterSuspended := map[uuid.UUID]bool{}
-
-	hist := make([]extendedTask, 0, len(tasks))
-	for _, t := range tasks {
-		if !all && !t.Enabled {
-			continue
-		}
-
-		e := extendedTask{
-			Task:   t,
-			Status: scheduler.StatusNew,
-		}
-
-		runs, err := h.Scheduler.GetLastRuns(r.Context(), t, t.Sched.NumRetries+1)
-		if err != nil {
-			respondError(w, r, errors.Wrapf(err, "load task %q runs", t.ID))
-			return
-		}
-		if len(runs) > 0 {
-			e.Status = runs[0].Status
-			e.Cause = runs[0].Cause
-			if tm := runs[0].StartTime; !tm.IsZero() {
-				e.StartTime = &tm
-			}
-			e.EndTime = runs[0].EndTime
-		}
-		if status != "" && e.Status != status {
-			continue
-		}
-
-		// Listing has to be redone I'm simplifying and breaking things here,
-		// see git log for more details.
-		var suspended, ok bool
-		suspended, ok = clusterSuspended[t.ClusterID]
-		if !ok {
-			suspended = h.Scheduler.IsSuspended(r.Context(), t.ClusterID)
-			clusterSuspended[t.ClusterID] = suspended
-		}
-		e.Suspended = suspended
-		e.NextActivation = pointer.TimePtr(time.Date(9999, 1, 1, 1, 1, 1, 1, time.UTC))
-		e.Failures = 10
-		hist = append(hist, e)
-	}
-
-	sort.Slice(hist, func(i, j int) bool {
-		l := int64(math.MaxInt64)
-		if hist[i].NextActivation != nil {
-			l = hist[i].NextActivation.Unix()
-		}
-		r := int64(math.MaxInt64)
-		if hist[j].NextActivation != nil {
-			r = hist[j].NextActivation.Unix()
-		}
-		return l < r
-	})
-
-	render.Respond(w, r, hist)
+	render.Respond(w, r, tasks)
 }
 
 func (h *taskHandler) parseTask(r *http.Request) (*scheduler.Task, error) {
