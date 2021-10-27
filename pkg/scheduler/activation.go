@@ -7,7 +7,11 @@ import (
 	"time"
 )
 
-type activation struct {
+// Activation represents when a Key will be executed.
+// Properties are optional they are only set for retries to ensure we retry
+// the same thing.
+// Stop is also optional if present specifies window end.
+type Activation struct {
 	time.Time
 	Key        Key
 	Retry      int8
@@ -17,7 +21,7 @@ type activation struct {
 
 // activationHeap implements heap.Interface.
 // The activations are sorted by time in ascending order.
-type activationHeap []activation
+type activationHeap []Activation
 
 var _ heap.Interface = (*activationHeap)(nil)
 
@@ -32,7 +36,7 @@ func (h activationHeap) Swap(i, j int) {
 }
 
 func (h *activationHeap) Push(x interface{}) {
-	*h = append(*h, x.(activation))
+	*h = append(*h, x.(Activation))
 }
 
 func (h *activationHeap) Pop() interface{} {
@@ -52,14 +56,14 @@ type activationQueue struct {
 
 func newActivationQueue() *activationQueue {
 	return &activationQueue{
-		h: []activation{},
+		h: []Activation{},
 	}
 }
 
 // Push returns true iff head was changed.
-func (q *activationQueue) Push(a activation) bool {
+func (q *activationQueue) Push(a Activation) bool {
 	if idx := q.find(a.Key); idx >= 0 {
-		[]activation(q.h)[idx] = a
+		[]Activation(q.h)[idx] = a
 		heap.Fix(&q.h, idx)
 	} else {
 		heap.Push(&q.h, a)
@@ -67,18 +71,18 @@ func (q *activationQueue) Push(a activation) bool {
 	return q.h[0].Key == a.Key
 }
 
-func (q *activationQueue) Pop() (activation, bool) {
+func (q *activationQueue) Pop() (Activation, bool) {
 	if len(q.h) == 0 {
-		return activation{}, false
+		return Activation{}, false
 	}
-	return heap.Pop(&q.h).(activation), true
+	return heap.Pop(&q.h).(Activation), true
 }
 
-func (q *activationQueue) Top() (activation, bool) {
+func (q *activationQueue) Top() (Activation, bool) {
 	if len(q.h) == 0 {
-		return activation{}, false
+		return Activation{}, false
 	}
-	return []activation(q.h)[0], true
+	return []Activation(q.h)[0], true
 }
 
 // Remove returns true iff head if head was changed.

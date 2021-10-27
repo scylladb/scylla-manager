@@ -186,7 +186,7 @@ func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, next time.Time,
 	begin, end := w.Next(next)
 
 	s.listener.OnSchedule(ctx, key, begin, end, retno)
-	a := activation{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
+	a := Activation{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
 	if s.queue.Push(a) {
 		s.wakeup()
 	}
@@ -224,7 +224,7 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 	_, ok := s.details[key]
 	var runCtx *RunContext
 	if ok {
-		runCtx = s.newRunContextLocked(activation{Key: key})
+		runCtx = s.newRunContextLocked(Activation{Key: key})
 	}
 	s.mu.Unlock()
 
@@ -315,7 +315,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 	s.listener.OnSchedulerStop(ctx)
 }
 
-func (s *Scheduler) activateIn(a activation) time.Duration {
+func (s *Scheduler) activateIn(a Activation) time.Duration {
 	d := a.Sub(s.now())
 	if d < 0 {
 		d = 0
@@ -362,7 +362,7 @@ func (s *Scheduler) wakeup() {
 	}
 }
 
-func (s *Scheduler) newRunContextLocked(a activation) *RunContext {
+func (s *Scheduler) newRunContextLocked(a Activation) *RunContext {
 	var p Properties
 	if a.Properties != nil {
 		p = a.Properties
