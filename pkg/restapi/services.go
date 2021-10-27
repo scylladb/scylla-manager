@@ -69,7 +69,7 @@ type SchedService interface {
 	PutTask(ctx context.Context, t *scheduler.Task) error
 	PutTaskOnce(ctx context.Context, t *scheduler.Task) error
 	DeleteTask(ctx context.Context, t *scheduler.Task) error
-	ListTasks(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType) ([]*scheduler.Task, error)
+	ListTasks(ctx context.Context, clusterID uuid.UUID, filter scheduler.ListFilter) ([]*scheduler.TaskListItem, error)
 	StartTask(ctx context.Context, t *scheduler.Task) error
 	StartTaskNoContinue(ctx context.Context, t *scheduler.Task) error
 	StopTask(ctx context.Context, t *scheduler.Task) error

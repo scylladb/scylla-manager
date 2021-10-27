@@ -238,6 +238,70 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		return timeutc.Now().Add(100 * time.Millisecond)
 	}
 
+	t.Run("put task once", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled")
+		task0 := h.makeTaskWithStartDate(future)
+		if err := h.service.PutTaskOnce(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: task is added")
+
+		Print("When: another task of the same type is scheduled")
+		task1 := h.makeTaskWithStartDate(future)
+		if err := h.service.PutTaskOnce(ctx, task1); err != nil {
+			Print("Then: the task is rejected")
+		} else {
+			t.Fatal("two tasks of the same type could be added")
+		}
+	})
+
+	t.Run("put task once update", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: task is added")
+
+		tasks, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		total := len(tasks)
+
+		Print("When: task is changed")
+		task.Sched.StartDate = time.Unix(1, 0).UTC()
+		if err := h.service.PutTaskOnce(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: task is updated")
+
+		tasks, err = h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if total != len(tasks) {
+			t.Fatalf("Wrong number of tasks after two PutOnce")
+		}
+		for _, ts := range tasks {
+			if ts.ID == task.ID {
+				if ts.Sched != task.Sched {
+					t.Fatalf("Expected task %+v, got %+v", task.Sched, ts.Sched)
+				}
+			}
+		}
+	})
+
 	t.Run("load tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()

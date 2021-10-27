@@ -79,7 +79,7 @@ func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 }
 
 func (h backupHandler) extractLocations(r *http.Request) ([]backupspec.Location, error) {
-	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), scheduler.BackupTask)
+	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
 	if err != nil {
 		return nil, err
 	}

@@ -136,7 +136,7 @@ func (s *server) makeServices() error {
 
 	// Generate "retention_map" for backup task.
 	s.schedSvc.SetPropertiesDecorator(scheduler.BackupTask, func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
-		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.BackupTask)
+		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
 		if err != nil {
 			return nil, err
 		}
@@ -158,7 +158,7 @@ func (s *server) makeServices() error {
 			return properties, nil
 		}
 		// Extract locations from all tasks...
-		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.BackupTask)
+		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
 		if err != nil {
 			return nil, err
 		}
@@ -192,13 +192,13 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 			}
 		}
 	case cluster.Delete:
-		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, "")
+		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, scheduler.ListFilter{Disabled: true})
 		if err != nil {
 			return errors.Wrapf(err, "find this cluster %s tasks", c.ID)
 		}
 		var errs error
 		for _, t := range tasks {
-			errs = multierr.Append(errs, s.schedSvc.DeleteTask(ctx, t))
+			errs = multierr.Append(errs, s.schedSvc.DeleteTask(ctx, &t.Task))
 		}
 		if errs != nil {
 			return errors.Wrapf(errs, "remove cluster %s tasks", c.ID)
