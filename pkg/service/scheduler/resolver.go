@@ -88,8 +88,10 @@ func (r resolver) Remove(taskID uuid.UUID) {
 
 func (r resolver) Find(pre string) (taskInfo, bool) {
 	// Find by ID
-	if node := leafNode(findNode(r.cache.Root(), []rune(pre))); node != nil {
-		return node.Meta().(taskInfo), true
+	if len(pre) >= 8 {
+		if node := leafNode(findNode(r.cache.Root(), []rune(pre))); node != nil {
+			return node.Meta().(taskInfo), true
+		}
 	}
 
 	// Find by name
