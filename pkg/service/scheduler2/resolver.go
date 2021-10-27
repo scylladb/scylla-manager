@@ -73,8 +73,10 @@ func (r resolver) Remove(taskID uuid.UUID) {
 
 func (r resolver) Find(pre string) (extTaskID, bool) {
 	// Find by ID
-	if node := leafNode(findNode(r.cache.Root(), []rune(pre))); node != nil {
-		return node.Meta().(extTaskID), true
+	if len(pre) >= 8 {
+		if node := leafNode(findNode(r.cache.Root(), []rune(pre))); node != nil {
+			return node.Meta().(extTaskID), true
+		}
 	}
 
 	// Find by name

@@ -24,11 +24,11 @@ func TestResolverFind(t *testing.T) {
 		Match bool
 	}{
 		{
-			Pre:   "9",
+			Pre:   "99999999",
 			Match: false,
 		},
 		{
-			Pre:   "4a",
+			Pre:   "4aa2a2c1",
 			Match: true,
 		},
 		{
