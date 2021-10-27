@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -355,7 +354,7 @@ func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte
 		return nil, err
 	}
 	defer r.Close()
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 // RcloneListDirOpts specifies options for RcloneListDir.

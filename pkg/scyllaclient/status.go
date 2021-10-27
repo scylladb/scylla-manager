@@ -5,7 +5,7 @@ package scyllaclient
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/go-openapi/runtime"
@@ -68,7 +68,7 @@ type agentError struct {
 }
 
 func makeAgentError(resp *http.Response) error {
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "read body")
 	}

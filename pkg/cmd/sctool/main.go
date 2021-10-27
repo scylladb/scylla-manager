@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -16,7 +15,7 @@ import (
 var ctx = context.Background()
 
 func main() {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	if err := rootCmd.Execute(); err != nil {
 		printError(rootCmd.OutOrStderr(), err)

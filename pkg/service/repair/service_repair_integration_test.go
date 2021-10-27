@@ -9,7 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -257,10 +257,10 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 
 		switch req.Method {
 		case http.MethodGet:
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", s)))
+			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", s)))
 		case http.MethodPost:
 			id := atomic.AddInt32(&commandCounter, 1)
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
 		}
 
 		return resp, nil
@@ -279,10 +279,10 @@ func repairStatusNoResponseInterceptor(ctx context.Context) http.RoundTripper {
 		case http.MethodGet:
 			// do not respond until context is canceled.
 			<-ctx.Done()
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
+			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
 		case http.MethodPost:
 			id := atomic.AddInt32(&commandCounter, 1)
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
 		}
 
 		return resp, nil
@@ -317,7 +317,7 @@ func holdRepairInterceptor() http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodGet {
 			resp := httpx.MakeResponse(req, 200)
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
+			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
 			return resp, nil
 		}
 		return nil, nil

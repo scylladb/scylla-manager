@@ -7,7 +7,7 @@ package healthcheck
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -373,7 +373,7 @@ func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
 				Request:       r,
 				Header:        make(http.Header, 0),
 				ContentLength: int64(len(body)),
-				Body:          ioutil.NopCloser(bytes.NewReader(body)),
+				Body:          io.NopCloser(bytes.NewReader(body)),
 			}
 			return resp, nil
 		}

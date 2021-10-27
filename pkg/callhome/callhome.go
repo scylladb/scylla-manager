@@ -5,7 +5,7 @@ package callhome
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -138,7 +138,7 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, er
 		return res, err
 	}
 
-	d, err := ioutil.ReadAll(resp.Body)
+	d, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return res, err
 	}

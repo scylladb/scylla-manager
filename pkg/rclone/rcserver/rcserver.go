@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -194,7 +193,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Parse a JSON blob from the input
 	if contentType == "application/json" {
-		j, err := ioutil.ReadAll(&io.LimitedReader{R: r.Body, N: bodySizeLimit})
+		j, err := io.ReadAll(&io.LimitedReader{R: r.Body, N: bodySizeLimit})
 		if err != nil {
 			s.writeError(path, in, w, errors.Wrap(err, "read request body"), http.StatusBadRequest)
 			return

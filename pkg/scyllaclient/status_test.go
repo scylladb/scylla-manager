@@ -4,7 +4,7 @@ package scyllaclient
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"testing"
@@ -86,7 +86,7 @@ func TestAgentError(t *testing.T) {
 	}
 
 	resp := &http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(b)),
+		Body: io.NopCloser(bytes.NewReader(b)),
 	}
 
 	ae := makeAgentError(resp)

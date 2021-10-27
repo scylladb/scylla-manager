@@ -443,7 +443,7 @@ func runHTTPTest(t *testing.T, s http.Handler, test httpTest) string {
 	if test.Status != resp.StatusCode {
 		t.Errorf("Expected status code %d, got %d", test.Status, resp.StatusCode)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

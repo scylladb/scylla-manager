@@ -5,7 +5,7 @@ package osutil
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -73,7 +73,7 @@ func Docker() bool {
 	}
 	if f, err := os.Open(cGroupFile); err == nil {
 		defer f.Close()
-		b, err := ioutil.ReadAll(f)
+		b, err := io.ReadAll(f)
 		if err != nil {
 			return false
 		}
@@ -110,7 +110,7 @@ func MacUUID() uuid.UUID {
 		return macUUID
 	}
 	defer f.Close()
-	out, err := ioutil.ReadAll(f)
+	out, err := io.ReadAll(f)
 	if err != nil {
 		return uuid.Nil
 	}

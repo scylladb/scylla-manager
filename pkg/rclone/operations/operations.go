@@ -103,7 +103,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 			return PermissionError{err, "get"}
 		}
 		defer r.Close()
-		if _, err := io.Copy(ioutil.Discard, r); err != nil {
+		if _, err := io.Copy(io.Discard, r); err != nil {
 			return PermissionError{err, "get"}
 		}
 	}

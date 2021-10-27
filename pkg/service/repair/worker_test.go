@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -316,7 +316,7 @@ func repairInterceptor(success bool, ranges []tokenRange, shardCount int) http.R
 			if err != nil {
 				return nil, err
 			}
-			resp.Body = ioutil.NopCloser(bytes.NewBuffer(res))
+			resp.Body = io.NopCloser(bytes.NewBuffer(res))
 
 			return resp, nil
 		}
@@ -326,7 +326,7 @@ func repairInterceptor(success bool, ranges []tokenRange, shardCount int) http.R
 			for i := 0; i < shardCount; i++ {
 				s += fmt.Sprintf("scylla_database_total_writes{shard=\"%d\",type=\"derive\"} 162\n", i)
 			}
-			resp.Body = ioutil.NopCloser(bytes.NewBufferString(s))
+			resp.Body = io.NopCloser(bytes.NewBufferString(s))
 
 			return resp, nil
 		}
@@ -338,10 +338,10 @@ func repairInterceptor(success bool, ranges []tokenRange, shardCount int) http.R
 			}
 			switch req.Method {
 			case http.MethodGet:
-				resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", cmd)))
+				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", cmd)))
 			case http.MethodPost:
 				id := atomic.AddInt32(&commandCounter, 1)
-				resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
 			}
 
 			return resp, nil
@@ -354,7 +354,7 @@ func repairInterceptor(success bool, ranges []tokenRange, shardCount int) http.R
 			}
 			switch req.Method {
 			case http.MethodGet:
-				resp.Body = ioutil.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", cmd)))
+				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", cmd)))
 			}
 
 			return resp, nil

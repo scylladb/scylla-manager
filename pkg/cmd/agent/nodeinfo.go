@@ -4,7 +4,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -96,7 +96,7 @@ func (h *nodeInfoHandler) getScyllaVersion(ctx context.Context) (string, error) 
 	}
 	defer resp.Body.Close()
 
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

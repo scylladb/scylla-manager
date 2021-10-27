@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -56,7 +55,7 @@ func SimplePing(ctx context.Context, config Config) (rtt time.Duration, err erro
 	}
 
 	defer resp.Body.Close()
-	if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 		return 0, err
 	}
 

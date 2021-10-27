@@ -9,7 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"path"
@@ -357,7 +357,7 @@ func TestGetTargetIntegration(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
-			b, err := ioutil.ReadFile(test.Input)
+			b, err := io.ReadFile(test.Input)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -370,12 +370,12 @@ func TestGetTargetIntegration(t *testing.T) {
 				b, _ := json.Marshal(v)
 				var buf bytes.Buffer
 				json.Indent(&buf, b, "", "  ")
-				if err := ioutil.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
+				if err := io.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
 					t.Error(err)
 				}
 			}
 
-			b, err = ioutil.ReadFile(test.Golden)
+			b, err = io.ReadFile(test.Golden)
 			if err != nil {
 				t.Fatal(err)
 			}
