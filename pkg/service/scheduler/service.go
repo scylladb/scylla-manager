@@ -332,7 +332,7 @@ func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 }
 
 func (s *Service) newScheduler(clusterID uuid.UUID) *scheduler.Scheduler {
-	l := scheduler.NewScheduler(now, s.run, newSchedulerListener(s.logger.Named(clusterID.String()[0:8])))
+	l := scheduler.NewScheduler(now, s.run, newSchedulerListener(s.findTaskByID, s.logger.Named(clusterID.String()[0:8])))
 	go l.Start(context.Background())
 	return l
 }
@@ -341,7 +341,7 @@ const noContinueThreshold = 500 * time.Millisecond
 
 func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 	s.mu.Lock()
-	ti, ok := s.resolver.Find(ctx.Key.String())
+	ti, ok := s.resolver.FindByID(ctx.Key.String())
 	c, cok := s.noContinue[ti.TaskID]
 	if cok {
 		delete(s.noContinue, ti.TaskID)
@@ -468,6 +468,13 @@ func (s *Service) FindTaskByPrefix(ctx context.Context, pre string) (*Task, erro
 		return nil, service.ErrNotFound
 	}
 	return s.GetTaskByID(ctx, ti.ClusterID, ti.TaskType, ti.TaskID)
+}
+
+func (s *Service) findTaskByID(key scheduler.Key) (taskInfo, bool) {
+	s.mu.Lock()
+	ti, ok := s.resolver.FindByID(key.String())
+	s.mu.Unlock()
+	return ti, ok
 }
 
 // DeleteTask removes and stops task based on ID.
