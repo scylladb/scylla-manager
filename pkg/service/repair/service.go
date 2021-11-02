@@ -541,7 +541,7 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 func (s *Service) maxRepairRangesInParallel(shards uint, totalMemory int64) int {
 	const MiB = 1024 * 1024
 	memoryPerShard := totalMemory / int64(shards)
-	max := int(0.1 * float64(memoryPerShard) / (32 * MiB))
+	max := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
 	if max == 0 {
 		max = 1
 	}
