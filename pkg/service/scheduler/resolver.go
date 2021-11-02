@@ -86,15 +86,25 @@ func (r resolver) Remove(taskID uuid.UUID) {
 	}
 }
 
-func (r resolver) Find(pre string) (taskInfo, bool) {
-	// Find by ID
+func (r resolver) Find(pre string) (ti taskInfo, ok bool) {
+	ti, ok = r.FindByID(pre)
+	if ok {
+		return
+	}
+	ti, ok = r.FindByName(pre)
+	return
+}
+
+func (r resolver) FindByID(pre string) (taskInfo, bool) {
 	if len(pre) >= 8 {
 		if node := leafNode(findNode(r.cache.Root(), []rune(pre))); node != nil {
 			return node.Meta().(taskInfo), true
 		}
 	}
+	return taskInfo{}, false
+}
 
-	// Find by name
+func (r resolver) FindByName(pre string) (taskInfo, bool) {
 	node := findNode(r.cache.Root(), append([]rune{taskNamePfx}, []rune(pre)...))
 	if sep := childNode(node, taskNameSep); sep != nil {
 		node = leafNode(sep)
