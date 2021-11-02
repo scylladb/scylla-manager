@@ -19,8 +19,13 @@ func NewLegacy(startDate time.Time, interval time.Duration) scheduler.Trigger {
 	return legacy{startDate: startDate, interval: interval}
 }
 
+const nowThreshold = 5 * time.Second
+
 func (l legacy) Next(now time.Time) time.Time {
 	if l.startDate.After(now) {
+		return l.startDate
+	}
+	if now.Sub(l.startDate) < nowThreshold {
 		return l.startDate
 	}
 	if l.interval == 0 {
