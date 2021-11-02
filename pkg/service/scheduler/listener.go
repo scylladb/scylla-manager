@@ -12,38 +12,40 @@ import (
 
 type schedulerListener struct {
 	scheduler.Listener
+	find   func(key scheduler.Key) (taskInfo, bool)
 	logger log.Logger
 }
 
-func newSchedulerListener(logger log.Logger) schedulerListener {
+func newSchedulerListener(find func(key scheduler.Key) (taskInfo, bool), logger log.Logger) schedulerListener {
 	return schedulerListener{
 		Listener: scheduler.NopListener,
+		find:     find,
 		logger:   logger,
 	}
 }
 
 func (l schedulerListener) OnSchedule(ctx context.Context, key scheduler.Key, begin, end time.Time, retno int8) {
 	if end.IsZero() {
-		l.logger.Info(ctx, "Schedule", "task_id", key, "begin", begin, "retry", retno)
+		l.logKey(ctx, key, "Schedule", "begin", begin, "retry", retno)
 	} else {
-		l.logger.Info(ctx, "Schedule in window", "task_id", key, "begin", begin, "end", end, "retry", retno)
+		l.logKey(ctx, key, "Schedule in window", "begin", begin, "end", end, "retry", retno)
 	}
 }
 
 func (l schedulerListener) OnUnschedule(ctx context.Context, key scheduler.Key) {
-	l.logger.Info(ctx, "Unschedule", "task_id", key)
+	l.logKey(ctx, key, "Unschedule")
 }
 
 func (l schedulerListener) Trigger(ctx context.Context, key scheduler.Key, success bool) {
-	l.logger.Info(ctx, "Trigger", "task_id", key, "success", success)
+	l.logKey(ctx, key, "Trigger", "success", success)
 }
 
 func (l schedulerListener) OnStop(ctx context.Context, key scheduler.Key) {
-	l.logger.Info(ctx, "Stop", "task_id", key)
+	l.logKey(ctx, key, "Stop")
 }
 
 func (l schedulerListener) OnRetryBackoff(ctx context.Context, key scheduler.Key, backoff time.Duration, retno int8) {
-	l.logger.Info(ctx, "Retry backoff", "task_id", key, "backoff", backoff, "retry", retno)
+	l.logKey(ctx, key, "Retry backoff", "backoff", backoff, "retry", retno)
 }
 
 func (l schedulerListener) OnNoTrigger(ctx context.Context, key scheduler.Key) {
@@ -52,4 +54,23 @@ func (l schedulerListener) OnNoTrigger(ctx context.Context, key scheduler.Key) {
 
 func (l schedulerListener) OnSleep(ctx context.Context, key scheduler.Key, d time.Duration) {
 	l.logger.Debug(ctx, "OnSleep", "task_id", key, "duration", d)
+}
+
+func (l schedulerListener) logKey(ctx context.Context, key scheduler.Key, msg string, keyvals ...interface{}) {
+	ti, ok := l.find(key)
+	if !ok {
+		return
+	}
+	if ti.TaskType.isHealthCheck() {
+		l.logger.Debug(ctx, msg, prependTaskInfo(ti, keyvals)...)
+	} else {
+		l.logger.Info(ctx, msg, prependTaskInfo(ti, keyvals)...)
+	}
+}
+
+func prependTaskInfo(ti taskInfo, i []interface{}) []interface{} {
+	v := make([]interface{}, len(i)+2)
+	v[0], v[1] = "task", ti
+	copy(v[2:], i)
+	return v
 }
