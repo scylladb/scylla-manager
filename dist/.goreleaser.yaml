@@ -78,6 +78,8 @@ nfpms:
     maintainer: Michał Jan Matczuk <michal@scylladb.com>
     description: "Scylla Manager server"
     license: Proprietary
+    replaces:
+      - scylla-manager
     formats:
       - deb
       - rpm
@@ -106,6 +108,8 @@ nfpms:
       compression: xz
     overrides:
       deb:
+        conflicts:
+          - scylla-manager
         file_name_template: "{{ .ProjectName }}-server_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
         scripts:
           preinstall: deb/scylla-manager-server.preinst
