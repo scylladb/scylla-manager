@@ -31,8 +31,6 @@ endif
 	@echo "==> Waiting for cluster"
 	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
 	@./nodes_exec rm /root/.cqlshrc
-	@echo "==> Creating tables"
-	@$(CQLSH_NODE) 192.168.100.11 -e "`cat init.cql`"
 	@echo "==> Adding Minio user"
 	@./minio/add_user.sh
 
@@ -63,6 +61,10 @@ cqlsh-node: ## CQL shell to a managed node 192.168.100.11
 cqlsh-node: IP=192.168.100.11
 cqlsh-node:
 	$(CQLSH_NODE) $(IP)
+
+.PHONY: create-tables
+create-tables: ## Execute init.cql
+	@$(CQLSH_NODE) 192.168.100.11 -e "`cat init.cql`"
 
 .PHONY: drop-keyspace
 drop-keyspace: ## Drop Scylla Manager keyspace
