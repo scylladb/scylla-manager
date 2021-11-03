@@ -28,6 +28,7 @@ func TestCmdlineRender(t *testing.T) {
 		Properties: map[string]interface{}{
 			"keyspace":              []interface{}{"test_keyspace_dc1_rf3.*", "!test_keyspace_dc2*"},
 			"dc":                    []interface{}{"dc2"},
+			"host":                  "192.168.100.11",
 			"fail_fast":             true,
 			"intensity":             1,
 			"parallel":              2,

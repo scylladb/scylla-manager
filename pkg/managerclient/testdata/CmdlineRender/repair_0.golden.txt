@@ -1,1 +1,1 @@
-sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB
+sctool repair --cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d -K 'test_keyspace_dc1_rf3.*,!test_keyspace_dc2*' --dc 'dc2' --host '192.168.100.11' --fail-fast --intensity 1 --parallel 2 --small-table-threshold 1.00GiB

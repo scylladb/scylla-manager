@@ -156,6 +156,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 		case repairTaskType:
 			rc.writeProp("-K", "keyspace", quoted)
 			rc.writeProp("--dc", "dc", quoted)
+			rc.writeProp("--host", "host", quoted)
 			rc.writeProp("--fail-fast", "fail_fast")
 			rc.writeProp("--intensity", "intensity")
 			rc.writeProp("--parallel", "parallel")
