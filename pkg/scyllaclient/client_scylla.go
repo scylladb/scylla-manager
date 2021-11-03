@@ -425,11 +425,20 @@ func (c *Client) Repair(ctx context.Context, host string, config RepairConfig) (
 	return resp.Payload, nil
 }
 
+func repairStatusShouldRetryHandler(err error) *bool {
+	s, m := StatusCodeAndMessageOf(err)
+	if s == http.StatusInternalServerError && strings.Contains(m, "unknown repair id") {
+		return pointer.BoolPtr(false)
+	}
+	return nil
+}
+
 // RepairStatus returns current status of a repair command.
 // If waitSeconds is bigger than 0 long polling will be used.
 // waitSeconds argument represents number of seconds.
 func (c *Client) RepairStatus(ctx context.Context, host, keyspace string, id int32, waitSeconds int) (CommandStatus, error) {
 	ctx = customTimeout(forceHost(ctx, host), c.longPollingTimeout(waitSeconds))
+	ctx = withShouldRetryHandler(ctx, repairStatusShouldRetryHandler)
 
 	var (
 		resp interface {
