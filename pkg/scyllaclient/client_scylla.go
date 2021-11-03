@@ -731,7 +731,7 @@ var endpointNotFoundRegex = regexp.MustCompile("(?i)^not found")
 
 func (c *Client) checkRepairLongPolling(ctx context.Context, h string) bool {
 	_, err := c.scyllaOps.StorageServiceRepairStatus(&operations.StorageServiceRepairStatusParams{
-		ID:      1, // To pass validation.
+		ID:      -1, // To pass validation.
 		Context: forceHost(ctx, h),
 	})
 	s, m := StatusCodeAndMessageOf(err)
