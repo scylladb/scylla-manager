@@ -15,11 +15,11 @@ type Type string
 
 const (
 	// TypeAuto auto detects repair algo.
-	TypeAuto = "auto"
+	TypeAuto Type = "auto"
 	// TypeRowLevel row level repair.
-	TypeRowLevel = "row_level"
+	TypeRowLevel Type = "row_level"
 	// TypeLegacy legacy repair type.
-	TypeLegacy = "legacy"
+	TypeLegacy Type = "legacy"
 )
 
 // Config specifies the repair service configuration.
@@ -28,7 +28,7 @@ type Config struct {
 	LongPollingTimeoutSeconds       int           `yaml:"long_polling_timeout_seconds"`
 	AgeMax                          time.Duration `yaml:"age_max"`
 	GracefulStopTimeout             time.Duration `yaml:"graceful_stop_timeout"`
-	ForceRepairType                 string        `yaml:"force_repair_type"`
+	ForceRepairType                 Type          `yaml:"force_repair_type"`
 	Murmur3PartitionerIgnoreMSBBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
 }
 
