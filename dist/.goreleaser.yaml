@@ -19,6 +19,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     env:
       - CGO_ENABLED=0
     flags:
@@ -35,6 +36,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     env:
       - CGO_ENABLED=0
     flags:
@@ -51,6 +53,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     env:
       - CGO_ENABLED=0
     flags:
@@ -119,6 +122,7 @@ nfpms:
       rpm:
         replacements:
           amd64: x86_64
+          arm64: aarch64
         scripts:
           preinstall: rpm/scylla-manager-server.preinst
           postinstall: rpm/scylla-manager-server.postinst
@@ -160,6 +164,7 @@ nfpms:
       rpm:
         replacements:
           amd64: x86_64
+          arm64: aarch64
         scripts:
           postinstall: rpm/scylla-manager-client.postinst
 
@@ -208,6 +213,7 @@ nfpms:
       rpm:
         replacements:
           amd64: x86_64
+          arm64: aarch64
         scripts:
           preinstall: rpm/scylla-manager-agent.preinst
           postinstall: rpm/scylla-manager-agent.postinst
