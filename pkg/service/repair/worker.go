@@ -147,6 +147,16 @@ func (w *worker) rowLevelRepair(ctx context.Context, job job) error {
 func (w *worker) legacyRepair(ctx context.Context, job job) error {
 	p := w.hostPartitioner[job.Host]
 
+	// In a very rare case when there is a strange partitioner
+	// do not split to shards.
+	if p == nil {
+		err := w.runRepair(ctx, job)
+		if err != nil {
+			w.logger.Error(ctx, "Run legacy repair, no sharding due to unsupported partitioner", "error", err)
+		}
+		return err
+	}
+
 	// Calculate max parallel shard repairs
 	limit := int(p.ShardCount())
 	if job.Allowance.ShardsPercent != 0 {
