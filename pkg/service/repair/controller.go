@@ -241,10 +241,14 @@ func (c *rowLevelRepairController) block(hosts []string, ranges int) {
 }
 
 func (c *rowLevelRepairController) allowance(hosts []string, intensity float64) allowance {
-	return allowance{
+	a := allowance{
 		Replicas: hosts,
 		Ranges:   c.rangesForIntensity(hosts, intensity),
 	}
+	if intensity < 1 {
+		a.ShardsPercent = intensity
+	}
+	return a
 }
 
 func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity float64) (ranges int) {
