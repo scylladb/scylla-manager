@@ -353,27 +353,20 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	hosts := repairHosts.List()
 
-	scyllaFeatures, err := client.ScyllaFeatures(ctx, hosts...)
+	hostFeatures, err := client.ScyllaFeatures(ctx, hosts...)
 	if err != nil {
 		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
 		return errors.Wrap(err, "scylla features")
 	}
 
 	// Create host partitioner for legacy repair
-	hostPartitioner, err := s.hostPartitioner(ctx, hosts, scyllaFeatures, client)
+	hostPartitioner, err := s.hostPartitioner(ctx, hosts, client)
 	if err != nil {
 		return errors.Wrap(err, "initialize host partitioner")
 	}
 
-	// Enable generator row-level repair optimisation if all hosts support
-	// row-level repair.
-	repairType := TypeRowLevel
-	for _, p := range hostPartitioner {
-		if p != nil {
-			repairType = TypeLegacy
-			break
-		}
-	}
+	// Enable row-level repair controller optimisation
+	repairType := s.repairType(ctx, hostFeatures)
 	var ctl controller
 	if repairType == TypeRowLevel {
 		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
@@ -404,7 +397,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		i := i
 		eg.Go(func() error {
 			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
-				hostPartitioner, scyllaFeatures, repairType,
+				hostPartitioner, hostFeatures, repairType,
 				s.config.PollInterval, s.config.LongPollingTimeoutSeconds,
 				s.logger.Named(fmt.Sprintf("worker %d", i)),
 			)
@@ -612,28 +605,15 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-func (s *Service) hostPartitioner(ctx context.Context, hosts []string,
-	scyllaFeatures map[string]scyllaclient.ScyllaFeatures, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
-	out := make(map[string]*dht.Murmur3Partitioner)
+func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
 	// Check the cluster partitioner
 	p, err := client.Partitioner(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get client partitioner name")
 	}
 
-	// If partitioner is not supported or row-level repair is forced
-	// return nil partitioner which will  signal that task should continue
-	// as row-level repair.
-	if p != scyllaclient.Murmur3Partitioner || s.config.ForceRepairType == TypeRowLevel {
-		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
-		for _, h := range hosts {
-			out[h] = nil
-		}
-		return out, nil
-	}
-
-	if s.config.ForceRepairType == TypeLegacy {
-		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
+	out := make(map[string]*dht.Murmur3Partitioner)
+	if p == scyllaclient.Murmur3Partitioner {
 		for _, h := range hosts {
 			p, err := s.partitioner(ctx, h, client)
 			if err != nil {
@@ -641,24 +621,30 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string,
 			}
 			out[h] = p
 		}
-
-		return out, nil
-	}
-
-	for _, h := range hosts {
-		if scyllaFeatures[h].RowLevelRepair {
+	} else {
+		s.logger.Info(ctx, "Unsupported partitioner", "partitioner", p)
+		for _, h := range hosts {
 			out[h] = nil
-		} else {
-			s.logger.Info(ctx, "Row-level repair not supported", "host", h)
-			p, err := s.partitioner(ctx, h, client)
-			if err != nil {
-				return nil, err
-			}
-			out[h] = p
 		}
 	}
-
 	return out, nil
+}
+
+func (s *Service) repairType(ctx context.Context, hostFeatures map[string]scyllaclient.ScyllaFeatures) Type {
+	if s.config.ForceRepairType == TypeRowLevel || s.config.ForceRepairType == TypeLegacy {
+		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
+		return s.config.ForceRepairType
+	}
+
+	// Handle auto mode
+	t := TypeRowLevel
+	for _, f := range hostFeatures {
+		if !f.RowLevelRepair {
+			t = TypeLegacy
+			break
+		}
+	}
+	return t
 }
 
 func (s *Service) partitioner(ctx context.Context, host string, client *scyllaclient.Client) (*dht.Murmur3Partitioner, error) {
