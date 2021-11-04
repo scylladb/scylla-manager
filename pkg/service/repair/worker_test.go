@@ -33,7 +33,6 @@ func TestWorkerRun(t *testing.T) {
 		longPollingTimeoutSeconds = 2
 		partitioner               = dht.NewMurmur3Partitioner(2, 12)
 		hostPartitioner           = map[string]*dht.Murmur3Partitioner{"h1": partitioner, "h2": partitioner}
-		emptyHostPartitioner      = make(map[string]*dht.Murmur3Partitioner)
 		run                       = &Run{ID: uuid.NewTime(), TaskID: uuid.NewTime()}
 	)
 
@@ -45,7 +44,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, scyllaFeatures(false, true), pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, true), TypeRowLevel, pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -99,7 +98,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(false, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, scyllaFeatures(false, false), pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, false), TypeRowLevel, pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -108,7 +107,7 @@ func TestWorkerRun(t *testing.T) {
 		}()
 
 		go func() {
-			for i := 0; i < 2; i++ {
+			for i := 1; i <= 2; i++ {
 				in <- job{
 					Host: fmt.Sprintf("h%d", i),
 					Ranges: []*tableTokenRange{
@@ -153,7 +152,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(false, false), pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(false, false), TypeLegacy, pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -207,7 +206,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), emptyHostPartitioner, scyllaFeatures(false, true), pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, true), TypeRowLevel, pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {

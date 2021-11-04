@@ -367,15 +367,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Enable generator row-level repair optimisation if all hosts support
 	// row-level repair.
-	enableRowLevelRepairOpt := true
+	repairType := TypeRowLevel
 	for _, p := range hostPartitioner {
 		if p != nil {
-			enableRowLevelRepairOpt = false
+			repairType = TypeLegacy
 			break
 		}
 	}
 	var ctl controller
-	if enableRowLevelRepairOpt {
+	if repairType == TypeRowLevel {
 		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
 		s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
 	} else {
@@ -404,8 +404,9 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		i := i
 		eg.Go(func() error {
 			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
-				hostPartitioner, scyllaFeatures, s.config.PollInterval,
-				s.config.LongPollingTimeoutSeconds, s.logger.Named(fmt.Sprintf("worker %d", i)),
+				hostPartitioner, scyllaFeatures, repairType,
+				s.config.PollInterval, s.config.LongPollingTimeoutSeconds,
+				s.logger.Named(fmt.Sprintf("worker %d", i)),
 			)
 
 			err := w.Run(workerCtx)
