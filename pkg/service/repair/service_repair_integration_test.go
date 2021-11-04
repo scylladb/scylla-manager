@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -245,11 +246,14 @@ func percentComplete(p repair.Progress) (int, int) {
 	return int(p.Success * 100 / p.TokenRanges), int(p.Error * 100 / p.TokenRanges)
 }
 
-var commandCounter int32
+var (
+	repairEndpointRegexp = regexp.MustCompile("/storage_service/repair_(async|status)")
+	commandCounter       int32
+)
 
 func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+		if !repairEndpointRegexp.MatchString(req.URL.Path) {
 			return nil, nil
 		}
 
@@ -269,7 +273,7 @@ func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
 
 func repairStatusNoResponseInterceptor(ctx context.Context) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if !strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") {
+		if !repairEndpointRegexp.MatchString(req.URL.Path) {
 			return nil, nil
 		}
 
@@ -291,7 +295,7 @@ func repairStatusNoResponseInterceptor(ctx context.Context) http.RoundTripper {
 
 func assertReplicasRepairInterceptor(t *testing.T, host string) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodPost {
+		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
 			hosts := req.URL.Query().Get("hosts")
 			if !strings.Contains(hosts, host) {
 				t.Errorf("Replicas %s missing %s", hosts, host)
@@ -315,7 +319,7 @@ func countInterceptor(counter *int32, path, method string, next http.RoundTrippe
 
 func holdRepairInterceptor() http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodGet {
+		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodGet {
 			resp := httpx.MakeResponse(req, 200)
 			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandRunning)))
 			return resp, nil
