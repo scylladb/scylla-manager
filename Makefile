@@ -137,7 +137,7 @@ start-dev-env: .testing-up deploy-agent build-cli run-server
 
 .PHONY: .testing-up
 .testing-up:
-	@make -C testing build down up create-tables
+	@make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes
