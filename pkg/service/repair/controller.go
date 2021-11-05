@@ -203,7 +203,7 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 		case intensity == maxIntensity:
 			ok = r <= c.limits[h].Max
 		case intensity <= 1:
-			ok = r <= int(math.Max(intensity*float64(c.limits[h].Default), 1))
+			ok = r <= c.limits[h].Default
 		default:
 			ok = r <= int(intensity)*c.limits[h].Default && r <= c.limits[h].Max
 		}
@@ -264,7 +264,16 @@ func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity 
 			ranges = 1
 		}
 	case intensity < 1:
-		ranges = 1
+		// If intensity < 1 return all token ranges (nr. of shards) in a single
+		// call. This is to avoid multiple workers repairing the same host in
+		// parallel. Single worker will offload work from shards using
+		// the legacy repair logic i.e. repair shard by shard.
+		ranges = math.MaxInt32
+		for _, h := range hosts {
+			if v := c.limits[h].Default; v < ranges {
+				ranges = v
+			}
+		}
 	default:
 		ranges = int(intensity)
 	}
