@@ -234,12 +234,16 @@ func TestRowLevelRepairController(t *testing.T) {
 		unblockAll()
 
 		s.intensityHandler.SetIntensity(ctx, 0.5)
-		for i := 0; i < controllerTestDefaultRangesLimit/2; i++ {
-			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
-				t.Fatal("TryBlock() failed to block")
-			} else {
-				queue = append(queue, a)
+		if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
+			t.Fatal("TryBlock() failed to block")
+		} else {
+			if a.Ranges != controllerTestDefaultRangesLimit {
+				t.Fatalf("TryBlock()=%v, expected %d ranges", a, controllerTestDefaultRangesLimit)
 			}
+			if a.ShardsPercent != 0.5 {
+				t.Fatalf("TryBlock()=%v, expected %f shards percent", a, 0.5)
+			}
+			queue = append(queue, a)
 		}
 		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
 			t.Fatal("TryBlock() unexpected success")
