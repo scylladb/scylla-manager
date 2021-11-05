@@ -131,7 +131,7 @@ We can archive any particular keyspace, and keep it in our bucket regardless of 
 **Procedure**
 
 For this purpose we can create separate backup task. 
-This task will be run only once, without repeating time and with retention = 1.
+This task will be run only once, without repeating time and with ``--retention 1``.
 
 .. code-block:: none
    
@@ -143,7 +143,7 @@ Now we can disable it by command:
 
 .. code-block:: none
    
-   sctool task update 'backup-id' -e false
+   sctool task update backup/4d79ee63-7721-4105-8c6a-5b98c65c3e21 -e false
 
 ..
 
