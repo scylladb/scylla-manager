@@ -126,9 +126,10 @@ replacing the ``-c`` cluster flag with your cluster's cluster name or ID and rep
 Create backup for archiving keyspace
 -----------------------
 
-We can arhive any particular keyspace, and keep it in our bucket regardless of an already sheduled backups.
+We can archive any particular keyspace, and keep it in our bucket regardless of an already sheduled backups.
 
 **Procedure**
+
 For this purpose we can create separate backup task. 
 This task will be run only once, without repeating time and with retention = 1.
 
@@ -148,7 +149,7 @@ Now we can disable it by command:
 
 If we decide to delete above task, backup will be kept in our storage for the next 30 days.
 
-_dry-run:
+
 
 Perform a dry run of a backup
 -----------------------------
