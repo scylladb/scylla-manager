@@ -77,13 +77,6 @@ func (c *Client) Status(ctx context.Context) (NodeStatusInfoSlice, error) {
 	}
 	setNodeState(all, NodeStateLeaving, leaving.Payload)
 
-	// Get moving nodes
-	moving, err := c.scyllaOps.StorageServiceNodesMovingGet(&operations.StorageServiceNodesMovingGetParams{Context: ctx})
-	if err != nil {
-		return nil, err
-	}
-	setNodeState(all, NodeStateMoving, moving.Payload)
-
 	// Sort by Datacenter and Address
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].Datacenter != all[j].Datacenter {
