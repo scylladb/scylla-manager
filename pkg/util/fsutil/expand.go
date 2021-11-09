@@ -32,3 +32,12 @@ func ExpandPath(path string) (string, error) {
 
 	return filepath.Join(home, path[1:]), nil
 }
+
+// ReadFile expands path and calls os.ReadFile.
+func ReadFile(filename string) ([]byte, error) {
+	p, err := ExpandPath(filename)
+	if err != nil {
+		return nil, err
+	}
+	return os.ReadFile(p)
+}

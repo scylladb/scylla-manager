@@ -1,0 +1,10 @@
+use: delete --cluster <id|name>
+
+short: Delete a cluster from manager
+
+long: |
+  This command deletes the specified cluster from the manager.
+  Note that there is no confirmation or warning to confirm.
+  If you deleted the cluster by mistake, you will need to add it again.
+  If you are removing the cluster from Scylla Manager and you are using Scylla Monitoring, remove the target from Prometheus Target list in the prometheus/scylla_manager_servers.yml file.
+

@@ -1,0 +1,6 @@
+use: list
+
+short: Show managed clusters
+
+long: |
+  This command displays a list of managed clusters.

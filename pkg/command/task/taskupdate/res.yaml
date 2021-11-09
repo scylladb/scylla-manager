@@ -1,0 +1,6 @@
+use: update --cluster <id|name> [flags] <type/task-id>
+
+short: Modify a task
+
+long: |
+  This command changes generic task parameters such as schedule.

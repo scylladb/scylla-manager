@@ -1,0 +1,16 @@
+use: validate --cluster <id|name> [--delete-orphaned-files] [flags]
+
+short: Validate backup files in remote locations
+
+long: |
+  This command schedules a backup validation task.
+  It checks that all needed files are in tact, and that there are no unexpected files occupying your storage.
+  To delete the unexpected files provide the ``--delete-orphaned-files`` parameter.
+  To see the validation results use :ref:`task-progress` command.
+  It is safe to run backup and backup validation at the same time.
+
+delete-orphaned-files: |
+  If set data files not belonging to any snapshot will be deleted after the validation.
+
+parallel: |
+  Number of hosts to analyze in parallel.

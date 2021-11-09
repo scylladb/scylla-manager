@@ -61,6 +61,7 @@ linters:
 issues:
   exclude-use-default: false
   exclude:
+    - a blank import should be only in a main or test package, or have a comment justifying it
     - at least one file in a package should have a package comment
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
@@ -80,6 +81,7 @@ issues:
     - exported method `.+\.UnmarshalUDT` should have comment or be unexported
     - exported method `.+\.Validate` should have comment or be unexported
     - exported method `.+\.WriteTo` should have comment or be unexported
+    - exported method `Wrapper\..+` should have comment or be unexported
     - exported method `Runner\.Run` should have comment or be unexported
     - exported type `.*Metrics` should have comment or be unexported
     - exported type `.*Value` should have comment or be unexported

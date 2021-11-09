@@ -3,6 +3,8 @@
 package config
 
 import (
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -113,6 +115,42 @@ func (c ServerConfig) Validate() error {
 // HasTLSCert returns true iff TLSCertFile or TLSKeyFile is set.
 func (c ServerConfig) HasTLSCert() bool {
 	return c.TLSCertFile != "" || c.TLSKeyFile != ""
+}
+
+// BaseURL returns Scylla Manager base URL based on config.
+func (c ServerConfig) BaseURL() string {
+	const ipv4Zero, ipv6Zero1, ipv6Zero2 = "0.0.0.0", "::0", "::"
+	const ipv4Localhost, ipv6Localhost = "127.0.0.1", "::1"
+
+	var addr, scheme string
+	if c.HTTP != "" {
+		addr, scheme = c.HTTP, "http"
+	} else {
+		addr, scheme = c.HTTPS, "https"
+	}
+	if addr == "" {
+		return ""
+	}
+
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return ""
+	}
+
+	switch host {
+	case "":
+		host = ipv4Localhost
+	case ipv6Zero1, ipv6Zero2:
+		host = ipv6Localhost
+	case ipv4Zero:
+		host = ipv4Localhost
+	}
+
+	return (&url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/api/v1",
+	}).String()
 }
 
 // ObfuscatedServerConfig returns ServerConfig with secrets replaced with ******.
