@@ -1,0 +1,10 @@
+use: delete --cluster <id|name> --snapshot-tag <tag> [flags]
+
+short: Delete backup files in remote locations
+
+long: |
+  This command allows you to delete files that were uploaded during backup procedure.
+  Deduplicated files are persisted unless their reference count drops to zero.
+
+snapshot-tag: |
+  A list of snapshot `tag`s sparated by a comma.

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -59,75 +58,6 @@ func TestUUIDFromLocation(t *testing.T) {
 	}
 }
 
-func TestParseStartDate(t *testing.T) {
-	t.Parallel()
-
-	const epsilon = 50 * time.Millisecond
-
-	table := []struct {
-		S string
-		D time.Duration
-		E string
-	}{
-		{
-			S: "now",
-			D: 0,
-		},
-		{
-			S: "now-5s",
-			E: "start date cannot be in the past",
-		},
-		{
-			S: "now+1h",
-			D: time.Hour,
-		},
-		{
-			S: timeutc.Now().Add(-5 * time.Second).Format(time.RFC3339),
-			E: "start date cannot be in the past",
-		},
-		{
-			S: timeutc.Now().Add(time.Hour).Format(time.RFC3339),
-			D: time.Hour,
-		},
-		{
-			S: "2019-05-02T15:04:05Z07:00",
-			E: "extra text",
-		},
-	}
-
-	for i, test := range table {
-		startDate, err := ParseStartDate(test.S)
-
-		msg := ""
-		if err != nil {
-			msg = err.Error()
-		}
-		if test.E != "" || msg != "" {
-			if !strings.Contains(msg, test.E) {
-				t.Error(i, msg)
-			}
-			if msg != "" && test.E == "" {
-				t.Error(i, msg)
-			}
-			continue
-		}
-
-		s := truncateToSecond(time.Time(startDate))
-		now := truncateToSecond(timeutc.Now())
-		diff := now.Add(test.D).Sub(s)
-		if diff < 0 {
-			diff *= -1
-		}
-		if diff > epsilon {
-			t.Fatal(i, startDate, test.D, diff, test.S)
-		}
-	}
-}
-
-func truncateToSecond(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, t.Location())
-}
-
 func TestFormatTimeZero(t *testing.T) {
 	t.Parallel()
 
@@ -143,62 +73,6 @@ func TestFormatTimeNonZero(t *testing.T) {
 
 	if s := FormatTime(strfmt.DateTime(timeutc.Now())); !strings.Contains(s, tz) {
 		t.Error(s)
-	}
-}
-
-func TestFormatError(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		Name   string
-		Msg    string
-		Golden string
-	}{
-		{
-			Name: "many_hosts_wrapped",
-			Msg:  `create cluster: connectivity check failed: 192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`,
-			Golden: `create cluster: connectivity check failed
- 192.168.100.13: unknown network bla
- 192.168.100.22: unknown network bla
- 192.168.100.12: unknown network bla
- 192.168.100.23: unknown network bla
- 192.168.100.11: unknown network bla
- 192.168.100.21: unknown network bla`,
-		},
-		{
-			Name: "single_host_wrapped",
-			Msg:  `create cluster: connectivity check failed: 192.168.100.13: unknown network bla`,
-			Golden: `create cluster: connectivity check failed
- 192.168.100.13: unknown network bla`,
-		},
-		{
-			Name: "many_hosts_unwrapped",
-			Msg:  `192.168.100.13: unknown network bla; 192.168.100.22: unknown network bla; 192.168.100.12: unknown network bla; 192.168.100.23: unknown network bla; 192.168.100.11: unknown network bla; 192.168.100.21: unknown network bla`,
-			Golden: `
- 192.168.100.13: unknown network bla
- 192.168.100.22: unknown network bla
- 192.168.100.12: unknown network bla
- 192.168.100.23: unknown network bla
- 192.168.100.11: unknown network bla
- 192.168.100.21: unknown network bla`,
-		},
-		{
-			Name: "single_host_unwrapped",
-			Msg:  `192.168.100.13: unknown network bla`,
-			Golden: `
- 192.168.100.13: unknown network bla`,
-		},
-	}
-
-	for i := range table {
-		test := table[i]
-
-		t.Run(test.Name, func(t *testing.T) {
-			t.Parallel()
-			if diff := cmp.Diff(FormatError(test.Msg), test.Golden); diff != "" {
-				t.Fatal(diff)
-			}
-		})
 	}
 }
 

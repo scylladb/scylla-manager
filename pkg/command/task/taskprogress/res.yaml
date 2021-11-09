@@ -1,0 +1,12 @@
+use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type/task-id>
+
+short: Show the task progress
+
+long: |
+  This command shows details of the latest run (or still running) task.
+
+details: |
+  More detailed progress data, depending on task type.
+
+host: |
+  A list of host glob patterns, e.g. '1.1.1.*,!1.2.*.4.

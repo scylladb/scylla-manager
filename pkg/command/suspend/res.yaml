@@ -1,0 +1,15 @@
+use: suspend --cluster <id|name>
+
+short: Stop execution of all tasks
+
+long: |
+  This command stops execution of **all** tasks that are running on a cluster.
+  The tasks can be resumed using the resume command.
+
+  When the suspend command is executed:
+
+  * The running tasks are stopped
+  * The scheduled tasks are canceled
+  * Starting a task manually fails
+
+  The health check tasks are an exception and they run even after suspend.

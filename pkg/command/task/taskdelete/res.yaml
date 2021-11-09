@@ -1,0 +1,7 @@
+use: delete --cluster <id|name> [flags] <type/task-id>
+
+short: Delete a task
+
+long: |
+  This command deletes a task from manager.
+  Note that a task can be disabled if you want to temporarily turn it off see update.

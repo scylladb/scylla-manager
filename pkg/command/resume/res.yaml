@@ -1,0 +1,9 @@
+use: resume --cluster <id|name>
+
+short: Undo suspend
+
+long: |
+  This command reschedules the suspended tasks.
+
+start-tasks:
+  Starts tasks that were stopped by the suspend command.

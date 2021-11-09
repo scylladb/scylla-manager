@@ -15,7 +15,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -35,60 +34,6 @@ func TaskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
 // TaskJoin creates a new type id string in the form `taskType/taskId`.
 func TaskJoin(taskType string, taskID interface{}) string {
 	return fmt.Sprint(taskType, "/", taskID)
-}
-
-// ParseStartDate parses the supplied string as a strfmt.DateTime.
-func ParseStartDate(value string) (strfmt.DateTime, error) {
-	now := timeutc.Now()
-
-	if value == "now" {
-		return strfmt.DateTime(now), nil
-	}
-
-	if strings.HasPrefix(value, "now") {
-		d, err := duration.ParseDuration(value[3:])
-		if err != nil {
-			return strfmt.DateTime{}, err
-		}
-		if d < 0 {
-			return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
-		}
-		return strfmt.DateTime(now.Add(d.Duration())), nil
-	}
-
-	// No more heuristics, assume the user passed a date formatted string
-	t, err := timeutc.Parse(time.RFC3339, value)
-	if err != nil {
-		return strfmt.DateTime(t), err
-	}
-	if t.Before(now) {
-		return strfmt.DateTime(time.Time{}), errors.New("start date cannot be in the past")
-	}
-	return strfmt.DateTime(t), nil
-}
-
-// ParseDate parses the supplied string as a strfmt.DateTime.
-func ParseDate(value string) (strfmt.DateTime, error) {
-	now := timeutc.Now()
-
-	if value == "now" {
-		return strfmt.DateTime(now), nil
-	}
-
-	if strings.HasPrefix(value, "now") {
-		d, err := duration.ParseDuration(value[3:])
-		if err != nil {
-			return strfmt.DateTime{}, err
-		}
-		return strfmt.DateTime(now.Add(d.Duration())), nil
-	}
-
-	// No more heuristics, assume the user passed a date formatted string
-	t, err := timeutc.Parse(time.RFC3339, value)
-	if err != nil {
-		return strfmt.DateTime(t), err
-	}
-	return strfmt.DateTime(t), nil
 }
 
 func uuidFromLocation(location string) (uuid.UUID, error) {
@@ -129,11 +74,6 @@ func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 		out += fmt.Sprintf("/%d%%", failed*100/size)
 	}
 	return out
-}
-
-// FormatPercent simply creates a percent representation of the supplied value.
-func FormatPercent(p float32) string {
-	return fmt.Sprintf("%0.2f%%", p)
 }
 
 // StringByteCount returns string representation of the byte count with proper
@@ -234,21 +174,6 @@ func FormatMsDuration(d int64) string {
 
 func isZero(t strfmt.DateTime) bool {
 	return time.Time(t).IsZero()
-}
-
-// FormatError formats messages created by using multierror with
-// errors wrapped with host IP so that each host error is in it's own line.
-func FormatError(msg string) string {
-	const prefix = " "
-
-	// Fairly relaxed IPv4 and IPv6 heuristic pattern, a proper pattern can
-	// be very complex
-	const ipRegex = `([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(\d{1,3}\.){3}\d{1,3}`
-
-	// Move host errors to newline
-	r := regexp.MustCompile(`(^|: |; )(` + ipRegex + `): `)
-
-	return r.ReplaceAllString(msg, "\n"+prefix+"${2}: ")
 }
 
 // FormatTables returns tables listing if number of tables is lower than

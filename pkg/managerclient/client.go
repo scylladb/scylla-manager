@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/client/operations"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
@@ -392,7 +393,7 @@ func (c Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, r
 
 // ListBackups returns listing of available backups.
 func (c Client) ListBackups(ctx context.Context, clusterID string,
-	locations []string, allClusters bool, keyspace []string, minDate, maxDate strfmt.DateTime) (BackupListItems, error) {
+	locations []string, allClusters bool, keyspace []string, minDate, maxDate time.Time) (BackupListItems, error) {
 	p := &operations.GetClusterClusterIDBackupsParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -402,11 +403,11 @@ func (c Client) ListBackups(ctx context.Context, clusterID string,
 	if !allClusters {
 		p.QueryClusterID = &clusterID
 	}
-	if !time.Time(minDate).IsZero() {
-		p.MinDate = &minDate
+	if !minDate.IsZero() {
+		p.MinDate = (*strfmt.DateTime)(pointer.TimePtr(minDate))
 	}
-	if !time.Time(maxDate).IsZero() {
-		p.MaxDate = &maxDate
+	if !maxDate.IsZero() {
+		p.MaxDate = (*strfmt.DateTime)(pointer.TimePtr(maxDate))
 	}
 
 	resp, err := c.operations.GetClusterClusterIDBackups(p)

@@ -1,0 +1,23 @@
+use: files --cluster <id|name> --snapshot-tag <tag> [flags]
+
+deprecated: |
+  use restore instead, see https://manager.docs.scylladb.com/stable/restore/index.html.
+
+short: List contents of a given backup
+
+long: |
+  This command lists files that were uploaded during backup procedure.
+  It outputs the remote paths of files together with keyspace/table information separated by delimiter that you provide.
+
+all-clusters: |
+  Shows backups for all clusters.
+
+delimiter: |
+  Dictates which character will be used as a whitespace between remote file path and information about keyspace and table.
+
+snapshot-tag: |
+  Snapshot `tag` as read from the backup listing.
+
+with-version: |
+  Renders table names with version UUID.
+
