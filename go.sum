@@ -680,6 +680,10 @@ github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33 h1:rAOU6ClSc+Ahar
 github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33/go.mod h1:l3skL/UQ1A2DQyV1dhRQNwg2+ZmPfkmq2GkW4rMcoJ4=
 github.com/scylladb/gocqlx/v2 v2.4.0 h1:XkmIf3F++iP8jWCqZuabcF5Vw2bqD7VRpyTVmPFQnks=
 github.com/scylladb/gocqlx/v2 v2.4.0/go.mod h1:rb1rAYGkQjkUrpBgsEovkULiX8ik0QQSwdIs+YrgKbs=
+github.com/scylladb/gocqlx/v2 v2.4.1-0.20211117083527-1bfe1015685d h1:XdwnGDp52pGANf/HwwRlb2GJptHog4csYmNLJ8W8qnI=
+github.com/scylladb/gocqlx/v2 v2.4.1-0.20211117083527-1bfe1015685d/go.mod h1:rb1rAYGkQjkUrpBgsEovkULiX8ik0QQSwdIs+YrgKbs=
+github.com/scylladb/gocqlx/v2 v2.5.0 h1:Hw3Ned8XZnye7lnPzpi8FGPYZjjN17QnmqrYMS4a+uQ=
+github.com/scylladb/gocqlx/v2 v2.5.0/go.mod h1:jKhM0/LkEAhEOSwd10TCMQdlC5x8aEzK7cXjQcPyMJ0=
 github.com/scylladb/google-api-go-client v0.34.0-patched h1:ojZBnyKm2/HbRuERamBCmH1ariPTj6mqG53y0wQIkik=
 github.com/scylladb/google-api-go-client v0.34.0-patched/go.mod h1:/XrVsuzM0rZmrsbjJutiuftIzeuTQcEeaYcSk/mQ1dg=
 github.com/scylladb/rclone v1.54.0-patched h1:GLfmm0Ck5q5eRVC79GzT91RgdN1RNSkgquoVkXYFWQo=

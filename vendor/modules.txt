@@ -298,9 +298,10 @@ github.com/scylladb/go-set/i64set
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
 github.com/scylladb/go-set/u64set
-# github.com/scylladb/gocqlx/v2 v2.4.0
+# github.com/scylladb/gocqlx/v2 v2.5.0
 ## explicit
 github.com/scylladb/gocqlx/v2
+github.com/scylladb/gocqlx/v2/cmd/schemagen
 github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
