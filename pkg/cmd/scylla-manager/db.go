@@ -113,7 +113,7 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 		return err
 	}
 
-	return dbutil.RewriteTable(session, table.SchedTask, table.SchedTask, nil)
+	return dbutil.RewriteTable(session, table.SchedulerTask, table.SchedulerTask, nil)
 }
 
 func gocqlClusterConfigForDBInit(c config.ServerConfig) *gocql.ClusterConfig {

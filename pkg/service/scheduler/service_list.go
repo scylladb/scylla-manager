@@ -38,7 +38,7 @@ type ListFilter struct {
 func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter ListFilter) ([]*TaskListItem, error) {
 	s.logger.Debug(ctx, "ListTasks", "filter", filter)
 
-	b := qb.Select(table.SchedTask.Name()).Where(qb.Eq("cluster_id"))
+	b := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id"))
 	if len(filter.TaskType) > 0 {
 		b.Where(qb.Eq("type"))
 	}
@@ -78,7 +78,7 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter Lis
 	items := make([]*TaskListItem, 0, len(tasks))
 	for _, t := range tasks {
 		tli := &TaskListItem{Task: *t}
-		err := table.SchedRun.
+		err := table.SchedulerTaskRun.
 			SelectBuilder("status", "cause", "start_time", "end_time").
 			Limit(1).
 			Query(s.session).
