@@ -9,7 +9,8 @@ package mod
 // go mod tidy.
 
 import (
-	_ "github.com/golang/mock/mockgen"
-	_ "golang.org/x/tools/cmd/stress"
 	_ "github.com/go-openapi/runtime"
+	_ "github.com/golang/mock/mockgen"
+	_ "github.com/scylladb/gocqlx/v2/cmd/schemagen"
+	_ "golang.org/x/tools/cmd/stress"
 )

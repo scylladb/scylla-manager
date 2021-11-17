@@ -15,6 +15,7 @@ sup                 https://github.com/pressly/sup/releases/download/v0.5.3/sup-
 swagger             https://github.com/go-swagger/go-swagger/releases/download/v0.25.0/swagger_linux_amd64
 license-detector    https://github.com/src-d/go-license-detector/releases/download/2.0.2/license-detector.linux_amd64.gz
 mockgen             github.com/golang/mock/mockgen
+schemagen           github.com/scylladb/gocqlx/v2/cmd/schemagen
 stress              golang.org/x/tools/cmd/stress
 yq                  https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64"
 
