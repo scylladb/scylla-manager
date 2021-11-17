@@ -69,7 +69,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 
 func (s *Service) initSuspended() error {
 	var clusters []uuid.UUID
-	if err := qb.Select(table.SchedTask.Name()).Distinct("cluster_id").Query(s.session).SelectRelease(&clusters); err != nil {
+	if err := qb.Select(table.SchedulerTask.Name()).Distinct("cluster_id").Query(s.session).SelectRelease(&clusters); err != nil {
 		return errors.Wrap(err, "list clusters")
 	}
 
@@ -159,7 +159,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 }
 
 func (s *Service) forEachTask(f func(t *Task) error) error {
-	q := qb.Select(table.SchedTask.Name()).Query(s.session)
+	q := qb.Select(table.SchedulerTask.Name()).Query(s.session)
 	defer q.Release()
 	return forEachTaskWithQuery(q, f)
 }
@@ -193,7 +193,7 @@ func (s *Service) getLastRun(t *Task) (*Run, error) {
 }
 
 func (s *Service) getLastRunQuery(t *Task, n int) *gocqlx.Queryx {
-	return qb.Select(table.SchedRun.Name()).
+	return qb.Select(table.SchedulerTaskRun.Name()).
 		Where(qb.Eq("cluster_id"), qb.Eq("type"), qb.Eq("task_id")).
 		Limit(uint(n)).
 		Query(s.session).
@@ -226,7 +226,7 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 		TaskID:    t.ID,
 		ID:        runID,
 	}
-	q := table.SchedRun.GetQuery(s.session).BindStruct(r)
+	q := table.SchedulerTaskRun.GetQuery(s.session).BindStruct(r)
 	return r, q.GetRelease(r)
 }
 
@@ -261,7 +261,7 @@ func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
 }
 
 func (s *Service) hasTaskType(t *Task) ([]uuid.UUID, error) {
-	q := table.SchedTask.SelectBuilder("id").
+	q := table.SchedulerTask.SelectBuilder("id").
 		Where(qb.Eq("type")).
 		Query(s.session).
 		BindStruct(t)
@@ -303,7 +303,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 }
 
 func (s *Service) putTask(t *Task) error {
-	return table.SchedTask.InsertQuery(s.session).BindStruct(t).ExecRelease()
+	return table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease()
 }
 
 func (s *Service) initMetrics(t *Task) {
@@ -423,7 +423,7 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 }
 
 func (s *Service) putRun(r *Run) error {
-	return table.SchedRun.
+	return table.SchedulerTaskRun.
 		InsertQuery(s.session).
 		BindStruct(r).
 		ExecRelease()
@@ -451,7 +451,7 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 		Type:      tp,
 		ID:        id,
 	}
-	q := table.SchedTask.GetQuery(s.session).BindStruct(t)
+	q := table.SchedulerTask.GetQuery(s.session).BindStruct(t)
 	return t, q.GetRelease(t)
 }
 
@@ -481,7 +481,7 @@ func (s *Service) findTaskByID(key scheduler.Key) (taskInfo, bool) {
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
-	q := table.SchedTask.DeleteQuery(s.session).BindMap(qb.M{
+	q := table.SchedulerTask.DeleteQuery(s.session).BindMap(qb.M{
 		"cluster_id": t.ClusterID,
 		"type":       t.Type,
 		"id":         t.ID,
@@ -571,7 +571,7 @@ func (s *Service) StopTask(ctx context.Context, t *Task) error {
 func (s *Service) updateRunStatus(r *Run) error {
 	// Only update if running as there is a race between manually stopping
 	// a run and the run returning normally.
-	return table.SchedRun.
+	return table.SchedulerTaskRun.
 		UpdateBuilder("status").
 		If(qb.EqNamed("status", "from_status")).
 		Query(s.session).
@@ -672,7 +672,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 func (s *Service) forEachClusterHealthCheckTask(clusterID uuid.UUID, f func(t *Task) error) error {
 	// We iterate over task types not use IN because it's not supported.
 	// Cannot restrict clustering columns by IN relations when a collection is selected by the query.
-	q := qb.Select(table.SchedTask.Name()).Where(qb.Eq("cluster_id"), qb.Eq("type")).Query(s.session)
+	q := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id"), qb.Eq("type")).Query(s.session)
 	defer q.Release()
 
 	hc := []TaskType{HealthCheckAlternatorTask, HealthCheckCQLTask, HealthCheckCQLTask}
@@ -686,7 +686,7 @@ func (s *Service) forEachClusterHealthCheckTask(clusterID uuid.UUID, f func(t *T
 }
 
 func (s *Service) forEachClusterTask(clusterID uuid.UUID, f func(t *Task) error) error {
-	q := qb.Select(table.SchedTask.Name()).Where(qb.Eq("cluster_id")).Query(s.session).Bind(clusterID)
+	q := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id")).Query(s.session).Bind(clusterID)
 	defer q.Release()
 	return forEachTaskWithQuery(q, f)
 }
