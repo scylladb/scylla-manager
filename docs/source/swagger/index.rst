@@ -31,4 +31,4 @@ The following procedure instructs how to access a remote Scylla Manager Server U
 
       ssh -L 5080:localhost:5080 <host>
 
-#. Open `<http://localhost:5080/ui/>`_ in your browser.
+#. Open `<http://localhost:5080/ui/>`_ in your browser. Link is being repaired, please be patient.
