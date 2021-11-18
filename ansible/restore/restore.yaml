@@ -65,6 +65,7 @@
 
     - name: Wait for CQL port
       wait_for:
+        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
         port: 9042
 
     - name: Stop Scylla service
@@ -101,6 +102,7 @@
 
     - name: Wait for CQL port
       wait_for:
+        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
         port: 9042
 
     - name: Resore seeds list
