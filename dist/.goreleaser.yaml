@@ -63,7 +63,7 @@ builds:
       - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
 
 archives:
-  - name_template: "{{ .ProjectName }}-agent_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
+  - name_template: "{{ .ProjectName }}_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
     files:
       - etc
       - license/LICENSE*
