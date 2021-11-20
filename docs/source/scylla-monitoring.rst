@@ -12,7 +12,7 @@ More information can be found in `Scylla Monitoring docs <https://scylladb.githu
 Scylla Manager Dashboard
 ========================
 
-Scylla Manager has it's own dashboard in Scylla Monitoring.
+Scylla Manager has its own dashboard in Scylla Monitoring.
 It can be used to track progress of Scylla Manager tasks.
 
 ..
