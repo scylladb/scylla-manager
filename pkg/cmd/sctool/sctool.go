@@ -97,6 +97,7 @@ func buildCommand() *cobra.Command {
 	)
 	setCommandDefaults(rootCmd)
 	addCompletionCommand(rootCmd)
+	addDocCommand(rootCmd)
 
 	return rootCmd
 }
