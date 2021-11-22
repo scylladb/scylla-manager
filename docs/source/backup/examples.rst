@@ -123,7 +123,33 @@ replacing the ``-c`` cluster flag with your cluster's cluster name or ID and rep
 
    sctool backup -c prod-cluster -L 's3:my-backups'
 
+
+Create backup for archiving keyspace
+------------------------------------
+
+We can archive any particular keyspace, and keep it in our bucket regardless of an already sheduled backups.
+
+**Procedure**
+
+For this purpose we can create separate backup task. 
+This task will be run only once, without repeating time and with ``--retention 1``.
+
+.. code-block:: none
+   
+   sctool backup -c prod-cluster -L 's3:my-backups' -K 'Keyspace' --retention 1
+
+
+Now we can disable it by command:
+
+.. code-block:: none
+   
+   sctool task update backup/4d79ee63-7721-4105-8c6a-5b98c65c3e21 -e false
+
+
+If we decide to delete above task, backup will be kept in our storage for the next 30 days.
+
 .. _dry-run:
+
 
 Perform a dry run of a backup
 -----------------------------
