@@ -95,8 +95,9 @@ func buildCommand() *cobra.Command {
 		taskCmd,
 		version.NewCommand(&client),
 	)
-
 	setCommandDefaults(rootCmd)
+	addCompletionCommand(rootCmd)
+
 	return rootCmd
 }
 
