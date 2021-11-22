@@ -1,1 +1,1 @@
-/usr/bin/sctool _bashcompletion > /etc/bash_completion.d/sctool.bash || :
+/usr/bin/sctool completion bash > /etc/bash_completion.d/sctool.bash || :
