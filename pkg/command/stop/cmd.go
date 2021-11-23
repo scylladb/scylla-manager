@@ -5,6 +5,7 @@ package stop
 import (
 	_ "embed"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -19,6 +20,7 @@ type command struct {
 	client *managerclient.Client
 
 	cluster string
+	delete  bool
 	disable bool
 }
 
@@ -44,6 +46,7 @@ func (cmd *command) init() {
 
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
+	w.Unwrap().BoolVar(&cmd.delete, "delete", false, "")
 	w.Unwrap().BoolVar(&cmd.disable, "disable", false, "")
 }
 
@@ -52,5 +55,13 @@ func (cmd *command) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return cmd.client.StopTask(cmd.Context(), cmd.cluster, taskType, taskID, cmd.disable)
+	if err := cmd.client.StopTask(cmd.Context(), cmd.cluster, taskType, taskID, cmd.disable); err != nil {
+		return errors.Wrap(err, "stop")
+	}
+	if cmd.delete {
+		if err := cmd.client.DeleteTask(cmd.Context(), cmd.cluster, taskType, taskID); err != nil {
+			return errors.Wrap(err, "delete")
+		}
+	}
+	return nil
 }
