@@ -71,8 +71,9 @@ func buildCommand() *cobra.Command {
 	repairCmd.AddCommand(repaircontrol.NewCommand(&client))
 
 	taskCmd := &cobra.Command{
-		Use:   "task",
-		Short: "Start, stop and track task progress",
+		Use:        "task",
+		Short:      "Start, stop and track task progress",
+		Deprecated: "see subcommands for details.",
 	}
 	taskCmd.AddCommand(
 		taskdelete.NewCommand(&client),

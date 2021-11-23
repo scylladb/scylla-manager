@@ -1,5 +1,8 @@
 use: stop --cluster <id|name> [flags] <type/task-id>
 
+deprecated: |
+  use sctool stop instead.
+
 short: Stop executing a task
 
 long: |

@@ -1,5 +1,8 @@
 use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type/task-id>
 
+deprecated: |
+  use sctool backup|repair progress instead.
+
 short: Show the task progress
 
 long: |

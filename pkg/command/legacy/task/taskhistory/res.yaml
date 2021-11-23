@@ -1,5 +1,8 @@
 use: history --cluster <id|name> [flags] <type/task-id>
 
+deprecated: |
+  use sctool info instead.
+
 short: Show run history of a task
 
 long: |
