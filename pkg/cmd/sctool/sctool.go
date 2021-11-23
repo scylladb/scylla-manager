@@ -28,6 +28,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/command/resume"
 	"github.com/scylladb/scylla-manager/pkg/command/start"
 	"github.com/scylladb/scylla-manager/pkg/command/status"
+	"github.com/scylladb/scylla-manager/pkg/command/stop"
 	"github.com/scylladb/scylla-manager/pkg/command/suspend"
 	"github.com/scylladb/scylla-manager/pkg/command/version"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
@@ -94,6 +95,7 @@ func buildCommand() *cobra.Command {
 		resume.NewCommand(&client),
 		start.NewCommand(&client),
 		status.NewCommand(&client),
+		stop.NewCommand(&client),
 		suspend.NewCommand(&client),
 		taskCmd,
 		version.NewCommand(&client),
