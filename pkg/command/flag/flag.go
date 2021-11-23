@@ -70,23 +70,31 @@ func MustSetUsages(cmd *cobra.Command, b []byte, required ...string) {
 }
 
 //
-// Task schedule flags
+// Global flags
 //
 
-func (w Wrapper) enabled(p *bool) {
-	w.fs.BoolVar(p, "enabled", true, usage["enabled"])
+func (w Wrapper) GlobalAPIURL(p *string) {
+	w.fs.StringVar(p, "api-url", apiURL(), usage["api-url"])
 }
 
-func (w Wrapper) interval(p *Duration) {
-	w.fs.VarP(p, "interval", "i", usage["interval"])
+func (w Wrapper) GlobalAPICertFile(p *string) {
+	w.fs.StringVar(p, "api-cert-file", os.Getenv("SCYLLA_MANAGER_API_CERT_FILE"), usage["api-cert-file"])
 }
 
-func (w Wrapper) startDate(p *Time) {
-	w.fs.VarP(p, "start-date", "s", usage["start-date"])
+func (w Wrapper) GlobalAPIKeyFile(p *string) {
+	w.fs.StringVar(p, "api-key-file", os.Getenv("SCYLLA_MANAGER_API_KEY_FILE"), usage["api-key-file"])
 }
 
-func (w Wrapper) numRetries(p *int, def int) {
-	w.fs.IntVarP(p, "num-retries", "r", def, usage["num-retries"])
+func apiURL() string {
+	if v := os.Getenv("SCYLLA_MANAGER_API_URL"); v != "" {
+		return v
+	}
+	if cfg, err := config.ParseServerConfigFiles([]string{"/etc/scylla-manager/scylla-manager.yaml"}); err == nil {
+		if v := cfg.BaseURL(); v != "" {
+			return v
+		}
+	}
+	return "http://127.0.0.1:5080/api/v1"
 }
 
 //
@@ -114,29 +122,21 @@ func (w Wrapper) Location(p *[]string) {
 }
 
 //
-// Global flags
+// Task schedule flags
 //
 
-func (w Wrapper) GlobalAPIURL(p *string) {
-	w.fs.StringVar(p, "api-url", apiURL(), usage["api-url"])
+func (w Wrapper) enabled(p *bool) {
+	w.fs.BoolVar(p, "enabled", true, usage["task-enabled"])
 }
 
-func (w Wrapper) GlobalAPICertFile(p *string) {
-	w.fs.StringVar(p, "api-cert-file", os.Getenv("SCYLLA_MANAGER_API_CERT_FILE"), usage["api-cert-file"])
+func (w Wrapper) interval(p *Duration) {
+	w.fs.VarP(p, "interval", "i", usage["task-interval"])
 }
 
-func (w Wrapper) GlobalAPIKeyFile(p *string) {
-	w.fs.StringVar(p, "api-key-file", os.Getenv("SCYLLA_MANAGER_API_KEY_FILE"), usage["api-key-file"])
+func (w Wrapper) startDate(p *Time) {
+	w.fs.VarP(p, "start-date", "s", usage["task-start-date"])
 }
 
-func apiURL() string {
-	if v := os.Getenv("SCYLLA_MANAGER_API_URL"); v != "" {
-		return v
-	}
-	if cfg, err := config.ParseServerConfigFiles([]string{"/etc/scylla-manager/scylla-manager.yaml"}); err == nil {
-		if v := cfg.BaseURL(); v != "" {
-			return v
-		}
-	}
-	return "http://127.0.0.1:5080/api/v1"
+func (w Wrapper) numRetries(p *int, def int) {
+	w.fs.IntVarP(p, "num-retries", "r", def, usage["task-num-retries"])
 }
