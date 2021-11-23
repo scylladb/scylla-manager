@@ -1,5 +1,8 @@
 use: delete --cluster <id|name> [flags] <type/task-id>
 
+deprecated: |
+  use sctool stop --delete instead
+
 short: Delete a task
 
 long: |
