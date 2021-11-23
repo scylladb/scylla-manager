@@ -42,9 +42,7 @@ func parseFiles() error {
 
 func postProcessUsage() {
 	for k, v := range usage {
-		v = strings.ReplaceAll(v, "${glob}", usage["glob"])
-		v = cleanup(v)
-		usage[k] = v
+		usage[k] = cleanup(v)
 	}
 }
 
@@ -53,5 +51,8 @@ func cleanup(s string) string {
 	b = bytes.ReplaceAll(b, []byte{'`', '`'}, []byte{'\''})
 	b = bytes.ReplaceAll(b, []byte{'\n', '*', ' '}, []byte{'\n'})
 	// b = bytes.TrimSuffix(b, []byte{'\n'})
-	return string(b)
+
+	s = string(b)
+	s = strings.ReplaceAll(s, "${glob}", usage["glob"])
+	return s
 }
