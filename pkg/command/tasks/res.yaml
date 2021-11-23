@@ -1,0 +1,23 @@
+use: tasks
+
+short: Show active tasks and their last run status
+
+long: |
+  This command shows all of the scheduled tasks for the specified cluster.
+  If cluster is not set this would output a table for every cluster.
+  Each row contains task type and ID, separated by a slash, task properties, next activation and last status information.
+  For more information on a task consult history and progress.
+
+all: |
+  Lists all tasks, including those which have been disabled, disabled tasks are prefixed with ``*``.
+
+status: |
+  Filters tasks according to their last run `status`.
+  Accepted values are: NEW, RUNNING, STOPPING, STOPPED, WAITING, DONE, ERROR, ABORTED.
+
+type: |
+  Display only tasks of a given `type`.
+
+sort: |
+  Returns a list of tasks sorted according to the last run status and sort `key` which you provide.
+  Accepted sort key values are: ``start-time``, ``next-activation``, ``end-time``, ``status``.
