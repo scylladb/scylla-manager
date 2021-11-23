@@ -388,7 +388,7 @@ In addition to :ref:`global-flags`, repair update takes the same parameters as `
 repair update example
 .....................
 
-This example updates the repair task 143d160f-e53c-4890-a9e7-149561376cfd adding an intensity parameter to speed up the repair.
+This example updates the repair task 143d160f-e53c-4890-a9e7-149561376cfd, adding an intensity parameter to speed up the repair.
 
 .. code-block:: none
 
