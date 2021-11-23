@@ -30,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/command/status"
 	"github.com/scylladb/scylla-manager/pkg/command/stop"
 	"github.com/scylladb/scylla-manager/pkg/command/suspend"
+	"github.com/scylladb/scylla-manager/pkg/command/tasks"
 	"github.com/scylladb/scylla-manager/pkg/command/version"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -98,6 +99,7 @@ func buildCommand() *cobra.Command {
 		stop.NewCommand(&client),
 		suspend.NewCommand(&client),
 		taskCmd,
+		tasks.NewCommand(&client),
 		version.NewCommand(&client),
 	)
 	setCommandDefaults(rootCmd)
