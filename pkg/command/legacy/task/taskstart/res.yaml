@@ -1,5 +1,8 @@
 use: start --cluster <id|name> [flags] <type/task-id>
 
+deprecated: |
+  use sctool start instead.
+
 short: Start executing a task
 
 no-continue: |

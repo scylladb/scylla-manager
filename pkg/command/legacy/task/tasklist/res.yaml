@@ -1,5 +1,8 @@
 use: list
 
+deprecated: |
+  use sctool instead.
+
 short: Show available tasks and their last run status
 
 long: |

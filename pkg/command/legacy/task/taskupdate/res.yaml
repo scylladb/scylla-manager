@@ -1,5 +1,8 @@
 use: update --cluster <id|name> [flags] <type/task-id>
 
+deprecated: |
+  use sctool backup|repair update instead.
+
 short: Modify a task
 
 long: |

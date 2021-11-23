@@ -1,7 +1,7 @@
 use: files --cluster <id|name> --snapshot-tag <tag> [flags]
 
 deprecated: |
-  use restore instead, see https://manager.docs.scylladb.com/stable/restore/index.html.
+  use sctool restore instead, see https://manager.docs.scylladb.com/stable/restore/index.html.
 
 short: List contents of a given backup
 
