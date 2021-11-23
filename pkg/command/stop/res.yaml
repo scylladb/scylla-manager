@@ -6,5 +6,9 @@ long: |
   This command stops a specified task, stopping an already stopped task has no effect.
   If you want to stop all tasks see sctool suspend.
 
+delete: |
+  Permanently remove the task.
+
 disable: |
-  Do not run in future.
+  Do not run in future, can be later enabled.
+
