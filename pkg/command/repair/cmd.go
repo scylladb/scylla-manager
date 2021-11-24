@@ -29,7 +29,7 @@ type command struct {
 	failFast            bool
 	host                string
 	ignoreDownHosts     bool
-	intensity           flag.Intensity
+	intensity           *flag.Intensity
 	parallel            int
 	smallTableThreshold string
 	dryRun              bool
@@ -53,11 +53,9 @@ func newCommand(client *managerclient.Client, update bool) *command {
 	}
 
 	cmd := &command{
-		TaskBase: flag.NewTaskBase(),
-		client:   client,
-		intensity: flag.Intensity{
-			Value: 1,
-		},
+		TaskBase:  flag.NewTaskBase(),
+		client:    client,
+		intensity: flag.NewIntensity(1),
 	}
 	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
 		panic(err)
@@ -79,7 +77,7 @@ func (cmd *command) init() {
 	w.FailFast(&cmd.failFast)
 	w.Unwrap().StringVar(&cmd.host, "host", "", "")
 	w.Unwrap().BoolVar(&cmd.ignoreDownHosts, "ignore-down-hosts", false, "")
-	w.Unwrap().Var(&cmd.intensity, "intensity", "")
+	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 	w.Unwrap().StringVar(&cmd.smallTableThreshold, "small-table-threshold", "1GiB", "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")

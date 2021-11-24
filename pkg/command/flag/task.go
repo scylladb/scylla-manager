@@ -53,7 +53,7 @@ func (cmd *TaskBase) Enabled() bool {
 func (cmd *TaskBase) Schedule() *managerclient.Schedule {
 	return &managerclient.Schedule{
 		Interval:   cmd.interval.String(),
-		StartDate:  strfmt.DateTime(cmd.startDate.Time),
+		StartDate:  strfmt.DateTime(cmd.startDate.Value()),
 		NumRetries: int64(cmd.numRetries),
 	}
 }
@@ -75,7 +75,7 @@ func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 		ok = true
 	}
 	if cmd.Flag("start-date").Changed {
-		task.Schedule.StartDate = strfmt.DateTime(cmd.startDate.Time)
+		task.Schedule.StartDate = strfmt.DateTime(cmd.startDate.Value())
 		ok = true
 	}
 	if cmd.Flag("num-retries").Changed {

@@ -65,7 +65,7 @@ func (cmd *command) run() error {
 		}
 	})
 
-	list, err := cmd.client.ListBackups(cmd.Context(), cmd.cluster, cmd.location, cmd.allClusters, cmd.keyspace, cmd.minDate.Time, cmd.maxDate.Time)
+	list, err := cmd.client.ListBackups(cmd.Context(), cmd.cluster, cmd.location, cmd.allClusters, cmd.keyspace, cmd.minDate.Value(), cmd.maxDate.Value())
 	stillWaiting.Store(false)
 	if err != nil {
 		return err
