@@ -4,10 +4,12 @@ package progress
 
 import (
 	_ "embed"
+	"strings"
 
+	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -55,10 +57,50 @@ func (cmd *command) init() {
 	w.Unwrap().StringVar(&cmd.runID, "run", "latest", "Show progress of a particular run, see sctool info to get the `ID`s.")
 }
 
+const (
+	backupTask         = "backup"
+	repairTask         = "repair"
+	validateBackupTask = "validate_backup"
+)
+
+var supportedTaskTypes = strset.New(backupTask, repairTask, validateBackupTask)
+
 func (cmd *command) run(args []string) error {
-	taskType, taskID, err := managerclient.TaskSplit(args[0])
-	if err != nil {
-		return err
+	var (
+		taskType string
+		taskID   uuid.UUID
+		err      error
+	)
+
+	if supportedTaskTypes.Has(args[0]) {
+		taskType = args[0]
+	} else {
+		taskType, taskID, err = managerclient.TaskSplit(args[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	if taskID == uuid.Nil {
+		tasks, err := cmd.client.ListTasks(cmd.Context(), cmd.cluster, taskType, false, "")
+		if err != nil {
+			return err
+		}
+		switch len(tasks.ExtendedTaskSlice) {
+		case 0:
+			return errors.Errorf("no task of type %s", taskType)
+		case 1:
+			taskID, err = uuid.Parse(tasks.ExtendedTaskSlice[0].ID)
+			if err != nil {
+				return err
+			}
+		default:
+			ids := make([]string, len(tasks.ExtendedTaskSlice))
+			for i, t := range tasks.ExtendedTaskSlice {
+				ids[i] = "- " + managerclient.TaskJoin(taskType, t.ID)
+			}
+			return errors.Errorf("task ambiguity run with one of:\n%s", strings.Join(ids, "\n"))
+		}
 	}
 
 	task, err := cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
@@ -72,12 +114,12 @@ func (cmd *command) run(args []string) error {
 		}
 	}
 
-	switch scheduler.TaskType(taskType) {
-	case scheduler.RepairTask:
+	switch taskType {
+	case repairTask:
 		return cmd.renderRepairProgress(task)
-	case scheduler.BackupTask:
+	case backupTask:
 		return cmd.renderBackupProgress(task)
-	case scheduler.ValidateBackupTask:
+	case validateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
 	}
 

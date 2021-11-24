@@ -1,7 +1,9 @@
-use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type/task-id>
+use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type[/task-id]>
 
-deprecated: |
-  use sctool backup|repair progress instead.
+example:
+  Get progress of latest repair task of cluster 'prod'.
+
+  sctool progress -c prod repair
 
 short: Show the task progress
 
