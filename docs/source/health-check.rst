@@ -151,7 +151,7 @@ Scylla Alternator Health Check
 
 .. versionadded:: 2.2 Scylla Manager
 
-If Alternator is enabled it will check the Scylla Alternator API connectivity for all nodes in parallel. In Scylla 4.0 it uses simplified ping checking if the socket is open and if it’s responding. In Scylla 4.1+ it queries the system table.
+If Alternator is enabled it will check the Scylla Alternator API connectivity for all nodes in parallel. In Scylla 4.0, it uses simplified ping checking if the socket is open and if it’s responding. In Scylla 4.1+, it queries the system table.
 
 Please check the Scylla Manager :ref:`configuration-file` to adjust timeouts for your cluster.
 
