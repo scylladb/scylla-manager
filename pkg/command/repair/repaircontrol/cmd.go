@@ -20,16 +20,14 @@ type command struct {
 	client *managerclient.Client
 
 	cluster   string
-	intensity flag.Intensity
+	intensity *flag.Intensity
 	parallel  int
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := &command{
-		client: client,
-		intensity: flag.Intensity{
-			Value: 1,
-		},
+		client:    client,
+		intensity: flag.NewIntensity(1),
 	}
 	if err := yaml.Unmarshal(res, &cmd.Command); err != nil {
 		panic(err)
@@ -46,7 +44,7 @@ func (cmd *command) init() {
 
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
-	w.Unwrap().Var(&cmd.intensity, "intensity", "")
+	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 }
 
@@ -56,7 +54,7 @@ func (cmd *command) run() error {
 	}
 
 	if cmd.Flag("intensity").Changed {
-		if err := cmd.client.SetRepairIntensity(cmd.Context(), cmd.cluster, cmd.intensity.Value); err != nil {
+		if err := cmd.client.SetRepairIntensity(cmd.Context(), cmd.cluster, cmd.intensity.Value()); err != nil {
 			return err
 		}
 	}
