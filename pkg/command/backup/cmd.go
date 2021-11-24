@@ -55,7 +55,8 @@ func newCommand(client *managerclient.Client, update bool) *command {
 	}
 
 	cmd := &command{
-		client: client,
+		TaskBase: flag.NewTaskBase(),
+		client:   client,
 	}
 	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
 		panic(err)

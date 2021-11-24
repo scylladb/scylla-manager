@@ -27,7 +27,8 @@ type command struct {
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := &command{
-		client: client,
+		TaskBase: flag.NewTaskBase(),
+		client:   client,
 	}
 	if err := yaml.Unmarshal(res, &cmd.Command); err != nil {
 		panic(err)
