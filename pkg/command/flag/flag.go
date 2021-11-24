@@ -126,17 +126,17 @@ func (w Wrapper) Location(p *[]string) {
 //
 
 func (w Wrapper) enabled(p *bool) {
-	w.fs.BoolVar(p, "enabled", true, usage["task-enabled"])
+	w.fs.BoolVar(p, "enabled", true, usage["enabled"])
 }
 
 func (w Wrapper) interval(p *Duration) {
-	w.fs.VarP(p, "interval", "i", usage["task-interval"])
+	w.fs.VarP(p, "interval", "i", usage["interval"])
 }
 
 func (w Wrapper) startDate(p *Time) {
-	w.fs.VarP(p, "start-date", "s", usage["task-start-date"])
+	w.fs.VarP(p, "start-date", "s", usage["start-date"])
 }
 
 func (w Wrapper) numRetries(p *int, def int) {
-	w.fs.IntVarP(p, "num-retries", "r", def, usage["task-num-retries"])
+	w.fs.IntVarP(p, "num-retries", "r", def, usage["num-retries"])
 }

@@ -53,7 +53,8 @@ func newCommand(client *managerclient.Client, update bool) *command {
 	}
 
 	cmd := &command{
-		client: client,
+		TaskBase: flag.NewTaskBase(),
+		client:   client,
 		intensity: flag.Intensity{
 			Value: 1,
 		},
