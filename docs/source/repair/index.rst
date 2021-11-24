@@ -58,7 +58,7 @@ If you want to repair faster, try using intensity zero.
 
 Note that the less the cluster is loaded the more it makes sense to increase intensity.
 If you increase intensity on a loaded cluster it may not give speed benefits since cluster have no resources to process more repairs.
-In our experiments in a 50% loaded cluster increasing intensity from 1 to 2 gives about 10-20% boost and increasing it further have little impact.
+In our experiments in a 50% loaded cluster increasing intensity from 1 to 2 gives about 10-20% boost and increasing it further will have little impact.
 
 Changing repair speed
 =====================
