@@ -192,9 +192,8 @@ func (s *Service) getLastRun(t *Task) (*Run, error) {
 	return &run, q.GetRelease(&run)
 }
 
-func (s *Service) getLastRunQuery(t *Task, n int) *gocqlx.Queryx {
-	return qb.Select(table.SchedulerTaskRun.Name()).
-		Where(qb.Eq("cluster_id"), qb.Eq("type"), qb.Eq("task_id")).
+func (s *Service) getLastRunQuery(t *Task, n int, columns ...string) *gocqlx.Queryx {
+	return table.SchedulerTaskRun.SelectBuilder(columns...).
 		Limit(uint(n)).
 		Query(s.session).
 		BindMap(qb.M{
@@ -210,6 +209,46 @@ func (s *Service) GetLastRuns(ctx context.Context, t *Task, n int) ([]*Run, erro
 	q := s.getLastRunQuery(t, n)
 	var runs []*Run
 	return runs, q.SelectRelease(&runs)
+}
+
+// GetNthLastRun returns the n-th last task run, 0 is the last run, 1 is one run before that.
+func (s *Service) GetNthLastRun(ctx context.Context, t *Task, n int) (*Run, error) {
+	s.logger.Debug(ctx, "GetNthLastRun", "task", t, "n", n)
+
+	if n < 0 {
+		return nil, errors.New("index out of bounds")
+	}
+	if n == 0 {
+		return s.getLastRun(t)
+	}
+
+	runID, err := s.nthRunID(t, n)
+	if err != nil {
+		return nil, err
+	}
+	return s.GetRun(ctx, t, runID)
+}
+
+func (s *Service) nthRunID(t *Task, n int) (uuid.UUID, error) {
+	q := s.getLastRunQuery(t, n+1, "id")
+	defer q.Release()
+
+	var (
+		id uuid.UUID
+		i  int
+	)
+	iter := q.Iter()
+	for iter.Scan(&id) {
+		if i == n {
+			return id, iter.Close()
+		}
+		i++
+	}
+	if err := iter.Close(); err != nil {
+		return uuid.Nil, err
+	}
+
+	return uuid.Nil, service.ErrNotFound
 }
 
 // GetRun returns a run based on ID. If nothing was found ErrNotFound is returned.

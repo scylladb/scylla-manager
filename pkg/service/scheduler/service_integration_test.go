@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package scheduler_test
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
@@ -237,6 +239,31 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	now := func() time.Time {
 		return timeutc.Now().Add(100 * time.Millisecond)
 	}
+
+	t.Run("get nth last run", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: 2 task runs")
+		task := h.makeTaskWithStartDate(future)
+		run1 := task.NewRun()
+		run1.Status = scheduler.StatusDone
+		if err := h.service.PutTestRun(run1); err != nil {
+			t.Fatal(err)
+		}
+		run0 := task.NewRun()
+		run0.Status = scheduler.StatusRunning
+		if err := h.service.PutTestRun(run0); err != nil {
+			t.Fatal(err)
+		}
+
+		if r, err := h.service.GetNthLastRun(ctx, task, 1); err != nil {
+			t.Fatal(err)
+		} else if diff := cmp.Diff(r, run1, UUIDComparer(), cmpopts.IgnoreFields(scheduler.Run{}, "StartTime")); diff != "" {
+			t.Fatal(diff)
+		}
+	})
 
 	t.Run("put task once", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
