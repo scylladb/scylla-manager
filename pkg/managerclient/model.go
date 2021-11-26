@@ -462,7 +462,9 @@ func (rp RepairProgress) Render(w io.Writer) error {
 
 var repairProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
-{{ with .Run }}Status:		{{ .Status }}
+{{ with .Run -}}
+Run:		{{ .ID }}
+Status:		{{ .Status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
 
@@ -708,7 +710,9 @@ func (bp BackupProgress) hideKeyspace(keyspace string) bool {
 
 var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
-{{ with .Run }}Status:		{{ status }}
+{{ with .Run -}}
+Run:		{{ .ID }}
+Status:		{{ status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
 
@@ -805,7 +809,9 @@ func (p ValidateBackupProgress) Render(w io.Writer) error {
 
 var validateBackupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
 {{ end -}}
-{{ with .Run }}Status:		{{ .Status }}
+{{ with .Run -}}
+Run:		{{ .ID }}
+Status:		{{ .Status }}
 {{- if .Cause }}
 Cause:		{{ FormatError .Cause }}
 
