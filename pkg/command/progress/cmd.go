@@ -46,6 +46,11 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 	return &cmd.Command
 }
 
+const (
+	latest = "latest"
+	tilde  = "~"
+)
+
 func (cmd *command) init() {
 	defer flag.MustSetUsages(&cmd.Command, res, "cluster")
 
@@ -54,7 +59,7 @@ func (cmd *command) init() {
 	w.Keyspace(&cmd.keyspace)
 	w.Unwrap().BoolVar(&cmd.details, "details", false, "")
 	w.Unwrap().StringSliceVar(&cmd.host, "host", nil, "")
-	w.Unwrap().StringVar(&cmd.runID, "run", "latest", "Show progress of a particular run, see sctool info to get the `ID`s.")
+	w.Unwrap().StringVar(&cmd.runID, "run", latest, "Show progress of a particular run, see sctool info to get the `ID`s.")
 }
 
 const (
@@ -108,7 +113,7 @@ func (cmd *command) run(args []string) error {
 		return err
 	}
 
-	if cmd.runID != "latest" {
+	if cmd.runID != latest && !strings.HasPrefix(cmd.runID, tilde) {
 		if _, err = uuid.Parse(cmd.runID); err != nil {
 			return err
 		}

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -363,16 +364,16 @@ type taskRunProgress struct {
 
 func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
+	p := chi.URLParam(r, "run_id")
 
 	var prog taskRunProgress
 
-	if p := chi.URLParam(r, "run_id"); p == "latest" {
-		runs, err := h.Scheduler.GetLastRuns(r.Context(), t, 1)
-		if err != nil {
-			respondBadRequest(w, r, err)
-			return
-		}
-		if len(runs) == 0 {
+	if n, err := tryReadOffset(p); err != nil { // nolint
+		respondBadRequest(w, r, errors.Wrap(err, "parse run offset"))
+		return
+	} else if n >= 0 {
+		prog.Run, err = h.Scheduler.GetNthLastRun(r.Context(), t, n)
+		if n == 0 && errors.Is(err, service.ErrNotFound) {
 			prog.Run = &scheduler.Run{
 				ClusterID: t.ClusterID,
 				Type:      t.Type,
@@ -388,16 +389,19 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 			render.Respond(w, r, prog)
 			return
 		}
-		prog.Run = runs[0]
+		if err != nil {
+			respondError(w, r, errors.Wrapf(err, "run ~%d", n))
+			return
+		}
 	} else {
 		runID, err := uuid.Parse(p)
 		if err != nil {
-			respondBadRequest(w, r, err)
+			respondBadRequest(w, r, errors.Wrapf(err, "parse uuid %s", p))
 			return
 		}
 		prog.Run, err = h.Scheduler.GetRun(r.Context(), t, runID)
 		if err != nil {
-			respondError(w, r, errors.Wrapf(err, "load task %q runs", t.ID))
+			respondError(w, r, errors.Wrapf(err, "run %s", runID))
 			return
 		}
 	}
@@ -431,4 +435,20 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Respond(w, r, prog)
+}
+
+func tryReadOffset(s string) (int, error) {
+	const (
+		latest = "latest"
+		tilde  = "~"
+	)
+
+	if s == latest {
+		return 0, nil
+	}
+	if strings.HasPrefix(s, tilde) {
+		i64, err := strconv.ParseInt(s[1:], 10, 64)
+		return int(i64), err
+	}
+	return -1, nil
 }
