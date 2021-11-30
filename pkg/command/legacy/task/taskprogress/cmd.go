@@ -7,7 +7,6 @@ import (
 
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -72,12 +71,12 @@ func (cmd *command) run(args []string) error {
 		}
 	}
 
-	switch scheduler.TaskType(taskType) {
-	case scheduler.RepairTask:
+	switch taskType {
+	case managerclient.RepairTask:
 		return cmd.renderRepairProgress(task)
-	case scheduler.BackupTask:
+	case managerclient.BackupTask:
 		return cmd.renderBackupProgress(task)
-	case scheduler.ValidateBackupTask:
+	case managerclient.ValidateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
 	}
 

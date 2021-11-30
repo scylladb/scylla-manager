@@ -9,7 +9,6 @@ import (
 
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/spf13/cobra"
 	"go.uber.org/atomic"
 	"gopkg.in/yaml.v2"
@@ -93,7 +92,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if scheduler.TaskType(taskType) != "backup" {
+		if taskType != managerclient.BackupTask {
 			return fmt.Errorf("can't handle %s task", taskType)
 		}
 		task, err = cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
@@ -103,7 +102,7 @@ func (cmd *command) run(args []string) error {
 		cmd.UpdateTask(task)
 	} else {
 		task = &managerclient.Task{
-			Type:       "backup",
+			Type:       managerclient.BackupTask,
 			Enabled:    cmd.Enabled(),
 			Schedule:   cmd.Schedule(),
 			Properties: make(map[string]interface{}),
