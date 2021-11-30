@@ -192,7 +192,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 			}
 		}
 	case cluster.Delete:
-		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, scheduler.ListFilter{Disabled: true})
+		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, scheduler.ListFilter{Disabled: true, Short: true})
 		if err != nil {
 			return errors.Wrapf(err, "find this cluster %s tasks", c.ID)
 		}
