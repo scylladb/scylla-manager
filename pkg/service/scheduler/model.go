@@ -99,10 +99,10 @@ type Task struct {
 	Type       TaskType        `json:"type"`
 	ID         uuid.UUID       `json:"id"`
 	Name       string          `json:"name"`
-	Tags       []string        `json:"tags"`
-	Enabled    bool            `json:"enabled"`
-	Sched      Schedule        `json:"schedule"`
-	Properties json.RawMessage `json:"properties"`
+	Tags       []string        `json:"tags,omitempty"`
+	Enabled    bool            `json:"enabled,omitempty"`
+	Sched      Schedule        `json:"schedule,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 func (t *Task) String() string {
