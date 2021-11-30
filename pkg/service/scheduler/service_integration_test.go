@@ -300,7 +300,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 		Print("Then: task is added")
 
-		tasks, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{})
+		tasks, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{Short: true})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -32,13 +32,15 @@ type ListFilter struct {
 	TaskType []TaskType
 	Status   []Status
 	Disabled bool
+	Short    bool
 }
 
 // ListTasks returns cluster tasks given the filtering criteria.
 func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter ListFilter) ([]*TaskListItem, error) {
 	s.logger.Debug(ctx, "ListTasks", "filter", filter)
 
-	b := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id"))
+	b := qb.Select(table.SchedulerTask.Name())
+	b.Where(qb.Eq("cluster_id"))
 	if len(filter.TaskType) > 0 {
 		b.Where(qb.Eq("type"))
 	}
@@ -46,6 +48,15 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter Lis
 		b.Where(qb.EqLit("enabled", "true"))
 		b.AllowFiltering()
 	}
+	if filter.Short {
+		m := table.SchedulerTask.Metadata()
+		var cols []string
+		cols = append(cols, m.PartKey...)
+		cols = append(cols, m.SortKey...)
+		cols = append(cols, "name")
+		b.Columns(cols...)
+	}
+
 	q := b.Query(s.session)
 	defer q.Release()
 
@@ -71,6 +82,22 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter Lis
 		}
 	}
 
+	if filter.Short {
+		return convertToTaskListItem(tasks), nil
+	}
+
+	return s.decorateTasks(clusterID, filter, tasks)
+}
+
+func convertToTaskListItem(tasks []*Task) []*TaskListItem {
+	items := make([]*TaskListItem, len(tasks))
+	for i, t := range tasks {
+		items[i] = &TaskListItem{Task: *t}
+	}
+	return items
+}
+
+func (s *Service) decorateTasks(clusterID uuid.UUID, filter ListFilter, tasks []*Task) ([]*TaskListItem, error) {
 	statuses := strset.New()
 	for _, s := range filter.Status {
 		statuses.Add(s.String())
