@@ -69,6 +69,9 @@ archives:
       - license/LICENSE*
       - scripts
       - systemd
+    replacements:
+      amd64: x86_64
+      arm64: aarch64
 
 nfpms:
   - id: server
