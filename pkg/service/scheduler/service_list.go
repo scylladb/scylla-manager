@@ -18,13 +18,13 @@ import (
 // activations.
 type TaskListItem struct {
 	Task
-	Status         Status     `json:"status"`
+	Status         Status     `json:"status,omitempty"`
 	Cause          string     `json:"cause,omitempty"`
 	StartTime      *time.Time `json:"start_time,omitempty"`
 	EndTime        *time.Time `json:"end_time,omitempty"`
 	NextActivation *time.Time `json:"next_activation,omitempty"`
-	Suspended      bool       `json:"suspended"`
-	Failures       int        `json:"failures"`
+	Suspended      bool       `json:"suspended,omitempty"`
+	Failures       int        `json:"failures,omitempty"`
 }
 
 // ListFilter specifies filtering parameters to ListTasks.
