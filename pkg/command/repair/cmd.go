@@ -8,7 +8,6 @@ import (
 
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -92,7 +91,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if scheduler.TaskType(taskType) != "repair" {
+		if taskType != managerclient.RepairTask {
 			return fmt.Errorf("can't handle %s task", taskType)
 		}
 		task, err = cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
@@ -102,7 +101,7 @@ func (cmd *command) run(args []string) error {
 		cmd.UpdateTask(task)
 	} else {
 		task = &managerclient.Task{
-			Type:       "repair",
+			Type:       managerclient.RepairTask,
 			Enabled:    cmd.Enabled(),
 			Schedule:   cmd.Schedule(),
 			Properties: make(map[string]interface{}),

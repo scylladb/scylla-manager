@@ -62,13 +62,11 @@ func (cmd *command) init() {
 	w.Unwrap().StringVar(&cmd.runID, "run", latest, "Show progress of a particular run, see sctool info to get the `ID`s.")
 }
 
-const (
-	backupTask         = "backup"
-	repairTask         = "repair"
-	validateBackupTask = "validate_backup"
+var supportedTaskTypes = strset.New(
+	managerclient.BackupTask,
+	managerclient.RepairTask,
+	managerclient.ValidateBackupTask,
 )
-
-var supportedTaskTypes = strset.New(backupTask, repairTask, validateBackupTask)
 
 func (cmd *command) run(args []string) error {
 	var (
@@ -120,11 +118,11 @@ func (cmd *command) run(args []string) error {
 	}
 
 	switch taskType {
-	case repairTask:
+	case managerclient.RepairTask:
 		return cmd.renderRepairProgress(task)
-	case backupTask:
+	case managerclient.BackupTask:
 		return cmd.renderBackupProgress(task)
-	case validateBackupTask:
+	case managerclient.ValidateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
 	}
 
