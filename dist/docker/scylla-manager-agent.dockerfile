@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-COPY scylla-manager-agent*.deb /
+COPY release/deb/scylla-manager-agent*.deb /
 RUN dpkg -i scylla-manager-agent*.deb && rm /scylla-manager-agent*.deb
 
 USER scylla-manager
