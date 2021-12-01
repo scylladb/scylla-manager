@@ -69,41 +69,12 @@ var supportedTaskTypes = strset.New(
 )
 
 func (cmd *command) run(args []string) error {
-	var (
-		taskType string
-		taskID   uuid.UUID
-		err      error
-	)
-
-	if supportedTaskTypes.Has(args[0]) {
-		taskType = args[0]
-	} else {
-		taskType, taskID, err = managerclient.TaskSplit(args[0])
-		if err != nil {
-			return err
-		}
+	taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, args[0])
+	if err != nil {
+		return err
 	}
-
-	if taskID == uuid.Nil {
-		tasks, err := cmd.client.ListTasks(cmd.Context(), cmd.cluster, taskType, false, "")
-		if err != nil {
-			return err
-		}
-		switch len(tasks.ExtendedTaskSlice) {
-		case 0:
-			return errors.Errorf("no task of type %s", taskType)
-		case 1:
-			taskID, err = uuid.Parse(tasks.ExtendedTaskSlice[0].ID)
-			if err != nil {
-				return err
-			}
-		default:
-			ids := make([]string, len(tasks.ExtendedTaskSlice))
-			for i, t := range tasks.ExtendedTaskSlice {
-				ids[i] = "- " + managerclient.TaskJoin(taskType, t.ID)
-			}
-			return errors.Errorf("task ambiguity run with one of:\n%s", strings.Join(ids, "\n"))
-		}
+	if !supportedTaskTypes.Has(taskType) {
+		return errors.Errorf("unsupported task type %s", taskType)
 	}
 
 	task, err := cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
