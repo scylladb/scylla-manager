@@ -16,9 +16,10 @@ func TestTaskSplit(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
-		S  string
-		T  string
-		ID uuid.UUID
+		S   string
+		T   string
+		ID  uuid.UUID
+		Err string
 	}{
 		{
 			S:  "repair/d7d4b241-f7fe-434e-bc8e-6185b30b078a",
@@ -26,16 +27,27 @@ func TestTaskSplit(t *testing.T) {
 			ID: uuid.MustParse("d7d4b241-f7fe-434e-bc8e-6185b30b078a"),
 		},
 		{
-			S:  "d7d4b241-f7fe-434e-bc8e-6185b30b078a",
-			ID: uuid.MustParse("d7d4b241-f7fe-434e-bc8e-6185b30b078a"),
+			S: "repair",
+			T: "repair",
+		},
+		{
+			S:   "foo",
+			T:   "foo",
+			Err: "foo",
 		},
 	}
 
 	for i, test := range table {
 		tp, id, err := TaskSplit(test.S)
-		if err != nil {
+		if test.Err != "" {
+			t.Log(err)
+			if err == nil || !strings.Contains(err.Error(), test.Err) {
+				t.Error(i, err)
+			}
+		} else if err != nil {
 			t.Error(i, err)
 		}
+
 		if tp != test.T {
 			t.Error(i, tp)
 		}

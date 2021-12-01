@@ -21,12 +21,25 @@ import (
 
 const rfc822WithSec = "02 Jan 06 15:04:05 MST"
 
-// TaskSplit attempts to split a string into type and id.
+// TaskSplit attempts to split a string into task type and ID.
+// It accepts task type without ID, and validates task type against TasksTypes.
 func TaskSplit(s string) (taskType string, taskID uuid.UUID, err error) {
+	if TasksTypes.Has(s) {
+		taskType = s
+		return
+	}
+
 	i := strings.LastIndex(s, "/")
 	if i != -1 {
 		taskType = s[:i]
+	} else {
+		taskType = s
 	}
+	if !TasksTypes.Has(taskType) {
+		err = errors.Errorf("unknown task type %s", taskType)
+		return
+	}
+
 	taskID, err = uuid.Parse(s[i+1:])
 	return
 }
