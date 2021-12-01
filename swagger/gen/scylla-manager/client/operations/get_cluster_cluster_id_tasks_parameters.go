@@ -65,6 +65,8 @@ type GetClusterClusterIDTasksParams struct {
 	All *bool
 	/*ClusterID*/
 	ClusterID string
+	/*Short*/
+	Short *bool
 	/*Status*/
 	Status *string
 	/*Type*/
@@ -130,6 +132,17 @@ func (o *GetClusterClusterIDTasksParams) SetClusterID(clusterID string) {
 	o.ClusterID = clusterID
 }
 
+// WithShort adds the short to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) WithShort(short *bool) *GetClusterClusterIDTasksParams {
+	o.SetShort(short)
+	return o
+}
+
+// SetShort adds the short to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) SetShort(short *bool) {
+	o.Short = short
+}
+
 // WithStatus adds the status to the get cluster cluster ID tasks params
 func (o *GetClusterClusterIDTasksParams) WithStatus(status *string) *GetClusterClusterIDTasksParams {
 	o.SetStatus(status)
@@ -179,6 +192,22 @@ func (o *GetClusterClusterIDTasksParams) WriteToRequest(r runtime.ClientRequest,
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
 		return err
+	}
+
+	if o.Short != nil {
+
+		// query param short
+		var qrShort bool
+		if o.Short != nil {
+			qrShort = *o.Short
+		}
+		qShort := swag.FormatBool(qrShort)
+		if qShort != "" {
+			if err := r.SetQueryParam("short", qShort); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if o.Status != nil {
