@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -302,7 +303,7 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, t *Task) erro
 	return err
 }
 
-// ListTasks returns uled tasks within a clusterID, optionaly filtered by task type tp.
+// ListTasks returns tasks within a clusterID, optionally filtered by task type tp.
 func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string) (ExtendedTasks, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
@@ -320,6 +321,50 @@ func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all 
 	}
 	et.ExtendedTaskSlice = resp.Payload
 	return et, nil
+}
+
+// TaskSplit is an extended version of the package level TaskSplit function.
+// It adds support for providing task type only.
+// If there is a single task of a given type the ID is returned.
+// Otherwise an error is returned.
+// If there is more tasks the error lists the available options.
+func (c *Client) TaskSplit(ctx context.Context, cluster, s string) (taskType string, taskID uuid.UUID, err error) {
+	taskType, taskID, err = TaskSplit(s)
+	if err != nil {
+		return
+	}
+
+	if taskID == uuid.Nil {
+		taskID, err = c.getUniqueTaskID(ctx, cluster, taskType)
+	}
+
+	return
+}
+
+func (c *Client) getUniqueTaskID(ctx context.Context, clusterID, taskType string) (uuid.UUID, error) {
+	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Type:      &taskType,
+		Short:     pointer.BoolPtr(true),
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	tasks := resp.Payload
+	switch len(tasks) {
+	case 0:
+		return uuid.Nil, errors.Errorf("no task of type %s", taskType)
+	case 1:
+		return uuid.Parse(tasks[0].ID)
+	default:
+		ids := make([]string, len(tasks))
+		for i, t := range tasks {
+			ids[i] = "- " + TaskJoin(taskType, t.ID)
+		}
+		return uuid.Nil, errors.Errorf("task ambiguity use one of:\n%s", strings.Join(ids, "\n"))
+	}
 }
 
 // RepairProgress returns repair progress.
