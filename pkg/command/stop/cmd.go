@@ -51,7 +51,7 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run(args []string) error {
-	taskType, taskID, err := managerclient.TaskSplit(args[0])
+	taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, args[0])
 	if err != nil {
 		return err
 	}

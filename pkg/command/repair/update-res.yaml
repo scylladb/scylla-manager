@@ -1,4 +1,4 @@
-use: update --cluster <id|name> [flags] repair/<task-id>
+use: update --cluster <id|name> [flags] <repair[/task-id]>
 
 short: Modify properties of the existing repair task
 

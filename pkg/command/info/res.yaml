@@ -1,4 +1,4 @@
-use: info --cluster <id|name> [flags] <type/task-id>
+use: info --cluster <id|name> [flags] <type[/task-id]>
 
 short: Show task parameters and history
 
