@@ -1,4 +1,4 @@
-use: stop --cluster <id|name> [flags] <type/task-id>
+use: stop --cluster <id|name> [flags] <type[/task-id]>
 
 short: Stop executing a task
 

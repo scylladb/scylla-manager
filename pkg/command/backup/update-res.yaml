@@ -1,4 +1,4 @@
-use: update --cluster <id|name> [flags] backup/<task-id>
+use: update --cluster <id|name> [flags] <backup[/task-id]>
 
 short: Modify properties of the existing backup task
 
