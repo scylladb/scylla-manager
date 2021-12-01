@@ -86,20 +86,21 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 }
 
 func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
-	filter := scheduler.ListFilter{}
-	if a := r.FormValue("all"); a != "" {
-		all, err := strconv.ParseBool(a)
+	var (
+		filter scheduler.ListFilter
+		err    error
+	)
+	if s := r.FormValue("all"); s != "" {
+		filter.Disabled, err = strconv.ParseBool(s)
 		if err != nil {
 			respondBadRequest(w, r, err)
 			return
 		}
-		if all {
-			filter.Disabled = true
-		}
 	}
-	if t := r.FormValue("type"); t != "" {
+	if s := r.FormValue("type"); s != "" {
 		var taskType scheduler.TaskType
-		if err := taskType.UnmarshalText([]byte(t)); err != nil {
+		err = taskType.UnmarshalText([]byte(s))
+		if err != nil {
 			respondBadRequest(w, r, err)
 			return
 		}
@@ -107,11 +108,19 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	if s := r.FormValue("status"); s != "" {
 		var status scheduler.Status
-		if err := status.UnmarshalText([]byte(s)); err != nil {
+		err = status.UnmarshalText([]byte(s))
+		if err != nil {
 			respondBadRequest(w, r, err)
 			return
 		}
 		filter.Status = append(filter.Status, status)
+	}
+	if s := r.FormValue("short"); s != "" {
+		filter.Short, err = strconv.ParseBool(s)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
 	}
 
 	cid := mustClusterIDFromCtx(r)
