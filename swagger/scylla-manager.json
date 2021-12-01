@@ -1044,6 +1044,12 @@
             "in": "query",
             "type": "string",
             "required": false
+          },
+          {
+            "name": "short",
+            "in": "query",
+            "type": "boolean",
+            "required": false
           }
         ],
         "responses": {
