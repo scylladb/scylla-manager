@@ -1,7 +1,16 @@
 // Copyright (C) 2017 ScyllaDB
+//go:build linux
 // +build linux
 
 package cpuset
+
+import (
+	"os"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"golang.org/x/sys/unix"
+)
 
 func TestAvailableCPUs(t *testing.T) {
 	var cpus unix.CPUSet

@@ -1,7 +1,18 @@
 // Copyright (C) 2017 ScyllaDB
+//go:build linux
 // +build linux
 
 package cpuset
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+
+	"github.com/pkg/errors"
+	"go.uber.org/multierr"
+	"golang.org/x/sys/unix"
+)
 
 // AvailableCPUs returns a list of CPUs of length wantCPUs that does not contain
 // any of the busyCPUs. If the conditions cannot be met error is returned.
@@ -65,7 +76,7 @@ func cpulist(set *unix.CPUSet) []int {
 }
 
 func osTasks(pid int) ([]int, error) {
-	files, err := ioutil.ReadDir(fmt.Sprint("/proc/", pid, "/task"))
+	files, err := os.ReadDir(fmt.Sprint("/proc/", pid, "/task"))
 	if err != nil {
 		return nil, err
 	}
