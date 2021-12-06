@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -152,7 +152,7 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	golden, err := ioutil.ReadFile("testdata/scylla_api/v2_config_node_info.golden.json")
+	golden, err := os.ReadFile("testdata/scylla_api/v2_config_node_info.golden.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func TestConfigClientAlternatorDisabledNodeInformationUsingScyllaAPI(t *testing.
 		t.Fatal(err)
 	}
 
-	golden, err := ioutil.ReadFile("testdata/scylla_api/v2_config_node_info_alternator_disabled.golden.json")
+	golden, err := os.ReadFile("testdata/scylla_api/v2_config_node_info_alternator_disabled.golden.json")
 	if err != nil {
 		t.Fatal(err)
 	}

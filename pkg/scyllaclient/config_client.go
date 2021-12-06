@@ -182,7 +182,7 @@ func (c *ConfigClient) AlternatorAddress(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return resp.Payload, err
 }
 
 // AlternatorHTTPSPort returns node alternator HTTPS port.

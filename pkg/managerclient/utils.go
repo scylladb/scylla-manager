@@ -176,13 +176,13 @@ func FormatDuration(t0, t1 strfmt.DateTime) string {
 		d = time.Time(t1).Sub(time.Time(t0))
 	}
 
-	return fmt.Sprint(d.Truncate(time.Second))
+	return d.Truncate(time.Second).String()
 }
 
 // FormatMsDuration returns string representation of duration as number of
 // milliseconds.
 func FormatMsDuration(d int64) string {
-	return fmt.Sprint((time.Duration(d) * time.Millisecond).Truncate(time.Second))
+	return (time.Duration(d) * time.Millisecond).Truncate(time.Second).String()
 }
 
 func isZero(t strfmt.DateTime) bool {

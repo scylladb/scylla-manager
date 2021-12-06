@@ -35,6 +35,7 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - contextcheck
     - cyclop
     - durationcheck
     - exhaustive
@@ -46,15 +47,20 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - goerr113
+    - golint
     - gomnd
     - ifshort
     - interfacer
+    - ireturn
     - maligned
     - nilerr
     - nlreturn
     - nolintlint
     - prealloc
+    - promlinter
     - scopelint
+    - tagliatelle
+    - varnamelen
     - wrapcheck
     - wsl
 
@@ -66,29 +72,29 @@ issues:
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
     - composite literal uses unkeyed fields
-    - exported function `Default.+` should have comment or be unexported
-    - exported function `New.*` should have comment or be unexported
-    - exported method `+\.Close` should have comment or be unexported
-    - exported method `.*Value\..+` should have comment or be unexported
-    - exported method `.+\.Key` should have comment or be unexported
-    - exported method `.+\.MarshalBinary` should have comment or be unexported
-    - exported method `.+\.MarshalCQL` should have comment or be unexported
-    - exported method `.+\.MarshalText` should have comment or be unexported
-    - exported method `.+\.MarshalUDT` should have comment or be unexported
-    - exported method `.+\.UnmarshalBinary` should have comment or be unexported
-    - exported method `.+\.UnmarshalCQL` should have comment or be unexported
-    - exported method `.+\.UnmarshalText` should have comment or be unexported
-    - exported method `.+\.UnmarshalUDT` should have comment or be unexported
-    - exported method `.+\.Validate` should have comment or be unexported
-    - exported method `.+\.Value` should have comment or be unexported
-    - exported method `.+\.WriteTo` should have comment or be unexported
-    - exported method `Wrapper\..+` should have comment or be unexported
-    - exported method `Runner\.Run` should have comment or be unexported
-    - exported type `.*Metrics` should have comment or be unexported
-    - exported type `.*Value` should have comment or be unexported
-    - exported type `Option` should have comment or be unexported
-    - exported type `Service` should have comment or be unexported
-    - exported var `Default.+` should have comment or be unexported
+    - exported function Default.+ should have comment or be unexported
+    - exported function New.* should have comment or be unexported
+    - exported method +\.Close should have comment or be unexported
+    - exported method .*Value\..+ should have comment or be unexported
+    - exported method .+\.Key should have comment or be unexported
+    - exported method .+\.MarshalBinary should have comment or be unexported
+    - exported method .+\.MarshalCQL should have comment or be unexported
+    - exported method .+\.MarshalText should have comment or be unexported
+    - exported method .+\.MarshalUDT should have comment or be unexported
+    - exported method .+\.UnmarshalBinary should have comment or be unexported
+    - exported method .+\.UnmarshalCQL should have comment or be unexported
+    - exported method .+\.UnmarshalText should have comment or be unexported
+    - exported method .+\.UnmarshalUDT should have comment or be unexported
+    - exported method .+\.Validate should have comment or be unexported
+    - exported method .+\.Value should have comment or be unexported
+    - exported method .+\.WriteTo should have comment or be unexported
+    - exported method Wrapper\..+ should have comment or be unexported
+    - exported method Runner\.Run should have comment or be unexported
+    - exported type .*Metrics should have comment or be unexported
+    - exported type .*Value should have comment or be unexported
+    - exported type Option should have comment or be unexported
+    - exported type Service should have comment or be unexported
+    - exported var Default.+ should have comment or be unexported
     - has json tag but is not exported
     - naked return in func `WriteTo`
     - replacement are not allowed

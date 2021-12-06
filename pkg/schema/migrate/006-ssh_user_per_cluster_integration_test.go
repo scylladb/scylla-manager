@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package migrate
@@ -35,7 +36,7 @@ func TestCopySSHInfoToClusterAfter006Integration(t *testing.T) {
 	}()
 
 	pemFile := filepath.Join(dir, "scylla_manager.pem")
-	if err := ioutil.WriteFile(pemFile, []byte("pem"), 0400); err != nil {
+	if err := os.WriteFile(pemFile, []byte("pem"), 0400); err != nil {
 		t.Fatal(err)
 	}
 
@@ -47,7 +48,7 @@ ssh:
   identity_file: ` + pemFile
 
 	oldConfigFile := filepath.Join(dir, "scylla-manager.yaml.rpmsave")
-	if err := ioutil.WriteFile(oldConfigFile, []byte(oldConfig), 0400); err != nil {
+	if err := os.WriteFile(oldConfigFile, []byte(oldConfig), 0400); err != nil {
 		t.Fatal(err)
 	}
 

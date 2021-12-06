@@ -14,7 +14,7 @@ var (
 )
 
 // errValidate is a validation error caused by inner error.
-type errValidate struct {
+type errValidate struct { // nolint: errname
 	err error
 }
 

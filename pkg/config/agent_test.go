@@ -6,10 +6,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -101,12 +101,12 @@ func TestParsingConfig(t *testing.T) {
 			}
 
 			if UpdateGoldenFiles() {
-				if err := ioutil.WriteFile(test.Golden, buf.Bytes(), 0666); err != nil {
+				if err := os.WriteFile(test.Golden, buf.Bytes(), 0o666); err != nil {
 					t.Error(err)
 				}
 			}
 
-			golden, err := ioutil.ReadFile(test.Golden)
+			golden, err := os.ReadFile(test.Golden)
 			if err != nil {
 				t.Fatal(err)
 			}

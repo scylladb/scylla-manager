@@ -60,7 +60,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		return errors.Wrap(err, "create local tmp subdirectory")
 	}
 	tmpFile := filepath.Join(tmpDir, testDirName, testFileName)
-	if err := ioutil.WriteFile(tmpFile, []byte{0}, os.ModePerm); err != nil {
+	if err := os.WriteFile(tmpFile, []byte{0}, os.ModePerm); err != nil {
 		return errors.Wrap(err, "create local tmp file")
 	}
 

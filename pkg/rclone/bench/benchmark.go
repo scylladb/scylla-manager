@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -57,13 +57,17 @@ func StartScenario(dir string) *Scenario {
 }
 
 func dirSize(dir string) (uint64, error) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return 0, err
 	}
 	var sum uint64
 	for _, f := range files {
-		sum += uint64(f.Size())
+		info, err := f.Info()
+		if err != nil {
+			return 0, err
+		}
+		sum += uint64(info.Size())
 	}
 	return sum, err
 }

@@ -299,7 +299,7 @@ func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*pr
 	if host != "" {
 		ctx = forceHost(ctx, host)
 	}
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
 		return nil, err
 	}

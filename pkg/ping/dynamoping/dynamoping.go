@@ -44,7 +44,7 @@ func SimplePing(ctx context.Context, config Config) (rtt time.Duration, err erro
 	ctx, cancel := context.WithDeadline(ctx, t.Add(config.Timeout))
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, config.Addr, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, config.Addr, http.NoBody)
 	if err != nil {
 		return 0, err
 	}

@@ -14,7 +14,7 @@ func CreateFiles(dir string, sizeMB, fileCount int) error {
 	size := int64(sizeMB * 1024 * 1024)
 	filePrefix := fmt.Sprintf("scenario%dx%dmb", fileCount, sizeMB)
 
-	err := os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(dir, 0o755)
 	if err != nil {
 		return err
 	}

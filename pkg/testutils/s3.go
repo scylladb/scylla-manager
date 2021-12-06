@@ -33,7 +33,7 @@ func S3InitBucket(t *testing.T, bucket string) {
 	if err := os.RemoveAll(p); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(p, 0700); err != nil {
+	if err := os.Mkdir(p, 0o700); err != nil {
 		t.Fatal(err)
 	}
 }

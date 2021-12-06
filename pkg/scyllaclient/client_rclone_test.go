@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -81,7 +80,7 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 func TestRcloneCat(t *testing.T) {
 	t.Parallel()
 
-	b, err := ioutil.ReadFile("testdata/rclone/cat/file.txt")
+	b, err := os.ReadFile("testdata/rclone/cat/file.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,7 +486,7 @@ func TestRclonePut(t *testing.T) {
 	}
 
 	// Validate content
-	content, err := ioutil.ReadFile(path.Join(rth.tmpDir, "put/a"))
+	content, err := os.ReadFile(path.Join(rth.tmpDir, "put/a"))
 	if err != nil {
 		t.Fatal(err)
 	}

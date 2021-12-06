@@ -27,6 +27,6 @@ func MakeResponse(req *http.Request, statusCode int) *http.Response {
 func MakeAgentErrorResponse(req *http.Request, statusCode int, msg string) *http.Response {
 	resp := MakeResponse(req, statusCode)
 	resp.Header.Set("Content-type", "application/json")
-	resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf(`{"status": %d, "message": "%s"}`, statusCode, msg)))
+	resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf(`{"status": %d, "message": "%s"}`, statusCode, msg))) // nolint: gocritic
 	return resp
 }

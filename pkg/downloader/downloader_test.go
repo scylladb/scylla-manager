@@ -35,13 +35,13 @@ func TestDownload(t *testing.T) {
 	clearTableOption := func(dir string, opts ...downloader.Option) func(d *downloader.Downloader) error {
 		return func(d *downloader.Downloader) error {
 			dir := path.Join(d.Root(), dir)
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return err
 			}
-			if err := ioutil.WriteFile(path.Join(dir, "a"), []byte("foo"), 0755); err != nil {
+			if err := os.WriteFile(path.Join(dir, "a"), []byte("foo"), 0o755); err != nil {
 				return err
 			}
-			if err := ioutil.WriteFile(path.Join(dir, "b"), []byte("bar"), 0755); err != nil {
+			if err := os.WriteFile(path.Join(dir, "b"), []byte("bar"), 0o755); err != nil {
 				return err
 			}
 			for _, o := range opts {

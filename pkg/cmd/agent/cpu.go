@@ -60,7 +60,7 @@ var cpuTestCmd = &cobra.Command{
 		for i := 0; i < cpuTestArgs.parallel; i++ {
 			go func(i int) {
 				for {
-					i = i + 1
+					i++
 					time.Sleep(cpuTestArgs.sleep)
 				}
 			}(i)
