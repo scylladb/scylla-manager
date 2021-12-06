@@ -5,8 +5,7 @@
 
 set -eu -o pipefail
 
-FEDORA_PKGS="docker-compose jq make moreutils openssl sshpass rpm-build"
-UBUNTU_PKGS="docker-compose jq make moreutils openssl sshpass"
+LINUX_PKGS="docker-compose jq make moreutils openssl"
 
 GO_PKGS="
 golangci-lint       https://github.com/golangci/golangci-lint/releases/download/v1.39.0/golangci-lint-1.39.0-linux-amd64.tar.gz
@@ -22,22 +21,24 @@ yq                  https://github.com/mikefarah/yq/releases/download/3.4.1/yq_l
 source ./env
 mkdir -p ${LOCAL_BIN}
 
-echo "==> Installing system packages"
-DISTRO=$(cat /etc/os-release | grep '^ID=' | cut -d= -f2)
-case ${DISTRO} in
-    "fedora")
-        sudo dnf install ${FEDORA_PKGS}
-        ;;
-    "ubuntu")
-        echo "> Updating package information from configured sources"
-        sudo apt-get update
-        echo "> Installing required system packages"
-        sudo apt-get install ${UBUNTU_PKGS}
-        ;;
-    *)
-        echo "Your OS ${DISTRO} is not supported, conciser switching to Fedora"
-        exit 1
-esac
+if [ -f /etc/os-release ]; then
+  echo "==> Installing system packages"
+  DISTRO=$(cat /etc/os-release | grep '^ID=' | cut -d= -f2)||:
+  case ${DISTRO} in
+      "fedora")
+          sudo dnf install ${LINUX_PKGS}
+          ;;
+      "ubuntu")
+          echo "> Updating package information from configured sources"
+          sudo apt-get update
+          echo "> Installing required system packages"
+          sudo apt-get install ${LINUX_PKGS}
+          ;;
+      *)
+          echo "Your OS ${DISTRO} is not supported, conciser switching to Fedora"
+          ;;
+  esac
+fi
 
 echo "==> Cleaning ${LOCAL_BIN}"
 rm -f "${LOCAL_BIN}"/*
