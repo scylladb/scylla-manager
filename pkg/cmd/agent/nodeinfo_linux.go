@@ -1,9 +1,12 @@
 // Copyright (C) 2017 ScyllaDB
+//go:build linux
 // +build linux
 
 package main
 
 import (
+	"runtime"
+
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"golang.org/x/sys/unix"
 )
