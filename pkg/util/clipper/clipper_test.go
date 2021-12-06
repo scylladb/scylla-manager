@@ -5,7 +5,6 @@ package clipper
 import (
 	"bytes"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -53,7 +52,7 @@ func TestClipperSay(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			f, err := ioutil.ReadFile(path.Join("testdata/", test.Expected))
+			f, err := os.ReadFile(path.Join("testdata/", test.Expected))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -64,7 +63,7 @@ func TestClipperSay(t *testing.T) {
 			}
 
 			if *update {
-				if err := ioutil.WriteFile(test.Expected, buf.Bytes(), 0666); err != nil {
+				if err := os.WriteFile(test.Expected, buf.Bytes(), 0o666); err != nil {
 					t.Error(err)
 				}
 			}

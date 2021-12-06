@@ -1,12 +1,12 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package cluster_test
 
 import (
 	"context"
-	"io/ioutil"
 	"strconv"
 	"testing"
 
@@ -259,11 +259,11 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		c.SSLUserCertFile, err = ioutil.ReadFile("testdata/cluster_update.crt")
+		c.SSLUserCertFile, err = os.ReadFile("testdata/cluster_update.crt")
 		if err != nil {
 			t.Fatal(err)
 		}
-		c.SSLUserKeyFile, err = ioutil.ReadFile("testdata/cluster_update.key")
+		c.SSLUserKeyFile, err = os.ReadFile("testdata/cluster_update.key")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -500,11 +500,11 @@ var (
 
 func init() {
 	var err error
-	tlsCert, err = ioutil.ReadFile("testdata/cluster.crt")
+	tlsCert, err = os.ReadFile("testdata/cluster.crt")
 	if err != nil {
 		panic(err)
 	}
-	tlsKey, err = ioutil.ReadFile("testdata/cluster.key")
+	tlsKey, err = os.ReadFile("testdata/cluster.key")
 	if err != nil {
 		panic(err)
 	}

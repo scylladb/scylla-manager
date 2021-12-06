@@ -99,7 +99,7 @@ var benchmarkCmd = &cobra.Command{
 				}
 
 				if benchmarkArgs.memProfileDir != "" {
-					err := os.MkdirAll(benchmarkArgs.memProfileDir, 0755)
+					err := os.MkdirAll(benchmarkArgs.memProfileDir, 0o755)
 					if err != nil {
 						return errors.Wrap(err, "create memory profile dir")
 					}

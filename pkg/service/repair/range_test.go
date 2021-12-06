@@ -4,7 +4,7 @@ package repair
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -204,7 +204,7 @@ func TestTestTableTokenRangeBuilderMaxParallelRepairs(t *testing.T) {
 			var content []struct {
 				Endpoints []string `json:"endpoints"`
 			}
-			data, err := ioutil.ReadFile(test.InputFile)
+			data, err := os.ReadFile(test.InputFile)
 			if err != nil {
 				t.Fatal(err)
 			}

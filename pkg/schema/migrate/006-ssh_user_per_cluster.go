@@ -74,7 +74,7 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Sessi
 			)
 			continue
 		}
-		if err := os.Chmod(identityFile, 0600); err != nil {
+		if err := os.Chmod(identityFile, 0o600); err != nil {
 			logger.Info(ctx, "Failed to change identity file permissions",
 				"file", identityFile,
 				"error", err,

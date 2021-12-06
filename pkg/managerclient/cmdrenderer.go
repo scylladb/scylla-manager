@@ -59,7 +59,7 @@ func (rc *CmdRenderer) writeArg(in ...string) {
 		if rc.err != nil {
 			return
 		}
-		_, err := io.WriteString(rc.buf, s)
+		_, err := rc.buf.WriteString(s)
 		if err != nil {
 			rc.err = err
 		}

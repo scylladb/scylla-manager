@@ -29,7 +29,7 @@ func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx
 	}(timeutc.Now())
 
 	const (
-		waitMin        = 15 * time.Second
+		waitMin        = 15 * time.Second // nolint: revive
 		waitMax        = 1 * time.Minute
 		maxElapsedTime = 15 * time.Minute
 		multiplier     = 2

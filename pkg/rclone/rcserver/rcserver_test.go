@@ -318,11 +318,11 @@ func TestOperationsList(t *testing.T) {
 	}
 
 	for _, count := range fileCounts {
-		if err := os.MkdirAll(dirName(count), 0755); err != nil {
+		if err := os.MkdirAll(dirName(count), 0o755); err != nil {
 			t.Fatal(err)
 		}
 		for i := 0; i < count; i++ {
-			if err := ioutil.WriteFile(path.Join(dirName(count), "file"+strconv.Itoa(i)), nil, 0755); err != nil {
+			if err := os.WriteFile(path.Join(dirName(count), "file"+strconv.Itoa(i)), nil, 0o755); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -370,7 +370,7 @@ func TestOperationsListPermissionError(t *testing.T) {
 	secretDir := "secret"
 
 	// No read permission, only write needed for deletion
-	if err := os.Mkdir(path.Join(tmpDir, secretDir), 0222); err != nil {
+	if err := os.Mkdir(path.Join(tmpDir, secretDir), 0o222); err != nil {
 		log.Fatal(err)
 	}
 

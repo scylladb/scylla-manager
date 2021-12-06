@@ -7,8 +7,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -288,7 +288,7 @@ func (s *server) tlsConfig(ctx context.Context) (*tls.Config, error) {
 }
 
 func (s *server) certPool(file string) (*x509.CertPool, error) {
-	pem, err := ioutil.ReadFile(file)
+	pem, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}

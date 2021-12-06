@@ -41,7 +41,7 @@ func createSchemaArchive(ctx context.Context, units []Unit, clusterSession gocql
 		if err := tw.WriteHeader(&tar.Header{
 			Name:    u.Keyspace + ".cql",
 			Size:    int64(len(cqlSchema)),
-			Mode:    0600,
+			Mode:    0o600,
 			ModTime: now,
 		}); err != nil {
 			return nil, errors.Wrapf(err, "tar keyspace %s schema", u.Keyspace)

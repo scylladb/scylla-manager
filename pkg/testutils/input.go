@@ -4,7 +4,7 @@ package testutils
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -13,7 +13,7 @@ import (
 func ReadInputFile(tb testing.TB) []byte {
 	tb.Helper()
 
-	b, err := ioutil.ReadFile(inputJSONFileName(tb))
+	b, err := os.ReadFile(inputJSONFileName(tb))
 	if err != nil {
 		tb.Fatal(err)
 	}

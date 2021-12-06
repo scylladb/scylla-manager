@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -41,10 +40,10 @@ func SaveGoldenJSONFileIfNeeded(tb testing.TB, v interface{}) {
 		tb.Fatal(err)
 	}
 
-	if err := os.MkdirAll(path.Dir(goldenJSONFileName(tb)), 0777); err != nil {
+	if err := os.MkdirAll(path.Dir(goldenJSONFileName(tb)), 0o777); err != nil {
 		tb.Fatal(err)
 	}
-	if err := ioutil.WriteFile(goldenJSONFileName(tb), buf.Bytes(), 0666); err != nil {
+	if err := os.WriteFile(goldenJSONFileName(tb), buf.Bytes(), 0o666); err != nil {
 		tb.Error(err)
 	}
 }
@@ -53,7 +52,7 @@ func SaveGoldenJSONFileIfNeeded(tb testing.TB, v interface{}) {
 func LoadGoldenJSONFile(tb testing.TB, v interface{}) {
 	tb.Helper()
 
-	b, err := ioutil.ReadFile(goldenJSONFileName(tb))
+	b, err := os.ReadFile(goldenJSONFileName(tb))
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -77,10 +76,10 @@ func SaveGoldenTextFileIfNeeded(tb testing.TB, s string) {
 		return
 	}
 
-	if err := os.MkdirAll(path.Dir(goldenTextFileName(tb)), 0777); err != nil {
+	if err := os.MkdirAll(path.Dir(goldenTextFileName(tb)), 0o777); err != nil {
 		tb.Fatal(err)
 	}
-	if err := ioutil.WriteFile(goldenTextFileName(tb), []byte(s), 0666); err != nil {
+	if err := os.WriteFile(goldenTextFileName(tb), []byte(s), 0o666); err != nil {
 		tb.Error(err)
 	}
 }
@@ -89,7 +88,7 @@ func SaveGoldenTextFileIfNeeded(tb testing.TB, s string) {
 func LoadGoldenTextFile(tb testing.TB) string {
 	tb.Helper()
 
-	b, err := ioutil.ReadFile(goldenTextFileName(tb))
+	b, err := os.ReadFile(goldenTextFileName(tb))
 	if err != nil {
 		tb.Fatal(err)
 	}

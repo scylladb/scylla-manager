@@ -100,7 +100,7 @@ func MacUUID() uuid.UUID {
 		if err != nil {
 			return uuid.Nil
 		}
-		n, err := f.Write([]byte(macUUID.String()))
+		n, err := f.WriteString(macUUID.String())
 		if err == nil && n < len(macUUID.String()) {
 			return uuid.Nil
 		}
