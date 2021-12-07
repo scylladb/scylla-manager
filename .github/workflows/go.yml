@@ -36,28 +36,32 @@ jobs:
           echo "date=$(date  +'%m-%Y')" >> $GITHUB_ENV
 
       - name: Restore Module Cache
-        uses: actions/cache@preview
+        uses: actions/cache@v2
         id: cache-go-modules
         with:
-          path: ~/go/pkg/mod
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
           key: ${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Restore Go Test Cache
-        uses: actions/cache@preview
+        uses: actions/cache@v2
         id: cache-go-test
         with:
           path: "${{ env.GOCACHE }}"
           key: ${{ runner.os }}-${{ hashFiles(env.GOCACHEPATTERN) }}-${{ env.date }}
 
-      - name: Restore Go dependencies
-        uses: actions/cache@preview
+      - name: Restore dependencies
+        uses: actions/cache@v2
         id: cache-dependencies
         with:
          path: ~/work/scylla-manager/scylla-manager/bin
          key: ${{ runner.os }}-${{ hashFiles('**/install-dependencies.sh') }}
 
-      - name: Install Go dependencies
-        if: steps.cache-go-deps.outputs.cache-hit != 'true'
+      - name: Install dependencies
+        if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: |
           ./install-dependencies.sh
 
