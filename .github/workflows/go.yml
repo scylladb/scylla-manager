@@ -46,13 +46,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Restore Go Test Cache
-        uses: actions/cache@v2
-        id: cache-go-test
-        with:
-          path: "${{ env.GOCACHE }}"
-          key: ${{ runner.os }}-${{ hashFiles(env.GOCACHEPATTERN) }}-${{ env.date }}
-
       - name: Restore dependencies
         uses: actions/cache@v2
         id: cache-dependencies
