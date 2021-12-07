@@ -29,7 +29,7 @@ endif
 	@mkdir -p $(MINIO_DATA_DIR)
 	@. ./.env && $(COMPOSE) up -d
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do sleep 2; done
+	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do echo ""; sleep 2; done
 	@./nodes_exec rm /root/.cqlshrc
 	@echo "==> Adding Minio user"
 	@./minio/add_user.sh
