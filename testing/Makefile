@@ -10,7 +10,11 @@ include .env
 .PHONY: build
 build: ## Build custom docker image
 	@echo "==> Building custom Scylla image for testing"
-	@docker build --network=host --build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) -t scylladb/scylla-agent:$(SCYLLA_VERSION) scylla
+	@docker build --network=host \
+		--build-arg=SCYLLA_IMAGE=$(SCYLLA_IMAGE) \
+		--build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) \
+		-t scylladb/scylla-agent:$(SCYLLA_VERSION) \
+		scylla
 
 .PHONY: up
 up: ## Start docker containers
