@@ -4,12 +4,10 @@ ARG SCYLLA_VERSION
 FROM ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
 
 # Install 3rd party tools
-RUN yum makecache && \
-    yum -y install initscripts less net-tools passwd sudo && \
-    yum clean all
+RUN apt-get install -y less net-tools
 
 # Set root password
-RUN echo -e "root\nroot" | passwd --stdin root
+RUN echo "root:root" | chpasswd root
 
 # Add symbolic links for the db key and cert
 RUN ln -s /etc/scylla/certs/db.key /etc/scylla/db.key && \
@@ -19,5 +17,7 @@ RUN ln -s /etc/scylla/certs/db.key /etc/scylla/db.key && \
 # Add supervisord configuration for agent
 ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scylla-manager-agent.conf
 
-# Overwrite supervisord configuration for scylla
-ADD etc/supervisord.conf.d/scylla-server.conf /etc/supervisord.conf.d/scylla-server.conf
+# Remove 3rd party services
+RUN rm /etc/supervisord.conf.d/scylla-housekeeping.conf \
+       /etc/supervisord.conf.d/scylla-node-exporter.conf \
+       /etc/supervisord.conf.d/sshd-server.conf \
