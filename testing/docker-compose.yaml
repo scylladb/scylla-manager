@@ -134,31 +134,36 @@ services:
       public:
         ipv4_address: 192.168.100.100
 
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - type: bind
-        source: ./prometheus/prometheus.yaml
-        target: /etc/prometheus/prometheus.yml
-    network_mode: host
-
   minio:
     image: minio/minio:${MINIO_VERSION}
     user: ${MINIO_USER}
-    command: server /data
+    command: server /data --console-address ":9001"
     environment:
       MINIO_REGION: ${MINIO_REGION}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - type: bind
         source: ${MINIO_DATA_DIR}
         target: /data
     ports:
-      - 9000
+      - "9000:9000"
+      - "9001:9001"
     networks:
       public:
         ipv4_address: 192.168.100.99
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    volumes:
+      - type: bind
+        source: ./prometheus/prometheus.yaml
+        target: /etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      public:
+        ipv4_address: 192.168.100.98
 
 networks:
   public:
