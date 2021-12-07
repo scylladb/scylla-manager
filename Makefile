@@ -14,7 +14,6 @@ PKG := ./pkg/...
 GIT_ROOT = $(shell git rev-parse --show-toplevel)
 TESTING_ROOT = $(GIT_ROOT)/testing
 GOBIN ?= $(shell pwd)/bin
-GO111MODULE := on
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 
 
@@ -145,11 +144,7 @@ dev-env-status:  ## Checks status of docker containers and cluster nodes
 .PHONY: build-agent
 build-agent: ## Build development agent binary
 	@echo "==> Building agent"
-ifeq ($(SM_AGENT_STATIC_BUILD),yes)
-	@CGO_ENABLED=0 go build -trimpath -mod=vendor -o ./scylla-manager-agent.dev ./pkg/cmd/agent
-else
-	@go build -trimpath -mod=vendor -race -o ./scylla-manager-agent.dev ./pkg/cmd/agent
-endif
+	@CGO_ENABLED=0 GOOS=linux go build -trimpath -mod=vendor -o ./scylla-manager-agent.dev ./pkg/cmd/agent
 
 .PHONY: deploy-agent
 deploy-agent: build-agent ## Deploy it to testing containers
@@ -164,11 +159,17 @@ build-cli: ## Build development cli binary
 .PHONY: build-server
 build-server: ## Build development server
 	@echo "==> Building scylla-manager"
-	@go build -trimpath -mod=vendor -race -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
+	@CGO_ENABLED=0 GOOS=linux go build -trimpath -mod=vendor -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
 
 .PHONY: run-server
 run-server: build-server ## Build and run development server
-	@./scylla-manager.dev -c testing/scylla-manager/scylla-manager.yaml; rm -f ./scylla-manager.dev
+	@docker run --name "scylla_manager_server" \
+		--network scylla_manager_public \
+		-p "5080:5080" \
+		-p "5443:5443" \
+		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
+		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
+		-it --read-only --rm ubuntu scylla-manager
 
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries
