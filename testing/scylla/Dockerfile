@@ -4,7 +4,7 @@ ARG SCYLLA_VERSION
 FROM ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
 
 # Install 3rd party tools
-RUN apt-get install -y less net-tools
+RUN apt-get install -y iptables less net-tools
 
 # Set root password
 RUN echo "root:root" | chpasswd root
@@ -19,5 +19,7 @@ ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scy
 
 # Remove 3rd party services
 RUN rm /etc/supervisord.conf.d/scylla-housekeeping.conf \
-       /etc/supervisord.conf.d/scylla-node-exporter.conf \
-       /etc/supervisord.conf.d/sshd-server.conf \
+       /etc/supervisord.conf.d/scylla-node-exporter.conf
+
+# Allow SSH as root
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config

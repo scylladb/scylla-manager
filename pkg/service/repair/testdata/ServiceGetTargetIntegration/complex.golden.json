@@ -1,11 +1,11 @@
 {
   "units": [
     {
-      "Keyspace": "system_auth",
+      "Keyspace": "system_distributed_everywhere",
       "Tables": [
-        "role_members"
+        "cdc_generation_descriptions_v2"
       ],
-      "AllTables": false
+      "AllTables": true
     }
   ],
   "dc": [
@@ -14,5 +14,6 @@
   "fail_fast": false,
   "continue": false,
   "intensity": 1,
+  "parallel": 0,
   "small_table_threshold": 1073741824
 }

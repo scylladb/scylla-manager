@@ -1,13 +1,6 @@
 {
   "units": [
     {
-      "Keyspace": "system_auth",
-      "Tables": [
-        "role_members"
-      ],
-      "AllTables": false
-    },
-    {
       "Keyspace": "system_traces",
       "Tables": [
         "node_slow_log_time_idx",
@@ -23,5 +16,6 @@
   "fail_fast": false,
   "continue": true,
   "intensity": 1,
+  "parallel": 0,
   "small_table_threshold": 1073741824
 }

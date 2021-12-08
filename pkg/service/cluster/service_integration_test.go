@@ -7,6 +7,7 @@ package cluster_test
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"testing"
 
@@ -488,7 +489,7 @@ func validCluster() *cluster.Cluster {
 		ID:        uuid.MustRandom(),
 		Name:      "name_" + uuid.MustRandom().String(),
 		Host:      ManagedClusterHost(),
-		Port:      10010,
+		Port:      10001,
 		AuthToken: AgentAuthToken(),
 	}
 }

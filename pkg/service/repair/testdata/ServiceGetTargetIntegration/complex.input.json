@@ -1,6 +1,6 @@
 {
   "keyspace": [
-    "system_auth.role_members","system_traces.node*"
+    "system_distributed_everywhere.cdc_generation_descriptions_v2","system_traces.node*"
   ],
   "dc": [
     "dc1"

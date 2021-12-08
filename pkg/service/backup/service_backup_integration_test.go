@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -1917,7 +1918,7 @@ func TestValidateIntegration(t *testing.T) {
 	}
 
 	r := findRowBySnapshotTag(alienSnapshotTag)
-	if r.MissingFiles < 10 || r.Host != "1.2.3.4" {
+	if r.MissingFiles < 9 || r.Host != "1.2.3.4" {
 		t.Error("Wrong result")
 	}
 	r = findRowBySnapshotTag(tamperedSnapshotTag)

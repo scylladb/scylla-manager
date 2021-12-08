@@ -1,11 +1,9 @@
 {
   "units": [
     {
-      "Keyspace": "system_auth",
+      "Keyspace": "system_distributed_everywhere",
       "Tables": [
-        "role_members",
-        "roles",
-        "role_permissions"
+        "cdc_generation_descriptions_v2"
       ],
       "AllTables": true
     }
@@ -16,5 +14,6 @@
   "fail_fast": false,
   "continue": true,
   "intensity": 1,
+  "parallel": 0,
   "small_table_threshold": 1073741824
 }

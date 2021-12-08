@@ -3,6 +3,7 @@
     {
       "keyspace": "system_auth",
       "tables": [
+        "role_attributes",
         "role_members",
         "roles",
         "role_permissions"
@@ -12,19 +13,19 @@
     {
       "keyspace": "system_schema",
       "tables": [
-        "columns",
-        "functions",
+        "scylla_tables",
+        "tables",
         "types",
         "view_virtual_columns",
-        "scylla_tables",
-        "triggers",
-        "indexes",
-        "tables",
+        "dropped_columns",
+        "columns",
         "keyspaces",
-        "views",
-        "computed_columns",
         "aggregates",
-        "dropped_columns"
+        "computed_columns",
+        "views",
+        "indexes",
+        "functions",
+        "triggers"
       ],
       "all_tables": true
     }
@@ -40,7 +41,5 @@
   "rate_limit": [
     "100"
   ],
-  "snapshot_parallel": null,
-  "upload_parallel": null,
   "continue": true
 }

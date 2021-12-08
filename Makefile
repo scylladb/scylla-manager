@@ -12,10 +12,8 @@ endif
 PKG := ./pkg/...
 
 GIT_ROOT = $(shell git rev-parse --show-toplevel)
-TESTING_ROOT = $(GIT_ROOT)/testing
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
-
 
 .PHONY: fmt
 fmt: ## Format source code
@@ -107,19 +105,28 @@ INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
 -managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
--s3-data-dir $(PWD)/testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
+-s3-data-dir ./testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
 
-SSL_FLAGS := -ssl-ca-file $(TESTING_ROOT)/$(SSL_AUTHORITY_CRT) \
--ssl-key-file $(TESTING_ROOT)/$(SSL_CLIENT_KEY) \
--ssl-cert-file $(TESTING_ROOT)/$(SSL_CLIENT_CRT) \
--gocql.port $(SSL_PORT)
+SSL_FLAGS := -ssl-ca-file ./testing/$(SSL_AUTHORITY_CRT) -ssl-key-file ./testing/$(SSL_CLIENT_KEY) -ssl-cert-file ./testing/$(SSL_CLIENT_CRT) -gocql.port $(SSL_PORT)
+
+CURRENT_UID = $(shell id -u)
+CURRENT_GID = $(shell id -g)
 
 .PHONY: pkg-integration-test
 pkg-integration-test: ## Run integration tests for a package, requires PKG parameter
 pkg-integration-test: RUN=Integration
 pkg-integration-test:
 	@echo "==> Running integration tests for package $(PKG)"
-	@go test -cover -v -tags integration -run $(RUN) $(PKG) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
+	@CGO_ENABLED=0 GOOS=linux go test -tags integration -c -o ./integration-test.dev $(PKG)
+	@docker run --name "scylla_manager_server" \
+		--network scylla_manager_public \
+		-v "/tmp:/tmp" \
+		-v "$(PWD)/integration-test.dev:/usr/bin/integration-test:ro" \
+		-v "$(PWD)/testing:/integration-test/testing" \
+		-v "$(PWD)/$(PKG)/testdata:/integration-test/testdata" \
+		-w "/integration-test" \
+		-u $(CURRENT_UID):$(CURRENT_GID) \
+		-it --read-only --rm ubuntu integration-test -test.v -test.run $(RUN) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
@@ -167,8 +174,8 @@ run-server: build-server ## Build and run development server
 		--network scylla_manager_public \
 		-p "5080:5080" \
 		-p "5443:5443" \
-		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
+		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-it --read-only --rm ubuntu scylla-manager
 
 .PHONY: build
