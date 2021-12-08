@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package repair_test
@@ -446,7 +447,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		"filter tables",
 		"fail_fast",
 		"complex",
-		"no enough replicas",
+		//"no enough replicas",
 	}
 
 	var (

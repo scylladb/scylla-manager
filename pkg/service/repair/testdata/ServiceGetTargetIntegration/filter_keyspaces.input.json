@@ -1,1 +1,1 @@
-{"keyspace": ["system_auth.*"]}
+{"keyspace": ["system_distributed.*"]}

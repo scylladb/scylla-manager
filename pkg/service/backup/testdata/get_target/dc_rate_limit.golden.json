@@ -3,9 +3,10 @@
     {
       "keyspace": "system_auth",
       "tables": [
-        "role_members",
         "roles",
-        "role_permissions"
+        "role_permissions",
+        "role_attributes",
+        "role_members"
       ],
       "all_tables": true
     },
@@ -13,16 +14,24 @@
       "keyspace": "system_distributed",
       "tables": [
         "view_build_status",
-        "cdc_streams",
-        "cdc_generations"
+        "service_levels",
+        "cdc_streams_descriptions_v2",
+        "cdc_generation_timestamps"
+      ],
+      "all_tables": true
+    },
+    {
+      "keyspace": "system_distributed_everywhere",
+      "tables": [
+        "cdc_generation_descriptions_v2"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_traces",
       "tables": [
-        "sessions",
         "sessions_time_idx",
+        "sessions",
         "node_slow_log_time_idx",
         "events",
         "node_slow_log"
@@ -32,19 +41,19 @@
     {
       "keyspace": "system_schema",
       "tables": [
+        "computed_columns",
+        "views",
         "functions",
-        "view_virtual_columns",
-        "columns",
-        "indexes",
-        "types",
         "scylla_tables",
         "triggers",
-        "computed_columns",
-        "tables",
+        "indexes",
+        "dropped_columns",
+        "columns",
         "aggregates",
-        "views",
         "keyspaces",
-        "dropped_columns"
+        "tables",
+        "types",
+        "view_virtual_columns"
       ],
       "all_tables": true
     }
@@ -61,7 +70,5 @@
     "1000",
     "dc1:100"
   ],
-  "snapshot_parallel": null,
-  "upload_parallel": null,
   "continue": true
 }

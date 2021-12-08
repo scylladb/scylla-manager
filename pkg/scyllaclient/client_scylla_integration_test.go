@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package scyllaclient_test
@@ -245,8 +246,8 @@ func TestScyllaFeaturesIntegration(t *testing.T) {
 		if !sf[h].RowLevelRepair {
 			t.Errorf("%s host doesn't support row-level repair, but it should", h)
 		}
-		if sf[h].RepairLongPolling {
-			t.Errorf("%s host supports long polling repair but it shouldn't", h)
+		if !sf[h].RepairLongPolling {
+			t.Errorf("%s host doesn't support long polling repair, but it should", h)
 		}
 	}
 }

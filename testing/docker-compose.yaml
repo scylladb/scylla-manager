@@ -4,7 +4,7 @@ services:
   dc1_node_1:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
+    command: ${SCYLLA_ARGS}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -25,7 +25,7 @@ services:
   dc1_node_2:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
+    command: ${SCYLLA_ARGS}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -46,7 +46,7 @@ services:
   dc1_node_3:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
+    command: ${SCYLLA_ARGS}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -67,7 +67,7 @@ services:
   dc2_node_1:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
+    command: ${SCYLLA_ARGS}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -88,7 +88,7 @@ services:
   dc2_node_2:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
+    command: ${SCYLLA_ARGS}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -109,7 +109,7 @@ services:
   dc2_node_3:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: --smp 2 --memory 2G --seeds 192.168.100.11,192.168.100.21
+    command: ${SCYLLA_ARGS}
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -129,7 +129,7 @@ services:
 
   scylla-manager-db:
     image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
-    command: --smp 1 --api-address 0.0.0.0
+    command: --smp 1 --memory 500M --api-address 0.0.0.0
     networks:
       public:
         ipv4_address: 192.168.100.100

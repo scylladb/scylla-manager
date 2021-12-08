@@ -3,9 +3,10 @@
     {
       "keyspace": "system_auth",
       "tables": [
-        "role_members",
         "roles",
-        "role_permissions"
+        "role_permissions",
+        "role_attributes",
+        "role_members"
       ],
       "all_tables": true
     },
@@ -13,8 +14,16 @@
       "keyspace": "system_distributed",
       "tables": [
         "view_build_status",
-        "cdc_generations",
-        "cdc_streams"
+        "service_levels",
+        "cdc_streams_descriptions_v2",
+        "cdc_generation_timestamps"
+      ],
+      "all_tables": true
+    },
+    {
+      "keyspace": "system_distributed_everywhere",
+      "tables": [
+        "cdc_generation_descriptions_v2"
       ],
       "all_tables": true
     },
@@ -32,19 +41,19 @@
     {
       "keyspace": "system_schema",
       "tables": [
-        "columns",
-        "functions",
-        "types",
-        "view_virtual_columns",
-        "scylla_tables",
-        "triggers",
-        "indexes",
-        "tables",
-        "keyspaces",
         "views",
         "computed_columns",
+        "functions",
+        "triggers",
+        "scylla_tables",
+        "indexes",
+        "dropped_columns",
+        "columns",
         "aggregates",
-        "dropped_columns"
+        "keyspaces",
+        "tables",
+        "types",
+        "view_virtual_columns"
       ],
       "all_tables": true
     }
@@ -64,6 +73,5 @@
     "10",
     "dc1:20"
   ],
-  "upload_parallel": null,
   "continue": true
 }
