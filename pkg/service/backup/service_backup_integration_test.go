@@ -272,7 +272,7 @@ func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath
 	if err = m.Write(buf); err != nil {
 		h.t.Fatal(err)
 	}
-	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(m.Path()), buf, int64(buf.Len())); err != nil {
+	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(m.Path()), buf); err != nil {
 		h.t.Fatal(err)
 	}
 }
@@ -280,7 +280,7 @@ func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath
 func (h *backupTestHelper) touchFile(ctx context.Context, dir, file, content string) {
 	h.t.Helper()
 	buf := bytes.NewBufferString(content)
-	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(path.Join(dir, file)), buf, int64(buf.Len())); err != nil {
+	if err := h.client.RclonePut(ctx, ManagedClusterHost(), h.location.RemotePath(path.Join(dir, file)), buf); err != nil {
 		h.t.Fatal(err)
 	}
 }

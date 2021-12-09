@@ -112,7 +112,7 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m ManifestI
 
 	// Upload compressed manifest
 	dst := h.Location.RemotePath(m.Path())
-	return w.Client.RclonePut(ctx, h.IP, dst, buf, int64(buf.Len()))
+	return w.Client.RclonePut(ctx, h.IP, dst, buf)
 }
 
 func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error) {

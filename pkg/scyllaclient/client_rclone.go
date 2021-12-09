@@ -474,7 +474,7 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 }
 
 // RclonePut uploads file with provided content under remotePath.
-func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content io.Reader, size int64) error {
+func (c *Client) RclonePut(ctx context.Context, host, remotePath string, body *bytes.Buffer) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return err
@@ -485,7 +485,7 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/put"
 
 	u := c.newURL(host, urlPath)
-	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), content)
+	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodPost, u.String(), body)
 	if err != nil {
 		return err
 	}
@@ -496,7 +496,7 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 	req.URL.RawQuery = q.Encode()
 
 	req.Header.Add("Content-Type", "application/octet-stream")
-	req.Header.Add("Content-Length", fmt.Sprint(size))
+	req.Header.Add("Content-Length", fmt.Sprint(body.Len()))
 
 	resp, err := c.transport.RoundTrip(req)
 	if err != nil {
