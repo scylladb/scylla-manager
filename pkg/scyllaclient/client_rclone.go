@@ -336,15 +336,10 @@ func (c *Client) RcloneOpen(ctx context.Context, host, remotePath string) (io.Re
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do("OperationsCat", req)
 	if err != nil {
-		return nil, errors.Wrap(err, "round trip")
+		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		return nil, makeAgentError(resp)
-	}
-
 	return resp.Body, nil
 }
 
@@ -396,6 +391,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 // Resulting item path is relative to the remote path.
 func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts, f func(item *RcloneListDirItem)) error {
 	ctx = customTimeout(ctx, c.config.ListTimeout)
+	ctx = noRetry(ctx)
 
 	// Due to OpenAPI limitations we manually construct and sent the request
 	// object to stream process the response body.
@@ -418,15 +414,11 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do("OperationsList", req)
 	if err != nil {
-		return errors.Wrap(err, "round trip")
+		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return makeAgentError(resp)
-	}
 
 	dec := json.NewDecoder(resp.Body)
 
@@ -495,20 +487,17 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 	q.Add("fs", fs)
 	q.Add("remote", remote)
 	req.URL.RawQuery = q.Encode()
-
 	req.Header.Add("Content-Type", "application/octet-stream")
 	req.Header.Add("Content-Length", fmt.Sprint(size))
 
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do("OperationsPut", req)
 	if err != nil {
-		return errors.Wrap(err, "round trip")
+		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return makeAgentError(resp)
+	if _, err := io.CopyN(io.Discard, resp.Body, resp.ContentLength); err != nil {
+		return err
 	}
-
 	return nil
 }
 

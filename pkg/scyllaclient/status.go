@@ -68,6 +68,12 @@ type agentError struct {
 }
 
 func makeAgentError(resp *http.Response) error {
+	if resp.StatusCode/100 == 2 {
+		return nil
+	}
+
+	defer resp.Body.Close()
+
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "read body")
