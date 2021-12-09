@@ -57,7 +57,10 @@ var DefaultTLSConfig = func() *tls.Config {
 	}
 }
 
-func NewClient(rawURL string, transport http.RoundTripper) (Client, error) {
+// Option allows decorating underlying HTTP client in NewClient.
+type Option func(*http.Client)
+
+func NewClient(rawURL string, opts ...Option) (Client, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return Client{}, err
@@ -67,12 +70,11 @@ func NewClient(rawURL string, transport http.RoundTripper) (Client, error) {
 		middleware.Debug = false
 	})
 
-	if transport == nil {
-		transport = DefaultTransport
-	}
-
 	httpClient := &http.Client{
-		Transport: transport,
+		Transport: DefaultTransport,
+	}
+	for _, o := range opts {
+		o(httpClient)
 	}
 
 	r := api.NewWithClient(u.Host, u.Path, []string{u.Scheme}, httpClient)
