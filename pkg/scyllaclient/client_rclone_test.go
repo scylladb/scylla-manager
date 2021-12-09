@@ -435,7 +435,7 @@ func TestRcloneMoveFile(t *testing.T) {
 	ctx := context.Background()
 
 	// Put "a"
-	if err := client.RclonePut(ctx, scyllaclienttest.TestHost, "tmp:move/a", bytes.NewBufferString("a"), 1); err != nil {
+	if err := client.RclonePut(ctx, scyllaclienttest.TestHost, "tmp:move/a", bytes.NewBufferString("a")); err != nil {
 		t.Fatal("RclonePut() error", err)
 	}
 	// Move "b"
@@ -468,7 +468,7 @@ func TestRclonePut(t *testing.T) {
 
 	putString := func(s string) error {
 		b := bytes.NewBufferString(s)
-		err := client.RclonePut(ctx, scyllaclienttest.TestHost, "tmp:put/a", b, int64(b.Len()))
+		err := client.RclonePut(ctx, scyllaclienttest.TestHost, "tmp:put/a", b)
 		if err != nil {
 			t.Logf("RclonePut(%s) error = %s", s, err)
 		}

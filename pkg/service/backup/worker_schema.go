@@ -3,7 +3,6 @@
 package backup
 
 import (
-	"bytes"
 	"context"
 	"time"
 
@@ -110,6 +109,6 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 
 	return hostsInParallel(hostPerLocation, parallel.NoLimit, func(h hostInfo) error {
 		dst := h.Location.RemotePath(RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag))
-		return w.Client.RclonePut(ctx, h.IP, dst, bytes.NewReader(w.Schema.Bytes()), int64(w.Schema.Len()))
+		return w.Client.RclonePut(ctx, h.IP, dst, w.Schema)
 	})
 }
