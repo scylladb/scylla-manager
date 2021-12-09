@@ -4,6 +4,7 @@ package scyllaclient
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -57,25 +58,71 @@ func noBackoff(maxRetries int) retry.Backoff {
 	return retry.WithMaxRetries(retry.BackoffFunc(func() time.Duration { return 0 }), uint64(maxRetries))
 }
 
+type retryableClient struct {
+	client *http.Client
+	config *retryConfig
+	logger log.Logger
+}
+
+func retryableWrapClient(client *http.Client, config *retryConfig, logger log.Logger) retryableClient {
+	return retryableClient{
+		client: client,
+		config: config,
+		logger: logger,
+	}
+}
+
+func (c retryableClient) Do(id string, req *http.Request) (*http.Response, error) {
+	// GetBody is auto created for common buffer types when constructing a new request.
+	if req.Body != nil && req.Body != http.NoBody && req.GetBody == nil {
+		panic("retryable requests must provide GetBody")
+	}
+
+	if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return resp, nil
+		}
+		return resp, makeAgentError(resp)
+	}
+
+	o := &retryableOperation{
+		config: c.config,
+		ctx:    req.Context(),
+		id:     id,
+		logger: c.logger,
+	}
+	o.do = func() (interface{}, error) {
+		r := req.Clone(o.ctx)
+		if req.GetBody != nil {
+			body, err := req.GetBody()
+			if err != nil {
+				return nil, errors.Wrap(err, "get body")
+			}
+			r.Body = body
+		}
+
+		resp, err := c.client.Do(r)
+		if err != nil {
+			return resp, err
+		}
+		return resp, makeAgentError(resp)
+	}
+
+	resp, err := o.submit()
+	if resp == nil {
+		return nil, err
+	}
+	return resp.(*http.Response), err
+}
+
 type retryableTransport struct {
 	transport runtime.ClientTransport
 	config    *retryConfig
 	logger    log.Logger
 }
 
-type retryableOperation struct {
-	config   *retryConfig
-	ctx      context.Context
-	id       string
-	result   interface{}
-	attempts int
-	logger   log.Logger
-
-	do func() (interface{}, error)
-}
-
-// retryable wraps parent and adds retry capabilities.
-func retryable(transport runtime.ClientTransport, config *retryConfig, logger log.Logger) runtime.ClientTransport {
+func retryableWrapTransport(transport runtime.ClientTransport, config *retryConfig, logger log.Logger) runtime.ClientTransport {
 	return retryableTransport{
 		transport: transport,
 		config:    config,
@@ -100,6 +147,17 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 		return t.transport.Submit(operation)
 	}
 	return o.submit()
+}
+
+type retryableOperation struct {
+	config   *retryConfig
+	ctx      context.Context
+	id       string
+	result   interface{}
+	attempts int
+	logger   log.Logger
+
+	do func() (interface{}, error)
 }
 
 func (o *retryableOperation) submit() (interface{}, error) {

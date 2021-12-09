@@ -317,11 +317,10 @@ func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*pr
 		r.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := c.client.Do(r)
+	resp, err := c.client.Do("Metrics", r)
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
 
 	return prom.ParseText(resp.Body)
