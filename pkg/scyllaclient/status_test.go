@@ -100,3 +100,23 @@ func TestAgentError(t *testing.T) {
 		t.Fatalf("Error = %s not matching expected pattern", ae)
 	}
 }
+
+func TestAgentErrorStatusCode2XX(t *testing.T) {
+	p := agentModels.ErrorResponse{
+		Status:  200,
+		Message: "test",
+	}
+	b, err := p.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewReader(b)),
+	}
+
+	if err := makeAgentError(resp); err != nil {
+		t.Fatal(err)
+	}
+}

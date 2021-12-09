@@ -128,7 +128,10 @@ func TestNodeInfoCQLAddrNativeTransportPortSSL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var connections atomic.Int64
+	var (
+		connections atomic.Int64
+		ready       = make(chan struct{})
+	)
 	go func() {
 		for {
 			c, err := l.Accept()
@@ -137,6 +140,8 @@ func TestNodeInfoCQLAddrNativeTransportPortSSL(t *testing.T) {
 			}
 			connections.Inc()
 			_ = c.Close()
+			close(ready)
+			break
 		}
 	}()
 
@@ -151,8 +156,10 @@ func TestNodeInfoCQLAddrNativeTransportPortSSL(t *testing.T) {
 	if addr != golden {
 		t.Errorf("expected %s address, got %s", golden, addr)
 	}
-	if connections.Load() == 0 {
-		t.Error("expected connection during figuring out CQL port")
+
+	<-ready
+	if c := connections.Load(); c == 0 {
+		t.Errorf("expected connection during figuring out CQL port got %d", c)
 	}
 }
 

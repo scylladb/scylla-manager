@@ -70,7 +70,7 @@ type Client struct {
 
 	scyllaOps scyllaOperations.ClientService
 	agentOps  agentOperations.ClientService
-	client    *http.Client
+	client    retryableClient
 
 	mu      sync.RWMutex
 	dcCache map[string]string
@@ -112,15 +112,16 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	scyllaRuntime.Debug = false
 	agentRuntime.Debug = false
 
-	scyllaOps := scyllaOperations.New(retryable(scyllaRuntime, newRetryConfig(config), logger), strfmt.Default)
-	agentOps := agentOperations.New(retryable(agentRuntime, newRetryConfig(config), logger), strfmt.Default)
+	rc := newRetryConfig(config)
+	scyllaOps := scyllaOperations.New(retryableWrapTransport(scyllaRuntime, rc, logger), strfmt.Default)
+	agentOps := agentOperations.New(retryableWrapTransport(agentRuntime, rc, logger), strfmt.Default)
 
 	return &Client{
 		config:    config,
 		logger:    logger,
 		scyllaOps: scyllaOps,
 		agentOps:  agentOps,
-		client:    client,
+		client:    retryableWrapClient(client, rc, logger),
 		dcCache:   make(map[string]string),
 	}, nil
 }
