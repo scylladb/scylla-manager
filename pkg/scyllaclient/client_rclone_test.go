@@ -119,8 +119,8 @@ func TestRcloneCat(t *testing.T) {
 			if err != nil {
 				errMsg = err.Error()
 			}
-			if test.Error != errMsg {
-				t.Fatalf("RcloneCat() error %s expected %s", test.Error, errMsg)
+			if !strings.Contains(errMsg, test.Error) {
+				t.Fatalf("RcloneCat() error %s expected %s", errMsg, test.Error)
 			}
 			if diff := cmp.Diff(content, test.Golden); diff != "" {
 				t.Fatal(content, diff)

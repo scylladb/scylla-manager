@@ -15,13 +15,12 @@ const TestHost = "127.0.0.1"
 // ClientOption allows to modify configuration in MakeClient.
 type ClientOption func(*scyllaclient.Config)
 
-// MakeClient creates a Client for testing. Typically host and port are set
-// based on MakeServer result.
+// MakeClient creates a Client for testing.
+// Typically, host and port are set based on MakeServer result.
 func MakeClient(t *testing.T, host, port string, opts ...ClientOption) *scyllaclient.Client {
 	t.Helper()
 
-	config := scyllaclient.DefaultConfig()
-	config.Hosts = []string{host}
+	config := scyllaclient.TestConfig([]string{host}, "")
 	config.Port = port
 	config.Scheme = "http"
 
