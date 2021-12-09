@@ -3,6 +3,7 @@
 package scyllaclient
 
 import (
+	"context"
 	"net/url"
 	"time"
 
@@ -12,32 +13,73 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/retry"
 )
 
+type retryConfig struct {
+	normal      BackoffConfig
+	interactive BackoffConfig
+	poolSize    int
+	timeout     time.Duration
+}
+
+func newRetryConfig(config Config) *retryConfig {
+	return &retryConfig{
+		normal:      config.Backoff,
+		interactive: config.InteractiveBackoff,
+		poolSize:    len(config.Hosts),
+		timeout:     config.Timeout,
+	}
+}
+
+func (c *retryConfig) backoff(ctx context.Context) retry.Backoff {
+	if isForceHost(ctx) {
+		if isInteractive(ctx) {
+			return backoff(c.interactive)
+		}
+		return backoff(c.normal)
+	}
+
+	// We want to send request to every host in the pool once.
+	// The -1 is to avoid reaching out to the first node - that failed.
+	maxRetries := c.poolSize - 1
+	return noBackoff(maxRetries)
+}
+
+func backoff(config BackoffConfig) retry.Backoff {
+	return retry.WithMaxRetries(retry.NewExponentialBackoff(
+		config.WaitMin,
+		0,
+		config.WaitMax,
+		config.Multiplier,
+		config.Jitter,
+	), config.MaxRetries)
+}
+
+func noBackoff(maxRetries int) retry.Backoff {
+	return retry.WithMaxRetries(retry.BackoffFunc(func() time.Duration { return 0 }), uint64(maxRetries))
+}
+
 type retryableTransport struct {
-	transport         runtime.ClientTransport
-	config            BackoffConfig
-	interactiveConfig BackoffConfig
-	poolSize          int
-	timeout           time.Duration
-	logger            log.Logger
+	transport runtime.ClientTransport
+	config    *retryConfig
+	logger    log.Logger
 }
 
 type retryableOperation struct {
-	retryableTransport
-	operation *runtime.ClientOperation
-
+	config   *retryConfig
+	ctx      context.Context
+	id       string
 	result   interface{}
 	attempts int
+	logger   log.Logger
+
+	do func() (interface{}, error)
 }
 
 // retryable wraps parent and adds retry capabilities.
-func retryable(transport runtime.ClientTransport, config Config, logger log.Logger) runtime.ClientTransport {
+func retryable(transport runtime.ClientTransport, config *retryConfig, logger log.Logger) runtime.ClientTransport {
 	return retryableTransport{
-		transport:         transport,
-		config:            config.Backoff,
-		interactiveConfig: config.InteractiveBackoff,
-		poolSize:          len(config.Hosts),
-		timeout:           config.Timeout,
-		logger:            logger,
+		transport: transport,
+		config:    config,
+		logger:    logger,
 	}
 }
 
@@ -47,15 +89,21 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 		return v, unpackURLError(err)
 	}
 
-	o := retryableOperation{
-		retryableTransport: t,
-		operation:          operation,
+	o := &retryableOperation{
+		config: t.config,
+		ctx:    operation.Context,
+		id:     operation.ID,
+		logger: t.logger,
+	}
+	o.do = func() (interface{}, error) {
+		operation.Context = o.ctx
+		return t.transport.Submit(operation)
 	}
 	return o.submit()
 }
 
 func (o *retryableOperation) submit() (interface{}, error) {
-	err := retry.WithNotify(o.operation.Context, o.op, o.backoff(), o.notify)
+	err := retry.WithNotify(o.ctx, o.op, o.config.backoff(o.ctx), o.notify)
 	if err != nil {
 		err = unpackURLError(err)
 
@@ -71,51 +119,37 @@ func (o *retryableOperation) submit() (interface{}, error) {
 func (o *retryableOperation) op() (err error) {
 	o.attempts++
 
-	o.result, err = o.transport.Submit(o.operation)
+	o.result, err = o.do()
 	if err != nil {
-		if !o.shouldRetry(err) {
+		if !shouldRetry(o.ctx, err) {
 			err = retry.Permanent(err)
 			return
 		}
-		if o.shouldIncreaseTimeout(err) {
-			timeout := 2 * o.timeout
-			if ct, ok := hasCustomTimeout(o.operation.Context); ok {
-				timeout = ct + o.timeout
+		if shouldIncreaseTimeout(o.ctx, err) {
+			timeout := 2 * o.config.timeout
+			if ct, ok := hasCustomTimeout(o.ctx); ok {
+				timeout = ct + o.config.timeout
 			}
 
-			o.logger.Debug(o.operation.Context, "HTTP increasing timeout",
-				"operation", o.operation.ID,
+			o.logger.Debug(o.ctx, "HTTP increasing timeout",
+				"operation", o.id,
 				"timeout", timeout,
 			)
-			o.operation.Context = customTimeout(o.operation.Context, timeout)
+			o.ctx = customTimeout(o.ctx, timeout)
 		}
 	}
 
 	return
 }
 
-func (o *retryableOperation) backoff() retry.Backoff {
-	if isForceHost(o.operation.Context) {
-		if isInteractive(o.operation.Context) {
-			return backoff(o.interactiveConfig)
-		}
-		return backoff(o.config)
-	}
-
-	// We want to send request to every host in the pool once.
-	// The -1 is to avoid reaching out to the first node - that failed.
-	maxRetries := o.poolSize - 1
-	return noBackoff(maxRetries)
-}
-
-func (o *retryableOperation) shouldRetry(err error) bool {
-	if o.operation.Context.Err() != nil {
+func shouldRetry(ctx context.Context, err error) bool {
+	if ctx.Err() != nil {
 		return false
 	}
 
 	// Check if there is a retry handler attached to the context.
 	// If handler cannot decide move on to the default handler.
-	if h := shouldRetryHandler(o.operation.Context); h != nil {
+	if h := shouldRetryHandler(ctx); h != nil {
 		if shouldRetry := h(err); shouldRetry != nil {
 			return *shouldRetry
 		}
@@ -130,9 +164,9 @@ func (o *retryableOperation) shouldRetry(err error) bool {
 		return true
 	}
 
-	// Additionally if request can be resent to a different host retry
+	// Additionally, if request can be resent to a different host retry
 	// on Unauthorized or Forbidden.
-	if !isForceHost(o.operation.Context) {
+	if !isForceHost(ctx) {
 		if c == 401 || c == 403 {
 			return true
 		}
@@ -141,38 +175,23 @@ func (o *retryableOperation) shouldRetry(err error) bool {
 	return false
 }
 
-func (o *retryableOperation) shouldIncreaseTimeout(err error) bool {
-	ctx := o.operation.Context
+func shouldIncreaseTimeout(ctx context.Context, err error) bool {
 	return isForceHost(ctx) && !isInteractive(ctx) && errors.Is(err, ErrTimeout)
 }
 
 func (o *retryableOperation) notify(err error, wait time.Duration) {
 	if wait == 0 {
-		o.logger.Info(o.operation.Context, "HTTP retry now",
-			"operation", o.operation.ID,
+		o.logger.Info(o.ctx, "HTTP retry now",
+			"operation", o.id,
 			"error", unpackURLError(err),
 		)
 	} else {
-		o.logger.Info(o.operation.Context, "HTTP retry backoff",
-			"operation", o.operation.ID,
+		o.logger.Info(o.ctx, "HTTP retry backoff",
+			"operation", o.id,
 			"wait", wait,
 			"error", unpackURLError(err),
 		)
 	}
-}
-
-func backoff(config BackoffConfig) retry.Backoff {
-	return retry.WithMaxRetries(retry.NewExponentialBackoff(
-		config.WaitMin,
-		0,
-		config.WaitMax,
-		config.Multiplier,
-		config.Jitter,
-	), config.MaxRetries)
-}
-
-func noBackoff(maxRetries int) retry.Backoff {
-	return retry.WithMaxRetries(retry.BackoffFunc(func() time.Duration { return 0 }), uint64(maxRetries))
 }
 
 func unpackURLError(err error) error {
