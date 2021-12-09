@@ -70,7 +70,7 @@ type Client struct {
 
 	scyllaOps scyllaOperations.ClientService
 	agentOps  agentOperations.ClientService
-	transport http.RoundTripper
+	client    *http.Client
 
 	mu      sync.RWMutex
 	dcCache map[string]string
@@ -99,13 +99,13 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	transport = auth.AddToken(transport, config.AuthToken)
 	transport = fixContentType(transport)
 
-	c := &http.Client{Transport: transport}
+	client := &http.Client{Transport: transport}
 
 	scyllaRuntime := api.NewWithClient(
-		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{config.Scheme}, c,
+		scyllaClient.DefaultHost, scyllaClient.DefaultBasePath, []string{config.Scheme}, client,
 	)
 	agentRuntime := api.NewWithClient(
-		agentClient.DefaultHost, agentClient.DefaultBasePath, []string{config.Scheme}, c,
+		agentClient.DefaultHost, agentClient.DefaultBasePath, []string{config.Scheme}, client,
 	)
 
 	// Debug can be turned on by SWAGGER_DEBUG or DEBUG env variable
@@ -120,7 +120,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		logger:    logger,
 		scyllaOps: scyllaOps,
 		agentOps:  agentOps,
-		transport: transport,
+		client:    client,
 		dcCache:   make(map[string]string),
 	}, nil
 }
