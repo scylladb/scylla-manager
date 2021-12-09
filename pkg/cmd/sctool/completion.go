@@ -39,7 +39,9 @@ func addCompletionCommand(rootCmd *cobra.Command) {
 		Use:   "completion",
 		Short: "Generate shell completion",
 	}
-	for _, s := range allShells {
+	rootCmd.AddCommand(cmd)
+
+	add := func(s shell) {
 		cmd.AddCommand(&cobra.Command{
 			Use:   string(s),
 			Short: "Generate " + string(s) + "completion",
@@ -48,5 +50,7 @@ func addCompletionCommand(rootCmd *cobra.Command) {
 			},
 		})
 	}
-	rootCmd.AddCommand(cmd)
+	for _, s := range allShells {
+		add(s)
+	}
 }
