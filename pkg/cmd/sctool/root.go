@@ -57,17 +57,19 @@ func (cmd *rootCommand) preRun() error {
 		return errors.New("missing --api-cert-file flag")
 	}
 
-	tlsConfig := managerclient.DefaultTLSConfig()
-
+	var opts []managerclient.Option
 	if cmd.apiCertFile != "" {
 		cert, err := tls.LoadX509KeyPair(cmd.apiCertFile, cmd.apiKeyFile)
 		if err != nil {
 			return errors.Wrap(err, "load client certificate")
 		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
+		opts = append(opts, func(c *http.Client) {
+			t := c.Transport.(*http.Transport)
+			t.TLSClientConfig.Certificates = []tls.Certificate{cert}
+		})
 	}
 
-	c, err := managerclient.NewClient(cmd.apiURL, &http.Transport{TLSClientConfig: tlsConfig})
+	c, err := managerclient.NewClient(cmd.apiURL, opts...)
 	if err != nil {
 		return err
 	}
