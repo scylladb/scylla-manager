@@ -317,7 +317,7 @@ func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*pr
 		r.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := c.transport.RoundTrip(r)
+	resp, err := c.client.Do(r)
 	if err != nil {
 		return nil, err
 	}

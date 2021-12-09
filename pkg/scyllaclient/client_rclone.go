@@ -336,7 +336,7 @@ func (c *Client) RcloneOpen(ctx context.Context, host, remotePath string) (io.Re
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.transport.RoundTrip(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "round trip")
 	}
@@ -418,7 +418,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := c.transport.RoundTrip(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "round trip")
 	}
@@ -499,7 +499,7 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, content
 	req.Header.Add("Content-Type", "application/octet-stream")
 	req.Header.Add("Content-Length", fmt.Sprint(size))
 
-	resp, err := c.transport.RoundTrip(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "round trip")
 	}
