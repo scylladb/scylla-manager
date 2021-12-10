@@ -44,17 +44,19 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 }
 
 func newCommand(client *managerclient.Client, update bool) *command {
-	var r []byte
+	var (
+		cmd = &command{
+			client:    client,
+			intensity: flag.NewIntensity(1),
+		}
+		r []byte
+	)
 	if update {
+		cmd.TaskBase = flag.NewUpdateTaskBase()
 		r = updateRes
 	} else {
+		cmd.TaskBase = flag.NewTaskBase()
 		r = res
-	}
-
-	cmd := &command{
-		TaskBase:  flag.NewTaskBase(),
-		client:    client,
-		intensity: flag.NewIntensity(1),
 	}
 	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
 		panic(err)
@@ -87,13 +89,18 @@ func (cmd *command) run(args []string) error {
 	var task *managerclient.Task
 
 	if cmd.Update() {
-		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, args[0])
+		a := managerclient.RepairTask
+		if len(args) > 0 {
+			a = args[0]
+		}
+		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, a)
 		if err != nil {
 			return err
 		}
 		if taskType != managerclient.RepairTask {
 			return fmt.Errorf("can't handle %s task", taskType)
 		}
+
 		task, err = cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
 		if err != nil {
 			return err
@@ -112,7 +119,7 @@ func (cmd *command) run(args []string) error {
 
 	if cmd.Flag("fail-fast").Changed {
 		task.Schedule.NumRetries = 0
-		props["fail_fast"] = true
+		props["fail_fast"] = cmd.failFast
 	}
 
 	if cmd.Flag("host").Changed {
@@ -124,7 +131,7 @@ func (cmd *command) run(args []string) error {
 	}
 
 	if cmd.Flag("intensity").Changed {
-		props["intensity"] = cmd.intensity.Value
+		props["intensity"] = cmd.intensity.Value()
 	}
 
 	if cmd.Flag("parallel").Changed {

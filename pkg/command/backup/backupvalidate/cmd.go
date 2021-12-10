@@ -37,16 +37,18 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 }
 
 func newCommand(client *managerclient.Client, update bool) *command {
-	var r []byte
+	var (
+		cmd = &command{
+			client: client,
+		}
+		r []byte
+	)
 	if update {
+		cmd.TaskBase = flag.NewUpdateTaskBase()
 		r = updateRes
 	} else {
+		cmd.TaskBase = flag.NewTaskBase()
 		r = res
-	}
-
-	cmd := &command{
-		TaskBase: flag.NewTaskBase(),
-		client:   client,
 	}
 	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
 		panic(err)
@@ -72,7 +74,11 @@ func (cmd *command) run(args []string) error {
 	var task *managerclient.Task
 
 	if cmd.Update() {
-		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, args[0])
+		a := managerclient.ValidateBackupTask
+		if len(args) > 0 {
+			a = args[0]
+		}
+		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, a)
 		if err != nil {
 			return err
 		}
