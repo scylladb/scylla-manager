@@ -1,0 +1,80 @@
+name: sctool backup list
+synopsis: List backups
+description: |
+  This commands allow you to list backups.
+usage: sctool backup list --cluster <id|name> [flags]
+options:
+- name: all-clusters
+  default_value: "false"
+  usage: |
+    Shows backups for all clusters. Useful for listing clusters that are no longer available locally but are backed up in the past to remote location.
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for list
+- name: keyspace
+  shorthand: K
+  default_value: '[]'
+  usage: |+
+    A list of `glob` patterns separated by a comma used to include or exclude tables.
+    The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
+    The following syntax for glob patterns is supported:
+
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
+
+    Patterns are evaluated from left to right.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
+- name: location
+  shorthand: L
+  default_value: '[]'
+  usage: |
+    A list of backup locations separated by a comma, specifies where to place the backup, the format is `[<dc>:]<provider>:<bucket>`.
+    The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
+    The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
+    The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+- name: max-date
+  usage: |
+    Specifies maximal snapshot `date` expressed in RFC3339 form or 'now[+duration]', ex. 'now+3d2h10m'.
+    Valid units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'now' - happens immediately
+- name: min-date
+  usage: |
+    Specifies minimal snapshot `date` expressed in RFC3339 form or 'now[+duration]', ex. 'now+3d2h10m'.
+    Valid units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'now' - happens immediately
+- name: show-tables
+  default_value: "false"
+  usage: |
+    Prints table names together with keyspace.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool backup - Schedule a backup (ad-hoc or scheduled)

@@ -1,0 +1,69 @@
+name: sctool progress
+synopsis: Show the task progress
+description: |
+  This command shows details of the latest run (or still running) task.
+usage: sctool progress --cluster <id|name> [--details] [-run UUID] [flags] <type[/task-id]>
+options:
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: details
+  default_value: "false"
+  usage: |
+    More detailed progress data, depending on task type.
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for progress
+- name: host
+  default_value: '[]'
+  usage: |+
+    A list of host `glob` patterns, e.g. '1.1.1.*,!1.2.*.4.'.
+    The following syntax for glob patterns is supported:
+
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
+
+    Patterns are evaluated from left to right.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
+- name: keyspace
+  shorthand: K
+  default_value: '[]'
+  usage: |+
+    A list of `glob` patterns separated by a comma used to include or exclude tables.
+    The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
+    The following syntax for glob patterns is supported:
+
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
+
+    Patterns are evaluated from left to right.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
+- name: run
+  default_value: latest
+  usage: |
+    Show progress of a particular run, see sctool info to get the `ID`s.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+example: |-
+  Get progress of latest repair task of cluster 'prod'.
+  sctool progress -c prod repair
+see_also:
+- sctool - Scylla Manager Snapshot

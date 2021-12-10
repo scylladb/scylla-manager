@@ -1,0 +1,36 @@
+name: sctool
+synopsis: Scylla Manager Snapshot
+description: |-
+  Scylla Manager Snapshot.
+
+  Documentation is available online at https://manager.docs.scylladb.com/.
+options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for sctool
+see_also:
+- backup - Schedule a backup (ad-hoc or scheduled)
+- cluster - Add or delete clusters
+- completion - Generate shell completion
+- info - Show task parameters and history
+- progress - Show the task progress
+- repair - Schedule a repair (ad-hoc or scheduled)
+- resume - Undo suspend
+- start - Start executing a task
+- status - Show version information
+- stop - Stop executing a task
+- suspend - Stop execution of all tasks
+- tasks - Show active tasks and their last run status
+- version - Show version information

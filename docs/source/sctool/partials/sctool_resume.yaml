@@ -1,0 +1,31 @@
+name: sctool resume
+synopsis: Undo suspend
+description: |
+  This command reschedules the suspended tasks.
+usage: sctool resume --cluster <id|name> [flags]
+options:
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for resume
+- name: start-tasks
+  default_value: "false"
+  usage: Starts tasks that were stopped by the suspend command.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool - Scylla Manager Snapshot
