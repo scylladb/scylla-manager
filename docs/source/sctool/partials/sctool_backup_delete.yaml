@@ -1,0 +1,42 @@
+name: sctool backup delete
+synopsis: Delete backup files in remote locations
+description: |
+  This command allows you to delete files that were uploaded during backup procedure.
+  Deduplicated files are persisted unless their reference count drops to zero.
+usage: sctool backup delete --cluster <id|name> --snapshot-tag <tag> [flags]
+options:
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for delete
+- name: location
+  shorthand: L
+  default_value: '[]'
+  usage: |
+    A list of backup locations separated by a comma, specifies where to place the backup, the format is `[<dc>:]<provider>:<bucket>`.
+    The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
+    The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
+    The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+- name: snapshot-tag
+  shorthand: T
+  default_value: '[]'
+  usage: |
+    A list of snapshot `tag`s sparated by a comma.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool backup - Schedule a backup (ad-hoc or scheduled)

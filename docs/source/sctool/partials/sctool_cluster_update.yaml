@@ -1,0 +1,74 @@
+name: sctool cluster update
+synopsis: Modify a cluster
+description: |
+  This command modifies managed cluster parameters
+usage: sctool cluster update --cluster <id|name> [flags]
+options:
+- name: auth-token
+  usage: |
+    The authentication `token` you identified in '/etc/scylla-manager-agent/scylla-manager-agent.yaml'.
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: delete-cql-credentials
+  default_value: "false"
+  usage: |
+    Deletes CQL username and password, added with --username and --password.
+- name: delete-ssl-user-cert
+  default_value: "false"
+  usage: |
+    Deletes SSL user certificate, added with --ssl-user-cert-file flag.
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for update
+- name: host
+  usage: |
+    Hostname or `IP` of the node that will be used to discover other nodes belonging to the cluster.
+    Note that this will be persisted and used every time Scylla Manager starts.
+    You can use either an IPv4 or IPv6 address.
+- name: name
+  shorthand: "n"
+  usage: |
+    When a cluster is added, it is assigned a unique identifier.
+    Use this parameter to identify the cluster by an alias name which is more meaningful.
+    This `alias` name can be used with all commands that accept --cluster parameter.
+- name: password
+  shorthand: p
+  usage: |
+    CQL `password` associated with username.
+- name: port
+  default_value: "10001"
+  usage: |
+    Alternate Scylla Manager agent `port`.
+- name: ssl-user-cert-file
+  usage: |
+    File `path` to client certificate when Scylla uses client/server encryption (require_client_auth enabled).
+- name: ssl-user-key-file
+  usage: |
+    File `path` to key associated with --ssl-user-cert-file flag.
+- name: username
+  shorthand: u
+  usage: |
+    CQL `username`, for security reasons this user should NOT have access to your data.
+    If you specify the CQL username and password, the CQL health check you see in status command would try to login and execute a query against system keyspace.
+    Otherwise CQL health check is based on sending CQL OPTIONS frame and does not start a CQL session.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+example: |
+  In this example, the cluster named ``cluster`` has been renamed to ``prod-cluster``.
+
+  sctool cluster update -c cluster --name prod-cluster
+see_also:
+- sctool cluster - Add or delete clusters

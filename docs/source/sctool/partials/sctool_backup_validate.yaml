@@ -1,0 +1,84 @@
+name: sctool backup validate
+synopsis: Validate backup files in remote locations
+description: |
+  This command schedules a backup validation task.
+  It checks that all needed files are in tact, and that there are no unexpected files occupying your storage.
+  To delete the unexpected files provide the ``--delete-orphaned-files`` parameter.
+  To see the validation results use :ref:`task-progress` command.
+  It is safe to run backup and backup validation at the same time.
+usage: sctool backup validate --cluster <id|name> [--delete-orphaned-files] [flags]
+options:
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: delete-orphaned-files
+  default_value: "false"
+  usage: |
+    If set data files not belonging to any snapshot will be deleted after the validation.
+- name: enabled
+  default_value: "true"
+  usage: |
+    Not enabled tasks are not executed and hidden from task list.
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for validate
+- name: interval
+  shorthand: i
+  usage: |
+    Time after which a successfully completed task would be run again, supported units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
+
+    The task run date is aligned with '--start date' value.
+    For example, if you select '--interval 7d' task would run weekly at the '--start-date' time.
+- name: location
+  shorthand: L
+  default_value: '[]'
+  usage: |
+    A list of backup locations separated by a comma, specifies where to place the backup, the format is `[<dc>:]<provider>:<bucket>`.
+    The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
+    The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
+    The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+- name: num-retries
+  shorthand: r
+  default_value: "0"
+  usage: |
+    Number of times a task reruns following a failure.
+- name: parallel
+  default_value: "0"
+  usage: |
+    Number of hosts to analyze in parallel.
+- name: start-date
+  shorthand: s
+  usage: |
+    The date can be expressed relatively to now or as a RFC3339 formatted string.
+    To run the task in 2 hours use 'now+2h', supported units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
+
+    If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
+    If you want the repair to start immediately, use the value 'now' or skip this flag.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool backup - Schedule a backup (ad-hoc or scheduled)

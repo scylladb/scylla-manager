@@ -1,0 +1,137 @@
+name: sctool repair
+synopsis: Schedule a repair (ad-hoc or scheduled)
+description: |
+  This command allows you to schedule or run ad-hoc cluster repair.
+  Repair speed is controlled by two flags --parallel and --intensity.
+  The values of those flags can be adjusted while a repair is running using the control subcommand.
+usage: sctool repair --cluster <id|name> [--intensity] [--parallel] [flags]
+options:
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: dc
+  default_value: '[]'
+  usage: |+
+    A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
+    The following syntax for glob patterns is supported:
+
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
+
+    Patterns are evaluated from left to right.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
+
+- name: dry-run
+  default_value: "false"
+  usage: |
+    Validates and displays repair information without actually scheduling the repair.
+    This allows you to display what will happen should the repair run with the parameters you set.
+- name: enabled
+  default_value: "true"
+  usage: |
+    Not enabled tasks are not executed and hidden from task list.
+- name: fail-fast
+  default_value: "false"
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for repair
+- name: host
+  usage: |
+    Address of a node to repair, you can use either an IPv4 or IPv6 address.
+    Specifying the host flag limits repair to token ranges replicated by a given node.
+    It can be used in conjunction with --dc flag, in such a case the node must belong to the specified datacenters.
+- name: ignore-down-hosts
+  default_value: "false"
+  usage: |
+    Do not repair nodes that are down i.e. in status DN.
+- name: intensity
+  default_value: "1"
+  usage: |
+    How many token ranges per shard to repair in a single Scylla node at the same time.
+    It can be a decimal between (0,1), in that case it specifies percent of shards that can be repaired in parallel on a repair master node.
+    Zero (0) is a special value, the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+    Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
+- name: interval
+  shorthand: i
+  usage: |
+    Time after which a successfully completed task would be run again, supported units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
+
+    The task run date is aligned with '--start date' value.
+    For example, if you select '--interval 7d' task would run weekly at the '--start-date' time.
+- name: keyspace
+  shorthand: K
+  default_value: '[]'
+  usage: |+
+    A list of `glob` patterns separated by a comma used to include or exclude tables.
+    The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
+    The following syntax for glob patterns is supported:
+
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
+
+    Patterns are evaluated from left to right.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
+- name: num-retries
+  shorthand: r
+  default_value: "0"
+  usage: |
+    Number of times a task reruns following a failure.
+- name: parallel
+  default_value: "0"
+  usage: |
+    The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
+    Each node can take part in at most one repair at any given moment.
+    By default the maximum possible parallelism is used.
+    The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
+    The formula to calculate is is as follows: number of nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
+- name: show-tables
+  default_value: "false"
+  usage: |
+    Prints table names together with keyspace, used in combination with --dry-run.
+- name: small-table-threshold
+  default_value: 1GiB
+  usage: |
+    Enables small table optimization for tables of size lower than given threshold, supported units [B, MiB, GiB, TiB].
+- name: start-date
+  shorthand: s
+  usage: |
+    The date can be expressed relatively to now or as a RFC3339 formatted string.
+    To run the task in 2 hours use 'now+2h', supported units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
+
+    If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
+    If you want the repair to start immediately, use the value 'now' or skip this flag.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool - Scylla Manager Snapshot
+- control - Change parameters while a repair is running
+- update - Modify properties of the existing repair task

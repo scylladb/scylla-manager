@@ -1,0 +1,49 @@
+name: sctool tasks
+synopsis: Show active tasks and their last run status
+description: |
+  This command shows all of the scheduled tasks for the specified cluster.
+  If cluster is not set this would output a table for every cluster.
+  Each row contains task type and ID, separated by a slash, task properties, next activation and last status information.
+  For more information on a task consult history and progress.
+usage: sctool tasks [flags]
+options:
+- name: all
+  shorthand: a
+  default_value: "false"
+  usage: |
+    Lists all tasks, including those which have been disabled, disabled tasks are prefixed with '*'.
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for tasks
+- name: sort
+  usage: |
+    Returns a list of tasks sorted according to the last run status and sort `key` which you provide.
+    Accepted sort key values are: 'start-time', 'next-activation', 'end-time', 'status'.
+- name: status
+  shorthand: s
+  usage: |
+    Filters tasks according to their last run `status`.
+    Accepted values are: NEW, RUNNING, STOPPING, STOPPED, WAITING, DONE, ERROR, ABORTED.
+- name: type
+  shorthand: t
+  usage: |
+    Display only tasks of a given `type`.
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool - Scylla Manager Snapshot
