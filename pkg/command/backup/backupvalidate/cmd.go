@@ -15,6 +15,9 @@ import (
 //go:embed res.yaml
 var res []byte
 
+//go:embed update-res.yaml
+var updateRes []byte
+
 type command struct {
 	flag.TaskBase
 	client *managerclient.Client
@@ -26,18 +29,33 @@ type command struct {
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
+	cmd := newCommand(client, false)
+	updateCmd := newCommand(client, true)
+	cmd.AddCommand(&updateCmd.Command)
+
+	return &cmd.Command
+}
+
+func newCommand(client *managerclient.Client, update bool) *command {
+	var r []byte
+	if update {
+		r = updateRes
+	} else {
+		r = res
+	}
+
 	cmd := &command{
 		TaskBase: flag.NewTaskBase(),
 		client:   client,
 	}
-	if err := yaml.Unmarshal(res, &cmd.Command); err != nil {
+	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
 		panic(err)
 	}
 	cmd.init()
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
-		return cmd.run()
+		return cmd.run(args)
 	}
-	return &cmd.Command
+	return cmd
 }
 
 func (cmd *command) init() {
@@ -50,30 +68,52 @@ func (cmd *command) init() {
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 }
 
-func (cmd *command) run() error {
-	t := &managerclient.Task{
-		Type:       "validate_backup",
-		Enabled:    cmd.Enabled(),
-		Schedule:   cmd.Schedule(),
-		Properties: make(map[string]interface{}),
+func (cmd *command) run(args []string) error {
+	var task *managerclient.Task
+
+	if cmd.Update() {
+		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, args[0])
+		if err != nil {
+			return err
+		}
+		if taskType != managerclient.ValidateBackupTask {
+			return fmt.Errorf("can't handle %s task", taskType)
+		}
+		task, err = cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
+		if err != nil {
+			return err
+		}
+		cmd.UpdateTask(task)
+	} else {
+		task = &managerclient.Task{
+			Type:       managerclient.ValidateBackupTask,
+			Enabled:    cmd.Enabled(),
+			Schedule:   cmd.Schedule(),
+			Properties: make(map[string]interface{}),
+		}
 	}
 
-	props := t.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]interface{})
 	if len(cmd.location) != 0 {
 		props["location"] = cmd.location
 	}
-	if cmd.deleteOrphanedFiles {
-		props["delete_orphaned_files"] = true
+	if cmd.Flag("delete-orphaned-files").Changed {
+		props["delete_orphaned_files"] = cmd.deleteOrphanedFiles
 	}
-	if cmd.parallel > 0 {
+	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
 	}
 
-	id, err := cmd.client.CreateTask(cmd.Context(), cmd.cluster, t)
-	if err != nil {
+	if task.ID == "" {
+		id, err := cmd.client.CreateTask(cmd.Context(), cmd.cluster, task)
+		if err != nil {
+			return err
+		}
+		task.ID = id.String()
+	} else if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
 		return err
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(t.Type, id))
+	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(task.Type, task.ID))
 	return nil
 }
