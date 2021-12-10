@@ -2,7 +2,8 @@ name: sctool backup update
 synopsis: Modify properties of the existing backup task
 description: |
   This command allows you to modify properties of an already existing backup task.
-usage: sctool backup update --cluster <id|name> [flags] <backup[/task-id]>
+  If there is one backup task the 'backup/task-id' argument is not needed.
+usage: sctool backup update --cluster <id|name> [flags] [<backup/task-id>]
 options:
 - name: cluster
   shorthand: c
@@ -14,13 +15,13 @@ options:
     A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
     The following syntax for glob patterns is supported:
 
-    * ``*`` - matches any number of any characters including none
-    * ``?`` - matches any single character
-    * ``[abc]`` - matches one character given in the bracket
-    * ``[a-z]`` - matches one character from the range given in the bracket
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
 
 - name: dry-run
   default_value: "false"

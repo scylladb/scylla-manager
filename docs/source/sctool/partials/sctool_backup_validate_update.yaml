@@ -1,12 +1,9 @@
-name: sctool backup validate
-synopsis: Validate backup files in remote locations
+name: sctool backup validate update
+synopsis: Modify properties of the existing backup validation task
 description: |
-  This command schedules a backup validation task.
-  It checks that all needed files are in tact, and that there are no unexpected files occupying your storage.
-  To delete the unexpected files provide the ``--delete-orphaned-files`` parameter.
-  To see the validation results use :ref:`task-progress` command.
-  It is safe to run backup and backup validation at the same time.
-usage: sctool backup validate --cluster <id|name> [--delete-orphaned-files] [flags]
+  This command allows you to modify properties of an already existing backup validation task.
+  If there is one backup validation task the 'validate_backup/task-id' argument is not needed.
+usage: sctool backup validate update --cluster <id|name> [flags] [<validate_backup/task-id>]
 options:
 - name: cluster
   shorthand: c
@@ -23,7 +20,7 @@ options:
 - name: help
   shorthand: h
   default_value: "false"
-  usage: help for validate
+  usage: help for update
 - name: interval
   shorthand: i
   usage: |
@@ -81,5 +78,4 @@ inherited_options:
     Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
     If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-- sctool backup - Schedule a backup (ad-hoc or scheduled)
-- update - Modify properties of the existing backup validation task
+- sctool backup validate - Validate backup files in remote locations
