@@ -28,7 +28,7 @@ func NewTaskBase() TaskBase {
 func NewUpdateTaskBase() TaskBase {
 	cmd := TaskBase{
 		Command: cobra.Command{
-			Args: cobra.ExactArgs(1),
+			Args: cobra.MaximumNArgs(1),
 		},
 		update: true,
 	}
@@ -58,12 +58,12 @@ func (cmd *TaskBase) Schedule() *managerclient.Schedule {
 	}
 }
 
-// Update allows to differentiate instances created with NewUpdateTaskBase.
+// Update allows differentiating instances created with NewUpdateTaskBase.
 func (cmd *TaskBase) Update() bool {
 	return cmd.update
 }
 
-// UpdateTask updates task fields if flags are set, returns true if there ware changes.
+// UpdateTask updates task fields if flags are set, returns true if there are changes.
 func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 	ok := false
 	if cmd.Flag("enabled").Changed {
