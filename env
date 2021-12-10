@@ -1,2 +1,4 @@
 export LOCAL_BIN=$PWD/bin
 export PATH="$LOCAL_BIN:$PATH"
+
+source <(./sctool.dev completion bash)
