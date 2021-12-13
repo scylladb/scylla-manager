@@ -14,7 +14,6 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
 	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
 	"github.com/scylladb/scylla-manager/pkg/util/version"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
@@ -506,7 +505,7 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 }
 
 func (rp RepairProgress) isRunning() bool {
-	return rp.Run.Status == string(scheduler.StatusRunning)
+	return rp.Run.Status == TaskStatusRunning
 }
 
 // arguments return task arguments that task was created with.
@@ -576,11 +575,9 @@ func (bp *BackupProgress) SetKeyspaceFilter(filters []string) (err error) {
 	return
 }
 
-const runStatusError = "ERROR"
-
 // AggregateErrors collects all errors from the table progress.
 func (bp *BackupProgress) AggregateErrors() {
-	if bp.Progress == nil || bp.Run.Status != runStatusError {
+	if bp.Progress == nil || bp.Run.Status != TaskStatusError {
 		return
 	}
 	for i := range bp.Progress.Hosts {
