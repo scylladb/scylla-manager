@@ -4,14 +4,14 @@ package main
 
 import (
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-func setupCommand(configFiles []string, level zapcore.Level) (config.AgentConfig, log.Logger, error) {
-	c, err := config.ParseAgentConfigFiles(configFiles)
+func setupCommand(configFiles []string, level zapcore.Level) (agent.Config, log.Logger, error) {
+	c, err := agent.ParseConfigFiles(configFiles)
 	if err != nil {
 		return c, log.NopLogger, err
 	}

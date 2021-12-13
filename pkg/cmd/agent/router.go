@@ -12,14 +12,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/auth"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
 	"github.com/scylladb/scylla-manager/pkg/util/httplog"
 )
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)
 
-func newRouter(c config.AgentConfig, rclone http.Handler, logger log.Logger) http.Handler {
+func newRouter(c agent.Config, rclone http.Handler, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	// Common middleware
@@ -44,13 +44,13 @@ func newRouter(c config.AgentConfig, rclone http.Handler, logger log.Logger) htt
 	return r
 }
 
-func promProxy(c config.AgentConfig) http.Handler {
+func promProxy(c agent.Config) http.Handler {
 	return &httputil.ReverseProxy{
 		Director: director(net.JoinHostPort(c.Scylla.PrometheusAddress, c.Scylla.PrometheusPort)),
 	}
 }
 
-func apiProxy(c config.AgentConfig) http.HandlerFunc {
+func apiProxy(c agent.Config) http.HandlerFunc {
 	h := &httputil.ReverseProxy{
 		Director: director(net.JoinHostPort(c.Scylla.APIAddress, c.Scylla.APIPort)),
 	}

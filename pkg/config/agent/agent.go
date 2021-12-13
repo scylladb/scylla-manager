@@ -1,11 +1,12 @@
 // Copyright (C) 2017 ScyllaDB
 
-package config
+package agent
 
 import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
 	"go.uber.org/multierr"
@@ -40,18 +41,18 @@ func (c ScyllaConfig) Validate() (errs error) {
 	return
 }
 
-// AgentConfig specifies the agent and scylla configuration.
-type AgentConfig struct {
+// Config specifies the agent and scylla configuration.
+type Config struct {
 	AuthToken   string               `yaml:"auth_token"`
 	HTTPS       string               `yaml:"https"`
 	HTTPSPort   int                  `yaml:"https_port"`
-	TLSVersion  TLSVersion           `yaml:"tls_version"`
+	TLSVersion  config.TLSVersion    `yaml:"tls_version"`
 	TLSCertFile string               `yaml:"tls_cert_file"`
 	TLSKeyFile  string               `yaml:"tls_key_file"`
 	Prometheus  string               `yaml:"prometheus"`
 	Debug       string               `yaml:"debug"`
 	CPU         int                  `yaml:"cpu"`
-	Logger      LogConfig            `yaml:"logger"`
+	Logger      config.LogConfig     `yaml:"logger"`
 	Scylla      ScyllaConfig         `yaml:"scylla"`
 	Rclone      rclone.GlobalOptions `yaml:"rclone"`
 	S3          rclone.S3Options     `yaml:"s3"`
@@ -59,14 +60,14 @@ type AgentConfig struct {
 	Azure       rclone.AzureOptions  `yaml:"azure"`
 }
 
-func DefaultAgentConfig() AgentConfig {
-	return AgentConfig{
+func DefaultConfig() Config {
+	return Config{
 		HTTPSPort:  10001,
-		TLSVersion: TLSv12,
+		TLSVersion: config.TLSv12,
 		Prometheus: ":5090",
 		Debug:      "127.0.0.1:5112",
 		CPU:        NoCPU,
-		Logger:     DefaultAgentLogConfig(),
+		Logger:     DefaultLogConfig(),
 		Scylla: ScyllaConfig{
 			APIAddress:    "0.0.0.0",
 			APIPort:       "10000",
@@ -79,14 +80,14 @@ func DefaultAgentConfig() AgentConfig {
 	}
 }
 
-// ParseAgentConfigFiles takes list of configuration file paths and returns parsed
+// ParseConfigFiles takes list of configuration file paths and returns parsed
 // config struct with merged configuration from all provided files.
-func ParseAgentConfigFiles(files []string) (AgentConfig, error) {
-	c := DefaultAgentConfig()
+func ParseConfigFiles(files []string) (Config, error) {
+	c := DefaultConfig()
 	return c, cfgutil.ParseYAML(&c, files...)
 }
 
-func (c AgentConfig) Validate() (errs error) {
+func (c Config) Validate() (errs error) {
 	// Validate Scylla config
 	errs = multierr.Append(errs, errors.Wrap(c.Scylla.Validate(), "scylla"))
 
@@ -97,12 +98,12 @@ func (c AgentConfig) Validate() (errs error) {
 }
 
 // HasTLSCert returns true iff TLSCertFile or TLSKeyFile is set.
-func (c AgentConfig) HasTLSCert() bool {
+func (c Config) HasTLSCert() bool {
 	return c.TLSCertFile != "" || c.TLSKeyFile != ""
 }
 
-// ObfuscatedAgentConfig returns AgentConfig with secrets replaced with ******.
-func ObfuscatedAgentConfig(c AgentConfig) AgentConfig {
+// Obfuscate returns Config with secrets replaced with ******.
+func Obfuscate(c Config) Config {
 	secrets := []*string{
 		&c.AuthToken,
 		&c.S3.AccessKeyID,

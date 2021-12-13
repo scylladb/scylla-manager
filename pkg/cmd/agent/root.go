@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		c, err := config.ParseAgentConfigFiles(rootArgs.configFiles)
+		c, err := agent.ParseConfigFiles(rootArgs.configFiles)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ var rootCmd = &cobra.Command{
 		// Get a base context with tracing id
 		ctx := log.WithNewTraceID(context.Background())
 
-		logger, err := config.MakeLogger(c.Logger)
+		logger, err := c.MakeLogger()
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}

@@ -13,15 +13,15 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
 type nodeInfoHandler struct {
-	config config.AgentConfig
+	config agent.Config
 }
 
-func newNodeInfoHandler(c config.AgentConfig) *nodeInfoHandler {
+func newNodeInfoHandler(c agent.Config) *nodeInfoHandler {
 	return &nodeInfoHandler{config: c}
 }
 

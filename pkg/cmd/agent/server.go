@@ -17,8 +17,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/config"
-	"github.com/scylladb/scylla-manager/pkg/config/enrich"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/pkg/rclone"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/pkg/util/certutil"
@@ -31,7 +30,7 @@ import (
 )
 
 type server struct {
-	config config.AgentConfig
+	config agent.Config
 	logger log.Logger
 
 	httpsServer      *http.Server
@@ -41,7 +40,7 @@ type server struct {
 	errCh chan error
 }
 
-func newServer(c config.AgentConfig, logger log.Logger) *server {
+func newServer(c agent.Config, logger log.Logger) *server {
 	return &server{
 		config: c,
 		logger: logger,
@@ -68,11 +67,11 @@ func (s *server) init(ctx context.Context) error {
 	}
 
 	// Update configuration from the REST API
-	if err := enrich.AgentConfigFromAPI(ctx, addr, &s.config); err != nil {
+	if err := agent.EnrichConfigFromAPI(ctx, addr, &s.config); err != nil {
 		return err
 	}
 
-	s.logger.Info(ctx, "Using config", "config", config.ObfuscatedAgentConfig(s.config), "config_files", rootArgs.configFiles)
+	s.logger.Info(ctx, "Using config", "config", agent.Obfuscate(s.config), "config_files", rootArgs.configFiles)
 
 	// Instruct users to set auth token
 	if s.config.AuthToken == "" {
@@ -84,7 +83,7 @@ func (s *server) init(ctx context.Context) error {
 
 	// Try to get CPUs to pin to
 	var cpus []int
-	if s.config.CPU != config.NoCPU {
+	if s.config.CPU != agent.NoCPU {
 		cpus = []int{s.config.CPU}
 	} else if free, err := findFreeCPUs(); err != nil {
 		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {

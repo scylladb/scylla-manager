@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 )
 
 func assertURLPath(t *testing.T, expected string) http.HandlerFunc {
@@ -22,7 +22,7 @@ func assertURLPath(t *testing.T, expected string) http.HandlerFunc {
 }
 
 func TestRcloneRouting(t *testing.T) {
-	c := config.AgentConfig{}
+	c := agent.Config{}
 	rclone := assertURLPath(t, "/foo")
 
 	h := newRouter(c, rclone, log.NewDevelopment())
@@ -43,8 +43,8 @@ func TestProxyRouting(t *testing.T) {
 
 	promHost, promPort, _ := net.SplitHostPort(promStub.Listener.Addr().String())
 	apiHost, apiPort, _ := net.SplitHostPort(apiStub.Listener.Addr().String())
-	c := config.AgentConfig{
-		Scylla: config.ScyllaConfig{
+	c := agent.Config{
+		Scylla: agent.ScyllaConfig{
 			PrometheusAddress: promHost,
 			PrometheusPort:    promPort,
 			APIAddress:        apiHost,
