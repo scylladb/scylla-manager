@@ -23,3 +23,15 @@ var TasksTypes = strset.New(
 	RepairTask,
 	ValidateBackupTask,
 )
+
+// Status enumeration.
+const (
+	TaskStatusNew      string = "NEW"
+	TaskStatusRunning  string = "RUNNING"
+	TaskStatusStopping string = "STOPPING"
+	TaskStatusStopped  string = "STOPPED"
+	TaskStatusWaiting  string = "WAITING"
+	TaskStatusDone     string = "DONE"
+	TaskStatusError    string = "ERROR"
+	TaskStatusAborted  string = "ABORTED"
+)
