@@ -5,11 +5,13 @@ package main
 import (
 	"crypto/tls"
 	"net/http"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +42,7 @@ func newRootCommand(client *managerclient.Client) *cobra.Command {
 
 func (cmd *rootCommand) init() {
 	w := flag.Wrap(cmd.PersistentFlags())
-	w.GlobalAPIURL(&cmd.apiURL)
+	w.GlobalAPIURL(&cmd.apiURL, apiURL())
 	w.GlobalAPICertFile(&cmd.apiCertFile)
 	w.GlobalAPIKeyFile(&cmd.apiKeyFile)
 }
@@ -76,4 +78,21 @@ func (cmd *rootCommand) preRun() error {
 
 	*cmd.client = c
 	return nil
+}
+
+func apiURL() string {
+	if v := os.Getenv("SCYLLA_MANAGER_API_URL"); v != "" {
+		return v
+	}
+
+	c := &struct {
+		HTTP  string `yaml:"http"`
+		HTTPS string `yaml:"https"`
+	}{}
+	if err := cfgutil.PermissiveParseYAML(&c, "/etc/scylla-manager/scylla-manager.yaml"); err == nil {
+		if v := baseURL(c.HTTP, c.HTTPS); v != "" {
+			return v
+		}
+	}
+	return "http://127.0.0.1:5080/api/v1"
 }
