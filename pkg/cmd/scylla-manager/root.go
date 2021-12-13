@@ -18,7 +18,7 @@ import (
 	"github.com/scylladb/go-log/gocqllog"
 	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/scylladb/scylla-manager/pkg/callhome"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	config "github.com/scylladb/scylla-manager/pkg/config/server"
 	"github.com/scylladb/scylla-manager/pkg/util/netwait"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Read configuration
-		c, err := config.ParseServerConfigFiles(rootArgs.configFiles)
+		c, err := config.ParseConfigFiles(rootArgs.configFiles)
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 		ctx := log.WithNewTraceID(context.Background())
 
 		// Create logger
-		logger, err := config.MakeLogger(c.Logger)
+		logger, err := c.MakeLogger()
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
@@ -83,7 +83,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		// Log config
-		logger.Info(ctx, "Using config", "c", config.ObfuscatedServerConfig(c), "config_files", rootArgs.configFiles)
+		logger.Info(ctx, "Using config", "c", config.Obfuscate(c), "config_files", rootArgs.configFiles)
 
 		// Redirect standard logger to the logger
 		zap.RedirectStdLog(log.BaseOf(logger))

@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/server"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
@@ -89,7 +89,7 @@ func apiURL() string {
 	if v := os.Getenv("SCYLLA_MANAGER_API_URL"); v != "" {
 		return v
 	}
-	if cfg, err := config.ParseServerConfigFiles([]string{"/etc/scylla-manager/scylla-manager.yaml"}); err == nil {
+	if cfg, err := server.ParseConfigFiles([]string{"/etc/scylla-manager/scylla-manager.yaml"}); err == nil {
 		if v := cfg.BaseURL(); v != "" {
 			return v
 		}
