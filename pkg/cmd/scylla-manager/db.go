@@ -12,13 +12,13 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/dbutil"
 	"github.com/scylladb/gocqlx/v2/migrate"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	config "github.com/scylladb/scylla-manager/pkg/config/server"
 	schemamigrate "github.com/scylladb/scylla-manager/pkg/schema/migrate"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/schema"
 )
 
-func keyspaceExists(c config.ServerConfig) (bool, error) {
+func keyspaceExists(c config.Config) (bool, error) {
 	session, err := gocqlClusterConfigForDBInit(c).CreateSession()
 	if err != nil {
 		return false, err
@@ -30,7 +30,7 @@ func keyspaceExists(c config.ServerConfig) (bool, error) {
 	return cnt == 1, q.Scan(&cnt)
 }
 
-func createKeyspace(c config.ServerConfig) error {
+func createKeyspace(c config.Config) error {
 	session, err := gocqlClusterConfigForDBInit(c).CreateSession()
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func createKeyspace(c config.ServerConfig) error {
 
 const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}}"
 
-func mustEvaluateCreateKeyspaceStmt(c config.ServerConfig) string {
+func mustEvaluateCreateKeyspaceStmt(c config.Config) string {
 	t := template.New("")
 	if _, err := t.Parse(createKeyspaceStmt); err != nil {
 		panic(err)
@@ -74,7 +74,7 @@ func mustEvaluateCreateKeyspaceStmt(c config.ServerConfig) string {
 	return buf.String()
 }
 
-func migrateSchema(c config.ServerConfig, logger log.Logger) error {
+func migrateSchema(c config.Config, logger log.Logger) error {
 	cluster := gocqlClusterConfigForDBInit(c)
 	cluster.Keyspace = c.Database.Keyspace
 
@@ -116,7 +116,7 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 	return dbutil.RewriteTable(session, table.SchedulerTask, table.SchedulerTask, nil)
 }
 
-func gocqlClusterConfigForDBInit(c config.ServerConfig) *gocql.ClusterConfig {
+func gocqlClusterConfigForDBInit(c config.Config) *gocql.ClusterConfig {
 	cluster := gocqlClusterConfig(c)
 	cluster.Keyspace = "system"
 	cluster.Timeout = c.Database.MigrateTimeout
@@ -131,7 +131,7 @@ func gocqlClusterConfigForDBInit(c config.ServerConfig) *gocql.ClusterConfig {
 	return cluster
 }
 
-func gocqlClusterConfig(c config.ServerConfig) *gocql.ClusterConfig {
+func gocqlClusterConfig(c config.Config) *gocql.ClusterConfig {
 	cluster := gocql.NewCluster(c.Database.Hosts...)
 
 	// Chose consistency level, for a single node deployments use ONE, for

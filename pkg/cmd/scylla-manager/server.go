@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	config "github.com/scylladb/scylla-manager/pkg/config/server"
 	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/restapi"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
@@ -33,7 +33,7 @@ import (
 )
 
 type server struct {
-	config  config.ServerConfig
+	config  config.Config
 	session gocqlx.Session
 	logger  log.Logger
 
@@ -51,7 +51,7 @@ type server struct {
 	errCh chan error
 }
 
-func newServer(c config.ServerConfig, logger log.Logger) (*server, error) {
+func newServer(c config.Config, logger log.Logger) (*server, error) {
 	session, err := gocqlx.WrapSession(gocqlClusterConfig(c).CreateSession())
 	if err != nil {
 		return nil, errors.Wrapf(err, "database")

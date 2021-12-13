@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package config_test
+package server_test
 
 import (
 	"testing"
@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/server"
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
@@ -18,21 +19,21 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var serverConfigCmpOpts = cmp.Options{
+var configCmpOpts = cmp.Options{
 	testutils.UUIDComparer(),
-	cmpopts.IgnoreUnexported(config.DBConfig{}),
+	cmpopts.IgnoreUnexported(server.DBConfig{}),
 	cmpopts.IgnoreTypes(zap.AtomicLevel{}),
 }
 
 func TestConfigModification(t *testing.T) {
 	t.Parallel()
 
-	c, err := config.ParseServerConfigFiles([]string{"testdata/server/scylla-manager.yaml"})
+	c, err := server.ParseConfigFiles([]string{"testdata/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	golden := config.ServerConfig{
+	golden := server.Config{
 		HTTP:        "127.0.0.1:80",
 		HTTPS:       "127.0.0.1:443",
 		TLSVersion:  "TLSv1.3",
@@ -47,7 +48,7 @@ func TestConfigModification(t *testing.T) {
 				Level: zap.NewAtomicLevelAt(zapcore.DebugLevel),
 			},
 		},
-		Database: config.DBConfig{
+		Database: server.DBConfig{
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			SSL:                           true,
 			User:                          "user",
@@ -60,7 +61,7 @@ func TestConfigModification(t *testing.T) {
 			Timeout:                       600 * time.Millisecond,
 			TokenAware:                    false,
 		},
-		SSL: config.SSLConfig{
+		SSL: server.SSLConfig{
 			CertFile:     "ca.pem",
 			Validate:     false,
 			UserCertFile: "ssl.cert",
@@ -87,19 +88,19 @@ func TestConfigModification(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(c, golden, serverConfigCmpOpts); diff != "" {
+	if diff := cmp.Diff(c, golden, configCmpOpts); diff != "" {
 		t.Fatal(diff)
 	}
 }
 
 func TestDefaultConfig(t *testing.T) {
-	c, err := config.ParseServerConfigFiles([]string{"../../../dist/etc/scylla-manager.yaml"})
+	c, err := server.ParseConfigFiles([]string{"../../../dist/etc/scylla-manager.yaml"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := config.DefaultServerConfig()
+	e := server.DefaultConfig()
 
-	if diff := cmp.Diff(c, e, serverConfigCmpOpts, cmpopts.IgnoreFields(config.ServerConfig{}, "HTTP", "HTTPS")); diff != "" {
+	if diff := cmp.Diff(c, e, configCmpOpts, cmpopts.IgnoreFields(server.Config{}, "HTTP", "HTTPS")); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -107,47 +108,47 @@ func TestDefaultConfig(t *testing.T) {
 func TestBaseURL(t *testing.T) {
 	table := []struct {
 		Name   string
-		Config config.ServerConfig
+		Config server.Config
 		Golden string
 	}{
 		{
 			Name:   "empty configuration",
-			Config: config.ServerConfig{},
+			Config: server.Config{},
 			Golden: "",
 		},
 		{
 			Name:   "HTTP",
-			Config: config.ServerConfig{HTTP: "127.0.0.1:12345"},
+			Config: server.Config{HTTP: "127.0.0.1:12345"},
 			Golden: "http://127.0.0.1:12345/api/v1",
 		},
 		{
 			Name:   "HTTPS",
-			Config: config.ServerConfig{HTTPS: "127.0.0.1:54321"},
+			Config: server.Config{HTTPS: "127.0.0.1:54321"},
 			Golden: "https://127.0.0.1:54321/api/v1",
 		},
 		{
 			Name:   "HTTP override",
-			Config: config.ServerConfig{HTTP: "127.0.0.1:12345", HTTPS: "127.0.0.2:54321"},
+			Config: server.Config{HTTP: "127.0.0.1:12345", HTTPS: "127.0.0.2:54321"},
 			Golden: "http://127.0.0.1:12345/api/v1",
 		},
 		{
 			Name:   "HTTP override on all interfaces",
-			Config: config.ServerConfig{HTTP: "0.0.0.0:12345", HTTPS: "127.0.0.1:54321"},
+			Config: server.Config{HTTP: "0.0.0.0:12345", HTTPS: "127.0.0.1:54321"},
 			Golden: "http://127.0.0.1:12345/api/v1",
 		},
 		{
 			Name:   "HTTP empty host",
-			Config: config.ServerConfig{HTTP: ":12345"},
+			Config: server.Config{HTTP: ":12345"},
 			Golden: "http://127.0.0.1:12345/api/v1",
 		},
 		{
 			Name:   "IPV6",
-			Config: config.ServerConfig{HTTP: "[::1]:12345"},
+			Config: server.Config{HTTP: "[::1]:12345"},
 			Golden: "http://[::1]:12345/api/v1",
 		},
 		{
 			Name:   "IPV6 on all interfaces",
-			Config: config.ServerConfig{HTTPS: "[::0]:54321"},
+			Config: server.Config{HTTPS: "[::0]:54321"},
 			Golden: "https://[::1]:54321/api/v1",
 		},
 	}
