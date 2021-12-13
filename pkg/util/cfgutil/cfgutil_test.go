@@ -103,3 +103,12 @@ func TestParseYAML(t *testing.T) {
 		})
 	}
 }
+
+func TestPermissiveParseYAML(t *testing.T) {
+	got := &struct {
+		AuthToken string `yaml:"auth_token"`
+	}{}
+	if err := PermissiveParseYAML(got, "./testdata/base.yaml", "./testdata/first.yaml"); err != nil {
+		t.Fatalf("PermissiveParseYAML() error %s", err)
+	}
+}
