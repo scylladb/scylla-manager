@@ -10,10 +10,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/config/agent"
 )
 
-func newAgentHandler(c config.AgentConfig, rclone http.Handler) *chi.Mux {
+func newAgentHandler(c agent.Config, rclone http.Handler) *chi.Mux {
 	m := chi.NewMux()
 
 	m.Get("/node_info", newNodeInfoHandler(c).getNodeInfo)

@@ -24,20 +24,6 @@ func DefaultServerLogConfig() LogConfig {
 	}
 }
 
-func DefaultAgentLogConfig() LogConfig {
-	return LogConfig{
-		Config: log.Config{
-			Mode:  log.StderrMode,
-			Level: zap.NewAtomicLevelAt(zapcore.InfoLevel),
-			Sampling: &zap.SamplingConfig{
-				Initial:    1,
-				Thereafter: 100,
-			},
-		},
-		Development: false,
-	}
-}
-
 // MakeLogger creates application logger for the configuration.
 func MakeLogger(c LogConfig) (log.Logger, error) {
 	if c.Development {

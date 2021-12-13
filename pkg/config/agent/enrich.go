@@ -1,18 +1,17 @@
 // Copyright (C) 2017 ScyllaDB
 
-package enrich
+package agent
 
 import (
 	"context"
 	"fmt"
 	"net"
 
-	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
-// AgentConfigFromAPI fetches address info from the node and updates the configuration.
-func AgentConfigFromAPI(ctx context.Context, addr string, c *config.AgentConfig) error {
+// EnrichConfigFromAPI fetches address info from the node and updates the configuration.
+func EnrichConfigFromAPI(ctx context.Context, addr string, c *Config) error {
 	scyllaConfig, err := scyllaConfigFromAPI(ctx, addr)
 	if err != nil {
 		return err
@@ -26,7 +25,7 @@ func AgentConfigFromAPI(ctx context.Context, addr string, c *config.AgentConfig)
 	return nil
 }
 
-func scyllaConfigFromAPI(ctx context.Context, addr string) (c config.ScyllaConfig, err error) {
+func scyllaConfigFromAPI(ctx context.Context, addr string) (c ScyllaConfig, err error) {
 	c.APIAddress, c.APIPort, _ = net.SplitHostPort(addr)
 
 	client := scyllaclient.NewConfigClient(addr)
