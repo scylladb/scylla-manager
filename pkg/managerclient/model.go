@@ -13,7 +13,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
-	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
 	"github.com/scylladb/scylla-manager/pkg/util/version"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
@@ -760,7 +759,7 @@ func (bp BackupProgress) arguments() string {
 
 // status returns task status with optional backup stage.
 func (bp BackupProgress) status() string {
-	stage := backupspec.Stage(bp.Progress.Stage).Name()
+	stage := BackupStageName(bp.Progress.Stage)
 	s := bp.Run.Status
 	if s != "NEW" && s != "DONE" && stage != "" {
 		s += " (" + stage + ")"

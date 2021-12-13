@@ -59,22 +59,3 @@ func (s Stage) Index() int {
 	}
 	panic("Unknown stage " + s)
 }
-
-var stageName = map[Stage]string{
-	StageInit:         "initialising",
-	StageAwaitSchema:  "awaiting schema agreement",
-	StageSnapshot:     "taking snapshot",
-	StageIndex:        "indexing files",
-	StageManifest:     "uploading manifests",
-	StageSchema:       "uploading schema",
-	StageUpload:       "uploading data",
-	StageMoveManifest: "moving manifests",
-	StageMigrate:      "migrating legacy metadata",
-	StagePurge:        "retention",
-	StageDone:         "",
-}
-
-// Name returns the stage name for humans.
-func (s Stage) Name() string {
-	return stageName[s]
-}
