@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/config/server"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
@@ -73,8 +72,8 @@ func MustSetUsages(cmd *cobra.Command, b []byte, required ...string) {
 // Global flags
 //
 
-func (w Wrapper) GlobalAPIURL(p *string) {
-	w.fs.StringVar(p, "api-url", apiURL(), usage["api-url"])
+func (w Wrapper) GlobalAPIURL(p *string, url string) {
+	w.fs.StringVar(p, "api-url", url, usage["api-url"])
 }
 
 func (w Wrapper) GlobalAPICertFile(p *string) {
@@ -83,18 +82,6 @@ func (w Wrapper) GlobalAPICertFile(p *string) {
 
 func (w Wrapper) GlobalAPIKeyFile(p *string) {
 	w.fs.StringVar(p, "api-key-file", os.Getenv("SCYLLA_MANAGER_API_KEY_FILE"), usage["api-key-file"])
-}
-
-func apiURL() string {
-	if v := os.Getenv("SCYLLA_MANAGER_API_URL"); v != "" {
-		return v
-	}
-	if cfg, err := server.ParseConfigFiles([]string{"/etc/scylla-manager/scylla-manager.yaml"}); err == nil {
-		if v := cfg.BaseURL(); v != "" {
-			return v
-		}
-	}
-	return "http://127.0.0.1:5080/api/v1"
 }
 
 //
