@@ -4,6 +4,7 @@ package info
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
@@ -53,10 +54,25 @@ func (cmd *command) run(args []string) error {
 		return err
 	}
 
-	runs, err := cmd.client.GetTaskHistory(cmd.Context(), cmd.cluster, taskType, taskID, int64(cmd.limit))
+	w := cmd.OutOrStdout()
+
+	task, err := cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
 	if err != nil {
 		return err
 	}
 
-	return runs.Render(cmd.OutOrStdout())
+	r := managerclient.NewCmdRenderer(task, managerclient.RenderAll)
+	if err := r.Render(w); err != nil {
+		return err
+	}
+	fmt.Fprintln(w)
+
+	runs, err := cmd.client.GetTaskHistory(cmd.Context(), cmd.cluster, taskType, taskID, int64(cmd.limit))
+	if err != nil {
+		return err
+	}
+	if len(runs) > 0 {
+		fmt.Fprintln(w)
+	}
+	return runs.Render(w)
 }
