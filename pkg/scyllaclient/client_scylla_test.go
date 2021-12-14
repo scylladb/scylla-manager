@@ -204,6 +204,21 @@ func TestClientShardCount(t *testing.T) {
 	}
 }
 
+func TestClientTotalMemory(t *testing.T) {
+	t.Parallel()
+
+	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_metrics/metrics")
+	defer closeServer()
+
+	v, err := client.TotalMemory(context.Background(), scyllaclienttest.TestHost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 31138512896 {
+		t.Fatal(v)
+	}
+}
+
 func TestClientDescribeRing(t *testing.T) {
 	t.Parallel()
 
