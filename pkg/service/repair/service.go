@@ -435,6 +435,10 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 }
 
 func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.Client, target Target, g *generator) error {
+	if target.SmallTableThreshold == 0 {
+		return nil
+	}
+
 	repairHosts := g.Hosts()
 
 	// Get report for Host, Keyspace, Table tuples
