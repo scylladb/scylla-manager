@@ -4,6 +4,7 @@ package uuid
 
 import (
 	"encoding/binary"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -44,6 +45,11 @@ func MustRandom() UUID {
 // time as the timestamp.
 func NewTime() UUID {
 	return UUID{gocql.TimeUUID()}
+}
+
+// NewFromTime generates a new time based UUID (version 1) using the provided time.
+func NewFromTime(t time.Time) UUID {
+	return UUID{gocql.UUIDFromTime(t)}
 }
 
 // NewFromUint64 creates a UUID from a uint64 pair.
