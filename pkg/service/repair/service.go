@@ -390,6 +390,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Worker context doesn't derive from ctx, generator will handle graceful
 	// shutdown. Generator must receive ctx.
 	workerCtx, workerCancel := context.WithCancel(context.Background())
+	// Add trace ID for workers
+	workerCtx = log.CopyTraceID(workerCtx, ctx)
 
 	// Run Workers and Generator
 	var eg errgroup.Group
