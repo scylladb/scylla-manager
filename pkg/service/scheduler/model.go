@@ -194,6 +194,8 @@ func (s *Status) UnmarshalText(text []byte) error {
 	return nil
 }
 
+var healthCheckActiveRunID = uuid.NewFromTime(time.Unix(0, 0))
+
 // Run describes a running instance of a Task.
 type Run struct {
 	ClusterID uuid.UUID  `json:"cluster_id"`
@@ -208,11 +210,18 @@ type Run struct {
 }
 
 func newRunFromTaskInfo(ti taskInfo) *Run {
+	var id uuid.UUID
+	if ti.TaskType.isHealthCheck() {
+		id = healthCheckActiveRunID
+	} else {
+		id = uuid.NewTime()
+	}
+
 	return &Run{
 		ClusterID: ti.ClusterID,
 		Type:      ti.TaskType,
 		TaskID:    ti.TaskID,
-		ID:        uuid.NewTime(),
+		ID:        id,
 		StartTime: now(),
 		Status:    StatusRunning,
 	}
