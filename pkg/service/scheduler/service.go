@@ -399,6 +399,7 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 	if !ok {
 		return service.ErrNotFound
 	}
+
 	if err := s.putRun(r); err != nil {
 		return errors.Wrap(err, "put run")
 	}
@@ -423,11 +424,12 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 			r.Status = StatusAborted
 		}
 		r.EndTime = pointer.TimePtr(now())
-		if err := s.putRun(r); err != nil {
-			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
-		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String())
-		if !ti.TaskType.isHealthCheck() {
+
+		if ti.TaskType.isHealthCheck() {
+			if r.Status != StatusDone {
+				r.ID = uuid.NewTime()
+			}
+		} else {
 			if r.Status == StatusError {
 				logger.Error(runCtx, "Run ended with ERROR",
 					"task", ti,
@@ -443,6 +445,11 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 				)
 			}
 		}
+
+		if err := s.putRun(r); err != nil {
+			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
+		}
+		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String())
 	}()
 
 	if ctx.Properties == nil {
