@@ -308,6 +308,8 @@ func (s *Service) hasTaskType(t *Task) ([]uuid.UUID, error) {
 	return ids, q.SelectRelease(&ids)
 }
 
+const nowThreshold = 5 * time.Second
+
 // PutTask upserts a task.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	create := false
@@ -332,11 +334,22 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	if err := s.putTask(t); err != nil {
 		return err
 	}
+
+	// With legacy schedule, account for a network delay etc.
+	// Allow running tasks that specify task start 5s in the past.
+	run := false
 	if create {
+		if !t.Sched.StartDate.IsZero() {
+			s := t.Sched.StartDate
+			n := now()
+			if s.Before(n) && n.Sub(s) < nowThreshold {
+				run = true
+			}
+		}
 		s.initMetrics(t)
 	}
 	if !suspended {
-		s.schedule(ctx, t, false)
+		s.schedule(ctx, t, run)
 	}
 	return nil
 }
