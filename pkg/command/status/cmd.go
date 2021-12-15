@@ -4,9 +4,7 @@ package status
 
 import (
 	_ "embed"
-	"fmt"
 
-	"github.com/scylladb/scylla-manager/pkg"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -45,8 +43,6 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run() error {
-	fmt.Fprintf(cmd.OutOrStdout(), "Client version: %v\n", pkg.Version())
-
 	var clusters []*managerclient.Cluster
 	if cmd.cluster == "" {
 		var err error
