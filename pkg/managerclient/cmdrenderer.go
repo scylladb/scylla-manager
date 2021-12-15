@@ -10,12 +10,6 @@ import (
 	"strings"
 )
 
-const (
-	backupTaskType         = "backup"
-	repairTaskType         = "repair"
-	validateBackupTaskType = "validate_backup"
-)
-
 // CmdRenderType defines CmdRenderer output type.
 type CmdRenderType int
 
@@ -144,7 +138,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 		fallthrough
 	case RenderTypeArgs:
 		switch rc.task.Type {
-		case backupTaskType:
+		case BackupTask:
 			rc.writeProp("-K", "keyspace", quoted)
 			rc.writeProp("--dc", "dc", quoted)
 			rc.writeProp("-L", "location")
@@ -153,7 +147,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--snapshot-parallel", "snapshot_parallel", quoted)
 			rc.writeProp("--upload-parallel", "upload_parallel", quoted)
 			rc.writeProp("--purge-only", "purge_only")
-		case repairTaskType:
+		case RepairTask:
 			rc.writeProp("-K", "keyspace", quoted)
 			rc.writeProp("--dc", "dc", quoted)
 			rc.writeProp("--host", "host", quoted)
@@ -161,7 +155,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 			rc.writeProp("--intensity", "intensity")
 			rc.writeProp("--parallel", "parallel")
 			rc.writeProp("--small-table-threshold", "small_table_threshold", byteCount)
-		case validateBackupTaskType:
+		case ValidateBackupTask:
 			rc.writeProp("-L", "location")
 			rc.writeProp("--delete-orphaned-files", "delete_orphaned_files")
 			rc.writeProp("--parallel", "parallel")
