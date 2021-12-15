@@ -60,6 +60,11 @@ var rootCmd = &cobra.Command{
 			logger.Sync() // nolint
 		}()
 
+		// Validate auth-token.
+		if c.AuthToken == "" {
+			return errors.New("configuration file must specify auth-token")
+		}
+
 		// Start server
 		s := newServer(c, logger)
 		if err := s.init(ctx); err != nil {
