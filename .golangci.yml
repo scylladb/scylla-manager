@@ -5,6 +5,7 @@ run:
     - _gen\.go$
     - _string\.go$
     - mock_.*\.go$
+    - pkg/managerclient/sizesuffix.go
   silent: true
 
 linters-settings:

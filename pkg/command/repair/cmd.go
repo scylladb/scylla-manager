@@ -30,7 +30,7 @@ type command struct {
 	ignoreDownHosts     bool
 	intensity           *flag.Intensity
 	parallel            int
-	smallTableThreshold string
+	smallTableThreshold managerclient.SizeSuffix
 	dryRun              bool
 	showTables          bool
 }
@@ -46,8 +46,9 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 func newCommand(client *managerclient.Client, update bool) *command {
 	var (
 		cmd = &command{
-			client:    client,
-			intensity: flag.NewIntensity(1),
+			client:              client,
+			intensity:           flag.NewIntensity(1),
+			smallTableThreshold: 1073741824, // 1G
 		}
 		r []byte
 	)
@@ -80,7 +81,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.ignoreDownHosts, "ignore-down-hosts", false, "")
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
-	w.Unwrap().StringVar(&cmd.smallTableThreshold, "small-table-threshold", "1GiB", "")
+	w.Unwrap().Var(&cmd.smallTableThreshold, "small-table-threshold", "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 }
@@ -139,11 +140,7 @@ func (cmd *command) run(args []string) error {
 	}
 
 	if cmd.Flag("small-table-threshold").Changed {
-		threshold, err := managerclient.ParseByteCount(cmd.smallTableThreshold)
-		if err != nil {
-			return err
-		}
-		props["small_table_threshold"] = threshold
+		props["small_table_threshold"] = int64(cmd.smallTableThreshold)
 	}
 
 	if cmd.dryRun {

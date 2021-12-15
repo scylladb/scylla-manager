@@ -160,7 +160,7 @@ func (cs ClusterStatus) Render(w io.Writer) error {
 			cpus = fmt.Sprintf("%d", s.CPUCount)
 		}
 		if s.TotalRAM > 0 {
-			mem = StringByteCount(s.TotalRAM)
+			mem = FormatSizeSuffix(s.TotalRAM)
 		}
 		if s.ScyllaVersion != "" {
 			scyllaVersion = version.Short(s.ScyllaVersion)
@@ -249,7 +249,7 @@ Keyspaces:
   - {{ .Keyspace }} {{ FormatTables .Tables .AllTables }}
 {{- end }}
 
-Disk size: ~{{ StringByteCount .Size }}
+Disk size: ~{{ FormatSizeSuffix .Size }}
 
 Locations:
 {{- range .Location }}
@@ -290,7 +290,7 @@ Retention: Last {{ .Retention }} backups
 // Render implements Renderer interface.
 func (t BackupTarget) Render(w io.Writer) error {
 	temp := template.Must(template.New("target").Funcs(template.FuncMap{
-		"StringByteCount": StringByteCount,
+		"FormatSizeSuffix": FormatSizeSuffix,
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(t.ShowTables, tables, all)
 		},
@@ -625,10 +625,10 @@ func (bp BackupProgress) addHostProgress(t *table.Table) {
 		}
 		success := h.Uploaded + h.Skipped
 		t.AddRow(h.Host, p,
-			StringByteCount(h.Size),
-			StringByteCount(success),
-			StringByteCount(h.Skipped),
-			StringByteCount(h.Failed),
+			FormatSizeSuffix(h.Size),
+			FormatSizeSuffix(success),
+			FormatSizeSuffix(h.Skipped),
+			FormatSizeSuffix(h.Failed),
 		)
 	}
 	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
@@ -668,10 +668,10 @@ func (bp BackupProgress) addKeyspaceProgress(w io.Writer) error {
 						tbl.Uploaded,
 						tbl.Skipped,
 						tbl.Failed),
-					StringByteCount(tbl.Size),
-					StringByteCount(success),
-					StringByteCount(tbl.Skipped),
-					StringByteCount(tbl.Failed),
+					FormatSizeSuffix(tbl.Size),
+					FormatSizeSuffix(success),
+					FormatSizeSuffix(tbl.Skipped),
+					FormatSizeSuffix(tbl.Failed),
 					FormatTime(startedAt),
 					FormatTime(completedAt),
 				)
@@ -823,7 +823,7 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ with progress -}}
 Scanned files:	{{ .ScannedFiles }}
 Missing files:	{{ .MissingFiles }}
-Orphaned files:	{{ .OrphanedFiles }} {{ if gt .OrphanedFiles 0 }}({{ StringByteCount .OrphanedBytes }}){{ end }}
+Orphaned files:	{{ .OrphanedFiles }} {{ if gt .OrphanedFiles 0 }}({{ FormatSizeSuffix .OrphanedBytes }}){{ end }}
 {{- if gt .DeletedFiles 0 }}
 Deleted files:	{{ .DeletedFiles }}
 {{- end }}
@@ -843,7 +843,7 @@ func (p ValidateBackupProgress) addHeader(w io.Writer) error {
 		"FormatDuration":       FormatDuration,
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
-		"StringByteCount":      StringByteCount,
+		"FormatSizeSuffix":     FormatSizeSuffix,
 		"arguments":            p.arguments,
 		"progress":             p.aggregatedProgress,
 	}).Parse(validateBackupProgressTemplate))
@@ -905,7 +905,7 @@ func (p ValidateBackupProgress) addHostProgress(w io.Writer) error {
 			hp.ScannedFiles,
 			hp.MissingFiles,
 			hp.OrphanedFiles,
-			StringByteCount(hp.OrphanedBytes),
+			FormatSizeSuffix(hp.OrphanedBytes),
 			hp.DeletedFiles,
 		)
 	}
@@ -926,7 +926,7 @@ type BackupListItems struct {
 const backupListItemTemplate = `backup/{{ .TaskID }}
 Snapshots:
 {{- range .SnapshotInfo }}
-  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ StringByteCount .Size }}{{ end }}, {{ .Nodes }} nodes)
+  - {{ .SnapshotTag }} ({{ if eq .Size 0 }}n/a{{ else }}{{ FormatSizeSuffix .Size }}{{ end }}, {{ .Nodes }} nodes)
 {{- end }}
 Keyspaces:
 {{- range .Units }}
@@ -941,7 +941,7 @@ func (bl BackupListItems) Render(w io.Writer) error {
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(bl.ShowTables, tables, all)
 		},
-		"StringByteCount": StringByteCount,
+		"FormatSizeSuffix": FormatSizeSuffix,
 	}).Parse(backupListItemTemplate))
 
 	prev := ""
