@@ -71,7 +71,7 @@ func byteCount(val string) string {
 	if err != nil {
 		return "error"
 	}
-	return StringByteCount(i)
+	return FormatSizeSuffix(i)
 }
 
 // writeProp adds a map from argument to the task property.

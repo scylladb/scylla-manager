@@ -29,7 +29,7 @@ parallel: |
   The formula to calculate is is as follows: number of nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
 
 small-table-threshold: |
-  Enables small table optimization for tables of size lower than given threshold, supported units [B, MiB, GiB, TiB].
+  Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T].
 
 dry-run: |
   Validates and displays repair information without actually scheduling the repair.
