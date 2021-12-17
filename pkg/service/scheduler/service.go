@@ -393,7 +393,7 @@ const noContinueThreshold = 500 * time.Millisecond
 
 func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 	s.mu.Lock()
-	ti, ok := s.resolver.FindByID(ctx.Key.String())
+	ti, ok := s.resolver.FindByID(ctx.Key)
 	c, cok := s.noContinue[ti.TaskID]
 	if cok {
 		delete(s.noContinue, ti.TaskID)
@@ -514,24 +514,9 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 	return t, q.GetRelease(t)
 }
 
-// FindTaskByPrefix returns task by prefix of ID or name if the prefix is unique.
-// ID is only checked if prefix length is over 8 characters.
-func (s *Service) FindTaskByPrefix(ctx context.Context, pre string) (*Task, error) {
-	s.logger.Debug(ctx, "FindTaskByPrefix", "prefix", pre)
-
-	s.mu.Lock()
-	ti, ok := s.resolver.Find(pre)
-	s.mu.Unlock()
-
-	if !ok {
-		return nil, service.ErrNotFound
-	}
-	return s.GetTaskByID(ctx, ti.ClusterID, ti.TaskType, ti.TaskID)
-}
-
 func (s *Service) findTaskByID(key scheduler.Key) (taskInfo, bool) {
 	s.mu.Lock()
-	ti, ok := s.resolver.FindByID(key.String())
+	ti, ok := s.resolver.FindByID(key)
 	s.mu.Unlock()
 	return ti, ok
 }

@@ -4,20 +4,9 @@ package scheduler
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/derekparker/trie"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
-
-const (
-	taskNamePfx = rune('_')
-	taskNameSep = rune(0x1)
-)
-
-func toStr(r rune) string {
-	return string([]rune{r})
-}
 
 type taskInfo struct {
 	ClusterID uuid.UUID
@@ -35,12 +24,9 @@ func newTaskInfoFromTask(t *Task) taskInfo {
 	}
 }
 
-func (ti taskInfo) key() string {
-	return strings.ToLower(ti.TaskID.String())
-}
-
-func (ti taskInfo) nameKey() string {
-	return strings.ToLower(toStr(taskNamePfx) + ti.TaskName + toStr(taskNameSep) + ti.ClusterID.String())
+func (ti taskInfo) idKey() taskInfo {
+	ti.TaskID = uuid.Nil
+	return ti
 }
 
 func (ti taskInfo) String() string {
@@ -48,71 +34,48 @@ func (ti taskInfo) String() string {
 }
 
 type resolver struct {
-	cache *trie.Trie
+	taskInfo map[uuid.UUID]taskInfo
+	id       map[taskInfo]uuid.UUID
 }
 
 func newResolver() resolver {
 	return resolver{
-		cache: trie.New(),
+		taskInfo: make(map[uuid.UUID]taskInfo),
+		id:       make(map[taskInfo]uuid.UUID),
 	}
 }
 
 func (r resolver) Put(ti taskInfo) {
-	// Remove old name node
-	node, ok := r.cache.Find(ti.key())
-	if ok {
-		old := node.Meta().(taskInfo)
-		if old.TaskName != "" {
-			r.cache.Remove(old.nameKey())
-		}
-	}
+	old := r.taskInfo[ti.TaskID]
+	delete(r.id, old.idKey())
 
-	r.cache.Add(ti.key(), ti)
+	r.taskInfo[ti.TaskID] = ti
 	if ti.TaskName != "" {
-		r.cache.Add(ti.nameKey(), ti)
+		r.id[ti.idKey()] = ti.TaskID
 	}
 }
 
 func (r resolver) Remove(taskID uuid.UUID) {
-	node, ok := r.cache.Find(taskInfo{TaskID: taskID}.key())
+	ti, ok := r.taskInfo[taskID]
 	if !ok {
 		return
 	}
-	ti := node.Meta().(taskInfo)
-
-	r.cache.Remove(ti.key())
-	if ti.TaskName != "" {
-		r.cache.Remove(ti.nameKey())
-	}
+	delete(r.taskInfo, taskID)
+	delete(r.id, ti.idKey())
 }
 
-func (r resolver) Find(pre string) (ti taskInfo, ok bool) {
-	ti, ok = r.FindByID(pre)
+func (r resolver) FindByID(taskID uuid.UUID) (taskInfo, bool) {
+	ti, ok := r.taskInfo[taskID]
+	return ti, ok
+}
+
+func (r resolver) FillTaskID(ti *taskInfo) bool {
+	v := *ti
+	v.TaskID = uuid.Nil
+
+	taskID, ok := r.id[v.idKey()]
 	if ok {
-		return
+		ti.TaskID = taskID
 	}
-	ti, ok = r.FindByName(pre)
-	return
-}
-
-func (r resolver) FindByID(pre string) (taskInfo, bool) {
-	if len(pre) >= 8 {
-		if node := leafNode(findNode(r.cache.Root(), []rune(pre))); node != nil {
-			return node.Meta().(taskInfo), true
-		}
-	}
-	return taskInfo{}, false
-}
-
-func (r resolver) FindByName(pre string) (taskInfo, bool) {
-	node := findNode(r.cache.Root(), append([]rune{taskNamePfx}, []rune(pre)...))
-	if sep := childNode(node, taskNameSep); sep != nil {
-		node = leafNode(sep)
-	} else {
-		node = leafNode(node)
-	}
-	if node != nil {
-		return node.Meta().(taskInfo), true
-	}
-	return taskInfo{}, false
+	return ok
 }
