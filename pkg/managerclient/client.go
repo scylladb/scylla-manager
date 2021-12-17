@@ -18,6 +18,7 @@ import (
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/hbollon/go-edlib"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -348,19 +349,26 @@ func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all 
 // Otherwise an error is returned.
 // If there is more tasks the error lists the available options.
 func (c *Client) TaskSplit(ctx context.Context, cluster, s string) (taskType string, taskID uuid.UUID, err error) {
-	taskType, taskID, err = TaskSplit(s)
+	var taskName string
+	taskType, taskID, taskName, err = TaskSplit(s)
 	if err != nil {
 		return
 	}
 
-	if taskID == uuid.Nil {
-		taskID, err = c.getUniqueTaskID(ctx, cluster, taskType)
+	if taskID != uuid.Nil {
+		return taskType, taskID, nil
+	}
+
+	if taskName == "" {
+		taskID, err = c.uniqueTaskID(ctx, cluster, taskType)
+	} else {
+		taskID, err = c.taskByName(ctx, cluster, taskType, taskName)
 	}
 
 	return
 }
 
-func (c *Client) getUniqueTaskID(ctx context.Context, clusterID, taskType string) (uuid.UUID, error) {
+func (c *Client) uniqueTaskID(ctx context.Context, clusterID, taskType string) (uuid.UUID, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -374,20 +382,62 @@ func (c *Client) getUniqueTaskID(ctx context.Context, clusterID, taskType string
 	tasks := resp.Payload
 	switch len(tasks) {
 	case 0:
-		return uuid.Nil, errors.Errorf("no task of type %s", taskType)
+		return uuid.Nil, errors.Errorf("no tasks of type %s", taskType)
 	case 1:
 		return uuid.Parse(tasks[0].ID)
 	default:
-		ids := make([]string, len(tasks))
-		for i, t := range tasks {
-			if t.Name != "" {
-				ids[i] = "- " + TaskJoin(taskType, t.Name)
-			} else {
-				ids[i] = "- " + TaskJoin(taskType, t.ID)
-			}
-		}
-		return uuid.Nil, errors.Errorf("task ambiguity use one of:\n%s", strings.Join(ids, "\n"))
+		return uuid.Nil, errors.Errorf("task ambiguity, use one of:\n%s", formatTaskList(tasks))
 	}
+}
+
+func (c *Client) taskByName(ctx context.Context, clusterID, taskType, taskName string) (uuid.UUID, error) {
+	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Type:      &taskType,
+		Short:     pointer.BoolPtr(true),
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	tasks := resp.Payload
+	if len(tasks) == 0 {
+		return uuid.Nil, errors.Errorf("no tasks of type %s", taskType)
+	}
+
+	for _, t := range tasks {
+		if t.Name == taskName {
+			return uuid.Parse(t.ID)
+		}
+	}
+
+	var names []string
+	for _, t := range tasks {
+		if t.Name != "" {
+			names = append(names, t.Name)
+		}
+	}
+	if len(names) > 0 {
+		res, _ := edlib.FuzzySearch(taskName, names, edlib.Levenshtein) // nolint: errcheck
+		if res != "" {
+			return uuid.Nil, errors.Errorf("not found, did you mean %s", TaskJoin(taskType, res))
+		}
+	}
+
+	return uuid.Nil, errors.Errorf("not found, use one of:\n%s", formatTaskList(tasks))
+}
+
+func formatTaskList(tasks []*models.ExtendedTask) string {
+	ids := make([]string, len(tasks))
+	for i, t := range tasks {
+		if t.Name != "" {
+			ids[i] = "- " + TaskJoin(t.Type, t.Name)
+		} else {
+			ids[i] = "- " + TaskJoin(t.Type, t.ID)
+		}
+	}
+	return strings.Join(ids, "\n")
 }
 
 // RepairProgress returns repair progress.
