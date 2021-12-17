@@ -329,6 +329,30 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("put task name conflict", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled")
+		task0 := h.makeTaskWithStartDate(future)
+		task0.Name = "foo"
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: task is added")
+
+		Print("When: another task of the same type with the same name is scheduled")
+		task1 := h.makeTaskWithStartDate(future)
+		task1.Name = "foo"
+		if err := h.service.PutTask(ctx, task1); err != nil {
+			t.Log(err)
+			Print("Then: the task is rejected")
+		} else {
+			t.Fatal("two tasks of the same type and name could be added")
+		}
+	})
+
 	t.Run("load tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()

@@ -319,15 +319,13 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		t.ID = id
 		create = true
 	}
+	s.logger.Info(ctx, "PutTask", "task", t, "schedule", t.Sched, "properties", t.Properties, "create", create)
+
 	if err := t.Validate(); err != nil {
 		return err
 	}
-
-	s.logger.Info(ctx, "PutTask", "task", t, "schedule", t.Sched, "properties", t.Properties, "create", create)
-
-	suspended := s.IsSuspended(ctx, t.ClusterID)
-	if create && suspended {
-		return service.ErrValidate(errors.New("cluster is suspended, scheduling tasks is not allowed"))
+	if err := s.shouldPutTask(create, t); err != nil {
+		return err
 	}
 	if err := s.putTask(t); err != nil {
 		return err
@@ -347,6 +345,24 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		s.initMetrics(t)
 	}
 	s.schedule(ctx, t, run)
+
+	return nil
+}
+
+func (s *Service) shouldPutTask(create bool, t *Task) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if create && s.isSuspendedLocked(t.ClusterID) {
+		return service.ErrValidate(errors.New("cluster is suspended, scheduling tasks is not allowed"))
+	}
+
+	if t.Name != "" {
+		ti := newTaskInfoFromTask(t)
+		if s.resolver.FillTaskID(&ti) && ti.TaskID != t.ID {
+			return errors.Errorf("task name %s is already used", t.Name)
+		}
+	}
 
 	return nil
 }
