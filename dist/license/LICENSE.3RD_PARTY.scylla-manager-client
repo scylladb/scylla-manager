@@ -17,6 +17,7 @@ This product includes software from github.com/gocql/gocql licensed under BSD-3-
 This product includes software from github.com/golang/snappy licensed under BSD-3-Clause license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
 This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0 license.
+This product includes software from github.com/hbollon/go-edlib licensed under MIT license.
 This product includes software from github.com/mailru/easyjson licensed under MIT license.
 This product includes software from github.com/mattn/go-runewidth licensed under MIT license.
 This product includes software from github.com/mitchellh/mapstructure licensed under MIT license.

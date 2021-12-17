@@ -10,7 +10,6 @@ This product includes software from github.com/asaskevich/govalidator licensed u
 This product includes software from github.com/aws/aws-sdk-go licensed under Apache-2.0 license.
 This product includes software from github.com/beorn7/perks licensed under MIT license.
 This product includes software from github.com/coreos/go-semver licensed under Apache-2.0 license.
-This product includes software from github.com/derekparker/trie licensed under MIT license.
 This product includes software from github.com/form3tech-oss/jwt-go licensed under MIT license.
 This product includes software from github.com/go-chi/render licensed under MIT license.
 This product includes software from github.com/go-openapi/analysis licensed under Apache-2.0 license.
