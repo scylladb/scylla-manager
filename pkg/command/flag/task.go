@@ -14,6 +14,7 @@ type TaskBase struct {
 	update bool
 
 	enabled    bool
+	name       string
 	interval   Duration
 	startDate  Time
 	numRetries int
@@ -39,23 +40,10 @@ func NewUpdateTaskBase() TaskBase {
 func (cmd *TaskBase) init() {
 	w := Wrap(cmd.Flags())
 	w.enabled(&cmd.enabled)
+	w.name(&cmd.name)
 	w.interval(&cmd.interval)
 	w.startDate(&cmd.startDate)
 	w.numRetries(&cmd.numRetries, cmd.numRetries)
-}
-
-// Enabled is true if task is enabled.
-func (cmd *TaskBase) Enabled() bool {
-	return cmd.enabled
-}
-
-// Schedule creates schedule from flags.
-func (cmd *TaskBase) Schedule() *managerclient.Schedule {
-	return &managerclient.Schedule{
-		Interval:   cmd.interval.String(),
-		StartDate:  strfmt.DateTime(cmd.startDate.Value()),
-		NumRetries: int64(cmd.numRetries),
-	}
 }
 
 // Update allows differentiating instances created with NewUpdateTaskBase.
@@ -63,11 +51,30 @@ func (cmd *TaskBase) Update() bool {
 	return cmd.update
 }
 
+// CreateTask creates a task scaffold with common task properties preset.
+func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
+	return &managerclient.Task{
+		Type:    taskType,
+		Enabled: cmd.enabled,
+		Name:    cmd.name,
+		Schedule: &managerclient.Schedule{
+			Interval:   cmd.interval.String(),
+			StartDate:  strfmt.DateTime(cmd.startDate.Value()),
+			NumRetries: int64(cmd.numRetries),
+		},
+		Properties: make(map[string]interface{}),
+	}
+}
+
 // UpdateTask updates task fields if flags are set, returns true if there are changes.
 func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 	ok := false
 	if cmd.Flag("enabled").Changed {
 		task.Enabled = cmd.enabled
+		ok = true
+	}
+	if cmd.Flag("name").Changed {
+		task.Name = cmd.name
 		ok = true
 	}
 	if cmd.Flag("interval").Changed {

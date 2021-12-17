@@ -116,6 +116,10 @@ func (w Wrapper) enabled(p *bool) {
 	w.fs.BoolVar(p, "enabled", true, usage["enabled"])
 }
 
+func (w Wrapper) name(p *string) {
+	w.fs.StringVar(p, "name", "", usage["name"])
+}
+
 func (w Wrapper) interval(p *Duration) {
 	w.fs.VarP(p, "interval", "i", usage["interval"])
 }

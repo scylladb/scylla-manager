@@ -91,12 +91,7 @@ func (cmd *command) run(args []string) error {
 		}
 		cmd.UpdateTask(task)
 	} else {
-		task = &managerclient.Task{
-			Type:       managerclient.ValidateBackupTask,
-			Enabled:    cmd.Enabled(),
-			Schedule:   cmd.Schedule(),
-			Properties: make(map[string]interface{}),
-		}
+		task = cmd.CreateTask(managerclient.ValidateBackupTask)
 	}
 
 	props := task.Properties.(map[string]interface{})

@@ -1,6 +1,9 @@
 enabled: |
   Not enabled tasks are not executed and hidden from task list.
 
+name: |
+  Task name that can be used insead of ID.
+
 interval: |
   Time after which a successfully completed task would be run again, supported units are:
 
