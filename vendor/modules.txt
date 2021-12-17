@@ -87,7 +87,6 @@ github.com/coreos/go-semver/semver
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/derekparker/trie v0.0.0-20200317170641-1fdf38b7b0e9
 ## explicit
-github.com/derekparker/trie
 # github.com/form3tech-oss/jwt-go v3.2.2+incompatible
 github.com/form3tech-oss/jwt-go
 # github.com/go-chi/chi/v5 v5.0.0
@@ -180,6 +179,11 @@ github.com/hailocab/go-hostpool
 # github.com/hashicorp/go-version v1.2.0
 ## explicit
 github.com/hashicorp/go-version
+# github.com/hbollon/go-edlib v1.5.0
+## explicit
+github.com/hbollon/go-edlib
+github.com/hbollon/go-edlib/internal/orderedmap
+github.com/hbollon/go-edlib/internal/utils
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/jmespath/go-jmespath v0.4.0

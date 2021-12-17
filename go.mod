@@ -6,7 +6,6 @@ require (
 	github.com/aws/aws-sdk-go v1.35.17
 	github.com/cenkalti/backoff/v4 v4.0.0
 	github.com/cespare/xxhash/v2 v2.1.1
-	github.com/derekparker/trie v0.0.0-20200317170641-1fdf38b7b0e9
 	github.com/go-chi/chi/v5 v5.0.0
 	github.com/go-chi/render v1.0.0
 	github.com/go-openapi/errors v0.19.6
