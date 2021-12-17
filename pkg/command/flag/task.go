@@ -20,24 +20,20 @@ type TaskBase struct {
 	numRetries int
 }
 
-func NewTaskBase() TaskBase {
-	cmd := TaskBase{}
-	cmd.init()
-	return cmd
+func MakeTaskBase() TaskBase {
+	return TaskBase{}
 }
 
 func NewUpdateTaskBase() TaskBase {
-	cmd := TaskBase{
+	return TaskBase{
 		Command: cobra.Command{
 			Args: cobra.MaximumNArgs(1),
 		},
 		update: true,
 	}
-	cmd.init()
-	return cmd
 }
 
-func (cmd *TaskBase) init() {
+func (cmd *TaskBase) Init() {
 	w := Wrap(cmd.Flags())
 	w.enabled(&cmd.enabled)
 	w.name(&cmd.name)
