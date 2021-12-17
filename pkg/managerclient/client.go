@@ -380,7 +380,11 @@ func (c *Client) getUniqueTaskID(ctx context.Context, clusterID, taskType string
 	default:
 		ids := make([]string, len(tasks))
 		for i, t := range tasks {
-			ids[i] = "- " + TaskJoin(taskType, t.ID)
+			if t.Name != "" {
+				ids[i] = "- " + TaskJoin(taskType, t.Name)
+			} else {
+				ids[i] = "- " + TaskJoin(taskType, t.ID)
+			}
 		}
 		return uuid.Nil, errors.Errorf("task ambiguity use one of:\n%s", strings.Join(ids, "\n"))
 	}

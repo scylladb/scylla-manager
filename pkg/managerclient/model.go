@@ -318,7 +318,12 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 	p := table.New("Task", "Arguments", "Next run", "Status")
 	p.LimitColumnLength(3)
 	for _, t := range et.ExtendedTaskSlice {
-		id := fmt.Sprint(t.Type, "/", t.ID)
+		var id string
+		if t.Name != "" {
+			id = TaskJoin(t.Type, t.Name)
+		} else {
+			id = TaskJoin(t.Type, t.ID)
+		}
 		if et.All && !t.Enabled {
 			id = "*" + id
 		}
