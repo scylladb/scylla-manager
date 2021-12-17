@@ -145,9 +145,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "fix last run status")
 		}
-		if t.Type.isHealthCheck() || !s.IsSuspended(ctx, t.ClusterID) {
-			s.schedule(ctx, t, ab)
-		}
+		s.schedule(ctx, t, ab)
 		return nil
 	})
 	if err != nil {
@@ -348,9 +346,8 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		}
 		s.initMetrics(t)
 	}
-	if !suspended {
-		s.schedule(ctx, t, run)
-	}
+	s.schedule(ctx, t, run)
+
 	return nil
 }
 
@@ -364,6 +361,11 @@ func (s *Service) initMetrics(t *Task) {
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	s.mu.Lock()
+	if s.isSuspendedLocked(t.ClusterID) && !t.Type.isHealthCheck() {
+		s.mu.Unlock()
+		return
+	}
+
 	s.resolver.Put(newTaskInfoFromTask(t))
 	l, lok := s.scheduler[t.ClusterID]
 	if !lok {
