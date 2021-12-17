@@ -56,7 +56,7 @@ func newCommand(client *managerclient.Client, update bool) *command {
 		cmd.TaskBase = flag.NewUpdateTaskBase()
 		r = updateRes
 	} else {
-		cmd.TaskBase = flag.NewTaskBase()
+		cmd.TaskBase = flag.MakeTaskBase()
 		r = res
 	}
 	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
@@ -70,8 +70,9 @@ func newCommand(client *managerclient.Client, update bool) *command {
 }
 
 func (cmd *command) init() {
-	defer flag.MustSetUsages(&cmd.Command, res, "cluster", "location")
+	cmd.TaskBase.Init()
 
+	defer flag.MustSetUsages(&cmd.Command, res, "cluster", "location")
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Location(&cmd.location)

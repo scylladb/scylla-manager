@@ -75,8 +75,10 @@ issues:
     - composite literal uses unkeyed fields
     - exported function Default.+ should have comment or be unexported
     - exported function New.* should have comment or be unexported
+    - exported function Make
     - exported method +\.Close should have comment or be unexported
     - exported method .*Value\..+ should have comment or be unexported
+    - exported method .+\.Init should have comment or be unexported
     - exported method .+\.Key should have comment or be unexported
     - exported method .+\.MarshalBinary should have comment or be unexported
     - exported method .+\.MarshalCQL should have comment or be unexported
