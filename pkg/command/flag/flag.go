@@ -62,6 +62,9 @@ func MustSetUsages(cmd *cobra.Command, b []byte, required ...string) {
 	})
 	// Mark flags as required
 	for _, name := range required {
+		if cmd.Flag(name).DefValue != "" {
+			continue
+		}
 		if err := cmd.MarkFlagRequired(name); err != nil {
 			panic(err)
 		}
