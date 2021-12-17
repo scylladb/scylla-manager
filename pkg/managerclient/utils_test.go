@@ -38,7 +38,7 @@ func TestTaskSplit(t *testing.T) {
 	}
 
 	for i, test := range table {
-		tp, id, err := TaskSplit(test.S)
+		tp, id, _, err := TaskSplit(test.S)
 		if test.Err != "" {
 			t.Log(err)
 			if err == nil || !strings.Contains(err.Error(), test.Err) {
