@@ -5,7 +5,6 @@ package migrate
 import (
 	"context"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -16,15 +15,15 @@ func init() {
 	h := clusterMoveHostsToHost011{
 		m: make(map[uuid.UUID]string),
 	}
-	registerCallback("011-cluster_add_host.cql", migrate.BeforeMigration, h.Before)
-	registerCallback("011-cluster_add_host.cql", migrate.AfterMigration, h.After)
+	reg.Add(migrate.BeforeMigration, "011-cluster_add_host.cql", h.Before)
+	reg.Add(migrate.AfterMigration, "011-cluster_add_host.cql", h.After)
 }
 
 type clusterMoveHostsToHost011 struct {
 	m map[uuid.UUID]string
 }
 
-func (h clusterMoveHostsToHost011) Before(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+func (h clusterMoveHostsToHost011) Before(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 	type cluster struct {
 		ID    uuid.UUID
 		Hosts []string
@@ -43,7 +42,7 @@ func (h clusterMoveHostsToHost011) Before(ctx context.Context, session gocqlx.Se
 	return nil
 }
 
-func (h clusterMoveHostsToHost011) After(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+func (h clusterMoveHostsToHost011) After(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 	const updateClusterCql = `INSERT INTO cluster(id, host) VALUES (?, ?)`
 	q := session.Query(updateClusterCql, nil)
 	defer q.Release()

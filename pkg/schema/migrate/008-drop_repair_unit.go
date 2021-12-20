@@ -5,7 +5,6 @@ package migrate
 import (
 	"context"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -14,10 +13,10 @@ import (
 )
 
 func init() {
-	registerCallback("008-drop_repair_unit.cql", migrate.AfterMigration, createDefaultRepairTaskForClusterAfter008)
+	reg.Add(migrate.AfterMigration, "008-drop_repair_unit.cql", createDefaultRepairTaskForClusterAfter008)
 }
 
-func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 	q := qb.Select("cluster").Columns("id").Query(session)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {
@@ -32,7 +31,7 @@ VALUES (?, 'repair', uuid(), true, {start_date: ?, interval_days: ?, num_retries
 	for _, id := range ids {
 		iq.Bind(id, timeutc.TodayMidnight(), 7, 3, []byte{'{', '}'})
 		if err := iq.Exec(); err != nil {
-			logger.Error(ctx, "Failed to add repair task", "cluster_id", id, "error", err.Error())
+			Logger.Error(ctx, "Failed to add repair task", "cluster_id", id, "error", err.Error())
 		}
 	}
 

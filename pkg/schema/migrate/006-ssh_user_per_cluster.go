@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -20,7 +19,7 @@ func init() {
 		oldConfigFile: "/etc/scylla-manager/scylla-manager.yaml.rpmsave",
 		dir:           "/var/lib/scylla-manager/.certs",
 	}
-	registerCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, h.After)
+	reg.Add(migrate.AfterMigration, "006-ssh_user_per_cluster.cql", h.After)
 }
 
 type copySSHInfoToCluster006 struct {
@@ -28,7 +27,7 @@ type copySSHInfoToCluster006 struct {
 	dir           string
 }
 
-func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 	type sshConfig struct {
 		User         string `yaml:"user,omitempty"`
 		IdentityFile string `yaml:"identity_file,omitempty"`
@@ -67,7 +66,7 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Sessi
 	for _, id := range ids {
 		identityFile := filepath.Join(h.dir, id.String())
 		if err := os.Link(cfg.IdentityFile, identityFile); err != nil {
-			logger.Info(ctx, "Failed to link ssh identity file",
+			Logger.Info(ctx, "Failed to link ssh identity file",
 				"from", cfg.IdentityFile,
 				"to", identityFile,
 				"error", err,
@@ -75,7 +74,7 @@ func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Sessi
 			continue
 		}
 		if err := os.Chmod(identityFile, 0o600); err != nil {
-			logger.Info(ctx, "Failed to change identity file permissions",
+			Logger.Info(ctx, "Failed to change identity file permissions",
 				"file", identityFile,
 				"error", err,
 			)
