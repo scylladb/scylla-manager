@@ -60,6 +60,7 @@ func makeAutoRepairTask(clusterID uuid.UUID) *scheduler.Task {
 		ClusterID: clusterID,
 		Type:      scheduler.RepairTask,
 		Enabled:   true,
+		Name:      "all-weekly",
 		Sched: scheduler.Schedule{
 			Interval:   duration.Duration(7 * 24 * time.Hour),
 			StartDate:  timeutc.TodayMidnight(),
