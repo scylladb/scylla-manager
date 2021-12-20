@@ -2,7 +2,8 @@ name: sctool info
 synopsis: Show task parameters and history
 description: |
   This command shows a details about task run history for a given task.
-usage: sctool info --cluster <id|name> [flags] <type[/task-id]>
+  If there is one task of the given type the '<id|name>' argument is not needed.
+usage: sctool info --cluster <id|name> [flags] <type>[/<id|name>]
 options:
 - name: cluster
   shorthand: c

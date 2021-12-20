@@ -1,6 +1,10 @@
-use: start --cluster <id|name> [flags] <type[/task-id]>
+use: start --cluster <id|name> [flags] <type>[/<id|name>]
 
 short: Start executing a task
+
+long: |
+  This command starts a specified task.
+  If there is one task of the given type the '<id|name>' argument is not needed.
 
 no-continue: |
   Do not resume the last run.

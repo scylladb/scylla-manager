@@ -1,7 +1,7 @@
-use: update --cluster <id|name> [flags] [<validate_backup/task-id>]
+use: update --cluster <id|name> [flags] [validate_backup/<id|name>]
 
 short: Modify properties of the existing backup validation task
 
 long: |
   This command allows you to modify properties of an already existing backup validation task.
-  If there is one backup validation task the 'validate_backup/task-id' argument is not needed.
+  If there is one backup validation task the 'validate_backup/<id|name>' argument is not needed.

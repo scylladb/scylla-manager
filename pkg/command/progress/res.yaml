@@ -1,4 +1,4 @@
-use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type[/task-id]>
+use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type>[/<id|name>]
 
 example:
   Get progress of latest repair task of cluster 'prod'.
@@ -9,6 +9,7 @@ short: Show the task progress
 
 long: |
   This command shows details of the latest run (or still running) task.
+  If there is one task of the given type the '<id|name>' argument is not needed.
 
 details: |
   More detailed progress data, depending on task type.
