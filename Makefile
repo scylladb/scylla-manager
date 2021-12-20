@@ -181,6 +181,11 @@ run-server: build-server ## Build and run development server
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries
 
+.PHONY: docs
+docs: ## Update docs/source with generated code
+	@rm -rf docs/source/sctool/partials
+	@SCYLLA_MANAGER_CLUSTER="" ./sctool doc -o docs/source/sctool/partials
+
 .PHONY: filler-tool
 filler-tool: ## Build "filler" tool
 	@echo "==> Building filler"
