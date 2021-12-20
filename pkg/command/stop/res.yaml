@@ -1,10 +1,11 @@
-use: stop --cluster <id|name> [flags] <type[/task-id]>
+use: stop --cluster <id|name> [flags] <type>[/<id|name>]
 
 short: Stop executing a task
 
 long: |
   This command stops a specified task, stopping an already stopped task has no effect.
   If you want to stop all tasks see sctool suspend.
+  If there is one task of the given type the '<id|name>' argument is not needed.
 
 delete: |
   Permanently remove the task.

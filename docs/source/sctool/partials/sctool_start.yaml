@@ -1,6 +1,9 @@
 name: sctool start
 synopsis: Start executing a task
-usage: sctool start --cluster <id|name> [flags] <type[/task-id]>
+description: |
+  This command starts a specified task.
+  If there is one task of the given type the '<id|name>' argument is not needed.
+usage: sctool start --cluster <id|name> [flags] <type>[/<id|name>]
 options:
 - name: cluster
   shorthand: c

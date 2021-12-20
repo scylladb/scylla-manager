@@ -14,13 +14,13 @@ options:
     A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
     The following syntax for glob patterns is supported:
 
-    '*' - matches any number of any characters including none
-    '?' - matches any single character
-    '[abc]' - matches one character given in the bracket
-    '[a-z]' - matches one character from the range given in the bracket
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
 
 - name: dry-run
   default_value: "false"
@@ -55,13 +55,13 @@ options:
     The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
     The following syntax for glob patterns is supported:
 
-    '*' - matches any number of any characters including none
-    '?' - matches any single character
-    '[abc]' - matches one character given in the bracket
-    '[a-z]' - matches one character from the range given in the bracket
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
 
 - name: location
   shorthand: L
@@ -71,6 +71,9 @@ options:
     The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
     The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
     The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+- name: name
+  usage: |
+    Task name that can be used insead of ID.
 - name: num-retries
   shorthand: r
   default_value: "0"

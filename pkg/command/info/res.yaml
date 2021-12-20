@@ -1,9 +1,10 @@
-use: info --cluster <id|name> [flags] <type[/task-id]>
+use: info --cluster <id|name> [flags] <type>[/<id|name>]
 
 short: Show task parameters and history
 
 long: |
   This command shows a details about task run history for a given task.
+  If there is one task of the given type the '<id|name>' argument is not needed.
 
 limit: |
   Limits the number of returned results.
