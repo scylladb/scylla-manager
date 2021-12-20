@@ -33,7 +33,7 @@ require (
 	github.com/scylladb/go-log v0.0.6
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
-	github.com/scylladb/gocqlx/v2 v2.5.0
+	github.com/scylladb/gocqlx/v2 v2.6.1-0.20211220144210-2b885ac61b11
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
