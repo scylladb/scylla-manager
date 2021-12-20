@@ -5,7 +5,6 @@ package migrate
 import (
 	"context"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -13,10 +12,10 @@ import (
 )
 
 func init() {
-	registerCallback("016-cluster_drop_host.cql", migrate.BeforeMigration, clusterMoveHostToKnownHostsBefore016)
+	reg.Add(migrate.BeforeMigration, "016-cluster_drop_host.cql", clusterMoveHostToKnownHostsBefore016)
 }
 
-func clusterMoveHostToKnownHostsBefore016(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+func clusterMoveHostToKnownHostsBefore016(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 	type cluster struct {
 		ID         uuid.UUID
 		Host       string

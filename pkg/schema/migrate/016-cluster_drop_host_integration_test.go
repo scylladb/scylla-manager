@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package migrate
@@ -12,7 +13,6 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/schema"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	. "github.com/scylladb/scylla-manager/pkg/testutils"
 )
@@ -22,14 +22,14 @@ func TestClusterMoveHostToKnownHostsBefore016Integration(t *testing.T) {
 	defer restoreRegister()
 	session := CreateSessionWithoutMigration(t)
 
-	cb := findCallback("016-cluster_drop_host.cql", migrate.BeforeMigration)
-	registerCallback("016-cluster_drop_host.cql", migrate.BeforeMigration, func(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+	cb := reg.Find(migrate.BeforeMigration, "016-cluster_drop_host.cql")
+	reg.Add(migrate.BeforeMigration, "016-cluster_drop_host.cql", func(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 		Print("Given: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id, host) VALUES (uuid(), 'host0')`
 		ExecStmt(t, session, insertClusterCql)
 
 		Print("When: migrate")
-		if err := cb(ctx, session, logger); err != nil {
+		if err := cb(ctx, session, ev, name); err != nil {
 			t.Fatal(err)
 		}
 

@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -52,7 +51,7 @@ ssh:
 		t.Fatal(err)
 	}
 
-	registerCallback("006-ssh_user_per_cluster.cql", migrate.AfterMigration, func(ctx context.Context, session gocqlx.Session, logger log.Logger) error {
+	reg.Add(migrate.AfterMigration, "006-ssh_user_per_cluster.cql", func(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 		Print("And: clusters")
 		const insertClusterCql = `INSERT INTO cluster (id) VALUES (uuid())`
 		ExecStmt(t, session, insertClusterCql)
@@ -62,7 +61,7 @@ ssh:
 			oldConfigFile: oldConfigFile,
 			dir:           dir,
 		}
-		if err := h.After(ctx, session, logger); err != nil {
+		if err := h.After(ctx, session, ev, name); err != nil {
 			t.Fatal(err)
 		}
 
