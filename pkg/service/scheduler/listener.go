@@ -61,7 +61,7 @@ func (l schedulerListener) logKey(ctx context.Context, key scheduler.Key, msg st
 	if !ok {
 		return
 	}
-	if ti.TaskType.isHealthCheck() {
+	if ti.TaskType == HealthCheckTask {
 		l.logger.Debug(ctx, msg, prependTaskInfo(ti, keyvals)...)
 	} else {
 		l.logger.Info(ctx, msg, prependTaskInfo(ti, keyvals)...)

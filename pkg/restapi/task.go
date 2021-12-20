@@ -236,16 +236,9 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if newTask.Type == scheduler.HealthCheckCQLTask {
-		if err := h.Scheduler.PutTaskOnce(r.Context(), newTask); err != nil {
-			respondError(w, r, errors.Wrap(err, "create task"))
-			return
-		}
-	} else {
-		if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
-			respondError(w, r, errors.Wrap(err, "create task"))
-			return
-		}
+	if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
+		respondError(w, r, errors.Wrap(err, "create task"))
+		return
 	}
 
 	taskURL := r.URL.ResolveReference(&url.URL{Path: path.Join("task", newTask.Type.String(), newTask.ID.String())})

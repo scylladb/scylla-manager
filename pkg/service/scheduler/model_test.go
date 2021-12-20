@@ -10,9 +10,7 @@ func TestTaskType(t *testing.T) {
 	allTaskTypes := []TaskType{
 		UnknownTask,
 		BackupTask,
-		HealthCheckAlternatorTask,
-		HealthCheckCQLTask,
-		HealthCheckRESTTask,
+		HealthCheckTask,
 		RepairTask,
 		ValidateBackupTask,
 	}
