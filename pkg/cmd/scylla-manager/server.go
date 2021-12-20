@@ -124,9 +124,7 @@ func (s *server) makeServices() error {
 
 	// Register the runners
 	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.backupSvc.Runner()})
-	s.schedSvc.SetRunner(scheduler.HealthCheckAlternatorTask, s.healthSvc.AlternatorRunner())
-	s.schedSvc.SetRunner(scheduler.HealthCheckCQLTask, s.healthSvc.CQLRunner())
-	s.schedSvc.SetRunner(scheduler.HealthCheckRESTTask, s.healthSvc.RESTRunner())
+	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.repairSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
 
@@ -177,14 +175,10 @@ func (s *server) makeServices() error {
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	switch c.Type {
 	case cluster.Create:
-		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckAlternatorTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
-		}
-		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
-		}
-		if err := s.schedSvc.PutTaskOnce(ctx, makeAutoHealthCheckRESTTask(c.ID)); err != nil {
-			return errors.Wrapf(err, "add automatically scheduled REST health check for cluster %s", c.ID)
+		for _, t := range makeAutoHealthCheckTasks(c.ID) {
+			if err := s.schedSvc.PutTask(ctx, t); err != nil {
+				return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
+			}
 		}
 		if !c.WithoutRepair {
 			if err := s.schedSvc.PutTask(ctx, makeAutoRepairTask(c.ID)); err != nil {

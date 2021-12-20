@@ -91,47 +91,38 @@ func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsSt
 	}, nil
 }
 
-// CQLRunner creates a Runner that performs health checks for CQL connectivity.
-func (s *Service) CQLRunner() Runner {
+func (s *Service) Runner() Runner {
 	return Runner{
-		scyllaClient: s.scyllaClient,
-		timeout:      s.cqlTimeout,
-		metrics: &runnerMetrics{
-			status:  cqlStatus,
-			rtt:     cqlRTT,
-			timeout: cqlTimeout,
+		cql: runner{
+			scyllaClient: s.scyllaClient,
+			timeout:      s.cqlTimeout,
+			metrics: &runnerMetrics{
+				status:  cqlStatus,
+				rtt:     cqlRTT,
+				timeout: cqlTimeout,
+			},
+			ping: s.pingCQL,
 		},
-		ping: s.pingCQL,
-	}
-}
-
-// RESTRunner creates a Runner that performs health checks for REST API
-// connectivity.
-func (s *Service) RESTRunner() Runner {
-	return Runner{
-		scyllaClient: s.scyllaClient,
-		timeout:      s.restTimeout,
-		metrics: &runnerMetrics{
-			status:  restStatus,
-			rtt:     restRTT,
-			timeout: restTimeout,
+		rest: runner{
+			scyllaClient: s.scyllaClient,
+			timeout:      s.restTimeout,
+			metrics: &runnerMetrics{
+				status:  restStatus,
+				rtt:     restRTT,
+				timeout: restTimeout,
+			},
+			ping: s.pingREST,
 		},
-		ping: s.pingREST,
-	}
-}
-
-// AlternatorRunner creates a Runner that performs health checks for Alternator API
-// connectivity.
-func (s *Service) AlternatorRunner() Runner {
-	return Runner{
-		scyllaClient: s.scyllaClient,
-		timeout:      s.alternatorTimeout,
-		metrics: &runnerMetrics{
-			status:  alternatorStatus,
-			rtt:     alternatorRTT,
-			timeout: alternatorTimeout,
+		alternator: runner{
+			scyllaClient: s.scyllaClient,
+			timeout:      s.alternatorTimeout,
+			metrics: &runnerMetrics{
+				status:  alternatorStatus,
+				rtt:     alternatorRTT,
+				timeout: alternatorTimeout,
+			},
+			ping: s.pingAlternator,
 		},
-		ping: s.pingAlternator,
 	}
 }
 

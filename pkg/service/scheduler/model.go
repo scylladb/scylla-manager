@@ -23,13 +23,11 @@ type TaskType string
 
 // TaskType enumeration.
 const (
-	UnknownTask               TaskType = "unknown"
-	BackupTask                TaskType = "backup"
-	HealthCheckAlternatorTask TaskType = "healthcheck_alternator"
-	HealthCheckCQLTask        TaskType = "healthcheck"
-	HealthCheckRESTTask       TaskType = "healthcheck_rest"
-	RepairTask                TaskType = "repair"
-	ValidateBackupTask        TaskType = "validate_backup"
+	UnknownTask        TaskType = "unknown"
+	BackupTask         TaskType = "backup"
+	HealthCheckTask    TaskType = "healthcheck"
+	RepairTask         TaskType = "repair"
+	ValidateBackupTask TaskType = "validate_backup"
 
 	mockTask TaskType = "mock"
 )
@@ -48,12 +46,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = UnknownTask
 	case BackupTask:
 		*t = BackupTask
-	case HealthCheckAlternatorTask:
-		*t = HealthCheckAlternatorTask
-	case HealthCheckCQLTask:
-		*t = HealthCheckCQLTask
-	case HealthCheckRESTTask:
-		*t = HealthCheckRESTTask
+	case HealthCheckTask:
+		*t = HealthCheckTask
 	case RepairTask:
 		*t = RepairTask
 	case ValidateBackupTask:
@@ -64,14 +58,6 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		return fmt.Errorf("unrecognized TaskType %q", text)
 	}
 	return nil
-}
-
-func (t TaskType) isHealthCheck() bool {
-	switch t {
-	case HealthCheckAlternatorTask, HealthCheckCQLTask, HealthCheckRESTTask:
-		return true
-	}
-	return false
 }
 
 // Schedule specify task schedule.
@@ -211,7 +197,7 @@ type Run struct {
 
 func newRunFromTaskInfo(ti taskInfo) *Run {
 	var id uuid.UUID
-	if ti.TaskType.isHealthCheck() {
+	if ti.TaskType == HealthCheckTask {
 		id = healthCheckActiveRunID
 	} else {
 		id = uuid.NewTime()

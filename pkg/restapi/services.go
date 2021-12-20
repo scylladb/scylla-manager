@@ -67,7 +67,6 @@ type SchedService interface {
 	PropertiesDecorator(tp scheduler.TaskType) scheduler.PropertiesDecorator
 	GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp scheduler.TaskType, id uuid.UUID) (*scheduler.Task, error)
 	PutTask(ctx context.Context, t *scheduler.Task) error
-	PutTaskOnce(ctx context.Context, t *scheduler.Task) error
 	DeleteTask(ctx context.Context, t *scheduler.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, filter scheduler.ListFilter) ([]*scheduler.TaskListItem, error)
 	StartTask(ctx context.Context, t *scheduler.Task) error

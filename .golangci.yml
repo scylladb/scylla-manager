@@ -91,6 +91,7 @@ issues:
     - exported method .+\.Validate should have comment or be unexported
     - exported method .+\.Value should have comment or be unexported
     - exported method .+\.WriteTo should have comment or be unexported
+    - exported method Service.Runner should have comment or be unexported
     - exported method Wrapper\..+ should have comment or be unexported
     - exported method Runner\.Run should have comment or be unexported
     - exported type .*Metrics should have comment or be unexported

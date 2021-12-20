@@ -3,6 +3,8 @@
 package healthcheck
 
 import (
+	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 )
 
@@ -48,4 +50,37 @@ func makeNodeStatus(src []scyllaclient.NodeStatusInfo) []NodeStatus {
 		dst[i].Status = src[i].Status.String() + src[i].State.String()
 	}
 	return dst
+}
+
+// Mode specifies the type of health-check.
+type Mode string
+
+// Mode enumeration.
+const (
+	CQLMode        = Mode("cql")
+	RESTMode       = Mode("rest")
+	AlternatorMode = Mode("alternator")
+)
+
+func (m Mode) String() string {
+	return string(m)
+}
+
+func (m Mode) MarshalText() (text []byte, err error) {
+	return []byte(m), nil
+}
+
+var validModes = strset.New(CQLMode.String(), RESTMode.String(), AlternatorMode.String())
+
+func (m *Mode) UnmarshalText(text []byte) error {
+	s := string(text)
+	if !validModes.Has(string(text)) {
+		return errors.Errorf("unsupported mode %s", s)
+	}
+	*m = Mode(s)
+	return nil
+}
+
+type taskProperties struct {
+	Mode Mode `json:"mode"`
 }

@@ -267,45 +267,6 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 	return r, q.GetRelease(r)
 }
 
-// PutTaskOnce upserts a task. Only one task of the same type can exist for the current cluster.
-// If attempting to create a task of the same type a validation error is returned.
-// The task instance must pass Validate() checks.
-func (s *Service) PutTaskOnce(ctx context.Context, t *Task) error {
-	s.logger.Debug(ctx, "PutTaskOnce", "task", t)
-
-	if t == nil {
-		return service.ErrNilPtr
-	}
-
-	ids, err := s.hasTaskType(t)
-	if err != nil {
-		return err
-	}
-
-	if len(ids) == 0 {
-		// Create a new task
-		return s.PutTask(ctx, t)
-	}
-
-	for _, id := range ids {
-		if id == t.ID {
-			// Update an existing task
-			return s.PutTask(ctx, t)
-		}
-	}
-
-	return service.ErrValidate(errors.Errorf("a task of type %s exists for cluster %s", t.Type, t.ClusterID))
-}
-
-func (s *Service) hasTaskType(t *Task) ([]uuid.UUID, error) {
-	q := table.SchedulerTask.SelectBuilder("id").
-		Where(qb.Eq("type")).
-		Query(s.session).
-		BindStruct(t)
-	var ids []uuid.UUID
-	return ids, q.SelectRelease(&ids)
-}
-
 const nowThreshold = 5 * time.Second
 
 // PutTask upserts a task.
@@ -377,7 +338,7 @@ func (s *Service) initMetrics(t *Task) {
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	s.mu.Lock()
-	if s.isSuspendedLocked(t.ClusterID) && !t.Type.isHealthCheck() {
+	if s.isSuspendedLocked(t.ClusterID) && t.Type != HealthCheckTask {
 		s.mu.Unlock()
 		return
 	}
@@ -439,7 +400,7 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 	runCtx := log.WithTraceID(ctx)
 	logger := s.logger.Named(ti.ClusterID.String()[0:8])
 
-	if !ti.TaskType.isHealthCheck() {
+	if ti.TaskType != HealthCheckTask {
 		logger.Info(runCtx, "Run started",
 			"task", ti,
 			"retry", ctx.Retry,
@@ -456,7 +417,7 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 		}
 		r.EndTime = pointer.TimePtr(now())
 
-		if ti.TaskType.isHealthCheck() {
+		if ti.TaskType == HealthCheckTask {
 			if r.Status != StatusDone {
 				r.ID = uuid.NewTime()
 			}
@@ -732,19 +693,13 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 }
 
 func (s *Service) forEachClusterHealthCheckTask(clusterID uuid.UUID, f func(t *Task) error) error {
-	// We iterate over task types not use IN because it's not supported.
-	// Cannot restrict clustering columns by IN relations when a collection is selected by the query.
-	q := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id"), qb.Eq("type")).Query(s.session)
+	q := qb.Select(table.SchedulerTask.Name()).
+		Where(qb.Eq("cluster_id"), qb.Eq("type")).
+		Query(s.session).
+		Bind(clusterID, HealthCheckTask)
 	defer q.Release()
 
-	hc := []TaskType{HealthCheckAlternatorTask, HealthCheckCQLTask, HealthCheckCQLTask}
-	for _, tp := range hc {
-		q.Bind(clusterID, tp)
-		if err := forEachTaskWithQuery(q, f); err != nil {
-			return err
-		}
-	}
-	return nil
+	return forEachTaskWithQuery(q, f)
 }
 
 func (s *Service) forEachClusterTask(clusterID uuid.UUID, f func(t *Task) error) error {

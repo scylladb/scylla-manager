@@ -26,7 +26,7 @@ func TestRemoveClusterMetricsWhenNumberOfMetricsExceedsDefaultChannelLength_2843
 		}
 		metric.With(hl).Set(1)
 	}
-	r := Runner{metrics: &runnerMetrics{
+	r := runner{metrics: &runnerMetrics{
 		status:  metric,
 		rtt:     metric,
 		timeout: metric,
