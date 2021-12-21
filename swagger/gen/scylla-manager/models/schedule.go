@@ -17,6 +17,9 @@ import (
 // swagger:model Schedule
 type Schedule struct {
 
+	// cron
+	Cron string `json:"cron,omitempty"`
+
 	// interval
 	Interval string `json:"interval,omitempty"`
 

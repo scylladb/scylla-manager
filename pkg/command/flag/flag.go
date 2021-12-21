@@ -123,6 +123,10 @@ func (w Wrapper) name(p *string) {
 	w.fs.StringVar(p, "name", "", usage["name"])
 }
 
+func (w Wrapper) cron(p *string) {
+	w.fs.StringVar(p, "cron", "", usage["cron"])
+}
+
 func (w Wrapper) interval(p *Duration) {
 	w.fs.VarP(p, "interval", "i", usage["interval"])
 	w.MustMarkDeprecated("interval", "use cron instead")
