@@ -125,12 +125,20 @@ func (w Wrapper) name(p *string) {
 
 func (w Wrapper) interval(p *Duration) {
 	w.fs.VarP(p, "interval", "i", usage["interval"])
+	w.MustMarkDeprecated("interval", "use cron instead")
 }
 
 func (w Wrapper) startDate(p *Time) {
 	w.fs.VarP(p, "start-date", "s", usage["start-date"])
+	w.MustMarkDeprecated("start-date", "use cron instead")
 }
 
 func (w Wrapper) numRetries(p *int, def int) {
 	w.fs.IntVarP(p, "num-retries", "r", def, usage["num-retries"])
+}
+
+func (w Wrapper) MustMarkDeprecated(name, usageMessage string) {
+	if err := w.fs.MarkDeprecated(name, usageMessage); err != nil {
+		panic(err)
+	}
 }
