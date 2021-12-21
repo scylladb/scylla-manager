@@ -18,7 +18,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-// TaskType specifies the type of a Task.
+// TaskType specifies the type of Task.
 type TaskType string
 
 // TaskType enumeration.
@@ -64,6 +64,7 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 type Schedule struct {
 	gocqlx.UDT
 
+	Cron                 Cron              `json:"cron"`
 	StartDate            time.Time         `json:"start_date"`
 	Interval             duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries           int               `json:"num_retries"`
@@ -71,6 +72,9 @@ type Schedule struct {
 }
 
 func (s Schedule) trigger() scheduler.Trigger {
+	if !s.Cron.IsZero() {
+		return s.Cron
+	}
 	return trigger.NewLegacy(s.StartDate, s.Interval.Duration())
 }
 

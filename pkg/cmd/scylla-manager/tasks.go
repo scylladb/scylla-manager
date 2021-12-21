@@ -8,8 +8,6 @@ import (
 
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/util/duration"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -25,9 +23,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "cql",
 			Sched: scheduler.Schedule{
-				Interval:   duration.Duration(15 * time.Second),
-				StartDate:  timeutc.Now().Add(30 * time.Second),
-				NumRetries: 0,
+				Cron: scheduler.NewCronEvery(15 * time.Second),
 			},
 			Properties: healthCheckModeProperties(healthcheck.CQLMode),
 		},
@@ -37,9 +33,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "rest",
 			Sched: scheduler.Schedule{
-				Interval:   duration.Duration(1 * time.Minute),
-				StartDate:  timeutc.Now().Add(2 * time.Minute),
-				NumRetries: 0,
+				Cron: scheduler.NewCronEvery(1 * time.Minute),
 			},
 			Properties: healthCheckModeProperties(healthcheck.RESTMode),
 		},
@@ -49,9 +43,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "alternator",
 			Sched: scheduler.Schedule{
-				Interval:   duration.Duration(15 * time.Second),
-				StartDate:  timeutc.Now().Add(30 * time.Second),
-				NumRetries: 0,
+				Cron: scheduler.NewCronEvery(15 * time.Second),
 			},
 			Properties: healthCheckModeProperties(healthcheck.AlternatorMode),
 		},
@@ -67,8 +59,7 @@ func makeAutoRepairTask(clusterID uuid.UUID) *scheduler.Task {
 		Enabled:   true,
 		Name:      "all-weekly",
 		Sched: scheduler.Schedule{
-			Interval:   duration.Duration(7 * 24 * time.Hour),
-			StartDate:  timeutc.TodayMidnight(),
+			Cron:       scheduler.MustCron("0 23 * * SAT"),
 			NumRetries: 3,
 		},
 		Properties: emptyProperties,
