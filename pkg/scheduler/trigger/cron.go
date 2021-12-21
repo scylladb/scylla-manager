@@ -7,7 +7,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scheduler"
 )
 
-var cronParser = cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+var cronParser = cron.NewParser(cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 
 // NewCron returns a cron Trigger for a given spec.
 func NewCron(spec string) (scheduler.Trigger, error) {
