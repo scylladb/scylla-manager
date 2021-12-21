@@ -130,6 +130,9 @@ services:
   scylla-manager-db:
     image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
     command: --smp 1 --memory 500M --api-address 0.0.0.0
+    ports:
+      - "9042:9042"
+      - "10000:10000"
     networks:
       public:
         ipv4_address: 192.168.100.100
