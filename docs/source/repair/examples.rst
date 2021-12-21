@@ -104,7 +104,7 @@ Create an ad-hoc repair
 
 An ad-hoc repair runs immediately and does not repeat.
 This procedure shows the most frequently used repair commands.
-Additional parameters can be used. Refer to :ref:`repair parameters <repair-parameters>`.
+Additional parameters can be used. Refer to :ref:`repair parameters <sctool-repair>`.
 
 **Procedure**
 

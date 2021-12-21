@@ -59,7 +59,7 @@ func (cmd *command) init() {
 	w.Keyspace(&cmd.keyspace)
 	w.Unwrap().BoolVar(&cmd.details, "details", false, "")
 	w.Unwrap().StringSliceVar(&cmd.host, "host", nil, "")
-	w.Unwrap().StringVar(&cmd.runID, "run", latest, "Show progress of a particular run, see sctool info to get the `ID`s.")
+	w.Unwrap().StringVar(&cmd.runID, "run", latest, "Show progress of a particular run, see sctool info to get the `IDs`.")
 }
 
 var supportedTaskTypes = strset.New(

@@ -57,7 +57,7 @@ For example:
    ╰────┴────────────┴───────────┴───────────┴───────────────┴──────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
 
 The status information is also available as a metric in Scylla Monitoring Manager dashboard.
-The `healthcheck` task checks nodes every 15 seconds, the interval can be changed using :ref:`task-update` command.
+The `healthcheck` task checks nodes every 15 seconds, the interval can be changed using ``task-update`` command.
 
 The CQL column shows the CQL status, SSL indicator if SSL is enabled on a node, and time the check took.
 

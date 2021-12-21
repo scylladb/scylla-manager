@@ -112,7 +112,7 @@ Create an ad-hoc backup
 
 An ad-hoc backup runs immediately and does not repeat.
 This procedure shows the most frequently used backup commands.
-Additional parameters can be used. Refer to :ref:`backup parameters <backup-parameters>`.
+Additional parameters can be used. Refer to :ref:`backup parameters <sctool-backup>`.
 
 **Procedure**
 
