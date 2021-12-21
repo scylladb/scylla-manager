@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/pkg/schema/nopmigrate"
 	"github.com/scylladb/scylla-manager/schema"
 )
 
@@ -73,6 +74,7 @@ func CreateSession(tb testing.TB) gocqlx.Session {
 	})
 	session := createSessionFromCluster(tb, cluster)
 
+	migrate.Callback = nopmigrate.Callback
 	if err := migrate.FromFS(context.Background(), session, schema.Files); err != nil {
 		tb.Fatal("migrate:", err)
 	}
