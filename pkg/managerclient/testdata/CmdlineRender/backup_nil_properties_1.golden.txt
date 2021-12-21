@@ -1,1 +1,1 @@
---cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --start-date 2019-03-18T23:00:00.000Z --num-retries 3 --interval 7d
+--cluster 564a4ef1-0f37-40c5-802c-d08d788b8503 --cron '1 2 3 4 5' --num-retries 3

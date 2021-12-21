@@ -8,6 +8,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // CmdRenderType defines CmdRenderer output type.
@@ -130,11 +131,16 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 		fallthrough
 	case RenderArgs:
 		rc.writeArg("--cluster", " ", rc.task.ClusterID)
-		rc.writeArg("--start-date", " ", rc.task.Schedule.StartDate.String())
-		rc.writeArg("--num-retries", " ", fmt.Sprintf("%d", rc.task.Schedule.NumRetries))
+		if rc.task.Schedule.Cron != "" {
+			rc.writeArg("--cron", " ", quoted(rc.task.Schedule.Cron))
+		}
 		if rc.task.Schedule.Interval != "" {
 			rc.writeArg("--interval", " ", rc.task.Schedule.Interval)
 		}
+		if !time.Time(rc.task.Schedule.StartDate).IsZero() {
+			rc.writeArg("--start-date", " ", rc.task.Schedule.StartDate.String())
+		}
+		rc.writeArg("--num-retries", " ", fmt.Sprintf("%d", rc.task.Schedule.NumRetries))
 		fallthrough
 	case RenderTypeArgs:
 		switch rc.task.Type {
