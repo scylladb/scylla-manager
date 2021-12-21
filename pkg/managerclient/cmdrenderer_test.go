@@ -6,9 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/pkg/testutils"
 )
@@ -21,8 +19,7 @@ func TestCmdlineRender(t *testing.T) {
 		Type:      "repair",
 		Name:      "repair",
 		Schedule: &Schedule{
-			Interval:   "7d",
-			StartDate:  strfmt.DateTime(time.Date(2019, 3, 18, 23, 0, 0, 0, time.UTC)),
+			Cron:       "1 2 3 4 5",
 			NumRetries: 3,
 		},
 		Properties: map[string]interface{}{
@@ -41,8 +38,7 @@ func TestCmdlineRender(t *testing.T) {
 		Type:      "backup",
 		Name:      "backup",
 		Schedule: &Schedule{
-			Interval:   "7d",
-			StartDate:  strfmt.DateTime(time.Date(2019, 3, 18, 23, 0, 0, 0, time.UTC)),
+			Cron:       "1 2 3 4 5",
 			NumRetries: 3,
 		},
 		Properties: map[string]interface{}{
@@ -60,8 +56,7 @@ func TestCmdlineRender(t *testing.T) {
 		Type:      "backup",
 		Name:      "backup nil properties",
 		Schedule: &Schedule{
-			Interval:   "7d",
-			StartDate:  strfmt.DateTime(time.Date(2019, 3, 18, 23, 0, 0, 0, time.UTC)),
+			Cron:       "1 2 3 4 5",
 			NumRetries: 3,
 		},
 		Properties: map[string]interface{}{
