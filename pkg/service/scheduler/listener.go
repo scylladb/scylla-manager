@@ -25,10 +25,20 @@ func newSchedulerListener(find func(key scheduler.Key) (taskInfo, bool), logger 
 }
 
 func (l schedulerListener) OnSchedule(ctx context.Context, key scheduler.Key, begin, end time.Time, retno int8) {
+	in := begin.Sub(now()).Truncate(time.Minute)
 	if end.IsZero() {
-		l.logKey(ctx, key, "Schedule", "begin", begin, "retry", retno)
+		l.logKey(ctx, key, "Schedule",
+			"in", in,
+			"begin", begin,
+			"retry", retno,
+		)
 	} else {
-		l.logKey(ctx, key, "Schedule in window", "begin", begin, "end", end, "retry", retno)
+		l.logKey(ctx, key, "Schedule in window",
+			"in", in,
+			"begin", begin,
+			"end", end,
+			"retry", retno,
+		)
 	}
 }
 
