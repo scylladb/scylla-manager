@@ -4,6 +4,10 @@ enabled: |
 name: |
   Task name that can be used insead of ID.
 
+cron: |
+  Task schedule as a cron `expression`.
+  It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
+
 interval: |
   Time after which a successfully completed task would be run again, supported units are:
 

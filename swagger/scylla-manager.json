@@ -244,6 +244,9 @@
     "Schedule": {
       "type": "object",
       "properties": {
+        "cron": {
+          "type": "string"
+        },
         "start_date": {
           "type": "string",
           "format": "date-time"
