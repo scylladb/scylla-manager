@@ -79,6 +79,7 @@ issues:
     - exported method +\.Close should have comment or be unexported
     - exported method .*Value\..+ should have comment or be unexported
     - exported method .+\.Init should have comment or be unexported
+    - exported method .+\.IsZero should have comment or be unexported
     - exported method .+\.Key should have comment or be unexported
     - exported method .+\.MarshalBinary should have comment or be unexported
     - exported method .+\.MarshalCQL should have comment or be unexported
