@@ -64,11 +64,11 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 type Schedule struct {
 	gocqlx.UDT
 
-	Cron                 Cron              `json:"cron"`
-	StartDate            time.Time         `json:"start_date"`
-	Interval             duration.Duration `json:"interval" db:"interval_seconds"`
-	NumRetries           int               `json:"num_retries"`
-	RetryInitialInterval duration.Duration `json:"retry_initial_interval"`
+	Cron       Cron              `json:"cron"`
+	StartDate  time.Time         `json:"start_date"`
+	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
+	NumRetries int               `json:"num_retries"`
+	RetryWait  duration.Duration `json:"retry_wait"`
 }
 
 func (s Schedule) trigger() scheduler.Trigger {

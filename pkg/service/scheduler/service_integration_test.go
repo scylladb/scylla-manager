@@ -417,7 +417,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Given: task scheduled in future")
 		task := h.makeTaskWithStartDate(future)
 		task.Sched.NumRetries = 1
-		task.Sched.RetryInitialInterval = duration.Duration(10 * time.Millisecond)
+		task.Sched.RetryWait = duration.Duration(10 * time.Millisecond)
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
@@ -458,7 +458,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("When: task is scheduled with retry once")
 		task := h.makeTaskWithStartDate(now())
 		task.Sched.NumRetries = 1
-		task.Sched.RetryInitialInterval = duration.Duration(10 * time.Millisecond)
+		task.Sched.RetryWait = duration.Duration(10 * time.Millisecond)
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
@@ -563,9 +563,9 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("When: task is scheduled with retry once")
 		task := h.makeTask(scheduler.Schedule{
-			StartDate:            now(),
-			NumRetries:           1,
-			RetryInitialInterval: duration.Duration(10 * time.Millisecond),
+			StartDate:  now(),
+			NumRetries: 1,
+			RetryWait:  duration.Duration(10 * time.Millisecond),
 		})
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)

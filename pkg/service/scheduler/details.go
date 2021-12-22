@@ -22,12 +22,12 @@ func backoff(t *Task) retry.Backoff {
 	if t.Sched.NumRetries == 0 {
 		return nil
 	}
-	interval := t.Sched.RetryInitialInterval
-	if interval == 0 {
-		interval = duration.Duration(10 * time.Minute)
+	w := t.Sched.RetryWait
+	if w == 0 {
+		w = duration.Duration(10 * time.Minute)
 	}
 
-	b := retry.NewExponentialBackoff(interval.Duration(), 0, 0, 2, 0)
+	b := retry.NewExponentialBackoff(w.Duration(), 0, 0, 2, 0)
 	b = retry.WithMaxRetries(b, uint64(t.Sched.NumRetries))
 	return b
 }
