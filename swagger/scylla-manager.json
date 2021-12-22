@@ -258,6 +258,9 @@
         "num_retries": {
           "type": "number",
           "format": "int"
+        },
+        "retry_wait": {
+          "type": "string"
         }
       }
     },
