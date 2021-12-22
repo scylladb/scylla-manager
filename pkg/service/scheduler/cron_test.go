@@ -26,3 +26,11 @@ func TestNewCronEvery(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func TestEmptyCron(t *testing.T) {
+	var cron Cron
+	if err := cron.UnmarshalText(nil); err != nil {
+		t.Fatal(err)
+	}
+	cron.Next(now())
+}

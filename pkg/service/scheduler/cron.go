@@ -46,6 +46,9 @@ func MustCron(spec string) Cron {
 
 // Next implements scheduler.Trigger.
 func (c Cron) Next(now time.Time) time.Time {
+	if c.inner == nil {
+		return time.Time{}
+	}
 	return c.inner.Next(now)
 }
 
@@ -54,6 +57,10 @@ func (c Cron) MarshalText() (text []byte, err error) {
 }
 
 func (c *Cron) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return nil
+	}
+
 	v, err := NewCron(string(text))
 	if err != nil {
 		return errors.Wrap(err, "cron")

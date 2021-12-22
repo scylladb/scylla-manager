@@ -108,3 +108,4 @@ issues:
     - return value of `strconv.ParseBool` is not checked
     - should merge variable declaration with assignment on next line
     - should not use dot imports
+    - string `string` has [\d]+ occurrences, make it a constant
