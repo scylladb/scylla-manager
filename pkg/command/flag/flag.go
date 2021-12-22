@@ -141,6 +141,10 @@ func (w Wrapper) numRetries(p *int, def int) {
 	w.fs.IntVarP(p, "num-retries", "r", def, usage["num-retries"])
 }
 
+func (w Wrapper) retryWait(p *Duration) {
+	w.fs.Var(p, "retry-wait", usage["retry-wait"])
+}
+
 func (w Wrapper) MustMarkDeprecated(name, usageMessage string) {
 	if err := w.fs.MarkDeprecated(name, usageMessage); err != nil {
 		panic(err)

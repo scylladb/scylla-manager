@@ -110,6 +110,13 @@ type Duration struct {
 	v duration.Duration
 }
 
+// DurationWithDefault returns new Duration initialized to a given value.
+func DurationWithDefault(d time.Duration) Duration {
+	return Duration{
+		v: duration.Duration(d),
+	}
+}
+
 var _ flag.Value = (*Duration)(nil)
 
 func (d *Duration) String() string {

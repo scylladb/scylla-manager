@@ -35,3 +35,7 @@ start-date: |
 
 num-retries: |
   Number of times a task reruns following a failure.
+
+retry-wait: |
+  Initial exponential backoff `duration` X[h|m|s].
+  With --retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.

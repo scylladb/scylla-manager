@@ -26,6 +26,9 @@ type Schedule struct {
 	// num retries
 	NumRetries int64 `json:"num_retries,omitempty"`
 
+	// retry wait
+	RetryWait string `json:"retry_wait,omitempty"`
+
 	// start date
 	// Format: date-time
 	StartDate *strfmt.DateTime `json:"start_date,omitempty"`
