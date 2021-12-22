@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
@@ -66,13 +67,6 @@ func (t *Time) Set(s string) (err error) {
 	return
 }
 
-func (t *Time) Value() time.Time {
-	if t.v.IsZero() {
-		return timeutc.Now()
-	}
-	return t.v
-}
-
 func parserTime(s string) (time.Time, error) {
 	if strings.HasPrefix(s, "now") {
 		now := timeutc.Now()
@@ -91,6 +85,19 @@ func parserTime(s string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return t.UTC(), nil
+}
+
+func (t *Time) Value() time.Time {
+	return t.v
+}
+
+// DateTimePtr converts Time to OpenAPI DateTime pointer.
+func (t *Time) DateTimePtr() *strfmt.DateTime {
+	if t.v.IsZero() {
+		return nil
+	}
+	v := strfmt.DateTime(t.v)
+	return &v
 }
 
 // Type implements pflag.Value.

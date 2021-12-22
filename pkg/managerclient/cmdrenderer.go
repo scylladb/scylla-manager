@@ -137,7 +137,7 @@ func (rc CmdRenderer) Render(w io.Writer) error {
 		if rc.task.Schedule.Interval != "" {
 			rc.writeArg("--interval", " ", rc.task.Schedule.Interval)
 		}
-		if !time.Time(rc.task.Schedule.StartDate).IsZero() {
+		if s := rc.task.Schedule.StartDate; s != nil && !time.Time(*s).IsZero() {
 			rc.writeArg("--start-date", " ", rc.task.Schedule.StartDate.String())
 		}
 		rc.writeArg("--num-retries", " ", fmt.Sprintf("%d", rc.task.Schedule.NumRetries))

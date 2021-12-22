@@ -3,7 +3,6 @@
 package flag
 
 import (
-	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
 )
@@ -58,7 +57,7 @@ func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
 		Schedule: &managerclient.Schedule{
 			Cron:       cmd.cron.Value(),
 			Interval:   cmd.interval.String(),
-			StartDate:  strfmt.DateTime(cmd.startDate.Value()),
+			StartDate:  cmd.startDate.DateTimePtr(),
 			NumRetries: int64(cmd.numRetries),
 		},
 		Properties: make(map[string]interface{}),
@@ -85,7 +84,7 @@ func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 		ok = true
 	}
 	if cmd.Flag("start-date").Changed {
-		task.Schedule.StartDate = strfmt.DateTime(cmd.startDate.Value())
+		task.Schedule.StartDate = cmd.startDate.DateTimePtr()
 		ok = true
 	}
 	if cmd.Flag("num-retries").Changed {
