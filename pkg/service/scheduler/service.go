@@ -286,10 +286,6 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	if err := s.shouldPutTask(create, t); err != nil {
 		return err
 	}
-	if err := s.putTask(t); err != nil {
-		return err
-	}
-
 	// Force run if there is no start date and cron.
 	run := false
 	if create {
@@ -299,6 +295,11 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 				run = true
 			}
 		}
+	}
+	if err := s.putTask(t); err != nil {
+		return err
+	}
+	if create {
 		s.initMetrics(t)
 	}
 	s.schedule(ctx, t, run)

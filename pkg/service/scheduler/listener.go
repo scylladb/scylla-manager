@@ -25,7 +25,7 @@ func newSchedulerListener(find func(key scheduler.Key) (taskInfo, bool), logger 
 }
 
 func (l schedulerListener) OnSchedule(ctx context.Context, key scheduler.Key, begin, end time.Time, retno int8) {
-	in := begin.Sub(now()).Truncate(time.Minute)
+	in := begin.Sub(now()).Truncate(time.Second)
 	if end.IsZero() {
 		l.logKey(ctx, key, "Schedule",
 			"in", in,

@@ -62,7 +62,7 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 
 // Schedule specify task schedule.
 type Schedule struct {
-	gocqlx.UDT
+	gocqlx.UDT `json:"-"`
 
 	Cron       Cron              `json:"cron"`
 	StartDate  time.Time         `json:"start_date"`
