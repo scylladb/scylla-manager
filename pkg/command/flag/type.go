@@ -9,10 +9,42 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/robfig/cron/v3"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	flag "github.com/spf13/pflag"
 )
+
+// Cron wraps string for early validation.
+type Cron struct {
+	v string
+}
+
+var _ flag.Value = (*Cron)(nil)
+
+func (c *Cron) String() string {
+	return c.v
+}
+
+// Set implements pflag.Value.
+func (c *Cron) Set(s string) error {
+	p := cron.NewParser(cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	if _, err := p.Parse(s); err != nil {
+		return err
+	}
+
+	c.v = s
+	return nil
+}
+
+func (c *Cron) Value() string {
+	return c.v
+}
+
+// Type implements pflag.Value.
+func (c *Cron) Type() string {
+	return "string"
+}
 
 // Time wraps time.Time and add support for now+duration syntax.
 type Time struct {

@@ -123,8 +123,8 @@ func (w Wrapper) name(p *string) {
 	w.fs.StringVar(p, "name", "", usage["name"])
 }
 
-func (w Wrapper) cron(p *string) {
-	w.fs.StringVar(p, "cron", "", usage["cron"])
+func (w Wrapper) cron(p *Cron) {
+	w.fs.VarP(p, "cron", "", usage["cron"])
 }
 
 func (w Wrapper) interval(p *Duration) {

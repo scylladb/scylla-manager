@@ -15,7 +15,7 @@ type TaskBase struct {
 
 	enabled    bool
 	name       string
-	cron       string
+	cron       Cron
 	interval   Duration
 	startDate  Time
 	numRetries int
@@ -56,7 +56,7 @@ func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
 		Enabled: cmd.enabled,
 		Name:    cmd.name,
 		Schedule: &managerclient.Schedule{
-			Cron:       cmd.cron,
+			Cron:       cmd.cron.Value(),
 			Interval:   cmd.interval.String(),
 			StartDate:  strfmt.DateTime(cmd.startDate.Value()),
 			NumRetries: int64(cmd.numRetries),
@@ -77,7 +77,7 @@ func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 		ok = true
 	}
 	if cmd.Flag("cron").Changed {
-		task.Schedule.Cron = cmd.cron
+		task.Schedule.Cron = cmd.cron.Value()
 		ok = true
 	}
 	if cmd.Flag("interval").Changed {
