@@ -249,7 +249,8 @@
         },
         "start_date": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
         "interval": {
           "type": "string"

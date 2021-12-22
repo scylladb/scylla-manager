@@ -267,8 +267,6 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 	return r, q.GetRelease(r)
 }
 
-const nowThreshold = 5 * time.Second
-
 // PutTask upserts a task.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	create := false
@@ -292,14 +290,12 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		return err
 	}
 
-	// With legacy schedule, account for a network delay etc.
-	// Allow running tasks that specify task start 5s in the past.
+	// Force run if there is no start date and cron.
 	run := false
 	if create {
-		if !t.Sched.StartDate.IsZero() {
-			s := t.Sched.StartDate
-			n := now()
-			if s.Before(n) && n.Sub(s) < nowThreshold {
+		if t.Sched.StartDate.IsZero() {
+			t.Sched.StartDate = now()
+			if t.Sched.Cron.IsZero() {
 				run = true
 			}
 		}
