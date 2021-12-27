@@ -127,6 +127,10 @@ func (w Wrapper) cron(p *Cron) {
 	w.fs.VarP(p, "cron", "", usage["cron"])
 }
 
+func (w Wrapper) window(p *[]string) {
+	w.fs.StringSliceVar(p, "window", nil, usage["window"])
+}
+
 func (w Wrapper) interval(p *Duration) {
 	w.fs.VarP(p, "interval", "i", usage["interval"])
 	w.MustMarkDeprecated("interval", "use cron instead")
