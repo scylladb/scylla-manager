@@ -9,7 +9,7 @@ import (
 
 var cronParser = cron.NewParser(cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 
-// NewCron returns a cron Trigger for a given spec.
+// NewCron returns a cron Trigger for a given spec in UTC timezone.
 func NewCron(spec string) (scheduler.Trigger, error) {
-	return cronParser.Parse(spec)
+	return cronParser.Parse("TZ=UTC " + spec)
 }
