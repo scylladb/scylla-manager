@@ -9,19 +9,23 @@ options:
   shorthand: c
   usage: |
     The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: cron
+  usage: |
+    Task schedule as a cron `expression`.
+    It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
 - name: dc
   default_value: '[]'
   usage: |+
     A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
     The following syntax for glob patterns is supported:
 
-    * ``*`` - matches any number of any characters including none
-    * ``?`` - matches any single character
-    * ``[abc]`` - matches one character given in the bracket
-    * ``[a-z]`` - matches one character from the range given in the bracket
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
 
 - name: dry-run
   default_value: "false"
@@ -56,13 +60,13 @@ options:
     The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
     The following syntax for glob patterns is supported:
 
-    * ``*`` - matches any number of any characters including none
-    * ``?`` - matches any single character
-    * ``[abc]`` - matches one character given in the bracket
-    * ``[a-z]`` - matches one character from the range given in the bracket
+    '*' - matches any number of any characters including none
+    '?' - matches any single character
+    '[abc]' - matches one character given in the bracket
+    '[a-z]' - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
+    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
 
 - name: location
   shorthand: L
@@ -95,6 +99,11 @@ options:
   default_value: "7"
   usage: |
     The `number of backups` to store, once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
+- name: retry-wait
+  default_value: 10m
+  usage: |
+    Initial exponential backoff `duration` X[h|m|s].
+    With --retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.
 - name: show-tables
   default_value: "false"
   usage: |
@@ -127,6 +136,15 @@ options:
     The 'dc' part is optional and allows for specifying different limits in selected datacenters.
     If the 'dc' part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in 'n' nodes.
     If for example, you were to set 'dc1:2,5', then 'dc1' would have two parallel nodes and there would be five parallel nodes in the other DCs.
+- name: window
+  default_value: '[]'
+  usage: |
+    A comma-separated list of time markers in a form `[WEEKDAY-]HH:MM`.
+    WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.
+
+    'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
+    '23:00,06:00' - can be executed every night from 11PM to 6AM
+    '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
 inherited_options:
 - name: api-cert-file
   usage: |

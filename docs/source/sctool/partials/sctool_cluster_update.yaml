@@ -67,7 +67,7 @@ inherited_options:
     Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
     If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 example: |
-  In this example, the cluster named ``cluster`` has been renamed to ``prod-cluster``.
+  In this example, the cluster named 'cluster' has been renamed to 'prod-cluster'.
 
   sctool cluster update -c cluster --name prod-cluster
 see_also:
