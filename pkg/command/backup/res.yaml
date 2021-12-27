@@ -16,15 +16,15 @@ rate-limit: |
 
 snapshot-parallel: |
   A comma-separated list of snapshot parallelism limits in the format `[<dc>:]<limit>`.
-  The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
-  If the ``dc`` part is not set, the limit is global and the runs are parallel in ``n`` nodes.
-  If for example, you were to set 'dc1:2,5', then ``dc1`` would have two parallel nodes and there would be five parallel nodes in the other DCs.
+  The 'dc' part is optional and allows for specifying different limits in selected datacenters.
+  If the 'dc' part is not set, the limit is global and the runs are parallel in 'n' nodes.
+  If for example, you were to set 'dc1:2,5', then 'dc1' would have two parallel nodes and there would be five parallel nodes in the other DCs.
 
 upload-parallel: |
   A comma-separated list of upload parallelism limits in the format `[<dc>:]<limit>`.
-  The ``dc`` part is optional and allows for specifying different limits in selected datacenters.
-  If the ``dc`` part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in ``n`` nodes.
-  If for example, you were to set 'dc1:2,5', then ``dc1`` would have two parallel nodes and there would be five parallel nodes in the other DCs.
+  The 'dc' part is optional and allows for specifying different limits in selected datacenters.
+  If the 'dc' part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in 'n' nodes.
+  If for example, you were to set 'dc1:2,5', then 'dc1' would have two parallel nodes and there would be five parallel nodes in the other DCs.
 
 dry-run: |
   Validates and prints backup information without actually scheduling a backup.
