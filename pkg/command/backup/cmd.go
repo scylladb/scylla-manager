@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -88,7 +89,10 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run(args []string) error {
-	var task *managerclient.Task
+	var (
+		task *managerclient.Task
+		ok   bool
+	)
 
 	if cmd.Update() {
 		a := managerclient.BackupTask
@@ -106,35 +110,43 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		cmd.UpdateTask(task)
+		ok = cmd.UpdateTask(task)
 	} else {
 		task = cmd.CreateTask(managerclient.BackupTask)
 	}
 
 	props := task.Properties.(map[string]interface{})
-	if len(cmd.location) > 0 {
+	if cmd.Flag("location").Changed {
 		props["location"] = cmd.location
+		ok = true
 	}
-	if len(cmd.dc) > 0 {
+	if cmd.Flag("dc").Changed {
 		props["dc"] = cmd.dc
+		ok = true
 	}
-	if len(cmd.keyspace) > 0 {
+	if cmd.Flag("keyspace").Changed {
 		props["keyspace"] = cmd.keyspace
+		ok = true
 	}
 	if cmd.Flag("retention").Changed {
 		props["retention"] = cmd.retention
+		ok = true
 	}
-	if len(cmd.rateLimit) > 0 {
+	if cmd.Flag("rate-limit").Changed {
 		props["rate_limit"] = cmd.rateLimit
+		ok = true
 	}
-	if len(cmd.snapshotParallel) > 0 {
+	if cmd.Flag("snapshot-parallel").Changed {
 		props["snapshot_parallel"] = cmd.snapshotParallel
+		ok = true
 	}
-	if len(cmd.uploadParallel) > 0 {
+	if cmd.Flag("upload-parallel").Changed {
 		props["upload_parallel"] = cmd.uploadParallel
+		ok = true
 	}
 	if cmd.Flag("purge-only").Changed {
 		props["purge_only"] = cmd.purgeOnly
+		ok = true
 	}
 
 	if cmd.dryRun {
@@ -158,14 +170,19 @@ func (cmd *command) run(args []string) error {
 		return res.Render(cmd.OutOrStdout())
 	}
 
-	if task.ID == "" {
+	switch {
+	case task.ID == "":
 		id, err := cmd.client.CreateTask(cmd.Context(), cmd.cluster, task)
 		if err != nil {
 			return err
 		}
 		task.ID = id.String()
-	} else if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
-		return err
+	case ok:
+		if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
+			return err
+		}
+	default:
+		return errors.New("nothing to do")
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(task.Type, task.ID))

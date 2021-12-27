@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -88,7 +89,10 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run(args []string) error {
-	var task *managerclient.Task
+	var (
+		task *managerclient.Task
+		ok   bool
+	)
 
 	if cmd.Update() {
 		a := managerclient.RepairTask
@@ -107,7 +111,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		cmd.UpdateTask(task)
+		ok = cmd.UpdateTask(task)
 	} else {
 		task = cmd.CreateTask(managerclient.RepairTask)
 	}
@@ -117,26 +121,32 @@ func (cmd *command) run(args []string) error {
 	if cmd.Flag("fail-fast").Changed {
 		task.Schedule.NumRetries = 0
 		props["fail_fast"] = cmd.failFast
+		ok = true
 	}
 
 	if cmd.Flag("host").Changed {
 		props["host"] = cmd.host
+		ok = true
 	}
 
 	if cmd.Flag("ignore-down-hosts").Changed {
 		props["ignore_down_hosts"] = cmd.ignoreDownHosts
+		ok = true
 	}
 
 	if cmd.Flag("intensity").Changed {
 		props["intensity"] = cmd.intensity.Value()
+		ok = true
 	}
 
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
+		ok = true
 	}
 
 	if cmd.Flag("small-table-threshold").Changed {
 		props["small_table_threshold"] = int64(cmd.smallTableThreshold)
+		ok = true
 	}
 
 	if cmd.dryRun {
@@ -152,14 +162,19 @@ func (cmd *command) run(args []string) error {
 		return res.Render(cmd.OutOrStdout())
 	}
 
-	if task.ID == "" {
+	switch {
+	case task.ID == "":
 		id, err := cmd.client.CreateTask(cmd.Context(), cmd.cluster, task)
 		if err != nil {
 			return err
 		}
 		task.ID = id.String()
-	} else if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
-		return err
+	case ok:
+		if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
+			return err
+		}
+	default:
+		return errors.New("nothing to do")
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(task.Type, task.ID))
