@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -72,7 +73,10 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run(args []string) error {
-	var task *managerclient.Task
+	var (
+		task *managerclient.Task
+		ok   bool
+	)
 
 	if cmd.Update() {
 		a := managerclient.ValidateBackupTask
@@ -90,30 +94,38 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		cmd.UpdateTask(task)
+		ok = cmd.UpdateTask(task)
 	} else {
 		task = cmd.CreateTask(managerclient.ValidateBackupTask)
 	}
 
 	props := task.Properties.(map[string]interface{})
-	if len(cmd.location) != 0 {
+	if cmd.Flag("location").Changed {
 		props["location"] = cmd.location
+		ok = true
 	}
 	if cmd.Flag("delete-orphaned-files").Changed {
 		props["delete_orphaned_files"] = cmd.deleteOrphanedFiles
+		ok = true
 	}
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
+		ok = true
 	}
 
-	if task.ID == "" {
+	switch {
+	case task.ID == "":
 		id, err := cmd.client.CreateTask(cmd.Context(), cmd.cluster, task)
 		if err != nil {
 			return err
 		}
 		task.ID = id.String()
-	} else if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
-		return err
+	case ok:
+		if err := cmd.client.UpdateTask(cmd.Context(), cmd.cluster, task); err != nil {
+			return err
+		}
+	default:
+		return errors.New("nothing to do")
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(task.Type, task.ID))
