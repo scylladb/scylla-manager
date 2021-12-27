@@ -421,7 +421,7 @@ func (c *Client) taskByName(ctx context.Context, clusterID, taskType, taskName s
 	if len(names) > 0 {
 		res, _ := edlib.FuzzySearch(taskName, names, edlib.Levenshtein) // nolint: errcheck
 		if res != "" {
-			return uuid.Nil, errors.Errorf("not found, did you mean %s", TaskJoin(taskType, res))
+			return uuid.Nil, errors.Errorf("not found, did you mean %s", taskJoin(taskType, res))
 		}
 	}
 
@@ -432,9 +432,9 @@ func formatTaskList(tasks []*models.ExtendedTask) string {
 	ids := make([]string, len(tasks))
 	for i, t := range tasks {
 		if t.Name != "" {
-			ids[i] = "- " + TaskJoin(t.Type, t.Name)
+			ids[i] = "- " + taskJoin(t.Type, t.Name)
 		} else {
-			ids[i] = "- " + TaskJoin(t.Type, t.ID)
+			ids[i] = "- " + taskJoin(t.Type, t.ID)
 		}
 	}
 	return strings.Join(ids, "\n")

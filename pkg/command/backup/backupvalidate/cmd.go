@@ -128,6 +128,6 @@ func (cmd *command) run(args []string) error {
 		return errors.New("nothing to do")
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskJoin(task.Type, task.ID))
+	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskID(task))
 	return nil
 }
