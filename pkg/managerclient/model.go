@@ -320,9 +320,9 @@ func (et ExtendedTasks) Render(w io.Writer) error {
 	for _, t := range et.ExtendedTaskSlice {
 		var id string
 		if t.Name != "" {
-			id = TaskJoin(t.Type, t.Name)
+			id = taskJoin(t.Type, t.Name)
 		} else {
-			id = TaskJoin(t.Type, t.ID)
+			id = taskJoin(t.Type, t.ID)
 		}
 		if et.All && !t.Enabled {
 			id = "*" + id

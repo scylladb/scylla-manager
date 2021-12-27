@@ -48,8 +48,17 @@ func TaskSplit(s string) (taskType string, taskID uuid.UUID, taskName string, er
 	return
 }
 
-// TaskJoin creates a new type id string in the form `taskType/taskId`.
-func TaskJoin(taskType string, taskID interface{}) string {
+// TaskID creates a string in the form `taskType/taskName` or `taskType/taskID`.
+func TaskID(t *Task) string {
+	id := t.Name
+	if id == "" {
+		id = t.ID
+	}
+	return taskJoin(t.Type, id)
+}
+
+// taskJoin creates a new type id string in the form `taskType/taskId`.
+func taskJoin(taskType string, taskID interface{}) string {
 	return fmt.Sprint(taskType, "/", taskID)
 }
 
