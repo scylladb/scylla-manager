@@ -8,6 +8,14 @@ cron: |
   Task schedule as a cron `expression`.
   It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
 
+window: |
+  A comma-separated list of time markers in a form `[WEEKDAY-]HH:MM`.
+  WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.
+
+  * 'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
+  * '23:00,06:00' - can be executed every night from 11PM to 6AM
+  * '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
+
 interval: |
   Time after which a successfully completed task would be run again, supported units are:
 

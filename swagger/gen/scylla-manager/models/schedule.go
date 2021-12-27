@@ -32,6 +32,9 @@ type Schedule struct {
 	// start date
 	// Format: date-time
 	StartDate *strfmt.DateTime `json:"start_date,omitempty"`
+
+	// window
+	Window []string `json:"window"`
 }
 
 // Validate validates this schedule

@@ -65,6 +65,7 @@ type Schedule struct {
 	gocqlx.UDT `json:"-"`
 
 	Cron       Cron              `json:"cron"`
+	Window     Window            `json:"window"`
 	StartDate  time.Time         `json:"start_date"`
 	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries int               `json:"num_retries"`
@@ -76,11 +77,6 @@ func (s Schedule) trigger() scheduler.Trigger {
 		return s.Cron
 	}
 	return trigger.NewLegacy(s.StartDate, s.Interval.Duration())
-}
-
-func (s Schedule) Validate() error {
-	// TO-DO add validation
-	return nil
 }
 
 // Task specify task type, properties and schedule.
@@ -121,7 +117,6 @@ func (t *Task) Validate() error {
 		var tp TaskType
 		errs = multierr.Append(errs, tp.UnmarshalText([]byte(t.Type)))
 	}
-	errs = multierr.Append(errs, t.Sched.Validate())
 
 	return service.ErrValidate(errors.Wrap(errs, "invalid task"))
 }

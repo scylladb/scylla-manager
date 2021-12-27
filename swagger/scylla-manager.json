@@ -247,6 +247,12 @@
         "cron": {
           "type": "string"
         },
+        "window": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "start_date": {
           "type": "string",
           "format": "date-time",
