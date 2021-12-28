@@ -31,6 +31,10 @@ func (w *Window) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &wdt); err != nil {
 		return errors.Wrap(err, "window")
 	}
+	if len(wdt) == 0 {
+		return nil
+	}
+
 	if _, err := scheduler.NewWindow(wdt...); err != nil {
 		return errors.Wrap(err, "window")
 	}
