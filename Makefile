@@ -176,7 +176,7 @@ run-server: build-server ## Build and run development server
 		-p "5443:5443" \
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
 		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
-		-it --read-only --rm ubuntu scylla-manager
+		-it --read-only --rm scylladb/scylla-manager-dev scylla-manager
 
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries

@@ -15,6 +15,8 @@ build: ## Build custom docker image
 		--build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) \
 		-t scylladb/scylla-agent:$(SCYLLA_VERSION) \
 		scylla
+	@echo "==> Building development image for Scylla Manager Server"
+	@docker build --network=host -t scylladb/scylla-manager-dev scylla-manager
 
 .PHONY: up
 up: ## Start docker containers
