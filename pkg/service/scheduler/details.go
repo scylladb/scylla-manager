@@ -15,7 +15,8 @@ func details(t *Task) scheduler.Details {
 		Properties: t.Properties,
 		Backoff:    backoff(t),
 		Trigger:    t.Sched.trigger(),
-		Window:     t.Sched.Window.asSchedulerWindow(),
+		Window:     t.Sched.Window.Window(),
+		Location:   t.Sched.Timezone.Location(),
 	}
 }
 

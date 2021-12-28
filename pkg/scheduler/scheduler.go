@@ -70,6 +70,7 @@ type Details struct {
 	Trigger    Trigger
 	Backoff    retry.Backoff
 	Window     Window
+	Location   *time.Location
 }
 
 // Scheduler manages keys and triggers.
@@ -116,7 +117,13 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	if _, running := s.running[key]; running {
 		return
 	}
-	next := d.Trigger.Next(s.now())
+
+	now := s.now()
+	if d.Location != nil {
+		now = now.In(d.Location)
+	}
+	next := d.Trigger.Next(now)
+
 	s.scheduleLocked(ctx, key, next, 0, nil, d.Window)
 }
 
@@ -140,9 +147,13 @@ func (s *Scheduler) reschedule(ctx *RunContext) {
 		return
 	}
 
+	now := s.now()
+	if d.Location != nil {
+		now = now.In(d.Location)
+	}
+	next := d.Trigger.Next(now)
+
 	var (
-		now   = s.now()
-		next  = d.Trigger.Next(now)
 		retno int8
 		p     Properties
 	)
