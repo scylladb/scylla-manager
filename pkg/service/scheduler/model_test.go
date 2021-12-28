@@ -4,6 +4,7 @@ package scheduler
 
 import (
 	"testing"
+	"time"
 )
 
 func TestTaskType(t *testing.T) {
@@ -47,5 +48,49 @@ func TestStatus(t *testing.T) {
 				t.Fatal(v)
 			}
 		})
+	}
+}
+
+func TestCronMarshalUnmarshal(t *testing.T) {
+	spec := "@every 15s"
+
+	var cron Cron
+	if err := cron.UnmarshalText([]byte(spec)); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := cron.MarshalText()
+	if string(b) != spec {
+		t.Fatalf("MarshalText() = %s, expected %s", string(b), spec)
+	}
+}
+
+func TestNewCronEvery(t *testing.T) {
+	c := NewCronEvery(15 * time.Second)
+	if c.IsZero() {
+		t.Fatal()
+	}
+}
+
+func TestEmptyCron(t *testing.T) {
+	var cron Cron
+	if err := cron.UnmarshalText(nil); err != nil {
+		t.Fatal(err)
+	}
+	cron.Next(now())
+}
+
+func TestLocationMarshalUnmarshal(t *testing.T) {
+	l := location{time.Local}
+
+	b, err := l.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v location
+	if err := v.UnmarshalText(b); err != nil {
+		t.Fatal(err)
+	}
+	if v != l {
+		t.Fatalf("UnmarshalText() = %s, expected %s", v, l)
 	}
 }
