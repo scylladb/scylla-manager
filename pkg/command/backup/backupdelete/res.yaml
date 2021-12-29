@@ -7,4 +7,4 @@ long: |
   Deduplicated files are persisted unless their reference count drops to zero.
 
 snapshot-tag: |
-  A list of snapshot `tag`s sparated by a comma.
+  A list of snapshot `tags` sparated by a comma.

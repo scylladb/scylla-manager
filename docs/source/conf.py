@@ -3,9 +3,6 @@ import os
 import sys
 from datetime import date
 
-import recommonmark
-from recommonmark.transform import AutoStructify
-
 from sphinx_scylladb_theme.utils import multiversion_regex_builder
 # -- General configuration ------------------------------------------------
 
@@ -23,10 +20,7 @@ extensions = [
 ]
 
 # The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
-#
-source_suffix = ['.rst', '.md']
-autosectionlabel_prefix_document = True
+source_suffix = [".rst", ".md"]
 
 # The master toctree document.
 master_doc = 'index'
@@ -43,17 +37,6 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_templates"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
-
-# If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
-
-# Setup Sphinx
-def setup(sphinx):
-    sphinx.add_config_value('recommonmark_config', {
-        'enable_eval_rst': True,
-        'enable_auto_toc_tree': False,
-    }, True)
-    sphinx.add_transform(AutoStructify)
 
 # -- Options for not found extension -------------------------------------------
 
@@ -105,7 +88,6 @@ html_theme_options = {
     'conf_py_path': 'docs/source/',
     'github_issues_repository': 'scylladb/scylla-manager',
     'github_repository': 'scylladb/scylla-manager',
-    'hide_sidebar_index': 'false',
     'hide_edit_this_page_button': 'false',
     'hide_version_dropdown': ['master'],
     'tag_substring_removed': 'scylla-manager-',
