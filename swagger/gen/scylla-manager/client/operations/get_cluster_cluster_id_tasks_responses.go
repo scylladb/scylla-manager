@@ -51,14 +51,14 @@ func NewGetClusterClusterIDTasksOK() *GetClusterClusterIDTasksOK {
 List of tasks
 */
 type GetClusterClusterIDTasksOK struct {
-	Payload []*models.ExtendedTask
+	Payload []*models.TaskListItem
 }
 
 func (o *GetClusterClusterIDTasksOK) Error() string {
 	return fmt.Sprintf("[GET /cluster/{cluster_id}/tasks][%d] getClusterClusterIdTasksOK  %+v", 200, o.Payload)
 }
 
-func (o *GetClusterClusterIDTasksOK) GetPayload() []*models.ExtendedTask {
+func (o *GetClusterClusterIDTasksOK) GetPayload() []*models.TaskListItem {
 	return o.Payload
 }
 

@@ -324,7 +324,7 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, t *Task) erro
 }
 
 // ListTasks returns tasks within a clusterID, optionally filtered by task type tp.
-func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string) (ExtendedTasks, error) {
+func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string) (TaskListItems, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -333,13 +333,13 @@ func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all 
 		Status:    &status,
 	})
 	if err != nil {
-		return ExtendedTasks{}, err
+		return TaskListItems{}, err
 	}
 
-	et := ExtendedTasks{
+	et := TaskListItems{
 		All: all,
 	}
-	et.ExtendedTaskSlice = resp.Payload
+	et.TaskListItemSlice = resp.Payload
 	return et, nil
 }
 
@@ -428,7 +428,7 @@ func (c *Client) taskByName(ctx context.Context, clusterID, taskType, taskName s
 	return uuid.Nil, errors.Errorf("not found, use one of:\n%s", formatTaskList(tasks))
 }
 
-func formatTaskList(tasks []*models.ExtendedTask) string {
+func formatTaskList(tasks []*models.TaskListItem) string {
 	ids := make([]string, len(tasks))
 	for i, t := range tasks {
 		if t.Name != "" {

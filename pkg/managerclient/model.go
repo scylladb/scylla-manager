@@ -13,7 +13,9 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
+	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/version"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
 	"github.com/scylladb/termtables"
@@ -298,53 +300,59 @@ func (t BackupTarget) Render(w io.Writer) error {
 	return temp.Execute(w, t)
 }
 
-// ExtendedTask is a representation of scheduler.Task with additional fields
-// from scheduler.Run.
-type ExtendedTask = models.ExtendedTask
+// TaskListItem is a representation of scheduler.Task with additional fields from scheduler.
+type TaskListItem = models.TaskListItem
 
-// ExtendedTaskSlice is a representation of a slice of scheduler.Task with
-// additional fields from scheduler.Run.
-type ExtendedTaskSlice = []*models.ExtendedTask
+// TaskListItemSlice is a representation of a slice of scheduler.Task with additional fields from scheduler.
+type TaskListItemSlice = []*models.TaskListItem
 
-// ExtendedTasks is a representation of []*scheduler.Task with additional
-// fields from scheduler.Run.
-type ExtendedTasks struct {
-	ExtendedTaskSlice
+// TaskListItems is a representation of []*scheduler.Task with additional fields from scheduler.
+type TaskListItems struct {
+	TaskListItemSlice
 	All bool
 }
 
-// Render renders ExtendedTasks in a tabular format.
-func (et ExtendedTasks) Render(w io.Writer) error {
-	p := table.New("Task", "Arguments", "Next run", "Status")
-	p.LimitColumnLength(3)
-	for _, t := range et.ExtendedTaskSlice {
+// Render renders TaskListItems in a tabular format.
+func (li TaskListItems) Render(w io.Writer) error {
+	now := timeutc.Now()
+
+	ago := func(t *strfmt.DateTime) string {
+		if t == nil {
+			return ""
+		}
+		return duration.Duration(now.Sub(time.Time(*t)).Truncate(time.Second)).String() + " ago"
+	}
+
+	p := table.New("Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next")
+	for _, t := range li.TaskListItemSlice {
 		var id string
 		if t.Name != "" {
 			id = taskJoin(t.Type, t.Name)
 		} else {
 			id = taskJoin(t.Type, t.ID)
 		}
-		if et.All && !t.Enabled {
+		if li.All && !t.Enabled {
 			id = "*" + id
 		}
-		r := FormatTime(t.NextActivation)
-		if r != "" && t.Schedule.Interval != "" {
-			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
+
+		var schedule string
+		if t.Schedule.Cron != "" {
+			schedule = t.Schedule.Cron
+		} else if t.Schedule.Interval != "" {
+			schedule = t.Schedule.Interval
 		}
+
+		status := t.Status
+		if status == TaskStatusError && t.Retry > 0 {
+			status += fmt.Sprintf(" (%d/%d)", t.Retry-1, t.Schedule.NumRetries)
+		}
+
+		next := FormatTimePointer(t.NextActivation)
 		if t.Suspended {
-			r = "[SUSPENDED] " + r
+			next = "[SUSPENDED]"
 		}
-		s := t.Status
-		if t.Status == "ERROR" && t.Schedule.NumRetries > 0 {
-			s += fmt.Sprintf(" (%d/%d)", t.Failures, t.Schedule.NumRetries+1)
-		}
-		pr := NewCmdRenderer(&Task{
-			ClusterID:  t.ClusterID,
-			Type:       t.Type,
-			Schedule:   t.Schedule,
-			Properties: t.Properties,
-		}, RenderTypeArgs).String()
-		p.AddRow(id, pr, r, s)
+
+		p.AddRow(id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone, t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError), status, next)
 	}
 	fmt.Fprint(w, p)
 	return nil
