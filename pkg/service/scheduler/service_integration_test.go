@@ -96,27 +96,6 @@ func (r *mockRunner) Error() {
 	}
 }
 
-type neverEndingRunner struct {
-	done chan struct{}
-}
-
-func newNeverEndingRunner() *neverEndingRunner {
-	return &neverEndingRunner{
-		done: make(chan struct{}),
-	}
-}
-
-func (r *neverEndingRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	select {
-	case <-r.done:
-		return nil
-	}
-}
-
-func (r *neverEndingRunner) Stop() {
-	close(r.done)
-}
-
 type schedulerTestHelper struct {
 	session gocqlx.Session
 	service *scheduler.Service
@@ -374,6 +353,81 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: tasks are aborted")
 		h.assertStatus(task0, scheduler.StatusAborted)
 		h.assertStatus(task1, scheduler.StatusAborted)
+	})
+
+	t.Run("task status", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: task scheduled now")
+		task := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task run")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task finish")
+		h.runner.Done()
+
+		Print("Then: task status is StatusDone")
+		h.assertStatus(task, scheduler.StatusDone)
+
+		assertTaskStatusInfo := func(status scheduler.Status, successCount, errorCount int, lastSuccess, lastError bool) {
+			t.Helper()
+
+			var v *scheduler.Task
+			WaitCond(h.t, func() bool {
+				var err error
+				v, err = h.service.GetTaskByID(ctx, task.ClusterID, task.Type, task.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return v.Status == status
+			}, _interval, _wait)
+
+			if v.SuccessCount != successCount {
+				t.Fatalf("SuccessCount=%d, expected %d", v.SuccessCount, successCount)
+			}
+			if v.ErrorCount != errorCount {
+				t.Fatalf("ErrorCount=%d, expected %d", v.ErrorCount, errorCount)
+			}
+			if (v.LastSuccess != nil) != lastSuccess {
+				t.Fatalf("LastSuccess=%s, expected %v", v.LastSuccess, lastSuccess)
+			}
+			if (v.LastError != nil) != lastError {
+				t.Fatalf("LastSuccess=%s, expected %v", v.LastError, lastError)
+			}
+		}
+
+		Print("And: task status information is persisted")
+		assertTaskStatusInfo(scheduler.StatusDone, 1, 0, true, false)
+
+		Print("When: task is started")
+		h.service.StartTask(ctx, task)
+
+		Print("Then: task run")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task finish")
+		h.runner.Done()
+
+		Print("Then: task status information is persisted")
+		assertTaskStatusInfo(scheduler.StatusDone, 2, 0, true, false)
+
+		Print("When: task is started")
+		h.service.StartTask(ctx, task)
+
+		Print("Then: task run")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task finish")
+		h.runner.Error()
+
+		Print("Then: task status information is persisted")
+		assertTaskStatusInfo(scheduler.StatusError, 2, 1, true, true)
 	})
 
 	t.Run("start task", func(t *testing.T) {

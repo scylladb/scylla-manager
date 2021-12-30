@@ -12,13 +12,10 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// ExtendedTask extended task
+// TaskListItem task list item
 //
-// swagger:model ExtendedTask
-type ExtendedTask struct {
-
-	// cause
-	Cause string `json:"cause,omitempty"`
+// swagger:model TaskListItem
+type TaskListItem struct {
 
 	// cluster id
 	ClusterID string `json:"cluster_id,omitempty"`
@@ -26,35 +23,41 @@ type ExtendedTask struct {
 	// enabled
 	Enabled bool `json:"enabled,omitempty"`
 
-	// end time
-	// Format: date-time
-	EndTime strfmt.DateTime `json:"end_time,omitempty"`
-
-	// failures
-	Failures int64 `json:"failures,omitempty"`
+	// error count
+	ErrorCount int64 `json:"error_count,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`
+
+	// last error
+	// Format: date-time
+	LastError *strfmt.DateTime `json:"last_error,omitempty"`
+
+	// last success
+	// Format: date-time
+	LastSuccess *strfmt.DateTime `json:"last_success,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`
 
 	// next activation
 	// Format: date-time
-	NextActivation strfmt.DateTime `json:"next_activation,omitempty"`
+	NextActivation *strfmt.DateTime `json:"next_activation,omitempty"`
 
 	// properties
 	Properties interface{} `json:"properties,omitempty"`
 
+	// retry
+	Retry int64 `json:"retry,omitempty"`
+
 	// schedule
 	Schedule *Schedule `json:"schedule,omitempty"`
 
-	// start time
-	// Format: date-time
-	StartTime strfmt.DateTime `json:"start_time,omitempty"`
-
 	// status
 	Status string `json:"status,omitempty"`
+
+	// success count
+	SuccessCount int64 `json:"success_count,omitempty"`
 
 	// suspended
 	Suspended bool `json:"suspended,omitempty"`
@@ -66,11 +69,15 @@ type ExtendedTask struct {
 	Type string `json:"type,omitempty"`
 }
 
-// Validate validates this extended task
-func (m *ExtendedTask) Validate(formats strfmt.Registry) error {
+// Validate validates this task list item
+func (m *TaskListItem) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateEndTime(formats); err != nil {
+	if err := m.validateLastError(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLastSuccess(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -82,30 +89,39 @@ func (m *ExtendedTask) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateStartTime(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
 	return nil
 }
 
-func (m *ExtendedTask) validateEndTime(formats strfmt.Registry) error {
+func (m *TaskListItem) validateLastError(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.EndTime) { // not required
+	if swag.IsZero(m.LastError) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("end_time", "body", "date-time", m.EndTime.String(), formats); err != nil {
+	if err := validate.FormatOf("last_error", "body", "date-time", m.LastError.String(), formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *ExtendedTask) validateNextActivation(formats strfmt.Registry) error {
+func (m *TaskListItem) validateLastSuccess(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.LastSuccess) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("last_success", "body", "date-time", m.LastSuccess.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *TaskListItem) validateNextActivation(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.NextActivation) { // not required
 		return nil
@@ -118,7 +134,7 @@ func (m *ExtendedTask) validateNextActivation(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ExtendedTask) validateSchedule(formats strfmt.Registry) error {
+func (m *TaskListItem) validateSchedule(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Schedule) { // not required
 		return nil
@@ -136,21 +152,8 @@ func (m *ExtendedTask) validateSchedule(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ExtendedTask) validateStartTime(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.StartTime) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("start_time", "body", "date-time", m.StartTime.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // MarshalBinary interface implementation
-func (m *ExtendedTask) MarshalBinary() ([]byte, error) {
+func (m *TaskListItem) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -158,8 +161,8 @@ func (m *ExtendedTask) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ExtendedTask) UnmarshalBinary(b []byte) error {
-	var res ExtendedTask
+func (m *TaskListItem) UnmarshalBinary(b []byte) error {
+	var res TaskListItem
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

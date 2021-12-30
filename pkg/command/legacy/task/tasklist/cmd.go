@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -95,17 +94,13 @@ func (cmd *command) run() error {
 type taskListSortKey string
 
 const (
-	taskListSortStartTime      taskListSortKey = "start-time"
-	taskListSortEndTime        taskListSortKey = "end-time"
 	taskListSortNextActivation taskListSortKey = "next-activation"
 	taskListSortStatus         taskListSortKey = "status"
 )
 
-var allTaskSortKeys = []taskListSortKey{taskListSortStartTime, taskListSortNextActivation, taskListSortEndTime, taskListSortStatus}
+var allTaskSortKeys = []taskListSortKey{taskListSortNextActivation, taskListSortStatus}
 
-var tasksSortFunctions = map[taskListSortKey]func(tasks managerclient.ExtendedTaskSlice){
-	taskListSortStartTime:      sortTasksByStartTime,
-	taskListSortEndTime:        sortTasksByEndTime,
+var tasksSortFunctions = map[taskListSortKey]func(tasks managerclient.TaskListItemSlice){
 	taskListSortNextActivation: sortTasksByNextActivation,
 	taskListSortStatus:         sortTasksByStatus,
 }
@@ -123,34 +118,27 @@ func validateSortKey(sortKey string) error {
 	return errors.Errorf("%s sort key not supported", sortKey)
 }
 
-func sortTasks(tasks managerclient.ExtendedTasks, key taskListSortKey) {
+func sortTasks(tasks managerclient.TaskListItems, key taskListSortKey) {
 	if key == "" {
 		return
 	}
-	tasksSortFunctions[key](tasks.ExtendedTaskSlice)
+	tasksSortFunctions[key](tasks.TaskListItemSlice)
 }
 
-func timeLessFunc(lhvDate, rhvDate strfmt.DateTime) bool {
-	lhv := timeutc.MustParse(time.RFC3339, lhvDate.String())
-	rhv := timeutc.MustParse(time.RFC3339, rhvDate.String())
-	return lhv.Before(rhv)
+func timeLessFunc(a, b *strfmt.DateTime) bool {
+	var at, bt time.Time
+	if a != nil {
+		at = time.Time(*a)
+	}
+	if b != nil {
+		bt = time.Time(*b)
+	}
+	return at.Before(bt)
 }
 
-func sortTasksByNextActivation(tasks managerclient.ExtendedTaskSlice) {
+func sortTasksByNextActivation(tasks managerclient.TaskListItemSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return timeLessFunc(tasks[i].NextActivation, tasks[j].NextActivation)
-	})
-}
-
-func sortTasksByStartTime(tasks managerclient.ExtendedTaskSlice) {
-	sort.Slice(tasks, func(i, j int) bool {
-		return timeLessFunc(tasks[i].StartTime, tasks[j].StartTime)
-	})
-}
-
-func sortTasksByEndTime(tasks managerclient.ExtendedTaskSlice) {
-	sort.Slice(tasks, func(i, j int) bool {
-		return timeLessFunc(tasks[i].EndTime, tasks[j].EndTime)
 	})
 }
 
@@ -165,7 +153,7 @@ var taskStatusSortOrder = map[string]int{
 	"ABORTED":  8,
 }
 
-func sortTasksByStatus(tasks managerclient.ExtendedTaskSlice) {
+func sortTasksByStatus(tasks managerclient.TaskListItemSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return taskStatusSortOrder[tasks[i].Status] < taskStatusSortOrder[tasks[j].Status]
 	})

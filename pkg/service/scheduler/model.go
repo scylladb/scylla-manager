@@ -281,6 +281,12 @@ type Task struct {
 	Enabled    bool            `json:"enabled,omitempty"`
 	Sched      Schedule        `json:"schedule,omitempty"`
 	Properties json.RawMessage `json:"properties,omitempty"`
+
+	Status       Status     `json:"status"`
+	SuccessCount int        `json:"success_count"`
+	ErrorCount   int        `json:"error_count"`
+	LastSuccess  *time.Time `json:"last_success"`
+	LastError    *time.Time `json:"last_error"`
 }
 
 func (t *Task) String() string {
