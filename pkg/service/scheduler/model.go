@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/service"
 	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -269,6 +270,20 @@ func (s Schedule) trigger() scheduler.Trigger {
 		return s.Cron
 	}
 	return trigger.NewLegacy(s.StartDate, s.Interval.Duration())
+}
+
+func (s Schedule) backoff() retry.Backoff {
+	if s.NumRetries == 0 {
+		return nil
+	}
+	w := s.RetryWait
+	if w == 0 {
+		w = duration.Duration(10 * time.Minute)
+	}
+
+	b := retry.NewExponentialBackoff(w.Duration(), 0, 30*time.Minute, 2, 0)
+	b = retry.WithMaxRetries(b, uint64(s.NumRetries))
+	return b
 }
 
 // Task specify task type, properties and schedule.

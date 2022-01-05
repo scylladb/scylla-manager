@@ -5,6 +5,9 @@ package scheduler
 import (
 	"testing"
 	"time"
+
+	"github.com/cenkalti/backoff/v4"
+	"github.com/scylladb/scylla-manager/pkg/util/duration"
 )
 
 func TestTaskType(t *testing.T) {
@@ -92,5 +95,19 @@ func TestLocationMarshalUnmarshal(t *testing.T) {
 	}
 	if v != l {
 		t.Fatalf("UnmarshalText() = %s, expected %s", v, l)
+	}
+}
+
+func TestScheduleBackoff(t *testing.T) {
+	s := Schedule{
+		NumRetries: 3,
+		RetryWait:  duration.Duration(10 * time.Second),
+	}
+	b := s.backoff()
+
+	for i, g := range []time.Duration{10 * time.Second, 20 * time.Second, 40 * time.Second, backoff.Stop} {
+		if v := b.NextBackOff(); v != g {
+			t.Errorf("%d got %s expected %s", i, v, g)
+		}
 	}
 }
