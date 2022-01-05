@@ -28,8 +28,9 @@ type TaskBase struct {
 
 func MakeTaskBase() TaskBase {
 	return TaskBase{
-		timezone:  Timezone{timeutc.LocalName},
-		retryWait: DurationWithDefault(10 * time.Minute),
+		timezone:   Timezone{timeutc.LocalName},
+		numRetries: 3,
+		retryWait:  DurationWithDefault(10 * time.Minute),
 	}
 }
 
