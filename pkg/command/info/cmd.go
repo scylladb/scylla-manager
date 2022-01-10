@@ -67,13 +67,16 @@ func (cmd *command) run(args []string) error {
 	if err := ti.Render(w); err != nil {
 		return err
 	}
+	fmt.Fprintln(w)
 
 	runs, err := cmd.client.GetTaskHistory(cmd.Context(), cmd.cluster, taskType, taskID, int64(cmd.limit))
 	if err != nil {
 		return err
 	}
-	if len(runs) > 0 {
-		fmt.Fprintln(w)
+	if len(runs) == 0 {
+		fmt.Fprintln(w, "No runs yet.")
+		return nil
 	}
+
 	return runs.Render(w)
 }
