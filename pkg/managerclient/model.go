@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/lnquy/cron"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
@@ -196,6 +198,80 @@ func makeTaskUpdate(t *Task) *models.TaskUpdate {
 		Tags:       t.Tags,
 		Properties: t.Properties,
 	}
+}
+
+// TaskInfo allows for rendering of Task information i.e. schedule and properties.
+type TaskInfo struct {
+	*Task
+}
+
+const taskInfoTemplate = `Name:	{{ TaskID .Task }}
+{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ else if .Schedule.Interval -}}
+Cron:	{{ .Schedule.Interval }}
+{{ end -}}
+{{ if .Schedule.Window -}}
+Window:	{{ WindowDesc .Schedule.Window }}
+{{ end -}}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end -}}
+{{ if .Schedule.NumRetries -}}
+Retry:	{{ .Schedule.NumRetries }} {{ if .Schedule.RetryWait }}(initial backoff {{ .Schedule.RetryWait }}){{ end }}
+{{ end -}}
+
+{{ if .Properties }}
+Properties:
+{{- range $key, $val := .Properties }}
+- {{ FormatKey $key }} {{ FormatValue $val -}}
+{{ end }}
+{{ end -}}
+
+`
+
+// Render implements Renderer interface.
+func (t TaskInfo) Render(w io.Writer) error {
+	cronDesc, err := cron.NewDescriptor()
+	if err != nil {
+		return errors.Wrap(err, "cron desc")
+	}
+
+	temp := template.Must(template.New("target").Funcs(template.FuncMap{
+		"TaskID": TaskID,
+		"CronDesc": func(s string) string {
+			d, _ := cronDesc.ToDescription(s, cron.Locale_en) // nolint: errcheck
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
+		},
+		"WindowDesc": func(s []string) string {
+			v := ""
+			for i := 0; i < len(s)/2; i++ {
+				v += fmt.Sprint(s[i*2:(i+1)*2]) + " "
+			}
+			return v
+		},
+		"FormatKey": func(s string) string {
+			return strings.ReplaceAll(s, "_", "-")
+		},
+		"FormatValue": func(v interface{}) string {
+			switch t := v.(type) {
+			case []string:
+				return strings.Join(t, ",")
+			case []interface{}:
+				s := make([]string, len(t))
+				for i := range t {
+					s[i] = fmt.Sprint(t[i])
+				}
+				return strings.Join(s, ",")
+			default:
+				return fmt.Sprint(t)
+			}
+		},
+	}).Parse(taskInfoTemplate))
+	return temp.Execute(w, t)
 }
 
 // RepairTarget is a representing results of dry running repair task.
