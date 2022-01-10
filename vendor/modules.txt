@@ -190,6 +190,10 @@ github.com/jmespath/go-jmespath
 github.com/jzelinskie/whirlpool
 # github.com/kr/pretty v0.2.0
 ## explicit
+# github.com/lnquy/cron v1.1.1
+## explicit
+github.com/lnquy/cron
+github.com/lnquy/cron/i18n
 # github.com/mailru/easyjson v0.7.1
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
