@@ -61,11 +61,12 @@ func (cmd *command) run(args []string) error {
 		return err
 	}
 
-	r := managerclient.NewCmdRenderer(task, managerclient.RenderAll)
-	if err := r.Render(w); err != nil {
+	ti := managerclient.TaskInfo{
+		Task: task,
+	}
+	if err := ti.Render(w); err != nil {
 		return err
 	}
-	fmt.Fprintln(w)
 
 	runs, err := cmd.client.GetTaskHistory(cmd.Context(), cmd.cluster, taskType, taskID, int64(cmd.limit))
 	if err != nil {

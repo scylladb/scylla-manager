@@ -547,9 +547,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var repairProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
-{{ end -}}
-{{ with .Run -}}
+var repairProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ .Status }}
 {{- if .Cause }}
@@ -587,18 +585,12 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"FormatDuration":       FormatDuration,
 		"FormatError":          FormatError,
 		"FormatRepairProgress": FormatRepairProgress,
-		"arguments":            rp.arguments,
 	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
 }
 
 func (rp RepairProgress) isRunning() bool {
 	return rp.Run.Status == TaskStatusRunning
-}
-
-// arguments return task arguments that task was created with.
-func (rp RepairProgress) arguments() string {
-	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
 }
 
 func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
@@ -793,9 +785,7 @@ func (bp BackupProgress) hideKeyspace(keyspace string) bool {
 	return false
 }
 
-var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
-{{ end -}}
-{{ with .Run -}}
+var backupProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ status }}
 {{- if .Cause }}
@@ -835,15 +825,9 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 		"FormatDuration":       FormatDuration,
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
-		"arguments":            bp.arguments,
 		"status":               bp.status,
 	}).Parse(backupProgressTemplate))
 	return temp.Execute(w, bp)
-}
-
-// arguments returns task arguments that task was created with.
-func (bp BackupProgress) arguments() string {
-	return NewCmdRenderer(bp.Task, RenderTypeArgs).String()
 }
 
 // status returns task status with optional backup stage.
@@ -892,9 +876,7 @@ func (p ValidateBackupProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var validateBackupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
-{{ end -}}
-{{ with .Run -}}
+var validateBackupProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ .Status }}
 {{- if .Cause }}
@@ -933,15 +915,9 @@ func (p ValidateBackupProgress) addHeader(w io.Writer) error {
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
 		"FormatSizeSuffix":     FormatSizeSuffix,
-		"arguments":            p.arguments,
 		"progress":             p.aggregatedProgress,
 	}).Parse(validateBackupProgressTemplate))
 	return temp.Execute(w, p)
-}
-
-// arguments returns task arguments that task was created with.
-func (p ValidateBackupProgress) arguments() string {
-	return NewCmdRenderer(p.Task, RenderTypeArgs).String()
 }
 
 func (p ValidateBackupProgress) aggregatedProgress() models.ValidateBackupProgress {
