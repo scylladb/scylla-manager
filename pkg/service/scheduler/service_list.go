@@ -104,10 +104,9 @@ func (s *Service) decorateTaskListItems(clusterID uuid.UUID, tasks []*TaskListIt
 	}
 	a := l.Activations(keys...)
 	for i, t := range tasks {
-		if suspended && t.Type != HealthCheckTask {
-			tasks[i].Suspended = true
-		}
-		if !a[i].IsZero() {
+		if a[i].IsZero() {
+			t.Suspended = suspended
+		} else {
 			t.NextActivation = &a[i].Time
 		}
 		t.Retry = int(a[i].Retry)
