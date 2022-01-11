@@ -13,7 +13,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/scheduler/trigger"
 	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
@@ -29,6 +28,7 @@ const (
 	BackupTask         TaskType = "backup"
 	HealthCheckTask    TaskType = "healthcheck"
 	RepairTask         TaskType = "repair"
+	SuspendTask        TaskType = "suspend"
 	ValidateBackupTask TaskType = "validate_backup"
 
 	mockTask TaskType = "mock"
@@ -52,6 +52,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = HealthCheckTask
 	case RepairTask:
 		*t = RepairTask
+	case SuspendTask:
+		*t = SuspendTask
 	case ValidateBackupTask:
 		*t = ValidateBackupTask
 	case mockTask:
@@ -423,25 +425,4 @@ func newRunFromTaskInfo(ti taskInfo) *Run {
 		StartTime: now(),
 		Status:    StatusRunning,
 	}
-}
-
-type suspendInfo struct {
-	ClusterID    uuid.UUID   `json:"-"`
-	StartedAt    time.Time   `json:"started_at"`
-	PendingTasks []uuid.UUID `json:"pending_tasks"`
-	RunningTask  []uuid.UUID `json:"running_tasks"`
-}
-
-var _ store.Entry = &suspendInfo{}
-
-func (v *suspendInfo) Key() (clusterID uuid.UUID, key string) {
-	return v.ClusterID, "scheduler_suspended"
-}
-
-func (v *suspendInfo) MarshalBinary() (data []byte, err error) {
-	return json.Marshal(v)
-}
-
-func (v *suspendInfo) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, v)
 }

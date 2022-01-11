@@ -60,9 +60,12 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		suspended:  b16set.New(),
 		noContinue: make(map[uuid.UUID]time.Time),
 	}
+	s.runners[SuspendTask] = suspendRunner{service: s}
+
 	if err := s.initSuspended(); err != nil {
 		return nil, errors.Wrap(err, "init suspended")
 	}
+
 	return s, nil
 }
 
@@ -305,7 +308,7 @@ func (s *Service) initMetrics(t *Task) {
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	s.mu.Lock()
-	if s.isSuspendedLocked(t.ClusterID) && t.Type != HealthCheckTask {
+	if s.isSuspendedLocked(t.ClusterID) && t.Type != HealthCheckTask && t.Type != SuspendTask {
 		s.mu.Unlock()
 		return
 	}
