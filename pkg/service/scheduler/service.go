@@ -645,6 +645,7 @@ func forEachTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
 			iter.Close()
 			return err
 		}
+		t = Task{}
 	}
 	return iter.Close()
 }
