@@ -16,6 +16,7 @@ func TestTaskType(t *testing.T) {
 		BackupTask,
 		HealthCheckTask,
 		RepairTask,
+		SuspendTask,
 		ValidateBackupTask,
 	}
 

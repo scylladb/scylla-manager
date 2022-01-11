@@ -34,7 +34,7 @@ import (
 
 const (
 	_interval = 10 * time.Millisecond
-	_wait     = 1 * time.Second
+	_wait     = 2 * time.Second
 
 	mockTask scheduler.TaskType = "mock"
 	interval                    = duration.Duration(100 * time.Millisecond)
@@ -721,6 +721,50 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task1 is not executed")
 		h.assertNotStatus(task1, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled now")
+		task := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		p, _ := json.Marshal(scheduler.SuspendProperties{
+			Duration:   duration.Duration(time.Second),
+			StartTasks: true,
+		})
+		suspendTask := &scheduler.Task{
+			ClusterID:  h.clusterID,
+			Type:       scheduler.SuspendTask,
+			Enabled:    true,
+			Properties: p,
+		}
+
+		Print("When: suspend task is scheduled")
+		if err := h.service.PutTask(ctx, suspendTask); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task status is StatusStopped")
+		h.assertStatus(task, scheduler.StatusStopped)
+
+		Print("And: scheduler reports suspended status")
+		if !h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("And: task is automatically resumed")
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.runner.Done()
+		h.assertStatus(task, scheduler.StatusDone)
 	})
 
 	t.Run("put task when suspended", func(t *testing.T) {
