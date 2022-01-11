@@ -50,7 +50,7 @@ options:
 - name: run
   default_value: latest
   usage: |
-    Show progress of a particular run, see sctool info to get the `ID`s.
+    Show progress of a particular run, see sctool info to get the `IDs`.
 inherited_options:
 - name: api-cert-file
   usage: |

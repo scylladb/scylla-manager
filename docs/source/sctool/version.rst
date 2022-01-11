@@ -1,21 +1,11 @@
 Version
 -------
 
-The version command shows the currently installed sctool version and the Scylla Manager server version.
-
 version
 =======
 
-**Syntax:**
-
-.. code-block:: none
-
-   sctool version [global flags]
-
-version parameters
-..................
-
-version takes the :ref:`global-flags`.
+.. datatemplate:yaml:: partials/sctool_version.yaml
+   :template: command.tmpl
 
 Example: version
 ................

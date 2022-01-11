@@ -9,6 +9,7 @@ CLI sctool
    :maxdepth: 2
 
    global-flags-and-variables
+   completion
    cluster
    backup
    repair
