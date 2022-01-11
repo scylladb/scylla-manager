@@ -1,4 +1,4 @@
-use: suspend --cluster <id|name>
+use: suspend --cluster <id|name> [--duration] [--on-resume-start-tasks]
 
 short: Stop execution of all tasks
 
@@ -13,3 +13,9 @@ long: |
   * Starting a task manually fails
 
   The health check tasks are an exception and they run even after suspend.
+
+duration:
+  Automatically resume after the given `duration` X[h|m|s].
+
+on-resume-start-tasks:
+  On resume start tasks that were stopped by the suspend.
