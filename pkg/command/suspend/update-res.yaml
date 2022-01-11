@@ -1,0 +1,7 @@
+use: update --cluster <id|name> [flags] [<suspend/task-id>]
+
+short: Modify properties of the existing suspend task
+
+long: |
+  This command allows you to modify properties of an already existing suspend task.
+  If there is one repair task the 'suspend/task-id' argument is not needed.
