@@ -1,17 +1,9 @@
-name: sctool suspend
-synopsis: Stop execution of all tasks
+name: sctool suspend update
+synopsis: Modify properties of the existing suspend task
 description: |
-  This command stops execution of **all** tasks that are running on a cluster.
-  The tasks can be resumed using the resume command.
-
-  When the suspend command is executed:
-
-  * The running tasks are stopped
-  * The scheduled tasks are canceled
-  * Starting a task manually fails
-
-  The health check tasks are an exception and they run even after suspend.
-usage: sctool suspend --cluster <id|name> [--duration] [--on-resume-start-tasks] [flags]
+  This command allows you to modify properties of an already existing suspend task.
+  If there is one repair task the 'suspend/task-id' argument is not needed.
+usage: sctool suspend update --cluster <id|name> [flags] [<suspend/task-id>]
 options:
 - name: cluster
   shorthand: c
@@ -30,7 +22,7 @@ options:
 - name: help
   shorthand: h
   default_value: "false"
-  usage: help for suspend
+  usage: help for update
 - name: interval
   shorthand: i
   usage: |
@@ -101,5 +93,4 @@ inherited_options:
     Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
     If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-- sctool - Scylla Manager Snapshot
-- update - Modify properties of the existing suspend task
+- sctool suspend - Stop execution of all tasks
