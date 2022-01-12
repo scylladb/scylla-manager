@@ -399,6 +399,13 @@ func (li TaskListItems) Render(w io.Writer) error {
 		return duration.Duration(now.Sub(time.Time(*t)).Truncate(time.Second)).String() + " ago"
 	}
 
+	in := func(t *strfmt.DateTime) string {
+		if t == nil {
+			return ""
+		}
+		return "in " + duration.Duration(time.Time(*t).Sub(now).Truncate(time.Second)).String()
+	}
+
 	p := table.New("Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next")
 	for _, t := range li.TaskListItemSlice {
 		var id string
@@ -423,9 +430,11 @@ func (li TaskListItems) Render(w io.Writer) error {
 			status += fmt.Sprintf(" (%d/%d)", t.Retry-1, t.Schedule.NumRetries)
 		}
 
-		next := FormatTimePointer(t.NextActivation)
+		var next string
 		if t.Suspended {
 			next = "[SUSPENDED]"
+		} else {
+			next = in(t.NextActivation)
 		}
 
 		p.AddRow(id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone, t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError), status, next)
