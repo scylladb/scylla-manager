@@ -190,7 +190,6 @@ func newDisabledResumeTask(clusterID uuid.UUID) *Task {
 		Type:      SuspendTask,
 		ID:        resumeTaskID,
 		Name:      "resume",
-		Enabled:   true,
 	}
 }
 
