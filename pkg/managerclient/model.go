@@ -456,8 +456,12 @@ type TaskRunSlice []*TaskRun
 // Render renders TaskRunSlice in a tabular format.
 func (tr TaskRunSlice) Render(w io.Writer) error {
 	t := table.New("ID", "Start time", "End time", "Duration", "Status")
+	t.LimitColumnLength(4)
 	for _, r := range tr {
 		s := r.Status
+		if r.Cause != "" {
+			s += " " + r.Cause
+		}
 		t.AddRow(r.ID, FormatTime(r.StartTime), FormatTime(r.EndTime), FormatDuration(r.StartTime, r.EndTime), s)
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
