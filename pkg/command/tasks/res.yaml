@@ -11,6 +11,9 @@ long: |
 all: |
   Lists all tasks, including those which have been disabled, disabled tasks are prefixed with '*'.
 
+show-ids: |
+  Always display task UUID, do not show task names. 
+
 status: |
   Filters tasks according to their last run `status`.
   Accepted values are: NEW, RUNNING, STOPPING, STOPPED, WAITING, DONE, ERROR, ABORTED.

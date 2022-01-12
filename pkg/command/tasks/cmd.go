@@ -24,6 +24,7 @@ type command struct {
 
 	cluster  string
 	all      bool
+	showIDs  bool
 	status   string
 	taskType string
 	sortKey  string
@@ -49,6 +50,7 @@ func (cmd *command) init() {
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().BoolVarP(&cmd.all, "all", "a", false, "")
+	w.Unwrap().BoolVar(&cmd.showIDs, "show-ids", false, "")
 	w.Unwrap().StringVarP(&cmd.status, "status", "s", "", "")
 	w.Unwrap().StringVarP(&cmd.taskType, "type", "t", "", "")
 	w.Unwrap().StringVar(&cmd.sortKey, "sort", "", "")
@@ -76,6 +78,8 @@ func (cmd *command) run() error {
 		if err != nil {
 			return err
 		}
+		tasks.ShowIDs = cmd.showIDs
+
 		sortTasks(tasks, taskListSortKey(cmd.sortKey))
 		return tasks.Render(w)
 	}

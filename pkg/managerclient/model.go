@@ -385,7 +385,8 @@ type TaskListItemSlice = []*models.TaskListItem
 // TaskListItems is a representation of []*scheduler.Task with additional fields from scheduler.
 type TaskListItems struct {
 	TaskListItemSlice
-	All bool
+	All     bool
+	ShowIDs bool
 }
 
 // Render renders TaskListItems in a tabular format.
@@ -409,7 +410,7 @@ func (li TaskListItems) Render(w io.Writer) error {
 	p := table.New("Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next")
 	for _, t := range li.TaskListItemSlice {
 		var id string
-		if t.Name != "" {
+		if t.Name != "" && !li.ShowIDs {
 			id = taskJoin(t.Type, t.Name)
 		} else {
 			id = taskJoin(t.Type, t.ID)
