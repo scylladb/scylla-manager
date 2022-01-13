@@ -11,7 +11,6 @@ import (
 
 func TestCommandTree(t *testing.T) {
 	printCommandTree(buildCommand(), "")
-
 }
 
 func printCommandTree(cmd *cobra.Command, prefix string) {
@@ -22,7 +21,6 @@ func printCommandTree(cmd *cobra.Command, prefix string) {
 		} else {
 			fmt.Println("DEPRECATED ", s)
 		}
-
 	}
 	for _, c := range cmd.Commands() {
 		printCommandTree(c, s)
