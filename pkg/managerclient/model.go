@@ -224,7 +224,7 @@ Retry:	{{ .Schedule.NumRetries }} {{ if .Schedule.RetryWait }}(initial backoff {
 {{ if .Properties }}
 Properties:
 {{- range $key, $val := .Properties }}
-- {{ FormatKey $key }} {{ FormatValue $val -}}
+- {{ FormatKey $key }}: {{ FormatValue $val -}}
 {{ end }}
 {{ end -}}
 
