@@ -167,6 +167,7 @@ func (cmd *command) run(args []string) error {
 		if cmd.showTables {
 			res.ShowTables = -1
 		}
+		res.Schedule = task.Schedule
 		return res.Render(cmd.OutOrStdout())
 	}
 

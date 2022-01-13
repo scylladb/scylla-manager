@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/lnquy/cron"
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
@@ -232,15 +230,10 @@ Properties:
 
 // Render implements Renderer interface.
 func (t TaskInfo) Render(w io.Writer) error {
-	cronDesc, err := cron.NewDescriptor()
-	if err != nil {
-		return errors.Wrap(err, "cron desc")
-	}
-
 	temp := template.Must(template.New("target").Funcs(template.FuncMap{
 		"TaskID": TaskID,
 		"CronDesc": func(s string) string {
-			d, _ := cronDesc.ToDescription(s, cron.Locale_en) // nolint: errcheck
+			d := DescribeCron(s)
 			if d != "" {
 				d = "(" + d + ")"
 			}
@@ -277,10 +270,17 @@ func (t TaskInfo) Render(w io.Writer) error {
 // RepairTarget is a representing results of dry running repair task.
 type RepairTarget struct {
 	models.RepairTarget
+	Schedule   *Schedule
 	ShowTables int
 }
 
-const repairTargetTemplate = `{{ if .Host -}}
+const repairTargetTemplate = `{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end }}
+{{ end -}}
+{{ if .Host -}}
 
 Host: {{ .Host }}
 
@@ -309,6 +309,13 @@ func (t RepairTarget) Render(w io.Writer) error {
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(t.ShowTables, tables, all)
 		},
+		"CronDesc": func(s string) string {
+			d := DescribeCron(s)
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
+		},
 	}).Parse(repairTargetTemplate))
 	return temp.Execute(w, t)
 }
@@ -316,10 +323,17 @@ func (t RepairTarget) Render(w io.Writer) error {
 // BackupTarget is a representing results of dry running backup task.
 type BackupTarget struct {
 	models.BackupTarget
+	Schedule   *Schedule
 	ShowTables int
 }
 
-const backupTargetTemplate = `Data Centers:
+const backupTargetTemplate = `{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end }}
+{{ end -}}
+Data Centers:
 {{ range .Dc }}  - {{ . }}
 {{ end }}
 Keyspaces:
@@ -371,6 +385,13 @@ func (t BackupTarget) Render(w io.Writer) error {
 		"FormatSizeSuffix": FormatSizeSuffix,
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(t.ShowTables, tables, all)
+		},
+		"CronDesc": func(s string) string {
+			d := DescribeCron(s)
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
 		},
 	}).Parse(backupTargetTemplate))
 	return temp.Execute(w, t)

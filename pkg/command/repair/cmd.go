@@ -157,6 +157,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
+		res.Schedule = task.Schedule
 		if cmd.showTables {
 			res.ShowTables = -1
 		}
