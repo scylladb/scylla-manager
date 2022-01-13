@@ -283,7 +283,7 @@ func (s Schedule) backoff() retry.Backoff {
 		w = duration.Duration(10 * time.Minute)
 	}
 
-	b := retry.NewExponentialBackoff(w.Duration(), 0, 30*time.Minute, 2, 0)
+	b := retry.NewExponentialBackoff(w.Duration(), 0, 3*time.Hour, 2, 0)
 	b = retry.WithMaxRetries(b, uint64(s.NumRetries))
 	return b
 }
