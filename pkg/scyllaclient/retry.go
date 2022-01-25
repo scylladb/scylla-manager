@@ -19,6 +19,7 @@ type retryConfig struct {
 	interactive BackoffConfig
 	poolSize    int
 	timeout     time.Duration
+	maxTimeout  time.Duration
 }
 
 func newRetryConfig(config Config) *retryConfig {
@@ -27,6 +28,7 @@ func newRetryConfig(config Config) *retryConfig {
 		interactive: config.InteractiveBackoff,
 		poolSize:    len(config.Hosts),
 		timeout:     config.Timeout,
+		maxTimeout:  config.MaxTimeout,
 	}
 }
 
@@ -86,11 +88,13 @@ func (c retryableClient) Do(id string, req *http.Request) (*http.Response, error
 		return resp, makeAgentError(resp)
 	}
 
+	ct, _ := hasCustomTimeout(req.Context())
 	o := &retryableOperation{
-		config: c.config,
-		ctx:    req.Context(),
-		id:     id,
-		logger: c.logger,
+		config:        c.config,
+		customTimeout: ct,
+		ctx:           req.Context(),
+		id:            id,
+		logger:        c.logger,
 	}
 	o.do = func() (interface{}, error) {
 		r := req.Clone(o.ctx)
@@ -136,11 +140,13 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 		return v, unpackURLError(err)
 	}
 
+	ct, _ := hasCustomTimeout(operation.Context)
 	o := &retryableOperation{
-		config: t.config,
-		ctx:    operation.Context,
-		id:     operation.ID,
-		logger: t.logger,
+		config:        t.config,
+		customTimeout: ct,
+		ctx:           operation.Context,
+		id:            operation.ID,
+		logger:        t.logger,
 	}
 	o.do = func() (interface{}, error) {
 		operation.Context = o.ctx
@@ -150,12 +156,13 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 }
 
 type retryableOperation struct {
-	config   *retryConfig
-	ctx      context.Context
-	id       string
-	result   interface{}
-	attempts int
-	logger   log.Logger
+	config        *retryConfig
+	customTimeout time.Duration
+	ctx           context.Context
+	id            string
+	result        interface{}
+	attempts      int
+	logger        log.Logger
 
 	do func() (interface{}, error)
 }
@@ -184,11 +191,7 @@ func (o *retryableOperation) op() (err error) {
 			return
 		}
 		if shouldIncreaseTimeout(o.ctx, err) {
-			timeout := 2 * o.config.timeout
-			if ct, ok := hasCustomTimeout(o.ctx); ok {
-				timeout = ct + o.config.timeout
-			}
-
+			timeout := o.nextTimeout()
 			o.logger.Debug(o.ctx, "HTTP increasing timeout",
 				"operation", o.id,
 				"timeout", timeout,
@@ -198,6 +201,23 @@ func (o *retryableOperation) op() (err error) {
 	}
 
 	return
+}
+
+func (o *retryableOperation) nextTimeout() time.Duration {
+	d, _ := hasCustomTimeout(o.ctx)
+
+	d -= o.customTimeout
+	if d <= 0 {
+		d = o.config.timeout
+	}
+	d *= 2
+	d += o.customTimeout
+
+	if o.config.maxTimeout > 0 && d > o.config.maxTimeout {
+		d = o.config.maxTimeout
+	}
+
+	return d
 }
 
 func shouldRetry(ctx context.Context, err error) bool {

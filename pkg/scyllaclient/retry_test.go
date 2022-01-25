@@ -197,7 +197,7 @@ func (s repairTestSuite) TestRetryTimeout(t *testing.T) {
 	t.Parallel()
 
 	handler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-		time.Sleep(75 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	})
 
 	shortTimeout := func(config *scyllaclient.Config) {
