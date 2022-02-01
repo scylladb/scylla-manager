@@ -26,7 +26,11 @@ func (h clusterFilter) clusterCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		clusterID := chi.URLParam(r, "cluster_id")
+		clusterID, err := url.QueryUnescape(chi.URLParam(r, "cluster_id"))
+		if err != nil {
+			respondBadRequest(w, r, errors.New("invalid encoding in cluster ID"))
+		}
+
 		if clusterID == "" {
 			respondBadRequest(w, r, errors.New("missing cluster ID"))
 			return
