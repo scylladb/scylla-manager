@@ -46,7 +46,7 @@ Copy ``vars.yaml.example`` as ``vars.yaml`` and change parameters to match your 
 .. note:: make sure to update your ``var.yaml`` so the IPs of the **destination cluster** map to UUIDs of nodes of the **source cluster**.
 
 
-For example, for a source couster
+For example, for a source cluster
 
 .. code::
 
