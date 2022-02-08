@@ -30,6 +30,7 @@ type command struct {
 	location         []string
 	keyspace         []string
 	retention        int
+	retentionDays    int
 	rateLimit        []string
 	snapshotParallel []string
 	uploadParallel   []string
@@ -80,6 +81,7 @@ func (cmd *command) init() {
 	w.Datacenter(&cmd.dc)
 	w.Keyspace(&cmd.keyspace)
 	w.Unwrap().IntVar(&cmd.retention, "retention", 7, "")
+	w.Unwrap().IntVar(&cmd.retentionDays, "retention-days", 0, "")
 	w.Unwrap().StringSliceVar(&cmd.rateLimit, "rate-limit", nil, "")
 	w.Unwrap().StringSliceVar(&cmd.snapshotParallel, "snapshot-parallel", nil, "")
 	w.Unwrap().StringSliceVar(&cmd.uploadParallel, "upload-parallel", nil, "")
@@ -130,6 +132,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("retention").Changed {
 		props["retention"] = cmd.retention
+		ok = true
+	}
+	if cmd.Flag("retention-days").Changed {
+		props["retention_days"] = cmd.retentionDays
 		ok = true
 	}
 	if cmd.Flag("rate-limit").Changed {

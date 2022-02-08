@@ -83,6 +83,20 @@ func (s *Service) Runner() Runner {
 	return Runner{service: s}
 }
 
+// GetRetentionFrom returns a function that returns the retention policy for a
+// given task ID, with a default of 30 days retention if no policy exists.
+func GetRetentionFrom(retentionMap map[uuid.UUID]Retention) func(uuid.UUID) Retention {
+	return func(taskID uuid.UUID) Retention {
+		retention, ok := retentionMap[taskID]
+
+		if !ok {
+			return Retention{30, 0}
+		}
+
+		return retention
+	}
+}
+
 // GetTarget converts runner properties into backup Target.
 // It also ensures configuration for the backup providers is registered on the
 // targeted hosts.
@@ -133,9 +147,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy simple properties
 	t.Retention = p.Retention
-	t.RetentionMap = p.RetentionMap
+	t.RetentionDays = p.RetentionDays
 	t.Continue = p.Continue
 	t.PurgeOnly = p.PurgeOnly
+
+	t.GetRetention = GetRetentionFrom(p.RetentionMap)
 
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
@@ -660,9 +676,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// In testing when target.RetentionMap is not set generate one from target.Retention.
-	if len(target.RetentionMap) == 0 {
-		target.RetentionMap = map[uuid.UUID]int{taskID: target.Retention}
+	// In testing when target.GetRetention is not set generate one from target.Retention and target.RetentionDays.
+	if target.GetRetention == nil {
+		target.GetRetention = GetRetentionFrom(map[uuid.UUID]Retention{taskID: {target.RetentionDays, target.Retention}})
 	}
 
 	// Generate snapshot tag
@@ -767,7 +783,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MoveManifest(ctx, hi)
 		},
 		StagePurge: func() error {
-			return w.Purge(ctx, hi, target.RetentionMap)
+			return w.Purge(ctx, hi, target.GetRetention)
 		},
 		StageDone: gaurdFunc,
 

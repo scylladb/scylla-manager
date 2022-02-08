@@ -39,20 +39,33 @@ type ListItem struct {
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units            []Unit            `json:"units,omitempty"`
-	DC               []string          `json:"dc,omitempty"`
-	Location         []Location        `json:"location"`
-	Retention        int               `json:"retention"`
-	RetentionMap     map[uuid.UUID]int `json:"-"` // policy for all tasks, injected in runtime
-	RateLimit        []DCLimit         `json:"rate_limit,omitempty"`
-	SnapshotParallel []DCLimit         `json:"snapshot_parallel,omitempty"`
-	UploadParallel   []DCLimit         `json:"upload_parallel,omitempty"`
-	Continue         bool              `json:"continue,omitempty"`
-	PurgeOnly        bool              `json:"purge_only,omitempty"`
+	Units            []Unit     `json:"units,omitempty"`
+	DC               []string   `json:"dc,omitempty"`
+	Location         []Location `json:"location"`
+	Retention        int        `json:"retention"`
+	RetentionDays    int        `json:"retention_days"`
+	RateLimit        []DCLimit  `json:"rate_limit,omitempty"`
+	SnapshotParallel []DCLimit  `json:"snapshot_parallel,omitempty"`
+	UploadParallel   []DCLimit  `json:"upload_parallel,omitempty"`
+	Continue         bool       `json:"continue,omitempty"`
+	PurgeOnly        bool       `json:"purge_only,omitempty"`
+
+	// GetRetention (injected in runtime) returns the policy for all backup
+	// tasks. Returns a default policy if no retention exists.
+	GetRetention RetentionFunc `json:"-"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
+
+// Retention specifies the retention configuration of a backup task.
+type Retention struct {
+	RetentionDays int
+	Retention     int
+}
+
+// RetentionFunc returns Retention properties for a given UUID.
+type RetentionFunc func(uuid.UUID) Retention
 
 // Unit represents keyspace and its tables.
 type Unit struct {
@@ -226,22 +239,24 @@ func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace         []string          `json:"keyspace"`
-	DC               []string          `json:"dc"`
-	Location         []Location        `json:"location"`
-	Retention        int               `json:"retention"`
-	RetentionMap     map[uuid.UUID]int `json:"retention_map"`
-	RateLimit        []DCLimit         `json:"rate_limit"`
-	SnapshotParallel []DCLimit         `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit         `json:"upload_parallel"`
-	Continue         bool              `json:"continue"`
-	PurgeOnly        bool              `json:"purge_only"`
+	Keyspace         []string                `json:"keyspace"`
+	DC               []string                `json:"dc"`
+	Location         []Location              `json:"location"`
+	Retention        int                     `json:"retention"`
+	RetentionDays    int                     `json:"retention_days"`
+	RetentionMap     map[uuid.UUID]Retention `json:"retention_map"`
+	RateLimit        []DCLimit               `json:"rate_limit"`
+	SnapshotParallel []DCLimit               `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit               `json:"upload_parallel"`
+	Continue         bool                    `json:"continue"`
+	PurgeOnly        bool                    `json:"purge_only"`
 }
 
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
-		Retention: 3,
-		Continue:  true,
+		Retention:     3,
+		RetentionDays: 0,
+		Continue:      true,
 	}
 }
 
@@ -271,10 +286,10 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 }
 
 // ExtractRetention parses properties as task properties and returns "retention".
-func ExtractRetention(properties json.RawMessage) (int, error) {
+func ExtractRetention(properties json.RawMessage) (Retention, error) {
 	var p taskProperties
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return 0, err
+		return Retention{}, err
 	}
-	return p.Retention, nil
+	return Retention{p.RetentionDays, p.Retention}, nil
 }

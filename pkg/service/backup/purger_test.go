@@ -36,14 +36,21 @@ func TestStaleTags(t *testing.T) {
 	// Valid nothing to do
 	manifests = append(manifests, gen("a", task1, 10, 12)...)
 	manifests = append(manifests, gen("b", task1, 10, 12)...)
-	// Not found in policy delete all
+
+	// Not found in policy delete older than 30 days
 	manifests = append(manifests, gen("c", task2, 20, 22)...)
+	manifests = append(manifests, &ManifestInfo{
+		NodeID:      "c",
+		TaskID:      task2,
+		SnapshotTag: SnapshotTagAt(time.Now().AddDate(0, 0, -15)),
+	})
+
 	// Temporary manifest
 	x := gen("c", task0, 6, 7)[0]
 	x.Temporary = true
 	manifests = append(manifests, x)
 
-	tags := staleTags(manifests, map[uuid.UUID]int{task0: 3, task1: 2}, time.Unix(21, 0))
+	tags := staleTags(manifests, GetRetentionFrom(map[uuid.UUID]Retention{task0: {0, 3}, task1: {0, 2}}))
 
 	golden := []string{
 		"sm_19700101000000UTC",
@@ -52,6 +59,7 @@ func TestStaleTags(t *testing.T) {
 		"sm_19700101000003UTC",
 		"sm_19700101000006UTC",
 		"sm_19700101000020UTC",
+		"sm_19700101000021UTC",
 	}
 
 	if diff := cmp.Diff(tags.List(), golden, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {

@@ -25,6 +25,7 @@ type ListFilter struct {
 	TaskType []TaskType
 	Status   []Status
 	Disabled bool
+	Deleted  bool
 	Short    bool
 }
 
@@ -42,6 +43,10 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter Lis
 	}
 	if !filter.Disabled {
 		b.Where(qb.EqLit("enabled", "true"))
+		b.AllowFiltering()
+	}
+	if !filter.Deleted {
+		b.Where(qb.EqLit("deleted", "false"))
 		b.AllowFiltering()
 	}
 	if filter.Short {

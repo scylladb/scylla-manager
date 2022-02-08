@@ -134,11 +134,11 @@ func (s *server) makeServices() error {
 
 	// Generate "retention_map" for backup task.
 	s.schedSvc.SetPropertiesDecorator(scheduler.BackupTask, func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
-		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
+		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}, Deleted: true})
 		if err != nil {
 			return nil, err
 		}
-		retentionMap := make(map[uuid.UUID]int)
+		retentionMap := make(map[uuid.UUID]backup.Retention)
 		for _, t := range tasks {
 			r, err := backup.ExtractRetention(properties)
 			if err != nil {
@@ -156,7 +156,7 @@ func (s *server) makeServices() error {
 			return properties, nil
 		}
 		// Extract locations from all tasks...
-		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
+		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}, Deleted: true})
 		if err != nil {
 			return nil, err
 		}

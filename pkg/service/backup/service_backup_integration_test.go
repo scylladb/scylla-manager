@@ -385,7 +385,7 @@ func TestGetTargetIntegration(t *testing.T) {
 				t.Error(err)
 			}
 
-			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b }), cmpopts.IgnoreUnexported(backup.Target{})); diff != "" {
+			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b }), cmpopts.IgnoreUnexported(backup.Target{}), cmpopts.IgnoreFields(backup.Target{}, "GetRetention")); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -1412,6 +1412,7 @@ func TestPurgeIntegration(t *testing.T) {
 
 	task1 := h.taskID
 	task2 := uuid.MustRandom()
+	task3 := uuid.MustRandom()
 
 	Print("Given: retention policy 1")
 	target := backup.Target{
@@ -1423,10 +1424,11 @@ func TestPurgeIntegration(t *testing.T) {
 		DC:        []string{"dc1"},
 		Location:  []Location{location},
 		Retention: 1,
-		RetentionMap: map[uuid.UUID]int{
-			task1: 1,
-			task2: 1,
-		},
+		GetRetention: backup.GetRetentionFrom(map[uuid.UUID]backup.Retention{
+			task1: {7, 1},
+			task2: {7, 1},
+			task3: {2, 7},
+		}),
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -1461,6 +1463,24 @@ func TestPurgeIntegration(t *testing.T) {
 		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -2))
 		return true
 	})
+	Print("And: add 2 hour old manifest for task 3 - should NOT be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+		m.TaskID = task3
+		m.SnapshotTag = SnapshotTagAt(now.Add(time.Hour * -2))
+		return true
+	})
+	Print("And: add 1 day old manifest for task 3 - should NOT be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+		m.TaskID = task3
+		m.SnapshotTag = SnapshotTagAt(now.Add(time.Hour * -26))
+		return true
+	})
+	Print("And: add 3 day old manifest for task 3 - should be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+		m.TaskID = task3
+		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -3))
+		return true
+	})
 	Print("And: add manifest for removed old task - should be removed")
 	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
 		m.TaskID = uuid.MustRandom()
@@ -1481,10 +1501,10 @@ func TestPurgeIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Print("Then: there should be 3 + 2 manifests")
+	Print("Then: there should be 3 + 4 manifests")
 	manifests, _, files := h.listS3Files()
-	if len(manifests) != 5 {
-		t.Fatalf("Expected 5 manifests (1 per each node) plus 2 generated, got %d %s", len(manifests), strings.Join(manifests, "\n"))
+	if len(manifests) != 7 {
+		t.Fatalf("Expected 7 manifests (1 per each node) plus 4 generated, got %d %s", len(manifests), strings.Join(manifests, "\n"))
 	}
 
 	Print("And: old sstable files are removed")

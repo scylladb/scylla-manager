@@ -179,6 +179,7 @@ var (
 		Name: "scheduler_task",
 		Columns: []string{
 			"cluster_id",
+			"deleted",
 			"enabled",
 			"error_count",
 			"id",
