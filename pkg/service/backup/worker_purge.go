@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
-func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retention RetentionFunc) (err error) {
+func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retention retentionFunc) (err error) {
 	w.Logger.Info(ctx, "Purging stale snapshots...")
 	defer func(start time.Time) {
 		if err != nil {

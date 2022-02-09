@@ -50,7 +50,7 @@ func TestStaleTags(t *testing.T) {
 	x.Temporary = true
 	manifests = append(manifests, x)
 
-	tags := staleTags(manifests, GetRetentionFrom(map[uuid.UUID]Retention{task0: {0, 3}, task1: {0, 2}}))
+	tags := staleTags(manifests, getRetentionFrom(map[uuid.UUID]retention{task0: {0, 3}, task1: {0, 2}}))
 
 	golden := []string{
 		"sm_19700101000000UTC",

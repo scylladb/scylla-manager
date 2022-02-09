@@ -83,17 +83,17 @@ func (s *Service) Runner() Runner {
 	return Runner{service: s}
 }
 
-// GetRetentionFrom returns a function that returns the retention policy for a
+// getRetentionFrom returns a function that returns the retention policy for a
 // given task ID, with a default of 30 days retention if no policy exists.
-func GetRetentionFrom(retentionMap map[uuid.UUID]Retention) func(uuid.UUID) Retention {
-	return func(taskID uuid.UUID) Retention {
-		retention, ok := retentionMap[taskID]
+func getRetentionFrom(retentionMap map[uuid.UUID]retention) retentionFunc {
+	return func(taskID uuid.UUID) retention {
+		r, ok := retentionMap[taskID]
 
 		if !ok {
-			return Retention{30, 0}
+			return retention{30, 0}
 		}
 
-		return retention
+		return r
 	}
 }
 
@@ -150,8 +150,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t.RetentionDays = p.RetentionDays
 	t.Continue = p.Continue
 	t.PurgeOnly = p.PurgeOnly
-
-	t.GetRetention = GetRetentionFrom(p.RetentionMap)
 
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
@@ -676,11 +674,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// In testing when target.GetRetention is not set generate one from target.Retention and target.RetentionDays.
-	if target.GetRetention == nil {
-		target.GetRetention = GetRetentionFrom(map[uuid.UUID]Retention{taskID: {target.RetentionDays, target.Retention}})
-	}
-
 	// Generate snapshot tag
 	if run.SnapshotTag == "" {
 		run.SnapshotTag = NewSnapshotTag()
@@ -783,7 +776,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MoveManifest(ctx, hi)
 		},
 		StagePurge: func() error {
-			return w.Purge(ctx, hi, target.GetRetention)
+			taskRetention, err := s.gatherRetentionPolicies()
+			if err != nil {
+				return errors.Wrap(err, "gather retention policies")
+			}
+			return w.Purge(ctx, hi, taskRetention)
 		},
 		StageDone: gaurdFunc,
 
@@ -1103,4 +1100,32 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
+}
+
+func (s Service) gatherRetentionPolicies() (retentionFunc, error) {
+	q := qb.Select(table.SchedulerTask.Name()).
+		Columns("id", "properties").
+		Where(qb.Eq("type")).
+		AllowFiltering().Query(s.session).Bind("backup")
+
+	var tasks []*struct {
+		ID         uuid.UUID
+		Properties json.RawMessage
+	}
+
+	if err := q.SelectRelease(&tasks); err != nil {
+		return nil, errors.Wrap(err, "select backup tasks")
+	}
+
+	retentionMap := make(map[uuid.UUID]retention)
+	for _, t := range tasks {
+		retention, err := extractRetention(t.Properties)
+		if err != nil {
+			return nil, errors.Wrap(err, "extract retention properties")
+		}
+
+		retentionMap[t.ID] = retention
+	}
+
+	return getRetentionFrom(retentionMap), nil
 }

@@ -25,7 +25,7 @@ import (
 // - manifests over task days retention days policy,
 // - manifests over task retention policy,
 // - manifests older than threshold if retention policy is unknown.
-func staleTags(manifests []*ManifestInfo, policy RetentionFunc) *strset.Set {
+func staleTags(manifests []*ManifestInfo, policy retentionFunc) *strset.Set {
 	tags := strset.New()
 
 	for taskID, taskManifests := range groupManifestsByTask(manifests) {

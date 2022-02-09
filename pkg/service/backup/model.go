@@ -50,22 +50,9 @@ type Target struct {
 	Continue         bool       `json:"continue,omitempty"`
 	PurgeOnly        bool       `json:"purge_only,omitempty"`
 
-	// GetRetention (injected in runtime) returns the policy for all backup
-	// tasks. Returns a default policy if no retention exists.
-	GetRetention RetentionFunc `json:"-"`
-
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
 }
-
-// Retention specifies the retention configuration of a backup task.
-type Retention struct {
-	RetentionDays int
-	Retention     int
-}
-
-// RetentionFunc returns Retention properties for a given UUID.
-type RetentionFunc func(uuid.UUID) Retention
 
 // Unit represents keyspace and its tables.
 type Unit struct {
@@ -244,7 +231,7 @@ type taskProperties struct {
 	Location         []Location              `json:"location"`
 	Retention        int                     `json:"retention"`
 	RetentionDays    int                     `json:"retention_days"`
-	RetentionMap     map[uuid.UUID]Retention `json:"retention_map"`
+	RetentionMap     map[uuid.UUID]retention `json:"retention_map"`
 	RateLimit        []DCLimit               `json:"rate_limit"`
 	SnapshotParallel []DCLimit               `json:"snapshot_parallel"`
 	UploadParallel   []DCLimit               `json:"upload_parallel"`
@@ -285,11 +272,17 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 	return locations, errs
 }
 
-// ExtractRetention parses properties as task properties and returns "retention".
-func ExtractRetention(properties json.RawMessage) (Retention, error) {
+type retention struct {
+	RetentionDays int
+	Retention     int
+}
+
+type retentionFunc func(uuid.UUID) retention
+
+func extractRetention(properties json.RawMessage) (retention, error) {
 	var p taskProperties
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return Retention{}, err
+		return retention{}, err
 	}
-	return Retention{p.RetentionDays, p.Retention}, nil
+	return retention{p.RetentionDays, p.Retention}, nil
 }

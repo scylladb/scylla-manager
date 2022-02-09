@@ -132,23 +132,6 @@ func (s *server) makeServices() error {
 	// This is a bit hacky way of providing selected information on other tasks
 	// such as locations, retention and passing it in context of a task run.
 
-	// Generate "retention_map" for backup task.
-	s.schedSvc.SetPropertiesDecorator(scheduler.BackupTask, func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
-		tasks, err := s.schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}, Deleted: true})
-		if err != nil {
-			return nil, err
-		}
-		retentionMap := make(map[uuid.UUID]backup.Retention)
-		for _, t := range tasks {
-			r, err := backup.ExtractRetention(properties)
-			if err != nil {
-				return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
-			}
-			retentionMap[t.ID] = r
-		}
-		return jsonutil.Set(properties, "retention_map", retentionMap), nil
-	})
-
 	// Get locations if not specified for validate backup task.
 	s.schedSvc.SetPropertiesDecorator(scheduler.ValidateBackupTask, func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
 		// If tasks contains locations return
