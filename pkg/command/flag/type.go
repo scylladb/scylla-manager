@@ -47,6 +47,36 @@ func (c *Cron) Type() string {
 	return "string"
 }
 
+// Timezone wraps string for early validation.
+type Timezone struct {
+	v string
+}
+
+var _ flag.Value = (*Timezone)(nil)
+
+func (c *Timezone) String() string {
+	return c.v
+}
+
+// Set implements pflag.Value.
+func (c *Timezone) Set(s string) error {
+	if _, err := time.LoadLocation(s); err != nil {
+		return err
+	}
+
+	c.v = s
+	return nil
+}
+
+func (c *Timezone) Value() string {
+	return c.v
+}
+
+// Type implements pflag.Value.
+func (c *Timezone) Type() string {
+	return "string"
+}
+
 // Time wraps time.Time and add support for now+duration syntax.
 type Time struct {
 	v time.Time

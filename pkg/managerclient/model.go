@@ -13,7 +13,9 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
+	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/version"
 	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
 	"github.com/scylladb/termtables"
@@ -196,13 +198,89 @@ func makeTaskUpdate(t *Task) *models.TaskUpdate {
 	}
 }
 
+// TaskInfo allows for rendering of Task information i.e. schedule and properties.
+type TaskInfo struct {
+	*Task
+}
+
+const taskInfoTemplate = `Name:	{{ TaskID .Task }}
+{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ else if .Schedule.Interval -}}
+Cron:	{{ .Schedule.Interval }}
+{{ end -}}
+{{ if .Schedule.Window -}}
+Window:	{{ WindowDesc .Schedule.Window }}
+{{ end -}}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end -}}
+{{ if .Schedule.NumRetries -}}
+Retry:	{{ .Schedule.NumRetries }} {{ if .Schedule.RetryWait }}(initial backoff {{ .Schedule.RetryWait }}){{ end }}
+{{ end -}}
+
+{{ if .Properties }}
+Properties:
+{{- range $key, $val := .Properties }}
+- {{ FormatKey $key }}: {{ FormatValue $val -}}
+{{ end }}
+{{ end -}}
+
+`
+
+// Render implements Renderer interface.
+func (t TaskInfo) Render(w io.Writer) error {
+	temp := template.Must(template.New("target").Funcs(template.FuncMap{
+		"TaskID": TaskID,
+		"CronDesc": func(s string) string {
+			d := DescribeCron(s)
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
+		},
+		"WindowDesc": func(s []string) string {
+			v := ""
+			for i := 0; i < len(s)/2; i++ {
+				v += fmt.Sprint(s[i*2:(i+1)*2]) + " "
+			}
+			return v
+		},
+		"FormatKey": func(s string) string {
+			return strings.ReplaceAll(s, "_", "-")
+		},
+		"FormatValue": func(v interface{}) string {
+			switch t := v.(type) {
+			case []string:
+				return strings.Join(t, ",")
+			case []interface{}:
+				s := make([]string, len(t))
+				for i := range t {
+					s[i] = fmt.Sprint(t[i])
+				}
+				return strings.Join(s, ",")
+			default:
+				return fmt.Sprint(t)
+			}
+		},
+	}).Parse(taskInfoTemplate))
+	return temp.Execute(w, t)
+}
+
 // RepairTarget is a representing results of dry running repair task.
 type RepairTarget struct {
 	models.RepairTarget
+	Schedule   *Schedule
 	ShowTables int
 }
 
-const repairTargetTemplate = `{{ if .Host -}}
+const repairTargetTemplate = `{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end }}
+{{ end -}}
+{{ if .Host -}}
 
 Host: {{ .Host }}
 
@@ -231,6 +309,13 @@ func (t RepairTarget) Render(w io.Writer) error {
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(t.ShowTables, tables, all)
 		},
+		"CronDesc": func(s string) string {
+			d := DescribeCron(s)
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
+		},
 	}).Parse(repairTargetTemplate))
 	return temp.Execute(w, t)
 }
@@ -238,10 +323,17 @@ func (t RepairTarget) Render(w io.Writer) error {
 // BackupTarget is a representing results of dry running backup task.
 type BackupTarget struct {
 	models.BackupTarget
+	Schedule   *Schedule
 	ShowTables int
 }
 
-const backupTargetTemplate = `Data Centers:
+const backupTargetTemplate = `{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end }}
+{{ end -}}
+Data Centers:
 {{ range .Dc }}  - {{ . }}
 {{ end }}
 Keyspaces:
@@ -294,57 +386,80 @@ func (t BackupTarget) Render(w io.Writer) error {
 		"FormatTables": func(tables []string, all bool) string {
 			return FormatTables(t.ShowTables, tables, all)
 		},
+		"CronDesc": func(s string) string {
+			d := DescribeCron(s)
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
+		},
 	}).Parse(backupTargetTemplate))
 	return temp.Execute(w, t)
 }
 
-// ExtendedTask is a representation of scheduler.Task with additional fields
-// from scheduler.Run.
-type ExtendedTask = models.ExtendedTask
+// TaskListItem is a representation of scheduler.Task with additional fields from scheduler.
+type TaskListItem = models.TaskListItem
 
-// ExtendedTaskSlice is a representation of a slice of scheduler.Task with
-// additional fields from scheduler.Run.
-type ExtendedTaskSlice = []*models.ExtendedTask
+// TaskListItemSlice is a representation of a slice of scheduler.Task with additional fields from scheduler.
+type TaskListItemSlice = []*models.TaskListItem
 
-// ExtendedTasks is a representation of []*scheduler.Task with additional
-// fields from scheduler.Run.
-type ExtendedTasks struct {
-	ExtendedTaskSlice
-	All bool
+// TaskListItems is a representation of []*scheduler.Task with additional fields from scheduler.
+type TaskListItems struct {
+	TaskListItemSlice
+	All     bool
+	ShowIDs bool
 }
 
-// Render renders ExtendedTasks in a tabular format.
-func (et ExtendedTasks) Render(w io.Writer) error {
-	p := table.New("Task", "Arguments", "Next run", "Status")
-	p.LimitColumnLength(3)
-	for _, t := range et.ExtendedTaskSlice {
+// Render renders TaskListItems in a tabular format.
+func (li TaskListItems) Render(w io.Writer) error {
+	now := timeutc.Now()
+
+	ago := func(t *strfmt.DateTime) string {
+		if t == nil {
+			return ""
+		}
+		return duration.Duration(now.Sub(time.Time(*t)).Truncate(time.Second)).String() + " ago"
+	}
+
+	in := func(t *strfmt.DateTime) string {
+		if t == nil {
+			return ""
+		}
+		return "in " + duration.Duration(time.Time(*t).Sub(now).Truncate(time.Second)).String()
+	}
+
+	p := table.New("Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next")
+	for _, t := range li.TaskListItemSlice {
 		var id string
-		if t.Name != "" {
+		if t.Name != "" && !li.ShowIDs {
 			id = taskJoin(t.Type, t.Name)
 		} else {
 			id = taskJoin(t.Type, t.ID)
 		}
-		if et.All && !t.Enabled {
+		if li.All && !t.Enabled {
 			id = "*" + id
 		}
-		r := FormatTime(t.NextActivation)
-		if r != "" && t.Schedule.Interval != "" {
-			r += fmt.Sprint(" (+", t.Schedule.Interval, ")")
+
+		var schedule string
+		if t.Schedule.Cron != "" {
+			schedule = t.Schedule.Cron
+		} else if t.Schedule.Interval != "" {
+			schedule = t.Schedule.Interval
 		}
+
+		status := t.Status
+		if status == TaskStatusError && t.Retry > 0 {
+			status += fmt.Sprintf(" (%d/%d)", t.Retry-1, t.Schedule.NumRetries)
+		}
+
+		var next string
 		if t.Suspended {
-			r = "[SUSPENDED] " + r
+			next = "[SUSPENDED]"
+		} else {
+			next = in(t.NextActivation)
 		}
-		s := t.Status
-		if t.Status == "ERROR" && t.Schedule.NumRetries > 0 {
-			s += fmt.Sprintf(" (%d/%d)", t.Failures, t.Schedule.NumRetries+1)
-		}
-		pr := NewCmdRenderer(&Task{
-			ClusterID:  t.ClusterID,
-			Type:       t.Type,
-			Schedule:   t.Schedule,
-			Properties: t.Properties,
-		}, RenderTypeArgs).String()
-		p.AddRow(id, pr, r, s)
+
+		p.AddRow(id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone, t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError), status, next)
 	}
 	fmt.Fprint(w, p)
 	return nil
@@ -361,10 +476,14 @@ type TaskRunSlice []*TaskRun
 
 // Render renders TaskRunSlice in a tabular format.
 func (tr TaskRunSlice) Render(w io.Writer) error {
-	t := table.New("ID", "Start time", "End time", "Duration", "Status")
+	t := table.New("ID", "Start time", "Duration", "Status")
+	t.LimitColumnLength(3)
 	for _, r := range tr {
 		s := r.Status
-		t.AddRow(r.ID, FormatTime(r.StartTime), FormatTime(r.EndTime), FormatDuration(r.StartTime, r.EndTime), s)
+		if r.Cause != "" {
+			s += " " + r.Cause
+		}
+		t.AddRow(r.ID, FormatTime(r.StartTime), FormatDuration(r.StartTime, r.EndTime), s)
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
@@ -463,9 +582,7 @@ func (rp RepairProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var repairProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
-{{ end -}}
-{{ with .Run -}}
+var repairProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ .Status }}
 {{- if .Cause }}
@@ -503,18 +620,12 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"FormatDuration":       FormatDuration,
 		"FormatError":          FormatError,
 		"FormatRepairProgress": FormatRepairProgress,
-		"arguments":            rp.arguments,
 	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
 }
 
 func (rp RepairProgress) isRunning() bool {
 	return rp.Run.Status == TaskStatusRunning
-}
-
-// arguments return task arguments that task was created with.
-func (rp RepairProgress) arguments() string {
-	return NewCmdRenderer(rp.Task, RenderTypeArgs).String()
 }
 
 func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
@@ -709,9 +820,7 @@ func (bp BackupProgress) hideKeyspace(keyspace string) bool {
 	return false
 }
 
-var backupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
-{{ end -}}
-{{ with .Run -}}
+var backupProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ status }}
 {{- if .Cause }}
@@ -751,15 +860,9 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 		"FormatDuration":       FormatDuration,
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
-		"arguments":            bp.arguments,
 		"status":               bp.status,
 	}).Parse(backupProgressTemplate))
 	return temp.Execute(w, bp)
-}
-
-// arguments returns task arguments that task was created with.
-func (bp BackupProgress) arguments() string {
-	return NewCmdRenderer(bp.Task, RenderTypeArgs).String()
 }
 
 // status returns task status with optional backup stage.
@@ -808,9 +911,7 @@ func (p ValidateBackupProgress) Render(w io.Writer) error {
 	return nil
 }
 
-var validateBackupProgressTemplate = `{{ if arguments }}Arguments:	{{ arguments }}
-{{ end -}}
-{{ with .Run -}}
+var validateBackupProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ .Status }}
 {{- if .Cause }}
@@ -849,15 +950,9 @@ func (p ValidateBackupProgress) addHeader(w io.Writer) error {
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
 		"FormatSizeSuffix":     FormatSizeSuffix,
-		"arguments":            p.arguments,
 		"progress":             p.aggregatedProgress,
 	}).Parse(validateBackupProgressTemplate))
 	return temp.Execute(w, p)
-}
-
-// arguments returns task arguments that task was created with.
-func (p ValidateBackupProgress) arguments() string {
-	return NewCmdRenderer(p.Task, RenderTypeArgs).String()
 }
 
 func (p ValidateBackupProgress) aggregatedProgress() models.ValidateBackupProgress {

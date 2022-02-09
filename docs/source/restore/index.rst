@@ -43,6 +43,64 @@ Playbook parameters
 All restore parameters shall be put to ``vars.yaml`` file.
 Copy ``vars.yaml.example`` as ``vars.yaml`` and change parameters to match your clusters.
 
+.. note:: make sure to update your ``var.yaml`` so the IPs of the **destination cluster** map to UUIDs of nodes of the **source cluster**.
+
+
+For example, for a source cluster
+
+.. code::
+
+   > nodetool status
+   
+   Datacenter: datacenter1
+   =======================
+   Status=Up/Down
+   |/ State=Normal/Leaving/Joining/Moving
+   --  Address      Load       Tokens       Owns    Host ID                               Rack
+   UN  10.240.0.6   119.6 MB   256          ?       9b6b5206-63c8-4cdf-9b4f-23e37977fd14  rack1
+   UN  10.240.0.93  122.69 MB  256          ?       2d8045e7-51a4-42c4-bb8f-5e8aa77a8228  rack1
+
+and a Destination cluster:
+
+.. code::
+
+   > nodetool status
+   
+   Datacenter: us-east1
+   ====================
+   Status=Up/Down
+   |/ State=Normal/Leaving/Joining/Moving
+   --  Address        Load       Tokens       Owns    Host ID                               Rack
+   UN  75.196.92.133  122.14 MB  256          ?       a21b38b4-c0b1-49f0-89f2-931fe027d6b0  b
+   UN  75.237.179.49  121.22 MB  256          ?       a0a63682-95e3-4cf3-9f46-4d551bd7eba2  b
+
+
+``vars.yaml`` file would look like:
+
+.. code::
+
+   # backup_location specifies the location parameter used in Scylla Manager
+   # when scheduling a backup of a cluster.
+   backup_location: gcs:manager-bucket 
+
+   # snapshot_tag specifies the Scylla Manager snapshot tag you want to restore.
+   snapshot_tag: sm_20220204002134UTC
+
+   # host_id specifies a mapping from the clone cluster node IP to the source
+   # cluster host IDs.
+   host_id:
+     75.237.179.49: 9b6b5206-63c8-4cdf-9b4f-23e37977fd14
+     75.196.92.133: 2d8045e7-51a4-42c4-bb8f-5e8aa77a8228
+   # destination IP: source ID
+
+The ``hosts`` file would look like:
+
+.. code::
+
+   75.237.179.49
+   75.196.92.133
+   
+
 IP to host ID mapping
 .....................
 

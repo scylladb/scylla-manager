@@ -11,6 +11,9 @@ long: |
 all: |
   Lists all tasks, including those which have been disabled, disabled tasks are prefixed with '*'.
 
+show-ids: |
+  Always display task UUID, do not show task names. 
+
 status: |
   Filters tasks according to their last run `status`.
   Accepted values are: NEW, RUNNING, STOPPING, STOPPED, WAITING, DONE, ERROR, ABORTED.
@@ -20,4 +23,4 @@ type: |
 
 sort: |
   Returns a list of tasks sorted according to the last run status and sort `key` which you provide.
-  Accepted sort key values are: 'start-time', 'next-activation', 'end-time', 'status'.
+  Accepted sort key values are: 'next-activation', 'status'.

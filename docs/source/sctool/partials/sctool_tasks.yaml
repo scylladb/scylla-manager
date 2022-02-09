@@ -20,10 +20,13 @@ options:
   shorthand: h
   default_value: "false"
   usage: help for tasks
+- name: show-ids
+  default_value: "false"
+  usage: "Always display task UUID, do not show task names. \n"
 - name: sort
   usage: |
     Returns a list of tasks sorted according to the last run status and sort `key` which you provide.
-    Accepted sort key values are: 'start-time', 'next-activation', 'end-time', 'status'.
+    Accepted sort key values are: 'next-activation', 'status'.
 - name: status
   shorthand: s
   usage: |

@@ -3,6 +3,7 @@
 package scheduler
 
 import (
+	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
@@ -26,5 +27,5 @@ func (s *Service) PutTestRun(r *Run) error {
 }
 
 func (s *Service) PutTestTask(t *Task) error {
-	return s.putTask(t)
+	return table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease()
 }

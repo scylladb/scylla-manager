@@ -92,7 +92,7 @@ options:
     Task name that can be used insead of ID.
 - name: num-retries
   shorthand: r
-  default_value: "0"
+  default_value: "3"
   usage: |
     Number of times a task reruns following a failure.
 - name: parallel
@@ -130,6 +130,11 @@ options:
 
     If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
     If you want the repair to start immediately, use the value 'now' or skip this flag.
+- name: timezone
+  default_value: UTC
+  usage: |
+    Timezone of --cron and --window flag values.
+    The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
 - name: window
   default_value: '[]'
   usage: |

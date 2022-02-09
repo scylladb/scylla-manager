@@ -22,7 +22,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/pkg/util/pointer"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
@@ -61,42 +60,13 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		suspended:  b16set.New(),
 		noContinue: make(map[uuid.UUID]time.Time),
 	}
+	s.runners[SuspendTask] = suspendRunner{service: s}
+
 	if err := s.initSuspended(); err != nil {
 		return nil, errors.Wrap(err, "init suspended")
 	}
+
 	return s, nil
-}
-
-func (s *Service) initSuspended() error {
-	var clusters []uuid.UUID
-	if err := qb.Select(table.SchedulerTask.Name()).Distinct("cluster_id").Query(s.session).SelectRelease(&clusters); err != nil {
-		return errors.Wrap(err, "list clusters")
-	}
-
-	for _, c := range clusters {
-		si := &suspendInfo{ClusterID: c}
-		if err := s.drawer.Get(si); err != nil {
-			if !errors.Is(err, service.ErrNotFound) {
-				return err
-			}
-		} else {
-			s.suspended.Add(c.Bytes16())
-		}
-	}
-
-	return nil
-}
-
-// IsSuspended returns true iff cluster is suspended.
-func (s *Service) IsSuspended(ctx context.Context, clusterID uuid.UUID) bool {
-	s.logger.Debug(ctx, "IsSuspended", "clusterID", clusterID)
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.isSuspendedLocked(clusterID)
-}
-
-func (s *Service) isSuspendedLocked(clusterID uuid.UUID) bool {
-	return s.suspended.Has(clusterID.Bytes16())
 }
 
 // SetPropertiesDecorator sets optional decorator of properties for a given
@@ -178,7 +148,7 @@ func (s *Service) markRunningAsAborted(t *Task, endTime time.Time) (bool, error)
 		r.Status = StatusAborted
 		r.Cause = "service stopped"
 		r.EndTime = &endTime
-		return true, s.putRun(r)
+		return true, s.putRunAndUpdateTask(r)
 	}
 
 	return false, nil
@@ -270,12 +240,14 @@ func (s *Service) GetRun(ctx context.Context, t *Task, runID uuid.UUID) (*Run, e
 // PutTask upserts a task.
 func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	create := false
+
 	if t != nil && t.ID == uuid.Nil {
 		id, err := uuid.NewRandom()
 		if err != nil {
 			return errors.Wrap(err, "couldn't generate random UUID for task")
 		}
 		t.ID = id
+		t.Status = StatusNew
 		create = true
 	}
 	s.logger.Info(ctx, "PutTask", "task", t, "schedule", t.Sched, "properties", t.Properties, "create", create)
@@ -286,23 +258,28 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	if err := s.shouldPutTask(create, t); err != nil {
 		return err
 	}
-	// Force run if there is no start date and cron.
-	run := false
-	if create {
+
+	if create { // nolint: nestif
+		if err := table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
+			return err
+		}
+		s.initMetrics(t)
+
+		// Force run if there is no start date and cron.
+		run := false
 		if t.Sched.StartDate.IsZero() {
 			t.Sched.StartDate = now()
 			if t.Sched.Cron.IsZero() {
 				run = true
 			}
 		}
+		s.schedule(ctx, t, run)
+	} else {
+		if err := table.SchedulerTaskUpdate.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
+			return err
+		}
+		s.schedule(ctx, t, false)
 	}
-	if err := s.putTask(t); err != nil {
-		return err
-	}
-	if create {
-		s.initMetrics(t)
-	}
-	s.schedule(ctx, t, run)
 
 	return nil
 }
@@ -325,17 +302,13 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 	return nil
 }
 
-func (s *Service) putTask(t *Task) error {
-	return table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease()
-}
-
 func (s *Service) initMetrics(t *Task) {
 	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, *(*[]string)(unsafe.Pointer(&allStatuses))...)
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	s.mu.Lock()
-	if s.isSuspendedLocked(t.ClusterID) && t.Type != HealthCheckTask {
+	if s.isSuspendedLocked(t.ClusterID) && t.Type != HealthCheckTask && t.Type != SuspendTask {
 		s.mu.Unlock()
 		return
 	}
@@ -385,15 +358,6 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 		s.mu.Unlock()
 	}()
 
-	if !ok {
-		return service.ErrNotFound
-	}
-
-	if err := s.putRun(r); err != nil {
-		return errors.Wrap(err, "put run")
-	}
-	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID)
-
 	runCtx := log.WithTraceID(ctx)
 	logger := s.logger.Named(ti.ClusterID.String()[0:8])
 
@@ -402,7 +366,31 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 			"task", ti,
 			"retry", ctx.Retry,
 		)
+		defer func() {
+			if r.Status == StatusError {
+				logger.Info(runCtx, "Run ended with ERROR",
+					"task", ti,
+					"status", r.Status,
+					"cause", r.Cause,
+					"duration", r.EndTime.Sub(r.StartTime),
+				)
+			} else {
+				logger.Info(runCtx, "Run ended",
+					"task", ti,
+					"status", r.Status,
+					"duration", r.EndTime.Sub(r.StartTime),
+				)
+			}
+		}()
 	}
+
+	if !ok {
+		return service.ErrNotFound
+	}
+	if err := s.putRunAndUpdateTask(r); err != nil {
+		return errors.Wrap(err, "put run")
+	}
+	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID)
 
 	defer func() {
 		r.Status = statusFromError(runErr)
@@ -418,24 +406,8 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 			if r.Status != StatusDone {
 				r.ID = uuid.NewTime()
 			}
-		} else {
-			if r.Status == StatusError {
-				logger.Error(runCtx, "Run ended with ERROR",
-					"task", ti,
-					"status", r.Status,
-					"cause", r.Cause,
-					"duration", r.EndTime.Sub(r.StartTime),
-				)
-			} else {
-				logger.Info(runCtx, "Run ended",
-					"task", ti,
-					"status", r.Status,
-					"duration", r.EndTime.Sub(r.StartTime),
-				)
-			}
 		}
-
-		if err := s.putRun(r); err != nil {
+		if err := s.putRunAndUpdateTask(r); err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
 		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String())
@@ -457,11 +429,55 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 	return s.mustRunner(ti.TaskType).Run(runCtx, ti.ClusterID, ti.TaskID, r.ID, ctx.Properties)
 }
 
+func (s *Service) putRunAndUpdateTask(r *Run) error {
+	if err := s.putRun(r); err != nil {
+		return err
+	}
+	if err := s.updateTaskWithRun(r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) putRun(r *Run) error {
-	return table.SchedulerTaskRun.
-		InsertQuery(s.session).
-		BindStruct(r).
-		ExecRelease()
+	return table.SchedulerTaskRun.InsertQuery(s.session).BindStruct(r).ExecRelease()
+}
+
+func (s *Service) updateTaskWithRun(r *Run) error {
+	t := Task{
+		ClusterID: r.ClusterID,
+		Type:      r.Type,
+		ID:        r.TaskID,
+		Status:    r.Status,
+	}
+	b := table.SchedulerTask.UpdateBuilder("status")
+
+	var u *gocqlx.Queryx
+	switch r.Status {
+	case StatusDone:
+		q := table.SchedulerTask.GetQuery(s.session, "success_count").BindStruct(&t)
+		if err := q.GetRelease(&t); err != nil {
+			return err
+		}
+
+		u = b.Set("success_count", "last_success").Query(s.session)
+		t.SuccessCount++
+		t.LastSuccess = r.EndTime
+	case StatusError:
+		q := table.SchedulerTask.GetQuery(s.session, "error_count").BindStruct(&t)
+		if err := q.GetRelease(&t); err != nil {
+			return err
+		}
+
+		u = b.Set("error_count", "last_error").Query(s.session)
+		t.ErrorCount++
+		t.LastError = r.EndTime
+	default:
+		u = b.Query(s.session)
+	}
+
+	return u.BindStruct(&t).ExecRelease()
 }
 
 func statusFromError(err error) Status {
@@ -599,112 +615,6 @@ func (s *Service) updateRunStatus(r *Run) error {
 		ExecRelease()
 }
 
-// Suspend stops scheduler for a given cluster.
-// Running tasks will be stopped.
-// Scheduled task executions will be canceled.
-// Scheduler can be later resumed, see `Resume` function.
-func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID) error {
-	s.mu.Lock()
-	si, l := s.suspendLocked(ctx, clusterID)
-	s.mu.Unlock()
-
-	if si == nil {
-		return nil
-	}
-	if err := s.forEachClusterHealthCheckTask(clusterID, func(t *Task) error {
-		s.schedule(ctx, t, false)
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "schedule")
-	}
-	if err := s.drawer.Put(si); err != nil {
-		return errors.Wrap(err, "save canceled tasks")
-	}
-
-	if l != nil {
-		l.Wait()
-	}
-	return nil
-}
-
-func (s *Service) suspendLocked(ctx context.Context, clusterID uuid.UUID) (*suspendInfo, *scheduler.Scheduler) {
-	s.logger.Info(ctx, "Suspending cluster", "cluster_id", clusterID)
-
-	if s.suspended.Has(clusterID.Bytes16()) {
-		s.logger.Info(ctx, "Cluster already suspended", "cluster_id", clusterID)
-		return nil, nil
-	}
-
-	s.suspended.Add(clusterID.Bytes16())
-	si := &suspendInfo{
-		ClusterID: clusterID,
-		StartedAt: timeutc.Now(),
-	}
-	l := s.scheduler[clusterID]
-	if l != nil {
-		si.RunningTask, si.PendingTasks = l.Close()
-	}
-	s.scheduler[clusterID] = s.newScheduler(clusterID)
-	return si, l
-}
-
-// Resume resumes scheduler for a suspended cluster.
-func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error {
-	s.logger.Info(ctx, "Resuming cluster", "cluster_id", clusterID)
-
-	s.mu.Lock()
-	if !s.suspended.Has(clusterID.Bytes16()) {
-		s.mu.Unlock()
-		s.logger.Info(ctx, "Cluster not suspended", "cluster_id", clusterID)
-		return nil
-	}
-	s.suspended.Remove(clusterID.Bytes16())
-	si := &suspendInfo{ClusterID: clusterID}
-	if err := s.drawer.Get(si); err != nil {
-		if errors.Is(err, service.ErrNotFound) {
-			s.logger.Error(ctx, "Expected canceled tasks got none")
-		} else {
-			s.mu.Unlock()
-			return errors.Wrap(err, "get canceled tasks")
-		}
-	}
-	if err := s.drawer.Delete(si); err != nil {
-		s.logger.Error(ctx, "Failed to delete canceled tasks", "error", err)
-	}
-	s.mu.Unlock()
-
-	running := b16set.New()
-	if startTasks {
-		for _, u := range si.RunningTask {
-			running.Add(u.Bytes16())
-		}
-	}
-	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
-		s.schedule(ctx, t, running.Has(t.ID.Bytes16()))
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "schedule")
-	}
-
-	return nil
-}
-
-func (s *Service) forEachClusterHealthCheckTask(clusterID uuid.UUID, f func(t *Task) error) error {
-	q := qb.Select(table.SchedulerTask.Name()).
-		Where(qb.Eq("cluster_id"), qb.Eq("type")).
-		Query(s.session).
-		Bind(clusterID, HealthCheckTask)
-	defer q.Release()
-
-	return forEachTaskWithQuery(q, f)
-}
-
-func (s *Service) forEachClusterTask(clusterID uuid.UUID, f func(t *Task) error) error {
-	q := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id")).Query(s.session).Bind(clusterID)
-	defer q.Release()
-	return forEachTaskWithQuery(q, f)
-}
-
 func (s *Service) isClosed() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -735,6 +645,7 @@ func forEachTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
 			iter.Close()
 			return err
 		}
+		t = Task{}
 	}
 	return iter.Close()
 }

@@ -1,0 +1,96 @@
+name: sctool suspend update
+synopsis: Modify properties of the existing suspend task
+description: |
+  This command allows you to modify properties of an already existing suspend task.
+  If there is one repair task the 'suspend/task-id' argument is not needed.
+usage: sctool suspend update --cluster <id|name> [flags] [<suspend/task-id>]
+options:
+- name: cluster
+  shorthand: c
+  usage: |
+    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: cron
+  usage: |
+    Task schedule as a cron `expression`.
+    It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
+- name: duration
+  usage: Automatically resume after the given `duration` X[h|m|s].
+- name: enabled
+  default_value: "true"
+  usage: |
+    Not enabled tasks are not executed and hidden from task list.
+- name: help
+  shorthand: h
+  default_value: "false"
+  usage: help for update
+- name: interval
+  shorthand: i
+  usage: |
+    Time after which a successfully completed task would be run again, supported units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
+
+    The task run date is aligned with '--start date' value.
+    For example, if you select '--interval 7d' task would run weekly at the '--start-date' time.
+- name: name
+  usage: |
+    Task name that can be used insead of ID.
+- name: num-retries
+  shorthand: r
+  default_value: "3"
+  usage: |
+    Number of times a task reruns following a failure.
+- name: on-resume-start-tasks
+  default_value: "false"
+  usage: On resume start tasks that were stopped by the suspend.
+- name: retry-wait
+  default_value: 10m
+  usage: |
+    Initial exponential backoff `duration` X[h|m|s].
+    With --retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.
+- name: start-date
+  shorthand: s
+  usage: |
+    The date can be expressed relatively to now or as a RFC3339 formatted string.
+    To run the task in 2 hours use 'now+2h', supported units are:
+
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
+
+    If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
+    If you want the repair to start immediately, use the value 'now' or skip this flag.
+- name: timezone
+  default_value: UTC
+  usage: |
+    Timezone of --cron and --window flag values.
+    The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
+- name: window
+  default_value: '[]'
+  usage: |
+    A comma-separated list of time markers in a form `[WEEKDAY-]HH:MM`.
+    WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.
+
+    'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
+    '23:00,06:00' - can be executed every night from 11PM to 6AM
+    '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
+inherited_options:
+- name: api-cert-file
+  usage: |
+    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+- name: api-key-file
+  usage: |
+    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+- name: api-url
+  default_value: http://127.0.0.1:5080/api/v1
+  usage: |
+    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+- sctool suspend - Stop execution of all tasks

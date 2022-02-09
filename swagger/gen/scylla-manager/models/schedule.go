@@ -33,6 +33,9 @@ type Schedule struct {
 	// Format: date-time
 	StartDate *strfmt.DateTime `json:"start_date,omitempty"`
 
+	// timezone
+	Timezone string `json:"timezone,omitempty"`
+
 	// window
 	Window []string `json:"window"`
 }

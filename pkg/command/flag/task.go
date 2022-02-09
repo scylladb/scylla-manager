@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +19,7 @@ type TaskBase struct {
 	name       string
 	cron       Cron
 	window     []string
+	timezone   Timezone
 	interval   Duration
 	startDate  Time
 	numRetries int
@@ -26,7 +28,9 @@ type TaskBase struct {
 
 func MakeTaskBase() TaskBase {
 	return TaskBase{
-		retryWait: DurationWithDefault(10 * time.Minute),
+		timezone:   Timezone{timeutc.LocalName},
+		numRetries: 3,
+		retryWait:  DurationWithDefault(10 * time.Minute),
 	}
 }
 
@@ -43,6 +47,7 @@ func (cmd *TaskBase) Init() {
 	w.name(&cmd.name)
 	w.cron(&cmd.cron)
 	w.window(&cmd.window)
+	w.timezone(&cmd.timezone)
 	w.interval(&cmd.interval)
 	w.startDate(&cmd.startDate)
 	w.numRetries(&cmd.numRetries, cmd.numRetries)
@@ -63,6 +68,7 @@ func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
 		Schedule: &managerclient.Schedule{
 			Cron:       cmd.cron.Value(),
 			Window:     cmd.window,
+			Timezone:   cmd.timezone.Value(),
 			Interval:   cmd.interval.String(),
 			StartDate:  cmd.startDate.DateTimePtr(),
 			NumRetries: int64(cmd.numRetries),
@@ -89,6 +95,10 @@ func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 	}
 	if cmd.Flag("window").Changed {
 		task.Schedule.Window = cmd.window
+		ok = true
+	}
+	if cmd.Flag("timezone").Changed {
+		task.Schedule.Timezone = cmd.timezone.Value()
 		ok = true
 	}
 	if cmd.Flag("interval").Changed {

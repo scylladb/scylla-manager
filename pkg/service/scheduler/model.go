@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/pkg/scheduler/trigger"
 	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/store"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -27,6 +28,7 @@ const (
 	BackupTask         TaskType = "backup"
 	HealthCheckTask    TaskType = "healthcheck"
 	RepairTask         TaskType = "repair"
+	SuspendTask        TaskType = "suspend"
 	ValidateBackupTask TaskType = "validate_backup"
 
 	mockTask TaskType = "mock"
@@ -50,6 +52,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = HealthCheckTask
 	case RepairTask:
 		*t = RepairTask
+	case SuspendTask:
+		*t = SuspendTask
 	case ValidateBackupTask:
 		*t = ValidateBackupTask
 	case mockTask:
@@ -60,12 +64,203 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// Cron implements a trigger based on cron expression.
+// It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every <time.Duration>.
+type Cron struct {
+	spec  []byte
+	inner scheduler.Trigger
+}
+
+func NewCron(spec string) (Cron, error) {
+	t, err := trigger.NewCron(spec)
+	if err != nil {
+		return Cron{}, err
+	}
+
+	return Cron{
+		spec:  []byte(spec),
+		inner: t,
+	}, nil
+}
+
+func NewCronEvery(d time.Duration) Cron {
+	c, _ := NewCron("@every " + d.String()) // nolint: errcheck
+	return c
+}
+
+// MustCron calls NewCron and panics on error.
+func MustCron(spec string) Cron {
+	c, err := NewCron(spec)
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+// Next implements scheduler.Trigger.
+func (c Cron) Next(now time.Time) time.Time {
+	if c.inner == nil {
+		return time.Time{}
+	}
+	return c.inner.Next(now)
+}
+
+func (c Cron) MarshalText() (text []byte, err error) {
+	return c.spec, nil
+}
+
+func (c *Cron) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return nil
+	}
+
+	v, err := NewCron(string(text))
+	if err != nil {
+		return errors.Wrap(err, "cron")
+	}
+
+	*c = v
+	return nil
+}
+
+func (c Cron) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+	if i := info.Type(); i != gocql.TypeText && i != gocql.TypeVarchar {
+		return nil, errors.Errorf("invalid gocql type %s expected %s", info.Type(), gocql.TypeText)
+	}
+	return c.MarshalText()
+}
+
+func (c *Cron) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	if i := info.Type(); i != gocql.TypeText && i != gocql.TypeVarchar {
+		return errors.Errorf("invalid gocql type %s expected %s", info.Type(), gocql.TypeText)
+	}
+	return c.UnmarshalText(data)
+}
+
+func (c Cron) IsZero() bool {
+	return c.inner == nil
+}
+
+// WeekdayTime adds CQL capabilities to scheduler.WeekdayTime.
+type WeekdayTime struct {
+	scheduler.WeekdayTime
+}
+
+func (w WeekdayTime) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+	if i := info.Type(); i != gocql.TypeText && i != gocql.TypeVarchar {
+		return nil, errors.Errorf("invalid gocql type %s expected %s", info.Type(), gocql.TypeText)
+	}
+	return w.MarshalText()
+}
+
+func (w *WeekdayTime) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	if i := info.Type(); i != gocql.TypeText && i != gocql.TypeVarchar {
+		return errors.Errorf("invalid gocql type %s expected %s", info.Type(), gocql.TypeText)
+	}
+	return w.UnmarshalText(data)
+}
+
+// Window adds JSON validation to scheduler.Window.
+type Window []WeekdayTime
+
+func (w *Window) UnmarshalJSON(data []byte) error {
+	var wdt []scheduler.WeekdayTime
+	if err := json.Unmarshal(data, &wdt); err != nil {
+		return errors.Wrap(err, "window")
+	}
+	if len(wdt) == 0 {
+		return nil
+	}
+
+	if _, err := scheduler.NewWindow(wdt...); err != nil {
+		return errors.Wrap(err, "window")
+	}
+
+	s := make([]WeekdayTime, len(wdt))
+	for i := range wdt {
+		s[i] = WeekdayTime{wdt[i]}
+	}
+	*w = s
+
+	return nil
+}
+
+// Window returns this window as scheduler.Window.
+func (w Window) Window() scheduler.Window {
+	if len(w) == 0 {
+		return nil
+	}
+	wdt := make([]scheduler.WeekdayTime, len(w))
+	for i := range w {
+		wdt[i] = w[i].WeekdayTime
+	}
+	sw, _ := scheduler.NewWindow(wdt...) // nolint: errcheck
+	return sw
+}
+
+// location adds CQL capabilities and validation to time.Location.
+type location struct {
+	*time.Location
+}
+
+func (l location) MarshalText() (text []byte, err error) {
+	if l.Location == nil {
+		return nil, nil
+	}
+	return []byte(l.Location.String()), nil
+}
+
+func (l *location) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return nil
+	}
+	t, err := time.LoadLocation(string(text))
+	if err != nil {
+		return err
+	}
+	l.Location = t
+	return nil
+}
+
+func (l location) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+	if i := info.Type(); i != gocql.TypeText && i != gocql.TypeVarchar {
+		return nil, errors.Errorf("invalid gocql type %s expected %s", info.Type(), gocql.TypeText)
+	}
+	return l.MarshalText()
+}
+
+func (l *location) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	if i := info.Type(); i != gocql.TypeText && i != gocql.TypeVarchar {
+		return errors.Errorf("invalid gocql type %s expected %s", info.Type(), gocql.TypeText)
+	}
+	return l.UnmarshalText(data)
+}
+
+// Timezone adds JSON validation to time.Location.
+type Timezone struct {
+	location
+}
+
+func NewTimezone(tz *time.Location) Timezone {
+	return Timezone{location{tz}}
+}
+
+func (tz *Timezone) UnmarshalJSON(data []byte) error {
+	return errors.Wrap(json.Unmarshal(data, &tz.location), "timezone")
+}
+
+// Location returns this timezone as time.Location pointer.
+func (tz Timezone) Location() *time.Location {
+	return tz.location.Location
+}
+
 // Schedule specify task schedule.
 type Schedule struct {
 	gocqlx.UDT `json:"-"`
 
 	Cron       Cron              `json:"cron"`
 	Window     Window            `json:"window"`
+	Timezone   Timezone          `json:"timezone"`
 	StartDate  time.Time         `json:"start_date"`
 	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries int               `json:"num_retries"`
@@ -79,6 +274,20 @@ func (s Schedule) trigger() scheduler.Trigger {
 	return trigger.NewLegacy(s.StartDate, s.Interval.Duration())
 }
 
+func (s Schedule) backoff() retry.Backoff {
+	if s.NumRetries == 0 {
+		return nil
+	}
+	w := s.RetryWait
+	if w == 0 {
+		w = duration.Duration(10 * time.Minute)
+	}
+
+	b := retry.NewExponentialBackoff(w.Duration(), 0, 3*time.Hour, 2, 0)
+	b = retry.WithMaxRetries(b, uint64(s.NumRetries))
+	return b
+}
+
 // Task specify task type, properties and schedule.
 type Task struct {
 	ClusterID  uuid.UUID       `json:"cluster_id"`
@@ -89,6 +298,12 @@ type Task struct {
 	Enabled    bool            `json:"enabled,omitempty"`
 	Sched      Schedule        `json:"schedule,omitempty"`
 	Properties json.RawMessage `json:"properties,omitempty"`
+
+	Status       Status     `json:"status"`
+	SuccessCount int        `json:"success_count"`
+	ErrorCount   int        `json:"error_count"`
+	LastSuccess  *time.Time `json:"last_success"`
+	LastError    *time.Time `json:"last_error"`
 }
 
 func (t *Task) String() string {
@@ -210,25 +425,4 @@ func newRunFromTaskInfo(ti taskInfo) *Run {
 		StartTime: now(),
 		Status:    StatusRunning,
 	}
-}
-
-type suspendInfo struct {
-	ClusterID    uuid.UUID   `json:"-"`
-	StartedAt    time.Time   `json:"started_at"`
-	PendingTasks []uuid.UUID `json:"pending_tasks"`
-	RunningTask  []uuid.UUID `json:"running_tasks"`
-}
-
-var _ store.Entry = &suspendInfo{}
-
-func (v *suspendInfo) Key() (clusterID uuid.UUID, key string) {
-	return v.ClusterID, "scheduler_suspended"
-}
-
-func (v *suspendInfo) MarshalBinary() (data []byte, err error) {
-	return json.Marshal(v)
-}
-
-func (v *suspendInfo) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, v)
 }

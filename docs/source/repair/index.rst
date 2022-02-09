@@ -43,14 +43,14 @@ In a benchmark we ran 9 Scylla 2020.1 nodes on AWS i3.2xlarge machines under 50%
 .. image:: images/parallel.png
   :width: 80%
 
-By default Scylla Manager runs repairs with full parallelism, you can change that using :ref:`sctool repair --parallel flag<repair-param-parallel>`.
+By default Scylla Manager runs repairs with full parallelism, you can change that using :ref:`sctool repair --parallel flag <sctool-repair>`.
 
 Repair intensity
 ================
 
 Intensity specifies how many token ranges per shard can be repaired in a Scylla node at every given time.
 It can be a decimal between (0,1). In that case the number of token ranges is a fraction of number of shards.
-The default intensity is one, you can change that using :ref:`sctool repair --intensity flag<repair-param-intensity>`.
+The default intensity is one, you can change that using :ref:`sctool repair --intensity flag <sctool-repair>`.
 
 Scylla Manager 2.2 adds support for intensity value zero.
 In that case the number of token ranges is calculated based on node memory and adjusted to the Scylla maximal number of ranges that can be repaired in parallel (see ``max_repair_ranges_in_parallel`` in Scylla logs).

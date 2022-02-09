@@ -118,32 +118,35 @@ func (cmd *command) run(args []string) error {
 
 	props := task.Properties.(map[string]interface{})
 
+	if cmd.Flag("dc").Changed {
+		props["dc"] = cmd.dc
+		ok = true
+	}
+	if cmd.Flag("keyspace").Changed {
+		props["keyspace"] = cmd.keyspace
+		ok = true
+	}
 	if cmd.Flag("fail-fast").Changed {
 		task.Schedule.NumRetries = 0
 		props["fail_fast"] = cmd.failFast
 		ok = true
 	}
-
 	if cmd.Flag("host").Changed {
 		props["host"] = cmd.host
 		ok = true
 	}
-
 	if cmd.Flag("ignore-down-hosts").Changed {
 		props["ignore_down_hosts"] = cmd.ignoreDownHosts
 		ok = true
 	}
-
 	if cmd.Flag("intensity").Changed {
 		props["intensity"] = cmd.intensity.Value()
 		ok = true
 	}
-
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
 		ok = true
 	}
-
 	if cmd.Flag("small-table-threshold").Changed {
 		props["small_table_threshold"] = int64(cmd.smallTableThreshold)
 		ok = true
@@ -154,6 +157,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
+		res.Schedule = task.Schedule
 		if cmd.showTables {
 			res.ShowTables = -1
 		}

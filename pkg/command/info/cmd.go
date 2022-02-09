@@ -61,8 +61,10 @@ func (cmd *command) run(args []string) error {
 		return err
 	}
 
-	r := managerclient.NewCmdRenderer(task, managerclient.RenderAll)
-	if err := r.Render(w); err != nil {
+	ti := managerclient.TaskInfo{
+		Task: task,
+	}
+	if err := ti.Render(w); err != nil {
 		return err
 	}
 	fmt.Fprintln(w)
@@ -71,8 +73,10 @@ func (cmd *command) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(runs) > 0 {
-		fmt.Fprintln(w)
+	if len(runs) == 0 {
+		fmt.Fprintln(w, "No runs yet.")
+		return nil
 	}
+
 	return runs.Render(w)
 }

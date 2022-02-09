@@ -14,6 +14,7 @@ sphinx-sitemap = "2.1.0"
 sphinx-autobuild = "^2021.3.14"
 Sphinx = "^4.3.2"
 sphinx-multiversion-scylla = "~0.2.10"
+"sphinxcontrib.datatemplates" = "^0.9.1"
 
 [build-system]
 requires = ["poetry>=0.12"]

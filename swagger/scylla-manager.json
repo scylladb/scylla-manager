@@ -253,6 +253,9 @@
             "type": "string"
           }
         },
+        "timezone": {
+          "type": "string"
+        },
         "start_date": {
           "type": "string",
           "format": "date-time",
@@ -303,7 +306,7 @@
         }
       }
     },
-    "ExtendedTask": {
+    "TaskListItem": {
       "type": "object",
       "properties": {
         "cluster_id": {
@@ -337,25 +340,31 @@
         "status": {
           "type": "string"
         },
-        "cause": {
-          "type": "string"
+        "success_count": {
+          "type": "integer"
         },
-        "start_time": {
-          "type": "string",
-          "format": "date-time"
+        "error_count": {
+          "type": "integer"
         },
-        "end_time": {
+        "last_success": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
-        "next_activation": {
+        "last_error": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "x-nullable": true
         },
         "suspended": {
           "type": "boolean"
         },
-        "failures": {
+        "next_activation": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "retry": {
           "type": "integer"
         }
       }
@@ -1071,7 +1080,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/ExtendedTask"
+                "$ref": "#/definitions/TaskListItem"
               }
             }
           },

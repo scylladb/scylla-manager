@@ -34,7 +34,7 @@ import (
 
 const (
 	_interval = 10 * time.Millisecond
-	_wait     = 1 * time.Second
+	_wait     = 2 * time.Second
 
 	mockTask scheduler.TaskType = "mock"
 	interval                    = duration.Duration(100 * time.Millisecond)
@@ -94,27 +94,6 @@ func (r *mockRunner) Error() {
 	default:
 		panic("blocked on init")
 	}
-}
-
-type neverEndingRunner struct {
-	done chan struct{}
-}
-
-func newNeverEndingRunner() *neverEndingRunner {
-	return &neverEndingRunner{
-		done: make(chan struct{}),
-	}
-}
-
-func (r *neverEndingRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	select {
-	case <-r.done:
-		return nil
-	}
-}
-
-func (r *neverEndingRunner) Stop() {
-	close(r.done)
 }
 
 type schedulerTestHelper struct {
@@ -374,6 +353,81 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: tasks are aborted")
 		h.assertStatus(task0, scheduler.StatusAborted)
 		h.assertStatus(task1, scheduler.StatusAborted)
+	})
+
+	t.Run("task status", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: task scheduled now")
+		task := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task run")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task finish")
+		h.runner.Done()
+
+		Print("Then: task status is StatusDone")
+		h.assertStatus(task, scheduler.StatusDone)
+
+		assertTaskStatusInfo := func(status scheduler.Status, successCount, errorCount int, lastSuccess, lastError bool) {
+			t.Helper()
+
+			var v *scheduler.Task
+			WaitCond(h.t, func() bool {
+				var err error
+				v, err = h.service.GetTaskByID(ctx, task.ClusterID, task.Type, task.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return v.Status == status
+			}, _interval, _wait)
+
+			if v.SuccessCount != successCount {
+				t.Fatalf("SuccessCount=%d, expected %d", v.SuccessCount, successCount)
+			}
+			if v.ErrorCount != errorCount {
+				t.Fatalf("ErrorCount=%d, expected %d", v.ErrorCount, errorCount)
+			}
+			if (v.LastSuccess != nil) != lastSuccess {
+				t.Fatalf("LastSuccess=%s, expected %v", v.LastSuccess, lastSuccess)
+			}
+			if (v.LastError != nil) != lastError {
+				t.Fatalf("LastSuccess=%s, expected %v", v.LastError, lastError)
+			}
+		}
+
+		Print("And: task status information is persisted")
+		assertTaskStatusInfo(scheduler.StatusDone, 1, 0, true, false)
+
+		Print("When: task is started")
+		h.service.StartTask(ctx, task)
+
+		Print("Then: task run")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task finish")
+		h.runner.Done()
+
+		Print("Then: task status information is persisted")
+		assertTaskStatusInfo(scheduler.StatusDone, 2, 0, true, false)
+
+		Print("When: task is started")
+		h.service.StartTask(ctx, task)
+
+		Print("Then: task run")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task finish")
+		h.runner.Error()
+
+		Print("Then: task status information is persisted")
+		assertTaskStatusInfo(scheduler.StatusError, 2, 1, true, true)
 	})
 
 	t.Run("start task", func(t *testing.T) {
@@ -667,6 +721,50 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task1 is not executed")
 		h.assertNotStatus(task1, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled now")
+		task := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		p, _ := json.Marshal(scheduler.SuspendProperties{
+			Duration:   duration.Duration(time.Second),
+			StartTasks: true,
+		})
+		suspendTask := &scheduler.Task{
+			ClusterID:  h.clusterID,
+			Type:       scheduler.SuspendTask,
+			Enabled:    true,
+			Properties: p,
+		}
+
+		Print("When: suspend task is scheduled")
+		if err := h.service.PutTask(ctx, suspendTask); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task status is StatusStopped")
+		h.assertStatus(task, scheduler.StatusStopped)
+
+		Print("And: scheduler reports suspended status")
+		if !h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("And: task is automatically resumed")
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.runner.Done()
+		h.assertStatus(task, scheduler.StatusDone)
 	})
 
 	t.Run("put task when suspended", func(t *testing.T) {

@@ -9,6 +9,7 @@ const (
 	BackupTask         string = "backup"
 	HealthCheckTask    string = "healthcheck"
 	RepairTask         string = "repair"
+	SuspendTask        string = "suspend"
 	ValidateBackupTask string = "validate_backup"
 )
 
@@ -17,6 +18,7 @@ var TasksTypes = strset.New(
 	BackupTask,
 	HealthCheckTask,
 	RepairTask,
+	SuspendTask,
 	ValidateBackupTask,
 )
 
