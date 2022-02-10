@@ -83,18 +83,16 @@ func (s *Service) Runner() Runner {
 	return Runner{service: s}
 }
 
-// getRetentionFrom returns a function that returns the retention policy for a
+// GetRetention returns the retention policy for a
 // given task ID, with a default of 30 days retention if no policy exists.
-func getRetentionFrom(retentionMap map[uuid.UUID]retention) retentionFunc {
-	return func(taskID uuid.UUID) retention {
-		r, ok := retentionMap[taskID]
+func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) Retention {
+	r, ok := retentionMap[taskID]
 
-		if !ok {
-			return retention{30, 0}
-		}
-
-		return r
+	if !ok {
+		return Retention{30, 0}
 	}
+
+	return r
 }
 
 // GetTarget converts runner properties into backup Target.
@@ -776,11 +774,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MoveManifest(ctx, hi)
 		},
 		StagePurge: func() error {
-			taskRetention, err := s.gatherRetentionPolicies()
-			if err != nil {
-				return errors.Wrap(err, "gather retention policies")
-			}
-			return w.Purge(ctx, hi, taskRetention)
+			return w.Purge(ctx, hi, target.RetentionMap)
 		},
 		StageDone: gaurdFunc,
 
@@ -1100,32 +1094,4 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
-}
-
-func (s Service) gatherRetentionPolicies() (retentionFunc, error) {
-	q := qb.Select(table.SchedulerTask.Name()).
-		Columns("id", "properties").
-		Where(qb.Eq("type")).
-		AllowFiltering().Query(s.session).Bind("backup")
-
-	var tasks []*struct {
-		ID         uuid.UUID
-		Properties json.RawMessage
-	}
-
-	if err := q.SelectRelease(&tasks); err != nil {
-		return nil, errors.Wrap(err, "select backup tasks")
-	}
-
-	retentionMap := make(map[uuid.UUID]retention)
-	for _, t := range tasks {
-		retention, err := extractRetention(t.Properties)
-		if err != nil {
-			return nil, errors.Wrap(err, "extract retention properties")
-		}
-
-		retentionMap[t.ID] = retention
-	}
-
-	return getRetentionFrom(retentionMap), nil
 }

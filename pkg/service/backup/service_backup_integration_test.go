@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
 	"math/rand"
 	"net/http"
 	"os"
@@ -1199,20 +1198,10 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 1,
-	}
-
-	task := scheduler.Task{
-		ClusterID:  h.clusterID,
-		Type:       "backup",
-		ID:         h.taskID,
-		Properties: json.RawMessage(`{"retention":1,"retention_days":0}`),
-	}
-
-	if err := table.SchedulerTask.InsertQuery(session).BindStruct(task).ExecRelease(); err != nil {
-		t.Fatal(err)
+		DC:           []string{"dc1"},
+		Location:     []Location{location},
+		Retention:    1,
+		RetentionMap: backup.RetentionMap{h.taskID: {0, 1}},
 	}
 
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
@@ -1423,6 +1412,10 @@ func TestPurgeIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
+	task1 := h.taskID
+	task2 := uuid.MustRandom()
+	task3 := uuid.MustRandom()
+
 	Print("Given: retention policy 1")
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -1430,25 +1423,10 @@ func TestPurgeIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 1,
-	}
-
-	task1 := h.taskID
-	task2 := uuid.MustRandom()
-	task3 := uuid.MustRandom()
-
-	tasks := []*scheduler.Task{
-		{ClusterID: h.clusterID, Type: "backup", ID: task1, Properties: json.RawMessage(`{"retention":1,"retention_days":7}`)},
-		{ClusterID: h.clusterID, Type: "backup", ID: task2, Properties: json.RawMessage(`{"retention":1,"retention_days":7}`)},
-		{ClusterID: h.clusterID, Type: "backup", ID: task3, Properties: json.RawMessage(`{"retention":7,"retention_days":2}`)},
-	}
-
-	for _, task := range tasks {
-		if err := table.SchedulerTask.InsertQuery(session).BindStruct(task).ExecRelease(); err != nil {
-			t.Fatal(err)
-		}
+		DC:           []string{"dc1"},
+		Location:     []Location{location},
+		Retention:    1,
+		RetentionMap: map[uuid.UUID]backup.Retention{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
 	}
 
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {

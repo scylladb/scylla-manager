@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 )
 
-func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retention retentionFunc) (err error) {
+func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap RetentionMap) (err error) {
 	w.Logger.Info(ctx, "Purging stale snapshots...")
 	defer func(start time.Time) {
 		if err != nil {
@@ -29,7 +29,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retention retentio
 		return errors.Wrap(err, "list manifests")
 	}
 	// Get a list of stale tags
-	tags := staleTags(manifests, retention)
+	tags := staleTags(manifests, retentionMap)
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)
 
