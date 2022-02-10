@@ -86,7 +86,7 @@ func DefaultConfig() Config {
 // config struct with merged configuration from all provided files.
 func ParseConfigFiles(files []string) (Config, error) {
 	c := DefaultConfig()
-	return c, cfgutil.ParseYAML(&c, files...)
+	return c, cfgutil.ParseYAML(&c, DefaultConfig(), files...)
 }
 
 func (c Config) Validate() error {

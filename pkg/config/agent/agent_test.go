@@ -60,6 +60,11 @@ func TestParseConfig(t *testing.T) {
 			Input:  []string{"./testdata/prometheus_overwrite.input.yaml"},
 			Golden: "./testdata/prometheus_overwrite.golden.yaml",
 		},
+		{
+			Name:   "structs empty",
+			Input:  []string{"./testdata/structs_empty.input.yaml"},
+			Golden: "./testdata/structs_empty.golden.yaml",
+		},
 	}
 
 	s := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

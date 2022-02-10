@@ -1,0 +1,185 @@
+auth_token: ""
+https: 192.168.100.11:10001
+https_port: 10001
+tls_version: TLSv1.2
+tls_cert_file: ./testdata/auth/scylla_manager.crt
+tls_key_file: ./testdata/auth/scylla_manager.key
+prometheus: :5090
+debug: 127.0.0.1:5112
+cpu: -1
+logger:
+  mode: stderr
+  level: info
+  sampling:
+    initial: 1
+    thereafter: 100
+  development: false
+scylla:
+  api_address: 0.0.0.0
+  api_port: "10000"
+  listenaddress: 192.168.100.11
+  prometheusaddress: 192.168.100.11
+  prometheusport: "9180"
+  datadirectory: /var/lib/scylla/data
+  broadcastrpcaddress: ""
+  rpcaddress: ""
+rclone:
+  log_level: 7
+  stats_log_level: 6
+  use_json_log: false
+  dry_run: false
+  interactive: false
+  check_sum: false
+  size_only: true
+  ignore_times: false
+  ignore_existing: false
+  ignore_errors: true
+  modify_window: 1ns
+  checkers: 100
+  transfers: 2
+  connect_timeout: 1m0s
+  timeout: 5m0s
+  expect_continue_timeout: 1s
+  dump: 0
+  insecure_skip_verify: false
+  delete_mode: 0
+  max_delete: -1
+  track_renames: false
+  track_renames_strategy: hash
+  low_level_retries: 20
+  update_older: false
+  no_gzip: false
+  max_depth: -1
+  ignore_size: false
+  ignore_checksum: true
+  ignore_case_sync: false
+  no_traverse: true
+  check_first: false
+  no_check_dest: false
+  no_unicode_normalization: false
+  no_update_mod_time: true
+  data_rate_unit: bytes
+  compare_dest: ""
+  copy_dest: ""
+  backup_dir: ""
+  suffix: ""
+  suffix_keep_extension: false
+  use_list_r: false
+  buffer_size: 16777216
+  bw_limit: []
+  bw_limit_file: []
+  tps_limit: 5000
+  tps_limit_burst: 1
+  bind_addr: ""
+  disable_features: []
+  user_agent: Scylla Manager Agent Snapshot
+  immutable: false
+  auto_confirm: false
+  streaming_upload_cutoff: 102400
+  stats_file_name_length: 45
+  ask_password: true
+  password_command: []
+  use_server_mod_time: false
+  max_transfer: -1
+  max_duration: 0s
+  cutoff_mode: 0
+  max_backlog: 10000
+  max_stats_groups: 1000
+  stats_one_line: false
+  stats_one_line_date: false
+  stats_one_line_date_format: ""
+  error_on_no_transfer: false
+  progress: false
+  progress_terminal_title: false
+  cookie: false
+  use_mmap: true
+  ca_cert: ""
+  client_cert: ""
+  client_key: ""
+  multi_thread_cutoff: 262144000
+  multi_thread_streams: 4
+  multi_thread_set: false
+  order_by: ""
+  upload_headers: []
+  download_headers: []
+  headers: []
+  refresh_times: false
+  no_console: false
+s3:
+  provider: AWS
+  env_auth: "true"
+  access_key_id: ""
+  secret_access_key: ""
+  region: ""
+  endpoint: ""
+  location_constraint: ""
+  acl: ""
+  bucket_acl: ""
+  requester_pays: ""
+  server_side_encryption: ""
+  sse_customer_algorithm: ""
+  sse_kms_key_id: ""
+  sse_customer_key: ""
+  sse_customer_key_md5: ""
+  storage_class: ""
+  upload_cutoff: ""
+  chunk_size: 50M
+  max_upload_parts: ""
+  copy_cutoff: ""
+  disable_checksum: "true"
+  shared_credentials_file: ""
+  profile: ""
+  session_token: ""
+  upload_concurrency: "2"
+  force_path_style: ""
+  v2_auth: ""
+  use_accelerate_endpoint: ""
+  leave_parts_on_error: ""
+  list_chunk: ""
+  no_check_bucket: "true"
+  no_head: ""
+  encoding: ""
+  memory_pool_flush_time: 5m
+  memory_pool_use_mmap: "true"
+  disable_http2: ""
+gcs:
+  client_id: ""
+  client_secret: ""
+  token: ""
+  auth_url: ""
+  token_url: ""
+  project_number: ""
+  service_account_file: ""
+  service_account_credentials: ""
+  anonymous: ""
+  object_acl: ""
+  bucket_acl: ""
+  bucket_policy_only: "true"
+  location: ""
+  storage_class: ""
+  encoding: ""
+  memory_pool_flush_time: 5m
+  memory_pool_use_mmap: "true"
+  chunk_size: 50M
+  list_chunk: ""
+  allow_create_bucket: "false"
+azure:
+  account: ""
+  service_principal_file: ""
+  key: ""
+  sas_url: ""
+  use_msi: ""
+  msi_object_id: ""
+  msi_client_id: ""
+  msi_mi_res_id: ""
+  use_emulator: ""
+  endpoint: ""
+  upload_cutoff: ""
+  chunk_size: 50M
+  list_chunk: ""
+  access_tier: ""
+  archive_tier_delete: ""
+  disable_checksum: "true"
+  memory_pool_flush_time: 5m
+  memory_pool_use_mmap: "true"
+  encoding: ""
