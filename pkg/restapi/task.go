@@ -90,6 +90,10 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		filter scheduler.ListFilter
 		err    error
 	)
+
+	// Never expose deleted tasks over API
+	filter.Deleted = false
+
 	if s := r.FormValue("all"); s != "" {
 		filter.Disabled, err = strconv.ParseBool(s)
 		if err != nil {

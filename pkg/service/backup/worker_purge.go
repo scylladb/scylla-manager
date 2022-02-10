@@ -11,10 +11,9 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
-func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy map[uuid.UUID]int) (err error) {
+func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap RetentionMap) (err error) {
 	w.Logger.Info(ctx, "Purging stale snapshots...")
 	defer func(start time.Time) {
 		if err != nil {
@@ -30,7 +29,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, policy map[uuid.UU
 		return errors.Wrap(err, "list manifests")
 	}
 	// Get a list of stale tags
-	tags := staleTags(manifests, policy, timeutc.Now().AddDate(0, 0, -30))
+	tags := staleTags(manifests, retentionMap)
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)
 

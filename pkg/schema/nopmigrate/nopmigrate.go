@@ -17,6 +17,7 @@ func nopCallback(ctx context.Context, session gocqlx.Session, ev migrate.Callbac
 
 func init() {
 	reg.Add(migrate.CallComment, "rewriteHealthCheck30", nopCallback)
+	reg.Add(migrate.CallComment, "setExistingTasksDeleted", nopCallback)
 }
 
 // Callback is a sibling of migrate.Callback that registers all mandatory callbacks as nop.

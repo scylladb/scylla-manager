@@ -98,6 +98,10 @@ options:
   default_value: "7"
   usage: |
     The `number of backups` to store, once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
+- name: retention-days
+  usage: |
+    The number of days to retain a backup. All backups older than this will be purged.
+    Set to 0 for no limit (default 0)
 - name: retry-wait
   default_value: 10m
   usage: |

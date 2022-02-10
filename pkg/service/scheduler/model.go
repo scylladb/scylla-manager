@@ -296,6 +296,7 @@ type Task struct {
 	Name       string          `json:"name"`
 	Tags       []string        `json:"tags,omitempty"`
 	Enabled    bool            `json:"enabled,omitempty"`
+	Deleted    bool            `json:"deleted,omitempty"`
 	Sched      Schedule        `json:"schedule,omitempty"`
 	Properties json.RawMessage `json:"properties,omitempty"`
 

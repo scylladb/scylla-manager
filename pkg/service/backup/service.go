@@ -83,6 +83,18 @@ func (s *Service) Runner() Runner {
 	return Runner{service: s}
 }
 
+// GetRetention returns the retention policy for a
+// given task ID, with a default of 30 days retention if no policy exists.
+func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) Retention {
+	r, ok := retentionMap[taskID]
+
+	if !ok {
+		return Retention{30, 0}
+	}
+
+	return r
+}
+
 // GetTarget converts runner properties into backup Target.
 // It also ensures configuration for the backup providers is registered on the
 // targeted hosts.
@@ -133,7 +145,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy simple properties
 	t.Retention = p.Retention
-	t.RetentionMap = p.RetentionMap
+	t.RetentionDays = p.RetentionDays
 	t.Continue = p.Continue
 	t.PurgeOnly = p.PurgeOnly
 
@@ -658,11 +670,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				return errors.Wrap(err, "clone progress")
 			}
 		}
-	}
-
-	// In testing when target.RetentionMap is not set generate one from target.Retention.
-	if len(target.RetentionMap) == 0 {
-		target.RetentionMap = map[uuid.UUID]int{taskID: target.Retention}
 	}
 
 	// Generate snapshot tag

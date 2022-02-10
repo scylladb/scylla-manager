@@ -16,38 +16,39 @@ import (
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"go.uber.org/atomic"
 )
 
 // staleTags returns collection of snapshot tags for manifests that are "stale".
 // That is:
 // - temporary manifests,
+// - manifests over task days retention days policy,
 // - manifests over task retention policy,
 // - manifests older than threshold if retention policy is unknown.
-func staleTags(manifests []*ManifestInfo, policy map[uuid.UUID]int, threshold time.Time) *strset.Set {
+func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) *strset.Set {
 	tags := strset.New()
 
 	for taskID, taskManifests := range groupManifestsByTask(manifests) {
-		taskPolicy := policy[taskID]
+		taskPolicy := GetRetention(taskID, retentionMap)
 		taskTags := strset.New()
 		for _, m := range taskManifests {
+			t, _ := SnapshotTagTime(m.SnapshotTag) // nolint: errcheck
+
 			switch {
 			case m.Temporary:
 				tags.Add(m.SnapshotTag)
-			case taskPolicy > 0:
+			// Tasks can have a Retention policy and a RetentionDays policy so fall through if tag is not too old
+			case taskPolicy.RetentionDays > 0 && t.Before(time.Now().AddDate(0, 0, -taskPolicy.RetentionDays)):
+				tags.Add(m.SnapshotTag)
+			case taskPolicy.Retention > 0:
 				taskTags.Add(m.SnapshotTag)
-			default:
-				t, _ := SnapshotTagTime(m.SnapshotTag) // nolint: errcheck
-				if t.Before(threshold) {
-					tags.Add(m.SnapshotTag)
-				}
 			}
 		}
-		if taskPolicy > 0 && taskTags.Size()-taskPolicy > 0 {
+
+		if taskPolicy.Retention > 0 && taskTags.Size()-taskPolicy.Retention > 0 {
 			l := taskTags.List()
 			sort.Strings(l)
-			tags.Add(l[:len(l)-taskPolicy]...)
+			tags.Add(l[:len(l)-taskPolicy.Retention]...)
 		}
 	}
 	return tags

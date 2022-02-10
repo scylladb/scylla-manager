@@ -517,11 +517,14 @@ func (s *Service) findTaskByID(key scheduler.Key) (taskInfo, bool) {
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
-	q := table.SchedulerTask.DeleteQuery(s.session).BindMap(qb.M{
-		"cluster_id": t.ClusterID,
-		"type":       t.Type,
-		"id":         t.ID,
-	})
+	t.Deleted = true
+	t.Enabled = false
+
+	// Remove the deleted task's name so that new tasks can use it
+	t.Name = ""
+
+	q := table.SchedulerTask.UpdateQuery(s.session, "deleted", "enabled", "name").BindStruct(t)
+
 	if err := q.ExecRelease(); err != nil {
 		return err
 	}
