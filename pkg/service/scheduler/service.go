@@ -520,7 +520,10 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	t.Deleted = true
 	t.Enabled = false
 
-	q := table.SchedulerTask.UpdateQuery(s.session, "deleted", "enabled").BindStruct(t)
+	// Remove the deleted task's name so that new tasks can use it
+	t.Name = ""
+
+	q := table.SchedulerTask.UpdateQuery(s.session, "deleted", "enabled", "name").BindStruct(t)
 
 	if err := q.ExecRelease(); err != nil {
 		return err
