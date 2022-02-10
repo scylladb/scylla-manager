@@ -4,7 +4,9 @@ package cfgutil
 
 import (
 	"os"
+	"reflect"
 
+	"github.com/pkg/errors"
 	"go.uber.org/config"
 )
 
@@ -12,12 +14,37 @@ import (
 // the contents of the files in the struct given by target.
 // It will overwrite any conflicting keys by the keys in the subsequent files.
 // Missing files will not cause an error but will just be skipped.
-func ParseYAML(target interface{}, files ...string) error {
+// After parsing all files any top level structs which are empty will be
+// replaced by their value from def.
+func ParseYAML(target, def interface{}, files ...string) error {
 	opts, err := fileOpts(files)
 	if err != nil {
 		return err
 	}
-	return parseYaml(target, opts)
+
+	if err := parseYaml(target, opts); err != nil {
+		return err
+	}
+
+	return mergeZeroStructs(target, def)
+}
+
+func mergeZeroStructs(dst, src interface{}) error {
+	d := reflect.ValueOf(dst).Elem()
+	s := reflect.ValueOf(src)
+
+	if d.Type() != s.Type() {
+		return errors.New("cannot merge structs of differing types")
+	}
+
+	for i := 0; i < d.NumField(); i++ {
+		field := d.Field(i)
+		if field.Kind() == reflect.Struct && field.IsZero() {
+			field.Set(s.Field(i))
+		}
+	}
+
+	return nil
 }
 
 // PermissiveParseYAML is a variant of ParseYAML that disables gopkg.in/yaml.v2's strict mode

@@ -89,7 +89,7 @@ func TestParseYAML(t *testing.T) {
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
 			got := &result{}
-			if err := ParseYAML(got, test.Input...); err != nil {
+			if err := ParseYAML(got, result{}, test.Input...); err != nil {
 				if test.ErrorExpected {
 					if _, ok := err.(*yaml.TypeError); ok {
 						return
