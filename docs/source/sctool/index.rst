@@ -10,10 +10,14 @@ CLI sctool
 
    global-flags-and-variables
    completion
-   cluster
    backup
+   cluster
+   info
+   progress
    repair
+   start
    status
+   stop
    suspend-resume
    task
    version
