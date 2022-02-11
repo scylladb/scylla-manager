@@ -3,6 +3,7 @@
 package trigger
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,7 +11,10 @@ import (
 )
 
 func TestCronInDifferentLocations(t *testing.T) {
-	c, err := NewCron("0 4 * * *")
+	cronHour := timeutc.Now().Add(-8 * time.Hour).Hour()
+	cronTime := fmt.Sprintf("0 %d * * *", cronHour)
+
+	c, err := NewCron(cronTime)
 	if err != nil {
 		t.Fatal(err)
 	}
