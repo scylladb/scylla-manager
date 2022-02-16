@@ -17,10 +17,13 @@ The following procedure lets you restore data to a new cluster to get a cluster 
 #. Access to the backup location from all the nodes.
 #. Ansible installed on your local machine.
 #. Access to all the nodes over SSH from your local machine.
+#. The new cluster time (wall clock on each node) is later than the backup time, so table creation time will not override.
 
 If you do not know the exact number of nodes of the source cluster, you can create a single node cluster and discover the number in the process.
 In fact you can use any Scylla node with Scylla Manager Agent installed that has access to the backup location for getting the parameters.
 Note that there is no need for Scylla Manager Server installation prior to restore.
+
+This procedure can only restore complete cluster data, not a subset of keyspace or tables.
 
 Ansible
 =======
