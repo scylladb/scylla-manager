@@ -32,8 +32,10 @@ Command options
    ``{% if item.shorthand %}-{{item.shorthand}}, {% endif %}--{{item.name}}``
    
    {% set usage = item.usage.split('\n') %}
-   {{usage}}
-
+   {% for line in usage %}
+   {{line}}
+   {% endfor %}
+   
    {% if item.default_value %}**Default value:** ``{{ item.default_value }}``{% endif %}
    {% endfor %}
 {% endif %}
