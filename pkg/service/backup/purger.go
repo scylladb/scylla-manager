@@ -38,7 +38,7 @@ func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) *strset.Set
 			case m.Temporary:
 				tags.Add(m.SnapshotTag)
 			// Tasks can have a Retention policy and a RetentionDays policy so fall through if tag is not too old
-			case taskPolicy.RetentionDays > 0 && t.Before(time.Now().AddDate(0, 0, -taskPolicy.RetentionDays)):
+			case taskPolicy.RetentionDays > 0 && t.Before(timeutc.Now().AddDate(0, 0, -taskPolicy.RetentionDays)):
 				tags.Add(m.SnapshotTag)
 			case taskPolicy.Retention > 0:
 				taskTags.Add(m.SnapshotTag)

@@ -3,6 +3,7 @@
 package backup
 
 import (
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"testing"
 	"time"
 
@@ -42,7 +43,7 @@ func TestStaleTags(t *testing.T) {
 	manifests = append(manifests, &ManifestInfo{
 		NodeID:      "c",
 		TaskID:      task2,
-		SnapshotTag: SnapshotTagAt(time.Now().AddDate(0, 0, -15)),
+		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -15)),
 	})
 
 	// Temporary manifest
