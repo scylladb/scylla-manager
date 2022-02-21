@@ -1,9 +1,41 @@
 ---
 
-- name: Restore
+- name: Gather important facts about Scylla nodes
   hosts: all
   become: true
   gather_facts: false
+  tags:
+    - gather_facts
+  tasks:
+    - name: Get seeds list
+      shell: |
+        grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }' | tr -d '"' | tr -d "'"
+      register: _seeds
+
+    - name: Save seeds list as a fact
+      set_fact:
+        old_seeds: "{{ _seeds.stdout }}"
+
+#    - name: Let's see our new facts
+#      debug:
+#        msg: "{{ inventory_hostname }} old seeds list is {{ old_seeds }}"
+
+    - name: Get listen address
+      shell: |
+        grep "^\s*listen_address" /etc/scylla/scylla.yaml | cut -d":" -f2 | tr -d ' '
+      register: _listen_address
+
+    - name: Save listen_address as a fact
+      set_fact:
+        listen_address: "{{ _listen_address.stdout }}"
+
+
+- name: Restore a token ring - cluster's data is going to be wiped
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - restore_token_ring
   tasks:
     - name: Stop Scylla service
       service:
@@ -45,76 +77,90 @@
         line: "initial_token: {{ _initial_token.stdout }}"
         create: yes
 
-    - name: Get seeds list
-      shell: |
-        grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }' | tr -d '"' | tr -d "'"
-      register: _seeds
-
-    - name: Temporarily make each node a seed
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(\s+) - seeds:'
-        line: |
-          \g<1> - seeds: {{ groups.all | join(',') }}
-        backrefs: yes
-
-    - name: Start Scylla service
-      service:
-        name: scylla-server
-        state: started
-
-    - name: Wait for CQL port
-      wait_for:
-        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
-        port: 9042
-
-    - name: Stop Scylla service
-      service:
-        name: scylla-server
-        state: stopped
-
-    - name: Temporarily make the first node a seed
+    - name: Make {{ groups.all[0] }} a seed
       lineinfile:
         path: /etc/scylla/scylla.yaml
         regexp: '^(\s+) - seeds:'
         line: |
           \g<1> - seeds: {{ groups.all[0] }}
         backrefs: yes
+      when: inventory_hostname == groups.all[0]
 
-    - name: Download data
+    - name: Set seeds list to be {{ groups.all[0] }} plus a node itself
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ groups.all[0] }},{{ inventory_hostname }}
+        backrefs: yes
+      when: inventory_hostname != groups.all[0]
+
+- name: Start all nodes serially
+  hosts: all
+  become: true
+  gather_facts: false
+  serial: 1
+  tags:
+    - restore_token_ring
+  tasks:
+    - name: Start Scylla service on {{ inventory_hostname }}
+      service:
+        name: scylla-server
+        state: started
+
+    - name: Wait for CQL port on {{ inventory_hostname }}
+      wait_for:
+        port: 9042
+        host: "{{ listen_address }}"
+
+
+- name: Cleanup - restore the original cluster's configuration
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - restore_token_ring
+  tasks:
+    - name: Delete initial_token in scylla.yaml of {{ inventory_hostname }}
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^initial_token:'
+        line: ""
+
+    - name: Restore seeds list
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ old_seeds }}
+        backrefs: yes
+
+
+- name: Upload data from a backup snapshot {{ snapshot_tag }}
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - upload_snapshot
+  tasks:
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+
+    - name: Download data from {{ snapshot_tag }}
       shell: |
         scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/
       become_user: scylla
       async: 604800 # a week 7*24*60*60 seconds
       poll: 5
 
-    - name: Start Scylla service in the seed
-      service:
-        name: scylla-server
-        state: started
-      when: inventory_hostname == groups.all[0]
-
     - name: Start Scylla service
-      throttle: 1
       service:
         name: scylla-server
         state: started
 
     - name: Wait for CQL port
       wait_for:
-        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
         port: 9042
-
-    - name: Resore seeds list
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(\s+) - seeds:'
-        line: |
-          \g<1> - seeds: {{ _seeds.stdout }}
-        backrefs: yes
-
-    - name: Restart Scylla service
-      throttle: 1
-      service:
-        name: scylla-server
-        state: restarted
+        host: "{{ listen_address }}"
