@@ -116,6 +116,9 @@ type ListOptionsOpt struct {
 	// Show only files in the listing
 	FilesOnly bool `json:"filesOnly,omitempty"`
 
+	// Don't read the mime type time (can speed things up)
+	NoMimeType bool `json:"noMimeType,omitempty"`
+
 	// Don't read the modification time (can speed things up)
 	NoModTime bool `json:"noModTime,omitempty"`
 
