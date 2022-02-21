@@ -1,6 +1,6 @@
 ---
 
-- name: Gather important facts about Scylla nodes
+- name: Gather important facts about Scylla nodes and a snapshot
   hosts: all
   become: true
   gather_facts: false
@@ -28,6 +28,20 @@
     - name: Save listen_address as a fact
       set_fact:
         listen_address: "{{ _listen_address.stdout }}"
+
+    - name: Get names of the tables in the snapshot {{ snapshot_tag }}
+      shell: |
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --dry-run | grep "^\s*\-" | cut -d"-" -f2 | cut -d"(" -f1
+      become_user: scylla
+      register: _tables_list
+
+    - name: Save tables names list as a fact
+      set_fact:
+        tables_to_restore: "{{ _tables_list.stdout.split('\n') }}"
+
+    - name: Save system_schema tables names as a fact
+      set_fact:
+        system_schema_tables: "{{ tables_to_restore | select('search', '^\\s*system_schema\\.') | list }}"
 
 
 - name: Restore a token ring - cluster's data is going to be wiped
@@ -143,24 +157,30 @@
   tags:
     - upload_snapshot
   tasks:
-    - name: Stop Scylla service
-      service:
-        name: scylla-server
-        state: stopped
-
     - name: Download data from {{ snapshot_tag }}
       shell: |
-        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --mode upload
       become_user: scylla
       async: 604800 # a week 7*24*60*60 seconds
       poll: 5
 
-    - name: Start Scylla service
+    - name: Load system_schema tables data from the upload directory
+      shell: |
+        nodetool refresh {{ item.split('.') | join(' ') }}
+      with_items: "{{ system_schema_tables }}"
+
+    - name: Restart Scylla service to force a new schema to be picked up
       service:
         name: scylla-server
-        state: started
+        state: restarted
 
     - name: Wait for CQL port
       wait_for:
         port: 9042
         host: "{{ listen_address }}"
+
+    - name: Load the rest of tables data from the upload directory
+      shell: |
+        nodetool refresh {{ item.split('.') | join(' ') }}
+      with_items: "{{ tables_to_restore }}"
+      when: item not in system_schema_tables
