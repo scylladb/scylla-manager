@@ -27,9 +27,9 @@ type Config struct {
 	Timeout time.Duration
 	// MaxTimeout specifies the effective maximal timeout value after increasing Timeout on retry.
 	MaxTimeout time.Duration
-	// ListTimeout specifies maximum time to complete a remote directory listing.
-	// The listing can be recursive, if the number of files is significant such
-	// listing can easily take a couple of hours.
+	// ListTimeout specifies maximum time to complete an iterative remote
+	// directory listing. The retrieval is performed in batches this timeout
+	// applies to the time it take to retrieve a single batch.
 	ListTimeout time.Duration
 	// Backoff specifies parameters of exponential backoff used when requests
 	// from Scylla Manager to Scylla Agent fail.
@@ -61,7 +61,7 @@ func DefaultConfig() Config {
 		Scheme:      "https",
 		Timeout:     15 * time.Second,
 		MaxTimeout:  1 * time.Hour,
-		ListTimeout: 12 * time.Hour,
+		ListTimeout: 5 * time.Minute,
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,
 			WaitMax:    30 * time.Second,

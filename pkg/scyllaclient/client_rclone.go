@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
@@ -416,8 +417,10 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 // The remotePath is given in the following format "provider:bucket/path".
 // Resulting item path is relative to the remote path.
 func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts, f func(item *RcloneListDirItem)) error {
-	ctx = customTimeout(ctx, c.config.ListTimeout)
+	ctx = noTimeout(ctx)
 	ctx = noRetry(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// Due to OpenAPI limitations we manually construct and sent the request
 	// object to stream process the response body.
@@ -460,22 +463,45 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		}
 	}
 
-	var v RcloneListDirItem
-	for dec.More() {
-		// Detect context cancellation
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
+	errCh := make(chan error)
+	go func() {
+		var v RcloneListDirItem
+		for dec.More() {
+			// Detect context cancellation
+			if ctx.Err() != nil {
+				errCh <- ctx.Err()
+				return
+			}
 
-		// Read value
-		v = RcloneListDirItem{}
-		if err := dec.Decode(&v); err != nil {
-			return err
+			// Read value
+			v = RcloneListDirItem{}
+			if err := dec.Decode(&v); err != nil {
+				errCh <- err
+				return
+			}
+			f(&v)
+
+			errCh <- nil
 		}
-		f(&v)
+		close(errCh)
+	}()
+
+	timer := time.NewTimer(c.config.ListTimeout)
+	defer timer.Stop()
+	for {
+		select {
+		case err, ok := <-errCh:
+			if !ok {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			timer.Reset(c.config.ListTimeout)
+		case <-timer.C:
+			return errors.Errorf("rclone list dir timeout")
+		}
 	}
-
-	return nil
 }
 
 // RcloneCheckPermissions checks if location is available for listing, getting,

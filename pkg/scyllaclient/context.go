@@ -15,6 +15,7 @@ const (
 	ctxInteractive ctxt = iota
 	ctxHost
 	ctxNoRetry
+	ctxNoTimeout
 	ctxCustomTimeout
 	ctxShouldRetryHandler
 )
@@ -44,6 +45,12 @@ func isForceHost(ctx context.Context) bool {
 // noRetry disables retries.
 func noRetry(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxNoRetry, true)
+}
+
+// noTimeout disables timeouts - if in doubt do not use it.
+// This should only be used by functions that handle timeouts internally.
+func noTimeout(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNoTimeout, true)
 }
 
 // customTimeout allows to pass a custom timeout to timeout middleware.

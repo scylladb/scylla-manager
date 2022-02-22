@@ -5,7 +5,9 @@ package scyllaclient_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -13,10 +15,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
 )
 
 func TestRcloneSplitRemotePath(t *testing.T) {
@@ -493,4 +497,67 @@ func TestRclonePut(t *testing.T) {
 	if cmp.Diff("hello", string(content)) != "" {
 		t.Fatalf("put/a = %s, expected %s", string(content), "hello")
 	}
+}
+
+func TestRcloneListDirTimeouts(t *testing.T) {
+	s := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"list":[`)
+		b, err := json.Marshal(models.ListItem{
+			IsDir:   false,
+			ModTime: strfmt.DateTime{},
+			Name:    "foo",
+			Path:    "/bar/foo",
+			Size:    42,
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		// Write items with progressively larger sleeps so that
+		// RcloneListDirIter times out after 4.
+		max := 100 * time.Millisecond
+		for s := 10 * time.Millisecond; s < max; s *= 2 {
+			w.Write(b)
+			w.Write([]byte(","))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			time.Sleep(s)
+		}
+
+		w.Write(b)
+		w.Write([]byte("]}"))
+	})
+
+	host, port, closeServer := scyllaclienttest.MakeServer(t, s)
+	defer closeServer()
+
+	t.Run("default", func(t *testing.T) {
+		client := scyllaclienttest.MakeClient(t, host, port, func(config *scyllaclient.Config) {
+			config.Timeout = 100 * time.Millisecond
+		})
+
+		l, err := client.RcloneListDir(context.Background(), host, "s3:foo", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("got %d items", len(l))
+	})
+
+	t.Run("iter", func(t *testing.T) {
+		client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+			c.ListTimeout = time.Millisecond * 60
+			c.Timeout = time.Millisecond * 10
+		})
+		defer closeServer()
+
+		var files []*scyllaclient.RcloneListDirItem
+		err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", &scyllaclient.RcloneListDirOpts{}, rcloneListDirIterAppendFunc(&files))
+		if err == nil || err.Error() != "rclone list dir timeout" {
+			t.Fatal("Expected timeout")
+		}
+		if len(files) != 4 {
+			t.Fatalf("Expected 3 files, got %d", len(files))
+		}
+	})
 }
