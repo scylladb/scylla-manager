@@ -254,7 +254,7 @@ func shouldRetry(ctx context.Context, err error) bool {
 }
 
 func shouldIncreaseTimeout(ctx context.Context, err error) bool {
-	return isForceHost(ctx) && !isInteractive(ctx) && errors.Is(err, ErrTimeout)
+	return isForceHost(ctx) && !isInteractive(ctx) && errors.Is(err, context.DeadlineExceeded)
 }
 
 func (o *retryableOperation) notify(err error, wait time.Duration) {
