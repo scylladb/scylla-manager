@@ -3,13 +3,13 @@
 package backup
 
 import (
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 )
 
