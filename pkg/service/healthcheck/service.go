@@ -198,7 +198,7 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				case rtt == 0:
 					o.CQLStatus = statusError
 					o.CQLCause = err.Error()
-				case errors.Is(err, scyllaclient.ErrTimeout):
+				case errors.Is(err, context.DeadlineExceeded):
 					o.RESTStatus = statusTimeout
 				case scyllaclient.StatusCodeOf(err) == http.StatusUnauthorized:
 					o.RESTStatus = statusUnauthorized
