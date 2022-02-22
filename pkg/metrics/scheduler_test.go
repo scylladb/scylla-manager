@@ -34,10 +34,10 @@ func TestSchedulerMetrics(t *testing.T) {
 		m.BeginRun(c, p, t0)
 		m.BeginRun(c, p, t1)
 		m.BeginRun(c, p, t2)
-		m.EndRun(c, p, t0, "DONE")
-		m.EndRun(c, p, t1, "ERROR")
+		m.EndRun(c, p, t0, "DONE", 1645517563)
+		m.EndRun(c, p, t1, "ERROR", 1645517563)
 
-		text := Dump(t, m.runIndicator, m.runsTotal)
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)

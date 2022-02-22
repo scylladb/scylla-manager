@@ -174,6 +174,7 @@ run-server: build-server ## Build and run development server
 		--network scylla_manager_public \
 		-p "5080:5080" \
 		-p "5443:5443" \
+		-p "5090:5090" \
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
 		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-it --read-only --rm scylladb/scylla-manager-dev scylla-manager

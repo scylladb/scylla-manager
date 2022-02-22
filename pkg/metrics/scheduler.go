@@ -10,6 +10,7 @@ import (
 type SchedulerMetrics struct {
 	runIndicator *prometheus.GaugeVec
 	runsTotal    *prometheus.GaugeVec
+	lastSuccess  *prometheus.GaugeVec
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -20,6 +21,8 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"run_indicator", "cluster", "type", "task"),
 		runsTotal: g("Total number of task runs parametrized by status.",
 			"run_total", "cluster", "type", "task", "status"),
+		lastSuccess: g("Start time of the last successful run as a Unix timestamp.",
+			"last_success", "cluster", "type", "task"),
 	}
 }
 
@@ -27,6 +30,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 	return []prometheus.Collector{
 		m.runIndicator,
 		m.runsTotal,
+		m.lastSuccess,
 	}
 }
 
@@ -56,8 +60,11 @@ func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID 
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Inc()
 }
 
-// EndRun updates "run_indicator", and "runs_total".
-func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string) {
+// EndRun updates "run_indicator", "runs_total", and "last_success".
+func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string, startTime int64) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Dec()
 	m.runsTotal.WithLabelValues(clusterID.String(), taskType, taskID.String(), status).Inc()
+	if status == "DONE" {
+		m.lastSuccess.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
+	}
 }
