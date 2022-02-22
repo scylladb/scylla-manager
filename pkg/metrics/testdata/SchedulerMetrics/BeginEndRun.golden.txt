@@ -1,3 +1,6 @@
+# HELP scylla_manager_scheduler_last_success Start time of the last successful run as a Unix timestamp.
+# TYPE scylla_manager_scheduler_last_success gauge
+scylla_manager_scheduler_last_success{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1.645517563e+09
 # HELP scylla_manager_scheduler_run_indicator If the task is running the value is 1 otherwise it's 0.
 # TYPE scylla_manager_scheduler_run_indicator gauge
 scylla_manager_scheduler_run_indicator{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="1b967567-8bc4-4407-9e1d-c7f37069415e",type="backup"} 1
