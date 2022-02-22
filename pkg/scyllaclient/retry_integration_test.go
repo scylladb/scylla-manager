@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package scyllaclient_test
@@ -110,7 +111,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	if _, err = client.Hosts(ctx); err != nil {
 		if shouldTimeout {
-			if !strings.HasSuffix(err.Error(), fmt.Sprintf("after %s: timeout", client.Config().Timeout)) {
+			if !strings.HasSuffix(err.Error(), fmt.Sprintf("after %s: context deadline exceeded", client.Config().Timeout)) {
 				return errors.Errorf("call error %s, expected timeout", err)
 			}
 		} else {
