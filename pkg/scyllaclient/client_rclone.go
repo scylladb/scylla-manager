@@ -354,7 +354,34 @@ func (c *Client) RcloneCat(ctx context.Context, host, remotePath string) ([]byte
 }
 
 // RcloneListDirOpts specifies options for RcloneListDir.
-type RcloneListDirOpts = models.ListOptionsOpt
+type RcloneListDirOpts struct {
+	// Show only directories in the listing
+	DirsOnly bool
+	// Show only files in the listing
+	FilesOnly bool
+	// Recurse into the listing
+	Recurse bool
+	// Read the modification time, for rclone backends declared as SlowModTime setting this to true will send additional
+	// HEAD request for each listed file.
+	ShowModTime bool
+}
+
+func (opts *RcloneListDirOpts) asModelOpts() *models.ListOptionsOpt {
+	if opts == nil {
+		return &models.ListOptionsOpt{
+			NoModTime:  true,
+			NoMimeType: true,
+		}
+	}
+
+	return &models.ListOptionsOpt{
+		DirsOnly:   opts.DirsOnly,
+		FilesOnly:  opts.FilesOnly,
+		Recurse:    opts.Recurse,
+		NoModTime:  !opts.ShowModTime,
+		NoMimeType: true,
+	}
+}
 
 // RcloneListDirItem represents a file in a listing with RcloneListDir.
 type RcloneListDirItem = models.ListItem
@@ -375,7 +402,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 		ListOpts: &models.ListOptions{
 			Fs:     &remotePath,
 			Remote: pointer.StringPtr(""),
-			Opt:    opts,
+			Opt:    opts.asModelOpts(),
 		},
 	}
 	resp, err := c.agentOps.OperationsList(&p)
@@ -400,7 +427,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	listOpts := &models.ListOptions{
 		Fs:     &remotePath,
 		Remote: pointer.StringPtr(""),
-		Opt:    opts,
+		Opt:    opts.asModelOpts(),
 	}
 	b, err := listOpts.MarshalBinary()
 	if err != nil {
