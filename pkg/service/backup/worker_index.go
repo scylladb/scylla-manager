@@ -111,7 +111,8 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				size  int64
 			)
 			opts := &scyllaclient.RcloneListDirOpts{
-				FilesOnly: true,
+				FilesOnly:   true,
+				ShowModTime: true,
 			}
 			err := w.Client.RcloneListDirIter(ctx, h.IP, d.Path, opts, func(f *scyllaclient.RcloneListDirItem) {
 				// Filter out Scylla manifest and Schema files, they are not needed.

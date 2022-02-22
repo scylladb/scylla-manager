@@ -306,8 +306,9 @@ func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*
 		f(item)
 	}
 	opts := scyllaclient.RcloneListDirOpts{
-		FilesOnly: true,
-		Recurse:   true,
+		FilesOnly:   true,
+		Recurse:     true,
+		ShowModTime: true,
 	}
 	return p.client.RcloneListDirIter(ctx, p.host, m.Location.RemotePath(baseDir), &opts, wrapper)
 }
