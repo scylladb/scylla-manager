@@ -79,7 +79,7 @@ rclone:
   stats_file_name_length: 45
   ask_password: true
   password_command: []
-  use_server_mod_time: false
+  use_server_mod_time: true
   max_transfer: -1
   max_duration: 0s
   cutoff_mode: 0
