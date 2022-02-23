@@ -531,6 +531,7 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]
+	s.resolver.Remove(t.ID)
 	s.mu.Unlock()
 	if lok {
 		l.Unschedule(ctx, t.ID)
