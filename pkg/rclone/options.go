@@ -30,7 +30,7 @@ const (
 // GlobalOptions is an alias for rclone fs.ConfigInfo.
 type GlobalOptions = fs.ConfigInfo
 
-// DefaultGlobalOptions returns rclong fs.ConfigInfo initialized with default
+// DefaultGlobalOptions returns rclone fs.ConfigInfo initialized with default
 // values.
 func DefaultGlobalOptions() GlobalOptions {
 	c := fs.NewConfig()
@@ -50,6 +50,8 @@ func DefaultGlobalOptions() GlobalOptions {
 	c.NoTraverse = true
 	// Explicitly disable deletes as enabling them turns off NoTraverse.
 	c.DeleteMode = fs.DeleteModeOff
+	// Use modification time from server ListObjects request.
+	c.UseServerModTime = true
 
 	// The number of checkers to run in parallel.
 	// Checkers do the equality checking of files (local vs. backup location)
