@@ -13,6 +13,7 @@ GORELEASER := goreleaser --rm-dist
 .PHONY: release
 release:
 	git tag $(VERSION_NAME) || true
+	goreleaser --version
 	$(GORELEASER) --skip-publish --skip-validate
 
 .PHONY: snapshot
