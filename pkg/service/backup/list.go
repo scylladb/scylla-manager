@@ -50,21 +50,21 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 		FilesOnly: true,
 		Recurse:   true,
 	}
-	items, err := client.RcloneListDir(ctx, host, location.RemotePath(baseDir), &opts)
+
+	var manifests []*ManifestInfo
+	err := client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
+		p := path.Join(baseDir, f.Path)
+		m := &ManifestInfo{}
+		if err := m.ParsePath(p); err != nil {
+			return
+		}
+		m.Location = location
+		manifests = append(manifests, m)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var manifests []*ManifestInfo
-	for _, item := range items {
-		p := path.Join(baseDir, item.Path)
-		m := &ManifestInfo{}
-		if err := m.ParsePath(p); err != nil {
-			continue
-		}
-		m.Location = location
-		manifests = append(manifests, m)
-	}
 	return manifests, nil
 }
 
