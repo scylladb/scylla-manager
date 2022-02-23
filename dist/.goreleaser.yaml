@@ -91,9 +91,13 @@ nfpms:
       - rpm
     bindir: /usr/bin
 
-    empty_folders:
-      - /var/lib/scylla-manager
     contents:
+      - dst: /var/lib/scylla-manager
+        type: "dir"
+        file_info:
+          mode: 0770
+          owner: scylla-manager
+          group: scylla-manager
       - src: etc/scylla-manager.yaml
         dst: /etc/scylla-manager/scylla-manager.yaml
         type: "config|noreplace"
@@ -186,9 +190,13 @@ nfpms:
       - rpm
     bindir: /usr/bin
 
-    empty_folders:
-      - /var/lib/scylla-manager
     contents:
+      - dst: /var/lib/scylla-manager
+        type: "dir"
+        file_info:
+          mode: 0770
+          owner: scylla-manager
+          group: scylla-manager
       - src: etc/scylla-manager-agent.yaml
         dst: /etc/scylla-manager-agent/scylla-manager-agent.yaml
         type: "config|noreplace"
