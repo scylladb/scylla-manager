@@ -91,6 +91,8 @@ nfpms:
       - rpm
     bindir: /usr/bin
 
+    empty_folders:
+      - /var/lib/scylla-manager
     contents:
       - src: etc/scylla-manager.yaml
         dst: /etc/scylla-manager/scylla-manager.yaml
@@ -184,6 +186,8 @@ nfpms:
       - rpm
     bindir: /usr/bin
 
+    empty_folders:
+      - /var/lib/scylla-manager
     contents:
       - src: etc/scylla-manager-agent.yaml
         dst: /etc/scylla-manager-agent/scylla-manager-agent.yaml
