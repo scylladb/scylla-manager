@@ -1,5 +1,5 @@
 getent group  scylla || /usr/sbin/groupadd scylla 2> /dev/null || :
 getent passwd scylla || /usr/sbin/useradd -g scylla -s /usr/sbin/nologin -r -d /var/lib/scylla scylla 2> /dev/null || :
-getent group  scylla-manager || /usr/sbin/groupadd -r scylla-manager > /dev/null || :
-getent passwd scylla-manager || /usr/sbin/useradd -g scylla-manager -b /var/lib -m -s /usr/sbin/nologin -r scylla-manager > /dev/null || :
+getent group  scylla-manager || /usr/sbin/groupadd scylla-manager 2> /dev/null || :
+getent passwd scylla-manager || /usr/sbin/useradd -g scylla-manager -s /usr/sbin/nologin -r scylla-manager 2> /dev/null || :
 usermod -ou $(id -u scylla) scylla-manager
