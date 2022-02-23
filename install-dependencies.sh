@@ -9,7 +9,7 @@ LINUX_PKGS="docker-compose jq make moreutils openssl"
 
 GO_PKGS="
 golangci-lint       github.com/golangci/golangci-lint/cmd/golangci-lint
-goreleaser          github.com/goreleaser/goreleaser/cmd
+goreleaser          github.com/goreleaser/goreleaser
 license-detector    github.com/go-enry/go-license-detector/v4/cmd/license-detector
 mockgen             github.com/golang/mock/mockgen
 schemagen           github.com/scylladb/gocqlx/v2/cmd/schemagen
