@@ -1,6 +1,6 @@
 use: status
 
-short: Show version information
+short: Show status of clusters
 
 long: |
   This command is an extended version of 'nodetool status'.
