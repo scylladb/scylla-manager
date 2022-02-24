@@ -29,7 +29,7 @@ see_also:
 - repair - Schedule a repair (ad-hoc or scheduled)
 - resume - Undo suspend
 - start - Start executing a task
-- status - Show version information
+- status - Show status of clusters
 - stop - Stop executing a task
 - suspend - Stop execution of all tasks
 - tasks - Show active tasks and their last run status
