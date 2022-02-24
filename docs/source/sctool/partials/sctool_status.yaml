@@ -1,5 +1,5 @@
 name: sctool status
-synopsis: Show version information
+synopsis: Show status of clusters
 description: |
   This command is an extended version of 'nodetool status'.
   It can show status for all the managed clusters.
