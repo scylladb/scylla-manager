@@ -73,3 +73,18 @@ Docker and docker-compose commands installed.
       || ||    Now run:
       |\_/|    $ sctool status -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
       \___/    $ sctool task list -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
+
+#. Create a Bucket for Backups in MinIO
+
+If you wish to create backups with Scylla Manager using MinIO as a target you
+need to first create a "bucket" directory to use as the backup target.
+
+Making sure you are back on your host shell and not in the scylla-manager
+container, run the following:
+
+   .. code-block:: none
+
+      docker-compose exec minio sh -c "mkdir /data/docker"
+
+Afterwards you can schedule backups in Scylla Manager using "s3:docker" as the
+backup location.
