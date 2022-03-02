@@ -690,8 +690,8 @@ github.com/scylladb/gocqlx/v2 v2.6.1-0.20211220144210-2b885ac61b11 h1:2LTTtGMm0y
 github.com/scylladb/gocqlx/v2 v2.6.1-0.20211220144210-2b885ac61b11/go.mod h1:jKhM0/LkEAhEOSwd10TCMQdlC5x8aEzK7cXjQcPyMJ0=
 github.com/scylladb/google-api-go-client v0.34.0-patched h1:ojZBnyKm2/HbRuERamBCmH1ariPTj6mqG53y0wQIkik=
 github.com/scylladb/google-api-go-client v0.34.0-patched/go.mod h1:/XrVsuzM0rZmrsbjJutiuftIzeuTQcEeaYcSk/mQ1dg=
-github.com/scylladb/rclone v1.54.1-0.20210923101756-ca38103352d9 h1:F5JcSjMMRxjRvGn1QqUqbwWZFystEp3OpMNugnnUqSs=
-github.com/scylladb/rclone v1.54.1-0.20210923101756-ca38103352d9/go.mod h1:tOEyuX+gEnD02u07wwvDmyFmWCDZsHmI5tw1zU+WcB8=
+github.com/scylladb/rclone v1.54.1-0.20220302094033-0bf74ef6c54b h1:5gRZKFEIkw9RSNCo1hcHY+7Na0tuJwgROnPirxCOEwU=
+github.com/scylladb/rclone v1.54.1-0.20220302094033-0bf74ef6c54b/go.mod h1:tOEyuX+gEnD02u07wwvDmyFmWCDZsHmI5tw1zU+WcB8=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
