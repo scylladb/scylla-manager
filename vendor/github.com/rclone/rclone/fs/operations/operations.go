@@ -519,9 +519,9 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 		}
 	}
 	if newDst != nil && src.String() != newDst.String() {
-		fs.Infof(src, "%s to: %s", actionTaken, newDst.String())
+		fs.Debugf(src, "%s to: %s", actionTaken, newDst.String())
 	} else {
-		fs.Infof(src, actionTaken)
+		fs.Debugf(src, actionTaken)
 	}
 	return newDst, err
 }
