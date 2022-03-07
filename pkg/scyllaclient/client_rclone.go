@@ -361,8 +361,10 @@ type RcloneListDirOpts struct {
 	FilesOnly bool
 	// Recurse into the listing
 	Recurse bool
-	// Read the modification time, for rclone backends declared as SlowModTime setting this to true will send additional
-	// HEAD request for each listed file.
+	// Read the modification time.
+	// For rclone backends declared as SlowModTime setting this to true will
+	// send additional HEAD request for each listed file if the rclone
+	// configuration option UseServerModTime is false.
 	ShowModTime bool
 }
 
