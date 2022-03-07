@@ -227,6 +227,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		TaskID:    taskID,
 		ID:        runID,
 		DC:        target.DC,
+		Host:      target.Host,
 		StartTime: timeutc.Now().UTC(),
 	}
 	if err := s.putRun(run); err != nil {
@@ -743,6 +744,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return p, err
 	}
 	p.DC = run.DC
+	p.Host = run.Host
 
 	return p, nil
 }
