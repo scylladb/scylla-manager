@@ -57,6 +57,7 @@ type Run struct {
 	ID        uuid.UUID
 
 	DC        []string
+	Host      string
 	PrevID    uuid.UUID
 	StartTime time.Time
 }
@@ -187,6 +188,7 @@ type TableProgress struct {
 type Progress struct {
 	progress
 	DC        []string        `json:"dcs"`
+	Host      string          `json:"host"`
 	Hosts     []HostProgress  `json:"hosts"`
 	Tables    []TableProgress `json:"tables"`
 	Intensity float64         `json:"intensity"`

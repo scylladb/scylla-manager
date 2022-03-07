@@ -603,6 +603,8 @@ Progress:	{{ FormatRepairProgress .TokenRanges .Success .Error }}
 Intensity:	{{ .Intensity }}
 Parallel:	{{ .Parallel }}
 {{- end }}
+{{ if .Host }}Host:	{{ .Host }}
+{{ end -}}
 {{ if .Dcs }}Datacenters:	{{ range .Dcs }}
   - {{ . }}
 {{- end }}

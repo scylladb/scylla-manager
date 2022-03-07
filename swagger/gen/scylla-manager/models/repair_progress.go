@@ -32,6 +32,9 @@ type RepairProgress struct {
 	// error
 	Error int64 `json:"error,omitempty"`
 
+	// host
+	Host string `json:"host,omitempty"`
+
 	// hosts
 	Hosts []*RepairProgressHostsItems0 `json:"hosts"`
 
