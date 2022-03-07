@@ -1,5 +1,5 @@
 RELEASE      := 0.$(shell date +%Y%m%d).$(shell git describe --always)
-VERSION	     ?=2.6.2
+VERSION	     ?=2.6.3
 
 ifdef $$VERSION
 VERSION := $$VERSION
