@@ -160,7 +160,7 @@ func clusterAddedMessage(w io.Writer, id, name string) error {
 		"",
 		"Now run:",
 		"$ sctool status -c " + nameOrID(),
-		"$ sctool task list -c " + nameOrID(),
+		"$ sctool tasks -c " + nameOrID(),
 	}
 
 	return clipper.Say(w, messageLines...)
