@@ -110,6 +110,7 @@ var (
 		Columns: []string{
 			"cluster_id",
 			"dc",
+			"host",
 			"id",
 			"prev_id",
 			"start_time",

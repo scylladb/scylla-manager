@@ -175,6 +175,9 @@
             "type": "string"
           }
         },
+        "host": {
+          "type": "string"
+        },
         "intensity": {
           "type": "number"
         },

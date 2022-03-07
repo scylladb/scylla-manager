@@ -10,3 +10,5 @@ ALTER TABLE scheduler_task ADD success_count int;
 ALTER TABLE scheduler_task ADD error_count int;
 ALTER TABLE scheduler_task ADD last_success timestamp;
 ALTER TABLE scheduler_task ADD last_error timestamp;
+
+ALTER TABLE repair_run ADD host text;
