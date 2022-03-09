@@ -12,8 +12,9 @@ import (
 func DefaultLogConfig() config.LogConfig {
 	return config.LogConfig{
 		Config: log.Config{
-			Mode:  log.StderrMode,
-			Level: zap.NewAtomicLevelAt(zapcore.InfoLevel),
+			Mode:     log.StderrMode,
+			Level:    zap.NewAtomicLevelAt(zapcore.InfoLevel),
+			Encoding: log.JSONEncoding,
 		},
 		Development: false,
 	}
