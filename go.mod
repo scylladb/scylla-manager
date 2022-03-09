@@ -31,7 +31,7 @@ require (
 	github.com/prometheus/procfs v0.2.0
 	github.com/rclone/rclone v1.51.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/scylladb/go-log v0.0.6
+	github.com/scylladb/go-log v0.0.7
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.6.1-0.20211220144210-2b885ac61b11
@@ -40,13 +40,13 @@ require (
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/atomic v1.7.0
 	go.uber.org/config v1.4.0
-	go.uber.org/goleak v1.0.0
+	go.uber.org/goleak v1.1.11
 	go.uber.org/multierr v1.6.0
-	go.uber.org/zap v1.16.0
+	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20201112155050-0c6587e931a9
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20201029080932-201ba4db2418
-	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/tools v0.1.5
 	gopkg.in/yaml.v2 v2.3.0
 )
 

@@ -13,6 +13,7 @@ logger:
   sampling:
     initial: 1
     thereafter: 100
+  encoding: json
   development: false
 scylla:
   api_address: 0.0.0.0
