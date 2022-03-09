@@ -18,6 +18,7 @@ func DefaultLogConfig() config.LogConfig {
 				Initial:    1,
 				Thereafter: 100,
 			},
+			Encoding: log.JSONEncoding,
 		},
 		Development: false,
 	}
