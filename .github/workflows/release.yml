@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'scylla-manager-**'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set go version
+        run: echo "GOVERSION=$(cat .go-version)" >> $GITHUB_ENV
+
+      - name: Set up go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "${{env.GOVERSION}}"
+
+      - name: Release
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          workdir: dist
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
