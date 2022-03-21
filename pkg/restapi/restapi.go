@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
@@ -29,6 +30,7 @@ func New(services Services, logger log.Logger) http.Handler {
 		httplog.TraceID,
 		httplog.RequestLogger(logger),
 		render.SetContentType(render.ContentTypeJSON),
+		middleware.Recoverer,
 	)
 
 	// Swagger UI
