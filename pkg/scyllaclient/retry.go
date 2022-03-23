@@ -83,7 +83,7 @@ func (c retryableClient) Do(id string, req *http.Request) (*http.Response, error
 	if _, ok := req.Context().Value(ctxNoRetry).(bool); ok {
 		resp, err := c.client.Do(req)
 		if err != nil {
-			return resp, nil
+			return nil, err
 		}
 		return resp, makeAgentError(resp)
 	}
