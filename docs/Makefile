@@ -1,5 +1,5 @@
 # You can set these variables from the command line.
-POETRY        := $(HOME)/.local/bin/poetry
+POETRY        := poetry
 SPHINXOPTS    :=
 SPHINXBUILD   := $(POETRY) run sphinx-build
 PAPER         :=
@@ -14,12 +14,18 @@ ALLSPHINXOPTS   := -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(
 I18NSPHINXOPTS  := $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCEDIR)
 TESTSPHINXOPTS  := $(ALLSPHINXOPTS) -W --keep-going
 
+# Windows variables
+ifeq ($(OS),Windows_NT)
+    POETRY := $(APPDATA)\Python\Scripts\poetry
+endif
+
 .PHONY: all
 all: dirhtml
 
-.PHONY: pristine
-pristine: clean
-	git clean -dfX
+# Setup commands
+.PHONY: setupenv
+setupenv:
+	pip install -q poetry
 
 .PHONY: setup
 setup:
@@ -27,14 +33,16 @@ setup:
 	$(POETRY) update
 	./_utils/pre-build.sh
 
+# Clean commands
+.PHONY: pristine
+pristine: clean
+	git clean -dfX
+
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/*
 
-.PHONY: preview
-preview: setup
-	$(POETRY) run sphinx-autobuild -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml --port 5500
-
+# Build commands
 .PHONY: dirhtml
 dirhtml: setup
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
@@ -59,16 +67,6 @@ epub3: setup
 	@echo
 	@echo "Build finished. The epub3 file is in $(BUILDDIR)/epub3."
 
-.PHONY: dummy
-dummy: setup
-	$(SPHINXBUILD) -b dummy $(ALLSPHINXOPTS) $(BUILDDIR)/dummy
-	@echo
-	@echo "Build finished. Dummy builder generates no files."
-
-.PHONY: linkcheck
-linkcheck: setup
-	$(SPHINXBUILD) -b linkcheck $(SOURCEDIR) $(BUILDDIR)/linkcheck
-
 .PHONY: multiversion
 multiversion: setup
 	$(POETRY) run sphinx-multiversion source _build/dirhtml \
@@ -76,10 +74,19 @@ multiversion: setup
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
 
+# Preview commands
+.PHONY: preview
+preview: setup
+	$(POETRY) run sphinx-autobuild -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml --port 5500
 
 .PHONY: multiversionpreview
 multiversionpreview: multiversion
 	$(POETRY) run python -m http.server 5500 --directory $(BUILDDIR)/dirhtml
+
+# Test commands
+.PHONY: linkcheck
+linkcheck: setup
+	$(SPHINXBUILD) -b linkcheck $(SOURCEDIR) $(BUILDDIR)/linkcheck
 
 .PHONY: test
 test: setup
