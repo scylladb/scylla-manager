@@ -19,6 +19,8 @@ func TestWeekdayTimeNext(t *testing.T) {
 		h = time.Hour
 	)
 
+	aus, _ := time.LoadLocation("Australia/Sydney")
+
 	table := []struct {
 		Name        string
 		WeekdayTime WeekdayTime
@@ -69,6 +71,15 @@ func TestWeekdayTimeNext(t *testing.T) {
 			},
 			Now:    time.Date(2020, 2, 23, 15, 59, 0, 0, time.UTC),
 			Golden: time.Date(2020, 2, 29, 4, 5, 0, 0, time.UTC),
+		},
+		{
+			Name: "daylight savings time",
+			WeekdayTime: WeekdayTime{
+				Weekday: time.Sunday,
+				Time:    21*h + 5*m,
+			},
+			Now:    time.Date(2022, 4, 2, 23, 59, 0, 0, aus),
+			Golden: time.Date(2022, 4, 3, 21, 5, 0, 0, aus),
 		},
 	}
 
