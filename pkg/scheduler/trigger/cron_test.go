@@ -27,7 +27,9 @@ func TestCronInDifferentLocations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	now := timeutc.Now()
+	// Must use a date where EST and CET locations are actually 6 hours apart.
+	// A few weeks a year they are 5 or 7 due to DST.
+	now := time.Date(2022, 1, 15, 12, 05, 01, 0, time.UTC)
 
 	n0 := c.Next(now.In(l0))
 	n1 := c.Next(now.In(l1))
