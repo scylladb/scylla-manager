@@ -96,7 +96,11 @@ func (i WeekdayTime) Next(now time.Time) time.Time {
 	if w < 0 || w == 0 && now.Sub(t) > i.Time {
 		w += 7
 	}
-	return t.Add(time.Duration(w)*day + i.Time)
+
+	d := t.Add(time.Duration(w) * day)
+
+	return time.Date(d.Year(), d.Month(), d.Day(), int(i.Time.Hours()), int(i.Time.Minutes())%60,
+		int(i.Time.Seconds())%60, int(i.Time.Nanoseconds())%1e9, t.Location())
 }
 
 type slot struct {
