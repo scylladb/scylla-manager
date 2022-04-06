@@ -226,6 +226,9 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	}
 	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
 		r := running.Has(t.ID.Bytes16())
+		if needsOneShotRun(t) {
+			r = true
+		}
 		if t.Type == SuspendTask {
 			r = false
 		}
