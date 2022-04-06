@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/pkg/util/duration"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -18,6 +19,8 @@ var res []byte
 
 //go:embed update-res.yaml
 var updateRes []byte
+
+var startTasksErr = errors.New("on-resume-start-tasks only applies to suspend tasks with a duration")
 
 type command struct {
 	flag.TaskBase
@@ -73,6 +76,10 @@ func (cmd *command) init() {
 func (cmd *command) run(args []string) error {
 	// On plain suspend call do not create a task.
 	if !cmd.Update() && cmd.duration.Value() == 0 {
+		if cmd.startTasks {
+			return startTasksErr
+		}
+
 		t := cmd.CreateTask(managerclient.SuspendTask)
 		if t.Schedule.Cron == "" && t.Schedule.StartDate == nil {
 			return cmd.client.Suspend(cmd.Context(), cmd.cluster)
@@ -117,6 +124,10 @@ func (cmd *command) run(args []string) error {
 		ok = true
 	}
 
+	if err := validateSuspend(props); err != nil {
+		return err
+	}
+
 	switch {
 	case task.ID == "":
 		id, err := cmd.client.CreateTask(cmd.Context(), cmd.cluster, task)
@@ -134,4 +145,29 @@ func (cmd *command) run(args []string) error {
 
 	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskID(task))
 	return nil
+}
+
+func validateSuspend(props map[string]interface{}) error {
+	startTasks, ok := props["start_tasks"]
+
+	if !ok || !startTasks.(bool) {
+		return nil
+	}
+
+	d, ok := props["duration"]
+	if !ok {
+		return startTasksErr
+	}
+
+	if dString, ok := d.(string); ok {
+		if s, err := duration.ParseDuration(dString); err == nil && s > 0 {
+			return nil
+		}
+	}
+
+	if dDuration, ok := d.(duration.Duration); ok && dDuration > 0 {
+		return nil
+	}
+
+	return startTasksErr
 }
