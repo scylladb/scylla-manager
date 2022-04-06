@@ -111,11 +111,14 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	endTime := now()
 	err := s.forEachTask(func(t *Task) error {
 		s.initMetrics(t)
-		ab, err := s.markRunningAsAborted(t, endTime)
+		r, err := s.markRunningAsAborted(t, endTime)
 		if err != nil {
 			return errors.Wrap(err, "fix last run status")
 		}
-		s.schedule(ctx, t, ab)
+		if needsOneShotRun(t) {
+			r = true
+		}
+		s.schedule(ctx, t, r)
 		return nil
 	})
 	if err != nil {
@@ -652,4 +655,8 @@ func forEachTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
 		t = Task{}
 	}
 	return iter.Close()
+}
+
+func needsOneShotRun(t *Task) bool {
+	return (t.Sched.Cron.IsZero() && t.Sched.Interval == 0 && t.Sched.Window != nil && t.SuccessCount+t.ErrorCount == 0)
 }
