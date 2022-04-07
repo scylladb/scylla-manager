@@ -275,6 +275,10 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	newTask.ID = t.ID
 	newTask.Type = t.Type
 
+	if newTask.ID == scheduler.ResumeTaskID {
+		respondError(w, r, errors.New("resume task cannot be updated"))
+	}
+
 	if err := h.validateTask(r.Context(), newTask, newTask.Properties); err != nil {
 		respondError(w, r, err)
 		return
