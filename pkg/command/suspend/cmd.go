@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/pkg/managerclient"
 	"github.com/scylladb/scylla-manager/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +21,10 @@ var res []byte
 //go:embed update-res.yaml
 var updateRes []byte
 
-var startTasksErr = errors.New("on-resume-start-tasks only applies to suspend tasks with a duration")
+var (
+	resumeTaskID  = uuid.MustParse("805E43B0-2C0A-481E-BAB8-9C2418940D67")
+	startTasksErr = errors.New("on-resume-start-tasks only applies to suspend tasks with a duration")
+)
 
 type command struct {
 	flag.TaskBase
@@ -102,6 +106,9 @@ func (cmd *command) run(args []string) error {
 		}
 		if taskType != managerclient.SuspendTask {
 			return fmt.Errorf("can't handle %s task", taskType)
+		}
+		if taskID == resumeTaskID {
+			return errors.New("can't update resume task")
 		}
 
 		task, err = cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
