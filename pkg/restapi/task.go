@@ -216,6 +216,10 @@ func (h *taskHandler) validateTask(ctx context.Context, newTask *scheduler.Task,
 		if _, err := h.Backup.GetValidationTarget(ctx, newTask.ClusterID, p); err != nil {
 			return errors.Wrap(err, "create backup validation target")
 		}
+	case scheduler.SuspendTask:
+		if _, err := scheduler.GetSuspendProperties(p); err != nil {
+			return errors.Wrap(err, "create suspend properties")
+		}
 	}
 
 	return nil

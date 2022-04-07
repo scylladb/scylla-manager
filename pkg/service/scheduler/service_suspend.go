@@ -48,6 +48,22 @@ type SuspendProperties struct {
 	StartTasks bool              `json:"start_tasks"`
 }
 
+// GetSuspendProperties unmarshals suspend properties and validates them.
+func GetSuspendProperties(data []byte) (SuspendProperties, error) {
+	properties := SuspendProperties{}
+	if err := json.Unmarshal(data, &properties); err != nil {
+		return properties, err
+	}
+
+	if properties.StartTasks {
+		if properties.Duration == 0 {
+			return properties, errors.New("can't use startTasks without a duration")
+		}
+	}
+
+	return properties, nil
+}
+
 func (s *Service) initSuspended() error {
 	var clusters []uuid.UUID
 	if err := qb.Select(table.SchedulerTask.Name()).Distinct("cluster_id").Query(s.session).SelectRelease(&clusters); err != nil {
@@ -266,12 +282,11 @@ type suspendRunner struct {
 }
 
 func (s suspendRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	p := SuspendProperties{}
-	if err := json.Unmarshal(properties, &p); err != nil {
+	p, err := GetSuspendProperties(properties)
+	if err != nil {
 		return service.ErrValidate(err)
 	}
 
-	var err error
 	if p.Resume {
 		err = s.service.Resume(ctx, clusterID, p.StartTasks)
 	} else {
