@@ -171,10 +171,10 @@ func (s *Service) resetSchedulerLocked(si *suspendInfo) *scheduler.Scheduler {
 	return l
 }
 
-// resumeTaskID is a special task ID reserved for scheduled resume of suspended cluster.
+// ResumeTaskID is a special task ID reserved for scheduled resume of suspended cluster.
 // It can be reused for different suspend tasks at different times.
 // Note that a suspended cluster cannot be suspended.
-var resumeTaskID = uuid.MustParse("805E43B0-2C0A-481E-BAB8-9C2418940D67")
+var ResumeTaskID = uuid.MustParse("805E43B0-2C0A-481E-BAB8-9C2418940D67")
 
 func newResumeTask(si *suspendInfo, p SuspendProperties) (*Task, error) {
 	p.Resume = true
@@ -187,7 +187,7 @@ func newResumeTask(si *suspendInfo, p SuspendProperties) (*Task, error) {
 	return &Task{
 		ClusterID: si.ClusterID,
 		Type:      SuspendTask,
-		ID:        resumeTaskID,
+		ID:        ResumeTaskID,
 		Name:      "resume",
 		Enabled:   true,
 		Sched: Schedule{
@@ -204,7 +204,7 @@ func newDisabledResumeTask(clusterID uuid.UUID) *Task {
 	return &Task{
 		ClusterID: clusterID,
 		Type:      SuspendTask,
-		ID:        resumeTaskID,
+		ID:        ResumeTaskID,
 		Name:      "resume",
 	}
 }
