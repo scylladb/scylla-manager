@@ -76,6 +76,6 @@ example: |
   || |/
   || ||    Now run:
   |\_/|    $ sctool status -c prod-cluster
-  \___/    $ sctool task list -c prod-cluster
+  \___/    $ sctool tasks -c prod-cluster
 see_also:
 - sctool cluster - Add or delete clusters

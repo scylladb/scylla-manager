@@ -30,7 +30,7 @@ Run the following command to limit the number of parallel Scylla repair jobs in 
 
    sctool repair control -c prod-cluster --parallel 1
 
-You can view your current values for intensity and parallel with the :ref:`sctool task progress <task-progress>` command.
+You can view your current values for intensity and parallel with the :ref:`sctool progress <task-progress>` command.
 Stopping the task and running again, would reset the values.
 
 Slowdown the future runs of a repair

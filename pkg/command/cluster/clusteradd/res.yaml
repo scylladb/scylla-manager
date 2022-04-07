@@ -18,7 +18,7 @@ example: |
   || |/
   || ||    Now run:
   |\_/|    $ sctool status -c prod-cluster
-  \___/    $ sctool task list -c prod-cluster
+  \___/    $ sctool tasks -c prod-cluster
 
 id: |
   Explicitly specify cluster ID, when not provided random `UUID` will be generated.
