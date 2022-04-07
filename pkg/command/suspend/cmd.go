@@ -73,6 +73,9 @@ func (cmd *command) init() {
 func (cmd *command) run(args []string) error {
 	// On plain suspend call do not create a task.
 	if !cmd.Update() && cmd.duration.Value() == 0 {
+		if cmd.startTasks {
+			return errors.New("can't use startTasks without a duration")
+		}
 		t := cmd.CreateTask(managerclient.SuspendTask)
 		if t.Schedule.Cron == "" && t.Schedule.StartDate == nil {
 			return cmd.client.Suspend(cmd.Context(), cmd.cluster)
