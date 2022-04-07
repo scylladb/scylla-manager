@@ -72,7 +72,7 @@ Docker and docker-compose commands installed.
       || |/
       || ||    Now run:
       |\_/|    $ sctool status -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
-      \___/    $ sctool task list -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
+      \___/    $ sctool tasks -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
 
 #. Create a Bucket for Backups in MinIO
 

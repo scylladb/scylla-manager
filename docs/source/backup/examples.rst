@@ -143,7 +143,7 @@ Now we can disable it by command:
 
 .. code-block:: none
    
-   sctool task update backup/4d79ee63-7721-4105-8c6a-5b98c65c3e21 -e false
+   sctool backup update backup/4d79ee63-7721-4105-8c6a-5b98c65c3e21 -e false
 
 
 If we decide to delete above task, backup will be kept in our storage for the next 30 days.
@@ -209,8 +209,8 @@ If the dry run completes successfully, a summary of the backup is displayed. For
 Monitor progress of the backup task
 -----------------------------------
 
-Progress of the backup task can be monitored by using :ref:`sctool task progress <task-progress>` command and providing UUID of the backup task.
+Progress of the backup task can be monitored by using :ref:`sctool progress <task-progress>` command and providing UUID of the backup task.
 
 .. code-block:: none
 
-   sctool task progress backup/3208ff15-6e8f-48b2-875c-d3c73f545410 -c prod-cluster
+   sctool progress backup/3208ff15-6e8f-48b2-875c-d3c73f545410 -c prod-cluster

@@ -51,7 +51,7 @@ func (cmd *command) init() {
 	w.Keyspace(&cmd.keyspace)
 	w.Unwrap().BoolVar(&cmd.details, "details", false, "")
 	w.Unwrap().StringSliceVar(&cmd.host, "host", nil, "")
-	w.Unwrap().StringVar(&cmd.runID, "run", "latest", "Show progress of a particular run, see sctool task history to get the IDs.")
+	w.Unwrap().StringVar(&cmd.runID, "run", "latest", "Show progress of a particular run, see sctool history to get the IDs.")
 }
 
 func (cmd *command) run(args []string) error {
