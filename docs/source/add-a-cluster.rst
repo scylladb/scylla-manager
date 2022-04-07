@@ -32,7 +32,7 @@ Add a Cluster
       || |/    
       || ||    Now run:
       |\_/|    $ sctool status -c prod-cluster
-      \___/    $ sctool task list -c prod-cluster
+      \___/    $ sctool tasks -c prod-cluster
 
 
    Example (IPv6):
@@ -64,20 +64,20 @@ Add a Cluster
    This also enables CQL schema backup in text format, which isn't performed if credentials aren't provided.
    For security reasons the CQL user should NOT have access to read your data.
 
-#. Verify the cluster you added has a registered repair task by running the ``sctool task list`` command.
+#. Verify the cluster you added has a registered repair task by running the ``sctool tasks`` command.
 
    .. code-block:: none
 
-      sctool task list
+      sctool tasks
       Cluster: prod-cluster (c1bbabf3-cad1-4a59-ab8f-84e2a73b623f)
-      ╭─────────────────────────────────────────────────────────────┬───────────┬────────────────────────────────┬────────╮
-      │ Task                                                        │ Arguments │ Next run                       │ Status │
-      ├─────────────────────────────────────────────────────────────┼───────────┼────────────────────────────────┼────────┤
-      │ healthcheck/96e94236-5358-4302-ae9a-39ab84e383e8            │           │ 08 Oct 20 10:51:01 CEST (+15s) │ DONE   │
-      │ healthcheck_alternator/f051f529-ddd7-487d-a36d-d015eb140803 │           │ 08 Oct 20 10:51:01 CEST (+15s) │ DONE   │
-      │ healthcheck_rest/9fdcc415-7923-4acf-be64-fa85a6952bce       │           │ 08 Oct 20 10:51:46 CEST (+1m)  │ NEW    │
-      │ repair/fb57446f-2adc-442e-802d-2cbc24dcc5b2                 │           │ 09 Oct 20 00:00:00 CEST (+7d)  │ NEW    │
-      ╰─────────────────────────────────────────────────────────────┴───────────┴────────────────────────────────┴────────╯
+      ╭────────────────────────┬──────────────┬────────┬──────────────────┬─────────┬───────┬──────────────┬────────────┬─────────┬────────────────╮
+      │ Task                   │ Schedule     │ Window │ Timezone         │ Success │ Error │ Last Success │ Last Error │ Status  │ Next           │
+      ├────────────────────────┼──────────────┼────────┼──────────────────┼─────────┼───────┼──────────────┼────────────┼─────────┼────────────────┤
+      │ healthcheck/cql        │ @every 15s   │        │ America/New_York │ 4       │ 0     │ 1s ago       │            │ DONE    │ in 13s         │
+      │ healthcheck/alternator │ @every 15s   │        │ America/New_York │ 3       │ 0     │ 14s ago      │            │ RUNNING │                │
+      │ healthcheck/rest       │ @every 1m0s  │        │ America/New_York │ 1       │ 0     │ 1s ago       │            │ DONE    │ in 58s         │
+      │ repair/all-weekly      │ 0 23 * * SAT │        │ America/New_York │ 0       │ 0     │              │            │ NEW     │ in 2d13h30m55s │
+      ╰────────────────────────┴──────────────┴────────┴──────────────────┴─────────┴───────┴──────────────┴────────────┴─────────┴────────────────╯
 
    You will see 4 tasks which are created by adding the cluster:
 
@@ -96,8 +96,8 @@ Add a Cluster
       ╭────┬────────────┬───────────┬───────────┬───────────────┬────────┬──────┬──────────┬────────┬──────────┬──────────────────────────────────────╮
       │    │ Alternator │ CQL       │ REST      │ Address       │ Uptime │ CPUs │ Memory   │ Scylla │ Agent    │ Host ID                              │
       ├────┼────────────┼───────────┼───────────┼───────────────┼────────┼──────┼──────────┼────────┼──────────┼──────────────────────────────────────┤
-      │ UN │ UP (4ms)   │ UP (3ms)  │ UP (2ms)  │ 34.203.122.52 │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 8bfd18f1-ac3b-4694-bcba-30bc272554df │
-      │ UN │ UP (15ms)  │ UP (11ms) │ UP (12ms) │ 10.0.138.46   │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 238acd01-813c-4c55-bd65-5219bb19bc20 │
-      │ UN │ UP (17ms)  │ UP (5ms)  │ UP (7ms)  │ 10.0.196.204  │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ bde4581a-b25e-49fc-8cd9-1651d7683f80 │
-      │ UN │ UP (10ms)  │ UP (4ms)  │ UP (5ms)  │ 10.0.66.115   │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 918a52aa-cc42-43a4-a499-f7b1ccb53b18 │
+      │ UN │ UP (4ms)   │ UP (3ms)  │ UP (2ms)  │ 34.203.122.52 │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 3.0.0    │ 8bfd18f1-ac3b-4694-bcba-30bc272554df │
+      │ UN │ UP (15ms)  │ UP (11ms) │ UP (12ms) │ 10.0.138.46   │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 3.0.0    │ 238acd01-813c-4c55-bd65-5219bb19bc20 │
+      │ UN │ UP (17ms)  │ UP (5ms)  │ UP (7ms)  │ 10.0.196.204  │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 3.0.0    │ bde4581a-b25e-49fc-8cd9-1651d7683f80 │
+      │ UN │ UP (10ms)  │ UP (4ms)  │ UP (5ms)  │ 10.0.66.115   │ 2m1s   │ 4    │ 15.43GiB │ 4.1.0  │ 3.0.0    │ 918a52aa-cc42-43a4-a499-f7b1ccb53b18 │
       ╰────┴────────────┴───────────┴───────────┴───────────────┴────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯

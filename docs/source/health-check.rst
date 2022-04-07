@@ -4,27 +4,27 @@ Health Check
 
 Scylla Manager automatically adds three health check tasks when the cluster is added to the Scylla Manager and to existing clusters
 during the upgrade procedure. You can see the tasks created by the healthcheck when you run
-the :ref:`sctool task list <task-list>` command.
+the :ref:`sctool tasks <task-list>` command.
 
 For example:
 
 .. code-block:: none
 
-   sctool task list -c prod-cluster
+   sctool tasks -c prod-cluster
 
 returns:
 
 .. code-block:: none
 
-   sctool task list -c prod-cluster
-   ╭─────────────────────────────────────────────────────────────┬───────────┬────────────────────────────────┬────────╮
-   │ Task                                                        │ Arguments │ Next run                       │ Status │
-   ├─────────────────────────────────────────────────────────────┼───────────┼────────────────────────────────┼────────┤
-   │ healthcheck/8988932e-de2f-4c42-a2f8-ae3b97fd7126            │           │ 02 Apr 20 12:28:10 CEST (+15s) │ NEW    │
-   | healthcheck_alternator/79170f1f-8bda-481e-8538-c3ff9894d235 │           │ 02 Apr 20 12:28:10 CEST (+15s) │ NEW    │
-   │ healthcheck_rest/9b7e694d-a1e3-42f1-8ca6-d3dfd9f0d94f       │           │ 02 Apr 20 12:28:40 CEST (+1h)  │ NEW    │
-   │ repair/0fd8a43b-eacf-4df8-9376-2a31b0dee6cc                 │           │ 03 Apr 20 00:00:00 CEST (+7d)  │ NEW    │
-   ╰─────────────────────────────────────────────────────────────┴───────────┴────────────────────────────────┴────────╯
+   sctool tasks -c prod-cluster
+   ╭────────────────────────┬──────────────┬────────┬──────────────────┬─────────┬───────┬──────────────┬────────────┬─────────┬────────────────╮
+   │ Task                   │ Schedule     │ Window │ Timezone         │ Success │ Error │ Last Success │ Last Error │ Status  │ Next           │
+   ├────────────────────────┼──────────────┼────────┼──────────────────┼─────────┼───────┼──────────────┼────────────┼─────────┼────────────────┤
+   │ healthcheck/cql        │ @every 15s   │        │ America/New_York │ 4       │ 0     │ 1s ago       │            │ DONE    │ in 13s         │
+   │ healthcheck/alternator │ @every 15s   │        │ America/New_York │ 3       │ 0     │ 14s ago      │            │ RUNNING │                │
+   │ healthcheck/rest       │ @every 1m0s  │        │ America/New_York │ 1       │ 0     │ 1s ago       │            │ DONE    │ in 58s         │
+   │ repair/all-weekly      │ 0 23 * * SAT │        │ America/New_York │ 0       │ 0     │              │            │ NEW     │ in 2d13h30m55s │
+   ╰────────────────────────┴──────────────┴────────┴──────────────────┴─────────┴───────┴──────────────┴────────────┴─────────┴────────────────╯
 
 We can see three healthcheck related tasks:
 
