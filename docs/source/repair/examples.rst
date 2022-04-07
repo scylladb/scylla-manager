@@ -146,8 +146,8 @@ Nevertheless you can still schedule the repair, the glob patterns are evaluated 
 Monitor progress of the repair task
 ===================================
 
-Progress of the repair task can be monitored by using the :ref:`sctool task progress <task-progress>` command and providing UUID of the repair task.
+Progress of the repair task can be monitored by using the :ref:`sctool progress <task-progress>` command and providing UUID of the repair task.
 
 .. code-block:: none
 
-   sctool task progress repair/143d160f-e53c-4890-a9e7-149561376cfd -c prod-cluster
+   sctool progress repair/143d160f-e53c-4890-a9e7-149561376cfd -c prod-cluster

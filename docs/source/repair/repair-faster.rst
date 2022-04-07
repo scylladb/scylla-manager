@@ -19,7 +19,7 @@ Run the following command to adjust the number of token ranges per Scylla repair
 
    sctool repair control -c prod-cluster --intensity 0
 
-You can view your current values for intensity and parallel with the :ref:`sctool task progress <task-progress>` command.
+You can view your current values for intensity and parallel with the :ref:`sctool progress <task-progress>` command.
 Stopping the task and running it again would reset the values.
 
 Speedup the future runs of a repair
