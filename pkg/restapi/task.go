@@ -198,6 +198,25 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, t)
 }
 
+func (h *taskHandler) validateTask(ctx context.Context, newTask *scheduler.Task, p []byte) error {
+	switch newTask.Type {
+	case scheduler.BackupTask:
+		if _, err := h.Backup.GetTarget(ctx, newTask.ClusterID, p); err != nil {
+			return errors.Wrap(err, "create backup target")
+		}
+	case scheduler.RepairTask:
+		if _, err := h.Repair.GetTarget(ctx, newTask.ClusterID, p); err != nil {
+			return errors.Wrap(err, "create repair target")
+		}
+	case scheduler.ValidateBackupTask:
+		if _, err := h.Backup.GetValidationTarget(ctx, newTask.ClusterID, p); err != nil {
+			return errors.Wrap(err, "create backup validation target")
+		}
+	}
+
+	return nil
+}
+
 func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	newTask, err := h.parseTask(r)
 	if err != nil {
@@ -218,22 +237,9 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	switch newTask.Type {
-	case scheduler.BackupTask:
-		if _, err := h.Backup.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
-			respondError(w, r, errors.Wrap(err, "create backup target"))
-			return
-		}
-	case scheduler.RepairTask:
-		if _, err := h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
-			respondError(w, r, errors.Wrap(err, "create repair target"))
-			return
-		}
-	case scheduler.ValidateBackupTask:
-		if _, err := h.Backup.GetValidationTarget(r.Context(), newTask.ClusterID, p); err != nil {
-			respondError(w, r, errors.Wrap(err, "create validate backup target"))
-			return
-		}
+	if err := h.validateTask(r.Context(), newTask, p); err != nil {
+		respondError(w, r, err)
+		return
 	}
 
 	if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
@@ -260,6 +266,11 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	newTask.ID = t.ID
 	newTask.Type = t.Type
+
+	if err := h.validateTask(r.Context(), newTask, newTask.Properties); err != nil {
+		respondError(w, r, err)
+		return
+	}
 
 	if err := h.Scheduler.PutTask(r.Context(), newTask); err != nil {
 		respondError(w, r, errors.Wrapf(err, "update task %q", t.ID))
