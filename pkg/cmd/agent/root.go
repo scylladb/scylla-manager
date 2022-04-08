@@ -12,8 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/config/agent"
+	"github.com/scylladb/scylla-manager/v3/pkg"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	"github.com/spf13/cobra"
 )
 

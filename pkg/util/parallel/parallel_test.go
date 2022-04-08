@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/atomic"
 )
 

@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"go.uber.org/atomic"
 )
 

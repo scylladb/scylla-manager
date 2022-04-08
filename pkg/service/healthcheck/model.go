@@ -5,7 +5,7 @@ package healthcheck
 import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 const (

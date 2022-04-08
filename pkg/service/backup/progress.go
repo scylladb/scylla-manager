@@ -9,8 +9,8 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 var (

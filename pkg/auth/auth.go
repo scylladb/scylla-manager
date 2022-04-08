@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 )
 
 // AddToken sets authorization header. If token is empty it immediately returns

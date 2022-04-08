@@ -5,8 +5,8 @@ package secrets
 import (
 	"encoding/json"
 
-	"github.com/scylladb/scylla-manager/pkg/store"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // TLSIdentity defines TLS credentials to cluster.

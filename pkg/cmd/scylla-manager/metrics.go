@@ -4,7 +4,7 @@ package main
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/v3/pkg"
 )
 
 var currentVersion = prometheus.NewGaugeVec(prometheus.GaugeOpts{

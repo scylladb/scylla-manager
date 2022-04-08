@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Runner implements scheduler.Runner.

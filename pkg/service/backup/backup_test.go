@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 func TestFilterDCLocations(t *testing.T) {

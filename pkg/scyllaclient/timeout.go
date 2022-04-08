@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 )
 
 // ErrTimeout is returned when request times out.

@@ -8,8 +8,8 @@ import (
 	context "context"
 	json "encoding/json"
 	gomock "github.com/golang/mock/gomock"
-	repair "github.com/scylladb/scylla-manager/pkg/service/repair"
-	uuid "github.com/scylladb/scylla-manager/pkg/util/uuid"
+	repair "github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	reflect "reflect"
 )
 

@@ -16,10 +16,10 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/downloader"
-	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/downloader"
+	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
 

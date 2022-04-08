@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
 )
 
 func TestValidate(t *testing.T) {

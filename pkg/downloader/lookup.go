@@ -14,8 +14,8 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/walk"
 	"github.com/scylladb/go-set/strset"
-	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // ManifestLookupCriteria specifies which manifest you want to use to download

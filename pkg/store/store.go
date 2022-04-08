@@ -9,7 +9,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/gocqlx/v2/table"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // ErrInvalidKey is returned when Entry have nil clusterID or empty key.

@@ -17,8 +17,8 @@ import (
 	"github.com/rclone/rclone/fs"
 	roperations "github.com/rclone/rclone/fs/operations"
 	rsync "github.com/rclone/rclone/fs/sync"
-	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
 

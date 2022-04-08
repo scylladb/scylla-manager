@@ -8,7 +8,7 @@ import (
 
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 )
 
 var errPoolServerError = errors.New("server error")

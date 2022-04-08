@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/rclone/rclone/fs"
-	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/v3/pkg"
 )
 
 // GetConfig returns the rclone global config.

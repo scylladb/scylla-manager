@@ -6,8 +6,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )

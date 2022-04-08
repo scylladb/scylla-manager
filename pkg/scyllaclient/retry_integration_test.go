@@ -15,9 +15,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 )
 
 func TestRetryWithTimeoutIntegration(t *testing.T) {

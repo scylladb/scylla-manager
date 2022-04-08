@@ -9,8 +9,8 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/dht"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 type tableTokenRange struct {

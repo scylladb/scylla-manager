@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // TestHost should be used if a function in test requires host parameter.

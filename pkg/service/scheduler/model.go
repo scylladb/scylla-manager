@@ -10,12 +10,12 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/pkg/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/scheduler/trigger"
-	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/util/duration"
-	"github.com/scylladb/scylla-manager/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler/trigger"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
 

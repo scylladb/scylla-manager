@@ -16,9 +16,9 @@ import (
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/sync"
 	"github.com/scylladb/go-log"
-	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/scylla-manager/pkg/util/parallel"
+	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
 // Downloader reads manifest for the provided snapshot tag, cluster and node.

@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/util/httplog"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
 )
 
 func responder(w http.ResponseWriter, r *http.Request, v interface{}) {

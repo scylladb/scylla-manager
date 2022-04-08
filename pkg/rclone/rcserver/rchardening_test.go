@@ -8,7 +8,7 @@ import (
 
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
-	"github.com/scylladb/scylla-manager/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 )
 
 func TestPathHasPrefix(t *testing.T) {

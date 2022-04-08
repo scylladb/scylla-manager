@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg"
-	"github.com/scylladb/scylla-manager/pkg/config/agent"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 type nodeInfoHandler struct {

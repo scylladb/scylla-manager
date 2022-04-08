@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type (

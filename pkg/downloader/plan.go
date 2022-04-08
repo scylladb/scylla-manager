@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/rclone/rclone/fs"
-	backup "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 // ClearAction represents removal of all files in Dir.

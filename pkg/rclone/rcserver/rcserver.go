@@ -22,9 +22,9 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
-	"github.com/scylladb/scylla-manager/pkg/rclone"
-	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 var initOnce sync.Once

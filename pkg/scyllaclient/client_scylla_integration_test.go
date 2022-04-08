@@ -16,10 +16,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/i64set"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/slice"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func TestClientAuthIntegration(t *testing.T) {
