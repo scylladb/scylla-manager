@@ -3,9 +3,9 @@
 package scheduler
 
 import (
-	"github.com/scylladb/scylla-manager/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func (t *Task) NewRun() *Run {

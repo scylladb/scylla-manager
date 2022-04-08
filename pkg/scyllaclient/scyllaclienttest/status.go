@@ -5,7 +5,7 @@ package scyllaclienttest
 import (
 	"fmt"
 
-	agentModels "github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	agentModels "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 type agentError struct {

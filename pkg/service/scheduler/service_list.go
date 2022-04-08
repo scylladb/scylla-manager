@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // TaskListItem decorates Task with information about task runs and scheduled

@@ -12,8 +12,8 @@ import (
 	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/fs/rc/jobs"
-	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver/internal"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver/internal"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func filterRcCallsForTests() {

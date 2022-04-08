@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {

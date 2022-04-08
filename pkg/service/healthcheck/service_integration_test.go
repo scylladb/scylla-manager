@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package healthcheck
@@ -18,14 +19,14 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/secrets"
-	"github.com/scylladb/scylla-manager/pkg/store"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/httpx"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-	scyllaModels "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
+	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	scyllaModels "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"go.uber.org/zap/zapcore"
 )
 

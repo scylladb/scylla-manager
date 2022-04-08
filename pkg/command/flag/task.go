@@ -5,8 +5,8 @@ package flag
 import (
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/spf13/cobra"
 )
 

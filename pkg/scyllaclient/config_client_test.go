@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 )
 
 type (

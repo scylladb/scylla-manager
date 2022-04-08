@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 )
 
 // httpError is a wrapper holding an error, HTTP status code and a user-facing

@@ -15,10 +15,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/scylladb/scylla-manager/pkg/rclone"
-	"github.com/scylladb/scylla-manager/pkg/rclone/bench"
-	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/bench"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 )

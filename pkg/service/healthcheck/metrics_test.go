@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Removing of cluster metrics deadlocked when number of metrics exceeded buffered channel length

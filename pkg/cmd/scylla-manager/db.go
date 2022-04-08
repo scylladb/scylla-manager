@@ -12,10 +12,10 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/dbutil"
 	"github.com/scylladb/gocqlx/v2/migrate"
-	config "github.com/scylladb/scylla-manager/pkg/config/server"
-	schemamigrate "github.com/scylladb/scylla-manager/pkg/schema/migrate"
-	"github.com/scylladb/scylla-manager/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/schema"
+	config "github.com/scylladb/scylla-manager/v3/pkg/config/server"
+	schemamigrate "github.com/scylladb/scylla-manager/v3/pkg/schema/migrate"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/schema"
 )
 
 func keyspaceExists(c config.Config) (bool, error) {

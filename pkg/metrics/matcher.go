@@ -4,7 +4,7 @@ package metrics
 
 import (
 	dto "github.com/prometheus/client_model/go"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // LabelMatcher returns a matcher checking only single label.

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/ping"
-	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/ping"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestPingTimeout(t *testing.T) {

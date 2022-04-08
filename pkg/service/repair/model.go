@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/scylladb/go-set/iset"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Unit represents keyspace and its tables.

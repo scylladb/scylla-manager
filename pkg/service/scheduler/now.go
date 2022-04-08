@@ -2,6 +2,6 @@
 
 package scheduler
 
-import "github.com/scylladb/scylla-manager/pkg/util/timeutc"
+import "github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 
 var now = timeutc.Now

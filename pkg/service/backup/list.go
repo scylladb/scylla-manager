@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // listManifestsInAllLocations returns manifests for all nodes of a in all

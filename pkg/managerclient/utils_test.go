@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func TestTaskSplit(t *testing.T) {

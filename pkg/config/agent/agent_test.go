@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/scylla-manager/pkg/config/agent"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"gopkg.in/yaml.v2"
 )
 

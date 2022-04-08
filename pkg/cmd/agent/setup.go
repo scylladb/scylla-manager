@@ -4,8 +4,8 @@ package main
 
 import (
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/config/agent"
-	"github.com/scylladb/scylla-manager/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

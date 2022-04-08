@@ -5,7 +5,7 @@ package scheduler
 import (
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func makeTestActivation(sec int) Activation {

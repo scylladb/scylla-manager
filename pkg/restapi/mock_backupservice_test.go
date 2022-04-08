@@ -8,9 +8,9 @@ import (
 	context "context"
 	json "encoding/json"
 	gomock "github.com/golang/mock/gomock"
-	backup "github.com/scylladb/scylla-manager/pkg/service/backup"
-	backupspec "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	uuid "github.com/scylladb/scylla-manager/pkg/util/uuid"
+	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	backupspec "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	reflect "reflect"
 )
 

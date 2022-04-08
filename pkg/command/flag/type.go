@@ -11,8 +11,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
-	"github.com/scylladb/scylla-manager/pkg/util/duration"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	flag "github.com/spf13/pflag"
 )
 

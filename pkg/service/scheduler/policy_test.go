@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 //go:generate mockgen -destination mock_policy_test.go -mock_names Policy=mockPolicy -package scheduler github.com/scylladb/scylla-manager/pkg/service/scheduler Policy

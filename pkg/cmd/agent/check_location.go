@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
-	"github.com/scylladb/scylla-manager/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/operations"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 )

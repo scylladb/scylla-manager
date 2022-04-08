@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package dynamoping
@@ -9,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestPingIntegration(t *testing.T) {

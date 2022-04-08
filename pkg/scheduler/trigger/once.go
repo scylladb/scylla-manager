@@ -5,7 +5,7 @@ package trigger
 import (
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"go.uber.org/atomic"
 )
 

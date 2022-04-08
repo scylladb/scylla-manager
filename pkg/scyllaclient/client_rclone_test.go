@@ -18,9 +18,9 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
-	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 func TestRcloneSplitRemotePath(t *testing.T) {

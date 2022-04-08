@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func TestInt32Ptr(t *testing.T) {

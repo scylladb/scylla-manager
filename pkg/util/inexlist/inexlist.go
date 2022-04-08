@@ -8,7 +8,7 @@ import (
 
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 )
 
 type sign bool

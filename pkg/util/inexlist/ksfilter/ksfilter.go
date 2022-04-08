@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
 	"go.uber.org/multierr"
 )
 

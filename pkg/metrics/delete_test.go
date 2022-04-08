@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestDeleteMatching(t *testing.T) {

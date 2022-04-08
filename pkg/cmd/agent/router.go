@@ -11,10 +11,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/auth"
-	"github.com/scylladb/scylla-manager/pkg/config/agent"
-	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
-	"github.com/scylladb/scylla-manager/pkg/util/httplog"
+	"github.com/scylladb/scylla-manager/v3/pkg/auth"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httphandler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
 )
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)

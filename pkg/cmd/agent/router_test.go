@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/config/agent"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 )
 
 func assertURLPath(t *testing.T, expected string) http.HandlerFunc {
