@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/scylladb/scylla-manager/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 )
 
 func TestTaskType(t *testing.T) {

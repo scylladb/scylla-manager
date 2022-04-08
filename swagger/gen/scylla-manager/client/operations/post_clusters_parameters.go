@@ -15,7 +15,7 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 )
 
 // NewPostClustersParams creates a new PostClustersParams object

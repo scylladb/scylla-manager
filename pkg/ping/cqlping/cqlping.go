@@ -12,8 +12,8 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/ping"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/ping"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 // Config specifies the ping configuration, note that timeout is mandatory and

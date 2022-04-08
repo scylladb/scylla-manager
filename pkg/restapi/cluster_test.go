@@ -14,10 +14,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/restapi"
-	"github.com/scylladb/scylla-manager/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func TestClusterList(t *testing.T) {

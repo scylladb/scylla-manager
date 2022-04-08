@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg"
+	"github.com/scylladb/scylla-manager/v3/pkg"
 )
 
 func TestVersion(t *testing.T) {

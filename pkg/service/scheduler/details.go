@@ -3,7 +3,7 @@
 package scheduler
 
 import (
-	"github.com/scylladb/scylla-manager/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 )
 
 func details(t *Task) scheduler.Details {

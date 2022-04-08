@@ -12,12 +12,12 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
-	"github.com/scylladb/scylla-manager/pkg/util/duration"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/version"
-	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 	"github.com/scylladb/termtables"
 )
 

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/restapi"
+	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
 )
 
 func TestMetrics(t *testing.T) {

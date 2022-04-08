@@ -5,9 +5,9 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/scylladb/scylla-manager/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // ctxt is a context key type.

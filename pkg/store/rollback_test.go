@@ -5,8 +5,8 @@ package store
 import (
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type testEntry []byte

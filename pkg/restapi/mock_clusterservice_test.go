@@ -7,8 +7,8 @@ package restapi
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	cluster "github.com/scylladb/scylla-manager/pkg/service/cluster"
-	uuid "github.com/scylladb/scylla-manager/pkg/util/uuid"
+	cluster "github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	reflect "reflect"
 )
 

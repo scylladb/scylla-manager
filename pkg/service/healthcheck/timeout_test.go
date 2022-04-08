@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestDynamicTimeoutCalculateTimeout(t *testing.T) {

@@ -4,7 +4,7 @@ package agent
 
 import (
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/v3/pkg/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

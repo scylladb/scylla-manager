@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/pathparser"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/pathparser"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // ManifestInfo represents manifest on remote location.

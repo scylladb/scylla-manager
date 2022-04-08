@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestWeekdayTimeNext(t *testing.T) {

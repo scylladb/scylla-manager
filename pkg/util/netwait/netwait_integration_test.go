@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package netwait
@@ -12,7 +13,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestWaiterTimeoutIntegration(t *testing.T) {

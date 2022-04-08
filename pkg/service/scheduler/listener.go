@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 )
 
 type schedulerListener struct {

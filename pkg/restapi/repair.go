@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/scylladb/scylla-manager/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 )
 
 type repairHandler struct {

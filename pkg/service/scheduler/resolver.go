@@ -5,7 +5,7 @@ package scheduler
 import (
 	"fmt"
 
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type taskInfo struct {

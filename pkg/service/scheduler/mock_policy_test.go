@@ -6,7 +6,7 @@ package scheduler
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	uuid "github.com/scylladb/scylla-manager/pkg/util/uuid"
+	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	reflect "reflect"
 )
 

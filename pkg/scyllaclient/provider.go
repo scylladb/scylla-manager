@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // ProviderFunc is a function that returns a Client for a given cluster.

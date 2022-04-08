@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package scyllaclient_test
@@ -9,10 +10,10 @@ import (
 	"path"
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/rclone"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}

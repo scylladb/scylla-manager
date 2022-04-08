@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/config"
-	"github.com/scylladb/scylla-manager/pkg/rclone"
-	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
+	"github.com/scylladb/scylla-manager/v3/pkg/config"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil"
 	"go.uber.org/multierr"
 )
 

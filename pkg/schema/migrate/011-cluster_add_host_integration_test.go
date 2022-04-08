@@ -11,10 +11,10 @@ import (
 
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/schema"
+	"github.com/scylladb/scylla-manager/v3/schema"
 
 	"github.com/scylladb/gocqlx/v2/migrate"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestClusterMoveHostsToHost011IntegrationTest(t *testing.T) {

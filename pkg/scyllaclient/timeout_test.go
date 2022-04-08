@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
-	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 func TestCustomTimeout(t *testing.T) {

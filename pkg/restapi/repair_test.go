@@ -11,9 +11,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/restapi"
-	"github.com/scylladb/scylla-manager/pkg/service"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 //go:generate mockgen -destination mock_repairservice_test.go -mock_names RepairService=MockRepairService -package restapi github.com/scylladb/scylla-manager/pkg/restapi RepairService

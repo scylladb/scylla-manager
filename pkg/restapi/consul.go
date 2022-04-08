@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 )
 
 func newConsulHandler(cs ClusterService) *chi.Mux {

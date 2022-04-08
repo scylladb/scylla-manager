@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // EnrichConfigFromAPI fetches address info from the node and updates the configuration.
