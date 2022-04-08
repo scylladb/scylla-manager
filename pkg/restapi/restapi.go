@@ -11,10 +11,10 @@ import (
 	"github.com/go-chi/render"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
-	"github.com/scylladb/scylla-manager/pkg/util/httplog"
-	"github.com/scylladb/scylla-manager/swagger-ui"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httphandler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
+	"github.com/scylladb/scylla-manager/v3/swagger-ui"
 )
 
 func init() {

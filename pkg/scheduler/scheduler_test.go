@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
 )
 

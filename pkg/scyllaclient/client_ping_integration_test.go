@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package scyllaclient_test
@@ -11,8 +12,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestCheckHostsConnectivityIntegration(t *testing.T) {

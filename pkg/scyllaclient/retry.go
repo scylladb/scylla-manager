@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 )
 
 type retryConfig struct {

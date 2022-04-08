@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/client/operations"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 )
 
 // CheckHostsConnectivity returns a slice of errors, error at position i

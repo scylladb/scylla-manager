@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/config"
-	"github.com/scylladb/scylla-manager/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
-	"github.com/scylladb/scylla-manager/pkg/service/repair"
-	"github.com/scylladb/scylla-manager/pkg/util/cfgutil"
+	"github.com/scylladb/scylla-manager/v3/pkg/config"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil"
 )
 
 // DBConfig specifies Scylla Manager backend database configuration options.

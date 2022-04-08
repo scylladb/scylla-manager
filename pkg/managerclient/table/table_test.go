@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/scylla-manager/pkg/managerclient/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient/table"
 	"github.com/scylladb/termtables"
 )
 

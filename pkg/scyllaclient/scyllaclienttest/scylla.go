@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 func NewFakeScyllaServer(t *testing.T, file string) (client *scyllaclient.Client, closeServer func()) {

@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/rclone/rcserver"
-	"github.com/scylladb/scylla-manager/pkg/util/pointer"
-	agentClient "github.com/scylladb/scylla-manager/swagger/gen/agent/client"
-	"github.com/scylladb/scylla-manager/swagger/gen/agent/client/operations"
-	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
+	agentClient "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 // RcloneSetBandwidthLimit sets bandwidth limit of all the current and future

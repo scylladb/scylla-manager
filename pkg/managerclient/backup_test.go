@@ -5,8 +5,8 @@ package managerclient_test
 import (
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/managerclient"
-	"github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 func TestBackupStageName(t *testing.T) {

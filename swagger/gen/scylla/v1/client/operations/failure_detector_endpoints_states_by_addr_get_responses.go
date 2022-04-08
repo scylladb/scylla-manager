@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 // FailureDetectorEndpointsStatesByAddrGetReader is a Reader for the FailureDetectorEndpointsStatesByAddrGet structure.

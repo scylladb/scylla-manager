@@ -4,7 +4,7 @@ package downloader
 
 import (
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 )
 
 type Option func(d *Downloader) error

@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // sysInfo is a no-op implementation for all systems but Linux.

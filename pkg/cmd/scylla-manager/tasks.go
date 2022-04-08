@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
-	"github.com/scylladb/scylla-manager/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func healthCheckModeProperties(mode healthcheck.Mode) json.RawMessage {

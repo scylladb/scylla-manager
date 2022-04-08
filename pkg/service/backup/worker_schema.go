@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
-	. "github.com/scylladb/scylla-manager/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {

@@ -20,10 +20,10 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/hbollon/go-edlib"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/util/pointer"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/client/operations"
-	"github.com/scylladb/scylla-manager/swagger/gen/scylla-manager/models"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/client/operations"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 )
 
 var disableOpenAPIDebugOnce sync.Once

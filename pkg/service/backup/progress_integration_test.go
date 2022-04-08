@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package backup
@@ -8,9 +9,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/scylladb/scylla-manager/pkg/schema/table"
-	. "github.com/scylladb/scylla-manager/pkg/testutils"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func TestRunProgressIteratorIntegration(t *testing.T) {

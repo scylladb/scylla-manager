@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/scylla-manager/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // UUIDMatcher gomock.Matcher interface implementation for UUID.

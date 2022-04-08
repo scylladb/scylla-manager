@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 )
 
 func TestCustomTimeout(t *testing.T) {

@@ -17,8 +17,8 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/pkg/schema/nopmigrate"
-	"github.com/scylladb/scylla-manager/schema"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
+	"github.com/scylladb/scylla-manager/v3/schema"
 )
 
 var (

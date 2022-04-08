@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	agentModels "github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	agentModels "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 )
 

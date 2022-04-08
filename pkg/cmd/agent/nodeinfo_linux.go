@@ -7,7 +7,7 @@ package main
 import (
 	"runtime"
 
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"golang.org/x/sys/unix"
 )
 

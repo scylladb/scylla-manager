@@ -16,7 +16,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/scylladb/scylla-manager/swagger/gen/agent/models"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 // NewSyncCopyDirParams creates a new SyncCopyDirParams object

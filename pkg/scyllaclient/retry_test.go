@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/pkg/scyllaclient/scyllaclienttest"
-	"github.com/scylladb/scylla-manager/pkg/util/pointer"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 )
 
 func fastRetry(config *scyllaclient.Config) {

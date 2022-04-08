@@ -14,7 +14,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/pkg/tools/filler"
+	"github.com/scylladb/scylla-manager/v3/pkg/tools/filler"
 )
 
 var (

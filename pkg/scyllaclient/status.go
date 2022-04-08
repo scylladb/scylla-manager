@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/pkg/errors"
-	agentModels "github.com/scylladb/scylla-manager/swagger/gen/agent/models"
-	scyllaModels "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
-	scylla2Models "github.com/scylladb/scylla-manager/swagger/gen/scylla/v2/models"
+	agentModels "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
+	scyllaModels "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
+	scylla2Models "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/models"
 )
 
 // StatusCodeAndMessageOf returns HTTP status code and it's message carried
