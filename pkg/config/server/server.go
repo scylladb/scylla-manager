@@ -70,7 +70,7 @@ func DefaultConfig() Config {
 			MigrateTimeout:                30 * time.Second,
 			MigrateMaxWaitSchemaAgreement: 5 * time.Minute,
 			ReplicationFactor:             1,
-			Timeout:                       600 * time.Millisecond,
+			Timeout:                       1 * time.Second,
 			TokenAware:                    true,
 		},
 		SSL: SSLConfig{
