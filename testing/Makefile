@@ -79,7 +79,6 @@ drop-keyspace: ## Drop Scylla Manager keyspace
 .PHONY: deploy-agent
 deploy-agent: ## Update agent to the latest build on all nodes
 	@./nodes_cp ../scylla-manager-agent.dev /usr/bin/scylla-manager-agent
-	@./nodes_exec --silent mkdir -p /etc/scylla-manager-agent
 	@./nodes_cp ./scylla-manager-agent/scylla-manager-agent.yaml /etc/scylla-manager-agent/scylla-manager-agent.yaml
 
 .PHONY: restart-agent
