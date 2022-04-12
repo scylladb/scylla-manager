@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"text/template"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
@@ -147,6 +148,18 @@ func gocqlClusterConfig(c config.Config) *gocql.ClusterConfig {
 
 	cluster.Keyspace = c.Database.Keyspace
 	cluster.Timeout = c.Database.Timeout
+	cluster.RetryPolicy = &gocql.ExponentialBackoffRetryPolicy{
+		NumRetries: 5,
+		Min:        time.Second,
+		Max:        10 * time.Second,
+	}
+
+	// ReplicationFactor = 1 detects default deployment, a situation where there is only a single node.
+	// Setting the ConvictionPolicy policy prevents from marking the only host as down if heart beat fails of control connection.
+	// Otherwise, it would result in removal of the whole connection pool and prevent any retries.
+	if c.Database.ReplicationFactor == 1 {
+		cluster.ConvictionPolicy = neverConvictionPolicy{}
+	}
 
 	// SSL
 	if c.Database.SSL {
@@ -176,3 +189,11 @@ func gocqlClusterConfig(c config.Config) *gocql.ClusterConfig {
 
 	return cluster
 }
+
+type neverConvictionPolicy struct{}
+
+func (e neverConvictionPolicy) AddFailure(_ error, _ *gocql.HostInfo) bool {
+	return false
+}
+
+func (e neverConvictionPolicy) Reset(_ *gocql.HostInfo) {}
