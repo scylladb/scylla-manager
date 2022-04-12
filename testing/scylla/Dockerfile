@@ -23,3 +23,6 @@ RUN rm /etc/supervisord.conf.d/scylla-housekeeping.conf \
 
 # Allow SSH as root
 RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+
+# Add agent config dir, needed to copy the actual config file into it later
+RUN mkdir /etc/scylla-manager-agent
