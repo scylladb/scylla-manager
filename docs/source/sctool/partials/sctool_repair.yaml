@@ -62,6 +62,7 @@ options:
 - name: interval
   shorthand: i
   usage: |
+    --interval is deprecated, please use `--cron` instead
     Time after which a successfully completed task would be run again, supported units are:
 
     'd' - days
@@ -80,10 +81,10 @@ options:
     The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
     The following syntax for glob patterns is supported:
 
-    '*' - matches any number of any characters including none
-    '?' - matches any single character
-    '[abc]' - matches one character given in the bracket
-    '[a-z]' - matches one character from the range given in the bracket
+    * '*' - matches any number of any characters including none
+    * '?' - matches any single character
+    * '[abc]' - matches one character given in the bracket
+    * '[a-z]' - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
     If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
@@ -120,6 +121,7 @@ options:
 - name: start-date
   shorthand: s
   usage: |
+    --start-date is deprecated, please use `--cron` instead
     The date can be expressed relatively to now or as a RFC3339 formatted string.
     To run the task in 2 hours use 'now+2h', supported units are:
 
