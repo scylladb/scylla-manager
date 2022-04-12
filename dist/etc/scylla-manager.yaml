@@ -68,8 +68,8 @@ http: 127.0.0.1:5080
 #  keyspace: scylla_manager
 #  replication_factor: 1
 #
-# Database connection timeout.
-#  timeout: 600ms
+# Query timeout.
+#  timeout: 1s
 #
 # Should we use a token aware driver, this would make manager access appropriate
 # host and shard to execute a request eliminating request routing.
