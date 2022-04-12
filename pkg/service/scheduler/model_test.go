@@ -94,8 +94,8 @@ func TestLocationMarshalUnmarshal(t *testing.T) {
 	if err := v.UnmarshalText(b); err != nil {
 		t.Fatal(err)
 	}
-	if v != l {
-		t.Fatalf("UnmarshalText() = %s, expected %s", v, l)
+	if v.Location.String() != l.Location.String() {
+		t.Fatalf("UnmarshalText() = %+#v, expected %+#v", v, l)
 	}
 }
 
