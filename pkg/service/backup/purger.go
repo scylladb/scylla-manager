@@ -97,7 +97,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 				"temporary", m.Temporary,
 			)
 			if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-				return 0, errors.Wrapf(err, "load manifest %s", m.Path())
+				return 0, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
 			}
 			p.forEachDir(m, &c, files.AddFiles)
 		}
@@ -108,7 +108,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 	for _, m := range manifests {
 		if !tags.Has(m.SnapshotTag) {
 			if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-				return 0, errors.Wrapf(err, "load manifest %s", m.Path())
+				return 0, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
 			}
 			p.forEachDir(m, &c, files.RemoveFiles)
 		}
@@ -161,7 +161,7 @@ func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteO
 
 	for _, m := range manifests {
 		if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-			return result, errors.Wrapf(err, "load manifest %s", m.Path())
+			return result, errors.Wrapf(err, "load manifest (validate) %s", m.Path())
 		}
 		if m.Temporary {
 			p.forEachDir(m, &c, tempManifestFiles.AddFiles)
@@ -256,7 +256,7 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*ManifestIn
 			if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 				continue
 			}
-			return nil, errors.Wrapf(err, "load manifest %s", m.Path())
+			return nil, errors.Wrapf(err, "load manifest (find broken) %s", m.Path())
 		}
 		p.forEachDir(m, &c, func(dir string, files []string) {
 			if missingFiles.HasAnyFiles(dir, files) {
