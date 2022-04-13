@@ -37,7 +37,7 @@ port: |
   Alternate Scylla Manager agent `port`.
 
 auth-token: |
-  The authentication `token` you identified in '/etc/scylla-manager-agent/scylla-manager-agent.yaml'.
+  The authentication `token` you identified in ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``.
 
 username: |
   CQL `username`, for security reasons this user should NOT have access to your data.
