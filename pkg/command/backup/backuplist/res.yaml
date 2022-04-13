@@ -9,24 +9,24 @@ all-clusters: |
   Shows backups for all clusters. Useful for listing clusters that are no longer available locally but are backed up in the past to remote location.
 
 min-date: |
-  Specifies minimal snapshot `date` expressed in RFC3339 form or 'now[+duration]', ex. 'now+3d2h10m'.
+  Specifies minimal snapshot `date` expressed in RFC3339 form or ``now[+duration]``, ex. ``now+3d2h10m``.
   Valid units are:
 
-  * 'd' - days
-  * 'h' - hours
-  * 'm' - minutes
-  * 's' - seconds
-  * 'now' - happens immediately
+  * ``d`` - days
+  * ``h`` - hours
+  * ``m`` - minutes
+  * ``s`` - seconds
+  * ``now`` - happens immediately
 
 max-date: |
-  Specifies maximal snapshot `date` expressed in RFC3339 form or 'now[+duration]', ex. 'now+3d2h10m'.
+  Specifies maximal snapshot `date` expressed in RFC3339 form or ``now[+duration]``, ex. ``now+3d2h10m``.
   Valid units are:
 
-  * 'd' - days
-  * 'h' - hours
-  * 'm' - minutes
-  * 's' - seconds
-  * 'now' - happens immediately
+  * ``d`` - days
+  * ``h`` - hours
+  * ``m`` - minutes
+  * ``s`` - seconds
+  * ``now`` - happens immediately
 
 show-tables: |
   Prints table names together with keyspace.
