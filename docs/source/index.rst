@@ -9,6 +9,7 @@ Scylla Manager
    docker/index
    install-scylla-manager
    install-scylla-manager-agent
+   upgrade/index
    add-a-cluster
    backup/index
    restore/index

@@ -8,6 +8,8 @@ Install Scylla Manager
    :depth: 2
    :local:
 
+.. note:: If you need to upgrade Scylla Manager from a previous version please see the `Upgrade Guide <../upgrade/>`_.
+
 System requirements
 ===================
 
