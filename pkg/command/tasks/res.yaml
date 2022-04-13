@@ -9,7 +9,7 @@ long: |
   For more information on a task consult history and progress.
 
 all: |
-  Lists all tasks, including those which have been disabled, disabled tasks are prefixed with '*'.
+  Lists all tasks, including those which have been disabled, disabled tasks are prefixed with ``*``.
 
 show-ids: |
   Always display task UUID, do not show task names. 
@@ -23,4 +23,4 @@ type: |
 
 sort: |
   Returns a list of tasks sorted according to the last run status and sort `key` which you provide.
-  Accepted sort key values are: 'next-activation', 'status'.
+  Accepted sort key values are: ``next-activation``, ``status``.
