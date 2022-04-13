@@ -19,13 +19,13 @@ options:
     A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
     The following syntax for glob patterns is supported:
 
-    '*' - matches any number of any characters including none
-    '?' - matches any single character
-    '[abc]' - matches one character given in the bracket
-    '[a-z]' - matches one character from the range given in the bracket
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
 
 - name: dry-run
   default_value: "false"
@@ -61,13 +61,13 @@ options:
     The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
     The following syntax for glob patterns is supported:
 
-    * '*' - matches any number of any characters including none
-    * '?' - matches any single character
-    * '[abc]' - matches one character given in the bracket
-    * '[a-z]' - matches one character from the range given in the bracket
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
 
 - name: location
   shorthand: L
