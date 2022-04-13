@@ -1,7 +1,7 @@
 name: sctool status
 synopsis: Show status of clusters
 description: |
-  This command is an extended version of 'nodetool status'.
+  This command is an extended version of ``nodetool status``.
   It can show status for all the managed clusters.
   The first column shows node status in nodetool status format.
 
@@ -11,7 +11,7 @@ description: |
   * UP - Situation normal
   * DOWN - Failed to connect to host or CQL error
   * ERROR - Precondition failure, no request was sent
-  * UNAUTHORISED - Wrong username or password - only if 'username' is specified for cluster
+  * UNAUTHORISED - Wrong username or password - only if ``username`` is specified for cluster
   * TIMEOUT - Timeout
 
   The REST column shows the status of Scylla Manager Server to Scylla API communication, and time the check took.
