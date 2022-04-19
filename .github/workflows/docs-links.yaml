@@ -21,7 +21,7 @@ jobs:
         id: lychee
         uses: lycheeverse/lychee-action@v1.4.1
         with:
-          args: --verbose --exclude-mail --no-progress './**/*.md' './**/*.rst'
+          args: --verbose --exclude-mail --no-progress './docs/**/*.md' './docs/**/*.rst'
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
