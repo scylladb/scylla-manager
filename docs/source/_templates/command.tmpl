@@ -16,7 +16,12 @@ Command options
 ...............
 
 {% for item in data['options'] %}
-``{% if item.shorthand %}-{{item.shorthand}}, {% endif %}--{{item.name}}``
+{% set option_name = '--' + item.name %}
+{% if item.shorthand %}
+{% set option_name = '-' + item.shorthand + ', ' + option_name %}
+{% endif %}
+``{{option_name}}``
+{% for i in range(option_name|length + 4) %}^{% endfor %}
 
 {{item.usage}}
 
