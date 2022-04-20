@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/config"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
@@ -42,20 +43,21 @@ type SSLConfig struct {
 
 // Config contains configuration structure for scylla manager.
 type Config struct {
-	HTTP        string             `yaml:"http"`
-	HTTPS       string             `yaml:"https"`
-	TLSVersion  config.TLSVersion  `yaml:"tls_version"`
-	TLSCertFile string             `yaml:"tls_cert_file"`
-	TLSKeyFile  string             `yaml:"tls_key_file"`
-	TLSCAFile   string             `yaml:"tls_ca_file"`
-	Prometheus  string             `yaml:"prometheus"`
-	Debug       string             `yaml:"debug"`
-	Logger      config.LogConfig   `yaml:"logger"`
-	Database    DBConfig           `yaml:"database"`
-	SSL         SSLConfig          `yaml:"ssl"`
-	Healthcheck healthcheck.Config `yaml:"healthcheck"`
-	Backup      backup.Config      `yaml:"backup"`
-	Repair      repair.Config      `yaml:"repair"`
+	HTTP          string                     `yaml:"http"`
+	HTTPS         string                     `yaml:"https"`
+	TLSVersion    config.TLSVersion          `yaml:"tls_version"`
+	TLSCertFile   string                     `yaml:"tls_cert_file"`
+	TLSKeyFile    string                     `yaml:"tls_key_file"`
+	TLSCAFile     string                     `yaml:"tls_ca_file"`
+	Prometheus    string                     `yaml:"prometheus"`
+	Debug         string                     `yaml:"debug"`
+	Logger        config.LogConfig           `yaml:"logger"`
+	Database      DBConfig                   `yaml:"database"`
+	SSL           SSLConfig                  `yaml:"ssl"`
+	Healthcheck   healthcheck.Config         `yaml:"healthcheck"`
+	Backup        backup.Config              `yaml:"backup"`
+	Repair        repair.Config              `yaml:"repair"`
+	TimeoutConfig scyllaclient.TimeoutConfig `yaml:"agent_client"`
 }
 
 func DefaultConfig() Config {
@@ -76,9 +78,10 @@ func DefaultConfig() Config {
 		SSL: SSLConfig{
 			Validate: true,
 		},
-		Healthcheck: healthcheck.DefaultConfig(),
-		Backup:      backup.DefaultConfig(),
-		Repair:      repair.DefaultConfig(),
+		Healthcheck:   healthcheck.DefaultConfig(),
+		Backup:        backup.DefaultConfig(),
+		Repair:        repair.DefaultConfig(),
+		TimeoutConfig: scyllaclient.DefaultTimeoutConfig(),
 	}
 }
 
