@@ -137,3 +137,24 @@ http: 127.0.0.1:5080
 # Distribution of data among cores (shards) within a node.
 # Copy value from Scylla configuration file.
 #  murmur3_partitioner_ignore_msb_bits: 12
+
+# Connection configuration to Scylla Agent.
+#  agent_client:
+#
+# Timeouts configuration.
+#    timeout: 30s
+#    list_timeout: 5m
+#
+# Connection backoff configuration.
+#    backoff:
+#      wait_min: 1s
+#      wait_max: 30s
+#      max_retries: 9
+#      multiplier: 2
+#      jitter: 0.2
+#    interactive_backoff:
+#      wait_min: 1s
+#      max_retries: 1
+#
+# Time window to measure average request time in host pool.
+#    pool_decay_duration: 30m

@@ -51,3 +51,17 @@ repair:
   long_polling_timeout_seconds: 5
   age_max: 12h
   graceful_stop_timeout: 60s
+
+agent_client:
+  timeout: 45s
+  list_timeout: 7m
+  backoff:
+    wait_min: 5s
+    wait_max: 20s
+    max_retries: 12
+    multiplier: 8
+    jitter: 0.6
+  interactive_backoff:
+    wait_min: 2s
+    max_retries: 4
+  pool_decay_duration: 1h

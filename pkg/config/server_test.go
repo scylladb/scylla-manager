@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/pkg/config"
+	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/pkg/service/repair"
@@ -91,6 +92,22 @@ func TestConfigModification(t *testing.T) {
 			GracefulStopTimeout:             60 * time.Second,
 			ForceRepairType:                 repair.TypeAuto,
 			Murmur3PartitionerIgnoreMSBBits: 12,
+		},
+		TimeoutConfig: scyllaclient.TimeoutConfig{
+			Timeout:     45 * time.Second,
+			ListTimeout: 7 * time.Minute,
+			Backoff: scyllaclient.BackoffConfig{
+				WaitMin:    5 * time.Second,
+				WaitMax:    20 * time.Second,
+				MaxRetries: 12,
+				Multiplier: 8,
+				Jitter:     0.6,
+			},
+			InteractiveBackoff: scyllaclient.BackoffConfig{
+				WaitMin:    2 * time.Second,
+				MaxRetries: 4,
+			},
+			PoolDecayDuration: time.Hour,
 		},
 	}
 
