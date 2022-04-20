@@ -72,7 +72,7 @@ func (s *server) makeServices() error {
 	drawerStore := store.NewTableStore(s.session, table.Drawer)
 	secretsStore := store.NewTableStore(s.session, table.Secrets)
 
-	s.clusterSvc, err = cluster.NewService(s.session, metrics.NewClusterMetrics().MustRegister(), secretsStore, s.logger.Named("cluster"))
+	s.clusterSvc, err = cluster.NewService(s.session, metrics.NewClusterMetrics().MustRegister(), secretsStore, s.config.TimeoutConfig, s.logger.Named("cluster"))
 	if err != nil {
 		return errors.Wrapf(err, "cluster service")
 	}

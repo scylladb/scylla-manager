@@ -12,53 +12,67 @@ import (
 
 // Config specifies the Client configuration.
 type Config struct {
+	TimeoutConfig
+	// Transport scheme HTTP or HTTPS.
+	Scheme string `yaml:"scheme"`
 	// Hosts specifies all the cluster hosts that for a pool of hosts for the
 	// client.
 	Hosts []string
 	// Port specifies the default Scylla Manager agent port.
 	Port string
-	// Transport scheme HTTP or HTTPS.
-	Scheme string
 	// AuthToken specifies the authentication token.
 	AuthToken string
-	// Timeout specifies time to complete a single request to Scylla REST API
-	// possibly including opening a TCP connection.
-	// The timeout may be increased exponentially on retry after a timeout error.
-	Timeout time.Duration
-	// MaxTimeout specifies the effective maximal timeout value after increasing Timeout on retry.
-	MaxTimeout time.Duration
-	// ListTimeout specifies maximum time to complete an iterative remote
-	// directory listing. The retrieval is performed in batches this timeout
-	// applies to the time it take to retrieve a single batch.
-	ListTimeout time.Duration
-	// Backoff specifies parameters of exponential backoff used when requests
-	// from Scylla Manager to Scylla Agent fail.
-	Backoff BackoffConfig
-	// InteractiveBackoff specifies backoff for interactive requests i.e.
-	// originating from API / sctool.
-	InteractiveBackoff BackoffConfig
-	// PoolDecayDuration specifies size of time window to measure average
-	// request time in Epsilon-Greedy host pool.
-	PoolDecayDuration time.Duration
-
 	// Transport allows for setting a custom round tripper to send HTTP
 	// requests over not standard connections i.e. over SSH tunnel.
 	Transport http.RoundTripper
 }
 
+// TimeoutConfig is the configuration of the connection exposed to users.
+type TimeoutConfig struct {
+	// Timeout specifies time to complete a single request to Scylla REST API
+	// possibly including opening a TCP connection.
+	// The timeout may be increased exponentially on retry after a timeout error.
+	Timeout time.Duration `yaml:"timeout"`
+	// MaxTimeout specifies the effective maximal timeout value after increasing Timeout on retry.
+	MaxTimeout time.Duration `yaml:"max_timeout"`
+	// ListTimeout specifies maximum time to complete an iterative remote
+	// directory listing. The retrieval is performed in batches this timeout
+	// applies to the time it take to retrieve a single batch.
+	ListTimeout time.Duration `yaml:"list_timeout"`
+	// Backoff specifies parameters of exponential backoff used when requests
+	// from Scylla Manager to Scylla Agent fail.
+	Backoff BackoffConfig `yaml:"backoff"`
+	// InteractiveBackoff specifies backoff for interactive requests i.e.
+	// originating from API / sctool.
+	InteractiveBackoff BackoffConfig `yaml:"interactive_backoff"`
+	// PoolDecayDuration specifies size of time window to measure average
+	// request time in Epsilon-Greedy host pool.
+	PoolDecayDuration time.Duration `yaml:"pool_decay_duration"`
+}
+
 // BackoffConfig specifies request exponential backoff parameters.
 type BackoffConfig struct {
-	WaitMin    time.Duration
-	WaitMax    time.Duration
-	MaxRetries uint64
-	Multiplier float64
-	Jitter     float64
+	WaitMin    time.Duration `yaml:"wait_min"`
+	WaitMax    time.Duration `yaml:"wait_max"`
+	MaxRetries uint64        `yaml:"max_retries"`
+	Multiplier float64       `yaml:"multiplier"`
+	Jitter     float64       `yaml:"jitter"`
 }
 
 func DefaultConfig() Config {
+	return DefaultConfigWithTimeout(DefaultTimeoutConfig())
+}
+
+func DefaultConfigWithTimeout(c TimeoutConfig) Config {
 	return Config{
-		Port:        "10001",
-		Scheme:      "https",
+		Scheme:        "https",
+		Port:          "10001",
+		TimeoutConfig: c,
+	}
+}
+
+func DefaultTimeoutConfig() TimeoutConfig {
+	return TimeoutConfig{
 		Timeout:     30 * time.Second,
 		MaxTimeout:  1 * time.Hour,
 		ListTimeout: 5 * time.Minute,

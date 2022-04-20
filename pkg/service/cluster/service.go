@@ -48,20 +48,22 @@ type Service struct {
 	metrics          metrics.ClusterMetrics
 	secretsStore     store.Store
 	clientCache      *scyllaclient.CachedProvider
+	timeoutConfig    scyllaclient.TimeoutConfig
 	logger           log.Logger
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsStore store.Store, l log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsStore store.Store, timeoutConfig scyllaclient.TimeoutConfig, l log.Logger) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
 
 	s := &Service{
-		session:      session,
-		metrics:      metrics,
-		secretsStore: secretsStore,
-		logger:       l,
+		session:       session,
+		metrics:       metrics,
+		secretsStore:  secretsStore,
+		logger:        l,
+		timeoutConfig: timeoutConfig,
 	}
 	s.clientCache = scyllaclient.NewCachedProvider(s.client)
 
@@ -122,7 +124,7 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 }
 
 func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
-	config := scyllaclient.DefaultConfig()
+	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
 	config.Hosts = c.KnownHosts
 	if c.Port != 0 {
 		config.Port = fmt.Sprint(c.Port)
