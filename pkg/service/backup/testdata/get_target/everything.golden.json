@@ -13,10 +13,10 @@
     {
       "keyspace": "system_distributed",
       "tables": [
-        "view_build_status",
-        "service_levels",
+        "cdc_generation_timestamps",
         "cdc_streams_descriptions_v2",
-        "cdc_generation_timestamps"
+        "service_levels",
+        "view_build_status"
       ],
       "all_tables": true
     },
@@ -30,30 +30,30 @@
     {
       "keyspace": "system_traces",
       "tables": [
-        "node_slow_log_time_idx",
-        "node_slow_log",
-        "events",
+        "sessions",
         "sessions_time_idx",
-        "sessions"
+        "node_slow_log_time_idx",
+        "events",
+        "node_slow_log"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_schema",
       "tables": [
-        "computed_columns",
-        "views",
-        "functions",
         "scylla_tables",
-        "triggers",
-        "indexes",
-        "dropped_columns",
-        "columns",
-        "aggregates",
-        "keyspaces",
         "tables",
         "types",
-        "view_virtual_columns"
+        "view_virtual_columns",
+        "dropped_columns",
+        "columns",
+        "keyspaces",
+        "aggregates",
+        "views",
+        "computed_columns",
+        "functions",
+        "triggers",
+        "indexes"
       ],
       "all_tables": true
     }
@@ -66,8 +66,10 @@
     "s3:backuptest-get-target"
   ],
   "retention": 3,
+  "retention_days": 0,
   "rate_limit": [
     "100"
   ],
-  "continue": true
+  "continue": true,
+  "purge_parallel": 1
 }

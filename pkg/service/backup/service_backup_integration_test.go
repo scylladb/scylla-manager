@@ -1684,7 +1684,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
 	}
 
-	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, []string{firstTaskTags.Pop()}); err != nil {
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, []string{firstTaskTags.Pop()}, 0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1706,7 +1706,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
 	}
 
-	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, []string{secondTaskTags.Pop()}); err != nil {
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, []string{secondTaskTags.Pop()}, 0); err != nil {
 		t.Fatal(err)
 	}
 

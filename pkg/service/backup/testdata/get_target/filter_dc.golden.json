@@ -3,8 +3,8 @@
     {
       "keyspace": "system_auth",
       "tables": [
-        "role_attributes",
         "role_members",
+        "role_attributes",
         "roles",
         "role_permissions"
       ],
@@ -13,10 +13,10 @@
     {
       "keyspace": "system_distributed",
       "tables": [
-        "cdc_generation_timestamps",
+        "view_build_status",
         "cdc_streams_descriptions_v2",
-        "service_levels",
-        "view_build_status"
+        "cdc_generation_timestamps",
+        "service_levels"
       ],
       "all_tables": true
     },
@@ -33,27 +33,27 @@
         "node_slow_log_time_idx",
         "node_slow_log",
         "events",
-        "sessions_time_idx",
-        "sessions"
+        "sessions",
+        "sessions_time_idx"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_schema",
       "tables": [
-        "scylla_tables",
         "tables",
         "types",
         "view_virtual_columns",
-        "dropped_columns",
-        "columns",
-        "keyspaces",
-        "aggregates",
-        "computed_columns",
         "views",
+        "computed_columns",
         "indexes",
         "functions",
-        "triggers"
+        "triggers",
+        "scylla_tables",
+        "columns",
+        "dropped_columns",
+        "aggregates",
+        "keyspaces"
       ],
       "all_tables": true
     }
@@ -65,8 +65,10 @@
     "s3:backuptest-get-target"
   ],
   "retention": 3,
+  "retention_days": 0,
   "rate_limit": [
     "100"
   ],
-  "continue": true
+  "continue": true,
+  "purge_parallel": 1
 }

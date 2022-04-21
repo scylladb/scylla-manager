@@ -13,19 +13,19 @@
     {
       "keyspace": "system_schema",
       "tables": [
-        "scylla_tables",
-        "tables",
         "types",
-        "view_virtual_columns",
-        "dropped_columns",
-        "columns",
-        "keyspaces",
-        "aggregates",
-        "computed_columns",
-        "views",
-        "indexes",
         "functions",
-        "triggers"
+        "view_virtual_columns",
+        "scylla_tables",
+        "indexes",
+        "triggers",
+        "tables",
+        "views",
+        "computed_columns",
+        "aggregates",
+        "keyspaces",
+        "columns",
+        "dropped_columns"
       ],
       "all_tables": true
     }
@@ -38,8 +38,10 @@
     "s3:backuptest-get-target"
   ],
   "retention": 3,
+  "retention_days": 0,
   "rate_limit": [
     "100"
   ],
-  "continue": true
+  "continue": true,
+  "purge_parallel": 1
 }

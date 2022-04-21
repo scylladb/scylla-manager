@@ -21,9 +21,10 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	cluster     string
-	location    []string
-	snapshotTag []string
+	cluster       string
+	location      []string
+	snapshotTag   []string
+	purgeParallel int64
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -47,6 +48,7 @@ func (cmd *command) init() {
 	w.Cluster(&cmd.cluster)
 	w.Location(&cmd.location)
 	w.Unwrap().StringSliceVarP(&cmd.snapshotTag, "snapshot-tag", "T", nil, "")
+	w.Unwrap().Int64VarP(&cmd.purgeParallel, "purge-parallel", "p", 1, "The number of manifests to load in parallel (0 for no limit).")
 }
 
 func (cmd *command) run() error {
@@ -56,5 +58,5 @@ func (cmd *command) run() error {
 			fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: this may take a while, we are reading metadata from backup location(s)\n")
 		}
 	})
-	return cmd.client.DeleteSnapshot(cmd.Context(), cmd.cluster, cmd.location, cmd.snapshotTag)
+	return cmd.client.DeleteSnapshot(cmd.Context(), cmd.cluster, cmd.location, cmd.snapshotTag, cmd.purgeParallel)
 }

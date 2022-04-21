@@ -76,6 +76,8 @@ options:
     The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
     The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
     The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+- name: manifest-parallelism
+  default_value: "1"
 - name: name
   usage: |
     Task name that can be used insead of ID.

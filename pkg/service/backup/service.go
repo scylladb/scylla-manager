@@ -27,6 +27,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
+	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 const defaultRateLimit = 100 // 100MiB
@@ -148,6 +150,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	t.RetentionDays = p.RetentionDays
 	t.Continue = p.Continue
 	t.PurgeOnly = p.PurgeOnly
+	t.PurgeParallel = p.PurgeParallel
 
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
@@ -790,7 +793,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MoveManifest(ctx, hi)
 		},
 		StagePurge: func() error {
-			return w.Purge(ctx, hi, target.RetentionMap)
+			return w.Purge(ctx, hi, target.PurgeParallel, target.RetentionMap)
 		},
 		StageDone: gaurdFunc,
 
@@ -1062,7 +1065,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 }
 
 // DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.
-func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTags []string) error {
+func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTags []string, parallelism int) error {
 	s.logger.Debug(ctx, "DeleteSnapshot",
 		"cluster_id", clusterID,
 		"snapshot_tags", snapshotTags,
@@ -1084,7 +1087,9 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	deletedManifests := atomic.NewInt32(0)
-	if err := hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+	errGroup, ctx := errgroup.WithContext(ctx)
+
+	err = hostsInParallel(hosts, parallelism, func(h hostInfo) error {
 		s.logger.Info(ctx, "Purging snapshot data on host", "host", h.IP)
 
 		manifests, err := listManifests(ctx, client, h.IP, h.Location, clusterID)
@@ -1092,16 +1097,30 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 			return err
 		}
 		p := newPurger(client, h.IP, s.logger)
-		n, err := p.PurgeSnapshotTags(ctx, manifests, strset.New(snapshotTags...))
-		deletedManifests.Add(int32(n))
 
+		files, err := p.CollectPurgeableFiles(ctx, manifests, strset.New(snapshotTags...))
 		if err != nil {
-			s.logger.Error(ctx, "Purging snapshot data failed on host", "host", h.IP, "error", err)
-		} else {
-			s.logger.Info(ctx, "Done purging snapshot data on host", "host", h.IP)
+			return err
 		}
-		return err
-	}); err != nil {
+
+		errGroup.Go(func() error {
+			n, err := p.PurgeFiles(ctx, manifests, strset.New(snapshotTags...), files)
+			deletedManifests.Add(int32(n))
+			if err != nil {
+				s.logger.Error(ctx, "Purging snapshot data failed on host", "host", h.IP, "error", err)
+			} else {
+				s.logger.Info(ctx, "Done purging snapshot data on host", "host", h.IP)
+			}
+
+			return err
+		})
+
+		return nil
+	})
+
+	err = multierr.Append(err, errGroup.Wait())
+
+	if err != nil {
 		return err
 	}
 

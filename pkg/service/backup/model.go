@@ -50,6 +50,7 @@ type Target struct {
 	UploadParallel   []DCLimit    `json:"upload_parallel,omitempty"`
 	Continue         bool         `json:"continue,omitempty"`
 	PurgeOnly        bool         `json:"purge_only,omitempty"`
+	PurgeParallel    int          `json:"purge_parallel"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -238,6 +239,7 @@ type taskProperties struct {
 	UploadParallel   []DCLimit    `json:"upload_parallel"`
 	Continue         bool         `json:"continue"`
 	PurgeOnly        bool         `json:"purge_only"`
+	PurgeParallel    int          `json:"purge-parallel"`
 }
 
 func defaultTaskProperties() taskProperties {
@@ -245,6 +247,7 @@ func defaultTaskProperties() taskProperties {
 		Retention:     3,
 		RetentionDays: 0,
 		Continue:      true,
+		PurgeParallel: 1,
 	}
 }
 

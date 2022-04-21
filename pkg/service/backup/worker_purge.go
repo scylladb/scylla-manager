@@ -4,16 +4,17 @@ package backup
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"go.uber.org/multierr"
 )
 
-func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap RetentionMap) (err error) {
+func (w *worker) Purge(ctx context.Context, hosts []hostInfo, purgeParallel int, retentionMap RetentionMap) (err error) {
 	w.Logger.Info(ctx, "Purging stale snapshots...")
 	defer func(start time.Time) {
 		if err != nil {
@@ -33,7 +34,13 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)
 
-	return hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+	var (
+		purgeErr error
+		errMutex sync.Mutex
+		wg       sync.WaitGroup
+	)
+
+	err = hostsInParallel(hosts, purgeParallel, func(h hostInfo) error {
 		if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
 			w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
 				"host", h.IP,
@@ -78,9 +85,20 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			}
 			p.logger = logger
 
-			if _, err := p.PurgeSnapshotTags(ctx, manifests, tags); err != nil {
+			files, err := p.CollectPurgeableFiles(ctx, manifests, tags)
+			if err != nil {
 				return err
 			}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if _, err := p.PurgeFiles(ctx, manifests, tags, files); err != nil {
+					errMutex.Lock()
+					defer errMutex.Unlock()
+					purgeErr = multierr.Append(purgeErr, err)
+				}
+			}()
 
 			return nil
 		}
@@ -97,4 +115,9 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			}
 		}
 	})
+
+	wg.Wait()
+
+	err = multierr.Append(err, purgeErr)
+	return err
 }

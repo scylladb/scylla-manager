@@ -65,6 +65,8 @@ type DeleteClusterClusterIDBackupsParams struct {
 	ClusterID string
 	/*Locations*/
 	Locations []string
+	/*PurgeParallel*/
+	PurgeParallel int64
 	/*SnapshotTags*/
 	SnapshotTags []string
 
@@ -128,6 +130,17 @@ func (o *DeleteClusterClusterIDBackupsParams) SetLocations(locations []string) {
 	o.Locations = locations
 }
 
+// WithPurgeParallel adds the purgeParallel to the delete cluster cluster ID backups params
+func (o *DeleteClusterClusterIDBackupsParams) WithPurgeParallel(purgeParallel int64) *DeleteClusterClusterIDBackupsParams {
+	o.SetPurgeParallel(purgeParallel)
+	return o
+}
+
+// SetPurgeParallel adds the purgeParallel to the delete cluster cluster ID backups params
+func (o *DeleteClusterClusterIDBackupsParams) SetPurgeParallel(purgeParallel int64) {
+	o.PurgeParallel = purgeParallel
+}
+
 // WithSnapshotTags adds the snapshotTags to the delete cluster cluster ID backups params
 func (o *DeleteClusterClusterIDBackupsParams) WithSnapshotTags(snapshotTags []string) *DeleteClusterClusterIDBackupsParams {
 	o.SetSnapshotTags(snapshotTags)
@@ -158,6 +171,15 @@ func (o *DeleteClusterClusterIDBackupsParams) WriteToRequest(r runtime.ClientReq
 	// query array param locations
 	if err := r.SetQueryParam("locations", joinedLocations...); err != nil {
 		return err
+	}
+
+	// query param purge_parallel
+	qrPurgeParallel := o.PurgeParallel
+	qPurgeParallel := swag.FormatInt64(qrPurgeParallel)
+	if qPurgeParallel != "" {
+		if err := r.SetQueryParam("purge_parallel", qPurgeParallel); err != nil {
+			return err
+		}
 	}
 
 	valuesSnapshotTags := o.SnapshotTags

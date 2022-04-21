@@ -6,10 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
@@ -174,6 +176,21 @@ func (h backupHandler) listFiles(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, v)
 }
 
+func (h backupHandler) purgeParallelism(r *http.Request) (int64, error) {
+	var (
+		parallelism int64
+		err         error
+	)
+
+	if v := r.FormValue("purge_parallel"); v != "" {
+		if parallelism, err = strconv.ParseInt(v, 10, 64); err != nil {
+			return 0, service.ErrValidate(err)
+		}
+	}
+
+	return parallelism, err
+}
+
 func (h backupHandler) deleteSnapshot(w http.ResponseWriter, r *http.Request) {
 	snapshotTags := r.Form["snapshot_tags"]
 	if len(snapshotTags) == 0 {
@@ -181,11 +198,18 @@ func (h backupHandler) deleteSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.svc.DeleteSnapshot(
+	parallelism, err := h.purgeParallelism(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	err = h.svc.DeleteSnapshot(
 		r.Context(),
 		mustClusterIDFromCtx(r),
 		h.mustLocationsFromCtx(r),
 		snapshotTags,
+		int(parallelism),
 	)
 	if err != nil {
 		respondError(w, r, errors.Wrap(err, "delete snapshots"))

@@ -34,3 +34,8 @@ show-tables: |
 
 purge-only: |
   Run the backup cleanup only.
+
+purge-parallel: |
+  The number of hosts to read manifests from in parallel.
+  The reading of manifests can be a memory-intensive process so this limit can be raised if sufficient memory is available to the host.
+  Set to 0 for no limit.

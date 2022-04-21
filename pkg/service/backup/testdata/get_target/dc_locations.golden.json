@@ -3,10 +3,10 @@
     {
       "keyspace": "system_auth",
       "tables": [
-        "roles",
-        "role_permissions",
         "role_attributes",
-        "role_members"
+        "role_members",
+        "roles",
+        "role_permissions"
       ],
       "all_tables": true
     },
@@ -31,9 +31,9 @@
       "keyspace": "system_traces",
       "tables": [
         "sessions",
-        "node_slow_log_time_idx",
         "sessions_time_idx",
         "events",
+        "node_slow_log_time_idx",
         "node_slow_log"
       ],
       "all_tables": true
@@ -41,19 +41,19 @@
     {
       "keyspace": "system_schema",
       "tables": [
-        "computed_columns",
-        "views",
+        "types",
         "functions",
+        "view_virtual_columns",
         "scylla_tables",
-        "triggers",
         "indexes",
-        "dropped_columns",
-        "columns",
+        "triggers",
+        "tables",
+        "views",
+        "computed_columns",
         "aggregates",
         "keyspaces",
-        "tables",
-        "types",
-        "view_virtual_columns"
+        "columns",
+        "dropped_columns"
       ],
       "all_tables": true
     }
@@ -67,8 +67,10 @@
     "dc1:s3:backuptest-get-target"
   ],
   "retention": 3,
+  "retention_days": 0,
   "rate_limit": [
     "100"
   ],
-  "continue": true
+  "continue": true,
+  "purge_parallel": 1
 }

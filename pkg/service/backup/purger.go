@@ -77,9 +77,9 @@ func newPurger(client *scyllaclient.Client, host string, logger log.Logger) purg
 	}
 }
 
-func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set) (int, error) {
+func (p purger) CollectPurgeableFiles(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set) (fileSet, error) {
 	if len(manifests) == 0 {
-		return 0, nil
+		return fileSet{}, nil
 	}
 
 	var (
@@ -95,21 +95,27 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 				"snapshot_tag", m.SnapshotTag,
 				"temporary", m.Temporary,
 			)
+
 			if err := p.forEachDirInManifest(ctx, m, files.AddFiles); err != nil {
-				return 0, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
+				return nil, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
 			}
 		}
 	}
 	if stale == 0 {
-		return 0, nil
+		return fileSet{}, nil
 	}
 	for _, m := range manifests {
 		if !tags.Has(m.SnapshotTag) {
 			if err := p.forEachDirInManifest(ctx, m, files.RemoveFiles); err != nil {
-				return 0, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
+				return nil, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
 			}
 		}
 	}
+
+	return files, nil
+}
+
+func (p purger) PurgeFiles(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set, files fileSet) (int, error) {
 	if _, err := p.deleteFiles(ctx, manifests[0].Location, files); err != nil {
 		return 0, errors.Wrapf(err, "delete")
 	}
