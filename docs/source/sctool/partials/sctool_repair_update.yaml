@@ -116,7 +116,7 @@ options:
 - name: small-table-threshold
   default_value: 1G
   usage: |
-    Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T].
+    Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T]. Choose 0 followed by an unit to disable.
 - name: start-date
   shorthand: s
   usage: |

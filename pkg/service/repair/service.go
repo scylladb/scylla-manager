@@ -472,7 +472,7 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 			key := u.Keyspace + "." + t
 			total := totalSize[key]
 
-			if total <= target.SmallTableThreshold {
+			if total < target.SmallTableThreshold {
 				s.logger.Debug(ctx, "Detected small table", "keyspace", u.Keyspace, "table", t, "size", total, "threshold", target.SmallTableThreshold)
 				g.markSmallTable(u.Keyspace, t)
 				smallTables = append(smallTables, key)
