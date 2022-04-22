@@ -5,7 +5,6 @@ package scyllaclient
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	agentClient "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
@@ -451,20 +451,10 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	}
 	defer resp.Body.Close()
 
-	dec := json.NewDecoder(resp.Body)
-
-	// Skip tokens down to array opening
-	expected := []string{"{", "list", "["}
-	for i := range expected {
-		tok, err := dec.Token()
-		if err != nil {
-			return errors.Wrap(err, "read token")
-		}
-		if fmt.Sprint(tok) != expected[i] {
-			return errors.Errorf("json unexpected token %s expected %s", tok, expected[i])
-		}
+	dec := jsonutil.NewDecoder(resp.Body)
+	if err := dec.Seek("list"); err != nil {
+		return err
 	}
-
 	errCh := make(chan error)
 	go func() {
 		var v RcloneListDirItem
