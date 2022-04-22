@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -134,6 +135,32 @@ func (m *ManifestContent) Write(w io.Writer) error {
 	}
 
 	return gw.Close()
+}
+
+// ForEachIndexIter streams the indexes from the Manifest JSON and performs an
+// action on each as they are read in.
+func ForEachIndexIter(r io.Reader, m *ManifestInfo, f func(dir string, files []string)) error {
+	gr, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+
+	dec := jsonutil.NewDecoder(gr)
+
+	if err := dec.Seek("index"); err != nil {
+		return err
+	}
+
+	for dec.More() {
+		var i FilesMeta
+		if err := dec.Decode(&i); err != nil {
+			return err
+		}
+		dir := RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, i.Keyspace, i.Table, i.Version)
+		f(dir, i.Files)
+	}
+
+	return nil
 }
 
 // ManifestInfoWithContent is intended for passing manifest with its content.
