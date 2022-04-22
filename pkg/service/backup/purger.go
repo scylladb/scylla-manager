@@ -85,8 +85,6 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 	var (
 		files = make(fileSet)
 		stale = 0
-
-		c ManifestContent
 	)
 
 	for _, m := range manifests {
@@ -97,10 +95,9 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 				"snapshot_tag", m.SnapshotTag,
 				"temporary", m.Temporary,
 			)
-			if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
+			if err := p.forEachDirInManifest(ctx, m, files.AddFiles); err != nil {
 				return 0, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
 			}
-			p.forEachDir(m, &c, files.AddFiles)
 		}
 	}
 	if stale == 0 {
@@ -108,10 +105,9 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 	}
 	for _, m := range manifests {
 		if !tags.Has(m.SnapshotTag) {
-			if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
+			if err := p.forEachDirInManifest(ctx, m, files.RemoveFiles); err != nil {
 				return 0, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
 			}
-			p.forEachDir(m, &c, files.RemoveFiles)
 		}
 	}
 	if _, err := p.deleteFiles(ctx, manifests[0].Location, files); err != nil {
@@ -156,18 +152,17 @@ func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteO
 		files             = make(fileSet)
 		tempManifestFiles = make(fileSet)
 		orphanedFiles     = make(fileSet)
-
-		c ManifestContent
 	)
 
 	for _, m := range manifests {
-		if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
-			return result, errors.Wrapf(err, "load manifest (validate) %s", m.Path())
-		}
+		var f func(dir string, files []string)
 		if m.Temporary {
-			p.forEachDir(m, &c, tempManifestFiles.AddFiles)
+			f = tempManifestFiles.AddFiles
 		} else {
-			p.forEachDir(m, &c, files.AddFiles)
+			f = files.AddFiles
+		}
+		if err := p.forEachDirInManifest(ctx, m, f); err != nil {
+			return result, errors.Wrapf(err, "load manifest (validate) %s", m.Path())
 		}
 	}
 
@@ -244,26 +239,23 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*ManifestIn
 		return nil, nil
 	}
 
-	var (
-		s = strset.New()
-		c ManifestContent
-	)
+	s := strset.New()
+
 	for _, m := range manifests {
 		if m.Temporary {
 			continue
 		}
-		if err := p.loadManifestContentInto(ctx, m, &c); err != nil {
+		if err := p.forEachDirInManifest(ctx, m, func(dir string, files []string) {
+			if missingFiles.HasAnyFiles(dir, files) {
+				s.Add(m.SnapshotTag)
+			}
+		}); err != nil {
 			// Ignore manifests removed while validate was running
 			if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
 				continue
 			}
 			return nil, errors.Wrapf(err, "load manifest (find broken) %s", m.Path())
 		}
-		p.forEachDir(m, &c, func(dir string, files []string) {
-			if missingFiles.HasAnyFiles(dir, files) {
-				s.Add(m.SnapshotTag)
-			}
-		})
 	}
 
 	v := s.List()
@@ -271,13 +263,14 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*ManifestIn
 	return v, nil
 }
 
-func (p purger) loadManifestContentInto(ctx context.Context, m *ManifestInfo, c *ManifestContent) error {
+func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callback func(dir string, files []string)) error {
 	p.logger.Info(ctx, "Reading manifest",
 		"task", m.TaskID,
 		"snapshot_tag", m.SnapshotTag,
 	)
 
-	*c = ManifestContent{}
+	var c ManifestContent
+
 	r, err := p.client.RcloneOpen(ctx, p.host, m.Location.RemotePath(m.Path()))
 	if err != nil {
 		return err
@@ -290,14 +283,15 @@ func (p purger) loadManifestContentInto(ctx context.Context, m *ManifestInfo, c 
 		}
 	}()
 
-	return c.Read(r)
-}
+	if err := c.Read(r); err != nil {
+		return err
+	}
 
-func (p purger) forEachDir(m *ManifestInfo, c *ManifestContent, callback func(dir string, files []string)) {
 	for _, fi := range c.Index {
 		dir := RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)
 		callback(dir, fi.Files)
 	}
+	return nil
 }
 
 func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {
