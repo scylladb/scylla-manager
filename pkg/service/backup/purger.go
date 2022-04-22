@@ -283,15 +283,7 @@ func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callb
 		}
 	}()
 
-	if err := c.Read(r); err != nil {
-		return err
-	}
-
-	for _, fi := range c.Index {
-		dir := RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)
-		callback(dir, fi.Files)
-	}
-	return nil
+	return ForEachIndexIter(r, m, callback)
 }
 
 func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {
