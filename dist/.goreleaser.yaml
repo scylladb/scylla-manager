@@ -26,7 +26,7 @@ builds:
       - -trimpath
     ldflags:
       - -extldflags '-static'
-      - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
+      - -X github.com/scylladb/scylla-manager/v3/pkg.version={{ .Version }}
 
   - id: client
     dir: ../pkg
@@ -43,7 +43,7 @@ builds:
       - -trimpath
     ldflags:
       - -extldflags '-static'
-      - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
+      - -X github.com/scylladb/scylla-manager/v3/pkg.version={{ .Version }}
 
   - id: agent
     dir: ../pkg
@@ -60,7 +60,7 @@ builds:
       - -trimpath
     ldflags:
       - -extldflags '-static'
-      - -X github.com/scylladb/scylla-manager/pkg.version={{ .Version }}
+      - -X github.com/scylladb/scylla-manager/v3/pkg.version={{ .Version }}
 
 archives:
   - name_template: "{{ .ProjectName }}_{{ .Version }}.{{ .Os }}_{{ .Arch }}"
