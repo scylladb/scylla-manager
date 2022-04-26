@@ -11,8 +11,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-//go:generate mockgen -destination mock_policy_test.go -mock_names Policy=mockPolicy -package scheduler github.com/scylladb/scylla-manager/pkg/service/scheduler Policy
-//go:generate mockgen -destination mock_runner_test.go -mock_names Runner=mockRunner -package scheduler github.com/scylladb/scylla-manager/pkg/service/scheduler Runner
+//go:generate mockgen -destination mock_policy_test.go -mock_names Policy=mockPolicy -package scheduler github.com/scylladb/scylla-manager/v3/pkg/service/scheduler Policy
+//go:generate mockgen -destination mock_runner_test.go -mock_names Runner=mockRunner -package scheduler github.com/scylladb/scylla-manager/v3/pkg/service/scheduler Runner
 
 func TestPolicyRunner(t *testing.T) {
 	t.Run("policy error", func(t *testing.T) {

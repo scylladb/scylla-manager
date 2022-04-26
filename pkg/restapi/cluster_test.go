@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-//go:generate mockgen -destination mock_clusterservice_test.go -mock_names ClusterService=MockClusterService -package restapi github.com/scylladb/scylla-manager/pkg/restapi ClusterService
+//go:generate mockgen -destination mock_clusterservice_test.go -mock_names ClusterService=MockClusterService -package restapi github.com/scylladb/scylla-manager/v3/pkg/restapi ClusterService
 
 package restapi_test
 

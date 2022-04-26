@@ -16,7 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-//go:generate mockgen -destination mock_repairservice_test.go -mock_names RepairService=MockRepairService -package restapi github.com/scylladb/scylla-manager/pkg/restapi RepairService
+//go:generate mockgen -destination mock_repairservice_test.go -mock_names RepairService=MockRepairService -package restapi github.com/scylladb/scylla-manager/v3/pkg/restapi RepairService
 
 func updateIntensityRequest(clusterID uuid.UUID, intensity float64) *http.Request {
 	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/cluster/%s/repairs/intensity", clusterID.String()), nil)
