@@ -30,6 +30,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	session := CreateSession(t)
 
 	secretsStore := store.NewTableStore(session, table.Secrets)
+	// TimeoutConfig: scyllaclient.DefaultTimeoutConfig(),
 
 	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
 	if err != nil {
