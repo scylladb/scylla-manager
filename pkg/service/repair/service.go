@@ -483,7 +483,46 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 		s.logger.Info(ctx, "Detected small tables", "tables", smallTables, "threshold", target.SmallTableThreshold)
 	}
 
+	mergeSmallTableRanges(g)
+
 	return nil
+}
+
+func mergeSmallTableRanges(gen *generator) {
+	h := replicaHash(gen.Hosts().List())
+	smallTableRanges := make(map[string]*tableTokenRange)
+	i := 0
+	for _, r := range gen.ranges[h] {
+		table := r.Keyspace + "." + r.Table
+		smallTable := false
+		for _, t := range gen.smallTables.List() {
+			if table == t {
+				smallTable = true
+				break
+			}
+		}
+		if smallTable && r.FullyReplicated {
+			if _, ok := smallTableRanges[table]; !ok {
+				smallTableRanges[table] = &tableTokenRange{
+					Keyspace:        r.Keyspace,
+					Table:           r.Table,
+					Replicas:        r.Replicas,
+					StartToken:      dht.Murmur3MinToken,
+					EndToken:        dht.Murmur3MaxToken,
+					FullyReplicated: r.FullyReplicated,
+				}
+			}
+		} else {
+			gen.ranges[h][i] = r
+			i++
+		}
+	}
+
+	gen.ranges[h] = gen.ranges[h][:i]
+
+	for _, v := range smallTableRanges {
+		gen.ranges[h] = append(gen.ranges[h], v)
+	}
 }
 
 type rangesLimit struct {
