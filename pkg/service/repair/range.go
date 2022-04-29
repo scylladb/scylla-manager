@@ -14,12 +14,13 @@ import (
 )
 
 type tableTokenRange struct {
-	Keyspace   string
-	Table      string
-	Pos        int
-	StartToken int64
-	EndToken   int64
-	Replicas   []string
+	Keyspace        string
+	Table           string
+	Pos             int
+	StartToken      int64
+	EndToken        int64
+	Replicas        []string
+	FullyReplicated bool
 }
 
 func (ttr *tableTokenRange) String() string {
@@ -184,12 +185,33 @@ func (b *tableTokenRangeBuilder) MaxParallelRepairs() int {
 	return allNodes.Size() / rf
 }
 
+// FullyReplicated returns whether or not the keyspace is fully replicated
+// True if # of nodes == keyspace RF.
+func (b *tableTokenRangeBuilder) FullyReplicated() bool {
+	if len(b.prototypes) == 0 {
+		return true
+	}
+
+	allNodes := strset.New()
+	for _, tr := range b.prototypes {
+		for _, node := range tr.Replicas {
+			allNodes.Add(node)
+		}
+	}
+	rf := len(b.prototypes[0].Replicas)
+
+	return allNodes.Size() == rf
+}
+
 func (b *tableTokenRangeBuilder) Build(unit Unit) (out []*tableTokenRange) {
+	fullyReplicated := b.FullyReplicated()
+
 	for _, table := range unit.Tables {
 		for _, p := range b.prototypes {
 			ttr := *p
 			ttr.Keyspace = unit.Keyspace
 			ttr.Table = table
+			ttr.FullyReplicated = fullyReplicated
 			out = append(out, &ttr)
 		}
 	}

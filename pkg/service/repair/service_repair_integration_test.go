@@ -1190,6 +1190,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if repairCalled != 1 {
 			t.Fatalf("Expected repair in one shot got %d", repairCalled)
 		}
+
+		p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+
+		if p.TokenRanges != 1 {
+			t.Fatalf("Expected all tokens in one range, got %d ranges", p.TokenRanges)
+		}
 	})
 
 	t.Run("repair status context timeout", func(t *testing.T) {
