@@ -58,5 +58,5 @@ func (cmd *command) run(args []string) error {
 		return err
 	}
 
-	return runs.Render(cmd.OutOrStdout())
+	return runs.Render(cmd.OutOrStdout(), true)
 }

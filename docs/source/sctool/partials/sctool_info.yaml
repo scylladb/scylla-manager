@@ -5,6 +5,10 @@ description: |
   If there is one task of the given type the '<id|name>' argument is not needed.
 usage: sctool info --cluster <id|name> [flags] <type>[/<id|name>]
 options:
+- name: cause
+  default_value: "false"
+  usage: |
+    Prints the cause of a failed task.
 - name: cluster
   shorthand: c
   usage: |

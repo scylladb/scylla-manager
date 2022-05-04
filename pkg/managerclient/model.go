@@ -475,11 +475,12 @@ type TaskRun = models.TaskRun
 type TaskRunSlice []*TaskRun
 
 // Render renders TaskRunSlice in a tabular format.
-func (tr TaskRunSlice) Render(w io.Writer) error {
+func (tr TaskRunSlice) Render(w io.Writer, printCause bool) error {
 	t := table.New("ID", "Start time", "Duration", "Status")
 	for _, r := range tr {
 		s := r.Status
-		if r.Cause != "" {
+		if printCause && r.Cause != "" {
+			t.LimitColumnLength(3)
 			s += " " + r.Cause
 		}
 		t.AddRow(r.ID, FormatTime(r.StartTime), FormatDuration(r.StartTime, r.EndTime), s)

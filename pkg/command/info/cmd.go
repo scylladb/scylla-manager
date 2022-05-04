@@ -21,6 +21,7 @@ type command struct {
 
 	cluster string
 	limit   int
+	cause   bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -46,6 +47,7 @@ func (cmd *command) init() {
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().IntVar(&cmd.limit, "limit", 10, "")
+	w.Unwrap().BoolVar(&cmd.cause, "cause", false, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -78,5 +80,5 @@ func (cmd *command) run(args []string) error {
 		return nil
 	}
 
-	return runs.Render(w)
+	return runs.Render(w, cmd.cause)
 }
