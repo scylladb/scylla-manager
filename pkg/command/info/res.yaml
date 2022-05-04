@@ -8,3 +8,6 @@ long: |
 
 limit: |
   Limits the number of returned results.
+
+cause: |
+  Prints the cause of a failed task.
