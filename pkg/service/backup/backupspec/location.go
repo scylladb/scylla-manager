@@ -83,7 +83,7 @@ var ErrInvalid = errors.Errorf("invalid location, the format is [dc:]<provider>:
 // Providers require that resource names are DNS compliant.
 // The following is a super simplified DNS (plus provider prefix)
 // matching regexp.
-var pattern = regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.\/]+)$`)
+var pattern = regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([a-z0-9]+):([a-z0-9\-\.]+)$`)
 
 // NewLocation first checks if location string conforms to valid pattern.
 // It then returns the location split into three components dc, remote, and
