@@ -761,9 +761,9 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 	var totalMemory int64
 	for _, m := range metrics[metricName].Metric {
 		switch {
-		case m.Counter != nil:
+		case m.Counter != nil && m.Counter.Value != nil:
 			totalMemory += int64(*m.Counter.Value)
-		case m.Gauge != nil:
+		case m.Gauge != nil && m.Gauge.Value != nil:
 			totalMemory += int64(*m.Gauge.Value)
 		}
 	}
