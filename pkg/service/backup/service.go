@@ -252,6 +252,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Validate locations access
 	if err := s.checkLocationsAvailableFromNodes(ctx, client, t.liveNodes, t.Location); err != nil {
+		if strings.Contains(err.Error(), "NoSuchBucket") {
+			return t, errors.New("specified bucket does not exist")
+		}
 		return t, errors.Wrap(err, "location is not accessible")
 	}
 
