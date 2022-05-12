@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
@@ -30,7 +31,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	secretsStore := store.NewTableStore(session, table.Secrets)
 
-	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, log.NewDevelopment())
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
