@@ -48,6 +48,9 @@ type BackupProgress struct {
 	// Format: date-time
 	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
 
+	// time remaining
+	TimeRemaining int64 `json:"time_remaining,omitempty"`
+
 	// uploaded
 	Uploaded int64 `json:"uploaded,omitempty"`
 }

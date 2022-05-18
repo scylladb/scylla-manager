@@ -129,6 +129,22 @@ func FormatTime(t strfmt.DateTime) string {
 	return time.Time(t).Local().Format(rfc822WithSec)
 }
 
+// FormatSecondsAsETA formats the supplied number of seconds in `3h2m1s` format.
+// Returns 1s if t == 0 because it is used for calculating ETAs.
+// Returns "Unknown" if < 0 because we don't have historical data.
+func FormatSecondsAsETA(t int64) string {
+	if t == 0 {
+		return "1s"
+	}
+
+	if t < 0 {
+		return "Unknown"
+	}
+
+	d := time.Duration(t * time.Second.Nanoseconds())
+	return d.String()
+}
+
 // FormatTimePointer see FormatTime.
 func FormatTimePointer(t *strfmt.DateTime) string {
 	var tf strfmt.DateTime

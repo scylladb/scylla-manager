@@ -1058,6 +1058,60 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	return &r, q.GetRelease(&r)
 }
 
+// GetHistoricalRate calculates the historical rate in bytes/second for backups of
+// a given task. Ignores current run.
+func (s *Service) GetHistoricalRate(ctx context.Context, clusterID, taskID, runID uuid.UUID) (int64, error) {
+	s.logger.Debug(ctx, "GetHistoricalRate",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	var (
+		duration time.Duration
+		uploaded int64
+	)
+
+	q := s.session.Query(`
+		select cluster_id, task_id, run_id, sum(uploaded), max(completed_at), min(started_at)
+		from backup_run_progress
+		GROUP BY cluster_id, task_id, run_id
+	`, nil).WithContext(ctx)
+	defer q.Release()
+
+	scanner := q.Iter().Scanner()
+
+	for scanner.Next() {
+		var (
+			sClusterID, sTaskID, sRunID uuid.UUID
+			completedAt, startedAt      time.Time
+			sUploaded                   int64
+		)
+
+		if err := scanner.Scan(&sClusterID, &sTaskID, &sRunID, &sUploaded, &completedAt, &startedAt); err != nil {
+			s.logger.Error(ctx, "Error querying for historical repair data", "err", err)
+			continue
+		}
+
+		if sRunID == runID {
+			continue
+		}
+
+		uploaded += sUploaded
+		duration += completedAt.Sub(startedAt)
+	}
+
+	if uploaded == 0 || duration.Seconds() == 0 {
+		return -1, nil
+	}
+
+	rate := uploaded / int64(duration.Seconds())
+	if rate == 0 {
+		return -1, nil
+	}
+	return rate, nil
+}
+
 // GetProgress aggregates progress for the run of the task and breaks it down
 // by keyspace and table.json
 // If nothing was found scylla-manager.ErrNotFound is returned.
@@ -1082,7 +1136,22 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		}, nil
 	}
 
-	return aggregateProgress(run, NewProgressVisitor(run, s.session))
+	progress, err := aggregateProgress(run, NewProgressVisitor(run, s.session))
+	if err != nil {
+		return progress, err
+	}
+
+	_, left := progress.ByteProgress()
+	if left > 0 {
+		rate, err := s.GetHistoricalRate(ctx, clusterID, taskID, runID)
+		if err != nil {
+			s.logger.Error(ctx, "Error getting historical rate", "err", err)
+		} else {
+			progress.TimeRemaining = left / rate
+		}
+	}
+
+	return progress, nil
 }
 
 // DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.

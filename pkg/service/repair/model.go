@@ -143,12 +143,13 @@ func (rs *RunState) UpdatePositions(job jobResult) {
 // progress holds generic progress data, it's a base type for other progress
 // structs.
 type progress struct {
-	TokenRanges int64      `json:"token_ranges"`
-	Success     int64      `json:"success"`
-	Error       int64      `json:"error"`
-	StartedAt   *time.Time `json:"started_at"`
-	CompletedAt *time.Time `json:"completed_at"`
-	Duration    int64      `json:"duration_ms"`
+	TokenRanges   int64      `json:"token_ranges"`
+	Success       int64      `json:"success"`
+	Error         int64      `json:"error"`
+	StartedAt     *time.Time `json:"started_at"`
+	CompletedAt   *time.Time `json:"completed_at"`
+	Duration      int64      `json:"duration_ms"`
+	TimeRemaining int64      `json:"time_remaining"`
 }
 
 // ProgressPercentage returns repair progress percentage based on token ranges.

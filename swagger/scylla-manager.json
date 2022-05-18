@@ -166,6 +166,9 @@
           "format": "date-time",
           "x-nullable": true
         },
+        "time_remaining": {
+          "type": "integer"
+        },
         "duration_ms": {
           "type": "integer"
         },
@@ -737,6 +740,9 @@
           "type": "integer"
         },
         "failed": {
+          "type": "integer"
+        },
+        "time_remaining": {
           "type": "integer"
         },
         "started_at": {

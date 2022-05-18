@@ -140,12 +140,13 @@ func (p *RunProgress) IsUploaded() bool {
 }
 
 type progress struct {
-	Size        int64      `json:"size"`
-	Uploaded    int64      `json:"uploaded"`
-	Skipped     int64      `json:"skipped"`
-	Failed      int64      `json:"failed"`
-	StartedAt   *time.Time `json:"started_at"`
-	CompletedAt *time.Time `json:"completed_at"`
+	Size          int64      `json:"size"`
+	Uploaded      int64      `json:"uploaded"`
+	Skipped       int64      `json:"skipped"`
+	Failed        int64      `json:"failed"`
+	StartedAt     *time.Time `json:"started_at"`
+	CompletedAt   *time.Time `json:"completed_at"`
+	TimeRemaining int64      `json:"time_remaining"`
 }
 
 // Progress groups uploading progress for all backed up hosts.
