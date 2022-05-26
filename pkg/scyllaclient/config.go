@@ -71,7 +71,7 @@ func DefaultConfigWithTimeout(c TimeoutConfig) Config {
 
 func DefaultTimeoutConfig() TimeoutConfig {
 	return TimeoutConfig{
-		Timeout:     15 * time.Second,
+		Timeout:     60 * time.Second,
 		ListTimeout: 12 * time.Hour,
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,
