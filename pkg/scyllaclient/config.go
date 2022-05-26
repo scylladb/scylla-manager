@@ -56,7 +56,7 @@ func DefaultConfig() Config {
 	return Config{
 		Port:        "10001",
 		Scheme:      "https",
-		Timeout:     15 * time.Second,
+		Timeout:     60 * time.Second,
 		ListTimeout: 12 * time.Hour,
 		Backoff: BackoffConfig{
 			WaitMin:    1 * time.Second,
