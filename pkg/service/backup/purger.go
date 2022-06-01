@@ -283,7 +283,7 @@ func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callb
 		}
 	}()
 
-	return ForEachIndexIter(r, m, callback)
+	return c.ReadForEachIndexIter(r, m, callback)
 }
 
 func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {

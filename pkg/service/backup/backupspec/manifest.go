@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -137,30 +137,49 @@ func (m *ManifestContent) Write(w io.Writer) error {
 	return gw.Close()
 }
 
-// ForEachIndexIter streams the indexes from the Manifest JSON and performs an
-// action on each as they are read in.
-func ForEachIndexIter(r io.Reader, m *ManifestInfo, f func(dir string, files []string)) error {
+// ReadForEachIndexIter streams the indexes from the Manifest JSON and performs a
+// callback on each as they are read in.
+// It also populates the metadata fields of the ManifestContent.
+func (m *ManifestContent) ReadForEachIndexIter(r io.Reader, mi *ManifestInfo, f func(dir string, files []string)) error {
 	gr, err := gzip.NewReader(r)
 	if err != nil {
 		return err
 	}
 
-	dec := jsonutil.NewDecoder(gr)
+	iter := jsoniter.Parse(jsoniter.ConfigDefault, gr, 1024)
 
-	if err := dec.Seek("index"); err != nil {
-		return err
-	}
+	readValues := 0
 
-	for dec.More() {
-		var i FilesMeta
-		if err := dec.Decode(&i); err != nil {
-			return err
+	for k := iter.ReadObject(); iter.Error == nil && readValues < 6; k = iter.ReadObject() {
+		readValues++
+		switch k {
+		case "ip":
+			iter.ReadVal(&m.IP)
+		case "version":
+			iter.ReadVal(&m.Version)
+		case "cluster_name":
+			iter.ReadVal(&m.ClusterName)
+		case "size":
+			iter.ReadVal(&m.Size)
+		case "schema":
+			iter.ReadVal(&m.Schema)
+		case "index":
+			if !iter.ReadArrayCB(func(it *jsoniter.Iterator) bool {
+				var m FilesMeta
+				it.ReadVal(&m)
+				dir := RemoteSSTableVersionDir(mi.ClusterID, mi.DC, mi.NodeID, m.Keyspace, m.Table, m.Version)
+				f(dir, m.Files)
+				return true
+			}) {
+				return iter.Error
+			}
+		default:
+			readValues--
+			iter.Skip()
 		}
-		dir := RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, i.Keyspace, i.Table, i.Version)
-		f(dir, i.Files)
 	}
 
-	return nil
+	return iter.Error
 }
 
 // ManifestInfoWithContent is intended for passing manifest with its content.
