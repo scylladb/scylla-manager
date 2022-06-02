@@ -21,8 +21,28 @@ import (
 // PermissionError wraps remote fs errors returned by CheckPermissions function
 // and allows to set a custom message returned to user.
 type PermissionError struct {
-	cause error
-	op    string
+	cause      error
+	op         string
+	statusCode int
+}
+
+func asPermissionError(op string, l fs.Fs, err error) PermissionError {
+	statusCode := 400
+
+	if l.Name() == "s3" {
+		e, _ := parseAWSError(err) // nolint: errcheck
+		if e != nil {
+			err = e
+		} else {
+			statusCode = 500
+		}
+	}
+
+	return PermissionError{
+		cause:      err,
+		op:         op,
+		statusCode: statusCode,
+	}
 }
 
 func (e PermissionError) Error() string {
@@ -33,9 +53,9 @@ func (e PermissionError) String() string {
 	return e.Error()
 }
 
-// Cause implements errors.Causer.
-func (e PermissionError) Cause() error {
-	return e.cause
+// StatusCode returns HTTP status code that should be returned for this error.
+func (e PermissionError) StatusCode() int {
+	return e.statusCode
 }
 
 // CheckPermissions checks if file system is available for listing, getting,
@@ -68,14 +88,14 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	{
 		f, err := fs.NewFs(context.Background(), tmpDir)
 		if err != nil {
-			return PermissionError{err, "init temp dir"}
+			return errors.Wrap(err, "init temp dir")
 		}
 		if err := sync.CopyDir(ctx, l, f, true); err != nil {
 			// Special handling of permissions errors
 			if errors.Is(err, credentials.ErrNoValidProvidersFoundInChain) {
 				return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") // nolint: lll
 			}
-			return PermissionError{err, "put"}
+			return asPermissionError("put", l, err)
 		}
 	}
 
@@ -88,7 +108,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		if err := operations.ListJSON(ctx, l, testDirName, &opts, func(item *operations.ListJSONItem) error {
 			return nil
 		}); err != nil {
-			return PermissionError{err, "list"}
+			return asPermissionError("list", l, err)
 		}
 	}
 
@@ -100,11 +120,11 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		}
 		r, err := o.Open(ctx)
 		if err != nil {
-			return PermissionError{err, "get"}
+			return asPermissionError("open", l, err)
 		}
 		defer r.Close()
 		if _, err := io.Copy(ioutil.Discard, r); err != nil {
-			return PermissionError{err, "get"}
+			return asPermissionError("copy", l, err)
 		}
 	}
 
@@ -115,7 +135,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 			return errors.Wrap(err, "init remote temp dir")
 		}
 		if err := operations.Delete(ctx, f); err != nil {
-			return PermissionError{err, "delete"}
+			return asPermissionError("delete", l, err)
 		}
 	}
 
