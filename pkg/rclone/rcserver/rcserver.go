@@ -80,13 +80,17 @@ func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err
 
 	fs.Errorf(nil, "rc: %q: error: %v", path, err)
 	// Adjust the error return for some well known errors
-	switch {
-	case isCheckErr(err) || isNotFoundErr(err):
-		status = http.StatusNotFound
-	case isBadRequestErr(err):
-		status = http.StatusBadRequest
-	case isForbiddenErr(err):
-		status = http.StatusForbidden
+	if e, ok := err.(operations.PermissionError); ok { // nolint: errorlint
+		status = e.StatusCode()
+	} else {
+		switch {
+		case isNotFoundErr(err):
+			status = http.StatusNotFound
+		case isBadRequestErr(err):
+			status = http.StatusBadRequest
+		case isForbiddenErr(err):
+			status = http.StatusForbidden
+		}
 	}
 
 	w.WriteHeader(status)
@@ -128,11 +132,6 @@ func isBadRequestErr(err error) bool {
 		cause == fs.ErrorDirectoryNotEmpty ||
 		cause == fs.ErrorDirExists ||
 		cause == fs.ErrorListBucketRequired
-}
-
-func isCheckErr(err error) bool {
-	_, ok := err.(operations.PermissionError) // nolint: errorlint
-	return ok
 }
 
 // nolint: errorlint
