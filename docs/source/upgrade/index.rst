@@ -93,6 +93,9 @@ Confirm that the settings for ``scylla-manager.repo`` are correct.
 
 **On the Manager Server** display the contents of the scylla-manager.repo and confirm the version displayed is the desired version, in this example 3.0.
 
+If not, follow the instructions on `Scylla Download Center <https://www.scylladb.com/download/#manager>`_ to update the repo.
+
+**For the Manager Server and each scylla node**: display the contents of the scylla-manager.repo and confirm the version displayed is the desired version, in this example 3.0.
 CentOS, Red Hat:
 
 .. code:: sh
@@ -106,9 +109,9 @@ Debian, Ubuntu:
 
 .. code:: sh
 
-   cat /etc/apt/sources.list/scylla-manager.repo
+   cat /etc/apt/sources.list.d/scylla-manager.list
 
-   [scylla-manager-3.0] name=Scylla Manager for Centos - $basearch baseurl=http://downloads.scylladb.com/downloads/scylla-manager/rpm/centos/scylladb-manager-3.0/$basearch/ enabled=1 gpgcheck=0
+   deb  [arch=amd64,arm64] http://downloads.scylladb.com/downloads/scylla-manager/deb/ubuntu/scylladb-manager-3.0 stable main
 
 
 **On the Manager Server** instruct package manager to update server and the client:
