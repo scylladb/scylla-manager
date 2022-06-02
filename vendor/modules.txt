@@ -186,6 +186,9 @@ github.com/hbollon/go-edlib/internal/utils
 github.com/inconshreveable/mousetrap
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
+# github.com/json-iterator/go v1.1.10
+## explicit
+github.com/json-iterator/go
 # github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004
 github.com/jzelinskie/whirlpool
 # github.com/kr/pretty v0.2.0
@@ -213,6 +216,10 @@ github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.3.2
 ## explicit
 github.com/mitchellh/mapstructure
+# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+github.com/modern-go/concurrent
+# github.com/modern-go/reflect2 v1.0.1
+github.com/modern-go/reflect2
 # github.com/ncw/swift v1.0.52
 github.com/ncw/swift
 # github.com/pkg/errors v0.9.1
