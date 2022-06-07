@@ -658,5 +658,8 @@ func forEachTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
 }
 
 func needsOneShotRun(t *Task) bool {
-	return (t.Sched.Cron.IsZero() && t.Sched.Interval == 0 && t.Sched.Window != nil && t.SuccessCount+t.ErrorCount == 0)
+	return t.Sched.Cron.IsZero() &&
+		t.Sched.Interval == 0 &&
+		t.Sched.Window != nil &&
+		t.SuccessCount+t.ErrorCount == 0
 }
