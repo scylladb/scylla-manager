@@ -63,7 +63,7 @@ func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteri
 			return nil
 		}
 		if c.matches(m) {
-			if err := readManifestContentFromObject(ctx, o, m.ManifestContent); err != nil {
+			if err := readManifestContentFromObject(ctx, o, m.ManifestContentWithIndex); err != nil {
 				return errors.Wrap(err, "read content")
 			}
 			ok = true
@@ -106,10 +106,14 @@ func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([
 			return nil
 		}
 		if d.keyspace != nil {
-			if err := readManifestContentFromObject(ctx, o, m.ManifestContent); err != nil {
+			if err := readManifestContentFromObject(ctx, o, m.ManifestContentWithIndex); err != nil {
 				return errors.Wrap(err, "read content")
 			}
-			if len(d.filteredIndex(ctx, m)) == 0 {
+			i, err := d.filteredIndex(ctx, m)
+			if err != nil {
+				return err
+			}
+			if len(i) == 0 {
 				return nil
 			}
 		}
@@ -181,11 +185,11 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 
 	var (
 		nodes []NodeInfo
-		m     = backup.NewManifestInfoWithContent()
 		ids   = strset.New()
 	)
 
 	lookup := func(o fs.Object) error {
+		m := backup.NewManifestInfoWithContent()
 		if err := m.ParsePath(o.String()); err != nil {
 			return nil
 		}
@@ -195,7 +199,7 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 		if ids.Has(m.NodeID) {
 			return nil
 		}
-		if err := readManifestContentFromObject(ctx, o, m.ManifestContent); err != nil {
+		if err := readManifestContentFromObject(ctx, o, m.ManifestContentWithIndex); err != nil {
 			return errors.Wrap(err, "read content")
 		}
 		nodes = append(nodes, NodeInfo{
@@ -233,7 +237,7 @@ func (d *Downloader) forEachMetaDirObject(ctx context.Context, fn func(o fs.Obje
 	return walk.ListR(ctx, d.fsrc, baseDir, true, backup.RemoteManifestLevel(baseDir)+1, walk.ListObjects, func(e fs.DirEntries) error { return e.ForObjectError(fn) })
 }
 
-func readManifestContentFromObject(ctx context.Context, o fs.Object, c *backup.ManifestContent) error {
+func readManifestContentFromObject(ctx context.Context, o fs.Object, c *backup.ManifestContentWithIndex) error {
 	r, err := o.Open(ctx)
 	if err != nil {
 		return err

@@ -263,6 +263,12 @@ func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath
 		h.t.Fatal(err)
 	}
 	r.Close()
+
+	// Since we rewrite the manifest we need the index loaded into the struct.
+	if err := m.LoadIndex(); err != nil {
+		h.t.Fatal(err)
+	}
+
 	// Decorate, if not changed return early
 	if !f(m) {
 		return
@@ -788,7 +794,7 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	if err != nil {
 		t.Fatal(err)
 	}
-	var mc ManifestContent
+	var mc ManifestContentWithIndex
 	if err := mc.Read(r); err != nil {
 		t.Fatalf("Cannot read manifest created by backup: %s", err)
 	}
@@ -1513,10 +1519,14 @@ func TestPurgeIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var c ManifestContent
+		var c ManifestContentWithIndex
 		if err := c.Read(r); err != nil {
 			t.Fatal(err)
 		}
+		if err := c.LoadIndex(); err != nil {
+			t.Fatal(err)
+		}
+
 		r.Close()
 
 		for _, fi := range c.Index {
@@ -2098,6 +2108,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 		stdout, stderr, err := ExecOnHost(nis.Addr, strings.Join(downloadFilesCmd, " "))
 		if err != nil {
 			t.Log("stdout", stdout)
+			t.Log("err", err)
 			t.Log("stderr", stderr)
 			t.Fatal("Command failed on host", nis.Addr, err)
 		}

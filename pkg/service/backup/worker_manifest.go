@@ -67,12 +67,14 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 
 	dirs := w.hostSnapshotDirs(h)
 
-	c := &ManifestContent{
-		Version:     "v2",
-		ClusterName: w.ClusterName,
-		IP:          h.IP,
-		Index:       make([]FilesMeta, len(dirs)),
-		Tokens:      tokens,
+	c := &ManifestContentWithIndex{
+		ManifestContent: ManifestContent{
+			Version:     "v2",
+			ClusterName: w.ClusterName,
+			IP:          h.IP,
+			Tokens:      tokens,
+		},
+		Index: make([]FilesMeta, len(dirs)),
 	}
 	if w.Schema != nil {
 		c.Schema = RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
@@ -92,8 +94,8 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 	}
 
 	return ManifestInfoWithContent{
-		ManifestInfo:    m,
-		ManifestContent: c,
+		ManifestInfo:             m,
+		ManifestContentWithIndex: c,
 	}
 }
 

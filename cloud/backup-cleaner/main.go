@@ -128,24 +128,24 @@ func loadManifestInto(dir, fileName string, files *strset.Set) {
 	}
 	defer f.Close()
 
-	var m backupspec.RemoteManifest
+	var m backupspec.ManifestInfo
 	if err := m.ParsePath(fileName); err != nil {
 		log.Fatal(err)
 	}
 
-	c := backupspec.ManifestContent{}
+	c := backupspec.ManifestContentWithIndex{}
 	if err := c.Read(f); err != nil {
 		log.Fatal("Read()", err)
 	}
 
 	var filesCount int64
-	for _, fi := range c.Index {
-		baseDir := backupspec.RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)
-		for _, f := range fi.Files {
-			files.Add(path.Join(baseDir, f))
+
+	c.ForEachIndexIterFiles(&m, func(dir string, cbFiles []string) {
+		for _, f := range cbFiles {
+			files.Add(path.Join(dir, f))
 			filesCount++
 		}
-	}
+	})
 
 	log.Printf("Loaded Manifest %s with %d files", fileName, filesCount)
 }

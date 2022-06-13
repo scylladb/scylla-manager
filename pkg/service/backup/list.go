@@ -166,7 +166,7 @@ func filterManifests(manifests []*ManifestInfo, filter ListFilter) []*ManifestIn
 	return out
 }
 
-func filterManifestIndex(c *ManifestContent, ksf *ksfilter.Filter) {
+func filterManifestIndex(c *ManifestContentWithIndex, ksf *ksfilter.Filter) {
 	if len(ksf.Filters()) == 0 {
 		return
 	}

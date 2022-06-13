@@ -206,7 +206,7 @@ func TestDownloadFilterCheck(t *testing.T) {
 func dummyManifest() backup.ManifestInfoWithContent {
 	return backup.ManifestInfoWithContent{
 		ManifestInfo: &backup.ManifestInfo{},
-		ManifestContent: &backup.ManifestContent{
+		ManifestContentWithIndex: &backup.ManifestContentWithIndex{
 			Index: []backup.FilesMeta{
 				{
 					Keyspace: "foo",
