@@ -406,7 +406,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 
 	var items []ListItem
 
-	handler := func(mc ManifestInfoWithContent) {
+	handler := func(mc ManifestInfoWithContent) error {
 		// Find list item or create a new one
 		var ptr *ListItem
 		for i, li := range items {
@@ -426,8 +426,10 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 
 		// Calculate size on filtered units
 		var size int64
-		for _, u := range mc.Index {
+		if err := mc.ForEachIndexIter(func(u FilesMeta) {
 			size += u.Size
+		}); err != nil {
+			return err
 		}
 
 		// Find snapshot info or create a new one
@@ -450,14 +452,14 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		}
 
 		// Add unit information from index
-		for _, u := range mc.Index {
+		return mc.ForEachIndexIter(func(u FilesMeta) {
 			s, ok := ptr.unitCache[u.Keyspace]
 			if !ok {
 				ptr.unitCache[u.Keyspace] = strset.New(u.Table)
 			} else {
 				s.Add(u.Table)
 			}
-		}
+		})
 	}
 	if err := s.forEachManifest(ctx, clusterID, locations, filter, handler); err != nil {
 		return nil, err
@@ -495,7 +497,7 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 
 	var files []FilesInfo
 
-	handler := func(mc ManifestInfoWithContent) {
+	handler := func(mc ManifestInfoWithContent) error {
 		l := mc.Location
 		l.DC = ""
 
@@ -503,17 +505,22 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 			Location: l,
 			Schema:   mc.Schema,
 		}
-		for _, u := range mc.Index {
+
+		if err := mc.ForEachIndexIter(func(u FilesMeta) {
 			u.Path = mc.SSTableVersionDir(u.Keyspace, u.Table, u.Version)
 			fi.Files = append(fi.Files, u)
+		}); err != nil {
+			return err
 		}
+
 		files = append(files, fi)
+		return nil
 	}
 
 	return files, s.forEachManifest(ctx, clusterID, locations, filter, handler)
 }
 
-func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, f func(ManifestInfoWithContent)) error {
+func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, f func(ManifestInfoWithContent) error) error {
 	// Validate inputs
 	if len(locations) == 0 {
 		return service.ErrValidate(errors.New("empty locations"))
@@ -550,32 +557,38 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	}
 
 	// Load manifest content
-	var c ManifestContent
-
-	load := func(m *ManifestInfo) error {
+	load := func(c *ManifestContentWithIndex, m *ManifestInfo) error {
 		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.Path()))
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
-		c = ManifestContent{}
 		return c.Read(r)
 	}
 
 	for _, m := range manifests {
-		if err := load(m); err != nil {
+		c := new(ManifestContentWithIndex)
+		if err := load(c, m); err != nil {
 			return err
 		}
-		filterManifestIndex(&c, ksf)
+
+		if err := c.LoadIndex(); err != nil {
+			return err
+		}
+
+		filterManifestIndex(c, ksf)
+
 		if len(c.Index) == 0 {
 			continue
 		}
 
-		f(ManifestInfoWithContent{
-			ManifestInfo:    m,
-			ManifestContent: &c,
-		})
+		if err := f(ManifestInfoWithContent{
+			ManifestInfo:             m,
+			ManifestContentWithIndex: c,
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }

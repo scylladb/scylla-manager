@@ -269,7 +269,7 @@ func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callb
 		"snapshot_tag", m.SnapshotTag,
 	)
 
-	var c ManifestContent
+	var c ManifestContentWithIndex
 
 	r, err := p.client.RcloneOpen(ctx, p.host, m.Location.RemotePath(m.Path()))
 	if err != nil {
@@ -283,7 +283,11 @@ func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callb
 		}
 	}()
 
-	return c.ReadForEachIndexIter(r, m, callback)
+	if err := c.Read(r); err != nil {
+		return err
+	}
+
+	return c.ForEachIndexIterFiles(m, callback)
 }
 
 func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {

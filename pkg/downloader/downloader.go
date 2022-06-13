@@ -94,7 +94,12 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 		"clear_tables", d.clearTables,
 	)
 
-	if len(m.Index) == 0 {
+	n, err := m.IndexLength()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
 		return errors.New("empty manifest")
 	}
 
@@ -120,7 +125,11 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 	}
 
 	// Apply keyspace filters.
-	index := d.filteredIndex(ctx, m)
+	index, err := d.filteredIndex(ctx, m)
+	if err != nil {
+		return errors.Wrap(err, "filtered index")
+	}
+
 	if len(index) == 0 {
 		return errors.Errorf("no data matching filters %s", strings.Join(d.keyspace.Filters(), " "))
 	}
@@ -162,20 +171,32 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 	})
 }
 
-func (d *Downloader) filteredIndex(ctx context.Context, m backup.ManifestInfoWithContent) []backup.FilesMeta {
+func (d *Downloader) filteredIndex(ctx context.Context, m backup.ManifestInfoWithContent) ([]backup.FilesMeta, error) {
+	var i []backup.FilesMeta
+
+	if m.Index != nil {
+		i = m.Index
+	} else {
+		var err error
+		i, err = m.ReadIndex()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if d.keyspace == nil {
-		return m.Index
+		return i, nil
 	}
 
 	var index []backup.FilesMeta
-	for _, u := range m.Index {
+	for _, u := range i {
 		if !d.shouldDownload(u.Keyspace, u.Table) {
 			d.logger.Debug(ctx, "Table filtered out", "keyspace", u.Keyspace, "table", u.Table)
 		} else {
 			index = append(index, u)
 		}
 	}
-	return index
+	return index, nil
 }
 
 func (d *Downloader) shouldDownload(keyspace, table string) bool {
