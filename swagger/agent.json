@@ -727,6 +727,40 @@
         },
         "security": []
       }
+    },
+    "/restore": {
+      "post": {
+        "description": "Restore ScyllaDB keyspace and tables from a backup",
+        "summary": "Restore from backup",
+        "operationId": "Restore",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "restore",
+            "description": "restore parameters",
+            "schema": {
+              "$ref": "#/definitions/RestoreParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful restore (TODO - body?)",
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
     }
   },
   "definitions": {
@@ -1074,6 +1108,33 @@
         "group": {
           "description": "group name",
           "type": "string"
+        }
+      }
+    },
+    "RestoreParams": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "source",
+          "$ref": "#/definitions/RemotePath"
+        },
+        "keyspace": {
+          "description": "keyspace",
+          "type": "string"
+        },
+        "table": {
+          "description": "table",
+          "type": "string"
+        },
+        "version": {
+          "description": "version",
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

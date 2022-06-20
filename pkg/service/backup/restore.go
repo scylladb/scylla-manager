@@ -49,7 +49,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 		return t, errors.New("missing location")
 	}
 
-	// TODO livenodes here like in other?
+	// TODO - gather livenodes here like in backup?
 
 	return t, nil
 }
@@ -65,7 +65,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	// TODO create progress tracking struct
 
 	if target.Continue {
-		panic("TODO - implement me")
+		panic("TODO - implement resume")
 	}
 
 	// Get the cluster client
@@ -88,15 +88,13 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		return errors.Wrap(err, "invalid cluster")
 	}
 
-	// TODO - each location in parallel?
 	for _, l := range target.Location {
 		s.logger.Info(ctx, "Looping locations",
 			"cluster_id", clusterID,
 			"location", l,
 		)
 
-		// TODO - create distrinct restore worker?
-		// TODO - remaining properties, see backup
+		// TODO - create distinct restore worker?
 		w := &worker{
 			ClusterID:   clusterID,
 			ClusterName: clusterName,
@@ -137,8 +135,8 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 				"manifest", miwc.ManifestInfo,
 			)
 
-			// TODO replace with streaming indexes when merged?
-			// TODO Filter for relevant tables - assuming ALL for now
+			// TODO - replace with streaming indexes when #3171 merged
+			// TODO - filter for requests tables - restoring all for now
 			for _, i := range miwc.Index {
 				s.logger.Info(ctx, "Looping tables",
 					"cluster_id", clusterID,
@@ -147,10 +145,20 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 				)
 
 				// TODO - disable compaction on all nodes
-				// TODO - Defer enable compaction on all nodes
-				// TODO - record gc_grace_seconds
-				// TODO - set gc_grace_seconds to max
-				// TODO - defer restore gc_grace_seconds to original
+				// TODO - defer enable compaction on all nodes
+
+				/* TODO - Get/Set/Reset grace seconds
+				graceSeconds, err := w.RecordGraceSeconds(ctx, clusterSession, i.Keyspace, i.Table)
+				if err != nil {
+					s.logger.Error(ctx, "error recording gc_grace_seconds", "err", err)
+					return
+				}
+				s.logger.Info(ctx, "recorded gc_grace_seconds", "graceSeconds", graceSeconds)
+				// TODO - what is max?
+				w.SetGraceSeconds(ctx, clusterSession, i.Keyspace, i.Table, 999999999)
+				// TODO - make this all in a function per-table so deferred func happens immediately after each table
+				defer w.SetGraceSeconds(ctx, clusterSession, i.Keyspace, i.Table, graceSeconds)
+				*/
 
 				dir := RemoteSSTableVersionDir(miwc.ClusterID, miwc.DC, miwc.NodeID, i.Keyspace, i.Table, i.Version)
 				for _, f := range i.Files {
@@ -159,6 +167,8 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 						"file", f,
 					)
 				}
+
+				client.Restore(ctx, miwc.Location.String(), dir, i.Keyspace, i.Table, i.Version, i.Files)
 
 				/* TODO - BUNDLE AND BATCH - starting 1 at a time for simplicity
 				// TODO - Group related files to bundles by sstable ID

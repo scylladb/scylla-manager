@@ -252,6 +252,26 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host, remotePath string) e
 	return err
 }
 
+// TODO - consolidate parameters?
+func (c *Client) Restore(ctx context.Context, sourceFs, srcRemote, keyspace, table, version string, files []string) error {
+	// TODO - check why is naming different (No Operations prefix)
+	p := operations.RestoreParams{
+		Context: ctx, // TODO - forceHost?
+		Restore: &models.RestoreParams{
+			Source: &models.RemotePath{
+				Fs:     sourceFs,
+				Remote: srcRemote,
+			},
+			Keyspace: keyspace,
+			Table:    table,
+			Version:  version,
+			Files:    files,
+		},
+	}
+	_, err := c.agentOps.Restore(&p)
+	return err
+}
+
 // RcloneDeleteFile removes the single file pointed to by remotePath
 // Remote path format is "name:bucket/path".
 func (c *Client) RcloneDeleteFile(ctx context.Context, host, remotePath string) error {
