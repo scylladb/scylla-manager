@@ -870,6 +870,29 @@
           "type": "string"
         }
       }
+    },
+    "RestoreTarget": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "dc": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "location": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "paths": {

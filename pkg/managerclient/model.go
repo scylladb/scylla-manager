@@ -3,6 +3,7 @@
 package managerclient
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -395,6 +396,19 @@ func (t BackupTarget) Render(w io.Writer) error {
 		},
 	}).Parse(backupTargetTemplate))
 	return temp.Execute(w, t)
+}
+
+// RestoreTarget is a representing results of dry running restore task.
+type RestoreTarget struct {
+	models.RestoreTarget
+	Schedule   *Schedule
+	ShowTables int
+}
+
+const restoreTargetTemplate = `TODO - implement`
+
+func (t RestoreTarget) Render(w io.Writer) error {
+	return errors.New("TODO - implement")
 }
 
 // TaskListItem is a representation of scheduler.Task with additional fields from scheduler.

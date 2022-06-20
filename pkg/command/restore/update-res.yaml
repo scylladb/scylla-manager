@@ -1,0 +1,7 @@
+use: update --cluster <id|name> [flags] [<restore/task-id>]
+
+short: Modify properties of the existing restore task
+
+long: |
+  This command allows you to modify properties of an already existing restore task.
+  If there is one restore task the 'restore/task-id' argument is not needed.

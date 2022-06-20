@@ -199,7 +199,7 @@ func (c *Client) GetRepairTarget(ctx context.Context, clusterID string, t *Task)
 	return &RepairTarget{RepairTarget: *resp.Payload}, nil
 }
 
-// GetBackupTarget fetches information about repair target.
+// GetBackupTarget fetches information about backup target.
 func (c *Client) GetBackupTarget(ctx context.Context, clusterID string, t *Task) (*BackupTarget, error) {
 	resp, err := c.operations.GetClusterClusterIDTasksBackupTarget(&operations.GetClusterClusterIDTasksBackupTargetParams{
 		Context:    ctx,
@@ -211,6 +211,12 @@ func (c *Client) GetBackupTarget(ctx context.Context, clusterID string, t *Task)
 	}
 
 	return &BackupTarget{BackupTarget: *resp.Payload}, nil
+}
+
+// GetRestoreTarget fetches information about restore target.
+func (c *Client) GetRestoreTarget(ctx context.Context, clusterID string, t *Task) (*RestoreTarget, error) {
+	// TODO
+	return nil, errors.New("TODO - implement")
 }
 
 // CreateTask creates a new task.

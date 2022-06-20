@@ -127,6 +127,7 @@ func (s *server) makeServices() error {
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.repairSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
+	s.schedSvc.SetRunner(scheduler.RestoreTask, s.backupSvc.RestoreRunner())
 
 	// Add additional properties on task run.
 	// This is a bit hacky way of providing selected information on other tasks
