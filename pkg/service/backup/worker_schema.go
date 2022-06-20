@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
@@ -111,4 +112,20 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 		dst := h.Location.RemotePath(RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag))
 		return w.Client.RclonePut(ctx, h.IP, dst, w.Schema)
 	})
+}
+
+func (w *worker) RecordGraceSeconds(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string) (int, error) {
+	w.Logger.Info(ctx, "Retrieving gc_grace_seconds")
+
+	q := qb.Select("system_schema.tables").
+		Columns("gc_grace_seconds").
+		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
+		Query(clusterSession).
+		Bind(keyspace, table)
+
+	defer q.Release()
+
+	var ggs int
+	err := q.Scan(&ggs)
+	return ggs, err
 }
