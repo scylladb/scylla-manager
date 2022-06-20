@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/progress"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair/repaircontrol"
+	"github.com/scylladb/scylla-manager/v3/pkg/command/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/resume"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/start"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/status"
@@ -75,6 +76,8 @@ func buildCommand() *cobra.Command {
 	repairCmd := repair.NewCommand(&client)
 	repairCmd.AddCommand(repaircontrol.NewCommand(&client))
 
+	restoreCmd := restore.NewCommand(&client)
+
 	taskCmd := &cobra.Command{
 		Use:        "task",
 		Short:      "Start, stop and track task progress",
@@ -96,6 +99,7 @@ func buildCommand() *cobra.Command {
 		clusterCmd,
 		info.NewCommand(&client),
 		repairCmd,
+		restoreCmd,
 		resume.NewCommand(&client),
 		progress.NewCommand(&client),
 		start.NewCommand(&client),

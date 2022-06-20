@@ -1,0 +1,10 @@
+use: restore --cluster <id|name> [--intensity] [--parallel] [flags]
+
+short: Schedule a restore (ad-hoc or scheduled) TODO - FINISH DOCS
+
+long: |
+  This command allows you to schedule or run ad-hoc cluster restore.
+
+dry-run: |
+  Validates and displays restore information without actually scheduling the restore.
+  This allows you to display what will happen should the restore run with the parameters you set.
