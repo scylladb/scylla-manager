@@ -21,6 +21,7 @@ func newAgentHandler(c agent.Config, rclone http.Handler) *chi.Mux {
 	m.Post("/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
 		debug.FreeOSMemory()
 	})
+	m.Post("/restore", newRestoreHandler(c).restore)
 
 	// Rclone server
 	m.Mount("/rclone", http.StripPrefix("/agent/rclone", rclone))
