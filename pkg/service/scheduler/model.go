@@ -30,6 +30,7 @@ const (
 	RepairTask         TaskType = "repair"
 	SuspendTask        TaskType = "suspend"
 	ValidateBackupTask TaskType = "validate_backup"
+	RestoreTask        TaskType = "restore"
 
 	mockTask TaskType = "mock"
 )
@@ -56,6 +57,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = SuspendTask
 	case ValidateBackupTask:
 		*t = ValidateBackupTask
+	case RestoreTask:
+		*t = RestoreTask
 	case mockTask:
 		*t = mockTask
 	default:
