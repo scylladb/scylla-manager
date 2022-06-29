@@ -31,7 +31,7 @@
 
     - name: Get names of the tables in the snapshot {{ snapshot_tag }}
       shell: |
-        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --dry-run | grep "^\s*\-" | cut -d"-" -f2 | cut -d"(" -f1
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} --dump-manifest | jq -r '.index[] | [.keyspace,.table] | join(".")'
       become_user: scylla
       register: _tables_list
 
