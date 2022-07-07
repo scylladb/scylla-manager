@@ -55,7 +55,7 @@ type repairTestHelper struct {
 func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config) *repairTestHelper {
 	t.Helper()
 
-	logger := log.NewDevelopmentWithLevel(zapcore.DebugLevel)
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
