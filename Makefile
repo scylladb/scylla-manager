@@ -177,6 +177,7 @@ run-server: build-server ## Build and run development server
 		-p "5090:5090" \
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
 		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
+		-v "/tmp:/tmp" \
 		-it --read-only --rm scylladb/scylla-manager-dev scylla-manager
 
 .PHONY: build
