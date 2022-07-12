@@ -10,6 +10,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"golang.org/x/mod/module"
 )
 
 var flagUpdate = flag.Bool("update", false, "update .golden files")
@@ -40,10 +42,14 @@ func SaveGoldenJSONFileIfNeeded(tb testing.TB, v interface{}) {
 		tb.Fatal(err)
 	}
 
-	if err := os.MkdirAll(path.Dir(goldenJSONFileName(tb)), 0o777); err != nil {
+	filename := goldenJSONFileName(tb)
+	if err := module.CheckFilePath(filename); err != nil {
+		tb.Fatalf("cannot use name of the test to store golden file %q: %v", filename, err)
+	}
+	if err := os.MkdirAll(path.Dir(filename), 0o777); err != nil {
 		tb.Fatal(err)
 	}
-	if err := os.WriteFile(goldenJSONFileName(tb), buf.Bytes(), 0o666); err != nil {
+	if err := os.WriteFile(filename, buf.Bytes(), 0o666); err != nil {
 		tb.Error(err)
 	}
 }
@@ -76,10 +82,14 @@ func SaveGoldenTextFileIfNeeded(tb testing.TB, s string) {
 		return
 	}
 
-	if err := os.MkdirAll(path.Dir(goldenTextFileName(tb)), 0o777); err != nil {
+	filename := goldenTextFileName(tb)
+	if err := module.CheckFilePath(filename); err != nil {
+		tb.Fatalf("cannot use name of the test to store golden file %q: %v", filename, err)
+	}
+	if err := os.MkdirAll(path.Dir(filename), 0o777); err != nil {
 		tb.Fatal(err)
 	}
-	if err := os.WriteFile(goldenTextFileName(tb), []byte(s), 0o666); err != nil {
+	if err := os.WriteFile(filename, []byte(s), 0o666); err != nil {
 		tb.Error(err)
 	}
 }
