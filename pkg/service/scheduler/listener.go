@@ -10,21 +10,23 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 )
 
+type Listener = scheduler.Listener[Key]
+
 type schedulerListener struct {
-	scheduler.Listener
-	find   func(key scheduler.Key) (taskInfo, bool)
+	Listener
+	find   func(key Key) (taskInfo, bool)
 	logger log.Logger
 }
 
-func newSchedulerListener(find func(key scheduler.Key) (taskInfo, bool), logger log.Logger) schedulerListener {
+func newSchedulerListener(find func(key Key) (taskInfo, bool), logger log.Logger) schedulerListener {
 	return schedulerListener{
-		Listener: scheduler.NopListener,
+		Listener: scheduler.NopListener[Key](),
 		find:     find,
 		logger:   logger,
 	}
 }
 
-func (l schedulerListener) OnSchedule(ctx context.Context, key scheduler.Key, begin, end time.Time, retno int8) {
+func (l schedulerListener) OnSchedule(ctx context.Context, key Key, begin, end time.Time, retno int8) {
 	in := begin.Sub(now()).Truncate(time.Second)
 	if end.IsZero() {
 		l.logKey(ctx, key, "Schedule",
@@ -42,31 +44,31 @@ func (l schedulerListener) OnSchedule(ctx context.Context, key scheduler.Key, be
 	}
 }
 
-func (l schedulerListener) OnUnschedule(ctx context.Context, key scheduler.Key) {
+func (l schedulerListener) OnUnschedule(ctx context.Context, key Key) {
 	l.logKey(ctx, key, "Unschedule")
 }
 
-func (l schedulerListener) Trigger(ctx context.Context, key scheduler.Key, success bool) {
+func (l schedulerListener) Trigger(ctx context.Context, key Key, success bool) {
 	l.logKey(ctx, key, "Trigger", "success", success)
 }
 
-func (l schedulerListener) OnStop(ctx context.Context, key scheduler.Key) {
+func (l schedulerListener) OnStop(ctx context.Context, key Key) {
 	l.logKey(ctx, key, "Stop")
 }
 
-func (l schedulerListener) OnRetryBackoff(ctx context.Context, key scheduler.Key, backoff time.Duration, retno int8) {
+func (l schedulerListener) OnRetryBackoff(ctx context.Context, key Key, backoff time.Duration, retno int8) {
 	l.logKey(ctx, key, "Retry backoff", "backoff", backoff, "retry", retno)
 }
 
-func (l schedulerListener) OnNoTrigger(ctx context.Context, key scheduler.Key) {
+func (l schedulerListener) OnNoTrigger(ctx context.Context, key Key) {
 	l.logKey(ctx, key, "No trigger")
 }
 
-func (l schedulerListener) OnSleep(ctx context.Context, key scheduler.Key, d time.Duration) {
+func (l schedulerListener) OnSleep(ctx context.Context, key Key, d time.Duration) {
 	l.logger.Debug(ctx, "OnSleep", "task_id", key, "duration", d)
 }
 
-func (l schedulerListener) logKey(ctx context.Context, key scheduler.Key, msg string, keyvals ...interface{}) {
+func (l schedulerListener) logKey(ctx context.Context, key Key, msg string, keyvals ...interface{}) {
 	ti, ok := l.find(key)
 	if !ok {
 		return
