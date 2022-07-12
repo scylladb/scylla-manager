@@ -8,8 +8,10 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-func makeTestActivation(sec int) Activation {
-	return Activation{
+type testActivation = Activation[testKey]
+
+func makeTestActivation(sec int) testActivation {
+	return testActivation{
 		Time: unixTime(sec),
 		Key:  uuid.MustRandom(),
 	}
@@ -17,7 +19,7 @@ func makeTestActivation(sec int) Activation {
 
 func TestActivationQueue(t *testing.T) {
 	t.Run("push and pop", func(t *testing.T) {
-		q := newActivationQueue()
+		q := newActivationQueue[testKey]()
 		q.Push(makeTestActivation(2))
 		q.Push(makeTestActivation(1))
 		a0 := makeTestActivation(0)
@@ -39,7 +41,7 @@ func TestActivationQueue(t *testing.T) {
 	})
 
 	t.Run("top", func(t *testing.T) {
-		q := newActivationQueue()
+		q := newActivationQueue[testKey]()
 		q.Push(makeTestActivation(2))
 		q.Push(makeTestActivation(1))
 		q.Push(makeTestActivation(0))
@@ -55,7 +57,7 @@ func TestActivationQueue(t *testing.T) {
 	})
 
 	t.Run("top and pop", func(t *testing.T) {
-		q := newActivationQueue()
+		q := newActivationQueue[testKey]()
 
 		top, ok := q.Top()
 		if ok {
@@ -71,7 +73,7 @@ func TestActivationQueue(t *testing.T) {
 	})
 
 	t.Run("find", func(t *testing.T) {
-		q := newActivationQueue()
+		q := newActivationQueue[testKey]()
 		q.Push(makeTestActivation(2))
 		q.Push(makeTestActivation(1))
 		q.Push(makeTestActivation(0))
@@ -85,7 +87,7 @@ func TestActivationQueue(t *testing.T) {
 	})
 
 	t.Run("remove", func(t *testing.T) {
-		q := newActivationQueue()
+		q := newActivationQueue[testKey]()
 		a2 := makeTestActivation(2)
 		q.Push(a2)
 		a1 := makeTestActivation(1)

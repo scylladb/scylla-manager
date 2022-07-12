@@ -25,6 +25,18 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+type (
+	// Key is unique identifier of a task in scheduler.
+	Key = uuid.UUID
+
+	// Properties are defined task parameters.
+	// They are JSON encoded.
+	Properties = json.RawMessage
+
+	Scheduler  = scheduler.Scheduler[Key]
+	RunContext = scheduler.RunContext[Key]
+)
+
 // PropertiesDecorator modifies task properties before running.
 type PropertiesDecorator func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error)
 
@@ -38,7 +50,7 @@ type Service struct {
 	runners    map[TaskType]Runner
 	runs       map[uuid.UUID]Run
 	resolver   resolver
-	scheduler  map[uuid.UUID]*scheduler.Scheduler
+	scheduler  map[uuid.UUID]*Scheduler
 	suspended  *b16set.Set
 	noContinue map[uuid.UUID]time.Time
 	closed     bool
@@ -56,7 +68,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		runners:    make(map[TaskType]Runner),
 		runs:       make(map[uuid.UUID]Run),
 		resolver:   newResolver(),
-		scheduler:  make(map[uuid.UUID]*scheduler.Scheduler),
+		scheduler:  make(map[uuid.UUID]*Scheduler),
 		suspended:  b16set.New(),
 		noContinue: make(map[uuid.UUID]time.Time),
 	}
@@ -335,15 +347,15 @@ func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	}
 }
 
-func (s *Service) newScheduler(clusterID uuid.UUID) *scheduler.Scheduler {
-	l := scheduler.NewScheduler(now, s.run, newSchedulerListener(s.findTaskByID, s.logger.Named(clusterID.String()[0:8])))
+func (s *Service) newScheduler(clusterID uuid.UUID) *Scheduler {
+	l := scheduler.NewScheduler[Key](now, s.run, newSchedulerListener(s.findTaskByID, s.logger.Named(clusterID.String()[0:8])))
 	go l.Start(context.Background())
 	return l
 }
 
 const noContinueThreshold = 500 * time.Millisecond
 
-func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
+func (s *Service) run(ctx RunContext) (runErr error) {
 	s.mu.Lock()
 	ti, ok := s.resolver.FindByID(ctx.Key)
 	c, cok := s.noContinue[ti.TaskID]
@@ -416,20 +428,20 @@ func (s *Service) run(ctx scheduler.RunContext) (runErr error) {
 		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
 	}()
 
-	if ctx.Properties == nil {
+	if ctx.Properties.(Properties) == nil {
 		ctx.Properties = json.RawMessage("{}")
 	}
 	if ctx.Retry == 0 && now().Sub(c) < noContinueThreshold {
-		ctx.Properties = jsonutil.Set(ctx.Properties, "continue", false)
+		ctx.Properties = jsonutil.Set(ctx.Properties.(Properties), "continue", false)
 	}
 	if d != nil {
-		p, err := d(runCtx, ti.ClusterID, ti.TaskID, ctx.Properties)
+		p, err := d(runCtx, ti.ClusterID, ti.TaskID, ctx.Properties.(Properties))
 		if err != nil {
 			return errors.Wrap(err, "decorate properties")
 		}
 		ctx.Properties = p
 	}
-	return s.mustRunner(ti.TaskType).Run(runCtx, ti.ClusterID, ti.TaskID, r.ID, ctx.Properties)
+	return s.mustRunner(ti.TaskType).Run(runCtx, ti.ClusterID, ti.TaskID, r.ID, ctx.Properties.(Properties))
 }
 
 func (s *Service) putRunAndUpdateTask(r *Run) error {
@@ -509,7 +521,7 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 	return t, q.GetRelease(t)
 }
 
-func (s *Service) findTaskByID(key scheduler.Key) (taskInfo, bool) {
+func (s *Service) findTaskByID(key Key) (taskInfo, bool) {
 	s.mu.Lock()
 	ti, ok := s.resolver.FindByID(key)
 	s.mu.Unlock()
@@ -632,7 +644,7 @@ func (s *Service) isClosed() bool {
 func (s *Service) Close() {
 	s.mu.Lock()
 	s.closed = true
-	v := make([]*scheduler.Scheduler, 0, len(s.scheduler))
+	v := make([]*Scheduler, 0, len(s.scheduler))
 	for _, l := range s.scheduler {
 		v = append(v, l)
 		l.Close()

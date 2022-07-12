@@ -5,15 +5,18 @@ package scheduler
 import (
 	"container/heap"
 	"time"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Activation represents when a Key will be executed.
 // Properties are optional they are only set for retries to ensure we retry
 // the same thing.
 // Stop is also optional if present specifies window end.
-type Activation struct {
+// Parametrized by scheduler key type.
+type Activation[K comparable] struct {
 	time.Time
-	Key        Key
+	Key        K
 	Retry      int8
 	Properties Properties
 	Stop       time.Time
@@ -21,25 +24,26 @@ type Activation struct {
 
 // activationHeap implements heap.Interface.
 // The activations are sorted by time in ascending order.
-type activationHeap []Activation
+type activationHeap[K comparable] []Activation[K]
 
-var _ heap.Interface = (*activationHeap)(nil)
+// uuid.UUID key type is used in pkg/service/scheduler package.
+var _ heap.Interface = (*activationHeap[uuid.UUID])(nil)
 
-func (h activationHeap) Len() int { return len(h) }
+func (h activationHeap[_]) Len() int { return len(h) }
 
-func (h activationHeap) Less(i, j int) bool {
+func (h activationHeap[_]) Less(i, j int) bool {
 	return h[i].Time.Before(h[j].Time)
 }
 
-func (h activationHeap) Swap(i, j int) {
+func (h activationHeap[_]) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (h *activationHeap) Push(x interface{}) {
-	*h = append(*h, x.(Activation))
+func (h *activationHeap[K]) Push(x interface{}) {
+	*h = append(*h, x.(Activation[K]))
 }
 
-func (h *activationHeap) Pop() interface{} {
+func (h *activationHeap[_]) Pop() interface{} {
 	old := *h
 	n := len(old)
 	item := old[n-1]
@@ -50,20 +54,20 @@ func (h *activationHeap) Pop() interface{} {
 // activationQueue is a priority queue based on activationHeap.
 // There may be only a single activation for a given activation key.
 // On Push if key exists it is updated.
-type activationQueue struct {
-	h activationHeap
+type activationQueue[K comparable] struct {
+	h activationHeap[K]
 }
 
-func newActivationQueue() *activationQueue {
-	return &activationQueue{
-		h: []Activation{},
+func newActivationQueue[K comparable]() *activationQueue[K] {
+	return &activationQueue[K]{
+		h: []Activation[K]{},
 	}
 }
 
 // Push returns true iff head was changed.
-func (q *activationQueue) Push(a Activation) bool {
+func (q *activationQueue[K]) Push(a Activation[K]) bool {
 	if idx := q.find(a.Key); idx >= 0 {
-		[]Activation(q.h)[idx] = a
+		[]Activation[K](q.h)[idx] = a
 		heap.Fix(&q.h, idx)
 	} else {
 		heap.Push(&q.h, a)
@@ -71,22 +75,22 @@ func (q *activationQueue) Push(a Activation) bool {
 	return q.h[0].Key == a.Key
 }
 
-func (q *activationQueue) Pop() (Activation, bool) {
+func (q *activationQueue[K]) Pop() (Activation[K], bool) {
 	if len(q.h) == 0 {
-		return Activation{}, false
+		return Activation[K]{}, false
 	}
-	return heap.Pop(&q.h).(Activation), true
+	return heap.Pop(&q.h).(Activation[K]), true
 }
 
-func (q *activationQueue) Top() (Activation, bool) {
+func (q *activationQueue[K]) Top() (Activation[K], bool) {
 	if len(q.h) == 0 {
-		return Activation{}, false
+		return Activation[K]{}, false
 	}
-	return []Activation(q.h)[0], true
+	return []Activation[K](q.h)[0], true
 }
 
 // Remove returns true iff head if head was changed.
-func (q *activationQueue) Remove(key Key) bool {
+func (q *activationQueue[K]) Remove(key K) bool {
 	idx := q.find(key)
 	if idx >= 0 {
 		heap.Remove(&q.h, idx)
@@ -94,7 +98,7 @@ func (q *activationQueue) Remove(key Key) bool {
 	return idx == 0
 }
 
-func (q *activationQueue) find(key Key) int {
+func (q *activationQueue[K]) find(key K) int {
 	for i, v := range q.h {
 		if v.Key == key {
 			return i
@@ -103,6 +107,6 @@ func (q *activationQueue) find(key Key) int {
 	return -1
 }
 
-func (q *activationQueue) Size() int {
+func (q *activationQueue[_]) Size() int {
 	return len(q.h)
 }

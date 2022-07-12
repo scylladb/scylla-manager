@@ -4,36 +4,28 @@ package scheduler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"sync"
 	"time"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-type (
-	// Key is unique identifier of a task in scheduler.
-	Key = uuid.UUID
-
-	// Properties are externally defined task parameters.
-	// They are JSON encoded.
-	Properties = json.RawMessage
-)
+// Properties are externally defined task parameters.
+type Properties = any
 
 // RunContext is a bundle of Context, Key, Properties and additional runtime
 // information.
-type RunContext struct {
+type RunContext[K comparable] struct {
 	context.Context
-	Key        Key
+	Key        K
 	Properties Properties
 	Retry      int8
 
 	err error
 }
 
-func newRunContext(key Key, properties Properties, stop time.Time) (*RunContext, context.CancelFunc) {
+func newRunContext[K comparable](key K, properties Properties, stop time.Time) (*RunContext[K], context.CancelFunc) {
 	var (
 		ctx    context.Context
 		cancel context.CancelFunc
@@ -44,7 +36,7 @@ func newRunContext(key Key, properties Properties, stop time.Time) (*RunContext,
 		ctx, cancel = context.WithDeadline(context.Background(), stop)
 	}
 
-	return &RunContext{
+	return &RunContext[K]{
 		Context:    ctx,
 		Key:        key,
 		Properties: properties,
@@ -55,7 +47,7 @@ func newRunContext(key Key, properties Properties, stop time.Time) (*RunContext,
 // When the provided context is cancelled function must return with
 // context.Cancelled error, or an error caused by this error.
 // Compatible functions can be passed to Scheduler constructor.
-type RunFunc func(ctx RunContext) error
+type RunFunc[K comparable] func(ctx RunContext[K]) error
 
 // Trigger provides the next activation date.
 // Implementations must return the same values for the same now parameter.
@@ -78,15 +70,15 @@ type Details struct {
 // There can be a single instance of a key scheduled or running at all times.
 // Scheduler gets the next activation time for a key from a trigger.
 // On key activation the RunFunc is called.
-type Scheduler struct {
+type Scheduler[K comparable] struct {
 	now      func() time.Time
-	run      RunFunc
-	listener Listener
+	run      RunFunc[K]
+	listener Listener[K]
 	timer    *time.Timer
 
-	queue   *activationQueue
-	details map[Key]Details
-	running map[Key]context.CancelFunc
+	queue   *activationQueue[K]
+	details map[K]Details
+	running map[K]context.CancelFunc
 	closed  bool
 	mu      sync.Mutex
 
@@ -94,21 +86,21 @@ type Scheduler struct {
 	wg       sync.WaitGroup
 }
 
-func NewScheduler(now func() time.Time, run RunFunc, listener Listener) *Scheduler {
-	return &Scheduler{
+func NewScheduler[K comparable](now func() time.Time, run RunFunc[K], listener Listener[K]) *Scheduler[K] {
+	return &Scheduler[K]{
 		now:      now,
 		run:      run,
 		listener: listener,
 		timer:    time.NewTimer(0),
-		queue:    newActivationQueue(),
-		details:  make(map[Key]Details),
-		running:  make(map[Key]context.CancelFunc),
+		queue:    newActivationQueue[K](),
+		details:  make(map[K]Details),
+		running:  make(map[K]context.CancelFunc),
 		wakeupCh: make(chan struct{}, 1),
 	}
 }
 
 // Schedule updates properties and trigger of an existing key or adds a new key.
-func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
+func (s *Scheduler[K]) Schedule(ctx context.Context, key K, d Details) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -127,7 +119,7 @@ func (s *Scheduler) Schedule(ctx context.Context, key Key, d Details) {
 	s.scheduleLocked(ctx, key, next, 0, nil, d.Window)
 }
 
-func (s *Scheduler) reschedule(ctx *RunContext) {
+func (s *Scheduler[K]) reschedule(ctx *RunContext[K]) {
 	key := ctx.Key
 
 	s.mu.Lock()
@@ -187,7 +179,7 @@ func shouldRetry(err error) bool {
 	return !(err == nil || errors.Is(err, context.Canceled) || retry.IsPermanent(err))
 }
 
-func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, next time.Time, retno int8, p Properties, w Window) {
+func (s *Scheduler[K]) scheduleLocked(ctx context.Context, key K, next time.Time, retno int8, p Properties, w Window) {
 	if next.IsZero() {
 		s.listener.OnNoTrigger(ctx, key)
 		s.unscheduleLocked(key)
@@ -197,21 +189,21 @@ func (s *Scheduler) scheduleLocked(ctx context.Context, key Key, next time.Time,
 	begin, end := w.Next(next)
 
 	s.listener.OnSchedule(ctx, key, begin, end, retno)
-	a := Activation{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
+	a := Activation[K]{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
 	if s.queue.Push(a) {
 		s.wakeup()
 	}
 }
 
 // Unschedule cancels schedule of a key. It does not stop an active run.
-func (s *Scheduler) Unschedule(ctx context.Context, key Key) {
+func (s *Scheduler[K]) Unschedule(ctx context.Context, key K) {
 	s.listener.OnUnschedule(ctx, key)
 	s.mu.Lock()
 	s.unscheduleLocked(key)
 	s.mu.Unlock()
 }
 
-func (s *Scheduler) unscheduleLocked(key Key) {
+func (s *Scheduler[K]) unscheduleLocked(key K) {
 	delete(s.details, key)
 	if s.queue.Remove(key) {
 		s.wakeup()
@@ -221,7 +213,7 @@ func (s *Scheduler) unscheduleLocked(key Key) {
 // Trigger immediately runs a scheduled key.
 // If key is already running the call will have no effect and true is returned.
 // If key is not scheduled the call will have no effect and false is returned.
-func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
+func (s *Scheduler[K]) Trigger(ctx context.Context, key K) bool {
 	s.mu.Lock()
 	if _, running := s.running[key]; running {
 		s.mu.Unlock()
@@ -233,9 +225,9 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 		s.wakeup()
 	}
 	_, ok := s.details[key]
-	var runCtx *RunContext
+	var runCtx *RunContext[K]
 	if ok {
-		runCtx = s.newRunContextLocked(Activation{Key: key})
+		runCtx = s.newRunContextLocked(Activation[K]{Key: key})
 	}
 	s.mu.Unlock()
 
@@ -247,7 +239,7 @@ func (s *Scheduler) Trigger(ctx context.Context, key Key) bool {
 }
 
 // Stop notifies RunFunc to stop by cancelling the context.
-func (s *Scheduler) Stop(ctx context.Context, key Key) {
+func (s *Scheduler[K]) Stop(ctx context.Context, key K) {
 	s.listener.OnStop(ctx, key)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -260,7 +252,7 @@ func (s *Scheduler) Stop(ctx context.Context, key Key) {
 // runs to return.
 // It returns two sets of keys the running that were canceled and pending that
 // were scheduled to run.
-func (s *Scheduler) Close() (running, pending []Key) {
+func (s *Scheduler[K]) Close() (running, pending []K) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -277,17 +269,17 @@ func (s *Scheduler) Close() (running, pending []Key) {
 }
 
 // Wait waits for runs to return call after Close.
-func (s *Scheduler) Wait() {
+func (s *Scheduler[_]) Wait() {
 	s.wg.Wait()
 }
 
 // Activations returns activation information for given keys.
-func (s *Scheduler) Activations(keys ...Key) []Activation {
-	pos := make(map[Key]int, len(keys))
+func (s *Scheduler[K]) Activations(keys ...K) []Activation[K] {
+	pos := make(map[K]int, len(keys))
 	for i, k := range keys {
 		pos[k] = i
 	}
-	r := make([]Activation, len(keys))
+	r := make([]Activation[K], len(keys))
 	s.mu.Lock()
 	for _, a := range s.queue.h {
 		if i, ok := pos[a.Key]; ok {
@@ -299,7 +291,7 @@ func (s *Scheduler) Activations(keys ...Key) []Activation {
 }
 
 // Start is the scheduler main loop.
-func (s *Scheduler) Start(ctx context.Context) {
+func (s *Scheduler[_]) Start(ctx context.Context) {
 	s.listener.OnSchedulerStart(ctx)
 
 	for {
@@ -343,7 +335,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 	s.listener.OnSchedulerStop(ctx)
 }
 
-func (s *Scheduler) activateIn(a Activation) time.Duration {
+func (s *Scheduler[K]) activateIn(a Activation[K]) time.Duration {
 	d := a.Sub(s.now())
 	if d < 0 {
 		d = 0
@@ -355,7 +347,7 @@ func (s *Scheduler) activateIn(a Activation) time.Duration {
 // duration expires (if d >= 0) or wakeup function is called.
 // If d < 0 the timer is disabled.
 // Returns true iff timer expired.
-func (s *Scheduler) sleep(ctx context.Context, d time.Duration) bool {
+func (s *Scheduler[_]) sleep(ctx context.Context, d time.Duration) bool {
 	if !s.timer.Stop() {
 		select {
 		case <-s.timer.C:
@@ -383,14 +375,14 @@ func (s *Scheduler) sleep(ctx context.Context, d time.Duration) bool {
 	}
 }
 
-func (s *Scheduler) wakeup() {
+func (s *Scheduler[_]) wakeup() {
 	select {
 	case s.wakeupCh <- struct{}{}:
 	default:
 	}
 }
 
-func (s *Scheduler) newRunContextLocked(a Activation) *RunContext {
+func (s *Scheduler[K]) newRunContextLocked(a Activation[K]) *RunContext[K] {
 	var p Properties
 	if a.Properties != nil {
 		p = a.Properties
@@ -404,10 +396,10 @@ func (s *Scheduler) newRunContextLocked(a Activation) *RunContext {
 	return ctx
 }
 
-func (s *Scheduler) asyncRun(ctx *RunContext) {
+func (s *Scheduler[K]) asyncRun(ctx *RunContext[K]) {
 	s.listener.OnRunStart(ctx)
 	s.wg.Add(1)
-	go func(ctx *RunContext) {
+	go func(ctx *RunContext[K]) {
 		defer s.wg.Done()
 		ctx.err = s.run(*ctx)
 		s.onRunEnd(ctx)
@@ -415,7 +407,7 @@ func (s *Scheduler) asyncRun(ctx *RunContext) {
 	}(ctx)
 }
 
-func (s *Scheduler) onRunEnd(ctx *RunContext) {
+func (s *Scheduler[K]) onRunEnd(ctx *RunContext[K]) {
 	err := ctx.err
 	switch {
 	case err == nil:

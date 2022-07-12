@@ -11,7 +11,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/b16set"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
@@ -161,7 +160,7 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendPro
 
 // resetSchedulerLocked closes the current scheduler, records the information on running tasks, and creates a new empty scheduler.
 // It returns the old closed scheduler.
-func (s *Service) resetSchedulerLocked(si *suspendInfo) *scheduler.Scheduler {
+func (s *Service) resetSchedulerLocked(si *suspendInfo) *Scheduler {
 	cid := si.ClusterID
 	l := s.scheduler[cid]
 	if l != nil {
