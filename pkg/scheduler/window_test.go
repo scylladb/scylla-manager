@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
@@ -185,22 +186,22 @@ func TestWeekdayTimeUnmarshalTextError(t *testing.T) {
 }
 
 func TestWindowParse(t *testing.T) {
-	table := []struct {
+	table := map[string]struct {
 		Window string
 	}{
-		{
+		"weekdays": {
 			Window: "mon-00:00,fri-15:00",
 		},
-		{
+		"overnight": {
 			Window: "23:00,06:00",
 		},
-		{
+		"overnight and weekend": {
 			Window: "23:00,06:00,sat-00:00,sun-23:59",
 		},
 	}
-	for i := range table {
-		test := table[i]
-		t.Run(test.Window, func(t *testing.T) {
+	for name := range table {
+		test := table[name]
+		t.Run(name, func(t *testing.T) {
 			s := bytes.Split([]byte(test.Window), []byte{','})
 			wdt := make([]WeekdayTime, len(s))
 			for i := range wdt {
