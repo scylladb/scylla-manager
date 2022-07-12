@@ -1601,6 +1601,9 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	})
 
 	Print("And: run backup again")
+	// wait at least 1 sec to avoid having same snapshot ID as in previous backup run
+	time.Sleep(time.Second)
+
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
