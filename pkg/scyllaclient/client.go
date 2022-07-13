@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
-	"runtime"
 	"sync"
 	"time"
 
@@ -51,11 +50,10 @@ func DefaultTransport() *http.Transport {
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
+		MaxIdleConnsPerHost:   100,
 
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
