@@ -30,8 +30,9 @@ This product includes software from github.com/golang/protobuf licensed under BS
 This product includes software from github.com/golang/snappy licensed under BSD-3-Clause license.
 This product includes software from github.com/google/uuid licensed under BSD-3-Clause license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
-This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0-no-copyleft-exception license.
+This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0 license.
 This product includes software from github.com/jmespath/go-jmespath licensed under Apache-2.0 license.
+This product includes software from github.com/json-iterator/go licensed under MIT license.
 This product includes software from github.com/jzelinskie/whirlpool licensed under BSD-3-Clause license.
 This product includes software from github.com/mailru/easyjson licensed under MIT license.
 This product includes software from github.com/mattn/go-colorable licensed under MIT license.
@@ -40,6 +41,8 @@ This product includes software from github.com/mattn/go-isatty licensed under MI
 This product includes software from github.com/matttproud/golang_protobuf_extensions licensed under Apache-2.0 license.
 This product includes software from github.com/mitchellh/go-homedir licensed under MIT license.
 This product includes software from github.com/mitchellh/mapstructure licensed under MIT license.
+This product includes software from github.com/modern-go/concurrent licensed under Apache-2.0 license.
+This product includes software from github.com/modern-go/reflect2 licensed under Apache-2.0 license.
 This product includes software from github.com/ncw/swift licensed under MIT license.
 This product includes software from github.com/pkg/errors licensed under BSD-2-Clause license.
 This product includes software from github.com/prometheus/client_golang licensed under Apache-2.0 license.

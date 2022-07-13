@@ -16,7 +16,7 @@ This product includes software from github.com/gobwas/glob licensed under MIT li
 This product includes software from github.com/gocql/gocql licensed under BSD-3-Clause license.
 This product includes software from github.com/golang/snappy licensed under BSD-3-Clause license.
 This product includes software from github.com/hailocab/go-hostpool licensed under MIT license.
-This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0-no-copyleft-exception license.
+This product includes software from github.com/hashicorp/go-version licensed under MPL-2.0 license.
 This product includes software from github.com/hbollon/go-edlib licensed under MIT license.
 This product includes software from github.com/lnquy/cron licensed under MIT license.
 This product includes software from github.com/mailru/easyjson licensed under MIT license.
