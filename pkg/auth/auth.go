@@ -32,7 +32,8 @@ func AddToken(next http.RoundTripper, token string) http.RoundTripper {
 // status code with provided body would be returned.
 // If token is empty it immediately returns the next handler.
 func ValidateToken(token string, penalty time.Duration,
-	unauthorizedBody json.RawMessage) func(http.Handler) http.Handler {
+	unauthorizedBody json.RawMessage,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		if token == "" {
 			return next

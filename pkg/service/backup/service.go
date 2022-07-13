@@ -50,7 +50,8 @@ type Service struct {
 }
 
 func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
-	clusterSession SessionFunc, logger log.Logger) (*Service, error) {
+	clusterSession SessionFunc, logger log.Logger,
+) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -310,7 +311,8 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 // checkLocationsAvailableFromNodes checks if each node has access location for
 // its dataceneter.
 func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
-	nodes scyllaclient.NodeStatusInfoSlice, locations []Location) error {
+	nodes scyllaclient.NodeStatusInfoSlice, locations []Location,
+) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
 

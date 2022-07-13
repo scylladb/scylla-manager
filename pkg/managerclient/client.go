@@ -511,7 +511,8 @@ func (c Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, r
 
 // ListBackups returns listing of available backups.
 func (c Client) ListBackups(ctx context.Context, clusterID string,
-	locations []string, allClusters bool, keyspace []string, minDate, maxDate time.Time) (BackupListItems, error) {
+	locations []string, allClusters bool, keyspace []string, minDate, maxDate time.Time,
+) (BackupListItems, error) {
 	p := &operations.GetClusterClusterIDBackupsParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -538,7 +539,8 @@ func (c Client) ListBackups(ctx context.Context, clusterID string,
 
 // ListBackupFiles returns a listing of available backup files.
 func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
-	locations []string, allClusters bool, keyspace []string, snapshotTag string) ([]*models.BackupFilesInfo, error) {
+	locations []string, allClusters bool, keyspace []string, snapshotTag string,
+) ([]*models.BackupFilesInfo, error) {
 	p := &operations.GetClusterClusterIDBackupsFilesParams{
 		Context:     ctx,
 		ClusterID:   clusterID,
@@ -560,7 +562,8 @@ func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
 
 // DeleteSnapshot deletes backup snapshot with all data associated with it.
 func (c Client) DeleteSnapshot(ctx context.Context, clusterID string,
-	locations []string, snapshotTags []string) error {
+	locations []string, snapshotTags []string,
+) error {
 	p := &operations.DeleteClusterClusterIDBackupsParams{
 		Context:      ctx,
 		ClusterID:    clusterID,

@@ -33,7 +33,10 @@ type (
 	// They are JSON encoded.
 	Properties = json.RawMessage
 
-	Scheduler  = scheduler.Scheduler[Key]
+	// Scheduler instantiated with Key type.
+	Scheduler = scheduler.Scheduler[Key]
+
+	// RunContext instantiated with Key type.
 	RunContext = scheduler.RunContext[Key]
 )
 

@@ -272,7 +272,8 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 }
 
 func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid.UUID,
-	status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
+	status scyllaclient.NodeStatusInfoSlice, out []NodeStatus,
+) func() error {
 	return func() error {
 		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
 			o := &out[i]

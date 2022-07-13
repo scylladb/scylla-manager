@@ -32,7 +32,8 @@ type worker struct {
 func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
 	manager progressManager, hostPartitioner map[string]*dht.Murmur3Partitioner,
 	hostFeatures map[string]scyllaclient.ScyllaFeatures, repairType Type,
-	pollInterval time.Duration, longPollingTimeoutSeconds int, logger log.Logger) *worker {
+	pollInterval time.Duration, longPollingTimeoutSeconds int, logger log.Logger,
+) *worker {
 	return &worker{
 		run:                       run,
 		in:                        in,

@@ -41,12 +41,14 @@ linters:
     - durationcheck
     - exhaustive
     - exhaustivestruct
+    - exhaustruct
     - forbidigo
     - forcetypeassert
     - funlen
     - gas
     - gochecknoglobals
     - gochecknoinits
+    - gocritic
     - goerr113
     - golint
     - gomnd
@@ -57,6 +59,7 @@ linters:
     - nilerr
     - nlreturn
     - nolintlint
+    - nonamedreturns
     - prealloc
     - promlinter
     - scopelint
@@ -111,3 +114,7 @@ issues:
     - should merge variable declaration with assignment on next line
     - should not use dot imports
     - string `string` has [\d]+ occurrences, make it a constant
+    - Function name[:] .+, Cyclomatic Complexity
+  exclude-rules:
+    - path: pkg/scheduler/activation\.go
+      text: receiver-naming[:] receiver name .+ should be consistent with previous receiver name .+ for invalid-type

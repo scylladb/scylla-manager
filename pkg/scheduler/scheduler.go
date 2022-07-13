@@ -17,10 +17,10 @@ type Properties = any
 // RunContext is a bundle of Context, Key, Properties and additional runtime
 // information.
 type RunContext[K comparable] struct {
-	context.Context
-	Key        K
-	Properties Properties
-	Retry      int8
+	context.Context //nolint:containedctx
+	Key             K
+	Properties      Properties
+	Retry           int8
 
 	err error
 }
