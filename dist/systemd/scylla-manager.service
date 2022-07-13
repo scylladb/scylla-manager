@@ -9,6 +9,7 @@ Type=simple
 User=scylla-manager
 Group=scylla-manager
 ExecStart=/usr/bin/scylla-manager
+LimitNOFILE=100000
 TimeoutStartSec=900
 KillMode=process
 Restart=on-failure
