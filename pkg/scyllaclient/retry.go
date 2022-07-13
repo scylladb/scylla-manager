@@ -158,7 +158,7 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 type retryableOperation struct {
 	config        *retryConfig
 	customTimeout time.Duration
-	ctx           context.Context
+	ctx           context.Context //nolint:containedctx
 	id            string
 	result        interface{}
 	attempts      int

@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 )
 
+// Listener instantiated with Key type.
 type Listener = scheduler.Listener[Key]
 
 type schedulerListener struct {

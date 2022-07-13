@@ -24,7 +24,7 @@ type Filler struct {
 	parallel int
 	logger   log.Logger
 
-	ctx context.Context
+	ctx context.Context //nolint:containedctx
 }
 
 func NewFiller(session gocqlx.Session, size, bufSize int64, parallel int, logger log.Logger) *Filler {
@@ -110,7 +110,7 @@ type MultiFiller struct {
 	parallel int
 	logger   log.Logger
 
-	ctx context.Context
+	ctx context.Context //nolint:containedctx
 }
 
 func NewMultiFiller(tables int, session gocqlx.Session, size, bufSize int64, parallel int, logger log.Logger) *MultiFiller {
