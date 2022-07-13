@@ -51,7 +51,7 @@ jobs:
         id: cache-dependencies
         with:
          path: ~/work/scylla-manager/scylla-manager/bin
-         key: ${{ runner.os }}-${{ hashFiles('**/install-dependencies.sh') }}
+         key: ${{ runner.os }}-${{ hashFiles('**/install-dependencies.sh', '**/mod/go.sum') }}
 
       - name: Install dependencies
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
