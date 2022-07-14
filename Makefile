@@ -127,7 +127,7 @@ pkg-integration-test:
 		-v "$(PWD)/$(PKG)/testdata:/integration-test/testdata" \
 		-w "/integration-test" \
 		-u $(CURRENT_UID):$(CURRENT_GID) \
-		-it --read-only --rm ubuntu integration-test -test.v -test.run $(RUN) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
+		-i --read-only --rm ubuntu integration-test -test.v -test.run $(RUN) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
 
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
@@ -138,8 +138,8 @@ pkg-stress-test:
 	@cd $(PKG); $(GOBIN)/stress $(PWD)/stress.test -test.run $(RUN)
 
 .PHONY: start-dev-env
-start-dev-env: ## Start testing containers and run server
-start-dev-env: .testing-up deploy-agent build-cli run-server
+start-dev-env: ## Start testing containers
+start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
@@ -179,7 +179,7 @@ run-server: build-server ## Build and run development server
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
 		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-v "/tmp:/tmp" \
-		-it --read-only --rm scylladb/scylla-manager-dev scylla-manager
+		-i --read-only --rm scylladb/scylla-manager-dev scylla-manager
 
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries

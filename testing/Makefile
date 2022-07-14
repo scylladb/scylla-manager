@@ -2,8 +2,10 @@ all: help
 
 COMPOSE    := docker-compose
 CQLSH      := $(COMPOSE) exec scylla-manager-db cqlsh
-CQLSH_NODE := $(COMPOSE) exec dc1_node_1 cqlsh
+CQLSH_NODE := $(COMPOSE) exec -T dc1_node_1 cqlsh
 YQ         := ../bin/yq
+CURRENT_UID := $(shell id -u)
+CURRENT_GID := $(shell id -g)
 
 include .env
 
@@ -32,13 +34,15 @@ else
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 	@echo "==> Starting containers"
-	@mkdir -p $(MINIO_DATA_DIR)
-	@. ./.env && $(COMPOSE) up -d
+	mkdir -p $(MINIO_DATA_DIR)
+	@. ./.env && UID=$(CURRENT_UID) GID=$(CURRENT_GID) $(COMPOSE) up -d
+	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
+	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null; do echo ""; sleep 2; done
+	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null ; do echo "..."; sleep 2; done
 	@./nodes_exec rm /root/.cqlshrc
 	@echo "==> Adding Minio user"
-	@./minio/add_user.sh
+	./minio/add_user.sh
 
 .PHONY: down
 down: ## Stop docker containers
