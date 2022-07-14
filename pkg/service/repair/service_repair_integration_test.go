@@ -924,12 +924,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: no network for 5s with 1s backoff")
 		h.hrt.SetInterceptor(dialErrorInterceptor())
-		time.AfterFunc(3*h.client.Config().Timeout, func() {
+		time.AfterFunc(2*h.client.Config().Timeout, func() {
 			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
 		Print("When: node12 is 60% repaired")
-		h.assertProgress(node12, 60, 5*time.Second)
+		h.assertProgress(node12, 60, longWait)
 
 		Print("And: repair contains error")
 		h.assertErrorContains("token ranges out of", longWait)
