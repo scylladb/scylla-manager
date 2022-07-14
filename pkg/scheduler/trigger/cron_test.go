@@ -39,7 +39,8 @@ func TestCronInDifferentLocations(t *testing.T) {
 	if n0.Location() != l0 {
 		t.Fatal("Wrong location")
 	}
-	if n1.Sub(n0) != 6*time.Hour {
+	// Next cron can be within same day, or the next day
+	if n1.Sub(n0) != 6*time.Hour && n0.Sub(n1) != 18*time.Hour {
 		t.Fatal(n1.Sub(n0))
 	}
 }
