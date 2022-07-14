@@ -267,7 +267,7 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 	})
 
 	t.Run("context timeout exceeded", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond)
 		defer cancel()
 
 		_, err := s.Status(ctx, clusterID)
