@@ -117,6 +117,7 @@ pkg-integration-test: ## Run integration tests for a package, requires PKG param
 pkg-integration-test: RUN=Integration
 pkg-integration-test:
 	@echo "==> Running integration tests for package $(PKG)"
+	@docker kill scylla_manager_server 2> /dev/null || true
 	@CGO_ENABLED=0 GOOS=linux go test -tags integration -c -o ./integration-test.dev $(PKG)
 	@docker run --name "scylla_manager_server" \
 		--network scylla_manager_public \
