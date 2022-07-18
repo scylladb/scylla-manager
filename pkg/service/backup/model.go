@@ -97,13 +97,13 @@ type fileInfo struct {
 	Size int64
 }
 
-// RunProgress describes backup progress on per file basis.
+// RunProgress describes backup progress on per-file basis.
 //
 // Each RunProgress either has Uploaded or Skipped fields set to respective
 // amount of bytes. Failed shows amount of bytes that is assumed to have
 // failed. Since current implementation doesn't support resume at file level
 // this value will always be the same as Uploaded as file needs to be uploaded
-// again. In summary Failed is supposed to mean, out of uploaded bytes how much
+// again. In summary Failed is supposed to mean, out of uploaded bytes how many
 // bytes have to be uploaded again.
 type RunProgress struct {
 	ClusterID uuid.UUID

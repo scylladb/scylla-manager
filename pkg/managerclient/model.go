@@ -3,7 +3,6 @@
 package managerclient
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -407,8 +406,10 @@ type RestoreTarget struct {
 
 const restoreTargetTemplate = `TODO - implement`
 
+// Render implements Renderer interface.
 func (t RestoreTarget) Render(w io.Writer) error {
-	return errors.New("TODO - implement")
+	temp := template.Must(template.New("target").Funcs(template.FuncMap{}).Parse(restoreTargetTemplate))
+	return temp.Execute(w, t)
 }
 
 // TaskListItem is a representation of scheduler.Task with additional fields from scheduler.

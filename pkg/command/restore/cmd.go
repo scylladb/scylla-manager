@@ -38,7 +38,7 @@ type command struct {
 	// host                string
 	// ignoreDownHosts     bool
 	// intensity           *flag.Intensity
-	// parallel            int
+	// parallel            int TODO: It is mentioned in universal restore Doc.
 	// smallTableThreshold managerclient.SizeSuffix
 	// showTables          bool
 }
@@ -109,7 +109,6 @@ func (cmd *command) run(args []string) error {
 		if taskType != managerclient.RestoreTask {
 			return fmt.Errorf("can't handle %s task", taskType)
 		}
-
 		task, err = cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
 		if err != nil {
 			return err
@@ -120,7 +119,6 @@ func (cmd *command) run(args []string) error {
 	}
 
 	props := task.Properties.(map[string]interface{})
-
 	if cmd.Flag("dc").Changed {
 		props["dc"] = cmd.dc
 		ok = true
@@ -130,29 +128,29 @@ func (cmd *command) run(args []string) error {
 		ok = true
 	}
 
+	// TODO: Why is dryRun this early in the code?
+	// TODO: Why setting ok = true is no longer done after checking dryRun?
 	if cmd.dryRun {
+		// TODO: Do we need to inform user that this action may take a while?
 		res, err := cmd.client.GetRestoreTarget(cmd.Context(), cmd.cluster, task)
 		if err != nil {
 			return err
 		}
-		res.Schedule = task.Schedule
 
 		fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, restore is not scheduled\n\n")
+		res.Schedule = task.Schedule
 		return res.Render(cmd.OutOrStdout())
 	}
 
 	if cmd.Flag("location").Changed {
 		props["location"] = cmd.location
 	}
-
 	if cmd.Flag("batch-size").Changed {
 		props["batch_size"] = cmd.batchSize
 	}
-
 	if cmd.Flag("min-free-disk-space").Changed {
 		props["min_free_disk_space"] = cmd.minFreeDiskSpace
 	}
-
 	if cmd.Flag("table").Changed {
 		props["table"] = cmd.table
 	}

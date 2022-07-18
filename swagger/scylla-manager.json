@@ -1216,6 +1216,41 @@
         }
       }
     },
+    "/cluster/{cluster_id}/tasks/restore/target": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "parameters": [
+          {
+            "name": "taskFields",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/TaskUpdate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restore target",
+            "schema": {
+              "$ref": "#/definitions/RestoreTarget"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/cluster/{cluster_id}/task/{task_type}/{task_id}": {
       "parameters": [
         {
