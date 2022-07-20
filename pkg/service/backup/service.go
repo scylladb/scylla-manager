@@ -904,7 +904,7 @@ func (s *Service) clonePrevProgress(run *Run) error {
 	})
 }
 
-// GetLastResumableRun returns the the most recent started but not done run of
+// GetLastResumableRun returns the most recent started but not done run of
 // the task, if there is a recent run that is completely done ErrNotFound is
 // reported.
 func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
