@@ -15,6 +15,7 @@ type Config struct {
 	DiskSpaceFreeMinPercent   int           `yaml:"disk_space_free_min_percent"`
 	LongPollingTimeoutSeconds int           `yaml:"long_polling_timeout_seconds"`
 	AgeMax                    time.Duration `yaml:"age_max"`
+	LocalDC                   string        `yaml:"local_dc"`
 }
 
 func DefaultConfig() Config {
@@ -22,6 +23,7 @@ func DefaultConfig() Config {
 		DiskSpaceFreeMinPercent:   10,
 		LongPollingTimeoutSeconds: 10,
 		AgeMax:                    12 * time.Hour,
+		// TODO: do we need to set default local DC?
 	}
 }
 
@@ -37,6 +39,6 @@ func (c *Config) Validate() error {
 	if c.AgeMax < 0 {
 		err = multierr.Append(err, errors.New("invalid age_max, must be >= 0"))
 	}
-
+	// TODO: do we need to validate local DC?
 	return err
 }
