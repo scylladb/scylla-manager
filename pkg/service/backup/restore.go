@@ -123,9 +123,23 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			return err
 		}
 
-		// TODO - Find live nodes local to the backup data - same DC
-		// var liveNodes scyllaclient.NodeStatusInfoSlice
-		// If cannot be found use Scylla nodes in local DC
+		// Get hosts in all DCs
+		status, err := client.Status(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get result")
+		}
+
+		// Get nodes from the backup location DC
+		liveNodes, err := client.GetLiveNodes(ctx, status, []string{l.DC})
+		if err != nil {
+			// In case of failure get nodes from local DC
+			liveNodes, err = client.GetLiveNodes(ctx, status, []string{s.config.LocalDC})
+			if err != nil {
+				return err
+			}
+		}
+		// TODO: do we need to validate if liveNodes can restore backup?
+		// If yes then can we do it now or do we need to iterate over all manifests to accomplish that?
 
 		// Loop manifests for the snapshot tag
 		s.forEachManifest(ctx, clusterID, []Location{l}, ListFilter{SnapshotTag: target.SnapshotTag}, func(miwc ManifestInfoWithContent) {
