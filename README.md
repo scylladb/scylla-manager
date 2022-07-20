@@ -58,7 +58,11 @@ This command will:
 1. Start Scylla cluster with 2 DCs 3 nodes each (6 containers)
 1. Start MinIO and Prometheus containers
 1. Start dedicated Scylla container for Scylla Manager datastore
-1. Start Scylla Manager server on localhost
+
+Additionally, you can start container with scylla-manager server.
+```bash
+make run-server
+```
 
 Docker compose environment for test cluster is located in the `testing` directory.
 
