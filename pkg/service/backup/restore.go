@@ -6,19 +6,21 @@ import (
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // TODO docstrings
 
 type RestoreTarget struct {
-	Location         []Location `json:"location"`
-	SnapshotTag      string     `json:"snapshot_tag"`
-	Keyspace         []string   `json:"keyspace"`
-	Table            []string   `json:"table"`
-	BatchSize        int        `json:"batch_size"`
-	MinFreeDiskSpace int        `json:"min_free_disk_space"`
-	Continue         bool       `json:"continue"`
+	Location    []Location `json:"location"`
+	SnapshotTag string     `json:"snapshot_tag"`
+	// TODO: should we replace Keyspace + Table with Unit and set them in GetRestoreTarget?
+	Keyspace         []string `json:"keyspace"`
+	Table            []string `json:"table"`
+	BatchSize        int      `json:"batch_size"`
+	MinFreeDiskSpace int      `json:"min_free_disk_space"`
+	Continue         bool     `json:"continue"`
 }
 
 type RestoreRunner struct {
@@ -41,6 +43,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	s.logger.Info(ctx, "GetRestoreTarget", "cluster_id", clusterID)
 
 	var t RestoreTarget
+	// TODO: in backup we were unmarshalling to taskProperties. Why is it different here?
 	if err := json.Unmarshal(properties, &t); err != nil {
 		return t, err
 	}
@@ -48,7 +51,6 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	if t.Location == nil {
 		return t, errors.New("missing location")
 	}
-
 	// TODO - gather livenodes here like in backup?
 
 	return t, nil
@@ -149,6 +151,21 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 				"manifest", miwc.ManifestInfo,
 			)
 
+			// Filter keyspaces
+			// TODO: error handling
+			filter, _ := ksfilter.NewFilter(target.Keyspace)
+			for _, i := range miwc.Index {
+				filter.Add(i.Keyspace, []string{i.Table})
+			}
+			// Get the filtered units
+			v, _ := filter.Apply(false)
+
+			for _, u := range v {
+				for _, t := range u.Tables {
+					// TODO: proceed with filtered tables
+				}
+			}
+
 			// TODO - replace with streaming indexes when #3171 merged
 			// TODO - filter for requests tables - restoring all for now
 			for _, i := range miwc.Index {
@@ -157,6 +174,8 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 					"location", l,
 					"table", i.Table,
 				)
+				// TODO: do we disable compaction by nodetool?
+				// ALTER TABLE nba.team_roster WITH compaction = {'class' :  'LeveledCompactionStrategy'}
 
 				// TODO - disable compaction on all nodes
 				// TODO - defer enable compaction on all nodes
@@ -183,6 +202,8 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 				}
 
 				client.Restore(ctx, miwc.Location.String(), dir, i.Keyspace, i.Table, i.Version, i.Files)
+
+				// TODO: are file names actually sstable ID?
 
 				/* TODO - BUNDLE AND BATCH - starting 1 at a time for simplicity
 				// TODO - Group related files to bundles by sstable ID
