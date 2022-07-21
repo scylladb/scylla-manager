@@ -4,6 +4,9 @@ package backup
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -115,7 +118,10 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 }
 
 func (w *worker) RecordGraceSeconds(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string) (int, error) {
-	w.Logger.Info(ctx, "Retrieving gc_grace_seconds")
+	w.Logger.Info(ctx, "Retrieving gc_grace_seconds",
+		"keyspace", keyspace,
+		"table", table,
+	)
 
 	q := qb.Select("system_schema.tables").
 		Columns("gc_grace_seconds").
@@ -126,6 +132,87 @@ func (w *worker) RecordGraceSeconds(ctx context.Context, clusterSession gocqlx.S
 	defer q.Release()
 
 	var ggs int
-	err := q.Scan(&ggs)
-	return ggs, err
+	if err := q.Scan(&ggs); err != nil {
+		return 0, errors.Wrap(err, "record gc_grace_seconds")
+	}
+	return ggs, nil
+}
+
+// TODO: what consistency level should be assigned to ALTER TABLE queries?
+
+func (w *worker) SetGraceSeconds(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, ggs int) error {
+	w.Logger.Info(ctx, "Setting gc_grace_seconds",
+		"keyspace", keyspace,
+		"table", table,
+		"value", ggs,
+	)
+
+	alterStmt := fmt.Sprintf("ALTER TABLE %s.%s WITH gc_grace_seconds=%s", keyspace, table, strconv.Itoa(ggs))
+
+	if err := clusterSession.ExecStmt(alterStmt); err != nil {
+		return errors.Wrap(err, "set gc_grace_seconds")
+	}
+	return nil
+}
+
+func (w *worker) SetGraceSecondsNoErr(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, ggs int) {
+	_ = w.SetGraceSeconds(ctx, clusterSession, keyspace, table, ggs)
+}
+
+// compaction strategy is represented as map of options.
+// Note that altering table's compaction strategy completely overrides previous one
+// (old options that are not specified in new strategy are discarded).
+// 'class' option is mandatory when any option is specified.
+type compaction map[string]string
+
+// TODO: is there an easier way around that?
+// Couldn't find any way to bind map appropriately
+func (c compaction) String() string {
+	var opts []string
+	for k, v := range c {
+		opts = append(opts, fmt.Sprintf("'%s': '%s'", k, v))
+	}
+
+	cqlOpts := strings.Join(opts, ", ")
+	return fmt.Sprintf("{%s}", cqlOpts)
+}
+
+func (w *worker) RecordCompaction(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string) (compaction, error) {
+	w.Logger.Info(ctx, "Retrieving compaction",
+		"keyspace", keyspace,
+		"table", table,
+	)
+
+	q := qb.Select("system_schema.tables").
+		Columns("compaction").
+		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
+		Query(clusterSession).
+		Bind(keyspace, table)
+
+	defer q.Release()
+
+	var comp compaction
+	if err := q.Scan(&comp); err != nil {
+		return nil, errors.Wrap(err, "record compaction")
+	}
+	return comp, nil
+}
+
+func (w *worker) SetCompaction(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, comp compaction) error {
+	w.Logger.Info(ctx, "Setting compaction",
+		"keyspace", keyspace,
+		"table", table,
+		"value", comp,
+	)
+
+	alterStmt := fmt.Sprintf("ALTER TABLE %s.%s WITH compaction=%s", keyspace, table, comp.String())
+
+	if err := clusterSession.ExecStmt(alterStmt); err != nil {
+		return errors.Wrap(err, "set compaction")
+	}
+	return nil
+}
+
+func (w *worker) SetCompactionNoErr(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, comp compaction) {
+	_ = w.SetCompaction(ctx, clusterSession, keyspace, table, comp)
 }
