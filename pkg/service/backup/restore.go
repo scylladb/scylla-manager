@@ -3,6 +3,8 @@ package backup
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math"
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -90,46 +92,46 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		return errors.Wrap(err, "invalid cluster")
 	}
 
+	// TODO: can we have one worker for all locations?
+	// TODO - create distinct restore worker?
+	w := &worker{
+		ClusterID:   clusterID,
+		ClusterName: clusterName,
+		TaskID:      taskID,
+		RunID:       runID,
+		Client:      client,
+		Config:      s.config,
+		Metrics:     s.metrics,
+	}
+
+	// Get cluster session
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		// TODO - backup ignores this error, but here we probably can't?
+		w.Logger.Info(ctx, "No CQL cluster session, restore can't proceed", "error", err)
+		return err
+	}
+	defer clusterSession.Close()
+
+	// Get hosts in all DCs
+	status, err := client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get result")
+	}
+
 	for _, l := range target.Location {
 		s.logger.Info(ctx, "Looping locations",
 			"cluster_id", clusterID,
 			"location", l,
 		)
 
-		// TODO - create distinct restore worker?
-		w := &worker{
-			ClusterID:   clusterID,
-			ClusterName: clusterName,
-			TaskID:      taskID,
-			RunID:       runID,
-			Client:      client,
-			Config:      s.config,
-			Metrics:     s.metrics,
-		}
-
+		// TODO: add stages
 		// ~TODO~ - Wait for schema agreement
 		// Does this actually need to be done per-location or just once?
-		if err := func() error {
-			w.Logger.Info(ctx, "Awaiting Schema Agreement")
-			clusterSession, err := s.clusterSession(ctx, clusterID)
-			if err != nil {
-				// TODO - backup ignores this error, but here we probably can't?
-				w.Logger.Info(ctx, "No CQL cluster session, backup of schema as CQL files would be skipped", "error", err)
-				return nil
-			}
-			defer clusterSession.Close()
 
-			w.AwaitSchemaAgreement(ctx, clusterSession)
-			return nil
-		}(); err != nil {
-			return err
-		}
+		w.Logger.Info(ctx, "Awaiting Schema Agreement")
 
-		// Get hosts in all DCs
-		status, err := client.Status(ctx)
-		if err != nil {
-			return errors.Wrap(err, "get result")
-		}
+		w.AwaitSchemaAgreement(ctx, clusterSession)
 
 		// Get nodes from the backup location DC
 		liveNodes, err := client.GetLiveNodes(ctx, status, []string{l.DC})
@@ -140,11 +142,16 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 				return err
 			}
 		}
+
+		w.Logger.Info(ctx, "Live nodes",
+			"nodes", liveNodes,
+		)
+
 		// TODO: do we need to validate if liveNodes can restore backup?
 		// If yes then can we do it now or do we need to iterate over all manifests to accomplish that?
 
 		// Loop manifests for the snapshot tag
-		s.forEachManifest(ctx, clusterID, []Location{l}, ListFilter{SnapshotTag: target.SnapshotTag}, func(miwc ManifestInfoWithContent) {
+		s.forEachManifest(ctx, clusterID, []Location{l}, ListFilter{SnapshotTag: target.SnapshotTag}, func(miwc ManifestInfoWithContent) error {
 			s.logger.Info(ctx, "Looping manifests",
 				"cluster_id", clusterID,
 				"location", l,
@@ -152,48 +159,80 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			)
 
 			// Filter keyspaces
-			// TODO: error handling
-			filter, _ := ksfilter.NewFilter(target.Keyspace)
+			filter, err := ksfilter.NewFilter(target.Keyspace)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("crete filter for restored tables in location %s", l.String()))
+			}
+
 			for _, i := range miwc.Index {
 				filter.Add(i.Keyspace, []string{i.Table})
 			}
 			// Get the filtered units
-			v, _ := filter.Apply(false)
+			units, _ := filter.Apply(false)
 
-			for _, u := range v {
+			// Loop tables for the manifest
+			for _, u := range units {
 				for _, t := range u.Tables {
-					// TODO: proceed with filtered tables
+					s.logger.Info(ctx, "Looping tables",
+						"cluster_id", clusterID,
+						"location", l,
+						"keyspace", u.Keyspace,
+						"table", t,
+					)
+
+					if err := func() error {
+						// Temporarily disable compaction
+						comp, err := w.RecordCompaction(ctx, clusterSession, u.Keyspace, t)
+						if err != nil {
+							return err
+						}
+
+						s.logger.Info(ctx, "recorded compaction",
+							"compaction", comp.String(),
+						)
+
+						var tmpComp compaction
+						for k, v := range comp {
+							tmpComp[k] = v
+						}
+						// Disable compaction option
+						tmpComp["enabled"] = "false"
+
+						if err := w.SetCompaction(ctx, clusterSession, u.Keyspace, t, tmpComp); err != nil {
+							return err
+						}
+						// TODO: what if resetting compaction/gc_grace_seconds fails?
+						// Reset compaction
+						defer w.SetCompactionNoErr(ctx, clusterSession, u.Keyspace, t, comp)
+
+						// Temporarily set gc_grace_seconds to max supported value
+						ggs, err := w.RecordGraceSeconds(ctx, clusterSession, u.Keyspace, t)
+
+						s.logger.Info(ctx, "recorded gc_grace_seconds",
+							"gc_grace_seconds", ggs,
+						)
+
+						const maxGGS = math.MaxInt32
+						if err := w.SetGraceSeconds(ctx, clusterSession, u.Keyspace, t, maxGGS); err != nil {
+							return err
+						}
+						// Reset gc_grace_seconds
+						defer w.SetGraceSecondsNoErr(ctx, clusterSession, u.Keyspace, t, ggs)
+
+						dir := RemoteSSTableVersionDir(miwc.ClusterID, miwc.DC, miwc.NodeID, u.Keyspace, t, i.Version)
+
+						client.Restore(ctx, miwc.Location.String(), dir, i.Keyspace, i.Table, i.Version, i.Files)
+
+						return nil
+					}(); err != nil {
+						return errors.Wrap(err, fmt.Sprintf("restore table %s.%s", u.Keyspace, t))
+					}
 				}
 			}
 
 			// TODO - replace with streaming indexes when #3171 merged
-			// TODO - filter for requests tables - restoring all for now
 			for _, i := range miwc.Index {
-				s.logger.Info(ctx, "Looping tables",
-					"cluster_id", clusterID,
-					"location", l,
-					"table", i.Table,
-				)
-				// TODO: do we disable compaction by nodetool?
-				// ALTER TABLE nba.team_roster WITH compaction = {'class' :  'LeveledCompactionStrategy'}
 
-				// TODO - disable compaction on all nodes
-				// TODO - defer enable compaction on all nodes
-
-				/* TODO - Get/Set/Reset grace seconds
-				graceSeconds, err := w.RecordGraceSeconds(ctx, clusterSession, i.Keyspace, i.Table)
-				if err != nil {
-					s.logger.Error(ctx, "error recording gc_grace_seconds", "err", err)
-					return
-				}
-				s.logger.Info(ctx, "recorded gc_grace_seconds", "graceSeconds", graceSeconds)
-				// TODO - what is max?
-				w.SetGraceSeconds(ctx, clusterSession, i.Keyspace, i.Table, 999999999)
-				// TODO - make this all in a function per-table so deferred func happens immediately after each table
-				defer w.SetGraceSeconds(ctx, clusterSession, i.Keyspace, i.Table, graceSeconds)
-				*/
-
-				dir := RemoteSSTableVersionDir(miwc.ClusterID, miwc.DC, miwc.NodeID, i.Keyspace, i.Table, i.Version)
 				for _, f := range i.Files {
 					s.logger.Info(ctx, "Restoring File",
 						"dir", dir,
@@ -201,9 +240,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 					)
 				}
 
-				client.Restore(ctx, miwc.Location.String(), dir, i.Keyspace, i.Table, i.Version, i.Files)
-
-				// TODO: are file names actually sstable ID?
+				// TODO: are file names actually sstable ID? table_name-UUID format?
 
 				/* TODO - BUNDLE AND BATCH - starting 1 at a time for simplicity
 				// TODO - Group related files to bundles by sstable ID
@@ -223,6 +260,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 				}
 				*/
 			}
+			return nil
 		})
 	}
 
