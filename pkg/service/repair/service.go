@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -785,7 +786,76 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	p.DC = run.DC
 	p.Host = run.Host
 
+	var left int64
+	for _, h := range p.Hosts {
+		left += h.TokenRanges - h.Success
+	}
+
+	if left > 0 {
+		rate, err := s.GetHistoricalRate(ctx, clusterID, taskID, runID)
+		if err != nil {
+			s.logger.Error(ctx, "Error getting historical rate", "err", err)
+			p.TimeRemaining = -1
+			return p, nil
+		}
+		p.TimeRemaining = left / rate
+	}
+
 	return p, nil
+}
+
+// GetHistoricalRate calculates the historical rate in ranges/second for repairs of
+// a given task. Ignores current run.
+func (s *Service) GetHistoricalRate(ctx context.Context, clusterID, taskID, runID uuid.UUID) (int64, error) {
+	s.logger.Debug(ctx, "GetHistoricalRate",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	var (
+		duration time.Duration
+		ranges   int64
+	)
+
+	q := s.session.Query(`
+		select cluster_id, task_id, run_id, sum(token_ranges), max(completed_at), min(started_at)
+		from repair_run_progress
+		GROUP BY cluster_id, task_id, run_id
+	`, nil).WithContext(ctx)
+	defer q.Release()
+
+	scanner := q.Iter().Scanner()
+
+	for scanner.Next() {
+		var (
+			sClusterID, sTaskID, sRunID uuid.UUID
+			completedAt, startedAt      time.Time
+			tokenRanges                 int64
+		)
+
+		if err := scanner.Scan(&sClusterID, &sTaskID, &sRunID, &tokenRanges, &completedAt, &startedAt); err != nil {
+			s.logger.Error(ctx, "Error querying for historical repair data", "err", err)
+			continue
+		}
+
+		if sRunID == runID {
+			continue
+		}
+
+		ranges += tokenRanges
+		duration += completedAt.Sub(startedAt)
+	}
+
+	if ranges == 0 || duration.Seconds() == 0 {
+		return -1, nil
+	}
+
+	rate := ranges / int64(duration.Seconds())
+	if rate == 0 {
+		return -1, nil
+	}
+	return rate, nil
 }
 
 func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func() (float64, int) {

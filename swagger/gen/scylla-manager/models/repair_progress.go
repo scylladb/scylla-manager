@@ -54,6 +54,9 @@ type RepairProgress struct {
 	// tables
 	Tables []*TableRepairProgress `json:"tables"`
 
+	// time remaining
+	TimeRemaining int64 `json:"time_remaining,omitempty"`
+
 	// token ranges
 	TokenRanges int64 `json:"token_ranges,omitempty"`
 }

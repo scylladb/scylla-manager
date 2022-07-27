@@ -599,6 +599,9 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{- end }}
 {{- with .Progress }}
 Progress:	{{ FormatRepairProgress .TokenRanges .Success .Error }}
+{{- if (isZero $.Run.EndTime) }}
+Time Remaining: {{ FormatSecondsAsETA .TimeRemaining }}
+{{- end -}}
 {{- if isRunning }}
 Intensity:	{{ .Intensity }}
 Parallel:	{{ .Parallel }}
@@ -620,6 +623,7 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"isRunning":            rp.isRunning,
 		"FormatTime":           FormatTime,
 		"FormatDuration":       FormatDuration,
+		"FormatSecondsAsETA":   FormatSecondsAsETA,
 		"FormatError":          FormatError,
 		"FormatRepairProgress": FormatRepairProgress,
 	}).Parse(repairProgressTemplate))
@@ -837,7 +841,11 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}{{else}}-{{ end }}
+{{ with .Progress -}}
+Progress:	{{ if ne .Size 0 }}{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}{{else}}-{{ end }}
+{{- if (isZero $.Run.EndTime) }}
+Time Remaining: {{ FormatSecondsAsETA .TimeRemaining }}
+{{- end -}}
 {{- if ne .SnapshotTag "" }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{- end }}
@@ -860,6 +868,7 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 		"isZero":               isZero,
 		"FormatTime":           FormatTime,
 		"FormatDuration":       FormatDuration,
+		"FormatSecondsAsETA":   FormatSecondsAsETA,
 		"FormatError":          FormatError,
 		"FormatUploadProgress": FormatUploadProgress,
 		"status":               bp.status,
