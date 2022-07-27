@@ -57,6 +57,8 @@ type ClientService interface {
 
 	Reload(params *ReloadParams) (*ReloadOK, error)
 
+	Restore(params *RestoreParams) (*RestoreOK, error)
+
 	SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error)
 
 	SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error)
@@ -621,6 +623,41 @@ func (a *Client) Reload(params *ReloadParams) (*ReloadOK, error) {
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ReloadDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  Restore restores from backup
+
+  Restore ScyllaDB keyspace and tables from a backup
+*/
+func (a *Client) Restore(params *RestoreParams) (*RestoreOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRestoreParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "Restore",
+		Method:             "POST",
+		PathPattern:        "/restore",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &RestoreReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*RestoreOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RestoreDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

@@ -11,6 +11,7 @@ const (
 	RepairTask         string = "repair"
 	SuspendTask        string = "suspend"
 	ValidateBackupTask string = "validate_backup"
+	RestoreTask        string = "restore"
 )
 
 // TasksTypes is a set of all known task types.
@@ -20,6 +21,7 @@ var TasksTypes = strset.New(
 	RepairTask,
 	SuspendTask,
 	ValidateBackupTask,
+	RestoreTask,
 )
 
 // Status enumeration.
