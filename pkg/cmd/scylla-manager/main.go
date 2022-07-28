@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"syscall"
 	"time"
 )
 
@@ -24,8 +24,8 @@ func main() {
 		// [1] https://github.com/systemd/systemd/issues/2913
 		time.Sleep(1100 * time.Millisecond)
 
-		os.Exit(1)
+		syscall.Exit(1)
 	}
 
-	os.Exit(0)
+	syscall.Exit(0)
 }
