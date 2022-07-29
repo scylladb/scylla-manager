@@ -36,6 +36,7 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - gci
     - contextcheck
     - cyclop
     - durationcheck
