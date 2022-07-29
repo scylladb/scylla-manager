@@ -11,6 +11,7 @@ endif
 # Default package
 PKG := ./pkg/...
 
+SHELL := /bin/bash
 GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
