@@ -392,6 +392,58 @@
         "security": []
       }
     },
+    "/rclone/sync/copypaths": {
+      "post": {
+        "description": "Copy provided list of paths from directory on source fs to directory on destination fs",
+        "summary": "Copy paths from fsrc/remoteSrc/paths to fdst/remoteDst/paths",
+        "operationId": "SyncCopyPaths",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "Options",
+            "description": "Options",
+            "schema": {
+              "$ref": "#/definitions/CopyPathsOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/operations/purge": {
       "post": {
         "description": "Remove a directory or container and all of its contents",
@@ -1035,6 +1087,35 @@
         "dstRemote": {
           "description": "A path within that remote eg. file.txt for the destination",
           "type": "string"
+        }
+      }
+    },
+    "CopyPathsOptions": {
+      "type": "object",
+      "properties": {
+        "srcFs": {
+          "description": "A remote name string eg. drive: for the source",
+          "type": "string"
+        },
+        "srcRemote": {
+          "description": "A directory within that remote eg. files/ for the source",
+          "type": "string"
+        },
+        "dstFs": {
+          "description": "A remote name string eg. drive: for the destination",
+          "type": "string"
+        },
+        "dstRemote": {
+          "description": "A directory within that remote eg. files/ for the destination",
+          "type": "string"
+        },
+        "paths": {
+          "description": "Paths relative to srcRemote/dstRemote eg. file.txt for both source and destination",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "path"
+          }
         }
       }
     },
