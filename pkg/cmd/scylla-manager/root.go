@@ -16,12 +16,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
+	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+
 	"github.com/scylladb/scylla-manager/v3/pkg"
 	"github.com/scylladb/scylla-manager/v3/pkg/callhome"
 	config "github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/netwait"
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var rootArgs = struct {
@@ -56,14 +57,14 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		// Get a base context
-		ctx := log.WithNewTraceID(context.Background())
-
 		// Create logger
 		logger, err := c.MakeLogger()
 		if err != nil {
 			return errors.Wrapf(err, "logger")
 		}
+		// Get a base context
+		rootCtx := log.WithNewTraceID(context.Background())
+		ctx, cancel := context.WithCancel(rootCtx)
 		defer func() {
 			if runError != nil {
 				logger.Error(ctx, "Bye", "error", runError)
@@ -71,6 +72,16 @@ var rootCmd = &cobra.Command{
 				logger.Info(ctx, "Bye")
 			}
 			logger.Sync() // nolint
+		}()
+
+		// Wait signal
+		go func() {
+			signalCh := make(chan os.Signal, 1)
+			signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+
+			sig := <-signalCh
+			logger.Info(ctx, "Received signal, cancel context", "signal", sig)
+			cancel()
 		}()
 
 		// Log version and check for updates
@@ -148,16 +159,12 @@ var rootCmd = &cobra.Command{
 			s.close()
 		}()
 
-		// Wait signal
-		signalCh := make(chan os.Signal, 1)
-		signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 		select {
+		case <-ctx.Done():
 		case err := <-s.errCh:
 			if err != nil {
 				return err
 			}
-		case sig := <-signalCh:
-			logger.Info(ctx, "Received signal", "signal", sig)
 		}
 
 		return nil
