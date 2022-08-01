@@ -232,6 +232,40 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, s
 	return jobID, nil
 }
 
+// RcloneCopyPaths copies paths from srcRemoteDir/path to dstRemoteDir/path.
+// Remotes need to be registered with the server first.
+// Remote path format is "name:bucket/path".
+// Both dstRemoteDir and srRemoteDir must point to a directory.
+func (c *Client) RcloneCopyPaths(ctx context.Context, host, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
+	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemoteDir)
+	if err != nil {
+		return 0, err
+	}
+	srcFs, srcRemote, err := rcloneSplitRemotePath(srcRemoteDir)
+	if err != nil {
+		return 0, err
+	}
+
+	p := operations.SyncCopyPathsParams{
+		Context: forceHost(ctx, host),
+		Options: &models.CopyPathsOptions{
+			DstFs:     dstFs,
+			DstRemote: dstRemote,
+			SrcFs:     srcFs,
+			SrcRemote: srcRemote,
+			Paths:     paths,
+		},
+		Async: true,
+	}
+
+	resp, err := c.agentOps.SyncCopyPaths(&p)
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload.Jobid, nil
+}
+
 // RcloneDeleteDir removes a directory or container and all of its contents
 // from the remote.
 // Remote path format is "name:bucket/path".

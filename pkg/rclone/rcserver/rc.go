@@ -578,6 +578,33 @@ func rcMoveOrCopyDir(doMove bool) func(ctx context.Context, in rc.Params) (rc.Pa
 	}
 }
 
+// rcCopyPaths returns an rc function that copies paths from
+// source to destination.
+// Only works for directories with single level depth. // TODO: is it true here?
+func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
+	return func(ctx context.Context, in rc.Params) (rc.Params, error) {
+		srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
+		if err != nil {
+			return nil, err
+		}
+		dstFs, dstRemote, err := getFsAndRemoteNamed(ctx, in, "dstFs", "dstRemote")
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := in.Get("paths")
+		if err != nil {
+			return nil, err
+		}
+		paths, ok := value.([]string)
+		if !ok {
+			return nil, errors.Errorf("expecting string slice value for key %q (was %T)", "paths", value)
+		}
+
+		return nil, sync.CopyPaths(ctx, dstFs, dstRemote, srcFs, srcRemote, paths, false)
+	}
+}
+
 // getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't
 // fail if remote path is not provided.
 // In that case it is assumed that path is empty and root of the fs is used.
@@ -615,6 +642,20 @@ func init() {
 - srcRemote - a directory path within that remote for the source
 - dstFs - a remote name string eg "drive2:" for the destination
 - dstRemote - a directory path within that remote for the destination`,
+	})
+
+	rc.Add(rc.Call{
+		Path:         "sync/copypaths",
+		AuthRequired: true,
+		Fn:           wrap(rcCopyPaths(), localToRemote()),
+		Title:        "Copy paths from source directory to destination",
+		Help: `This takes the following parameters:
+
+- srcFs - a remote name string eg "drive:" for the source
+- srcRemote - a directory path within that remote for the source
+- dstFs - a remote name string eg "drive2:" for the destination
+- dstRemote - a directory path within that remote for the destination
+- paths - slice of paths to be copied from source directory to destination`,
 	})
 }
 
