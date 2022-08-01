@@ -5,6 +5,7 @@ package backup
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -118,10 +119,7 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 }
 
 func (w *worker) RecordGraceSeconds(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string) (int, error) {
-	w.Logger.Info(ctx, "Retrieving gc_grace_seconds",
-		"keyspace", keyspace,
-		"table", table,
-	)
+	w.Logger.Info(ctx, "Retrieving gc_grace_seconds")
 
 	q := qb.Select("system_schema.tables").
 		Columns("gc_grace_seconds").
@@ -133,6 +131,10 @@ func (w *worker) RecordGraceSeconds(ctx context.Context, clusterSession gocqlx.S
 
 	var ggs int
 	if err := q.Scan(&ggs); err != nil {
+		w.Logger.Error(ctx, "Couldn't record gc_grace_seconds",
+			"error", err,
+		)
+
 		return 0, errors.Wrap(err, "record gc_grace_seconds")
 	}
 	return ggs, nil
@@ -142,21 +144,19 @@ func (w *worker) RecordGraceSeconds(ctx context.Context, clusterSession gocqlx.S
 
 func (w *worker) SetGraceSeconds(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, ggs int) error {
 	w.Logger.Info(ctx, "Setting gc_grace_seconds",
-		"keyspace", keyspace,
-		"table", table,
 		"value", ggs,
 	)
 
 	alterStmt := fmt.Sprintf("ALTER TABLE %s.%s WITH gc_grace_seconds=%s", keyspace, table, strconv.Itoa(ggs))
 
 	if err := clusterSession.ExecStmt(alterStmt); err != nil {
+		w.Logger.Error(ctx, "Couldn't set gc_grace_seconds",
+			"error", err,
+		)
+
 		return errors.Wrap(err, "set gc_grace_seconds")
 	}
 	return nil
-}
-
-func (w *worker) SetGraceSecondsNoErr(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, ggs int) {
-	_ = w.SetGraceSeconds(ctx, clusterSession, keyspace, table, ggs)
 }
 
 // compaction strategy is represented as map of options.
@@ -165,8 +165,6 @@ func (w *worker) SetGraceSecondsNoErr(ctx context.Context, clusterSession gocqlx
 // 'class' option is mandatory when any option is specified.
 type compaction map[string]string
 
-// TODO: is there an easier way around that?
-// Couldn't find any way to bind map appropriately
 func (c compaction) String() string {
 	var opts []string
 	for k, v := range c {
@@ -178,10 +176,7 @@ func (c compaction) String() string {
 }
 
 func (w *worker) RecordCompaction(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string) (compaction, error) {
-	w.Logger.Info(ctx, "Retrieving compaction",
-		"keyspace", keyspace,
-		"table", table,
-	)
+	w.Logger.Info(ctx, "Retrieving compaction")
 
 	q := qb.Select("system_schema.tables").
 		Columns("compaction").
@@ -193,6 +188,10 @@ func (w *worker) RecordCompaction(ctx context.Context, clusterSession gocqlx.Ses
 
 	var comp compaction
 	if err := q.Scan(&comp); err != nil {
+		w.Logger.Error(ctx, "Couldn't record compaction",
+			"error", err,
+		)
+
 		return nil, errors.Wrap(err, "record compaction")
 	}
 	return comp, nil
@@ -200,19 +199,63 @@ func (w *worker) RecordCompaction(ctx context.Context, clusterSession gocqlx.Ses
 
 func (w *worker) SetCompaction(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, comp compaction) error {
 	w.Logger.Info(ctx, "Setting compaction",
-		"keyspace", keyspace,
-		"table", table,
 		"value", comp,
 	)
 
-	alterStmt := fmt.Sprintf("ALTER TABLE %s.%s WITH compaction=%s", keyspace, table, comp.String())
+	alterStmt := fmt.Sprintf("ALTER TABLE %s.%s WITH compaction=%s", keyspace, table, comp)
 
 	if err := clusterSession.ExecStmt(alterStmt); err != nil {
+		w.Logger.Error(ctx, "Couldn't set compaction",
+			"error", err,
+		)
+
 		return errors.Wrap(err, "set compaction")
 	}
 	return nil
 }
 
-func (w *worker) SetCompactionNoErr(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, comp compaction) {
-	_ = w.SetCompaction(ctx, clusterSession, keyspace, table, comp)
+// ExecOnDisabledTable executes given function with
+// table's compaction and gc_grace_seconds temporarily disabled.
+func (w *worker) ExecOnDisabledTable(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string, f func() error) error {
+	w.Logger.Info(ctx, "Disabling compaction and gc_grace_seconds",
+		"keyspace", keyspace,
+		"table", table,
+	)
+
+	// Temporarily disable compaction
+	comp, err := w.RecordCompaction(ctx, clusterSession, keyspace, table)
+	if err != nil {
+		return err
+	}
+
+	var tmpComp compaction
+	for k, v := range comp {
+		tmpComp[k] = v
+	}
+	// Disable compaction option
+	tmpComp["enabled"] = "false"
+
+	if err := w.SetCompaction(ctx, clusterSession, keyspace, table, tmpComp); err != nil {
+		return err
+	}
+	// Reset compaction
+	defer w.SetCompaction(ctx, clusterSession, keyspace, table, comp)
+
+	// Temporarily set gc_grace_seconds to max supported value
+	ggs, err := w.RecordGraceSeconds(ctx, clusterSession, keyspace, table)
+
+	const maxGGS = math.MaxInt32
+	if err := w.SetGraceSeconds(ctx, clusterSession, keyspace, table, maxGGS); err != nil {
+		return err
+	}
+	// Reset gc_grace_seconds
+	defer w.SetGraceSeconds(ctx, clusterSession, keyspace, table, ggs)
+
+	err = f()
+	w.Logger.Info(ctx, "Restoring compaction and gc_grace_seconds",
+		"keyspace", keyspace,
+		"table", table,
+	)
+
+	return err
 }
