@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/cache"
@@ -34,7 +36,6 @@ import (
 	"github.com/rclone/rclone/lib/atexit"
 	"github.com/rclone/rclone/lib/random"
 	"github.com/rclone/rclone/lib/readers"
-	"golang.org/x/sync/errgroup"
 )
 
 // CheckHashes checks the two files to see if they have common
@@ -670,7 +671,7 @@ func DeleteFileWithBackupDir(ctx context.Context, dst fs.Object, backupDir fs.Fs
 		fs.Errorf(dst, "Couldn't %s: %v", action, err)
 		err = fs.CountError(err)
 	} else if !skip {
-		fs.Infof(dst, actioned)
+		fs.Debugf(dst, actioned)
 	}
 	return err
 }
