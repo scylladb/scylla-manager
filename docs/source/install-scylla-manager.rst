@@ -1,8 +1,8 @@
 .. _install-manager:
 
-======================
-Install Scylla Manager
-======================
+=========================
+Install ScyllaDB Manager
+=========================
 
 .. contents::
    :depth: 2
@@ -146,8 +146,8 @@ Alternatively, you can just open a new terminal.
 
    source /etc/bash_completion.d/sctool.bash
 
-Start Scylla Manager service
-============================
+Start ScyllaDB Manager service
+===============================
 
 Scylla Manager integrates with ``systemd`` and can be started and stopped using ``systemctl`` command. 
 
