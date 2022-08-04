@@ -20,7 +20,6 @@ Scylla Manager
    swagger/index
    scylla-monitoring
    troubleshooting
-   older-versions
    Slack <https://scylladb-users.slack.com/archives/C01ERVBPWLU>
 
 .. image:: images/header.png
