@@ -647,7 +647,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/copypaths",
 		AuthRequired: true,
-		Fn:           wrap(rcCopyPaths(), localToRemote()),
+		Fn:           wrap(rcCopyPaths(), remoteToLocal()),
 		Title:        "Copy paths from source directory to destination",
 		Help: `This takes the following parameters:
 
