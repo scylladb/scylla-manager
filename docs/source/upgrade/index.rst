@@ -1,6 +1,6 @@
-=======================
-Scylla Manager Upgrade 
-=======================
+==========================
+ScyllaDB Manager Upgrade 
+==========================
 
 This document describes the upgrade process beween two versions of Scylla Manager.
 
@@ -50,8 +50,8 @@ Or on versions 3.0 and higher using:
 
 None of the listed tasks should have status in RUNNING.
 
-Stop the Scylla Manager Server 
--------------------------------
+Stop the ScyllaDB Manager Server 
+----------------------------------
 
 **On the Manager Server** instruct Systemd to stop the server process:
 
@@ -67,7 +67,7 @@ Ensure that it is stopped with:
 
 It should have a status of *“Active: inactive (dead)”*.
 
-Stop the Scylla Manager Agent on all nodes
+Stop the ScyllaDB Manager Agent on all nodes
 ------------------------------------------------
 
 **On each scylla node** in the cluster run:
@@ -84,8 +84,8 @@ Ensure that it is stopped with:
 
 It should have a status of *“Active: inactive (dead)”*.
 
-Upgrade the Scylla Manager Server and Client 
----------------------------------------------
+Upgrade the ScyllaDB Manager Server and Client 
+------------------------------------------------
 
 **Before you Begin**
 
@@ -129,7 +129,7 @@ Debian, Ubuntu:
 
 .. note:: When using apt-get, if a previous version of the Scylla Manager package had a modified configuration file, you will be asked what to do with this file during the installation process. In order to keep both files for reconciliation (covered later in the procedure), select the "keep your currently-installed version" option when prompted. 
 
-Upgrade the Scylla Manager Agent on all nodes
+Upgrade the ScyllaDB Manager Agent on all nodes
 ------------------------------------------------------
 
 **On each scylla node** instruct package manager to update the agent:
@@ -224,7 +224,7 @@ For Ubuntu:
     mv scylla-manager-agent.yaml scylla-manager-agent.yaml.old
     mv scylla-manager-agent.yaml.dpkg-dist scylla-manager-agent.yaml
 
-Start the Scylla Manager Agent on all nodes
+Start the ScyllaDB Manager Agent on all nodes
 -------------------------------------------------
 
 **On each scylla node** instruct Systemd to start the agent process:
@@ -241,8 +241,8 @@ Ensure that it is running with:
 
 It should have a status of *“Active: active (running)”*.
 
-Start the Scylla Manager Server 
---------------------------------
+Start the ScyllaDB Manager Server 
+-----------------------------------
 
 **On the Manager Server** instruct Systemd to start the server process:
 
@@ -298,8 +298,8 @@ Rollback procedure contains the same steps as upgrade but with downgrading the c
 Rollback steps
 ==============
 
-Stop all Scylla Manager tasks (or wait for them to finish)
-----------------------------------------------------------
+Stop all ScyllaDB Manager tasks (or wait for them to finish)
+--------------------------------------------------------------
 
 **On the Manager Server** check current status of the manager tasks:
 
@@ -309,8 +309,8 @@ Stop all Scylla Manager tasks (or wait for them to finish)
 
 None of the listed tasks should have status in RUNNING.
 
-Stop the Scylla Manager Server 
--------------------------------
+Stop the ScyllaDB Manager Server 
+-----------------------------------
 
 **On the Manager Server** instruct Systemd to stop the server process:
 
@@ -326,7 +326,7 @@ Ensure that it is stopped with:
 
 It should have a status of *“Active: inactive (dead)”*.
 
-Stop the Scylla Manager Agent on all nodes
+Stop the ScyllaDB Manager Agent on all nodes
 ------------------------------------------------
 
 **On each scylla node** in the cluster run:
@@ -343,8 +343,8 @@ Ensure that it is stopped with:
 
 It should have a status of *“Active: inactive (dead)”*.
 
-Downgrade the Scylla Manager Server and Client 
------------------------------------------------
+Downgrade the ScyllaDB Manager Server and Client 
+----------------------------------------------------
 
 **On the Manager Server** instruct package manager to downgrade server and the client:
 
@@ -360,7 +360,7 @@ Debian, Ubuntu:
 
     sudo apt-get install scylla-manager-server=2.x scylla-manager-client=2.x -y
 
-Downgrade the Scylla Manager Agent on all nodes
+Downgrade the ScyllaDB Manager Agent on all nodes
 --------------------------------------------------------
 
 **On each scylla node** instruct package manager to downgrade the agent:
@@ -403,7 +403,7 @@ The procedure is the same for the Scylla Manager Agent (on all nodes):
     mv scylla-manager-agent.yaml scylla-manager-agent.yaml.new
     mv scylla-manager-agent.yaml.old scylla-manager-agent.yaml
 
-Start the Scylla Manager Agent on all nodes
+Start the ScyllaDB Manager Agent on all nodes
 -------------------------------------------------
 
 On all nodes instruct Systemd to start the agent process:
@@ -420,7 +420,7 @@ Ensure that it is running with:
 
 It should have a status of *“Active: active (running)”*.
 
-Start the Scylla Manager Server
+Start the ScyllaDB Manager Server
 -------------------------------------
 
 **On the Manager Server** instruct Systemd to start the server process:
