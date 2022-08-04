@@ -591,14 +591,9 @@ func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		value, err := in.Get("paths")
+		paths, err := getStringSlice(ctx, in, "paths")
 		if err != nil {
 			return nil, err
-		}
-		paths, ok := value.([]string)
-		if !ok {
-			return nil, errors.Errorf("expecting string slice value for key %q (was %T)", "paths", value)
 		}
 
 		return nil, sync.CopyPaths(ctx, dstFs, dstRemote, srcFs, srcRemote, paths, false)
@@ -615,6 +610,29 @@ func getFsAndRemoteNamed(ctx context.Context, in rc.Params, fsName, remoteName s
 	}
 	f, err = rc.GetFsNamed(ctx, in, fsName)
 	return
+}
+
+func getStringSlice(ctx context.Context, in rc.Params, key string) ([]string, error) {
+	value, err := in.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	tmp, ok := value.([]interface{})
+	if !ok {
+		return nil, errors.Errorf("expecting []interface{} value for key %q (was %T)", key, value)
+	}
+
+	var res []string
+	for i, v := range tmp {
+		str, ok := v.(string)
+		if !ok {
+			return nil, errors.Errorf("expecting string value for slice index nr %d (was %T)", i, str)
+		}
+		res = append(res, str)
+	}
+
+	return res, nil
 }
 
 func init() {
