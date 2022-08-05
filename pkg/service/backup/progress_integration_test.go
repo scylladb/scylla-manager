@@ -36,7 +36,7 @@ func TestRunProgressIteratorIntegration(t *testing.T) {
 	}
 
 	var prog []RunProgress
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 
 	q := table.BackupRunProgress.InsertQuery(session)
 	for i := 0; i < expected; i++ {

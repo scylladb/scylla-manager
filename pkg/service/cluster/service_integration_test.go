@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -27,7 +28,7 @@ import (
 )
 
 func TestServiceStorageIntegration(t *testing.T) {
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 
 	secretsStore := store.NewTableStore(session, table.Secrets)
 

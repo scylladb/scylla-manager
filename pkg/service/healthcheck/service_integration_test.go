@@ -32,7 +32,7 @@ import (
 )
 
 func TestStatusIntegration(t *testing.T) {
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
 	clusterID := uuid.MustRandom()
@@ -44,7 +44,7 @@ func TestStatusIntegration(t *testing.T) {
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	username, password := ManagedClusterCredentials()
 
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
 	clusterID := uuid.MustRandom()
