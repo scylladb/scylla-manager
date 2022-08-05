@@ -11,3 +11,7 @@ declare -r DEST_PATH=$2
 for name in $(docker ps -f name=scylla_manager_dc --format {{.Names}}); do
     docker cp ${SRC_PATH} ${name}:${DEST_PATH}
 done
+
+for name in $(docker ps -f name=scylla_manager_second --format {{.Names}}); do
+    docker cp ${SRC_PATH} ${name}:${DEST_PATH}
+done
