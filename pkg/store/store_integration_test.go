@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
@@ -42,7 +43,7 @@ func (q *question) UnmarshalBinary(data []byte) error {
 }
 
 func TestStorageIntegration(t *testing.T) {
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 
 	s := store.NewTableStore(session, table.Drawer)
 

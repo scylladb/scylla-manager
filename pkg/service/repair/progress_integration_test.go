@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -39,7 +40,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("progress update sequence (Init,OnScyllaJobStart,OnScyllaJobEnd,OnJobResult,CheckRepaired)", func(t *testing.T) {
 		var (
-			session = CreateSession(t)
+			session = CreateScyllaManagerDBSession(t)
 			ttrs    = []*tableTokenRange{
 				{
 					Keyspace:   "k1",
@@ -174,7 +175,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("restoring state", func(t *testing.T) {
 		var (
-			session = CreateSession(t)
+			session = CreateScyllaManagerDBSession(t)
 		)
 
 		table.RepairRunState.Insert()

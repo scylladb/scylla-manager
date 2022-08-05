@@ -12,6 +12,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -19,11 +21,10 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestServiceGetLastResumableRunIntegration(t *testing.T) {
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 
 	s, err := repair.NewService(
 		session,

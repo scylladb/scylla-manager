@@ -19,6 +19,9 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"go.uber.org/atomic"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
@@ -28,8 +31,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/atomic"
-	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -211,7 +212,7 @@ func newTestService(session gocqlx.Session) *scheduler.Service {
 const emptyStatus scheduler.Status = ""
 
 func TestServiceScheduleIntegration(t *testing.T) {
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 
 	never := time.Time{}
 	future := time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
