@@ -127,6 +127,27 @@ services:
       public:
         ipv4_address: 192.168.100.23
 
+  second_cluster_dc1_node_1:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: ${SCYLLA_SECOND_CLUSTER_ARGS}
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-second-cluster.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla-second-cluster.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public:
+        ipv4_address: 192.168.100.30
+
   scylla-manager-db:
     image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
     command: --smp 1 --memory 500M --api-address 0.0.0.0

@@ -34,7 +34,8 @@ var (
 	flagUserKeyFile  = flag.String("ssl-key-file", "", "User SSL key file")
 	flagValidate     = flag.Bool("ssl-validate", false, "Enable host verification")
 
-	flagManagedCluster = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
+	flagManagedCluster       = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
+	flagManagedSecondCluster = flag.String("managed-second-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data second cluster hosts")
 )
 
 // ManagedClusterHosts specifies addresses of nodes in a test cluster.
@@ -52,6 +53,14 @@ func ManagedClusterHost() string {
 		panic("No nodes specified in --managed-cluster flag")
 	}
 	return s[0]
+}
+
+// ManagedSecondClusterHosts specifies addresses of nodes in a test second cluster.
+func ManagedSecondClusterHosts() []string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return strings.Split(*flagManagedSecondCluster, ",")
 }
 
 // ManagedClusterCredentials returns CQL username and password.
@@ -216,6 +225,13 @@ func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB in
 	t.Helper()
 
 	writeData(t, session, keyspace, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", tables...)
+}
+
+// WriteDataToSecondCluster creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
+func WriteDataToSecondCluster(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
+	t.Helper()
+
+	writeData(t, session, keyspace, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}", tables...)
 }
 
 // WriteData creates big_table in the provided keyspace with the size in MiB.
