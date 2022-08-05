@@ -20,6 +20,10 @@ import (
 
 // GetLiveNodes returns live nodes from specified DC's.
 func (c *Client) GetLiveNodes(ctx context.Context, status NodeStatusInfoSlice, dc []string) (NodeStatusInfoSlice, error) {
+	c.logger.Info(ctx, "Finding live nodes in dc",
+		"dc", dc,
+	)
+
 	var (
 		liveNodes NodeStatusInfoSlice
 		nodes     = status.Datacenter(dc)
@@ -31,7 +35,7 @@ func (c *Client) GetLiveNodes(ctx context.Context, status NodeStatusInfoSlice, d
 		}
 	}
 	if len(liveNodes) == 0 {
-		return nil, errors.New("no live nodes found")
+		return nil, errors.Errorf("no live nodes found in dc: %v", dc)
 	}
 	return liveNodes, nil
 }
