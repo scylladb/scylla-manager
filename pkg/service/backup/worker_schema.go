@@ -228,7 +228,7 @@ func (w *worker) ExecOnDisabledTable(ctx context.Context, clusterSession gocqlx.
 		return err
 	}
 
-	var tmpComp compaction
+	tmpComp := make(compaction)
 	for k, v := range comp {
 		tmpComp[k] = v
 	}
@@ -252,6 +252,7 @@ func (w *worker) ExecOnDisabledTable(ctx context.Context, clusterSession gocqlx.
 	defer w.SetGraceSeconds(ctx, clusterSession, keyspace, table, ggs)
 
 	err = f()
+
 	w.Logger.Info(ctx, "Restoring compaction and gc_grace_seconds",
 		"keyspace", keyspace,
 		"table", table,
