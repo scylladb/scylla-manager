@@ -9,12 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
-	"github.com/rclone/rclone/fs"
-	"github.com/rclone/rclone/fs/sync"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -51,41 +50,27 @@ func (h *restoreHandler) restore(w http.ResponseWriter, r *http.Request) {
 		params.Version,
 	)
 
-	fsrc, err := fs.NewFs(ctx, params.Source.Fs)
-	if err != nil {
-		panic(err)
-	}
-
 	absDataDir, err := filepath.Abs(uploadDir)
 	if err != nil {
 		panic(errors.Wrap(err, "get upload directory absolute path"))
 	}
 
-	fdst, err := fs.NewFs(ctx, absDataDir)
-	if err != nil {
-		panic(err)
-	}
-
 	h.logger.Info(ctx, "Restoring Files",
 		"uploadDir", uploadDir,
-		"remotePath", params.Source.Remote,
 		"files", params.Files,
 	)
 
-	if err := sync.CopyPaths(ctx, fdst, "", fsrc, params.Source.Remote, params.Files, false); err != nil {
-		panic(err)
-	}
-
-	// TODO - how to do this ownership in production? Should the manager be running as scylla user?
+	//TODO: why is it even necessary?
+	//TODO - how to do this ownership in production? Should the manager be running as scylla user?
 	for _, f := range params.Files {
 		os.Chown(
-			fmt.Sprintf("%s/%s/%s-%s/upload/%s", absDataDir, params.Keyspace, params.Table, params.Version, f),
+			path.Join(absDataDir, f),
 			107,
 			109,
 		)
 	}
 
-	if err := h.callSsTables(ctx, params.Keyspace, params.Table); err != nil {
+	if err := h.callSSTables(ctx, params.Keyspace, params.Table); err != nil {
 		// TODO - err
 		panic(err)
 	}
@@ -93,11 +78,11 @@ func (h *restoreHandler) restore(w http.ResponseWriter, r *http.Request) {
 	render.Respond(w, r, "success")
 }
 
-func (h *restoreHandler) callSsTables(ctx context.Context, keyspace, table string) error {
+func (h *restoreHandler) callSSTables(ctx context.Context, keyspace, table string) error {
 	u := url.URL{
 		Host:   h.APIAddr(),
 		Scheme: "http",
-		Path:   fmt.Sprintf("/storage_service/sstables/%s", keyspace),
+		Path:   LoadAndStreamPath(keyspace),
 	}
 
 	q := u.Query()
@@ -132,4 +117,12 @@ func (h *restoreHandler) callSsTables(ctx context.Context, keyspace, table strin
 
 func (h *restoreHandler) APIAddr() string {
 	return net.JoinHostPort(h.config.Scylla.APIAddress, h.config.Scylla.APIPort)
+}
+
+func LoadAndStreamPath(keyspace string) string {
+	return path.Join(
+		"/storage_service",
+		"sstables",
+		keyspace,
+	)
 }
