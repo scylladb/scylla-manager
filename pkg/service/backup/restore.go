@@ -3,8 +3,7 @@ package backup
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"math"
+	"strings"
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -53,7 +52,11 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	if t.Location == nil {
 		return t, errors.New("missing location")
 	}
-	// TODO - gather livenodes here like in backup?
+
+	if t.BatchSize == 0 {
+		// In case of 0 set to default value
+		t.BatchSize = 2
+	}
 
 	return t, nil
 }
@@ -78,22 +81,12 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		return errors.Wrap(err, "initialize: get client proxy")
 	}
 
-	hosts := make([]hostInfo, len(target.Location))
-	for i := range target.Location {
-		hosts[i].Location = target.Location[i]
-	}
-	if err := s.resolveHosts(ctx, client, hosts); err != nil {
-		return errors.Wrap(err, "resolve hosts")
-	}
-
 	// Get cluster name
 	clusterName, err := s.clusterName(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "invalid cluster")
 	}
 
-	// TODO: can we have one worker for all locations?
-	// TODO - create distinct restore worker?
 	w := &worker{
 		ClusterID:   clusterID,
 		ClusterName: clusterName,
@@ -102,13 +95,13 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		Client:      client,
 		Config:      s.config,
 		Metrics:     s.metrics,
+		Logger:      s.logger,
 	}
 
 	// Get cluster session
 	clusterSession, err := s.clusterSession(ctx, clusterID)
 	if err != nil {
-		// TODO - backup ignores this error, but here we probably can't?
-		w.Logger.Info(ctx, "No CQL cluster session, restore can't proceed", "error", err)
+		s.logger.Info(ctx, "No CQL cluster session, restore can't proceed", "error", err)
 		return err
 	}
 	defer clusterSession.Close()
@@ -125,144 +118,266 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			"location", l,
 		)
 
-		// TODO: add stages
-		// ~TODO~ - Wait for schema agreement
-		// Does this actually need to be done per-location or just once?
+		// TODO: Does this actually need to be done per-location or just once?
 
-		w.Logger.Info(ctx, "Awaiting Schema Agreement")
+		s.logger.Info(ctx, "Awaiting Schema Agreement")
 
 		w.AwaitSchemaAgreement(ctx, clusterSession)
 
-		// Get nodes from the backup location DC
+		// Get live nodes from the backup location DC
 		liveNodes, err := client.GetLiveNodes(ctx, status, []string{l.DC})
 		if err != nil {
-			// In case of failure get nodes from local DC
+			// In case of failure get live nodes from local DC
 			liveNodes, err = client.GetLiveNodes(ctx, status, []string{s.config.LocalDC})
 			if err != nil {
-				return err
+				return errors.Errorf("no live nodes found in dc: %v", []string{l.DC, s.config.LocalDC})
 			}
 		}
 
-		w.Logger.Info(ctx, "Live nodes",
+		s.logger.Info(ctx, "Live nodes",
 			"nodes", liveNodes,
 		)
 
-		// TODO: do we need to validate if liveNodes can restore backup?
-		// If yes then can we do it now or do we need to iterate over all manifests to accomplish that?
+		// Initialize host pool
+		hostPool := make(chan string, len(liveNodes))
+		for _, n := range liveNodes {
+			hostPool <- n.Addr
+		}
+
+		// Filter keyspaces
+		filter, err := ksfilter.NewFilter(target.Keyspace)
+		if err != nil {
+			return errors.Wrap(err, "crete filter for restored tables in location")
+		}
+
+		lf := ListFilter{SnapshotTag: target.SnapshotTag}
 
 		// Loop manifests for the snapshot tag
-		s.forEachManifest(ctx, clusterID, []Location{l}, ListFilter{SnapshotTag: target.SnapshotTag}, func(miwc ManifestInfoWithContent) error {
+		err = s.forEachManifest(ctx, clusterID, []Location{l}, lf, func(miwc ManifestInfoWithContent) error {
 			s.logger.Info(ctx, "Looping manifests",
 				"cluster_id", clusterID,
 				"location", l,
 				"manifest", miwc.ManifestInfo,
 			)
 
-			// Filter keyspaces
-			filter, err := ksfilter.NewFilter(target.Keyspace)
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("crete filter for restored tables in location %s", l.String()))
-			}
-
-			for _, i := range miwc.Index {
-				filter.Add(i.Keyspace, []string{i.Table})
-			}
-			// Get the filtered units
-			units, _ := filter.Apply(false)
-
 			// Loop tables for the manifest
-			for _, u := range units {
-				for _, t := range u.Tables {
-					s.logger.Info(ctx, "Looping tables",
-						"cluster_id", clusterID,
-						"location", l,
-						"keyspace", u.Keyspace,
-						"table", t,
-					)
+			return miwc.ForEachIndexIter(func(fm FilesMeta) {
+				// Skip system and filtered out tables
+				if isSystemKeyspace(fm.Keyspace) || !filter.Check(fm.Keyspace, fm.Table) || len(fm.Files) == 0 {
+					return
+				}
 
-					if err := func() error {
-						// Temporarily disable compaction
-						comp, err := w.RecordCompaction(ctx, clusterSession, u.Keyspace, t)
+				s.logger.Info(ctx, "Looping tables",
+					"cluster_id", clusterID,
+					"location", l,
+					"keyspace", fm.Keyspace,
+					"table", fm.Table,
+				)
+
+				// group files to SSTable bundles
+				bundles := groupSSTablesByID(fm.Files)
+
+				// Initialize bundle index pool
+				bundlePool := make(chan int, len(bundles))
+				for i := range bundles {
+					bundlePool <- i
+				}
+
+				srcDir := l.RemotePath(miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
+
+				err = w.ExecOnDisabledTable(ctx, clusterSession, fm.Keyspace, fm.Table, func() error {
+					// TODO: change it to work in parallel
+					for {
+						// Get host from the pool
+						host := ""
+						select {
+						case host = <-hostPool:
+						default:
+						}
+
+						if host == "" {
+							s.logger.Info(ctx, "No more hosts in the pool, restore can't proceed")
+
+							break
+						}
+
+						if err := w.validateHostDiskSpace(ctx, host, target.MinFreeDiskSpace); err != nil {
+							s.logger.Info(ctx, "Couldn't validate host's free disk space",
+								"host", host,
+								"error", err,
+							)
+							// TODO: what to do with this host? Do we want to put him back in the pool?
+							continue
+						}
+
+						shards, err := client.ShardCount(ctx, host)
 						if err != nil {
-							return err
+							s.logger.Error(ctx, "Couldn't get host shard count",
+								"host", host,
+							)
+							// TODO: what to do with this host? Do we want to put him back in the pool?
+							continue
 						}
 
-						s.logger.Info(ctx, "recorded compaction",
-							"compaction", comp.String(),
+						batchSize := target.BatchSize * int(shards)
+						var (
+							batch    []string
+							takenIdx []int
+							done     bool
 						)
 
-						var tmpComp compaction
-						for k, v := range comp {
-							tmpComp[k] = v
+						// Create batch
+						for i := 0; i < batchSize; i++ {
+							select {
+							case idx := <-bundlePool:
+								batch = append(batch, bundles[idx]...)
+								takenIdx = append(takenIdx, idx)
+							default:
+								done = true
+							}
+
+							if done {
+								break
+							}
 						}
-						// Disable compaction option
-						tmpComp["enabled"] = "false"
 
-						if err := w.SetCompaction(ctx, clusterSession, u.Keyspace, t, tmpComp); err != nil {
-							return err
+						if len(batch) == 0 {
+							break
 						}
-						// TODO: what if resetting compaction/gc_grace_seconds fails?
-						// Reset compaction
-						defer w.SetCompactionNoErr(ctx, clusterSession, u.Keyspace, t, comp)
 
-						// Temporarily set gc_grace_seconds to max supported value
-						ggs, err := w.RecordGraceSeconds(ctx, clusterSession, u.Keyspace, t)
-
-						s.logger.Info(ctx, "recorded gc_grace_seconds",
-							"gc_grace_seconds", ggs,
+						s.logger.Info(ctx, "Looping batches",
+							"cluster_id", clusterID,
+							"location", l,
+							"keyspace", fm.Keyspace,
+							"table", fm.Table,
+							"host", host,
+							"batch", batch,
 						)
 
-						const maxGGS = math.MaxInt32
-						if err := w.SetGraceSeconds(ctx, clusterSession, u.Keyspace, t, maxGGS); err != nil {
-							return err
+						dstDir := uploadTableDir(fm)
+
+						jobID, err := client.RcloneCopyPaths(ctx, host, dstDir, srcDir, batch)
+						if err != nil {
+							s.logger.Error(ctx, "Couldn't download files to host's upload dir",
+								"host", host,
+								"srcDir", srcDir,
+								"dstDir", dstDir,
+								"files", batch,
+							)
+
+							returnBundleIdx(bundlePool, takenIdx)
+
+							continue
 						}
-						// Reset gc_grace_seconds
-						defer w.SetGraceSecondsNoErr(ctx, clusterSession, u.Keyspace, t, ggs)
 
-						dir := RemoteSSTableVersionDir(miwc.ClusterID, miwc.DC, miwc.NodeID, u.Keyspace, t, i.Version)
+						//TODO: record progress
+						if err := w.waitJob(ctx, jobID, snapshotDir{Host: host, Progress: &RunProgress{}}); err != nil {
+							returnBundleIdx(bundlePool, takenIdx)
 
-						client.Restore(ctx, miwc.Location.String(), dir, i.Keyspace, i.Table, i.Version, i.Files)
+							continue
+						}
 
-						return nil
-					}(); err != nil {
-						return errors.Wrap(err, fmt.Sprintf("restore table %s.%s", u.Keyspace, t))
+						if err := client.Restore(ctx, host, fm.Keyspace, fm.Table, fm.Version, batch); err != nil {
+							returnBundleIdx(bundlePool, takenIdx)
+
+							continue
+						}
+
+						// return host to the pool
+						hostPool <- host
+
+						// end work if there are no more bundles to process
+						if done {
+							break
+						}
 					}
-				}
-			}
 
-			// TODO - replace with streaming indexes when #3171 merged
-			for _, i := range miwc.Index {
+					var (
+						failed []string
+						done   bool
+					)
 
-				for _, f := range i.Files {
-					s.logger.Info(ctx, "Restoring File",
-						"dir", dir,
-						"file", f,
+					for {
+						select {
+						case idx := <-bundlePool:
+							failed = append(failed, bundles[idx]...)
+						default:
+							done = true
+						}
+
+						if done {
+							break
+						}
+					}
+
+					if len(failed) > 0 {
+						return errors.Errorf("couldn't restore following files: %v", failed)
+					}
+
+					return nil
+				})
+
+				if err != nil {
+					s.logger.Error(ctx, "restoring table failed",
+						"keyspace", fm.Keyspace,
+						"table", fm.Table,
+						"error", err,
 					)
 				}
-
-				// TODO: are file names actually sstable ID? table_name-UUID format?
-
-				/* TODO - BUNDLE AND BATCH - starting 1 at a time for simplicity
-				// TODO - Group related files to bundles by sstable ID
-				// TODO Join bundles into batches
-				var batches []string
-				for _, b := range batches {
-					s.logger.Info(ctx, "Looping batches",
-						"cluster_id", clusterID,
-						"location", l,
-						// "manifest", miwc,
-						"table", i.Table,
-						"batch", b,
-					)
-					// TODO - check disk space
-					// TODO - download bundle to upload dir
-					// Wait for completion
-				}
-				*/
-			}
-			return nil
+			})
 		})
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func isSystemKeyspace(keyspace string) bool {
+	return strings.HasPrefix(keyspace, "system")
+}
+
+func sstableID(file string) string {
+	return strings.SplitN(file, "-", 3)[1]
+}
+
+func groupSSTablesByID(files []string) [][]string {
+	var bundles [][]string
+	// maps SSTable ID to its bundle index
+	idIndex := make(map[string]int)
+
+	for _, f := range files {
+		id := sstableID(f)
+		if idx, ok := idIndex[id]; !ok {
+			idx = len(bundles)
+			bundles = append(bundles, nil)
+			bundles[idx] = append(bundles[idx], f)
+			idIndex[id] = idx
+		} else {
+			bundles[idx] = append(bundles[idx], f)
+		}
+	}
+
+	return bundles
+}
+
+// validateHostDiskSpace checks if host has at least minDiskSpace percent of free disk space.
+func (w *worker) validateHostDiskSpace(ctx context.Context, host string, minDiskSpace int) error {
+	disk, err := w.diskFreePercent(ctx, hostInfo{IP: host})
+	if err != nil {
+		return err
+	}
+	if disk < minDiskSpace {
+		return errors.Errorf("Host %s has %d%% free disk space and requires %d%%", host, disk, minDiskSpace)
+	}
+
+	return nil
+}
+
+func returnBundleIdx(pool chan int, idx []int) {
+	for _, i := range idx {
+		pool <- i
+	}
 }
