@@ -19,6 +19,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
@@ -27,11 +29,10 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	scyllaModels "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestStatusIntegration(t *testing.T) {
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
 	clusterID := uuid.MustRandom()
@@ -43,7 +44,7 @@ func TestStatusIntegration(t *testing.T) {
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	username, password := ManagedClusterCredentials()
 
-	session := CreateSession(t)
+	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
 	clusterID := uuid.MustRandom()

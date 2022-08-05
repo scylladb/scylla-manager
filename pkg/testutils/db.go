@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
 	"github.com/scylladb/scylla-manager/v3/schema"
 )
@@ -63,9 +64,9 @@ func ManagedClusterCredentials() (user, password string) {
 
 var initOnce sync.Once
 
-// CreateSession recreates the database on scylla manager cluster and returns
+// CreateScyllaManagerDBSession recreates the database on scylla manager cluster and returns
 // a new gocql.Session.
-func CreateSession(tb testing.TB) gocqlx.Session {
+func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
 	cluster := createCluster(*flagCluster)
@@ -83,7 +84,7 @@ func CreateSession(tb testing.TB) gocqlx.Session {
 
 // CreateSessionWithoutMigration clears the database on scylla manager cluster
 // and returns a new gocqlx.Session. This is only useful for testing migrations
-// you probably should be using CreateSession instead.
+// you probably should be using CreateScyllaManagerDBSession instead.
 func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
@@ -92,24 +93,24 @@ func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 	return createSessionFromCluster(tb, cluster)
 }
 
-// CreateManagedClusterSessionAndDropAllKeyspaces returns a new gocqlx.Session
+// CreateSessionAndDropAllKeyspaces returns a new gocqlx.Session
 // to the managed data cluster and clears all keyspaces.
-func CreateManagedClusterSessionAndDropAllKeyspaces(tb testing.TB) gocqlx.Session {
+func CreateSessionAndDropAllKeyspaces(tb testing.TB, hosts []string) gocqlx.Session {
 	tb.Helper()
-	return createManagedClusterSession(tb, true)
+	return createManagedClusterSession(tb, true, hosts)
 }
 
-// CreateManagedClusterSession returns a new gocqlx.Session to the managed data
+// CreateSession returns a new gocqlx.Session to the managed data
 // cluster without clearing it.
-func CreateManagedClusterSession(tb testing.TB) gocqlx.Session {
+func CreateSession(tb testing.TB, hosts []string) gocqlx.Session {
 	tb.Helper()
-	return createManagedClusterSession(tb, false)
+	return createManagedClusterSession(tb, false, hosts)
 }
 
-func createManagedClusterSession(tb testing.TB, empty bool) gocqlx.Session {
+func createManagedClusterSession(tb testing.TB, empty bool, hosts []string) gocqlx.Session {
 	tb.Helper()
 
-	cluster := createCluster(ManagedClusterHosts()...)
+	cluster := createCluster(hosts...)
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: *flagUser,
 		Password: *flagPassword,
@@ -214,7 +215,14 @@ const bigTableName = "big_table"
 func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
 	t.Helper()
 
-	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+	writeData(t, session, keyspace, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", tables...)
+}
+
+// WriteData creates big_table in the provided keyspace with the size in MiB.
+func writeData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, replication string, tables ...string) {
+	t.Helper()
+
+	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
 
 	if len(tables) == 0 {
 		tables = []string{bigTableName}
