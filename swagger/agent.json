@@ -1195,10 +1195,6 @@
     "RestoreParams": {
       "type": "object",
       "properties": {
-        "source": {
-          "description": "source",
-          "$ref": "#/definitions/RemotePath"
-        },
         "keyspace": {
           "description": "keyspace",
           "type": "string"

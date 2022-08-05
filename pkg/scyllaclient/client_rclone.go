@@ -287,15 +287,10 @@ func (c *Client) RcloneDeleteDir(ctx context.Context, host, remotePath string) e
 }
 
 // TODO - consolidate parameters?
-func (c *Client) Restore(ctx context.Context, sourceFs, srcRemote, keyspace, table, version string, files []string) error {
-	// TODO - check why is naming different (No Operations prefix)
+func (c *Client) Restore(ctx context.Context, host, keyspace, table, version string, files []string) error {
 	p := operations.RestoreParams{
-		Context: ctx, // TODO - forceHost?
+		Context: forceHost(ctx, host),
 		Restore: &models.RestoreParams{
-			Source: &models.RemotePath{
-				Fs:     sourceFs,
-				Remote: srcRemote,
-			},
 			Keyspace: keyspace,
 			Table:    table,
 			Version:  version,

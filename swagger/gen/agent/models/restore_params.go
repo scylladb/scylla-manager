@@ -6,7 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
@@ -22,9 +21,6 @@ type RestoreParams struct {
 	// keyspace
 	Keyspace string `json:"keyspace,omitempty"`
 
-	// source
-	Source *RemotePath `json:"source,omitempty"`
-
 	// table
 	Table string `json:"table,omitempty"`
 
@@ -34,33 +30,6 @@ type RestoreParams struct {
 
 // Validate validates this restore params
 func (m *RestoreParams) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateSource(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *RestoreParams) validateSource(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Source) { // not required
-		return nil
-	}
-
-	if m.Source != nil {
-		if err := m.Source.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("source")
-			}
-			return err
-		}
-	}
-
 	return nil
 }
 
