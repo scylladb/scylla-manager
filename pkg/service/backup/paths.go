@@ -4,8 +4,6 @@ package backup
 
 import (
 	"path"
-
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 const (
@@ -19,10 +17,10 @@ func keyspaceDir(keyspace string) string {
 	return dataDir + keyspace
 }
 
-func uploadTableDir(f FilesMeta) string {
+func uploadTableDir(keyspace, table, version string) string {
 	return path.Join(
-		keyspaceDir(f.Keyspace),
-		f.Table+"-"+f.Version,
+		keyspaceDir(keyspace),
+		table+"-"+version,
 		"upload",
 	)
 }

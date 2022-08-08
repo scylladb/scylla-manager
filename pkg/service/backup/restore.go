@@ -185,6 +185,12 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 
 				srcDir := l.RemotePath(miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
 
+				version, err := w.RecordTableVersion(ctx, clusterSession, fm.Keyspace, fm.Table)
+				if err != nil {
+					return
+				}
+				version = strings.ReplaceAll(version, "-", "")
+
 				err = w.ExecOnDisabledTable(ctx, clusterSession, fm.Keyspace, fm.Table, func() error {
 					// TODO: change it to work in parallel
 					for {
@@ -254,7 +260,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 							"batch", batch,
 						)
 
-						dstDir := uploadTableDir(fm)
+						dstDir := uploadTableDir(fm.Keyspace, fm.Table, version)
 
 						jobID, err := client.RcloneCopyPaths(ctx, host, dstDir, srcDir, batch)
 						if err != nil {
@@ -277,7 +283,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 							continue
 						}
 
-						if err := client.Restore(ctx, host, fm.Keyspace, fm.Table, fm.Version, batch); err != nil {
+						if err := client.Restore(ctx, host, fm.Keyspace, fm.Table, version, batch); err != nil {
 							returnBundleIdx(bundlePool, takenIdx)
 
 							continue

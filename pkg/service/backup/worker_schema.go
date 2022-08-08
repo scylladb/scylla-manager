@@ -260,3 +260,27 @@ func (w *worker) ExecOnDisabledTable(ctx context.Context, clusterSession gocqlx.
 
 	return err
 }
+
+// TODO: all RecordXXX could be merged into one query.
+
+func (w *worker) RecordTableVersion(ctx context.Context, clusterSession gocqlx.Session, keyspace, table string) (string, error) {
+	w.Logger.Info(ctx, "Retrieving table's version")
+
+	q := qb.Select("system_schema.tables").
+		Columns("id").
+		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
+		Query(clusterSession).
+		Bind(keyspace, table)
+
+	defer q.Release()
+
+	var version string
+	if err := q.Scan(&version); err != nil {
+		w.Logger.Error(ctx, "Couldn't record table's version",
+			"error", err,
+		)
+
+		return "", errors.Wrap(err, "record table's version")
+	}
+	return version, nil
+}
