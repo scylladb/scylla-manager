@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
