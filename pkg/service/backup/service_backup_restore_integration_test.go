@@ -10,10 +10,16 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/scylladb/go-log"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 /**
@@ -74,17 +80,51 @@ func TestUniversalRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	testutils.Print("Then: there are two backups")
+	items, err := h.service.List(ctx, h.clusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: secondClusterH.clusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("List() = %v, expected one item", items)
+	}
+	i := items[0]
+	fmt.Println(i.SnapshotInfo)
+
 	//testutils.Print("When: create the same keyspace on the restore destination cluster")
 	//testutils.ExecStmt(t, restoreDestinationClusterSession, "CREATE KEYSPACE IF NOT EXISTS "+testKeyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3}")
 
 	testutils.Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	location.DC = "dc1"
 	restoreTarget := backup.RestoreTarget{
-		Location:  []backupspec.Location{location},
-		Keyspace:  []string{testKeyspace},
-		BatchSize: 2,
+		Location:    []backupspec.Location{location},
+		Keyspace:    []string{testKeyspace},
+		BatchSize:   2,
+		SnapshotTag: i.SnapshotInfo[0].SnapshotTag,
 	}
 	fmt.Println(h.service.Restore(ctx, h.clusterID, h.taskID, h.runID, restoreTarget))
+
+	testutils.Print("When: repair executed on restored cluster")
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+	s, err := repair.NewService(
+		session,
+		repair.DefaultConfig(),
+		metrics.NewRepairMetrics(),
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			return h.client, nil
+		},
+		logger.Named("repair"),
+	)
+	if err := s.Repair(ctx, h.clusterID, uuid.MustRandom(), uuid.MustRandom(), repair.Target{
+		Units: []repair.Unit{
+			{Keyspace: testKeyspace, Tables: []string{"big_table"}},
+		},
+		DC:        []string{"dc1"},
+		Continue:  true,
+		Intensity: 10,
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	var count string
 	iter := restoreDestinationClusterSession.Query("SELECT COUNT(*) FROM "+testKeyspace+".big_table", []string{}).Iter()
