@@ -290,3 +290,59 @@ func ExtractRetention(properties json.RawMessage) (Retention, error) {
 	}
 	return Retention{p.RetentionDays, p.Retention}, nil
 }
+
+// RestoreRun tracks restore progress, shares ID with scheduler.Run that initiated it.
+type RestoreRun struct {
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	ID        uuid.UUID
+
+	PrevID   uuid.UUID
+	NodeID   string // marks currently processed manifest
+	Keyspace string // marks currently processed keyspace
+	Table    string // marks currently processed table
+	Stage    RestoreStage
+}
+
+// RestoreRunProgress describes restore progress like RunProgress.
+//
+// If AgentJobID is present alongside with all of the above fields,
+// then progress is described on per-file basis for already started
+// upload of SSTables with specific indexes to host.
+//
+// Otherwise, it only describes total size of files that need to be
+// uploaded on table basis.
+type RestoreRunProgress struct {
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+
+	NodeID       string // ID of the node on which the manifest was taken (it specifies manifest file).
+	KeyspaceName string
+	TableName    string
+	Host         string // If AgentJobID is present then it's
+	// IP of the node to which SSTables are uploaded.
+	// Otherwise, it's IP of the node on which the manifest was taken.
+	AgentJobID int64
+
+	SSTableIdx  []string
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+	Error       string
+	Size        int64
+	Uploaded    int64
+	Skipped     int64
+	Failed      int64
+}
+
+// RestoreProgress groups restore progress for all backed up hosts.
+// (They can belong to an already non-existent cluster).
+//
+// Note: Hosts are described by IP addresses, so progress information
+// about scylla nodes running on the same IP are squashed into one.
+type RestoreProgress struct {
+	progress
+
+	Hosts []HostProgress `json:"hosts,omitempty"`
+	Stage RestoreStage   `json:"stage"`
+}
