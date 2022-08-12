@@ -59,7 +59,7 @@ type worker struct {
 	Schema        *bytes.Buffer
 	Client        *scyllaclient.Client
 	Logger        log.Logger
-	OnRunProgress func(ctx context.Context, p *RunProgress)
+	OnRunProgress func(ctx context.Context, i Insertable)
 	// ResumeUploadProgress populates upload stats of the provided run progress
 	// with previous run progress.
 	// If there is no previous run there should be no update.

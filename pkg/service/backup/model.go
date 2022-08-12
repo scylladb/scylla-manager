@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -72,6 +73,10 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
+type Insertable interface {
+	ExecInsertQuery(session gocqlx.Session) error
+}
+
 // stageNone is a special Stage indicating the there is no stage.
 // This happens when working with runs coming from versions prior to adding stage.
 const stageNone Stage = ""
@@ -90,6 +95,11 @@ type Run struct {
 	Location    []Location
 	StartTime   time.Time
 	Stage       Stage
+}
+
+func (r *Run) ExecInsertQuery(s gocqlx.Session) error {
+	q := table.BackupRun.InsertQuery(s).BindStruct(r)
+	return q.ExecRelease()
 }
 
 type fileInfo struct {
@@ -126,6 +136,11 @@ type RunProgress struct {
 	Failed int64
 
 	files []fileInfo
+}
+
+func (p *RunProgress) ExecInsertQuery(s gocqlx.Session) error {
+	q := table.BackupRunProgress.InsertQuery(s).BindStruct(p)
+	return q.ExecRelease()
 }
 
 // TotalUploaded returns total amount of uploaded bytes including skipped
@@ -304,6 +319,11 @@ type RestoreRun struct {
 	Stage    RestoreStage
 }
 
+func (r *RestoreRun) ExecInsertQuery(s gocqlx.Session) error {
+	q := table.RestoreRun.InsertQuery(s).BindStruct(r)
+	return q.ExecRelease()
+}
+
 // RestoreRunProgress describes restore progress like RunProgress.
 //
 // If AgentJobID is present alongside with all of the above fields,
@@ -333,6 +353,11 @@ type RestoreRunProgress struct {
 	Uploaded    int64
 	Skipped     int64
 	Failed      int64
+}
+
+func (p *RestoreRunProgress) ExecInsertQuery(s gocqlx.Session) error {
+	q := table.RestoreRunProgress.InsertQuery(s).BindStruct(p)
+	return q.ExecRelease()
 }
 
 // RestoreProgress groups restore progress for all backed up hosts.

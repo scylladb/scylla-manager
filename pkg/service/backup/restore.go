@@ -88,14 +88,15 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 
 	w := &worker{
-		ClusterID:   clusterID,
-		ClusterName: clusterName,
-		TaskID:      taskID,
-		RunID:       runID,
-		Client:      client,
-		Config:      s.config,
-		Metrics:     s.metrics,
-		Logger:      s.logger,
+		ClusterID:     clusterID,
+		ClusterName:   clusterName,
+		TaskID:        taskID,
+		RunID:         runID,
+		Client:        client,
+		Config:        s.config,
+		Metrics:       s.metrics,
+		Logger:        s.logger,
+		OnRunProgress: s.insertWithLogError,
 	}
 
 	// Get cluster session

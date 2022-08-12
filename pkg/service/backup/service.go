@@ -675,7 +675,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 		// Update run with previous progress.
 		if run.PrevID != uuid.Nil {
-			s.putRunLogError(ctx, run)
+			s.insertWithLogError(ctx, run)
 			if err := s.clonePrevProgress(run); err != nil {
 				return errors.Wrap(err, "clone progress")
 			}
@@ -718,7 +718,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Register the run
-	if err := s.putRun(run); err != nil {
+	if err := run.ExecInsertQuery(s.session); err != nil {
 		return errors.Wrap(err, "initialize: register the run")
 	}
 
@@ -739,7 +739,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Metrics:              s.metrics,
 		Units:                run.Units,
 		Client:               client,
-		OnRunProgress:        s.putRunProgressLogError,
+		OnRunProgress:        s.insertWithLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
 		memoryPool: &sync.Pool{
 			New: func() interface{} {
@@ -932,17 +932,11 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	return nil, service.ErrNotFound
 }
 
-// putRun upserts a backup run.
-func (s *Service) putRun(r *Run) error {
-	q := table.BackupRun.InsertQuery(s.session).BindStruct(r)
-	return q.ExecRelease()
-}
-
-// putRunLogError executes putRun and consumes the error.
-func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-	if err := s.putRun(r); err != nil {
-		s.logger.Error(ctx, "Failed to update the run",
-			"run", r,
+// insertWithLogError calls ExecInsertQuery and consumes the error.
+func (s *Service) insertWithLogError(ctx context.Context, i Insertable) {
+	if err := i.ExecInsertQuery(s.session); err != nil {
+		s.logger.Error(ctx, fmt.Sprintf("Failed to update %T", i),
+			"insertable", i,
 			"error", err,
 		)
 	}
@@ -955,21 +949,6 @@ func (s *Service) updateStage(ctx context.Context, run *Run, stage Stage) {
 	q := table.BackupRun.UpdateQuery(s.session, "stage").BindStruct(run)
 	if err := q.ExecRelease(); err != nil {
 		s.logger.Error(ctx, "Failed to update run stage", "error", err)
-	}
-}
-
-// putRunProgress upserts a backup run progress.
-func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
-	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
-
-	q := table.BackupRunProgress.InsertQuery(s.session).BindStruct(p)
-	return q.ExecRelease()
-}
-
-// putRunProgressLogError executes putRunProgress and consumes the error.
-func (s *Service) putRunProgressLogError(ctx context.Context, p *RunProgress) {
-	if err := s.putRunProgress(ctx, p); err != nil {
-		s.logger.Error(ctx, "Failed to update file progress", "error", err)
 	}
 }
 
