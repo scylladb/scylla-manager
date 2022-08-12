@@ -6,6 +6,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -387,4 +390,126 @@ func returnBundleIdx(pool chan int, idx []int) {
 	for _, i := range idx {
 		pool <- i
 	}
+}
+
+// RecordRestoreSize records size of every table from every manifest.
+// Resuming is implemented on manifest (nodeID) level.
+func (s *Service) RecordRestoreSize(ctx context.Context, run RestoreRun, target RestoreTarget) error {
+	var resumed bool
+	if !target.Continue || run.NodeID == "" {
+		resumed = true
+	}
+
+	pr := &RestoreRunProgress{
+		ClusterID: run.ClusterID,
+		TaskID:    run.TaskID,
+		RunID:     run.ID,
+	}
+
+	for _, l := range target.Location {
+		lf := ListFilter{SnapshotTag: target.SnapshotTag}
+
+		err := s.forEachManifest(ctx, run.ClusterID, []Location{l}, lf, func(miwc ManifestInfoWithContent) error {
+			if !resumed {
+				if run.NodeID != miwc.NodeID {
+					return nil
+				}
+				resumed = true
+			}
+
+			pr.NodeID = miwc.NodeID
+			// Set IP of the manifest node
+			pr.Host = miwc.IP
+
+			err := miwc.ForEachIndexIter(func(fm FilesMeta) {
+				pr.KeyspaceName = fm.Keyspace
+				pr.TableName = fm.Table
+				pr.Size = fm.Size
+				// Record progress for table
+				s.insertWithLogError(ctx, pr)
+			})
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// decorateWithPrevRestoreRun gets restore task previous run and if it can be continued
+// sets PrevID on the given run.
+func (s *Service) decorateWithPrevRestoreRun(ctx context.Context, run *RestoreRun) error {
+	prev, err := s.GetLastResumableRestoreRun(ctx, run.ClusterID, run.TaskID)
+	if errors.Is(err, service.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "get previous restore run")
+	}
+
+	// TODO: do we have to validate the time of previous run?
+
+	s.logger.Info(ctx, "Resuming previous restore run", "prev_run_id", prev.ID)
+
+	run.PrevID = prev.ID
+	run.NodeID = prev.NodeID
+	run.Keyspace = prev.Keyspace
+	run.Table = prev.Table
+	run.Stage = prev.Stage
+
+	return nil
+}
+
+func (s *Service) clonePrevRestoreProgress(run *RestoreRun) error {
+	q := table.RestoreRunProgress.InsertQuery(s.session)
+	defer q.Release()
+
+	prevRun := &RestoreRun{
+		ClusterID: run.ClusterID,
+		TaskID:    run.TaskID,
+		ID:        run.PrevID,
+	}
+
+	return s.ForEachRestoreProgressIter(bindForAll(prevRun), func(pr *RestoreRunProgress) error {
+		pr.RunID = run.ID
+		return q.BindStruct(pr).Exec()
+	})
+}
+
+// GetLastResumableRestoreRun returns the most recent started but not done run of
+// the restore task, if there is a recent run that is completely done ErrNotFound is reported.
+func (s *Service) GetLastResumableRestoreRun(ctx context.Context, clusterID, taskID uuid.UUID) (*RestoreRun, error) {
+	s.logger.Debug(ctx, "GetLastResumableRestoreRun",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+	)
+
+	q := qb.Select(table.RestoreRun.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+	).Limit(1).Query(s.session).BindMap(qb.M{
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+	})
+
+	var runs []*RestoreRun
+	if err := q.SelectRelease(&runs); err != nil {
+		return nil, err
+	}
+
+	for _, r := range runs {
+		if r.Stage == StageRestoreDone {
+			break
+		} else {
+			return r, nil
+		}
+	}
+
+	return nil, service.ErrNotFound
 }
