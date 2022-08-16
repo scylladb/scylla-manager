@@ -345,7 +345,7 @@ type RestoreRunProgress struct {
 	// Otherwise, it's IP of the node on which the manifest was taken.
 	AgentJobID int64
 
-	SSTableIdx  []string
+	SstableIdx  []string
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string

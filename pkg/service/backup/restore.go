@@ -231,9 +231,10 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 
 						batchSize := target.BatchSize * int(shards)
 						var (
-							batch    []string
-							takenIdx []int
-							done     bool
+							batch          []string
+							takenIdx       []int
+							takenSSTableID []string
+							done           bool
 						)
 
 						// Create batch
@@ -242,6 +243,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 							case idx := <-bundlePool:
 								batch = append(batch, bundles[idx]...)
 								takenIdx = append(takenIdx, idx)
+								takenSSTableID = append(takenSSTableID, sstableID(bundles[idx][0]))
 							default:
 								done = true
 							}
@@ -281,7 +283,19 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 						}
 
 						//TODO: record progress
-						if err := w.waitJob(ctx, jobID, snapshotDir{Host: host, Progress: &RunProgress{}}); err != nil {
+						pr := &RestoreRunProgress{
+							ClusterID:    clusterID,
+							TaskID:       taskID,
+							RunID:        runID,
+							NodeID:       miwc.NodeID,
+							KeyspaceName: fm.Keyspace,
+							TableName:    fm.Table,
+							Host:         host,
+							AgentJobID:   jobID,
+							SstableIdx:   takenSSTableID,
+						}
+
+						if err := w.waitRestoreJob(ctx, pr); err != nil {
 							returnBundleIdx(bundlePool, takenIdx)
 
 							continue

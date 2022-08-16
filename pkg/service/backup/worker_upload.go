@@ -367,7 +367,7 @@ func (w *worker) updateRestoreProgress(ctx context.Context, pr *RestoreRunProgre
 	pr.Uploaded = job.Uploaded
 	pr.Skipped = job.Skipped
 	pr.Failed = job.Failed
-
+	// TODO: fix restore metrics.
 	w.Metrics.SetFilesProgress(w.ClusterID, pr.KeyspaceName, pr.TableName, pr.Host,
 		pr.Size, pr.Uploaded, pr.Skipped, pr.Failed)
 
