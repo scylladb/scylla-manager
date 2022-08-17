@@ -506,6 +506,23 @@ func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID str
 	}, nil
 }
 
+// RestoreProgress returns restore progress.
+func (c Client) RestoreProgress(ctx context.Context, clusterID, taskID, runID string) (RestoreProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskRestoreTaskIDRunID(&operations.GetClusterClusterIDTaskRestoreTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return RestoreProgress{}, err
+	}
+
+	return RestoreProgress{
+		TaskRunRestoreProgress: resp.Payload,
+	}, nil
+}
+
 // ValidateBackupProgress returns validate backup progress.
 func (c Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, runID string) (ValidateBackupProgress, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskValidateBackupTaskIDRunID(&operations.GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams{

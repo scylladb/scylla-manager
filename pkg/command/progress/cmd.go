@@ -64,6 +64,7 @@ func (cmd *command) init() {
 
 var supportedTaskTypes = strset.New(
 	managerclient.BackupTask,
+	managerclient.RestoreTask,
 	managerclient.RepairTask,
 	managerclient.ValidateBackupTask,
 )
@@ -93,6 +94,8 @@ func (cmd *command) run(args []string) error {
 		return cmd.renderRepairProgress(task)
 	case managerclient.BackupTask:
 		return cmd.renderBackupProgress(task)
+	case managerclient.RestoreTask:
+		return cmd.renderRestoreProgress(task)
 	case managerclient.ValidateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
 	}
@@ -120,6 +123,25 @@ func (cmd *command) renderRepairProgress(t *managerclient.Task) error {
 
 func (cmd *command) renderBackupProgress(t *managerclient.Task) error {
 	p, err := cmd.client.BackupProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
+	if err != nil {
+		return err
+	}
+
+	p.Detailed = cmd.details
+	if err := p.SetHostFilter(cmd.host); err != nil {
+		return err
+	}
+	if err := p.SetKeyspaceFilter(cmd.keyspace); err != nil {
+		return err
+	}
+	p.Task = t
+	p.AggregateErrors()
+
+	return p.Render(cmd.OutOrStdout())
+}
+
+func (cmd *command) renderRestoreProgress(t *managerclient.Task) error {
+	p, err := cmd.client.RestoreProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
 	if err != nil {
 		return err
 	}

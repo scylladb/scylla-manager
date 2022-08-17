@@ -892,6 +892,202 @@ func (bp BackupProgress) status() string {
 	return s
 }
 
+// RestoreProgress contains shard progress info.
+type RestoreProgress struct {
+	*models.TaskRunRestoreProgress
+	Task     *Task
+	Detailed bool
+	Errors   []string
+
+	hostFilter     inexlist.InExList
+	keyspaceFilter inexlist.InExList
+}
+
+// SetHostFilter adds filtering rules used for rendering for host details.
+func (rp *RestoreProgress) SetHostFilter(filters []string) (err error) {
+	rp.hostFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+// SetKeyspaceFilter adds filtering rules used for rendering for keyspace details.
+func (rp *RestoreProgress) SetKeyspaceFilter(filters []string) (err error) {
+	rp.keyspaceFilter, err = inexlist.ParseInExList(filters)
+	return
+}
+
+// AggregateErrors collects all errors from the table progress.
+func (rp *RestoreProgress) AggregateErrors() {
+	if rp.Progress == nil || rp.Run.Status != TaskStatusError {
+		return
+	}
+	for i := range rp.Progress.Hosts {
+		for j := range rp.Progress.Hosts[i].Keyspaces {
+			for _, t := range rp.Progress.Hosts[i].Keyspaces[j].Tables {
+				if t.Error != "" {
+					rp.Errors = append(rp.Errors, t.Error)
+				}
+			}
+		}
+	}
+}
+
+// Render renders *BackupProgress in a tabular format.
+func (rp RestoreProgress) Render(w io.Writer) error {
+	if err := rp.addHeader(w); err != nil {
+		return err
+	}
+
+	if rp.Progress != nil && rp.Progress.Size > 0 {
+		t := table.New()
+		rp.addHostProgress(t)
+		if _, err := io.WriteString(w, t.String()); err != nil {
+			return err
+		}
+	}
+
+	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
+		if err := rp.addKeyspaceProgress(w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rp RestoreProgress) addHostProgress(t *table.Table) {
+	t.AddRow("Host", "Progress", "Size", "Success", "Deduplicated", "Failed")
+	t.AddSeparator()
+	for _, h := range rp.Progress.Hosts {
+		if rp.hideHost(h.Host) {
+			continue
+		}
+		p := "-"
+		if len(h.Keyspaces) > 0 {
+			p = FormatUploadProgress(h.Size, h.Uploaded, h.Skipped, h.Failed)
+		}
+		success := h.Uploaded + h.Skipped
+		t.AddRow(h.Host, p,
+			FormatSizeSuffix(h.Size),
+			FormatSizeSuffix(success),
+			FormatSizeSuffix(h.Skipped),
+			FormatSizeSuffix(h.Failed),
+		)
+	}
+	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
+}
+
+func (rp RestoreProgress) addKeyspaceProgress(w io.Writer) error {
+	for _, h := range rp.Progress.Hosts {
+		if rp.hideHost(h.Host) {
+			continue
+		}
+		fmt.Fprintf(w, "\nHost: %s\n", h.Host)
+
+		t := table.New("Keyspace", "Table", "Progress", "Size", "Success", "Deduplicated", "Failed", "Started at", "Completed at")
+		for i, ks := range h.Keyspaces {
+			if rp.hideKeyspace(ks.Keyspace) {
+				break
+			}
+			if i > 0 {
+				t.AddSeparator()
+			}
+
+			rowAdded := false
+			for _, tbl := range ks.Tables {
+				startedAt := strfmt.DateTime{}
+				completedAt := strfmt.DateTime{}
+				if tbl.StartedAt != nil {
+					startedAt = *tbl.StartedAt
+				}
+				if tbl.CompletedAt != nil {
+					completedAt = *tbl.CompletedAt
+				}
+				success := tbl.Uploaded + tbl.Skipped
+				t.AddRow(
+					ks.Keyspace,
+					tbl.Table,
+					FormatUploadProgress(tbl.Size,
+						tbl.Uploaded,
+						tbl.Skipped,
+						tbl.Failed),
+					FormatSizeSuffix(tbl.Size),
+					FormatSizeSuffix(success),
+					FormatSizeSuffix(tbl.Skipped),
+					FormatSizeSuffix(tbl.Failed),
+					FormatTime(startedAt),
+					FormatTime(completedAt),
+				)
+				rowAdded = true
+			}
+			if !rowAdded {
+				// Separate keyspaces with no table rows
+				t.AddRow("-", "-", "-", "-", "-", "-", "-", "-", "-")
+			}
+		}
+		t.SetColumnAlignment(termtables.AlignRight, 2, 3, 4, 5, 6)
+		if _, err := w.Write([]byte(t.String())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rp RestoreProgress) hideHost(host string) bool {
+	if rp.hostFilter.Size() > 0 {
+		return rp.hostFilter.FirstMatch(host) == -1
+	}
+	return false
+}
+
+func (rp RestoreProgress) hideKeyspace(keyspace string) bool {
+	if rp.keyspaceFilter.Size() > 0 {
+		return rp.keyspaceFilter.FirstMatch(keyspace) == -1
+	}
+	return false
+}
+
+var restoreProgressTemplate = `{{ with .Run -}}
+Run:		{{ .ID }}
+Status:		{{ status }}
+{{- if .Cause }}
+Cause:		{{ FormatError .Cause }}
+
+{{- end }}
+{{- if not (isZero .StartTime) }}
+Start time:	{{ FormatTime .StartTime }}
+{{- end -}}
+{{- if not (isZero .EndTime) }}
+End time:	{{ FormatTime .EndTime }}
+{{- end }}
+Duration:	{{ FormatDuration .StartTime .EndTime }}
+{{ end -}}
+{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatUploadProgress .Size .Uploaded .Skipped .Failed }}{{else}}-{{ end }}
+{{ else }}Progress:	0%
+{{ end }}
+{{- if .Errors -}}
+Errors:	{{ range .Errors }}
+  - {{ . }}
+{{- end }}
+{{ end }}
+`
+
+func (rp RestoreProgress) addHeader(w io.Writer) error {
+	temp := template.Must(template.New("restore_progress").Funcs(template.FuncMap{
+		"isZero":               isZero,
+		"FormatTime":           FormatTime,
+		"FormatDuration":       FormatDuration,
+		"FormatError":          FormatError,
+		"FormatUploadProgress": FormatUploadProgress,
+		"status":               rp.status,
+	}).Parse(restoreProgressTemplate))
+	return temp.Execute(w, rp)
+}
+
+// status returns task status with optional backup stage.
+func (rp RestoreProgress) status() string {
+	s := rp.Run.Status
+	return s
+}
+
 // ValidateBackupProgress prints validate_backup task progress.
 type ValidateBackupProgress struct {
 	*models.TaskRunValidateBackupProgress
