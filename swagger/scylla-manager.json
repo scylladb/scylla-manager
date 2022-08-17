@@ -688,6 +688,53 @@
         }
       }
     },
+    "TaskRunRestoreProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/TaskRun"
+        },
+        "progress": {
+          "$ref": "#/definitions/RestoreProgress"
+        }
+      }
+    },
+    "RestoreProgress": {
+      "type": "object",
+      "properties": {
+        "hosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HostProgress"
+          }
+        },
+        "stage": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "uploaded": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        }
+      }
+    },
     "HostProgress": {
       "type": "object",
       "properties": {
@@ -1524,6 +1571,44 @@
             "description": "Backup progress",
             "schema": {
               "$ref": "#/definitions/TaskRunBackupProgress"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/restore/{task_id}/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restore progress",
+            "schema": {
+              "$ref": "#/definitions/TaskRunRestoreProgress"
             }
           },
           "default": {
