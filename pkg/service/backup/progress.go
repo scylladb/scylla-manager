@@ -435,8 +435,8 @@ func bindForOngoing(run *RestoreRun) map[string]any {
 	b := bindForAll(run)
 
 	b["node_id"] = run.NodeID
-	b["keyspace_name"] = run.Keyspace
-	b["table_name"] = run.Table
+	b["keyspace_name"] = run.KeyspaceName
+	b["table_name"] = run.TableName
 
 	return b
 }

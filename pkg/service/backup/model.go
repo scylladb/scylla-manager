@@ -312,11 +312,11 @@ type RestoreRun struct {
 	TaskID    uuid.UUID
 	ID        uuid.UUID
 
-	PrevID   uuid.UUID
-	NodeID   string // marks currently processed manifest
-	Keyspace string // marks currently processed keyspace
-	Table    string // marks currently processed table
-	Stage    RestoreStage
+	PrevID       uuid.UUID
+	NodeID       string // marks currently processed manifest
+	KeyspaceName string // marks currently processed keyspace
+	TableName    string // marks currently processed table
+	Stage        RestoreStage
 }
 
 func (r *RestoreRun) ExecInsertQuery(s gocqlx.Session) error {
