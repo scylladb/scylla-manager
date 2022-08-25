@@ -282,5 +282,6 @@ func (w *worker) RecordTableVersion(ctx context.Context, clusterSession gocqlx.S
 
 		return "", errors.Wrap(err, "record table's version")
 	}
-	return version, nil
+	// Table's version is stripped of '-' characters
+	return strings.ReplaceAll(version, "-", ""), nil
 }
