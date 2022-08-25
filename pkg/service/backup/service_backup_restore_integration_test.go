@@ -60,7 +60,7 @@ func TestUniversalRestore(t *testing.T) {
 	)
 
 	testutils.WriteData(t, restoreDestinationClusterSession, testKeyspace, 0)
-	testutils.WriteDataToSecondCluster(t, backupClusterSession, testKeyspace, 100)
+	testutils.WriteDataToSecondCluster(t, backupClusterSession, testKeyspace, 200)
 	backupTarget := backup.Target{
 		Units: []backup.Unit{
 			{
@@ -99,10 +99,21 @@ func TestUniversalRestore(t *testing.T) {
 	restoreTarget := backup.RestoreTarget{
 		Location:    []backupspec.Location{location},
 		Keyspace:    []string{testKeyspace},
-		BatchSize:   2,
+		BatchSize:   1,
 		SnapshotTag: i.SnapshotInfo[0].SnapshotTag,
+		Continue:    true,
+		Parallel:    2,
 	}
 	fmt.Println(h.service.Restore(ctx, h.clusterID, h.taskID, h.runID, restoreTarget))
+
+	pr1, err := h.service.GetRestoreProgress(ctx, h.clusterID, h.taskID, h.runID)
+	fmt.Printf("\n\n %#+v \n\n", pr1)
+
+	//tmp := uuid.MustRandom()
+	//fmt.Println(h.service.Restore(ctx, h.clusterID, h.taskID, tmp, restoreTarget))
+	//
+	//pr2, err := h.service.GetRestoreProgress(ctx, h.clusterID, h.taskID, tmp)
+	//fmt.Printf("\n\n %#+v \n\n", pr2)
 
 	testutils.Print("When: repair executed on restored cluster")
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
@@ -119,7 +130,7 @@ func TestUniversalRestore(t *testing.T) {
 		Units: []repair.Unit{
 			{Keyspace: testKeyspace, Tables: []string{"big_table"}},
 		},
-		DC:        []string{"dc1"},
+		DC:        []string{"dc1", "dc2"},
 		Continue:  true,
 		Intensity: 10,
 	}); err != nil {
