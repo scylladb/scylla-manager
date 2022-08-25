@@ -8,6 +8,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -121,127 +122,154 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 				dstDir := uploadTableDir(fm.Keyspace, fm.Table, version)
 
 				err = w.ExecOnDisabledTable(ctx, w.clusterSession, fm.Keyspace, fm.Table, func() error {
-					// TODO: change it to work in parallel
-					for {
-						// Get host from the pool
-						var h jobUnit
-						select {
-						case <-ctx.Done():
-							return ctx.Err()
-						case h = <-hosts:
-						default:
-						}
-
-						if h.Host == "" {
-							w.Logger.Info(ctx, "No more hosts in the pool",
-								"keyspace", run.KeyspaceName,
-								"table", run.TableName,
-							)
-
-							break
-						}
-
-						if ctx.Err() != nil {
-							return ctx.Err()
-						}
-
-						var (
-							pr    *RestoreRunProgress
-							batch []string
-						)
-
-						// Check if host has an already running job
-						if h.JobID == 0 {
-							takenIDs, err := w.chooseIDsForBatch(ctx, h.Host, target, bundleIDPool)
-							if err != nil {
-								w.Logger.Info(ctx, "Couldn't create batch for restore",
-									"host", h.Host,
-									"keyspace", fm.Keyspace,
-									"table", fm.Table,
-									"error", err,
-								)
-
-								continue
+					return parallel.Run(target.Parallel, target.Parallel, func(n int) error {
+						for {
+							// Get host from the pool
+							var h jobUnit
+							select {
+							case <-ctx.Done():
+								return ctx.Err()
+							case h = <-hosts:
+							default:
 							}
-							if takenIDs == nil {
-								w.Logger.Info(ctx, "Empty batch")
 
-								hosts <- jobUnit{Host: h.Host}
+							if h.Host == "" {
+								w.Logger.Info(ctx, "No more hosts in the pool",
+									"keyspace", run.KeyspaceName,
+									"table", run.TableName,
+									"worker", n,
+								)
 
 								break
 							}
 
-							batch = batchFromIDs(bundles, takenIDs)
-
-							w.Logger.Info(ctx, "Created batch",
-								"host", h.Host,
-								"keyspace", fm.Keyspace,
-								"table", fm.Table,
-								"batch", batch,
-							)
-
-							jobID, err := w.Client.RcloneCopyPaths(ctx, h.Host, dstDir, srcDir, batch)
-							if err != nil {
-								w.Logger.Error(ctx, "Couldn't download batch to upload dir",
-									"host", h.Host,
-									"srcDir", srcDir,
-									"dstDir", dstDir,
-									"batch", batch,
-									"error", err,
-								)
-								// Return bundle IDs to the pool so that they can be used in different batch
-								returnBatchToPool(bundleIDPool, takenIDs)
-
-								continue
-							}
-
-							pr = &RestoreRunProgress{
-								ClusterID:    run.ClusterID,
-								TaskID:       run.TaskID,
-								RunID:        run.ID,
-								ManifestPath: run.ManifestPath,
-								KeyspaceName: fm.Keyspace,
-								TableName:    fm.Table,
-								Host:         h.Host,
-								AgentJobID:   jobID,
-								ManifestIP:   miwc.IP,
-								SstableID:    takenIDs,
-							}
-						} else {
-							pr = tablePr[h.JobID]
-							batch = batchFromIDs(bundles, pr.SstableID)
-						}
-
-						if err := w.waitJob(ctx, pr); err != nil {
-							// In case of context cancellation restore is interrupted
 							if ctx.Err() != nil {
 								return ctx.Err()
 							}
 
-							w.Logger.Error(ctx, "Couldn't wait on Rclone job",
-								"host", h.Host,
-								"job ID", h.JobID,
-								"error", err,
+							var (
+								pr    *RestoreRunProgress
+								batch []string
 							)
-							// Since failed progress run might already be recorded in database it has to be deleted
-							w.DeleteRunProgress(ctx, pr)
-							returnBatchToPool(bundleIDPool, pr.SstableID)
 
-							continue
+							// Check if host has an already running job
+							if h.JobID == 0 {
+								takenIDs, err := w.chooseIDsForBatch(ctx, h.Host, target, bundleIDPool)
+								if err != nil {
+									w.Logger.Info(ctx, "Couldn't create batch for restore",
+										"host", h.Host,
+										"keyspace", fm.Keyspace,
+										"table", fm.Table,
+										"worker", n,
+										"error", err,
+									)
+
+									continue
+								}
+								if takenIDs == nil {
+									w.Logger.Info(ctx, "Empty batch",
+										"worker", n,
+									)
+
+									hosts <- jobUnit{Host: h.Host}
+
+									break
+								}
+
+								batch = batchFromIDs(bundles, takenIDs)
+
+								w.Logger.Info(ctx, "Created batch",
+									"host", h.Host,
+									"keyspace", fm.Keyspace,
+									"table", fm.Table,
+									"worker", n,
+									"batch", batch,
+								)
+
+								jobID, err := w.Client.RcloneCopyPaths(ctx, h.Host, dstDir, srcDir, batch)
+								if err != nil {
+									w.Logger.Error(ctx, "Couldn't download batch to upload dir",
+										"host", h.Host,
+										"keyspace", fm.Keyspace,
+										"table", fm.Table,
+										"worker", n,
+										"srcDir", srcDir,
+										"dstDir", dstDir,
+										"batch", batch,
+										"error", err,
+									)
+									// Return bundle IDs to the pool so that they can be used in different batch
+									returnBatchToPool(bundleIDPool, takenIDs)
+
+									continue
+								}
+
+								w.Logger.Info(ctx, "Created rclone job",
+									"host", h.Host,
+									"keyspace", fm.Keyspace,
+									"table", fm.Table,
+									"worker", n,
+									"job_id", jobID,
+									"batch", batch,
+								)
+
+								pr = &RestoreRunProgress{
+									ClusterID:    run.ClusterID,
+									TaskID:       run.TaskID,
+									RunID:        run.ID,
+									ManifestPath: run.ManifestPath,
+									KeyspaceName: fm.Keyspace,
+									TableName:    fm.Table,
+									Host:         h.Host,
+									AgentJobID:   jobID,
+									ManifestIP:   miwc.IP,
+									SstableID:    takenIDs,
+								}
+							} else {
+								pr = tablePr[h.JobID]
+								batch = batchFromIDs(bundles, pr.SstableID)
+							}
+
+							if err := w.waitJob(ctx, pr); err != nil {
+								// In case of context cancellation restore is interrupted
+								if ctx.Err() != nil {
+									return ctx.Err()
+								}
+
+								w.Logger.Error(ctx, "Couldn't wait on rclone job",
+									"host", h.Host,
+									"worker", n,
+									"job ID", h.JobID,
+									"error", err,
+								)
+								// Since failed progress run might already be recorded in database it has to be deleted
+								w.DeleteRunProgress(ctx, pr)
+								returnBatchToPool(bundleIDPool, pr.SstableID)
+
+								continue
+							}
+
+							if err := w.Client.Restore(ctx, h.Host, fm.Keyspace, fm.Table, version, batch); err != nil {
+								w.DeleteRunProgress(ctx, pr)
+								returnBatchToPool(bundleIDPool, pr.SstableID)
+
+								continue
+							}
+
+							w.Logger.Info(ctx, "Restored batch",
+								"host", h.Host,
+								"keyspace", fm.Keyspace,
+								"table", fm.Table,
+								"worker", n,
+								"batch", batch,
+							)
+
+							// Return free host to the pool so that it can be reused
+							hosts <- jobUnit{Host: h.Host}
 						}
 
-						if err := w.Client.Restore(ctx, h.Host, fm.Keyspace, fm.Table, version, batch); err != nil {
-							w.DeleteRunProgress(ctx, pr)
-							returnBatchToPool(bundleIDPool, pr.SstableID)
-
-							continue
-						}
-
-						// Return free host to the pool so that it can be reused
-						hosts <- jobUnit{Host: h.Host}
-					}
-
-					return nil
+						return nil
+					})
 				})
 
 				if err != nil {
