@@ -273,7 +273,7 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 
 	// Filter live nodes
 	nodes := status.Datacenter(target.DC)
-	liveNodes, err := client.GetLiveNodes(ctx, status, target.DC)
+	liveNodes, err := client.GetLiveNodes(ctx, status.Datacenter(target.DC))
 	if err != nil {
 		return nil, err
 	}
@@ -937,6 +937,15 @@ func (s *Service) insertWithLogError(ctx context.Context, i Insertable) {
 	if err := i.ExecInsertQuery(s.session); err != nil {
 		s.logger.Error(ctx, fmt.Sprintf("Failed to update %T", i),
 			"insertable", i,
+			"error", err,
+		)
+	}
+}
+
+func (s *Service) deleteWithLogError(ctx context.Context, d Deletable) {
+	if err := d.ExecDeleteQuery(s.session); err != nil {
+		s.logger.Error(ctx, fmt.Sprintf("Failed to update %T", d),
+			"insertable", d,
 			"error", err,
 		)
 	}

@@ -18,15 +18,14 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 )
 
-// GetLiveNodes returns live nodes from specified DC's.
-func (c *Client) GetLiveNodes(ctx context.Context, status NodeStatusInfoSlice, dc []string) (NodeStatusInfoSlice, error) {
-	c.logger.Info(ctx, "Finding live nodes in dc",
-		"dc", dc,
+// GetLiveNodes returns subset of nodes that passed connectivity check.
+func (c *Client) GetLiveNodes(ctx context.Context, nodes NodeStatusInfoSlice) (NodeStatusInfoSlice, error) {
+	c.logger.Info(ctx, "Finding live nodes",
+		"candidates", nodes,
 	)
 
 	var (
 		liveNodes NodeStatusInfoSlice
-		nodes     = status.Datacenter(dc)
 		nodeErr   = c.CheckHostsConnectivity(ctx, nodes.Hosts())
 	)
 	for i, err := range nodeErr {
@@ -35,7 +34,7 @@ func (c *Client) GetLiveNodes(ctx context.Context, status NodeStatusInfoSlice, d
 		}
 	}
 	if len(liveNodes) == 0 {
-		return nil, errors.Errorf("no live nodes found in dc: %v", dc)
+		return nil, errors.Errorf("no live nodes found")
 	}
 	return liveNodes, nil
 }
