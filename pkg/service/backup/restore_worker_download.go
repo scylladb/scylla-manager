@@ -2,15 +2,32 @@ package backup
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
+
+// tableRunProgress maps rclone job ID to corresponding RestoreProgressRun
+// for a specific table.
+type tableRunProgress map[int64]*RestoreRunProgress
+
+// jobUnit represents host that can be used for restoring files.
+// If set, JobID is the ID of the unfinished rclone job started on the host.
+type jobUnit struct {
+	Host   string
+	Shards uint
+	JobID  int64
+}
+
+// bundle represents list of SSTables with the same ID.
+type bundle []string
 
 func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, target RestoreTarget, localDC string) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
@@ -26,19 +43,19 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 		resumed = true
 	}
 
-	// loop locations
+	// Loop locations
 	for _, l := range target.Location {
 		w.Logger.Info(ctx, "Looping locations",
 			"cluster_id", w.ClusterID,
 			"location", l,
 		)
 
-		hosts, err := w.initRestoreHostPool(ctx, run, []string{l.DC, localDC}, resumed)
+		jobs, err := w.initJobUnits(ctx, run, []string{l.DC, localDC}, resumed)
 		if err != nil {
 			return errors.Wrap(err, "initialize host pool")
 		}
 
-		// Loop manifests for the snapshot tag
+		// Loop manifests for the location
 		err = w.forEachRestoredManifest(ctx, l, func(miwc ManifestInfoWithContent) error {
 			w.Logger.Info(ctx, "Looping manifests",
 				"cluster_id", w.ClusterID,
@@ -89,11 +106,7 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 					// Last run ended it's work on this table
 					resumed = true
 
-					tablePr, err = w.getTableRunProgress(ctx, run)
-					if err != nil {
-						indexErr = err
-						return
-					}
+					tablePr = w.getTableRunProgress(ctx, run)
 				} else {
 					run.TableName = fm.Table
 					run.KeyspaceName = fm.Keyspace
@@ -111,40 +124,24 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 					return
 				}
 
-				srcDir := l.RemotePath(miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
-
 				version, err := w.RecordTableVersion(ctx, w.clusterSession, fm.Keyspace, fm.Table)
 				if err != nil {
 					indexErr = err
 					return
 				}
 
-				dstDir := uploadTableDir(fm.Keyspace, fm.Table, version)
+				var (
+					srcDir = l.RemotePath(miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
+					dstDir = uploadTableDir(fm.Keyspace, fm.Table, version)
+				)
 
 				err = w.ExecOnDisabledTable(ctx, w.clusterSession, fm.Keyspace, fm.Table, func() error {
-					return parallel.Run(target.Parallel, target.Parallel, func(n int) error {
+					// Every host has its personal goroutine which is responsible
+					// for creating and downloading batches.
+					return parallel.Run(len(jobs), target.Parallel, func(n int) error {
 						for {
-							// Get host from the pool
-							var h jobUnit
-							select {
-							case <-ctx.Done():
-								return ctx.Err()
-							case h = <-hosts:
-							default:
-							}
-
-							if h.Host == "" {
-								w.Logger.Info(ctx, "No more hosts in the pool",
-									"keyspace", run.KeyspaceName,
-									"table", run.TableName,
-									"worker", n,
-								)
-
-								break
-							}
-
 							if ctx.Err() != nil {
-								return ctx.Err()
+								return parallel.Abort(ctx.Err())
 							}
 
 							var (
@@ -153,46 +150,41 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 							)
 
 							// Check if host has an already running job
-							if h.JobID == 0 {
-								takenIDs, err := w.chooseIDsForBatch(ctx, h.Host, target, bundleIDPool)
-								if err != nil {
-									w.Logger.Info(ctx, "Couldn't create batch for restore",
-										"host", h.Host,
-										"keyspace", fm.Keyspace,
-										"table", fm.Table,
-										"worker", n,
+							if jobs[n].JobID == 0 {
+								if err := w.validateHostDiskSpace(ctx, jobs[n].Host, target.MinFreeDiskSpace); err != nil {
+									w.Logger.Error(ctx, "Validation free disk space error",
+										"host", jobs[n].Host,
 										"error", err,
 									)
 
-									continue
+									return nil
 								}
+
+								takenIDs := chooseIDsForBatch(jobs[n].Shards, target.BatchSize, bundleIDPool)
 								if takenIDs == nil {
 									w.Logger.Info(ctx, "Empty batch",
-										"worker", n,
+										"host", jobs[n].Host,
 									)
 
-									hosts <- jobUnit{Host: h.Host}
-
-									break
+									return nil
 								}
 
 								batch = batchFromIDs(bundles, takenIDs)
 
 								w.Logger.Info(ctx, "Created batch",
-									"host", h.Host,
+									"host", jobs[n].Host,
 									"keyspace", fm.Keyspace,
 									"table", fm.Table,
-									"worker", n,
 									"batch", batch,
 								)
 
-								jobID, err := w.Client.RcloneCopyPaths(ctx, h.Host, dstDir, srcDir, batch)
+								// Download batch to host
+								jobID, err := w.Client.RcloneCopyPaths(ctx, jobs[n].Host, dstDir, srcDir, batch)
 								if err != nil {
 									w.Logger.Error(ctx, "Couldn't download batch to upload dir",
-										"host", h.Host,
+										"host", jobs[n].Host,
 										"keyspace", fm.Keyspace,
 										"table", fm.Table,
-										"worker", n,
 										"srcDir", srcDir,
 										"dstDir", dstDir,
 										"batch", batch,
@@ -201,14 +193,13 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 									// Return bundle IDs to the pool so that they can be used in different batch
 									returnBatchToPool(bundleIDPool, takenIDs)
 
-									continue
+									return nil
 								}
 
 								w.Logger.Info(ctx, "Created rclone job",
-									"host", h.Host,
+									"host", jobs[n].Host,
 									"keyspace", fm.Keyspace,
 									"table", fm.Table,
-									"worker", n,
 									"job_id", jobID,
 									"batch", batch,
 								)
@@ -220,75 +211,69 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 									ManifestPath: run.ManifestPath,
 									KeyspaceName: fm.Keyspace,
 									TableName:    fm.Table,
-									Host:         h.Host,
+									Host:         jobs[n].Host,
 									AgentJobID:   jobID,
 									ManifestIP:   miwc.IP,
 									SstableID:    takenIDs,
 								}
 							} else {
-								pr = tablePr[h.JobID]
+								pr = tablePr[jobs[n].JobID]
+								// Mark that previously started job is resumed
+								jobs[n].JobID = 0
+
 								batch = batchFromIDs(bundles, pr.SstableID)
 							}
 
 							if err := w.waitJob(ctx, pr); err != nil {
 								// In case of context cancellation restore is interrupted
 								if ctx.Err() != nil {
-									return ctx.Err()
+									return parallel.Abort(ctx.Err())
 								}
 
 								w.Logger.Error(ctx, "Couldn't wait on rclone job",
-									"host", h.Host,
-									"worker", n,
-									"job ID", h.JobID,
+									"host", jobs[n].Host,
+									"job ID", jobs[n].JobID,
 									"error", err,
 								)
 								// Since failed progress run might already be recorded in database it has to be deleted
 								w.DeleteRunProgress(ctx, pr)
 								returnBatchToPool(bundleIDPool, pr.SstableID)
 
-								continue
+								return nil
 							}
 
-							if err := w.Client.Restore(ctx, h.Host, fm.Keyspace, fm.Table, version, batch); err != nil {
+							if err := w.Client.Restore(ctx, jobs[n].Host, fm.Keyspace, fm.Table, version, batch); err != nil {
 								w.DeleteRunProgress(ctx, pr)
 								returnBatchToPool(bundleIDPool, pr.SstableID)
 
-								continue
+								return nil
 							}
 
 							w.Logger.Info(ctx, "Restored batch",
-								"host", h.Host,
+								"host", jobs[n].Host,
 								"keyspace", fm.Keyspace,
 								"table", fm.Table,
-								"worker", n,
 								"batch", batch,
 							)
-
-							// Return free host to the pool so that it can be reused
-							hosts <- jobUnit{Host: h.Host}
 						}
-
-						return nil
 					})
 				})
 
 				if err != nil {
 					indexErr = err
-
 					return
 				}
 
 				if len(bundleIDPool) > 0 {
-					w.Logger.Error(ctx, "Not all bundles have been restored",
-						"left_bundles", getChanContent(bundleIDPool),
-					)
+					indexErr = errors.Wrapf(err, "not restored bundles %v", getChanContent(bundleIDPool))
+					return
 				}
-
 			})
 
 			if indexErr != nil {
 				return indexErr
 			}
+
 			return err
 		})
 
@@ -374,4 +359,249 @@ func (w *restoreWorker) updateProgress(ctx context.Context, pr *RestoreRunProgre
 		pr.Size, pr.Uploaded, pr.Skipped, pr.Failed)
 
 	w.InsertRunProgress(ctx, pr)
+}
+
+// initJobUnits creates slice of jobUnits with hosts living in dc from dcs.
+// Datacenters in dcs are ordered by decreasing priority.
+// If none of the nodes living in dcs is alive, pool is initialized with all living nodes.
+//
+// If resumed is set to false, it also initializes curProgress with information
+// about all rclone jobs started on the table specified in run.
+// All running jobs are located at the beginning of the result slice.
+func (w *restoreWorker) initJobUnits(ctx context.Context, run *RestoreRun, dcs []string, resumed bool) ([]jobUnit, error) {
+	status, err := w.Client.Status(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client status")
+	}
+
+	var liveNodes scyllaclient.NodeStatusInfoSlice
+
+	// Find live nodes in dcs
+	for _, dc := range dcs {
+		if liveNodes, err = w.Client.GetLiveNodes(ctx, status.Datacenter([]string{dc})); err == nil {
+			break
+		}
+
+		w.Logger.Info(ctx, "No live nodes found in dc",
+			"dc", dc,
+		)
+	}
+
+	if liveNodes == nil {
+		// Find any live nodes
+		liveNodes, err = w.Client.GetLiveNodes(ctx, status)
+		if err != nil {
+			return nil, errors.New("no live nodes in any dc")
+		}
+	}
+
+	w.Logger.Info(ctx, "Live nodes",
+		"nodes", liveNodes.Hosts(),
+	)
+
+	var (
+		jobs        []jobUnit
+		hostsInPool = strset.New()
+	)
+
+	// Collect table progress info from previous run
+	if !resumed {
+		cb := func(pr *RestoreRunProgress) {
+			// Ignore progress created from RecordSize
+			if pr.AgentJobID == 0 {
+				return
+			}
+			// Place hosts with unfinished jobs at the beginning
+			if pr.CompletedAt == nil {
+				sh, err := w.Client.ShardCount(ctx, pr.Host)
+				if err != nil {
+					w.Logger.Info(ctx, "Couldn't get host shard count",
+						"host", pr.Host,
+						"error", err,
+					)
+					return
+				}
+
+				jobs = append(jobs, jobUnit{
+					Host:   pr.Host,
+					Shards: sh,
+					JobID:  pr.AgentJobID,
+				})
+
+				hostsInPool.Add(pr.Host)
+			}
+		}
+
+		w.ForEachTableProgress(run, cb)
+	}
+
+	for _, n := range liveNodes {
+		// Place free hosts in the pool
+		if !hostsInPool.Has(n.Addr) {
+			sh, err := w.Client.ShardCount(ctx, n.Addr)
+			if err != nil {
+				w.Logger.Info(ctx, "Couldn't get host shard count",
+					"host", n.Addr,
+					"error", err,
+				)
+				continue
+			}
+
+			jobs = append(jobs, jobUnit{
+				Host:   n.Addr,
+				Shards: sh,
+			})
+
+			hostsInPool.Add(n.Addr)
+		}
+	}
+
+	w.Logger.Info(ctx, "Created job units",
+		"jobs", jobs,
+	)
+
+	return jobs, nil
+}
+
+func (w *restoreWorker) getTableRunProgress(ctx context.Context, run *RestoreRun) tableRunProgress {
+	tablePr := make(tableRunProgress)
+
+	cb := func(pr *RestoreRunProgress) {
+		// Don't include progress created in RecordSize
+		if pr.AgentJobID != 0 {
+			tablePr[pr.AgentJobID] = pr
+		}
+	}
+
+	w.ForEachTableProgress(run, cb)
+
+	w.Logger.Info(ctx, "Previous Table progress",
+		"keyspace", run.KeyspaceName,
+		"table", run.TableName,
+		"table_progress", tablePr,
+	)
+
+	return tablePr
+}
+
+// validateHostDiskSpace checks if host has at least minDiskSpace percent of free disk space.
+func (w *restoreWorker) validateHostDiskSpace(ctx context.Context, host string, minDiskSpace int) error {
+	disk, err := w.diskFreePercent(ctx, hostInfo{IP: host})
+	if err != nil {
+		return err
+	}
+	if disk < minDiskSpace {
+		return errors.Errorf("Host %s has %d%% free disk space and requires %d%%", host, disk, minDiskSpace)
+	}
+
+	return nil
+}
+
+// initBundlePool creates pool of SSTable IDs that have yet to be restored.
+// (It does not include ones that are currently being restored).
+func initBundlePool(curProgress tableRunProgress, bundles map[string]bundle) chan string {
+	var (
+		pool      = make(chan string, len(bundles))
+		processed = strset.New()
+	)
+
+	for _, pr := range curProgress {
+		processed.Add(pr.SstableID...)
+	}
+
+	for id := range bundles {
+		if !processed.Has(id) {
+			pool <- id
+		}
+	}
+
+	return pool
+}
+
+// chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
+func chooseIDsForBatch(shards uint, size int, bundleIDs chan string) []string {
+	var (
+		batchSize = size * int(shards)
+		takenIDs  []string
+		done      bool
+	)
+
+	// Create batch
+	for i := 0; i < batchSize; i++ {
+		select {
+		case id := <-bundleIDs:
+			takenIDs = append(takenIDs, id)
+		default:
+			done = true
+		}
+
+		if done {
+			break
+		}
+	}
+
+	return takenIDs
+}
+
+func isSystemKeyspace(keyspace string) bool {
+	return strings.HasPrefix(keyspace, "system")
+}
+
+func sstableID(file string) string {
+	return strings.SplitN(file, "-", 3)[1]
+}
+
+// groupSSTablesToBundles maps SSTable ID to its bundle.
+func groupSSTablesToBundles(sstables []string) map[string]bundle {
+	var bundles = make(map[string]bundle)
+
+	for _, f := range sstables {
+		id := sstableID(f)
+		bundles[id] = append(bundles[id], f)
+	}
+
+	return bundles
+}
+
+func returnBatchToPool(pool chan string, ids []string) {
+	for _, i := range ids {
+		pool <- i
+	}
+}
+
+// batchFromIDs creates batch of SSTables with IDs present in ids.
+func batchFromIDs(bundles map[string]bundle, ids []string) []string {
+	var batch []string
+
+	for _, id := range ids {
+		batch = append(batch, bundles[id]...)
+	}
+
+	return batch
+}
+
+func getChanContent(c chan string) []string {
+	content := make([]string, len(c))
+
+	for s := range c {
+		content = append(content, s)
+	}
+
+	return content
+}
+
+// GetRestoreProgress aggregates progress for the restore run of the task
+// and breaks it down by keyspace and table.json.
+// If nothing was found scylla-manager.ErrNotFound is returned.
+func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (RestoreProgress, error) {
+	w := &restoreWorker{
+		worker: worker{
+			ClusterID: clusterID,
+			TaskID:    taskID,
+			RunID:     runID,
+		},
+		managerSession: s.session,
+	}
+
+	return w.GetProgress(ctx)
 }

@@ -70,7 +70,7 @@ func (w *restoreWorker) decorateWithPrevRun(ctx context.Context, run *RestoreRun
 	return nil
 }
 
-func (w *restoreWorker) clonePrevProgress(run *RestoreRun) error {
+func (w *restoreWorker) clonePrevProgress(run *RestoreRun) {
 	q := table.RestoreRunProgress.InsertQuery(w.managerSession)
 	defer q.Release()
 
@@ -80,9 +80,9 @@ func (w *restoreWorker) clonePrevProgress(run *RestoreRun) error {
 		ID:        run.PrevID,
 	}
 
-	return w.ForEachProgress(prevRun, func(pr *RestoreRunProgress) error {
+	w.ForEachProgress(prevRun, func(pr *RestoreRunProgress) {
 		pr.RunID = run.ID
-		return q.BindStruct(pr).Exec()
+		_ = q.BindStruct(pr).Exec()
 	})
 }
 
@@ -148,5 +148,5 @@ func (w *restoreWorker) GetProgress(ctx context.Context) (RestoreProgress, error
 		return RestoreProgress{}, err
 	}
 
-	return w.aggregateProgress(run)
+	return w.aggregateProgress(run), nil
 }

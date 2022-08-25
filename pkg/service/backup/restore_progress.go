@@ -8,7 +8,7 @@ import (
 // aggregateProgress returns restore progress information classified by host, keyspace,
 // and host tables. Host is understood as the host which backed up the data.
 // (It can belong to an already non-existent cluster).
-func (w *restoreWorker) aggregateProgress(run *RestoreRun) (RestoreProgress, error) {
+func (w *restoreWorker) aggregateProgress(run *RestoreRun) RestoreProgress {
 	var (
 		p = RestoreProgress{
 			progress: progress{
@@ -20,9 +20,7 @@ func (w *restoreWorker) aggregateProgress(run *RestoreRun) (RestoreProgress, err
 		tableMap = make(map[tableKey]TableProgress)
 	)
 
-	if err := w.ForEachProgress(run, w.aggregateTableProgress(tableMap)); err != nil {
-		return p, err
-	}
+	w.ForEachProgress(run, w.aggregateTableProgress(tableMap))
 
 	// Swap host representation from nodeID to IP.
 	ksMap := w.aggregateKeyspaceProgress(tableMap)
@@ -36,7 +34,7 @@ func (w *restoreWorker) aggregateProgress(run *RestoreRun) (RestoreProgress, err
 
 	p.progress = extremeToNil(p.progress)
 
-	return p, nil
+	return p
 }
 
 // aggregateHostProgress aggregates restore progress per host based
@@ -106,8 +104,8 @@ func (w *restoreWorker) aggregateKeyspaceProgress(tableMap map[tableKey]TablePro
 
 // aggregateTableProgress returns function that can be used to aggregate
 // restore progress per host table.
-func (w *restoreWorker) aggregateTableProgress(tableMap map[tableKey]TableProgress) func(*RestoreRunProgress) error {
-	return func(pr *RestoreRunProgress) error {
+func (w *restoreWorker) aggregateTableProgress(tableMap map[tableKey]TableProgress) func(*RestoreRunProgress) {
+	return func(pr *RestoreRunProgress) {
 		var (
 			tk = tableKey{
 				host:     pr.ManifestIP,
@@ -145,30 +143,27 @@ func (w *restoreWorker) aggregateTableProgress(tableMap map[tableKey]TableProgre
 		}
 
 		tableMap[tk] = tab
-
-		return nil
 	}
 }
 
 // ForEachProgress iterates over all RestoreRunProgress that belong to run arg.
-func (w *restoreWorker) ForEachProgress(run *RestoreRun, cb func(*RestoreRunProgress) error) error {
+func (w *restoreWorker) ForEachProgress(run *RestoreRun, cb func(*RestoreRunProgress)) {
 	iter := table.RestoreRunProgress.SelectQuery(w.managerSession).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
 		"run_id":     run.ID,
 	}).Iter()
+	defer iter.Close()
 
 	pr := new(RestoreRunProgress)
 	for iter.StructScan(pr) {
 		cb(pr)
 	}
-
-	return iter.Close()
 }
 
 // ForEachTableProgress iterates over all RestoreRunProgress that belong
 // to run, manifest and table specified in run arg.
-func (w *restoreWorker) ForEachTableProgress(run *RestoreRun, cb func(*RestoreRunProgress) error) error {
+func (w *restoreWorker) ForEachTableProgress(run *RestoreRun, cb func(*RestoreRunProgress)) {
 	iter := qb.Select(table.RestoreRunProgress.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
@@ -184,11 +179,10 @@ func (w *restoreWorker) ForEachTableProgress(run *RestoreRun, cb func(*RestoreRu
 		"keyspace_name": run.KeyspaceName,
 		"table_name":    run.TableName,
 	}).Iter()
+	defer iter.Close()
 
 	pr := new(RestoreRunProgress)
 	for iter.StructScan(pr) {
 		cb(pr)
 	}
-
-	return iter.Close()
 }
