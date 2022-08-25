@@ -18,10 +18,10 @@ type RestoreTarget struct {
 	Location         []Location `json:"location"`
 	SnapshotTag      string     `json:"snapshot_tag"`
 	Keyspace         []string   `json:"keyspace"`
-	Table            []string   `json:"table"`
 	BatchSize        int        `json:"batch_size"`
 	MinFreeDiskSpace int        `json:"min_free_disk_space"`
 	Continue         bool       `json:"continue"`
+	Parallel         int        `json:"parallel"`
 }
 
 type RestoreRunner struct {
@@ -44,7 +44,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	s.logger.Info(ctx, "GetRestoreTarget", "cluster_id", clusterID)
 
 	var t RestoreTarget
-	// TODO: in backup we were unmarshalling to taskProperties. Why is it different here?
+
 	if err := json.Unmarshal(properties, &t); err != nil {
 		return t, err
 	}
@@ -53,9 +53,15 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 		return t, errors.New("missing location")
 	}
 
+	// Set default values
 	if t.BatchSize == 0 {
-		// In case of 0 set to default value
 		t.BatchSize = 2
+	}
+	if t.MinFreeDiskSpace == 0 {
+		t.MinFreeDiskSpace = 10
+	}
+	if t.Parallel == 0 {
+		t.Parallel = 1
 	}
 
 	return t, nil

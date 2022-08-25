@@ -24,23 +24,13 @@ type command struct {
 	client *managerclient.Client
 
 	cluster          string
-	dc               []string
 	location         []string
 	snapshotTag      string
 	keyspace         []string
-	table            []string
 	batchSize        int
-	minFreeDiskSpace int // TODO - reconsider name?
+	minFreeDiskSpace int
 	dryRun           bool
-
-	// TODO - do we keep any of the below?
-	// failFast            bool
-	// host                string
-	// ignoreDownHosts     bool
-	// intensity           *flag.Intensity
-	// parallel            int TODO: It is mentioned in universal restore Doc.
-	// smallTableThreshold managerclient.SizeSuffix
-	// showTables          bool
+	parallel         int
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -78,17 +68,16 @@ func newCommand(client *managerclient.Client, update bool) *command {
 func (cmd *command) init() {
 	cmd.TaskBase.Init()
 
-	defer flag.MustSetUsages(&cmd.Command, res, "cluster")
+	defer flag.MustSetUsages(&cmd.Command, res, "cluster", "location", "snapshot-tag")
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
-	w.Datacenter(&cmd.dc)
 	w.Location(&cmd.location)
 	w.Keyspace(&cmd.keyspace)
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
 	w.Unwrap().IntVar(&cmd.minFreeDiskSpace, "min-free-disk-space", 10, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().StringVar(&cmd.snapshotTag, "snapshot-tag", "", "")
-	w.Unwrap().StringSliceVar(&cmd.table, "table", nil, "")
+	w.Unwrap().IntVar(&cmd.parallel, "parallel", 1, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -119,19 +108,32 @@ func (cmd *command) run(args []string) error {
 	}
 
 	props := task.Properties.(map[string]interface{})
-	if cmd.Flag("dc").Changed {
-		props["dc"] = cmd.dc
-		ok = true
-	}
 	if cmd.Flag("keyspace").Changed {
 		props["keyspace"] = cmd.keyspace
 		ok = true
 	}
+	if cmd.Flag("location").Changed {
+		props["location"] = cmd.location
+		ok = true
+	}
+	if cmd.Flag("batch-size").Changed {
+		props["batch_size"] = cmd.batchSize
+		ok = true
+	}
+	if cmd.Flag("min-free-disk-space").Changed {
+		props["min_free_disk_space"] = cmd.minFreeDiskSpace
+		ok = true
+	}
+	if cmd.Flag("snapshot-tag").Changed {
+		props["snapshot_tag"] = cmd.snapshotTag
+		ok = true
+	}
+	if cmd.Flag("parallel").Changed {
+		props["parallel"] = cmd.parallel
+		ok = true
+	}
 
-	// TODO: Why is dryRun this early in the code?
-	// TODO: Why setting ok = true is no longer done after checking dryRun?
 	if cmd.dryRun {
-		// TODO: Do we need to inform user that this action may take a while?
 		res, err := cmd.client.GetRestoreTarget(cmd.Context(), cmd.cluster, task)
 		if err != nil {
 			return err
@@ -140,22 +142,6 @@ func (cmd *command) run(args []string) error {
 		fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, restore is not scheduled\n\n")
 		res.Schedule = task.Schedule
 		return res.Render(cmd.OutOrStdout())
-	}
-
-	if cmd.Flag("location").Changed {
-		props["location"] = cmd.location
-	}
-	if cmd.Flag("batch-size").Changed {
-		props["batch_size"] = cmd.batchSize
-	}
-	if cmd.Flag("min-free-disk-space").Changed {
-		props["min_free_disk_space"] = cmd.minFreeDiskSpace
-	}
-	if cmd.Flag("table").Changed {
-		props["table"] = cmd.table
-	}
-	if cmd.Flag("snapshot-tag").Changed {
-		props["snapshot_tag"] = cmd.snapshotTag
 	}
 
 	switch {
