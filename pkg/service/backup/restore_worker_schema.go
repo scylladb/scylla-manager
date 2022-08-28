@@ -1,8 +1,13 @@
 package backup
 
 import (
+	"archive/tar"
+	"bufio"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -10,7 +15,113 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
+
+type fakeSchemaError struct{}
+
+func (err fakeSchemaError) Error() string {
+	return "fake error to stop manifest iteration"
+}
+
+func (w *restoreWorker) RestoreSchema(ctx context.Context, target RestoreTarget) error {
+	w.Logger.Info(ctx, "Restoring schema")
+
+	var (
+		prevClusterID uuid.UUID // ID of the cluster on which snapshot was taken
+		prevTaskID    uuid.UUID // ID of the backup task that created restored snapshot
+
+		l = target.Location[0] // Any location is good for restoring schema
+	)
+
+	// Snapshot's ClusterID and TaskID can be obtained from any snapshot's manifest
+	err := w.forEachRestoredManifest(ctx, l, func(miwc ManifestInfoWithContent) error {
+		prevClusterID = miwc.ClusterID
+		prevTaskID = miwc.TaskID
+		// One manifest is enough to get ClusterID and TaskID
+		return fakeSchemaError{}
+	})
+
+	if !errors.Is(err, fakeSchemaError{}) {
+		return errors.Wrap(err, "iterate over manifests")
+	}
+
+	status, err := w.Client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get client status")
+	}
+
+	nodes, err := w.Client.GetLiveNodes(ctx, status.Datacenter([]string{l.DC}))
+	if err != nil {
+		return errors.Wrap(err, "get live nodes")
+	}
+
+	var (
+		schemaPath       = l.RemotePath(RemoteSchemaFile(prevClusterID, prevTaskID, target.SnapshotTag))
+		compressedSchema []byte
+	)
+
+	for _, n := range nodes {
+		compressedSchema, err = w.Client.RcloneCat(ctx, n.Addr, schemaPath)
+		if err == nil {
+			break
+		}
+
+		w.Logger.Error(ctx, "Couldn't get schema from backup location",
+			"host", n.Addr,
+			"error", err,
+		)
+	}
+
+	if compressedSchema == nil {
+		return errors.New("none of the hosts could fetch compressed schema")
+	}
+
+	srcr := bytes.NewBuffer(compressedSchema)
+	gr, err := gzip.NewReader(srcr)
+	if err != nil {
+		return errors.Wrap(err, "create gzip reader")
+	}
+
+	tr := tar.NewReader(gr)
+
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return errors.Wrap(err, "decompress schema file")
+		}
+
+		w.Logger.Info(ctx, "Applying schema file",
+			"file", hdr.Name,
+		)
+
+		dstr := bufio.NewReader(tr)
+		for {
+			// Schema files consist of multiple statements.
+			stmt, err := dstr.ReadString(';')
+			if err != nil {
+				if err == io.EOF && strings.TrimSpace(stmt) == "" {
+					break
+				}
+
+				return errors.Wrap(err, "read next schema change")
+			}
+
+			err = w.clusterSession.ExecStmt(stmt)
+			if err != nil {
+				return errors.Wrap(err, "apply schema change")
+			}
+		}
+	}
+
+	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+
+	return nil
+}
 
 // compaction strategy is represented as map of options.
 // Note that altering table's compaction strategy completely overrides previous one

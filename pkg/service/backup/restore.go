@@ -138,6 +138,15 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		w.InsertRun(ctx, run)
 	}
 
+	if run.Stage.Index() <= StageRestoreSchema.Index() {
+		run.Stage = StageRestoreSchema
+		w.InsertRun(ctx, run)
+
+		if err := w.RestoreSchema(ctx, target); err != nil {
+			return errors.Wrap(err, "restore schema")
+		}
+	}
+
 	if run.Stage.Index() <= StageCalcRestoreSize.Index() {
 		run.Stage = StageCalcRestoreSize
 		w.InsertRun(ctx, run)

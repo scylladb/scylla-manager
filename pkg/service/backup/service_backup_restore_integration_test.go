@@ -59,8 +59,8 @@ func TestUniversalRestore(t *testing.T) {
 		ctx                              = context.Background()
 	)
 
-	testutils.WriteData(t, restoreDestinationClusterSession, testKeyspace, 0)
-	testutils.WriteDataToSecondCluster(t, backupClusterSession, testKeyspace, 200)
+	//testutils.WriteData(t, restoreDestinationClusterSession, testKeyspace, 0)
+	testutils.WriteDataToSecondCluster(t, backupClusterSession, testKeyspace, 100)
 	backupTarget := backup.Target{
 		Units: []backup.Unit{
 			{
