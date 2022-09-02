@@ -14,9 +14,79 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
+	"go.uber.org/multierr"
 )
+
+// GetLiveNodesWithLocationAccess returns subset of nodes that passed connectivity check
+// and have access to remote location.
+func (c *Client) GetLiveNodesWithLocationAccess(ctx context.Context, nodes NodeStatusInfoSlice, remotePath string) (NodeStatusInfoSlice, error) {
+	liveNodes, err := c.GetLiveNodes(ctx, nodes)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeErr := make([]error, len(liveNodes))
+
+	err = parallel.Run(len(liveNodes), parallel.NoLimit, func(i int) error {
+		n := liveNodes[i]
+
+		err = c.RcloneCheckPermissions(ctx, n.Addr, remotePath)
+		if err == nil {
+			c.logger.Info(ctx, "Host location access check OK",
+				"host", n.Addr,
+				"location", remotePath,
+			)
+		} else {
+			c.logger.Info(ctx, "Host location access check FAILED",
+				"hosts", n.Addr,
+				"location", remotePath,
+				"err", err,
+			)
+		}
+		nodeErr[i] = err
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "check location access")
+	}
+
+	checkedNodes := make(NodeStatusInfoSlice, 0)
+	for i, err := range nodeErr {
+		if err == nil {
+			checkedNodes = append(checkedNodes, liveNodes[i])
+		}
+	}
+
+	if len(checkedNodes) == 0 {
+		combinedErr := multierr.Combine(nodeErr...)
+		return nil, errors.Wrapf(combinedErr, "no live nodes with access to loaction: %s", remotePath)
+	}
+
+	return checkedNodes, nil
+}
+
+// GetLiveNodes returns subset of nodes that passed connectivity check.
+func (c *Client) GetLiveNodes(ctx context.Context, nodes NodeStatusInfoSlice) (NodeStatusInfoSlice, error) {
+	var (
+		liveNodes NodeStatusInfoSlice
+		nodeErr   = c.CheckHostsConnectivity(ctx, nodes.Hosts())
+	)
+
+	for i, err := range nodeErr {
+		if err == nil {
+			liveNodes = append(liveNodes, nodes[i])
+		}
+	}
+	if len(liveNodes) == 0 {
+		return nil, errors.Errorf("no live nodes")
+	}
+
+	return liveNodes, nil
+}
 
 // CheckHostsConnectivity returns a slice of errors, error at position i
 // corresponds to host at position i.
