@@ -272,18 +272,10 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 	}
 
 	// Filter live nodes
-	var (
-		liveNodes scyllaclient.NodeStatusInfoSlice
-		nodes     = status.Datacenter(target.DC)
-		nodeErr   = client.CheckHostsConnectivity(ctx, nodes.Hosts())
-	)
-	for i, err := range nodeErr {
-		if err == nil {
-			liveNodes = append(liveNodes, nodes[i])
-		}
-	}
-	if len(liveNodes) == 0 {
-		return nil, errors.New("no live nodes found")
+	nodes := status.Datacenter(target.DC)
+	liveNodes, err := client.GetLiveNodes(ctx, status.Datacenter(target.DC))
+	if err != nil {
+		return nil, err
 	}
 
 	// Validate that there are enough live nodes to backup all tokens
