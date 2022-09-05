@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/progress"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair/repaircontrol"
+	"github.com/scylladb/scylla-manager/v3/pkg/command/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/resume"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/start"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/status"
@@ -61,6 +62,8 @@ func buildCommand() *cobra.Command {
 		backupvalidate.NewCommand(&client),
 	)
 
+	restoreCmd := restore.NewCommand(&client)
+
 	clusterCmd := &cobra.Command{
 		Use:   "cluster",
 		Short: "Add or delete clusters",
@@ -93,6 +96,7 @@ func buildCommand() *cobra.Command {
 	rootCmd := newRootCommand(&client)
 	rootCmd.AddCommand(
 		backupCmd,
+		restoreCmd,
 		clusterCmd,
 		info.NewCommand(&client),
 		repairCmd,
