@@ -213,6 +213,20 @@ func (c *Client) GetBackupTarget(ctx context.Context, clusterID string, t *Task)
 	return &BackupTarget{BackupTarget: *resp.Payload}, nil
 }
 
+// GetRestoreTarget fetches information about restore target.
+func (c *Client) GetRestoreTarget(ctx context.Context, clusterID string, t *Task) (*RestoreTarget, error) {
+	resp, err := c.operations.GetClusterClusterIDTasksRestoreTarget(&operations.GetClusterClusterIDTasksRestoreTargetParams{
+		Context:    ctx,
+		ClusterID:  clusterID,
+		TaskFields: makeTaskUpdate(t),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &RestoreTarget{RestoreTarget: *resp.Payload}, nil
+}
+
 // CreateTask creates a new task.
 func (c *Client) CreateTask(ctx context.Context, clusterID string, t *Task) (uuid.UUID, error) {
 	params := &operations.PostClusterClusterIDTasksParams{

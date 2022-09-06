@@ -142,7 +142,17 @@ func (cmd *command) run(args []string) error {
 	}
 
 	if cmd.dryRun {
-		panic("TODO - implement dry run")
+		res, err := cmd.client.GetRestoreTarget(cmd.Context(), cmd.cluster, task)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, restore is not scheduled\n\n")
+		if cmd.showTables {
+			res.ShowTables = -1
+		}
+		res.Schedule = task.Schedule
+		return res.Render(cmd.OutOrStdout())
 	}
 
 	switch {
