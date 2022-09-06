@@ -7,6 +7,7 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -76,6 +77,8 @@ func (cmd *command) run(args []string) error {
 		return cmd.renderRepairProgress(task)
 	case managerclient.BackupTask:
 		return cmd.renderBackupProgress(task)
+	case managerclient.RestoreTask:
+		return cmd.renderRestoreProgress(task)
 	case managerclient.ValidateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
 	}
@@ -116,6 +119,21 @@ func (cmd *command) renderBackupProgress(t *managerclient.Task) error {
 	}
 	p.Task = t
 	p.AggregateErrors()
+
+	return p.Render(cmd.OutOrStdout())
+}
+
+func (cmd *command) renderRestoreProgress(t *managerclient.Task) error {
+	p, err := cmd.client.RestoreProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
+	if err != nil {
+		return err
+	}
+
+	p.Detailed = cmd.details
+	if p.KeyspaceFilter, err = inexlist.ParseInExList(cmd.keyspace); err != nil {
+		return err
+	}
+	p.Task = t
 
 	return p.Render(cmd.OutOrStdout())
 }

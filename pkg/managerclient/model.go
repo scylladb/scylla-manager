@@ -925,6 +925,167 @@ func (bp BackupProgress) status() string {
 	return s
 }
 
+// RestoreProgress contains shard progress info.
+type RestoreProgress struct {
+	*models.TaskRunRestoreProgress
+	Task     *Task
+	Detailed bool
+	Errors   []string
+
+	KeyspaceFilter inexlist.InExList
+}
+
+var restoreProgressTemplate = `{{ with .Run -}}
+Run:		{{ .ID }}
+Status:		{{ status }}
+{{- if .Cause }}
+Cause:		{{ FormatError .Cause }}
+
+{{- end }}
+{{- if not (isZero .StartTime) }}
+Start time:	{{ FormatTime .StartTime }}
+{{- end -}}
+{{- if not (isZero .EndTime) }}
+End time:	{{ FormatTime .EndTime }}
+{{- end }}
+Duration:	{{ FormatDuration .StartTime .EndTime }}
+{{ end -}}
+{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Skipped .Failed }}{{else}}-{{ end }}
+{{- if ne .SnapshotTag "" }}
+Snapshot Tag:	{{ .SnapshotTag }}
+{{- end }}
+{{ end -}}
+{{- if .Errors -}}
+Errors:	{{ range .Errors }}
+  - {{ . }}
+{{- end }}
+{{ end }}
+`
+
+func (rp RestoreProgress) addHeader(w io.Writer) error {
+	temp := template.Must(template.New("restore_progress").Funcs(template.FuncMap{
+		"isZero":                isZero,
+		"FormatTime":            FormatTime,
+		"FormatDuration":        FormatDuration,
+		"FormatError":           FormatError,
+		"FormatRestoreProgress": FormatRestoreProgress,
+		"status":                rp.status,
+	}).Parse(restoreProgressTemplate))
+	return temp.Execute(w, rp)
+}
+
+// status returns task status with optional restore stage.
+func (rp RestoreProgress) status() string {
+	stage := BackupStageName(rp.Progress.Stage)
+	s := rp.Run.Status
+	if s == "DONE" {
+		if len(rp.Progress.Keyspaces) == 1 && rp.Progress.Keyspaces[0].Keyspace == "system_schema" {
+			return "DONE - restart required (see restore docs)"
+		}
+		return "DONE - repair required (see restore docs)"
+	}
+	if s != "NEW" && stage != "" {
+		s += " (" + stage + ")"
+	}
+	return s
+}
+
+func (rp RestoreProgress) hideKeyspace(keyspace string) bool {
+	if rp.KeyspaceFilter.Size() > 0 {
+		return rp.KeyspaceFilter.FirstMatch(keyspace) == -1
+	}
+	return false
+}
+
+// Render renders *RestoreProgress in a tabular format.
+func (rp RestoreProgress) Render(w io.Writer) error {
+	if err := rp.addHeader(w); err != nil {
+		return err
+	}
+
+	if rp.Progress != nil && rp.Progress.Size > 0 {
+		t := table.New()
+		rp.addKeyspaceProgress(t)
+		if _, err := io.WriteString(w, t.String()); err != nil {
+			return err
+		}
+	}
+
+	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
+		if err := rp.addTableProgress(w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rp RestoreProgress) addKeyspaceProgress(t *table.Table) {
+	t.AddRow("Keyspace", "Progress", "Size", "Success", "Downloaded", "Deduplicated", "Failed")
+	t.AddSeparator()
+	for _, ks := range rp.Progress.Keyspaces {
+		if rp.hideKeyspace(ks.Keyspace) {
+			continue
+		}
+		p := "-"
+		if len(ks.Tables) > 0 {
+			p = FormatRestoreProgress(ks.Size, ks.Restored, ks.Downloaded, ks.Skipped, ks.Failed)
+		}
+		t.AddRow(ks.Keyspace, p,
+			FormatSizeSuffix(ks.Size),
+			FormatSizeSuffix(ks.Restored),
+			FormatSizeSuffix(ks.Downloaded),
+			FormatSizeSuffix(ks.Skipped),
+			FormatSizeSuffix(ks.Failed),
+		)
+	}
+	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5, 6)
+}
+
+func (rp RestoreProgress) addTableProgress(w io.Writer) error {
+	for _, ks := range rp.Progress.Keyspaces {
+		if rp.hideKeyspace(ks.Keyspace) {
+			continue
+		}
+		fmt.Fprintf(w, "\nKeyspace: %s\n", ks.Keyspace)
+
+		t := table.New("Table", "Progress", "Size", "Success", "Downloaded", "Deduplicated", "Failed", "Started at", "Completed at")
+		for i, tab := range ks.Tables {
+			if i > 0 {
+				t.AddSeparator()
+			}
+
+			startedAt := strfmt.DateTime{}
+			completedAt := strfmt.DateTime{}
+			if tab.StartedAt != nil {
+				startedAt = *tab.StartedAt
+			}
+			if tab.CompletedAt != nil {
+				completedAt = *tab.CompletedAt
+			}
+			t.AddRow(
+				tab.Table,
+				FormatRestoreProgress(tab.Size,
+					tab.Restored,
+					tab.Downloaded,
+					tab.Skipped,
+					tab.Failed),
+				FormatSizeSuffix(tab.Size),
+				FormatSizeSuffix(tab.Restored),
+				FormatSizeSuffix(tab.Downloaded),
+				FormatSizeSuffix(tab.Skipped),
+				FormatSizeSuffix(tab.Failed),
+				FormatTime(startedAt),
+				FormatTime(completedAt),
+			)
+		}
+		t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5, 6)
+		if _, err := w.Write([]byte(t.String())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ValidateBackupProgress prints validate_backup task progress.
 type ValidateBackupProgress struct {
 	*models.TaskRunValidateBackupProgress
