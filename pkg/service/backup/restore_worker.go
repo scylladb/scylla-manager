@@ -149,3 +149,68 @@ func (w *restoreWorker) GetRun(ctx context.Context, clusterID, taskID, runID uui
 	var r RestoreRun
 	return &r, q.GetRelease(&r)
 }
+
+func (w *restoreWorker) newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error) {
+	var (
+		units   []RestoreUnit
+		unitMap = make(map[string]RestoreUnit)
+	)
+
+	var foundManifest bool
+	for _, w.location = range target.Location {
+		manifestHandler := func(miwc ManifestInfoWithContent) error {
+			foundManifest = true
+
+			filesHandler := func(fm FilesMeta) {
+				ru := unitMap[fm.Keyspace]
+				ru.Keyspace = fm.Keyspace
+				ru.Size += fm.Size
+
+				for i, t := range ru.Tables {
+					if t.Table == fm.Table {
+						ru.Tables[i].Size += fm.Size
+						unitMap[fm.Keyspace] = ru
+
+						return
+					}
+				}
+
+				ru.Tables = append(ru.Tables, RestoreTable{
+					Table: fm.Table,
+					Size:  fm.Size,
+				})
+				unitMap[fm.Keyspace] = ru
+			}
+
+			return miwc.ForEachIndexIter(target.Keyspace, filesHandler)
+		}
+
+		if err := w.forEachRestoredManifest(ctx, w.location, manifestHandler); err != nil {
+			return nil, err
+		}
+	}
+
+	if !foundManifest {
+		return nil, errors.Errorf("no snapshot with given tag: %s", target.SnapshotTag)
+	}
+
+	for _, u := range unitMap {
+		units = append(units, u)
+	}
+
+	if units == nil {
+		return nil, errors.New("no data in backup locations match given keyspace pattern")
+	}
+
+	for _, u := range units {
+		for _, t := range u.Tables {
+			if err := w.ValidateTableExists(ctx, u.Keyspace, t.Table); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	w.Logger.Info(ctx, "Created restore units", "units", units)
+
+	return units, nil
+}
