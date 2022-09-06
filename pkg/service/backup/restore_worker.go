@@ -214,3 +214,19 @@ func (w *restoreWorker) newUnits(ctx context.Context, target RestoreTarget) ([]R
 
 	return units, nil
 }
+
+// getProgress fetches restore worker's run and returns its aggregated progress information.
+func (w *restoreWorker) getProgress(ctx context.Context) (RestoreProgress, error) {
+	w.Logger.Debug(ctx, "Getting progress",
+		"cluster_id", w.ClusterID,
+		"task_id", w.TaskID,
+		"run_id", w.RunID,
+	)
+
+	run, err := w.GetRun(ctx, w.ClusterID, w.TaskID, w.RunID)
+	if err != nil {
+		return RestoreProgress{}, err
+	}
+
+	return w.aggregateProgress(ctx, run), nil
+}
