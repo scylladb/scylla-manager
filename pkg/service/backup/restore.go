@@ -179,6 +179,22 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	return nil
 }
 
+// GetRestoreUnits restored units specified in restore target.
+func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, target RestoreTarget) ([]RestoreUnit, error) {
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get CQL cluster session")
+	}
+	defer clusterSession.Close()
+
+	w := &restoreWorker{
+		clusterSession:          clusterSession,
+		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
+	}
+
+	return w.newUnits(ctx, target)
+}
+
 // forEachRestoredManifest returns a wrapper for forEachManifest that iterates over
 // manifests with specified in restore target.
 func (s *Service) forEachRestoredManifest(clusterID uuid.UUID, target RestoreTarget) func(context.Context, Location, func(ManifestInfoWithContent) error) error {

@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 )
 
 const rfc822WithSec = "02 Jan 06 15:04:05 MST"
@@ -167,6 +168,28 @@ func FormatTables(threshold int, tables []string, all bool) string {
 	}
 	if all {
 		out = "all " + out
+	}
+	return out
+}
+
+// FormatRestoreTables returns tables listing if number of tables is lower than
+// threshold. It prints (n tables) or (table_a: size_a, table_b: size_b, ...).
+func FormatRestoreTables(threshold int, tables []*models.RestoreTable) string {
+	var out string
+	if len(tables) == 0 || threshold == 0 || (threshold > 0 && len(tables) > threshold) {
+		if len(tables) == 1 {
+			out = "(1 table)"
+		} else {
+			out = fmt.Sprintf("(%d tables)", len(tables))
+		}
+	}
+	if out == "" {
+		var tableStr []string
+		for _, t := range tables {
+			tableStr = append(tableStr, fmt.Sprintf("%s: %s", t.Table, FormatSizeSuffix(t.Size)))
+		}
+
+		out = "(" + strings.Join(tableStr, ", ") + ")"
 	}
 	return out
 }

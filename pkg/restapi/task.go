@@ -151,6 +151,12 @@ type backupTarget struct {
 	Size int64 // Target size in bytes.
 }
 
+type restoreTarget struct {
+	backup.RestoreTarget
+	Units []backup.RestoreUnit
+	Size  int64 // Total size of restored tables in bytes.
+}
+
 func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 	newTask, err := h.parseTask(r)
 	if err != nil {
@@ -188,6 +194,26 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		t = backupTarget{
 			Target: bt,
 			Size:   size,
+		}
+	case scheduler.RestoreTask:
+		rt, err := h.Backup.GetRestoreTarget(r.Context(), newTask.ClusterID, p)
+		if err != nil {
+			respondError(w, r, errors.Wrap(err, "get restore target"))
+			return
+		}
+		units, err := h.Backup.GetRestoreUnits(r.Context(), newTask.ClusterID, rt)
+		if err != nil {
+			respondError(w, r, errors.Wrap(err, "get restore units"))
+			return
+		}
+		var size int64
+		for _, u := range units {
+			size += u.Size
+		}
+		t = restoreTarget{
+			RestoreTarget: rt,
+			Size:          size,
+			Units:         units,
 		}
 	case scheduler.RepairTask:
 		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {

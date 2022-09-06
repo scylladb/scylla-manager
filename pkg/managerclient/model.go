@@ -397,6 +397,54 @@ func (t BackupTarget) Render(w io.Writer) error {
 	return temp.Execute(w, t)
 }
 
+// RestoreTarget is a representing results of dry running restore task.
+type RestoreTarget struct {
+	models.RestoreTarget
+	Schedule   *Schedule
+	ShowTables int
+}
+
+const restoreTargetTemplate = `{{ if .Schedule.Cron -}}
+Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
+{{ if .Schedule.Timezone -}}
+Tz:	{{ .Schedule.Timezone }}
+{{ end }}
+{{ end -}}
+Keyspaces:
+{{- range .Units }}
+  - {{ .Keyspace }}: {{ FormatSizeSuffix .Size }} {{ FormatRestoreTables .Tables }}
+{{- end }}
+
+Disk size: ~{{ FormatSizeSuffix .Size }}
+
+Locations:
+{{- range .Location }}
+  - {{ . }}
+{{- end }}
+
+Snapshot Tag:	{{ .SnapshotTag }}
+Batch Size:     {{ .BatchSize }}
+Parallel:       {{ .Parallel }}
+`
+
+// Render implements Renderer interface.
+func (t RestoreTarget) Render(w io.Writer) error {
+	temp := template.Must(template.New("target").Funcs(template.FuncMap{
+		"FormatSizeSuffix": FormatSizeSuffix,
+		"FormatRestoreTables": func(tables []*models.RestoreTable) string {
+			return FormatRestoreTables(t.ShowTables, tables)
+		},
+		"CronDesc": func(s string) string {
+			d := DescribeCron(s)
+			if d != "" {
+				d = "(" + d + ")"
+			}
+			return d
+		},
+	}).Parse(restoreTargetTemplate))
+	return temp.Execute(w, t)
+}
+
 // TaskListItem is a representation of scheduler.Task with additional fields from scheduler.
 type TaskListItem = models.TaskListItem
 
