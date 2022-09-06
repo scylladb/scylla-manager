@@ -59,6 +59,8 @@ type ClientService interface {
 
 	SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error)
 
+	SyncCopyPaths(params *SyncCopyPathsParams) (*SyncCopyPathsOK, error)
+
 	SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
@@ -656,6 +658,41 @@ func (a *Client) SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error) 
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*SyncCopyDirDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  SyncCopyPaths copies paths from fsrc remote src paths to fdst remote dst paths
+
+  Copy provided list of paths from directory on source fs to directory on destination fs
+*/
+func (a *Client) SyncCopyPaths(params *SyncCopyPathsParams) (*SyncCopyPathsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewSyncCopyPathsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SyncCopyPaths",
+		Method:             "POST",
+		PathPattern:        "/rclone/sync/copypaths",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SyncCopyPathsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*SyncCopyPathsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*SyncCopyPathsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

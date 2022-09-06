@@ -10,31 +10,34 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// MoveOrCopyFileOptions move or copy file options
+// CopyPathsOptions copy paths options
 //
-// swagger:model MoveOrCopyFileOptions
-type MoveOrCopyFileOptions struct {
+// swagger:model CopyPathsOptions
+type CopyPathsOptions struct {
 
 	// Destination file system e.g. s3: or gcs:
 	DstFs string `json:"dstFs,omitempty"`
 
-	// A path within that remote eg. file.txt for the destination
+	// A directory within that remote eg. files/ for the destination
 	DstRemote string `json:"dstRemote,omitempty"`
+
+	// Paths relative to srcRemote/dstRemote eg. file.txt for both source and destination
+	Paths []string `json:"paths"`
 
 	// Source file system e.g. s3: or gcs:
 	SrcFs string `json:"srcFs,omitempty"`
 
-	// A path within that remote eg. file.txt for the source
+	// A directory within that remote eg. files/ for the source
 	SrcRemote string `json:"srcRemote,omitempty"`
 }
 
-// Validate validates this move or copy file options
-func (m *MoveOrCopyFileOptions) Validate(formats strfmt.Registry) error {
+// Validate validates this copy paths options
+func (m *CopyPathsOptions) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *MoveOrCopyFileOptions) MarshalBinary() ([]byte, error) {
+func (m *CopyPathsOptions) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -42,8 +45,8 @@ func (m *MoveOrCopyFileOptions) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *MoveOrCopyFileOptions) UnmarshalBinary(b []byte) error {
-	var res MoveOrCopyFileOptions
+func (m *CopyPathsOptions) UnmarshalBinary(b []byte) error {
+	var res CopyPathsOptions
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
