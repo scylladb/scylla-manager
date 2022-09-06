@@ -133,23 +133,33 @@ func calcParentProgress(parent, child progress) progress {
 	parent.Skipped += child.Skipped
 	parent.Failed += child.Failed
 
-	if child.StartedAt != nil {
+	parent.StartedAt = calcParentStartedAt(parent.StartedAt, child.StartedAt)
+	parent.CompletedAt = calcParentCompletedAt(parent.CompletedAt, child.CompletedAt)
+
+	return parent
+}
+
+func calcParentStartedAt(parent *time.Time, child *time.Time) *time.Time {
+	if child != nil {
 		// Use child start time as parent start time only if it started before
 		// parent.
-		if parent.StartedAt == nil || child.StartedAt.Before(*parent.StartedAt) {
-			parent.StartedAt = child.StartedAt
+		if parent == nil || child.Before(*parent) {
+			return child
 		}
 	}
-	if child.CompletedAt != nil {
+	return parent
+}
+
+func calcParentCompletedAt(parent *time.Time, child *time.Time) *time.Time {
+	if child != nil {
 		// Use child end time as parent end time only if it ended after parent.
-		if parent.CompletedAt != nil && child.CompletedAt.After(*parent.CompletedAt) {
-			parent.CompletedAt = child.CompletedAt
+		if parent != nil && child.After(*parent) {
+			return child
 		}
 	} else {
 		// Set parent end time to nil if any of its children are ending in nil.
-		parent.CompletedAt = nil
+		return nil
 	}
-
 	return parent
 }
 
