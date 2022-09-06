@@ -59,3 +59,13 @@ func (s Stage) Index() int {
 	}
 	panic("Unknown stage " + s)
 }
+
+// RestoreStage specifies the restore worker stage.
+type RestoreStage string
+
+// RestoreStage enumeration.
+const (
+	StageRestoreInit RestoreStage = "INIT"
+	StageRestoreData RestoreStage = "DATA"
+	StageRestoreDone RestoreStage = "DONE"
+)
