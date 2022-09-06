@@ -618,6 +618,66 @@
         }
       }
     },
+    "RestoreTarget": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string"
+        },
+        "location": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "snapshot_tag": {
+          "type": "string"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RestoreUnit"
+          }
+        },
+        "size": {
+          "type": "integer"
+        },
+        "batch_size": {
+          "type": "integer"
+        },
+        "parallel": {
+          "type": "integer"
+        }
+      }
+    },
+    "RestoreUnit": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RestoreTable"
+          }
+        }
+      }
+    },
+    "RestoreTable": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
     "SnapshotInfo": {
       "type": "object",
       "properties": {
@@ -1182,6 +1242,41 @@
             "description": "Backup target",
             "schema": {
               "$ref": "#/definitions/BackupTarget"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/tasks/restore/target": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "parameters": [
+          {
+            "name": "taskFields",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/TaskUpdate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restore target",
+            "schema": {
+              "$ref": "#/definitions/RestoreTarget"
             }
           },
           "default": {

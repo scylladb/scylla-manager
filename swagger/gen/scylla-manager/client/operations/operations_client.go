@@ -57,6 +57,8 @@ type ClientService interface {
 
 	GetClusterClusterIDTasksRepairTarget(params *GetClusterClusterIDTasksRepairTargetParams) (*GetClusterClusterIDTasksRepairTargetOK, error)
 
+	GetClusterClusterIDTasksRestoreTarget(params *GetClusterClusterIDTasksRestoreTargetParams) (*GetClusterClusterIDTasksRestoreTargetOK, error)
+
 	GetClusters(params *GetClustersParams) (*GetClustersOK, error)
 
 	GetVersion(params *GetVersionParams) (*GetVersionOK, error)
@@ -607,6 +609,39 @@ func (a *Client) GetClusterClusterIDTasksRepairTarget(params *GetClusterClusterI
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterClusterIDTasksRepairTargetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  GetClusterClusterIDTasksRestoreTarget get cluster cluster ID tasks restore target API
+*/
+func (a *Client) GetClusterClusterIDTasksRestoreTarget(params *GetClusterClusterIDTasksRestoreTargetParams) (*GetClusterClusterIDTasksRestoreTargetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTasksRestoreTargetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTasksRestoreTarget",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/tasks/restore/target",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTasksRestoreTargetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDTasksRestoreTargetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDTasksRestoreTargetDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
