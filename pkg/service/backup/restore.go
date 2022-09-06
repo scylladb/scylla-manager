@@ -195,6 +195,21 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 	return w.newUnits(ctx, target)
 }
 
+// GetRestoreProgress aggregates progress for the run of the task and breaks it down
+// by keyspace and table.json.
+func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (RestoreProgress, error) {
+	w := &restoreWorker{
+		workerTools: workerTools{
+			ClusterID: clusterID,
+			TaskID:    taskID,
+			RunID:     runID,
+		},
+		managerSession: s.session,
+	}
+
+	return w.getProgress(ctx)
+}
+
 // forEachRestoredManifest returns a wrapper for forEachManifest that iterates over
 // manifests with specified in restore target.
 func (s *Service) forEachRestoredManifest(clusterID uuid.UUID, target RestoreTarget) func(context.Context, Location, func(ManifestInfoWithContent) error) error {

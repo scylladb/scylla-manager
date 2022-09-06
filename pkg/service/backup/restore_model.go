@@ -147,3 +147,38 @@ func (rp *RestoreRunProgress) setRestoreCompletedAt() {
 	t := timeutc.Now()
 	rp.RestoreCompletedAt = &t
 }
+
+type restoreProgress struct {
+	Size        int64      `json:"size"`
+	Restored    int64      `json:"restored"`
+	Downloaded  int64      `json:"downloaded"`
+	Skipped     int64      `json:"skipped"`
+	Failed      int64      `json:"failed"`
+	StartedAt   *time.Time `json:"started_at"`
+	CompletedAt *time.Time `json:"completed_at"`
+}
+
+// RestoreProgress groups restore progress for all restored keyspaces.
+type RestoreProgress struct {
+	restoreProgress
+
+	SnapshotTag string                    `json:"snapshot_tag"`
+	Keyspaces   []RestoreKeyspaceProgress `json:"keyspaces,omitempty"`
+	Stage       RestoreStage              `json:"stage"`
+}
+
+// RestoreKeyspaceProgress groups restore progress for the tables belonging to this keyspace.
+type RestoreKeyspaceProgress struct {
+	restoreProgress
+
+	Keyspace string                 `json:"keyspace"`
+	Tables   []RestoreTableProgress `json:"tables,omitempty"`
+}
+
+// RestoreTableProgress defines restore progress for the table.
+type RestoreTableProgress struct {
+	restoreProgress
+
+	Table string `json:"table"`
+	Error string `json:"error,omitempty"`
+}
