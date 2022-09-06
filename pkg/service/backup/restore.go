@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -89,4 +90,16 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 
 func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUID, target RestoreTarget) error {
 	panic("TODO - implement")
+}
+
+// forEachRestoredManifest returns a wrapper for forEachManifest that iterates over
+// manifests with specified in restore target.
+func (s *Service) forEachRestoredManifest(clusterID uuid.UUID, target RestoreTarget) func(context.Context, Location, func(ManifestInfoWithContent) error) error {
+	return func(ctx context.Context, location Location, f func(content ManifestInfoWithContent) error) error {
+		filter := ListFilter{
+			SnapshotTag: target.SnapshotTag,
+			Keyspace:    target.Keyspace,
+		}
+		return s.forEachManifest(ctx, clusterID, []Location{location}, filter, f)
+	}
 }
