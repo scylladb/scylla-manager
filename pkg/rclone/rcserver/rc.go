@@ -372,7 +372,7 @@ func init() {
 		Title:        "Get basic file information",
 		Help: `This takes the following parameters
 
-- fs - a remote name string eg "drive:path/to/dir"`,
+- fs - a remote name string eg "s3:path/to/dir"`,
 	})
 }
 
@@ -419,7 +419,7 @@ func init() {
 		Title:        "Concatenate any files and send them in response",
 		Help: `This takes the following parameters
 
-- fs - a remote name string eg "drive:path/to/dir"
+- fs - a remote name string eg "s3:path/to/dir"
 
 Returns
 
@@ -578,6 +578,27 @@ func rcMoveOrCopyDir(doMove bool) func(ctx context.Context, in rc.Params) (rc.Pa
 	}
 }
 
+// rcCopyPaths returns rc function that copies paths from
+// source to destination.
+func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
+	return func(ctx context.Context, in rc.Params) (rc.Params, error) {
+		srcFs, srcRemote, err := getFsAndRemoteNamed(ctx, in, "srcFs", "srcRemote")
+		if err != nil {
+			return nil, err
+		}
+		dstFs, dstRemote, err := getFsAndRemoteNamed(ctx, in, "dstFs", "dstRemote")
+		if err != nil {
+			return nil, err
+		}
+		paths, err := getStringSlice(ctx, in, "paths")
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, sync.CopyPaths(ctx, dstFs, dstRemote, srcFs, srcRemote, paths, false)
+	}
+}
+
 // getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't
 // fail if remote path is not provided.
 // In that case it is assumed that path is empty and root of the fs is used.
@@ -590,6 +611,29 @@ func getFsAndRemoteNamed(ctx context.Context, in rc.Params, fsName, remoteName s
 	return
 }
 
+func getStringSlice(ctx context.Context, in rc.Params, key string) ([]string, error) {
+	value, err := in.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	tmp, ok := value.([]interface{})
+	if !ok {
+		return nil, errors.Errorf("expecting []interface{} value for key %q (was %T)", key, value)
+	}
+
+	var res []string
+	for i, v := range tmp {
+		str, ok := v.(string)
+		if !ok {
+			return nil, errors.Errorf("expecting string value for slice index nr %d (was %T)", i, str)
+		}
+		res = append(res, str)
+	}
+
+	return res, nil
+}
+
 func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/movedir",
@@ -598,9 +642,9 @@ func init() {
 		Title:        "Move contents of source directory to destination",
 		Help: `This takes the following parameters:
 
-- srcFs - a remote name string eg "drive:" for the source
+- srcFs - a remote name string eg "s3:" for the source
 - srcRemote - a directory path within that remote for the source
-- dstFs - a remote name string eg "drive2:" for the destination
+- dstFs - a remote name string eg "gcs:" for the destination
 - dstRemote - a directory path within that remote for the destination`,
 	})
 
@@ -611,10 +655,24 @@ func init() {
 		Title:        "Copy contents from source directory to destination",
 		Help: `This takes the following parameters:
 
-- srcFs - a remote name string eg "drive:" for the source
+- srcFs - a remote name string eg "s3:" for the source
 - srcRemote - a directory path within that remote for the source
-- dstFs - a remote name string eg "drive2:" for the destination
+- dstFs - a remote name string eg "gcs:" for the destination
 - dstRemote - a directory path within that remote for the destination`,
+	})
+
+	rc.Add(rc.Call{
+		Path:         "sync/copypaths",
+		AuthRequired: true,
+		Fn:           wrap(rcCopyPaths(), remoteToLocal()),
+		Title:        "Copy paths from source directory to destination",
+		Help: `This takes the following parameters:
+
+- srcFs - a remote name string eg "s3:" for the source
+- srcRemote - a directory path within that remote for the source
+- dstFs - a remote name string eg "gcs:" for the destination
+- dstRemote - a directory path within that remote for the destination
+- paths - slice of paths to be copied from source directory to destination`,
 	})
 }
 

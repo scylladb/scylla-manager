@@ -64,6 +64,26 @@ func localToRemote() paramsValidator {
 	}
 }
 
+func remoteToLocal() paramsValidator {
+	return func(ctx context.Context, in rc.Params) error {
+		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
+		if err != nil {
+			return err
+		}
+		if fsrc.Features().IsLocal {
+			return fs.ErrorPermissionDenied
+		}
+		fdst, err := rc.GetFsNamed(ctx, in, "dstFs")
+		if err != nil {
+			return err
+		}
+		if !fdst.Features().IsLocal {
+			return fs.ErrorPermissionDenied
+		}
+		return nil
+	}
+}
+
 func sameDir() paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
 		srcName, srcPath, err := joined(in, "srcFs", "srcRemote")
