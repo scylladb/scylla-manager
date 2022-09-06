@@ -2,6 +2,8 @@
 
 package backup
 
+import "path"
+
 const (
 	dataDir = "data:"
 
@@ -11,4 +13,12 @@ const (
 
 func keyspaceDir(keyspace string) string {
 	return dataDir + keyspace
+}
+
+func uploadTableDir(keyspace, table, version string) string {
+	return path.Join(
+		keyspaceDir(keyspace),
+		table+"-"+version,
+		"upload",
+	)
 }
