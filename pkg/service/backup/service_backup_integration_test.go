@@ -27,6 +27,9 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"go.uber.org/atomic"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -38,8 +41,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/atomic"
-	"go.uber.org/zap/zapcore"
 )
 
 type backupTestHelper struct {
@@ -1572,6 +1573,9 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	})
 
 	Print("And: run backup again")
+	// wait at least 1 sec to avoid having same snapshot ID as in previous backup run
+	time.Sleep(time.Second)
+
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
