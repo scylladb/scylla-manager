@@ -147,6 +147,12 @@ func (m *MockBackupService) GetRestoreUnits(arg0 context.Context, arg1 uuid.UUID
 	return u, nil
 }
 
+// GetRestoreProgress mocks base method.
+func (m *MockBackupService) GetRestoreProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.RestoreProgress, error) {
+	var p backup.RestoreProgress
+	return p, nil
+}
+
 // GetValidationTarget indicates an expected call of GetValidationTarget.
 func (mr *MockBackupServiceMockRecorder) GetValidationTarget(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
