@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package cluster_test
@@ -14,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+
 	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/secrets"
@@ -488,7 +490,7 @@ func validCluster() *cluster.Cluster {
 		ID:        uuid.MustRandom(),
 		Name:      "name_" + uuid.MustRandom().String(),
 		Host:      ManagedClusterHost(),
-		Port:      10010,
+		Port:      10001,
 		AuthToken: AgentAuthToken(),
 	}
 }
