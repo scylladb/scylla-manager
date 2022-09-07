@@ -144,11 +144,7 @@ dev-env-status:  ## Checks status of docker containers and cluster nodes
 .PHONY: build-agent
 build-agent: ## Build development agent binary
 	@echo "==> Building agent"
-ifeq ($(SM_AGENT_STATIC_BUILD),yes)
-	@CGO_ENABLED=0 go build -trimpath -mod=vendor -o ./scylla-manager-agent.dev ./pkg/cmd/agent
-else
-	@go build -trimpath -mod=vendor -race -o ./scylla-manager-agent.dev ./pkg/cmd/agent
-endif
+	@CGO_ENABLED=0 GOOS=linux go build -trimpath -mod=vendor -o ./scylla-manager-agent.dev ./pkg/cmd/agent
 
 .PHONY: deploy-agent
 deploy-agent: build-agent ## Deploy it to testing containers

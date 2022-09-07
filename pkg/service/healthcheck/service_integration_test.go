@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package healthcheck
@@ -18,6 +19,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/pkg/secrets"
@@ -26,7 +29,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
 	scyllaModels "github.com/scylladb/scylla-manager/swagger/gen/scylla/v1/models"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestStatusIntegration(t *testing.T) {
@@ -266,7 +268,7 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 	})
 
 	t.Run("context timeout exceeded", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Microsecond)
 		defer cancel()
 
 		_, err := s.Status(ctx, clusterID)

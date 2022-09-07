@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build all || integration
 // +build all integration
 
 package backup_test
@@ -26,6 +27,9 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"go.uber.org/atomic"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/pkg/metrics"
 	"github.com/scylladb/scylla-manager/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/pkg/scyllaclient"
@@ -37,8 +41,6 @@ import (
 	"github.com/scylladb/scylla-manager/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/pkg/util/uuid"
-	"go.uber.org/atomic"
-	"go.uber.org/zap/zapcore"
 )
 
 type backupTestHelper struct {
@@ -1571,6 +1573,9 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	})
 
 	Print("And: run backup again")
+	// wait at least 1 sec to avoid having same snapshot ID as in previous backup run
+	time.Sleep(time.Second)
+
 	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
 		t.Fatal(err)
 	}
@@ -1654,7 +1659,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
 	}
 
-	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, firstTaskTags.Pop()); err != nil {
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, []string{firstTaskTags.Pop()}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1676,7 +1681,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
 	}
 
-	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, secondTaskTags.Pop()); err != nil {
+	if err := h.service.DeleteSnapshot(ctx, h.clusterID, []Location{h.location}, []string{secondTaskTags.Pop()}); err != nil {
 		t.Fatal(err)
 	}
 
