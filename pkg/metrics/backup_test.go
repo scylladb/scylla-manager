@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -15,10 +16,10 @@ func TestBackupMetrics(t *testing.T) {
 	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
 
 	t.Run("SetSnapshot", func(t *testing.T) {
-		m.SetSnapshot(c, "k0", "h", false)
-		m.SetSnapshot(c, "k1", "h", true)
+		m.Backup.SetSnapshot(c, "k0", "h", false)
+		m.Backup.SetSnapshot(c, "k1", "h", true)
 
-		text := Dump(t, m.snapshot)
+		text := Dump(t, m.Backup.snapshot)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
@@ -28,10 +29,10 @@ func TestBackupMetrics(t *testing.T) {
 	})
 
 	t.Run("SetFilesProgress", func(t *testing.T) {
-		m.SetFilesProgress(c, "k", "t", "h", 10, 5, 3, 2)
+		m.Backup.SetFilesProgress(c, "k", "t", "h", 10, 5, 3, 2)
 
-		text := Dump(t, m.filesSizeBytes, m.filesUploadedBytes, m.filesSkippedBytes, m.filesFailedBytes)
-
+		text := Dump(t, m.Backup.filesSizeBytes, m.Backup.filesUploadedBytes, m.Backup.filesSkippedBytes, m.Backup.filesFailedBytes)
+		fmt.Println(text)
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
 		if diff := cmp.Diff(text, golden); diff != "" {
@@ -40,9 +41,50 @@ func TestBackupMetrics(t *testing.T) {
 	})
 
 	t.Run("SetPurgeFiles", func(t *testing.T) {
-		m.SetPurgeFiles(c, "h", 2, 1)
+		m.Backup.SetPurgeFiles(c, "h", 2, 1)
 
-		text := Dump(t, m.purgeFiles, m.purgeDeletedFiles)
+		text := Dump(t, m.Backup.purgeFiles, m.Backup.purgeDeletedFiles)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+}
+
+func TestRestoreMetrics(t *testing.T) {
+	m := NewBackupMetrics()
+	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
+
+	t.Run("SetFilesSize", func(t *testing.T) {
+		m.Restore.SetFilesSize(c, "m", "k", "t", 2)
+
+		text := Dump(t, m.Restore.filesSizeBytes)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("UpdateFilesProgress", func(t *testing.T) {
+		m.Restore.UpdateFilesProgress(c, "m", "k", "t", 10, 5, 3)
+
+		text := Dump(t, m.Restore.filesDownloadedBytes, m.Restore.filesSkippedBytes, m.Restore.filesFailedBytes)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("UpdateRestoreProgress", func(t *testing.T) {
+		m.Restore.UpdateRestoreProgress(c, "m", "k", "t", 2)
+
+		text := Dump(t, m.Restore.filesRestoredBytes)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
