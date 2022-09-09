@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -29,6 +30,7 @@ type bundle []string
 type restoreWorker struct {
 	workerTools
 
+	metrics metrics.RestoreM
 	// Fields below are constant among all restore runs of the same restore task.
 	managerSession gocqlx.Session
 	clusterSession gocqlx.Session

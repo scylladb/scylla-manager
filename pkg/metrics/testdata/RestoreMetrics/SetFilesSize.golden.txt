@@ -1,0 +1,3 @@
+# HELP scylla_manager_restore_files_size_bytes Total size of restore files in bytes.
+# TYPE scylla_manager_restore_files_size_bytes gauge
+scylla_manager_restore_files_size_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",keyspace="k",manifest="m",table="t"} 2

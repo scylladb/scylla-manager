@@ -55,7 +55,6 @@ type workerTools struct {
 	TaskID      uuid.UUID
 	RunID       uuid.UUID
 	Config      Config
-	Metrics     metrics.BackupMetrics
 	Client      *scyllaclient.Client
 	Logger      log.Logger
 }
@@ -64,6 +63,7 @@ type workerTools struct {
 type worker struct {
 	workerTools
 
+	Metrics       metrics.BackupM
 	SnapshotTag   string
 	Units         []Unit
 	Schema        *bytes.Buffer
