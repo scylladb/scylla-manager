@@ -35,7 +35,7 @@ else
 endif
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
-	@. ./.env && UID=$(CURRENT_UID) GID=$(CURRENT_GID) $(COMPOSE) up -d
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) up -d
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
 	@echo "==> Waiting for cluster"
