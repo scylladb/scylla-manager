@@ -140,7 +140,7 @@ services:
   minio:
     image: minio/minio:${MINIO_VERSION}
     privileged: true
-    user: ${UID}:${GID}
+    user: ${CURRENT_UID}:${CURRENT_GID}
     command: server /data --console-address ":9001"
     environment:
       MINIO_REGION: ${MINIO_REGION}
