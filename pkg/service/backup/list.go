@@ -10,7 +10,6 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -164,19 +163,6 @@ func filterManifests(manifests []*ManifestInfo, filter ListFilter) []*ManifestIn
 		}
 	}
 	return out
-}
-
-func filterManifestIndex(c *ManifestContentWithIndex, ksf *ksfilter.Filter) {
-	if len(ksf.Filters()) == 0 {
-		return
-	}
-	var index []FilesMeta
-	for _, u := range c.Index {
-		if ksf.Check(u.Keyspace, u.Table) {
-			index = append(index, u)
-		}
-	}
-	c.Index = index
 }
 
 func groupManifestsByNode(manifests []*ManifestInfo) map[string][]*ManifestInfo {

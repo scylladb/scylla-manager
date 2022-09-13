@@ -522,6 +522,10 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 	return files, s.forEachManifest(ctx, clusterID, locations, filter, handler)
 }
 
+// forEachManifest fetches and performs callback on manifests from remote locations.
+//
+// NOTE: It does not load Index into memory. In case callback requires access to Index,
+// it should use ForEachIndexIter or ForEachIndexIterFiles.
 func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, f func(ManifestInfoWithContent) error) error {
 	// Validate inputs
 	if len(locations) == 0 {
@@ -553,11 +557,6 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	}
 	manifests = filterManifests(manifests, filter)
 
-	ksf, err := ksfilter.NewFilter(filter.Keyspace)
-	if err != nil {
-		return errors.Wrap(err, "keyspace filter")
-	}
-
 	// Load manifest content
 	load := func(c *ManifestContentWithIndex, m *ManifestInfo) error {
 		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.Path()))
@@ -573,16 +572,6 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 		c := new(ManifestContentWithIndex)
 		if err := load(c, m); err != nil {
 			return err
-		}
-
-		if err := c.LoadIndex(); err != nil {
-			return err
-		}
-
-		filterManifestIndex(c, ksf)
-
-		if len(c.Index) == 0 {
-			continue
 		}
 
 		if err := f(ManifestInfoWithContent{
