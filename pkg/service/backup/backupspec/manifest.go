@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 // ManifestInfo represents manifest on remote location.
@@ -206,14 +207,16 @@ func (m *ManifestContentWithIndex) IndexLength() (n int, err error) {
 	return
 }
 
-// ForEachIndexIter streams the indexes from the Manifest JSON, filters them and performs a
-// callback on each as they are read in.
-func (m *ManifestContentWithIndex) ForEachIndexIter(keyspace []string, cb func(fm FilesMeta)) error {
+// ForEachIndexIterWithError streams the indexes from the Manifest JSON, filters them and performs a
+// callback on each as they are read in. It stops iteration after callback returns an error.
+func (m *ManifestContentWithIndex) ForEachIndexIterWithError(keyspace []string, cb func(fm FilesMeta) error) (err error) {
 	f, err := os.Open(m.indexFile)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err = multierr.Append(err, f.Close())
+	}()
 
 	gr, err := gzip.NewReader(f)
 	if err != nil {
@@ -233,9 +236,9 @@ func (m *ManifestContentWithIndex) ForEachIndexIter(keyspace []string, cb func(f
 				var m FilesMeta
 				it.ReadVal(&m)
 				if filter.Check(m.Keyspace, m.Table) {
-					cb(m)
+					err = cb(m)
 				}
-				return true
+				return err == nil
 			})
 			break
 		} else {
@@ -243,7 +246,16 @@ func (m *ManifestContentWithIndex) ForEachIndexIter(keyspace []string, cb func(f
 		}
 	}
 
-	return iter.Error
+	return multierr.Append(iter.Error, err)
+}
+
+// ForEachIndexIter is a wrapper for ForEachIndexIterWithError
+// that takes callback which doesn't return an error.
+func (m *ManifestContentWithIndex) ForEachIndexIter(keyspace []string, cb func(fm FilesMeta)) error {
+	return m.ForEachIndexIterWithError(keyspace, func(fm FilesMeta) error {
+		cb(fm)
+		return nil
+	})
 }
 
 // ForEachIndexIterFiles performs an action for each filtered file in the index.
