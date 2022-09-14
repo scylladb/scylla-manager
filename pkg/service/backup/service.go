@@ -409,6 +409,22 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 	var items []ListItem
 
 	handler := func(mc ManifestInfoWithContent) error {
+		// Calculate size on filtered units
+		var (
+			size    int64
+			visited bool
+		)
+		if err := mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
+			size += u.Size
+			visited = true
+		}); err != nil {
+			return err
+		}
+		// Skip manifest if it does not contain any interesting data
+		if !visited {
+			return nil
+		}
+
 		// Find list item or create a new one
 		var ptr *ListItem
 		for i, li := range items {
@@ -424,14 +440,6 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 				unitCache: make(map[string]*strset.Set),
 			})
 			ptr = &items[len(items)-1]
-		}
-
-		// Calculate size on filtered units
-		var size int64
-		if err := mc.ForEachIndexIter(func(u FilesMeta) {
-			size += u.Size
-		}); err != nil {
-			return err
 		}
 
 		// Find snapshot info or create a new one
@@ -454,7 +462,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		}
 
 		// Add unit information from index
-		return mc.ForEachIndexIter(func(u FilesMeta) {
+		return mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
 			s, ok := ptr.unitCache[u.Keyspace]
 			if !ok {
 				ptr.unitCache[u.Keyspace] = strset.New(u.Table)
@@ -508,14 +516,16 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 			Schema:   mc.Schema,
 		}
 
-		if err := mc.ForEachIndexIter(func(u FilesMeta) {
+		if err := mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
 			u.Path = mc.SSTableVersionDir(u.Keyspace, u.Table, u.Version)
 			fi.Files = append(fi.Files, u)
 		}); err != nil {
 			return err
 		}
-
-		files = append(files, fi)
+		// Skip manifest if it does not contain any interesting data
+		if fi.Files != nil {
+			files = append(files, fi)
+		}
 		return nil
 	}
 

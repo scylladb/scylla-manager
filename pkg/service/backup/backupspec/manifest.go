@@ -13,6 +13,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -199,15 +200,15 @@ func (m *ManifestContentWithIndex) IndexLength() (n int, err error) {
 		return
 	}
 
-	err = m.ForEachIndexIter(func(fm FilesMeta) {
+	err = m.ForEachIndexIter(nil, func(fm FilesMeta) {
 		n++
 	})
 	return
 }
 
-// ForEachIndexIter streams the indexes from the Manifest JSON and performs a
+// ForEachIndexIter streams the indexes from the Manifest JSON, filters them and performs a
 // callback on each as they are read in.
-func (m *ManifestContentWithIndex) ForEachIndexIter(cb func(fm FilesMeta)) error {
+func (m *ManifestContentWithIndex) ForEachIndexIter(keyspace []string, cb func(fm FilesMeta)) error {
 	f, err := os.Open(m.indexFile)
 	if err != nil {
 		return err
@@ -219,6 +220,11 @@ func (m *ManifestContentWithIndex) ForEachIndexIter(cb func(fm FilesMeta)) error
 		return err
 	}
 
+	filter, err := ksfilter.NewFilter(keyspace)
+	if err != nil {
+		return errors.Wrap(err, "create filter")
+	}
+
 	iter := jsoniter.Parse(jsoniter.ConfigDefault, gr, 1024)
 
 	for k := iter.ReadObject(); iter.Error == nil; k = iter.ReadObject() {
@@ -226,7 +232,9 @@ func (m *ManifestContentWithIndex) ForEachIndexIter(cb func(fm FilesMeta)) error
 			iter.ReadArrayCB(func(it *jsoniter.Iterator) bool {
 				var m FilesMeta
 				it.ReadVal(&m)
-				cb(m)
+				if filter.Check(m.Keyspace, m.Table) {
+					cb(m)
+				}
 				return true
 			})
 			break
@@ -238,9 +246,9 @@ func (m *ManifestContentWithIndex) ForEachIndexIter(cb func(fm FilesMeta)) error
 	return iter.Error
 }
 
-// ForEachIndexIterFiles performs an action for each file in the index.
-func (m *ManifestContentWithIndex) ForEachIndexIterFiles(mi *ManifestInfo, cb func(dir string, files []string)) error {
-	return m.ForEachIndexIter(func(fm FilesMeta) {
+// ForEachIndexIterFiles performs an action for each filtered file in the index.
+func (m *ManifestContentWithIndex) ForEachIndexIterFiles(keyspace []string, mi *ManifestInfo, cb func(dir string, files []string)) error {
+	return m.ForEachIndexIter(keyspace, func(fm FilesMeta) {
 		dir := RemoteSSTableVersionDir(mi.ClusterID, mi.DC, mi.NodeID, fm.Keyspace, fm.Table, fm.Version)
 		cb(dir, fm.Files)
 	})
