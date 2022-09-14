@@ -2130,3 +2130,165 @@ func TestBackupRestoreIntegration(t *testing.T) {
 		t.Errorf("SELECT COUNT(*) = %d, expected %d", c, addedRowCount)
 	}
 }
+
+func TestBackupListIntegration(t *testing.T) {
+	const (
+		testBucket    = "backuptest-list"
+		testKeyspace1 = "backuptest_list1"
+		testKeyspace2 = "backuptest_list2"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+	)
+
+	WriteData(t, clusterSession, testKeyspace1, 1)
+	WriteData(t, clusterSession, testKeyspace2, 1)
+
+	timeBeforeFirstBackup := time.Now()
+	time.Sleep(time.Second)
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace1,
+			},
+		},
+		DC:        []string{"dc1"},
+		Location:  []Location{location},
+		Retention: 3,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: run backup first keyspace")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+	// Sleep to avoid tag collision.
+	time.Sleep(time.Second)
+	timeBetweenBackups := time.Now()
+	time.Sleep(time.Second)
+
+	target = backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace2,
+			},
+		},
+		DC:        []string{"dc2"},
+		Location:  []Location{location},
+		Retention: 3,
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: run backup with second keyspace")
+	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Second)
+	timeAfterSecondBackup := time.Now()
+
+	testCases := []struct {
+		name     string
+		filter   backup.ListFilter
+		expected int
+	}{
+		{
+			name:     "no filter",
+			filter:   backup.ListFilter{},
+			expected: 2,
+		},
+		{
+			name:     "cluster ID",
+			filter:   backup.ListFilter{ClusterID: h.clusterID},
+			expected: 2,
+		},
+		{
+			name:     "first keyspace",
+			filter:   backup.ListFilter{Keyspace: []string{testKeyspace1}},
+			expected: 1,
+		},
+		{
+			name:     "both keyspaces",
+			filter:   backup.ListFilter{Keyspace: []string{testKeyspace1, testKeyspace2}},
+			expected: 2,
+		},
+		{
+			name:     "non-existing keyspace",
+			filter:   backup.ListFilter{Keyspace: []string{"non-existing"}},
+			expected: 0,
+		},
+		{
+			name:     "min date",
+			filter:   backup.ListFilter{MinDate: timeBetweenBackups},
+			expected: 1,
+		},
+		{
+			name:     "max date",
+			filter:   backup.ListFilter{MaxDate: timeBetweenBackups},
+			expected: 1,
+		},
+		{
+			name:     "min and max date",
+			filter:   backup.ListFilter{MinDate: timeBeforeFirstBackup, MaxDate: timeAfterSecondBackup},
+			expected: 2,
+		},
+		{
+			name: "first backup properties",
+			filter: backup.ListFilter{
+				ClusterID: h.clusterID,
+				Keyspace:  []string{testKeyspace1},
+				MinDate:   timeBeforeFirstBackup,
+				MaxDate:   timeBetweenBackups,
+			},
+			expected: 1,
+		},
+		{
+			name: "mixed properties",
+			filter: backup.ListFilter{
+				ClusterID: h.clusterID,
+				Keyspace:  []string{testKeyspace2},
+				MinDate:   timeBeforeFirstBackup,
+				MaxDate:   timeBetweenBackups,
+			},
+			expected: 0,
+		},
+	}
+
+	for i := 0; i < len(testCases); i++ {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			items, err := h.service.List(ctx, h.clusterID, []Location{location}, tc.filter)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.expected == 0 {
+				if len(items) != 0 {
+					t.Fatalf("List() = %v, expected zero items", items)
+				}
+				return
+			}
+
+			if len(items) != 1 {
+				t.Fatalf("List() = %v, expected one item", items)
+			}
+			info := items[0]
+			if len(info.SnapshotInfo) != tc.expected {
+				t.Fatalf("List() = %v, expected %d SnapshotTags", items, tc.expected)
+			}
+		})
+	}
+}
