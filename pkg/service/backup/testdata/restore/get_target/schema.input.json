@@ -1,0 +1,9 @@
+{
+  "location": [
+    "s3:restoretest-get-target"
+  ],
+  "snapshot_tag": "sm_20060102150405UTC",
+  "batch_size": 99,
+  "restore_schema": true,
+  "restore_tables": false
+}

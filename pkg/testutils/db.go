@@ -224,18 +224,19 @@ const bigTableName = "big_table"
 func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
 	t.Helper()
 
-	writeData(t, session, keyspace, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", tables...)
+	writeData(t, session, keyspace, 0, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", tables...)
 }
 
 // WriteDataToSecondCluster creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
-func WriteDataToSecondCluster(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
+func WriteDataToSecondCluster(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, tables ...string) int {
 	t.Helper()
 
-	writeData(t, session, keyspace, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}", tables...)
+	return writeData(t, session, keyspace, startingID, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}", tables...)
 }
 
 // WriteData creates big_table in the provided keyspace with the size in MiB.
-func writeData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, replication string, tables ...string) {
+// It returns starting ID for the future calls, so that rows created from different calls to this function does not overlap.
+func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, replication string, tables ...string) int {
 	t.Helper()
 
 	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
@@ -244,22 +245,26 @@ func writeData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB in
 		tables = []string{bigTableName}
 	}
 
+	bytes := sizeMiB * 1024 * 1024
+	rowsCnt := bytes / 4096
+
 	for i := range tables {
 		ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, tables[i]))
 		stmt := fmt.Sprintf("INSERT INTO %s.%s (id, data) VALUES (?, ?)", keyspace, tables[i])
 		q := session.Query(stmt, []string{"id", "data"})
 		defer q.Release()
 
-		bytes := sizeMiB * 1024 * 1024
 		data := make([]byte, 4096)
 		if _, err := rand.Read(data); err != nil {
 			t.Fatal(err)
 		}
 
-		for i := 0; i < bytes/4096; i++ {
-			if err := q.Bind(i, data).Exec(); err != nil {
+		for i := 0; i < rowsCnt; i++ {
+			if err := q.Bind(i+startingID, data).Exec(); err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
+
+	return startingID + rowsCnt
 }

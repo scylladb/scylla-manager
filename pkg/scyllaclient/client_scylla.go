@@ -867,3 +867,13 @@ func (c *Client) DisableAutoCompaction(ctx context.Context, keyspace, table stri
 	})
 	return err
 }
+
+// FlushTable flushes writes stored in MemTable into SSTables stored on disk.
+func (c *Client) FlushTable(ctx context.Context, keyspace, table string) error {
+	_, err := c.scyllaOps.StorageServiceKeyspaceFlushByKeyspacePost(&operations.StorageServiceKeyspaceFlushByKeyspacePostParams{
+		Cf:       &table,
+		Keyspace: keyspace,
+		Context:  ctx,
+	})
+	return err
+}

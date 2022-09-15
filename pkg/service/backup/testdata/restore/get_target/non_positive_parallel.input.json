@@ -1,0 +1,8 @@
+{
+  "location": [
+    "s3:restoretest-get-target"
+  ],
+  "snapshot_tag": "sm_20060102150405UTC",
+  "parallel": 0,
+  "restore_tables": true
+}
