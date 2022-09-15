@@ -1,0 +1,14 @@
+{
+  "location": [
+    "s3:restoretest-get-target"
+  ],
+  "keyspace": [
+    "my_keyspace.*",
+    "!my_keyspace.my_table"
+  ],
+  "snapshot_tag": "sm_20060102150405UTC",
+  "batch_size": 99,
+  "parallel": 98,
+  "restore_schema": false,
+  "restore_tables": true
+}
