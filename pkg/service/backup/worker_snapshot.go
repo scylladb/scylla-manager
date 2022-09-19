@@ -43,7 +43,7 @@ func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {
 	return w.takeSnapshot(ctx, h)
 }
 
-func (w *worker) checkAvailableDiskSpace(ctx context.Context, h hostInfo) error {
+func (w *workerTools) checkAvailableDiskSpace(ctx context.Context, h hostInfo) error {
 	freePercent, err := w.diskFreePercent(ctx, h)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func (w *worker) checkAvailableDiskSpace(ctx context.Context, h hostInfo) error 
 	return nil
 }
 
-func (w *worker) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
+func (w *workerTools) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
 	du, err := w.Client.RcloneDiskUsage(ctx, h.IP, dataDir)
 	if err != nil {
 		return 0, err

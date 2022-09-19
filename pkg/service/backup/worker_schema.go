@@ -15,7 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
-func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
+func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
 	w.Logger.Info(ctx, "Awaiting schema agreement...")
 
 	var stepError error
