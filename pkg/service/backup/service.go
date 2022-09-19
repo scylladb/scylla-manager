@@ -729,15 +729,17 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Create a worker
 	w := &worker{
-		ClusterID:            clusterID,
-		ClusterName:          clusterName,
-		TaskID:               taskID,
-		RunID:                runID,
+		workerTools: workerTools{
+			ClusterID:   clusterID,
+			ClusterName: clusterName,
+			TaskID:      taskID,
+			RunID:       runID,
+			Config:      s.config,
+			Metrics:     s.metrics,
+			Client:      client,
+		},
 		SnapshotTag:          run.SnapshotTag,
-		Config:               s.config,
-		Metrics:              s.metrics,
 		Units:                run.Units,
-		Client:               client,
 		OnRunProgress:        s.putRunProgressLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
 		memoryPool: &sync.Pool{

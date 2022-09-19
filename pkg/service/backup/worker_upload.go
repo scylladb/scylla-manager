@@ -258,7 +258,7 @@ func (w *worker) deleteTableSnapshot(ctx context.Context, h hostInfo, d snapshot
 	return w.Client.DeleteTableSnapshot(ctx, d.Host, w.SnapshotTag, d.Keyspace, d.Table)
 }
 
-func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
+func (w *workerTools) clearJobStats(ctx context.Context, jobID int64, host string) error {
 	w.Logger.Debug(ctx, "Clearing job stats", "host", host, "job_id", jobID)
 	return errors.Wrap(w.Client.RcloneDeleteJobStats(ctx, host, jobID), "clear job stats")
 }

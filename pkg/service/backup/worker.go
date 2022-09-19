@@ -47,18 +47,26 @@ func (sd snapshotDir) String() string {
 	return fmt.Sprintf("%s: %s/%s", sd.Host, sd.Keyspace, sd.Table)
 }
 
+// workerTools is an intersection of fields and methods
+// useful for both worker and restoreWorker.
+type workerTools struct {
+	ClusterID   uuid.UUID
+	ClusterName string
+	TaskID      uuid.UUID
+	RunID       uuid.UUID
+	Config      Config
+	Metrics     metrics.BackupMetrics
+	Client      *scyllaclient.Client
+	Logger      log.Logger
+}
+
+// worker is responsible for coordinating backup procedure.
 type worker struct {
-	ClusterID     uuid.UUID
-	ClusterName   string
-	TaskID        uuid.UUID
-	RunID         uuid.UUID
+	workerTools
+
 	SnapshotTag   string
-	Config        Config
-	Metrics       metrics.BackupMetrics
 	Units         []Unit
 	Schema        *bytes.Buffer
-	Client        *scyllaclient.Client
-	Logger        log.Logger
 	OnRunProgress func(ctx context.Context, p *RunProgress)
 	// ResumeUploadProgress populates upload stats of the provided run progress
 	// with previous run progress.
