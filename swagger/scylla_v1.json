@@ -11653,6 +11653,20 @@
             "required": true,
             "type": "string",
             "description": "Column family name"
+          },
+          {
+            "name": "load_and_stream",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Load the sstables and stream to all replica nodes that owns the data"
+          },
+          {
+            "name": "primary_replica_only",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Load the sstables and stream to primary replica node that owns the data. Repair is needed after the load and stream process"
           }
         ],
         "responses": {

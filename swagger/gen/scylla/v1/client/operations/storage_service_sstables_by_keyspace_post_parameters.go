@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewStorageServiceSstablesByKeyspacePostParams creates a new StorageServiceSstablesByKeyspacePostParams object
@@ -70,6 +71,16 @@ type StorageServiceSstablesByKeyspacePostParams struct {
 
 	*/
 	Keyspace string
+	/*LoadAndStream
+	  Load the sstables and stream to all replica nodes that owns the data
+
+	*/
+	LoadAndStream *bool
+	/*PrimaryReplicaOnly
+	  Load the sstables and stream to primary replica node that owns the data. Repair is needed after the load and stream process
+
+	*/
+	PrimaryReplicaOnly *bool
 
 	timeout    time.Duration
 	Context    context.Context
@@ -131,6 +142,28 @@ func (o *StorageServiceSstablesByKeyspacePostParams) SetKeyspace(keyspace string
 	o.Keyspace = keyspace
 }
 
+// WithLoadAndStream adds the loadAndStream to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) WithLoadAndStream(loadAndStream *bool) *StorageServiceSstablesByKeyspacePostParams {
+	o.SetLoadAndStream(loadAndStream)
+	return o
+}
+
+// SetLoadAndStream adds the loadAndStream to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) SetLoadAndStream(loadAndStream *bool) {
+	o.LoadAndStream = loadAndStream
+}
+
+// WithPrimaryReplicaOnly adds the primaryReplicaOnly to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) WithPrimaryReplicaOnly(primaryReplicaOnly *bool) *StorageServiceSstablesByKeyspacePostParams {
+	o.SetPrimaryReplicaOnly(primaryReplicaOnly)
+	return o
+}
+
+// SetPrimaryReplicaOnly adds the primaryReplicaOnly to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) SetPrimaryReplicaOnly(primaryReplicaOnly *bool) {
+	o.PrimaryReplicaOnly = primaryReplicaOnly
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -151,6 +184,38 @@ func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.Cl
 	// path param keyspace
 	if err := r.SetPathParam("keyspace", o.Keyspace); err != nil {
 		return err
+	}
+
+	if o.LoadAndStream != nil {
+
+		// query param load_and_stream
+		var qrLoadAndStream bool
+		if o.LoadAndStream != nil {
+			qrLoadAndStream = *o.LoadAndStream
+		}
+		qLoadAndStream := swag.FormatBool(qrLoadAndStream)
+		if qLoadAndStream != "" {
+			if err := r.SetQueryParam("load_and_stream", qLoadAndStream); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.PrimaryReplicaOnly != nil {
+
+		// query param primary_replica_only
+		var qrPrimaryReplicaOnly bool
+		if o.PrimaryReplicaOnly != nil {
+			qrPrimaryReplicaOnly = *o.PrimaryReplicaOnly
+		}
+		qPrimaryReplicaOnly := swag.FormatBool(qrPrimaryReplicaOnly)
+		if qPrimaryReplicaOnly != "" {
+			if err := r.SetQueryParam("primary_replica_only", qPrimaryReplicaOnly); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {
