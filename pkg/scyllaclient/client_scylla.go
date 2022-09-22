@@ -838,3 +838,33 @@ func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string,
 	})
 	return err
 }
+
+// IsAutoCompactionEnabled checks if auto compaction of given table is enabled on the host.
+func (c *Client) IsAutoCompactionEnabled(ctx context.Context, keyspace, table string) (bool, error) {
+	resp, err := c.scyllaOps.ColumnFamilyAutocompactionByNameGet(&operations.ColumnFamilyAutocompactionByNameGetParams{
+		Context: ctx,
+		Name:    keyspace + ":" + table,
+	})
+	if err != nil {
+		return false, err
+	}
+	return resp.Payload, nil
+}
+
+// EnableAutoCompaction enables auto compaction on the host.
+func (c *Client) EnableAutoCompaction(ctx context.Context, keyspace, table string) error {
+	_, err := c.scyllaOps.ColumnFamilyAutocompactionByNamePost(&operations.ColumnFamilyAutocompactionByNamePostParams{
+		Context: ctx,
+		Name:    keyspace + ":" + table,
+	})
+	return err
+}
+
+// DisableAutoCompaction disables auto compaction on the host.
+func (c *Client) DisableAutoCompaction(ctx context.Context, keyspace, table string) error {
+	_, err := c.scyllaOps.ColumnFamilyAutocompactionByNameDelete(&operations.ColumnFamilyAutocompactionByNameDeleteParams{
+		Context: ctx,
+		Name:    keyspace + ":" + table,
+	})
+	return err
+}
