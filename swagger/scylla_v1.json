@@ -1970,8 +1970,8 @@
     },
     "/column_family/autocompaction/{name}": {
       "get": {
-        "description": "check if the auto compaction disabled",
-        "summary": "is_auto_compaction_disabled",
+        "description": "check if the auto_compaction property is enabled for a given table",
+        "summary": "is_auto_compaction_enabled",
         "operationId": "ColumnFamilyAutocompactionByNameGet",
         "deprecated": false,
         "produces": [
@@ -1983,7 +1983,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "The column family name in keyspace:name format"
+            "description": "The table name in keyspace:name format"
           }
         ],
         "responses": {
@@ -1992,6 +1992,62 @@
             "schema": {
               "type": "boolean"
             },
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "description": "Enable table auto compaction",
+        "summary": "enable_auto_compaction",
+        "operationId": "ColumnFamilyAutocompactionByNamePost",
+        "deprecated": false,
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "The table name in keyspace:name format"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "description": "Disable table auto compaction",
+        "summary": "disable_auto_compaction",
+        "operationId": "ColumnFamilyAutocompactionByNameDelete",
+        "deprecated": false,
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "The table name in keyspace:name format"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
             "headers": {}
           },
           "default": {
