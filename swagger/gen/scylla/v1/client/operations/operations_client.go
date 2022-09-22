@@ -117,7 +117,11 @@ type ClientService interface {
 
 	CollectdPost(params *CollectdPostParams) (*CollectdPostOK, error)
 
+	ColumnFamilyAutocompactionByNameDelete(params *ColumnFamilyAutocompactionByNameDeleteParams) (*ColumnFamilyAutocompactionByNameDeleteOK, error)
+
 	ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocompactionByNameGetParams) (*ColumnFamilyAutocompactionByNameGetOK, error)
+
+	ColumnFamilyAutocompactionByNamePost(params *ColumnFamilyAutocompactionByNamePostParams) (*ColumnFamilyAutocompactionByNamePostOK, error)
 
 	ColumnFamilyBuiltIndexesByNameGet(params *ColumnFamilyBuiltIndexesByNameGetParams) (*ColumnFamilyBuiltIndexesByNameGetOK, error)
 
@@ -2431,9 +2435,44 @@ func (a *Client) CollectdPost(params *CollectdPostParams) (*CollectdPostOK, erro
 }
 
 /*
-  ColumnFamilyAutocompactionByNameGet is auto compaction disabled
+  ColumnFamilyAutocompactionByNameDelete disables auto compaction
 
-  check if the auto compaction disabled
+  Disable table auto compaction
+*/
+func (a *Client) ColumnFamilyAutocompactionByNameDelete(params *ColumnFamilyAutocompactionByNameDeleteParams) (*ColumnFamilyAutocompactionByNameDeleteOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyAutocompactionByNameDeleteParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyAutocompactionByNameDelete",
+		Method:             "DELETE",
+		PathPattern:        "/column_family/autocompaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyAutocompactionByNameDeleteReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ColumnFamilyAutocompactionByNameDeleteOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ColumnFamilyAutocompactionByNameDeleteDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ColumnFamilyAutocompactionByNameGet is auto compaction enabled
+
+  check if the auto_compaction property is enabled for a given table
 */
 func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocompactionByNameGetParams) (*ColumnFamilyAutocompactionByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2462,6 +2501,41 @@ func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocom
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*ColumnFamilyAutocompactionByNameGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+  ColumnFamilyAutocompactionByNamePost enables auto compaction
+
+  Enable table auto compaction
+*/
+func (a *Client) ColumnFamilyAutocompactionByNamePost(params *ColumnFamilyAutocompactionByNamePostParams) (*ColumnFamilyAutocompactionByNamePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewColumnFamilyAutocompactionByNamePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ColumnFamilyAutocompactionByNamePost",
+		Method:             "POST",
+		PathPattern:        "/column_family/autocompaction/{name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ColumnFamilyAutocompactionByNamePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ColumnFamilyAutocompactionByNamePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ColumnFamilyAutocompactionByNamePostDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

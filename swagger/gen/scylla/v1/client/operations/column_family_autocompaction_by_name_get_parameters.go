@@ -61,7 +61,7 @@ for the column family autocompaction by name get operation typically these are w
 type ColumnFamilyAutocompactionByNameGetParams struct {
 
 	/*Name
-	  The column family name in keyspace:name format
+	  The table name in keyspace:name format
 
 	*/
 	Name string
