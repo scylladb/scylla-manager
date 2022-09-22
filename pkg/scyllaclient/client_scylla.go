@@ -824,3 +824,17 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 
 	return report, err
 }
+
+// LoadSSTables that are already downloaded to host's table upload directory.
+func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+	const restoreTimeout = time.Hour
+
+	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
+		Context:            forceHost(customTimeout(ctx, restoreTimeout), host),
+		Keyspace:           keyspace,
+		Cf:                 table,
+		LoadAndStream:      &loadAndStream,
+		PrimaryReplicaOnly: &primaryReplicaOnly,
+	})
+	return err
+}
