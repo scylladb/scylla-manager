@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/scylladb/go-log"
+
 	"github.com/scylladb/scylla-manager/pkg/auth"
 	"github.com/scylladb/scylla-manager/pkg/config"
 	"github.com/scylladb/scylla-manager/pkg/util/httphandler"
@@ -45,8 +46,12 @@ func newRouter(c config.AgentConfig, rclone http.Handler, logger log.Logger) htt
 }
 
 func promProxy(c config.AgentConfig) http.Handler {
+	addr := c.Scylla.PrometheusAddress
+	if addr == "" {
+		addr = c.Scylla.ListenAddress
+	}
 	return &httputil.ReverseProxy{
-		Director: director(net.JoinHostPort(c.Scylla.PrometheusAddress, c.Scylla.PrometheusPort)),
+		Director: director(net.JoinHostPort(addr, c.Scylla.PrometheusPort)),
 	}
 }
 
