@@ -25,7 +25,7 @@ func WithNotify(ctx context.Context, op Operation, b Backoff, n Notify) error {
 
 // Permanent wraps the given err in a *backoff.PermanentError.
 // This error interrupts further retries and causes retrying mechanism.
-func Permanent(err error) *backoff.PermanentError {
+func Permanent(err error) error {
 	return backoff.Permanent(err)
 }
 
