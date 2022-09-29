@@ -88,8 +88,95 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	return t, nil
 }
 
+// Restore executes restore on a given target.
 func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUID, target RestoreTarget) error {
-	panic("TODO - implement")
+	s.logger.Info(ctx, "Restore",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+		"target", target,
+	)
+
+	run := &RestoreRun{
+		ClusterID:   clusterID,
+		TaskID:      taskID,
+		ID:          runID,
+		SnapshotTag: target.SnapshotTag,
+		Stage:       StageRestoreInit,
+	}
+
+	// Get cluster name
+	clusterName, err := s.clusterName(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "invalid cluster")
+	}
+	// Get the cluster client
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "get client proxy")
+	}
+	// Get cluster session
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "get CQL cluster session")
+	}
+	defer clusterSession.Close()
+
+	w := &restoreWorker{
+		workerTools: workerTools{
+			ClusterID:   clusterID,
+			ClusterName: clusterName,
+			TaskID:      taskID,
+			RunID:       runID,
+			Client:      client,
+			Config:      s.config,
+			Logger:      s.logger.Named("restore"),
+		},
+		metrics:                 s.metrics.Restore,
+		managerSession:          s.session,
+		clusterSession:          clusterSession,
+		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
+	}
+
+	if target.Continue {
+		if err := w.decorateWithPrevRun(ctx, run); err != nil {
+			return err
+		}
+
+		w.insertRun(ctx, run)
+		// Update run with previous progress.
+		if run.PrevID != uuid.Nil {
+			w.clonePrevProgress(ctx, run)
+		}
+
+		w.Logger.Info(ctx, "Run after decoration", "run", *run)
+	} else {
+		w.insertRun(ctx, run)
+	}
+
+	if !target.Continue || run.PrevID == uuid.Nil {
+		w.resumed = true
+	}
+
+	// As manifests are immutable, units can be initialized only once per task
+	if run.Units == nil {
+		run.Units, err = w.newUnits(ctx, target)
+		if err != nil {
+			return errors.Wrap(err, "initialize units")
+		}
+	}
+
+	run.Stage = StageRestoreData
+	w.insertRun(ctx, run)
+
+	if err := w.restoreData(ctx, run, target); err != nil {
+		return errors.Wrapf(err, "restore data")
+	}
+
+	run.Stage = StageRestoreDone
+	w.insertRun(ctx, run)
+
+	return nil
 }
 
 // forEachRestoredManifest returns a wrapper for forEachManifest that iterates over
