@@ -45,6 +45,7 @@ linters:
     - forcetypeassert
     - funlen
     - gas
+    - gci
     - gochecknoglobals
     - gochecknoinits
     - goerr113
