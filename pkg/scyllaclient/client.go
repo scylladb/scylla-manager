@@ -15,6 +15,7 @@ import (
 	"github.com/hailocab/go-hostpool"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/auth"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	agentClient "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client"
@@ -37,7 +38,7 @@ func setOpenAPIGlobals() {
 	})
 }
 
-//go:generate ./internalgen.sh
+//go:generate ../rclone/rcserver/internalgen.sh
 
 // DefaultTransport returns a new http.Transport with similar default values to
 // http.DefaultTransport. Do not use this for transient transports as it can
