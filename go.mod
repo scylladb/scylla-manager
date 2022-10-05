@@ -37,6 +37,7 @@ require (
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
+	github.com/stoewer/go-strcase v1.2.0
 	go.uber.org/atomic v1.7.0
 	go.uber.org/config v1.4.0
 	go.uber.org/goleak v1.1.11
