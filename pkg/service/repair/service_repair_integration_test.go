@@ -24,6 +24,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
@@ -31,7 +33,6 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/zap/zapcore"
 )
 
 type repairTestHelper struct {
@@ -869,7 +870,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart fixes failed ranges", func(t *testing.T) {
-		t.Skip("needs to be fixed")
 		c := defaultConfig()
 
 		h := newRepairTestHelper(t, session, c)
@@ -877,7 +877,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, allUnits())
+		units := allUnits()
+		units.FailFast = true
+		h.runRepair(ctx, units)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -903,7 +905,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertProgress(node12, 50, longWait)
 
 		Print("And: repair is done")
-		h.assertDone(shortWait)
+		h.assertDone(longWait)
 	})
 
 	t.Run("repair temporary network outage", func(t *testing.T) {
