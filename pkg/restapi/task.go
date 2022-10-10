@@ -234,6 +234,14 @@ func (h *taskHandler) validateTask(ctx context.Context, newTask *scheduler.Task,
 		if _, err := h.Backup.GetTarget(ctx, newTask.ClusterID, p); err != nil {
 			return errors.Wrap(err, "create backup target")
 		}
+	case scheduler.RestoreTask:
+		t, err := h.Backup.GetRestoreTarget(ctx, newTask.ClusterID, p)
+		if err != nil {
+			return errors.Wrap(err, "create restore target")
+		}
+		if _, err = h.Backup.GetRestoreUnits(ctx, newTask.ClusterID, t); err != nil {
+			return errors.Wrap(err, "create restore units")
+		}
 	case scheduler.RepairTask:
 		if _, err := h.Repair.GetTarget(ctx, newTask.ClusterID, p); err != nil {
 			return errors.Wrap(err, "create repair target")
