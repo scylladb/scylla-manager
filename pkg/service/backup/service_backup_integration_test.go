@@ -2299,3 +2299,59 @@ func TestBackupListIntegration(t *testing.T) {
 		})
 	}
 }
+
+func TestBackupClusterCheckStage(t *testing.T) {
+	const (
+		testBucket   = "backuptest-cluster_check"
+		testKeyspace = "backuptest_cluster_check"
+	)
+
+	location := s3Location(testBucket)
+	config := backup.DefaultConfig()
+
+	Print("Given: load threshold in config set to 0.0")
+	config.MaxLoadThreshold = 0
+
+	backoffSetup := DefaultStagesBackoffSetup()
+	backoffSetup[StageClusterCheck] = retry.NewExponentialBackoff(5*time.Second, 20*time.Second, 10*time.Second, 2, 0.2)
+
+	var (
+		session        = CreateSession(t)
+		clusterSession = CreateManagedClusterSessionAndDropAllKeyspaces(t)
+
+		h   = newBackupTestHelper(t, session, config, location, nil, backoffSetup)
+		ctx = context.Background()
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 3)
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:       []string{"dc1"},
+		Location: []Location{location},
+	}
+	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: run backup")
+	err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, target)
+
+	Print("Then: there should be an error")
+	if err == nil {
+		t.Errorf("service.Backup() expected to return error")
+	}
+
+	Print("Then: task is in CHECK_CLUSTER stage")
+	stage := ""
+	if err := session.Query("SELECT stage FROM test_scylla_manager.backup_run;", nil).Scan(&stage); err != nil {
+		t.Fatal("select stage:", err)
+	}
+	if stage != string(StageClusterCheck) {
+		t.Errorf("backup task expected to end in %s stage but is %s", StageClusterCheck, stage)
+	}
+}
