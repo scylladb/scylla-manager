@@ -53,3 +53,21 @@ func (b BackoffFunc) Reset() {}
 func (b BackoffFunc) Clone() Backoff {
 	return b
 }
+
+func DefaultExponentialBackoff() Backoff {
+	const (
+		waitMin        = 15 * time.Second // nolint: revive
+		waitMax        = 1 * time.Minute
+		maxElapsedTime = 15 * time.Minute
+		multiplier     = 2
+		jitter         = 0.2
+	)
+
+	return NewExponentialBackoff(
+		waitMin,
+		maxElapsedTime,
+		waitMax,
+		multiplier,
+		jitter,
+	)
+}

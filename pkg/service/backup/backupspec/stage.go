@@ -2,12 +2,17 @@
 
 package backupspec
 
+import (
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+)
+
 // Stage specifies the backup worker stage.
 type Stage string
 
 // Stage enumeration.
 const (
 	StageInit         Stage = "INIT"
+	StageClusterCheck Stage = "CLUSTER_CHECK"
 	StageAwaitSchema  Stage = "AWAIT_SCHEMA"
 	StageSnapshot     Stage = "SNAPSHOT"
 	StageIndex        Stage = "INDEX"
@@ -37,6 +42,12 @@ var stageOrder = []Stage{
 // StageOrder listing of all stages in the order of execution.
 func StageOrder() []Stage {
 	return stageOrder
+}
+
+func DefaultStagesBackoffSetup() map[Stage]retry.Backoff {
+	return map[Stage]retry.Backoff{
+		StageClusterCheck: retry.DefaultExponentialBackoff(),
+	}
 }
 
 // Resumable run can be continued.
