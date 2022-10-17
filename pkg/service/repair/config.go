@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"go.uber.org/multierr"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 )
 
 // Type represents type of the repair algorithm.
@@ -30,6 +31,7 @@ type Config struct {
 	GracefulStopTimeout             time.Duration `yaml:"graceful_stop_timeout"`
 	ForceRepairType                 Type          `yaml:"force_repair_type"`
 	Murmur3PartitionerIgnoreMSBBits int           `yaml:"murmur3_partitioner_ignore_msb_bits"`
+	MaxLoadThreshold                float64       `yaml:"max_load_threshold"`
 }
 
 func DefaultConfig() Config {
@@ -39,6 +41,7 @@ func DefaultConfig() Config {
 		GracefulStopTimeout:             30 * time.Second,
 		ForceRepairType:                 TypeAuto,
 		Murmur3PartitionerIgnoreMSBBits: 12,
+		MaxLoadThreshold:                100,
 	}
 }
 
@@ -56,6 +59,9 @@ func (c *Config) Validate() error {
 	}
 	if c.GracefulStopTimeout <= 0 {
 		err = multierr.Append(err, errors.New("invalid graceful_stop_timeout, must be > 0"))
+	}
+	if c.MaxLoadThreshold < 0 {
+		err = multierr.Append(err, errors.New("invalid max_load_threshold, must be >= 0"))
 	}
 	switch c.ForceRepairType {
 	case TypeAuto, TypeRowLevel, TypeLegacy:

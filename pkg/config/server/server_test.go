@@ -9,6 +9,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/config"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -16,8 +19,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 var configCmpOpts = cmp.Options{
@@ -78,6 +79,7 @@ func TestConfigModification(t *testing.T) {
 			DiskSpaceFreeMinPercent:   1,
 			LongPollingTimeoutSeconds: 5,
 			AgeMax:                    12 * time.Hour,
+			MaxLoadThreshold:          100,
 		},
 		Repair: repair.Config{
 			PollInterval:                    500 * time.Millisecond,
@@ -86,6 +88,7 @@ func TestConfigModification(t *testing.T) {
 			GracefulStopTimeout:             60 * time.Second,
 			ForceRepairType:                 repair.TypeAuto,
 			Murmur3PartitionerIgnoreMSBBits: 12,
+			MaxLoadThreshold:                100,
 		},
 		TimeoutConfig: scyllaclient.TimeoutConfig{
 			Timeout:     45 * time.Second,
