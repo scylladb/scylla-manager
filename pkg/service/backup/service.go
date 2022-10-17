@@ -779,6 +779,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return nil
 	}
 	stageFunc := map[Stage]func() error{
+		StageClusterCheck: func() error {
+			return w.CheckCluster(ctx, hi, s.backoffConfiguration[StageClusterCheck])
+		},
 		StageAwaitSchema: func() error {
 			clusterSession, err := s.clusterSession(ctx, clusterID)
 			if err != nil {

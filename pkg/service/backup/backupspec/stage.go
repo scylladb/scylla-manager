@@ -27,6 +27,7 @@ const (
 
 var stageOrder = []Stage{
 	StageInit,
+	StageClusterCheck,
 	StageAwaitSchema,
 	StageSnapshot,
 	StageIndex,

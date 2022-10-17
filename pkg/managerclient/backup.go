@@ -5,6 +5,7 @@ package managerclient
 // Stage enumeration.
 const (
 	BackupStageInit         string = "INIT"
+	BackupStageClusterCheck string = "CLUSTER_CHECK"
 	BackupStageAwaitSchema  string = "AWAIT_SCHEMA"
 	BackupStageSnapshot     string = "SNAPSHOT"
 	BackupStageIndex        string = "INDEX"
@@ -19,6 +20,7 @@ const (
 
 var backupStageName = map[string]string{
 	BackupStageInit:         "initialising",
+	BackupStageClusterCheck: "checking cluster's load",
 	BackupStageAwaitSchema:  "awaiting schema agreement",
 	BackupStageSnapshot:     "taking snapshot",
 	BackupStageIndex:        "indexing files",
