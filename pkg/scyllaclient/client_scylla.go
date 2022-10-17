@@ -15,12 +15,13 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"go.uber.org/multierr"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
-	"go.uber.org/multierr"
 )
 
 // ClusterName returns cluster name.
@@ -287,6 +288,29 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 	}
 
 	return uint(shards), nil
+}
+
+// CurrentLoad returns node's load. Node's load is counted basing on scylla_reactor_utilization metric.
+// There is one value per shard. Return value is the average.
+func (c *Client) CurrentLoad(ctx context.Context, host string) (float64, error) {
+	// example output:
+	//   scylla_reactor_utilization{shard="0"} 0.000000
+	//   scylla_reactor_utilization{shard="1"} -0.000000
+	metrics, err := c.metrics(ctx, host, "reactor_utilization")
+	if err != nil {
+		return 0, err
+	}
+	for _, m := range metrics {
+		var sum float64
+		for _, mValue := range m.Metric {
+			if mValue.GetGauge() == nil {
+				return 0, errors.Errorf("scylla_reactor_utilization gauge expected but not found")
+			}
+			sum += mValue.GetGauge().GetValue()
+		}
+		return sum / float64(len(m.Metric)), nil
+	}
+	return 0, errors.Errorf("scylla_reactor_utilization not found")
 }
 
 // metrics returns Scylla Prometheus metrics, `name` pattern be used to filter
