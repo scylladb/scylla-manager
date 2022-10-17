@@ -16,6 +16,8 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"go.uber.org/atomic"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -24,9 +26,9 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/atomic"
 )
 
 const defaultRateLimit = 100 // 100MiB
@@ -47,6 +49,8 @@ type Service struct {
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession SessionFunc
 	logger         log.Logger
+
+	backoffConfiguration map[Stage]retry.Backoff
 }
 
 func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
@@ -76,7 +80,22 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
 		logger:         logger,
+
+		backoffConfiguration: DefaultStagesBackoffSetup(),
 	}, nil
+}
+
+// NewTestService is a constructor that should be used for testing purpose only.
+// It allows overwriting default backoff configuration.
+func NewTestService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
+	clusterSession SessionFunc, logger log.Logger, backoffConfiguration map[Stage]retry.Backoff,
+) (*Service, error) {
+	svc, err := NewService(session, config, metrics, clusterName, scyllaClient, clusterSession, logger)
+	if err != nil {
+		return nil, err
+	}
+	svc.backoffConfiguration = backoffConfiguration
+	return svc, nil
 }
 
 // Runner creates a Runner that handles repairs.
