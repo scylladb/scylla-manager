@@ -8,12 +8,16 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"go.uber.org/atomic"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -22,10 +26,9 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/atomic"
-	"golang.org/x/sync/errgroup"
 )
 
 // Service orchestrates cluster repairs.
@@ -39,6 +42,10 @@ type Service struct {
 
 	intensityHandlers map[uuid.UUID]*intensityHandler
 	mu                sync.Mutex
+
+	// This configuration is kept here to make the code bit more testable.
+	// It's current purpose is to keep exponential backoff definition for the action that checks cluster nodes load.
+	clusterLoadExponentialBackoff retry.Backoff
 }
 
 func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
@@ -51,13 +58,25 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 	}
 
 	return &Service{
-		session:           session,
-		config:            config,
-		metrics:           metrics,
-		scyllaClient:      scyllaClient,
-		logger:            logger,
-		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
+		session:                       session,
+		config:                        config,
+		metrics:                       metrics,
+		scyllaClient:                  scyllaClient,
+		logger:                        logger,
+		intensityHandlers:             make(map[uuid.UUID]*intensityHandler),
+		clusterLoadExponentialBackoff: retry.DefaultExponentialBackoff(),
 	}, nil
+}
+
+// WithClusterLoadExponentialBackoff allows overwriting default exponential backoff definition
+// that is used to block repair until cluster's load is under configured threshold.
+// Main purpose of adding this possibility is to make the code bit more testable.
+func (s *Service) WithClusterLoadExponentialBackoff(exponentialBackoff retry.Backoff) *Service {
+	if exponentialBackoff == nil {
+		return s
+	}
+	s.clusterLoadExponentialBackoff = exponentialBackoff
+	return s
 }
 
 // Runner creates a Runner that handles repairs.
@@ -296,6 +315,11 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	repairHosts := gen.Hosts()
 
+	// Check if cluster load is below configured threshold
+	if err := s.validateClusterLoadAgainstThreshold(ctx, client, repairHosts.List()); err != nil {
+		return errors.Wrapf(err, "validate cluster load")
+	}
+
 	// Check if no other repairs are running
 	if active, err := client.ActiveRepairs(ctx, repairHosts.List()); err != nil {
 		s.logger.Error(ctx, "Active repair check failed", "error", err)
@@ -427,6 +451,30 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	return nil
+}
+
+func (s *Service) validateClusterLoadAgainstThreshold(ctx context.Context, client *scyllaclient.Client, hosts []string) error {
+	if s.config.MaxLoadThreshold >= 100 {
+		return nil
+	}
+	notify := func(err error, wait time.Duration) {
+		s.logger.Info(ctx, "Current load of one of the nodes is above the configured threshold...", "error", err, "wait", wait)
+	}
+
+	return retry.WithNotify(ctx, func() error {
+		for _, h := range hosts {
+			load, err := client.CurrentLoad(ctx, h)
+			if err != nil {
+				return retry.Permanent(errors.Wrap(err, "node's load metric"))
+			}
+			if load >= s.config.MaxLoadThreshold {
+				return errors.Errorf("load %.2f on %s node is above configured threshold equal to %.2f",
+					load, h, s.config.MaxLoadThreshold)
+			}
+		}
+		return nil
+
+	}, s.clusterLoadExponentialBackoff, notify)
 }
 
 func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
