@@ -32,6 +32,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -1202,6 +1203,25 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
+	})
+
+	t.Run("don't repair if load is too high", func(t *testing.T) {
+		config := defaultConfig()
+		config.MaxLoadThreshold = 0
+		h := newRepairTestHelper(t, session, config)
+		h.service = h.service.WithClusterLoadExponentialBackoff(
+			retry.NewExponentialBackoff(2*time.Second, 10*time.Second, 3*time.Second, 2, 0.2))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		u := allUnits()
+
+		Print("When: run repair")
+		h.runRepair(ctx, u)
+
+		Print("Then: repair failed with error")
+		h.assertErrorContains("validate cluster load", longWait)
 	})
 }
 
