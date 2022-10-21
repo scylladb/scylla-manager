@@ -1223,6 +1223,36 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair failed with error")
 		h.assertErrorContains("validate cluster load", longWait)
 	})
+
+	t.Run("proceed with repair if load metric is not reachable", func(t *testing.T) {
+		config := defaultConfig()
+		config.MaxLoadThreshold = 0
+		h := newRepairTestHelper(t, session, config)
+		h.service = h.service.WithClusterLoadExponentialBackoff(
+			retry.NewExponentialBackoff(2*time.Second, 10*time.Second, 3*time.Second, 2, 0.2))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		u := allUnits()
+
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasSuffix(req.URL.Path, "/metrics") {
+				q := req.URL.Query()
+				name := q.Get("name")
+				if name == "reactor_utilization" {
+					return nil, errors.Errorf("missing")
+				}
+			}
+			return nil, nil
+		}))
+
+		Print("When: run repair")
+		h.runRepair(ctx, u)
+
+		Print("Then: repair proceeds and is done")
+		h.assertDone(longWait)
+	})
 }
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {

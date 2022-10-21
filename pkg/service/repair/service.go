@@ -317,7 +317,9 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Check if cluster load is below configured threshold
 	if err := s.validateClusterLoadAgainstThreshold(ctx, client, repairHosts.List()); err != nil {
-		return errors.Wrapf(err, "validate cluster load")
+		if !errors.Is(err, service.ErrNodeLoadMetricUnavailable) {
+			return errors.Wrapf(err, "validate cluster load")
+		}
 	}
 
 	// Check if no other repairs are running
@@ -465,7 +467,8 @@ func (s *Service) validateClusterLoadAgainstThreshold(ctx context.Context, clien
 		for _, h := range hosts {
 			load, err := client.CurrentLoad(ctx, h)
 			if err != nil {
-				return retry.Permanent(errors.Wrap(err, "node's load metric"))
+				s.logger.Info(ctx, "Cannot check node's load", "error", err)
+				return retry.Permanent(service.ErrNodeLoadMetricUnavailable)
 			}
 			if load >= s.config.MaxLoadThreshold {
 				return errors.Errorf("load %.2f on %s node is above configured threshold equal to %.2f",
@@ -473,7 +476,6 @@ func (s *Service) validateClusterLoadAgainstThreshold(ctx context.Context, clien
 			}
 		}
 		return nil
-
 	}, s.clusterLoadExponentialBackoff, notify)
 }
 
