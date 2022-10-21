@@ -780,7 +780,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	stageFunc := map[Stage]func() error{
 		StageClusterCheck: func() error {
-			return w.CheckCluster(ctx, hi, s.backoffConfiguration[StageClusterCheck])
+			err := w.CheckCluster(ctx, hi, s.backoffConfiguration[StageClusterCheck])
+			if err != nil && errors.Is(err, service.ErrNodeLoadMetricUnavailable) {
+				w.Logger.Error(ctx, "Couldn't check cluster's current load, proceeding with the backup")
+				return nil
+			}
+			return err
 		},
 		StageAwaitSchema: func() error {
 			clusterSession, err := s.clusterSession(ctx, clusterID)

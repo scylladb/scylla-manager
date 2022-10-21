@@ -9,8 +9,9 @@ import (
 
 // Common errors.
 var (
-	ErrNotFound = gocql.ErrNotFound
-	ErrNilPtr   = errors.New("nil")
+	ErrNotFound                  = gocql.ErrNotFound
+	ErrNilPtr                    = errors.New("nil")
+	ErrNodeLoadMetricUnavailable = errors.New("node's load metric unavailable")
 )
 
 // errValidate is a validation error caused by inner error.

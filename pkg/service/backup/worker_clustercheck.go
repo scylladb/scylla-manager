@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 )
 
@@ -16,7 +17,7 @@ import (
 //
 // If [Config.MaxLoadThreshold] was set to 100 the method is no-op.
 func (w *worker) CheckCluster(ctx context.Context, hosts []hostInfo, clusterCheckBackoff retry.Backoff) error {
-	if w.Config.MaxLoadThreshold == 100 {
+	if w.Config.MaxLoadThreshold >= 100 {
 		return nil
 	}
 	notify := func(err error, wait time.Duration) {
@@ -27,7 +28,8 @@ func (w *worker) CheckCluster(ctx context.Context, hosts []hostInfo, clusterChec
 		for _, h := range hosts {
 			load, err := w.Client.CurrentLoad(ctx, h.IP)
 			if err != nil {
-				return retry.Permanent(errors.Wrap(err, "node's load metric"))
+				w.Logger.Info(ctx, "Cannot check node's load", "error", err)
+				return retry.Permanent(service.ErrNodeLoadMetricUnavailable)
 			}
 			if load >= w.Config.MaxLoadThreshold {
 				return errors.Errorf("load %.2f on %s node is above configured threshold equal to %.2f",
@@ -35,6 +37,5 @@ func (w *worker) CheckCluster(ctx context.Context, hosts []hostInfo, clusterChec
 			}
 		}
 		return nil
-
 	}, clusterCheckBackoff, notify)
 }
