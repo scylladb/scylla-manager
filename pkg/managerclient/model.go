@@ -476,8 +476,13 @@ func (li TaskListItems) Render(w io.Writer) error {
 		return "in " + duration.Duration(time.Time(*t).Sub(now).Truncate(time.Second)).String()
 	}
 
+	var doneRestoreTask bool
 	p := table.New("Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next")
 	for _, t := range li.TaskListItemSlice {
+		if t.Type == RestoreTask && t.Status == TaskStatusDone {
+			doneRestoreTask = true
+		}
+
 		var id string
 		if t.Name != "" && !li.ShowIDs {
 			id = taskJoin(t.Type, t.Name)
@@ -510,6 +515,11 @@ func (li TaskListItems) Render(w io.Writer) error {
 		p.AddRow(id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone, t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError), status, next)
 	}
 	fmt.Fprint(w, p)
+
+	if doneRestoreTask {
+		fmt.Fprint(w, " NOTE: all completed restore tasks require specific follow-up action - see docs for more information\n")
+	}
+
 	return nil
 }
 
