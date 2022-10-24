@@ -683,7 +683,7 @@ func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string
 }
 
 // TableNotExistsRegex matches error messages returned by Scylla when there is no such table.
-var TableNotExistsRegex = regexp.MustCompile("^No column family|^Column family .* not found$|^Keyspace .* Does not exist")
+var TableNotExistsRegex = regexp.MustCompile("^No column family|^Column family .* not found$|^Keyspace .* Does not exist|^Can't find a column family")
 
 // TableExists returns true iff table exists.
 func (c *Client) TableExists(ctx context.Context, keyspace, table string) (bool, error) {
