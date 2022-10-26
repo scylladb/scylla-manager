@@ -100,7 +100,7 @@ func (w Wrapper) Datacenter(p *[]string) {
 }
 
 func (w Wrapper) FailFast(p *bool) {
-	w.fs.BoolVar(p, "fail-fast", false, usage["fail-fats"])
+	w.fs.BoolVar(p, "fail-fast", false, usage["fail-fast"])
 }
 
 func (w Wrapper) Keyspace(p *[]string) {

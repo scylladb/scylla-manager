@@ -7,6 +7,11 @@ long: |
 
 retention: |
   The `number of backups` to store, once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
+  Can be used simultaneously with '--retention-days' flag.
+
+retention-days: |
+  The `number of days` for which backup is stored, the next backup will initiate a purge of all expired backups.
+  Can be used simultaneously with '--retention' flag.
 
 rate-limit: |
   Limits the upload rate (as expressed in  megabytes (MiB) per second) at which snapshotfiles can be uploaded from a Scylla node to its backup destination.
