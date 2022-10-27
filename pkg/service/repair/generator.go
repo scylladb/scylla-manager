@@ -207,21 +207,31 @@ func (g *generator) Run(ctx context.Context) (err error) {
 
 	done := ctx.Done()
 	stop := make(chan struct{})
+
+	gracefulShutdown := func() {
+		g.logger.Info(ctx, "Graceful repair shutdown", "timeout", g.gracefulStopTimeout)
+		// Stop workers by closing next channel
+		g.closeNext()
+
+		done = nil
+		time.AfterFunc(g.gracefulStopTimeout, func() {
+			close(stop)
+		})
+		err = ctx.Err()
+	}
 loop:
 	for {
 		select {
+		case <-done:
+			gracefulShutdown()
+		default:
+		}
+
+		select {
+		case <-done:
+			gracefulShutdown()
 		case <-stop:
 			break loop
-		case <-done:
-			g.logger.Info(ctx, "Graceful repair shutdown", "timeout", g.gracefulStopTimeout)
-			// Stop workers by closing next channel
-			g.closeNext()
-
-			done = nil
-			time.AfterFunc(g.gracefulStopTimeout, func() {
-				close(stop)
-			})
-			err = ctx.Err()
 		case r := <-g.result:
 			g.processResult(ctx, r)
 			g.fillNext(ctx)
