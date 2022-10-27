@@ -179,7 +179,7 @@ func (c *rowLevelRepairController) TryBlock(hosts []string) (bool, allowance) {
 
 func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64) bool {
 	// ALLOW if nothing is running
-	if len(c.busyReplicas) == 0 {
+	if !c.Busy() {
 		return true
 	}
 
