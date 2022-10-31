@@ -95,7 +95,7 @@ func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Co
 		}
 		retentionMap := make(RetentionMap)
 		for _, t := range tasks {
-			r, err := ExtractRetention(properties)
+			r, err := ExtractRetention(t.Properties)
 			if err != nil {
 				return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
 			}
@@ -168,6 +168,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Copy simple properties
 	t.Retention = p.Retention
 	t.RetentionDays = p.RetentionDays
+	t.RetentionMap = p.RetentionMap
 	t.Continue = p.Continue
 	t.PurgeOnly = p.PurgeOnly
 
