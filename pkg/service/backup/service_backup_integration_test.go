@@ -620,9 +620,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -853,9 +853,9 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 
 	Print("Then: target hosts does not contain the downed node")
@@ -905,9 +905,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 2,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 2},
 		RateLimit: []backup.DCLimit{
 			{"dc1", 1},
 		},
@@ -1204,10 +1204,10 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:           []string{"dc1"},
-		Location:     []Location{location},
-		Retention:    1,
-		RetentionMap: backup.RetentionMap{h.taskID: {0, 1}},
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 1},
+		RetentionMap:    backup.RetentionMap{h.taskID: {0, 1}},
 	}
 
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
@@ -1295,9 +1295,9 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -1370,9 +1370,9 @@ func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 1,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 1},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -1429,10 +1429,10 @@ func TestPurgeIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:           []string{"dc1"},
-		Location:     []Location{location},
-		Retention:    1,
-		RetentionMap: map[uuid.UUID]backup.Retention{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 1},
+		RetentionMap:    map[uuid.UUID]backup.RetentionPolicy{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
 	}
 
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
@@ -1576,9 +1576,9 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 2,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 2},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -1639,9 +1639,9 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 1,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 1},
 	}
 
 	Print("Given: given same data in shared keyspace")
@@ -1836,9 +1836,9 @@ func TestValidateIntegration(t *testing.T) {
 				Keyspace: testKeyspace,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -2032,9 +2032,9 @@ func TestBackupRestoreIntegration(t *testing.T) {
 				AllTables: true,
 			},
 		},
-		DC:        []string{"dc1", "dc2"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc1", "dc2"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -2160,9 +2160,9 @@ func TestBackupListIntegration(t *testing.T) {
 				Keyspace: testKeyspace1,
 			},
 		},
-		DC:        []string{"dc1"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc1"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)
@@ -2183,9 +2183,9 @@ func TestBackupListIntegration(t *testing.T) {
 				Keyspace: testKeyspace2,
 			},
 		},
-		DC:        []string{"dc2"},
-		Location:  []Location{location},
-		Retention: 3,
+		DC:              []string{"dc2"},
+		Location:        []Location{location},
+		RetentionPolicy: backup.RetentionPolicy{Retention: 3},
 	}
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
 		t.Fatal(err)

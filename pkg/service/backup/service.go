@@ -105,16 +105,13 @@ func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Co
 	}
 }
 
-// GetRetention returns the retention policy for a
-// given task ID, with a default of 30 days retention if no policy exists.
-func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) Retention {
-	r, ok := retentionMap[taskID]
-
-	if !ok {
-		return Retention{30, 0}
+// GetRetention returns the retention policy for a given task ID.
+// In case task ID cannot be found in the RetentionMap, default retention for deleted task is returned.
+func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) RetentionPolicy {
+	if r, ok := retentionMap[taskID]; ok {
+		return r
 	}
-
-	return r
+	return defaultRetentionForDeletedTask()
 }
 
 // GetTarget converts runner properties into backup Target.
@@ -165,9 +162,16 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(err, "invalid upload-parallel")
 	}
 
+	// Copy retention policy
+	t.RetentionPolicy = p.extractRetention()
+	if t.RetentionPolicy.Retention < 0 {
+		return t, errors.New("negative retention")
+	}
+	if t.RetentionPolicy.RetentionDays < 0 {
+		return t, errors.New("negative retention days")
+	}
+
 	// Copy simple properties
-	t.Retention = p.Retention
-	t.RetentionDays = p.RetentionDays
 	t.RetentionMap = p.RetentionMap
 	t.Continue = p.Continue
 	t.PurgeOnly = p.PurgeOnly

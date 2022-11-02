@@ -714,7 +714,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 					newRetMap[k] = v
 				}
 			}
-			newRetMap[tasks[i].ID] = backup.Retention{
+			newRetMap[tasks[i].ID] = backup.RetentionPolicy{
 				Retention:     taskRetentions[i].Retention,
 				RetentionDays: taskRetentions[i].RetentionDays,
 			}

@@ -3,20 +3,20 @@
     {
       "keyspace": "system_auth",
       "tables": [
-        "roles",
-        "role_permissions",
+        "role_members",
         "role_attributes",
-        "role_members"
+        "roles",
+        "role_permissions"
       ],
       "all_tables": true
     },
     {
       "keyspace": "system_distributed",
       "tables": [
-        "view_build_status",
-        "service_levels",
         "cdc_streams_descriptions_v2",
-        "cdc_generation_timestamps"
+        "cdc_generation_timestamps",
+        "view_build_status",
+        "service_levels"
       ],
       "all_tables": true
     },
@@ -30,11 +30,11 @@
     {
       "keyspace": "system_traces",
       "tables": [
-        "sessions",
-        "node_slow_log_time_idx",
-        "sessions_time_idx",
         "events",
-        "node_slow_log"
+        "node_slow_log",
+        "sessions",
+        "sessions_time_idx",
+        "node_slow_log_time_idx"
       ],
       "all_tables": true
     },
@@ -42,18 +42,18 @@
       "keyspace": "system_schema",
       "tables": [
         "computed_columns",
-        "views",
-        "functions",
-        "scylla_tables",
-        "triggers",
-        "indexes",
-        "dropped_columns",
-        "columns",
+        "types",
+        "tables",
+        "view_virtual_columns",
         "aggregates",
         "keyspaces",
-        "tables",
-        "types",
-        "view_virtual_columns"
+        "columns",
+        "dropped_columns",
+        "triggers",
+        "functions",
+        "indexes",
+        "scylla_tables",
+        "views"
       ],
       "all_tables": true
     }
@@ -66,7 +66,10 @@
     "s3:backuptest-get-target",
     "dc1:s3:backuptest-get-target"
   ],
-  "retention": 3,
+  "retention_policy": {
+    "retention_days": 0,
+    "retention": 3
+  },
   "rate_limit": [
     "100"
   ],
