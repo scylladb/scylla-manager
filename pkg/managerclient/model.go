@@ -375,8 +375,8 @@ Upload Parallel Limits:
   - All hosts in parallel
 {{- end }}
 
-Retention: Last {{ .Retention }} backups
-
+Retention policy:
+{{FormatRetentionPolicy .RetentionPolicy }}
 `
 
 // Render implements Renderer interface.
@@ -393,6 +393,7 @@ func (t BackupTarget) Render(w io.Writer) error {
 			}
 			return d
 		},
+		"FormatRetentionPolicy": FormatRetentionPolicy,
 	}).Parse(backupTargetTemplate))
 	return temp.Execute(w, t)
 }

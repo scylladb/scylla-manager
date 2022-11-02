@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 )
 
 const rfc822WithSec = "02 Jan 06 15:04:05 MST"
@@ -185,4 +186,29 @@ func FormatIntensity(v float64) string {
 		return fmt.Sprintf("%d", int(v))
 	}
 	return fmt.Sprintf("%.2f", v)
+}
+
+// FormatRetentionPolicy returns text representation of retention policy.
+func FormatRetentionPolicy(rp models.RetentionPolicy) string {
+	var res string
+	if rp.Retention == 0 && rp.RetentionDays == 0 {
+		res += "  - Scylla Manager will not purge any backups created by this task\n"
+	}
+	if rp.Retention > 0 {
+		res += "  - Last "
+		if rp.Retention == 1 {
+			res += "backup\n"
+		} else {
+			res += fmt.Sprintf("%d backups\n", rp.Retention)
+		}
+	}
+	if rp.RetentionDays > 0 {
+		res += fmt.Sprintf("  - Backups not older than %d ", rp.RetentionDays)
+		if rp.RetentionDays == 1 {
+			res += "day\n"
+		} else {
+			res += "days\n"
+		}
+	}
+	return res
 }
