@@ -33,8 +33,8 @@ type BackupTarget struct {
 	// rate limit
 	RateLimit []string `json:"rate_limit"`
 
-	// retention
-	Retention int64 `json:"retention,omitempty"`
+	// retention policy
+	RetentionPolicy *RetentionPolicy `json:"retention_policy,omitempty"`
 
 	// size
 	Size int64 `json:"size,omitempty"`
@@ -56,6 +56,10 @@ type BackupTarget struct {
 func (m *BackupTarget) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateRetentionPolicy(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateUnits(formats); err != nil {
 		res = append(res, err)
 	}
@@ -63,6 +67,24 @@ func (m *BackupTarget) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *BackupTarget) validateRetentionPolicy(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RetentionPolicy) { // not required
+		return nil
+	}
+
+	if m.RetentionPolicy != nil {
+		if err := m.RetentionPolicy.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("retention_policy")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

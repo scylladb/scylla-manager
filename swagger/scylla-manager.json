@@ -569,8 +569,8 @@
             "type": "string"
           }
         },
-        "retention": {
-          "type": "integer"
+        "retention_policy": {
+          "$ref": "#/definitions/RetentionPolicy"
         },
         "rate_limit": {
           "type": "array",
@@ -615,6 +615,17 @@
         },
         "all_tables": {
           "type": "boolean"
+        }
+      }
+    },
+    "RetentionPolicy": {
+      "type": "object",
+      "properties": {
+        "retention": {
+          "type": "integer"
+        },
+        "retention_days": {
+          "type": "integer"
         }
       }
     },
