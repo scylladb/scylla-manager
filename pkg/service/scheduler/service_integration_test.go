@@ -25,6 +25,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -122,6 +123,7 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 		t:         t,
 	}
 	s.SetRunner(mockTask, h.runner)
+	s.SetRunner(scheduler.BackupTask, h.runner)
 
 	return h
 }
@@ -641,6 +643,94 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("And: properties are preserved")
 		if diff := cmp.Diff(h.runner.Properties(), props); diff != "" {
 			t.Fatal(diff)
+		}
+	})
+
+	t.Run("decorate backup task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		type retentionProp struct {
+			Retention     int                 `json:"retention"`
+			RetentionDays int                 `json:"retention_days"`
+			RetentionMap  backup.RetentionMap `json:"retention_map"`
+		}
+
+		taskRetentions := []retentionProp{
+			{
+				Retention:     3,
+				RetentionDays: 30,
+			},
+			{
+				Retention:     2,
+				RetentionDays: 14,
+			},
+			{
+				Retention:     11,
+				RetentionDays: 100,
+			},
+		}
+
+		newTask := func(rp retentionProp) *scheduler.Task {
+			if prop, err := json.Marshal(rp); err == nil {
+				return &scheduler.Task{
+					ClusterID:  h.clusterID,
+					Type:       scheduler.BackupTask,
+					Enabled:    true,
+					Sched:      scheduler.Schedule{StartDate: now()},
+					Properties: prop,
+				}
+			} else {
+				panic(err)
+			}
+		}
+
+		tasks := make([]*scheduler.Task, len(taskRetentions))
+		for i, _ := range tasks {
+			tasks[i] = newTask(taskRetentions[i])
+		}
+
+		Print("Given: backup task decorator")
+		var s *backup.Service
+		h.service.SetPropertiesDecorator(scheduler.BackupTask, s.TaskDecorator(h.service))
+
+		Print("When: task is scheduled")
+
+		for i, _ := range tasks {
+			tasks[i] = newTask(taskRetentions[i])
+			if err := h.service.PutTask(ctx, tasks[i]); err != nil {
+				t.Fatal(err)
+			}
+
+			h.assertStatus(tasks[i], scheduler.StatusRunning)
+			h.runner.Done()
+			h.assertStatus(tasks[i], scheduler.StatusDone)
+		}
+
+		for i, _ := range taskRetentions {
+			newRetMap := make(backup.RetentionMap)
+			if i > 0 {
+				for k, v := range taskRetentions[i-1].RetentionMap {
+					newRetMap[k] = v
+				}
+			}
+			newRetMap[tasks[i].ID] = backup.RetentionPolicy{
+				Retention:     taskRetentions[i].Retention,
+				RetentionDays: taskRetentions[i].RetentionDays,
+			}
+			taskRetentions[i].RetentionMap = newRetMap
+		}
+
+		Print("And: properties are decorated")
+		for i, v := range h.runner.Properties() {
+			var res retentionProp
+			if err := json.Unmarshal(v, &res); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(res, taskRetentions[i]); diff != "" {
+				t.Fatal(diff)
+			}
 		}
 	})
 
