@@ -21,8 +21,10 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -82,6 +84,25 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 // Runner creates a Runner that handles repairs.
 func (s *Service) Runner() Runner {
 	return Runner{service: s}
+}
+
+// TaskDecorator generates "retention_map" for backup task.
+func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+	return func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+		tasks, err := schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
+		if err != nil {
+			return nil, err
+		}
+		retentionMap := make(RetentionMap)
+		for _, t := range tasks {
+			r, err := ExtractRetention(properties)
+			if err != nil {
+				return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
+			}
+			retentionMap[t.ID] = r
+		}
+		return jsonutil.Set(properties, "retention_map", retentionMap), nil
+	}
 }
 
 // GetRetention returns the retention policy for a given task ID.
