@@ -18,6 +18,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -50,6 +52,29 @@ func (r ValidationRunner) Run(ctx context.Context, clusterID, taskID, runID uuid
 // ValidationRunner creates a Runner that handles backup validation.
 func (s *Service) ValidationRunner() ValidationRunner {
 	return ValidationRunner{service: s}
+}
+
+// ValidateBackupTaskDecorator gets locations if not specified for validate backup task.
+func (s *Service) ValidateBackupTaskDecorator(schedSvc *scheduler.Service) func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage,
+) (json.RawMessage, error) {
+	return func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+		// If tasks contains locations return
+		if l := s.ExtractLocations(ctx, []json.RawMessage{properties}); len(l) > 0 {
+			return properties, nil
+		}
+		// Extract locations from all tasks...
+		tasks, err := schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}, Deleted: true})
+		if err != nil {
+			return nil, err
+		}
+		tp := make([]json.RawMessage, 0, len(tasks))
+		for _, t := range tasks {
+			if t.Enabled {
+				tp = append(tp, t.Properties)
+			}
+		}
+		return jsonutil.Set(properties, "location", s.ExtractLocations(ctx, tp)), nil
+	}
 }
 
 // GetValidationTarget converts task properties into backup ValidationTarget.
