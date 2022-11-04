@@ -12,6 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/dynamoping"
@@ -22,7 +24,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"golang.org/x/sync/errgroup"
 )
 
 type clusterIDHost struct {
@@ -371,15 +372,10 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 		config.TLSConfig = tlsConfig.Clone()
 	}
 
-	rtt, err = cqlping.Ping(ctx, config)
-
-	// If CQL credentials are available try executing a query.
-	if err == nil {
-		if c := s.cqlCreds(ctx, clusterID); c != nil {
-			config.Username = c.Username
-			config.Password = c.Password
-			rtt, err = cqlping.Ping(ctx, config)
-		}
+	if c := s.cqlCreds(ctx, clusterID); c != nil {
+		rtt, err = cqlping.QueryPing(ctx, config, c.Username, c.Password)
+	} else {
+		rtt, err = cqlping.NativeCQLPing(ctx, config)
 	}
 
 	return rtt, err
