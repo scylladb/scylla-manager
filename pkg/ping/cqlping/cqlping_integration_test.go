@@ -18,37 +18,34 @@ import (
 func TestPingIntegration(t *testing.T) {
 	user, password := testutils.ManagedClusterCredentials()
 	config := Config{
-		Addr:     testutils.ManagedClusterHost() + ":9042",
-		Timeout:  250 * time.Millisecond,
-		Username: user,
-		Password: password,
+		Addr:    testutils.ManagedClusterHost() + ":9042",
+		Timeout: 250 * time.Millisecond,
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := simplePing(context.Background(), config)
+		d, err := NativeCQLPing(context.Background(), config)
 		if err != nil {
 			t.Error(err)
 		}
-		t.Logf("simplePing() = %s", d)
+		t.Logf("NativeCQLPing() = %s", d)
 	})
 
 	t.Run("query", func(t *testing.T) {
-		d, err := queryPing(context.Background(), config)
+		d, err := QueryPing(context.Background(), config, user, password)
 		if err != nil {
 			t.Error(err)
 		}
-		t.Logf("queryPing() = %s", d)
+		t.Logf("QueryPing() = %s", d)
 	})
 
 	t.Run("query wrong user", func(t *testing.T) {
 		c := config
-		c.Username = "foo"
 
-		d, err := queryPing(context.Background(), c)
+		d, err := QueryPing(context.Background(), c, "foo", password)
 		if err != ping.ErrUnauthorised {
 			t.Error("got", err, "expected", ping.ErrUnauthorised)
 		}
-		t.Logf("queryPing() = %s", d)
+		t.Logf("QueryPing() = %s", d)
 	})
 
 }
@@ -65,18 +62,18 @@ func TestPingTLSIntegration(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := simplePing(context.Background(), config)
+		d, err := NativeCQLPing(context.Background(), config)
 		if err != nil {
 			t.Error(err)
 		}
-		t.Logf("simplePing() = %s", d)
+		t.Logf("NativeCQLPing() = %s", d)
 	})
 
 	t.Run("query", func(t *testing.T) {
-		d, err := queryPing(context.Background(), config)
+		d, err := QueryPing(context.Background(), config, "", "")
 		if err != nil {
 			t.Error(err)
 		}
-		t.Logf("queryPing() = %s", d)
+		t.Logf("QueryPing() = %s", d)
 	})
 }

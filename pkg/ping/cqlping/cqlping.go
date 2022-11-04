@@ -12,6 +12,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -20,31 +21,18 @@ import (
 // zero timeout will result in errors.
 type Config struct {
 	Addr      string
-	Username  string
-	Password  string
 	Timeout   time.Duration
 	TLSConfig *tls.Config
-}
-
-// Ping checks if host is available, it returns RTT and error. Special errors
-// are ErrTimeout and ErrUnauthorised. If no credentials are specified ping
-// is based on writing a CQL OPTIONS frame to server connection. If credentials
-// are specified ping is based on executing "SELECT now() FROM system.local"
-// query.
-func Ping(ctx context.Context, config Config) (time.Duration, error) {
-	if config.Username == "" {
-		return simplePing(ctx, config)
-	}
-	return queryPing(ctx, config)
 }
 
 // options is wire encoded CQL OPTIONS frame.
 var options = []byte{4, 0, 0, 0, 5, 0, 0, 0, 0}
 
-// simplePing connects to a host on native port, sends OPTIONS frame and waits
+// NativeCQLPing connects to a host on native port, sends OPTIONS frame and waits
 // for SUPPORTED frame in response. If connection fails, operation timeouts or
 // receives unexpected payload an error is returned.
-func simplePing(ctx context.Context, config Config) (rtt time.Duration, err error) {
+// It returns rtt and error.
+func NativeCQLPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
 	t := timeutc.Now()
 	defer func() {
 		rtt = timeutc.Since(t)
@@ -93,7 +81,9 @@ var cqlUnauthorisedMessage = []string{
 	"Username and/or password are incorrect",
 }
 
-func queryPing(_ context.Context, config Config) (rtt time.Duration, err error) {
+// QueryPing executes "SELECT now() FROM system.local" on a single host.
+// It returns rtt and error.
+func QueryPing(_ context.Context, config Config, username, password string) (rtt time.Duration, err error) {
 	host, port, err := net.SplitHostPort(config.Addr)
 	if err != nil {
 		return 0, errors.Wrap(err, "split host port")
@@ -116,8 +106,8 @@ func queryPing(_ context.Context, config Config) (rtt time.Duration, err error) 
 	}
 	// Set credentials
 	cluster.Authenticator = gocql.PasswordAuthenticator{
-		Username: config.Username,
-		Password: config.Password,
+		Username: username,
+		Password: password,
 	}
 
 	// Skip protocol discovery. We use the protocol 3 to indicate the connection
