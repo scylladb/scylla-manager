@@ -34,7 +34,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		RelativeTimeout: 50 * time.Millisecond,
+		RelativeTimeout: 1 * time.Second,
 		MaxTimeout:      30 * time.Second,
 		Probes:          200,
 		NodeInfoTTL:     5 * time.Minute,
