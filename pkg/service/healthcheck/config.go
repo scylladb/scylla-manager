@@ -23,19 +23,18 @@ type Config struct {
 	// There are separate probes for different DCs and ping types
 	// (CQL, REST, Alternator).
 	RelativeTimeout time.Duration `yaml:"relative_timeout"`
-	// MaxTimeout specifies maximum ping timeout, zero means no limit.
-	MaxTimeout time.Duration `yaml:"max_timeout"`
 	// Probes specifies how many probes are kept in memory for calculation.
 	// For different ping types and datacenters there are different probe sets.
 	Probes int `yaml:"probes"`
 	// NodeInfoTTL specifies how long node info should be cached.
 	NodeInfoTTL time.Duration `yaml:"node_info_ttl"`
+	// Deprecated: value is not used anymore
+	MaxTimeout time.Duration `yaml:"max_timeout"`
 }
 
 func DefaultConfig() Config {
 	return Config{
 		RelativeTimeout: 1 * time.Second,
-		MaxTimeout:      30 * time.Second,
 		Probes:          200,
 		NodeInfoTTL:     5 * time.Minute,
 	}

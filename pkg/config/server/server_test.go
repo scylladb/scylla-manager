@@ -9,6 +9,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/config"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -16,8 +19,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 var configCmpOpts = cmp.Options{
@@ -70,7 +71,6 @@ func TestConfigModification(t *testing.T) {
 		},
 		Healthcheck: healthcheck.Config{
 			RelativeTimeout: time.Second,
-			MaxTimeout:      1 * time.Minute,
 			Probes:          500,
 			NodeInfoTTL:     time.Second,
 		},
