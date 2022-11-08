@@ -18,24 +18,19 @@ var (
 
 // Config specifies the healthcheck service configuration.
 type Config struct {
-	// RelativeTimeout specifies timeout over median ping duration in probes.
-	// The number of probes kept in memory is specified by the probes parameter.
-	// There are separate probes for different DCs and ping types
-	// (CQL, REST, Alternator).
+	// RelativeTimeout specifies ping timeout for all ping types (CQL, REST, Alternator)
 	RelativeTimeout time.Duration `yaml:"relative_timeout"`
-	// Probes specifies how many probes are kept in memory for calculation.
-	// For different ping types and datacenters there are different probe sets.
-	Probes int `yaml:"probes"`
 	// NodeInfoTTL specifies how long node info should be cached.
 	NodeInfoTTL time.Duration `yaml:"node_info_ttl"`
 	// Deprecated: value is not used anymore
 	MaxTimeout time.Duration `yaml:"max_timeout"`
+	// Deprecated: value is not used anymore
+	Probes int `yaml:"probes"`
 }
 
 func DefaultConfig() Config {
 	return Config{
 		RelativeTimeout: 1 * time.Second,
-		Probes:          200,
 		NodeInfoTTL:     5 * time.Minute,
 	}
 }
