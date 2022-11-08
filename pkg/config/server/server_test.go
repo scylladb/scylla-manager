@@ -71,7 +71,6 @@ func TestConfigModification(t *testing.T) {
 		},
 		Healthcheck: healthcheck.Config{
 			RelativeTimeout: time.Second,
-			Probes:          500,
 			NodeInfoTTL:     time.Second,
 		},
 		Backup: backup.Config{
