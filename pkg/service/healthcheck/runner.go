@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/ping"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -44,7 +44,7 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 
 type runner struct {
 	scyllaClient scyllaclient.ProviderFunc
-	timeout      dynamicTimeoutProviderFunc
+	timeout      time.Duration
 	metrics      *runnerMetrics
 	ping         func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
 }
@@ -88,27 +88,14 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 			clusterKey: clusterID.String(),
 			hostKey:    status[i].Addr,
 		}
-		dl := prometheus.Labels{
-			clusterKey: clusterID.String(),
-			dcKey:      status[i].Datacenter,
-		}
 
-		dt := r.timeout(clusterID, status[i].Datacenter)
-		timeout := dt.Timeout()
-
-		rtt, err := r.ping(ctx, clusterID, status[i].Addr, timeout)
+		rtt, err := r.ping(ctx, clusterID, status[i].Addr, r.timeout)
 		if err != nil {
 			r.metrics.status.With(hl).Set(-1)
 		} else {
 			r.metrics.status.With(hl).Set(1)
 		}
 		r.metrics.rtt.With(hl).Set(float64(rtt.Milliseconds()))
-		r.metrics.timeout.With(dl).Set(float64(timeout.Milliseconds()))
-
-		// Record RTT only in case of success or timeout.
-		if err == nil || errors.Is(err, ping.ErrTimeout) {
-			dt.Record(rtt)
-		}
 
 		return nil
 	})
