@@ -32,7 +32,7 @@ ssl:
 
 healthcheck:
   relative_timeout: 1s
-  max_timeout: 1m
+  max_timeout: 0s
   probes: 500
   node_info_ttl: 1s
 
