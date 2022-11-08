@@ -51,12 +51,6 @@ func (pt pingType) String() string {
 	return "unknown"
 }
 
-type clusterIDDCPingType struct {
-	ClusterID uuid.UUID
-	DC        string
-	PingType  pingType
-}
-
 type nodeInfo struct {
 	*scyllaclient.NodeInfo
 	TLSConfig map[pingType]*tls.Config
@@ -71,8 +65,7 @@ type Service struct {
 
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
-	nodeInfoCache   map[clusterIDHost]nodeInfo
-	dynamicTimeouts map[clusterIDDCPingType]*dynamicTimeout
+	nodeInfoCache map[clusterIDHost]nodeInfo
 
 	logger log.Logger
 }
@@ -83,12 +76,11 @@ func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsSt
 	}
 
 	return &Service{
-		config:          config,
-		scyllaClient:    scyllaClient,
-		secretsStore:    secretsStore,
-		nodeInfoCache:   make(map[clusterIDHost]nodeInfo),
-		dynamicTimeouts: make(map[clusterIDDCPingType]*dynamicTimeout),
-		logger:          logger,
+		config:        config,
+		scyllaClient:  scyllaClient,
+		secretsStore:  secretsStore,
+		nodeInfoCache: make(map[clusterIDHost]nodeInfo),
+		logger:        logger,
 	}, nil
 }
 
@@ -96,7 +88,7 @@ func (s *Service) Runner() Runner {
 	return Runner{
 		cql: runner{
 			scyllaClient: s.scyllaClient,
-			timeout:      s.cqlTimeout,
+			timeout:      s.config.RelativeTimeout,
 			metrics: &runnerMetrics{
 				status:  cqlStatus,
 				rtt:     cqlRTT,
@@ -106,7 +98,7 @@ func (s *Service) Runner() Runner {
 		},
 		rest: runner{
 			scyllaClient: s.scyllaClient,
-			timeout:      s.restTimeout,
+			timeout:      s.config.RelativeTimeout,
 			metrics: &runnerMetrics{
 				status:  restStatus,
 				rtt:     restRTT,
@@ -116,7 +108,7 @@ func (s *Service) Runner() Runner {
 		},
 		alternator: runner{
 			scyllaClient: s.scyllaClient,
-			timeout:      s.alternatorTimeout,
+			timeout:      s.config.RelativeTimeout,
 			metrics: &runnerMetrics{
 				status:  alternatorStatus,
 				rtt:     alternatorRTT,
@@ -186,8 +178,7 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				return
 			}
 
-			dt := s.restTimeout(clusterID, status[i].Datacenter)
-			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, dt.Timeout())
+			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, s.config.RelativeTimeout)
 			o.RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
@@ -228,8 +219,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				return
 			}
 
-			dt := s.cqlTimeout(clusterID, status[i].Datacenter)
-			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, dt.Timeout())
+			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, s.config.RelativeTimeout)
 			o.CQLRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
@@ -284,8 +274,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				return
 			}
 
-			dt := s.alternatorTimeout(clusterID, status[i].Datacenter)
-			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, dt.Timeout())
+			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, s.config.RelativeTimeout)
 			if err != nil {
 				s.logger.Error(ctx, "Alternator ping failed",
 					"cluster_id", clusterID,
@@ -469,38 +458,6 @@ func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQ
 	return cqlCreds
 }
 
-type dynamicTimeoutProviderFunc func(clusterID uuid.UUID, dc string) *dynamicTimeout
-
-func (s *Service) cqlTimeout(clusterID uuid.UUID, dc string) *dynamicTimeout {
-	return s.timeout(clusterID, dc, cqlPing)
-}
-
-func (s *Service) restTimeout(clusterID uuid.UUID, dc string) *dynamicTimeout {
-	return s.timeout(clusterID, dc, restPing)
-}
-
-func (s *Service) alternatorTimeout(clusterID uuid.UUID, dc string) *dynamicTimeout {
-	return s.timeout(clusterID, dc, alternatorPing)
-}
-
-// timeout returns timeout measured for given datacenter and ping type.
-func (s *Service) timeout(clusterID uuid.UUID, dc string, pt pingType) *dynamicTimeout {
-	// Try loading from cache.
-	s.cacheMu.Lock()
-	defer s.cacheMu.Unlock()
-
-	key := clusterIDDCPingType{clusterID, dc, pt}
-	var dt *dynamicTimeout
-	if t, ok := s.dynamicTimeouts[key]; ok {
-		dt = t
-	} else {
-		dt = newDynamicTimeout(s.config.RelativeTimeout, s.config.MaxTimeout, s.config.Probes)
-		s.dynamicTimeouts[key] = dt
-	}
-
-	return dt
-}
-
 // InvalidateCache frees all in-memory NodeInfo and TLS configuration
 // associated with a given cluster forcing reload from Scylla nodes with next usage.
 func (s *Service) InvalidateCache(clusterID uuid.UUID) {
@@ -508,11 +465,6 @@ func (s *Service) InvalidateCache(clusterID uuid.UUID) {
 	for cidHost := range s.nodeInfoCache {
 		if cidHost.ClusterID == clusterID {
 			delete(s.nodeInfoCache, cidHost)
-		}
-	}
-	for cidDC := range s.dynamicTimeouts {
-		if cidDC.ClusterID == clusterID {
-			delete(s.dynamicTimeouts, cidDC)
 		}
 	}
 	s.cacheMu.Unlock()
