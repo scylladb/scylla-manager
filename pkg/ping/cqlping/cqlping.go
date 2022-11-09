@@ -36,7 +36,7 @@ func NativeCQLPing(ctx context.Context, config Config) (rtt time.Duration, err e
 	t := timeutc.Now()
 	defer func() {
 		rtt = timeutc.Since(t)
-		if netErr, ok := err.(net.Error); ok && netErr.Timeout() { // nolint: errorlint
+		if rtt >= config.Timeout {
 			err = ping.ErrTimeout
 		}
 	}()
