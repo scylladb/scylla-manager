@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -27,9 +28,8 @@ func TestRemoveClusterMetricsWhenNumberOfMetricsExceedsDefaultChannelLength_2843
 		metric.With(hl).Set(1)
 	}
 	r := runner{metrics: &runnerMetrics{
-		status:  metric,
-		rtt:     metric,
-		timeout: metric,
+		status: metric,
+		rtt:    metric,
 	}}
 
 	r.removeMetricsForCluster(clusterID)

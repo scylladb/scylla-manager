@@ -50,9 +50,8 @@ type runner struct {
 }
 
 type runnerMetrics struct {
-	status  *prometheus.GaugeVec
-	rtt     *prometheus.GaugeVec
-	timeout *prometheus.GaugeVec
+	status *prometheus.GaugeVec
+	rtt    *prometheus.GaugeVec
 }
 
 func (r runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) (err error) {
@@ -111,13 +110,8 @@ func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
 			clusterKey: clusterID.String(),
 			hostKey:    host,
 		}
-		dl := prometheus.Labels{
-			clusterKey: clusterID.String(),
-			dcKey:      dc,
-		}
 		r.metrics.status.Delete(hl)
 		r.metrics.rtt.Delete(hl)
-		r.metrics.timeout.Delete(dl)
 	})
 }
 
