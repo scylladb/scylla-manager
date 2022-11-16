@@ -31,13 +31,6 @@ var (
 		Help:      "Host native port RTT",
 	}, []string{clusterKey, hostKey})
 
-	cqlTimeout = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "healthcheck",
-		Name:      "cql_timeout_ms",
-		Help:      "Host CQL Timeout",
-	}, []string{clusterKey, dcKey})
-
 	restStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
@@ -52,13 +45,6 @@ var (
 		Help:      "Host REST RTT",
 	}, []string{clusterKey, hostKey})
 
-	restTimeout = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "healthcheck",
-		Name:      "rest_timeout_ms",
-		Help:      "Host REST Timeout",
-	}, []string{clusterKey, dcKey})
-
 	alternatorStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
@@ -72,26 +58,16 @@ var (
 		Name:      "alternator_rtt_ms",
 		Help:      "Host Alternator RTT",
 	}, []string{clusterKey, hostKey})
-
-	alternatorTimeout = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "scylla_manager",
-		Subsystem: "healthcheck",
-		Name:      "alternator_timeout_ms",
-		Help:      "Host Alternator Timeout",
-	}, []string{clusterKey, dcKey})
 )
 
 func init() {
 	prometheus.MustRegister(
 		cqlStatus,
 		cqlRTT,
-		cqlTimeout,
 		restStatus,
 		restRTT,
-		restTimeout,
 		alternatorStatus,
 		alternatorRTT,
-		alternatorTimeout,
 	)
 }
 
