@@ -140,7 +140,7 @@ func loadManifestInto(dir, fileName string, files *strset.Set) {
 
 	var filesCount int64
 
-	c.ForEachIndexIterFiles(&m, func(dir string, cbFiles []string) {
+	c.ForEachIndexIterFiles(nil, &m, func(dir string, cbFiles []string) {
 		for _, f := range cbFiles {
 			files.Add(path.Join(dir, f))
 			filesCount++
