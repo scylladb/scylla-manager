@@ -70,9 +70,9 @@ var benchmarkCmd = &cobra.Command{
 		}
 
 		// Set rate limit
-		rclone.StartAccountingOperations()
-		// Start accounting after setting all options
 		rclone.SetRateLimit(benchmarkArgs.rateLimit)
+		// Start accounting after setting all options
+		rclone.StartAccountingOperations()
 
 		// Run the scenarios
 		w := cmd.OutOrStderr()
