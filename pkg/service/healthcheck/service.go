@@ -88,7 +88,7 @@ func (s *Service) Runner() Runner {
 	return Runner{
 		cql: runner{
 			scyllaClient: s.scyllaClient,
-			timeout:      s.config.RelativeTimeout,
+			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
 				status: cqlStatus,
 				rtt:    cqlRTT,
@@ -97,7 +97,7 @@ func (s *Service) Runner() Runner {
 		},
 		rest: runner{
 			scyllaClient: s.scyllaClient,
-			timeout:      s.config.RelativeTimeout,
+			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
 				status: restStatus,
 				rtt:    restRTT,
@@ -106,7 +106,7 @@ func (s *Service) Runner() Runner {
 		},
 		alternator: runner{
 			scyllaClient: s.scyllaClient,
-			timeout:      s.config.RelativeTimeout,
+			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
 				status: alternatorStatus,
 				rtt:    alternatorRTT,
@@ -175,7 +175,7 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				return
 			}
 
-			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, s.config.RelativeTimeout)
+			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
 			o.RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
@@ -216,7 +216,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				return
 			}
 
-			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, s.config.RelativeTimeout)
+			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
 			o.CQLRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
@@ -271,7 +271,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				return
 			}
 
-			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, s.config.RelativeTimeout)
+			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
 			if err != nil {
 				s.logger.Error(ctx, "Alternator ping failed",
 					"cluster_id", clusterID,
