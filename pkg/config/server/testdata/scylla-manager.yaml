@@ -31,8 +31,8 @@ ssl:
   user_cert_file: ssl.cert
 
 healthcheck:
-  relative_timeout: 1s
-  max_timeout: 0s
+  relative_timeout: 0s
+  max_timeout: 1s
   probes: 0
   node_info_ttl: 1s
 

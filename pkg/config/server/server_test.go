@@ -70,8 +70,8 @@ func TestConfigModification(t *testing.T) {
 			UserKeyFile:  "ssl.key",
 		},
 		Healthcheck: healthcheck.Config{
-			RelativeTimeout: time.Second,
-			NodeInfoTTL:     time.Second,
+			MaxTimeout:  time.Second,
+			NodeInfoTTL: time.Second,
 		},
 		Backup: backup.Config{
 			DiskSpaceFreeMinPercent:   1,
