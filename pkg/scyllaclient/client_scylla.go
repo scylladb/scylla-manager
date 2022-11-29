@@ -15,12 +15,13 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"go.uber.org/multierr"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
-	"go.uber.org/multierr"
 )
 
 // ClusterName returns cluster name.
@@ -541,7 +542,7 @@ func (c *Client) KillAllRepairs(ctx context.Context, hosts ...string) error {
 	})
 }
 
-const snapshotTimeout = 5 * time.Minute
+const snapshotTimeout = 30 * time.Minute
 
 // Snapshots lists available snapshots.
 func (c *Client) Snapshots(ctx context.Context, host string) ([]string, error) {
