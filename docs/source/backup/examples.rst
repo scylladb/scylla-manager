@@ -11,7 +11,7 @@ Backups can be scheduled to run on single or multiple datacenters, keyspaces or 
 The backup procedure can be customized allowing you to plan your backups according to your IT policy.
 All parameters can be found in the :ref:`sctool backup <sctool-backup>` command reference.
 If you want to check if all of your nodes can connect to the backup storage location see :ref:`Perform a dry run of a Backup <dry-run>`.
-Following examples will use AWS S3 as a storage provider.
+Following examples will use Amazon S3 as a storage provider.
 
 **Prerequisites**
 
