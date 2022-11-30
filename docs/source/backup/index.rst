@@ -6,7 +6,7 @@ Backup
    :hidden:
    :maxdepth: 2
 
-   setup-aws-s3
+   setup-amazon-s3
    setup-s3-compatible-storage
    setup-gcs
    setup-azure-blobstorage
