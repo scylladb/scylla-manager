@@ -59,7 +59,7 @@ In multi-dc deployments you should create a bucket per datacenter, each located 
 
 Details may differ depending on the storage engine, please consult:
 
-* :doc:`Setup AWS S3 <setup-aws-s3>`
+* :doc:`Setup Amazon S3 <setup-amazon-s3>`
 * :doc:`Setup S3 compatible storage <setup-s3-compatible-storage>`
 * :doc:`Setup Google Cloud Storage <setup-gcs>`
 * :doc:`Setup Azure Blob Storage <setup-azure-blobstorage>`
