@@ -21,11 +21,12 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"go.uber.org/atomic"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
-	"go.uber.org/atomic"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -865,7 +866,7 @@ func (h *restoreTestHelper) restartScylla() {
 
 		cfg.Addr = net.JoinHostPort(host, "9042")
 		cond := func() bool {
-			_, err = cqlping.Ping(ctx, cfg)
+			_, err = cqlping.NativeCQLPing(ctx, cfg)
 			return err == nil
 		}
 
