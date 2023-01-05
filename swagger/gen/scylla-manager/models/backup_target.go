@@ -36,6 +36,9 @@ type BackupTarget struct {
 	// retention
 	Retention int64 `json:"retention,omitempty"`
 
+	// retention days
+	RetentionDays int64 `json:"retention_days,omitempty"`
+
 	// size
 	Size int64 `json:"size,omitempty"`
 
