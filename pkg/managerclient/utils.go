@@ -186,3 +186,28 @@ func FormatIntensity(v float64) string {
 	}
 	return fmt.Sprintf("%.2f", v)
 }
+
+// FormatRetentionPolicy returns text representation of retention policy.
+func FormatRetentionPolicy(retention, retentionDays int64) string {
+	var res string
+	if retention == 0 && retentionDays == 0 {
+		res += "  - Scylla Manager will not purge any backups created by this task\n"
+	}
+	if retention > 0 {
+		res += "  - Last "
+		if retention == 1 {
+			res += "backup\n"
+		} else {
+			res += fmt.Sprintf("%d backups\n", retention)
+		}
+	}
+	if retentionDays > 0 {
+		res += fmt.Sprintf("  - Backups not older than %d ", retentionDays)
+		if retentionDays == 1 {
+			res += "day\n"
+		} else {
+			res += "days\n"
+		}
+	}
+	return res
+}
