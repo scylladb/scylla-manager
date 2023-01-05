@@ -230,8 +230,8 @@ type taskProperties struct {
 	Keyspace         []string     `json:"keyspace"`
 	DC               []string     `json:"dc"`
 	Location         []Location   `json:"location"`
-	Retention        int          `json:"retention"`
-	RetentionDays    int          `json:"retention_days"`
+	Retention        *int         `json:"retention"`
+	RetentionDays    *int         `json:"retention_days"`
 	RetentionMap     RetentionMap `json:"retention_map"`
 	RateLimit        []DCLimit    `json:"rate_limit"`
 	SnapshotParallel []DCLimit    `json:"snapshot_parallel"`
@@ -240,11 +240,24 @@ type taskProperties struct {
 	PurgeOnly        bool         `json:"purge_only"`
 }
 
+func (p taskProperties) extractRetention() RetentionPolicy {
+	if p.Retention == nil && p.RetentionDays == nil {
+		return defaultRetention()
+	}
+
+	var r RetentionPolicy
+	if p.Retention != nil {
+		r.Retention = *p.Retention
+	}
+	if p.RetentionDays != nil {
+		r.RetentionDays = *p.RetentionDays
+	}
+	return r
+}
+
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
-		Retention:     3,
-		RetentionDays: 0,
-		Continue:      true,
+		Continue: true,
 	}
 }
 
@@ -273,20 +286,34 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 	return locations, errs
 }
 
-// Retention defines the retention policy for a backup task.
-type Retention struct {
-	RetentionDays int
-	Retention     int
+// RetentionPolicy defines the retention policy for a backup task.
+type RetentionPolicy struct {
+	RetentionDays int `json:"retention_days"`
+	Retention     int `json:"retention"`
+}
+
+func defaultRetention() RetentionPolicy {
+	return RetentionPolicy{
+		Retention:     3,
+		RetentionDays: 0,
+	}
+}
+
+func defaultRetentionForDeletedTask() RetentionPolicy {
+	return RetentionPolicy{
+		Retention:     0,
+		RetentionDays: 30,
+	}
 }
 
 // RetentionMap is a mapping of TaskIDs to retention policies.
-type RetentionMap map[uuid.UUID]Retention
+type RetentionMap map[uuid.UUID]RetentionPolicy
 
 // ExtractRetention parses properties as task properties and returns "retention".
-func ExtractRetention(properties json.RawMessage) (Retention, error) {
+func ExtractRetention(properties json.RawMessage) (RetentionPolicy, error) {
 	var p taskProperties
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return Retention{}, err
+		return RetentionPolicy{}, err
 	}
-	return Retention{p.RetentionDays, p.Retention}, nil
+	return p.extractRetention(), nil
 }
