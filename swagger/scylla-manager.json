@@ -572,6 +572,9 @@
         "retention": {
           "type": "integer"
         },
+        "retention_days": {
+          "type": "integer"
+        },
         "rate_limit": {
           "type": "array",
           "items": {
