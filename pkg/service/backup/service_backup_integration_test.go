@@ -1433,7 +1433,7 @@ func TestPurgeIntegration(t *testing.T) {
 		DC:           []string{"dc1"},
 		Location:     []Location{location},
 		Retention:    1,
-		RetentionMap: map[uuid.UUID]backup.Retention{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
+		RetentionMap: map[uuid.UUID]backup.RetentionPolicy{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
 	}
 
 	if err := h.service.InitTarget(ctx, h.clusterID, &target); err != nil {
