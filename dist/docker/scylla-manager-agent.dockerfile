@@ -1,7 +1,4 @@
-ARG BASE_IMAGE
-
-FROM $BASE_IMAGE
-ARG ARCH
+FROM ubuntu:20.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
@@ -9,8 +6,8 @@ RUN apt-get update && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-COPY scylla-manager-agent*$ARCH.deb /
-RUN dpkg -i scylla-manager-agent*$ARCH.deb && rm /scylla-manager-agent*.deb
+COPY scylla-manager-agent*.deb /
+RUN dpkg -i scylla-manager-agent*.deb && rm /scylla-manager-agent*.deb
 
 USER scylla-manager
 ENV HOME /var/lib/scylla-manager/

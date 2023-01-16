@@ -233,66 +233,19 @@ nfpms:
 
 dockers:
   - ids:
-    - server
-    - client
-    use: docker
-    goos: linux
-    goarch: amd64
+      - server
+      - client
     image_templates:
-      - "scylladb/scylla-manager:{{ .Version }}.amd64"
-    dockerfile:
-      docker/scylla-manager.dockerfile
+      - "scylladb/scylla-manager:{{ .Version }}"
+    dockerfile: docker/scylla-manager.dockerfile
     extra_files:
       - docker/scylla-manager.yaml
-    build_flag_templates:
-    - "--build-arg=BASE_IMAGE=ubuntu:22.04"
-    - "--build-arg=ARCH=amd64"
 
   - ids:
-    - server
-    - client
-    use: docker
-    goos: linux
-    goarch: arm64
+      - agent
     image_templates:
-      - "scylladb/scylla-manager:{{ .Version }}.arm64"
-    dockerfile:
-      docker/scylla-manager.dockerfile
-    extra_files:
-      - docker/scylla-manager.yaml
-    build_flag_templates:
-    - "--build-arg=BASE_IMAGE=arm64v8/ubuntu:22.04"
-    - "--build-arg=ARCH=arm64"
-
-  - ids:
-    - agent
-    use: docker
-    goos: linux
-    goarch: amd64
-    image_templates:
-      - "scylladb/scylla-manager-agent:{{ .Version }}.amd64"
-    dockerfile:
-      docker/scylla-manager-agent.dockerfile
-    extra_files:
-      - docker/scylla-manager.yaml
-    build_flag_templates:
-    - "--build-arg=BASE_IMAGE=ubuntu:20.04"
-    - "--build-arg=ARCH=amd64"
-
-  - ids:
-    - agent
-    use: docker
-    goos: linux
-    goarch: arm64
-    image_templates:
-      - "scylladb/scylla-manager-agent:{{ .Version }}.arm64"
-    dockerfile:
-      docker/scylla-manager-agent.dockerfile
-    extra_files:
-      - docker/scylla-manager.yaml
-    build_flag_templates:
-    - "--build-arg=BASE_IMAGE=arm64v8/ubuntu:20.04"
-    - "--build-arg=ARCH=arm64"
+      - "scylladb/scylla-manager-agent:{{ .Version }}"
+    dockerfile: docker/scylla-manager-agent.dockerfile
 
 checksum:
   name_template: 'checksums'
