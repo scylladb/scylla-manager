@@ -286,6 +286,8 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 			if t.Sched.Cron.IsZero() {
 				run = true
 			}
+		} else if t.Sched.StartDate.Before(now()) {
+			return errors.New("start date of scheduled task cannot be in the past")
 		}
 
 		if err := table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
