@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager/mod
 
-go 1.18
+go 1.19
 
 require (
 	github.com/go-enry/go-license-detector/v4 v4.3.0
