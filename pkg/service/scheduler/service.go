@@ -278,12 +278,8 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 	}
 
 	if create { // nolint: nestif
-		if err := table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
-			return err
-		}
-		s.initMetrics(t)
-
 		// Force run if there is no start date and cron.
+		// Note that tasks with '--start-date now' have StartDate set to zero value.
 		run := false
 		if t.Sched.StartDate.IsZero() {
 			t.Sched.StartDate = now()
@@ -291,6 +287,12 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 				run = true
 			}
 		}
+
+		if err := table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
+			return err
+		}
+		s.initMetrics(t)
+
 		s.schedule(ctx, t, run)
 	} else {
 		if err := table.SchedulerTaskUpdate.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
