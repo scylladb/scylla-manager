@@ -21,7 +21,7 @@ type TaskBase struct {
 	window     []string
 	timezone   Timezone
 	interval   Duration
-	startDate  Time
+	startDate  StartDate
 	numRetries int
 	retryWait  Duration
 }

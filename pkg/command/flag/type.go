@@ -93,20 +93,31 @@ func (t *Time) String() string {
 
 // Set implements pflag.Value.
 func (t *Time) Set(s string) (err error) {
-	t.v, err = parserTime(s)
+	t.v, err = parserTime(s, false)
 	return
 }
 
-func parserTime(s string) (time.Time, error) {
+// If zeroNow is set to true, all strings representing 'now' are parsed to zero value.
+// Note that other strings containing 'now' (e.g. 'now+2h') are always parsed normally.
+func parserTime(s string, zeroNow bool) (time.Time, error) {
 	if strings.HasPrefix(s, "now") {
 		now := timeutc.Now()
 		if s == "now" {
+			if zeroNow {
+				return time.Time{}, nil
+			}
+
 			return now, nil
 		}
 		d, err := duration.ParseDuration(s[3:])
 		if err != nil {
 			return time.Time{}, err
 		}
+
+		if zeroNow && d.Duration().Microseconds() == 0 {
+			return time.Time{}, nil
+		}
+
 		return now.Add(d.Duration()), nil
 	}
 
@@ -132,6 +143,47 @@ func (t *Time) DateTimePtr() *strfmt.DateTime {
 
 // Type implements pflag.Value.
 func (t *Time) Type() string {
+	return "string"
+}
+
+// StartDate wraps time.Time and add support for now+duration syntax.
+// The difference between StartDate and Time is that StartDate parses pure 'now' into zero value.
+// That's because in case of '--start-date now' we want to calculate 'now'
+// at the time of task scheduling, NOT when parsing command arguments.
+type StartDate struct {
+	v time.Time
+}
+
+var _ flag.Value = (*StartDate)(nil)
+
+func (d *StartDate) String() string {
+	if d.v.IsZero() {
+		return ""
+	}
+	return d.v.String()
+}
+
+// Set implements pflag.Value.
+func (d *StartDate) Set(s string) (err error) {
+	d.v, err = parserTime(s, true)
+	return
+}
+
+func (d *StartDate) Value() time.Time {
+	return d.v
+}
+
+// DateTimePtr converts Time to OpenAPI DateTime pointer.
+func (d *StartDate) DateTimePtr() *strfmt.DateTime {
+	if d.v.IsZero() {
+		return nil
+	}
+	v := strfmt.DateTime(d.v)
+	return &v
+}
+
+// Type implements pflag.Value.
+func (d *StartDate) Type() string {
 	return "string"
 }
 
