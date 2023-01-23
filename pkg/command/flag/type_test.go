@@ -12,21 +12,37 @@ import (
 
 func TestParseTime(t *testing.T) {
 	table := []struct {
-		S string
-		D time.Duration
-		E string
+		S  string
+		T  time.Time
+		ZN bool
+		E  string
 	}{
 		{
 			S: "now",
-			D: 0,
+			T: timeutc.Now(),
+		},
+		{
+			S:  "now",
+			T:  time.Time{},
+			ZN: true,
+		},
+		{
+			S:  "now+0h",
+			T:  time.Time{},
+			ZN: true,
 		},
 		{
 			S: "now+1h",
-			D: time.Hour,
+			T: timeutc.Now().Add(time.Hour),
+		},
+		{
+			S:  "now+2h",
+			T:  timeutc.Now().Add(2 * time.Hour),
+			ZN: true,
 		},
 		{
 			S: timeutc.Now().Add(time.Hour).Format(time.RFC3339),
-			D: time.Hour,
+			T: timeutc.Now().Add(time.Hour),
 		},
 		{
 			S: "2019-05-02T15:04:05Z07:00",
@@ -37,7 +53,7 @@ func TestParseTime(t *testing.T) {
 	const epsilon = 5 * time.Second
 
 	for i, test := range table {
-		m, err := parserTime(test.S)
+		m, err := parserTime(test.S, test.ZN)
 
 		msg := ""
 		if err != nil {
@@ -53,12 +69,9 @@ func TestParseTime(t *testing.T) {
 			continue
 		}
 
-		diff := timeutc.Now().Add(test.D).Sub(m)
-		if diff < 0 {
-			diff *= -1
-		}
+		diff := test.T.Sub(m).Abs()
 		if diff > epsilon {
-			t.Fatal(i, m, test.D, diff, test.S)
+			t.Fatal(i, m, test.T, diff, test.S)
 		}
 	}
 }
