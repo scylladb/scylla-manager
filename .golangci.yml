@@ -36,6 +36,11 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - deadcode
+    - varcheck
+    - structcheck
+    - interfacebloat
+    - nosnakecase
     - gci
     - contextcheck
     - cyclop
@@ -73,6 +78,7 @@ issues:
   exclude-use-default: false
   exclude:
     - a blank import should be only in a main or test package, or have a comment justifying it
+    - package-comments[:] should have a package comment
     - at least one file in a package should have a package comment
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
     - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
