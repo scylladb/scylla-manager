@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -65,7 +64,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	ctx = pacer.WithRetries(ctx, 1)
 
 	// Create temp dir.
-	tmpDir, err := ioutil.TempDir("", "scylla-manager-agent-")
+	tmpDir, err := os.MkdirTemp("", "scylla-manager-agent-")
 	if err != nil {
 		return errors.Wrap(err, "create local tmp directory")
 	}

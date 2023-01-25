@@ -27,7 +27,7 @@ type Cluster struct {
 	WithoutRepair   bool   `json:"without_repair,omitempty" db:"-"`
 }
 
-// String returns cluster Name or ID if Name is is empty.
+// String returns cluster Name or ID if Name is empty.
 func (c *Cluster) String() string {
 	if c == nil {
 		return ""
