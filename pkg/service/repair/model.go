@@ -176,7 +176,7 @@ type HostProgress struct {
 	Tables []TableProgress `json:"tables,omitempty"`
 }
 
-// TableProgress represents progress for table for all all hosts.
+// TableProgress represents progress for table for all hosts.
 type TableProgress struct {
 	progress
 	Keyspace string `json:"keyspace"`
