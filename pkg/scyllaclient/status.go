@@ -44,8 +44,7 @@ func StatusCodeAndMessageOf(err error) (status int, message string) {
 		if p != nil {
 			return int(p.Code), p.Message
 		}
-
-	case interface {
+	case interface { // nolint: gofumpt
 		Code() int
 	}:
 		return v.Code(), ""

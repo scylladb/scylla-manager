@@ -31,7 +31,7 @@ const unspecifiedValue = float64(-1)
 
 // setGaugeVecMatching sets metric instances with matching labels to the
 // given value.
-func setGaugeVecMatching(c *prometheus.GaugeVec, value float64, matcher func(*dto.Metric) bool) {
+func setGaugeVecMatching(c *prometheus.GaugeVec, value float64, matcher func(*dto.Metric) bool) { // nolint: unparam
 	var (
 		data   dto.Metric
 		labels []prometheus.Labels

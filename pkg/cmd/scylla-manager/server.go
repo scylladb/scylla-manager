@@ -123,10 +123,10 @@ func (s *server) makeServices() error {
 	}
 
 	// Register the runners
-	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.backupSvc.Runner()})
-	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.backupSvc.RestoreRunner()})
+	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.backupSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.backupSvc.RestoreRunner()})
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
-	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{scheduler.NewLockClusterPolicy(), s.repairSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.repairSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
 
 	// Add additional properties on task run.

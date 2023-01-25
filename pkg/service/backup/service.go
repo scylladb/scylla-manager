@@ -367,7 +367,7 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 		for _, t := range v.Tables {
 			// Put hosts last to distribute load on hosts evenly
 			for _, h := range hosts {
-				idx = append(idx, scyllaclient.HostKeyspaceTable{h, v.Keyspace, t})
+				idx = append(idx, scyllaclient.HostKeyspaceTable{Host: h, Keyspace: v.Keyspace, Table: t})
 			}
 		}
 	}
@@ -903,7 +903,7 @@ func (s *Service) clonePrevProgress(run *Run) error {
 	})
 }
 
-// GetLastResumableRun returns the the most recent started but not done run of
+// GetLastResumableRun returns the most recent started but not done run of
 // the task, if there is a recent run that is completely done ErrNotFound is
 // reported.
 func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {

@@ -590,7 +590,7 @@ func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		if err != nil {
 			return nil, err
 		}
-		paths, err := getStringSlice(ctx, in, "paths")
+		paths, err := getStringSlice(in, "paths")
 		if err != nil {
 			return nil, err
 		}
@@ -611,7 +611,7 @@ func getFsAndRemoteNamed(ctx context.Context, in rc.Params, fsName, remoteName s
 	return
 }
 
-func getStringSlice(ctx context.Context, in rc.Params, key string) ([]string, error) {
+func getStringSlice(in rc.Params, key string) ([]string, error) {
 	value, err := in.Get(key)
 	if err != nil {
 		return nil, err

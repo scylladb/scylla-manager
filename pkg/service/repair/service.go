@@ -449,7 +449,7 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 	for _, u := range target.Units {
 		for _, t := range u.Tables {
 			for _, h := range repairHosts.List() {
-				hkts = append(hkts, scyllaclient.HostKeyspaceTable{h, u.Keyspace, t})
+				hkts = append(hkts, scyllaclient.HostKeyspaceTable{Host: h, Keyspace: u.Keyspace, Table: t})
 			}
 		}
 	}
@@ -701,7 +701,7 @@ func (s *Service) partitioner(ctx context.Context, host string, client *scyllacl
 	return dht.NewMurmur3Partitioner(shardCount, uint(s.config.Murmur3PartitionerIgnoreMSBBits)), nil
 }
 
-// GetLastResumableRun returns the the most recent started but not done run of
+// GetLastResumableRun returns the most recent started but not done run of
 // the task, if there is a recent run that is completely done ErrNotFound is
 // reported.
 func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {

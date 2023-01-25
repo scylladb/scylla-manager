@@ -41,7 +41,7 @@ type inMemoryConf struct {
 	sections map[string]map[string]string
 }
 
-// Get config key under section returning the the value and true if found or
+// Get config key under section returning the value and true if found or
 // ("", false) otherwise.
 func (c *inMemoryConf) Get(section, key string) (string, bool) {
 	c.mu.Lock()
