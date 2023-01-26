@@ -444,6 +444,10 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 				prog.Progress = repair.Progress{}
 			case scheduler.BackupTask:
 				prog.Progress = backup.Progress{}
+			case scheduler.RestoreTask:
+				prog.Progress = backup.RestoreProgress{}
+			case scheduler.ValidateBackupTask:
+				prog.Progress = backup.ValidationHostProgress{}
 			}
 			render.Respond(w, r, prog)
 			return
