@@ -987,16 +987,12 @@ func (rp RestoreProgress) addHeader(w io.Writer) error {
 
 // status returns task status with optional restore stage.
 func (rp RestoreProgress) status() string {
-	stage := BackupStageName(rp.Progress.Stage)
 	s := rp.Run.Status
 	if s == "DONE" {
 		if len(rp.Progress.Keyspaces) == 1 && rp.Progress.Keyspaces[0].Keyspace == "system_schema" {
 			return "DONE - restart required (see restore docs)"
 		}
 		return "DONE - repair required (see restore docs)"
-	}
-	if s != "NEW" && stage != "" {
-		s += " (" + stage + ")"
 	}
 	return s
 }
