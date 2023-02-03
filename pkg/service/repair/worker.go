@@ -222,9 +222,6 @@ func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace,
 		}
 		s, err := w.client.RepairStatus(ctx, host, keyspace, id, waitSeconds)
 		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-				continue
-			}
 			if w.tableDeleted(ctx, err, keyspace, table) {
 				return errTableDeleted
 			}
