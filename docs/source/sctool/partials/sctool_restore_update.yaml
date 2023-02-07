@@ -1,9 +1,15 @@
-name: sctool backup
-synopsis: Schedule a backup (ad-hoc or scheduled)
+name: sctool restore update
+synopsis: Modify properties of the existing restore task
 description: |
-  This command allows you to schedule or run ad-hoc cluster backup.
-usage: sctool backup --cluster <id|name> --location [<dc>:]<provider>:<bucket> [--keyspace <glob>] [flags]
+  This command allows you to modify properties of an already existing restore task.
+  If there is one restore task the 'restore/task-id' argument is not needed.
+usage: sctool restore update --cluster <id|name> [flags] [<restore/task-id>]
 options:
+- name: batch-size
+  default_value: "2"
+  usage: |
+    Number of SSTables per shard to process in one request by one node.
+    Increasing batch size increases job granularity.
 - name: cluster
   shorthand: c
   usage: |
@@ -12,24 +18,11 @@ options:
   usage: |
     Task schedule as a cron `expression`.
     It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
-- name: dc
-  default_value: '[]'
-  usage: |+
-    A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
-    The following syntax for glob patterns is supported:
-
-    '*' - matches any number of any characters including none
-    '?' - matches any single character
-    '[abc]' - matches one character given in the bracket
-    '[a-z]' - matches one character from the range given in the bracket
-
-    Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
-
 - name: dry-run
   default_value: "false"
   usage: |
-    Validates and prints backup information without actually scheduling a backup.
+    Validates and displays restore information without actually scheduling the restore.
+    This allows you to display what will happen should the restore run with the parameters you set.
 - name: enabled
   default_value: "true"
   usage: |
@@ -37,7 +30,7 @@ options:
 - name: help
   shorthand: h
   default_value: "false"
-  usage: help for backup
+  usage: help for update
 - name: interval
   shorthand: i
   usage: |
@@ -72,8 +65,11 @@ options:
   shorthand: L
   default_value: '[]'
   usage: |
-    A list of backup locations separated by a comma, specifies where to place the backup, the format is `[<dc>:]<provider>:<bucket>`.
-    The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
+    A list of backup locations separated by a comma, specifies places where restored backup is stored, the format is `[<dc>:]<provider>:<bucket>`.
+    The '<dc>' parameter is optional it allows to specif datacenter which nodes will be used to restore data
+    from this location in a multi-dc setting, it must match Scylla nodes datacenter.
+    By default, all live nodes are used to restore data from specified locations.
+    Note that specifying datacenters closest to backup locations might reduce download time of restored data.
     The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
     The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
 - name: name
@@ -84,27 +80,22 @@ options:
   default_value: "3"
   usage: |
     Number of times a task reruns following a failure.
-- name: purge-only
+- name: parallel
+  default_value: "1"
+  usage: |
+    The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
+    Each node can take part in at most one restore at any given moment.
+- name: restore-schema
   default_value: "false"
   usage: |
-    Run the backup cleanup only.
-- name: rate-limit
-  default_value: '[]'
-  usage: |
-    Limits the upload rate (as expressed in  megabytes (MiB) per second) at which snapshotfiles can be uploaded from a Scylla node to its backup destination.
-    You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
-    The <dc>: part is optional and is only needed when different datacenters require different upload limits.
-    Set to 0 for no limit (default 100).
-- name: retention
-  default_value: "7"
-  usage: |
-    The `number of backups` to store, once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
-    Can be used simultaneously with '--retention-days' flag.
-- name: retention-days
-  default_value: "0"
-  usage: |
-    The `number of days` for which backup is stored, the next backup will initiate a purge of all expired backups.
-    Can be used simultaneously with '--retention' flag.
+    Specifies restore type (alternative to '--restore-tables' flag).
+    Restore will recreate schema by targeting 'system_schema.*' tables only ('--keyspace' flag mustn't be set).
+    It requires that restored keyspaces aren't present in the cluster.
+    For the schema to be visible, restart of the entire cluster is required after completion.
+    See Scylla cluster restart docs: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for more details.
+- name: restore-tables
+  default_value: "false"
+  usage: "Specifies restore type (alternative to '--restore-schema' flag).\nRestore will recreate contents of tables specified by '--keyspace' flag.\nIt requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).\nMoreover, in order to prevent situation in which current tables' contents overlaps restored data,\ntables should be truncated before initializing restore. \nFor the table contents to be visible, repair of the entire cluster is required after completion.\nSee Scylla Manager repair docs: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for more details.\n"
 - name: retry-wait
   default_value: 10m
   usage: |
@@ -114,13 +105,11 @@ options:
   default_value: "false"
   usage: |
     Prints table names together with keyspace, used in combination with --dry-run.
-- name: snapshot-parallel
-  default_value: '[]'
+- name: snapshot-tag
+  shorthand: T
   usage: |
-    A comma-separated list of snapshot parallelism limits in the format `[<dc>:]<limit>`.
-    The 'dc' part is optional and allows for specifying different limits in selected datacenters.
-    If the 'dc' part is not set, the limit is global and the runs are parallel in 'n' nodes.
-    If for example, you were to set 'dc1:2,5', then 'dc1' would have two parallel nodes and there would be five parallel nodes in the other DCs.
+    Scylla Manager snapshot tag identifying restored backup.
+    Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
 - name: start-date
   shorthand: s
   usage: |
@@ -141,13 +130,6 @@ options:
   usage: |
     Timezone of --cron and --window flag values.
     The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
-- name: upload-parallel
-  default_value: '[]'
-  usage: |
-    A comma-separated list of upload parallelism limits in the format `[<dc>:]<limit>`.
-    The 'dc' part is optional and allows for specifying different limits in selected datacenters.
-    If the 'dc' part is not set, the limit is global (e.g. 'dc1:2,5') the runs are parallel in 'n' nodes.
-    If for example, you were to set 'dc1:2,5', then 'dc1' would have two parallel nodes and there would be five parallel nodes in the other DCs.
 - name: window
   default_value: '[]'
   usage: |
@@ -170,8 +152,4 @@ inherited_options:
     Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
     If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-- sctool - Scylla Manager Snapshot
-- delete - Delete backup files in remote locations
-- list - List backups
-- update - Modify properties of the existing backup task
-- validate - Validate backup files in remote locations
+- sctool restore - Schedule a restore of schema or tables (ad-hoc or scheduled)
