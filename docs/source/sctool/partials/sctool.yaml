@@ -27,6 +27,7 @@ see_also:
 - info - Show task parameters and history
 - progress - Show the task progress
 - repair - Schedule a repair (ad-hoc or scheduled)
+- restore - Schedule a restore of schema or tables (ad-hoc or scheduled)
 - resume - Undo suspend
 - start - Start executing a task
 - status - Show status of clusters
