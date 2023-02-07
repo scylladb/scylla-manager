@@ -27,5 +27,5 @@ repair control
 repair update
 =============
 
-.. datatemplate:yaml:: partials/sctool_cluster_update.yaml
+.. datatemplate:yaml:: partials/sctool_repair_update.yaml
    :template: command.tmpl
