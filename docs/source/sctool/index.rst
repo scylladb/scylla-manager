@@ -11,6 +11,7 @@ CLI sctool
    global-flags-and-variables
    completion
    backup
+   restore
    cluster
    info
    progress
