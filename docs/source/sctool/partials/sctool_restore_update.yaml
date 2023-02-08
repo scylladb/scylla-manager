@@ -35,13 +35,15 @@ options:
   shorthand: i
   usage: |
     --interval is deprecated, please use `--cron` instead
-    Time after which a successfully completed task would be run again, supported units are:
+    
+    
+    Time after which a successfully completed task would be run again. The supported units are:
 
-    'd' - days
-    'h' - hours
-    'm' - minutes
-    's' - seconds
-    'ms' - milliseconds
+    * 'd' - days
+    * 'h' - hours
+    * 'm' - minutes
+    * 's' - seconds
+    * 'ms' - milliseconds
 
     The task run date is aligned with '--start date' value.
     For example, if you select '--interval 7d' task would run weekly at the '--start-date' time.
@@ -53,10 +55,10 @@ options:
     The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
     The following syntax for glob patterns is supported:
 
-    '*' - matches any number of any characters including none
-    '?' - matches any single character
-    '[abc]' - matches one character given in the bracket
-    '[a-z]' - matches one character from the range given in the bracket
+    * '*' - matches any number of any characters including none
+    * '?' - matches any single character
+    * '[abc]' - matches one character given in the bracket
+    * '[a-z]' - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
     If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
@@ -65,13 +67,15 @@ options:
   shorthand: L
   default_value: '[]'
   usage: |
-    A list of backup locations separated by a comma, specifies places where restored backup is stored, the format is `[<dc>:]<provider>:<bucket>`.
-    The '<dc>' parameter is optional it allows to specif datacenter which nodes will be used to restore data
+    A list of backup locations separated by a comma, specifies places where restored backup is stored. The format is `[<dc>:]<provider>:<bucket>`.
+    The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
     from this location in a multi-dc setting, it must match Scylla nodes datacenter.
     By default, all live nodes are used to restore data from specified locations.
+    
+    
     Note that specifying datacenters closest to backup locations might reduce download time of restored data.
     The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
-    The 'name' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+    The '<bucket>' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
 - name: name
   usage: |
     Task name that can be used insead of ID.
@@ -95,7 +99,7 @@ options:
     See Scylla cluster restart docs: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for more details.
 - name: restore-tables
   default_value: "false"
-  usage: "Specifies restore type (alternative to '--restore-schema' flag).\nRestore will recreate contents of tables specified by '--keyspace' flag.\nIt requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).\nMoreover, in order to prevent situation in which current tables' contents overlaps restored data,\ntables should be truncated before initializing restore. \nFor the table contents to be visible, repair of the entire cluster is required after completion.\nSee Scylla Manager repair docs: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for more details.\n"
+  usage: "Specifies restore type (alternative to '--restore-schema' flag).\nRestore will recreate contents of tables specified by '--keyspace' flag.\nIt requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).\nMoreover, in order to prevent situation in which current tables' contents overlaps restored data,\ntables should be truncated before initializing restore. \nFor the table contents to be visible, repair of the entire cluster is required after completion.\nSee ref:`sctool repair <sctool-repair>` for details.\n"
 - name: retry-wait
   default_value: 10m
   usage: |
@@ -114,19 +118,20 @@ options:
   shorthand: s
   usage: |
     --start-date is deprecated, please use `--cron` instead
+    
     The date can be expressed relatively to now or as a RFC3339 formatted string.
-    To run the task in 2 hours use 'now+2h', supported units are:
+    To run the task in 2 hours use 'now+2h'. The supported units are:
 
-    'd' - days
-    'h' - hours
-    'm' - minutes
-    's' - seconds
-    'ms' - milliseconds
+    * 'd' - days
+    * 'h' - hours
+    * 'm' - minutes
+    * 's' - seconds
+    * 'ms' - milliseconds
 
     If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
     If you want the repair to start immediately, use the value 'now' or skip this flag.
 - name: timezone
-  default_value: Europe/Warsaw
+  default_value: UTC
   usage: |
     Timezone of --cron and --window flag values.
     The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
