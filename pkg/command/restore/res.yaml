@@ -4,9 +4,7 @@ short: Schedule a restore of schema or tables (ad-hoc or scheduled)
 
 long: |
   This command allows you to schedule or run ad-hoc cluster restore.
-  Restore is always one of two types:
-    - restore schema ('--restore-schema' flag)
-    - restore tables ('--restore-tables' flag)
+  Restore is always one of two types: restore schema ('--restore-schema' flag) or restore tables' contents ('--restore-tables' flag)
   In both cases, for the restore effects to be visible, user needs to do
   a specific follow-up action described by selected type.
 
