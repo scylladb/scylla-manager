@@ -108,12 +108,17 @@ Additional parameters can be used. Refer to :ref:`repair parameters <sctool-repa
 
 **Procedure**
 
-To run an immediate repair on the prod-cluster cluster, saving the repair in my-repairs, run the following command
-replacing the ``-c`` cluster flag with your cluster's cluster name or ID and replace the ``-L`` flag with your repair's location:
+To run an immediate repair on the cluster, run the following command specifying the name or ID of your cluster with the ``-c`` flag:
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -L 's3:my-repairs'
+   sctool repair -c <cluster_name|cluster_id>
+
+Example:
+
+.. code-block:: none
+
+   sctool repair -c prod-cluster
 
 Perform a dry run of a repair
 =============================
