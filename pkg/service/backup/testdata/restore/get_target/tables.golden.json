@@ -5,7 +5,7 @@
   "keyspace": [
     "my_keyspace.*",
     "!my_keyspace.my_table",
-    "!system*"
+    "!system_schema"
   ],
   "snapshot_tag": "sm_20060102150405UTC",
   "batch_size": 99,
