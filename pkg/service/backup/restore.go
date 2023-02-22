@@ -47,7 +47,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 		if t.Keyspace == nil {
 			t.Keyspace = []string{"*"}
 		}
-		t.Keyspace = append(t.Keyspace, "!system*")
+		t.Keyspace = append(t.Keyspace, "!system_schema")
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
