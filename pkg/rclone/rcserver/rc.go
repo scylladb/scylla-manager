@@ -574,6 +574,13 @@ func rcMoveOrCopyDir(doMove bool) func(ctx context.Context, in rc.Params) (rc.Pa
 			return nil, err
 		}
 
+		// Set suffix for files that would be otherwise overwritten or deleted
+		ctx, cfg := fs.AddConfig(ctx)
+		cfg.Suffix, err = in.GetString("suffix")
+		if err != nil && !rc.IsErrParamNotFound(err) {
+			return nil, err
+		}
+
 		return nil, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, doMove)
 	}
 }
