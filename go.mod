@@ -117,6 +117,6 @@ require (
 
 replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33
-	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20220803150842-0f64eff95b8b
+	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20230222180422-23cd56f6a52c
 	google.golang.org/api v0.34.0 => github.com/scylladb/google-api-go-client v0.34.0-patched
 )
