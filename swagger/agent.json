@@ -1053,6 +1053,10 @@
         "dstRemote": {
           "description": "A path within that remote eg. file.txt for the destination",
           "type": "string"
+        },
+        "suffix": {
+          "description": "A suffix which will be added to otherwise overwritten or deleted files",
+          "type": "string"
         }
       }
     },
