@@ -184,7 +184,11 @@ func GetConfig(ctx context.Context) *ConfigInfo {
 // copy of that found in ctx and returns a new context with that added
 // to it.
 func AddConfig(ctx context.Context) (context.Context, *ConfigInfo) {
-	panic("changing config")
+	c := GetConfig(ctx)
+	cCopy := new(ConfigInfo)
+	*cCopy = *c
+	newCtx := context.WithValue(ctx, configContextKey, cCopy)
+	return newCtx, cCopy
 }
 
 // ConfigToEnv converts a config section and name, e.g. ("myremote",
