@@ -26,6 +26,9 @@ type MoveOrCopyFileOptions struct {
 
 	// A path within that remote eg. file.txt for the source
 	SrcRemote string `json:"srcRemote,omitempty"`
+
+	// A suffix which will be added to otherwise overwritten or deleted files
+	Suffix string `json:"suffix,omitempty"`
 }
 
 // Validate validates this move or copy file options
