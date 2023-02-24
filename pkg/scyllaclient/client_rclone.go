@@ -403,6 +403,10 @@ type RcloneListDirOpts struct {
 	// send additional HEAD request for each listed file if the rclone
 	// configuration option UseServerModTime is false.
 	ShowModTime bool
+	// Show only the newest versions of files in the listing (no snapshot tag suffix attached)
+	NewestOnly bool
+	// Show only older versions of files in the listing (snapshot tag suffix attached)
+	VersionedOnly bool
 }
 
 func (opts *RcloneListDirOpts) asModelOpts() *models.ListOptionsOpt {
@@ -439,9 +443,11 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	p := operations.OperationsListParams{
 		Context: forceHost(ctx, host),
 		ListOpts: &models.ListOptions{
-			Fs:     &remotePath,
-			Remote: pointer.StringPtr(""),
-			Opt:    opts.asModelOpts(),
+			Fs:            &remotePath,
+			Remote:        pointer.StringPtr(""),
+			Opt:           opts.asModelOpts(),
+			NewestOnly:    opts != nil && opts.NewestOnly,
+			VersionedOnly: opts != nil && opts.VersionedOnly,
 		},
 	}
 	resp, err := c.agentOps.OperationsList(&p)
@@ -466,9 +472,11 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/list"
 
 	listOpts := &models.ListOptions{
-		Fs:     &remotePath,
-		Remote: pointer.StringPtr(""),
-		Opt:    opts.asModelOpts(),
+		Fs:            &remotePath,
+		Remote:        pointer.StringPtr(""),
+		Opt:           opts.asModelOpts(),
+		NewestOnly:    opts != nil && opts.NewestOnly,
+		VersionedOnly: opts != nil && opts.VersionedOnly,
 	}
 	b, err := listOpts.MarshalBinary()
 	if err != nil {
