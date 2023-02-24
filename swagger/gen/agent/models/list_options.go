@@ -21,12 +21,18 @@ type ListOptions struct {
 	// Required: true
 	Fs *string `json:"fs"`
 
+	// Show only the newest versions of files (no snapshot tag suffix attached)
+	NewestOnly bool `json:"newestOnly,omitempty"`
+
 	// opt
 	Opt *ListOptionsOpt `json:"opt,omitempty"`
 
 	// A path within that remote eg. dir
 	// Required: true
 	Remote *string `json:"remote"`
+
+	// Show older version of files (snapshot tag suffix attached)
+	VersionedOnly bool `json:"versionedOnly,omitempty"`
 }
 
 // Validate validates this list options

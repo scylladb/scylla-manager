@@ -986,6 +986,14 @@
               "type": "boolean"
             }
           }
+        },
+        "newestOnly": {
+          "description": "Show only the newest versions of files (no snapshot tag suffix attached)",
+          "type": "boolean"
+        },
+        "versionedOnly": {
+          "description": "Show older version of files (snapshot tag suffix attached)",
+          "type": "boolean"
         }
       }
     },
