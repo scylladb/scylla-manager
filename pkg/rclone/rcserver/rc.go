@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
+	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/object"
 	rcops "github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/rc"
@@ -527,11 +528,44 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 	if err != nil {
 		return nil, err
 	}
+
 	var opt rcops.ListJSONOpt
 	err = in.GetStruct("opt", &opt)
 	if rc.NotErrParamNotFound(err) {
 		return nil, err
 	}
+
+	newest, err := in.GetBool("newestOnly")
+	if rc.NotErrParamNotFound(err) {
+		return nil, err
+	}
+	versioned, err := in.GetBool("versionedOnly")
+	if rc.NotErrParamNotFound(err) {
+		return nil, err
+	}
+	if newest && versioned {
+		return nil, errors.New("newestOnly and versionedOnly parameters can't be specified at the same time")
+	}
+	if (newest || versioned) && opt.DirsOnly {
+		return nil, errors.New("newestOnly and versionedOnly doesn't work on directories")
+	}
+
+	const snapshotTagSuffixRegex = `{**.sm_*UTC}`
+	ctx, cfg := filter.AddConfig(ctx)
+	if newest {
+		if err = cfg.Add(false, snapshotTagSuffixRegex); err != nil {
+			return nil, err
+		}
+	}
+	if versioned {
+		if err = cfg.Add(true, snapshotTagSuffixRegex); err != nil {
+			return nil, err
+		}
+		if err = cfg.Add(false, `{**}`); err != nil {
+			return nil, err
+		}
+	}
+
 	w, err := in.GetHTTPResponseWriter()
 	if err != nil {
 		return nil, err
