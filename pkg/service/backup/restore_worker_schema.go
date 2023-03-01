@@ -119,7 +119,7 @@ func (w *restoreWorker) ExecOnDisabledTable(ctx context.Context, keyspace, table
 }
 
 func alterGGSStatement(keyspace, table string, ggs int) string {
-	return fmt.Sprintf("ALTER TABLE %s.%s WITH gc_grace_seconds=%d", keyspace, table, ggs)
+	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH gc_grace_seconds=%d`, keyspace, table, ggs)
 }
 
 func (w *restoreWorker) GetTableVersion(ctx context.Context, keyspace, table string) (string, error) {
