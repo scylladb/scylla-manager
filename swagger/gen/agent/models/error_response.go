@@ -12,7 +12,7 @@ import (
 
 // ErrorResponse error
 //
-// Details about error response
+// # Details about error response
 //
 // swagger:model ErrorResponse
 type ErrorResponse struct {

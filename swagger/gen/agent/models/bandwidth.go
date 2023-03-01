@@ -12,7 +12,7 @@ import (
 
 // Bandwidth bandwidth rate
 //
-// Rate at witch to rate limit bandwidth
+// # Rate at witch to rate limit bandwidth
 //
 // swagger:model Bandwidth
 type Bandwidth struct {

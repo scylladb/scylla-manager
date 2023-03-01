@@ -48,7 +48,8 @@ func NewReloadOK() *ReloadOK {
 	return &ReloadOK{}
 }
 
-/*ReloadOK handles this case with default header values.
+/*
+ReloadOK handles this case with default header values.
 
 Empty object
 */
@@ -86,7 +87,8 @@ func NewReloadDefault(code int) *ReloadDefault {
 	}
 }
 
-/*ReloadDefault handles this case with default header values.
+/*
+ReloadDefault handles this case with default header values.
 
 Server error
 */

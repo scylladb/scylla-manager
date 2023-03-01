@@ -55,7 +55,8 @@ func NewFreeOSMemoryParamsWithHTTPClient(client *http.Client) *FreeOSMemoryParam
 	}
 }
 
-/*FreeOSMemoryParams contains all the parameters to send to the API endpoint
+/*
+FreeOSMemoryParams contains all the parameters to send to the API endpoint
 for the free o s memory operation typically these are written to a http.Request
 */
 type FreeOSMemoryParams struct {

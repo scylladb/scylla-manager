@@ -67,9 +67,9 @@ type ClientService interface {
 }
 
 /*
-  CoreBwlimit sets the bandwidth limit
+CoreBwlimit sets the bandwidth limit
 
-  This sets the bandwidth limit to that passed in
+This sets the bandwidth limit to that passed in
 */
 func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) {
 	// TODO: Validate the params before sending
@@ -102,9 +102,9 @@ func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) 
 }
 
 /*
-  CoreStatsDelete deletes specific stats group
+CoreStatsDelete deletes specific stats group
 
-  Delete stats
+Delete stats
 */
 func (a *Client) CoreStatsDelete(params *CoreStatsDeleteParams) (*CoreStatsDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -137,9 +137,9 @@ func (a *Client) CoreStatsDelete(params *CoreStatsDeleteParams) (*CoreStatsDelet
 }
 
 /*
-  CoreStatsReset resets all or specific stats group
+CoreStatsReset resets all or specific stats group
 
-  Resets stats
+Resets stats
 */
 func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK, error) {
 	// TODO: Validate the params before sending
@@ -172,9 +172,9 @@ func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK
 }
 
 /*
-  FreeOSMemory returns memory to o s
+FreeOSMemory returns memory to o s
 
-  Run debug.FreeOSMemory on the agent
+Run debug.FreeOSMemory on the agent
 */
 func (a *Client) FreeOSMemory(params *FreeOSMemoryParams) (*FreeOSMemoryOK, error) {
 	// TODO: Validate the params before sending
@@ -207,9 +207,9 @@ func (a *Client) FreeOSMemory(params *FreeOSMemoryParams) (*FreeOSMemoryOK, erro
 }
 
 /*
-  JobInfo transfers stats about the job
+JobInfo transfers stats about the job
 
-  Returns current, completed transfers and job stats
+Returns current, completed transfers and job stats
 */
 func (a *Client) JobInfo(params *JobInfoParams) (*JobInfoOK, error) {
 	// TODO: Validate the params before sending
@@ -242,9 +242,9 @@ func (a *Client) JobInfo(params *JobInfoParams) (*JobInfoOK, error) {
 }
 
 /*
-  JobProgress returns aggregated job stats
+JobProgress returns aggregated job stats
 
-  Returns aggregated job stats
+Returns aggregated job stats
 */
 func (a *Client) JobProgress(params *JobProgressParams) (*JobProgressOK, error) {
 	// TODO: Validate the params before sending
@@ -277,9 +277,9 @@ func (a *Client) JobProgress(params *JobProgressParams) (*JobProgressOK, error) 
 }
 
 /*
-  JobStop stops async job
+JobStop stops async job
 
-  Stops job with provided ID
+Stops job with provided ID
 */
 func (a *Client) JobStop(params *JobStopParams) (*JobStopOK, error) {
 	// TODO: Validate the params before sending
@@ -312,9 +312,9 @@ func (a *Client) JobStop(params *JobStopParams) (*JobStopOK, error) {
 }
 
 /*
-  NodeInfo gets information about scylla node
+NodeInfo gets information about scylla node
 
-  Get information about Scylla node
+Get information about Scylla node
 */
 func (a *Client) NodeInfo(params *NodeInfoParams) (*NodeInfoOK, error) {
 	// TODO: Validate the params before sending
@@ -347,9 +347,9 @@ func (a *Client) NodeInfo(params *NodeInfoParams) (*NodeInfoOK, error) {
 }
 
 /*
-  OperationsAbout abouts remote
+OperationsAbout abouts remote
 
-  Get usage information from the remote
+Get usage information from the remote
 */
 func (a *Client) OperationsAbout(params *OperationsAboutParams) (*OperationsAboutOK, error) {
 	// TODO: Validate the params before sending
@@ -382,9 +382,9 @@ func (a *Client) OperationsAbout(params *OperationsAboutParams) (*OperationsAbou
 }
 
 /*
-  OperationsCheckPermissions checks fs
+OperationsCheckPermissions checks fs
 
-  Check if the fs is fully accessible
+Check if the fs is fully accessible
 */
 func (a *Client) OperationsCheckPermissions(params *OperationsCheckPermissionsParams) (*OperationsCheckPermissionsOK, error) {
 	// TODO: Validate the params before sending
@@ -417,9 +417,9 @@ func (a *Client) OperationsCheckPermissions(params *OperationsCheckPermissionsPa
 }
 
 /*
-  OperationsDeletefile deletes file
+OperationsDeletefile deletes file
 
-  Remove the single file pointed to
+Remove the single file pointed to
 */
 func (a *Client) OperationsDeletefile(params *OperationsDeletefileParams) (*OperationsDeletefileOK, error) {
 	// TODO: Validate the params before sending
@@ -452,9 +452,9 @@ func (a *Client) OperationsDeletefile(params *OperationsDeletefileParams) (*Oper
 }
 
 /*
-  OperationsFileInfo objects info
+OperationsFileInfo objects info
 
-  Get basic file information
+Get basic file information
 */
 func (a *Client) OperationsFileInfo(params *OperationsFileInfoParams) (*OperationsFileInfoOK, error) {
 	// TODO: Validate the params before sending
@@ -487,9 +487,9 @@ func (a *Client) OperationsFileInfo(params *OperationsFileInfoParams) (*Operatio
 }
 
 /*
-  OperationsList lists remote
+OperationsList lists remote
 
-  List the given remote and path
+List the given remote and path
 */
 func (a *Client) OperationsList(params *OperationsListParams) (*OperationsListOK, error) {
 	// TODO: Validate the params before sending
@@ -522,9 +522,9 @@ func (a *Client) OperationsList(params *OperationsListParams) (*OperationsListOK
 }
 
 /*
-  OperationsMovefile moves a file
+OperationsMovefile moves a file
 
-  Move a file from source remote to destination remote
+Move a file from source remote to destination remote
 */
 func (a *Client) OperationsMovefile(params *OperationsMovefileParams) (*OperationsMovefileOK, error) {
 	// TODO: Validate the params before sending
@@ -557,9 +557,9 @@ func (a *Client) OperationsMovefile(params *OperationsMovefileParams) (*Operatio
 }
 
 /*
-  OperationsPurge purges container
+OperationsPurge purges container
 
-  Remove a directory or container and all of its contents
+Remove a directory or container and all of its contents
 */
 func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurgeOK, error) {
 	// TODO: Validate the params before sending
@@ -592,9 +592,9 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 }
 
 /*
-  Reload reloads agent config
+Reload reloads agent config
 
-  Reload agent config
+Reload agent config
 */
 func (a *Client) Reload(params *ReloadParams) (*ReloadOK, error) {
 	// TODO: Validate the params before sending
@@ -627,9 +627,9 @@ func (a *Client) Reload(params *ReloadParams) (*ReloadOK, error) {
 }
 
 /*
-  SyncCopyDir copies dir contents to directory
+SyncCopyDir copies dir contents to directory
 
-  Copy contents from path on source fs to path on destination fs
+Copy contents from path on source fs to path on destination fs
 */
 func (a *Client) SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error) {
 	// TODO: Validate the params before sending
@@ -662,9 +662,9 @@ func (a *Client) SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error) 
 }
 
 /*
-  SyncCopyPaths copies paths from fsrc remote src paths to fdst remote dst paths
+SyncCopyPaths copies paths from fsrc remote src paths to fdst remote dst paths
 
-  Copy provided list of paths from directory on source fs to directory on destination fs
+Copy provided list of paths from directory on source fs to directory on destination fs
 */
 func (a *Client) SyncCopyPaths(params *SyncCopyPathsParams) (*SyncCopyPathsOK, error) {
 	// TODO: Validate the params before sending
@@ -697,9 +697,9 @@ func (a *Client) SyncCopyPaths(params *SyncCopyPathsParams) (*SyncCopyPathsOK, e
 }
 
 /*
-  SyncMoveDir moves dir contents to directory
+SyncMoveDir moves dir contents to directory
 
-  Move contents from path on source fs to path on destination fs
+Move contents from path on source fs to path on destination fs
 */
 func (a *Client) SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error) {
 	// TODO: Validate the params before sending

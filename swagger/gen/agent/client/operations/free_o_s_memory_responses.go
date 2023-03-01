@@ -48,7 +48,8 @@ func NewFreeOSMemoryOK() *FreeOSMemoryOK {
 	return &FreeOSMemoryOK{}
 }
 
-/*FreeOSMemoryOK handles this case with default header values.
+/*
+FreeOSMemoryOK handles this case with default header values.
 
 Empty object
 */
@@ -86,7 +87,8 @@ func NewFreeOSMemoryDefault(code int) *FreeOSMemoryDefault {
 	}
 }
 
-/*FreeOSMemoryDefault handles this case with default header values.
+/*
+FreeOSMemoryDefault handles this case with default header values.
 
 Server error
 */
