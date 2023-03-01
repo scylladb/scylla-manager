@@ -25,8 +25,10 @@ import (
 // - manifests over task days retention days policy,
 // - manifests over task retention policy,
 // - manifests older than threshold if retention policy is unknown.
-func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) *strset.Set {
+// Moreover, it returns the oldest snapshot tag time that remains undeleted by retention policy.
+func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) (*strset.Set, time.Time) {
 	tags := strset.New()
+	var oldest time.Time
 
 	for taskID, taskManifests := range groupManifestsByTask(manifests) {
 		taskPolicy := GetRetention(taskID, retentionMap)
@@ -42,16 +44,25 @@ func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) *strset.Set
 				tags.Add(m.SnapshotTag)
 			case taskPolicy.Retention > 0:
 				taskTags.Add(m.SnapshotTag)
+			case t.Before(oldest) || oldest.IsZero():
+				oldest = t
 			}
 		}
 
 		if taskPolicy.Retention > 0 && taskTags.Size()-taskPolicy.Retention > 0 {
 			l := taskTags.List()
 			sort.Strings(l)
-			tags.Add(l[:len(l)-taskPolicy.Retention]...)
+			cut := len(l) - taskPolicy.Retention
+			tags.Add(l[:cut]...)
+
+			t, _ := SnapshotTagTime(l[cut]) // nolint: errcheck
+			if t.Before(oldest) || oldest.IsZero() {
+				oldest = t
+			}
 		}
 	}
-	return tags
+
+	return tags, oldest
 }
 
 type purger struct {
@@ -77,12 +88,17 @@ func newPurger(client *scyllaclient.Client, host string, logger log.Logger) purg
 	}
 }
 
-func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set) (int, error) {
+// PurgeSnapshotTags removes files that are no longer needed as given snapshot tags are purged.
+// The 'oldest' argument represents snapshot tag time of the oldest backup that we intend to keep - it is used to remove versioned SSTables.
+func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set, oldest time.Time) (int, error) {
 	if len(manifests) == 0 {
 		return 0, nil
 	}
 
 	var (
+		// Used to obtain values which are common for all manifests in this function call
+		// (e.g. location, clusterID, nodeID, ...)
+		anyM  = manifests[0]
 		files = make(fileSet)
 		stale = 0
 	)
@@ -110,9 +126,47 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 			}
 		}
 	}
-	if _, err := p.deleteFiles(ctx, manifests[0].Location, files); err != nil {
-		return 0, errors.Wrapf(err, "delete")
+	// Purge versioned SSTables
+	if !oldest.IsZero() {
+		nodeDir := RemoteSSTableBaseDir(anyM.ClusterID, anyM.DC, anyM.NodeID)
+		opts := &scyllaclient.RcloneListDirOpts{
+			FilesOnly:     true,
+			Recurse:       true,
+			VersionedOnly: true,
+		}
+
+		cb := func(item *scyllaclient.RcloneListDirItem) {
+			snapshotSuffix := path.Ext(item.Name)[1:]
+			t, err := SnapshotTagTime(snapshotSuffix)
+			if err != nil {
+				p.logger.Error(ctx, "Couldn't parse SSTable snapshot tag suffix",
+					"file", item.Name,
+					"error", err,
+				)
+				return
+			}
+			// Snapshot tag suffix describes the backup that forced SSTable to be renamed and versioned.
+			// This means that SSTable is only valid for backups strictly older than the one described by its suffix,
+			// so we can delete it if it's older (or equal) than the oldest backup that we want to keep.
+			if !t.After(oldest) {
+				fileDir := path.Join(nodeDir, path.Dir(item.Path))
+				files.AddFiles(fileDir, []string{item.Name})
+
+				p.logger.Info(ctx, "Found versioned SSTable to be removed",
+					"dir", fileDir,
+					"file", item.Name,
+				)
+			}
+		}
+		if err := p.client.RcloneListDirIter(ctx, p.host, anyM.Location.RemotePath(nodeDir), opts, cb); err != nil {
+			return 0, errors.Wrapf(err, "find SSTables with snapshot tag suffix")
+		}
 	}
+
+	if _, err := p.deleteFiles(ctx, anyM.Location, files); err != nil {
+		return 0, errors.Wrapf(err, "delete SSTables")
+	}
+
 	deletedManifests := 0
 	for _, m := range manifests {
 		if tags.Has(m.SnapshotTag) {
@@ -126,6 +180,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 			}
 		}
 	}
+
 	return deletedManifests, nil
 }
 
@@ -300,6 +355,7 @@ func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*
 		FilesOnly:   true,
 		Recurse:     true,
 		ShowModTime: true,
+		NewestOnly:  true,
 	}
 	return p.client.RcloneListDirIter(ctx, p.host, m.Location.RemotePath(baseDir), &opts, wrapper)
 }

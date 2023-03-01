@@ -29,7 +29,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 		return errors.Wrap(err, "list manifests")
 	}
 	// Get a list of stale tags
-	tags := staleTags(manifests, retentionMap)
+	tags, oldest := staleTags(manifests, retentionMap)
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)
 
@@ -78,7 +78,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			}
 			p.logger = logger
 
-			if _, err := p.PurgeSnapshotTags(ctx, manifests, tags); err != nil {
+			if _, err := p.PurgeSnapshotTags(ctx, manifests, tags, oldest); err != nil {
 				return err
 			}
 

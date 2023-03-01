@@ -51,7 +51,7 @@ func TestStaleTags(t *testing.T) {
 	x.Temporary = true
 	manifests = append(manifests, x)
 
-	tags := staleTags(manifests, RetentionMap{task0: {0, 3}, task1: {0, 2}})
+	tags, _ := staleTags(manifests, RetentionMap{task0: {0, 3}, task1: {0, 2}})
 
 	golden := []string{
 		"sm_19700101000000UTC",

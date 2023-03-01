@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -1115,7 +1116,20 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 			return err
 		}
 		p := newPurger(client, h.IP, s.logger)
-		n, err := p.PurgeSnapshotTags(ctx, manifests, strset.New(snapshotTags...))
+
+		tagS := strset.New(snapshotTags...)
+		var oldest time.Time
+		for _, m := range manifests {
+			if tagS.Has(m.SnapshotTag) {
+				continue
+			}
+			t, _ := SnapshotTagTime(m.SnapshotTag) // nolint: errcheck
+			if t.Before(oldest) || oldest.IsZero() {
+				oldest = t
+			}
+		}
+
+		n, err := p.PurgeSnapshotTags(ctx, manifests, tagS, oldest)
 		deletedManifests.Add(int32(n))
 
 		if err != nil {
