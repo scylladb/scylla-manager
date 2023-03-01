@@ -29,6 +29,8 @@ func TestStaleTags(t *testing.T) {
 		task0     = uuid.MustRandom()
 		task1     = uuid.MustRandom()
 		task2     = uuid.MustRandom()
+		task3     = uuid.MustRandom()
+		task4     = uuid.MustRandom()
 		manifests []*ManifestInfo
 	)
 	// Mixed snapshot tags across nodes
@@ -37,7 +39,6 @@ func TestStaleTags(t *testing.T) {
 	// Valid nothing to do
 	manifests = append(manifests, gen("a", task1, 10, 12)...)
 	manifests = append(manifests, gen("b", task1, 10, 12)...)
-
 	// Not found in policy delete older than 30 days
 	manifests = append(manifests, gen("c", task2, 20, 22)...)
 	manifests = append(manifests, &ManifestInfo{
@@ -45,13 +46,43 @@ func TestStaleTags(t *testing.T) {
 		TaskID:      task2,
 		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -15)),
 	})
-
+	// Mixed policy 1 - retention days deletes 2, retention days deletes 1
+	manifests = append(manifests, gen("c", task3, 30, 32)...)
+	manifests = append(manifests, &ManifestInfo{
+		NodeID:      "c",
+		TaskID:      task3,
+		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -7)),
+	})
+	// Mixed policy 2 - retention days deletes 1, retention days deletes 2
+	deletedByRetentionTag := SnapshotTagAt(timeutc.Now().AddDate(0, 0, -7))
+	manifests = append(manifests, gen("c", task4, 40, 41)...)
+	manifests = append(manifests, &ManifestInfo{
+		NodeID:      "c",
+		TaskID:      task4,
+		SnapshotTag: deletedByRetentionTag,
+	})
+	manifests = append(manifests, &ManifestInfo{
+		NodeID:      "c",
+		TaskID:      task4,
+		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -3)),
+	})
 	// Temporary manifest
 	x := gen("c", task0, 6, 7)[0]
 	x.Temporary = true
 	manifests = append(manifests, x)
 
-	tags := staleTags(manifests, RetentionMap{task0: {0, 3}, task1: {0, 2}})
+	tags, oldest, err := staleTags(manifests, RetentionMap{
+		task0: {Retention: 3, RetentionDays: 0},
+		task1: {Retention: 2, RetentionDays: 0},
+		task3: {Retention: 2, RetentionDays: 10},
+		task4: {Retention: 1, RetentionDays: 10},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !oldest.Equal(time.Unix(4, 0)) {
+		t.Fatal("Validate the time of the oldest, remaining backup")
+	}
 
 	golden := []string{
 		"sm_19700101000000UTC",
@@ -61,6 +92,10 @@ func TestStaleTags(t *testing.T) {
 		"sm_19700101000006UTC",
 		"sm_19700101000020UTC",
 		"sm_19700101000021UTC",
+		"sm_19700101000030UTC",
+		"sm_19700101000031UTC",
+		"sm_19700101000040UTC",
+		deletedByRetentionTag,
 	}
 
 	if diff := cmp.Diff(tags.List(), golden, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
