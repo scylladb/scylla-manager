@@ -48,7 +48,8 @@ func NewOperationsPurgeOK() *OperationsPurgeOK {
 	return &OperationsPurgeOK{}
 }
 
-/*OperationsPurgeOK handles this case with default header values.
+/*
+OperationsPurgeOK handles this case with default header values.
 
 Job ID
 */
@@ -88,7 +89,8 @@ func NewOperationsPurgeDefault(code int) *OperationsPurgeDefault {
 	}
 }
 
-/*OperationsPurgeDefault handles this case with default header values.
+/*
+OperationsPurgeDefault handles this case with default header values.
 
 Server error
 */

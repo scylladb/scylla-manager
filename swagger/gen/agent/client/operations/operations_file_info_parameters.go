@@ -57,7 +57,8 @@ func NewOperationsFileInfoParamsWithHTTPClient(client *http.Client) *OperationsF
 	}
 }
 
-/*OperationsFileInfoParams contains all the parameters to send to the API endpoint
+/*
+OperationsFileInfoParams contains all the parameters to send to the API endpoint
 for the operations file info operation typically these are written to a http.Request
 */
 type OperationsFileInfoParams struct {

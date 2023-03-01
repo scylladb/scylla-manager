@@ -48,7 +48,8 @@ func NewOperationsAboutOK() *OperationsAboutOK {
 	return &OperationsAboutOK{}
 }
 
-/*OperationsAboutOK handles this case with default header values.
+/*
+OperationsAboutOK handles this case with default header values.
 
 File system details
 */
@@ -88,7 +89,8 @@ func NewOperationsAboutDefault(code int) *OperationsAboutDefault {
 	}
 }
 
-/*OperationsAboutDefault handles this case with default header values.
+/*
+OperationsAboutDefault handles this case with default header values.
 
 Server error
 */

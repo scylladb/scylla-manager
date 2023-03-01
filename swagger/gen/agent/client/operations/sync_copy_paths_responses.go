@@ -48,7 +48,8 @@ func NewSyncCopyPathsOK() *SyncCopyPathsOK {
 	return &SyncCopyPathsOK{}
 }
 
-/*SyncCopyPathsOK handles this case with default header values.
+/*
+SyncCopyPathsOK handles this case with default header values.
 
 Job ID
 */
@@ -88,7 +89,8 @@ func NewSyncCopyPathsDefault(code int) *SyncCopyPathsDefault {
 	}
 }
 
-/*SyncCopyPathsDefault handles this case with default header values.
+/*
+SyncCopyPathsDefault handles this case with default header values.
 
 Server error
 */
