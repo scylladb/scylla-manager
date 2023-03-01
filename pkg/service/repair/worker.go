@@ -132,7 +132,7 @@ func (w *worker) runRepair(ctx context.Context, job job) error {
 	if err := w.waitRepairStatus(ctx, jobID, host, ttr.Keyspace, ttr.Table); err != nil {
 		return errors.Wrapf(err, "host %s: keyspace %s table %s command %d", host, ttr.Keyspace, ttr.Table, jobID)
 	}
-	logger.Debug(ctx, "Repair done")
+	logger.Info(ctx, "Repair done")
 
 	return nil
 }
