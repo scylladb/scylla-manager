@@ -48,7 +48,8 @@ func NewSyncCopyDirOK() *SyncCopyDirOK {
 	return &SyncCopyDirOK{}
 }
 
-/*SyncCopyDirOK handles this case with default header values.
+/*
+SyncCopyDirOK handles this case with default header values.
 
 Job ID
 */
@@ -88,7 +89,8 @@ func NewSyncCopyDirDefault(code int) *SyncCopyDirDefault {
 	}
 }
 
-/*SyncCopyDirDefault handles this case with default header values.
+/*
+SyncCopyDirDefault handles this case with default header values.
 
 Server error
 */

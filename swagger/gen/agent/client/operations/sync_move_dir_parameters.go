@@ -70,7 +70,8 @@ func NewSyncMoveDirParamsWithHTTPClient(client *http.Client) *SyncMoveDirParams 
 	}
 }
 
-/*SyncMoveDirParams contains all the parameters to send to the API endpoint
+/*
+SyncMoveDirParams contains all the parameters to send to the API endpoint
 for the sync move dir operation typically these are written to a http.Request
 */
 type SyncMoveDirParams struct {
