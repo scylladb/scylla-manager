@@ -57,7 +57,8 @@ func NewJobProgressParamsWithHTTPClient(client *http.Client) *JobProgressParams 
 	}
 }
 
-/*JobProgressParams contains all the parameters to send to the API endpoint
+/*
+JobProgressParams contains all the parameters to send to the API endpoint
 for the job progress operation typically these are written to a http.Request
 */
 type JobProgressParams struct {

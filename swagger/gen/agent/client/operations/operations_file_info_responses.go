@@ -48,7 +48,8 @@ func NewOperationsFileInfoOK() *OperationsFileInfoOK {
 	return &OperationsFileInfoOK{}
 }
 
-/*OperationsFileInfoOK handles this case with default header values.
+/*
+OperationsFileInfoOK handles this case with default header values.
 
 File information
 */
@@ -88,7 +89,8 @@ func NewOperationsFileInfoDefault(code int) *OperationsFileInfoDefault {
 	}
 }
 
-/*OperationsFileInfoDefault handles this case with default header values.
+/*
+OperationsFileInfoDefault handles this case with default header values.
 
 Server error
 */

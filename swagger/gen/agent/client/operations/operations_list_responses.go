@@ -50,7 +50,8 @@ func NewOperationsListOK() *OperationsListOK {
 	return &OperationsListOK{}
 }
 
-/*OperationsListOK handles this case with default header values.
+/*
+OperationsListOK handles this case with default header values.
 
 List of items
 */
@@ -90,7 +91,8 @@ func NewOperationsListDefault(code int) *OperationsListDefault {
 	}
 }
 
-/*OperationsListDefault handles this case with default header values.
+/*
+OperationsListDefault handles this case with default header values.
 
 Server error
 */
@@ -134,7 +136,8 @@ func (o *OperationsListDefault) Error() string {
 	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
 }
 
-/*OperationsListOKBody operations list o k body
+/*
+OperationsListOKBody operations list o k body
 swagger:model OperationsListOKBody
 */
 type OperationsListOKBody struct {

@@ -14,7 +14,7 @@ import (
 
 // Job job
 //
-// Status information about the job
+// # Status information about the job
 //
 // swagger:model Job
 type Job struct {

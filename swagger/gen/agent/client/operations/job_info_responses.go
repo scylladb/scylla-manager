@@ -48,7 +48,8 @@ func NewJobInfoOK() *JobInfoOK {
 	return &JobInfoOK{}
 }
 
-/*JobInfoOK handles this case with default header values.
+/*
+JobInfoOK handles this case with default header values.
 
 Aggregated info about job transfers
 */
@@ -88,7 +89,8 @@ func NewJobInfoDefault(code int) *JobInfoDefault {
 	}
 }
 
-/*JobInfoDefault handles this case with default header values.
+/*
+JobInfoDefault handles this case with default header values.
 
 Server error
 */

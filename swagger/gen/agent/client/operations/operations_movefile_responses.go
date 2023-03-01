@@ -48,7 +48,8 @@ func NewOperationsMovefileOK() *OperationsMovefileOK {
 	return &OperationsMovefileOK{}
 }
 
-/*OperationsMovefileOK handles this case with default header values.
+/*
+OperationsMovefileOK handles this case with default header values.
 
 Empty object
 */
@@ -76,7 +77,8 @@ func NewOperationsMovefileDefault(code int) *OperationsMovefileDefault {
 	}
 }
 
-/*OperationsMovefileDefault handles this case with default header values.
+/*
+OperationsMovefileDefault handles this case with default header values.
 
 Server error
 */

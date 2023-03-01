@@ -48,7 +48,8 @@ func NewJobProgressOK() *JobProgressOK {
 	return &JobProgressOK{}
 }
 
-/*JobProgressOK handles this case with default header values.
+/*
+JobProgressOK handles this case with default header values.
 
 Aggregated info about job transfers
 */
@@ -88,7 +89,8 @@ func NewJobProgressDefault(code int) *JobProgressDefault {
 	}
 }
 
-/*JobProgressDefault handles this case with default header values.
+/*
+JobProgressDefault handles this case with default header values.
 
 Server error
 */
