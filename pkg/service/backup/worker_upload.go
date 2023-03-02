@@ -177,7 +177,11 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 }
 
 func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotDir) error {
-	id, err := w.Client.RcloneMoveDir(ctx, d.Host, dst, src)
+	// Issue #3288 showed that we need to be able to store multiple different SSTables
+	// with the same name and from the same node ID. In order to do that, we use rclone
+	// 'suffix' option to rename otherwise overwritten files. Choosing snapshot tag
+	// as the suffix, allows us to determine when to purge/restore renamed files.
+	id, err := w.Client.RcloneMoveDir(ctx, d.Host, dst, src, "."+w.SnapshotTag)
 	if err != nil {
 		return err
 	}
