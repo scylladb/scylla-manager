@@ -84,23 +84,6 @@ func remoteToLocal() paramsValidator {
 	}
 }
 
-func sameDir() paramsValidator {
-	return func(ctx context.Context, in rc.Params) error {
-		srcName, srcPath, err := joined(in, "srcFs", "srcRemote")
-		if err != nil {
-			return err
-		}
-		dstName, dstPath, err := joined(in, "dstFs", "dstRemote")
-		if err != nil {
-			return err
-		}
-		if srcName != dstName || path.Dir(srcPath) != path.Dir(dstPath) {
-			return fs.ErrorPermissionDenied
-		}
-		return nil
-	}
-}
-
 func joined(in rc.Params, fsName, remoteName string) (configName, remotePath string, err error) {
 	f, err := in.GetString(fsName)
 	if err != nil {

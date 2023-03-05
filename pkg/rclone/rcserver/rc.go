@@ -517,11 +517,6 @@ func init() {
 	})
 }
 
-func init() {
-	c := rc.Calls.Get("operations/movefile")
-	c.Fn = wrap(c.Fn, sameDir())
-}
-
 // rcChunkedList supports streaming output of the listing.
 func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
