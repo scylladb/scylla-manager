@@ -4,8 +4,10 @@ package backup
 
 import (
 	"context"
+	"math/rand"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -181,7 +183,9 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 	)
 
 	ctr := w.newCounter()
-
+	if err = w.initVersionedFiles(ctx, srcDir); err != nil {
+		return err
+	}
 	// Every host has its personal goroutine which is responsible
 	// for creating and downloading batches.
 	// Goroutine returns only in case of error or
@@ -380,6 +384,44 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	return nil
 }
 
+// initVersionedFiles gathers information about existing versioned files.
+func (w *restoreWorker) initVersionedFiles(ctx context.Context, dir string) error {
+	w.versionedFiles = make(map[string][]versionedSSTable)
+	opts := &scyllaclient.RcloneListDirOpts{
+		FilesOnly:     true,
+		VersionedOnly: true,
+	}
+	f := func(item *scyllaclient.RcloneListDirItem) {
+		tagExt := path.Ext(item.Name)
+		regularName := strings.TrimSuffix(item.Name, tagExt)
+		w.versionedFiles[regularName] = append(w.versionedFiles[regularName], versionedSSTable{
+			Name:    regularName,
+			Version: tagExt[1:], // Remove dot from extension
+			Size:    item.Size,
+		})
+	}
+	// We can choose any host for remote location listing
+	host := w.hosts[rand.Intn(len(w.hosts))].Host
+	if err := w.Client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
+		w.versionedFiles = nil
+		return errors.Wrapf(err, "host %s: listing versioned SSTables", host)
+	}
+	// Sort versions (ascending snapshot tag time) for easier lookup
+	for _, versions := range w.versionedFiles {
+		sort.Slice(versions, func(i, j int) bool {
+			return versions[i].Version < versions[j].Version
+		})
+	}
+
+	w.Logger.Info(ctx, "Listed versioned SSTables",
+		"host", host,
+		"dir", dir,
+		"versionedSSTables", w.versionedFiles,
+	)
+
+	return nil
+}
+
 // prepareRunProgress either reactivates RestoreRunProgress created in previous run
 // or it creates a brand new RestoreRunProgress.
 func (w *restoreWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
@@ -411,8 +453,8 @@ func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRu
 
 	batch := w.batchFromIDs(pr.SSTableID)
 	w.cleanUploadDir(ctx, pr.Host, dstDir, batch)
-
-	jobID, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
+	// Skip versionedPr as it is already included in run progress
+	jobID, _, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
 	if err != nil {
 		w.deleteRunProgress(ctx, pr)
 		w.returnBatchToPool(pr.SSTableID)
@@ -449,7 +491,7 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 	batch := w.batchFromIDs(takenIDs)
 	w.cleanUploadDir(ctx, h.Host, dstDir, nil)
 
-	jobID, err := w.startDownload(ctx, h.Host, dstDir, srcDir, batch)
+	jobID, versionedPr, err := w.startDownload(ctx, h.Host, dstDir, srcDir, batch)
 	if err != nil {
 		w.returnBatchToPool(takenIDs)
 		return nil, err
@@ -465,6 +507,7 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 		Host:         h.Host,
 		AgentJobID:   jobID,
 		SSTableID:    takenIDs,
+		Downloaded:   versionedPr,
 	}
 
 	w.insertRunProgress(ctx, pr)
@@ -473,19 +516,78 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 }
 
 // startDownload creates rclone job responsible for downloading batch of SSTables.
-func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, error) {
-	jobID, err := w.Client.RcloneCopyPaths(ctx, host, dstDir, srcDir, batch)
+// Downloading of versioned files happens first in a synchronous way.
+// It returns jobID for asynchronous download of the newest versions of files
+// alongside with the size of the already downloaded versioned files.
+func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, int64, error) {
+	var (
+		restoreT, _    = SnapshotTagTime(w.SnapshotTag) // nolint: errcheck
+		regularBatch   = make([]string, 0)
+		versionedBatch = make([]versionedSSTable, 0)
+		versionedPr    int64
+	)
+	// Decide which files require to be downloaded in their older version
+	for _, file := range batch {
+		if versions, ok := w.versionedFiles[file]; ok {
+			var match versionedSSTable
+			for _, v := range versions {
+				t, _ := SnapshotTagTime(v.Version) // nolint: errcheck
+				if restoreT.Before(t) {
+					match = v
+					break
+				}
+			}
+
+			if match.Version != "" {
+				versionedBatch = append(versionedBatch, match)
+				versionedPr += match.Size
+				continue
+			}
+		}
+
+		regularBatch = append(regularBatch, file)
+	}
+	// Downloading versioned files requires us to rename them (strip snapshot tag suffix)
+	// and function RcloneCopyPaths lacks this option. In order to achieve that, we move
+	// all versioned files one by one with RcloneMoveFile (which supports renaming files).
+	// The assumption is that the existence of versioned files is low and that they
+	// are rather small, so we can do it in a synchronous way.
+	// Moving files can be done in full parallel because of rclone ability to limit transfers.
+	err := parallel.Run(len(versionedBatch), parallel.NoLimit, func(i int) error {
+		file := versionedBatch[i]
+
+		dst := path.Join(dstDir, file.Name)
+		src := path.Join(srcDir, strings.Join([]string{file.Name, file.Version}, "."))
+
+		if err := w.Client.RcloneMoveFile(ctx, host, dst, src); err != nil {
+			return parallel.Abort(errors.Wrapf(err, "host %s: download versioned file %s into %s", host, src, dst))
+		}
+
+		w.Logger.Info(ctx, "Downloaded versioned file",
+			"host", host,
+			"src", src,
+			"dst", dst,
+			"size", file.Size,
+		)
+
+		return nil
+	})
 	if err != nil {
-		return 0, errors.Wrap(err, "download batch to upload dir")
+		return 0, 0, err
+	}
+	// Start asynchronous job for downloading the newest versions of remaining files
+	jobID, err := w.Client.RcloneCopyPaths(ctx, host, dstDir, srcDir, regularBatch)
+	if err != nil {
+		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}
 
 	w.Logger.Info(ctx, "Started downloading files",
 		"host", host,
 		"job_id", jobID,
-		"batch", batch,
+		"batch", regularBatch,
 	)
 
-	return jobID, nil
+	return jobID, versionedPr, nil
 }
 
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.

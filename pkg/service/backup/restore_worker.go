@@ -26,6 +26,15 @@ type restoreHost struct {
 // bundle represents SSTables with the same ID.
 type bundle []string
 
+// versionedSSTable represents older version of SSTable that we still need to store in a backup.
+// (e.g. older version of 'md-2-big-Data.db' could be 'md-2-big-Data.db.sm_20230114183231UTC')
+// Note, that the newest version of SSTable does not have snapshot tag suffix.
+type versionedSSTable struct {
+	Name    string // Original SSTable name (e.g. md-2-big-Data.db)
+	Version string // Snapshot tag suffix representing backup that introduced newer version of this SSTable (e.g. sm_20230114183231UTC)
+	Size    int64
+}
+
 // restoreWorker is responsible for coordinating restore procedure.
 type restoreWorker struct {
 	workerTools
@@ -44,7 +53,10 @@ type restoreWorker struct {
 	hosts        []restoreHost           // Restore units created for currently restored location
 	bundles      map[string]bundle       // Maps bundle to it's ID
 	bundleIDPool chan string             // IDs of the bundles that are yet to be restored
-	resumed      bool                    // Set to true if current run has already skipped all tables restored in previous run
+	// Maps original SSTable name to its existing older versions (does not include the newest version).
+	// Versions are sorted by ascending snapshot tag time.
+	versionedFiles map[string][]versionedSSTable
+	resumed        bool // Set to true if current run has already skipped all tables restored in previous run
 }
 
 func (w *restoreWorker) insertRun(ctx context.Context, run *RestoreRun) {
