@@ -218,7 +218,8 @@ func ExecStmt(tb testing.TB, session gocqlx.Session, stmt string) {
 	}
 }
 
-const bigTableName = "big_table"
+// BigTableName is the default name of table used for testing.
+const BigTableName = "big_table"
 
 // WriteData creates big_table in the provided keyspace with the size in MiB.
 func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
@@ -242,7 +243,7 @@ func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID
 	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
 
 	if len(tables) == 0 {
-		tables = []string{bigTableName}
+		tables = []string{BigTableName}
 	}
 
 	bytes := sizeMiB * 1024 * 1024
