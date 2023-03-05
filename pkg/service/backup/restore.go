@@ -128,6 +128,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			ClusterName: clusterName,
 			TaskID:      taskID,
 			RunID:       runID,
+			SnapshotTag: target.SnapshotTag,
 			Client:      client,
 			Config:      s.config,
 			Logger:      s.logger.Named("restore"),
