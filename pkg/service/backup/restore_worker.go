@@ -44,7 +44,10 @@ type restoreWorker struct {
 	hosts        []restoreHost           // Restore units created for currently restored location
 	bundles      map[string]bundle       // Maps bundle to it's ID
 	bundleIDPool chan string             // IDs of the bundles that are yet to be restored
-	resumed      bool                    // Set to true if current run has already skipped all tables restored in previous run
+	// Maps original SSTable name to its existing older versions (does not include the newest version).
+	// Versions are sorted by ascending time of their creation.
+	versionedFiles VersionedMap
+	resumed        bool // Set to true if current run has already skipped all tables restored in previous run
 }
 
 func (w *restoreWorker) insertRun(ctx context.Context, run *RestoreRun) {
