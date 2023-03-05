@@ -21,12 +21,11 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"go.uber.org/atomic"
-	"go.uber.org/zap/zapcore"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"go.uber.org/atomic"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -263,7 +262,7 @@ func TestRestoreGetUnits(t *testing.T) {
 			Keyspace: testKeyspace,
 			Tables: []RestoreTable{
 				{
-					Table: "big_table",
+					Table: BigTableName,
 				},
 			},
 		},
@@ -742,7 +741,7 @@ func (h *restoreTestHelper) validateRestoreSuccess(target RestoreTarget, keyspac
 
 	Print("When: query contents of restored table")
 	var count int
-	q := dstSession.Query("SELECT COUNT(*) FROM "+keyspace+".big_table", nil)
+	q := dstSession.Query("SELECT COUNT(*) FROM "+keyspace+"."+BigTableName, nil)
 	if err := q.Get(&count); err != nil {
 		h.t.Fatal(err)
 	}
@@ -764,7 +763,7 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 	// Create keyspace and table.
 	WriteDataToSecondCluster(h.t, session, keyspace, 0, 0)
 
-	if err := h.client.DisableAutoCompaction(ctx, keyspace, "big_table"); err != nil {
+	if err := h.client.DisableAutoCompaction(ctx, keyspace, BigTableName); err != nil {
 		h.t.Fatal(err)
 	}
 
@@ -773,7 +772,7 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 		Printf("When: Write load nr %d to second cluster", i)
 
 		startingID = WriteDataToSecondCluster(h.t, session, keyspace, startingID, loadSize)
-		if err := h.client.FlushTable(ctx, keyspace, "big_table"); err != nil {
+		if err := h.client.FlushTable(ctx, keyspace, BigTableName); err != nil {
 			h.t.Fatal(err)
 		}
 	}
@@ -844,7 +843,7 @@ func (h *restoreTestHelper) simpleRepair(keyspace string) {
 		Units: []repair.Unit{
 			{
 				Keyspace: keyspace,
-				Tables:   []string{"big_table"},
+				Tables:   []string{BigTableName},
 			},
 		},
 		DC:        []string{"dc1", "dc2"},
