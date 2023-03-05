@@ -54,6 +54,7 @@ type workerTools struct {
 	ClusterName string
 	TaskID      uuid.UUID
 	RunID       uuid.UUID
+	SnapshotTag string
 	Config      Config
 	Client      *scyllaclient.Client
 	Logger      log.Logger
@@ -64,7 +65,6 @@ type worker struct {
 	workerTools
 
 	Metrics       metrics.BackupM
-	SnapshotTag   string
 	Units         []Unit
 	Schema        *bytes.Buffer
 	OnRunProgress func(ctx context.Context, p *RunProgress)
