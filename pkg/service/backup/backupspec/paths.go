@@ -108,7 +108,7 @@ func remoteSchemaDir(clusterID uuid.UUID) string {
 // RemoteSSTableVersionDir returns path to the sstable version directory.
 func RemoteSSTableVersionDir(clusterID uuid.UUID, dc, nodeID, keyspace, table, version string) string {
 	return path.Join(
-		remoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
+		RemoteSSTableDir(clusterID, dc, nodeID, keyspace, table),
 		version,
 	)
 }
@@ -127,7 +127,8 @@ func RemoteSSTableBaseDir(clusterID uuid.UUID, dc, nodeID string) string {
 	)
 }
 
-func remoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
+// RemoteSSTableDir returns path to given table's sstable directory.
+func RemoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) string {
 	return path.Join(
 		RemoteSSTableBaseDir(clusterID, dc, nodeID),
 		"keyspace",
