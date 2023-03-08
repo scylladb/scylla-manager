@@ -118,6 +118,11 @@ const (
 	JobNotFound RcloneJobStatus = "not_found"
 )
 
+// WorthWaitingForJob checks if rclone job can (or already did) succeed.
+func WorthWaitingForJob(status string) bool {
+	return status == string(JobSuccess) || status == string(JobRunning)
+}
+
 // RcloneDeleteJobStats deletes job stats group.
 func (c *Client) RcloneDeleteJobStats(ctx context.Context, host string, jobID int64) error {
 	p := operations.CoreStatsDeleteParams{
