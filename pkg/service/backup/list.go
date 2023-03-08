@@ -5,6 +5,7 @@ package backup
 import (
 	"context"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
@@ -38,6 +39,7 @@ func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Clien
 }
 
 // listManifests returns manifests for all nodes of a given cluster in the location.
+// Manifests are sorted deterministically by their ClusterID, TaskID, SnapshotTag and NodeID.
 // If cluster is uuid.Nil then it returns manifests for all clusters it can find.
 func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location Location, clusterID uuid.UUID) ([]*ManifestInfo, error) {
 	baseDir := RemoteMetaClusterDCDir(clusterID)
@@ -63,6 +65,19 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 	if err != nil {
 		return nil, err
 	}
+	// Sort manifests by ClusterID, TaskID, SnapshotTag and NodeID
+	sort.Slice(manifests, func(i, j int) bool {
+		if manifests[i].ClusterID != manifests[j].ClusterID {
+			return manifests[i].ClusterID.String() < manifests[j].ClusterID.String()
+		}
+		if manifests[i].TaskID != manifests[j].TaskID {
+			return manifests[i].TaskID.String() < manifests[j].TaskID.String()
+		}
+		if manifests[i].SnapshotTag != manifests[j].SnapshotTag {
+			return manifests[i].SnapshotTag < manifests[j].SnapshotTag
+		}
+		return manifests[i].NodeID < manifests[j].NodeID
+	})
 
 	return manifests, nil
 }
