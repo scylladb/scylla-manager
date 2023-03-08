@@ -70,7 +70,7 @@ func newCommand(client *managerclient.Client, update bool) *command {
 func (cmd *command) init() {
 	cmd.TaskBase.Init()
 
-	defer flag.MustSetUsages(&cmd.Command, res, "cluster", "location", "snapshot-tag")
+	defer flag.MustSetUsages(&cmd.Command, res, "cluster")
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Location(&cmd.location)
