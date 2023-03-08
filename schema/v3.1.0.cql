@@ -20,6 +20,7 @@ CREATE TABLE restore_run (
     task_id       uuid,
     id            uuid,
     prev_id       uuid,
+    location      text,
     manifest_path text,
     keyspace_name text,
     table_name    text,
