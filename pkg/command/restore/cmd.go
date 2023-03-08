@@ -110,17 +110,29 @@ func (cmd *command) run(args []string) error {
 	} else {
 		task = cmd.CreateTask(managerclient.RestoreTask)
 	}
-
+	// Disallow updating restore task's core flags, since restore procedure cannot adjust itself to this change.
+	wrapper := func(flagName string) error {
+		return errors.Errorf("updating restore task's '--%s' flag is forbidden. For this purpose, please create a new task with given properties", flagName)
+	}
 	props := task.Properties.(map[string]interface{})
 	if cmd.Flag("location").Changed {
+		if cmd.Update() {
+			return wrapper("location")
+		}
 		props["location"] = cmd.location
 		ok = true
 	}
 	if cmd.Flag("keyspace").Changed {
+		if cmd.Update() {
+			return wrapper("keyspace")
+		}
 		props["keyspace"] = cmd.keyspace
 		ok = true
 	}
 	if cmd.Flag("snapshot-tag").Changed {
+		if cmd.Update() {
+			return wrapper("snapshot-tag")
+		}
 		props["snapshot_tag"] = cmd.snapshotTag
 		ok = true
 	}
@@ -133,10 +145,16 @@ func (cmd *command) run(args []string) error {
 		ok = true
 	}
 	if cmd.Flag("restore-schema").Changed {
+		if cmd.Update() {
+			return wrapper("restore-schema")
+		}
 		props["restore_schema"] = cmd.restoreSchema
 		ok = true
 	}
 	if cmd.Flag("restore-tables").Changed {
+		if cmd.Update() {
+			return wrapper("restore-tables")
+		}
 		props["restore_tables"] = cmd.restoreTables
 		ok = true
 	}
