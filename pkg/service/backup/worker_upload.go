@@ -136,7 +136,7 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 		return 0
 	}
 
-	if job.Status == string(scyllaclient.JobSuccess) || job.Status == string(scyllaclient.JobRunning) {
+	if scyllaclient.WorthWaitingForJob(job.Status) {
 		return p.AgentJobID
 	}
 

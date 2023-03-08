@@ -450,14 +450,20 @@ func (w *restoreWorker) prepareRunProgress(ctx context.Context, run *RestoreRun,
 	return
 }
 
-// reactivateRunProgress ensures that RestoreRunProgress created in previous run can be resumed.
-// In case previous run interrupted rclone job, it has to be recreated (rclone jobs cannot be resumed).
+// reactivateRunProgress preserves batch assembled in the previous run and tries to reuse its unfinished rclone job.
+// In case that's impossible, it has to be recreated (rclone jobs cannot be resumed).
 func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunProgress, dstDir, srcDir string) error {
 	// Nothing to do if download has already finished
 	if validateTimeIsSet(pr.DownloadCompletedAt) {
 		return nil
 	}
-
+	// Nothing to do if rclone job is still running
+	if job, err := w.Client.RcloneJobProgress(ctx, pr.Host, pr.AgentJobID, w.Config.LongPollingTimeoutSeconds); err != nil {
+		if scyllaclient.WorthWaitingForJob(job.Status) {
+			return nil
+		}
+	}
+	// Recreate rclone job
 	batch := w.batchFromIDs(pr.SSTableID)
 	w.cleanUploadDir(ctx, pr.Host, dstDir, batch)
 
