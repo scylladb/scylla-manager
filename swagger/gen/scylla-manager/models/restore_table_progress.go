@@ -36,9 +36,6 @@ type RestoreTableProgress struct {
 	// size
 	Size int64 `json:"size,omitempty"`
 
-	// skipped
-	Skipped int64 `json:"skipped,omitempty"`
-
 	// started at
 	// Format: date-time
 	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
