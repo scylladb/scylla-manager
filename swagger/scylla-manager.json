@@ -786,9 +786,6 @@
         "downloaded": {
           "type": "integer"
         },
-        "skipped": {
-          "type": "integer"
-        },
         "failed": {
           "type": "integer"
         },
@@ -930,9 +927,6 @@
         "downloaded": {
           "type": "integer"
         },
-        "skipped": {
-          "type": "integer"
-        },
         "failed": {
           "type": "integer"
         },
@@ -964,9 +958,6 @@
           "type": "integer"
         },
         "downloaded": {
-          "type": "integer"
-        },
-        "skipped": {
           "type": "integer"
         },
         "failed": {
