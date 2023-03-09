@@ -152,7 +152,6 @@ type restoreProgress struct {
 	Size        int64      `json:"size"`
 	Restored    int64      `json:"restored"`
 	Downloaded  int64      `json:"downloaded"`
-	Skipped     int64      `json:"skipped"`
 	Failed      int64      `json:"failed"`
 	StartedAt   *time.Time `json:"started_at"`
 	CompletedAt *time.Time `json:"completed_at"`

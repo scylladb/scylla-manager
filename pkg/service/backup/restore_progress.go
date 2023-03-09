@@ -81,11 +81,11 @@ func aggregateRestoreTableProgress(tableMap map[tableKey]*RestoreTableProgress) 
 			tab = tableMap[key]
 		)
 
-		if pr.RestoreCompletedAt != nil {
-			tab.Restored += pr.Downloaded + pr.Skipped
+		totalDownloaded := pr.Downloaded + pr.Skipped
+		if validateTimeIsSet(pr.RestoreCompletedAt) {
+			tab.Restored += totalDownloaded
 		}
-		tab.Downloaded += pr.Downloaded
-		tab.Skipped += pr.Skipped
+		tab.Downloaded += totalDownloaded
 		tab.Failed += pr.Failed
 
 		tab.StartedAt = calcParentStartedAt(tab.StartedAt, pr.DownloadStartedAt)
@@ -117,7 +117,6 @@ func (rp *restoreProgress) calcParentProgress(child restoreProgress) {
 	rp.Size += child.Size
 	rp.Restored += child.Restored
 	rp.Downloaded += child.Downloaded
-	rp.Skipped += child.Skipped
 	rp.Failed += child.Failed
 
 	rp.StartedAt = calcParentStartedAt(rp.StartedAt, child.StartedAt)
