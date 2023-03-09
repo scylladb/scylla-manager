@@ -81,6 +81,51 @@ func (mr *MockBackupServiceMockRecorder) GetProgress(arg0, arg1, arg2, arg3 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProgress", reflect.TypeOf((*MockBackupService)(nil).GetProgress), arg0, arg1, arg2, arg3)
 }
 
+// GetRestoreProgress mocks base method.
+func (m *MockBackupService) GetRestoreProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.RestoreProgress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRestoreProgress", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(backup.RestoreProgress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRestoreProgress indicates an expected call of GetRestoreProgress.
+func (mr *MockBackupServiceMockRecorder) GetRestoreProgress(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRestoreProgress", reflect.TypeOf((*MockBackupService)(nil).GetRestoreProgress), arg0, arg1, arg2, arg3)
+}
+
+// GetRestoreTarget mocks base method.
+func (m *MockBackupService) GetRestoreTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup.RestoreTarget, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRestoreTarget", arg0, arg1, arg2)
+	ret0, _ := ret[0].(backup.RestoreTarget)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRestoreTarget indicates an expected call of GetRestoreTarget.
+func (mr *MockBackupServiceMockRecorder) GetRestoreTarget(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRestoreTarget", reflect.TypeOf((*MockBackupService)(nil).GetRestoreTarget), arg0, arg1, arg2)
+}
+
+// GetRestoreUnits mocks base method.
+func (m *MockBackupService) GetRestoreUnits(arg0 context.Context, arg1 uuid.UUID, arg2 backup.RestoreTarget) ([]backup.RestoreUnit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRestoreUnits", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]backup.RestoreUnit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRestoreUnits indicates an expected call of GetRestoreUnits.
+func (mr *MockBackupServiceMockRecorder) GetRestoreUnits(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRestoreUnits", reflect.TypeOf((*MockBackupService)(nil).GetRestoreUnits), arg0, arg1, arg2)
+}
+
 // GetTarget mocks base method.
 func (m *MockBackupService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup.Target, error) {
 	m.ctrl.T.Helper()
@@ -133,24 +178,6 @@ func (m *MockBackupService) GetValidationTarget(arg0 context.Context, arg1 uuid.
 	ret0, _ := ret[0].(backup.ValidationTarget)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
-}
-
-// GetRestoreTarget mocks base method.
-func (m *MockBackupService) GetRestoreTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup.RestoreTarget, error) {
-	var t backup.RestoreTarget
-	return t, nil
-}
-
-// GetRestoreUnits mocks base method.
-func (m *MockBackupService) GetRestoreUnits(arg0 context.Context, arg1 uuid.UUID, arg2 backup.RestoreTarget) ([]backup.RestoreUnit, error) {
-	var u []backup.RestoreUnit
-	return u, nil
-}
-
-// GetRestoreProgress mocks base method.
-func (m *MockBackupService) GetRestoreProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.RestoreProgress, error) {
-	var p backup.RestoreProgress
-	return p, nil
 }
 
 // GetValidationTarget indicates an expected call of GetValidationTarget.

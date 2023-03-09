@@ -11,14 +11,13 @@ type AzureOptions struct {
 	//
 	// Leave blank normally. Needed only if you want to use a service principal instead of interactive login.
 	//
-	//     $ az sp create-for-rbac --name "<name>" \
-	//       --role "Storage Blob Data Owner" \
-	//       --scopes "/subscriptions/<subscription>/resourceGroups/<resource-group>/providers/Microsoft.Storage/storageAccounts/<storage-account>/blobServices/default/containers/<container>" \
-	//       > azure-principal.json
+	//	$ az sp create-for-rbac --name "<name>" \
+	//	  --role "Storage Blob Data Owner" \
+	//	  --scopes "/subscriptions/<subscription>/resourceGroups/<resource-group>/providers/Microsoft.Storage/storageAccounts/<storage-account>/blobServices/default/containers/<container>" \
+	//	  > azure-principal.json
 	//
 	// See [Use Azure CLI to assign an Azure role for access to blob and queue data](https://docs.microsoft.com/en-us/azure/storage/common/storage-auth-aad-rbac-cli)
 	// for more details.
-	//
 	ServicePrincipalFile string `yaml:"service_principal_file"`
 	// Storage Account Key (leave blank to use SAS URL or Emulator)
 	Key string `yaml:"key"`
@@ -83,14 +82,13 @@ type AzureOptions struct {
 	// attempt to update an archive tier blob, then rclone will produce the
 	// error:
 	//
-	//     can't update archive tier blob without --azureblob-archive-tier-delete
+	//	can't update archive tier blob without --azureblob-archive-tier-delete
 	//
 	// With this flag set then before rclone attempts to overwrite an archive
 	// tier blob, it will delete the existing blob before uploading its
 	// replacement.  This has the potential for data loss if the upload fails
 	// (unlike updating a normal blob) and also may cost more since deleting
 	// archive tier blobs early may be chargable.
-	//
 	ArchiveTierDelete string `yaml:"archive_tier_delete"`
 	// Don't store MD5 checksum with object metadata.
 	//
@@ -136,7 +134,6 @@ type GCSOptions struct {
 	// Needed only if you want use SA instead of interactive login.
 	//
 	// Leading `~` will be expanded in the file name as will environment variables such as `${RCLONE_CONFIG_DIR}`.
-	//
 	ServiceAccountFile string `yaml:"service_account_file"`
 	// Service Account Credentials JSON blob
 	// Leave blank normally.
@@ -161,7 +158,6 @@ type GCSOptions struct {
 	// - creates buckets with Bucket Policy Only set
 	//
 	// Docs: https://cloud.google.com/storage/docs/bucket-policy-only
-	//
 	BucketPolicyOnly string `yaml:"bucket_policy_only"`
 	// Location for the newly created buckets.
 	Location string `yaml:"location"`
@@ -187,7 +183,6 @@ type GCSOptions struct {
 	// Files which contains fewer than size bytes will be uploaded in a single request.
 	// Files which contains size bytes or more will be uploaded in separate chunks.
 	// If size is zero, media will be uploaded in a single request.
-	//
 	ChunkSize string `yaml:"chunk_size"`
 	// How many items are returned in one chunk during directory listing
 	ListChunk string `yaml:"list_chunk"`
@@ -215,7 +210,7 @@ type LocalOptions struct {
 	// However, on unix it reads as the length of the text in the link. This may cause errors like this when
 	// syncing:
 	//
-	//     Failed to copy: corrupted on transfer: sizes differ 0 vs 13
+	//	Failed to copy: corrupted on transfer: sizes differ 0 vs 13
 	//
 	// Setting this flag causes rclone to read the link and use that as the size of the link
 	// instead of 0 which in most cases fixes the problem.
@@ -250,8 +245,6 @@ type LocalOptions struct {
 	// - Only transfer the size that stat gave
 	// - Only checksum the size that stat gave
 	// - Don't update the stat info for the file
-	//
-	//
 	NoCheckUpdated string `yaml:"no_check_updated"`
 	// Don't cross filesystem boundaries (unix/macOS only).
 	OneFileSystem string `yaml:"one_file_system"`
@@ -339,7 +332,6 @@ type S3Options struct {
 	// If using SSE-C you may provide the secret encryption key MD5 checksum (optional).
 	//
 	// If you leave it blank, this is calculated automatically from the sse_customer_key provided.
-	//
 	SseCustomerKeyMd5 string `yaml:"sse_customer_key_md5"`
 	// The storage class to use when storing new objects in S3.
 	StorageClass string `yaml:"storage_class"`
@@ -380,7 +372,6 @@ type S3Options struct {
 	//
 	// Rclone will automatically increase the chunk size when uploading a
 	// large file of a known size to stay below this number of chunks limit.
-	//
 	MaxUploadParts string `yaml:"max_upload_parts"`
 	// Cutoff for switching to multipart copy
 	//
@@ -404,9 +395,8 @@ type S3Options struct {
 	// "AWS_SHARED_CREDENTIALS_FILE" env variable. If the env value is empty
 	// it will default to the current user's home directory.
 	//
-	//     Linux/OSX: "$HOME/.aws/credentials"
-	//     Windows:   "%USERPROFILE%\.aws\credentials"
-	//
+	//	Linux/OSX: "$HOME/.aws/credentials"
+	//	Windows:   "%USERPROFILE%\.aws\credentials"
 	SharedCredentialsFile string `yaml:"shared_credentials_file"`
 	// Profile to use in the shared credentials file
 	//
@@ -415,7 +405,6 @@ type S3Options struct {
 	//
 	// If empty it will default to the environment variable "AWS_PROFILE" or
 	// "default" if that environment variable is also not set.
-	//
 	Profile string `yaml:"profile"`
 	// An AWS session token
 	SessionToken string `yaml:"session_token"`
@@ -455,7 +444,6 @@ type S3Options struct {
 	// It should be set to true for resuming uploads across different sessions.
 	//
 	// WARNING: Storing parts of an incomplete multipart upload counts towards space usage on S3 and will add additional costs if not cleaned up.
-	//
 	LeavePartsOnError string `yaml:"leave_parts_on_error"`
 	// Size of listing chunk (response list for each ListObject S3 request).
 	//
@@ -463,7 +451,6 @@ type S3Options struct {
 	// Most services truncate the response list to 1000 objects even if requested more than that.
 	// In AWS S3 this is a global maximum and cannot be changed, see [AWS S3](https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html).
 	// In Ceph, this can be increased with the "rgw list buckets max chunk" option.
-	//
 	ListChunk string `yaml:"list_chunk"`
 	// If set, don't attempt to check the bucket exists or create it
 	//
@@ -473,7 +460,6 @@ type S3Options struct {
 	// It can also be needed if the user you are using does not have bucket
 	// creation permissions. Before v1.52.0 this would have passed silently
 	// due to a bug.
-	//
 	NoCheckBucket string `yaml:"no_check_bucket"`
 	// If set, don't HEAD uploaded objects to check integrity
 	//
@@ -503,7 +489,6 @@ type S3Options struct {
 	// in particular an incorrect size, so it isn't recommended for normal
 	// operation. In practice the chance of an undetected upload failure is
 	// very small even with this flag.
-	//
 	NoHead string `yaml:"no_head"`
 	// This sets the encoding for the backend.
 	//
@@ -522,7 +507,5 @@ type S3Options struct {
 	// disabled here.  When the issue is solved this flag will be removed.
 	//
 	// See: https://github.com/rclone/rclone/issues/4673, https://github.com/rclone/rclone/issues/3631
-	//
-	//
 	DisableHttp2 string `yaml:"disable_http2"`
 }
