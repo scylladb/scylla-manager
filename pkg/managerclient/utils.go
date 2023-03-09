@@ -104,13 +104,12 @@ func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 }
 
 // FormatRestoreProgress calculates percentage of success and failed downloads and restores.
-func FormatRestoreProgress(size, restored, downloaded, skipped, failed int64) string {
+func FormatRestoreProgress(size, restored, downloaded, failed int64) string {
 	if size == 0 {
 		return "100%"
 	}
 	out := fmt.Sprintf("%d%%", restored*100/size)
-	transferred := downloaded + skipped
-	out += fmt.Sprintf(" | %d%%", transferred*100/size)
+	out += fmt.Sprintf(" | %d%%", downloaded*100/size)
 	if failed > 0 {
 		out += fmt.Sprintf(" / failed: %d%%", failed*100/size)
 	}
