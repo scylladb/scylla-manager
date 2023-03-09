@@ -453,8 +453,8 @@ func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRu
 
 	batch := w.batchFromIDs(pr.SSTableID)
 	w.cleanUploadDir(ctx, pr.Host, dstDir, batch)
-	// Skip versionedPr as it is already included in run progress
-	jobID, _, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
+
+	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
 	if err != nil {
 		w.deleteRunProgress(ctx, pr)
 		w.returnBatchToPool(pr.SSTableID)
@@ -462,7 +462,11 @@ func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRu
 	}
 
 	pr.AgentJobID = jobID
+	pr.VersionedProgress = versionedPr
+
 	w.insertRunProgress(ctx, pr)
+	// Treat versioned progress as skipped as those files had to be downloaded during previous run
+	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, 0, pr.VersionedProgress, 0)
 
 	return nil
 }
@@ -498,19 +502,20 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 	}
 
 	pr := &RestoreRunProgress{
-		ClusterID:    run.ClusterID,
-		TaskID:       run.TaskID,
-		RunID:        run.ID,
-		ManifestPath: run.ManifestPath,
-		Keyspace:     run.Keyspace,
-		Table:        run.Table,
-		Host:         h.Host,
-		AgentJobID:   jobID,
-		SSTableID:    takenIDs,
-		Downloaded:   versionedPr,
+		ClusterID:         run.ClusterID,
+		TaskID:            run.TaskID,
+		RunID:             run.ID,
+		ManifestPath:      run.ManifestPath,
+		Keyspace:          run.Keyspace,
+		Table:             run.Table,
+		Host:              h.Host,
+		AgentJobID:        jobID,
+		SSTableID:         takenIDs,
+		VersionedProgress: versionedPr,
 	}
 
 	w.insertRunProgress(ctx, pr)
+	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.VersionedProgress, 0, 0)
 
 	return pr, nil
 }

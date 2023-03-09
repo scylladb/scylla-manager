@@ -129,7 +129,7 @@ func (w *restoreWorker) clonePrevProgress(ctx context.Context, run *RestoreRun) 
 		if validateTimeIsSet(pr.RestoreCompletedAt) {
 			// Recreate metrics for restore run progresses that were already completed in the previous run.
 			// Do not update the {downloaded,skipped,failed} metrics since they are local to given run.
-			size := pr.Downloaded + pr.Skipped
+			size := pr.Downloaded + pr.Skipped + pr.VersionedProgress
 			w.metrics.UpdateRestoreProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, size)
 			w.metrics.UpdateFilesSize(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, size)
 		}
