@@ -46,7 +46,8 @@ func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryOK() *GetClusterClusterIDTas
 	return &GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK{}
 }
 
-/*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK handles this case with default header values.
+/*
+GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK handles this case with default header values.
 
 List of task runs
 */
@@ -79,7 +80,8 @@ func NewGetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault(code int) *GetCluste
 	}
 }
 
-/*GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault handles this case with default header values.
+/*
+GetClusterClusterIDTaskTaskTypeTaskIDHistoryDefault handles this case with default header values.
 
 Error
 */

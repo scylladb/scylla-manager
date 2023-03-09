@@ -46,7 +46,8 @@ func NewGetClusterClusterIDTaskRestoreTaskIDRunIDOK() *GetClusterClusterIDTaskRe
 	return &GetClusterClusterIDTaskRestoreTaskIDRunIDOK{}
 }
 
-/*GetClusterClusterIDTaskRestoreTaskIDRunIDOK handles this case with default header values.
+/*
+GetClusterClusterIDTaskRestoreTaskIDRunIDOK handles this case with default header values.
 
 Restore progress
 */
@@ -81,7 +82,8 @@ func NewGetClusterClusterIDTaskRestoreTaskIDRunIDDefault(code int) *GetClusterCl
 	}
 }
 
-/*GetClusterClusterIDTaskRestoreTaskIDRunIDDefault handles this case with default header values.
+/*
+GetClusterClusterIDTaskRestoreTaskIDRunIDDefault handles this case with default header values.
 
 Error
 */

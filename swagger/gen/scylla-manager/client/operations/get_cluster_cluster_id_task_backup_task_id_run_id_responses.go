@@ -46,7 +46,8 @@ func NewGetClusterClusterIDTaskBackupTaskIDRunIDOK() *GetClusterClusterIDTaskBac
 	return &GetClusterClusterIDTaskBackupTaskIDRunIDOK{}
 }
 
-/*GetClusterClusterIDTaskBackupTaskIDRunIDOK handles this case with default header values.
+/*
+GetClusterClusterIDTaskBackupTaskIDRunIDOK handles this case with default header values.
 
 Backup progress
 */
@@ -81,7 +82,8 @@ func NewGetClusterClusterIDTaskBackupTaskIDRunIDDefault(code int) *GetClusterClu
 	}
 }
 
-/*GetClusterClusterIDTaskBackupTaskIDRunIDDefault handles this case with default header values.
+/*
+GetClusterClusterIDTaskBackupTaskIDRunIDDefault handles this case with default header values.
 
 Error
 */

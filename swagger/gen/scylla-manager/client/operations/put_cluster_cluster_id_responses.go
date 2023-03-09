@@ -46,7 +46,8 @@ func NewPutClusterClusterIDOK() *PutClusterClusterIDOK {
 	return &PutClusterClusterIDOK{}
 }
 
-/*PutClusterClusterIDOK handles this case with default header values.
+/*
+PutClusterClusterIDOK handles this case with default header values.
 
 Updated cluster info
 */
@@ -81,7 +82,8 @@ func NewPutClusterClusterIDDefault(code int) *PutClusterClusterIDDefault {
 	}
 }
 
-/*PutClusterClusterIDDefault handles this case with default header values.
+/*
+PutClusterClusterIDDefault handles this case with default header values.
 
 Error
 */

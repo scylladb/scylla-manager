@@ -46,7 +46,8 @@ func NewGetClusterClusterIDStatusOK() *GetClusterClusterIDStatusOK {
 	return &GetClusterClusterIDStatusOK{}
 }
 
-/*GetClusterClusterIDStatusOK handles this case with default header values.
+/*
+GetClusterClusterIDStatusOK handles this case with default header values.
 
 Cluster hosts and their statuses
 */
@@ -79,7 +80,8 @@ func NewGetClusterClusterIDStatusDefault(code int) *GetClusterClusterIDStatusDef
 	}
 }
 
-/*GetClusterClusterIDStatusDefault handles this case with default header values.
+/*
+GetClusterClusterIDStatusDefault handles this case with default header values.
 
 Error
 */
