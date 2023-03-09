@@ -47,5 +47,6 @@ CREATE TABLE restore_run_progress (
     downloaded            bigint,
     skipped               bigint,
     failed                bigint,
+    versioned_progress    bigint,
     PRIMARY KEY ((cluster_id, task_id, run_id), manifest_path, keyspace_name, table_name, host, agent_job_id)
 ) WITH default_time_to_live = 15552000;
