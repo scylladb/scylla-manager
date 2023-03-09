@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -704,6 +705,132 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	}
 
 	Print("Then: data is restored")
+	dstH.validateRestoreSuccess(target, keyspace, loadCnt*loadSize, dstSession)
+}
+
+func TestRestoreTablesVersionedIntegration(t *testing.T) {
+	const (
+		testBucket    = "restoretest-tables-versioned"
+		testKeyspace  = "restoretest_tables_versioned"
+		testLoadCnt   = 2
+		testLoadSize  = 1
+		testBatchSize = 1
+		testParallel  = 3
+		corruptCnt    = 3
+	)
+
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
+		},
+		Keyspace:      []string{testKeyspace},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+
+	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt)
+}
+
+func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize, corruptCnt int) {
+	var (
+		cfg          = DefaultConfig()
+		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
+		mgrSession   = CreateScyllaManagerDBSession(t)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		ctx          = context.Background()
+	)
+
+	Print("Recreate schema on destination cluster")
+	if target.RestoreTables {
+		WriteData(t, dstSession, keyspace, 0)
+	}
+
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+
+	firstTag := srcH.simpleBackup(target.Location[0], keyspace)
+	// Make sure that next backup will have different snapshot tag
+	time.Sleep(time.Second)
+	// Corrupting SSTables allows us to force the creation of versioned files
+	Print("Choose SSTables to corrupt")
+
+	status, err := srcH.client.Status(ctx)
+	if err != nil {
+		t.Fatal("Get status")
+	}
+
+	host := status[0]
+	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.clusterID, host.Datacenter, host.HostID, keyspace, BigTableName))
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	}
+
+	var toCorrupt []string
+	err = srcH.client.RcloneListDirIter(ctx, host.Addr, remoteDir, opts, func(item *scyllaclient.RcloneListDirItem) {
+		if _, err = VersionedFileCreationTime(item.Name); err == nil {
+			t.Fatalf("Versioned file %s present after first backup", path.Join(remoteDir, item.Path))
+		}
+		if len(toCorrupt) < corruptCnt {
+			toCorrupt = append(toCorrupt, item.Path)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Printf("Corrupt SSTables: %v", toCorrupt)
+	for _, tc := range toCorrupt {
+		file := path.Join(remoteDir, tc)
+		body := bytes.NewBufferString("I am corrupted")
+		if err = srcH.client.RclonePut(ctx, host.Addr, file, body); err != nil {
+			t.Fatalf("Corrupt remote file %s", file)
+		}
+	}
+
+	Print("Second backup with corrupted SSTables in remote location")
+	secondTag := srcH.simpleBackup(target.Location[0], keyspace)
+
+	Print("Validate creation of versioned files in remote location")
+	for _, tc := range toCorrupt {
+		corruptedPath := path.Join(remoteDir, tc) + VersionedFileExt(secondTag)
+		if _, err = srcH.client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// This step is done so that we can test the restoration of valid backup with versioned files
+	Print("Swap versions of corrupted files")
+	var tmp string
+	for _, tc := range toCorrupt {
+		newest := path.Join(remoteDir, tc)
+		versioned := newest + VersionedFileExt(secondTag)
+		tmp = path.Join(path.Dir(newest), "tmp")
+
+		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, tmp, newest); err != nil {
+			t.Fatal(err)
+		}
+		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, newest, versioned); err != nil {
+			t.Fatal(err)
+		}
+		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, versioned, tmp); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	Print("Restore first backup with versioned files")
+	target.SnapshotTag = firstTag
+	if err = dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
 	dstH.validateRestoreSuccess(target, keyspace, loadCnt*loadSize, dstSession)
 }
 
