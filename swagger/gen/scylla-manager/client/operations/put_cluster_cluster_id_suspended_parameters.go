@@ -58,7 +58,8 @@ func NewPutClusterClusterIDSuspendedParamsWithHTTPClient(client *http.Client) *P
 	}
 }
 
-/*PutClusterClusterIDSuspendedParams contains all the parameters to send to the API endpoint
+/*
+PutClusterClusterIDSuspendedParams contains all the parameters to send to the API endpoint
 for the put cluster cluster ID suspended operation typically these are written to a http.Request
 */
 type PutClusterClusterIDSuspendedParams struct {

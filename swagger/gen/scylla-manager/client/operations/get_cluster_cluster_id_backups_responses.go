@@ -46,7 +46,8 @@ func NewGetClusterClusterIDBackupsOK() *GetClusterClusterIDBackupsOK {
 	return &GetClusterClusterIDBackupsOK{}
 }
 
-/*GetClusterClusterIDBackupsOK handles this case with default header values.
+/*
+GetClusterClusterIDBackupsOK handles this case with default header values.
 
 Backup list
 */
@@ -79,7 +80,8 @@ func NewGetClusterClusterIDBackupsDefault(code int) *GetClusterClusterIDBackupsD
 	}
 }
 
-/*GetClusterClusterIDBackupsDefault handles this case with default header values.
+/*
+GetClusterClusterIDBackupsDefault handles this case with default header values.
 
 Error
 */

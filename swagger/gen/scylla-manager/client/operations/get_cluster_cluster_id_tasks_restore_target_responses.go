@@ -46,7 +46,8 @@ func NewGetClusterClusterIDTasksRestoreTargetOK() *GetClusterClusterIDTasksResto
 	return &GetClusterClusterIDTasksRestoreTargetOK{}
 }
 
-/*GetClusterClusterIDTasksRestoreTargetOK handles this case with default header values.
+/*
+GetClusterClusterIDTasksRestoreTargetOK handles this case with default header values.
 
 Restore target
 */
@@ -81,7 +82,8 @@ func NewGetClusterClusterIDTasksRestoreTargetDefault(code int) *GetClusterCluste
 	}
 }
 
-/*GetClusterClusterIDTasksRestoreTargetDefault handles this case with default header values.
+/*
+GetClusterClusterIDTasksRestoreTargetDefault handles this case with default header values.
 
 Error
 */

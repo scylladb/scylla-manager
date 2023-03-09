@@ -46,7 +46,8 @@ func NewPutClusterClusterIDRepairsIntensityOK() *PutClusterClusterIDRepairsInten
 	return &PutClusterClusterIDRepairsIntensityOK{}
 }
 
-/*PutClusterClusterIDRepairsIntensityOK handles this case with default header values.
+/*
+PutClusterClusterIDRepairsIntensityOK handles this case with default header values.
 
 OK
 */
@@ -69,7 +70,8 @@ func NewPutClusterClusterIDRepairsIntensityDefault(code int) *PutClusterClusterI
 	}
 }
 
-/*PutClusterClusterIDRepairsIntensityDefault handles this case with default header values.
+/*
+PutClusterClusterIDRepairsIntensityDefault handles this case with default header values.
 
 Error
 */

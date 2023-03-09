@@ -46,7 +46,8 @@ func NewDeleteClusterClusterIDBackupsOK() *DeleteClusterClusterIDBackupsOK {
 	return &DeleteClusterClusterIDBackupsOK{}
 }
 
-/*DeleteClusterClusterIDBackupsOK handles this case with default header values.
+/*
+DeleteClusterClusterIDBackupsOK handles this case with default header values.
 
 OK
 */
@@ -69,7 +70,8 @@ func NewDeleteClusterClusterIDBackupsDefault(code int) *DeleteClusterClusterIDBa
 	}
 }
 
-/*DeleteClusterClusterIDBackupsDefault handles this case with default header values.
+/*
+DeleteClusterClusterIDBackupsDefault handles this case with default header values.
 
 Error
 */

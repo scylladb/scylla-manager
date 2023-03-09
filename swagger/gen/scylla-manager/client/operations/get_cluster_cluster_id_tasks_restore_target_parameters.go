@@ -57,7 +57,8 @@ func NewGetClusterClusterIDTasksRestoreTargetParamsWithHTTPClient(client *http.C
 	}
 }
 
-/*GetClusterClusterIDTasksRestoreTargetParams contains all the parameters to send to the API endpoint
+/*
+GetClusterClusterIDTasksRestoreTargetParams contains all the parameters to send to the API endpoint
 for the get cluster cluster ID tasks restore target operation typically these are written to a http.Request
 */
 type GetClusterClusterIDTasksRestoreTargetParams struct {

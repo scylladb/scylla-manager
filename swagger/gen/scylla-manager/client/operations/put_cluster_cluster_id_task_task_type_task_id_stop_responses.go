@@ -46,7 +46,8 @@ func NewPutClusterClusterIDTaskTaskTypeTaskIDStopOK() *PutClusterClusterIDTaskTa
 	return &PutClusterClusterIDTaskTaskTypeTaskIDStopOK{}
 }
 
-/*PutClusterClusterIDTaskTaskTypeTaskIDStopOK handles this case with default header values.
+/*
+PutClusterClusterIDTaskTaskTypeTaskIDStopOK handles this case with default header values.
 
 Task stopped
 */
@@ -69,7 +70,8 @@ func NewPutClusterClusterIDTaskTaskTypeTaskIDStopDefault(code int) *PutClusterCl
 	}
 }
 
-/*PutClusterClusterIDTaskTaskTypeTaskIDStopDefault handles this case with default header values.
+/*
+PutClusterClusterIDTaskTaskTypeTaskIDStopDefault handles this case with default header values.
 
 Error
 */

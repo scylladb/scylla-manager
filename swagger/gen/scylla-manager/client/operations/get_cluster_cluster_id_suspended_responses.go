@@ -46,7 +46,8 @@ func NewGetClusterClusterIDSuspendedOK() *GetClusterClusterIDSuspendedOK {
 	return &GetClusterClusterIDSuspendedOK{}
 }
 
-/*GetClusterClusterIDSuspendedOK handles this case with default header values.
+/*
+GetClusterClusterIDSuspendedOK handles this case with default header values.
 
 OK
 */
@@ -79,7 +80,8 @@ func NewGetClusterClusterIDSuspendedDefault(code int) *GetClusterClusterIDSuspen
 	}
 }
 
-/*GetClusterClusterIDSuspendedDefault handles this case with default header values.
+/*
+GetClusterClusterIDSuspendedDefault handles this case with default header values.
 
 Error
 */

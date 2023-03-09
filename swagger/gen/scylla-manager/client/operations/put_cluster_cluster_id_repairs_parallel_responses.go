@@ -46,7 +46,8 @@ func NewPutClusterClusterIDRepairsParallelOK() *PutClusterClusterIDRepairsParall
 	return &PutClusterClusterIDRepairsParallelOK{}
 }
 
-/*PutClusterClusterIDRepairsParallelOK handles this case with default header values.
+/*
+PutClusterClusterIDRepairsParallelOK handles this case with default header values.
 
 OK
 */
@@ -79,7 +80,8 @@ func NewPutClusterClusterIDRepairsParallelDefault(code int) *PutClusterClusterID
 	}
 }
 
-/*PutClusterClusterIDRepairsParallelDefault handles this case with default header values.
+/*
+PutClusterClusterIDRepairsParallelDefault handles this case with default header values.
 
 Error
 */

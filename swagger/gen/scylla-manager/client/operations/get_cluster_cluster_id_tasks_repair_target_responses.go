@@ -46,7 +46,8 @@ func NewGetClusterClusterIDTasksRepairTargetOK() *GetClusterClusterIDTasksRepair
 	return &GetClusterClusterIDTasksRepairTargetOK{}
 }
 
-/*GetClusterClusterIDTasksRepairTargetOK handles this case with default header values.
+/*
+GetClusterClusterIDTasksRepairTargetOK handles this case with default header values.
 
 Repair target
 */
@@ -81,7 +82,8 @@ func NewGetClusterClusterIDTasksRepairTargetDefault(code int) *GetClusterCluster
 	}
 }
 
-/*GetClusterClusterIDTasksRepairTargetDefault handles this case with default header values.
+/*
+GetClusterClusterIDTasksRepairTargetDefault handles this case with default header values.
 
 Error
 */

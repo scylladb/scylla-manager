@@ -56,7 +56,8 @@ func NewPutClusterClusterIDRepairsParallelParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*PutClusterClusterIDRepairsParallelParams contains all the parameters to send to the API endpoint
+/*
+PutClusterClusterIDRepairsParallelParams contains all the parameters to send to the API endpoint
 for the put cluster cluster ID repairs parallel operation typically these are written to a http.Request
 */
 type PutClusterClusterIDRepairsParallelParams struct {
