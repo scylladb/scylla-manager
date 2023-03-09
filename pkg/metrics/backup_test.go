@@ -4,6 +4,7 @@ package metrics
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -57,10 +58,17 @@ func TestRestoreMetrics(t *testing.T) {
 	m := NewBackupMetrics()
 	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
 
-	t.Run("SetFilesSize", func(t *testing.T) {
+	t.Run("SetOrUpdateFilesSize", func(t *testing.T) {
 		m.Restore.SetFilesSize(c, "m", "k", "t", 2)
+		text1 := fmt.Sprintf("After: set(2)\n%s", Dump(t, m.Restore.filesSizeBytes))
 
-		text := Dump(t, m.Restore.filesSizeBytes)
+		m.Restore.UpdateFilesSize(c, "m", "k", "t", 3)
+		text2 := fmt.Sprintf("After: update(3)\n%s", Dump(t, m.Restore.filesSizeBytes))
+
+		m.Restore.SetFilesSize(c, "m", "k", "t", 7)
+		text3 := fmt.Sprintf("After: set(7)\n%s", Dump(t, m.Restore.filesSizeBytes))
+
+		text := strings.Join([]string{text1, text2, text3}, "\n")
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)

@@ -151,7 +151,7 @@ func (rm RestoreM) ResetClusterMetrics(clusterID uuid.UUID) {
 	}
 }
 
-// SetFilesSize updates restore "files_size_bytes" metrics.
+// SetFilesSize sets restore "files_size_bytes" metrics.
 func (rm RestoreM) SetFilesSize(clusterID uuid.UUID, manifestPath, keyspace, table string, size int64) {
 	l := prometheus.Labels{
 		"cluster":  clusterID.String(),
@@ -161,6 +161,18 @@ func (rm RestoreM) SetFilesSize(clusterID uuid.UUID, manifestPath, keyspace, tab
 	}
 
 	rm.filesSizeBytes.With(l).Set(float64(size))
+}
+
+// UpdateFilesSize updates restore "files_size_bytes" metrics.
+func (rm RestoreM) UpdateFilesSize(clusterID uuid.UUID, manifestPath, keyspace, table string, size int64) {
+	l := prometheus.Labels{
+		"cluster":  clusterID.String(),
+		"manifest": manifestPath,
+		"keyspace": keyspace,
+		"table":    table,
+	}
+
+	rm.filesSizeBytes.With(l).Add(float64(size))
 }
 
 // UpdateFilesProgress updates restore "files_{downloaded,skipped,failed}_bytes" metrics.
