@@ -335,6 +335,12 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 				// Pointer cannot be stored directly because it is overwritten in each
 				// iteration of ForEachTableProgress.
 				ongoing := *pr
+				// Reset rclone stats for unfinished rclone jobs - they will be recreated from rclone job progress.
+				if !validateTimeIsSet(pr.DownloadCompletedAt) {
+					pr.Downloaded = 0
+					pr.Skipped = 0
+					pr.Failed = 0
+				}
 				w.hosts = append(w.hosts, restoreHost{
 					Host:               pr.Host,
 					Shards:             sh,
