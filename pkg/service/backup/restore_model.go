@@ -132,6 +132,7 @@ type RestoreRunProgress struct {
 	Downloaded          int64
 	Skipped             int64
 	Failed              int64
+	VersionedProgress   int64
 }
 
 func validateTimeIsSet(t *time.Time) bool {
