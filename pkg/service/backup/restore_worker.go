@@ -94,6 +94,7 @@ func (w *restoreWorker) decorateWithPrevRun(ctx context.Context, run *RestoreRun
 	w.Logger.Info(ctx, "Resuming previous run", "prev_run_id", prev.ID)
 
 	run.PrevID = prev.ID
+	run.Location = prev.Location
 	run.ManifestPath = prev.ManifestPath
 	run.Keyspace = prev.Keyspace
 	run.Table = prev.Table
