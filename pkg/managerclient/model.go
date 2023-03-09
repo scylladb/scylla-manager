@@ -961,7 +961,7 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Skipped .Failed }}{{else}}-{{ end }}
+{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
 {{- if ne .SnapshotTag "" }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{- end }}
@@ -1027,7 +1027,7 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 }
 
 func (rp RestoreProgress) addKeyspaceProgress(t *table.Table) {
-	t.AddRow("Keyspace", "Progress", "Size", "Success", "Downloaded", "Deduplicated", "Failed")
+	t.AddRow("Keyspace", "Progress", "Size", "Success", "Downloaded", "Failed")
 	t.AddSeparator()
 	for _, ks := range rp.Progress.Keyspaces {
 		if rp.hideKeyspace(ks.Keyspace) {
@@ -1035,17 +1035,16 @@ func (rp RestoreProgress) addKeyspaceProgress(t *table.Table) {
 		}
 		p := "-"
 		if len(ks.Tables) > 0 {
-			p = FormatRestoreProgress(ks.Size, ks.Restored, ks.Downloaded, ks.Skipped, ks.Failed)
+			p = FormatRestoreProgress(ks.Size, ks.Restored, ks.Downloaded, ks.Failed)
 		}
 		t.AddRow(ks.Keyspace, p,
 			FormatSizeSuffix(ks.Size),
 			FormatSizeSuffix(ks.Restored),
 			FormatSizeSuffix(ks.Downloaded),
-			FormatSizeSuffix(ks.Skipped),
 			FormatSizeSuffix(ks.Failed),
 		)
 	}
-	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5, 6)
+	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
 }
 
 func (rp RestoreProgress) addTableProgress(w io.Writer) error {
@@ -1055,7 +1054,7 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 		}
 		fmt.Fprintf(w, "\nKeyspace: %s\n", ks.Keyspace)
 
-		t := table.New("Table", "Progress", "Size", "Success", "Downloaded", "Deduplicated", "Failed", "Started at", "Completed at")
+		t := table.New("Table", "Progress", "Size", "Success", "Downloaded", "Failed", "Started at", "Completed at")
 		for i, tab := range ks.Tables {
 			if i > 0 {
 				t.AddSeparator()
@@ -1074,18 +1073,16 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 				FormatRestoreProgress(tab.Size,
 					tab.Restored,
 					tab.Downloaded,
-					tab.Skipped,
 					tab.Failed),
 				FormatSizeSuffix(tab.Size),
 				FormatSizeSuffix(tab.Restored),
 				FormatSizeSuffix(tab.Downloaded),
-				FormatSizeSuffix(tab.Skipped),
 				FormatSizeSuffix(tab.Failed),
 				FormatTime(startedAt),
 				FormatTime(completedAt),
 			)
 		}
-		t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5, 6)
+		t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)
 		if _, err := w.Write([]byte(t.String())); err != nil {
 			return err
 		}
