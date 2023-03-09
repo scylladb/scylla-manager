@@ -26,6 +26,7 @@ func (w *restoreWorker) restoreData(ctx context.Context, run *RestoreRun, target
 
 	for _, w.location = range target.Location {
 		if !w.resumed && run.Location != w.location.String() {
+			w.Logger.Info(ctx, "Skipping location", "location", w.location)
 			continue
 		}
 
@@ -39,6 +40,7 @@ func (w *restoreWorker) restoreData(ctx context.Context, run *RestoreRun, target
 		manifestHandler := func(miwc ManifestInfoWithContent) error {
 			// Check if manifest has already been processed in previous run
 			if !w.resumed && run.ManifestPath != miwc.Path() {
+				w.Logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
 				return nil
 			}
 
@@ -70,6 +72,10 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 		if !w.resumed {
 			// Check if table has already been processed in previous run
 			if run.Keyspace != fm.Keyspace || run.Table != fm.Table {
+				w.Logger.Info(ctx, "Skipping table",
+					"keyspace", fm.Keyspace,
+					"table", fm.Table,
+				)
 				return nil
 			}
 		}
