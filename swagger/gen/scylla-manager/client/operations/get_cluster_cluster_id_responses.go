@@ -46,7 +46,8 @@ func NewGetClusterClusterIDOK() *GetClusterClusterIDOK {
 	return &GetClusterClusterIDOK{}
 }
 
-/*GetClusterClusterIDOK handles this case with default header values.
+/*
+GetClusterClusterIDOK handles this case with default header values.
 
 Cluster info
 */
@@ -81,7 +82,8 @@ func NewGetClusterClusterIDDefault(code int) *GetClusterClusterIDDefault {
 	}
 }
 
-/*GetClusterClusterIDDefault handles this case with default header values.
+/*
+GetClusterClusterIDDefault handles this case with default header values.
 
 Error
 */

@@ -46,7 +46,8 @@ func NewGetClustersOK() *GetClustersOK {
 	return &GetClustersOK{}
 }
 
-/*GetClustersOK handles this case with default header values.
+/*
+GetClustersOK handles this case with default header values.
 
 List of all clusters
 */
@@ -79,7 +80,8 @@ func NewGetClustersDefault(code int) *GetClustersDefault {
 	}
 }
 
-/*GetClustersDefault handles this case with default header values.
+/*
+GetClustersDefault handles this case with default header values.
 
 Error
 */

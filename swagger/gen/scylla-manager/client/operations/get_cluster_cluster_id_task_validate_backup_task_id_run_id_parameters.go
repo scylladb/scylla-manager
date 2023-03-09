@@ -55,7 +55,8 @@ func NewGetClusterClusterIDTaskValidateBackupTaskIDRunIDParamsWithHTTPClient(cli
 	}
 }
 
-/*GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams contains all the parameters to send to the API endpoint
+/*
+GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams contains all the parameters to send to the API endpoint
 for the get cluster cluster ID task validate backup task ID run ID operation typically these are written to a http.Request
 */
 type GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams struct {
