@@ -704,15 +704,6 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 		t.Fatal("Unexpected error", err)
 	}
 
-	pr, err = dstH.service.GetRestoreProgress(context.Background(), dstH.clusterID, dstH.taskID, dstH.runID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	Printf("And: restore progress: %+#v\n", pr)
-	if pr.Size != pr.Restored {
-		t.Fatal("Expected complete restore")
-	}
-
 	Print("Then: data is restored")
 	dstH.validateRestoreSuccess(target, keyspace, loadCnt*loadSize, dstSession)
 }
@@ -720,6 +711,25 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 func (h *restoreTestHelper) validateRestoreSuccess(target RestoreTarget, keyspace string, backupSize int, dstSession gocqlx.Session) {
 	h.t.Helper()
 	Print("Then: validate restore result")
+
+	pr, err := h.service.GetRestoreProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	Printf("And: restore progress: %+#v\n", pr)
+	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
+		h.t.Fatal("Expected complete restore")
+	}
+	for _, kpr := range pr.Keyspaces {
+		if kpr.Size != kpr.Restored || kpr.Size != kpr.Downloaded {
+			h.t.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
+		}
+		for _, tpr := range kpr.Tables {
+			if tpr.Size != tpr.Restored || tpr.Size != tpr.Downloaded {
+				h.t.Fatalf("Expected complete table restore (%s)", tpr.Table)
+			}
+		}
+	}
 
 	var expectedRows int
 	switch {
