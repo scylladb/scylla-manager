@@ -68,6 +68,7 @@ type RestoreRun struct {
 	ID        uuid.UUID
 
 	PrevID       uuid.UUID
+	Location     string // marks currently processed location
 	ManifestPath string // marks currently processed manifest
 	Keyspace     string `db:"keyspace_name"` // marks currently processed keyspace
 	Table        string `db:"table_name"`    // marks currently processed table

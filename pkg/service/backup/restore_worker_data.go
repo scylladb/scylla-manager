@@ -25,9 +25,16 @@ func (w *restoreWorker) restoreData(ctx context.Context, run *RestoreRun, target
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 
 	for _, w.location = range target.Location {
+		if !w.resumed && run.Location != w.location.String() {
+			continue
+		}
+
 		w.Logger.Info(ctx, "Restoring location", "location", w.location)
-		// hosts should be initialized once per location
-		w.hosts = nil
+		run.Location = w.location.String()
+
+		if err := w.initHosts(ctx, run); err != nil {
+			return errors.Wrap(err, "initialize hosts")
+		}
 
 		manifestHandler := func(miwc ManifestInfoWithContent) error {
 			// Check if manifest has already been processed in previous run
@@ -81,14 +88,6 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 		w.insertRun(ctx, run)
 
 		w.initBundlePool(ctx, run, fm.Files)
-
-		// Hosts should be initialized once per location
-		if w.hosts == nil {
-			err := w.initHosts(ctx, run)
-			if err != nil {
-				return errors.Wrap(err, "initialize hosts")
-			}
-		}
 
 		w.metrics.SetFilesSize(run.ClusterID, run.ManifestPath, run.Keyspace, run.Table, fm.Size)
 		// Set resumed only after all initializations as they depend on knowing
