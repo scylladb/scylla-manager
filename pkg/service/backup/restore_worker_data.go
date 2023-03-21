@@ -13,11 +13,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"go.uber.org/atomic"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"go.uber.org/atomic"
 )
 
 // restoreData restores files from every location specified in restore target.
@@ -90,7 +91,6 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 			}
 		}
 
-		w.metrics.SetFilesSize(run.ClusterID, run.ManifestPath, run.Keyspace, run.Table, fm.Size)
 		// Set resumed only after all initializations as they depend on knowing
 		// if current table have been processed by the previous run.
 		w.resumed = true
