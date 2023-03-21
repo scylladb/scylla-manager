@@ -19,6 +19,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // restoreData restores files from every location specified in restore target.
@@ -194,38 +195,47 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 		// Current goroutine's host
 		h := &w.hosts[n]
 		for {
-			pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
-			if ctx.Err() != nil {
-				w.Logger.Info(ctx, "Canceled context", "host", h.Host)
-				return parallel.Abort(ctx.Err())
-			}
+			pr, err := func() (*RestoreRunProgress, error) {
+				pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
+				if ctx.Err() != nil {
+					w.Logger.Info(ctx, "Canceled context", "host", h.Host)
+					return nil, parallel.Abort(ctx.Err())
+				}
+				if err != nil {
+					return nil, errors.Wrap(err, "prepare run progress")
+				}
+				if pr == nil {
+					w.Logger.Info(ctx, "No more batches to restore", "host", h.Host)
+					return nil, nil
+				}
+
+				// Check if download hasn't already completed in previous run
+				if !validateTimeIsSet(pr.DownloadCompletedAt) {
+					w.Logger.Info(ctx, "Waiting for job",
+						"host", h.Host,
+						"job_id", pr.AgentJobID,
+					)
+
+					if err = w.waitJob(ctx, pr); err != nil {
+						if ctx.Err() != nil {
+							return nil, parallel.Abort(ctx.Err())
+						}
+						// As run progress could have already been inserted
+						// into the database, it should be deleted.
+						w.deleteRunProgress(ctx, pr)
+						w.cleanUploadDir(ctx, h.Host, dstDir, nil)
+						w.returnBatchToPool(pr.SSTableID)
+
+						return nil, errors.Wrapf(err, "wait on rclone job, id: %d, host: %s", pr.AgentJobID, h.Host)
+					}
+				}
+				return pr, nil
+			}()
 			if err != nil {
-				return errors.Wrap(err, "prepare run progress")
+				return err
 			}
 			if pr == nil {
-				w.Logger.Info(ctx, "No more batches to restore", "host", h.Host)
 				return nil
-			}
-
-			// Check if download hasn't already completed in previous run
-			if !validateTimeIsSet(pr.DownloadCompletedAt) {
-				w.Logger.Info(ctx, "Waiting for job",
-					"host", h.Host,
-					"job_id", pr.AgentJobID,
-				)
-
-				if err = w.waitJob(ctx, pr); err != nil {
-					if ctx.Err() != nil {
-						return parallel.Abort(ctx.Err())
-					}
-					// As run progress could have already been inserted
-					// into the database, it should be deleted.
-					w.deleteRunProgress(ctx, pr)
-					w.cleanUploadDir(ctx, h.Host, dstDir, nil)
-					w.returnBatchToPool(pr.SSTableID)
-
-					return errors.Wrapf(err, "wait on rclone job, id: %d, host: %s", pr.AgentJobID, h.Host)
-				}
 			}
 
 			w.Logger.Info(ctx, "Call load and stream", "host", h.Host)
@@ -452,6 +462,8 @@ func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRu
 	}
 
 	batch := w.batchFromIDs(pr.SSTableID)
+	w.updateBatchSizeMetric(ctx, pr.ClusterID, batch, pr.Host, srcDir)
+
 	w.cleanUploadDir(ctx, pr.Host, dstDir, batch)
 
 	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
@@ -493,6 +505,8 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 	)
 
 	batch := w.batchFromIDs(takenIDs)
+
+	w.updateBatchSizeMetric(ctx, run.ClusterID, batch, h.Host, srcDir)
 	w.cleanUploadDir(ctx, h.Host, dstDir, nil)
 
 	jobID, versionedPr, err := w.startDownload(ctx, h.Host, dstDir, srcDir, batch)
@@ -518,6 +532,18 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.Host, pr.VersionedProgress, 0, 0)
 
 	return pr, nil
+}
+
+func (w *restoreWorker) updateBatchSizeMetric(ctx context.Context, clusterID uuid.UUID, batch []string, host, srcDir string) {
+	var batchSize int64
+	for _, file := range batch {
+		fi, err := w.Client.RcloneFileInfo(ctx, host, srcDir+"/"+file)
+		if err != nil {
+			w.Logger.Error(ctx, "Failed to check file size", "err", err)
+		}
+		batchSize += fi.Size
+	}
+	w.metrics.UpdateBatchSize(clusterID, host, batchSize)
 }
 
 // startDownload creates rclone job responsible for downloading batch of SSTables.

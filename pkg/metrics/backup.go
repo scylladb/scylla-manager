@@ -43,6 +43,7 @@ func NewBackupMetrics() BackupMetrics {
 				"files_skipped_bytes", "cluster", "manifest", "keyspace", "table", "host"),
 			filesFailedBytes: gr("Number of bytes failed to download from backup location (local to current restore run).",
 				"files_failed_bytes", "cluster", "manifest", "keyspace", "table", "host"),
+			batchSize: gr("Size of the files batch taken by host.", "batch_size", "cluster", "host"),
 		},
 	}
 }
@@ -130,6 +131,7 @@ type RestoreM struct {
 	filesDownloadedBytes *prometheus.GaugeVec
 	filesSkippedBytes    *prometheus.GaugeVec
 	filesFailedBytes     *prometheus.GaugeVec
+	batchSize            *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
@@ -138,6 +140,7 @@ func (rm RestoreM) all() []prometheus.Collector {
 		rm.filesDownloadedBytes,
 		rm.filesSkippedBytes,
 		rm.filesFailedBytes,
+		rm.batchSize,
 	}
 }
 
@@ -173,4 +176,14 @@ func (rm RestoreM) UpdateRestoreProgress(clusterID uuid.UUID, manifestPath, keys
 	}
 
 	rm.filesRestoredBytes.With(l).Add(float64(restored))
+}
+
+// UpdateBatchSize updates restore "batch_size" metrics.
+func (rm RestoreM) UpdateBatchSize(clusterID uuid.UUID, host string, size int64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+
+	rm.batchSize.With(l).Add(float64(size))
 }
