@@ -38,11 +38,11 @@ func NewBackupMetrics() BackupMetrics {
 			filesRestoredBytes: gr("Number of bytes restored from downloaded files.",
 				"files_restored_bytes", "cluster", "manifest", "keyspace", "table"),
 			filesDownloadedBytes: gr("Number of bytes downloaded from backup location (local to current restore run).",
-				"files_downloaded_bytes", "cluster", "manifest", "keyspace", "table"),
+				"files_downloaded_bytes", "cluster", "manifest", "keyspace", "table", "host"),
 			filesSkippedBytes: gr("Number of deduplicated bytes already downloaded from backup location (local to current restore run).",
-				"files_skipped_bytes", "cluster", "manifest", "keyspace", "table"),
+				"files_skipped_bytes", "cluster", "manifest", "keyspace", "table", "host"),
 			filesFailedBytes: gr("Number of bytes failed to download from backup location (local to current restore run).",
-				"files_failed_bytes", "cluster", "manifest", "keyspace", "table"),
+				"files_failed_bytes", "cluster", "manifest", "keyspace", "table", "host"),
 		},
 	}
 }
@@ -149,12 +149,13 @@ func (rm RestoreM) ResetClusterMetrics(clusterID uuid.UUID) {
 }
 
 // UpdateFilesProgress updates restore "files_{downloaded,skipped,failed}_bytes" metrics.
-func (rm RestoreM) UpdateFilesProgress(clusterID uuid.UUID, manifestPath, keyspace, table string, downloaded, skipped, failed int64) {
+func (rm RestoreM) UpdateFilesProgress(clusterID uuid.UUID, manifestPath, keyspace, table, host string, downloaded, skipped, failed int64) {
 	l := prometheus.Labels{
 		"cluster":  clusterID.String(),
 		"manifest": manifestPath,
 		"keyspace": keyspace,
 		"table":    table,
+		"host":     host,
 	}
 
 	rm.filesDownloadedBytes.With(l).Add(float64(downloaded))

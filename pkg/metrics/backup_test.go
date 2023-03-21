@@ -59,7 +59,7 @@ func TestRestoreMetrics(t *testing.T) {
 	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
 
 	t.Run("UpdateFilesProgress", func(t *testing.T) {
-		m.Restore.UpdateFilesProgress(c, "m", "k", "t", 10, 5, 3)
+		m.Restore.UpdateFilesProgress(c, "m", "k", "t", "h", 10, 5, 3)
 
 		text := Dump(t, m.Restore.filesDownloadedBytes, m.Restore.filesSkippedBytes, m.Restore.filesFailedBytes)
 
