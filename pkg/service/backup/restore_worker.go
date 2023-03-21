@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -337,7 +338,6 @@ func (w *restoreWorkerTools) clonePrevProgress(ctx context.Context, run *Restore
 			// Do not update the {downloaded,skipped,failed} metrics since they are local to given run.
 			size := pr.Downloaded + pr.Skipped + pr.VersionedProgress
 			w.metrics.UpdateRestoreProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, size)
-			w.metrics.UpdateFilesSize(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, size)
 		}
 
 		if err := q.BindStruct(pr).Exec(); err != nil {

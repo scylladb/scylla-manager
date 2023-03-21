@@ -115,8 +115,6 @@ func (w *tablesWorker) filesMetaRestoreHandler(ctx context.Context, run *Restore
 		w.insertRun(ctx, run)
 
 		w.initBundlePool(ctx, run, fm.Files)
-
-		w.metrics.SetFilesSize(run.ClusterID, run.ManifestPath, run.Keyspace, run.Table, fm.Size)
 		// Set resumed only after all initializations as they depend on knowing
 		// if current table have been processed by the previous run.
 		w.resumed = true
