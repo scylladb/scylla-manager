@@ -8,10 +8,11 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"go.uber.org/atomic"
+
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
-	"go.uber.org/atomic"
 )
 
 type schemaWorker struct {
@@ -120,8 +121,6 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 
 		run.Table = fm.Table
 		run.Keyspace = fm.Keyspace
-
-		w.metrics.SetFilesSize(run.ClusterID, run.ManifestPath, run.Keyspace, run.Table, fm.Size)
 
 		return w.workFunc(ctx, run, target, fm)
 	}

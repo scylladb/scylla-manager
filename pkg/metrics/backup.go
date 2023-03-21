@@ -4,6 +4,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -34,8 +35,6 @@ func NewBackupMetrics() BackupMetrics {
 				"purge_deleted_files", "cluster", "host"),
 		},
 		Restore: RestoreM{
-			filesSizeBytes: gr("Total size of restore files in bytes.",
-				"files_size_bytes", "cluster", "manifest", "keyspace", "table"),
 			filesRestoredBytes: gr("Number of bytes restored from downloaded files.",
 				"files_restored_bytes", "cluster", "manifest", "keyspace", "table"),
 			filesDownloadedBytes: gr("Number of bytes downloaded from backup location (local to current restore run).",
@@ -127,7 +126,6 @@ func (bm BackupM) SetPurgeFiles(clusterID uuid.UUID, host string, total, deleted
 
 // RestoreM is the part of BackupMetrics that is only responsible for restore.
 type RestoreM struct {
-	filesSizeBytes       *prometheus.GaugeVec
 	filesRestoredBytes   *prometheus.GaugeVec
 	filesDownloadedBytes *prometheus.GaugeVec
 	filesSkippedBytes    *prometheus.GaugeVec
@@ -136,7 +134,6 @@ type RestoreM struct {
 
 func (rm RestoreM) all() []prometheus.Collector {
 	return []prometheus.Collector{
-		rm.filesSizeBytes,
 		rm.filesRestoredBytes,
 		rm.filesDownloadedBytes,
 		rm.filesSkippedBytes,
@@ -149,30 +146,6 @@ func (rm RestoreM) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range rm.all() {
 		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
 	}
-}
-
-// SetFilesSize sets restore "files_size_bytes" metrics.
-func (rm RestoreM) SetFilesSize(clusterID uuid.UUID, manifestPath, keyspace, table string, size int64) {
-	l := prometheus.Labels{
-		"cluster":  clusterID.String(),
-		"manifest": manifestPath,
-		"keyspace": keyspace,
-		"table":    table,
-	}
-
-	rm.filesSizeBytes.With(l).Set(float64(size))
-}
-
-// UpdateFilesSize updates restore "files_size_bytes" metrics.
-func (rm RestoreM) UpdateFilesSize(clusterID uuid.UUID, manifestPath, keyspace, table string, size int64) {
-	l := prometheus.Labels{
-		"cluster":  clusterID.String(),
-		"manifest": manifestPath,
-		"keyspace": keyspace,
-		"table":    table,
-	}
-
-	rm.filesSizeBytes.With(l).Add(float64(size))
 }
 
 // UpdateFilesProgress updates restore "files_{downloaded,skipped,failed}_bytes" metrics.
