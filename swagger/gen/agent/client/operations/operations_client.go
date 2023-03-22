@@ -45,6 +45,8 @@ type ClientService interface {
 
 	OperationsCheckPermissions(params *OperationsCheckPermissionsParams) (*OperationsCheckPermissionsOK, error)
 
+	OperationsCopyfile(params *OperationsCopyfileParams) (*OperationsCopyfileOK, error)
+
 	OperationsDeletefile(params *OperationsDeletefileParams) (*OperationsDeletefileOK, error)
 
 	OperationsFileInfo(params *OperationsFileInfoParams) (*OperationsFileInfoOK, error)
@@ -413,6 +415,41 @@ func (a *Client) OperationsCheckPermissions(params *OperationsCheckPermissionsPa
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*OperationsCheckPermissionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+OperationsCopyfile copies a file
+
+Copy a file from source remote to destination remote
+*/
+func (a *Client) OperationsCopyfile(params *OperationsCopyfileParams) (*OperationsCopyfileOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewOperationsCopyfileParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "OperationsCopyfile",
+		Method:             "POST",
+		PathPattern:        "/rclone/operations/copyfile",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &OperationsCopyfileReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*OperationsCopyfileOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*OperationsCopyfileDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
