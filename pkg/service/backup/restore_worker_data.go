@@ -337,14 +337,6 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 		// Place hosts with unfinished jobs at the beginning
 		cb := func(pr *RestoreRunProgress) {
 			if !validateTimeIsSet(pr.RestoreCompletedAt) {
-				sh, err := w.Client.ShardCount(ctx, pr.Host)
-				if err != nil {
-					w.Logger.Info(ctx, "Couldn't get host shard count",
-						"host", pr.Host,
-						"error", err,
-					)
-					return
-				}
 				// Pointer cannot be stored directly because it is overwritten in each
 				// iteration of ForEachTableProgress.
 				ongoing := *pr
@@ -356,7 +348,6 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 				}
 				w.hosts = append(w.hosts, restoreHost{
 					Host:               pr.Host,
-					Shards:             sh,
 					OngoingRunProgress: &ongoing,
 				})
 
@@ -370,18 +361,8 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	// Place free hosts in the pool
 	for _, n := range checkedNodes {
 		if !hostsInPool.Has(n.Addr) {
-			sh, err := w.Client.ShardCount(ctx, n.Addr)
-			if err != nil {
-				w.Logger.Info(ctx, "Couldn't get host shard count",
-					"host", n.Addr,
-					"error", err,
-				)
-				continue
-			}
-
 			w.hosts = append(w.hosts, restoreHost{
-				Host:   n.Addr,
-				Shards: sh,
+				Host: n.Addr,
 			})
 
 			hostsInPool.Add(n.Addr)
@@ -488,7 +469,7 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
-	takenIDs := w.chooseIDsForBatch(ctx, h.Shards, target.BatchSize)
+	takenIDs := w.chooseIDsForBatch(ctx, target.BatchSize)
 	if ctx.Err() != nil {
 		w.returnBatchToPool(takenIDs)
 		return nil, ctx.Err()
@@ -613,17 +594,14 @@ func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir 
 }
 
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
-func (w *restoreWorker) chooseIDsForBatch(ctx context.Context, shards uint, size int) []string {
-	var (
-		batchSize = size * int(shards)
-		takenIDs  []string
-	)
+func (w *restoreWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
+	var takenIDs []string
 
 	// All restore hosts are trying to get IDs for batch from the pool.
 	// Pool is closed after the whole table has been restored.
 
 	// Take at most batchSize IDs
-	for i := 0; i < batchSize; i++ {
+	for i := 0; i < size; i++ {
 		select {
 		case <-ctx.Done():
 			return takenIDs
