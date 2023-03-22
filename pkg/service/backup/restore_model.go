@@ -9,6 +9,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -29,7 +30,7 @@ type RestoreTarget struct {
 func defaultRestoreTarget() RestoreTarget {
 	return RestoreTarget{
 		BatchSize: 2,
-		Parallel:  1,
+		Parallel:  0,
 		Continue:  true,
 	}
 }
@@ -46,8 +47,8 @@ func (t RestoreTarget) validateProperties() error {
 	if t.BatchSize <= 0 {
 		return errors.New("batch size param has to be greater than zero")
 	}
-	if t.Parallel <= 0 {
-		return errors.New("parallel param has to be greater than zero")
+	if t.Parallel < 0 {
+		return errors.New("parallel param has to be greater or equal to zero")
 	}
 	if t.RestoreSchema == t.RestoreTables {
 		return errors.New("choose EXACTLY ONE restore type ('--restore-schema' or '--restore-tables' flag)")
