@@ -149,6 +149,18 @@ func rcloneDefaultGroup(jobID int64) string {
 // Remote path format is "name:bucket/path".
 // Both dstRemotePath and srRemotePath must point to a file.
 func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRemotePath string) error {
+	return c.rcloneMoveOrCopyFile(ctx, host, dstRemotePath, srcRemotePath, true)
+}
+
+// RcloneCopyFile copies file from srcRemotePath to dstRemotePath.
+// Remotes need to be registered with the server first.
+// Remote path format is "name:bucket/path".
+// Both dstRemotePath and srRemotePath must point to a file.
+func (c *Client) RcloneCopyFile(ctx context.Context, host, dstRemotePath, srcRemotePath string) error {
+	return c.rcloneMoveOrCopyFile(ctx, host, dstRemotePath, srcRemotePath, false)
+}
+
+func (c *Client) rcloneMoveOrCopyFile(ctx context.Context, host, dstRemotePath, srcRemotePath string, doMove bool) error {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return err
@@ -157,16 +169,31 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRem
 	if err != nil {
 		return err
 	}
-	p := operations.OperationsMovefileParams{
-		Context: forceHost(ctx, host),
-		Options: &models.MoveOrCopyFileOptions{
-			DstFs:     dstFs,
-			DstRemote: dstRemote,
-			SrcFs:     srcFs,
-			SrcRemote: srcRemote,
-		},
+
+	if doMove {
+		p := operations.OperationsMovefileParams{
+			Context: forceHost(ctx, host),
+			Options: &models.MoveOrCopyFileOptions{
+				DstFs:     dstFs,
+				DstRemote: dstRemote,
+				SrcFs:     srcFs,
+				SrcRemote: srcRemote,
+			},
+		}
+		_, err = c.agentOps.OperationsMovefile(&p)
+	} else {
+		p := operations.OperationsCopyfileParams{
+			Context: forceHost(ctx, host),
+			Options: &models.MoveOrCopyFileOptions{
+				DstFs:     dstFs,
+				DstRemote: dstRemote,
+				SrcFs:     srcFs,
+				SrcRemote: srcRemote,
+			},
+		}
+		_, err = c.agentOps.OperationsCopyfile(&p)
 	}
-	_, err = c.agentOps.OperationsMovefile(&p)
+
 	return err
 }
 
