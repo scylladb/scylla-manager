@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -19,7 +20,6 @@ import (
 // If set, OngoingRunProgress represents unfinished RestoreRunProgress created in previous run.
 type restoreHost struct {
 	Host               string
-	Shards             uint
 	OngoingRunProgress *RestoreRunProgress
 }
 
