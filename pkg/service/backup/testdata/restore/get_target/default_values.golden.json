@@ -8,7 +8,7 @@
   ],
   "snapshot_tag": "sm_20060102150405UTC",
   "batch_size": 2,
-  "parallel": 1,
+  "parallel": 0,
   "restore_tables": true,
   "continue": true
 }

@@ -141,7 +141,7 @@ func TestRestoreGetTargetIntegration(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
-				t.Fatal(diff)
+				t.Fatal(tc.golden, diff)
 			}
 		})
 	}

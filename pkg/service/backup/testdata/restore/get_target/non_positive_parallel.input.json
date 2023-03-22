@@ -3,6 +3,6 @@
     "s3:restoretest-get-target"
   ],
   "snapshot_tag": "sm_20060102150405UTC",
-  "parallel": 0,
+  "parallel": -1,
   "restore_tables": true
 }
