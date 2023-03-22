@@ -490,7 +490,7 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
-	takenIDs := w.chooseIDsForBatch(ctx, h.Shards, target.BatchSize)
+	takenIDs := w.chooseIDsForBatch(ctx, target.BatchSize)
 	if ctx.Err() != nil {
 		w.returnBatchToPool(takenIDs)
 		return nil, ctx.Err()
@@ -622,9 +622,9 @@ func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir 
 }
 
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
-func (w *restoreWorker) chooseIDsForBatch(ctx context.Context, shards uint, size int) []string {
+func (w *restoreWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
 	var (
-		batchSize = size * int(shards)
+		batchSize = size
 		takenIDs  []string
 	)
 
