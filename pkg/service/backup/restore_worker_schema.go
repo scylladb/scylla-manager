@@ -208,7 +208,6 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 			DownloadCompletedAt: &end,
 			Downloaded:          proportionalSize,
 		})
-		w.metrics.UpdateFilesProgress(run.ClusterID, run.ManifestPath, run.Keyspace, run.Table, proportionalSize, 0, 0)
 
 		return nil
 	})
