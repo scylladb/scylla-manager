@@ -12,11 +12,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"go.uber.org/atomic"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"go.uber.org/atomic"
 )
 
 // restoreData restores files from every location specified in restore target.
@@ -182,6 +183,13 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 	)
 
 	ctr := w.newCounter()
+	if ctr.RestoreTables(0) == 0 {
+		w.Logger.Info(ctx, "Table does not have any more SSTables to restore",
+			"keyspace", fm.Keyspace,
+			"table", fm.Table,
+		)
+		return nil
+	}
 	if err = w.initVersionedFiles(ctx, srcDir); err != nil {
 		return err
 	}
