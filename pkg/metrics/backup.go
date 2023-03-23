@@ -45,6 +45,8 @@ func NewBackupMetrics() BackupMetrics {
 			filesFailedBytes: gr("Number of bytes failed to download from backup location (local to current restore run).",
 				"files_failed_bytes", "cluster", "manifest", "keyspace", "table"),
 			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
+			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
+				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
 		},
 	}
 }
@@ -133,6 +135,7 @@ type RestoreM struct {
 	filesSkippedBytes    *prometheus.GaugeVec
 	filesFailedBytes     *prometheus.GaugeVec
 	batchSize            *prometheus.GaugeVec
+	remainingBytes       *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
@@ -142,6 +145,7 @@ func (rm RestoreM) all() []prometheus.Collector {
 		rm.filesSkippedBytes,
 		rm.filesFailedBytes,
 		rm.batchSize,
+		rm.remainingBytes,
 	}
 }
 
@@ -196,4 +200,36 @@ func (rm RestoreM) DecreaseBatchSize(clusterID uuid.UUID, host string, size int6
 	}
 
 	rm.batchSize.With(l).Sub(float64(size))
+}
+
+// SetRemainingBytes sets restore "remaining_bytes" metric.
+func (rm RestoreM) SetRemainingBytes(clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
+	dc, node, keyspace, table string, remainingBytes int64,
+) {
+	l := prometheus.Labels{
+		"cluster":      clusterID.String(),
+		"snapshot_tag": snapshotTag,
+		"location":     location.String(),
+		"dc":           dc,
+		"node":         node,
+		"keyspace":     keyspace,
+		"table":        table,
+	}
+	rm.remainingBytes.With(l).Set(float64(remainingBytes))
+}
+
+// DecreaseRemainingBytes decreases restore "remaining_bytes" metric.
+func (rm RestoreM) DecreaseRemainingBytes(clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
+	dc, node, keyspace, table string, restoredBytes int64,
+) {
+	l := prometheus.Labels{
+		"cluster":      clusterID.String(),
+		"snapshot_tag": snapshotTag,
+		"location":     location.String(),
+		"dc":           dc,
+		"node":         node,
+		"keyspace":     keyspace,
+		"table":        table,
+	}
+	rm.remainingBytes.With(l).Sub(float64(restoredBytes))
 }
