@@ -9,10 +9,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"go.uber.org/atomic"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"go.uber.org/atomic"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // restoreHost represents host that can be used for restoring files.
@@ -381,6 +383,8 @@ func (w *tablesWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRun
 	}
 	// Recreate rclone job
 	batch := w.batchFromIDs(pr.SSTableID)
+	w.updateBatchSizeMetric(ctx, pr.ClusterID, batch, pr.Host, srcDir)
+
 	if err := w.cleanUploadDir(ctx, pr.Host, dstDir, batch); err != nil {
 		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", err)
 	}
@@ -424,6 +428,8 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, targ
 	)
 
 	batch := w.batchFromIDs(takenIDs)
+	w.updateBatchSizeMetric(ctx, run.ClusterID, batch, h.Host, srcDir)
+
 	if err := w.cleanUploadDir(ctx, h.Host, dstDir, nil); err != nil {
 		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", err)
 	}
@@ -451,6 +457,18 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, targ
 	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.VersionedProgress, 0, 0)
 
 	return pr, nil
+}
+
+func (w *tablesWorker) updateBatchSizeMetric(ctx context.Context, clusterID uuid.UUID, batch []string, host, srcDir string) {
+	var batchSize int64
+	for _, file := range batch {
+		fi, err := w.Client.RcloneFileInfo(ctx, host, srcDir+"/"+file)
+		if err != nil {
+			w.Logger.Error(ctx, "Failed to check file size", "err", err)
+		}
+		batchSize += fi.Size
+	}
+	w.metrics.UpdateBatchSize(clusterID, host, batchSize)
 }
 
 // startDownload creates rclone job responsible for downloading batch of SSTables.
