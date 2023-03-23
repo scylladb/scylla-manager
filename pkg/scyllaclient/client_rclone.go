@@ -175,8 +175,9 @@ func (c *Client) RcloneMoveFile(ctx context.Context, host, dstRemotePath, srcRem
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
-func (c *Client) RcloneMoveDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
-	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, true)
+// If specified, a suffix will be added to otherwise overwritten or deleted files.
+func (c *Client) RcloneMoveDir(ctx context.Context, host, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, true, suffix)
 }
 
 // RcloneCopyDir copies contents of the directory pointed by srcRemotePath to
@@ -184,11 +185,12 @@ func (c *Client) RcloneMoveDir(ctx context.Context, host, dstRemotePath, srcRemo
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
-func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string) (int64, error) {
-	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, false)
+// If specified, a suffix will be added to otherwise overwritten or deleted files.
+func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, false, suffix)
 }
 
-func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string, doMove bool) (int64, error) {
+func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string, doMove bool, suffix string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return 0, err
@@ -202,6 +204,7 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, s
 		DstRemote: dstRemote,
 		SrcFs:     srcFs,
 		SrcRemote: srcRemote,
+		Suffix:    suffix,
 	}
 
 	var jobID int64
