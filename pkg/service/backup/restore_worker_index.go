@@ -183,7 +183,9 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
 
-			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.Downloaded+pr.Skipped)
+			restoredBytes := pr.Downloaded + pr.Skipped + pr.VersionedProgress
+			w.metrics.DecreaseRemainingBytes(w.ClusterID, target.SnapshotTag, w.location, w.miwc.DC, w.miwc.NodeID,
+				pr.Keyspace, pr.Table, restoredBytes)
 
 			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.
