@@ -25,6 +25,7 @@ import (
 // restoreData restores files from every location specified in restore target.
 func (w *restoreWorker) restoreData(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	w.initRemainingBytesMetric(ctx, run, target)
 
 	for _, w.location = range target.Location {
 		w.Logger.Info(ctx, "Restoring location", "location", w.location)
@@ -57,6 +58,28 @@ func (w *restoreWorker) restoreData(ctx context.Context, run *RestoreRun, target
 	w.Logger.Info(ctx, "Restoring data finished")
 
 	return nil
+}
+
+func (w *restoreWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
+	for _, location := range target.Location {
+		var restorePerLocationDataSize int64
+		err := w.forEachRestoredManifest(
+			ctx,
+			location,
+			func(miwc ManifestInfoWithContent) error {
+				return miwc.ForEachIndexIterWithError(
+					target.Keyspace,
+					func(fm FilesMeta) error {
+						restorePerLocationDataSize += fm.Size
+						return nil
+					})
+			})
+		if err != nil {
+			w.Logger.Info(ctx, "Couldn't count restore data size", "location", w.location)
+			continue
+		}
+		w.metrics.SetRemainingBytes(run.ClusterID, location, target.SnapshotTag, target.Keyspace, restorePerLocationDataSize)
+	}
 }
 
 // restoreFiles returns function that restores files from manifest's table.
@@ -260,7 +283,9 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
 
-			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.Downloaded+pr.Skipped)
+			restoredBytes := pr.Downloaded + pr.Skipped
+			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, restoredBytes)
+			w.metrics.DecreaseRemainingBytes(w.ClusterID, w.location, w.SnapshotTag, target.Keyspace, restoredBytes)
 
 			w.Logger.Info(ctx, "Restored batch",
 				"host", h.Host,
