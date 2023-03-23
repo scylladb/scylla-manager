@@ -47,6 +47,7 @@ func NewBackupMetrics() BackupMetrics {
 			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
+			state: gr("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
 		},
 	}
 }
@@ -136,6 +137,7 @@ type RestoreM struct {
 	filesFailedBytes     *prometheus.GaugeVec
 	batchSize            *prometheus.GaugeVec
 	remainingBytes       *prometheus.GaugeVec
+	state                *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
@@ -146,6 +148,7 @@ func (rm RestoreM) all() []prometheus.Collector {
 		rm.filesFailedBytes,
 		rm.batchSize,
 		rm.remainingBytes,
+		rm.state,
 	}
 }
 
@@ -232,4 +235,29 @@ func (rm RestoreM) DecreaseRemainingBytes(clusterID uuid.UUID, snapshotTag strin
 		"table":        table,
 	}
 	rm.remainingBytes.With(l).Sub(float64(restoredBytes))
+}
+
+// RestoreState is the enum that defines how node is used during the restore.
+type RestoreState int
+
+const (
+	// RestoreStateIdle defines idle state.
+	RestoreStateIdle RestoreState = iota
+	// RestoreStateDownloading means that node is downloading data from backup location.
+	RestoreStateDownloading
+	// RestoreStateLoading means that node is calling load&stream.
+	RestoreStateLoading
+	// RestoreStateError means that node ended up with error.
+	RestoreStateError
+)
+
+// SetRestoreState sets restore "state" metric.
+func (rm RestoreM) SetRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state RestoreState) {
+	l := prometheus.Labels{
+		"cluster":      clusterID.String(),
+		"location":     location.String(),
+		"snapshot_tag": snapshotTag,
+		"host":         host,
+	}
+	rm.state.With(l).Set(float64(state))
 }

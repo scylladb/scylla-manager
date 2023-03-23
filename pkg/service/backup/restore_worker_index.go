@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -124,11 +125,20 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 	// for creating and downloading batches.
 	// Goroutine returns only in case of error or
 	// if the whole table has been restored.
-	return parallel.Run(len(w.hosts), target.Parallel, func(n int) error {
+	return parallel.Run(len(w.hosts), target.Parallel, func(n int) (err error) {
 		// Current goroutine's host
 		h := &w.hosts[n]
+		defer func() {
+			if err != nil {
+				w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateError)
+				return
+			}
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
+		}()
 		for {
 			pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
+			w.metrics.SetRestoreState(w.ClusterID, w.location, w.miwc.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
+
 			if ctx.Err() != nil {
 				w.Logger.Info(ctx, "Canceled context", "host", h.Host)
 				return parallel.Abort(ctx.Err())
@@ -160,6 +170,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					return errors.Wrapf(err, "wait on rclone job, id: %d, host: %s", pr.AgentJobID, h.Host)
 				}
 			}
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateLoading)
 
 			if !validateTimeIsSet(pr.RestoreStartedAt) {
 				pr.setRestoreStartedAt()
@@ -179,6 +190,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 
 				return errors.Wrapf(err, "call load and stream, host: %s", h.Host)
 			}
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
 
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
