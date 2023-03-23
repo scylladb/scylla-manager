@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
 )
 
@@ -36,6 +37,7 @@ type indexWorker struct {
 	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
 	// that should be used during the restore procedure. It should be initialized per each restored table.
 	versionedFiles VersionedMap
+	fileSizesCache map[string]int64
 }
 
 func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
@@ -83,7 +85,7 @@ func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreR
 
 // workFunc is responsible for creating and restoring batches on multiple hosts (possibly in parallel).
 // It requires previous initialization of restore worker components.
-func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error {
+func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error { // nolint: gocognit
 	version, err := w.GetTableVersion(ctx, fm.Keyspace, fm.Table)
 	if err != nil {
 		return err
@@ -113,6 +115,11 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
+	w.fileSizesCache, err = buildFilesSizesCache(ctx, w.Client, w.hosts[0].Host, srcDir, w.versionedFiles)
+	if err != nil {
+		return errors.Wrap(err, "build files sizes cache")
+	}
+
 	// Every host has its personal goroutine which is responsible
 	// for creating and downloading batches.
 	// Goroutine returns only in case of error or
@@ -145,7 +152,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					// As run progress could have already been inserted
 					// into the database, it should be deleted.
 					w.deleteRunProgress(ctx, pr)
-					w.returnBatchToPool(pr.SSTableID)
+					w.returnBatchToPool(pr.SSTableID, h.Host)
 					if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
 						w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
 					}
@@ -165,7 +172,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					return parallel.Abort(ctx.Err())
 				}
 				w.deleteRunProgress(ctx, pr)
-				w.returnBatchToPool(pr.SSTableID)
+				w.returnBatchToPool(pr.SSTableID, h.Host)
 				if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
 					w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
 				}
@@ -261,7 +268,7 @@ func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunP
 	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
 	if err != nil {
 		w.deleteRunProgress(ctx, pr)
-		w.returnBatchToPool(pr.SSTableID)
+		w.returnBatchToPool(pr.SSTableID, pr.Host)
 		return err
 	}
 
@@ -282,9 +289,9 @@ func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, targe
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
-	takenIDs := w.chooseIDsForBatch(ctx, target.BatchSize)
+	takenIDs := w.chooseIDsForBatch(ctx, target.BatchSize, h.Host)
 	if ctx.Err() != nil {
-		w.returnBatchToPool(takenIDs)
+		w.returnBatchToPool(takenIDs, h.Host)
 		return nil, ctx.Err()
 	}
 	if takenIDs == nil {
@@ -303,7 +310,7 @@ func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, targe
 
 	jobID, versionedPr, err := w.startDownload(ctx, h.Host, dstDir, srcDir, batch)
 	if err != nil {
-		w.returnBatchToPool(takenIDs)
+		w.returnBatchToPool(takenIDs, h.Host)
 		return nil, err
 	}
 
@@ -324,6 +331,22 @@ func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, targe
 	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.VersionedProgress, 0, 0)
 
 	return pr, nil
+}
+
+func (w *indexWorker) countBatchSize(batch []string) int64 {
+	var batchSize int64
+	for _, file := range batch {
+		batchSize += w.fileSizesCache[file]
+	}
+	return batchSize
+}
+
+func (w *indexWorker) increaseBatchSizeMetric(clusterID uuid.UUID, batch []string, host string) {
+	w.metrics.IncreaseBatchSize(clusterID, host, w.countBatchSize(batch))
+}
+
+func (w *indexWorker) decreaseBatchSizeMetric(clusterID uuid.UUID, batch []string, host string) {
+	w.metrics.DecreaseBatchSize(clusterID, host, w.countBatchSize(batch))
 }
 
 // startDownload creates rclone job responsible for downloading batch of SSTables.
@@ -389,8 +412,10 @@ func (w *indexWorker) startDownload(ctx context.Context, host, dstDir, srcDir st
 }
 
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
-func (w *indexWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
-	var takenIDs []string
+func (w *indexWorker) chooseIDsForBatch(ctx context.Context, size int, host string) (takenIDs []string) {
+	defer func() {
+		w.increaseBatchSizeMetric(w.ClusterID, w.batchFromIDs(takenIDs), host)
+	}()
 
 	// All restore hosts are trying to get IDs for batch from the pool.
 	// Pool is closed after the whole table has been restored.
@@ -570,7 +595,11 @@ func (w *indexWorker) batchFromIDs(ids []string) []string {
 	return batch
 }
 
-func (w *indexWorker) returnBatchToPool(ids []string) {
+func (w *indexWorker) returnBatchToPool(ids []string, host string) {
+	defer func() {
+		w.decreaseBatchSizeMetric(w.ClusterID, w.batchFromIDs(ids), host)
+	}()
+
 	for _, id := range ids {
 		w.bundleIDPool <- id
 	}
