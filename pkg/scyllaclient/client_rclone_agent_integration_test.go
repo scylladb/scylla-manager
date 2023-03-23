@@ -58,7 +58,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 		}
 	}
 
-	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy")
+	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		}
 	}()
 
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
 	if err != nil {
 		t.Fatal(err)
 	}
