@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"go.uber.org/atomic"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -214,11 +215,21 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 	// for creating and downloading batches.
 	// Goroutine returns only in case of error or
 	// if the whole table has been restored.
-	return parallel.Run(len(w.hosts), target.Parallel, func(n int) error {
+	return parallel.Run(len(w.hosts), target.Parallel, func(n int) (err error) {
 		// Current goroutine's host
 		h := &w.hosts[n]
+		defer func() {
+			if err != nil {
+				w.metrics.SetRestoreState(run.ClusterID, w.location, w.SnapshotTag, h.Host, metrics.RestoreStateError)
+				return
+			}
+			w.metrics.SetRestoreState(run.ClusterID, w.location, w.SnapshotTag, h.Host, metrics.RestoreStateIdle)
+		}()
+
 		for {
 			pr, err := func() (*RestoreRunProgress, error) {
+				w.metrics.SetRestoreState(run.ClusterID, w.location, w.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
+
 				pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
 				if ctx.Err() != nil {
 					w.Logger.Info(ctx, "Canceled context", "host", h.Host)
@@ -262,6 +273,7 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 			}
 
 			w.Logger.Info(ctx, "Call load and stream", "host", h.Host)
+			w.metrics.SetRestoreState(run.ClusterID, w.location, w.SnapshotTag, h.Host, metrics.RestoreStateLoading)
 
 			if !validateTimeIsSet(pr.RestoreStartedAt) {
 				pr.setRestoreStartedAt()
