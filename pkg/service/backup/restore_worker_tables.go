@@ -213,8 +213,6 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		}()
 
 		for {
-			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
-
 			pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
 			if ctx.Err() != nil {
 				w.Logger.Info(ctx, "Canceled context", "host", h.Host)
@@ -269,6 +267,7 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 
 				return errors.Wrapf(err, "call load and stream, host: %s", h.Host)
 			}
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
 
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
@@ -558,6 +557,8 @@ func (w *tablesWorker) startDownload(ctx context.Context, host, dstDir, srcDir s
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}
+
+	w.metrics.SetRestoreState(w.ClusterID, w.location, w.miwc.SnapshotTag, host, metrics.RestoreStateDownloading)
 
 	w.Logger.Info(ctx, "Started downloading files",
 		"host", host,
