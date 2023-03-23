@@ -290,8 +290,6 @@ func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunP
 	pr.VersionedProgress = versionedPr
 
 	w.insertRunProgress(ctx, pr)
-	// Treat versioned progress as skipped as those files had to be downloaded during previous run
-	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, 0, pr.VersionedProgress, 0)
 
 	return nil
 }
@@ -342,8 +340,6 @@ func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, targe
 	}
 
 	w.insertRunProgress(ctx, pr)
-	w.metrics.UpdateFilesProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.VersionedProgress, 0, 0)
-
 	return pr, nil
 }
 
@@ -532,19 +528,10 @@ func (w *indexWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRun
 		pr.DownloadCompletedAt = &t
 	}
 
-	var (
-		deltaDownloaded = job.Uploaded - pr.Downloaded
-		deltaSkipped    = job.Skipped - pr.Skipped
-		deltaFailed     = job.Failed - pr.Failed
-	)
-
 	pr.Error = job.Error
 	pr.Downloaded = job.Uploaded
 	pr.Skipped = job.Skipped
 	pr.Failed = job.Failed
-
-	w.metrics.UpdateFilesProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table,
-		deltaDownloaded, deltaSkipped, deltaFailed)
 
 	w.insertRunProgress(ctx, pr)
 }
