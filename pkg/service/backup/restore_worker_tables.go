@@ -39,6 +39,7 @@ type tablesWorker struct {
 // restoreData restores files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	w.initRemainingBytesMetric(ctx, run, target)
 
 	w.Logger.Info(ctx, "Started restoring tables")
 	defer w.Logger.Info(ctx, "Restoring tables finished")
@@ -97,6 +98,28 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 	}
 
 	return w.forEachRestoredManifest(ctx, w.location, manifestHandler)
+}
+
+func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
+	for _, location := range target.Location {
+		var restorePerLocationDataSize int64
+		err := w.forEachRestoredManifest(
+			ctx,
+			location,
+			func(miwc ManifestInfoWithContent) error {
+				return miwc.ForEachIndexIterWithError(
+					target.Keyspace,
+					func(fm FilesMeta) error {
+						restorePerLocationDataSize += fm.Size
+						return nil
+					})
+			})
+		if err != nil {
+			w.Logger.Info(ctx, "Couldn't count restore data size", "location", w.location)
+			continue
+		}
+		w.metrics.SetRemainingBytes(run.ClusterID, location, target.SnapshotTag, target.Keyspace, restorePerLocationDataSize)
+	}
 }
 
 func (w *tablesWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
@@ -236,7 +259,9 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
 
-			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.Downloaded+pr.Skipped)
+			restoredBytes := pr.Downloaded + pr.Skipped
+			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, restoredBytes)
+			w.metrics.DecreaseRemainingBytes(w.ClusterID, w.location, w.SnapshotTag, target.Keyspace, restoredBytes)
 
 			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.
