@@ -1,9 +1,0 @@
-# HELP scylla_manager_restore_files_downloaded_bytes Number of bytes downloaded from backup location (local to current restore run).
-# TYPE scylla_manager_restore_files_downloaded_bytes gauge
-scylla_manager_restore_files_downloaded_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",keyspace="k",manifest="m",table="t"} 10
-# HELP scylla_manager_restore_files_failed_bytes Number of bytes failed to download from backup location (local to current restore run).
-# TYPE scylla_manager_restore_files_failed_bytes gauge
-scylla_manager_restore_files_failed_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",keyspace="k",manifest="m",table="t"} 3
-# HELP scylla_manager_restore_files_skipped_bytes Number of deduplicated bytes already downloaded from backup location (local to current restore run).
-# TYPE scylla_manager_restore_files_skipped_bytes gauge
-scylla_manager_restore_files_skipped_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",keyspace="k",manifest="m",table="t"} 5
