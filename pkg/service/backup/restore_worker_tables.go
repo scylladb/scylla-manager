@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"go.uber.org/atomic"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -200,10 +201,20 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 	// for creating and downloading batches.
 	// Goroutine returns only in case of error or
 	// if the whole table has been restored.
-	return parallel.Run(len(w.hosts), target.Parallel, func(n int) error {
+	return parallel.Run(len(w.hosts), target.Parallel, func(n int) (err error) {
 		// Current goroutine's host
 		h := &w.hosts[n]
+		defer func() {
+			if err != nil {
+				w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateError)
+				return
+			}
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
+		}()
+
 		for {
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
+
 			pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
 			if ctx.Err() != nil {
 				w.Logger.Info(ctx, "Canceled context", "host", h.Host)
@@ -237,6 +248,9 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 				}
 			}
 
+			w.Logger.Info(ctx, "Call load and stream", "host", h.Host)
+			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateLoading)
+
 			if !validateTimeIsSet(pr.RestoreStartedAt) {
 				pr.setRestoreStartedAt()
 				w.insertRunProgress(ctx, pr)
@@ -261,7 +275,7 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 
 			restoredBytes := pr.Downloaded + pr.Skipped
 			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, restoredBytes)
-			w.metrics.DecreaseRemainingBytes(w.ClusterID, w.location, w.SnapshotTag, target.Keyspace, restoredBytes)
+			w.metrics.DecreaseRemainingBytes(w.ClusterID, w.location, target.SnapshotTag, target.Keyspace, restoredBytes)
 
 			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.
