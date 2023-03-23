@@ -5,6 +5,7 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -43,6 +44,7 @@ func NewBackupMetrics() BackupMetrics {
 				"files_skipped_bytes", "cluster", "manifest", "keyspace", "table"),
 			filesFailedBytes: gr("Number of bytes failed to download from backup location (local to current restore run).",
 				"files_failed_bytes", "cluster", "manifest", "keyspace", "table"),
+			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 		},
 	}
 }
@@ -130,6 +132,7 @@ type RestoreM struct {
 	filesDownloadedBytes *prometheus.GaugeVec
 	filesSkippedBytes    *prometheus.GaugeVec
 	filesFailedBytes     *prometheus.GaugeVec
+	batchSize            *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
@@ -138,6 +141,7 @@ func (rm RestoreM) all() []prometheus.Collector {
 		rm.filesDownloadedBytes,
 		rm.filesSkippedBytes,
 		rm.filesFailedBytes,
+		rm.batchSize,
 	}
 }
 
@@ -172,4 +176,24 @@ func (rm RestoreM) UpdateRestoreProgress(clusterID uuid.UUID, manifestPath, keys
 	}
 
 	rm.filesRestoredBytes.With(l).Add(float64(restored))
+}
+
+// IncreaseBatchSize updates restore "batch_size" metrics.
+func (rm RestoreM) IncreaseBatchSize(clusterID uuid.UUID, host string, size int64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+
+	rm.batchSize.With(l).Add(float64(size))
+}
+
+// DecreaseBatchSize updates restore "batch_size" metrics.
+func (rm RestoreM) DecreaseBatchSize(clusterID uuid.UUID, host string, size int64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+
+	rm.batchSize.With(l).Sub(float64(size))
 }
