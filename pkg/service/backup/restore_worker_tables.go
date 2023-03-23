@@ -18,6 +18,9 @@ type tablesWorker struct {
 // restoreData restores files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	if !w.resumed {
+		w.initRemainingBytesMetric(ctx, run, target)
+	}
 
 	w.Logger.Info(ctx, "Started restoring tables")
 	defer w.Logger.Info(ctx, "Restoring tables finished")
@@ -149,10 +152,40 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	}
 
 	w.Logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
-
 	return nil
 }
 
 func (w *tablesWorker) startFromScratch() {
 	w.resumed = true
+}
+
+func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
+	for _, location := range target.Location {
+		err := w.forEachRestoredManifest(
+			ctx,
+			location,
+			func(miwc backupspec.ManifestInfoWithContent) error {
+				sizePerTableAndKeyspace := make(map[string]map[string]int64)
+				err := miwc.ForEachIndexIterWithError(
+					target.Keyspace,
+					func(fm backupspec.FilesMeta) error {
+						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
+							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
+						}
+						sizePerTableAndKeyspace[fm.Keyspace][fm.Table] += fm.Size
+						return nil
+					})
+				for kspace, sizePerTable := range sizePerTableAndKeyspace {
+					for table, size := range sizePerTable {
+						w.metrics.SetRemainingBytes(run.ClusterID, target.SnapshotTag, location, miwc.DC, miwc.NodeID,
+							kspace, table, size)
+					}
+				}
+				return err
+			})
+		if err != nil {
+			w.Logger.Info(ctx, "Couldn't count restore data size", "location", w.location)
+			continue
+		}
+	}
 }
