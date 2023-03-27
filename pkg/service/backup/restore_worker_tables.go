@@ -103,23 +103,32 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 
 func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
 	for _, location := range target.Location {
-		var restorePerLocationDataSize int64
 		err := w.forEachRestoredManifest(
 			ctx,
 			location,
 			func(miwc ManifestInfoWithContent) error {
-				return miwc.ForEachIndexIterWithError(
+				sizePerTableAndKeyspace := make(map[string]map[string]int64)
+				err := miwc.ForEachIndexIterWithError(
 					target.Keyspace,
 					func(fm FilesMeta) error {
-						restorePerLocationDataSize += fm.Size
+						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
+							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
+						}
+						sizePerTableAndKeyspace[fm.Keyspace][fm.Table] += fm.Size
 						return nil
 					})
+				for kspace, sizePerTable := range sizePerTableAndKeyspace {
+					for table, size := range sizePerTable {
+						w.metrics.SetRemainingBytes(run.ClusterID, target.SnapshotTag, location, miwc.DC, miwc.NodeID,
+							kspace, table, size)
+					}
+				}
+				return err
 			})
 		if err != nil {
 			w.Logger.Info(ctx, "Couldn't count restore data size", "location", w.location)
 			continue
 		}
-		w.metrics.SetRemainingBytes(run.ClusterID, location, target.SnapshotTag, target.Keyspace, restorePerLocationDataSize)
 	}
 }
 
@@ -274,7 +283,8 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 
 			restoredBytes := pr.Downloaded + pr.Skipped
 			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, restoredBytes)
-			w.metrics.DecreaseRemainingBytes(w.ClusterID, w.location, target.SnapshotTag, target.Keyspace, restoredBytes)
+			w.metrics.DecreaseRemainingBytes(w.ClusterID, target.SnapshotTag, w.location, w.miwc.DC, w.miwc.NodeID,
+				pr.Keyspace, pr.Table, restoredBytes)
 
 			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.

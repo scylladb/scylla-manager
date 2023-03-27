@@ -3,8 +3,6 @@
 package metrics
 
 import (
-	"strings"
-
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -40,9 +38,10 @@ func NewBackupMetrics() BackupMetrics {
 		Restore: RestoreM{
 			filesRestoredBytes: gr("Number of bytes restored from downloaded files.",
 				"files_restored_bytes", "cluster", "manifest", "keyspace", "table"),
-			batchSize:      gr("Size of the files batch taken by host.", "batch_size", "cluster", "host"),
-			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes", "cluster", "location", "snapshot_tag", "keyspaces"),
-			state:          gr("Defines current state of the restore process (idle/download/load).", "state", "cluster", "location", "snapshot_tag", "host"),
+			batchSize: gr("Size of the files batch taken by host.", "batch_size", "cluster", "host"),
+			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
+				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
+			state: gr("Defines current state of the restore process (idle/download/load).", "state", "cluster", "location", "snapshot_tag", "host"),
 		},
 	}
 }
@@ -171,23 +170,33 @@ func (rm RestoreM) UpdateBatchSize(clusterID uuid.UUID, host string, size int64)
 }
 
 // SetRemainingBytes sets restore "remaining_bytes" metric.
-func (rm RestoreM) SetRemainingBytes(clusterID uuid.UUID, location backupspec.Location, snapshotTag string, keyspaces []string, remainingBytes int64) {
+func (rm RestoreM) SetRemainingBytes(clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
+	dc, node, keyspace, table string, remainingBytes int64,
+) {
 	l := prometheus.Labels{
 		"cluster":      clusterID.String(),
-		"location":     location.String(),
 		"snapshot_tag": snapshotTag,
-		"keyspaces":    strings.Join(keyspaces, ","),
+		"location":     location.String(),
+		"dc":           dc,
+		"node":         node,
+		"keyspace":     keyspace,
+		"table":        table,
 	}
 	rm.remainingBytes.With(l).Set(float64(remainingBytes))
 }
 
 // DecreaseRemainingBytes decreases restore "remaining_bytes" metric.
-func (rm RestoreM) DecreaseRemainingBytes(clusterID uuid.UUID, location backupspec.Location, snapshotTag string, keyspaces []string, restoredBytes int64) {
+func (rm RestoreM) DecreaseRemainingBytes(clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
+	dc, node, keyspace, table string, restoredBytes int64,
+) {
 	l := prometheus.Labels{
 		"cluster":      clusterID.String(),
-		"location":     location.String(),
 		"snapshot_tag": snapshotTag,
-		"keyspaces":    strings.Join(keyspaces, ","),
+		"location":     location.String(),
+		"dc":           dc,
+		"node":         node,
+		"keyspace":     keyspace,
+		"table":        table,
 	}
 	rm.remainingBytes.With(l).Sub(float64(restoredBytes))
 }
