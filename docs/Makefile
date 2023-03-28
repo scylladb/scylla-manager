@@ -37,6 +37,7 @@ setup:
 .PHONY: pristine
 pristine: clean
 	git clean -dfX
+	rm -f poetry.lock
 
 .PHONY: clean
 clean:

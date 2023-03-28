@@ -28,7 +28,7 @@ returns:
 
 We can see three healthcheck related tasks:
 
-.. include:: _common/health-check-tasks.rst
+.. include:: common/health-check-tasks.rst
 
 .. _scylla-health-check:
 
