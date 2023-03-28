@@ -16,18 +16,18 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
 	github.com/golang/mock v1.4.4
-	github.com/google/go-cmp v0.5.4
+	github.com/google/go-cmp v0.5.5
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hbollon/go-edlib v1.5.0
-	github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go v1.1.11
 	github.com/lnquy/cron v1.1.1
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.8.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.14.0
-	github.com/prometheus/procfs v0.2.0
+	github.com/prometheus/common v0.26.0
+	github.com/prometheus/procfs v0.6.0
 	github.com/rclone/rclone v1.51.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/scylladb/go-log v0.0.7
@@ -46,7 +46,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201112155050-0c6587e931a9
 	golang.org/x/mod v0.4.2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
 	golang.org/x/tools v0.1.5
 	gopkg.in/yaml.v2 v2.3.0
 )
@@ -111,7 +111,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20201028140639-c77dae4b0522 // indirect
 	google.golang.org/grpc v1.33.1 // indirect
-	google.golang.org/protobuf v1.25.0 // indirect
+	google.golang.org/protobuf v1.26.0-rc.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 )
 
