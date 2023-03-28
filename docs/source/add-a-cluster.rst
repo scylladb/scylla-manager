@@ -81,7 +81,7 @@ Add a Cluster
 
    You will see 4 tasks which are created by adding the cluster:
 
-   .. include:: _common/health-check-tasks.rst
+   .. include:: common/health-check-tasks.rst
 
    * Repair - an automated repair task, starting at midnight tonight, repeating every seven days at midnight.
 
