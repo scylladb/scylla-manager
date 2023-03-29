@@ -826,17 +826,26 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 }
 
 // LoadSSTables that are already downloaded to host's table upload directory.
-func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
-	const restoreTimeout = time.Hour
+// Used API endpoint has the following properties:
+// - It is synchronous - response is received only after the loading has finished
+// - It immediately returns an error if called while loading is still happening
+// - It returns nil when called on an empty upload dir
+// Except for the error, LoadSSTables also checks if loading of SSTables is still happening.
+func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) (bool, error) {
+	const WIPError = "Already loading SSTables"
 
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
-		Context:            forceHost(customTimeout(ctx, restoreTimeout), host),
+		Context:            forceHost(ctx, host),
 		Keyspace:           keyspace,
 		Cf:                 table,
 		LoadAndStream:      &loadAndStream,
 		PrimaryReplicaOnly: &primaryReplicaOnly,
 	})
-	return err
+
+	if err != nil && strings.Contains(err.Error(), WIPError) {
+		return true, err
+	}
+	return false, err
 }
 
 // IsAutoCompactionEnabled checks if auto compaction of given table is enabled on the host.
