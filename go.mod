@@ -43,7 +43,7 @@ require (
 	go.uber.org/goleak v1.1.11
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.1.0
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.5.0
