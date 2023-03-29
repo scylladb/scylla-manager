@@ -38,8 +38,8 @@ func DefaultGlobalOptions() GlobalOptions {
 	c.LogLevel = fs.LogLevelDebug
 	// Don't use JSON log format in logging.
 	c.UseJSONLog = false
-	// Skip based on size only, not mod-time or checksum.
-	c.SizeOnly = true
+	// Skip based on size, mod-time and checksum.
+	c.SizeOnly = false
 	// Skip post copy check of checksums.
 	c.IgnoreChecksum = true
 	// Delete even if there are I/O errors.

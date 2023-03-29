@@ -14,9 +14,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"gopkg.in/yaml.v2"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	"gopkg.in/yaml.v2"
 )
 
 func TestParseConfig(t *testing.T) {
@@ -112,11 +113,11 @@ func TestParseConfig(t *testing.T) {
 
 			golden, err := os.ReadFile(test.Golden)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatal(test.Golden, err)
 			}
 
 			if diff := cmp.Diff(buf.Bytes(), golden); diff != "" {
-				t.Fatal(diff)
+				t.Fatal(test.Golden, diff)
 			}
 		})
 	}
