@@ -431,8 +431,6 @@ func (w *tablesWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRun
 	}
 	// Recreate rclone job
 	batch := w.batchFromIDs(pr.SSTableID)
-	w.updateBatchSizeMetric(ctx, pr.ClusterID, batch, pr.Host, srcDir)
-
 	if err := w.cleanUploadDir(ctx, pr.Host, dstDir, batch); err != nil {
 		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", err)
 	}
@@ -444,6 +442,7 @@ func (w *tablesWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRun
 		return err
 	}
 
+	w.updateBatchSizeMetric(ctx, pr.ClusterID, batch, pr.Host, srcDir)
 	pr.AgentJobID = jobID
 	pr.VersionedProgress = versionedPr
 
@@ -474,8 +473,6 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, targ
 	)
 
 	batch := w.batchFromIDs(takenIDs)
-	w.updateBatchSizeMetric(ctx, run.ClusterID, batch, h.Host, srcDir)
-
 	if err := w.cleanUploadDir(ctx, h.Host, dstDir, nil); err != nil {
 		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", err)
 	}
@@ -486,6 +483,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, targ
 		return nil, err
 	}
 
+	w.updateBatchSizeMetric(ctx, run.ClusterID, batch, h.Host, srcDir)
 	pr := &RestoreRunProgress{
 		ClusterID:         run.ClusterID,
 		TaskID:            run.TaskID,
