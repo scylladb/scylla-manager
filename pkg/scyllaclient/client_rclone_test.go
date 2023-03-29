@@ -18,6 +18,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -484,7 +485,7 @@ func TestRclonePut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Same size file is ignored
+	// Same size file, but different content is not ignored
 	if err := putString("olleh"); err != nil {
 		t.Fatal(err)
 	}
@@ -494,8 +495,8 @@ func TestRclonePut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cmp.Diff("hello", string(content)) != "" {
-		t.Fatalf("put/a = %s, expected %s", string(content), "hello")
+	if cmp.Diff("olleh", string(content)) != "" {
+		t.Fatalf("put/a = %s, expected %s", string(content), "olleh")
 	}
 }
 
