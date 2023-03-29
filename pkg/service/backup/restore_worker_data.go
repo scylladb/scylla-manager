@@ -17,7 +17,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 )
 
 // restoreData restores files from every location specified in restore target.
@@ -240,14 +239,12 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 				}
 			}
 
-			w.Logger.Info(ctx, "Call load and stream", "host", h.Host)
-
 			if !validateTimeIsSet(pr.RestoreStartedAt) {
 				pr.setRestoreStartedAt()
 				w.insertRunProgress(ctx, pr)
 			}
 
-			if err = w.restoreSSTables(ctx, h.Host, fm.Keyspace, fm.Table); err != nil {
+			if err = w.restoreSSTables(ctx, h.Host, fm.Keyspace, fm.Table, true, true); err != nil {
 				if ctx.Err() != nil {
 					w.Logger.Info(ctx, "Stop load and stream: canceled context", "host", h.Host)
 					return parallel.Abort(ctx.Err())
@@ -740,37 +737,53 @@ func (w *restoreWorker) updateDownloadProgress(ctx context.Context, pr *RestoreR
 	w.insertRunProgress(ctx, pr)
 }
 
-func (w *restoreWorker) restoreSSTables(ctx context.Context, host, keyspace, tables string) error {
-	const (
-		initialInterval = 15 * time.Second
-		maxInterval     = time.Minute
-		maxElapsedTime  = time.Hour
-		multiplier      = 2
-		jitter          = 0.2
+func (w *restoreWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+	const repeatInterval = 10 * time.Second
+
+	w.Logger.Info(ctx, "Load SSTables for the first time",
+		"host", host,
+		"load_and_stream", loadAndStream,
+		"primary_replica_only", primaryReplicaOnly,
 	)
 
-	backoff := retry.NewExponentialBackoff(
-		initialInterval,
-		maxElapsedTime,
-		maxInterval,
-		multiplier,
-		jitter,
-	)
-
-	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Previous call to load and stream is still running", "wait", wait)
+	running, err := w.Client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+	if err == nil {
+		w.Logger.Info(ctx, "Loading SSTables finished with success", "host", host)
+		return nil
+	}
+	if !running {
+		return err
 	}
 
-	return retry.WithNotify(ctx, func() error {
-		err := w.Client.LoadSSTables(ctx, host, keyspace, tables, true, true)
+	w.Logger.Info(ctx, "Waiting for SSTables loading to finish, retry every 10 seconds",
+		"host", host,
+		"error", err,
+	)
+
+	ticker := time.NewTicker(repeatInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+
+		running, err := w.Client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
 		if err == nil {
+			w.Logger.Info(ctx, "Loading SSTables finished with success", "host", host)
 			return nil
 		}
-		if strings.Contains(err.Error(), "Already loading SSTables") {
-			return errors.New("already loading SSTables")
+		if running {
+			w.Logger.Info(ctx, "Waiting for SSTables loading to finish",
+				"host", host,
+				"error", err,
+			)
+			continue
 		}
-		return retry.Permanent(err)
-	}, backoff, notify)
+		return err
+	}
 }
 
 // cleanUploadDir deletes all SSTables from host's upload directory
