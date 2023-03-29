@@ -46,7 +46,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201112155050-0c6587e931a9
 	golang.org/x/mod v0.4.2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
+	golang.org/x/sys v0.1.0
 	golang.org/x/tools v0.1.5
 	gopkg.in/yaml.v2 v2.3.0
 )
