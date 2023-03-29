@@ -183,6 +183,7 @@ var (
 			"task_id",
 			"id",
 			"keyspace_name",
+			"location",
 			"manifest_path",
 			"prev_id",
 			"snapshot_tag",
