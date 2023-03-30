@@ -4,7 +4,6 @@ package backupspec
 
 import (
 	"path"
-	"sort"
 	"strings"
 	"time"
 )
@@ -28,17 +27,8 @@ func (vt VersionedSSTable) FullName() string {
 	return vt.Name + "." + vt.Version
 }
 
-// VersionedMap maps SSTable name to its versions.
-type VersionedMap map[string][]VersionedSSTable
-
-// SortByTime sorts each file versions by their ascending creation time.
-func (vm VersionedMap) SortByTime() {
-	for _, versions := range vm {
-		sort.Slice(versions, func(i, j int) bool {
-			return versions[i].Version < versions[j].Version
-		})
-	}
-}
+// VersionedMap maps SSTable name to its versions with respect to currently restored snapshot tag.
+type VersionedMap map[string]VersionedSSTable
 
 // VersionedFileExt returns the snapshot tag extension of versioned file.
 // If using alongside with RcloneMoveDir or RcloneCopyDir as suffix option,
