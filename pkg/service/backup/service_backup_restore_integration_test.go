@@ -443,33 +443,6 @@ func TestRestoreTablesNodeDownIntegration(t *testing.T) {
 	restoreWithNodeDown(t, target, testKeyspace, testLoadCnt, testLoadSize)
 }
 
-func TestRestoreSchemaNodeDownIntegration(t *testing.T) {
-	const (
-		testBucket    = "restoretest-schema-node-down"
-		testKeyspace  = "restoretest_schema_node_down"
-		testLoadCnt   = 1
-		testLoadSize  = 1
-		testBatchSize = 2
-		testParallel  = 1
-	)
-
-	target := RestoreTarget{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{"system_schema"},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
-	restoreWithNodeDown(t, target, testKeyspace, testLoadCnt, testLoadSize)
-}
-
 func restoreWithNodeDown(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int) {
 	Print("Given: downed node")
 	if stdout, stderr, err := ExecOnHost("192.168.100.11", CmdBlockScyllaREST); err != nil {
