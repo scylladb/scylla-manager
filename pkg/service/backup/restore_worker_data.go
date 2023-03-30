@@ -4,7 +4,6 @@ package backup
 
 import (
 	"context"
-	"math/rand"
 	"path"
 	"regexp"
 	"strings"
@@ -194,7 +193,7 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 		)
 		return nil
 	}
-	if err = w.initVersionedFiles(ctx, srcDir); err != nil {
+	if err = w.initVersionedFiles(ctx, w.hosts[0].Host, srcDir); err != nil {
 		return err
 	}
 	// Every host has its personal goroutine which is responsible
@@ -374,35 +373,59 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	return nil
 }
 
-// initVersionedFiles gathers information about existing versioned files.
-func (w *restoreWorker) initVersionedFiles(ctx context.Context, dir string) error {
+// initVersionedFiles gathers information about versioned files from specified dir.
+func (w *restoreWorker) initVersionedFiles(ctx context.Context, host, dir string) error {
 	w.versionedFiles = make(VersionedMap)
+	allVersions := make(map[string][]VersionedSSTable)
+
 	opts := &scyllaclient.RcloneListDirOpts{
 		FilesOnly:     true,
 		VersionedOnly: true,
 	}
 	f := func(item *scyllaclient.RcloneListDirItem) {
 		name, version := SplitNameAndVersion(item.Name)
-		w.versionedFiles[name] = append(w.versionedFiles[name], VersionedSSTable{
+		allVersions[name] = append(allVersions[name], VersionedSSTable{
 			Name:    name,
 			Version: version,
 			Size:    item.Size,
 		})
 	}
-	// We can choose any host for remote location listing
-	host := w.hosts[rand.Intn(len(w.hosts))].Host
+
 	if err := w.Client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		w.versionedFiles = nil
 		return errors.Wrapf(err, "host %s: listing versioned SSTables", host)
 	}
-	// Sort by ascending version creation time for easier look-up
-	w.versionedFiles.SortByTime()
 
-	w.Logger.Info(ctx, "Listed versioned SSTables",
-		"host", host,
-		"dir", dir,
-		"versionedSSTables", w.versionedFiles,
-	)
+	restoreT, err := SnapshotTagTime(w.SnapshotTag)
+	if err != nil {
+		return err
+	}
+	// Chose correct version with respect to currently restored snapshot tag
+	for _, versions := range allVersions {
+		var candidate VersionedSSTable
+		for _, v := range versions {
+			tagT, err := SnapshotTagTime(v.Version)
+			if err != nil {
+				return err
+			}
+			if tagT.After(restoreT) {
+				if candidate.Version == "" || v.Version < candidate.Version {
+					candidate = v
+				}
+			}
+		}
+
+		if candidate.Version != "" {
+			w.versionedFiles[candidate.Name] = candidate
+		}
+	}
+
+	if len(w.versionedFiles) > 0 {
+		w.Logger.Info(ctx, "Chosen versioned SSTables",
+			"host", host,
+			"dir", dir,
+			"versionedSSTables", w.versionedFiles,
+		)
+	}
 
 	return nil
 }
@@ -521,34 +544,14 @@ func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir 
 		versionedBatch = make([]VersionedSSTable, 0)
 		versionedPr    int64
 	)
-
-	restoreT, err := SnapshotTagTime(w.SnapshotTag)
-	if err != nil {
-		return 0, 0, err
-	}
 	// Decide which files require to be downloaded in their older version
 	for _, file := range batch {
-		if versions, ok := w.versionedFiles[file]; ok {
-			var match VersionedSSTable
-			for _, v := range versions {
-				t, err := SnapshotTagTime(v.Version)
-				if err != nil {
-					return 0, 0, err
-				}
-				if restoreT.Before(t) {
-					match = v
-					break
-				}
-			}
-
-			if match.Version != "" {
-				versionedBatch = append(versionedBatch, match)
-				versionedPr += match.Size
-				continue
-			}
+		if v, ok := w.versionedFiles[file]; ok {
+			versionedBatch = append(versionedBatch, v)
+			versionedPr += v.Size
+		} else {
+			regularBatch = append(regularBatch, file)
 		}
-
-		regularBatch = append(regularBatch, file)
 	}
 	// Downloading versioned files requires us to rename them (strip version extension)
 	// and function RcloneCopyPaths lacks this option. In order to achieve that, we copy
@@ -556,7 +559,7 @@ func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir 
 	// The assumption is that the existence of versioned files is low and that they
 	// are rather small, so we can do it in a synchronous way.
 	// Copying files can be done in full parallel because of rclone ability to limit transfers.
-	err = parallel.Run(len(versionedBatch), parallel.NoLimit, func(i int) error {
+	err := parallel.Run(len(versionedBatch), parallel.NoLimit, func(i int) error {
 		file := versionedBatch[i]
 		// Restore file without its version extension
 		dst := path.Join(dstDir, file.Name)
