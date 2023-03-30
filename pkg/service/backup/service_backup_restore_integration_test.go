@@ -402,6 +402,12 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0], keyspace)
 
+	pr, err := srcH.service.GetProgress(context.Background(), srcH.clusterID, srcH.taskID, srcH.runID)
+	if err != nil {
+		srcH.t.Fatal(err)
+	}
+	Printf("And: backup progress: %+#v\n", pr)
+
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
 		t.Fatal(err)
@@ -736,6 +742,34 @@ func TestRestoreTablesVersionedIntegration(t *testing.T) {
 	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt)
 }
 
+func TestRestoreSchemaVersionedIntegration(t *testing.T) {
+	const (
+		testBucket    = "restoretest-schema-versioned"
+		testKeyspace  = "restoretest_schema_versioned"
+		testLoadCnt   = 2
+		testLoadSize  = 1
+		testBatchSize = 1
+		testParallel  = 3
+		corruptCnt    = 3
+	)
+
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
+		},
+		Keyspace:      []string{"system_schema"},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreSchema: true,
+	}
+
+	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt)
+}
+
 func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize, corruptCnt int) {
 	var (
 		cfg          = DefaultConfig()
@@ -767,7 +801,17 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 	}
 
 	host := status[0]
-	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.clusterID, host.Datacenter, host.HostID, keyspace, BigTableName))
+	var corruptedKeyspace string
+	var corruptedTable string
+	if target.RestoreTables {
+		corruptedKeyspace = keyspace
+		corruptedTable = BigTableName
+	} else {
+		corruptedKeyspace = "system_schema"
+		corruptedTable = "keyspaces"
+	}
+
+	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.clusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
 		FilesOnly: true,
