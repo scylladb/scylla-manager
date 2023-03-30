@@ -122,7 +122,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 	defer clusterSession.Close()
 
-	w := &restoreWorker{
+	tools := restoreWorkerTools{
 		workerTools: workerTools{
 			ClusterID:   clusterID,
 			ClusterName: clusterName,
@@ -139,6 +139,13 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
 
+	var w restoreWorker
+	if target.RestoreTables {
+		w = &tablesWorker{restoreWorkerTools: tools}
+	} else {
+		w = &schemaWorker{restoreWorkerTools: tools}
+	}
+
 	if target.Continue {
 		if err := w.decorateWithPrevRun(ctx, run); err != nil {
 			return err
@@ -149,15 +156,13 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		if run.PrevID != uuid.Nil {
 			w.clonePrevProgress(ctx, run)
 		}
-
-		w.Logger.Info(ctx, "Run after decoration", "run", *run)
 	} else {
 		w.insertRun(ctx, run)
 	}
 	// Check if restore should start from scratch.
 	// Empty location means that previous run hasn't started restoring any data.
 	if !target.Continue || run.PrevID == uuid.Nil || run.Location == "" {
-		w.resumed = true
+		w.startFromScratch()
 	}
 	// As manifests are immutable, units can be initialized only once per task
 	if run.Units == nil {
@@ -170,7 +175,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	run.Stage = StageRestoreData
 	w.insertRun(ctx, run)
 
-	if err := w.restoreData(ctx, run, target); err != nil {
+	if err = w.restore(ctx, run, target); err != nil {
 		return errors.Wrapf(err, "restore data")
 	}
 
@@ -188,7 +193,7 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 	}
 	defer clusterSession.Close()
 
-	w := &restoreWorker{
+	w := &restoreWorkerTools{
 		clusterSession:          clusterSession,
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
@@ -199,7 +204,7 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 // GetRestoreProgress aggregates progress for the run of the task and breaks it down
 // by keyspace and table.json.
 func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (RestoreProgress, error) {
-	w := &restoreWorker{
+	w := &restoreWorkerTools{
 		workerTools: workerTools{
 			ClusterID: clusterID,
 			TaskID:    taskID,

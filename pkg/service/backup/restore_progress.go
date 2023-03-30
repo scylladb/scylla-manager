@@ -11,7 +11,7 @@ import (
 )
 
 // aggregateProgress returns restore progress information classified by keyspace and tables.
-func (w *restoreWorker) aggregateProgress(ctx context.Context, run *RestoreRun) RestoreProgress {
+func (w *restoreWorkerTools) aggregateProgress(ctx context.Context, run *RestoreRun) RestoreProgress {
 	var (
 		p = RestoreProgress{
 			SnapshotTag: run.SnapshotTag,
@@ -125,7 +125,7 @@ func (rp *restoreProgress) calcParentProgress(child restoreProgress) {
 
 // ForEachProgress iterates over all RestoreRunProgress that belong to the run.
 // NOTE: callback is always called with the same pointer - only the value that it points to changes.
-func (w *restoreWorker) ForEachProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
+func (w *restoreWorkerTools) ForEachProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
 	iter := table.RestoreRunProgress.SelectQuery(w.managerSession).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
@@ -151,7 +151,7 @@ func (w *restoreWorker) ForEachProgress(ctx context.Context, run *RestoreRun, cb
 // ForEachTableProgress iterates over all RestoreRunProgress that belong to the run
 // with the same manifest, keyspace and table as the run.
 // NOTE: callback is always called with the same pointer - only the value that it points to changes.
-func (w *restoreWorker) ForEachTableProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
+func (w *restoreWorkerTools) ForEachTableProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
 	iter := qb.Select(table.RestoreRunProgress.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
