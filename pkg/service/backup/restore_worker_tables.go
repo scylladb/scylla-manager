@@ -5,87 +5,110 @@ package backup
 import (
 	"context"
 	"path"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"go.uber.org/atomic"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"go.uber.org/atomic"
 )
 
+// restoreHost represents host that can be used for restoring files.
+// If set, OngoingRunProgress represents unfinished RestoreRunProgress created in previous run.
+type restoreHost struct {
+	Host               string
+	OngoingRunProgress *RestoreRunProgress
+}
+
+// bundle represents SSTables with the same ID.
+type bundle []string
+
+type tablesWorker struct {
+	restoreWorkerTools
+
+	hosts        []restoreHost     // Restore units created for currently restored location
+	bundles      map[string]bundle // Maps bundle to it's ID
+	bundleIDPool chan string       // IDs of the bundles that are yet to be restored
+	resumed      bool              // Set to true if current run has already skipped all tables restored in previous run
+}
+
 // restoreData restores files from every location specified in restore target.
-func (w *restoreWorker) restoreData(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
+func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 
-	for _, w.location = range target.Location {
-		if !w.resumed && run.Location != w.location.String() {
-			w.Logger.Info(ctx, "Skipping location", "location", w.location)
+	w.Logger.Info(ctx, "Started restoring tables")
+	defer w.Logger.Info(ctx, "Restoring tables finished")
+	// Disable gc_grace_seconds
+	for _, u := range run.Units {
+		for _, t := range u.Tables {
+			if err := w.DisableTableGGS(ctx, u.Keyspace, t.Table); err != nil {
+				return err
+			}
+		}
+	}
+	// Restore files
+	for _, l := range target.Location {
+		if !w.resumed && run.Location != l.String() {
+			w.Logger.Info(ctx, "Skipping location", "location", l)
 			continue
 		}
-
-		w.Logger.Info(ctx, "Restoring location", "location", w.location)
-		run.Location = w.location.String()
-
-		if err := w.initHosts(ctx, run); err != nil {
-			return errors.Wrap(err, "initialize hosts")
-		}
-
-		manifestHandler := func(miwc ManifestInfoWithContent) error {
-			// Check if manifest has already been processed in previous run
-			if !w.resumed && run.ManifestPath != miwc.Path() {
-				w.Logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
-				return nil
-			}
-
-			w.Logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
-			defer w.Logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
-
-			w.miwc = miwc
-			run.ManifestPath = miwc.Path()
-
-			return miwc.ForEachIndexIterWithError(target.Keyspace, w.restoreFiles(ctx, run, target))
-		}
-
-		if err := w.forEachRestoredManifest(ctx, w.location, manifestHandler); err != nil {
-			w.Logger.Info(ctx, "Restoring location finished", "location", w.location)
+		if err := w.locationRestoreHandler(ctx, run, target, l); err != nil {
 			return err
 		}
-
-		w.Logger.Info(ctx, "Restoring location finished", "location", w.location)
 	}
-
-	w.Logger.Info(ctx, "Restoring data finished")
 
 	return nil
 }
 
-// restoreFiles returns function that restores files from manifest's table.
-func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
+func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location Location) error {
+	if !w.resumed && run.Location != location.String() {
+		w.Logger.Info(ctx, "Skipping location", "location", location)
+		return nil
+	}
+
+	w.Logger.Info(ctx, "Restoring location", "location", location)
+	defer w.Logger.Info(ctx, "Restoring location finished", "location", location)
+
+	w.location = location
+	run.Location = location.String()
+
+	if err := w.initHosts(ctx, run); err != nil {
+		return errors.Wrap(err, "initialize hosts")
+	}
+
+	manifestHandler := func(miwc ManifestInfoWithContent) error {
+		// Check if manifest has already been processed in previous run
+		if !w.resumed && run.ManifestPath != miwc.Path() {
+			w.Logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
+			return nil
+		}
+
+		w.Logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
+		defer w.Logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
+
+		w.miwc = miwc
+		run.ManifestPath = miwc.Path()
+
+		return miwc.ForEachIndexIterWithError(target.Keyspace, w.filesMetaRestoreHandler(ctx, run, target))
+	}
+
+	return w.forEachRestoredManifest(ctx, w.location, manifestHandler)
+}
+
+func (w *tablesWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
 	return func(fm FilesMeta) error {
 		if !w.resumed {
 			// Check if table has already been processed in previous run
 			if run.Keyspace != fm.Keyspace || run.Table != fm.Table {
-				w.Logger.Info(ctx, "Skipping table",
-					"keyspace", fm.Keyspace,
-					"table", fm.Table,
-				)
+				w.Logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
 				return nil
 			}
 		}
 
-		w.Logger.Info(ctx, "Restoring table",
-			"keyspace", fm.Keyspace,
-			"table", fm.Table,
-		)
-		defer w.Logger.Info(ctx, "Restoring table finished",
-			"keyspace", fm.Keyspace,
-			"table", fm.Table,
-		)
+		w.Logger.Info(ctx, "Restoring table", "keyspace", fm.Keyspace, "table", fm.Table)
+		defer w.Logger.Info(ctx, "Restoring table finished", "keyspace", fm.Keyspace, "table", fm.Table)
 
 		run.Table = fm.Table
 		run.Keyspace = fm.Keyspace
@@ -98,76 +121,30 @@ func (w *restoreWorker) restoreFiles(ctx context.Context, run *RestoreRun, targe
 		// if current table have been processed by the previous run.
 		w.resumed = true
 
-		filesHandler := func() error {
-			if err := w.workFunc(ctx, run, target, fm); err != nil {
-				if ctx.Err() != nil {
-					return ctx.Err()
-				}
-				// In case all SSTables have been restored, restore can proceed even
-				// with errors from some hosts.
-				if len(w.bundleIDPool) > 0 {
-					return errors.Wrapf(err, "not restored bundles %v", w.drainBundleIDPool())
-				}
-
-				w.Logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
-					"keyspace", run.Keyspace,
-					"table", run.Table,
-					"error", err,
-				)
+		if err := w.workFunc(ctx, run, target, fm); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			// In case all SSTables have been restored, restore can proceed even
+			// with errors from some hosts.
+			if len(w.bundleIDPool) > 0 {
+				return errors.Wrapf(err, "not restored bundles %v", w.drainBundleIDPool())
 			}
 
-			return nil
+			w.Logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
+				"keyspace", run.Keyspace,
+				"table", run.Table,
+				"error", err,
+			)
 		}
 
-		// It's not possible to disable compaction and gc_grace_seconds on system table
-		if target.RestoreSchema {
-			return filesHandler()
-		}
-
-		return w.ExecOnDisabledTable(ctx, fm.Keyspace, fm.Table, filesHandler)
+		return nil
 	}
-}
-
-// SSTableCounter is concurrently safe counter used for checking
-// how many SSTables are yet to be restored.
-type SSTableCounter struct {
-	*atomic.Int64
-}
-
-// NewSSTableCounter returns new counter with the amount of tables to be restored.
-func NewSSTableCounter(v int) SSTableCounter {
-	return SSTableCounter{atomic.NewInt64(int64(v))}
-}
-
-// AddTables increases counter by the amount of tables to be restored
-// and returns counter's updated value.
-func (ctr SSTableCounter) AddTables(v int) int {
-	return int(ctr.Add(int64(v)))
-}
-
-// RestoreTables decreases counter by the amount of restored tables
-// and returns counter's updated value.
-func (ctr SSTableCounter) RestoreTables(v int) int {
-	return int(ctr.Sub(int64(v)))
-}
-
-// counter creates and initializes SSTableCounter
-// for currently restored table.
-func (w *restoreWorker) newCounter() SSTableCounter {
-	ctr := NewSSTableCounter(len(w.bundleIDPool))
-
-	for _, h := range w.hosts {
-		if h.OngoingRunProgress != nil {
-			ctr.AddTables(len(h.OngoingRunProgress.SSTableID))
-		}
-	}
-
-	return ctr
 }
 
 // workFunc is responsible for creating and restoring batches on multiple hosts (possibly in parallel).
 // It requires previous initialization of restore worker components.
-func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error {
+func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error {
 	version, err := w.GetTableVersion(ctx, fm.Keyspace, fm.Table)
 	if err != nil {
 		return err
@@ -219,10 +196,7 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 
 			// Check if download hasn't already completed in previous run
 			if !validateTimeIsSet(pr.DownloadCompletedAt) {
-				w.Logger.Info(ctx, "Waiting for job",
-					"host", h.Host,
-					"job_id", pr.AgentJobID,
-				)
+				w.Logger.Info(ctx, "Waiting for job", "host", h.Host, "job_id", pr.AgentJobID)
 
 				if err = w.waitJob(ctx, pr); err != nil {
 					if ctx.Err() != nil {
@@ -231,8 +205,10 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 					// As run progress could have already been inserted
 					// into the database, it should be deleted.
 					w.deleteRunProgress(ctx, pr)
-					w.cleanUploadDir(ctx, h.Host, dstDir, nil)
 					w.returnBatchToPool(pr.SSTableID)
+					if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
+						w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
+					}
 
 					return errors.Wrapf(err, "wait on rclone job, id: %d, host: %s", pr.AgentJobID, h.Host)
 				}
@@ -249,8 +225,10 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 					return parallel.Abort(ctx.Err())
 				}
 				w.deleteRunProgress(ctx, pr)
-				w.cleanUploadDir(ctx, h.Host, dstDir, nil)
 				w.returnBatchToPool(pr.SSTableID)
+				if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
+					w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
+				}
 
 				return errors.Wrapf(err, "call load and stream, host: %s", h.Host)
 			}
@@ -260,11 +238,7 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 
 			w.metrics.UpdateRestoreProgress(w.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.Downloaded+pr.Skipped)
 
-			w.Logger.Info(ctx, "Restored batch",
-				"host", h.Host,
-				"sstable_id", pr.SSTableID,
-			)
-
+			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.
 			if ctr.RestoreTables(len(pr.SSTableID)) == 0 {
 				close(w.bundleIDPool)
@@ -273,40 +247,9 @@ func (w *restoreWorker) workFunc(ctx context.Context, run *RestoreRun, target Re
 	})
 }
 
-// initBundlePool creates bundles and pool of their IDs that have yet to be restored.
-// (It does not include ones that are currently being restored).
-func (w *restoreWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstables []string) {
-	w.bundles = make(map[string]bundle)
-
-	for _, f := range sstables {
-		id := sstableID(f)
-		w.bundles[id] = append(w.bundles[id], f)
-	}
-
-	w.bundleIDPool = make(chan string, len(w.bundles))
-	takenIDs := make([]string, 0)
-	processed := strset.New()
-
-	if !w.resumed {
-		cb := func(pr *RestoreRunProgress) {
-			processed.Add(pr.SSTableID...)
-		}
-		w.ForEachTableProgress(ctx, run, cb)
-	}
-
-	for id := range w.bundles {
-		if !processed.Has(id) {
-			w.bundleIDPool <- id
-			takenIDs = append(takenIDs, id)
-		}
-	}
-
-	w.Logger.Info(ctx, "Initialized SSTable bundle pool", "sstable_ids", takenIDs)
-}
-
 // initHosts creates hosts living in currently restored location's dc and with access to it.
 // All running hosts are located at the beginning of the result slice.
-func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
+func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	status, err := w.Client.Status(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get client status")
@@ -373,66 +316,40 @@ func (w *restoreWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	return nil
 }
 
-// initVersionedFiles gathers information about versioned files from specified dir.
-func (w *restoreWorker) initVersionedFiles(ctx context.Context, host, dir string) error {
-	w.versionedFiles = make(VersionedMap)
-	allVersions := make(map[string][]VersionedSSTable)
+// initBundlePool creates bundles and pool of their IDs that have yet to be restored.
+// (It does not include ones that are currently being restored).
+func (w *tablesWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstables []string) {
+	w.bundles = make(map[string]bundle)
 
-	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly:     true,
-		VersionedOnly: true,
-	}
-	f := func(item *scyllaclient.RcloneListDirItem) {
-		name, version := SplitNameAndVersion(item.Name)
-		allVersions[name] = append(allVersions[name], VersionedSSTable{
-			Name:    name,
-			Version: version,
-			Size:    item.Size,
-		})
+	for _, f := range sstables {
+		id := sstableID(f)
+		w.bundles[id] = append(w.bundles[id], f)
 	}
 
-	if err := w.Client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		return errors.Wrapf(err, "host %s: listing versioned SSTables", host)
-	}
+	w.bundleIDPool = make(chan string, len(w.bundles))
+	takenIDs := make([]string, 0)
+	processed := strset.New()
 
-	restoreT, err := SnapshotTagTime(w.SnapshotTag)
-	if err != nil {
-		return err
-	}
-	// Chose correct version with respect to currently restored snapshot tag
-	for _, versions := range allVersions {
-		var candidate VersionedSSTable
-		for _, v := range versions {
-			tagT, err := SnapshotTagTime(v.Version)
-			if err != nil {
-				return err
-			}
-			if tagT.After(restoreT) {
-				if candidate.Version == "" || v.Version < candidate.Version {
-					candidate = v
-				}
-			}
+	if !w.resumed {
+		cb := func(pr *RestoreRunProgress) {
+			processed.Add(pr.SSTableID...)
 		}
+		w.ForEachTableProgress(ctx, run, cb)
+	}
 
-		if candidate.Version != "" {
-			w.versionedFiles[candidate.Name] = candidate
+	for id := range w.bundles {
+		if !processed.Has(id) {
+			w.bundleIDPool <- id
+			takenIDs = append(takenIDs, id)
 		}
 	}
 
-	if len(w.versionedFiles) > 0 {
-		w.Logger.Info(ctx, "Chosen versioned SSTables",
-			"host", host,
-			"dir", dir,
-			"versionedSSTables", w.versionedFiles,
-		)
-	}
-
-	return nil
+	w.Logger.Info(ctx, "Initialized SSTable bundle pool", "sstable_ids", takenIDs)
 }
 
 // prepareRunProgress either reactivates RestoreRunProgress created in previous run
 // or it creates a brand new RestoreRunProgress.
-func (w *restoreWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
+func (w *tablesWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
 ) (pr *RestoreRunProgress, err error) {
 	if h.OngoingRunProgress != nil {
 		pr = h.OngoingRunProgress
@@ -453,7 +370,7 @@ func (w *restoreWorker) prepareRunProgress(ctx context.Context, run *RestoreRun,
 
 // reactivateRunProgress preserves batch assembled in the previous run and tries to reuse its unfinished rclone job.
 // In case that's impossible, it has to be recreated (rclone jobs cannot be resumed).
-func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunProgress, dstDir, srcDir string) error {
+func (w *tablesWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunProgress, dstDir, srcDir string) error {
 	// Nothing to do if download has already finished
 	if validateTimeIsSet(pr.DownloadCompletedAt) {
 		return nil
@@ -466,7 +383,9 @@ func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRu
 	}
 	// Recreate rclone job
 	batch := w.batchFromIDs(pr.SSTableID)
-	w.cleanUploadDir(ctx, pr.Host, dstDir, batch)
+	if err := w.cleanUploadDir(ctx, pr.Host, dstDir, batch); err != nil {
+		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", err)
+	}
 
 	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
 	if err != nil {
@@ -486,7 +405,7 @@ func (w *restoreWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRu
 }
 
 // newRunProgress creates RestoreRunProgress by assembling batch and starting download to host's upload dir.
-func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
+func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
 ) (*RestoreRunProgress, error) {
 	if err := w.checkAvailableDiskSpace(ctx, hostInfo{IP: h.Host}); err != nil {
 		return nil, errors.Wrap(err, "validate free disk space")
@@ -507,7 +426,9 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 	)
 
 	batch := w.batchFromIDs(takenIDs)
-	w.cleanUploadDir(ctx, h.Host, dstDir, nil)
+	if err := w.cleanUploadDir(ctx, h.Host, dstDir, nil); err != nil {
+		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", err)
+	}
 
 	jobID, versionedPr, err := w.startDownload(ctx, h.Host, dstDir, srcDir, batch)
 	if err != nil {
@@ -538,7 +459,7 @@ func (w *restoreWorker) newRunProgress(ctx context.Context, run *RestoreRun, tar
 // Downloading of versioned files happens first in a synchronous way.
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
-func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, int64, error) {
+func (w *tablesWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, int64, error) {
 	var (
 		regularBatch   = make([]string, 0)
 		versionedBatch = make([]VersionedSSTable, 0)
@@ -597,7 +518,7 @@ func (w *restoreWorker) startDownload(ctx context.Context, host, dstDir, srcDir 
 }
 
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
-func (w *restoreWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
+func (w *tablesWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
 	var takenIDs []string
 
 	// All restore hosts are trying to get IDs for batch from the pool.
@@ -642,7 +563,7 @@ func (w *restoreWorker) chooseIDsForBatch(ctx context.Context, size int) []strin
 }
 
 // waitJob waits for rclone job to finish while updating its progress.
-func (w *restoreWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err error) {
+func (w *tablesWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err error) {
 	defer func() {
 		// On error stop job
 		if err != nil {
@@ -690,7 +611,7 @@ func (w *restoreWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (er
 	}
 }
 
-func (w *restoreWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRunProgress, job *scyllaclient.RcloneJobProgress) {
+func (w *tablesWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRunProgress, job *scyllaclient.RcloneJobProgress) {
 	pr.DownloadStartedAt = nil
 	// Set StartedAt and CompletedAt based on Job
 	if t := time.Time(job.StartedAt); !t.IsZero() {
@@ -718,7 +639,7 @@ func (w *restoreWorker) updateDownloadProgress(ctx context.Context, pr *RestoreR
 	w.insertRunProgress(ctx, pr)
 }
 
-func (w *restoreWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+func (w *tablesWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
 	const repeatInterval = 10 * time.Second
 
 	w.Logger.Info(ctx, "Load SSTables for the first time",
@@ -767,49 +688,8 @@ func (w *restoreWorker) restoreSSTables(ctx context.Context, host, keyspace, tab
 	}
 }
 
-// cleanUploadDir deletes all SSTables from host's upload directory
-// except for those present in excludedFiles.
-func (w *restoreWorker) cleanUploadDir(ctx context.Context, host, uploadDir string, excludedFiles []string) {
-	s := strset.New(excludedFiles...)
-	var filesToBeDeleted []string
-
-	getFilesToBeDeleted := func(item *scyllaclient.RcloneListDirItem) {
-		if !s.Has(item.Name) {
-			filesToBeDeleted = append(filesToBeDeleted, item.Name)
-		}
-	}
-
-	opts := &scyllaclient.RcloneListDirOpts{FilesOnly: true}
-	if err := w.Client.RcloneListDirIter(ctx, host, uploadDir, opts, getFilesToBeDeleted); err != nil {
-		w.Logger.Error(ctx, "Couldn't list upload directory - it might contain corrupted files that need to be deleted manually",
-			"host", host,
-			"upload_dir", uploadDir,
-			"error", err,
-		)
-	}
-
-	if len(filesToBeDeleted) > 0 {
-		w.Logger.Info(ctx, "Delete files from host's upload directory",
-			"host", host,
-			"upload_dir", uploadDir,
-			"files", filesToBeDeleted,
-		)
-	}
-
-	for _, f := range filesToBeDeleted {
-		remotePath := path.Join(uploadDir, f)
-		if err := w.Client.RcloneDeleteFile(ctx, host, remotePath); err != nil {
-			w.Logger.Error(ctx, "Couldn't delete file in upload directory - it has to be done manually",
-				"host", host,
-				"file", remotePath,
-				"error", err,
-			)
-		}
-	}
-}
-
 // batchFromIDs creates batch of SSTables with IDs present in ids.
-func (w *restoreWorker) batchFromIDs(ids []string) []string {
+func (w *tablesWorker) batchFromIDs(ids []string) []string {
 	var batch []string
 
 	for _, id := range ids {
@@ -819,13 +699,13 @@ func (w *restoreWorker) batchFromIDs(ids []string) []string {
 	return batch
 }
 
-func (w *restoreWorker) returnBatchToPool(ids []string) {
+func (w *tablesWorker) returnBatchToPool(ids []string) {
 	for _, id := range ids {
 		w.bundleIDPool <- id
 	}
 }
 
-func (w *restoreWorker) drainBundleIDPool() []string {
+func (w *tablesWorker) drainBundleIDPool() []string {
 	content := make([]string, 0)
 
 	for len(w.bundleIDPool) > 0 {
@@ -835,24 +715,43 @@ func (w *restoreWorker) drainBundleIDPool() []string {
 	return content
 }
 
-// sstableID returns ID from SSTable name.
-// Supported SSTable format versions are: "mc", "md", "me", "la", "ka".
-// Scylla code validating SSTable format can be found here:
-// https://github.com/scylladb/scylladb/blob/2c1ef0d2b768a793c284fc68944526179bfd0171/sstables/sstables.cc#L2333
-func sstableID(sstable string) string {
-	parts := strings.Split(sstable, "-")
-
-	if regexLaMx.MatchString(sstable) {
-		return parts[1]
-	}
-	if regexKa.MatchString(sstable) {
-		return parts[3]
-	}
-
-	panic("Unknown SSTable format version: " + sstable + ". Supported versions are: 'mc', 'md', 'me', 'la', 'ka'")
+func (w *tablesWorker) startFromScratch() {
+	w.resumed = true
 }
 
-var (
-	regexLaMx = regexp.MustCompile(`(la|m[cde])-(\d+)-(\w+)-(.*)`)
-	regexKa   = regexp.MustCompile(`(\w+)-(\w+)-ka-(\d+)-(.*)`)
-)
+// SSTableCounter is concurrently safe counter used for checking
+// how many SSTables are yet to be restored.
+type SSTableCounter struct {
+	*atomic.Int64
+}
+
+// NewSSTableCounter returns new counter with the amount of tables to be restored.
+func NewSSTableCounter(v int) SSTableCounter {
+	return SSTableCounter{atomic.NewInt64(int64(v))}
+}
+
+// AddTables increases counter by the amount of tables to be restored
+// and returns counter's updated value.
+func (ctr SSTableCounter) AddTables(v int) int {
+	return int(ctr.Add(int64(v)))
+}
+
+// RestoreTables decreases counter by the amount of restored tables
+// and returns counter's updated value.
+func (ctr SSTableCounter) RestoreTables(v int) int {
+	return int(ctr.Sub(int64(v)))
+}
+
+// counter creates and initializes SSTableCounter
+// for currently restored table.
+func (w *tablesWorker) newCounter() SSTableCounter {
+	ctr := NewSSTableCounter(len(w.bundleIDPool))
+
+	for _, h := range w.hosts {
+		if h.OngoingRunProgress != nil {
+			ctr.AddTables(len(h.OngoingRunProgress.SSTableID))
+		}
+	}
+
+	return ctr
+}
