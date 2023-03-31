@@ -762,7 +762,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 
-	firstTag := srcH.simpleBackup(target.Location[0], keyspace)
+	srcH.simpleBackup(target.Location[0], keyspace)
 	// Make sure that next backup will have different snapshot tag
 	time.Sleep(time.Second)
 	// Corrupting SSTables allows us to force the creation of versioned files
@@ -790,46 +790,83 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		FilesOnly: true,
 	}
 
-	var toCorrupt []string
+	var (
+		firstCorrupt  []string
+		bothCorrupt   []string
+		secondCorrupt []string
+	)
+
 	err = srcH.client.RcloneListDirIter(ctx, host.Addr, remoteDir, opts, func(item *scyllaclient.RcloneListDirItem) {
 		if _, err = VersionedFileCreationTime(item.Name); err == nil {
 			t.Fatalf("Versioned file %s present after first backup", path.Join(remoteDir, item.Path))
 		}
-		if len(toCorrupt) < corruptCnt {
-			toCorrupt = append(toCorrupt, item.Path)
+		if strings.HasSuffix(item.Name, ".db") {
+			switch {
+			case len(firstCorrupt) < corruptCnt:
+				firstCorrupt = append(firstCorrupt, item.Path)
+			case len(bothCorrupt) < corruptCnt:
+				bothCorrupt = append(bothCorrupt, item.Path)
+			case len(secondCorrupt) < corruptCnt:
+				secondCorrupt = append(secondCorrupt, item.Path)
+			}
 		}
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	Printf("Corrupt SSTables: %v", toCorrupt)
-	for _, tc := range toCorrupt {
-		file := path.Join(remoteDir, tc)
-		body := bytes.NewBufferString("I am corrupted")
-		if err = srcH.client.RclonePut(ctx, host.Addr, file, body); err != nil {
-			t.Fatalf("Corrupt remote file %s", file)
+	Printf("First group of corrupted SSTables: %v", firstCorrupt)
+	Printf("Common group of corrupted SSTables: %v", bothCorrupt)
+	Printf("Second group of corrupted SSTables: %v", secondCorrupt)
+
+	totalFirstCorrupt := append([]string{}, firstCorrupt...)
+	totalFirstCorrupt = append(totalFirstCorrupt, bothCorrupt...)
+
+	totalSecondCorrupt := append([]string{}, secondCorrupt...)
+	totalSecondCorrupt = append(totalSecondCorrupt, bothCorrupt...)
+
+	// corruptFiles corrupts current newest backup and performs a new one
+	corruptFiles := func(i int, toCorrupt []string) string {
+		Print("Corrupt backup")
+		for _, tc := range toCorrupt {
+			file := path.Join(remoteDir, tc)
+			body := bytes.NewBufferString(fmt.Sprintf("generation: %d", i))
+			if err = srcH.client.RclonePut(ctx, host.Addr, file, body); err != nil {
+				t.Fatalf("Corrupt remote file %s", file)
+			}
 		}
+
+		Print("Backup with corrupted SSTables in remote location")
+		tag := srcH.simpleBackup(target.Location[0], keyspace)
+		time.Sleep(time.Second)
+
+		Print("Validate creation of versioned files in remote location")
+		for _, tc := range toCorrupt {
+			corruptedPath := path.Join(remoteDir, tc) + VersionedFileExt(tag)
+			if _, err = srcH.client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		return tag
 	}
 
-	Print("Second backup with corrupted SSTables in remote location")
-	secondTag := srcH.simpleBackup(target.Location[0], keyspace)
+	// This test case consists of 4 corrupted and 1 correct backup.
+	// Corruption groups are chosen one by one in order to ensure creation of many versioned files.
+	_ = corruptFiles(2, totalFirstCorrupt)
+	tag3 := corruptFiles(3, totalSecondCorrupt)
+	tag4 := corruptFiles(4, totalFirstCorrupt)
+	tag5 := corruptFiles(5, totalSecondCorrupt)
 
-	Print("Validate creation of versioned files in remote location")
-	for _, tc := range toCorrupt {
-		corruptedPath := path.Join(remoteDir, tc) + VersionedFileExt(secondTag)
-		if _, err = srcH.client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// This step is done so that we can test the restoration of valid backup with versioned files
-	Print("Swap versions of corrupted files")
-	var tmp string
-	for _, tc := range toCorrupt {
-		newest := path.Join(remoteDir, tc)
-		versioned := newest + VersionedFileExt(secondTag)
-		tmp = path.Join(path.Dir(newest), "tmp")
+	// This step is done so that we can test the restoration of valid backup with versioned files.
+	// After this, only the third backup will be possible to restore.
+	// In order to achieve that, versioned files from 3-rd backup (so files with 4-th or 5-th snapshot tag)
+	// have to be swapped with their newest, correct versions.
+	Print("Swap versioned files so that 3-rd backup can be restored")
+	swapWithNewest := func(file, version string) {
+		newest := path.Join(remoteDir, file)
+		versioned := newest + VersionedFileExt(version)
+		tmp := path.Join(path.Dir(newest), "tmp")
 
 		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, tmp, newest); err != nil {
 			t.Fatal(err)
@@ -841,9 +878,17 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 			t.Fatal(err)
 		}
 	}
+	// 3-rd backup consists of totalFirstCorrupt files introduced by 4-th backup
+	for _, tc := range totalFirstCorrupt {
+		swapWithNewest(tc, tag4)
+	}
+	// 3-rd backup consists of secondCorrupt files introduced by 5-th backup
+	for _, tc := range secondCorrupt {
+		swapWithNewest(tc, tag5)
+	}
 
-	Print("Restore first backup with versioned files")
-	target.SnapshotTag = firstTag
+	Print("Restore 3-rd backup with versioned files")
+	target.SnapshotTag = tag3
 	if err = dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
 		t.Fatal(err)
 	}
