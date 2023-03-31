@@ -20,7 +20,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-// GetLiveNodesWithLocationAccess returns subset of nodes that passed connectivity check
+// GetLiveNodesWithLocationAccess returns subset of nodes which are UN, passed connectivity check
 // and have access to remote location.
 func (c *Client) GetLiveNodesWithLocationAccess(ctx context.Context, nodes NodeStatusInfoSlice, remotePath string) (NodeStatusInfoSlice, error) {
 	liveNodes, err := c.GetLiveNodes(ctx, nodes)
@@ -28,8 +28,12 @@ func (c *Client) GetLiveNodesWithLocationAccess(ctx context.Context, nodes NodeS
 		return nil, err
 	}
 
-	nodeErr := make([]error, len(liveNodes))
+	liveNodes = liveNodes.Live()
+	if len(liveNodes) == 0 {
+		return nil, errors.New("no live (UN) nodes")
+	}
 
+	nodeErr := make([]error, len(liveNodes))
 	err = parallel.Run(len(liveNodes), parallel.NoLimit, func(i int) error {
 		n := liveNodes[i]
 
