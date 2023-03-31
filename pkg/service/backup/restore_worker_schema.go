@@ -41,6 +41,9 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 	if err != nil {
 		return errors.Wrap(err, "get status")
 	}
+	if len(status) != len(status.Live()) {
+		return errors.New("not all nodes are in the UN state")
+	}
 	// Clean upload dirs.
 	// This is required as we rename SSTables during download in order to avoid name overlaps.
 	for _, u := range run.Units {
