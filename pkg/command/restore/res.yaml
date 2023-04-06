@@ -4,18 +4,21 @@ short: Schedule a restore of schema or tables (ad-hoc or scheduled)
 
 long: |
   This command allows you to schedule or run ad-hoc cluster restore.
-  Restore is always one of two types: restore schema ('--restore-schema' flag) or restore tables' contents ('--restore-tables' flag)
-  In both cases, for the restore effects to be visible, user needs to do
+  Restore is always one of two types: restore schema ('--restore-schema' flag) or restore tables' contents ('--restore-tables' flag).
+  In both cases, for the restore effects to be visible, you need to perform
   a specific follow-up action described by selected type.
 
 location: |
-  A list of backup locations separated by a comma, specifies places where restored backup is stored, the format is `[<dc>:]<provider>:<bucket>`.
-  The ``<dc>`` parameter is optional it allows to specif datacenter which nodes will be used to restore data
+  A list of backup locations separated by a comma, specifies places where restored backup is stored.
+  
+  The format is `[<dc>:]<provider>:<bucket>`.
+  The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
   from this location in a multi-dc setting, it must match Scylla nodes datacenter.
   By default, all live nodes are used to restore data from specified locations.
+  
   Note that specifying datacenters closest to backup locations might reduce download time of restored data.
-  The supported storage ``<provider>``s are ``azure``, ``gcs``, ``s3``.
-  The ``name`` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+  The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
+  The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
 
 snapshot-tag: |
   Scylla Manager snapshot tag identifying restored backup.
@@ -34,16 +37,16 @@ restore-schema: |
   Restore will recreate schema by targeting 'system_schema.*' tables only ('--keyspace' flag mustn't be set).
   It requires that restored keyspaces aren't present in the cluster.
   For the schema to be visible, restart of the entire cluster is required after completion.
-  See Scylla cluster restart docs: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for more details.
+  See ScyllaDB cluster restart: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for details.
 
 restore-tables: |
   Specifies restore type (alternative to '--restore-schema' flag).
   Restore will recreate contents of tables specified by '--keyspace' flag.
   It requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).
   Moreover, in order to prevent situation in which current tables' contents overlaps restored data,
-  tables should be truncated before initializing restore. 
+  tables should be truncated before initializing restore.
   For the table contents to be visible, repair of the entire cluster is required after completion.
-  See Scylla Manager repair docs: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for more details.
+  See sctool repair: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for details.
 
 dry-run: |
   Validates and displays restore information without actually scheduling the restore.

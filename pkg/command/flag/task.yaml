@@ -1,5 +1,5 @@
 enabled: |
-  Not enabled tasks are not executed and hidden from task list.
+  Not enabled tasks are not executed and are hidden from the task list.
 
 name: |
   Task name that can be used insead of ID.
@@ -22,7 +22,9 @@ timezone: |
 
 interval: |
   --interval is deprecated, please use `--cron` instead
-  Time after which a successfully completed task would be run again, supported units are:
+
+
+  Time after which a successfully completed task would be run again. The supported units are:
 
   * ``d`` - days
   * ``h`` - hours
@@ -35,17 +37,18 @@ interval: |
 
 start-date: |
   --start-date is deprecated, please use `--cron` instead
+  
   The date can be expressed relatively to now or as a RFC3339 formatted string.
-  To run the task in 2 hours use ``now+2h``, supported units are:
-
-  * ``d`` - days
-  * ``h`` - hours
-  * ``m`` - minutes
-  * ``s`` - seconds
-  * ``ms`` - milliseconds
-
-  If you want the task to start at a specified date use RFC3339 formatted string i.e. ``2018-01-02T15:04:05-07:00``.
-  If you want the repair to start immediately, use the value ``now`` or skip this flag.
+  To run the task in 2 hours use 'now+2h'. The supported units are:
+  
+  * 'd' - days
+  * 'h' - hours
+  * 'm' - minutes
+  * 's' - seconds
+  * 'ms' - milliseconds
+  
+  If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
+  If you want the repair to start immediately, use the value 'now' or skip this flag.
 
 num-retries: |
   Number of times a task reruns following a failure.
