@@ -49,7 +49,7 @@ func postProcessUsage() {
 func cleanup(s string) string {
 	b := []byte(s)
 	b = bytes.ReplaceAll(b, []byte{'`', '`'}, []byte{'\''})
-	b = bytes.ReplaceAll(b, []byte{'\n', '*', ' '}, []byte{'\n'})
+	// b = bytes.ReplaceAll(b, []byte{'\n', '*', ' '}, []byte{'\n'})
 	// b = bytes.TrimSuffix(b, []byte{'\n'})
 
 	s = string(b)
