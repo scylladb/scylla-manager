@@ -21,12 +21,12 @@ options:
 - name: dry-run
   default_value: "false"
   usage: |
-    Validates and displays restore information without actually scheduling the restore.
+    Validates and displays restore information without actually running the restore.
     This allows you to display what will happen should the restore run with the parameters you set.
 - name: enabled
   default_value: "true"
   usage: |
-    Not enabled tasks are not executed and hidden from task list.
+    Not enabled tasks are not executed and are hidden from the task list.
 - name: help
   shorthand: h
   default_value: "false"
@@ -35,8 +35,8 @@ options:
   shorthand: i
   usage: |
     --interval is deprecated, please use `--cron` instead
-    
-    
+
+
     Time after which a successfully completed task would be run again. The supported units are:
 
     * 'd' - days
@@ -67,15 +67,16 @@ options:
   shorthand: L
   default_value: '[]'
   usage: |
-    A list of backup locations separated by a comma, specifies places where restored backup is stored. The format is `[<dc>:]<provider>:<bucket>`.
+    A list of backup locations separated by a comma, specifies places where restored backup is stored.
+
+    The format is `[<dc>:]<provider>:<bucket>`.
     The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
     from this location in a multi-dc setting, it must match Scylla nodes datacenter.
     By default, all live nodes are used to restore data from specified locations.
-    
-    
+
     Note that specifying datacenters closest to backup locations might reduce download time of restored data.
     The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
-    The '<bucket>' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+    The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
 - name: name
   usage: |
     Task name that can be used insead of ID.
@@ -96,10 +97,17 @@ options:
     Restore will recreate schema by targeting 'system_schema.*' tables only ('--keyspace' flag mustn't be set).
     It requires that restored keyspaces aren't present in the cluster.
     For the schema to be visible, restart of the entire cluster is required after completion.
-    See Scylla cluster restart docs: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for more details.
+    See ScyllaDB cluster restart: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for details.
 - name: restore-tables
   default_value: "false"
-  usage: "Specifies restore type (alternative to '--restore-schema' flag).\nRestore will recreate contents of tables specified by '--keyspace' flag.\nIt requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).\nMoreover, in order to prevent situation in which current tables' contents overlaps restored data,\ntables should be truncated before initializing restore. \nFor the table contents to be visible, repair of the entire cluster is required after completion.\nSee ref:`sctool repair <sctool-repair>` for details.\n"
+  usage: |
+    Specifies restore type (alternative to '--restore-schema' flag).
+    Restore will recreate contents of tables specified by '--keyspace' flag.
+    It requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).
+    Moreover, in order to prevent situation in which current tables' contents overlaps restored data,
+    tables should be truncated before initializing restore.
+    For the table contents to be visible, repair of the entire cluster is required after completion.
+    See sctool repair: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for details.
 - name: retry-wait
   default_value: 10m
   usage: |
@@ -118,7 +126,7 @@ options:
   shorthand: s
   usage: |
     --start-date is deprecated, please use `--cron` instead
-    
+
     The date can be expressed relatively to now or as a RFC3339 formatted string.
     To run the task in 2 hours use 'now+2h'. The supported units are:
 
@@ -141,9 +149,9 @@ options:
     A comma-separated list of time markers in a form `[WEEKDAY-]HH:MM`.
     WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.
 
-    'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
-    '23:00,06:00' - can be executed every night from 11PM to 6AM
-    '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
+    * 'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
+    * '23:00,06:00' - can be executed every night from 11PM to 6AM
+    * '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
 inherited_options:
 - name: api-cert-file
   usage: |
@@ -157,4 +165,4 @@ inherited_options:
     Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
     If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-- sctool restore - Schedule a restore of schema or tables (ad-hoc or scheduled)
+- sctool restore - Run an ad-hoc restore of schema or tables
