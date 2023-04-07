@@ -156,6 +156,8 @@ Complete the restore procedure - restore both the schema and the content of the 
 Perform a dry run of a restore
 ------------------------------
 
+.. _restore-dry-run:
+
 We recommend performing a  dry run of a restore prior to scheduling the restore.
 It's a useful way to verify whether all necessary prerequisites are fulfilled.
 To perform a dry run, add the ``--dry-run`` parameter at the end of the restore command. If it works, you can remove the parameter from the command and schedule the restore without making any other changes.

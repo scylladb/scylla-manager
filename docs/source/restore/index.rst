@@ -36,15 +36,18 @@ If both the schema and the content of the tables need to be restored, you must s
 Features
 ========
 
-* Glob patterns to select keyspaces or tables to restore
-* Parallel restore
-* Control over restore granularity
-* Dry run
-* Progress tracking
-* Pause and resume
+ScyllaDB Manager Restore command supports the following features:
 
-Restore speed
-=============
+* Glob patterns to select keyspaces or tables to restore
+* Control over the :ref:`restore speed and granularity <restore-speed-and-granularity>`
+* :ref:`Dry run <restore-dry-run>` - Test restore before live execution
+* Progress tracking (:ref:`sctool progress <task-progress>`, Prometheus metrics, `Scylla Monitoring <https://monitoring.docs.scylladb.com>`_ Manager dashboard)
+* :ref:`Pausing <task-stop>` and :ref:`resuming <task-start>` at any point of the process
+
+Restore speed and granularity
+=============================
+
+.. _restore-speed-and-granularity:
 
 Restore speed is controlled by two parameters: ``--parallel`` and ``--batch-size``.
 Parallel specifies how many nodes can be used in restore procedure at the same time.
