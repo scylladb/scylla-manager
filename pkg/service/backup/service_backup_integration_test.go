@@ -168,7 +168,7 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	for iter.StructScan(pr) {
 		fs := pr.Files()
 		for i := range fs {
-			if strings.Contains(fs[i].Name, backup.ScyllaManifest) {
+			if strings.Contains(fs[i].Name, ScyllaManifest) {
 				continue
 			}
 			files.Add(fs[i].Name)
@@ -699,7 +699,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 			Print("And: Scylla manifests are not uploaded")
 			for _, rfn := range remoteFileNames {
-				if strings.Contains(rfn, backup.ScyllaManifest) {
+				if strings.Contains(rfn, ScyllaManifest) {
 					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
 				}
 			}
