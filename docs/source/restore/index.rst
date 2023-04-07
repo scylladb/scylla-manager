@@ -9,6 +9,7 @@ Restore
    restore-tables
    restore-schema
    examples
+   compatibility-matrix
 
 .. contents::
    :depth: 2
