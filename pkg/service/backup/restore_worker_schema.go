@@ -20,6 +20,10 @@ type schemaWorker struct {
 	hosts           []string
 	generationCnt   atomic.Int64
 	renamedSSTables map[string]string
+	miwc            ManifestInfoWithContent // Currently restored manifest
+	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
+	// that should be used during the restore procedure. It should be initialized per each restored table.
+	versionedFiles VersionedMap
 }
 
 // restore downloads all backed-up schema files to each node in the cluster. This approach is necessary because
@@ -156,7 +160,8 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 	)
 
 	w.initRenamedID(fm.Files)
-	if err = w.initVersionedFiles(ctx, w.hosts[0], srcDir); err != nil {
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0], srcDir, w.Logger)
+	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
 

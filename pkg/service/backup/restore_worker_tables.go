@@ -69,13 +69,13 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 		w.Logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
 		defer w.Logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
 
-		w.miwc = miwc
 		run.ManifestPath = miwc.Path()
 
 		iw := indexWorker{
 			restoreWorkerTools: w.restoreWorkerTools,
 			resumed:            w.resumed,
 			hosts:              w.hosts,
+			miwc:               miwc,
 		}
 
 		return miwc.ForEachIndexIterWithError(target.Keyspace, iw.filesMetaRestoreHandler(ctx, run, target))

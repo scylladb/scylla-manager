@@ -3,9 +3,14 @@
 package backupspec
 
 import (
+	"context"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // Issue #3288 showed that we need to be able to store multiple different SSTables
@@ -66,5 +71,59 @@ func SplitNameAndVersion(versioned string) (string, string) {
 	return baseName, versionExt[1:]
 }
 
-// VersionedFileRegex is a rclone formatted regex that can be used to distinguish versioned files.
-const VersionedFileRegex = `{**.sm_*UTC}`
+// ListVersionedFiles gathers information about versioned files from specified dir.
+func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapshotTag, host, dir string, logger log.Logger) (VersionedMap, error) {
+	versionedFiles := make(VersionedMap)
+	allVersions := make(map[string][]VersionedSSTable)
+
+	opts := &scyllaclient.RcloneListDirOpts{
+		FilesOnly:     true,
+		VersionedOnly: true,
+	}
+	f := func(item *scyllaclient.RcloneListDirItem) {
+		name, version := SplitNameAndVersion(item.Name)
+		allVersions[name] = append(allVersions[name], VersionedSSTable{
+			Name:    name,
+			Version: version,
+			Size:    item.Size,
+		})
+	}
+
+	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
+		return nil, errors.Wrapf(err, "host %s: listing versioned SSTables", host)
+	}
+
+	restoreT, err := SnapshotTagTime(snapshotTag)
+	if err != nil {
+		return nil, err
+	}
+	// Chose correct version with respect to currently restored snapshot tag
+	for _, versions := range allVersions {
+		var candidate VersionedSSTable
+		for _, v := range versions {
+			tagT, err := SnapshotTagTime(v.Version)
+			if err != nil {
+				return nil, err
+			}
+			if tagT.After(restoreT) {
+				if candidate.Version == "" || v.Version < candidate.Version {
+					candidate = v
+				}
+			}
+		}
+
+		if candidate.Version != "" {
+			versionedFiles[candidate.Name] = candidate
+		}
+	}
+
+	if len(versionedFiles) > 0 {
+		logger.Info(ctx, "Chosen versioned SSTables",
+			"host", host,
+			"dir", dir,
+			"versionedSSTables", versionedFiles,
+		)
+	}
+
+	return versionedFiles, nil
+}

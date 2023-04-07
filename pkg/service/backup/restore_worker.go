@@ -42,11 +42,7 @@ type restoreWorkerTools struct {
 	// Iterates over all manifests in given location with cluster ID and snapshot tag specified in restore target.
 	forEachRestoredManifest func(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error
 
-	location Location                // Currently restored location
-	miwc     ManifestInfoWithContent // Currently restored manifest
-	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
-	// that should be used during the restore procedure. It should be initialized per each restored table.
-	versionedFiles VersionedMap
+	location Location // Currently restored location
 }
 
 func (w *restoreWorkerTools) newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error) {
@@ -112,63 +108,6 @@ func (w *restoreWorkerTools) newUnits(ctx context.Context, target RestoreTarget)
 	w.Logger.Info(ctx, "Created restore units", "units", units)
 
 	return units, nil
-}
-
-// initVersionedFiles gathers information about versioned files from specified dir.
-func (w *restoreWorkerTools) initVersionedFiles(ctx context.Context, host, dir string) error {
-	w.versionedFiles = make(VersionedMap)
-	allVersions := make(map[string][]VersionedSSTable)
-
-	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly:     true,
-		VersionedOnly: true,
-	}
-	f := func(item *scyllaclient.RcloneListDirItem) {
-		name, version := SplitNameAndVersion(item.Name)
-		allVersions[name] = append(allVersions[name], VersionedSSTable{
-			Name:    name,
-			Version: version,
-			Size:    item.Size,
-		})
-	}
-
-	if err := w.Client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		return errors.Wrapf(err, "host %s: listing versioned SSTables", host)
-	}
-
-	restoreT, err := SnapshotTagTime(w.SnapshotTag)
-	if err != nil {
-		return err
-	}
-	// Chose correct version with respect to currently restored snapshot tag
-	for _, versions := range allVersions {
-		var candidate VersionedSSTable
-		for _, v := range versions {
-			tagT, err := SnapshotTagTime(v.Version)
-			if err != nil {
-				return err
-			}
-			if tagT.After(restoreT) {
-				if candidate.Version == "" || v.Version < candidate.Version {
-					candidate = v
-				}
-			}
-		}
-
-		if candidate.Version != "" {
-			w.versionedFiles[candidate.Name] = candidate
-		}
-	}
-
-	if len(w.versionedFiles) > 0 {
-		w.Logger.Info(ctx, "Chosen versioned SSTables",
-			"host", host,
-			"dir", dir,
-			"versionedSSTables", w.versionedFiles,
-		)
-	}
-
-	return nil
 }
 
 // cleanUploadDir deletes all SSTables from host's upload directory except for those present in excludedFiles.
