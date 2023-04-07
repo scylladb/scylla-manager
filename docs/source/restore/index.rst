@@ -43,35 +43,6 @@ Features
 * Progress tracking
 * Pause and resume
 
-Process
-=======
-
-Restore procedure works iteratively over restored locations, manifests and tables.
-
-    * For each backup location:
-
-      * Await schema agreement
-      * Find live Scylla nodes that will be used for restoring current location
-
-        * Find nodes local to location
-        * If non can be found, find any node with location access
-
-      * List backup manifests for specified snapshot tag
-    * For each manifest:
-
-        * Filter relevant tables from the manifest
-        * For each table:
-
-          * Temporarily disable auto-compaction of current table
-          * Temporarily disable GC grace seconds of current table
-          * Group SSTables to bundles by ID
-          * Join bundles into batches containing ``number of shards * batch size`` bundles each
-    * For each batch:
-
-            * Select node with enough free space to restore given batch
-            * Download batch to node's upload directory
-            * Call `load and stream <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/refresh.html#load-and-stream>`_
-
 Restore speed
 =============
 

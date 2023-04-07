@@ -31,3 +31,30 @@ you should :ref:`repair <sctool-repair>` all restored keyspaces and tables.
 Without the repair, the restored content of the tables might not be visible, and querying it can return various errors.
 *ONLY AFTER* repairing restored tables, you should set their `tombstone_gc <https://www.scylladb.com/2022/06/30/preventing-data-resurrection-with-repair-based-tombstone-garbage-collection/>`_ option to desired mode (e.g. previous mode or strongly recommended ``tombstone_gc = {'mode': 'repair'}``).
 Without that, purging tombstones for those tables will remain disabled. This can result in great memory consumption over time, as deleted rows won't ever be removed from database's memory.
+
+Process
+=======
+
+Restore procedure works iteratively over restored locations, manifests and tables.
+
+    * For each backup location:
+
+      * Find live Scylla nodes that will be used for restoring current location
+
+        * Find *nodes* local to location
+        * If non can be found, find any node with location access
+
+      * List backup manifests for specified snapshot tag
+    * Alter all restored tables with ``tombstone_gc = {'mode': 'disabled'}`` (ensure restored data consistency)
+    * For each manifest:
+
+        * Filter relevant tables from the manifest
+        * For each table:
+
+          * Group SSTables to bundles by ID
+          * Join bundles into batches containing ``batch size`` bundles each
+    * For each batch (in ``--parallel``):
+
+            * Select *node* with enough free space to restore given batch
+            * Download batch to *node's* upload directory
+            * Call `load and stream <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/refresh.html#load-and-stream>`_ with ``primary_replica_only``
