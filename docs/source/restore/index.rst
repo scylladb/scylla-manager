@@ -14,7 +14,7 @@ Restore
    :depth: 2
    :local:
 
-The :ref:`sctool restore <sctool-restore>` command allows you to schedule a restore of backed-up data into a cluster.
+The :ref:`sctool restore <sctool-restore>` command allows you to run a restore of backed-up data (identified by its snapshot-tag) into a cluster.
 Restore and backups are scheduled in the same manner: you can start, stop, resume, and track task progress on demand.
 
 .. note:: Restore procedure works with any cluster topologies, so backed-up cluster can have different number of nodes than restore destination cluster.
