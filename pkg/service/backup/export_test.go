@@ -24,10 +24,6 @@ type (
 	FileInfo = fileInfo
 )
 
-const (
-	ScyllaManifest = scyllaManifest
-)
-
 func (p *RunProgress) Files() []FileInfo {
 	return p.files
 }
