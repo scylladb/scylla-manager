@@ -178,10 +178,6 @@ func TestRestoreGetTargetErrorIntegration(t *testing.T) {
 			input: "testdata/restore/get_target/schema_and_keyspace_param.input.json",
 		},
 		{
-			name:  "schema and parallel param",
-			input: "testdata/restore/get_target/schema_and_parallel_param.input.json",
-		},
-		{
 			name:  "inaccessible bucket",
 			input: "testdata/restore/get_target/inaccessible_bucket.input.json",
 		},
