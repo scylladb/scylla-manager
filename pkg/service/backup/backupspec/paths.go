@@ -142,3 +142,27 @@ func RemoteSSTableDir(clusterID uuid.UUID, dc, nodeID, keyspace, table string) s
 func TempFile(f string) string {
 	return f + TempFileExt
 }
+
+const (
+	// DataDir is the data dir prefix.
+	DataDir = "data:"
+
+	// ScyllaManifest defines the name of backup manifest file.
+	ScyllaManifest = "manifest.json"
+	// ScyllaSchema defines the name of backup CQL schema file.
+	ScyllaSchema = "schema.cql"
+)
+
+// KeyspaceDir return keyspace directory.
+func KeyspaceDir(keyspace string) string {
+	return DataDir + keyspace
+}
+
+// UploadTableDir returns table upload directory.
+func UploadTableDir(keyspace, table, version string) string {
+	return path.Join(
+		KeyspaceDir(keyspace),
+		table+"-"+version,
+		"upload",
+	)
+}

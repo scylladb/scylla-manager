@@ -56,7 +56,7 @@ func (w *workerTools) checkAvailableDiskSpace(ctx context.Context, h hostInfo) e
 }
 
 func (w *workerTools) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
-	du, err := w.Client.RcloneDiskUsage(ctx, h.IP, dataDir)
+	du, err := w.Client.RcloneDiskUsage(ctx, h.IP, DataDir)
 	if err != nil {
 		return 0, err
 	}
