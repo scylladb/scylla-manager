@@ -24,7 +24,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/operations"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver/internal"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/multierr"
 )
@@ -523,6 +522,9 @@ func init() {
 	c.Fn = wrap(c.Fn, sameDir())
 }
 
+// VersionedFileRegex is a rclone formatted regex that can be used to distinguish versioned files.
+const VersionedFileRegex = `{**.sm_*UTC}`
+
 // rcChunkedList supports streaming output of the listing.
 func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
@@ -553,12 +555,12 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 
 	ctx, cfg := filter.AddConfig(ctx)
 	if newest {
-		if err = cfg.Add(false, backupspec.VersionedFileRegex); err != nil {
+		if err = cfg.Add(false, VersionedFileRegex); err != nil {
 			return nil, err
 		}
 	}
 	if versioned {
-		if err = cfg.Add(true, backupspec.VersionedFileRegex); err != nil {
+		if err = cfg.Add(true, VersionedFileRegex); err != nil {
 			return nil, err
 		}
 		if err = cfg.Add(false, `{**}`); err != nil {
