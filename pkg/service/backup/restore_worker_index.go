@@ -28,10 +28,14 @@ type bundle []string
 type indexWorker struct {
 	restoreWorkerTools
 
-	bundles      map[string]bundle // Maps bundle to it's ID
-	bundleIDPool chan string       // IDs of the bundles that are yet to be restored
-	resumed      bool              // Set to true if current run has already skipped all tables restored in previous run
-	hosts        []restoreHost     // Restore units created for currently restored location
+	bundles      map[string]bundle       // Maps bundle to it's ID
+	bundleIDPool chan string             // IDs of the bundles that are yet to be restored
+	resumed      bool                    // Set to true if current run has already skipped all tables restored in previous run
+	hosts        []restoreHost           // Restore units created for currently restored location
+	miwc         ManifestInfoWithContent // Currently restored manifest
+	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
+	// that should be used during the restore procedure. It should be initialized per each restored table.
+	versionedFiles VersionedMap
 }
 
 func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
@@ -107,8 +111,9 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 		)
 		return nil
 	}
-	if err = w.initVersionedFiles(ctx, w.hosts[0].Host, srcDir); err != nil {
-		return err
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0].Host, srcDir, w.Logger)
+	if err != nil {
+		return errors.Wrap(err, "initialize versioned SSTables")
 	}
 	// Every host has its personal goroutine which is responsible
 	// for creating and downloading batches.
