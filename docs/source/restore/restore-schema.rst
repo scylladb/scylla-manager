@@ -4,8 +4,6 @@ Restore schema
 
 .. note:: Currently, Scylla Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
 
-.. note:: Schema files are small in size, and they do not benefit from parallel restore, so ``--parallel`` flag is not allowed.
-
 In order to restore Scylla cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
 
 Prerequisites
