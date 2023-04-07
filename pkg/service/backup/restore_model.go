@@ -57,9 +57,6 @@ func (t RestoreTarget) validateProperties() error {
 	if t.RestoreSchema && t.Keyspace != nil {
 		return errors.New("restore schema always restores 'system_schema.*' tables only, no need to specify '--keyspace' flag")
 	}
-	if t.RestoreSchema && t.Parallel > 1 {
-		return errors.New("restore schema does not work in parallel, no need to specify '--parallel' flag")
-	}
 	return nil
 }
 
