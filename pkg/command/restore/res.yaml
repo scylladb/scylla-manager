@@ -1,9 +1,9 @@
 use: restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags]
 
-short: Schedule a restore of schema or tables (ad-hoc or scheduled)
+short: Run an ad-hoc restore of schema or tables
 
 long: |
-  This command allows you to schedule or run ad-hoc cluster restore.
+  This command allows you to run an ad-hoc restore.
   Restore is always one of two types: restore schema ('--restore-schema' flag) or restore tables' contents ('--restore-tables' flag).
   In both cases, for the restore effects to be visible, you need to perform
   a specific follow-up action described by selected type.
@@ -49,7 +49,7 @@ restore-tables: |
   See sctool repair: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for details.
 
 dry-run: |
-  Validates and displays restore information without actually scheduling the restore.
+  Validates and displays restore information without actually running the restore.
   This allows you to display what will happen should the restore run with the parameters you set.
 
 show-tables: |
