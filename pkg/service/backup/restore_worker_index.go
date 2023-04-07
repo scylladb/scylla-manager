@@ -162,7 +162,7 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		"dst_dir", dstDir,
 	)
 
-	ctr := w.newCounter()
+	ctr := newSSTableCounter(int64(len(w.bundleIDPool)), w.hosts)
 	if ctr.RestoreTables(0) == 0 {
 		w.Logger.Info(ctx, "Table does not have any more SSTables to restore",
 			"keyspace", fm.Keyspace,
@@ -725,9 +725,19 @@ type SSTableCounter struct {
 	*atomic.Int64
 }
 
-// NewSSTableCounter returns new counter with the amount of tables to be restored.
-func NewSSTableCounter(v int) SSTableCounter {
-	return SSTableCounter{atomic.NewInt64(int64(v))}
+// newSSTableCounter returns new counter with the amount of tables to be restored.
+// counter creates and initializes SSTableCounter
+// for currently restored table.
+func newSSTableCounter(value int64, hosts []restoreHost) SSTableCounter {
+	ctr := SSTableCounter{atomic.NewInt64(value)}
+
+	for _, h := range hosts {
+		if h.OngoingRunProgress != nil {
+			ctr.AddTables(len(h.OngoingRunProgress.SSTableID))
+		}
+	}
+
+	return ctr
 }
 
 // AddTables increases counter by the amount of tables to be restored
@@ -740,18 +750,4 @@ func (ctr SSTableCounter) AddTables(v int) int {
 // and returns counter's updated value.
 func (ctr SSTableCounter) RestoreTables(v int) int {
 	return int(ctr.Sub(int64(v)))
-}
-
-// counter creates and initializes SSTableCounter
-// for currently restored table.
-func (w *tablesWorker) newCounter() SSTableCounter {
-	ctr := NewSSTableCounter(len(w.bundleIDPool))
-
-	for _, h := range w.hosts {
-		if h.OngoingRunProgress != nil {
-			ctr.AddTables(len(h.OngoingRunProgress.SSTableID))
-		}
-	}
-
-	return ctr
 }
