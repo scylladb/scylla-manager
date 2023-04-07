@@ -25,79 +25,16 @@ type restoreHost struct {
 // bundle represents SSTables with the same ID.
 type bundle []string
 
-type tablesWorker struct {
+type indexWorker struct {
 	restoreWorkerTools
 
-	hosts        []restoreHost     // Restore units created for currently restored location
 	bundles      map[string]bundle // Maps bundle to it's ID
 	bundleIDPool chan string       // IDs of the bundles that are yet to be restored
 	resumed      bool              // Set to true if current run has already skipped all tables restored in previous run
+	hosts        []restoreHost     // Restore units created for currently restored location
 }
 
-// restoreData restores files from every location specified in restore target.
-func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
-	w.AwaitSchemaAgreement(ctx, w.clusterSession)
-
-	w.Logger.Info(ctx, "Started restoring tables")
-	defer w.Logger.Info(ctx, "Restoring tables finished")
-	// Disable gc_grace_seconds
-	for _, u := range run.Units {
-		for _, t := range u.Tables {
-			if err := w.DisableTableGGS(ctx, u.Keyspace, t.Table); err != nil {
-				return err
-			}
-		}
-	}
-	// Restore files
-	for _, l := range target.Location {
-		if !w.resumed && run.Location != l.String() {
-			w.Logger.Info(ctx, "Skipping location", "location", l)
-			continue
-		}
-		if err := w.locationRestoreHandler(ctx, run, target, l); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location Location) error {
-	if !w.resumed && run.Location != location.String() {
-		w.Logger.Info(ctx, "Skipping location", "location", location)
-		return nil
-	}
-
-	w.Logger.Info(ctx, "Restoring location", "location", location)
-	defer w.Logger.Info(ctx, "Restoring location finished", "location", location)
-
-	w.location = location
-	run.Location = location.String()
-
-	if err := w.initHosts(ctx, run); err != nil {
-		return errors.Wrap(err, "initialize hosts")
-	}
-
-	manifestHandler := func(miwc ManifestInfoWithContent) error {
-		// Check if manifest has already been processed in previous run
-		if !w.resumed && run.ManifestPath != miwc.Path() {
-			w.Logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
-			return nil
-		}
-
-		w.Logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
-		defer w.Logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
-
-		w.miwc = miwc
-		run.ManifestPath = miwc.Path()
-
-		return miwc.ForEachIndexIterWithError(target.Keyspace, w.filesMetaRestoreHandler(ctx, run, target))
-	}
-
-	return w.forEachRestoredManifest(ctx, w.location, manifestHandler)
-}
-
-func (w *tablesWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
+func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
 	return func(fm FilesMeta) error {
 		if !w.resumed {
 			// Check if table has already been processed in previous run
@@ -144,7 +81,7 @@ func (w *tablesWorker) filesMetaRestoreHandler(ctx context.Context, run *Restore
 
 // workFunc is responsible for creating and restoring batches on multiple hosts (possibly in parallel).
 // It requires previous initialization of restore worker components.
-func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error {
+func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error {
 	version, err := w.GetTableVersion(ctx, fm.Keyspace, fm.Table)
 	if err != nil {
 		return err
@@ -247,78 +184,9 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 	})
 }
 
-// initHosts creates hosts living in currently restored location's dc and with access to it.
-// All running hosts are located at the beginning of the result slice.
-func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
-	status, err := w.Client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get client status")
-	}
-
-	var (
-		remotePath     = w.location.RemotePath("")
-		locationStatus = status
-	)
-	// In case location does not have specified dc, use nodes from all dcs.
-	if w.location.DC != "" {
-		locationStatus = status.Datacenter([]string{w.location.DC})
-		if len(locationStatus) == 0 {
-			return errors.Errorf("no nodes in location's datacenter: %s", w.location)
-		}
-	}
-
-	checkedNodes, err := w.Client.GetLiveNodesWithLocationAccess(ctx, locationStatus, remotePath)
-	if err != nil {
-		return errors.Wrap(err, "no live nodes in location's dc")
-	}
-
-	w.hosts = make([]restoreHost, 0)
-	hostsInPool := strset.New()
-
-	if !w.resumed {
-		// Place hosts with unfinished jobs at the beginning
-		cb := func(pr *RestoreRunProgress) {
-			if !validateTimeIsSet(pr.RestoreCompletedAt) {
-				// Pointer cannot be stored directly because it is overwritten in each
-				// iteration of ForEachTableProgress.
-				ongoing := *pr
-				// Reset rclone stats for unfinished rclone jobs - they will be recreated from rclone job progress.
-				if !validateTimeIsSet(pr.DownloadCompletedAt) {
-					pr.Downloaded = 0
-					pr.Skipped = 0
-					pr.Failed = 0
-				}
-				w.hosts = append(w.hosts, restoreHost{
-					Host:               pr.Host,
-					OngoingRunProgress: &ongoing,
-				})
-
-				hostsInPool.Add(pr.Host)
-			}
-		}
-
-		w.ForEachTableProgress(ctx, run, cb)
-	}
-
-	// Place free hosts in the pool
-	for _, n := range checkedNodes {
-		if !hostsInPool.Has(n.Addr) {
-			w.hosts = append(w.hosts, restoreHost{
-				Host: n.Addr,
-			})
-
-			hostsInPool.Add(n.Addr)
-		}
-	}
-
-	w.Logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
-
-	return nil
-}
-
 // initBundlePool creates bundles and pool of their IDs that have yet to be restored.
 // (It does not include ones that are currently being restored).
-func (w *tablesWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstables []string) {
+func (w *indexWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstables []string) {
 	w.bundles = make(map[string]bundle)
 
 	for _, f := range sstables {
@@ -349,7 +217,7 @@ func (w *tablesWorker) initBundlePool(ctx context.Context, run *RestoreRun, ssta
 
 // prepareRunProgress either reactivates RestoreRunProgress created in previous run
 // or it creates a brand new RestoreRunProgress.
-func (w *tablesWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
+func (w *indexWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
 ) (pr *RestoreRunProgress, err error) {
 	if h.OngoingRunProgress != nil {
 		pr = h.OngoingRunProgress
@@ -370,7 +238,7 @@ func (w *tablesWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, 
 
 // reactivateRunProgress preserves batch assembled in the previous run and tries to reuse its unfinished rclone job.
 // In case that's impossible, it has to be recreated (rclone jobs cannot be resumed).
-func (w *tablesWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunProgress, dstDir, srcDir string) error {
+func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunProgress, dstDir, srcDir string) error {
 	// Nothing to do if download has already finished
 	if validateTimeIsSet(pr.DownloadCompletedAt) {
 		return nil
@@ -405,7 +273,7 @@ func (w *tablesWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRun
 }
 
 // newRunProgress creates RestoreRunProgress by assembling batch and starting download to host's upload dir.
-func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
+func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, target RestoreTarget, h *restoreHost, dstDir, srcDir string,
 ) (*RestoreRunProgress, error) {
 	if err := w.checkAvailableDiskSpace(ctx, hostInfo{IP: h.Host}); err != nil {
 		return nil, errors.Wrap(err, "validate free disk space")
@@ -459,7 +327,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, run *RestoreRun, targ
 // Downloading of versioned files happens first in a synchronous way.
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
-func (w *tablesWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, int64, error) {
+func (w *indexWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, int64, error) {
 	var (
 		regularBatch   = make([]string, 0)
 		versionedBatch = make([]VersionedSSTable, 0)
@@ -518,7 +386,7 @@ func (w *tablesWorker) startDownload(ctx context.Context, host, dstDir, srcDir s
 }
 
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
-func (w *tablesWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
+func (w *indexWorker) chooseIDsForBatch(ctx context.Context, size int) []string {
 	var takenIDs []string
 
 	// All restore hosts are trying to get IDs for batch from the pool.
@@ -563,7 +431,7 @@ func (w *tablesWorker) chooseIDsForBatch(ctx context.Context, size int) []string
 }
 
 // waitJob waits for rclone job to finish while updating its progress.
-func (w *tablesWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err error) {
+func (w *indexWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err error) {
 	defer func() {
 		// On error stop job
 		if err != nil {
@@ -611,7 +479,7 @@ func (w *tablesWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err
 	}
 }
 
-func (w *tablesWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRunProgress, job *scyllaclient.RcloneJobProgress) {
+func (w *indexWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRunProgress, job *scyllaclient.RcloneJobProgress) {
 	pr.DownloadStartedAt = nil
 	// Set StartedAt and CompletedAt based on Job
 	if t := time.Time(job.StartedAt); !t.IsZero() {
@@ -639,7 +507,7 @@ func (w *tablesWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRu
 	w.insertRunProgress(ctx, pr)
 }
 
-func (w *tablesWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+func (w *indexWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
 	const repeatInterval = 10 * time.Second
 
 	w.Logger.Info(ctx, "Load SSTables for the first time",
@@ -689,7 +557,7 @@ func (w *tablesWorker) restoreSSTables(ctx context.Context, host, keyspace, tabl
 }
 
 // batchFromIDs creates batch of SSTables with IDs present in ids.
-func (w *tablesWorker) batchFromIDs(ids []string) []string {
+func (w *indexWorker) batchFromIDs(ids []string) []string {
 	var batch []string
 
 	for _, id := range ids {
@@ -699,13 +567,13 @@ func (w *tablesWorker) batchFromIDs(ids []string) []string {
 	return batch
 }
 
-func (w *tablesWorker) returnBatchToPool(ids []string) {
+func (w *indexWorker) returnBatchToPool(ids []string) {
 	for _, id := range ids {
 		w.bundleIDPool <- id
 	}
 }
 
-func (w *tablesWorker) drainBundleIDPool() []string {
+func (w *indexWorker) drainBundleIDPool() []string {
 	content := make([]string, 0)
 
 	for len(w.bundleIDPool) > 0 {
@@ -713,10 +581,6 @@ func (w *tablesWorker) drainBundleIDPool() []string {
 	}
 
 	return content
-}
-
-func (w *tablesWorker) startFromScratch() {
-	w.resumed = true
 }
 
 // SSTableCounter is concurrently safe counter used for checking
