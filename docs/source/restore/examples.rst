@@ -37,6 +37,7 @@ Complete the restore procedure - restore both the schema and the content of the 
 --------------------------------------------------------------------------------------
 
 #. Ensure that all prerequisites of restoring schema are met.
+
    The easiest way to achieve that is to perform restore schema on a new empty cluster.
 
 #. Restore schema using :ref:`sctool restore <sctool-restore>`.
@@ -68,6 +69,7 @@ Complete the restore procedure - restore both the schema and the content of the 
 #. Perform restore schema follow-up action - `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_.
 
 #. Ensure that all prerequisites of restoring the content of the tables are met.
+
    The easiest way to achieve that is to restore schema with :doc:`sctool restore <restore-schema>` (so that's what has already been done in this example).
    You don't need to follow this step if you are sure that the destination cluster has the correct schema of restored tables and
    that those tables are `truncated <https://docs.scylladb.com/stable/cql/ddl.html#truncate-statement>`_.
@@ -139,8 +141,17 @@ Complete the restore procedure - restore both the schema and the content of the 
      │ test_keyspace                 │                         table3 │ 100%     │ 0s       │
      ╰───────────────────────────────┴────────────────────────────────┴──────────┴──────────╯
 
+#. Reset the `tombstone_gc <https://www.scylladb.com/2022/06/30/preventing-data-resurrection-with-repair-based-tombstone-garbage-collection/>`_ option via `CQLSH <https://docs.scylladb.com/stable/cql/cqlsh.html#>`_.
 
-Now all schema and the content of the selected tables should be properly restored into the destination cluster.
+   Although, all schema and contents of selected tables should be properly restored into the destination cluster by now,
+   it is extremely important to reset restored tables `tombstone_gc <https://www.scylladb.com/2022/06/30/preventing-data-resurrection-with-repair-based-tombstone-garbage-collection/>`_ option
+   in order to avoid great memory consumption caused by the ``tombstone_gc = {'mode': 'disabled'}`` mode.
+
+   .. code-block:: none
+
+     ALTER TABLE test_keyspace.table1 with tombstone_gc = {'mode': 'repair'}
+     ALTER TABLE test_keyspace.table2 with tombstone_gc = {'mode': 'repair'}
+     ALTER TABLE test_keyspace.table3 with tombstone_gc = {'mode': 'repair'}
 
 Perform a dry run of a restore
 ------------------------------
