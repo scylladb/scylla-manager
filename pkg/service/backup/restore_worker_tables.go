@@ -152,7 +152,7 @@ func (w *tablesWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 
 	var (
 		srcDir = w.location.RemotePath(w.miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
-		dstDir = uploadTableDir(fm.Keyspace, fm.Table, version)
+		dstDir = UploadTableDir(fm.Keyspace, fm.Table, version)
 	)
 
 	w.Logger.Info(ctx, "Found table's source and destination directory",

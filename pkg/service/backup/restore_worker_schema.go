@@ -52,7 +52,7 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 			if err != nil {
 				return err
 			}
-			uploadDir := uploadTableDir(u.Keyspace, t.Table, version)
+			uploadDir := UploadTableDir(u.Keyspace, t.Table, version)
 
 			for _, h := range status {
 				if err := w.cleanUploadDir(ctx, h.Addr, uploadDir, nil); err != nil {
@@ -144,7 +144,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 
 	var (
 		srcDir = w.location.RemotePath(w.miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
-		dstDir = uploadTableDir(fm.Keyspace, fm.Table, version)
+		dstDir = UploadTableDir(fm.Keyspace, fm.Table, version)
 	)
 
 	w.Logger.Info(ctx, "Start downloading schema files",

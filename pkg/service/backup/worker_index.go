@@ -57,7 +57,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			"new_files_time_threshold", nftt,
 		)
 
-		baseDir := keyspaceDir(u.Keyspace)
+		baseDir := KeyspaceDir(u.Keyspace)
 
 		tables, err := w.Client.RcloneListDir(ctx, h.IP, baseDir, nil)
 		if err != nil {
@@ -93,13 +93,13 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				"dir", d.Path,
 			)
 
-			mp := path.Join(d.Path, scyllaManifest)
+			mp := path.Join(d.Path, ScyllaManifest)
 			if err := w.Client.RcloneDeleteFile(ctx, h.IP, mp); err != nil {
 				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 					w.Logger.Error(ctx, "Failed to delete local manifest file", "error", err)
 				}
 			}
-			sp := path.Join(d.Path, scyllaSchema)
+			sp := path.Join(d.Path, ScyllaSchema)
 			if err := w.Client.RcloneDeleteFile(ctx, h.IP, sp); err != nil {
 				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 					w.Logger.Error(ctx, "Failed to delete local schema file", "error", err)
@@ -116,7 +116,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			}
 			err := w.Client.RcloneListDirIter(ctx, h.IP, d.Path, opts, func(f *scyllaclient.RcloneListDirItem) {
 				// Filter out Scylla manifest and Schema files, they are not needed.
-				if f.Name == scyllaManifest || f.Name == scyllaSchema {
+				if f.Name == ScyllaManifest || f.Name == ScyllaSchema {
 					return
 				}
 				files = append(files, fileInfo{
