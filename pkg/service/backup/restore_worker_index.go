@@ -32,7 +32,7 @@ type indexWorker struct {
 
 	bundles      map[string]bundle       // Maps bundle to it's ID
 	bundleIDPool chan string             // IDs of the bundles that are yet to be restored
-	resumed      bool                    // Set to true if current run has already skipped all tables restored in previous run
+	continuation bool                    // Set to false if current run has already skipped all tables restored in previous run
 	hosts        []restoreHost           // Restore units created for currently restored location
 	miwc         ManifestInfoWithContent // Currently restored manifest
 	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
@@ -43,7 +43,7 @@ type indexWorker struct {
 
 func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
 	return func(fm FilesMeta) error {
-		if !w.resumed {
+		if w.continuation {
 			// Check if table has already been processed in previous run
 			if run.Keyspace != fm.Keyspace || run.Table != fm.Table {
 				w.Logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
@@ -59,9 +59,9 @@ func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreR
 		w.insertRun(ctx, run)
 
 		w.initBundlePool(ctx, run, fm.Files)
-		// Set resumed only after all initializations as they depend on knowing
+		// Set continuation only after all initializations as they depend on knowing
 		// if current table have been processed by the previous run.
-		w.resumed = true
+		w.continuation = false
 
 		if err := w.workFunc(ctx, run, target, fm); err != nil {
 			if ctx.Err() != nil {
@@ -222,7 +222,7 @@ func (w *indexWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstab
 	takenIDs := make([]string, 0)
 	processed := strset.New()
 
-	if !w.resumed {
+	if w.continuation {
 		cb := func(pr *RestoreRunProgress) {
 			processed.Add(pr.SSTableID...)
 		}
@@ -261,7 +261,7 @@ func (w *indexWorker) prepareRunProgress(ctx context.Context, run *RestoreRun, t
 }
 
 // reactivateRunProgress preserves batch assembled in the previous run and tries to reuse its unfinished rclone job.
-// In case that's impossible, it has to be recreated (rclone jobs cannot be resumed).
+// In case that's impossible, it has to be recreated (rclone jobs cannot be continuation).
 func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunProgress, dstDir, srcDir string) error {
 	// Nothing to do if download has already finished
 	if validateTimeIsSet(pr.DownloadCompletedAt) {

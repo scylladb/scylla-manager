@@ -249,4 +249,4 @@ func (w *schemaWorker) initRenamedID(sstables []string) {
 	}
 }
 
-func (w *schemaWorker) startFromScratch() {}
+func (w *schemaWorker) continuePrevRun() {}

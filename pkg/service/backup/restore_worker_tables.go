@@ -11,14 +11,14 @@ import (
 type tablesWorker struct {
 	restoreWorkerTools
 
-	hosts   []restoreHost // Restore units created for currently restored location
-	resumed bool          // Set to true if current run has already skipped all tables restored in previous run
+	hosts        []restoreHost // Restore units created for currently restored location
+	continuation bool          // Defines if the worker is part of resume task that is the continuation of previous run
 }
 
 // restoreData restores files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
-	if !w.resumed {
+	if !w.continuation {
 		w.initRemainingBytesMetric(ctx, run, target)
 	}
 
@@ -34,7 +34,7 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 	}
 	// Restore files
 	for _, l := range target.Location {
-		if !w.resumed && run.Location != l.String() {
+		if w.continuation && run.Location != l.String() {
 			w.Logger.Info(ctx, "Skipping location", "location", l)
 			continue
 		}
@@ -59,7 +59,7 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 
 	manifestHandler := func(miwc backupspec.ManifestInfoWithContent) error {
 		// Check if manifest has already been processed in previous run
-		if !w.resumed && run.ManifestPath != miwc.Path() {
+		if w.continuation && run.ManifestPath != miwc.Path() {
 			w.Logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
 			return nil
 		}
@@ -71,7 +71,7 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 
 		iw := indexWorker{
 			restoreWorkerTools: w.restoreWorkerTools,
-			resumed:            w.resumed,
+			continuation:       w.continuation,
 			hosts:              w.hosts,
 			miwc:               miwc,
 		}
@@ -110,7 +110,7 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	w.hosts = make([]restoreHost, 0)
 	hostsInPool := strset.New()
 
-	if !w.resumed {
+	if w.continuation {
 		// Place hosts with unfinished jobs at the beginning
 		cb := func(pr *RestoreRunProgress) {
 			if !validateTimeIsSet(pr.RestoreCompletedAt) {
@@ -150,8 +150,8 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	return nil
 }
 
-func (w *tablesWorker) startFromScratch() {
-	w.resumed = true
+func (w *tablesWorker) continuePrevRun() {
+	w.continuation = true
 }
 
 func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {

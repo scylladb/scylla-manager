@@ -27,7 +27,7 @@ import (
 type restoreWorker interface {
 	restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error
 	newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error)
-	startFromScratch()
+	continuePrevRun()
 	insertRun(ctx context.Context, run *RestoreRun)
 	decorateWithPrevRun(ctx context.Context, run *RestoreRun) error
 	clonePrevProgress(ctx context.Context, run *RestoreRun)
