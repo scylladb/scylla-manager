@@ -47,11 +47,6 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 }
 
 func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location backupspec.Location) error {
-	if !w.resumed && run.Location != location.String() {
-		w.Logger.Info(ctx, "Skipping location", "location", location)
-		return nil
-	}
-
 	w.Logger.Info(ctx, "Restoring location", "location", location)
 	defer w.Logger.Info(ctx, "Restoring location finished", "location", location)
 
