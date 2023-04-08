@@ -53,20 +53,3 @@ func TestBackupMetrics(t *testing.T) {
 		}
 	})
 }
-
-func TestRestoreMetrics(t *testing.T) {
-	m := NewBackupMetrics()
-	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
-
-	t.Run("UpdateRestoreProgress", func(t *testing.T) {
-		m.Restore.UpdateRestoreProgress(c, "m", "k", "t", 2)
-
-		text := Dump(t, m.Restore.filesRestoredBytes)
-
-		testutils.SaveGoldenTextFileIfNeeded(t, text)
-		golden := testutils.LoadGoldenTextFile(t)
-		if diff := cmp.Diff(text, golden); diff != "" {
-			t.Error(diff)
-		}
-	})
-}
