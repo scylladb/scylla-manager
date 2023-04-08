@@ -4,6 +4,7 @@ package backup
 
 import (
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -60,6 +61,17 @@ func (t RestoreTarget) validateProperties() error {
 		return errors.New("restore schema does not work in parallel, no need to specify '--parallel' flag")
 	}
 	return nil
+}
+
+// copiedAndSortedLocations returns sorted copy of RestoreTarget.Locations slice.
+func (t RestoreTarget) copiedAndSortedLocations() []Location {
+	output := make([]Location, len(t.Location))
+	copy(output, t.Location)
+
+	sort.SliceStable(output, func(i, j int) bool {
+		return output[i].String() < output[j].String()
+	})
+	return output
 }
 
 // RestoreRun tracks restore progress, shares ID with scheduler.Run that initiated it.
