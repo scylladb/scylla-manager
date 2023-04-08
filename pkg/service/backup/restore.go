@@ -160,10 +160,10 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	} else {
 		w.insertRun(ctx, run)
 	}
-	// Check if restore should start from scratch.
-	// Empty location means that previous run hasn't started restoring any data.
-	if !target.Continue || run.PrevID == uuid.Nil || run.Location == "" {
-		w.startFromScratch()
+	// Check if restore is the continuation of previous run.
+	if target.Continue && run.PrevID != uuid.Nil {
+		w.continuePrevRun()
+	} else {
 		s.metrics.Restore.ResetClusterMetrics(clusterID)
 	}
 	// As manifests are immutable, units can be initialized only once per task
