@@ -164,6 +164,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	// Empty location means that previous run hasn't started restoring any data.
 	if !target.Continue || run.PrevID == uuid.Nil || run.Location == "" {
 		w.startFromScratch()
+		s.metrics.Restore.ResetClusterMetrics(clusterID)
 	}
 	// As manifests are immutable, units can be initialized only once per task
 	if run.Units == nil {
