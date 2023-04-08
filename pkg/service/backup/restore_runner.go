@@ -17,8 +17,6 @@ type RestoreRunner struct {
 
 // Run implementation for RestoreRunner.
 func (r RestoreRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	r.service.metrics.Restore.ResetClusterMetrics(clusterID)
-
 	t, err := r.service.GetRestoreTarget(ctx, clusterID, properties)
 	if err != nil {
 		return errors.Wrap(err, "get restore target")
