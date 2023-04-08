@@ -98,7 +98,6 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 	w.ForEachProgress(ctx, run, func(pr *RestoreRunProgress) {
 		pr.setRestoreCompletedAt()
 		w.insertRunProgress(ctx, pr)
-		w.metrics.UpdateRestoreProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, pr.Downloaded)
 	})
 
 	return nil

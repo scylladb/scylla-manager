@@ -1,3 +1,0 @@
-# HELP scylla_manager_restore_files_restored_bytes Number of bytes restored from downloaded files.
-# TYPE scylla_manager_restore_files_restored_bytes gauge
-scylla_manager_restore_files_restored_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",keyspace="k",manifest="m",table="t"} 2

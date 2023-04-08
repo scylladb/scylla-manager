@@ -36,8 +36,6 @@ func NewBackupMetrics() BackupMetrics {
 				"purge_deleted_files", "cluster", "host"),
 		},
 		Restore: RestoreM{
-			filesRestoredBytes: gr("Number of bytes restored from downloaded files.",
-				"files_restored_bytes", "cluster", "manifest", "keyspace", "table"),
 			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
@@ -125,15 +123,13 @@ func (bm BackupM) SetPurgeFiles(clusterID uuid.UUID, host string, total, deleted
 
 // RestoreM is the part of BackupMetrics that is only responsible for restore.
 type RestoreM struct {
-	filesRestoredBytes *prometheus.GaugeVec
-	batchSize          *prometheus.GaugeVec
-	remainingBytes     *prometheus.GaugeVec
-	state              *prometheus.GaugeVec
+	batchSize      *prometheus.GaugeVec
+	remainingBytes *prometheus.GaugeVec
+	state          *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
 	return []prometheus.Collector{
-		rm.filesRestoredBytes,
 		rm.batchSize,
 		rm.remainingBytes,
 		rm.state,
@@ -145,18 +141,6 @@ func (rm RestoreM) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range rm.all() {
 		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
 	}
-}
-
-// UpdateRestoreProgress updates restore "files_restored_bytes" metrics.
-func (rm RestoreM) UpdateRestoreProgress(clusterID uuid.UUID, manifestPath, keyspace, table string, restored int64) {
-	l := prometheus.Labels{
-		"cluster":  clusterID.String(),
-		"manifest": manifestPath,
-		"keyspace": keyspace,
-		"table":    table,
-	}
-
-	rm.filesRestoredBytes.With(l).Add(float64(restored))
 }
 
 // IncreaseBatchSize updates restore "batch_size" metrics.

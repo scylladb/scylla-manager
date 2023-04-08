@@ -272,12 +272,6 @@ func (w *restoreWorkerTools) clonePrevProgress(ctx context.Context, run *Restore
 
 	w.ForEachProgress(ctx, prevRun, func(pr *RestoreRunProgress) {
 		pr.RunID = run.ID
-		if validateTimeIsSet(pr.RestoreCompletedAt) {
-			// Recreate metrics for restore run progresses that were already completed in the previous run.
-			// Do not update the {downloaded,skipped,failed} metrics since they are local to given run.
-			size := pr.Downloaded + pr.Skipped + pr.VersionedProgress
-			w.metrics.UpdateRestoreProgress(pr.ClusterID, pr.ManifestPath, pr.Keyspace, pr.Table, size)
-		}
 
 		if err := q.BindStruct(pr).Exec(); err != nil {
 			w.Logger.Error(ctx, "Couldn't clone run progress",
