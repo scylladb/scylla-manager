@@ -495,7 +495,7 @@ func TestRclonePut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cmp.Diff("olleh", string(content)) != "" {
+	if cmp.Diff("hello", string(content)) != "" {
 		t.Fatalf("put/a = %s, expected %s", string(content), "olleh")
 	}
 }
