@@ -30,7 +30,7 @@ rclone:
   use_json_log: false
   dry_run: false
   interactive: false
-  check_sum: false
+  check_sum: true
   size_only: false
   ignore_times: false
   ignore_existing: false
