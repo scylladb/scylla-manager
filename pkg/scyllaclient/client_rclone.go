@@ -598,6 +598,7 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 }
 
 // RclonePut uploads file with provided content under remotePath.
+// WARNING: This API call doesn't compare checksums. It relies on sizes only. This call cannot be used for moving sstables.
 func (c *Client) RclonePut(ctx context.Context, host, remotePath string, body *bytes.Buffer) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
