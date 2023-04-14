@@ -8,6 +8,9 @@ Scylla Manger Agent comes with a download-files subcommand that given a backup l
 #. Search for snapshot tags.
 #. Download files without a need for third-party tools.
 
+Please note, that the command may require higher demand on the number of file descriptors.
+We recommend prefixing this command with 'ulimit -n 10000' to extend the default fd soft limit.
+
 Download-files
 ==============
 
