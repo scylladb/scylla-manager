@@ -4,9 +4,10 @@
   ],
   "keyspace": [
     "*",
+    "!system",
     "!system_schema",
     "!system_distributed_everywhere.cdc_generation_descriptions_v2",
-    "!system_distributed cdc_streams_descriptions_v2",
+    "!system_distributed.cdc_streams_descriptions_v2",
     "!system_distributed.cdc_generation_timestamps",
     "!*.*_scylla_cdc_log"
   ],
