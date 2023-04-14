@@ -43,12 +43,26 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	if t.RestoreSchema {
 		t.Keyspace = []string{"system_schema"}
 	}
-	// Restore data shouldn't restore any system tables
 	if t.RestoreTables {
 		if t.Keyspace == nil {
 			t.Keyspace = []string{"*"}
 		}
-		t.Keyspace = append(t.Keyspace, "!system_schema")
+		// Skip restoration of those tables regardless of the '--keyspace' param
+		doNotRestore := []string{
+			"system_schema", // Schema restoration is only possible with '--restore-schema' flag
+			// Don't restore tables related to CDC.
+			// Currently, it is forbidden to alter those tables, so SM wouldn't be able to ensure their data consistency.
+			// Moreover, those tables usually contain data with small TTL value,
+			// so their contents would probably expire right after restore has ended.
+			"system_distributed_everywhere.cdc_generation_descriptions_v2",
+			"system_distributed cdc_streams_descriptions_v2",
+			"system_distributed.cdc_generation_timestamps",
+			"*.*_scylla_cdc_log", // All regular CDC tables have "_scylla_cdc_log" suffix
+		}
+
+		for _, ks := range doNotRestore {
+			t.Keyspace = append(t.Keyspace, "!"+ks)
+		}
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
