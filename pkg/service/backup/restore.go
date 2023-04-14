@@ -49,13 +49,14 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 		}
 		// Skip restoration of those tables regardless of the '--keyspace' param
 		doNotRestore := []string{
+			"system",        // system.* tables are recreated on every cluster and shouldn't even be backed-up
 			"system_schema", // Schema restoration is only possible with '--restore-schema' flag
 			// Don't restore tables related to CDC.
 			// Currently, it is forbidden to alter those tables, so SM wouldn't be able to ensure their data consistency.
 			// Moreover, those tables usually contain data with small TTL value,
 			// so their contents would probably expire right after restore has ended.
 			"system_distributed_everywhere.cdc_generation_descriptions_v2",
-			"system_distributed cdc_streams_descriptions_v2",
+			"system_distributed.cdc_streams_descriptions_v2",
 			"system_distributed.cdc_generation_timestamps",
 			"*.*_scylla_cdc_log", // All regular CDC tables have "_scylla_cdc_log" suffix
 		}
