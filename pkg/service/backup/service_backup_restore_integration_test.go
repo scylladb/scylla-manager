@@ -402,12 +402,6 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0], keyspace)
 
-	pr, err := srcH.service.GetProgress(context.Background(), srcH.clusterID, srcH.taskID, srcH.runID)
-	if err != nil {
-		srcH.t.Fatal(err)
-	}
-	Printf("And: backup progress: %+#v\n", pr)
-
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
 		t.Fatal(err)
@@ -896,6 +890,76 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 	dstH.validateRestoreSuccess(target, keyspace, loadCnt*loadSize, dstSession)
 }
 
+func TestRestoreTablesWithCDC(t *testing.T) {
+	const (
+		testBucket    = "restoretest-tables-cdc"
+		testKeyspace  = "restoretest_tables_cdc"
+		testLoadCnt   = 2
+		testLoadSize  = 1
+		testBatchSize = 1
+		testParallel  = 3
+	)
+
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
+		},
+		Keyspace: []string{
+			"*",
+			"!system_schema",
+			"!system_distributed_everywhere.cdc_generation_descriptions_v2",
+			"!system_distributed.cdc_streams_descriptions_v2",
+			"!system_distributed.cdc_generation_timestamps",
+			"!*.*_scylla_cdc_log",
+		},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+
+	restoreTablesWithCDC(t, target, testKeyspace, testLoadCnt, testLoadSize)
+}
+
+func restoreTablesWithCDC(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int) {
+	var (
+		ctx          = context.Background()
+		cfg          = DefaultConfig()
+		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
+		mgrSession   = CreateScyllaManagerDBSession(t)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+	)
+	// Recreate schema on destination cluster
+	dstH.createTableWithCDC(dstSession, keyspace, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+
+	srcH.createTableWithCDC(srcSession, keyspace, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}")
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+
+	target.SnapshotTag = srcH.simpleBackup(target.Location[0], keyspace)
+
+	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
+	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	dstH.validateRestoreSuccess(target, keyspace, loadCnt*loadSize, dstSession)
+}
+
+func (h *restoreTestHelper) createTableWithCDC(session gocqlx.Session, keyspace, replication string) {
+	if err := session.ExecStmt(fmt.Sprintf("CREATE KEYSPACE %s WITH replication = %s", keyspace, replication)); err != nil {
+		h.t.Fatal(err)
+	}
+	if err := session.ExecStmt(fmt.Sprintf("CREATE TABLE %s.%s (id int PRIMARY KEY, data blob) WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName)); err != nil {
+		h.t.Fatal(err)
+	}
+}
+
 func (h *restoreTestHelper) validateRestoreSuccess(target RestoreTarget, keyspace string, backupSize int, dstSession gocqlx.Session) {
 	h.t.Helper()
 	Print("Then: validate restore result")
@@ -974,14 +1038,13 @@ func (h *restoreTestHelper) simpleBackup(location Location, keyspace string) str
 	ctx := context.Background()
 	backupTarget := Target{
 		Units: []Unit{
-			{
-				Keyspace: keyspace,
-			},
-			{
-				Keyspace: "system_schema",
-			},
+			{Keyspace: keyspace},
+			{Keyspace: "system_auth"},
+			{Keyspace: "system_distributed"},
+			{Keyspace: "system_distributed_everywhere"},
+			{Keyspace: "system_schema"},
 		},
-		DC:        []string{"dc1"},
+		DC:        []string{"dc1", "dc2"},
 		Location:  []Location{location},
 		Retention: 3,
 	}
