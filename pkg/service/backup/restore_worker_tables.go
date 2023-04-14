@@ -1,3 +1,5 @@
+// Copyright (C) 2023 ScyllaDB
+
 package backup
 
 import (
