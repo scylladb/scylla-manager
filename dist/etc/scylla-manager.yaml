@@ -90,16 +90,8 @@ http: 127.0.0.1:5080
 
 # Health-check service configuration.
 #healthcheck:
-# relative_timeout specifies timeout over median ping duration in probes.
-# The number of probes kept in memory is specified by the probes parameter.
-# There are separate probes for different DCs and ping types
-# (CQL, REST, Alternator).
-#  relative_timeout: 50ms
-# max_timeout specifies maximum ping timeout, zero means no limit.
-#  max_timeout: 30s
-# Probes specifies how many probes are kept in memory for calculation.
-# For different ping types and datacenters there are different probe sets.
-#  probes: 200
+# max_timeout specifies ping timeout for all ping types (CQL, REST, Alternator).
+#  max_timeout: 1s
 
 # Backup service configuration.
 #backup:
