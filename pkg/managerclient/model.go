@@ -992,7 +992,7 @@ func (rp RestoreProgress) status() string {
 		if len(rp.Progress.Keyspaces) == 1 && rp.Progress.Keyspaces[0].Keyspace == "system_schema" {
 			return "DONE - restart required (see restore docs)"
 		}
-		return "DONE - repair required (see restore docs)"
+		return "DONE - tombstone_gc mode reset and repair required (see restore docs)"
 	}
 	return s
 }
