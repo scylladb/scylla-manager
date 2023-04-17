@@ -9,6 +9,7 @@ restore
 =======
 
 .. datatemplate:yaml:: partials/sctool_restore.yaml
+
    :template: command.tmpl
 
 .. _restore-update:
@@ -17,4 +18,5 @@ restore update
 ==============
 
 .. datatemplate:yaml:: partials/sctool_restore_update.yaml
+
    :template: command.tmpl
