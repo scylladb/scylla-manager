@@ -10,6 +10,7 @@ CLI sctool
 
    global-flags-and-variables
    completion
+   download-files
    backup
    restore
    cluster

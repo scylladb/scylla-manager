@@ -1,6 +1,6 @@
-======================
-Download files command
-======================
+==============
+Download files
+==============
 
 Scylla Manger Agent comes with a download-files subcommand that given a backup location can be used to:
 
@@ -9,7 +9,11 @@ Scylla Manger Agent comes with a download-files subcommand that given a backup l
 #. Download files without a need for third-party tools.
 
 Please note, that the command may require higher demand on the number of file descriptors.
-We recommend prefixing this command with 'ulimit -n 10000' to extend the default fd soft limit.
+We recommend prefixing this command with ulimit to extend the default fd soft limit.
+
+.. code-block:: none
+
+    ulimit -n 10000
 
 Download-files
 ==============
