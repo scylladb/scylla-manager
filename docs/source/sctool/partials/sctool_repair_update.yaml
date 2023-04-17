@@ -19,13 +19,13 @@ options:
     A list of datacenter `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' used to specify the datacenters to include or exclude.
     The following syntax for glob patterns is supported:
 
-    * '*' - matches any number of any characters including none
-    * '?' - matches any single character
-    * '[abc]' - matches one character given in the bracket
-    * '[a-z]' - matches one character from the range given in the bracket
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
 
 - name: dry-run
   default_value: "false"
@@ -35,7 +35,7 @@ options:
 - name: enabled
   default_value: "true"
   usage: |
-    Not enabled tasks are not executed and are hidden from the task list.
+    Not enabled tasks are not executed and hidden from task list.
 - name: fail-fast
   default_value: "false"
   usage: |
@@ -64,15 +64,13 @@ options:
   shorthand: i
   usage: |
     --interval is deprecated, please use `--cron` instead
+    Time after which a successfully completed task would be run again, supported units are:
 
-
-    Time after which a successfully completed task would be run again. The supported units are:
-
-    * 'd' - days
-    * 'h' - hours
-    * 'm' - minutes
-    * 's' - seconds
-    * 'ms' - milliseconds
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
 
     The task run date is aligned with '--start date' value.
     For example, if you select '--interval 7d' task would run weekly at the '--start-date' time.
@@ -84,13 +82,13 @@ options:
     The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
     The following syntax for glob patterns is supported:
 
-    * '*' - matches any number of any characters including none
-    * '?' - matches any single character
-    * '[abc]' - matches one character given in the bracket
-    * '[a-z]' - matches one character from the range given in the bracket
+    * ``*`` - matches any number of any characters including none
+    * ``?`` - matches any single character
+    * ``[abc]`` - matches one character given in the bracket
+    * ``[a-z]`` - matches one character from the range given in the bracket
 
     Patterns are evaluated from left to right.
-    If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+    If a pattern starts with ``!`` it unselects items that were selected by previous patterns i.e. ``a?,!aa`` selects *ab* but not *aa*.
 
 - name: name
   usage: |
@@ -125,15 +123,14 @@ options:
   shorthand: s
   usage: |
     --start-date is deprecated, please use `--cron` instead
-
     The date can be expressed relatively to now or as a RFC3339 formatted string.
-    To run the task in 2 hours use 'now+2h'. The supported units are:
+    To run the task in 2 hours use 'now+2h', supported units are:
 
-    * 'd' - days
-    * 'h' - hours
-    * 'm' - minutes
-    * 's' - seconds
-    * 'ms' - milliseconds
+    'd' - days
+    'h' - hours
+    'm' - minutes
+    's' - seconds
+    'ms' - milliseconds
 
     If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
     If you want the repair to start immediately, use the value 'now' or skip this flag.
@@ -148,9 +145,9 @@ options:
     A comma-separated list of time markers in a form `[WEEKDAY-]HH:MM`.
     WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.
 
-    * 'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
-    * '23:00,06:00' - can be executed every night from 11PM to 6AM
-    * '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
+    'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
+    '23:00,06:00' - can be executed every night from 11PM to 6AM
+    '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
 inherited_options:
 - name: api-cert-file
   usage: |
