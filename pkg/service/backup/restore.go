@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
+	"github.com/scylladb/gocqlx/v2/qb"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -63,6 +63,16 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 
 		for _, ks := range doNotRestore {
 			t.Keyspace = append(t.Keyspace, "!"+ks)
+		}
+
+		// Filter out all materialized views and secondary indexes. They are not a part of restore procedure at the moment.
+		// See https://docs.scylladb.com/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster.
+		views, err := s.listAllViews(ctx, clusterID)
+		if err != nil {
+			return t, errors.Wrapf(err, "list all views of cluster %s", clusterID.String())
+		}
+		for _, viewName := range views {
+			t.Keyspace = append(t.Keyspace, "!"+viewName)
 		}
 	}
 
@@ -243,4 +253,28 @@ func (s *Service) forEachRestoredManifest(clusterID uuid.UUID, target RestoreTar
 		}
 		return s.forEachManifest(ctx, clusterID, []Location{location}, filter, f)
 	}
+}
+
+// listAllViews is the utility function that queries system_schema.views table to get list of all views created on the cluster.
+// system_schema.views contains view definitions for materialized views and for secondary indexes.
+func (s *Service) listAllViews(ctx context.Context, clusterID uuid.UUID) (views []string, err error) {
+	// Get cluster session
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get CQL cluster session")
+	}
+
+	iter := qb.Select("system_schema.views").
+		Columns("keyspace_name", "view_name").
+		Query(clusterSession).Iter()
+	defer func() {
+		err = iter.Close()
+	}()
+
+	var keyspace, view string
+	for iter.Scan(&keyspace, &view) {
+		views = append(views, keyspace+"."+view)
+	}
+
+	return
 }
