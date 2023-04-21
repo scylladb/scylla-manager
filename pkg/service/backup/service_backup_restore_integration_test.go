@@ -335,21 +335,40 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		testParallel  = 3
 	)
 
-	target := RestoreTarget{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
+	location := []Location{
+		{
+			DC:       "dc1",
+			Provider: S3,
+			Path:     testBucket,
 		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
 	}
+	locStr, err := json.Marshal(location)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tablesTargetProps := fmt.Sprintf(`
+{
+  "location": %s,
+  "keyspace": [
+    "%s"
+  ],
+  "snapshot_tag": "sm_20060102150405UTC",
+  "batch_size": %d,
+  "parallel": %d,
+  "restore_tables": true
+}`, locStr, testKeyspace, testBatchSize, testParallel)
 
-	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize)
+	schemaTargetProps := fmt.Sprintf(`
+{
+  "location": %s,
+  "snapshot_tag": "sm_20060102150405UTC",
+  "batch_size": %d,
+  "parallel": %d,
+  "restore_schema": true
+}`, locStr, testBatchSize, testParallel)
+
+	smokeRestore(t, location[0], schemaTargetProps, testKeyspace, 0, 0, true)
+	smokeRestore(t, location[0], tablesTargetProps, testKeyspace, testLoadCnt, testLoadSize, false)
 }
 
 func TestRestoreSchemaSmokeIntegration(t *testing.T) {
@@ -362,40 +381,55 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 		testParallel  = 1 // Restoring schema can't be done in parallel
 	)
 
-	target := RestoreTarget{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
+	location := []Location{
+		{
+			DC:       "dc1",
+			Provider: S3,
+			Path:     testBucket,
 		},
-		Keyspace:      []string{"system_schema"},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
 	}
+	locStr, err := json.Marshal(location)
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemaTargetProps := fmt.Sprintf(`
+{
+  "location": %s,
+  "snapshot_tag": "sm_20060102150405UTC",
+  "batch_size": %d,
+  "parallel": %d,
+  "restore_schema": true
+}`, locStr, testBatchSize, testParallel)
 
-	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize)
+	smokeRestore(t, location[0], schemaTargetProps, testKeyspace, testLoadCnt, testLoadSize, true)
 }
 
-func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int) {
+func smokeRestore(t *testing.T, location Location, targetStr string, keyspace string, loadCnt, loadSize int, dropKeyspaces bool) {
 	var (
 		ctx          = context.Background()
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
-		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
-		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, location, nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, location, &srcClientCfg)
+		dstSession   gocqlx.Session
+		srcSession   gocqlx.Session
 	)
-	// Recreate schema on destination cluster
-	if target.RestoreTables {
-		WriteData(t, dstSession, keyspace, 0)
+
+	if dropKeyspaces {
+		dstSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+		srcSession = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
+		srcH.prepareRestoreBackupWithMVAndSI(srcSession, keyspace, loadCnt, loadSize)
+	} else {
+		dstSession = CreateSession(t, ManagedClusterHosts())
+		srcSession = CreateSession(t, ManagedSecondClusterHosts())
+		srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	target, err := srcH.service.GetRestoreTarget(ctx, dstH.clusterID, []byte(targetStr))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
@@ -1130,6 +1164,20 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 			h.t.Fatal(err)
 		}
 	}
+}
+
+// prepareRestoreBackupWithMVAndSI is a wrapper over prepareRestoreBackup that adds materialized view and secondary index
+// to the table.
+func (h *restoreTestHelper) prepareRestoreBackupWithMVAndSI(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
+	h.prepareRestoreBackup(session, keyspace, loadCnt, loadSize)
+	ExecStmt(h.t,
+		session,
+		fmt.Sprintf("CREATE MATERIALIZED VIEW %s.testmv AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, keyspace, BigTableName),
+	)
+	ExecStmt(h.t,
+		session,
+		fmt.Sprintf("CREATE INDEX bydata ON %s.%s (data)", keyspace, BigTableName),
+	)
 }
 
 func (h *restoreTestHelper) simpleBackup(location Location) string {
