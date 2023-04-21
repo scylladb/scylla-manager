@@ -100,11 +100,6 @@ options:
   usage: |
     The `number of backups` to store, once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.
     Can be used simultaneously with '--retention-days' flag.
-- name: retention-days
-  default_value: "0"
-  usage: |
-    The `number of days` for which backup is stored, the next backup will initiate a purge of all expired backups.
-    Can be used simultaneously with '--retention' flag.
 - name: retry-wait
   default_value: 10m
   usage: |
