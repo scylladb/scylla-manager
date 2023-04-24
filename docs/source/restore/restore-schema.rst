@@ -13,8 +13,8 @@ Prerequisites
 
 * Scylla Manager with CQL credentials to restore destination cluster.
 
-* It is strongly advised to restore schema only into an empty cluster. Otherwise, the restored schema might be overwritten
-   by the already existing one and cause unexpected errors.
+* It is strongly advised to restore schema only into an empty cluster.
+   Otherwise, the restored schema might be overwritten by the already existing one and cause unexpected errors.
 
 * All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
 
@@ -24,6 +24,10 @@ Follow-up action
 After successful restore it is important to perform necessary follow-up action. In case of restoring schema,
 you should make a `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
 Without the restart, the restored schema might not be visible, and querying it can return various errors.
+
+It is recommended to drop all materialized views and secondary indexes that are part of the restored schema.
+The next step, ``--restore-tables``, does not restore materialized views or secondary indexes.
+It is the end user's responsibility to drop and recreate them after the tables have been successfully restored.
 
 Process
 =======
