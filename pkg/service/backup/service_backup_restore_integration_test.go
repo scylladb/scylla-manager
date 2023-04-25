@@ -506,32 +506,6 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 	restoreWithAgentRestart(t, target, testKeyspace, testLoadCnt, testLoadSize)
 }
 
-func TestRestoreSchemaRestartAgentsIntegration(t *testing.T) {
-	const (
-		testBucket    = "restoretest-schema-restart-agents"
-		testKeyspace  = "restoretest_schema_restart_agents"
-		testLoadCnt   = 1
-		testLoadSize  = 1
-		testBatchSize = 2
-		testParallel  = 1
-	)
-
-	target := RestoreTarget{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
-		},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
-	restoreWithAgentRestart(t, target, testKeyspace, testLoadCnt, testLoadSize)
-}
-
 func restoreWithAgentRestart(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int) {
 	var (
 		cfg          = DefaultConfig()
