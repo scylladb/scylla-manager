@@ -60,15 +60,10 @@ func (t RestoreTarget) validateProperties() error {
 	return nil
 }
 
-// copiedAndSortedLocations returns sorted copy of RestoreTarget.Locations slice.
-func (t RestoreTarget) copiedAndSortedLocations() []Location {
-	output := make([]Location, len(t.Location))
-	copy(output, t.Location)
-
-	sort.SliceStable(output, func(i, j int) bool {
-		return output[i].String() < output[j].String()
+func (t RestoreTarget) sortLocations() {
+	sort.SliceStable(t.Location, func(i, j int) bool {
+		return t.Location[i].String() < t.Location[j].String()
 	})
-	return output
 }
 
 // RestoreRun tracks restore progress, shares ID with scheduler.Run that initiated it.

@@ -35,7 +35,7 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		}
 	}
 	// Restore locations in deterministic order
-	for _, l := range target.copiedAndSortedLocations() {
+	for _, l := range target.Location {
 		if w.continuation && run.Location != l.String() {
 			w.Logger.Info(ctx, "Skipping location", "location", l)
 			continue
