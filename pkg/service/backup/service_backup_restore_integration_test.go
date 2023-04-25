@@ -55,7 +55,6 @@ Assumptions
 1) Wrong schema = undefined behavior - user is responsible for using restore according to documentation
 
 Empiric observations from running restore schema tests:
-- Parallel must be set to 1 (otherwise strange issues might happen (e.g. cluster have to be restarted twice to pick up the schema))
 - Destination cluster can have other keyspaces that were not included int the backup - they won't be affected
 - If keyspace is already present in the destination cluster, it will be replaced with the one that's restored
   Not restored tables in this keyspace will be unconfigured
@@ -335,40 +334,30 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		testParallel  = 3
 	)
 
-	location := []Location{
+	locs := []Location{
 		{
 			DC:       "dc1",
 			Provider: S3,
 			Path:     testBucket,
 		},
 	}
-	locStr, err := json.Marshal(location)
-	if err != nil {
-		t.Fatal(err)
+
+	schemaTarget := RestoreTarget{
+		Location:      locs,
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreSchema: true,
 	}
-	tablesTargetProps := fmt.Sprintf(`
-{
-  "location": %s,
-  "keyspace": [
-    "%s"
-  ],
-  "snapshot_tag": "sm_20060102150405UTC",
-  "batch_size": %d,
-  "parallel": %d,
-  "restore_tables": true
-}`, locStr, testKeyspace, testBatchSize, testParallel)
+	smokeRestore(t, locs[0], schemaTarget, testKeyspace, 0, 0, true)
 
-	schemaTargetProps := fmt.Sprintf(`
-{
-  "location": %s,
-  "snapshot_tag": "sm_20060102150405UTC",
-  "batch_size": %d,
-  "parallel": %d,
-  "restore_schema": true
-}`, locStr, testBatchSize, testParallel)
-
-	smokeRestore(t, location[0], schemaTargetProps, testKeyspace, 0, 0, true)
-	smokeRestore(t, location[0], tablesTargetProps, testKeyspace, testLoadCnt, testLoadSize, false)
+	tablesTarget := RestoreTarget{
+		Location:      locs,
+		Keyspace:      []string{testKeyspace},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+	smokeRestore(t, locs[0], tablesTarget, testKeyspace, testLoadCnt, testLoadSize, false)
 }
 
 func TestRestoreSchemaSmokeIntegration(t *testing.T) {
@@ -378,33 +367,26 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 		testLoadCnt   = 1
 		testLoadSize  = 1
 		testBatchSize = 2
-		testParallel  = 1 // Restoring schema can't be done in parallel
+		testParallel  = 3
 	)
 
-	location := []Location{
-		{
-			DC:       "dc1",
-			Provider: S3,
-			Path:     testBucket,
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
 		},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreSchema: true,
 	}
-	locStr, err := json.Marshal(location)
-	if err != nil {
-		t.Fatal(err)
-	}
-	schemaTargetProps := fmt.Sprintf(`
-{
-  "location": %s,
-  "snapshot_tag": "sm_20060102150405UTC",
-  "batch_size": %d,
-  "parallel": %d,
-  "restore_schema": true
-}`, locStr, testBatchSize, testParallel)
 
-	smokeRestore(t, location[0], schemaTargetProps, testKeyspace, testLoadCnt, testLoadSize, true)
+	smokeRestore(t, target.Location[0], target, testKeyspace, testLoadCnt, testLoadSize, true)
 }
 
-func smokeRestore(t *testing.T, location Location, targetStr string, keyspace string, loadCnt, loadSize int, dropKeyspaces bool) {
+func smokeRestore(t *testing.T, location Location, target RestoreTarget, keyspace string, loadCnt, loadSize int, dropKeyspaces bool) {
 	var (
 		ctx          = context.Background()
 		cfg          = DefaultConfig()
@@ -426,12 +408,8 @@ func smokeRestore(t *testing.T, location Location, targetStr string, keyspace st
 		srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	}
 
-	target, err := srcH.service.GetRestoreTarget(ctx, dstH.clusterID, []byte(targetStr))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = srcH.regenerateRestoreTarget(target)
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
@@ -497,6 +475,7 @@ func restoreWithNodeDown(t *testing.T, target RestoreTarget, keyspace string, lo
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = srcH.regenerateRestoreTarget(target)
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
@@ -558,7 +537,6 @@ func TestRestoreSchemaRestartAgentsIntegration(t *testing.T) {
 				Path:     testBucket,
 			},
 		},
-		Keyspace:      []string{"system_schema"},
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreSchema: true,
@@ -586,6 +564,7 @@ func restoreWithAgentRestart(t *testing.T, target RestoreTarget, keyspace string
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = srcH.regenerateRestoreTarget(target)
 
 	a := atomic.NewInt64(0)
 	dstH.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -681,6 +660,7 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = srcH.regenerateRestoreTarget(target)
 
 	a := atomic.NewInt64(0)
 	dstH.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -771,7 +751,6 @@ func TestRestoreSchemaVersionedIntegration(t *testing.T) {
 				Path:     testBucket,
 			},
 		},
-		Keyspace:      []string{"system_schema"},
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreSchema: true,
@@ -926,6 +905,8 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 
 	Print("Restore 3-rd backup with versioned files")
 	target.SnapshotTag = tag3
+	target = srcH.regenerateRestoreTarget(target)
+
 	if err = dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
 		t.Fatal(err)
 	}
@@ -954,15 +935,6 @@ func TestRestoreTablesScyllaIntegration(t *testing.T) {
 				Path:     testBucket,
 			},
 		},
-		Keyspace: []string{
-			"*",
-			"!system",
-			"!system_schema",
-			"!system_distributed_everywhere.cdc_generation_descriptions_v2",
-			"!system_distributed.cdc_streams_descriptions_v2",
-			"!system_distributed.cdc_generation_timestamps",
-			"!*.*_scylla_cdc_log",
-		},
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
@@ -983,8 +955,8 @@ func restoreScyllaTables(t *testing.T, target RestoreTarget, keyspace string, lo
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
 	)
 	// Ensure clean scylla tables
-	dstH.cleanScyllaTables(dstSession, keyspace)
-	srcH.cleanScyllaTables(srcSession, keyspace)
+	dstH.cleanScyllaTables(dstSession)
+	srcH.cleanScyllaTables(srcSession)
 
 	// Recreate schema on destination cluster
 	dstH.createTableWithCDC(dstSession, keyspace, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
@@ -993,12 +965,13 @@ func restoreScyllaTables(t *testing.T, target RestoreTarget, keyspace string, lo
 	srcH.createTableWithCDC(srcSession, keyspace, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}")
 
 	// Clean scylla tables after test
-	defer dstH.cleanScyllaTables(dstSession, keyspace)
-	defer srcH.cleanScyllaTables(srcSession, keyspace)
+	defer dstH.cleanScyllaTables(dstSession)
+	defer srcH.cleanScyllaTables(srcSession)
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = srcH.regenerateRestoreTarget(target)
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
@@ -1042,7 +1015,7 @@ func (h *restoreTestHelper) populateScyllaTables(session gocqlx.Session) {
 }
 
 // cleanScyllaTables truncates (or just deletes rows) from tables populated in populateScyllaTables.
-func (h *restoreTestHelper) cleanScyllaTables(session gocqlx.Session, keyspace string) {
+func (h *restoreTestHelper) cleanScyllaTables(session gocqlx.Session) {
 	toBeTruncated := []string{
 		"system_auth.role_attributes",
 		"system_auth.role_members",
@@ -1066,9 +1039,6 @@ func (h *restoreTestHelper) cleanScyllaTables(session gocqlx.Session, keyspace s
 	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role2' IF EXISTS"); err != nil {
 		h.t.Fatal(err)
 	}
-	if err := session.ExecStmt("DROP KEYSPACE IF EXISTS " + keyspace); err != nil {
-		h.t.Fatal(err)
-	}
 }
 
 func (h *restoreTestHelper) createTableWithCDC(session gocqlx.Session, keyspace, replication string) {
@@ -1083,6 +1053,22 @@ func (h *restoreTestHelper) createTableWithCDC(session gocqlx.Session, keyspace,
 	if err := session.ExecStmt(createTableStmt); err != nil {
 		h.t.Fatal(err)
 	}
+}
+
+// regenerateRestoreTarget applies GetRestoreTarget onto given restore target.
+// It's useful for filling keyspace boilerplate.
+func (h *restoreTestHelper) regenerateRestoreTarget(target RestoreTarget) RestoreTarget {
+	props, err := json.Marshal(target)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	target, err = h.service.GetRestoreTarget(context.Background(), h.clusterID, props)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	return target
 }
 
 func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx.Session, target RestoreTarget, tables ...string) {
