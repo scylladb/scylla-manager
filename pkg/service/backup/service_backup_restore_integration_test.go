@@ -334,30 +334,21 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		testParallel  = 3
 	)
 
-	locs := []Location{
-		{
-			DC:       "dc1",
-			Provider: S3,
-			Path:     testBucket,
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
 		},
-	}
-
-	schemaTarget := RestoreTarget{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-	smokeRestore(t, locs[0], schemaTarget, testKeyspace, 0, 0, true)
-
-	tablesTarget := RestoreTarget{
-		Location:      locs,
 		Keyspace:      []string{testKeyspace},
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
 	}
-	smokeRestore(t, locs[0], tablesTarget, testKeyspace, testLoadCnt, testLoadSize, false)
+
+	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize)
 }
 
 func TestRestoreSchemaSmokeIntegration(t *testing.T) {
@@ -383,30 +374,26 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 		RestoreSchema: true,
 	}
 
-	smokeRestore(t, target.Location[0], target, testKeyspace, testLoadCnt, testLoadSize, true)
+	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize)
 }
 
-func smokeRestore(t *testing.T, location Location, target RestoreTarget, keyspace string, loadCnt, loadSize int, dropKeyspaces bool) {
+func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int) {
 	var (
 		ctx          = context.Background()
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstH         = newRestoreTestHelper(t, mgrSession, cfg, location, nil)
-		srcH         = newRestoreTestHelper(t, mgrSession, cfg, location, &srcClientCfg)
-		dstSession   gocqlx.Session
-		srcSession   gocqlx.Session
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
 	)
-
-	if dropKeyspaces {
-		dstSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
-		srcH.prepareRestoreBackupWithMVAndSI(srcSession, keyspace, loadCnt, loadSize)
-	} else {
-		dstSession = CreateSession(t, ManagedClusterHosts())
-		srcSession = CreateSession(t, ManagedSecondClusterHosts())
-		srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	// Recreate schema on destination cluster
+	if target.RestoreTables {
+		WriteData(t, dstSession, keyspace, 0)
 	}
+
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 	target = srcH.regenerateRestoreTarget(target)
@@ -917,33 +904,42 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate...)
 }
 
-func TestRestoreTablesScyllaIntegration(t *testing.T) {
+func TestRestoreFullIntegration(t *testing.T) {
 	const (
-		testBucket    = "restoretest-tables-scylla"
-		testKeyspace  = "restoretest_tables_scylla"
+		testBucket    = "restoretest-full"
+		testKeyspace  = "restoretest_full"
 		testLoadCnt   = 2
 		testLoadSize  = 1
 		testBatchSize = 1
 		testParallel  = 3
 	)
 
-	target := RestoreTarget{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
+	locs := []Location{
+		{
+			DC:       "dc1",
+			Provider: S3,
+			Path:     testBucket,
 		},
+	}
+
+	schemaTarget := RestoreTarget{
+		Location:      locs,
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreSchema: true,
+	}
+
+	tablesTarget := RestoreTarget{
+		Location:      locs,
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
 	}
 
-	restoreScyllaTables(t, target, testKeyspace, testLoadCnt, testLoadSize)
+	restoreAllTables(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize)
 }
 
-func restoreScyllaTables(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int) {
+func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, keyspace string, loadCnt, loadSize int) {
 	var (
 		ctx          = context.Background()
 		cfg          = DefaultConfig()
@@ -951,32 +947,17 @@ func restoreScyllaTables(t *testing.T, target RestoreTarget, keyspace string, lo
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
-		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
-		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], &srcClientCfg)
 	)
 	// Ensure clean scylla tables
 	dstH.cleanScyllaTables(dstSession)
 	srcH.cleanScyllaTables(srcSession)
 
-	// Recreate schema on destination cluster
-	dstH.createTableWithCDC(dstSession, keyspace, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
-	// Populate source cluster data
-	srcH.populateScyllaTables(srcSession)
-	srcH.createTableWithCDC(srcSession, keyspace, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}")
-
+	srcH.prepareRestoreBackupWithFeatures(srcSession, keyspace, loadCnt, loadSize)
 	// Clean scylla tables after test
 	defer dstH.cleanScyllaTables(dstSession)
 	defer srcH.cleanScyllaTables(srcSession)
-
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-
-	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
-	target = srcH.regenerateRestoreTarget(target)
-
-	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
-	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
-		t.Fatal(err)
-	}
 
 	toValidate := []string{
 		fmt.Sprintf("%s.%s", keyspace, BigTableName),
@@ -992,67 +973,29 @@ func restoreScyllaTables(t *testing.T, target RestoreTarget, keyspace string, lo
 		"system_traces.sessions_time_idx",
 	}
 
-	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate...)
-}
+	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
+	schemaTarget = srcH.regenerateRestoreTarget(schemaTarget)
 
-// populateScyllaTables ensures that tables 'system_distributed.service_levels' and 'system_auth.*' are not empty.
-func (h *restoreTestHelper) populateScyllaTables(session gocqlx.Session) {
-	statements := []string{
-		"CREATE ROLE role1 WITH PASSWORD = 'pas' AND LOGIN = true",
-		"CREATE SERVICE LEVEL sl WITH timeout = 500ms AND workload_type='interactive'",
-		"ATTACH SERVICE_LEVEL sl TO role1",
-		"GRANT SELECT ON system_schema.tables TO role1",
-		"CREATE ROLE role2",
-		"GRANT role1 TO role2",
+	Print("Restore schema on different cluster")
+	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, schemaTarget); err != nil {
+		t.Fatal(err)
 	}
 
-	t := gocql.NewTraceWriter(session.Session, os.Stdout) // Populate system_traces
-	for _, stmt := range statements {
-		if err := session.Query(stmt, nil).Trace(t).Exec(); err != nil {
-			h.t.Fatalf("Exec stmt: %s, error: %s", stmt, err.Error())
-		}
-	}
-}
+	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate...)
 
-// cleanScyllaTables truncates (or just deletes rows) from tables populated in populateScyllaTables.
-func (h *restoreTestHelper) cleanScyllaTables(session gocqlx.Session) {
-	toBeTruncated := []string{
-		"system_auth.role_attributes",
-		"system_auth.role_members",
-		"system_auth.role_permissions",
-		"system_distributed.service_levels",
-		"system_traces.events",
-		"system_traces.node_slow_log",
-		"system_traces.node_slow_log_time_idx",
-		"system_traces.sessions",
-		"system_traces.sessions_time_idx",
+	// Generate new task ID and run ID for the second restore
+	dstH.taskID = uuid.MustRandom()
+	dstH.runID = uuid.MustRandom()
+
+	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
+	tablesTarget = srcH.regenerateRestoreTarget(tablesTarget)
+
+	Print("Restore tables on different cluster")
+	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, tablesTarget); err != nil {
+		t.Fatal(err)
 	}
 
-	for _, t := range toBeTruncated {
-		if err := session.ExecStmt("TRUNCATE TABLE " + t); err != nil {
-			h.t.Fatal(err)
-		}
-	}
-	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role1' IF EXISTS"); err != nil {
-		h.t.Fatal(err)
-	}
-	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role2' IF EXISTS"); err != nil {
-		h.t.Fatal(err)
-	}
-}
-
-func (h *restoreTestHelper) createTableWithCDC(session gocqlx.Session, keyspace, replication string) {
-	var (
-		createKsStmt    = fmt.Sprintf("CREATE KEYSPACE %s WITH replication = %s", keyspace, replication)
-		createTableStmt = fmt.Sprintf("CREATE TABLE %s.%s (id int PRIMARY KEY, data blob) WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName)
-	)
-
-	if err := session.ExecStmt(createKsStmt); err != nil {
-		h.t.Fatal(err)
-	}
-	if err := session.ExecStmt(createTableStmt); err != nil {
-		h.t.Fatal(err)
-	}
+	dstH.validateRestoreSuccess(dstSession, srcSession, tablesTarget, toValidate...)
 }
 
 // regenerateRestoreTarget applies GetRestoreTarget onto given restore target.
@@ -1121,9 +1064,81 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 
 		h.t.Logf("%s, srcCount = %d, dstCount = %d", t, srcCount, dstCount)
 		if dstCount != srcCount {
+			// We always have 'cassandra' role in dst cluster
+			if target.RestoreSchema && t == "system_auth.roles" && dstCount == 1 {
+				continue
+			}
+
 			h.t.Fatalf("srcCount != dstCount")
 		}
 	}
+}
+
+// cleanScyllaTables truncates scylla tables populated in prepareRestoreBackupWithFeatures.
+func (h *restoreTestHelper) cleanScyllaTables(session gocqlx.Session) {
+	toBeTruncated := []string{
+		"system_auth.role_attributes",
+		"system_auth.role_members",
+		"system_auth.role_permissions",
+		"system_distributed.service_levels",
+		"system_traces.events",
+		"system_traces.node_slow_log",
+		"system_traces.node_slow_log_time_idx",
+		"system_traces.sessions",
+		"system_traces.sessions_time_idx",
+	}
+
+	for _, t := range toBeTruncated {
+		if err := session.ExecStmt("TRUNCATE TABLE " + t); err != nil {
+			h.t.Fatal(err)
+		}
+	}
+	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role1' IF EXISTS"); err != nil {
+		h.t.Fatal(err)
+	}
+	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role2' IF EXISTS"); err != nil {
+		h.t.Fatal(err)
+	}
+}
+
+// prepareRestoreBackupWithFeatures is a wrapper over prepareRestoreBackup that:
+// - adds materialized view and secondary index
+// - adds CDC log table
+// - populates system_auth, system_traces, system_distributed tables
+func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
+	statements := []string{
+		"CREATE ROLE role1 WITH PASSWORD = 'pas' AND LOGIN = true",
+		"CREATE SERVICE LEVEL sl WITH timeout = 500ms AND workload_type = 'interactive'",
+		"ATTACH SERVICE_LEVEL sl TO role1",
+		"GRANT SELECT ON system_schema.tables TO role1",
+		"CREATE ROLE role2",
+		"GRANT role1 TO role2",
+	}
+
+	t := gocql.NewTraceWriter(session.Session, os.Stdout) // Populate system_traces
+	for _, stmt := range statements {
+		if err := session.Query(stmt, nil).Trace(t).Exec(); err != nil {
+			h.t.Fatalf("Exec stmt: %s, error: %s", stmt, err.Error())
+		}
+	}
+
+	// Create keyspace and table
+	WriteDataToSecondCluster(h.t, session, keyspace, 0, 0)
+
+	ExecStmt(h.t,
+		session,
+		fmt.Sprintf("ALTER TABLE %s.%s WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName),
+	)
+	ExecStmt(h.t,
+		session,
+		fmt.Sprintf("CREATE MATERIALIZED VIEW %s.testmv AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, keyspace, BigTableName),
+	)
+	ExecStmt(h.t,
+		session,
+		fmt.Sprintf("CREATE INDEX bydata ON %s.%s (data)", keyspace, BigTableName),
+	)
+
+	h.prepareRestoreBackup(session, keyspace, loadCnt, loadSize)
 }
 
 // prepareRestoreBackup populates second cluster with loadCnt * loadSize MiB of data living in keyspace.big_table table.
@@ -1134,7 +1149,7 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
 	ctx := context.Background()
 
-	// Create keyspace and table.
+	// Create keyspace and table
 	WriteDataToSecondCluster(h.t, session, keyspace, 0, 0)
 
 	if err := h.client.DisableAutoCompaction(ctx, keyspace, BigTableName); err != nil {
@@ -1150,20 +1165,6 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 			h.t.Fatal(err)
 		}
 	}
-}
-
-// prepareRestoreBackupWithMVAndSI is a wrapper over prepareRestoreBackup that adds materialized view and secondary index
-// to the table.
-func (h *restoreTestHelper) prepareRestoreBackupWithMVAndSI(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
-	h.prepareRestoreBackup(session, keyspace, loadCnt, loadSize)
-	ExecStmt(h.t,
-		session,
-		fmt.Sprintf("CREATE MATERIALIZED VIEW %s.testmv AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, keyspace, BigTableName),
-	)
-	ExecStmt(h.t,
-		session,
-		fmt.Sprintf("CREATE INDEX bydata ON %s.%s (data)", keyspace, BigTableName),
-	)
 }
 
 func (h *restoreTestHelper) simpleBackup(location Location) string {
