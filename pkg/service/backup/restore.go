@@ -39,6 +39,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 			s.logger.Info(ctx, "No datacenter specified for location - using all nodes for this location", "location", l)
 		}
 	}
+	t.sortLocations()
 
 	if t.RestoreSchema {
 		t.Keyspace = []string{"system_schema"}
