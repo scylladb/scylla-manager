@@ -25,7 +25,7 @@ type RestoreTarget struct {
 	Parallel      int        `json:"parallel,omitempty"`
 	RestoreSchema bool       `json:"restore_schema,omitempty"`
 	RestoreTables bool       `json:"restore_tables,omitempty"`
-	Continue      bool       `json:"continue,omitempty"`
+	Continue      bool       `json:"continue"`
 }
 
 func defaultRestoreTarget() RestoreTarget {
