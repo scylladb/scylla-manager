@@ -30,10 +30,13 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 	for _, u := range run.Units {
 		for _, t := range u.Tables {
 			if err := w.DisableTableGGS(ctx, u.Keyspace, t.Table); err != nil {
-				return err
+				return errors.Wrap(err, "disable table's ggs")
 			}
 		}
 	}
+	// Disabling table's ggs alters schema, so we need to wait for the agreement again
+	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+
 	// Restore locations in deterministic order
 	for _, l := range target.Location {
 		if w.continuation && run.Location != l.String() {
