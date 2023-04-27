@@ -8,17 +8,18 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -194,10 +195,34 @@ func (w *restoreWorkerTools) DisableTableGGS(ctx context.Context, keyspace, tabl
 		"table", table,
 	)
 
-	if err := w.clusterSession.ExecStmt(disableTableGGSStatement(keyspace, table)); err != nil {
-		return errors.Wrap(err, "disable gc_grace_seconds")
+	const (
+		minWait      = 5 * time.Second
+		maxWait      = 1 * time.Minute
+		maxTotalTime = 15 * time.Minute
+		multiplier   = 2
+		jitter       = 0.2
+	)
+	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
+
+	notify := func(err error, wait time.Duration) {
+		w.Logger.Info(ctx, "Disabling table's gc_grace_seconds failed",
+			"keyspace", keyspace,
+			"table", table,
+			"error", err,
+			"wait", wait,
+		)
 	}
-	return nil
+
+	op := func() error {
+		err := w.clusterSession.ExecStmt(disableTableGGSStatement(keyspace, table))
+
+		if err == nil || strings.Contains(err.Error(), "timeout") {
+			return err
+		}
+		return retry.Permanent(err)
+	}
+
+	return retry.WithNotify(ctx, op, backoff, notify)
 }
 
 func disableTableGGSStatement(keyspace, table string) string {
