@@ -3,6 +3,7 @@ all: help
 COMPOSE    := docker-compose
 CQLSH      := $(COMPOSE) exec scylla-manager-db cqlsh
 CQLSH_NODE := $(COMPOSE) exec -T dc1_node_1 cqlsh
+NODETOOL   := $(COMPOSE) exec -T dc1_node_1 nodetool
 YQ         := ../bin/yq
 CURRENT_UID := $(shell id -u)
 CURRENT_GID := $(shell id -g)
@@ -39,7 +40,7 @@ endif
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
 	@echo "==> Waiting for cluster"
-	@until $(CQLSH_NODE) 192.168.100.11 -e "DESCRIBE SCHEMA" > /dev/null ; do echo "..."; sleep 2; done
+	@until [ 6 -eq $$($(NODETOOL) status | grep -c "UN") ]; do echo "..."; sleep 2; done
 	@./nodes_exec rm /root/.cqlshrc
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh
