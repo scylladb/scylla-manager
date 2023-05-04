@@ -1,0 +1,32 @@
+name: "Set up testing dependencies"
+description: "Set up GO, package dependencies and install-dependencies"
+inputs:
+  start-dev-env:
+    description: "Should this action run 'make start-dev-env'"
+    required: false
+    default: 'true'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: ./go.mod
+        cache-dependency-path: '**/go.sum'
+
+    - name: Restore dependencies
+      uses: actions/cache@v3
+      id: cache-dependencies
+      with:
+        path: ~/work/scylla-manager/scylla-manager/bin
+        key: ${{ runner.os }}-${{ hashFiles('~/work/scylla-manager/scylla-manager/install-dependencies.sh', '~/work/scylla-manager/scylla-manager/mod/go.sum') }}
+
+    - name: Install dependencies
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
+      run: ./install-dependencies.sh
+      shell: bash
+
+    - name: Start dev env
+      if: inputs.start-dev-env == 'true'
+      run: make start-dev-env
+      shell: bash
