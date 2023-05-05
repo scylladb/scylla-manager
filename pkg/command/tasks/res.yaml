@@ -14,6 +14,9 @@ all: |
 show-ids: |
   Always display task UUID, do not show task names. 
 
+show-properties: |
+  Additionally display task properties.
+
 status: |
   Filters tasks according to their last run `status`.
   Accepted values are: NEW, RUNNING, STOPPING, STOPPED, WAITING, DONE, ERROR, ABORTED.
