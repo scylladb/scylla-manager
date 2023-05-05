@@ -22,12 +22,13 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	cluster  string
-	all      bool
-	showIDs  bool
-	status   string
-	taskType string
-	sortKey  string
+	cluster   string
+	all       bool
+	showIDs   bool
+	showProps bool
+	status    string
+	taskType  string
+	sortKey   string
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -51,6 +52,7 @@ func (cmd *command) init() {
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().BoolVarP(&cmd.all, "all", "a", false, "")
 	w.Unwrap().BoolVar(&cmd.showIDs, "show-ids", false, "")
+	w.Unwrap().BoolVar(&cmd.showProps, "show-properties", false, "")
 	w.Unwrap().StringVarP(&cmd.status, "status", "s", "", "")
 	w.Unwrap().StringVarP(&cmd.taskType, "type", "t", "", "")
 	w.Unwrap().StringVar(&cmd.sortKey, "sort", "", "")
@@ -79,6 +81,7 @@ func (cmd *command) run() error {
 			return err
 		}
 		tasks.ShowIDs = cmd.showIDs
+		tasks.ShowProps = cmd.showProps
 
 		sortTasks(tasks, taskListSortKey(cmd.sortKey))
 		return tasks.Render(w)
