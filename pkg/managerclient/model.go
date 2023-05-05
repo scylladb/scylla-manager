@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
@@ -246,25 +247,29 @@ func (t TaskInfo) Render(w io.Writer) error {
 			}
 			return v
 		},
-		"FormatKey": func(s string) string {
-			return strings.ReplaceAll(s, "_", "-")
-		},
-		"FormatValue": func(v interface{}) string {
-			switch t := v.(type) {
-			case []string:
-				return strings.Join(t, ",")
-			case []interface{}:
-				s := make([]string, len(t))
-				for i := range t {
-					s[i] = fmt.Sprint(t[i])
-				}
-				return strings.Join(s, ",")
-			default:
-				return fmt.Sprint(t)
-			}
-		},
+		"FormatKey":   formatKey,
+		"FormatValue": formatValue,
 	}).Parse(taskInfoTemplate))
 	return temp.Execute(w, t)
+}
+
+func formatKey(k string) string {
+	return strings.ReplaceAll(k, "_", "-")
+}
+
+func formatValue(v any) string {
+	switch t := v.(type) {
+	case []string:
+		return "'" + strings.Join(t, ",") + "'"
+	case []interface{}:
+		s := make([]string, len(t))
+		for i := range t {
+			s[i] = fmt.Sprint(t[i])
+		}
+		return "'" + strings.Join(s, ",") + "'"
+	default:
+		return fmt.Sprint(t)
+	}
 }
 
 // RepairTarget is a representing results of dry running repair task.
@@ -455,8 +460,9 @@ type TaskListItemSlice = []*models.TaskListItem
 // TaskListItems is a representation of []*scheduler.Task with additional fields from scheduler.
 type TaskListItems struct {
 	TaskListItemSlice
-	All     bool
-	ShowIDs bool
+	All       bool
+	ShowIDs   bool
+	ShowProps bool
 }
 
 // Render renders TaskListItems in a tabular format.
@@ -478,7 +484,12 @@ func (li TaskListItems) Render(w io.Writer) error {
 	}
 
 	var doneRestoreTask bool
-	p := table.New("Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next")
+
+	columns := []any{"Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next"}
+	if li.ShowProps {
+		columns = append(columns, "Properties")
+	}
+	p := table.New(columns...)
 	for _, t := range li.TaskListItemSlice {
 		if t.Type == RestoreTask && t.Status == TaskStatusDone {
 			doneRestoreTask = true
@@ -513,7 +524,26 @@ func (li TaskListItems) Render(w io.Writer) error {
 			next = in(t.NextActivation)
 		}
 
-		p.AddRow(id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone, t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError), status, next)
+		row := []any{
+			id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone,
+			t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError),
+			status, next,
+		}
+		if li.ShowProps {
+			props, ok := t.Properties.(map[string]any)
+			if !ok {
+				return errors.New("can't cast task properties into map[string]any")
+			}
+
+			var fmtProps []string
+			for k, v := range props {
+				fmtProps = append(fmtProps, formatKey(k)+": "+formatValue(v))
+			}
+
+			row = append(row, strings.Join(fmtProps, ", "))
+		}
+
+		p.AddRow(row...)
 	}
 	fmt.Fprint(w, p)
 
