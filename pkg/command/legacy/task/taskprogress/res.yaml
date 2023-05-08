@@ -1,4 +1,4 @@
-use: progress --cluster <id|name> [--details] [-run UUID] [flags] <type/task-id>
+use: progress --cluster <id|name> [--details] [--run UUID] [flags] <type/task-id>
 
 deprecated: |
   use sctool backup|repair progress instead.
