@@ -76,7 +76,7 @@ func (cmd *command) run() error {
 
 	w := cmd.OutOrStdout()
 	h := func(clusterID string) error {
-		tasks, err := cmd.client.ListTasks(cmd.Context(), clusterID, cmd.taskType, cmd.all, cmd.status)
+		tasks, err := cmd.client.ListTasks(cmd.Context(), clusterID, cmd.taskType, cmd.all, cmd.status, "")
 		if err != nil {
 			return err
 		}
