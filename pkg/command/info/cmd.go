@@ -58,13 +58,16 @@ func (cmd *command) run(args []string) error {
 
 	w := cmd.OutOrStdout()
 
-	task, err := cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
+	tasks, err := cmd.client.ListTasks(cmd.Context(), cmd.cluster, taskType, true, "", taskID.String())
 	if err != nil {
 		return err
 	}
+	if len(tasks.TaskListItemSlice) != 1 {
+		return fmt.Errorf("expected exactly 1 task, got %d", len(tasks.TaskListItemSlice))
+	}
 
 	ti := managerclient.TaskInfo{
-		Task: task,
+		TaskListItem: tasks.TaskListItemSlice[0],
 	}
 	if err := ti.Render(w); err != nil {
 		return err
