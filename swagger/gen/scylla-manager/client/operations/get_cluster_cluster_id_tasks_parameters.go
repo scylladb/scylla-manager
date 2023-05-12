@@ -70,6 +70,8 @@ type GetClusterClusterIDTasksParams struct {
 	Short *bool
 	/*Status*/
 	Status *string
+	/*TaskID*/
+	TaskID *string
 	/*Type*/
 	Type *string
 
@@ -155,6 +157,17 @@ func (o *GetClusterClusterIDTasksParams) SetStatus(status *string) {
 	o.Status = status
 }
 
+// WithTaskID adds the taskID to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) WithTaskID(taskID *string) *GetClusterClusterIDTasksParams {
+	o.SetTaskID(taskID)
+	return o
+}
+
+// SetTaskID adds the taskId to the get cluster cluster ID tasks params
+func (o *GetClusterClusterIDTasksParams) SetTaskID(taskID *string) {
+	o.TaskID = taskID
+}
+
 // WithType adds the typeVar to the get cluster cluster ID tasks params
 func (o *GetClusterClusterIDTasksParams) WithType(typeVar *string) *GetClusterClusterIDTasksParams {
 	o.SetType(typeVar)
@@ -221,6 +234,22 @@ func (o *GetClusterClusterIDTasksParams) WriteToRequest(r runtime.ClientRequest,
 		qStatus := qrStatus
 		if qStatus != "" {
 			if err := r.SetQueryParam("status", qStatus); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.TaskID != nil {
+
+		// query param task_id
+		var qrTaskID string
+		if o.TaskID != nil {
+			qrTaskID = *o.TaskID
+		}
+		qTaskID := qrTaskID
+		if qTaskID != "" {
+			if err := r.SetQueryParam("task_id", qTaskID); err != nil {
 				return err
 			}
 		}
