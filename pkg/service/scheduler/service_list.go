@@ -27,6 +27,7 @@ type ListFilter struct {
 	Disabled bool
 	Deleted  bool
 	Short    bool
+	TaskID   uuid.UUID
 }
 
 // ListTasks returns cluster tasks given the filtering criteria.
@@ -61,6 +62,9 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter Lis
 		b.Where(qb.In("status"))
 		b.AllowFiltering()
 		m["status"] = filter.Status
+	}
+	if filter.TaskID != uuid.Nil {
+		b.Where(qb.EqLit("id", filter.TaskID.String()))
 	}
 
 	q := b.Query(s.session)

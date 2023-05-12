@@ -126,6 +126,13 @@ func (h *taskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if s := r.FormValue("task_id"); s != "" {
+		filter.TaskID, err = uuid.Parse(s)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+	}
 
 	cid := mustClusterIDFromCtx(r)
 	tasks, err := h.Scheduler.ListTasks(r.Context(), cid, filter)
