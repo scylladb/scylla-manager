@@ -1257,6 +1257,12 @@
             "in": "query",
             "type": "boolean",
             "required": false
+          },
+          {
+            "name": "task_id",
+            "in": "query",
+            "type": "string",
+            "required": false
           }
         ],
         "responses": {
