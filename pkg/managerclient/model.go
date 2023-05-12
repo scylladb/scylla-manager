@@ -199,15 +199,11 @@ func makeTaskUpdate(t *Task) *models.TaskUpdate {
 
 // TaskInfo allows for rendering of Task information i.e. schedule and properties.
 type TaskInfo struct {
-	*Task
+	*TaskListItem
 }
 
-const taskInfoTemplate = `Name:	{{ TaskID .Task }}
-{{ if .Schedule.Cron -}}
-Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
-{{ else if .Schedule.Interval -}}
-Cron:	{{ .Schedule.Interval }}
-{{ end -}}
+const taskInfoTemplate = `Name:	{{ TaskID .TaskListItem }}
+Cron:   {{ CronDesc .TaskListItem }}
 {{ if .Schedule.Window -}}
 Window:	{{ WindowDesc .Schedule.Window }}
 {{ end -}}
@@ -230,11 +226,30 @@ Properties:
 // Render implements Renderer interface.
 func (t TaskInfo) Render(w io.Writer) error {
 	temp := template.Must(template.New("target").Funcs(template.FuncMap{
-		"TaskID": TaskID,
-		"CronDesc": func(s string) string {
+		"TaskID": func(i *TaskListItem) string {
+			if i.Name != "" {
+				return taskJoin(i.Type, i.Name)
+			}
+			return taskJoin(i.Type, i.ID)
+		},
+		"CronDesc": func(i *TaskListItem) string {
+			s := i.Schedule.Cron
+			if s == "" {
+				s = i.Schedule.Interval
+			}
+
 			d := DescribeCron(s)
-			if d != "" {
-				d = "(" + d + ")"
+			if d == "" {
+				nextStr := FormatTimePointer(i.NextActivation)
+				if nextStr != "" {
+					d = "next activation date: " + nextStr
+				} else {
+					d = "no activations scheduled"
+				}
+			}
+
+			if s != "" {
+				return s + " (" + d + ")"
 			}
 			return d
 		},
