@@ -14,9 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient/table"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 	"github.com/scylladb/termtables"
@@ -467,22 +465,6 @@ type TaskListItems struct {
 
 // Render renders TaskListItems in a tabular format.
 func (li TaskListItems) Render(w io.Writer) error {
-	now := timeutc.Now()
-
-	ago := func(t *strfmt.DateTime) string {
-		if t == nil {
-			return ""
-		}
-		return duration.Duration(now.Sub(time.Time(*t)).Truncate(time.Second)).String() + " ago"
-	}
-
-	in := func(t *strfmt.DateTime) string {
-		if t == nil {
-			return ""
-		}
-		return "in " + duration.Duration(time.Time(*t).Sub(now).Truncate(time.Second)).String()
-	}
-
 	var doneRestoreTask bool
 
 	columns := []any{"Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next"}
@@ -521,12 +503,12 @@ func (li TaskListItems) Render(w io.Writer) error {
 		if t.Suspended {
 			next = "[SUSPENDED]"
 		} else {
-			next = in(t.NextActivation)
+			next = FormatTimePointer(t.NextActivation)
 		}
 
 		row := []any{
 			id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone,
-			t.SuccessCount, t.ErrorCount, ago(t.LastSuccess), ago(t.LastError),
+			t.SuccessCount, t.ErrorCount, FormatTimePointer(t.LastSuccess), FormatTimePointer(t.LastError),
 			status, next,
 		}
 		if li.ShowProps {
