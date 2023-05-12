@@ -338,13 +338,14 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, t *Task) erro
 }
 
 // ListTasks returns tasks within a clusterID, optionally filtered by task type tp.
-func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string) (TaskListItems, error) {
+func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string, taskID string) (TaskListItems, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
 		Type:      &taskType,
 		All:       &all,
 		Status:    &status,
+		TaskID:    &taskID,
 	})
 	if err != nil {
 		return TaskListItems{}, err
