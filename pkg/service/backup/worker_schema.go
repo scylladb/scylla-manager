@@ -107,8 +107,17 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 		hostPerLocation = append(hostPerLocation, hi)
 	}
 
-	return hostsInParallel(hostPerLocation, parallel.NoLimit, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		dst := h.Location.RemotePath(RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag))
 		return w.Client.RclonePut(ctx, h.IP, dst, w.Schema)
-	})
+	}
+
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Failed to upload schema from host",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	return hostsInParallel(hostPerLocation, parallel.NoLimit, f, notify)
 }

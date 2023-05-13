@@ -62,7 +62,7 @@ func TestRun(t *testing.T) {
 			}
 
 			start := timeutc.Now()
-			if err := Run(n, test.Limit, f); err != nil {
+			if err := Run(n, test.Limit, f, NopNotify); err != nil {
 				t.Error("Run() error", err)
 			}
 			d := timeutc.Since(start)
@@ -104,7 +104,7 @@ func TestAbort(t *testing.T) {
 		return Abort(errors.New("boo"))
 	}
 
-	if err := Run(10, 1, f); err == nil {
+	if err := Run(10, 1, f, NopNotify); err == nil {
 		t.Error("Run() expected error")
 	}
 
@@ -116,7 +116,7 @@ func TestAbort(t *testing.T) {
 func TestEmpty(t *testing.T) {
 	t.Parallel()
 
-	if err := Run(0, NoLimit, nil); err != nil {
+	if err := Run(0, NoLimit, nil, NopNotify); err != nil {
 		t.Fatal("Run() error", err)
 	}
 }

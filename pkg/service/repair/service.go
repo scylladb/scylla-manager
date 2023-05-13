@@ -549,7 +549,7 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 		mu  sync.Mutex
 	)
 
-	err := parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+	f := func(i int) error {
 		h := hosts[i]
 
 		totalMemory, err := client.TotalMemory(ctx, h)
@@ -573,8 +573,16 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 		mu.Unlock()
 
 		return nil
-	})
+	}
 
+	notify := func(i int, err error) {
+		s.logger.Error(ctx, "Failed to get repair intensity limit for host",
+			"host", hosts[i],
+			"error", err,
+		)
+	}
+
+	err := parallel.Run(len(hosts), parallel.NoLimit, f, notify)
 	return out, err
 }
 

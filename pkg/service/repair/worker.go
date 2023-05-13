@@ -176,7 +176,7 @@ func (w *worker) legacyRepair(ctx context.Context, job job) error {
 		return errors.Wrap(err, "split to shards")
 	}
 
-	err = parallel.Run(len(shardRanges), limit, func(i int) error {
+	f := func(i int) error {
 		if ctx.Err() != nil {
 			return nil
 		}
@@ -188,11 +188,13 @@ func (w *worker) legacyRepair(ctx context.Context, job job) error {
 		shardJob := job
 		shardJob.Ranges = shardRanges[i]
 		return w.runRepair(log.WithFields(ctx, "subranges_of_shard", i), shardJob)
-	})
-	if err != nil {
+	}
+
+	notify := func(i int, err error) {
 		w.logger.Error(ctx, "Run legacy repair", "error", err)
 	}
-	return err
+
+	return parallel.Run(len(shardRanges), limit, f, notify)
 }
 
 func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {

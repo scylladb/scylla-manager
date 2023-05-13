@@ -4,7 +4,6 @@ package parallel
 
 import (
 	"go.uber.org/atomic"
-	"go.uber.org/multierr"
 )
 
 // NoLimit means full parallelism mode.
@@ -30,10 +29,14 @@ func isErrAbort(err error) (bool, error) {
 	return true, a.error
 }
 
+// NopNotify does not perform any operation when encountering an error during Run.
+func NopNotify(i int, err error) {}
+
 // Run executes function f with arguments ranging from 0 to n-1 executing at
 // most limit in parallel.
 // If limit is 0 it runs f(0),f(1),...,f(n-1) in parallel.
-func Run(n, limit int, f func(i int) error) error {
+// Notify is called when worker i encounters error err.
+func Run(n, limit int, f func(i int) error, notify func(i int, err error)) error {
 	if n == 0 {
 		return nil
 	}
@@ -72,13 +75,21 @@ func Run(n, limit int, f func(i int) error) error {
 					err = inner
 				}
 				out <- err
+				if err != nil {
+					notify(i, err)
+				}
 			}
 		}()
 	}
 
-	var errs error
+	var retErr error
 	for i := 0; i < n; i++ {
-		errs = multierr.Append(errs, <-out)
+		err := <-out
+		// Appending all errors reduces readability, so it's enough to return only one of them
+		// (the other errors has already been logged via notify).
+		if retErr == nil {
+			retErr = err
+		}
 	}
-	return errs
+	return retErr
 }

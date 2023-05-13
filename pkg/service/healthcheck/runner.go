@@ -82,7 +82,7 @@ func (r runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 }
 
 func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []scyllaclient.NodeStatusInfo) {
-	parallel.Run(len(status), parallel.NoLimit, func(i int) error { // nolint: errcheck
+	f := func(i int) error {
 		hl := prometheus.Labels{
 			clusterKey: clusterID.String(),
 			hostKey:    status[i].Addr,
@@ -97,7 +97,9 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 		r.metrics.rtt.With(hl).Set(float64(rtt.Milliseconds()))
 
 		return nil
-	})
+	}
+
+	_ = parallel.Run(len(status), parallel.NoLimit, f, parallel.NopNotify) // nolint: errcheck
 }
 
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {

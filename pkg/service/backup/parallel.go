@@ -5,7 +5,6 @@ package backup
 import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"go.uber.org/multierr"
 )
 
 type hostsLimit struct {
@@ -58,25 +57,34 @@ func makeHostsLimit(hosts []hostInfo, limits []DCLimit) map[string]hostsLimit {
 	return m
 }
 
-func inParallelWithLimits(hosts []hostInfo, limits []DCLimit, f func(h hostInfo) error) error {
+func inParallelWithLimits(hosts []hostInfo, limits []DCLimit, f func(h hostInfo) error, notify func(h hostInfo, err error)) error {
 	m := makeHostsLimit(hosts, limits)
 
 	out := make(chan error)
 	for _, hl := range m {
 		go func(hl hostsLimit) {
-			out <- hostsInParallel(hl.hosts, hl.limit, f)
+			out <- hostsInParallel(hl.hosts, hl.limit, f, notify)
 		}(hl)
 	}
 
-	var errs error
+	var retErr error
 	for range m {
-		errs = multierr.Append(errs, <-out)
+		err := <-out
+		// Appending all errors reduces readability, so it's enough to return only one of them
+		// (the other errors has already been logged via notify).
+		if retErr == nil {
+			retErr = err
+		}
 	}
-	return errs
+	return retErr
 }
 
-func hostsInParallel(hosts []hostInfo, limit int, f func(h hostInfo) error) error {
-	return parallel.Run(len(hosts), limit, func(i int) error {
-		return errors.Wrapf(f(hosts[i]), "%s", hosts[i])
-	})
+func hostsInParallel(hosts []hostInfo, limit int, f func(h hostInfo) error, notify func(h hostInfo, err error)) error {
+	return parallel.Run(len(hosts), limit,
+		func(i int) error {
+			return errors.Wrapf(f(hosts[i]), "%s", hosts[i])
+		},
+		func(i int, err error) {
+			notify(hosts[i], err)
+		})
 }

@@ -78,9 +78,8 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		w.insertRunProgress(ctx, pr)
 	})
 	// Load schema SSTables on all nodes
-	err = parallel.Run(len(status), parallel.NoLimit, func(i int) error {
+	f := func(i int) error {
 		host := status[i]
-
 		for _, ks := range run.Units {
 			for _, t := range ks.Tables {
 				if _, err := w.Client.LoadSSTables(ctx, host.Addr, ks.Keyspace, t.Table, false, false); err != nil {
@@ -88,10 +87,17 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 				}
 			}
 		}
-
 		return nil
-	})
-	if err != nil {
+	}
+
+	notify := func(i int, err error) {
+		w.Logger.Error(ctx, "Failed to load schema on host",
+			"host", status[i],
+			"error", err,
+		)
+	}
+
+	if err = parallel.Run(len(status), parallel.NoLimit, f, notify); err != nil {
 		return err
 	}
 	// Set restore completed in all run progresses
@@ -163,7 +169,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
 
-	return parallel.Run(len(w.hosts), target.Parallel, func(i int) error {
+	f := func(i int) error {
 		host := w.hosts[i]
 
 		if err := w.checkAvailableDiskSpace(ctx, hostInfo{IP: host}); err != nil {
@@ -171,8 +177,8 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		}
 
 		start := timeutc.Now()
-		// Rely on rclone ability to limit number of concurrent transfers
-		err := parallel.Run(len(fm.Files), parallel.NoLimit, func(j int) error {
+
+		fHost := func(j int) error {
 			file := fm.Files[j]
 			// Rename SSTable in the destination in order to avoid name conflicts
 			dstFile := w.renamedSSTables[file]
@@ -186,7 +192,18 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 			dstPath := path.Join(dstDir, dstFile)
 
 			return w.Client.RcloneCopyFile(ctx, host, dstPath, srcPath)
-		})
+		}
+
+		notifyHost := func(j int, err error) {
+			w.Logger.Error(ctx, "Failed to download schema SSTable",
+				"host", host,
+				"file", fm.Files[j],
+				"error", err,
+			)
+		}
+
+		// Rely on rclone ability to limit number of concurrent transfers
+		err := parallel.Run(len(fm.Files), parallel.NoLimit, fHost, notifyHost)
 		if err != nil {
 			return errors.Wrapf(err, "download renamed SSTables on host: %s", host)
 		}
@@ -209,7 +226,16 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		})
 
 		return nil
-	})
+	}
+
+	notify := func(i int, err error) {
+		w.Logger.Error(ctx, "Failed to restore schema on host",
+			"host", w.hosts[i],
+			"error", err,
+		)
+	}
+
+	return parallel.Run(len(w.hosts), target.Parallel, f, notify)
 }
 
 func (w *schemaWorker) initHosts(ctx context.Context) error {

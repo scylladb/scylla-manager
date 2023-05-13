@@ -161,7 +161,7 @@ func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID,
 				s.decorateNodeStatus(&out[i], ni)
 			}
 			return
-		})
+		}, parallel.NopNotify)
 	}
 }
 
@@ -202,7 +202,7 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 			}
 
 			return
-		})
+		}, parallel.NopNotify)
 	}
 }
 
@@ -255,7 +255,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 			}
 
 			return
-		})
+		}, parallel.NopNotify)
 	}
 }
 
@@ -299,7 +299,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 			}
 
 			return
-		})
+		}, parallel.NopNotify)
 	}
 }
 

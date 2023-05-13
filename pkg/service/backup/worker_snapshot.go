@@ -21,16 +21,20 @@ func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimi
 		}
 	}(timeutc.Now())
 
-	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Taking snapshots on host", "host", h.IP)
 		err := w.snapshotHost(ctx, h)
-		if err != nil {
-			w.Logger.Error(ctx, "Taking snapshots failed on host", "host", h.IP, "error", err)
-		} else {
+		if err == nil {
 			w.Logger.Info(ctx, "Done taking snapshots on host", "host", h.IP)
 		}
 		return err
-	})
+	}
+
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Taking snapshots failed on host", "host", h.IP, "error", err)
+	}
+
+	return inParallelWithLimits(hosts, limits, f, notify)
 }
 
 func (w *worker) snapshotHost(ctx context.Context, h hostInfo) error {

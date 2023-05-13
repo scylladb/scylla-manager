@@ -533,13 +533,23 @@ func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error)
 func (c *Client) KillAllRepairs(ctx context.Context, hosts ...string) error {
 	ctx = noRetry(ctx)
 
-	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error { // nolint: errcheck
+	f := func(i int) error {
 		host := hosts[i]
-		_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{ // nolint: errcheck
+		_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{
 			Context: forceHost(ctx, host),
 		})
 		return err
-	})
+	}
+
+	notify := func(i int, err error) {
+		host := hosts[i]
+		c.logger.Error(ctx, "Failed to terminate repair",
+			"host", host,
+			"error", err,
+		)
+	}
+
+	return parallel.Run(len(hosts), parallel.NoLimit, f, notify)
 }
 
 const snapshotTimeout = 30 * time.Minute
@@ -724,7 +734,7 @@ func (c *Client) ScyllaFeatures(ctx context.Context, hosts ...string) (map[strin
 		mu.Unlock()
 
 		return nil
-	})
+	}, parallel.NopNotify)
 
 	return out, err
 }
@@ -804,7 +814,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 		report = make([]int64, len(hostKeyspaceTables))
 	)
 
-	err = parallel.Run(len(hostKeyspaceTables), limit, func(i int) error {
+	f := func(i int) error {
 		v := hostKeyspaceTables[i]
 
 		size, err := c.TableDiskSize(ctx, v.Host, v.Keyspace, v.Table)
@@ -820,8 +830,19 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 
 		report[i] = size
 		return nil
-	})
+	}
 
+	notify := func(i int, err error) {
+		v := hostKeyspaceTables[i]
+		c.logger.Error(ctx, "Failed to get table disk size",
+			"host", v.Host,
+			"keyspace", v.Keyspace,
+			"table", v.Table,
+			"error", err,
+		)
+	}
+
+	err = parallel.Run(len(hostKeyspaceTables), limit, f, notify)
 	return report, err
 }
 
