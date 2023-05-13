@@ -125,7 +125,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 	// for creating and downloading batches.
 	// Goroutine returns only in case of error or
 	// if the whole table has been restored.
-	return parallel.Run(len(w.hosts), target.Parallel, func(n int) (err error) {
+	f := func(n int) (err error) {
 		// Current goroutine's host
 		h := &w.hosts[n]
 		defer func() {
@@ -205,7 +205,16 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 				close(w.bundleIDPool)
 			}
 		}
-	})
+	}
+
+	notify := func(n int, err error) {
+		w.Logger.Error(ctx, "Failed to restore files on host",
+			"host", w.hosts[n].Host,
+			"error", err,
+		)
+	}
+
+	return parallel.Run(len(w.hosts), target.Parallel, f, notify)
 }
 
 // initBundlePool creates bundles and pool of their IDs that have yet to be restored.
@@ -384,7 +393,7 @@ func (w *indexWorker) startDownload(ctx context.Context, host, dstDir, srcDir st
 	// The assumption is that the existence of versioned files is low and that they
 	// are rather small, so we can do it in a synchronous way.
 	// Copying files can be done in full parallel because of rclone ability to limit transfers.
-	err := parallel.Run(len(versionedBatch), parallel.NoLimit, func(i int) error {
+	f := func(i int) error {
 		file := versionedBatch[i]
 		// Restore file without its version extension
 		dst := path.Join(dstDir, file.Name)
@@ -402,8 +411,21 @@ func (w *indexWorker) startDownload(ctx context.Context, host, dstDir, srcDir st
 		)
 
 		return nil
-	})
-	if err != nil {
+	}
+
+	notify := func(i int, err error) {
+		file := versionedBatch[i]
+		dst := path.Join(dstDir, file.Name)
+		src := path.Join(srcDir, file.FullName())
+		w.Logger.Error(ctx, "Failed to download versioned SSTable",
+			"file", file,
+			"dst", dst,
+			"src", src,
+			"error", err,
+		)
+	}
+
+	if err := parallel.Run(len(versionedBatch), parallel.NoLimit, f, notify); err != nil {
 		return 0, 0, err
 	}
 	// Start asynchronous job for downloading the newest versions of remaining files

@@ -23,16 +23,19 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit)
 		}
 	}(timeutc.Now())
 
-	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Uploading snapshot files on host", "host", h.IP)
-		if err := w.uploadHost(ctx, h); err != nil {
-			w.Logger.Error(ctx, "Uploading snapshot files failed on host", "host", h.IP, "error", err)
-			return err
+		if err := w.uploadHost(ctx, h); err == nil {
+			w.Logger.Info(ctx, "Done uploading snapshot files on host", "host", h.IP)
 		}
+		return err
+	}
 
-		w.Logger.Info(ctx, "Done uploading snapshot files on host", "host", h.IP)
-		return nil
-	})
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Uploading snapshot files failed on host", "host", h.IP, "error", err)
+	}
+
+	return inParallelWithLimits(hosts, limits, f, notify)
 }
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
@@ -41,7 +44,8 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	}
 
 	dirs := w.hostSnapshotDirs(h)
-	return parallel.Run(len(dirs), 1, func(i int) (err error) {
+
+	f := func(i int) (err error) {
 		d := dirs[i]
 
 		// Skip snapshots that are empty.
@@ -90,7 +94,19 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 		}
 
 		return nil
-	})
+	}
+
+	notify := func(i int, err error) {
+		d := dirs[i]
+		w.Logger.Error(ctx, "Failed to upload host",
+			"host", d.Host,
+			"keyspace", d.Keyspace,
+			"table", d.Table,
+			"error", err,
+		)
+	}
+
+	return parallel.Run(len(dirs), 1, f, notify)
 }
 
 // attachToJob returns true if previous job was found and wait procedure was

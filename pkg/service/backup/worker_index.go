@@ -27,20 +27,23 @@ func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) 
 		}
 	}(timeutc.Now())
 
-	return inParallelWithLimits(hosts, limits, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Indexing snapshot files on host", "host", h.IP)
 
 		dirs, err := w.indexSnapshotDirs(ctx, h)
-		if err != nil {
-			w.Logger.Error(ctx, "Indexing snapshot files failed on host", "host", h.IP, "error", err)
-		} else {
+		if err == nil {
 			w.Logger.Info(ctx, "Done indexing snapshot files on host", "host", h.IP)
 		}
 
 		w.setSnapshotDirs(h, dirs)
-
 		return err
-	})
+	}
+
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Indexing snapshot files failed on host", "host", h.IP, "error", err)
+	}
+
+	return inParallelWithLimits(hosts, limits, f, notify)
 }
 
 func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotDir, error) {

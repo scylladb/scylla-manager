@@ -36,7 +36,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)
 
-	return hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		if err := w.Client.DeleteSnapshot(ctx, h.IP, w.SnapshotTag); err != nil {
 			w.Logger.Error(ctx, "Failed to delete uploaded snapshot",
 				"host", h.IP,
@@ -65,7 +65,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			w.Metrics.SetPurgeFiles(w.ClusterID, host, total, success)
 		}
 
-		f := func(nodeID string, manifests []*ManifestInfo) error {
+		fHost := func(nodeID string, manifests []*ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
 				logger := w.Logger.With("host", h.IP)
@@ -95,9 +95,18 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 				return nil
 			}
 
-			if err := f(nodeID, manifests); err != nil {
+			if err := fHost(nodeID, manifests); err != nil {
 				return err
 			}
 		}
-	})
+	}
+
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Failed to purge stale snapshots",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	return hostsInParallel(hosts, parallel.NoLimit, f, notify)
 }

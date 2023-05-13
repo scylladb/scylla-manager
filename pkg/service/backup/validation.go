@@ -166,7 +166,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 		mu              sync.Mutex
 	)
 
-	if err := hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		var (
 			nodeID    string
 			manifests []*ManifestInfo
@@ -207,7 +207,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 			putProgress()
 		}
 
-		f := func(nodeID string, manifests []*ManifestInfo) error {
+		fHost := func(nodeID string, manifests []*ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
 				logger = s.logger.Named("validate").With("host", h.IP)
@@ -264,11 +264,20 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 				return nil
 			}
 
-			if err := f(nodeID, manifests); err != nil {
+			if err := fHost(nodeID, manifests); err != nil {
 				return err
 			}
 		}
-	}); err != nil {
+	}
+
+	notify := func(h hostInfo, err error) {
+		s.logger.Error(ctx, "Failed to validate host",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	if err := hostsInParallel(hosts, parallel.NoLimit, f, notify); err != nil {
 		return err
 	}
 

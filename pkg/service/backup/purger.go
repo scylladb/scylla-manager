@@ -382,7 +382,8 @@ func (p purger) deleteFiles(ctx context.Context, location Location, files fileSe
 	// We cap the nr. of dirs purged in parallel to avoid opening expressive TCP connections in case there is no idle connection to host.
 	// maxParallelDirs is aligned with MaxIdleConnsPerHost in scyllaclient.DefaultTransport.
 	const maxParallelDirs = 100
-	if err := parallel.Run(len(dirs), maxParallelDirs, func(i int) error {
+
+	f := func(i int) error {
 		var (
 			dir  = dirs[i]
 			rerr error
@@ -411,10 +412,18 @@ func (p purger) deleteFiles(ctx context.Context, location Location, files fileSe
 		})
 
 		return rerr
-	}); err != nil {
-		return int(success.Load()), err
 	}
 
+	notify := func(i int, err error) {
+		p.logger.Error(ctx, "Failed to delete files",
+			"dir", dirs[i],
+			"error", err,
+		)
+	}
+
+	if err := parallel.Run(len(dirs), maxParallelDirs, f, notify); err != nil {
+		return int(success.Load()), err
+	}
 	return int(success.Load()), nil
 }
 
