@@ -53,7 +53,7 @@ func (c *Client) GetLiveNodesWithLocationAccess(ctx context.Context, nodes NodeS
 		nodeErr[i] = err
 
 		return nil
-	})
+	}, parallel.NopNotify)
 	if err != nil {
 		return nil, errors.Wrap(err, "check location access")
 	}

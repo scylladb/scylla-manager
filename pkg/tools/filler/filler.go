@@ -50,7 +50,7 @@ func (f *Filler) Run(ctx context.Context) error {
 
 	f.ctx = ctx
 
-	if err := parallel.Run(f.parallel, parallel.NoLimit, f.fill); err != nil {
+	if err := parallel.Run(f.parallel, parallel.NoLimit, f.fill, parallel.NopNotify); err != nil {
 		return errors.Wrap(err, "fill data")
 	}
 
@@ -128,11 +128,11 @@ func NewMultiFiller(tables int, session gocqlx.Session, size, bufSize int64, par
 func (f *MultiFiller) Run(ctx context.Context) error {
 	f.ctx = ctx
 
-	if err := parallel.Run(f.tables, runtime.NumCPU(), f.create); err != nil {
+	if err := parallel.Run(f.tables, runtime.NumCPU(), f.create, parallel.NopNotify); err != nil {
 		return errors.Wrap(err, "create table")
 	}
 
-	if err := parallel.Run(f.parallel, parallel.NoLimit, f.fill); err != nil {
+	if err := parallel.Run(f.parallel, parallel.NoLimit, f.fill, parallel.NopNotify); err != nil {
 		return errors.Wrap(err, "fill data")
 	}
 

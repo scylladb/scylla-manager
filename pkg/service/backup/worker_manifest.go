@@ -29,18 +29,24 @@ func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo) (stepErro
 	// memory for all nodes at the same time can lead to memory issues.
 	const maxParallel = 12
 
-	return hostsInParallel(hosts, maxParallel, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Uploading manifest file on host", "host", h.IP)
 
 		err := w.createAndUploadHostManifest(ctx, h)
-		if err != nil {
-			w.Logger.Error(ctx, "Uploading manifest file failed on host", "host", h.IP, "error", err)
-		} else {
+		if err == nil {
 			w.Logger.Info(ctx, "Done uploading manifest file on host", "host", h.IP)
 		}
-
 		return err
-	})
+	}
+
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Uploading manifest file failed on host",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	return hostsInParallel(hosts, maxParallel, f, notify)
 }
 
 func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) error {
@@ -129,7 +135,7 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 
 	rollbacks := make([]func(context.Context) error, len(hosts))
 
-	err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) (hostErr error) {
+	f := func(i int) (hostErr error) {
 		h := hosts[i]
 		defer func() {
 			hostErr = errors.Wrap(hostErr, h.String())
@@ -155,19 +161,23 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 			}
 		}
 
-		if err != nil {
-			w.Logger.Error(ctx, "Moving manifest file on host", "host", h.IP, "error", err)
-		} else {
+		if err == nil {
 			w.Logger.Info(ctx, "Done moving manifest file on host", "host", h.IP)
 		}
-
 		return err
-	})
-
-	if err != nil {
-		w.rollbackMoveManifest(ctx, hosts, rollbacks)
 	}
 
+	notify := func(i int, err error) {
+		h := hosts[i]
+		w.Logger.Error(ctx, "Moving manifest file on host",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	if err = parallel.Run(len(hosts), parallel.NoLimit, f, notify); err != nil {
+		w.rollbackMoveManifest(ctx, hosts, rollbacks)
+	}
 	return err
 }
 

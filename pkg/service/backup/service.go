@@ -329,8 +329,7 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 	return liveNodes, nil
 }
 
-// checkLocationsAvailableFromNodes checks if each node has access location for
-// its dataceneter.
+// checkLocationsAvailableFromNodes checks if each node has access location for its datacenter.
 func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
 	nodes scyllaclient.NodeStatusInfoSlice, locations []Location,
 ) error {
@@ -343,16 +342,30 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 		dcl[l.DC] = l
 	}
 
-	// Run checkHostLocation in parallel
-	return service.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, func(i int) error {
-		node := nodes[i]
-
-		l, ok := dcl[node.Datacenter]
+	f := func(i int) error {
+		n := nodes[i]
+		l, ok := dcl[n.Datacenter]
 		if !ok {
 			l = dcl[""]
 		}
-		return s.checkHostLocation(ctx, client, node.Addr, l)
-	}))
+		return s.checkHostLocation(ctx, client, n.Addr, l)
+	}
+
+	notify := func(i int, err error) {
+		n := nodes[i]
+		l, ok := dcl[n.Datacenter]
+		if !ok {
+			l = dcl[""]
+		}
+		s.logger.Error(ctx, "Failed to access location from node",
+			"node", n.Addr,
+			"location", l,
+			"error", err,
+		)
+	}
+
+	// Run checkHostLocation in parallel
+	return service.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
@@ -642,7 +655,7 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 	// Config hosts has nice property that hosts are sorted by closest DC
 	allHosts := client.Config().Hosts
 
-	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+	f := func(i int) error {
 		l := hosts[i].Location
 
 		checklist := allHosts
@@ -667,7 +680,18 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 		}
 
 		return errors.Errorf("no matching hosts found for location %s", l)
-	})
+	}
+
+	notify := func(i int, err error) {
+		h := hosts[i]
+		s.logger.Error(ctx, "Failed to resolve host",
+			"host", h.IP,
+			"location", h.Location,
+			"error", err,
+		)
+	}
+
+	return parallel.Run(len(hosts), parallel.NoLimit, f, notify)
 }
 
 // Backup executes a backup on a given target.
@@ -1108,7 +1132,8 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	deletedManifests := atomic.NewInt32(0)
-	if err := hostsInParallel(hosts, parallel.NoLimit, func(h hostInfo) error {
+
+	f := func(h hostInfo) error {
 		s.logger.Info(ctx, "Purging snapshot data on host", "host", h.IP)
 
 		manifests, err := listManifests(ctx, client, h.IP, h.Location, clusterID)
@@ -1136,13 +1161,20 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 		n, err := p.PurgeSnapshotTags(ctx, manifests, tagS, oldest)
 		deletedManifests.Add(int32(n))
 
-		if err != nil {
-			s.logger.Error(ctx, "Purging snapshot data failed on host", "host", h.IP, "error", err)
-		} else {
+		if err == nil {
 			s.logger.Info(ctx, "Done purging snapshot data on host", "host", h.IP)
 		}
 		return err
-	}); err != nil {
+	}
+
+	notify := func(h hostInfo, err error) {
+		s.logger.Error(ctx, "Purging snapshot data failed on host",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	if err := hostsInParallel(hosts, parallel.NoLimit, f, notify); err != nil {
 		return err
 	}
 

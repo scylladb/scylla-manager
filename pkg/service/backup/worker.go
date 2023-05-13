@@ -105,9 +105,16 @@ func (w *worker) setSnapshotDirs(h hostInfo, dirs []snapshotDir) {
 
 // cleanup resets global stats for each agent.
 func (w *worker) cleanup(ctx context.Context, hi []hostInfo) {
-	if err := hostsInParallel(hi, parallel.NoLimit, func(h hostInfo) error {
+	f := func(h hostInfo) error {
 		return w.Client.RcloneResetStats(context.Background(), h.IP)
-	}); err != nil {
-		w.Logger.Error(ctx, "Failed to reset stats", "error", err)
 	}
+
+	notify := func(h hostInfo, err error) {
+		w.Logger.Error(ctx, "Failed to reset stats on host",
+			"host", h.IP,
+			"error", err,
+		)
+	}
+
+	_ = hostsInParallel(hi, parallel.NoLimit, f, notify) // nolint: errcheck
 }

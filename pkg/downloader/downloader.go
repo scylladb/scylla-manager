@@ -149,9 +149,7 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 		return errors.Errorf("not enought disk space free %s required %s", fs.SizeSuffix(*usage.Free), fs.SizeSuffix(size))
 	}
 
-	// Spawn all downloads at the same time, we rely on rclone ability to limit
-	// nr. of transfers.
-	return parallel.Run(len(index), workers, func(i int) error {
+	f := func(i int) error {
 		u := index[i]
 
 		if err := d.clearTableIfNeeded(ctx, u); err != nil {
@@ -168,7 +166,20 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 		}
 
 		return nil
-	})
+	}
+
+	notify := func(i int, err error) {
+		u := index[i]
+		d.logger.Error(ctx, "Failed to download table",
+			"keyspace", u.Keyspace,
+			"table", u.Table,
+			"error", err,
+		)
+	}
+
+	// Spawn all downloads at the same time, we rely on rclone ability to limit
+	// nr. of transfers.
+	return parallel.Run(len(index), workers, f, notify)
 }
 
 func (d *Downloader) filteredIndex(ctx context.Context, m backup.ManifestInfoWithContent) ([]backup.FilesMeta, error) {
