@@ -29,7 +29,7 @@ func asPermissionError(op string, l fs.Fs, err error) PermissionError {
 	statusCode := 400
 
 	if l.Name() == "s3" {
-		e, _ := parseAWSError(err) // nolint: errcheck
+		e, _ := ParseBackendXMLError(err) // nolint: errcheck
 		if e != nil {
 			err = e
 		} else {

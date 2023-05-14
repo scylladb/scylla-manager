@@ -8,31 +8,40 @@ import (
 	"strings"
 )
 
-// AWSError is error parsed from AWS Error XML message as specified in
+// BackendXMLError is general error parsed from Error XML message as specified in
 // https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html#ErrorCodeList
-type AWSError struct {
+// https://cloud.google.com/storage/docs/xml-api/reference-status
+// https://learn.microsoft.com/en-us/rest/api/storageservices/status-and-error-codes2
+type BackendXMLError struct {
 	XMLName xml.Name `xml:"Error"`
 	Code    string   `xml:"Code"`
 	Message string   `xml:"Message"`
 }
 
-// parseAWSError reads the error as string and ties to parse the XML structure.
+// ParseBackendXMLError reads the error as string and ties to parse the XML structure.
 // The reason is that the error returned from rclone is flattened ex. `*errors.fundamental s3 upload: 404 Not Found: <?xml version="1.0" encoding="UTF-8"?>`.
-func parseAWSError(err error) (*AWSError, error) {
+func ParseBackendXMLError(err error) (*BackendXMLError, error) {
 	s := err.Error()
-	if idx := strings.Index(s, "<?xml"); idx > 0 {
-		s = s[idx:]
-	} else if idx < 0 {
+
+	idx := strings.Index(s, "<?xml")
+	if idx < 0 {
 		return nil, errors.New("not XML")
 	}
+	wrap := s[:idx]
+	s = s[idx:]
 
-	var e AWSError
+	var e BackendXMLError
 	if err := xml.Unmarshal([]byte(s), &e); err != nil {
 		return nil, err
 	}
+	if e.Code == "" || e.Message == "" {
+		return nil, errors.New("missing code or message field in parsed xml error")
+	}
+	// Append the non-xml beginning of an error
+	e.Message = wrap + e.Message
 	return &e, nil
 }
 
-func (e *AWSError) Error() string {
+func (e *BackendXMLError) Error() string {
 	return e.Message + " (code:" + e.Code + ")"
 }
