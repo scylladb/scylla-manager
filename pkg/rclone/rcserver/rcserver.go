@@ -92,7 +92,10 @@ func (s Server) writeError(path string, in rc.Params, w http.ResponseWriter, err
 			status = http.StatusForbidden
 		}
 	}
-
+	// Try to parse xml errors for increased readability
+	if xmlErr, e := operations.ParseBackendXMLError(err); e == nil {
+		err = xmlErr
+	}
 	w.WriteHeader(status)
 	err = s.writeJSON(w, rc.Params{
 		"status":  status,
