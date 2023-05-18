@@ -9,7 +9,7 @@ VERSION_NAME := $(VERSION)-$(RELEASE)
 $(shell echo $(VERSION) > .version)
 $(shell echo $(RELEASE) > .release)
 
-GORELEASER := goreleaser --rm-dist
+GORELEASER := goreleaser --clean
 .PHONY: release
 release:
 	git tag $(VERSION_NAME) || true
