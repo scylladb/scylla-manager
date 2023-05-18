@@ -66,7 +66,7 @@ builds:
 
 archives:
   - name_template: >-
-      {{ .ProjectName }}_{{ .Version }}.{{ .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
     files:
       - etc
       - license/LICENSE*
@@ -123,7 +123,7 @@ nfpms:
         conflicts:
           - scylla-manager
         file_name_template: >-
-          {{ .ProjectName }}-server_{{ .Version }}.{{ .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
+          {{ .ProjectName }}-server_{{ .Version }}.{{ .Os }}_{{ .Arch }}
 
         scripts:
           preinstall: deb/scylla-manager-server.preinst
@@ -168,7 +168,7 @@ nfpms:
     overrides:
       deb:
         file_name_template: >-
-          {{ .ProjectName }}-client_{{ .Version }}.{{ .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
+          {{ .ProjectName }}-client_{{ .Version }}.{{ .Os }}_{{ .Arch }}
         scripts:
           postinstall: deb/scylla-manager-client.postinst
       rpm:
@@ -217,7 +217,7 @@ nfpms:
     overrides:
       deb:
         file_name_template: >-
-          {{ .ProjectName }}-agent_{{ .Version }}.{{ .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
+          {{ .ProjectName }}-agent_{{ .Version }}.{{ .Os }}_{{ .Arch }}
         scripts:
           preinstall: deb/scylla-manager-agent.preinst
           postinstall: deb/scylla-manager-agent.postinst
