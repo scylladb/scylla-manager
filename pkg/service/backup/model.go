@@ -78,6 +78,8 @@ const stageNone Stage = ""
 
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
+	PK string `db:"-" xorm:"pk not null"`
+
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	ID        uuid.UUID
@@ -106,6 +108,8 @@ type fileInfo struct {
 // again. In summary Failed is supposed to mean, out of uploaded bytes how much
 // bytes have to be uploaded again.
 type RunProgress struct {
+	PK string `db:"-" xorm:"pk not null"`
+
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
