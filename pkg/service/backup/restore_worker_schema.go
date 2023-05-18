@@ -73,9 +73,9 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		}
 	}
 	// Set restore start in all run progresses
-	w.ForEachProgress(ctx, run, func(pr *RestoreRunProgress) {
+	w.cacheProvider.ForEachRestoreProgress(ctx, run, func(pr *RestoreRunProgress) {
 		pr.setRestoreStartedAt()
-		w.insertRunProgress(ctx, pr)
+		w.cacheProvider.insertRunProgress(ctx, pr)
 	})
 	// Load schema SSTables on all nodes
 	f := func(i int) error {
@@ -101,9 +101,9 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		return err
 	}
 	// Set restore completed in all run progresses
-	w.ForEachProgress(ctx, run, func(pr *RestoreRunProgress) {
+	w.cacheProvider.ForEachRestoreProgress(ctx, run, func(pr *RestoreRunProgress) {
 		pr.setRestoreCompletedAt()
-		w.insertRunProgress(ctx, pr)
+		w.cacheProvider.insertRunProgress(ctx, pr)
 	})
 
 	return nil
@@ -136,7 +136,7 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 
 		w.miwc = miwc
 		run.ManifestPath = miwc.Path()
-		w.insertRun(ctx, run)
+		w.cacheProvider.insertRun(ctx, run)
 
 		return miwc.ForEachIndexIterWithError(target.Keyspace, tableDownloadHandler)
 	}
@@ -212,7 +212,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		// run progresses, insert only fraction of the whole downloaded size. This is caused by the data duplication.
 		proportionalSize := int64((int(fm.Size) + i) / len(w.hosts))
 
-		w.insertRunProgress(ctx, &RestoreRunProgress{
+		w.cacheProvider.insertRunProgress(ctx, &RestoreRunProgress{
 			ClusterID:           run.ClusterID,
 			TaskID:              run.TaskID,
 			RunID:               run.ID,

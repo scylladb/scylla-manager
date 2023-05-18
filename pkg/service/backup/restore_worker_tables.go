@@ -137,7 +137,7 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 			}
 		}
 
-		w.ForEachTableProgress(ctx, run, cb)
+		w.cacheProvider.ForEachTableRestoreProgress(ctx, run, cb)
 	}
 
 	// Place free hosts in the pool

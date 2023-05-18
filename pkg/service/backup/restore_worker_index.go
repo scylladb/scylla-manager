@@ -56,7 +56,7 @@ func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreR
 
 		run.Table = fm.Table
 		run.Keyspace = fm.Keyspace
-		w.insertRun(ctx, run)
+		w.cacheProvider.insertRun(ctx, run)
 
 		w.initBundlePool(ctx, run, fm.Files)
 		// Set continuation only after all initializations as they depend on knowing
@@ -161,7 +161,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					}
 					// As run progress could have already been inserted
 					// into the database, it should be deleted.
-					w.deleteRunProgress(ctx, pr)
+					w.cacheProvider.deleteRunProgress(ctx, pr)
 					w.returnBatchToPool(pr.SSTableID, h.Host)
 					if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
 						w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
@@ -174,7 +174,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 
 			if !validateTimeIsSet(pr.RestoreStartedAt) {
 				pr.setRestoreStartedAt()
-				w.insertRunProgress(ctx, pr)
+				w.cacheProvider.insertRunProgress(ctx, pr)
 			}
 
 			if err = w.restoreSSTables(ctx, h.Host, fm.Keyspace, fm.Table, true, true); err != nil {
@@ -182,7 +182,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					w.Logger.Info(ctx, "Stop load and stream: canceled context", "host", h.Host)
 					return parallel.Abort(ctx.Err())
 				}
-				w.deleteRunProgress(ctx, pr)
+				w.cacheProvider.deleteRunProgress(ctx, pr)
 				w.returnBatchToPool(pr.SSTableID, h.Host)
 				if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
 					w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
@@ -193,7 +193,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
 
 			pr.setRestoreCompletedAt()
-			w.insertRunProgress(ctx, pr)
+			w.cacheProvider.insertRunProgress(ctx, pr)
 
 			restoredBytes := pr.Downloaded + pr.Skipped + pr.VersionedProgress
 			w.metrics.DecreaseRemainingBytes(w.ClusterID, target.SnapshotTag, w.location, w.miwc.DC, w.miwc.NodeID,
@@ -235,7 +235,7 @@ func (w *indexWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstab
 		cb := func(pr *RestoreRunProgress) {
 			processed.Add(pr.SSTableID...)
 		}
-		w.ForEachTableProgress(ctx, run, cb)
+		w.cacheProvider.ForEachTableRestoreProgress(ctx, run, cb)
 	}
 
 	for id := range w.bundles {
@@ -290,7 +290,7 @@ func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunP
 
 	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
 	if err != nil {
-		w.deleteRunProgress(ctx, pr)
+		w.cacheProvider.deleteRunProgress(ctx, pr)
 		w.returnBatchToPool(pr.SSTableID, pr.Host)
 		return err
 	}
@@ -298,7 +298,7 @@ func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunP
 	pr.AgentJobID = jobID
 	pr.VersionedProgress = versionedPr
 
-	w.insertRunProgress(ctx, pr)
+	w.cacheProvider.insertRunProgress(ctx, pr)
 
 	return nil
 }
@@ -348,7 +348,7 @@ func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, targe
 		VersionedProgress: versionedPr,
 	}
 
-	w.insertRunProgress(ctx, pr)
+	w.cacheProvider.insertRunProgress(ctx, pr)
 	return pr, nil
 }
 
@@ -555,7 +555,7 @@ func (w *indexWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRun
 	pr.Skipped = job.Skipped
 	pr.Failed = job.Failed
 
-	w.insertRunProgress(ctx, pr)
+	w.cacheProvider.insertRunProgress(ctx, pr)
 }
 
 func (w *indexWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {

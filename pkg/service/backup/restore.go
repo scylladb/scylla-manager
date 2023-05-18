@@ -161,7 +161,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			Logger:      s.logger.Named("restore"),
 		},
 		metrics:                 s.metrics.Restore,
-		managerSession:          s.session,
+		cacheProvider:           s.cacheProvider,
 		clusterSession:          clusterSession,
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
@@ -178,13 +178,13 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			return err
 		}
 
-		w.insertRun(ctx, run)
+		s.cacheProvider.insertRun(ctx, run)
 		// Update run with previous progress.
 		if run.PrevID != uuid.Nil {
-			w.clonePrevProgress(ctx, run)
+			s.cacheProvider.clonePrevRestoreProgress(ctx, run)
 		}
 	} else {
-		w.insertRun(ctx, run)
+		s.cacheProvider.insertRun(ctx, run)
 	}
 	// Check if restore is the continuation of previous run.
 	if target.Continue && run.PrevID != uuid.Nil {
@@ -201,14 +201,14 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 
 	run.Stage = StageRestoreData
-	w.insertRun(ctx, run)
+	s.cacheProvider.insertRun(ctx, run)
 
 	if err = w.restore(ctx, run, target); err != nil {
 		return errors.Wrapf(err, "restore data")
 	}
 
 	run.Stage = StageRestoreDone
-	w.insertRun(ctx, run)
+	s.cacheProvider.insertRun(ctx, run)
 
 	return nil
 }
@@ -238,7 +238,7 @@ func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, run
 			TaskID:    taskID,
 			RunID:     runID,
 		},
-		managerSession: s.session,
+		cacheProvider: s.cacheProvider,
 	}
 
 	return w.getProgress(ctx)

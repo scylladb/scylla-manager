@@ -25,6 +25,15 @@ type BackupCache interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error)
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]ValidationHostProgress, error)
 	CreateProgressVisitor(run *Run) ProgressVisitor
+
+	insertRun(ctx context.Context, run *RestoreRun)
+	insertRunProgress(ctx context.Context, pr *RestoreRunProgress)
+	deleteRunProgress(ctx context.Context, pr *RestoreRunProgress)
+	clonePrevRestoreProgress(ctx context.Context, run *RestoreRun)
+
+	ForEachRestoreProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress))
+	GetRestoreRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*RestoreRun, error)
+	ForEachTableRestoreProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress))
 }
 
 type ScyllaCache struct {
@@ -188,6 +197,141 @@ func (s *ScyllaCache) CreateProgressVisitor(run *Run) ProgressVisitor {
 	return &scyllaProgressVisitor{
 		session: s.session,
 		run:     run,
+	}
+}
+
+func (s *ScyllaCache) insertRun(ctx context.Context, run *RestoreRun) {
+	if err := table.RestoreRun.InsertQuery(s.session).BindStruct(run).ExecRelease(); err != nil {
+		s.logger.Error(ctx, "Insert run",
+			"run", *run,
+			"error", err,
+		)
+	}
+}
+
+func (s *ScyllaCache) insertRunProgress(ctx context.Context, pr *RestoreRunProgress) {
+	if err := table.RestoreRunProgress.InsertQuery(s.session).BindStruct(pr).ExecRelease(); err != nil {
+		s.logger.Error(ctx, "Insert run progress",
+			"progress", *pr,
+			"error", err,
+		)
+	}
+}
+
+func (s *ScyllaCache) deleteRunProgress(ctx context.Context, pr *RestoreRunProgress) {
+	if err := table.RestoreRunProgress.DeleteQuery(s.session).BindStruct(pr).ExecRelease(); err != nil {
+		s.logger.Error(ctx, "Delete run progress",
+			"progress", *pr,
+			"error", err,
+		)
+	}
+}
+
+func (s *ScyllaCache) clonePrevRestoreProgress(ctx context.Context, run *RestoreRun) {
+	q := table.RestoreRunProgress.InsertQuery(s.session)
+	defer q.Release()
+
+	prevRun := &RestoreRun{
+		ClusterID: run.ClusterID,
+		TaskID:    run.TaskID,
+		ID:        run.PrevID,
+	}
+
+	s.ForEachRestoreProgress(ctx, prevRun, func(pr *RestoreRunProgress) {
+		pr.RunID = run.ID
+
+		if err := q.BindStruct(pr).Exec(); err != nil {
+			s.logger.Error(ctx, "Couldn't clone run progress",
+				"run_progress", *pr,
+				"error", err,
+			)
+		}
+	})
+
+	s.logger.Info(ctx, "Run after decoration", "run", *run)
+}
+
+func (s *ScyllaCache) ForEachRestoreProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
+	iter := table.RestoreRunProgress.SelectQuery(s.session).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
+	}).Iter()
+	defer func() {
+		if err := iter.Close(); err != nil {
+			s.logger.Error(ctx, "Error while iterating over run progress",
+				"cluster_id", run.ClusterID,
+				"task_id", run.TaskID,
+				"run_id", run.ID,
+				"error", err,
+			)
+		}
+	}()
+
+	pr := new(RestoreRunProgress)
+	for iter.StructScan(pr) {
+		cb(pr)
+	}
+}
+
+func (s *ScyllaCache) GetRestoreRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*RestoreRun, error) {
+	s.logger.Debug(ctx, "Get run",
+		"cluster_id", clusterID,
+		"task_id", taskID,
+		"run_id", runID,
+	)
+
+	var q *gocqlx.Queryx
+	if runID != uuid.Nil {
+		q = table.RestoreRun.GetQuery(s.session).BindMap(qb.M{
+			"cluster_id": clusterID,
+			"task_id":    taskID,
+			"id":         runID,
+		})
+	} else {
+		q = table.RestoreRun.SelectQuery(s.session).BindMap(qb.M{
+			"cluster_id": clusterID,
+			"task_id":    taskID,
+		})
+	}
+
+	var r RestoreRun
+	return &r, q.GetRelease(&r)
+}
+
+func (s *ScyllaCache) ForEachTableRestoreProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
+	iter := qb.Select(table.RestoreRunProgress.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+		qb.Eq("run_id"),
+		qb.Eq("manifest_path"),
+		qb.Eq("keyspace_name"),
+		qb.Eq("table_name"),
+	).Query(s.session).BindMap(qb.M{
+		"cluster_id":    run.ClusterID,
+		"task_id":       run.TaskID,
+		"run_id":        run.ID,
+		"manifest_path": run.ManifestPath,
+		"keyspace_name": run.Keyspace,
+		"table_name":    run.Table,
+	}).Iter()
+	defer func() {
+		if err := iter.Close(); err != nil {
+			s.logger.Error(ctx, "Error while iterating over table's run progress",
+				"cluster_id", run.ClusterID,
+				"task_id", run.TaskID,
+				"run_id", run.ID,
+				"manifest_path", run.ManifestPath,
+				"keyspace", run.Keyspace,
+				"table", run.Table,
+				"error", err,
+			)
+		}
+	}()
+
+	pr := new(RestoreRunProgress)
+	for iter.StructScan(pr) {
+		cb(pr)
 	}
 }
 

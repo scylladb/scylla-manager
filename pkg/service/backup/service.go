@@ -40,7 +40,6 @@ type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session,
 
 // Service orchestrates clusterName backups.
 type Service struct {
-	session       gocqlx.Session
 	config        Config
 	metrics       metrics.BackupMetrics
 	cacheProvider BackupCache
@@ -67,7 +66,6 @@ func NewService(cacheProvider BackupCache, config Config, metrics metrics.Backup
 	}
 
 	return &Service{
-		session:        session,
 		cacheProvider:  cacheProvider,
 		config:         config,
 		metrics:        metrics,

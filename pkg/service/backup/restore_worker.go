@@ -16,7 +16,6 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
@@ -29,9 +28,7 @@ type restoreWorker interface {
 	restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error
 	newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error)
 	continuePrevRun()
-	insertRun(ctx context.Context, run *RestoreRun)
 	decorateWithPrevRun(ctx context.Context, run *RestoreRun) error
-	clonePrevProgress(ctx context.Context, run *RestoreRun)
 }
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
@@ -39,7 +36,7 @@ type restoreWorkerTools struct {
 	workerTools
 
 	metrics        metrics.RestoreM
-	managerSession gocqlx.Session
+	cacheProvider  BackupCache
 	clusterSession gocqlx.Session
 	// Iterates over all manifests in given location with cluster ID and snapshot tag specified in restore target.
 	forEachRestoredManifest func(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error
@@ -229,37 +226,10 @@ func disableTableGGSStatement(keyspace, table string) string {
 	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode':'disabled'}`, keyspace, table)
 }
 
-func (w *restoreWorkerTools) insertRun(ctx context.Context, run *RestoreRun) {
-	if err := table.RestoreRun.InsertQuery(w.managerSession).BindStruct(run).ExecRelease(); err != nil {
-		w.Logger.Error(ctx, "Insert run",
-			"run", *run,
-			"error", err,
-		)
-	}
-}
-
-func (w *restoreWorkerTools) insertRunProgress(ctx context.Context, pr *RestoreRunProgress) {
-	if err := table.RestoreRunProgress.InsertQuery(w.managerSession).BindStruct(pr).ExecRelease(); err != nil {
-		w.Logger.Error(ctx, "Insert run progress",
-			"progress", *pr,
-			"error", err,
-		)
-	}
-}
-
-func (w *restoreWorkerTools) deleteRunProgress(ctx context.Context, pr *RestoreRunProgress) {
-	if err := table.RestoreRunProgress.DeleteQuery(w.managerSession).BindStruct(pr).ExecRelease(); err != nil {
-		w.Logger.Error(ctx, "Delete run progress",
-			"progress", *pr,
-			"error", err,
-		)
-	}
-}
-
 // decorateWithPrevRun gets restore task previous run and if it is not done
 // sets prev ID on the given run.
 func (w *restoreWorkerTools) decorateWithPrevRun(ctx context.Context, run *RestoreRun) error {
-	prev, err := w.GetRun(ctx, run.ClusterID, run.TaskID, uuid.Nil)
+	prev, err := w.cacheProvider.GetRestoreRun(ctx, run.ClusterID, run.TaskID, uuid.Nil)
 	if errors.Is(err, gocql.ErrNotFound) {
 		return nil
 	}
@@ -283,59 +253,6 @@ func (w *restoreWorkerTools) decorateWithPrevRun(ctx context.Context, run *Resto
 	return nil
 }
 
-// clonePrevProgress copies all the previous run progress into
-// current run progress.
-func (w *restoreWorkerTools) clonePrevProgress(ctx context.Context, run *RestoreRun) {
-	q := table.RestoreRunProgress.InsertQuery(w.managerSession)
-	defer q.Release()
-
-	prevRun := &RestoreRun{
-		ClusterID: run.ClusterID,
-		TaskID:    run.TaskID,
-		ID:        run.PrevID,
-	}
-
-	w.ForEachProgress(ctx, prevRun, func(pr *RestoreRunProgress) {
-		pr.RunID = run.ID
-
-		if err := q.BindStruct(pr).Exec(); err != nil {
-			w.Logger.Error(ctx, "Couldn't clone run progress",
-				"run_progress", *pr,
-				"error", err,
-			)
-		}
-	})
-
-	w.Logger.Info(ctx, "Run after decoration", "run", *run)
-}
-
-// GetRun returns run with specified cluster, task and run ID.
-// If run ID is not specified, it returns the latest run with specified cluster and task ID.
-func (w *restoreWorkerTools) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*RestoreRun, error) {
-	w.Logger.Debug(ctx, "Get run",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-		"run_id", runID,
-	)
-
-	var q *gocqlx.Queryx
-	if runID != uuid.Nil {
-		q = table.RestoreRun.GetQuery(w.managerSession).BindMap(qb.M{
-			"cluster_id": clusterID,
-			"task_id":    taskID,
-			"id":         runID,
-		})
-	} else {
-		q = table.RestoreRun.SelectQuery(w.managerSession).BindMap(qb.M{
-			"cluster_id": clusterID,
-			"task_id":    taskID,
-		})
-	}
-
-	var r RestoreRun
-	return &r, q.GetRelease(&r)
-}
-
 // getProgress fetches restore worker's run and returns its aggregated progress information.
 func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, error) {
 	w.Logger.Debug(ctx, "Getting progress",
@@ -344,7 +261,7 @@ func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, 
 		"run_id", w.RunID,
 	)
 
-	run, err := w.GetRun(ctx, w.ClusterID, w.TaskID, w.RunID)
+	run, err := w.cacheProvider.GetRestoreRun(ctx, w.ClusterID, w.TaskID, w.RunID)
 	if err != nil {
 		return RestoreProgress{}, err
 	}
