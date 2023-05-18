@@ -85,8 +85,13 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "healthcheck service")
 	}
 
+	backupCache, err := backup.NewScyllaCache(s.session, s.logger.Named("backup_cache"))
+	if err != nil {
+		return errors.Wrapf(err, "backup cache")
+	}
+
 	s.backupSvc, err = backup.NewService(
-		s.session,
+		backupCache,
 		s.config.Backup,
 		metrics.NewBackupMetrics().MustRegister(),
 		s.clusterSvc.GetClusterName,

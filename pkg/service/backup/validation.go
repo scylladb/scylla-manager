@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -191,7 +190,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 			if progress.Host == "" {
 				progress.Host = hostForNodeID()
 			}
-			if err := s.putValidationRunProgress(progress); err != nil {
+			if err := s.cacheProvider.putValidationRunProgress(progress); err != nil {
 				s.logger.Error(ctx, "Failed to put validation result", "error", err)
 			}
 		}
@@ -328,10 +327,6 @@ func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclien
 	return liveNodes, nil
 }
 
-func (s *Service) putValidationRunProgress(p validationRunProgress) error {
-	return table.ValidateBackupRunProgress.InsertQuery(s.session).BindStruct(p).ExecRelease()
-}
-
 // ValidationHostProgress represents validation results per host.
 type ValidationHostProgress struct {
 	DC          string     `json:"dc"`
@@ -341,23 +336,4 @@ type ValidationHostProgress struct {
 	StartedAt   *time.Time `json:"started_at"`
 	CompletedAt *time.Time `json:"completed_at"`
 	ValidationResult
-}
-
-// GetValidationProgress returns the current validation result.
-func (s *Service) GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]ValidationHostProgress, error) {
-	s.logger.Debug(ctx, "GetValidationProgress",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-		"run_id", runID,
-	)
-
-	q := table.ValidateBackupRunProgress.SelectQuery(s.session).BindStruct(validationRunProgress{
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		RunID:     runID,
-	})
-	defer q.Release()
-
-	var result []ValidationHostProgress
-	return result, q.Iter().Unsafe().Select(&result)
 }

@@ -109,8 +109,12 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger) *backup.Service {
 	t.Helper()
 
+	cacheProvider, err := backup.NewScyllaCache(session, logger.Named("backup_cache"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	s, err := backup.NewService(
-		session,
+		cacheProvider,
 		c,
 		metrics.NewBackupMetrics(),
 		func(_ context.Context, id uuid.UUID) (string, error) {
@@ -526,7 +530,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 		}
 		putRun(t, r1)
 
-		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
+		_, err := h.service.GetCacheProvider().GetLastResumableRun(ctx, clusterID, taskID)
 		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
@@ -556,7 +560,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 		}
 		putRun(t, r1)
 
-		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
+		_, err := h.service.GetCacheProvider().GetLastResumableRun(ctx, clusterID, taskID)
 		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
@@ -586,7 +590,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 		}
 		putRun(t, r1)
 
-		r, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
+		r, err := h.service.GetCacheProvider().GetLastResumableRun(ctx, clusterID, taskID)
 		if err != nil {
 			t.Fatal(err)
 		}

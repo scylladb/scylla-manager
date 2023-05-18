@@ -66,6 +66,20 @@ func (mr *MockBackupServiceMockRecorder) ExtractLocations(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractLocations", reflect.TypeOf((*MockBackupService)(nil).ExtractLocations), arg0, arg1)
 }
 
+// GetCacheProvider mocks base method.
+func (m *MockBackupService) GetCacheProvider() backup.BackupCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCacheProvider")
+	ret0, _ := ret[0].(backup.BackupCache)
+	return ret0
+}
+
+// GetCacheProvider indicates an expected call of GetCacheProvider.
+func (mr *MockBackupServiceMockRecorder) GetCacheProvider() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCacheProvider", reflect.TypeOf((*MockBackupService)(nil).GetCacheProvider))
+}
+
 // GetProgress mocks base method.
 func (m *MockBackupService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.Progress, error) {
 	m.ctrl.T.Helper()

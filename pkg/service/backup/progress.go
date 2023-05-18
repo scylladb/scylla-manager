@@ -7,9 +7,6 @@ import (
 	"time"
 
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -200,43 +197,4 @@ func (p *progress) AvgUploadBandwidth() float64 {
 
 	uploadDuration := reference.Sub(*p.StartedAt)
 	return float64(p.Uploaded) / uploadDuration.Seconds()
-}
-
-// ProgressVisitor knows how to iterate over list of RunProgress results.
-type ProgressVisitor interface {
-	ForEach(func(*RunProgress) error) error
-}
-
-type progressVisitor struct {
-	session gocqlx.Session
-	run     *Run
-}
-
-// NewProgressVisitor creates new progress iterator.
-func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
-	return &progressVisitor{
-		session: session,
-		run:     run,
-	}
-}
-
-// ForEach iterates over each run progress and runs visit function on it.
-// If visit wants to reuse RunProgress it must copy it because memory is reused
-// between calls.
-func (i *progressVisitor) ForEach(visit func(*RunProgress) error) error {
-	iter := table.BackupRunProgress.SelectQuery(i.session).BindMap(qb.M{
-		"cluster_id": i.run.ClusterID,
-		"task_id":    i.run.TaskID,
-		"run_id":     i.run.ID,
-	}).Iter()
-
-	pr := new(RunProgress)
-	for iter.StructScan(pr) {
-		if err := visit(pr); err != nil {
-			iter.Close()
-			return err
-		}
-	}
-
-	return iter.Close()
 }

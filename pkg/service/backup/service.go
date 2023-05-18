@@ -16,9 +16,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -42,9 +40,10 @@ type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session,
 
 // Service orchestrates clusterName backups.
 type Service struct {
-	session gocqlx.Session
-	config  Config
-	metrics metrics.BackupMetrics
+	session       gocqlx.Session
+	config        Config
+	metrics       metrics.BackupMetrics
+	cacheProvider BackupCache
 
 	clusterName    ClusterNameFunc
 	scyllaClient   scyllaclient.ProviderFunc
@@ -52,13 +51,9 @@ type Service struct {
 	logger         log.Logger
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
+func NewService(cacheProvider BackupCache, config Config, metrics metrics.BackupMetrics, clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc,
 	clusterSession SessionFunc, logger log.Logger,
 ) (*Service, error) {
-	if session.Session == nil || session.Closed() {
-		return nil, errors.New("invalid session")
-	}
-
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
@@ -73,6 +68,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 
 	return &Service{
 		session:        session,
+		cacheProvider:  cacheProvider,
 		config:         config,
 		metrics:        metrics,
 		clusterName:    clusterName,
@@ -728,7 +724,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		// Update run with previous progress.
 		if run.PrevID != uuid.Nil {
 			s.putRunLogError(ctx, run)
-			if err := s.clonePrevProgress(run); err != nil {
+			if err := s.cacheProvider.clonePrevProgress(run); err != nil {
 				return errors.Wrap(err, "clone progress")
 			}
 		}
@@ -770,7 +766,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Register the run
-	if err := s.putRun(run); err != nil {
+	if err := s.cacheProvider.putRun(run); err != nil {
 		return errors.Wrap(err, "initialize: register the run")
 	}
 
@@ -794,7 +790,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Metrics:              s.metrics.Backup,
 		Units:                run.Units,
 		OnRunProgress:        s.putRunProgressLogError,
-		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
+		ResumeUploadProgress: s.cacheProvider.resumeUploadProgress(run.PrevID),
 		memoryPool: &sync.Pool{
 			New: func() interface{} {
 				return &bytes.Buffer{}
@@ -868,7 +864,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 
 		// Prepare worker
-		s.updateStage(ctx, run, stage)
+		s.cacheProvider.updateStage(ctx, run, stage)
 		name := strings.ToLower(string(stage))
 		w = w.WithLogger(s.logger.Named(name))
 
@@ -892,7 +888,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // decorateWithPrevRun gets task previous run and if it can be continued
 // sets PrevID on the given run.
 func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
-	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
+	prev, err := s.cacheProvider.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
 	if errors.Is(err, service.ErrNotFound) {
 		return nil
 	}
@@ -934,67 +930,9 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	return nil
 }
 
-func (s *Service) clonePrevProgress(run *Run) error {
-	q := table.BackupRunProgress.InsertQuery(s.session)
-	defer q.Release()
-
-	prevRun := &Run{
-		ClusterID: run.ClusterID,
-		TaskID:    run.TaskID,
-		ID:        run.PrevID,
-	}
-	v := NewProgressVisitor(prevRun, s.session)
-	return v.ForEach(func(p *RunProgress) error {
-		p.RunID = run.ID
-		return q.BindStruct(p).Exec()
-	})
-}
-
-// GetLastResumableRun returns the most recent started but not done run of
-// the task, if there is a recent run that is completely done ErrNotFound is
-// reported.
-func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetLastResumableRun",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-	)
-
-	q := qb.Select(table.BackupRun.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-	).Limit(20).Query(s.session).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-	})
-
-	var runs []*Run
-	if err := q.SelectRelease(&runs); err != nil {
-		return nil, err
-	}
-
-	for _, r := range runs {
-		// stageNone can be hit when we want to resume a 2.0 backup run
-		// this is not supported.
-		if r.Stage == StageDone || r.Stage == stageNone {
-			break
-		}
-		if r.Stage.Resumable() {
-			return r, nil
-		}
-	}
-
-	return nil, service.ErrNotFound
-}
-
-// putRun upserts a backup run.
-func (s *Service) putRun(r *Run) error {
-	q := table.BackupRun.InsertQuery(s.session).BindStruct(r)
-	return q.ExecRelease()
-}
-
 // putRunLogError executes putRun and consumes the error.
 func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-	if err := s.putRun(r); err != nil {
+	if err := s.cacheProvider.putRun(r); err != nil {
 		s.logger.Error(ctx, "Failed to update the run",
 			"run", r,
 			"error", err,
@@ -1002,84 +940,11 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-// updateStage updates and persists run stage.
-func (s *Service) updateStage(ctx context.Context, run *Run, stage Stage) {
-	run.Stage = stage
-
-	q := table.BackupRun.UpdateQuery(s.session, "stage").BindStruct(run)
-	if err := q.ExecRelease(); err != nil {
-		s.logger.Error(ctx, "Failed to update run stage", "error", err)
-	}
-}
-
-// putRunProgress upserts a backup run progress.
-func (s *Service) putRunProgress(ctx context.Context, p *RunProgress) error {
-	s.logger.Debug(ctx, "PutRunProgress", "run_progress", p)
-
-	q := table.BackupRunProgress.InsertQuery(s.session).BindStruct(p)
-	return q.ExecRelease()
-}
-
 // putRunProgressLogError executes putRunProgress and consumes the error.
 func (s *Service) putRunProgressLogError(ctx context.Context, p *RunProgress) {
-	if err := s.putRunProgress(ctx, p); err != nil {
+	if err := s.cacheProvider.putRunProgress(ctx, p); err != nil {
 		s.logger.Error(ctx, "Failed to update file progress", "error", err)
 	}
-}
-
-func (s *Service) resumeUploadProgress(prevRunID uuid.UUID) func(context.Context, *RunProgress) {
-	return func(ctx context.Context, p *RunProgress) {
-		if prevRunID == uuid.Nil {
-			return
-		}
-		prev := *p
-		prev.RunID = prevRunID
-
-		if err := table.BackupRunProgress.GetQuery(s.session).
-			BindStruct(prev).
-			GetRelease(&prev); err != nil {
-			s.logger.Error(ctx, "Failed to get previous progress",
-				"cluster_id", p.ClusterID,
-				"task_id", p.TaskID,
-				"run_id", p.RunID,
-				"prev_run_id", prevRunID,
-				"table", p.TableName,
-				"error", err,
-			)
-			return
-		}
-
-		// Copy size as uploaded files are deleted and size of files on disk is diminished.
-		if prev.IsUploaded() {
-			p.Size = prev.Size
-			p.Uploaded = prev.Uploaded
-			p.Skipped = prev.Skipped
-		} else {
-			diskSize := p.Size
-			p.Size = prev.Size
-			p.Uploaded = 0
-			p.Skipped = prev.Size - diskSize
-		}
-	}
-}
-
-// GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
-// is returned.
-func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetRun",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-		"run_id", runID,
-	)
-
-	q := table.BackupRun.GetQuery(s.session).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-		"id":         runID,
-	})
-
-	var r Run
-	return &r, q.GetRelease(&r)
 }
 
 // GetProgress aggregates progress for the run of the task and breaks it down
@@ -1092,7 +957,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		"run_id", runID,
 	)
 
-	run, err := s.GetRun(ctx, clusterID, taskID, runID)
+	run, err := s.cacheProvider.GetRun(ctx, clusterID, taskID, runID)
 	if err != nil {
 		return Progress{}, err
 	}
@@ -1106,7 +971,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		}, nil
 	}
 
-	return aggregateProgress(run, NewProgressVisitor(run, s.session))
+	return aggregateProgress(run, s.cacheProvider.CreateProgressVisitor(run))
 }
 
 // DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.
@@ -1183,4 +1048,12 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
+}
+
+func (s *Service) GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]ValidationHostProgress, error) {
+	return s.cacheProvider.GetValidationProgress(ctx, clusterID, taskID, runID)
+}
+
+func (s *Service) GetCacheProvider() BackupCache {
+	return s.cacheProvider
 }

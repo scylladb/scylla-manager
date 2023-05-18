@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -49,8 +50,12 @@ func TestRunProgressIteratorIntegration(t *testing.T) {
 	}
 	q.Release()
 
-	v := NewProgressVisitor(run, session)
-	err := v.ForEach(func(pr *RunProgress) error {
+	cacheProvider, err := NewScyllaCache(session, log.NopLogger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := cacheProvider.CreateProgressVisitor(run)
+	err = v.ForEach(func(pr *RunProgress) error {
 		prog = append(prog, *pr)
 		return nil
 	})
