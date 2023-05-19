@@ -22,6 +22,16 @@ type UUID struct {
 	uuid gocql.UUID
 }
 
+// ToDB returns the representation of the struct stored in DB.
+func (u *UUID) ToDB() ([]byte, error) {
+	return []byte(u.String()), nil
+}
+
+// FromDB rebuilds the struct basing from its DB representation.
+func (u *UUID) FromDB(bytes []byte) error {
+	return u.UnmarshalText(bytes)
+}
+
 // NewRandom returns a random (Version 4) UUID and error if it fails to read
 // from it's random source.
 func NewRandom() (UUID, error) {
