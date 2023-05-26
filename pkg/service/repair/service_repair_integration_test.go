@@ -250,6 +250,24 @@ func (h *repairTestHelper) progress(node string) (int, int) {
 	return percentComplete(p)
 }
 
+// generateTarget applies GetTarget onto given properties.
+// It's useful for filling keyspace boilerplate.
+func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Target {
+	h.t.Helper()
+
+	props, err := json.Marshal(properties)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	target, err := h.service.GetTarget(context.Background(), h.clusterID, props)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	return target
+}
+
 func percentComplete(p repair.Progress) (int, int) {
 	if p.TokenRanges == 0 {
 		return 0, 0
@@ -484,6 +502,92 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServiceRepairOneByOneInOrderIntegration(t *testing.T) {
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+	// system_auth keyspace won't be repaired unless it has RF > 1
+	err := clusterSession.ExecStmt("ALTER KEYSPACE system_auth WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2}")
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		err = clusterSession.ExecStmt("ALTER KEYSPACE system_auth WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}")
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	const (
+		ks1 = "test_repair_rf_1"
+		ks2 = "test_repair_rf_2"
+		ks3 = "test_repair_rf_3"
+		t1  = "test_table_1"
+		t2  = "test_table_2"
+	)
+	createKeyspace(t, clusterSession, ks1, 1, 1)
+	createKeyspace(t, clusterSession, ks2, 2, 2)
+	createKeyspace(t, clusterSession, ks3, 3, 3)
+	WriteData(t, clusterSession, ks1, 5, t1, t2)
+	WriteData(t, clusterSession, ks2, 5, t1, t2)
+	WriteData(t, clusterSession, ks3, 5, t1, t2)
+
+	session := CreateScyllaManagerDBSession(t)
+
+	t.Run("repair keeps the table by table order in the context of full repair", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, clusterSession, repair.DefaultConfig())
+		ctx := context.Background()
+
+		target := h.generateTarget(map[string]any{
+			"FailFast": true,
+		})
+		repairOrder := h.service.RepairOrder(ctx, h.clusterID, target)
+
+		// Read-only
+		tableIdx := make(map[repair.TableName]int)
+		for i, tab := range repairOrder {
+			tableIdx[tab] = i
+		}
+
+		// Guarded by mu
+		hostMaxIdx := make(map[string]int)
+		for _, host := range ManagedClusterHosts() {
+			hostMaxIdx[host] = 0
+		}
+		mu := sync.Mutex{}
+
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async/") && req.Method == http.MethodPost {
+				split := strings.Split(req.URL.Path, "/")
+				ks := split[len(split)-1]
+
+				// We always repair one table at a time
+				tab := req.URL.Query()["columnFamilies"][0]
+				hosts := req.URL.Query()["hosts"]
+				idx := tableIdx[repair.TableName{
+					Keyspace: ks,
+					Table:    tab,
+				}]
+
+				mu.Lock()
+				defer mu.Unlock()
+				for _, host := range hosts {
+					if idx < hostMaxIdx[host] {
+						return nil, errors.New("repair order is not preserved")
+					} else if idx != hostMaxIdx[host] {
+						hostMaxIdx[host] = idx
+					}
+				}
+			}
+
+			return nil, nil
+		}))
+
+		Print("When: run repair")
+		if err = h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+			t.Errorf("Repair failed: %s", err)
+		}
+	})
 }
 
 func TestServiceRepairIntegration(t *testing.T) {

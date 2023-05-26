@@ -1,0 +1,26 @@
+[
+  {
+    "Keyspace": "test_repair_rf_1",
+    "Table": "test_table_1"
+  },
+  {
+    "Keyspace": "test_repair_rf_1",
+    "Table": "test_table_2"
+  },
+  {
+    "Keyspace": "test_repair_rf_2",
+    "Table": "test_table_1"
+  },
+  {
+    "Keyspace": "test_repair_rf_2",
+    "Table": "test_table_2"
+  },
+  {
+    "Keyspace": "test_repair_rf_3",
+    "Table": "test_table_1"
+  },
+  {
+    "Keyspace": "test_repair_rf_3",
+    "Table": "test_table_2"
+  }
+]

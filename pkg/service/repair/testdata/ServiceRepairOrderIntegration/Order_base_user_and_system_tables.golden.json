@@ -1,0 +1,82 @@
+[
+  {
+    "Keyspace": "system_auth",
+    "Table": "role_attributes"
+  },
+  {
+    "Keyspace": "system_auth",
+    "Table": "role_members"
+  },
+  {
+    "Keyspace": "system_auth",
+    "Table": "role_permissions"
+  },
+  {
+    "Keyspace": "system_auth",
+    "Table": "roles"
+  },
+  {
+    "Keyspace": "system_traces",
+    "Table": "events"
+  },
+  {
+    "Keyspace": "system_traces",
+    "Table": "node_slow_log"
+  },
+  {
+    "Keyspace": "system_traces",
+    "Table": "node_slow_log_time_idx"
+  },
+  {
+    "Keyspace": "system_traces",
+    "Table": "sessions"
+  },
+  {
+    "Keyspace": "system_traces",
+    "Table": "sessions_time_idx"
+  },
+  {
+    "Keyspace": "system_distributed",
+    "Table": "cdc_generation_timestamps"
+  },
+  {
+    "Keyspace": "system_distributed",
+    "Table": "cdc_streams_descriptions_v2"
+  },
+  {
+    "Keyspace": "system_distributed",
+    "Table": "service_levels"
+  },
+  {
+    "Keyspace": "system_distributed",
+    "Table": "view_build_status"
+  },
+  {
+    "Keyspace": "system_distributed_everywhere",
+    "Table": "cdc_generation_descriptions_v2"
+  },
+  {
+    "Keyspace": "test_repair_rf_1",
+    "Table": "test_table_1"
+  },
+  {
+    "Keyspace": "test_repair_rf_1",
+    "Table": "test_table_2"
+  },
+  {
+    "Keyspace": "test_repair_rf_2",
+    "Table": "test_table_1"
+  },
+  {
+    "Keyspace": "test_repair_rf_2",
+    "Table": "test_table_2"
+  },
+  {
+    "Keyspace": "test_repair_rf_3",
+    "Table": "test_table_1"
+  },
+  {
+    "Keyspace": "test_repair_rf_3",
+    "Table": "test_table_2"
+  }
+]

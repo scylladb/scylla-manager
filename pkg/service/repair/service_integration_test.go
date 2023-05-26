@@ -7,6 +7,7 @@ package repair_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -149,4 +150,81 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			t.Fatal(diff)
 		}
 	})
+}
+
+func TestServiceRepairOrderIntegration(t *testing.T) {
+	ctx := context.Background()
+	session := CreateScyllaManagerDBSession(t)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+	h := newRepairTestHelper(t, session, clusterSession, repair.DefaultConfig())
+
+	// system_auth keyspace won't be repaired unless it has RF > 1
+	err := clusterSession.ExecStmt("ALTER KEYSPACE system_auth WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2}")
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		err = clusterSession.ExecStmt("ALTER KEYSPACE system_auth WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}")
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	const (
+		ks1 = "test_repair_rf_1"
+		ks2 = "test_repair_rf_2"
+		ks3 = "test_repair_rf_3"
+		t1  = "test_table_1"
+		t2  = "test_table_2"
+	)
+	createKeyspace(t, clusterSession, ks1, 1, 1)
+	createKeyspace(t, clusterSession, ks2, 2, 2)
+	createKeyspace(t, clusterSession, ks3, 3, 3)
+	WriteData(t, clusterSession, ks1, 0, t1, t2)
+	WriteData(t, clusterSession, ks2, 0, t1, t2)
+	WriteData(t, clusterSession, ks3, 0, t1, t2)
+
+	createMVFormat := "CREATE MATERIALIZED VIEW %s.%s AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)"
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createMVFormat, ks1, "test_mv_1", ks1, t1))
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createMVFormat, ks2, "test_mv_2", ks2, t1))
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createMVFormat, ks2, "test_mv_3", ks2, t1))
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createMVFormat, ks3, "test_mv_5", ks3, t2))
+
+	createIndexFormat := "CREATE INDEX %s ON %s.%s (data)"
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createIndexFormat, "test_idx_1", ks1, t1))
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createIndexFormat, "test_idx_2", ks1, t2))
+	ExecStmt(h.t, clusterSession, fmt.Sprintf(createIndexFormat, "test_idx_4", ks2, t2))
+
+	testCases := []struct {
+		Name      string
+		KSPattern []string
+	}{
+		{
+			Name:      "Order base user tables",
+			KSPattern: []string{"test_repair_rf_1", "test_repair_rf_2", "test_repair_rf_3", "!*.test_mv*", "!*.test_idx*"},
+		},
+		{
+			Name:      "Order base user and system tables",
+			KSPattern: []string{"*", "!*.test_mv*", "!*.test_idx*"},
+		},
+		{
+			Name: "Order all tables",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			props := map[string]any{"keyspace": tc.KSPattern}
+			target := h.generateTarget(props)
+			order := h.service.RepairOrder(ctx, h.clusterID, target)
+			SaveGoldenJSONFileIfNeeded(t, order)
+
+			var golden []repair.TableName
+			LoadGoldenJSONFile(t, &golden)
+
+			if diff := cmp.Diff(golden, order); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
 }
