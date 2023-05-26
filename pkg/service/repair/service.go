@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -433,6 +434,112 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	return nil
+}
+
+type TableName struct { // nolint: revive
+	Keyspace string
+	Table    string
+}
+
+var orderPreferences = []TableName{
+	{Keyspace: "system_auth", Table: "role_attributes"},
+	{Keyspace: "system_auth", Table: "role_members"},
+	{Keyspace: "system_auth"},
+	{Keyspace: "system_traces"},
+	{Keyspace: "system_distributed"},
+	{Keyspace: "system_distributed_everywhere"},
+}
+
+func tableOrder(table TableName) int {
+	for i, t := range orderPreferences {
+		if t.Keyspace == table.Keyspace {
+			if t.Table == "" || t.Table == table.Table {
+				return i
+			}
+		}
+	}
+	return len(orderPreferences)
+}
+
+// RepairOrder establishes the order in which tables should be repaired one by one.
+func (s *Service) RepairOrder(ctx context.Context, clusterID uuid.UUID, target Target) []TableName {
+	var order []TableName
+	for _, u := range target.Units {
+		for _, t := range u.Tables {
+			order = append(order, TableName{
+				Keyspace: u.Keyspace,
+				Table:    t,
+			})
+		}
+	}
+
+	// Repair base table before views only when SM has CQL credentials for cluster
+	views, err := s.getAllViews(ctx, clusterID)
+	isView := func(table TableName) bool {
+		_, ok := views[table]
+		return ok
+	}
+	if err != nil {
+		s.logger.Info(ctx, "Can't ensure that base tables will be repaired before view tables", "error", err)
+		isView = func(table TableName) bool {
+			return false
+		}
+	}
+
+	sort.Slice(order, func(i, j int) bool {
+		// Put system tables at the beginning
+		ordI := tableOrder(order[i])
+		ordJ := tableOrder(order[j])
+		if ordI != ordJ {
+			return ordI < ordJ
+		}
+		// Order lexicographically by keyspace
+		ksI := order[i].Keyspace
+		ksJ := order[j].Keyspace
+		if ksI != ksJ {
+			return ksI < ksJ
+		}
+		// Put views at the end
+		vI := isView(order[i])
+		vJ := isView(order[j])
+		if vI != vJ {
+			return vJ
+		}
+		// Ordered lexicographically by table
+		return order[i].Table < order[j].Table
+	})
+
+	return order
+}
+
+// getAllViews queries system_schema.views table to get views created on the cluster.
+// system_schema.views contains view definitions for materialized views and for secondary indexes.
+func (s *Service) getAllViews(ctx context.Context, clusterID uuid.UUID) (map[TableName]struct{}, error) {
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get CQL cluster session")
+	}
+
+	iter := qb.Select("system_schema.views").
+		Columns("keyspace_name", "view_name").
+		Query(clusterSession).Iter()
+
+	var (
+		views = make(map[TableName]struct{})
+		ks    string
+		t     string
+	)
+	for iter.Scan(&ks, &t) {
+		views[TableName{
+			Keyspace: ks,
+			Table:    t,
+		}] = struct{}{}
+	}
+
+	if err = iter.Close(); err != nil {
+		return nil, errors.Wrap(err, "query views")
+	}
+	return views, nil
 }
 
 func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
