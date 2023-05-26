@@ -1015,7 +1015,7 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	case target.RestoreSchema:
 		h.restartScylla()
 	case target.RestoreTables:
-		h.simpleRepair()
+		h.simpleRepair(dstSession)
 	}
 
 	Print("When: query contents of restored table")
@@ -1188,7 +1188,7 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 	return i.SnapshotInfo[0].SnapshotTag
 }
 
-func (h *restoreTestHelper) simpleRepair() {
+func (h *restoreTestHelper) simpleRepair(clusterSession gocqlx.Session) {
 	h.t.Helper()
 	Print("When: repair restored cluster")
 
@@ -1198,6 +1198,9 @@ func (h *restoreTestHelper) simpleRepair() {
 		metrics.NewRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return h.client, nil
+		},
+		func(context.Context, uuid.UUID) (gocqlx.Session, error) {
+			return clusterSession, nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
 	)

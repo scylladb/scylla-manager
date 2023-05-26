@@ -28,20 +28,25 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// SessionFunc returns CQL session for given cluster ID.
+type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
+
 // Service orchestrates cluster repairs.
 type Service struct {
 	session gocqlx.Session
 	config  Config
 	metrics metrics.RepairMetrics
 
-	scyllaClient scyllaclient.ProviderFunc
-	logger       log.Logger
+	scyllaClient   scyllaclient.ProviderFunc
+	clusterSession SessionFunc
+	logger         log.Logger
 
 	intensityHandlers map[uuid.UUID]*intensityHandler
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics, scyllaClient scyllaclient.ProviderFunc, clusterSession SessionFunc, logger log.Logger,
+) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
@@ -55,6 +60,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 		config:            config,
 		metrics:           metrics,
 		scyllaClient:      scyllaClient,
+		clusterSession:    clusterSession,
 		logger:            logger,
 		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
 	}, nil

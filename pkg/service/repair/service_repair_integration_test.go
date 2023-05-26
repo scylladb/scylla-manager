@@ -53,7 +53,7 @@ type repairTestHelper struct {
 	t *testing.T
 }
 
-func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config) *repairTestHelper {
+func newRepairTestHelper(t *testing.T, session, clusterSession gocqlx.Session, config repair.Config) *repairTestHelper {
 	t.Helper()
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
@@ -61,7 +61,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, log.NopLogger)
-	s := newTestService(t, session, c, config, logger)
+	s := newTestService(t, session, clusterSession, c, config, logger)
 
 	return &repairTestHelper{
 		logger:  logger,
@@ -372,7 +372,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *
 	return c
 }
 
-func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+func newTestService(t *testing.T, session, clusterSession gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
 	t.Helper()
 
 	s, err := repair.NewService(
@@ -381,6 +381,9 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		metrics.NewRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
+		},
+		func(context.Context, uuid.UUID) (gocqlx.Session, error) {
+			return clusterSession, nil
 		},
 		logger.Named("repair"),
 	)
@@ -391,8 +394,8 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s
 }
 
-func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
-	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string, dc1RF, dc2RF int) {
+	ExecStmt(t, session, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}", keyspace, dc1RF, dc2RF))
 }
 
 func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
@@ -443,7 +446,7 @@ func multipleUnits() repair.Target {
 
 func TestServiceGetTargetIntegration(t *testing.T) {
 	// Clear keyspaces
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 
 	// Test names
 	testNames := []string{
@@ -459,7 +462,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 	var (
 		session = CreateScyllaManagerDBSession(t)
-		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
+		h       = newRepairTestHelper(t, session, clusterSession, repair.DefaultConfig())
 		ctx     = context.Background()
 	)
 
@@ -486,7 +489,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 func TestServiceRepairIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 
-	createKeyspace(t, clusterSession, "test_repair")
+	createKeyspace(t, clusterSession, "test_repair", 3, 3)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -499,7 +502,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	session := CreateScyllaManagerDBSession(t)
 
 	t.Run("repair simple", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -519,7 +522,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair dc", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -551,7 +554,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair ignore hosts", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -581,7 +584,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair host", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -600,7 +603,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair dc local keyspace mismatch", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -644,7 +647,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			Continue: true,
 		}
 
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -686,7 +689,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair stop", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -709,7 +712,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	t.Run("repair stop when workers are busy", func(t *testing.T) {
 		c := defaultConfig()
 		c.GracefulStopTimeout = time.Second
-		h := newRepairTestHelper(t, session, c)
+		h := newRepairTestHelper(t, session, clusterSession, c)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -732,7 +735,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -783,7 +786,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart no continue", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -820,7 +823,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair restart task properties changed", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -872,7 +875,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	t.Run("repair restart fixes failed ranges", func(t *testing.T) {
 		c := defaultConfig()
 
-		h := newRepairTestHelper(t, session, c)
+		h := newRepairTestHelper(t, session, clusterSession, c)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -911,7 +914,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	t.Run("repair temporary network outage", func(t *testing.T) {
 		c := defaultConfig()
 
-		h := newRepairTestHelper(t, session, c)
+		h := newRepairTestHelper(t, session, clusterSession, c)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -940,7 +943,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	t.Run("repair error fail fast", func(t *testing.T) {
 		c := defaultConfig()
 
-		h := newRepairTestHelper(t, session, c)
+		h := newRepairTestHelper(t, session, clusterSession, c)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -964,7 +967,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair non existing keyspace", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -986,11 +989,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace)
+		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -1032,11 +1035,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace)
+		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -1081,7 +1084,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			h := newRepairTestHelper(t, session, defaultConfig())
+			h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 			var killRepairCalled int32
 			h.hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", nil))
 
@@ -1105,7 +1108,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			h := newRepairTestHelper(t, session, defaultConfig())
+			h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 			target.FailFast = true
 
 			Print("When: run repair")
@@ -1141,7 +1144,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -1182,7 +1185,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair status context timeout", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
+		h := newRepairTestHelper(t, session, clusterSession, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -1210,7 +1213,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 	const ks = "test_repair"
 
-	createKeyspace(t, clusterSession, ks)
+	createKeyspace(t, clusterSession, ks, 3, 3)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, ks)
@@ -1220,7 +1223,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	WriteData(t, clusterSession, ks, 10, generateTableNames(100)...)
 
 	session := CreateScyllaManagerDBSession(t)
-	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	h := newRepairTestHelper(t, session, clusterSession, repair.DefaultConfig())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -1266,7 +1269,7 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	defer dropKeyspace(t, clusterSession, "test_repair_1")
 
 	session := CreateScyllaManagerDBSession(t)
-	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	h := newRepairTestHelper(t, session, clusterSession, repair.DefaultConfig())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

@@ -103,6 +103,7 @@ func (s *server) makeServices() error {
 		s.config.Repair,
 		metrics.NewRepairMetrics().MustRegister(),
 		s.clusterSvc.Client,
+		s.clusterSvc.GetSession,
 		s.logger.Named("repair"),
 	)
 	if err != nil {
