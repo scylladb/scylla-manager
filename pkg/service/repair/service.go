@@ -391,7 +391,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Init Generator
-	if err := gen.Init(ctx, ctl, hostPriority, opts...); err != nil {
+	repairOrder := s.RepairOrder(ctx, clusterID, target)
+	if err := gen.Init(ctx, ctl, hostPriority, repairOrder, opts...); err != nil {
 		return err
 	}
 
@@ -587,7 +588,10 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 
 			if total <= target.SmallTableThreshold {
 				s.logger.Debug(ctx, "Detected small table", "keyspace", u.Keyspace, "table", t, "size", total, "threshold", target.SmallTableThreshold)
-				g.markSmallTable(u.Keyspace, t)
+				g.markSmallTable(TableName{
+					Keyspace: u.Keyspace,
+					Table:    t,
+				})
 				smallTables = append(smallTables, key)
 			}
 		}

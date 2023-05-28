@@ -185,12 +185,20 @@ func newGeneratorTestSuite() generatorTestSuite {
 	return suite
 }
 
-type keyspaceTableName struct {
-	Keyspace string
-	Table    string
+func simpleRepairOrder(target Target) []TableName {
+	var order []TableName
+	for _, u := range target.Units {
+		for _, t := range u.Tables {
+			order = append(order, TableName{
+				Keyspace: u.Keyspace,
+				Table:    t,
+			})
+		}
+	}
+	return order
 }
 
-func (s *generatorTestSuite) newGenerator(ctx context.Context, target Target, smallTables ...keyspaceTableName) (*generator, *intensityHandler) {
+func (s *generatorTestSuite) newGenerator(ctx context.Context, target Target, smallTables ...TableName) (*generator, *intensityHandler) {
 	b := newTableTokenRangeBuilder(target, s.hostDC).Add(s.ranges)
 	g := newGenerator(gracefulStopTimeout, newNopProgressManager(), log.NewDevelopment())
 	for _, u := range s.units {
@@ -198,11 +206,11 @@ func (s *generatorTestSuite) newGenerator(ctx context.Context, target Target, sm
 	}
 
 	for _, kt := range smallTables {
-		g.markSmallTable(kt.Keyspace, kt.Table)
+		g.markSmallTable(kt)
 	}
 
 	ctl, ih := s.newController(target.Intensity, target.Parallel, b.MaxParallelRepairs())
-	if err := g.Init(ctx, ctl, s.hostPriority); err != nil {
+	if err := g.Init(ctx, ctl, s.hostPriority, simpleRepairOrder(target)); err != nil {
 		panic(err)
 	}
 
@@ -236,6 +244,7 @@ func (s *generatorTestSuite) Basic(t *testing.T) {
 
 				ctx := context.Background()
 				target := Target{
+					Units:     s.units,
 					DC:        s.dcs,
 					Intensity: intensity,
 					Parallel:  parallel,
@@ -250,7 +259,7 @@ func (s *generatorTestSuite) Basic(t *testing.T) {
 				}
 
 				ctl, _ := s.newController(target.Intensity, target.Parallel, b.MaxParallelRepairs())
-				if err := g.Init(ctx, ctl, s.hostPriority); err != nil {
+				if err := g.Init(ctx, ctl, s.hostPriority, simpleRepairOrder(target)); err != nil {
 					t.Fatal(err)
 				}
 				go g.Run(ctx)
@@ -321,6 +330,7 @@ func (s *generatorTestSuite) Intensity(t *testing.T) {
 			ctx := context.Background()
 
 			target := Target{
+				Units:     s.units,
 				DC:        s.dcs,
 				Intensity: test.Intensity,
 				Parallel:  1,
@@ -350,6 +360,7 @@ func (s *generatorTestSuite) IntensityChange(t *testing.T) {
 
 	Print("Given: intensity of 1")
 	target := Target{
+		Units:     s.units,
 		DC:        s.dcs,
 		Intensity: 1,
 	}
@@ -435,6 +446,7 @@ func (s *generatorTestSuite) Parallel(t *testing.T) {
 			ctx := context.Background()
 
 			target := Target{
+				Units:     s.units,
 				DC:        s.dcs,
 				Intensity: 1,
 				Parallel:  test.Parallel,
@@ -478,7 +490,8 @@ func (s *generatorTestSuite) SingleDatacenter(t *testing.T) {
 	ctx := context.Background()
 
 	target := Target{
-		DC: s.dcs[0:1],
+		Units: s.units,
+		DC:    s.dcs[0:1],
 	}
 
 	g, _ := s.newGenerator(ctx, target)
@@ -500,15 +513,19 @@ func (s *generatorTestSuite) SmallTables(t *testing.T) {
 	ctx := context.Background()
 
 	target := Target{
+		Units:     s.units,
 		DC:        s.dcs,
 		Intensity: 1,
 	}
 
 	// Mark all tables as small
-	var smallTables []keyspaceTableName
+	var smallTables []TableName
 	for _, u := range s.units {
-		for _, t := range u.Tables {
-			smallTables = append(smallTables, keyspaceTableName{u.Keyspace, t})
+		for _, tab := range u.Tables {
+			smallTables = append(smallTables, TableName{
+				Keyspace: u.Keyspace,
+				Table:    tab,
+			})
 		}
 	}
 	g, _ := s.newGenerator(ctx, target, smallTables...)
@@ -531,7 +548,8 @@ func (s *generatorTestSuite) GracefulShutdown(t *testing.T) {
 	defer cancel()
 
 	target := Target{
-		DC: s.dcs,
+		Units: s.units,
+		DC:    s.dcs,
 	}
 
 	generatorFinished := atomic.NewBool(false)

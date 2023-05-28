@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -53,6 +54,18 @@ type generator struct {
 
 	failFast bool
 
+	// Order in which tables should be repaired.
+	repairOrder []TableName
+	// Table's index in repairOrder.
+	tableIdx map[TableName]int
+	// remainingRanges[host][ord] = cnt ->
+	// host has cnt remaining ranges to repair for table repairOrder[ord].
+	remainingRanges map[string][]int
+	// The index (in repairOrder) of currently repaired table.
+	// Even though some other tables might be repaired in parallel, this table has full priority,
+	// so it won't be blocked by any other repairs.
+	currentTableIdx int
+
 	replicas      map[uint64][]string
 	replicasIndex map[uint64]int
 	ranges        map[uint64][]*tableTokenRange
@@ -64,8 +77,10 @@ type generator struct {
 	ctl          controller
 	hostPriority hostPriority
 
-	keys       []uint64
-	pos        int
+	keys         []uint64
+	posCurrTable int
+	posAnyTable  int
+
 	next       chan job
 	nextClosed bool
 	result     chan jobResult
@@ -87,13 +102,15 @@ func newGenerator(gracefulStopTimeout time.Duration, progress progressManager, l
 		progress:            progress,
 		logger:              logger,
 
-		replicas:      make(map[uint64][]string),
-		replicasIndex: make(map[uint64]int),
-		ranges:        make(map[uint64][]*tableTokenRange),
-		minRf:         math.MaxInt8,
-		smallTables:   strset.New(),
-		deletedTables: strset.New(),
-		lastPercent:   -1,
+		tableIdx:        make(map[TableName]int),
+		remainingRanges: make(map[string][]int),
+		replicas:        make(map[uint64][]string),
+		replicasIndex:   make(map[uint64]int),
+		ranges:          make(map[uint64][]*tableTokenRange),
+		minRf:           math.MaxInt8,
+		smallTables:     strset.New(),
+		deletedTables:   strset.New(),
+		lastPercent:     -1,
 	}
 
 	return g
@@ -142,7 +159,7 @@ func (g *generator) Size() int {
 	return len(g.replicas)
 }
 
-func (g *generator) Init(ctx context.Context, ctl controller, hp hostPriority, opts ...generatorOption) error {
+func (g *generator) Init(ctx context.Context, ctl controller, hp hostPriority, repairOrder []TableName, opts ...generatorOption) error {
 	for _, o := range opts {
 		o(g)
 	}
@@ -175,8 +192,7 @@ func (g *generator) Init(ctx context.Context, ctl controller, hp hostPriority, o
 		return err
 	}
 
-	// Remove repaired ranges from the pool of available ones to avoid their
-	// scheduling.
+	// Remove repaired ranges from the pool of available ones to avoid their scheduling
 	for k := range g.ranges {
 		ttrs := g.ranges[k][:0]
 		for i := range g.ranges[k] {
@@ -188,6 +204,45 @@ func (g *generator) Init(ctx context.Context, ctl controller, hp hostPriority, o
 		g.ranges[k] = ttrs
 		g.count += len(ttrs)
 	}
+
+	g.repairOrder = repairOrder
+	for i, t := range g.repairOrder {
+		g.tableIdx[t] = i
+	}
+
+	// Sort tableTokenRanges in repairOrder for each replica set
+	for _, r := range g.ranges {
+		sort.Slice(r, func(i, j int) bool {
+			tI := TableName{Keyspace: r[i].Keyspace, Table: r[i].Table}
+			tJ := TableName{Keyspace: r[j].Keyspace, Table: r[j].Table}
+			// Sort by repairOrder
+			ordI := g.tableIdx[tI]
+			ordJ := g.tableIdx[tJ]
+			if ordI != ordJ {
+				return ordI < ordJ
+			}
+			// Sort by tokens
+			return r[i].StartToken < r[j].StartToken
+		})
+	}
+
+	// Calculate remainingRanges
+	for _, r := range g.ranges {
+		for _, ttr := range r {
+			ord := g.tableIdx[TableName{
+				Keyspace: ttr.Keyspace,
+				Table:    ttr.Table,
+			}]
+
+			for _, h := range ttr.Replicas {
+				if g.remainingRanges[h] == nil {
+					g.remainingRanges[h] = make([]int, len(g.repairOrder))
+				}
+				g.remainingRanges[h][ord]++
+			}
+		}
+	}
+	g.moveCurrentTableIdx()
 
 	return nil
 }
@@ -254,7 +309,7 @@ loop:
 
 func (g *generator) processResult(ctx context.Context, r jobResult) {
 	if errors.Is(r.Err, errTableDeleted) {
-		g.markDeletedTable(keyspaceTableForRanges(r.Ranges))
+		g.markDeletedTable(tableForRanges(r.Ranges))
 		r.Err = nil
 	}
 
@@ -267,7 +322,7 @@ func (g *generator) processResult(ctx context.Context, r jobResult) {
 			// If worker failed with fail fast error then initiate shutdown.
 			// Setting nextClosed to true will prevent scheduling any new
 			// jobs but will also allow draining queue of any existing jobs.
-			// generator/worker pair will shutdown once there are no more
+			// generator/worker pair will shut down once there are no more
 			// busy replicas.
 			g.closeNext()
 		}
@@ -279,6 +334,14 @@ func (g *generator) processResult(ctx context.Context, r jobResult) {
 		g.logger.Info(ctx, "Progress", "percent", percent, "count", g.count, "success", g.success, "failed", g.failed)
 		g.lastPercent = percent
 	}
+
+	reps := replicasForRanges(r.Ranges)
+	ord := g.tableIdx[tableForRanges(r.Ranges)]
+
+	for _, h := range reps {
+		g.remainingRanges[h][ord] -= n
+	}
+	g.moveCurrentTableIdx()
 
 	g.ctl.Unblock(r.Allowance)
 }
@@ -294,6 +357,8 @@ func (g *generator) fillNext(ctx context.Context) {
 	if ctx.Err() != nil || g.nextClosed {
 		return
 	}
+	g.posCurrTable = 0
+	g.posAnyTable = 0
 	for {
 		hash, allowance := g.pickReplicas()
 		if hash == 0 {
@@ -307,10 +372,10 @@ func (g *generator) fillNext(ctx context.Context) {
 		}
 
 		// Process deleted table as a success without sending to worker
-		if k, t := keyspaceTableForRanges(j.Ranges); g.deletedTable(k, t) {
+		if t := tableForRanges(j.Ranges); g.deletedTable(t) {
 			g.logger.Debug(ctx, "Repair skipping deleted table",
-				"keyspace", k,
-				"table", t,
+				"keyspace", t.Keyspace,
+				"table", t.Table,
 				"hosts", j.Ranges[0].Replicas,
 				"ranges", len(j.Ranges),
 			)
@@ -332,34 +397,64 @@ func (g *generator) fillNext(ctx context.Context) {
 // pickReplicas blocks replicas and returns hash, if no replicas can be found
 // then 0 is returned.
 func (g *generator) pickReplicas() (uint64, allowance) {
-	var (
-		stop = g.pos
-		pos  = g.pos
-	)
-
-	for {
-		pos = (pos + 1) % len(g.keys)
-		hash := g.keys[pos]
+	// First iteration returns replicas with jobs for currently repaired table
+	for ; g.posCurrTable < len(g.keys); g.posCurrTable++ {
+		hash := g.keys[g.posCurrTable]
 
 		if len(g.ranges[hash]) > 0 {
-			ok, a := g.ctl.TryBlock(g.replicas[hash])
-			if ok {
+			t := tableForRanges(g.ranges[hash])
+			if t != g.repairOrder[g.currentTableIdx] {
+				continue
+			}
+
+			if ok, a := g.ctl.TryBlock(g.replicas[hash]); ok {
 				return hash, a
 			}
 		}
+	}
 
-		if pos == stop {
-			return 0, nilAllowance
+	// Second iteration returns replicas with jobs non-conflicting with repairing current table
+	for ; g.posAnyTable < len(g.keys); g.posAnyTable++ {
+		hash := g.keys[g.posAnyTable]
+
+		if len(g.ranges[hash]) > 0 {
+			ok, a := g.ctl.TryBlock(g.replicas[hash])
+			if !ok {
+				continue
+			}
+
+			reps := g.replicas[hash]
+			ord := g.tableIdx[tableForRanges(g.ranges[hash])]
+			for _, h := range reps {
+				for i := g.currentTableIdx; i < ord; i++ {
+					// Deny job which requires host that still has jobs
+					// for tables with lower repairOrder index.
+					if g.remainingRanges[h][i] > 0 {
+						ok = false
+						break
+					}
+				}
+				if !ok {
+					break
+				}
+			}
+
+			if ok {
+				return hash, a
+			}
+			g.ctl.Unblock(a)
 		}
 	}
+
+	return 0, nilAllowance
 }
 
 func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	ranges := g.ranges[hash]
 
 	// Speedup repair of small tables by repairing all ranges together.
-	keyspace, table := keyspaceTableForRanges(ranges)
-	if strings.HasPrefix(keyspace, "system") || g.smallTable(keyspace, table) || g.deletedTable(keyspace, table) {
+	t := tableForRanges(ranges)
+	if strings.HasPrefix(t.Keyspace, "system") || g.smallTable(t) || g.deletedTable(t) {
 		limit = len(ranges)
 	}
 
@@ -379,26 +474,44 @@ func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
 	return ranges[0:i]
 }
 
-func keyspaceTableForRanges(ranges []*tableTokenRange) (keyspace, table string) {
-	return ranges[0].Keyspace, ranges[0].Table
+func tableForRanges(ranges []*tableTokenRange) TableName {
+	return TableName{
+		Keyspace: ranges[0].Keyspace,
+		Table:    ranges[0].Table,
+	}
 }
 
-func (g *generator) markSmallTable(keyspace, table string) {
-	g.smallTables.Add(keyspace + "." + table)
+func replicasForRanges(ranges []*tableTokenRange) []string {
+	return ranges[0].Replicas
 }
 
-func (g *generator) smallTable(keyspace, table string) bool {
-	return g.smallTables.Has(keyspace + "." + table)
+func (g *generator) markSmallTable(table TableName) {
+	g.smallTables.Add(table.Keyspace + "." + table.Table)
 }
 
-func (g *generator) markDeletedTable(keyspace, table string) {
-	g.deletedTables.Add(keyspace + "." + table)
+func (g *generator) smallTable(table TableName) bool {
+	return g.smallTables.Has(table.Keyspace + "." + table.Table)
 }
 
-func (g *generator) deletedTable(keyspace, table string) bool {
-	return g.deletedTables.Has(keyspace + "." + table)
+func (g *generator) markDeletedTable(table TableName) {
+	g.deletedTables.Add(table.Keyspace + "." + table.Table)
+}
+
+func (g *generator) deletedTable(table TableName) bool {
+	return g.deletedTables.Has(table.Keyspace + "." + table.Table)
 }
 
 func (g *generator) pickHost(hash uint64) string {
 	return g.hostPriority.PickHost(g.replicas[hash])
+}
+
+// moveCurrentTableIdx increases currentTableIdx so that it points to the next not fully repaired table.
+func (g *generator) moveCurrentTableIdx() {
+	for ; g.currentTableIdx < len(g.repairOrder); g.currentTableIdx++ {
+		for _, rr := range g.remainingRanges {
+			if rr[g.currentTableIdx] != 0 {
+				return
+			}
+		}
+	}
 }
