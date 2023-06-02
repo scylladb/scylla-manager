@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
-import sys
 from datetime import date
 
 from sphinx_scylladb_theme.utils import multiversion_regex_builder
@@ -81,7 +79,7 @@ smv_outputdir_format = '{ref.name}'
 
 # -- Options for sitemap extension ---------------------------------------
 
-sitemap_url_scheme = 'stable/{link}'
+sitemap_url_scheme = "/stable/{link}"
 
 # -- Options for HTML output ---------------------------------------------
 
@@ -102,6 +100,7 @@ html_theme_options = {
     'github_issues_repository': 'scylladb/scylla-manager',
     'github_repository': 'scylladb/scylla-manager',
     'hide_edit_this_page_button': 'false',
+    'hide_feedback_buttons': 'false',
     'tag_substring_removed': 'scylla-manager-',
     'versions_unstable': UNSTABLE_VERSIONS,
     'versions_deprecated': DEPRECATED_VERSIONS,
