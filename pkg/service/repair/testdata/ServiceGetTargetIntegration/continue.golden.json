@@ -1,12 +1,22 @@
 {
   "units": [
     {
+      "Keyspace": "system_auth",
+      "Tables": [
+        "role_attributes",
+        "role_members",
+        "roles",
+        "role_permissions"
+      ],
+      "AllTables": true
+    },
+    {
       "Keyspace": "system_distributed",
       "Tables": [
-        "view_build_status",
-        "service_levels",
         "cdc_streams_descriptions_v2",
-        "cdc_generation_timestamps"
+        "cdc_generation_timestamps",
+        "view_build_status",
+        "service_levels"
       ],
       "AllTables": true
     },
@@ -20,11 +30,11 @@
     {
       "Keyspace": "system_traces",
       "Tables": [
-        "sessions_time_idx",
-        "sessions",
-        "node_slow_log_time_idx",
         "events",
-        "node_slow_log"
+        "node_slow_log",
+        "node_slow_log_time_idx",
+        "sessions",
+        "sessions_time_idx"
       ],
       "AllTables": true
     }

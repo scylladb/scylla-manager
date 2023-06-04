@@ -3,10 +3,10 @@
     {
       "Keyspace": "system_distributed",
       "Tables": [
-        "view_build_status",
-        "service_levels",
         "cdc_streams_descriptions_v2",
-        "cdc_generation_timestamps"
+        "cdc_generation_timestamps",
+        "view_build_status",
+        "service_levels"
       ],
       "AllTables": true
     }
