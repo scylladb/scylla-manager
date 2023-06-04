@@ -392,8 +392,9 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s
 }
 
-func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
-	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2 int) {
+	createKeyspaceStmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"
+	ExecStmt(t, session, fmt.Sprintf(createKeyspaceStmt, keyspace, rf1, rf2))
 }
 
 func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
@@ -442,6 +443,24 @@ func multipleUnits() repair.Target {
 	}
 }
 
+// generateTarget applies GetTarget onto given properties.
+// It's useful for filling keyspace boilerplate.
+func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Target {
+	h.t.Helper()
+
+	props, err := json.Marshal(properties)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	target, err := h.service.GetTarget(context.Background(), h.clusterID, props)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+
+	return target
+}
+
 func TestServiceGetTargetIntegration(t *testing.T) {
 	// Test names
 	testNames := []string{
@@ -483,6 +502,110 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 }
 
+func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
+	t.Skip() // This test should be enabled when after repair algorithm is refactored
+
+	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
+
+	const (
+		ks1           = "test_repair_rf_1"
+		ks2           = "test_repair_rf_2"
+		ks3           = "test_repair_rf_3"
+		t1            = "test_table_1"
+		t2            = "test_table_2"
+		maxJobsOnHost = 1
+	)
+	createKeyspace(t, clusterSession, ks1, 1, 1)
+	createKeyspace(t, clusterSession, ks2, 2, 2)
+	createKeyspace(t, clusterSession, ks3, 3, 3)
+	WriteData(t, clusterSession, ks1, 5, t1, t2)
+	WriteData(t, clusterSession, ks2, 5, t1, t2)
+	WriteData(t, clusterSession, ks3, 5, t1, t2)
+
+	t.Run("repair schedules only one job per host at any given time", func(t *testing.T) {
+		ctx := context.Background()
+
+		target := h.generateTarget(map[string]any{
+			"FailFast": true,
+		})
+
+		// The amount of currently executed repair jobs on host
+		jobsPerHost := make(map[string]int)
+		muJPH := sync.Mutex{}
+
+		// Set of hosts used for given repair job
+		hostsInJob := make(map[string][]string)
+		muHIJ := sync.Mutex{}
+
+		cnt := atomic.Int64{}
+
+		// Repair request
+		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+				hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
+				muJPH.Lock()
+				defer muJPH.Unlock()
+
+				for _, host := range hosts {
+					jobsPerHost[host]++
+					if jobsPerHost[host] > maxJobsOnHost {
+						cnt.Add(1)
+						return nil, nil
+					}
+				}
+			}
+
+			return nil, nil
+		}))
+
+		h.hrt.SetRespNotifier(func(resp *http.Response, err error) {
+			if resp == nil {
+				return
+			}
+
+			var copiedBody bytes.Buffer
+			tee := io.TeeReader(resp.Body, &copiedBody)
+			body, _ := io.ReadAll(tee)
+			resp.Body = io.NopCloser(&copiedBody)
+
+			// Response to repair schedule
+			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
+				muHIJ.Lock()
+				hostsInJob[string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
+				muHIJ.Unlock()
+			}
+
+			// Response to repair status
+			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
+				status := string(body)
+				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
+					muHIJ.Lock()
+					hosts := hostsInJob[resp.Request.URL.Query()["id"][0]]
+					muHIJ.Unlock()
+
+					muJPH.Lock()
+					defer muJPH.Unlock()
+
+					for _, host := range hosts {
+						jobsPerHost[host]--
+					}
+				}
+			}
+		})
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+			t.Errorf("Repair failed: %s", err)
+		}
+
+		if cnt.Load() > 0 {
+			t.Fatal("too many repair jobs are being executed on host")
+		}
+	})
+}
+
 func TestServiceRepairIntegration(t *testing.T) {
 	defaultConfig := func() repair.Config {
 		c := repair.DefaultConfig()
@@ -493,7 +616,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
 
-	createKeyspace(t, clusterSession, "test_repair")
+	createKeyspace(t, clusterSession, "test_repair", 3, 3)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -985,7 +1108,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace)
+		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1031,7 +1154,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace)
+		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1214,7 +1337,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
 	const ks = "test_repair"
 
-	createKeyspace(t, clusterSession, ks)
+	createKeyspace(t, clusterSession, ks, 3, 3)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, ks)
