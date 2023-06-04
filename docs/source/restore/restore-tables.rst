@@ -9,7 +9,7 @@ To restore the content of the tables (rows), use the :ref:`sctool restore <sctoo
 Prerequisites
 =============
 
-* Scylla Manager with CQL credentials to restore the destination cluster.
+* Scylla Manager requires CQL credentials with `permission to alter <https://docs.scylladb.com/stable/operating-scylla/security/authorization.html#permissions>`_ restored tables.
 
 * Restoring the content of the tables assumes that the correct schema is already present in the destination cluster.
    Scylla Manager does NOT validate that, so it's user responsibility to ensure it. The only form of validation
