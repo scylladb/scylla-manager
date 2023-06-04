@@ -1,12 +1,13 @@
 all: help
 
-COMPOSE    := docker-compose
-CQLSH      := $(COMPOSE) exec scylla-manager-db cqlsh
-CQLSH_NODE := $(COMPOSE) exec -T dc1_node_1 cqlsh
-NODETOOL   := $(COMPOSE) exec -T dc1_node_1 nodetool
-YQ         := ../bin/yq
-CURRENT_UID := $(shell id -u)
-CURRENT_GID := $(shell id -g)
+COMPOSE      := docker-compose
+CQLSH        := $(COMPOSE) exec scylla-manager-db cqlsh
+CQLSH_NODE   := $(COMPOSE) exec -T dc1_node_1 cqlsh
+NODETOOL     := $(COMPOSE) exec -T dc1_node_1 nodetool
+CLUSTER_NODE := 192.168.100.11
+YQ           := ../bin/yq
+CURRENT_UID  := $(shell id -u)
+CURRENT_GID  := $(shell id -g)
 
 include .env
 
@@ -44,6 +45,8 @@ endif
 	@./nodes_exec rm /root/.cqlshrc
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh
+	@echo "==> Initialising cluster"
+	@$(CQLSH_NODE) $(CLUSTER_NODE) -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
 
 .PHONY: down
 down: ## Stop docker containers
@@ -69,7 +72,7 @@ cqlsh-manager: ## CQL shell to manager backend storage
 
 .PHONY: cqlsh-node
 cqlsh-node: ## CQL shell to a managed node 192.168.100.11
-cqlsh-node: IP=192.168.100.11
+cqlsh-node: IP=$(CLUSTER_NODE)
 cqlsh-node:
 	$(CQLSH_NODE) $(IP)
 
