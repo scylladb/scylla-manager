@@ -39,7 +39,8 @@ func NewBackupMetrics() BackupMetrics {
 			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-			state: gr("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+			state:    gr("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+			progress: gr("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
 		},
 	}
 }
@@ -126,6 +127,7 @@ type RestoreM struct {
 	batchSize      *prometheus.GaugeVec
 	remainingBytes *prometheus.GaugeVec
 	state          *prometheus.GaugeVec
+	progress       *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
@@ -133,6 +135,7 @@ func (rm RestoreM) all() []prometheus.Collector {
 		rm.batchSize,
 		rm.remainingBytes,
 		rm.state,
+		rm.progress,
 	}
 }
 
@@ -164,35 +167,59 @@ func (rm RestoreM) DecreaseBatchSize(clusterID uuid.UUID, host string, size int6
 }
 
 // SetRemainingBytes sets restore "remaining_bytes" metric.
-func (rm RestoreM) SetRemainingBytes(clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
-	dc, node, keyspace, table string, remainingBytes int64,
-) {
+func (rm RestoreM) SetRemainingBytes(labels RestoreBytesLabels, remainingBytes int64) {
 	l := prometheus.Labels{
-		"cluster":      clusterID.String(),
-		"snapshot_tag": snapshotTag,
-		"location":     location.String(),
-		"dc":           dc,
-		"node":         node,
-		"keyspace":     keyspace,
-		"table":        table,
+		"cluster":      labels.ClusterID,
+		"snapshot_tag": labels.SnapshotTag,
+		"location":     labels.Location,
+		"dc":           labels.DC,
+		"node":         labels.Node,
+		"keyspace":     labels.Keyspace,
+		"table":        labels.Table,
 	}
 	rm.remainingBytes.With(l).Set(float64(remainingBytes))
 }
 
+// RestoreBytesLabels is a set of labels for restore metrics.
+type RestoreBytesLabels struct {
+	ClusterID   string
+	SnapshotTag string
+	Location    string
+	DC          string
+	Node        string
+	Keyspace    string
+	Table       string
+}
+
 // DecreaseRemainingBytes decreases restore "remaining_bytes" metric.
-func (rm RestoreM) DecreaseRemainingBytes(clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
-	dc, node, keyspace, table string, restoredBytes int64,
-) {
+func (rm RestoreM) DecreaseRemainingBytes(labels RestoreBytesLabels, restoredBytes int64) {
 	l := prometheus.Labels{
-		"cluster":      clusterID.String(),
-		"snapshot_tag": snapshotTag,
-		"location":     location.String(),
-		"dc":           dc,
-		"node":         node,
-		"keyspace":     keyspace,
-		"table":        table,
+		"cluster":      labels.ClusterID,
+		"snapshot_tag": labels.SnapshotTag,
+		"location":     labels.Location,
+		"dc":           labels.DC,
+		"node":         labels.Node,
+		"keyspace":     labels.Keyspace,
+		"table":        labels.Table,
 	}
 	rm.remainingBytes.With(l).Sub(float64(restoredBytes))
+}
+
+// RestoreProgressLabels is a set of labels for restore "progress" metric.
+// RestorePrgoressLabels does not contain DC and Node labels since we only care about global restore progress.
+type RestoreProgressLabels struct {
+	ClusterID   string
+	SnapshotTag string
+}
+
+// SetProgress sets restore "progress" metric,
+// progress should be a value between 0 and 100, that indicates global restore progress.
+func (rm RestoreM) SetProgress(labels RestoreProgressLabels, progress float64) {
+	l := prometheus.Labels{
+		"cluster":      labels.ClusterID,
+		"snapshot_tag": labels.SnapshotTag,
+	}
+	rm.progress.With(l).Set(progress)
 }
 
 // RestoreState is the enum that defines how node is used during the restore.

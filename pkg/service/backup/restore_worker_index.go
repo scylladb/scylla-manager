@@ -39,6 +39,7 @@ type indexWorker struct {
 	// that should be used during the restore procedure. It should be initialized per each restored table.
 	versionedFiles VersionedMap
 	fileSizesCache map[string]int64
+	progress       *TotalRestoreProgress
 }
 
 func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget) func(fm FilesMeta) error {
@@ -194,10 +195,27 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
-
 			restoredBytes := pr.Downloaded + pr.Skipped + pr.VersionedProgress
-			w.metrics.DecreaseRemainingBytes(w.ClusterID, target.SnapshotTag, w.location, w.miwc.DC, w.miwc.NodeID,
-				pr.Keyspace, pr.Table, restoredBytes)
+
+			labels := metrics.RestoreBytesLabels{
+				ClusterID:   w.ClusterID.String(),
+				SnapshotTag: target.SnapshotTag,
+				Location:    w.location.String(),
+				DC:          w.miwc.DC,
+				Node:        w.miwc.NodeID,
+				Keyspace:    pr.Keyspace,
+				Table:       pr.Table,
+			}
+			w.metrics.DecreaseRemainingBytes(labels, restoredBytes)
+
+			w.progress.Update(restoredBytes)
+			progress := w.progress.CurrentProgress()
+
+			progressLabels := metrics.RestoreProgressLabels{
+				ClusterID:   w.ClusterID.String(),
+				SnapshotTag: target.SnapshotTag,
+			}
+			w.metrics.SetProgress(progressLabels, progress)
 
 			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.
