@@ -5,6 +5,7 @@ package backup
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -196,10 +197,23 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 
 	var w restorer
-	if target.RestoreSchema {
-		w = &schemaWorker{restoreWorkerTools: tools}
+	ru, err := s.GetRestoreUnits(ctx, clusterID, target)
+	if err != nil {
+		return fmt.Errorf("could not get restore units for current restore run: %w", err)
+	}
+
+	var totalBytesToRestore int64
+	for _, unit := range ru {
+		totalBytesToRestore += unit.Size
+	}
+
+	if target.RestoreTables {
+		w = &tablesWorker{
+			restoreWorkerTools: tools,
+			progress:           NewTotalRestoreProgress(totalBytesToRestore),
+		}
 	} else {
-		w = &tablesWorker{restoreWorkerTools: tools}
+		w = &schemaWorker{restoreWorkerTools: tools}
 	}
 
 	if err = w.restore(ctx, run, target); err != nil {

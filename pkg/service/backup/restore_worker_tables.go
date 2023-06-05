@@ -6,9 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -19,6 +21,46 @@ type tablesWorker struct {
 
 	hosts        []restoreHost // Restore units created for currently restored location
 	continuation bool          // Defines if the worker is part of resume task that is the continuation of previous run
+	progress     *TotalRestoreProgress
+}
+
+// TotalRestoreProgress is a struct that holds information about the total progress of the restore job.
+type TotalRestoreProgress struct {
+	restoredBytes       int64
+	totalBytesToRestore int64
+	mu                  sync.RWMutex
+}
+
+func NewTotalRestoreProgress(totalBytesToRestore int64) *TotalRestoreProgress {
+	return &TotalRestoreProgress{
+		restoredBytes:       0,
+		totalBytesToRestore: totalBytesToRestore,
+	}
+}
+
+// CurrentProgress returns current progress of the restore job in percentage.
+func (p *TotalRestoreProgress) CurrentProgress() float64 {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.totalBytesToRestore == 0 {
+		return 100
+	}
+
+	if p.restoredBytes == 0 {
+		return 0
+	}
+
+	progress := float64(p.restoredBytes) / float64(p.totalBytesToRestore) * 100
+	return progress
+}
+
+// Update updates the progress of the restore job, caller should provide number of bytes restored by its job.
+func (p *TotalRestoreProgress) Update(bytesRestored int64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.restoredBytes += bytesRestored
 }
 
 // restoreData restores files from every location specified in restore target.
@@ -27,7 +69,7 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		w.continuation = true
 	}
 	if !w.continuation {
-		w.initRemainingBytesMetric(ctx, run, target)
+		w.initRestoreMetrics(ctx, run, target)
 	}
 
 	stageFunc := map[RestoreStage]func() error{
@@ -124,6 +166,7 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 			continuation:       w.continuation,
 			hosts:              w.hosts,
 			miwc:               miwc,
+			progress:           w.progress,
 		}
 
 		return miwc.ForEachIndexIterWithError(target.Keyspace, iw.filesMetaRestoreHandler(ctx, run, target))
@@ -231,7 +274,7 @@ func (w *tablesWorker) stageRepair(ctx context.Context, run *RestoreRun, _ Resto
 	return w.repairSvc.Repair(ctx, run.ClusterID, run.RepairTaskID, repairRunID, repairTarget)
 }
 
-func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
+func (w *tablesWorker) initRestoreMetrics(ctx context.Context, run *RestoreRun, target RestoreTarget) {
 	for _, location := range target.Location {
 		err := w.forEachRestoredManifest(
 			ctx,
@@ -249,12 +292,25 @@ func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *Restor
 					})
 				for kspace, sizePerTable := range sizePerTableAndKeyspace {
 					for table, size := range sizePerTable {
-						w.metrics.SetRemainingBytes(run.ClusterID, target.SnapshotTag, location, miwc.DC, miwc.NodeID,
-							kspace, table, size)
+						labels := metrics.RestoreBytesLabels{
+							ClusterID:   run.ClusterID.String(),
+							SnapshotTag: target.SnapshotTag,
+							Location:    location.String(),
+							DC:          miwc.DC,
+							Node:        miwc.NodeID,
+							Keyspace:    kspace,
+							Table:       table,
+						}
+						w.metrics.SetRemainingBytes(labels, size)
 					}
 				}
 				return err
 			})
+		progressLabels := metrics.RestoreProgressLabels{
+			ClusterID:   run.ClusterID.String(),
+			SnapshotTag: target.SnapshotTag,
+		}
+		w.metrics.SetProgress(progressLabels, 0)
 		if err != nil {
 			w.Logger.Info(ctx, "Couldn't count restore data size", "location", w.location)
 			continue
