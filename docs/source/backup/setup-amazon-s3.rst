@@ -20,7 +20,7 @@ This procedure is required so that Scylla Manager can access your bucket.
 
 Choose how you want to configure access to the bucket.
 You can use an IAM role (recommended) or you can add your credentials to the agent configuration file.
-The later method is less secure as you will be propagating each node with this security information and in cases where you need to change the key, you will have to replace it on each node.
+The latter method is less secure as you will be propagating each node with this security information and in cases where you need to change the key, you will have to replace it on each node.
 
 IAM role
 --------
