@@ -160,6 +160,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			Config:      s.config,
 			Logger:      s.logger.Named("restore"),
 		},
+		repairSvc:               s.repairSvc,
 		metrics:                 s.metrics.Restore,
 		managerSession:          s.session,
 		clusterSession:          clusterSession,
