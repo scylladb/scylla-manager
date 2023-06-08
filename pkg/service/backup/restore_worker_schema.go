@@ -37,8 +37,14 @@ type schemaWorker struct {
 // - schema restoration does not use long polling for updating download progress
 // Adding the ability to resume schema restoration might be added in the future.
 func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
-	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	return errors.Wrap(w.stageRestoreData(ctx, run, target), "restore data")
+}
 
+func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
+	run.Stage = StageRestoreData
+	w.insertRun(ctx, run)
+
+	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.Logger.Info(ctx, "Started restoring schema")
 	defer w.Logger.Info(ctx, "Restoring schema finished")
 
@@ -105,7 +111,6 @@ func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		pr.setRestoreCompletedAt()
 		w.insertRunProgress(ctx, pr)
 	})
-
 	return nil
 }
 
@@ -274,5 +279,3 @@ func (w *schemaWorker) initRenamedID(sstables []string) {
 		}
 	}
 }
-
-func (w *schemaWorker) continuePrevRun() {}

@@ -166,49 +166,40 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
 
-	var w restoreWorker
-	if target.RestoreTables {
-		w = &tablesWorker{restoreWorkerTools: tools}
-	} else {
-		w = &schemaWorker{restoreWorkerTools: tools}
-	}
-
 	if target.Continue {
-		if err := w.decorateWithPrevRun(ctx, run); err != nil {
+		if err = tools.decorateWithPrevRun(ctx, run); err != nil {
 			return err
 		}
 
-		w.insertRun(ctx, run)
-		// Update run with previous progress.
 		if run.PrevID != uuid.Nil {
-			w.clonePrevProgress(ctx, run)
+			tools.clonePrevProgress(ctx, run)
+		} else {
+			s.metrics.Restore.ResetClusterMetrics(clusterID)
 		}
-	} else {
-		w.insertRun(ctx, run)
 	}
-	// Check if restore is the continuation of previous run.
-	if target.Continue && run.PrevID != uuid.Nil {
-		w.continuePrevRun()
-	} else {
-		s.metrics.Restore.ResetClusterMetrics(clusterID)
-	}
+	tools.insertRun(ctx, run)
+
 	// As manifests are immutable, units can be initialized only once per task
 	if run.Units == nil {
-		run.Units, err = w.newUnits(ctx, target)
+		run.Units, err = tools.newUnits(ctx, target)
 		if err != nil {
 			return errors.Wrap(err, "initialize units")
 		}
 	}
 
-	run.Stage = StageRestoreData
-	w.insertRun(ctx, run)
+	var w restorer
+	if target.RestoreSchema {
+		w = &schemaWorker{restoreWorkerTools: tools}
+	} else {
+		w = &tablesWorker{restoreWorkerTools: tools}
+	}
 
 	if err = w.restore(ctx, run, target); err != nil {
-		return errors.Wrapf(err, "restore data")
+		return err
 	}
 
 	run.Stage = StageRestoreDone
-	w.insertRun(ctx, run)
+	tools.insertRun(ctx, run)
 
 	return nil
 }
