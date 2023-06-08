@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -31,6 +32,7 @@ type restorer interface {
 type restoreWorkerTools struct {
 	workerTools
 
+	repairSvc      *repair.Service
 	metrics        metrics.RestoreM
 	managerSession gocqlx.Session
 	clusterSession gocqlx.Session
