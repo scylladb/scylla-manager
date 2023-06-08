@@ -7,7 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type tablesWorker struct {
@@ -19,13 +20,27 @@ type tablesWorker struct {
 
 // restoreData restores files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
-	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	if target.Continue && run.PrevID != uuid.Nil && run.Table != "" {
+		w.continuation = true
+	}
 	if !w.continuation {
 		w.initRemainingBytesMetric(ctx, run, target)
 	}
 
+	if err := w.stageRestoreData(ctx, run, target); err != nil {
+		return errors.Wrap(err, "restore data")
+	}
+	return nil
+}
+
+func (w *tablesWorker) stageRestoreData(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
+	run.Stage = StageRestoreData
+	w.insertRun(ctx, run)
+
+	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.Logger.Info(ctx, "Started restoring tables")
 	defer w.Logger.Info(ctx, "Restoring tables finished")
+
 	// Disable gc_grace_seconds
 	for _, u := range run.Units {
 		for _, t := range u.Tables {
@@ -47,11 +62,10 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location backupspec.Location) error {
+func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location Location) error {
 	w.Logger.Info(ctx, "Restoring location", "location", location)
 	defer w.Logger.Info(ctx, "Restoring location finished", "location", location)
 
@@ -62,7 +76,7 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 		return errors.Wrap(err, "initialize hosts")
 	}
 
-	manifestHandler := func(miwc backupspec.ManifestInfoWithContent) error {
+	manifestHandler := func(miwc ManifestInfoWithContent) error {
 		// Check if manifest has already been processed in previous run
 		if w.continuation && run.ManifestPath != miwc.Path() {
 			w.Logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
@@ -155,20 +169,16 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	return nil
 }
 
-func (w *tablesWorker) continuePrevRun() {
-	w.continuation = true
-}
-
 func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
 	for _, location := range target.Location {
 		err := w.forEachRestoredManifest(
 			ctx,
 			location,
-			func(miwc backupspec.ManifestInfoWithContent) error {
+			func(miwc ManifestInfoWithContent) error {
 				sizePerTableAndKeyspace := make(map[string]map[string]int64)
 				err := miwc.ForEachIndexIterWithError(
 					target.Keyspace,
-					func(fm backupspec.FilesMeta) error {
+					func(fm FilesMeta) error {
 						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
 							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
 						}

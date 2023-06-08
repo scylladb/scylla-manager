@@ -23,15 +23,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// restoreWorker represents common functionalities of both schemaWorker and tablesWorker
-// that are needed to perform restore procedure.
-type restoreWorker interface {
+type restorer interface {
 	restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error
-	newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error)
-	continuePrevRun()
-	insertRun(ctx context.Context, run *RestoreRun)
-	decorateWithPrevRun(ctx context.Context, run *RestoreRun) error
-	clonePrevProgress(ctx context.Context, run *RestoreRun)
 }
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
