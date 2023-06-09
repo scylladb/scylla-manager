@@ -80,6 +80,8 @@ type RestoreRun struct {
 	SnapshotTag  string
 	Stage        RestoreStage
 
+	RepairTaskID uuid.UUID // task ID of the automated post-restore repair
+
 	Units []RestoreUnit // cache that's initialized once for entire task
 }
 

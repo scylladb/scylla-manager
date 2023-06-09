@@ -186,6 +186,7 @@ var (
 			"location",
 			"manifest_path",
 			"prev_id",
+			"repair_task_id",
 			"snapshot_tag",
 			"stage",
 			"table_name",
