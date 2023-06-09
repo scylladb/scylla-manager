@@ -52,11 +52,11 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	w.Logger.Info(ctx, "Started restoring tables")
 	defer w.Logger.Info(ctx, "Restoring tables finished")
 
-	// Disable gc_grace_seconds
+	// Disable tombstone_gc
 	for _, u := range run.Units {
 		for _, t := range u.Tables {
-			if err := w.DisableTableGGS(ctx, u.Keyspace, t.Table); err != nil {
-				return errors.Wrap(err, "disable table's ggs")
+			if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, modeDisabled); err != nil {
+				return errors.Wrap(err, "disable table's tombstone_gc")
 			}
 		}
 	}

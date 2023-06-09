@@ -182,12 +182,22 @@ func (w *restoreWorkerTools) GetTableVersion(ctx context.Context, keyspace, tabl
 	return version, nil
 }
 
-// DisableTableGGS disables 'tombstone_gc' option for the time of restoring tables' contents.
-// It should be enabled by the user after repairing restored cluster.
-func (w *restoreWorkerTools) DisableTableGGS(ctx context.Context, keyspace, table string) error {
-	w.Logger.Info(ctx, "Disabling table's gc_grace_seconds",
+// Docs: https://docs.scylladb.com/stable/cql/ddl.html#tombstones-gc-options.
+type tombstoneGCMode string
+
+const (
+	modeDisabled  tombstoneGCMode = "disabled"
+	modeTimeout   tombstoneGCMode = "timeout"
+	modeRepair    tombstoneGCMode = "repair"
+	modeImmediate tombstoneGCMode = "immediate"
+)
+
+// AlterTableTombstoneGC alters 'tombstone_gc' mode.
+func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace, table string, mode tombstoneGCMode) error {
+	w.Logger.Info(ctx, "Alter table's tombstone_gc mode",
 		"keyspace", keyspace,
 		"table", table,
+		"mode", mode,
 	)
 
 	const (
@@ -200,16 +210,17 @@ func (w *restoreWorkerTools) DisableTableGGS(ctx context.Context, keyspace, tabl
 	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
 
 	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Disabling table's gc_grace_seconds failed",
+		w.Logger.Info(ctx, "Altering table's tombstone_gc mode failed",
 			"keyspace", keyspace,
 			"table", table,
+			"mode", mode,
 			"error", err,
 			"wait", wait,
 		)
 	}
 
 	op := func() error {
-		err := w.clusterSession.ExecStmt(disableTableGGSStatement(keyspace, table))
+		err := w.clusterSession.ExecStmt(alterTableTombstoneGCStmt(keyspace, table, mode))
 
 		if err == nil || strings.Contains(err.Error(), "timeout") {
 			return err
@@ -220,8 +231,8 @@ func (w *restoreWorkerTools) DisableTableGGS(ctx context.Context, keyspace, tabl
 	return retry.WithNotify(ctx, op, backoff, notify)
 }
 
-func disableTableGGSStatement(keyspace, table string) string {
-	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode':'disabled'}`, keyspace, table)
+func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
+	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode': '%s'}`, mode, keyspace, table)
 }
 
 func (w *restoreWorkerTools) insertRun(ctx context.Context, run *RestoreRun) {

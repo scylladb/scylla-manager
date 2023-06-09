@@ -103,10 +103,11 @@ func (u *RestoreUnit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// RestoreTable represents restored table and its size.
+// RestoreTable represents restored table, its size and original tombstone_gc mode.
 type RestoreTable struct {
-	Table string `db:"table_name"`
-	Size  int64
+	Table       string `db:"table_name"`
+	TombstoneGC tombstoneGCMode
+	Size        int64
 }
 
 func (t RestoreTable) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
