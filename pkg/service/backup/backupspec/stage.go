@@ -65,7 +65,26 @@ type RestoreStage string
 
 // RestoreStage enumeration.
 const (
-	StageRestoreInit RestoreStage = "INIT"
-	StageRestoreData RestoreStage = "DATA"
-	StageRestoreDone RestoreStage = "DONE"
+	StageRestoreInit   RestoreStage = "INIT"
+	StageRestoreData   RestoreStage = "DATA"
+	StageRestoreRepair RestoreStage = "REPAIR"
+	StageRestoreDone   RestoreStage = "DONE"
 )
+
+// RestoreStageOrder lists all restore stages in the order of their execution.
+var RestoreStageOrder = []RestoreStage{
+	StageRestoreInit,
+	StageRestoreData,
+	StageRestoreRepair,
+	StageRestoreDone,
+}
+
+// Index returns stage position in RestoreStageOrder.
+func (s RestoreStage) Index() int {
+	for i, stage := range RestoreStageOrder {
+		if s == stage {
+			return i
+		}
+	}
+	panic("Unknown stage: " + s)
+}

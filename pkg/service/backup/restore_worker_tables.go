@@ -4,6 +4,8 @@ package backup
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
@@ -27,9 +29,18 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		w.initRemainingBytesMetric(ctx, run, target)
 	}
 
-	if err := w.stageRestoreData(ctx, run, target); err != nil {
-		return errors.Wrap(err, "restore data")
+	if run.Stage.Index() <= StageRestoreData.Index() {
+		if err := w.stageRestoreData(ctx, run, target); err != nil {
+			return errors.Wrap(err, "restore data")
+		}
 	}
+
+	if run.Stage.Index() <= StageRestoreRepair.Index() {
+		if err := w.stageRepair(ctx, run, target); err != nil {
+			return errors.Wrap(err, "repair")
+		}
+	}
+
 	return nil
 }
 
@@ -167,6 +178,35 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 
 	w.Logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
 	return nil
+}
+
+func (w *tablesWorker) stageRepair(ctx context.Context, run *RestoreRun, _ RestoreTarget) error {
+	run.Stage = StageRestoreRepair
+	if run.RepairTaskID == uuid.Nil {
+		run.RepairTaskID = uuid.NewTime()
+	}
+	w.insertRun(ctx, run)
+
+	var keyspace []string
+	for _, u := range run.Units {
+		for _, t := range u.Tables {
+			keyspace = append(keyspace, fmt.Sprintf("%s.%s", u.Keyspace, t.Table))
+		}
+	}
+	repairProps, err := json.Marshal(map[string]any{
+		"keyspace": keyspace,
+	})
+	if err != nil {
+		return errors.Wrap(err, "parse repair properties")
+	}
+
+	repairTarget, err := w.repairSvc.GetTarget(ctx, run.ClusterID, repairProps)
+	if err != nil {
+		return errors.Wrap(err, "get repair target")
+	}
+
+	repairRunID := uuid.NewTime()
+	return w.repairSvc.Repair(ctx, run.ClusterID, run.RepairTaskID, repairRunID, repairTarget)
 }
 
 func (w *tablesWorker) initRemainingBytesMetric(ctx context.Context, run *RestoreRun, target RestoreTarget) {
