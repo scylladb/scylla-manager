@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -23,18 +24,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"go.uber.org/atomic"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
@@ -641,14 +638,15 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 
 func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int, user string) {
 	var (
-		cfg          = DefaultConfig()
-		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
-		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
-		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
-		ctx, cancel  = context.WithCancel(context.Background())
+		cfg           = DefaultConfig()
+		srcClientCfg  = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
+		mgrSession    = CreateScyllaManagerDBSession(t)
+		dstH          = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
+		srcH          = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstSession    = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession    = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
+		ctx1, cancel1 = context.WithCancel(context.Background())
+		ctx2, cancel2 = context.WithCancel(context.Background())
 	)
 
 	// Restore should be performed on user with limited permissions
@@ -673,14 +671,39 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	a := atomic.NewInt64(0)
 	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") && a.Inc() == 1 {
-			Print("And: context is canceled")
-			cancel()
+			Print("And: context1 is canceled")
+			cancel1()
 		}
 		return nil, nil
 	}))
 
-	Print("When: Restore is running")
-	err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target)
+	b := atomic.NewInt64(0)
+	dstH.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+		if resp == nil {
+			return
+		}
+
+		var copiedBody bytes.Buffer
+		tee := io.TeeReader(resp.Body, &copiedBody)
+		body, _ := io.ReadAll(tee)
+		resp.Body = io.NopCloser(&copiedBody)
+
+		if strings.Contains(resp.Request.URL.Path, "repair") {
+			fmt.Println("")
+		}
+
+		// Response to repair status
+		if resp.Request.URL.Path == "/storage_service/repair_status" && resp.Request.Method == http.MethodGet && resp.Request.URL.Query()["id"][0] != "-1" {
+			status := string(body)
+			if status == "\"SUCCESSFUL\"" && b.Inc() == 1 {
+				Print("And: context2 is canceled")
+				cancel2()
+			}
+		}
+	})
+
+	Print("When: run restore and stop it during load and stream")
+	err := dstH.service.Restore(ctx1, dstH.ClusterID, dstH.TaskID, dstH.RunID, target)
 	if err == nil {
 		t.Fatal("Expected error on run but got nil")
 		return
@@ -695,10 +718,30 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	}
 	Printf("And: restore progress: %+#v\n", pr)
 	if pr.Downloaded == 0 {
-		t.Fatal("Expected partial restore")
+		t.Fatal("Expected partial restore progress")
 	}
 
-	Print("When: restore is resumed with new RunID")
+	Print("When: resume restore and stop in during repair")
+	dstH.RunID = uuid.MustRandom()
+	err = dstH.service.Restore(ctx2, dstH.ClusterID, dstH.TaskID, dstH.RunID, target)
+	if err == nil {
+		t.Fatal("Expected error on run but got nil")
+		return
+	}
+	if !strings.Contains(err.Error(), "context") {
+		t.Fatalf("Expected context error but got: %+v", err)
+	}
+
+	pr, err = dstH.service.GetRestoreProgress(context.Background(), dstH.ClusterID, dstH.TaskID, dstH.RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	Printf("And: restore progress: %+#v\n", pr)
+	if pr.RepairProgress == nil || pr.RepairProgress.Success == 0 {
+		t.Fatal("Expected partial repair progress")
+	}
+
+	Print("When: resume restore and complete it")
 	dstH.RunID = uuid.MustRandom()
 	err = dstH.service.Restore(context.Background(), dstH.ClusterID, dstH.TaskID, dstH.RunID, target)
 	if err != nil {
@@ -1125,11 +1168,8 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		}
 	}
 
-	switch {
-	case target.RestoreSchema:
+	if target.RestoreSchema {
 		h.restartScylla()
-	case target.RestoreTables:
-		h.simpleRepair()
 	}
 
 	Print("When: query contents of restored table")
@@ -1303,55 +1343,6 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 	Print(fmt.Sprintf("Then: backup snapshot info: %v", i.SnapshotInfo))
 
 	return i.SnapshotInfo[0].SnapshotTag
-}
-
-func (h *restoreTestHelper) simpleRepair() {
-	h.T.Helper()
-	Print("When: repair restored cluster")
-
-	s, err := repair.NewService(
-		h.Session,
-		repair.DefaultConfig(),
-		metrics.NewRepairMetrics(),
-		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return h.Client, nil
-		},
-		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
-	)
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	ctx := context.Background()
-	keyspaces, err := h.Client.Keyspaces(ctx)
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	var units []repair.Unit
-	for _, ks := range keyspaces {
-		t, err := h.Client.Tables(ctx, ks)
-		if err != nil {
-			h.T.Fatal(err)
-		}
-
-		units = append(units, repair.Unit{
-			Keyspace:  ks,
-			Tables:    t,
-			AllTables: true,
-		})
-	}
-
-	if err = s.Repair(ctx, h.ClusterID, uuid.MustRandom(), uuid.MustRandom(), repair.Target{
-		Units:     units,
-		DC:        []string{"dc1", "dc2"},
-		Continue:  true,
-		Intensity: 10,
-	}); err != nil {
-		h.T.Fatal(err)
-	}
-
-	Print("Then: cluster is repaired")
 }
 
 func (h *restoreTestHelper) restartScylla() {
