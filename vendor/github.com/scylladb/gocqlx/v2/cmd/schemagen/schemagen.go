@@ -24,6 +24,8 @@ var (
 	flagKeyspace = cmd.String("keyspace", "", "keyspace to inspect")
 	flagPkgname  = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
 	flagOutput   = cmd.String("output", "models", "the name of the folder to output to")
+	flagUser     = cmd.String("user", "", "user for password authentication")
+	flagPassword = cmd.String("password", "", "password for password authentication")
 )
 
 var (
@@ -72,16 +74,35 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	t, err := template.
 		New("keyspace.tmpl").
 		Funcs(template.FuncMap{"camelize": camelize}).
+		Funcs(template.FuncMap{"mapScyllaToGoType": mapScyllaToGoType}).
+		Funcs(template.FuncMap{"typeToString": typeToString}).
 		Parse(keyspaceTmpl)
 
 	if err != nil {
 		log.Fatalln("unable to parse models template:", err)
 	}
 
+	imports := make([]string, 0)
+	for _, t := range md.Tables {
+		for _, c := range t.Columns {
+			if (c.Validator == "timestamp" || c.Validator == "date" || c.Validator == "duration" || c.Validator == "time") && !existsInSlice(imports, "time") {
+				imports = append(imports, "time")
+			}
+			if c.Validator == "decimal" && !existsInSlice(imports, "gopkg.in/inf.v0") {
+				imports = append(imports, "gopkg.in/inf.v0")
+			}
+			if c.Validator == "duration" && !existsInSlice(imports, "github.com/gocql/gocql") {
+				imports = append(imports, "github.com/gocql/gocql")
+			}
+		}
+	}
+
 	buf := &bytes.Buffer{}
 	data := map[string]interface{}{
 		"PackageName": *flagPkgname,
 		"Tables":      md.Tables,
+		"UserTypes":   md.UserTypes,
+		"Imports":     imports,
 	}
 
 	if err = t.Execute(buf, data); err != nil {
@@ -92,9 +113,25 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 
 func createSession() (gocqlx.Session, error) {
 	cluster := gocql.NewCluster(clusterHosts()...)
+	if *flagUser != "" {
+		cluster.Authenticator = gocql.PasswordAuthenticator{
+			Username: *flagUser,
+			Password: *flagPassword,
+		}
+	}
 	return gocqlx.WrapSession(cluster.CreateSession())
 }
 
 func clusterHosts() []string {
 	return strings.Split(*flagCluster, ",")
+}
+
+func existsInSlice(s []string, v string) bool {
+	for _, i := range s {
+		if v == i {
+			return true
+		}
+	}
+
+	return false
 }

@@ -2,7 +2,12 @@
 
 package {{.PackageName}}
 
-import "github.com/scylladb/gocqlx/v2/table"
+import (
+	"github.com/scylladb/gocqlx/v2/table"
+	{{- range .Imports}}
+	"{{.}}"
+	{{- end}}
+)
 
 // Table models.
 var (
@@ -30,3 +35,29 @@ var (
 {{end}}
 {{end}}
 )
+
+{{with .UserTypes}}
+{{range .}}
+{{- $type_name := .Name | camelize}}
+{{- $field_types := .FieldTypes}}
+type {{$type_name}}UserType struct {
+{{- range $index, $element := .FieldNames}}
+    {{- $type := index $field_types $index}}
+    {{. | camelize}} {{typeToString $type | mapScyllaToGoType}}
+{{- end}}
+}
+{{- end}}
+{{- end}}
+
+{{with .Tables}}
+{{range .}}
+{{- $model_name := .Name | camelize}}
+type {{$model_name}}Struct struct {
+{{- range .Columns}}
+	{{- if not (eq .Validator "empty") }}
+	{{.Name | camelize}} {{.Validator | mapScyllaToGoType}}
+	{{- end}}
+{{- end}}
+}
+{{- end}}
+{{- end}}
