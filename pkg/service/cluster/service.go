@@ -8,7 +8,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sort"
-	"strconv"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -527,16 +526,15 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 		return session, errors.Wrap(err, "fetch node info")
 	}
 
-	scyllaCluster := gocql.NewCluster(client.Config().Hosts...)
-
-	// Set port if needed
-	if cqlPort := ni.CQLPort(client.Config().Hosts[0]); cqlPort != "9042" {
-		p, err := strconv.Atoi(cqlPort)
-		if err != nil {
-			return session, errors.Wrap(err, "parse cql port")
+	sessionHosts, err := GetRPCAddresses(ctx, client, client.Config().Hosts)
+	if err != nil {
+		s.logger.Info(ctx, "GetSession", "err", err)
+		if errors.Is(err, ErrNoRPCAddressesFound) {
+			return session, err
 		}
-		scyllaCluster.Port = p
 	}
+
+	scyllaCluster := gocql.NewCluster(sessionHosts...)
 
 	if ni.CqlPasswordProtected {
 		credentials := secrets.CQLCreds{
@@ -603,4 +601,29 @@ func (s *Service) notifyChangeListener(ctx context.Context, c Change) error {
 // Close closes all connections to cluster.
 func (s *Service) Close() {
 	s.clientCache.Close()
+}
+
+// ErrNoRPCAddressesFound is the error representation of "no RPC addresses found".
+var ErrNoRPCAddressesFound = errors.New("no RPC addresses found")
+
+// GetRPCAddresses accepts client and hosts parameters that are used later on to query client.NodeInfo endpoint
+// returning RPC addresses for given hosts.
+// RPC addresses are the ones that scylla uses to accept CQL connections.
+func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, error) {
+	var sessionHosts []string
+	var combinedError error
+	for _, h := range hosts {
+		ni, err := client.NodeInfo(ctx, h)
+		if err != nil {
+			combinedError = multierr.Append(combinedError, err)
+			continue
+		}
+		sessionHosts = append(sessionHosts, ni.CQLAddr(h))
+	}
+
+	if len(sessionHosts) == 0 {
+		combinedError = multierr.Append(ErrNoRPCAddressesFound, combinedError)
+	}
+
+	return sessionHosts, combinedError
 }
