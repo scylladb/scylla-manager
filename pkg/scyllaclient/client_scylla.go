@@ -90,6 +90,38 @@ func (c *Client) Status(ctx context.Context) (NodeStatusInfoSlice, error) {
 	return all, nil
 }
 
+// VerifyNodesAvailability checks if all nodes passed connectivity check and are in the UN state.
+func (c *Client) VerifyNodesAvailability(ctx context.Context) error {
+	status, err := c.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get status")
+	}
+
+	available, err := c.GetLiveNodes(ctx, status)
+	if err != nil {
+		return errors.Wrap(err, "get live nodes")
+	}
+
+	availableUN := available.Live()
+	if len(status) == len(availableUN) {
+		return nil
+	}
+
+	checked := strset.New()
+	for _, n := range availableUN {
+		checked.Add(n.HostID)
+	}
+
+	var unavailable []string
+	for _, n := range status {
+		if !checked.Has(n.HostID) {
+			unavailable = append(unavailable, n.Addr)
+		}
+	}
+
+	return errors.Errorf("unavailable nodes: %v", unavailable)
+}
+
 func setNodeStatus(all []NodeStatusInfo, status NodeStatus, addrs []string) {
 	if len(addrs) == 0 {
 		return

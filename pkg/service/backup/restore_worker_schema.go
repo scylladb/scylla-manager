@@ -52,9 +52,6 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	if err != nil {
 		return errors.Wrap(err, "get status")
 	}
-	if len(status) != len(status.Live()) {
-		return errors.New("not all nodes are in the UN state")
-	}
 	// Clean upload dirs.
 	// This is required as we rename SSTables during download in order to avoid name overlaps.
 	for _, u := range run.Units {
@@ -250,14 +247,14 @@ func (w *schemaWorker) initHosts(ctx context.Context) error {
 	}
 
 	remotePath := w.location.RemotePath("")
-	checkedNodes, err := w.Client.GetLiveNodesWithLocationAccess(ctx, status, remotePath)
+	nodes, err := w.Client.GetNodesWithLocationAccess(ctx, status, remotePath)
 	if err != nil {
 		return errors.Wrap(err, "no live nodes with location access")
 	}
 
 	w.hosts = make([]string, 0)
-	for _, host := range checkedNodes {
-		w.hosts = append(w.hosts, host.Addr)
+	for _, n := range nodes {
+		w.hosts = append(w.hosts, n.Addr)
 	}
 
 	w.Logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
