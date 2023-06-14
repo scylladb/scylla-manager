@@ -21,6 +21,8 @@ Prerequisites
    Otherwise, restored tables' contents might be overwritten by the already existing ones.
    Note that an empty table is not necessarily truncated!
 
+* All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
+
 * It is important to remember current mode of the `tombstone_gc <https://www.scylladb.com/2022/06/30/preventing-data-resurrection-with-repair-based-tombstone-garbage-collection/>`_ option.
    In order to ensure data consistency, Scylla Manager alters restored tables options with ``tombstone_gc = {'mode': 'disabled'}``.
    It's user responsibility to reset the ``tombstone_gc`` option as a part of the restore tables *follow-up action*.
