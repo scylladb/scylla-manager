@@ -151,7 +151,7 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 		}
 	}
 
-	checkedNodes, err := w.Client.GetLiveNodesWithLocationAccess(ctx, locationStatus, remotePath)
+	nodes, err := w.Client.GetNodesWithLocationAccess(ctx, locationStatus, remotePath)
 	if err != nil {
 		return errors.Wrap(err, "no live nodes in location's dc")
 	}
@@ -185,7 +185,7 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 	}
 
 	// Place free hosts in the pool
-	for _, n := range checkedNodes {
+	for _, n := range nodes {
 		if !hostsInPool.Has(n.Addr) {
 			w.hosts = append(w.hosts, restoreHost{
 				Host: n.Addr,

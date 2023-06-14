@@ -81,13 +81,13 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	if err != nil {
 		return t, errors.Wrapf(err, "get client")
 	}
+	if err = client.VerifyNodesAvailability(ctx); err != nil {
+		return t, errors.Wrap(err, "verify all nodes availability")
+	}
 
 	status, err := client.Status(ctx)
 	if err != nil {
 		return t, errors.Wrap(err, "get status")
-	}
-	if len(status) == 0 {
-		return t, errors.New("empty status")
 	}
 	// Check if for each location there is at least one host
 	// living in location's dc with access to it.
@@ -104,7 +104,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 			}
 		}
 
-		if _, err = client.GetLiveNodesWithLocationAccess(ctx, locationStatus, remotePath); err != nil {
+		if _, err = client.GetNodesWithLocationAccess(ctx, locationStatus, remotePath); err != nil {
 			if strings.Contains(err.Error(), "NoSuchBucket") {
 				return t, errors.Errorf("specified bucket does not exist: %s", l)
 			}
