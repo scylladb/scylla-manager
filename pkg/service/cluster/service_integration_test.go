@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -440,32 +441,32 @@ func TestServiceStorageIntegration(t *testing.T) {
 		expected := []cluster.Node{
 			{
 				"dc1",
-				"192.168.100.11",
+				"192.168.200.11",
 				2,
 			},
 			{
 				"dc1",
-				"192.168.100.12",
+				"192.168.200.12",
 				2,
 			},
 			{
 				"dc1",
-				"192.168.100.13",
+				"192.168.200.13",
 				2,
 			},
 			{
 				"dc2",
-				"192.168.100.21",
+				"192.168.200.21",
 				2,
 			},
 			{
 				"dc2",
-				"192.168.100.22",
+				"192.168.200.22",
 				2,
 			},
 			{
 				"dc2",
-				"192.168.100.23",
+				"192.168.200.23",
 				2,
 			},
 		}

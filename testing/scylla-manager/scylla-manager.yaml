@@ -7,5 +7,5 @@ logger:
 
 database:
   hosts:
-    - 192.168.100.100
+    - 192.168.200.100
   timeout: 1s

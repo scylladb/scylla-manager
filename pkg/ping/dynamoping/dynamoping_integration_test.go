@@ -10,12 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	_ "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 )
 
 func TestPingIntegration(t *testing.T) {
 	config := Config{
-		Addr:    "http://" + testutils.ManagedClusterHost() + ":8000",
+		Addr:    "http://" + db.ManagedClusterHost() + ":8000",
 		Timeout: 250 * time.Millisecond,
 	}
 

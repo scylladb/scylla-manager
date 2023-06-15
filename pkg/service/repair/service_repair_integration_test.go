@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -109,12 +110,12 @@ const (
 
 	_interval = 500 * time.Millisecond
 
-	node11 = "192.168.100.11"
-	node12 = "192.168.100.12"
-	node13 = "192.168.100.13"
-	node21 = "192.168.100.21"
-	node22 = "192.168.100.22"
-	node23 = "192.168.100.23"
+	node11 = "192.168.200.11"
+	node12 = "192.168.200.12"
+	node13 = "192.168.200.13"
+	node21 = "192.168.200.21"
+	node22 = "192.168.200.22"
+	node23 = "192.168.200.23"
 )
 
 var allNodes = []string{
@@ -442,9 +443,6 @@ func multipleUnits() repair.Target {
 }
 
 func TestServiceGetTargetIntegration(t *testing.T) {
-	// Clear keyspaces
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-
 	// Test names
 	testNames := []string{
 		"everything",
@@ -462,6 +460,8 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		h       = newRepairTestHelper(t, session, repair.DefaultConfig())
 		ctx     = context.Background()
 	)
+
+	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 
 	for _, testName := range testNames {
 		t.Run(testName, func(t *testing.T) {
@@ -484,19 +484,18 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-
-	createKeyspace(t, clusterSession, "test_repair")
-	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
-	defer dropKeyspace(t, clusterSession, "test_repair")
-
 	defaultConfig := func() repair.Config {
 		c := repair.DefaultConfig()
 		c.PollInterval = 10 * time.Millisecond
 		return c
 	}
-
 	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, defaultConfig())
+	clusterSession := CreateSessionAndDropAllKeyspaces(context.Background(), t, h.client, ManagedClusterHosts())
+
+	createKeyspace(t, clusterSession, "test_repair")
+	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
+	defer dropKeyspace(t, clusterSession, "test_repair")
 
 	t.Run("repair simple", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
@@ -544,7 +543,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.t.Fatal(diff)
 		}
 		for _, h := range prog.Hosts {
-			if !strings.HasPrefix(h.Host, "192.168.100.2") {
+			if !strings.HasPrefix(h.Host, "192.168.200.2") {
 				t.Error(h.Host)
 			}
 		}
@@ -555,7 +554,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		const ignored = "192.168.100.12"
+		const ignored = "192.168.200.12"
 		unit := singleUnit()
 		unit.IgnoreHosts = []string{ignored}
 
@@ -1207,7 +1206,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	t.Skip("nodetool repair is executing too fast skipping until solution is found")
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	clusterSession := CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	const ks = "test_repair"
 
 	createKeyspace(t, clusterSession, ks)
@@ -1218,11 +1222,6 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	// Repair can be very fast with newer versions of Scylla.
 	// This fills keyspace with data to prolong nodetool repair execution.
 	WriteData(t, clusterSession, ks, 10, generateTableNames(100)...)
-
-	session := CreateScyllaManagerDBSession(t)
-	h := newRepairTestHelper(t, session, repair.DefaultConfig())
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	Print("Given: repair is running on a host")
 	done := make(chan struct{})
@@ -1255,7 +1254,12 @@ func generateTableNames(n int) []string {
 }
 
 func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *testing.T) {
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	clusterSession := CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 
 	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_0 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_0.test_table_0 (id int PRIMARY KEY)")
@@ -1264,11 +1268,6 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_1 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 0}")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_1.test_table_0 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, "test_repair_1")
-
-	session := CreateScyllaManagerDBSession(t)
-	h := newRepairTestHelper(t, session, repair.DefaultConfig())
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	properties := map[string]interface{}{
 		"keyspace": []string{"test_repair_0", "test_repair_1"},

@@ -18,6 +18,7 @@ import (
 	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -47,12 +48,12 @@ func TestClientStatusIntegration(t *testing.T) {
 	}
 
 	golden := scyllaclient.NodeStatusInfoSlice{
-		{Datacenter: "dc1", Addr: "192.168.100.11", State: "", Status: true},
-		{Datacenter: "dc1", Addr: "192.168.100.12", State: "", Status: true},
-		{Datacenter: "dc1", Addr: "192.168.100.13", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.100.21", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.100.22", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.100.23", State: "", Status: true},
+		{Datacenter: "dc1", Addr: "192.168.200.11", State: "", Status: true},
+		{Datacenter: "dc1", Addr: "192.168.200.12", State: "", Status: true},
+		{Datacenter: "dc1", Addr: "192.168.200.13", State: "", Status: true},
+		{Datacenter: "dc2", Addr: "192.168.200.21", State: "", Status: true},
+		{Datacenter: "dc2", Addr: "192.168.200.22", State: "", Status: true},
+		{Datacenter: "dc2", Addr: "192.168.200.23", State: "", Status: true},
 	}
 
 	if diff := cmp.Diff(status, golden, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {

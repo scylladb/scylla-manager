@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package testutils
+package db
 
 import (
 	"context"
@@ -14,11 +14,14 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+
 	"github.com/scylladb/scylla-manager/v3/schema"
 )
 
@@ -104,16 +107,30 @@ func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 
 // CreateSessionAndDropAllKeyspaces returns a new gocqlx.Session
 // to the managed data cluster and clears all keyspaces.
-func CreateSessionAndDropAllKeyspaces(tb testing.TB, hosts []string) gocqlx.Session {
+func CreateSessionAndDropAllKeyspaces(ctx context.Context, tb testing.TB, client *scyllaclient.Client, hosts []string) gocqlx.Session {
 	tb.Helper()
-	return createManagedClusterSession(tb, true, hosts)
+	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, hosts)
+	if err != nil {
+		tb.Log(err)
+		if errors.Is(err, cluster.ErrNoRPCAddressesFound) {
+			tb.Fatal("no host available")
+		}
+	}
+	return createManagedClusterSession(tb, true, sessionHosts)
 }
 
 // CreateSession returns a new gocqlx.Session to the managed data
 // cluster without clearing it.
-func CreateSession(tb testing.TB, hosts []string) gocqlx.Session {
+func CreateSession(ctx context.Context, tb testing.TB, client *scyllaclient.Client, hosts []string) gocqlx.Session {
 	tb.Helper()
-	return createManagedClusterSession(tb, false, hosts)
+	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, hosts)
+	if err != nil {
+		tb.Log(err)
+		if errors.Is(err, cluster.ErrNoRPCAddressesFound) {
+			tb.Fatal("no host available")
+		}
+	}
+	return createManagedClusterSession(tb, false, sessionHosts)
 }
 
 func createManagedClusterSession(tb testing.TB, empty bool, hosts []string) gocqlx.Session {
@@ -268,4 +285,14 @@ func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID
 	}
 
 	return startingID + rowsCnt
+}
+
+// TestDBUsername returns '--username' flag value.
+func TestDBUsername() string {
+	return *flagUser
+}
+
+// TestDBPassword returns '--password' flag value.
+func TestDBPassword() string {
+	return *flagPassword
 }

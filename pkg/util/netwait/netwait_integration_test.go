@@ -14,6 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 )
 
 func TestWaiterTimeoutIntegration(t *testing.T) {

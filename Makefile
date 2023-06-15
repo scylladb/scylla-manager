@@ -102,9 +102,9 @@ integration-test:
 # Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
--managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
--managed-second-cluster 192.168.100.30 \
+INTEGRATION_TEST_ARGS := -cluster 192.168.200.100 \
+-managed-cluster 192.168.200.11,192.168.200.12,192.168.200.13,192.168.200.21,192.168.200.22,192.168.200.23 \
+-managed-second-cluster 192.168.200.30 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
 -s3-data-dir ./testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
@@ -122,7 +122,7 @@ pkg-integration-test:
 	@docker kill scylla_manager_server 2> /dev/null || true
 	@CGO_ENABLED=0 GOOS=linux go test -tags integration -c -o ./integration-test.dev $(PKG)
 	@docker run --name "scylla_manager_server" \
-		--network scylla_manager_public \
+		--network host \
 		-v "/tmp:/tmp" \
 		-v "$(PWD)/integration-test.dev:/usr/bin/integration-test:ro" \
 		-v "$(PWD)/testing:/integration-test/testing" \
@@ -174,11 +174,12 @@ build-server: ## Build development server
 .PHONY: run-server
 run-server: build-server ## Build and run development server
 	@docker run --name "scylla_manager_server" \
-		--network scylla_manager_public \
+		--network scylla_manager_second --network scylla_manager_public \
 		-p "5080:5080" \
 		-p "5443:5443" \
 		-p "5090:5090" \
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
+		-v "$(PWD)/sctool.dev:/usr/bin/sctool:ro" \
 		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-v "/tmp:/tmp" \
 		-i --read-only --rm scylladb/scylla-manager-dev scylla-manager
