@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"path"
@@ -18,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -25,6 +25,8 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -108,7 +110,7 @@ func TestRestoreGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts()).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, tc := range testCases {
@@ -198,7 +200,7 @@ func TestRestoreGetTargetErrorIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts()).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, tc := range testCases {
@@ -229,9 +231,9 @@ func TestRestoreGetUnits(t *testing.T) {
 		ctx            = context.Background()
 		cfg            = DefaultConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		loc            = Location{Provider: "s3", Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil)
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, testBackupSize)
@@ -281,9 +283,9 @@ func TestRestoreGetUnitsError(t *testing.T) {
 		ctx            = context.Background()
 		cfg            = DefaultConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		loc            = Location{Provider: "s3", Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil)
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, testBackupSize)
@@ -385,8 +387,8 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
+		dstSession   = CreateSessionAndDropAllKeyspaces(ctx, t, dstH.client, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(ctx, t, srcH.client, ManagedSecondClusterHosts())
 	)
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
@@ -449,10 +451,10 @@ func restoreWithNodeDown(t *testing.T, target RestoreTarget, keyspace string, lo
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstSession   = CreateSessionAndDropAllKeyspaces(ctx, t, dstH.client, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(ctx, t, srcH.client, ManagedSecondClusterHosts())
 	)
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
@@ -511,11 +513,11 @@ func restoreWithAgentRestart(t *testing.T, target RestoreTarget, keyspace string
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
 		ctx          = context.Background()
+		dstSession   = CreateSessionAndDropAllKeyspaces(ctx, t, dstH.client, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(ctx, t, srcH.client, ManagedSecondClusterHosts())
 	)
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
@@ -607,11 +609,11 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
 		ctx, cancel  = context.WithCancel(context.Background())
+		dstSession   = CreateSessionAndDropAllKeyspaces(ctx, t, dstH.client, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(ctx, t, srcH.client, ManagedSecondClusterHosts())
 	)
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
@@ -725,11 +727,11 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
 		ctx          = context.Background()
+		dstSession   = CreateSessionAndDropAllKeyspaces(ctx, t, dstH.client, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(ctx, t, srcH.client, ManagedSecondClusterHosts())
 	)
 
 	Print("Recreate schema on destination cluster")
@@ -919,10 +921,10 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 		cfg          = DefaultConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, ManagedSecondClusterHosts())
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], &srcClientCfg)
+		dstSession   = CreateSessionAndDropAllKeyspaces(ctx, t, dstH.client, ManagedClusterHosts())
+		srcSession   = CreateSessionAndDropAllKeyspaces(ctx, t, srcH.client, ManagedSecondClusterHosts())
 	)
 	// Ensure clean scylla tables
 	dstH.cleanScyllaTables(dstSession)
@@ -1254,9 +1256,19 @@ func (h *restoreTestHelper) restartScylla() {
 			h.t.Fatal("Command failed on host", host, err)
 		}
 
-		cfg.Addr = net.JoinHostPort(host, "9042")
+		var sessionHosts []string
+		b := backoff.WithContext(backoff.WithMaxRetries(
+			backoff.NewConstantBackOff(500*time.Millisecond), 10), ctx)
+		if err := backoff.Retry(func() error {
+			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.client, []string{host})
+			return err
+		}, b); err != nil {
+			h.t.Fatal(err)
+		}
+
+		cfg.Addr = sessionHosts[0]
 		cond := func() bool {
-			_, err = cqlping.NativeCQLPing(ctx, cfg)
+			_, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword())
 			return err == nil
 		}
 

@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/schema"
 )
 
@@ -40,7 +40,7 @@ func testCallback(t *testing.T, ev migrate.CallbackEvent, name string, prepare, 
 
 	saveRegister()
 	defer restoreRegister()
-	session := testutils.CreateSessionWithoutMigration(t)
+	session := db.CreateSessionWithoutMigration(t)
 
 	reg.Add(ev, name, func(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 		if err := prepare(session); err != nil {

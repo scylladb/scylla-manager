@@ -11,14 +11,27 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestPingIntegration(t *testing.T) {
-	user, password := testutils.ManagedClusterCredentials()
+	client := newTestClient(t, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), nil)
+	defer client.Close()
+
+	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{db.ManagedClusterHost()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user, password := db.ManagedClusterCredentials()
 	config := Config{
-		Addr:    testutils.ManagedClusterHost() + ":9042",
+		Addr:    sessionHosts[0],
 		Timeout: 250 * time.Millisecond,
 	}
 
@@ -54,7 +67,7 @@ func TestPingTLSIntegration(t *testing.T) {
 	t.SkipNow()
 
 	config := Config{
-		Addr:    testutils.ManagedClusterHost() + ":9042",
+		Addr:    db.ManagedClusterHost() + ":9042",
 		Timeout: 250 * time.Millisecond,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -76,4 +89,19 @@ func TestPingTLSIntegration(t *testing.T) {
 		}
 		t.Logf("QueryPing() = %s", d)
 	})
+}
+
+func newTestClient(t *testing.T, logger log.Logger, config *scyllaclient.Config) *scyllaclient.Client {
+	t.Helper()
+
+	if config == nil {
+		c := scyllaclient.TestConfig(db.ManagedClusterHosts(), testutils.AgentAuthToken())
+		config = &c
+	}
+
+	c, err := scyllaclient.NewClient(*config, logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
 }

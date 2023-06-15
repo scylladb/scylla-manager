@@ -10,4 +10,4 @@ s3:
   secret_access_key: minio1234
   provider: Minio
   region: us-east-1
-  endpoint: http://192.168.100.99:9000
+  endpoint: http://192.168.200.99:9000
