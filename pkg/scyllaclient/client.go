@@ -70,6 +70,7 @@ type Client struct {
 	scyllaOps scyllaOperations.ClientService
 	agentOps  agentOperations.ClientService
 	client    retryableClient
+	hostPool  hostpool.HostPool
 
 	mu      sync.RWMutex
 	dcCache map[string]string
@@ -120,6 +121,7 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 		logger:    logger,
 		scyllaOps: scyllaOps,
 		agentOps:  agentOps,
+		hostPool:  pool,
 		client:    retryableWrapClient(client, rc, logger),
 		dcCache:   make(map[string]string),
 	}, nil
@@ -134,6 +136,9 @@ func (c *Client) Config() Config {
 func (c *Client) Close() error {
 	if t, ok := c.config.Transport.(*http.Transport); ok {
 		t.CloseIdleConnections()
+	}
+	if c.hostPool != nil {
+		c.hostPool.Close()
 	}
 	return nil
 }
