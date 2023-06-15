@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 

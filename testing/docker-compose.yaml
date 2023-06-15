@@ -4,7 +4,7 @@ services:
   dc1_node_1:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_ARGS}
+    command: ${SCYLLA_ARGS} --rpc-address 192.168.100.11 --alternator-address 192.168.200.11 --listen-address 192.168.200.11
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -21,11 +21,13 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.11
+      second:
+        ipv4_address: 192.168.200.11
 
   dc1_node_2:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_ARGS}
+    command: ${SCYLLA_ARGS} --rpc-address 192.168.100.12 --alternator-address 192.168.200.12 --listen-address 192.168.200.12
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -42,11 +44,13 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.12
+      second:
+        ipv4_address: 192.168.200.12
 
   dc1_node_3:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_ARGS}
+    command: ${SCYLLA_ARGS} --rpc-address 192.168.100.13 --alternator-address 192.168.200.13 --listen-address 192.168.200.13
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -63,11 +67,13 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.13
+      second:
+        ipv4_address: 192.168.200.13
 
   dc2_node_1:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_ARGS}
+    command: ${SCYLLA_ARGS} --rpc-address 192.168.100.21 --alternator-address 192.168.200.21 --listen-address 192.168.200.21
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -84,11 +90,13 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.21
+      second:
+        ipv4_address: 192.168.200.21
 
   dc2_node_2:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_ARGS}
+    command: ${SCYLLA_ARGS} --rpc-address 192.168.100.22 --alternator-address 192.168.200.22 --listen-address 192.168.200.22
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -105,11 +113,13 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.22
+      second:
+        ipv4_address: 192.168.200.22
 
   dc2_node_3:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_ARGS}
+    command: ${SCYLLA_ARGS} --rpc-address 192.168.100.23 --alternator-address 192.168.200.23 --listen-address 192.168.200.23
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -126,11 +136,13 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.23
+      second:
+        ipv4_address: 192.168.200.23
 
   second_cluster_dc1_node_1:
     image: scylladb/scylla-agent:${SCYLLA_VERSION}
     privileged: true
-    command: ${SCYLLA_SECOND_CLUSTER_ARGS}
+    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 192.168.100.30 --alternator-address 192.168.200.30 --listen-address 192.168.200.30
     volumes:
       - type: bind
         source: ./scylla/cassandra-second-cluster.properties
@@ -147,16 +159,18 @@ services:
     networks:
       public:
         ipv4_address: 192.168.100.30
+      second:
+        ipv4_address: 192.168.200.30
 
   scylla-manager-db:
     image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
-    command: --smp 1 --memory 500M --api-address 0.0.0.0
+    command: --smp 1 --memory 500M --api-address 0.0.0.0 --seeds 192.168.200.100 --rpc-address 192.168.200.100 --alternator-address 192.168.200.100 --listen-address 192.168.200.100
     ports:
       - "9042:9042"
       - "10000:10000"
     networks:
-      public:
-        ipv4_address: 192.168.100.100
+      second:
+        ipv4_address: 192.168.200.100
 
   minio:
     image: minio/minio:${MINIO_VERSION}
@@ -175,8 +189,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     networks:
-      public:
-        ipv4_address: 192.168.100.99
+      second:
+        ipv4_address: 192.168.200.99
 
   prometheus:
     image: prom/prometheus:${PROMETHEUS_VERSION}
@@ -187,8 +201,8 @@ services:
     ports:
       - "9090:9090"
     networks:
-      public:
-        ipv4_address: 192.168.100.98
+      second:
+        ipv4_address: 192.168.200.98
 
 networks:
   public:
@@ -197,3 +211,9 @@ networks:
       driver: default
       config:
         - subnet: 192.168.100.0/24
+  second:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.200.0/24

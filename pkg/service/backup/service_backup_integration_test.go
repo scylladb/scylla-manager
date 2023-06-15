@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -120,7 +121,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 			return client, nil
 		},
 		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
-			return CreateSession(t, client.Config().Hosts), nil
+			return CreateSession(ctx, t, client, client.Config().Hosts), nil
 		},
 		logger.Named("backup"),
 	)
@@ -360,7 +361,7 @@ func TestGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts()).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
@@ -465,7 +466,7 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts()).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
@@ -608,9 +609,9 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 1)
@@ -804,7 +805,7 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	if mc.ClusterName != "test_cluster" {
 		t.Errorf("ClusterName=%s, expected test_cluster", mc.ClusterName)
 	}
-	if !strings.HasPrefix(mc.IP, "192.168.100.") {
+	if !strings.HasPrefix(mc.IP, "192.168.200.") {
 		t.Errorf("IP=%s, expected IP address", mc.IP)
 	}
 	for _, fi := range mc.Index {
@@ -834,18 +835,18 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("Given: downed node")
-	if stdout, stderr, err := ExecOnHost("192.168.100.11", CmdBlockScyllaREST); err != nil {
+	if stdout, stderr, err := ExecOnHost("192.168.200.11", CmdBlockScyllaREST); err != nil {
 		t.Fatal(err, stdout, stderr)
 	}
-	defer ExecOnHost("192.168.100.11", CmdUnblockScyllaREST)
+	defer ExecOnHost("192.168.200.11", CmdUnblockScyllaREST)
 
 	Print("When: get target")
 	target := backup.Target{
@@ -895,7 +896,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		clusterSession = CreateSessionAndDropAllKeyspaces(context.Background(), t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1191,9 +1193,9 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 1)
@@ -1283,9 +1285,9 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1357,9 +1359,9 @@ func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 1)
@@ -1411,10 +1413,9 @@ func TestPurgeIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-
-		h   = newBackupTestHelper(t, session, config, location, nil)
-		ctx = context.Background()
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1562,10 +1563,9 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-
-		h   = newBackupTestHelper(t, session, config, location, nil)
-		ctx = context.Background()
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -1627,10 +1627,9 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
-
-		h   = newBackupTestHelper(t, session, config, location, nil)
-		ctx = context.Background()
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	Print("Given: retention policy of 1 for the both task")
@@ -1794,7 +1793,7 @@ func TestGetValidationTargetErrorIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts()).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
@@ -1824,9 +1823,9 @@ func TestValidateIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace, 1)
@@ -2008,9 +2007,9 @@ func TestBackupRestoreIntegration(t *testing.T) {
 
 	var (
 		session         = CreateScyllaManagerDBSession(t)
-		clusterSession  = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h               = newBackupTestHelper(t, session, config, location, nil)
 		ctx             = context.Background()
+		clusterSession  = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 		initialRowCount = 100
 		addedRowCount   = 150
 	)
@@ -2144,9 +2143,9 @@ func TestBackupListIntegration(t *testing.T) {
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts())
 		h              = newBackupTestHelper(t, session, config, location, nil)
 		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
 	)
 
 	WriteData(t, clusterSession, testKeyspace1, 1)

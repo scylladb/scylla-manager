@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2023 ScyllaDB
 
 package cqlping
 
@@ -9,5 +9,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	goleak.VerifyTestMain(m)
+	goleak.VerifyTestMain(m, goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"))
 }

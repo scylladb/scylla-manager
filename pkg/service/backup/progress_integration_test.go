@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
