@@ -14,8 +14,8 @@ require (
 	github.com/go-openapi/swag v0.19.9
 	github.com/go-openapi/validate v0.19.10
 	github.com/gobwas/glob v0.2.3
-	github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537
-	github.com/golang/mock v1.4.4
+	github.com/gocql/gocql v1.5.2
+	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.5
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.2.0
@@ -33,21 +33,21 @@ require (
 	github.com/scylladb/go-log v0.0.7
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
-	github.com/scylladb/gocqlx/v2 v2.6.1-0.20211220144210-2b885ac61b11
+	github.com/scylladb/gocqlx/v2 v2.8.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stoewer/go-strcase v1.2.0
+	github.com/stoewer/go-strcase v1.3.0
 	go.uber.org/atomic v1.7.0
 	go.uber.org/config v1.4.0
 	go.uber.org/goleak v1.1.11
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.1.0
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
-	golang.org/x/sys v0.5.0
-	golang.org/x/tools v0.1.12
+	golang.org/x/mod v0.10.0
+	golang.org/x/sync v0.2.0
+	golang.org/x/sys v0.9.0
+	golang.org/x/tools v0.9.3
 	gopkg.in/yaml.v2 v2.3.0
 )
 
@@ -77,7 +77,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
-	github.com/golang/snappy v0.0.3 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -102,10 +102,10 @@ require (
 	go.mongodb.org/mongo-driver v1.5.1 // indirect
 	go.opencensus.io v0.22.5 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43 // indirect
-	golang.org/x/term v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.34.0 // indirect
