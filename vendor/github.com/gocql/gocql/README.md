@@ -231,7 +231,7 @@ statement.
 Example
 -------
 
-See [package documentation](https://pkg.go.dev/github.com/scylladb/gocql#pkg-examples).
+See [package documentation](https://pkg.go.dev/github.com/gocql/gocql#pkg-examples).
 
 Data Binding
 ------------

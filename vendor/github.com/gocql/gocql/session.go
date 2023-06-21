@@ -40,7 +40,9 @@ type Session struct {
 	queryObserver       QueryObserver
 	batchObserver       BatchObserver
 	connectObserver     ConnectObserver
+	disconnectObserver  DisconnectObserver
 	frameObserver       FrameHeaderObserver
+	streamObserver      StreamObserver
 	hostSource          *ringDescriber
 	stmtsLRU            *preparedLRU
 
@@ -124,15 +126,16 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	s := &Session{
-		cons:            cfg.Consistency,
-		prefetch:        0.25,
-		cfg:             cfg,
-		pageSize:        cfg.PageSize,
-		stmtsLRU:        &preparedLRU{lru: lru.New(cfg.MaxPreparedStmts)},
-		connectObserver: cfg.ConnectObserver,
-		ctx:             ctx,
-		cancel:          cancel,
-		logger:          cfg.logger(),
+		cons:               cfg.Consistency,
+		prefetch:           0.25,
+		cfg:                cfg,
+		pageSize:           cfg.PageSize,
+		stmtsLRU:           &preparedLRU{lru: lru.New(cfg.MaxPreparedStmts)},
+		connectObserver:    cfg.ConnectObserver,
+		disconnectObserver: cfg.DisconnectObserver,
+		ctx:                ctx,
+		cancel:             cancel,
+		logger:             cfg.logger(),
 	}
 
 	// Close created resources on error otherwise they'll leak
@@ -169,6 +172,7 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 	s.batchObserver = cfg.BatchObserver
 	s.connectObserver = cfg.ConnectObserver
 	s.frameObserver = cfg.FrameHeaderObserver
+	s.streamObserver = cfg.StreamObserver
 
 	//Check the TLS Config before trying to connect to anything external
 	connCfg, err := connConfig(&s.cfg)
@@ -2230,6 +2234,19 @@ type ObservedConnect struct {
 type ConnectObserver interface {
 	// ObserveConnect gets called when a new connection to cassandra is made.
 	ObserveConnect(ObservedConnect)
+}
+
+type ObservedDisconnect struct {
+	// Host information for the host where the connection was connected.
+	Host *HostInfo
+
+	// Err is the error that caused the connection to be closed (if any).
+	Err error
+}
+
+type DisconnectObserver interface {
+	// ObserveDisconnect gets called when a connection is closed for any reason.
+	ObserveDisconnect(ObservedDisconnect)
 }
 
 type Error struct {
