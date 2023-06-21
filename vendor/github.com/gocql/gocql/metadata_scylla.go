@@ -1,3 +1,4 @@
+//go:build !cassandra || scylla
 // +build !cassandra scylla
 
 // Copyright (c) 2015 The gocql Authors. All rights reserved.

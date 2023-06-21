@@ -346,9 +346,6 @@ type FrameHeaderObserver interface {
 
 // a framer is responsible for reading, writing and parsing frames on a single stream
 type framer struct {
-	r io.Reader
-	w io.Writer
-
 	proto byte
 	// flags are for outgoing flags, enabling compression and tracing etc
 	flags    byte
@@ -360,22 +357,22 @@ type framer struct {
 	// if tracing flag is set this is not nil
 	traceID []byte
 
-	// holds a ref to the whole byte slice for rbuf so that it can be reset to
+	// holds a ref to the whole byte slice for buf so that it can be reset to
 	// 0 after a read.
 	readBuffer []byte
 
-	rbuf []byte
-	wbuf []byte
+	buf []byte
 
 	customPayload map[string][]byte
 
 	flagLWT int
 }
 
-func newFramer(r io.Reader, w io.Writer, compressor Compressor, version byte) *framer {
+func newFramer(compressor Compressor, version byte) *framer {
+	buf := make([]byte, defaultBufSize)
 	f := &framer{
-		wbuf:       make([]byte, defaultBufSize),
-		readBuffer: make([]byte, defaultBufSize),
+		buf:        buf[:0],
+		readBuffer: buf,
 	}
 	var flags byte
 	if compressor != nil {
@@ -397,27 +394,20 @@ func newFramer(r io.Reader, w io.Writer, compressor Compressor, version byte) *f
 	f.flags = flags
 	f.headSize = headSize
 
-	f.r = r
-	f.rbuf = f.readBuffer[:0]
-
-	f.w = w
-	f.wbuf = f.wbuf[:0]
-
 	f.header = nil
 	f.traceID = nil
 
 	return f
 }
 
-func newFramerWithExts(r io.Reader, w io.Writer, compressor Compressor, version byte,
-	cqlProtoExts []cqlProtocolExtension) *framer {
+func newFramerWithExts(compressor Compressor, version byte, cqlProtoExts []cqlProtocolExtension, logger StdLogger) *framer {
 
-	f := newFramer(r, w, compressor, version)
+	f := newFramer(compressor, version)
 
 	if lwtExt := findCQLProtoExtByName(cqlProtoExts, lwtAddMetadataMarkKey); lwtExt != nil {
 		castedExt, ok := lwtExt.(*lwtAddMetadataMarkExt)
 		if !ok {
-			Logger.Println(
+			logger.Println(
 				fmt.Errorf("Failed to cast CQL protocol extension identified by name %s to type %T",
 					lwtAddMetadataMarkKey, lwtAddMetadataMarkExt{}))
 			return f
@@ -491,12 +481,12 @@ func (f *framer) payload() {
 }
 
 // reads a frame form the wire into the framers buffer
-func (f *framer) readFrame(head *frameHeader) error {
+func (f *framer) readFrame(r io.Reader, head *frameHeader) error {
 	if head.length < 0 {
 		return fmt.Errorf("frame body length can not be less than 0: %d", head.length)
 	} else if head.length > maxFrameSize {
 		// need to free up the connection to be used again
-		_, err := io.CopyN(ioutil.Discard, f.r, int64(head.length))
+		_, err := io.CopyN(ioutil.Discard, r, int64(head.length))
 		if err != nil {
 			return fmt.Errorf("error whilst trying to discard frame with invalid length: %v", err)
 		}
@@ -504,14 +494,14 @@ func (f *framer) readFrame(head *frameHeader) error {
 	}
 
 	if cap(f.readBuffer) >= head.length {
-		f.rbuf = f.readBuffer[:head.length]
+		f.buf = f.readBuffer[:head.length]
 	} else {
 		f.readBuffer = make([]byte, head.length)
-		f.rbuf = f.readBuffer
+		f.buf = f.readBuffer
 	}
 
 	// assume the underlying reader takes care of timeouts and retries
-	n, err := io.ReadFull(f.r, f.rbuf)
+	n, err := io.ReadFull(r, f.buf)
 	if err != nil {
 		return fmt.Errorf("unable to read frame body: read %d/%d bytes: %v", n, head.length, err)
 	}
@@ -521,7 +511,7 @@ func (f *framer) readFrame(head *frameHeader) error {
 			return NewErrProtocol("no compressor available with compressed frame body")
 		}
 
-		f.rbuf, err = f.compres.Decode(f.rbuf)
+		f.buf, err = f.compres.Decode(f.buf)
 		if err != nil {
 			return err
 		}
@@ -593,7 +583,7 @@ func (f *framer) parseErrorFrame() frame {
 	}
 
 	switch code {
-	case errUnavailable:
+	case ErrCodeUnavailable:
 		cl := f.readConsistency()
 		required := f.readInt()
 		alive := f.readInt()
@@ -603,7 +593,7 @@ func (f *framer) parseErrorFrame() frame {
 			Required:    required,
 			Alive:       alive,
 		}
-	case errWriteTimeout:
+	case ErrCodeWriteTimeout:
 		cl := f.readConsistency()
 		received := f.readInt()
 		blockfor := f.readInt()
@@ -615,7 +605,7 @@ func (f *framer) parseErrorFrame() frame {
 			BlockFor:    blockfor,
 			WriteType:   writeType,
 		}
-	case errReadTimeout:
+	case ErrCodeReadTimeout:
 		cl := f.readConsistency()
 		received := f.readInt()
 		blockfor := f.readInt()
@@ -627,7 +617,7 @@ func (f *framer) parseErrorFrame() frame {
 			BlockFor:    blockfor,
 			DataPresent: dataPresent,
 		}
-	case errAlreadyExists:
+	case ErrCodeAlreadyExists:
 		ks := f.readString()
 		table := f.readString()
 		return &RequestErrAlreadyExists{
@@ -635,13 +625,13 @@ func (f *framer) parseErrorFrame() frame {
 			Keyspace:   ks,
 			Table:      table,
 		}
-	case errUnprepared:
+	case ErrCodeUnprepared:
 		stmtId := f.readShortBytes()
 		return &RequestErrUnprepared{
 			errorFrame:  errD,
 			StatementId: copyBytes(stmtId), // defensively copy
 		}
-	case errReadFailure:
+	case ErrCodeReadFailure:
 		res := &RequestErrReadFailure{
 			errorFrame: errD,
 		}
@@ -657,7 +647,7 @@ func (f *framer) parseErrorFrame() frame {
 		res.DataPresent = f.readByte() != 0
 
 		return res
-	case errWriteFailure:
+	case ErrCodeWriteFailure:
 		res := &RequestErrWriteFailure{
 			errorFrame: errD,
 		}
@@ -672,7 +662,7 @@ func (f *framer) parseErrorFrame() frame {
 		}
 		res.WriteType = f.readString()
 		return res
-	case errFunctionFailure:
+	case ErrCodeFunctionFailure:
 		res := &RequestErrFunctionFailure{
 			errorFrame: errD,
 		}
@@ -681,14 +671,14 @@ func (f *framer) parseErrorFrame() frame {
 		res.ArgTypes = f.readStringList()
 		return res
 
-	case errCDCWriteFailure:
+	case ErrCodeCDCWriteFailure:
 		res := &RequestErrCDCWriteFailure{
 			errorFrame: errD,
 		}
 		return res
 
-	case errInvalid, errBootstrapping, errConfig, errCredentials, errOverloaded,
-		errProtocol, errServer, errSyntax, errTruncate, errUnauthorized:
+	case ErrCodeInvalid, ErrCodeBootstrapping, ErrCodeConfig, ErrCodeCredentials, ErrCodeOverloaded,
+		ErrCodeProtocol, ErrCodeServer, ErrCodeSyntax, ErrCodeTruncate, ErrCodeUnauthorized:
 		// TODO(zariel): we should have some distinct types for these errors
 		return errD
 	default:
@@ -707,25 +697,25 @@ func (f *framer) readErrorMap() (errMap ErrorMap) {
 }
 
 func (f *framer) writeHeader(flags byte, op frameOp, stream int) {
-	f.wbuf = f.wbuf[:0]
-	f.wbuf = append(f.wbuf,
+	f.buf = f.buf[:0]
+	f.buf = append(f.buf,
 		f.proto,
 		flags,
 	)
 
 	if f.proto > protoVersion2 {
-		f.wbuf = append(f.wbuf,
+		f.buf = append(f.buf,
 			byte(stream>>8),
 			byte(stream),
 		)
 	} else {
-		f.wbuf = append(f.wbuf,
+		f.buf = append(f.buf,
 			byte(stream),
 		)
 	}
 
 	// pad out length
-	f.wbuf = append(f.wbuf,
+	f.buf = append(f.buf,
 		byte(op),
 		0,
 		0,
@@ -740,41 +730,41 @@ func (f *framer) setLength(length int) {
 		p = 5
 	}
 
-	f.wbuf[p+0] = byte(length >> 24)
-	f.wbuf[p+1] = byte(length >> 16)
-	f.wbuf[p+2] = byte(length >> 8)
-	f.wbuf[p+3] = byte(length)
+	f.buf[p+0] = byte(length >> 24)
+	f.buf[p+1] = byte(length >> 16)
+	f.buf[p+2] = byte(length >> 8)
+	f.buf[p+3] = byte(length)
 }
 
-func (f *framer) finishWrite() error {
-	if len(f.wbuf) > maxFrameSize {
+func (f *framer) finish() error {
+	if len(f.buf) > maxFrameSize {
 		// huge app frame, lets remove it so it doesn't bloat the heap
-		f.wbuf = make([]byte, defaultBufSize)
+		f.buf = make([]byte, defaultBufSize)
 		return ErrFrameTooBig
 	}
 
-	if f.wbuf[1]&flagCompress == flagCompress {
+	if f.buf[1]&flagCompress == flagCompress {
 		if f.compres == nil {
 			panic("compress flag set with no compressor")
 		}
 
 		// TODO: only compress frames which are big enough
-		compressed, err := f.compres.Encode(f.wbuf[f.headSize:])
+		compressed, err := f.compres.Encode(f.buf[f.headSize:])
 		if err != nil {
 			return err
 		}
 
-		f.wbuf = append(f.wbuf[:f.headSize], compressed...)
+		f.buf = append(f.buf[:f.headSize], compressed...)
 	}
-	length := len(f.wbuf) - f.headSize
+	length := len(f.buf) - f.headSize
 	f.setLength(length)
 
-	_, err := f.w.Write(f.wbuf)
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func (f *framer) writeTo(w io.Writer) error {
+	_, err := w.Write(f.buf)
+	return err
 }
 
 func (f *framer) readTrace() {
@@ -815,11 +805,11 @@ func (w writeStartupFrame) String() string {
 	return fmt.Sprintf("[startup opts=%+v]", w.opts)
 }
 
-func (w *writeStartupFrame) writeFrame(f *framer, streamID int) error {
+func (w *writeStartupFrame) buildFrame(f *framer, streamID int) error {
 	f.writeHeader(f.flags&^flagCompress, opStartup, streamID)
 	f.writeStringMap(w.opts)
 
-	return f.finishWrite()
+	return f.finish()
 }
 
 type writePrepareFrame struct {
@@ -828,7 +818,7 @@ type writePrepareFrame struct {
 	customPayload map[string][]byte
 }
 
-func (w *writePrepareFrame) writeFrame(f *framer, streamID int) error {
+func (w *writePrepareFrame) buildFrame(f *framer, streamID int) error {
 	if len(w.customPayload) > 0 {
 		f.payload()
 	}
@@ -851,7 +841,7 @@ func (w *writePrepareFrame) writeFrame(f *framer, streamID int) error {
 		f.writeString(w.keyspace)
 	}
 
-	return f.finishWrite()
+	return f.finish()
 }
 
 func (f *framer) readTypeInfo() TypeInfo {
@@ -1415,14 +1405,14 @@ func (a *writeAuthResponseFrame) String() string {
 	return fmt.Sprintf("[auth_response data=%q]", a.data)
 }
 
-func (a *writeAuthResponseFrame) writeFrame(framer *framer, streamID int) error {
+func (a *writeAuthResponseFrame) buildFrame(framer *framer, streamID int) error {
 	return framer.writeAuthResponseFrame(streamID, a.data)
 }
 
 func (f *framer) writeAuthResponseFrame(streamID int, data []byte) error {
 	f.writeHeader(f.flags, opAuthResponse, streamID)
 	f.writeBytes(data)
-	return f.finishWrite()
+	return f.finish()
 }
 
 type queryValues struct {
@@ -1560,7 +1550,7 @@ func (w *writeQueryFrame) String() string {
 	return fmt.Sprintf("[query statement=%q params=%v]", w.statement, w.params)
 }
 
-func (w *writeQueryFrame) writeFrame(framer *framer, streamID int) error {
+func (w *writeQueryFrame) buildFrame(framer *framer, streamID int) error {
 	return framer.writeQueryFrame(streamID, w.statement, &w.params, w.customPayload)
 }
 
@@ -1573,16 +1563,16 @@ func (f *framer) writeQueryFrame(streamID int, statement string, params *queryPa
 	f.writeLongString(statement)
 	f.writeQueryParams(params)
 
-	return f.finishWrite()
+	return f.finish()
 }
 
-type frameWriter interface {
-	writeFrame(framer *framer, streamID int) error
+type frameBuilder interface {
+	buildFrame(framer *framer, streamID int) error
 }
 
 type frameWriterFunc func(framer *framer, streamID int) error
 
-func (f frameWriterFunc) writeFrame(framer *framer, streamID int) error {
+func (f frameWriterFunc) buildFrame(framer *framer, streamID int) error {
 	return f(framer, streamID)
 }
 
@@ -1598,7 +1588,7 @@ func (e *writeExecuteFrame) String() string {
 	return fmt.Sprintf("[execute id=% X params=%v]", e.preparedID, &e.params)
 }
 
-func (e *writeExecuteFrame) writeFrame(fr *framer, streamID int) error {
+func (e *writeExecuteFrame) buildFrame(fr *framer, streamID int) error {
 	return fr.writeExecuteFrame(streamID, e.preparedID, &e.params, &e.customPayload)
 }
 
@@ -1624,7 +1614,7 @@ func (f *framer) writeExecuteFrame(streamID int, preparedID []byte, params *quer
 		f.writeConsistency(params.consistency)
 	}
 
-	return f.finishWrite()
+	return f.finish()
 }
 
 // TODO: can we replace BatchStatemt with batchStatement? As they prety much
@@ -1649,7 +1639,7 @@ type writeBatchFrame struct {
 	customPayload map[string][]byte
 }
 
-func (w *writeBatchFrame) writeFrame(framer *framer, streamID int) error {
+func (w *writeBatchFrame) buildFrame(framer *framer, streamID int) error {
 	return framer.writeBatchFrame(streamID, w, w.customPayload)
 }
 
@@ -1727,25 +1717,25 @@ func (f *framer) writeBatchFrame(streamID int, w *writeBatchFrame, customPayload
 		}
 	}
 
-	return f.finishWrite()
+	return f.finish()
 }
 
 type writeOptionsFrame struct{}
 
-func (w *writeOptionsFrame) writeFrame(framer *framer, streamID int) error {
+func (w *writeOptionsFrame) buildFrame(framer *framer, streamID int) error {
 	return framer.writeOptionsFrame(streamID, w)
 }
 
 func (f *framer) writeOptionsFrame(stream int, _ *writeOptionsFrame) error {
 	f.writeHeader(f.flags&^flagCompress, opOptions, stream)
-	return f.finishWrite()
+	return f.finish()
 }
 
 type writeRegisterFrame struct {
 	events []string
 }
 
-func (w *writeRegisterFrame) writeFrame(framer *framer, streamID int) error {
+func (w *writeRegisterFrame) buildFrame(framer *framer, streamID int) error {
 	return framer.writeRegisterFrame(streamID, w)
 }
 
@@ -1753,70 +1743,70 @@ func (f *framer) writeRegisterFrame(streamID int, w *writeRegisterFrame) error {
 	f.writeHeader(f.flags, opRegister, streamID)
 	f.writeStringList(w.events)
 
-	return f.finishWrite()
+	return f.finish()
 }
 
 func (f *framer) readByte() byte {
-	if len(f.rbuf) < 1 {
-		panic(fmt.Errorf("not enough bytes in buffer to read byte require 1 got: %d", len(f.rbuf)))
+	if len(f.buf) < 1 {
+		panic(fmt.Errorf("not enough bytes in buffer to read byte require 1 got: %d", len(f.buf)))
 	}
 
-	b := f.rbuf[0]
-	f.rbuf = f.rbuf[1:]
+	b := f.buf[0]
+	f.buf = f.buf[1:]
 	return b
 }
 
 func (f *framer) readInt() (n int) {
-	if len(f.rbuf) < 4 {
-		panic(fmt.Errorf("not enough bytes in buffer to read int require 4 got: %d", len(f.rbuf)))
+	if len(f.buf) < 4 {
+		panic(fmt.Errorf("not enough bytes in buffer to read int require 4 got: %d", len(f.buf)))
 	}
 
-	n = int(int32(f.rbuf[0])<<24 | int32(f.rbuf[1])<<16 | int32(f.rbuf[2])<<8 | int32(f.rbuf[3]))
-	f.rbuf = f.rbuf[4:]
+	n = int(int32(f.buf[0])<<24 | int32(f.buf[1])<<16 | int32(f.buf[2])<<8 | int32(f.buf[3]))
+	f.buf = f.buf[4:]
 	return
 }
 
 func (f *framer) readShort() (n uint16) {
-	if len(f.rbuf) < 2 {
-		panic(fmt.Errorf("not enough bytes in buffer to read short require 2 got: %d", len(f.rbuf)))
+	if len(f.buf) < 2 {
+		panic(fmt.Errorf("not enough bytes in buffer to read short require 2 got: %d", len(f.buf)))
 	}
-	n = uint16(f.rbuf[0])<<8 | uint16(f.rbuf[1])
-	f.rbuf = f.rbuf[2:]
+	n = uint16(f.buf[0])<<8 | uint16(f.buf[1])
+	f.buf = f.buf[2:]
 	return
 }
 
 func (f *framer) readString() (s string) {
 	size := f.readShort()
 
-	if len(f.rbuf) < int(size) {
-		panic(fmt.Errorf("not enough bytes in buffer to read string require %d got: %d", size, len(f.rbuf)))
+	if len(f.buf) < int(size) {
+		panic(fmt.Errorf("not enough bytes in buffer to read string require %d got: %d", size, len(f.buf)))
 	}
 
-	s = string(f.rbuf[:size])
-	f.rbuf = f.rbuf[size:]
+	s = string(f.buf[:size])
+	f.buf = f.buf[size:]
 	return
 }
 
 func (f *framer) readLongString() (s string) {
 	size := f.readInt()
 
-	if len(f.rbuf) < size {
-		panic(fmt.Errorf("not enough bytes in buffer to read long string require %d got: %d", size, len(f.rbuf)))
+	if len(f.buf) < size {
+		panic(fmt.Errorf("not enough bytes in buffer to read long string require %d got: %d", size, len(f.buf)))
 	}
 
-	s = string(f.rbuf[:size])
-	f.rbuf = f.rbuf[size:]
+	s = string(f.buf[:size])
+	f.buf = f.buf[size:]
 	return
 }
 
 func (f *framer) readUUID() *UUID {
-	if len(f.rbuf) < 16 {
-		panic(fmt.Errorf("not enough bytes in buffer to read uuid require %d got: %d", 16, len(f.rbuf)))
+	if len(f.buf) < 16 {
+		panic(fmt.Errorf("not enough bytes in buffer to read uuid require %d got: %d", 16, len(f.buf)))
 	}
 
 	// TODO: how to handle this error, if it is a uuid, then sureley, problems?
-	u, _ := UUIDFromBytes(f.rbuf[:16])
-	f.rbuf = f.rbuf[16:]
+	u, _ := UUIDFromBytes(f.buf[:16])
+	f.buf = f.buf[16:]
 	return &u
 }
 
@@ -1837,12 +1827,12 @@ func (f *framer) readBytesInternal() ([]byte, error) {
 		return nil, nil
 	}
 
-	if len(f.rbuf) < size {
-		return nil, fmt.Errorf("not enough bytes in buffer to read bytes require %d got: %d", size, len(f.rbuf))
+	if len(f.buf) < size {
+		return nil, fmt.Errorf("not enough bytes in buffer to read bytes require %d got: %d", size, len(f.buf))
 	}
 
-	l := f.rbuf[:size]
-	f.rbuf = f.rbuf[size:]
+	l := f.buf[:size]
+	f.buf = f.buf[size:]
 
 	return l, nil
 }
@@ -1858,35 +1848,35 @@ func (f *framer) readBytes() []byte {
 
 func (f *framer) readShortBytes() []byte {
 	size := f.readShort()
-	if len(f.rbuf) < int(size) {
-		panic(fmt.Errorf("not enough bytes in buffer to read short bytes: require %d got %d", size, len(f.rbuf)))
+	if len(f.buf) < int(size) {
+		panic(fmt.Errorf("not enough bytes in buffer to read short bytes: require %d got %d", size, len(f.buf)))
 	}
 
-	l := f.rbuf[:size]
-	f.rbuf = f.rbuf[size:]
+	l := f.buf[:size]
+	f.buf = f.buf[size:]
 
 	return l
 }
 
 func (f *framer) readInetAdressOnly() net.IP {
-	if len(f.rbuf) < 1 {
-		panic(fmt.Errorf("not enough bytes in buffer to read inet size require %d got: %d", 1, len(f.rbuf)))
+	if len(f.buf) < 1 {
+		panic(fmt.Errorf("not enough bytes in buffer to read inet size require %d got: %d", 1, len(f.buf)))
 	}
 
-	size := f.rbuf[0]
-	f.rbuf = f.rbuf[1:]
+	size := f.buf[0]
+	f.buf = f.buf[1:]
 
 	if !(size == 4 || size == 16) {
 		panic(fmt.Errorf("invalid IP size: %d", size))
 	}
 
-	if len(f.rbuf) < 1 {
-		panic(fmt.Errorf("not enough bytes in buffer to read inet require %d got: %d", size, len(f.rbuf)))
+	if len(f.buf) < 1 {
+		panic(fmt.Errorf("not enough bytes in buffer to read inet require %d got: %d", size, len(f.buf)))
 	}
 
 	ip := make([]byte, size)
-	copy(ip, f.rbuf[:size])
-	f.rbuf = f.rbuf[size:]
+	copy(ip, f.buf[:size])
+	f.buf = f.buf[size:]
 	return net.IP(ip)
 }
 
@@ -1925,7 +1915,7 @@ func (f *framer) readStringMultiMap() map[string][]string {
 }
 
 func (f *framer) writeByte(b byte) {
-	f.wbuf = append(f.wbuf, b)
+	f.buf = append(f.buf, b)
 }
 
 func appendBytes(p []byte, d []byte) []byte {
@@ -1982,29 +1972,29 @@ func (f *framer) writeCustomPayload(customPayload *map[string][]byte) {
 
 // these are protocol level binary types
 func (f *framer) writeInt(n int32) {
-	f.wbuf = appendInt(f.wbuf, n)
+	f.buf = appendInt(f.buf, n)
 }
 
 func (f *framer) writeUint(n uint32) {
-	f.wbuf = appendUint(f.wbuf, n)
+	f.buf = appendUint(f.buf, n)
 }
 
 func (f *framer) writeShort(n uint16) {
-	f.wbuf = appendShort(f.wbuf, n)
+	f.buf = appendShort(f.buf, n)
 }
 
 func (f *framer) writeLong(n int64) {
-	f.wbuf = appendLong(f.wbuf, n)
+	f.buf = appendLong(f.buf, n)
 }
 
 func (f *framer) writeString(s string) {
 	f.writeShort(uint16(len(s)))
-	f.wbuf = append(f.wbuf, s...)
+	f.buf = append(f.buf, s...)
 }
 
 func (f *framer) writeLongString(s string) {
 	f.writeInt(int32(len(s)))
-	f.wbuf = append(f.wbuf, s...)
+	f.buf = append(f.buf, s...)
 }
 
 func (f *framer) writeStringList(l []string) {
@@ -2030,13 +2020,13 @@ func (f *framer) writeBytes(p []byte) {
 		f.writeInt(-1)
 	} else {
 		f.writeInt(int32(len(p)))
-		f.wbuf = append(f.wbuf, p...)
+		f.buf = append(f.buf, p...)
 	}
 }
 
 func (f *framer) writeShortBytes(p []byte) {
 	f.writeShort(uint16(len(p)))
-	f.wbuf = append(f.wbuf, p...)
+	f.buf = append(f.buf, p...)
 }
 
 func (f *framer) writeConsistency(cons Consistency) {
