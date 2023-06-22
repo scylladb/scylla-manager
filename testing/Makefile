@@ -30,9 +30,11 @@ up:
 	@echo "==> Generating Scylla configuration"
 ifeq ($(SM_SSL_ENABLED),yes)
 	@$(YQ) merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
+	@$(YQ) merge -x scylla/config/scylla-second-cluster.yaml scylla/config/scylla-ssl.yaml > scylla/scylla-scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
 else
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
+	@cp scylla/config/scylla-second-cluster.yaml scylla/scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 	@echo "==> Starting containers"
