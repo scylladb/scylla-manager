@@ -461,7 +461,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
+	CreateSessionAndDropAllKeyspaces(t, h.client)
 
 	for _, testName := range testNames {
 		t.Run(testName, func(t *testing.T) {
@@ -491,7 +491,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, defaultConfig())
-	clusterSession := CreateSessionAndDropAllKeyspaces(context.Background(), t, h.client, ManagedClusterHosts())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
 
 	createKeyspace(t, clusterSession, "test_repair")
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
@@ -1211,7 +1211,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clusterSession := CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
 	const ks = "test_repair"
 
 	createKeyspace(t, clusterSession, ks)
@@ -1259,7 +1259,7 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clusterSession := CreateSessionAndDropAllKeyspaces(ctx, t, h.client, ManagedClusterHosts())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
 
 	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_0 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_0.test_table_0 (id int PRIMARY KEY)")

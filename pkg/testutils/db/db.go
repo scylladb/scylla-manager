@@ -107,39 +107,40 @@ func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 
 // CreateSessionAndDropAllKeyspaces returns a new gocqlx.Session
 // to the managed data cluster and clears all keyspaces.
-func CreateSessionAndDropAllKeyspaces(ctx context.Context, tb testing.TB, client *scyllaclient.Client, hosts []string) gocqlx.Session {
+func CreateSessionAndDropAllKeyspaces(tb testing.TB, client *scyllaclient.Client) gocqlx.Session {
 	tb.Helper()
-	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, hosts)
-	if err != nil {
-		tb.Log(err)
-		if errors.Is(err, cluster.ErrNoRPCAddressesFound) {
-			tb.Fatal("no host available")
-		}
-	}
-	return createManagedClusterSession(tb, true, sessionHosts)
+	return CreateManagedClusterSession(tb, true, client, "", "")
 }
 
 // CreateSession returns a new gocqlx.Session to the managed data
 // cluster without clearing it.
-func CreateSession(ctx context.Context, tb testing.TB, client *scyllaclient.Client, hosts []string) gocqlx.Session {
+func CreateSession(tb testing.TB, client *scyllaclient.Client) gocqlx.Session {
 	tb.Helper()
-	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, hosts)
+	return CreateManagedClusterSession(tb, false, client, "", "")
+}
+
+// CreateManagedClusterSession return a new gocqlx.Session to the managed cluster.
+// It allows to specify cql user and decide if cluster should be cleared.
+func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient.Client, user, pass string) gocqlx.Session {
+	tb.Helper()
+	ctx := context.Background()
+
+	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, client.Config().Hosts)
 	if err != nil {
 		tb.Log(err)
 		if errors.Is(err, cluster.ErrNoRPCAddressesFound) {
-			tb.Fatal("no host available")
+			tb.Fatal("no host available: ", err)
 		}
 	}
-	return createManagedClusterSession(tb, false, sessionHosts)
-}
 
-func createManagedClusterSession(tb testing.TB, empty bool, hosts []string) gocqlx.Session {
-	tb.Helper()
-
-	cluster := createCluster(hosts...)
+	cluster := createCluster(sessionHosts...)
+	if user == "" && pass == "" {
+		user = TestDBUsername()
+		pass = TestDBPassword()
+	}
 	cluster.Authenticator = gocql.PasswordAuthenticator{
-		Username: *flagUser,
-		Password: *flagPassword,
+		Username: user,
+		Password: pass,
 	}
 	if os.Getenv("SSL_ENABLED") != "" {
 		cluster.SslOpts = &gocql.SslOptions{
