@@ -232,7 +232,7 @@ func makeScyllaFeatures(endpointStates []*models.EndpointState) map[string]Scyll
 
 	sfs := make(map[string]ScyllaFeatures, len(supportedFeatures))
 	for host, sf := range supportedFeatures {
-		sfs[host] = ScyllaFeatures{
+		sfs[ToCanonicalIP(host)] = ScyllaFeatures{
 			RowLevelRepair: slice.ContainsString(sf, rowLevelRepair),
 		}
 	}

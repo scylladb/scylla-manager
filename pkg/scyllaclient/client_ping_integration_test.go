@@ -7,6 +7,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"net/http"
 	"testing"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 )
 
 func TestCheckHostsConnectivityIntegration(t *testing.T) {
