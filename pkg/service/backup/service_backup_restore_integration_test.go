@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"path"
@@ -26,20 +25,21 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
+	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -120,7 +120,7 @@ func TestRestoreGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, h.client).Close()
+	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, tc := range testCases {
@@ -129,7 +129,7 @@ func TestRestoreGetTargetIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			v, err := h.service.GetRestoreTarget(ctx, h.clusterID, b)
+			v, err := h.service.GetRestoreTarget(ctx, h.ClusterID, b)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -210,7 +210,7 @@ func TestRestoreGetTargetErrorIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, h.client).Close()
+	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, tc := range testCases {
@@ -220,7 +220,7 @@ func TestRestoreGetTargetErrorIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			_, err = h.service.GetRestoreTarget(ctx, h.clusterID, b)
+			_, err = h.service.GetRestoreTarget(ctx, h.ClusterID, b)
 			if err == nil {
 				t.Fatal("GetRestoreTarget() expected error")
 			}
@@ -242,7 +242,7 @@ func TestRestoreGetUnitsIntegration(t *testing.T) {
 		mgrSession     = CreateScyllaManagerDBSession(t)
 		loc            = Location{Provider: "s3", Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.client)
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
 	WriteData(t, clusterSession, testKeyspace, testBackupSize)
@@ -260,7 +260,7 @@ func TestRestoreGetUnitsIntegration(t *testing.T) {
 		RestoreTables: true,
 	}
 
-	units, err := h.service.GetRestoreUnits(ctx, h.clusterID, target)
+	units, err := h.service.GetRestoreUnits(ctx, h.ClusterID, target)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +293,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		mgrSession     = CreateScyllaManagerDBSession(t)
 		loc            = Location{Provider: "s3", Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil)
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.client)
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
 	WriteData(t, clusterSession, testKeyspace, testBackupSize)
@@ -315,7 +315,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		target := target
 		target.SnapshotTag = "sm_fake_snapshot_tagUTC"
 
-		_, err := h.service.GetRestoreUnits(ctx, h.clusterID, target)
+		_, err := h.service.GetRestoreUnits(ctx, h.ClusterID, target)
 		if err == nil {
 			t.Fatal("GetRestoreUnits() expected error")
 		}
@@ -326,7 +326,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		target := target
 		target.Keyspace = []string{"fake_keyspace"}
 
-		_, err := h.service.GetRestoreUnits(ctx, h.clusterID, target)
+		_, err := h.service.GetRestoreUnits(ctx, h.ClusterID, target)
 		if err == nil {
 			t.Fatal("GetRestoreUnits() expected error")
 		}
@@ -393,8 +393,8 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.client)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
 	// Restore should be performed on user with limited permissions
@@ -417,7 +417,7 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 	}
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
-	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target); err != nil {
 		t.Fatal(err)
 	}
 
@@ -428,6 +428,9 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 }
 
 func TestRestoreTablesNodeDownIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
 		testLoadCnt   = 3
@@ -455,11 +458,11 @@ func TestRestoreTablesNodeDownIntegration(t *testing.T) {
 
 func restoreWithNodeDown(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int, user string) {
 	Print("Given: downed node")
-	if stdout, stderr, err := ExecOnHost("192.168.100.11", CmdBlockScyllaREST); err != nil {
-		t.Fatal(err, stdout, stderr)
+	if err := RunIptablesCommand(IPFromTestNet("11"), CmdBlockScyllaREST); err != nil {
+		t.Fatal(err)
 	}
 	// Just in case test fails before unblocking node
-	defer ExecOnHost("192.168.100.11", CmdUnblockScyllaREST)
+	defer RunIptablesCommand(IPFromTestNet("11"), CmdUnblockScyllaREST)
 
 	var (
 		ctx          = context.Background()
@@ -468,8 +471,8 @@ func restoreWithNodeDown(t *testing.T, target RestoreTarget, keyspace string, lo
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.client)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
 	// Restore should be performed on user with limited permissions
@@ -492,12 +495,12 @@ func restoreWithNodeDown(t *testing.T, target RestoreTarget, keyspace string, lo
 	}
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
-	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target); err != nil {
 		t.Fatal(err)
 	}
 
-	if stdout, stderr, err := ExecOnHost("192.168.100.11", CmdUnblockScyllaREST); err != nil {
-		t.Fatal(err, stdout, stderr)
+	if err := RunIptablesCommand(IPFromTestNet("11"), CmdUnblockScyllaREST); err != nil {
+		t.Fatal(err)
 	}
 
 	toValidate := []string{
@@ -539,8 +542,8 @@ func restoreWithAgentRestart(t *testing.T, target RestoreTarget, keyspace string
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.client)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx          = context.Background()
 	)
 
@@ -564,17 +567,17 @@ func restoreWithAgentRestart(t *testing.T, target RestoreTarget, keyspace string
 	}
 
 	a := atomic.NewInt64(0)
-	dstH.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") && a.Inc() == 1 {
 			Print("And: agents are restarted")
-			restartAgents(t)
+			restartAgents(dstH.CommonTestHelper)
 		}
 		return nil, nil
 	}))
 
 	Print("When: Restore is running")
-	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
-		t.Fatalf("Expected no error but got %+v", err)
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target); err != nil {
+		t.Errorf("Expected no error but got %+v", err)
 	}
 
 	toValidate := []string{
@@ -643,8 +646,8 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.client)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx, cancel  = context.WithCancel(context.Background())
 	)
 
@@ -668,7 +671,7 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	}
 
 	a := atomic.NewInt64(0)
-	dstH.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") && a.Inc() == 1 {
 			Print("And: context is canceled")
 			cancel()
@@ -677,7 +680,7 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	}))
 
 	Print("When: Restore is running")
-	err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target)
+	err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target)
 	if err == nil {
 		t.Fatal("Expected error on run but got nil")
 		return
@@ -686,7 +689,7 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 		t.Fatalf("Expected context error but got: %+v", err)
 	}
 
-	pr, err := dstH.service.GetRestoreProgress(context.Background(), dstH.clusterID, dstH.taskID, dstH.runID)
+	pr, err := dstH.service.GetRestoreProgress(context.Background(), dstH.ClusterID, dstH.TaskID, dstH.RunID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -696,8 +699,8 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 	}
 
 	Print("When: restore is resumed with new RunID")
-	dstH.runID = uuid.MustRandom()
-	err = dstH.service.Restore(context.Background(), dstH.clusterID, dstH.taskID, dstH.runID, target)
+	dstH.RunID = uuid.MustRandom()
+	err = dstH.service.Restore(context.Background(), dstH.ClusterID, dstH.TaskID, dstH.RunID, target)
 	if err != nil {
 		t.Fatal("Unexpected error", err)
 	}
@@ -769,8 +772,8 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.client)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx          = context.Background()
 	)
 
@@ -793,7 +796,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 	// Corrupting SSTables allows us to force the creation of versioned files
 	Print("Choose SSTables to corrupt")
 
-	status, err := srcH.client.Status(ctx)
+	status, err := srcH.Client.Status(ctx)
 	if err != nil {
 		t.Fatal("Get status")
 	}
@@ -809,7 +812,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		corruptedTable = "keyspaces"
 	}
 
-	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.clusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
+	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.ClusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
 		FilesOnly: true,
@@ -821,7 +824,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		secondCorrupt []string
 	)
 
-	err = srcH.client.RcloneListDirIter(ctx, host.Addr, remoteDir, opts, func(item *scyllaclient.RcloneListDirItem) {
+	err = srcH.Client.RcloneListDirIter(ctx, host.Addr, remoteDir, opts, func(item *scyllaclient.RcloneListDirItem) {
 		if _, err = VersionedFileCreationTime(item.Name); err == nil {
 			t.Fatalf("Versioned file %s present after first backup", path.Join(remoteDir, item.Path))
 		}
@@ -856,7 +859,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		for _, tc := range toCorrupt {
 			file := path.Join(remoteDir, tc)
 			body := bytes.NewBufferString(fmt.Sprintf("generation: %d", i))
-			if err = srcH.client.RclonePut(ctx, host.Addr, file, body); err != nil {
+			if err = srcH.Client.RclonePut(ctx, host.Addr, file, body); err != nil {
 				t.Fatalf("Corrupt remote file %s", file)
 			}
 		}
@@ -868,7 +871,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		Print("Validate creation of versioned files in remote location")
 		for _, tc := range toCorrupt {
 			corruptedPath := path.Join(remoteDir, tc) + VersionedFileExt(tag)
-			if _, err = srcH.client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
+			if _, err = srcH.Client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -893,13 +896,13 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		versioned := newest + VersionedFileExt(version)
 		tmp := path.Join(path.Dir(newest), "tmp")
 
-		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, tmp, newest); err != nil {
+		if err = srcH.Client.RcloneMoveFile(ctx, host.Addr, tmp, newest); err != nil {
 			t.Fatal(err)
 		}
-		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, newest, versioned); err != nil {
+		if err = srcH.Client.RcloneMoveFile(ctx, host.Addr, newest, versioned); err != nil {
 			t.Fatal(err)
 		}
-		if err = srcH.client.RcloneMoveFile(ctx, host.Addr, versioned, tmp); err != nil {
+		if err = srcH.Client.RcloneMoveFile(ctx, host.Addr, versioned, tmp); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -920,7 +923,7 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 		t.Fatal(err)
 	}
 
-	if err = dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, target); err != nil {
+	if err = dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target); err != nil {
 		t.Fatal(err)
 	}
 
@@ -972,8 +975,8 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil)
 		srcH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], &srcClientCfg)
-		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.client)
-		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.client)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
 	// Ensure clean scylla tables
@@ -999,7 +1002,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 	}
 
 	Print("Restore schema on different cluster")
-	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, schemaTarget); err != nil {
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, schemaTarget); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1020,8 +1023,8 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate...)
 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
-	dstH.clusterID = uuid.MustRandom()
-	dstH.runID = uuid.MustRandom()
+	dstH.ClusterID = uuid.MustRandom()
+	dstH.RunID = uuid.MustRandom()
 	tablesTarget = dstH.regenerateRestoreTarget(tablesTarget)
 
 	if err := grantPermissionsToUser(dstSession, tablesTarget, user); err != nil {
@@ -1029,7 +1032,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 	}
 
 	Print("Restore tables on different cluster")
-	if err := dstH.service.Restore(ctx, dstH.clusterID, dstH.taskID, dstH.runID, tablesTarget); err != nil {
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, tablesTarget); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1041,12 +1044,12 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 func (h *restoreTestHelper) regenerateRestoreTarget(target RestoreTarget) RestoreTarget {
 	props, err := json.Marshal(target)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
-	target, err = h.service.GetRestoreTarget(context.Background(), h.clusterID, props)
+	target, err = h.service.GetRestoreTarget(context.Background(), h.ClusterID, props)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	return target
@@ -1100,24 +1103,24 @@ func grantPermissionsToUser(s gocqlx.Session, target RestoreTarget, user string)
 }
 
 func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx.Session, target RestoreTarget, tables ...string) {
-	h.t.Helper()
+	h.T.Helper()
 	Print("Then: validate restore result")
 
-	pr, err := h.service.GetRestoreProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	pr, err := h.service.GetRestoreProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 	Printf("And: restore progress: %+#v\n", pr)
 	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
-		h.t.Fatal("Expected complete restore")
+		h.T.Fatal("Expected complete restore")
 	}
 	for _, kpr := range pr.Keyspaces {
 		if kpr.Size != kpr.Restored || kpr.Size != kpr.Downloaded {
-			h.t.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
+			h.T.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
 		}
 		for _, tpr := range kpr.Tables {
 			if tpr.Size != tpr.Restored || tpr.Size != tpr.Downloaded {
-				h.t.Fatalf("Expected complete table restore (%s)", tpr.Table)
+				h.T.Fatalf("Expected complete table restore (%s)", tpr.Table)
 			}
 		}
 	}
@@ -1135,7 +1138,7 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		// Right after repair, we can expect to get correct responses with consistency 1
 		q := dstSession.Query("SELECT COUNT(*) FROM "+t, nil).Consistency(gocql.One)
 		if err := q.Get(&dstCount); err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 
 		// srcCount should be treated as 0 when restoring schema
@@ -1143,20 +1146,20 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		if target.RestoreTables {
 			q = srcSession.Query("SELECT COUNT(*) FROM "+t, nil).Consistency(gocql.One)
 			if err := q.Get(&srcCount); err != nil {
-				h.t.Fatal(err)
+				h.T.Fatal(err)
 			}
 		}
 
-		h.t.Logf("%s, srcCount = %d, dstCount = %d", t, srcCount, dstCount)
+		h.T.Logf("%s, srcCount = %d, dstCount = %d", t, srcCount, dstCount)
 		if dstCount != srcCount {
 			// Destination cluster has additional users used for restore
 			if t == "system_auth.roles" || t == "system_auth.role_permissions" {
 				if target.RestoreTables && dstCount < srcCount {
-					h.t.Fatalf("%s: srcCount != dstCount", t)
+					h.T.Fatalf("%s: srcCount != dstCount", t)
 				}
 				continue
 			}
-			h.t.Fatalf("%s: srcCount != dstCount", t)
+			h.T.Fatalf("srcCount != dstCount")
 		}
 	}
 }
@@ -1206,22 +1209,22 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(session gocqlx.Sess
 	t := gocql.NewTraceWriter(session.Session, os.Stdout) // Populate system_traces
 	for _, stmt := range statements {
 		if err := session.Query(stmt, nil).Trace(t).Exec(); err != nil {
-			h.t.Fatalf("Exec stmt: %s, error: %s", stmt, err.Error())
+			h.T.Fatalf("Exec stmt: %s, error: %s", stmt, err.Error())
 		}
 	}
 
 	// Create keyspace and table
-	WriteDataToSecondCluster(h.t, session, keyspace, 0, 0)
+	WriteDataToSecondCluster(h.T, session, keyspace, 0, 0)
 
-	ExecStmt(h.t,
+	ExecStmt(h.T,
 		session,
 		fmt.Sprintf("ALTER TABLE %s.%s WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName),
 	)
-	ExecStmt(h.t,
+	ExecStmt(h.T,
 		session,
 		fmt.Sprintf("CREATE MATERIALIZED VIEW %s.testmv AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, keyspace, BigTableName),
 	)
-	ExecStmt(h.t,
+	ExecStmt(h.T,
 		session,
 		fmt.Sprintf("CREATE INDEX bydata ON %s.%s (data)", keyspace, BigTableName),
 	)
@@ -1238,31 +1241,31 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 	ctx := context.Background()
 
 	// Create keyspace and table
-	WriteDataToSecondCluster(h.t, session, keyspace, 0, 0)
+	WriteDataToSecondCluster(h.T, session, keyspace, 0, 0)
 
-	if err := h.client.DisableAutoCompaction(ctx, keyspace, BigTableName); err != nil {
-		h.t.Fatal(err)
+	if err := h.Client.DisableAutoCompaction(ctx, keyspace, BigTableName); err != nil {
+		h.T.Fatal(err)
 	}
 
 	var startingID int
 	for i := 0; i < loadCnt; i++ {
 		Printf("When: Write load nr %d to second cluster", i)
 
-		startingID = WriteDataToSecondCluster(h.t, session, keyspace, startingID, loadSize)
-		if err := h.client.FlushTable(ctx, keyspace, BigTableName); err != nil {
-			h.t.Fatal(err)
+		startingID = WriteDataToSecondCluster(h.T, session, keyspace, startingID, loadSize)
+		if err := h.Client.FlushTable(ctx, keyspace, BigTableName); err != nil {
+			h.T.Fatal(err)
 		}
 	}
 }
 
 func (h *restoreTestHelper) simpleBackup(location Location) string {
-	h.t.Helper()
+	h.T.Helper()
 	Print("When: backup cluster = (dc1: node1)")
 
 	ctx := context.Background()
-	keyspaces, err := h.client.Keyspaces(ctx)
+	keyspaces, err := h.Client.Keyspaces(ctx)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	var units []Unit
@@ -1279,22 +1282,22 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 		Retention: 3,
 	}
 
-	if err := h.service.InitTarget(ctx, h.clusterID, &backupTarget); err != nil {
-		h.t.Fatal(err)
+	if err := h.service.InitTarget(ctx, h.ClusterID, &backupTarget); err != nil {
+		h.T.Fatal(err)
 	}
 
-	if err := h.service.Backup(ctx, h.clusterID, h.taskID, h.runID, backupTarget); err != nil {
-		h.t.Fatal(err)
+	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, backupTarget); err != nil {
+		h.T.Fatal(err)
 	}
 	Print("Then: cluster is backed-up")
 
 	Print("When: list backup")
-	items, err := h.service.List(ctx, h.clusterID, []Location{location}, ListFilter{})
+	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, ListFilter{})
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 	if len(items) != 1 {
-		h.t.Fatalf("List() = %v, expected one item", items)
+		h.T.Fatalf("List() = %v, expected one item", items)
 	}
 	i := items[0]
 	Print(fmt.Sprintf("Then: backup snapshot info: %v", i.SnapshotInfo))
@@ -1303,33 +1306,33 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 }
 
 func (h *restoreTestHelper) simpleRepair() {
-	h.t.Helper()
+	h.T.Helper()
 	Print("When: repair restored cluster")
 
 	s, err := repair.NewService(
-		h.session,
+		h.Session,
 		repair.DefaultConfig(),
 		metrics.NewRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return h.client, nil
+			return h.Client, nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
 	)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	ctx := context.Background()
-	keyspaces, err := h.client.Keyspaces(ctx)
+	keyspaces, err := h.Client.Keyspaces(ctx)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	var units []repair.Unit
 	for _, ks := range keyspaces {
-		t, err := h.client.Tables(ctx, ks)
+		t, err := h.Client.Tables(ctx, ks)
 		if err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 
 		units = append(units, repair.Unit{
@@ -1339,58 +1342,58 @@ func (h *restoreTestHelper) simpleRepair() {
 		})
 	}
 
-	if err = s.Repair(ctx, h.clusterID, uuid.MustRandom(), uuid.MustRandom(), repair.Target{
+	if err = s.Repair(ctx, h.ClusterID, uuid.MustRandom(), uuid.MustRandom(), repair.Target{
 		Units:     units,
 		DC:        []string{"dc1", "dc2"},
 		Continue:  true,
 		Intensity: 10,
 	}); err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	Print("Then: cluster is repaired")
 }
 
 func (h *restoreTestHelper) restartScylla() {
-	h.t.Helper()
+	h.T.Helper()
 	Print("When: restart cluster")
 
 	ctx := context.Background()
 	cfg := cqlping.Config{Timeout: 100 * time.Millisecond}
 	const cmdRestart = "supervisorctl restart scylla"
 
-	for _, host := range ManagedClusterHosts() {
+	for _, host := range h.GetAllHosts() {
 		Print("When: restart Scylla on host: " + host)
 		stdout, stderr, err := ExecOnHost(host, cmdRestart)
 		if err != nil {
-			h.t.Log("stdout", stdout)
-			h.t.Log("stderr", stderr)
-			h.t.Fatal("Command failed on host", host, err)
+			h.T.Log("stdout", stdout)
+			h.T.Log("stderr", stderr)
+			h.T.Fatal("Command failed on host", host, err)
 		}
 
 		var sessionHosts []string
 		b := backoff.WithContext(backoff.WithMaxRetries(
 			backoff.NewConstantBackOff(500*time.Millisecond), 10), ctx)
 		if err := backoff.Retry(func() error {
-			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.client, []string{host})
+			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host})
 			return err
 		}, b); err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 
-		cfg.Addr = net.JoinHostPort(sessionHosts[0], "9042")
+		cfg.Addr = sessionHosts[0]
 		cond := func() bool {
 			if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
 				return false
 			}
-			status, err := h.client.Status(ctx)
+			status, err := h.Client.Status(ctx)
 			if err != nil {
 				return false
 			}
 			return len(status.Live()) == 6
 		}
 
-		WaitCond(h.t, cond, time.Second, 60*time.Second)
+		WaitCond(h.T, cond, time.Second, 60*time.Second)
 		Print("Then: Scylla is restarted on host: " + host)
 	}
 

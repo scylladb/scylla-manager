@@ -14,10 +14,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"go.uber.org/multierr"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/multierr"
 )
 
 // SnapshotInfo contains detailed information about snapshot.
@@ -53,6 +54,16 @@ type Target struct {
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
+}
+
+// RemoveSystemTables removes tables that belongs to system_schema since they are too version-mobile
+// which is bad for testing purposes.
+func (t Target) RemoveSystemTables() {
+	for id := range t.Units {
+		if t.Units[id].Keyspace == "system_schema" {
+			t.Units[id].Tables = nil
+		}
+	}
 }
 
 // Unit represents keyspace and its tables.
