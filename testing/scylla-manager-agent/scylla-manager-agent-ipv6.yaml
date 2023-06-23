@@ -1,0 +1,13 @@
+auth_token: token
+
+debug: :5112
+
+logger:
+  level: debug
+
+s3:
+  access_key_id: miniouser
+  secret_access_key: minio1234
+  provider: Minio
+  region: us-east-1
+  endpoint: http://[2001:0DB9:200::99]:9000
