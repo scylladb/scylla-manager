@@ -16,6 +16,17 @@ GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 
+IPV6?=false
+
+MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
+PUBLIC_NET := 192.168.200.
+MINIO_ENDPOINT := http://192.168.200.99:9000
+ifneq ($(IPV6), false)
+	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ipv6.yaml
+	PUBLIC_NET := 2001:0DB9:200::
+	MINIO_ENDPOINT := http://[2001:0DB9:200::99]:9000
+endif
+
 .PHONY: fmt
 fmt: ## Format source code
 	@$(GOBIN)/golangci-lint run -c .golangci-fmt.yml --fix $(PKG)
@@ -102,9 +113,9 @@ integration-test:
 # Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.200.100 \
--managed-cluster 192.168.200.11,192.168.200.12,192.168.200.13,192.168.200.21,192.168.200.22,192.168.200.23 \
--managed-second-cluster 192.168.200.30 \
+INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
+-managed-cluster $(PUBLIC_NET)11,$(PUBLIC_NET)12,$(PUBLIC_NET)13,$(PUBLIC_NET)21,$(PUBLIC_NET)22,$(PUBLIC_NET)23 \
+-managed-second-cluster $(PUBLIC_NET)30 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
 -s3-data-dir ./testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
@@ -145,11 +156,11 @@ start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
-	@make -C testing build down up
+	@IPV6=$(IPV6) make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes
-	@make -C testing status
+	@IPV6=$(IPV6) make -C testing status
 
 .PHONY: build-agent
 build-agent: ## Build development agent binary
@@ -159,7 +170,7 @@ build-agent: ## Build development agent binary
 .PHONY: deploy-agent
 deploy-agent: build-agent ## Deploy it to testing containers
 	@echo "==> Deploying agent to testing containers"
-	@make -C testing deploy-agent restart-agent
+	@IPV6=$(IPV6) make -C testing deploy-agent restart-agent
 
 .PHONY: build-cli
 build-cli: ## Build development cli binary
@@ -180,7 +191,7 @@ run-server: build-server ## Build and run development server
 		-p "5090:5090" \
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
 		-v "$(PWD)/sctool.dev:/usr/bin/sctool:ro" \
-		-v "$(PWD)/testing/scylla-manager/scylla-manager.yaml:/etc/scylla-manager/scylla-manager.yaml:ro" \
+		-v "$(PWD)/$(MANAGER_CONFIG):/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-v "/tmp:/tmp" \
 		-i --read-only --rm scylladb/scylla-manager-dev scylla-manager
 
