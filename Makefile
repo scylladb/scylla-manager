@@ -115,6 +115,7 @@ include testing/.env
 
 INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
 -managed-cluster $(PUBLIC_NET)11,$(PUBLIC_NET)12,$(PUBLIC_NET)13,$(PUBLIC_NET)21,$(PUBLIC_NET)22,$(PUBLIC_NET)23 \
+-test-network $(PUBLIC_NET) \
 -managed-second-cluster $(PUBLIC_NET)30 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
@@ -132,6 +133,7 @@ pkg-integration-test:
 	@echo "==> Running integration tests for package $(PKG)"
 	@docker kill scylla_manager_server 2> /dev/null || true
 	@CGO_ENABLED=0 GOOS=linux go test -tags integration -c -o ./integration-test.dev $(PKG)
+	@PWD=`pwd`; echo $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS) | sed -e "s=./testing=${PWD}/testing=g"
 	@docker run --name "scylla_manager_server" \
 		--network host \
 		-v "/tmp:/tmp" \
