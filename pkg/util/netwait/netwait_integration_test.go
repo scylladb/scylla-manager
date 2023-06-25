@@ -13,10 +13,13 @@ import (
 	"time"
 
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 )
 
 func TestWaiterTimeoutIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
 	host := ManagedClusterHost()
 
 	err := RunIptablesCommand(host, CmdBlockScyllaCQL)
