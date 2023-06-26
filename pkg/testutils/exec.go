@@ -5,6 +5,7 @@ package testutils
 import (
 	"bytes"
 	"net"
+	"strings"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -29,6 +30,24 @@ const (
 	// CmdUnblockScyllaAlternator defines the command used for unblocking the Scylla Alternator access.
 	CmdUnblockScyllaAlternator = "iptables -D INPUT -p tcp --destination-port 8000 -j DROP"
 )
+
+func makeIPV6Rule(rule string) string {
+	return strings.Replace(rule, "iptables ", "ip6tables -6 ", 1)
+}
+
+// RunIptablesCommand executes iptables command, repeats same command for IPV6 iptables rule.
+func RunIptablesCommand(host, cmd string) error {
+	if IsIPV6Network() {
+		return ExecOnHostStatus(host, makeIPV6Rule(cmd))
+	}
+	return ExecOnHostStatus(host, cmd)
+}
+
+// ExecOnHostStatus executes the given command on the given host and returns on error.
+func ExecOnHostStatus(host, cmd string) error {
+	_, _, err := ExecOnHost(host, cmd)
+	return errors.Wrapf(err, "run command %s", cmd)
+}
 
 // ExecOnHost executes the given command on the given host. It returns the
 // stdout and stderr of the remote command.
