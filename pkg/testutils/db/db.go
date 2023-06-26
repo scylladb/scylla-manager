@@ -5,7 +5,6 @@ package db
 import (
 	"context"
 	"crypto/rand"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -18,61 +17,13 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
-
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/schema"
 )
-
-var (
-	flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
-
-	flagTimeout      = flag.Duration("gocql.timeout", 10*time.Second, "sets the connection `timeout` for all operations")
-	flagPort         = flag.Int("gocql.port", 9042, "sets the port used to connect to the database cluster")
-	flagUser         = flag.String("user", "", "CQL user")
-	flagPassword     = flag.String("password", "", "CQL password")
-	flagCAFile       = flag.String("ssl-ca-file", "", "Certificate Authority file")
-	flagUserCertFile = flag.String("ssl-cert-file", "", "User SSL certificate file")
-	flagUserKeyFile  = flag.String("ssl-key-file", "", "User SSL key file")
-	flagValidate     = flag.Bool("ssl-validate", false, "Enable host verification")
-
-	flagManagedCluster       = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
-	flagManagedSecondCluster = flag.String("managed-second-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data second cluster hosts")
-)
-
-// ManagedClusterHosts specifies addresses of nodes in a test cluster.
-func ManagedClusterHosts() []string {
-	if !flag.Parsed() {
-		flag.Parse()
-	}
-	return strings.Split(*flagManagedCluster, ",")
-}
-
-// ManagedClusterHost returns ManagedClusterHosts()[0].
-func ManagedClusterHost() string {
-	s := ManagedClusterHosts()
-	if len(s) == 0 {
-		panic("No nodes specified in --managed-cluster flag")
-	}
-	return s[0]
-}
-
-// ManagedSecondClusterHosts specifies addresses of nodes in a test second cluster.
-func ManagedSecondClusterHosts() []string {
-	if !flag.Parsed() {
-		flag.Parse()
-	}
-	return strings.Split(*flagManagedSecondCluster, ",")
-}
-
-// ManagedClusterCredentials returns CQL username and password.
-func ManagedClusterCredentials() (user, password string) {
-	if !flag.Parsed() {
-		flag.Parse()
-	}
-	return *flagUser, *flagPassword
-}
 
 var initOnce sync.Once
 
@@ -81,7 +32,7 @@ var initOnce sync.Once
 func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
-	cluster := createCluster(*flagCluster)
+	cluster := createCluster(testconfig.ScyllaManagerDBCluster())
 	initOnce.Do(func() {
 		createTestKeyspace(tb, cluster, "test_scylla_manager")
 	})
@@ -100,7 +51,7 @@ func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
-	cluster := createCluster(*flagCluster)
+	cluster := createCluster(testconfig.ScyllaManagerDBCluster())
 	createTestKeyspace(tb, cluster, "test_scylla_manager")
 	return createSessionFromCluster(tb, cluster)
 }
@@ -135,21 +86,16 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 
 	cluster := createCluster(sessionHosts...)
 	if user == "" && pass == "" {
-		user = TestDBUsername()
-		pass = TestDBPassword()
+		user = testconfig.TestDBUsername()
+		pass = testconfig.TestDBPassword()
 	}
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: user,
 		Password: pass,
 	}
 	if os.Getenv("SSL_ENABLED") != "" {
-		cluster.SslOpts = &gocql.SslOptions{
-			CaPath:                 *flagCAFile,
-			CertPath:               *flagUserCertFile,
-			KeyPath:                *flagUserKeyFile,
-			EnableHostVerification: *flagValidate,
-		}
-		cluster.Port = *flagPort
+		cluster.SslOpts = testconfig.CQLSSLOptions()
+		cluster.Port = testconfig.CQLPort()
 	}
 
 	session, err := gocqlx.WrapSession(cluster.CreateSession())
@@ -173,7 +119,7 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) gocqlx.Session {
 	tb.Helper()
 	cluster.Keyspace = "test_scylla_manager"
-	cluster.Timeout = *flagTimeout
+	cluster.Timeout = testconfig.CQLTimeout()
 	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
 		tb.Fatal("createSession:", err)
@@ -187,7 +133,7 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 	c := *cluster
 	c.Keyspace = "system"
-	c.Timeout = *flagTimeout
+	c.Timeout = testconfig.CQLTimeout()
 	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		tb.Fatal(err)
@@ -286,14 +232,4 @@ func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID
 	}
 
 	return startingID + rowsCnt
-}
-
-// TestDBUsername returns '--username' flag value.
-func TestDBUsername() string {
-	return *flagUser
-}
-
-// TestDBPassword returns '--password' flag value.
-func TestDBPassword() string {
-	return *flagPassword
 }

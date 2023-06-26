@@ -1,6 +1,9 @@
 name: "Set up testing dependencies"
 description: "Set up GO, package dependencies and install-dependencies"
 inputs:
+  ip-family:
+    description: "Should test environment target IPV6 instead of IPV4"
+    required: false
   start-dev-env:
     description: "Should this action run 'make start-dev-env'"
     required: false
@@ -13,6 +16,12 @@ runs:
       with:
         go-version-file: ./go.mod
         cache-dependency-path: '**/go.sum'
+
+    - name: Set target IP-family
+      shell: bash
+      run: |
+        echo "IPV6=true" >> $GITHUB_ENV
+      if: ${{ inputs.ip-family == 'IPV6' }}
 
     - name: Restore dependencies
       uses: actions/cache@v3

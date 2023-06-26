@@ -4,6 +4,7 @@ package scyllaclient
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"regexp"
 	"runtime"
@@ -727,7 +728,7 @@ func (c *Client) ScyllaFeatures(ctx context.Context, hosts ...string) (map[strin
 	)
 
 	err = parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
-		sf := sfs[hosts[i]]
+		sf := sfs[ToCanonicalIP(hosts[i])]
 		sf.RepairLongPolling = c.checkRepairLongPolling(ctx, hosts[i])
 		mu.Lock()
 		out[hosts[i]] = sf
@@ -907,4 +908,15 @@ func (c *Client) FlushTable(ctx context.Context, keyspace, table string) error {
 		Context:  ctx,
 	})
 	return err
+}
+
+// ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
+// ToCanonicalIP("192.168.0.1") -> "192.168.0.1"
+// ToCanonicalIP("100:200:0:0:0:0:0:1") -> "100:200::1".
+func ToCanonicalIP(host string) string {
+	val := net.ParseIP(host)
+	if val == nil {
+		return host
+	}
+	return val.String()
 }

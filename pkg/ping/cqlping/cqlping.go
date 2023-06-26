@@ -49,10 +49,14 @@ func NativeCQLPing(ctx context.Context, config Config) (rtt time.Duration, err e
 	d := &net.Dialer{
 		Deadline: t.Add(config.Timeout),
 	}
+	network := "tcp"
+	if strings.Count(config.Addr, ":") > 1 {
+		network = "tcp6"
+	}
 	if config.TLSConfig != nil {
-		conn, err = tls.DialWithDialer(d, "tcp", config.Addr, config.TLSConfig)
+		conn, err = tls.DialWithDialer(d, network, config.Addr, config.TLSConfig)
 	} else {
-		conn, err = d.DialContext(ctx, "tcp", config.Addr)
+		conn, err = d.DialContext(ctx, network, config.Addr)
 	}
 	if err != nil {
 		return 0, err

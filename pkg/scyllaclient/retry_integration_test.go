@@ -15,13 +15,17 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 )
 
 func TestRetryWithTimeoutIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
 	hosts, err := allHosts()
 	if err != nil {
 		t.Fatal(err)
@@ -73,9 +77,9 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	block := func(ctx context.Context, hosts []string) error {
 		for _, h := range hosts {
-			stdout, stderr, err := ExecOnHost(h, CmdBlockScyllaREST)
+			err := RunIptablesCommand(h, CmdBlockScyllaREST)
 			if err != nil {
-				return errors.Wrapf(err, "block host: %s, stdout %s, stderr %s", h, stdout, stderr)
+				return err
 			}
 			blockedHosts = append(blockedHosts, h)
 		}
@@ -84,9 +88,9 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	unblock := func(ctx context.Context) error {
 		for _, h := range blockedHosts {
-			stdout, stderr, err := ExecOnHost(h, CmdUnblockScyllaREST)
+			err := RunIptablesCommand(h, CmdUnblockScyllaREST)
 			if err != nil {
-				return errors.Wrapf(err, "unblock host: %s, stdout %s, stderr %s", h, stdout, stderr)
+				return err
 			}
 		}
 		return nil

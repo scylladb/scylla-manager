@@ -7,6 +7,7 @@ package cluster_test
 
 import (
 	"context"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"os"
 	"strconv"
 	"testing"
@@ -15,7 +16,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -25,6 +25,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -438,35 +439,40 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		for id := range got {
+			got[id].Address = ToCanonicalIP(got[id].Address)
+		}
+
 		expected := []cluster.Node{
 			{
 				"dc1",
-				"192.168.200.11",
+				ToCanonicalIP(IPFromTestNet("11")),
 				2,
 			},
 			{
 				"dc1",
-				"192.168.200.12",
+				ToCanonicalIP(IPFromTestNet("12")),
 				2,
 			},
 			{
 				"dc1",
-				"192.168.200.13",
+				ToCanonicalIP(IPFromTestNet("13")),
 				2,
 			},
 			{
 				"dc2",
-				"192.168.200.21",
+				ToCanonicalIP(IPFromTestNet("21")),
 				2,
 			},
 			{
 				"dc2",
-				"192.168.200.22",
+				ToCanonicalIP(IPFromTestNet("22")),
 				2,
 			},
 			{
 				"dc2",
-				"192.168.200.23",
+				ToCanonicalIP(IPFromTestNet("23")),
 				2,
 			},
 		}

@@ -1,0 +1,11 @@
+http: [::]:5080
+https: [::]:5443
+
+logger:
+  level: info
+  development: true
+
+database:
+  hosts:
+    - [2001:0DB9:200::100]
+  timeout: 1s

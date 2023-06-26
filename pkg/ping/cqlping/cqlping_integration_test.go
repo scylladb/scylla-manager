@@ -8,6 +8,7 @@ package cqlping
 import (
 	"context"
 	"crypto/tls"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"testing"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -24,12 +24,12 @@ func TestPingIntegration(t *testing.T) {
 	client := newTestClient(t, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), nil)
 	defer client.Close()
 
-	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{db.ManagedClusterHost()})
+	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{testconfig.ManagedClusterHost()})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	user, password := db.ManagedClusterCredentials()
+	user, password := testconfig.ManagedClusterCredentials()
 	config := Config{
 		Addr:    sessionHosts[0],
 		Timeout: 250 * time.Millisecond,
@@ -67,7 +67,7 @@ func TestPingTLSIntegration(t *testing.T) {
 	t.SkipNow()
 
 	config := Config{
-		Addr:    db.ManagedClusterHost() + ":9042",
+		Addr:    testconfig.ManagedClusterHost() + ":9042",
 		Timeout: 250 * time.Millisecond,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -95,7 +95,7 @@ func newTestClient(t *testing.T, logger log.Logger, config *scyllaclient.Config)
 	t.Helper()
 
 	if config == nil {
-		c := scyllaclient.TestConfig(db.ManagedClusterHosts(), testutils.AgentAuthToken())
+		c := scyllaclient.TestConfig(testconfig.ManagedClusterHosts(), testutils.AgentAuthToken())
 		config = &c
 	}
 

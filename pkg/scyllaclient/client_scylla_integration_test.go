@@ -7,6 +7,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"net/http"
 	"strings"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -48,15 +48,15 @@ func TestClientStatusIntegration(t *testing.T) {
 	}
 
 	golden := scyllaclient.NodeStatusInfoSlice{
-		{Datacenter: "dc1", Addr: "192.168.200.11", State: "", Status: true},
-		{Datacenter: "dc1", Addr: "192.168.200.12", State: "", Status: true},
-		{Datacenter: "dc1", Addr: "192.168.200.13", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.200.21", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.200.22", State: "", Status: true},
-		{Datacenter: "dc2", Addr: "192.168.200.23", State: "", Status: true},
+		{Datacenter: "dc1", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("11"))), State: "", Status: true},
+		{Datacenter: "dc1", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("12"))), State: "", Status: true},
+		{Datacenter: "dc1", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("13"))), State: "", Status: true},
+		{Datacenter: "dc2", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("21"))), State: "", Status: true},
+		{Datacenter: "dc2", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("22"))), State: "", Status: true},
+		{Datacenter: "dc2", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("23"))), State: "", Status: true},
 	}
 
-	if diff := cmp.Diff(status, golden, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {
+	if diff := cmp.Diff(golden, status, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {
 		t.Fatalf("Status() = %#+v, diff %s", status, diff)
 	}
 }
@@ -243,13 +243,21 @@ func TestScyllaFeaturesIntegration(t *testing.T) {
 		t.Error(err)
 	}
 
+hostsLoop:
 	for _, h := range ManagedClusterHosts() {
-		if !sf[h].RowLevelRepair {
-			t.Errorf("%s host doesn't support row-level repair, but it should", h)
+		for reportedHost, hostFeatures := range sf {
+			if ToCanonicalIP(h) == ToCanonicalIP(reportedHost) {
+				if !hostFeatures.RowLevelRepair {
+					t.Errorf("%s host doesn't support row-level repair, but it should", h)
+				}
+				if !hostFeatures.RepairLongPolling {
+					t.Errorf("%s host doesn't support long polling repair, but it should", h)
+				}
+				continue hostsLoop
+			}
 		}
-		if !sf[h].RepairLongPolling {
-			t.Errorf("%s host doesn't support long polling repair, but it should", h)
-		}
+		t.Errorf("%s cql did not report info on it", h)
+
 	}
 }
 

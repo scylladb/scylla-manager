@@ -17,9 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -27,12 +25,18 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	scyllaModels "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 func TestStatusIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
+
 	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
@@ -43,6 +47,9 @@ func TestStatusIntegration(t *testing.T) {
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
 	username, password := ManagedClusterCredentials()
 
 	session := CreateScyllaManagerDBSession(t)
@@ -67,6 +74,18 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 
 	// Tests here do not test the dynamic t/o functionality
 	c := DefaultConfig()
+
+	tryUnblockCQL(t, ManagedClusterHosts())
+	tryUnblockREST(t, ManagedClusterHosts())
+	tryUnblockAlternator(t, ManagedClusterHosts())
+	tryStartAgent(t, ManagedClusterHosts())
+
+	defer func() {
+		tryUnblockCQL(t, ManagedClusterHosts())
+		tryUnblockREST(t, ManagedClusterHosts())
+		tryUnblockAlternator(t, ManagedClusterHosts())
+		tryStartAgent(t, ManagedClusterHosts())
+	}()
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	s, err := NewService(
@@ -104,19 +123,23 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST TIMEOUT", func(t *testing.T) {
-		host := "192.168.100.12"
+		host := IPFromTestNet("12")
 		blockREST(t, host)
 		defer unblockREST(t, host)
 
@@ -126,19 +149,23 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "UP", RESTStatus: "TIMEOUT", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "TIMEOUT", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node CQL TIMEOUT", func(t *testing.T) {
-		host := "192.168.100.12"
+		host := IPFromTestNet("12")
 		blockCQL(t, host)
 		defer unblockCQL(t, host)
 
@@ -148,19 +175,23 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "TIMEOUT", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "TIMEOUT", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node Alternator TIMEOUT", func(t *testing.T) {
-		host := "192.168.100.12"
+		host := IPFromTestNet("12")
 		blockAlternator(t, host)
 		defer unblockAlternator(t, host)
 
@@ -170,19 +201,23 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "TIMEOUT"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "TIMEOUT"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST DOWN", func(t *testing.T) {
-		host := "192.168.100.12"
+		host := IPFromTestNet("12")
 		stopAgent(t, host)
 		defer startAgent(t, host)
 
@@ -192,19 +227,23 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "UP", RESTStatus: "DOWN", RESTCause: "dial tcp 192.168.200.12:10001: connect: connection refused", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "DOWN", RESTCause: "dial tcp " + URLEncodeIP(ToCanonicalIP(IPFromTestNet("12"))) + ":10001: connect: connection refused", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST UNAUTHORIZED", func(t *testing.T) {
-		hrt.SetInterceptor(fakeHealthCheckStatus("192.168.200.12", http.StatusUnauthorized))
+		hrt.SetInterceptor(fakeHealthCheckStatus(IPFromTestNet("12"), http.StatusUnauthorized))
 		defer hrt.SetInterceptor(nil)
 
 		status, err := s.Status(context.Background(), clusterID)
@@ -213,19 +252,23 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "UP", RESTStatus: "UNAUTHORIZED", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UNAUTHORIZED", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node REST ERROR", func(t *testing.T) {
-		hrt.SetInterceptor(fakeHealthCheckStatus("192.168.200.12", http.StatusBadGateway))
+		hrt.SetInterceptor(fakeHealthCheckStatus(IPFromTestNet("12"), http.StatusBadGateway))
 		defer hrt.SetInterceptor(nil)
 
 		status, err := s.Status(context.Background(), clusterID)
@@ -234,13 +277,17 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return
 		}
 
+		for id := range status {
+			status[id].Host = ToCanonicalIP(status[id].Host)
+		}
+
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: "192.168.200.11", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.12", CQLStatus: "UP", RESTStatus: "HTTP 502", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: "192.168.200.13", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.21", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.22", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: "192.168.200.23", CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "HTTP 502", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -280,60 +327,65 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 
 func blockREST(t *testing.T, h string) {
 	t.Helper()
-	if err := block(h, CmdBlockScyllaREST); err != nil {
+	if err := RunIptablesCommand(h, CmdBlockScyllaREST); err != nil {
 		t.Error(err)
 	}
 }
 
 func unblockREST(t *testing.T, h string) {
 	t.Helper()
-	if err := unblock(h, CmdUnblockScyllaREST); err != nil {
+	if err := RunIptablesCommand(h, CmdUnblockScyllaREST); err != nil {
 		t.Error(err)
+	}
+}
+
+func tryUnblockREST(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		_ = RunIptablesCommand(host, CmdUnblockScyllaREST)
 	}
 }
 
 func blockCQL(t *testing.T, h string) {
 	t.Helper()
-	if err := block(h, CmdBlockScyllaCQL); err != nil {
+	if err := RunIptablesCommand(h, CmdBlockScyllaCQL); err != nil {
 		t.Error(err)
 	}
 }
 
 func unblockCQL(t *testing.T, h string) {
 	t.Helper()
-	if err := unblock(h, CmdUnblockScyllaCQL); err != nil {
+	if err := RunIptablesCommand(h, CmdUnblockScyllaCQL); err != nil {
 		t.Error(err)
+	}
+}
+
+func tryUnblockCQL(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		_ = RunIptablesCommand(host, CmdUnblockScyllaCQL)
 	}
 }
 
 func blockAlternator(t *testing.T, h string) {
 	t.Helper()
-	if err := block(h, CmdBlockScyllaAlternator); err != nil {
+	if err := RunIptablesCommand(h, CmdBlockScyllaAlternator); err != nil {
 		t.Error(err)
 	}
 }
 
 func unblockAlternator(t *testing.T, h string) {
 	t.Helper()
-	if err := unblock(h, CmdUnblockScyllaAlternator); err != nil {
+	if err := RunIptablesCommand(h, CmdUnblockScyllaAlternator); err != nil {
 		t.Error(err)
 	}
 }
 
-func block(h, cmd string) error {
-	stdout, stderr, err := ExecOnHost(h, cmd)
-	if err != nil {
-		return errors.Wrapf(err, "block host: %s, stdout %s, stderr %s", h, stdout, stderr)
+func tryUnblockAlternator(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		_ = RunIptablesCommand(host, CmdUnblockScyllaAlternator)
 	}
-	return nil
-}
-
-func unblock(h, cmd string) error {
-	stdout, stderr, err := ExecOnHost(h, cmd)
-	if err != nil {
-		return errors.Wrapf(err, "unblock host: %s, stdout %s, stderr %s", h, stdout, stderr)
-	}
-	return nil
 }
 
 const agentService = "scylla-manager-agent"
@@ -352,6 +404,13 @@ func startAgent(t *testing.T, h string) {
 	}
 }
 
+func tryStartAgent(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		_ = StartService(host, agentService)
+	}
+}
+
 const pingPath = "/storage_service/scylla_release_version"
 
 func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
@@ -360,7 +419,7 @@ func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
 		if err != nil {
 			return nil, err
 		}
-		if h == host && r.Method == http.MethodGet && r.URL.Path == pingPath {
+		if net.ParseIP(h).String() == net.ParseIP(host).String() && r.Method == http.MethodGet && r.URL.Path == pingPath {
 			body, _ := (&scyllaModels.ErrorModel{
 				Message: "test",
 				Code:    int64(code),

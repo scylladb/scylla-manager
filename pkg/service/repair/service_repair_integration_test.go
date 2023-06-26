@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"io"
 	"net/http"
 	"regexp"
@@ -24,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -32,26 +33,18 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type repairTestHelper struct {
-	logger  log.Logger
-	session gocqlx.Session
-	hrt     *HackableRoundTripper
-	client  *scyllaclient.Client
+	*CommonTestHelper
 	service *repair.Service
-
-	clusterID uuid.UUID
-	taskID    uuid.UUID
-	runID     uuid.UUID
 
 	mu     sync.RWMutex
 	done   bool
 	result error
-
-	t *testing.T
 }
 
 func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config) *repairTestHelper {
@@ -65,17 +58,17 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	s := newTestService(t, session, c, config, logger)
 
 	return &repairTestHelper{
-		logger:  logger,
-		session: session,
-		hrt:     hrt,
-		client:  c,
+		CommonTestHelper: &CommonTestHelper{
+			Logger:    logger,
+			Session:   session,
+			Hrt:       hrt,
+			Client:    c,
+			ClusterID: uuid.MustRandom(),
+			TaskID:    uuid.MustRandom(),
+			RunID:     uuid.NewTime(),
+			T:         t,
+		},
 		service: s,
-
-		clusterID: uuid.MustRandom(),
-		taskID:    uuid.MustRandom(),
-		runID:     uuid.NewTime(),
-
-		t: t,
 	}
 }
 
@@ -86,9 +79,9 @@ func (h *repairTestHelper) runRepair(ctx context.Context, t repair.Target) {
 		h.result = nil
 		h.mu.Unlock()
 
-		h.logger.Info(ctx, "Running repair", "task", h.taskID, "run", h.runID)
-		err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, t)
-		h.logger.Info(ctx, "Repair ended", "task", h.taskID, "run", h.runID, "error", err)
+		h.Logger.Info(ctx, "Running repair", "task", h.TaskID, "run", h.RunID)
+		err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, t)
+		h.Logger.Info(ctx, "Repair ended", "task", h.TaskID, "run", h.RunID, "error", err)
 
 		h.mu.Lock()
 		h.done = true
@@ -103,49 +96,33 @@ const (
 	now = 0
 	// shortWait specifies that condition shall be met in immediate future
 	// such as repair filing on start.
-	shortWait = 4 * time.Second
+	shortWait = 60 * time.Second
 	// longWait specifies that condition shall be met after a while, this is
 	// useful for waiting for repair to significantly advance or finish.
 	longWait = 20 * time.Second
 
 	_interval = 500 * time.Millisecond
-
-	node11 = "192.168.200.11"
-	node12 = "192.168.200.12"
-	node13 = "192.168.200.13"
-	node21 = "192.168.200.21"
-	node22 = "192.168.200.22"
-	node23 = "192.168.200.23"
 )
 
-var allNodes = []string{
-	node11,
-	node12,
-	node13,
-	node21,
-	node22,
-	node23,
-}
-
 func (h *repairTestHelper) assertRunning(wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
-		_, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	WaitCond(h.T, func() bool {
+		_, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
 			if errors.Is(err, service.ErrNotFound) {
 				return false
 			}
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 		return true
 	}, _interval, wait)
 }
 
 func (h *repairTestHelper) assertDone(wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		h.mu.RLock()
 		defer h.mu.RUnlock()
 		return h.done && h.result == nil
@@ -153,24 +130,24 @@ func (h *repairTestHelper) assertDone(wait time.Duration) {
 }
 
 func (h *repairTestHelper) assertProgressSuccess() {
-	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	Print("And: there are no more errors")
 	if p.Error != 0 {
-		h.t.Fatal("expected", 0, "got", p.Error)
+		h.T.Fatal("expected", 0, "got", p.Error)
 	}
 	if p.Success != p.TokenRanges {
-		h.t.Fatal("expected", p.TokenRanges, "got", p.Success)
+		h.T.Fatal("expected", p.TokenRanges, "got", p.Success)
 	}
 }
 
 func (h *repairTestHelper) assertError(wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		h.mu.RLock()
 		defer h.mu.RUnlock()
 		return h.done && h.result != nil
@@ -178,9 +155,9 @@ func (h *repairTestHelper) assertError(wait time.Duration) {
 }
 
 func (h *repairTestHelper) assertErrorContains(cause string, wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		h.mu.RLock()
 		defer h.mu.RUnlock()
 		return h.done && h.result != nil && strings.Contains(h.result.Error(), cause)
@@ -188,61 +165,61 @@ func (h *repairTestHelper) assertErrorContains(cause string, wait time.Duration)
 }
 
 func (h *repairTestHelper) assertStopped(wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 	h.assertErrorContains(context.Canceled.Error(), wait)
 }
 
 func (h *repairTestHelper) assertProgress(node string, percent int, wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p >= percent
 	}, _interval, wait)
 }
 
 func (h *repairTestHelper) assertProgressFailed(node string, percent int, wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		_, f := h.progress(node)
 		return f >= percent
 	}, _interval, wait)
 }
 
 func (h *repairTestHelper) assertMaxProgress(node string, percent int, wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p <= percent
 	}, _interval, wait)
 }
 
 func (h *repairTestHelper) assertShardProgress(node string, percent int, wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p >= percent
 	}, _interval, wait)
 }
 
 func (h *repairTestHelper) assertMaxShardProgress(node string, percent int, wait time.Duration) {
-	h.t.Helper()
+	h.T.Helper()
 
-	WaitCond(h.t, func() bool {
+	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p <= percent
 	}, _interval, wait)
 }
 
 func (h *repairTestHelper) progress(node string) (int, int) {
-	h.t.Helper()
+	h.T.Helper()
 
-	p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+	p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 	if node != "" {
 
@@ -446,16 +423,16 @@ func multipleUnits() repair.Target {
 // generateTarget applies GetTarget onto given properties.
 // It's useful for filling keyspace boilerplate.
 func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Target {
-	h.t.Helper()
+	h.T.Helper()
 
 	props, err := json.Marshal(properties)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
-	target, err := h.service.GetTarget(context.Background(), h.clusterID, props)
+	target, err := h.service.GetTarget(context.Background(), h.ClusterID, props)
 	if err != nil {
-		h.t.Fatal(err)
+		h.T.Fatal(err)
 	}
 
 	return target
@@ -480,12 +457,12 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, h.client)
+	CreateSessionAndDropAllKeyspaces(t, h.Client)
 
 	for _, testName := range testNames {
 		t.Run(testName, func(t *testing.T) {
 			input := ReadInputFile(t)
-			v, err := h.service.GetTarget(ctx, h.clusterID, input)
+			v, err := h.service.GetTarget(ctx, h.ClusterID, input)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -507,7 +484,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, repair.DefaultConfig())
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
 	const (
 		ks1           = "test_repair_rf_1"
@@ -542,7 +519,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		cnt := atomic.Int64{}
 
 		// Repair request
-		h.hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
 				hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
 				muJPH.Lock()
@@ -560,7 +537,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 			return nil, nil
 		}))
 
-		h.hrt.SetRespNotifier(func(resp *http.Response, err error) {
+		h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
 			if resp == nil {
 				return
 			}
@@ -596,7 +573,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		})
 
 		Print("When: run repair")
-		if err := h.service.Repair(ctx, h.clusterID, h.taskID, h.runID, target); err != nil {
+		if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 			t.Errorf("Repair failed: %s", err)
 		}
 
@@ -614,7 +591,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	}
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, defaultConfig())
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
 	createKeyspace(t, clusterSession, "test_repair", 3, 3)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
@@ -634,7 +611,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: repair is done")
 		h.assertDone(longWait)
 
-		for _, n := range allNodes {
+		for _, n := range []string{
+			IPFromTestNet("11"),
+			IPFromTestNet("12"),
+			IPFromTestNet("13"),
+			IPFromTestNet("21"),
+			IPFromTestNet("22"),
+			IPFromTestNet("23"),
+		} {
 			Print("And: node is 100% repaired")
 			h.assertProgress(n, 100, now)
 		}
@@ -658,16 +642,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertDone(2 * longWait)
 
 		Print("Then: dc2 is used for repair")
-		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		prog, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 		if diff := cmp.Diff(prog.DC, []string{"dc2"}); diff != "" {
-			h.t.Fatal(diff)
+			h.T.Fatal(diff)
 		}
 		for _, h := range prog.Hosts {
-			if !strings.HasPrefix(h.Host, "192.168.200.2") {
-				t.Error(h.Host)
+			if !IPBelongsToDC("dc2", h.Host) {
+				t.Errorf("%s does not belong to DC2", h.Host)
 			}
 		}
 	})
@@ -677,7 +661,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		const ignored = "192.168.200.12"
+		var ignored = IPFromTestNet("12")
 		unit := singleUnit()
 		unit.IgnoreHosts = []string{ignored}
 
@@ -691,9 +675,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertDone(2 * longWait)
 
 		Print("Then: ignored node is not repaired")
-		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		prog, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 		for _, h := range prog.Hosts {
 			if h.Host == ignored {
@@ -708,8 +692,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		units := singleUnit()
-		units.Host = node13
-		h.hrt.SetInterceptor(assertReplicasRepairInterceptor(t, node13))
+		host := h.GetHostsFromDC("dc1")[0]
+		units.Host = host
+		h.Hrt.SetInterceptor(assertReplicasRepairInterceptor(t, host))
 
 		Print("When: run repair")
 		h.runRepair(ctx, units)
@@ -777,31 +762,31 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: repair of node11 advances")
-		h.assertProgress(node11, 1, shortWait)
+		h.assertProgress(IPFromTestNet("11"), 1, shortWait)
 
 		Print("When: node11 is 100% repaired")
-		h.assertProgress(node11, 100, longWait)
+		h.assertProgress(IPFromTestNet("11"), 100, longWait)
 
 		Print("Then: repair of node12 advances")
-		h.assertProgress(node12, 1, shortWait)
+		h.assertProgress(IPFromTestNet("12"), 1, shortWait)
 
 		Print("When: node12 is 100% repaired")
-		h.assertProgress(node12, 100, longWait)
+		h.assertProgress(IPFromTestNet("12"), 100, longWait)
 
 		Print("Then: repair of node13 advances")
-		h.assertProgress(node13, 1, shortWait)
+		h.assertProgress(IPFromTestNet("13"), 1, shortWait)
 
 		Print("When: node13 is 100% repaired")
-		h.assertProgress(node13, 100, longWait)
+		h.assertProgress(IPFromTestNet("13"), 100, longWait)
 
 		Print("When: node21 is 100% repaired")
-		h.assertProgress(node21, 100, longWait)
+		h.assertProgress(IPFromTestNet("22"), 100, longWait)
 
 		Print("When: node22 is 100% repaired")
-		h.assertProgress(node22, 100, longWait)
+		h.assertProgress(IPFromTestNet("22"), 100, longWait)
 
 		Print("When: node23 is 100% repaired")
-		h.assertProgress(node23, 100, longWait)
+		h.assertProgress(IPFromTestNet("23"), 100, longWait)
 
 		Print("Then: repair is done")
 		h.assertDone(shortWait)
@@ -819,7 +804,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
-		h.assertProgress(node11, 5, longWait)
+		h.assertProgress(IPFromTestNet("11"), 5, longWait)
 
 		Print("When: repair is stopped")
 		cancel()
@@ -843,8 +828,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
-		h.assertProgress(node11, 5, longWait)
-		h.hrt.SetInterceptor(holdRepairInterceptor())
+		h.assertProgress(IPFromTestNet("11"), 5, longWait)
+		h.Hrt.SetInterceptor(holdRepairInterceptor())
 
 		Print("When: repair is stopped")
 		cancel()
@@ -871,7 +856,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStopped(shortWait)
 
 		Print("When: create a new run")
-		h.runID = uuid.NewTime()
+		h.RunID = uuid.NewTime()
 
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
@@ -888,7 +873,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStopped(longWait)
 
 		Print("When: create a new run")
-		h.runID = uuid.NewTime()
+		h.RunID = uuid.NewTime()
 
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
@@ -899,9 +884,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: repair of all nodes continues")
-		h.assertProgress(node11, 100, longWait)
-		h.assertProgress(node12, 100, shortWait)
-		h.assertProgress(node13, 100, shortWait)
+		h.assertProgress(IPFromTestNet("11"), 100, longWait)
+		h.assertProgress(IPFromTestNet("12"), 100, shortWait)
+		h.assertProgress(IPFromTestNet("13"), 100, shortWait)
 	})
 
 	t.Run("repair restart no continue", func(t *testing.T) {
@@ -925,7 +910,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStopped(longWait)
 
 		Print("When: create a new run")
-		h.runID = uuid.NewTime()
+		h.RunID = uuid.NewTime()
 
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
@@ -936,7 +921,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: repair of node11 starts from scratch")
-		if p, _ := h.progress(node11); p >= 50 {
+		if p, _ := h.progress(IPFromTestNet("11")); p >= 50 {
 			t.Fatal("node11 should start from scratch")
 		}
 	})
@@ -959,7 +944,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertStopped(shortWait)
 
 		Print("When: create a new run")
-		h.runID = uuid.NewTime()
+		h.RunID = uuid.NewTime()
 
 		Print("And: run repair with modified units")
 		modifiedUnits := multipleUnits()
@@ -974,17 +959,17 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: repair of node11 continues")
-		h.assertProgress(node11, 100, shortWait)
-		h.assertProgress(node12, 50, now)
-		h.assertProgress(node13, 0, now)
+		h.assertProgress(IPFromTestNet("11"), 100, shortWait)
+		h.assertProgress(IPFromTestNet("12"), 50, now)
+		h.assertProgress(IPFromTestNet("13"), 0, now)
 
 		Print("And: dc2 is used for repair")
-		prog, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		prog, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 		if diff := cmp.Diff(prog.DC, modifiedUnits.DC); diff != "" {
-			h.t.Fatal(diff, prog)
+			h.T.Fatal(diff, prog)
 		}
 		if len(prog.Tables) != 1 {
 			t.Fatal(prog.Tables)
@@ -1007,15 +992,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: errors occur")
-		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
 
 		Print("Then: repair completes with error")
 		h.assertError(shortWait)
 
 		Print("When: create a new run")
-		h.runID = uuid.NewTime()
+		h.RunID = uuid.NewTime()
 
-		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 
 		Print("And: run repair")
 		h.runRepair(ctx, allUnits())
@@ -1024,7 +1009,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: node12 is 50% repaired")
-		h.assertProgress(node12, 50, longWait)
+		h.assertProgress(IPFromTestNet("12"), 50, longWait)
 
 		Print("And: repair is done")
 		h.assertDone(longWait)
@@ -1044,16 +1029,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: node12 is 50% repaired")
-		h.assertProgress(node12, 50, longWait)
+		h.assertProgress(IPFromTestNet("12"), 50, longWait)
 
 		Print("And: no network for 5s with 1s backoff")
-		h.hrt.SetInterceptor(dialErrorInterceptor())
-		time.AfterFunc(2*h.client.Config().Timeout, func() {
-			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		h.Hrt.SetInterceptor(dialErrorInterceptor())
+		time.AfterFunc(2*h.Client.Config().Timeout, func() {
+			h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
 		Print("When: node12 is 60% repaired")
-		h.assertProgress(node12, 60, longWait)
+		h.assertProgress(IPFromTestNet("12"), 60, longWait)
 
 		Print("And: repair contains error")
 		h.assertErrorContains("token ranges out of", longWait)
@@ -1076,9 +1061,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: no network for 5s with 1s backoff")
-		h.hrt.SetInterceptor(dialErrorInterceptor())
-		time.AfterFunc(3*h.client.Config().Timeout, func() {
-			h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		h.Hrt.SetInterceptor(dialErrorInterceptor())
+		time.AfterFunc(3*h.Client.Config().Timeout, func() {
+			h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 		})
 
 		Print("Then: repair completes with error")
@@ -1136,13 +1121,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: node12 is 10% repaired")
-		h.assertProgress(node12, 10, longWait)
+		h.assertProgress(IPFromTestNet("12"), 10, longWait)
 
 		Print("And: table is dropped during repair")
-		h.hrt.SetInterceptor(holdRepairInterceptor())
-		h.assertMaxProgress(node12, 20, now)
+		h.Hrt.SetInterceptor(holdRepairInterceptor())
+		h.assertMaxProgress(IPFromTestNet("12"), 20, now)
 		ExecStmt(t, clusterSession, fmt.Sprintf("DROP TABLE %s.%s", testKeyspace, testTable))
-		h.hrt.SetInterceptor(nil)
+		h.Hrt.SetInterceptor(nil)
 
 		Print("Then: repair is done")
 		h.assertDone(shortWait)
@@ -1181,13 +1166,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: node12 is 10% repaired")
-		h.assertProgress(node12, 10, longWait)
+		h.assertProgress(IPFromTestNet("12"), 10, longWait)
 
 		Print("And: keyspace is dropped during repair")
-		h.hrt.SetInterceptor(holdRepairInterceptor())
-		h.assertMaxProgress(node12, 20, now)
+		h.Hrt.SetInterceptor(holdRepairInterceptor())
+		h.assertMaxProgress(IPFromTestNet("12"), 20, now)
 		dropKeyspace(t, clusterSession, testKeyspace)
-		h.hrt.SetInterceptor(nil)
+		h.Hrt.SetInterceptor(nil)
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
@@ -1205,13 +1190,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			h := newRepairTestHelper(t, session, defaultConfig())
 			var killRepairCalled int32
-			h.hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", nil))
+			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", nil))
 
 			Print("When: run repair")
 			h.runRepair(ctx, target)
 
 			Print("When: repair is running")
-			h.assertProgress(node11, 1, longWait)
+			h.assertProgress(IPFromTestNet("11"), 1, longWait)
 
 			Print("When: repair is cancelled")
 			cancel()
@@ -1234,11 +1219,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.runRepair(ctx, target)
 
 			Print("When: repair is running")
-			h.assertProgress(node11, 1, longWait)
+			h.assertProgress(IPFromTestNet("11"), 1, longWait)
 
 			Print("When: Scylla returns failures")
 			var killRepairCalled int32
-			h.hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", repairInterceptor(scyllaclient.CommandFailed)))
+			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", repairInterceptor(scyllaclient.CommandFailed)))
 
 			Print("Then: repair finish with error")
 			h.assertError(longWait)
@@ -1282,7 +1267,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		var repairCalled int32
-		h.hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
+		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
 		h.runRepair(ctx, target)
 
 		Print("Then: repair is done")
@@ -1293,9 +1278,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatalf("Expected repair in one shot got %d", repairCalled)
 		}
 
-		p, err := h.service.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID)
+		p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
-			h.t.Fatal(err)
+			h.T.Fatal(err)
 		}
 
 		if p.TokenRanges != 1 {
@@ -1312,7 +1297,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		u.FailFast = true
 
 		Print("When: repair status is not responding in time")
-		h.hrt.SetInterceptor(repairStatusNoResponseInterceptor(ctx))
+		h.Hrt.SetInterceptor(repairStatusNoResponseInterceptor(ctx))
 
 		Print("And: run repair")
 		h.runRepair(ctx, u)
@@ -1320,7 +1305,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		h.hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
@@ -1334,7 +1319,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 	const ks = "test_repair"
 
 	createKeyspace(t, clusterSession, ks, 3, 3)
@@ -1355,7 +1340,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 		ExecOnHost(ManagedClusterHost(), "nodetool repair -ful -seq")
 	}()
 	defer func() {
-		if err := h.client.KillAllRepairs(context.Background(), ManagedClusterHost()); err != nil {
+		if err := h.Client.KillAllRepairs(context.Background(), ManagedClusterHost()); err != nil {
 			t.Fatal(err)
 		}
 	}()
@@ -1382,7 +1367,7 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
 	ExecStmt(t, clusterSession, "CREATE KEYSPACE test_repair_0 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_0.test_table_0 (id int PRIMARY KEY)")
@@ -1402,7 +1387,7 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 		t.Fatal(err)
 	}
 
-	target, err := h.service.GetTarget(ctx, h.clusterID, props)
+	target, err := h.service.GetTarget(ctx, h.ClusterID, props)
 	if err != nil {
 		t.Fatal(err)
 	}

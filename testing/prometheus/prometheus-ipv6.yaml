@@ -3,22 +3,22 @@ global:
 scrape_configs:
   - job_name: 'scylla-manager'
     static_configs:
-      - targets: ['192.168.200.1:5090']
+      - targets: ['[2001:0DB9:200::1]:5090']
   - job_name: 'scylla-agent-dc1-node1'
     static_configs:
-      - targets: ['192.168.200.11:9180']
+      - targets: ['[2001:0DB9:200::11]:9180']
   - job_name: 'scylla-agent-dc1-node2'
     static_configs:
-      - targets: ['192.168.200.12:9180']
+      - targets: ['[2001:0DB9:200::12]:9180']
   - job_name: 'scylla-agent-dc1-node3'
     static_configs:
-      - targets: ['192.168.200.13:9180']
+      - targets: ['[2001:0DB9:200::13]:9180']
   - job_name: 'scylla-agent-dc2-node1'
     static_configs:
-      - targets: ['192.168.200.21:9180']
+      - targets: ['[2001:0DB9:200::21]:9180']
   - job_name: 'scylla-agent-dc2-node2'
     static_configs:
-      - targets: ['192.168.200.22:9180']
+      - targets: ['[2001:0DB9:200::22]:9180']
   - job_name: 'scylla-agent-dc2-node3'
     static_configs:
-      - targets: ['192.168.200.23:9180']
+      - targets: ['[2001:0DB9:200::23]:9180']

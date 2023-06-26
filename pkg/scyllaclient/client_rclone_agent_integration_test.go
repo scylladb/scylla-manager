@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"path"
 	"strings"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 )
 
 var longPollingTimeoutSeconds = 1
