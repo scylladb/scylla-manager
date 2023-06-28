@@ -52,6 +52,11 @@ Let's start the development environment.
 make start-dev-env
 ```
 
+for IPv6 environment:
+```bash
+IPV6=true make start-dev-env
+```
+
 This command will:
 1. Build custom Scylla Docker image (testing/scylla)
 1. Compile server, agent and sctool binaries
@@ -100,6 +105,13 @@ This runs both unit and integration tests. You can run them separately with:
 make unit-test
 make integration-test
 make pkg-integration-test PKG=pkg/service/foo
+```
+
+For IPv6 environment:
+```bash
+make unit-test
+IPV6=true make integration-test
+IPV6=true make pkg-integration-test PKG=pkg/service/foo
 ```
 
 Project testing heavily depends on integration tests, which are slow.
