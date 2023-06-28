@@ -248,24 +248,22 @@ func (s *Service) forEachRestoredManifest(clusterID uuid.UUID, target RestoreTar
 
 // listAllViews is the utility function that queries system_schema.views table to get list of all views created on the cluster.
 // system_schema.views contains view definitions for materialized views and for secondary indexes.
-func (s *Service) listAllViews(ctx context.Context, clusterID uuid.UUID) (views []string, err error) {
-	// Get cluster session
+func (s *Service) listAllViews(ctx context.Context, clusterID uuid.UUID) ([]string, error) {
 	clusterSession, err := s.clusterSession(ctx, clusterID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get CQL cluster session")
 	}
+	defer clusterSession.Close()
 
 	iter := qb.Select("system_schema.views").
 		Columns("keyspace_name", "view_name").
 		Query(clusterSession).Iter()
-	defer func() {
-		err = iter.Close()
-	}()
 
+	var views []string
 	var keyspace, view string
 	for iter.Scan(&keyspace, &view) {
 		views = append(views, keyspace+"."+view)
 	}
 
-	return
+	return views, iter.Close()
 }
