@@ -267,7 +267,8 @@ func TestRestoreGetUnitsIntegration(t *testing.T) {
 			Keyspace: testKeyspace,
 			Tables: []RestoreTable{
 				{
-					Table: BigTableName,
+					Table:       BigTableName,
+					TombstoneGC: "timeout",
 				},
 			},
 		},
@@ -1170,6 +1171,18 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 
 	if target.RestoreSchema {
 		h.restartScylla()
+	}
+
+	// Validate restored tombstone_gc mode
+	for _, t := range tables {
+		kst := strings.Split(t, ".")
+		mode, err := h.service.GetTableTombstoneGC(context.Background(), h.ClusterID, kst[0], kst[1])
+		if err != nil {
+			h.T.Fatalf("Couldn't check %s tombstone_gc mode: %s", t, err)
+		}
+		if mode != "timeout" {
+			h.T.Fatalf("Expected 'timeout' tombstone_gc mode, got: %s", mode)
+		}
 	}
 
 	Print("When: query contents of restored table")

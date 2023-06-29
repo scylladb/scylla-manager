@@ -167,16 +167,13 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
 
-	if target.Continue {
-		if err = tools.decorateWithPrevRun(ctx, run); err != nil {
-			return err
-		}
-
-		if run.PrevID != uuid.Nil {
-			tools.clonePrevProgress(ctx, run)
-		} else {
-			s.metrics.Restore.ResetClusterMetrics(clusterID)
-		}
+	if err = tools.decorateWithPrevRun(ctx, run, target.Continue); err != nil {
+		return err
+	}
+	if run.PrevID != uuid.Nil {
+		tools.clonePrevProgress(ctx, run)
+	} else {
+		s.metrics.Restore.ResetClusterMetrics(clusterID)
 	}
 	tools.insertRun(ctx, run)
 
