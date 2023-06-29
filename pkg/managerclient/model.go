@@ -957,7 +957,7 @@ func (bp BackupProgress) addHeader(w io.Writer) error {
 func (bp BackupProgress) status() string {
 	stage := BackupStageName(bp.Progress.Stage)
 	s := bp.Run.Status
-	if s != "NEW" && s != "DONE" && stage != "" {
+	if s != TaskStatusNew && s != TaskStatusDone && stage != "" {
 		s += " (" + stage + ")"
 	}
 	return s
@@ -989,9 +989,7 @@ End time:	{{ FormatTime .EndTime }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
 {{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
-{{- if ne .SnapshotTag "" }}
 Snapshot Tag:	{{ .SnapshotTag }}
-{{- end }}
 {{ end -}}
 {{- if .Errors -}}
 Errors:	{{ range .Errors }}
@@ -1014,12 +1012,15 @@ func (rp RestoreProgress) addHeader(w io.Writer) error {
 
 // status returns task status with optional restore stage.
 func (rp RestoreProgress) status() string {
+	stage := RestoreStageName(rp.Progress.Stage)
 	s := rp.Run.Status
-	if s == "DONE" {
+	if s != TaskStatusNew && s != TaskStatusDone && stage != "" {
+		s += " (" + stage + ")"
+	}
+	if s == TaskStatusDone {
 		if len(rp.Progress.Keyspaces) == 1 && rp.Progress.Keyspaces[0].Keyspace == "system_schema" {
 			return "DONE - restart required (see restore docs)"
 		}
-		return "DONE - tombstone_gc mode reset and repair required (see restore docs)"
 	}
 	return s
 }
@@ -1033,6 +1034,10 @@ func (rp RestoreProgress) hideKeyspace(keyspace string) bool {
 
 // Render renders *RestoreProgress in a tabular format.
 func (rp RestoreProgress) Render(w io.Writer) error {
+	if rp.Progress != nil {
+		fmt.Fprintf(w, "Restore progress\n")
+	}
+
 	if err := rp.addHeader(w); err != nil {
 		return err
 	}
@@ -1050,7 +1055,26 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+
+	// Check if there is repair progress to display
+	if rp.Progress.RepairProgress == nil {
+		return nil
+	}
+
+	fmt.Fprintf(w, "\nPost-restore repair progress:\n")
+
+	repairRunPr := &models.TaskRunRepairProgress{
+		Progress: rp.Progress.RepairProgress,
+		Run:      rp.Run,
+	}
+	repairPr := RepairProgress{
+		TaskRunRepairProgress: repairRunPr,
+		Task:                  rp.Task,
+		Detailed:              rp.Detailed,
+		keyspaceFilter:        rp.KeyspaceFilter,
+	}
+
+	return repairPr.Render(w)
 }
 
 func (rp RestoreProgress) addKeyspaceProgress(t *table.Table) {
