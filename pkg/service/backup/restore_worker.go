@@ -341,10 +341,33 @@ func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, 
 
 	run, err := w.GetRun(ctx, w.ClusterID, w.TaskID, w.RunID)
 	if err != nil {
-		return RestoreProgress{}, err
+		return RestoreProgress{}, errors.Wrap(err, "get restore run")
 	}
 
-	return w.aggregateProgress(ctx, run), nil
+	pr := w.aggregateProgress(ctx, run)
+
+	// Check if repair progress needs to be filled
+	if run.RepairTaskID == uuid.Nil {
+		return pr, nil
+	}
+
+	q := table.RepairRun.SelectQuery(w.managerSession).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.RepairTaskID,
+	})
+
+	var repairRun repair.Run
+	if err = q.GetRelease(&repairRun); err != nil {
+		return pr, errors.Wrap(err, "get repair run")
+	}
+
+	repairPr, err := w.repairSvc.GetProgress(ctx, repairRun.ClusterID, repairRun.TaskID, repairRun.ID)
+	if err != nil {
+		return pr, errors.Wrap(err, "get repair progress")
+	}
+
+	pr.RepairProgress = &repairPr
+	return pr, nil
 }
 
 // sstableID returns ID from SSTable name.

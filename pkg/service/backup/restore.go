@@ -230,6 +230,7 @@ func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, run
 			TaskID:    taskID,
 			RunID:     runID,
 		},
+		repairSvc:      s.repairSvc,
 		managerSession: s.session,
 	}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -169,6 +170,7 @@ type restoreProgress struct {
 // RestoreProgress groups restore progress for all restored keyspaces.
 type RestoreProgress struct {
 	restoreProgress
+	RepairProgress *repair.Progress `json:"repair_progress"`
 
 	SnapshotTag string                    `json:"snapshot_tag"`
 	Keyspaces   []RestoreKeyspaceProgress `json:"keyspaces,omitempty"`
