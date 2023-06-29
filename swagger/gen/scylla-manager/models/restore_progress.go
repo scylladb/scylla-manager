@@ -32,6 +32,9 @@ type RestoreProgress struct {
 	// keyspaces
 	Keyspaces []*RestoreKeyspaceProgress `json:"keyspaces"`
 
+	// repair progress
+	RepairProgress *RepairProgress `json:"repair_progress,omitempty"`
+
 	// restored
 	Restored int64 `json:"restored,omitempty"`
 
@@ -58,6 +61,10 @@ func (m *RestoreProgress) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateKeyspaces(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRepairProgress(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -104,6 +111,24 @@ func (m *RestoreProgress) validateKeyspaces(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *RestoreProgress) validateRepairProgress(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RepairProgress) { // not required
+		return nil
+	}
+
+	if m.RepairProgress != nil {
+		if err := m.RepairProgress.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("repair_progress")
+			}
+			return err
+		}
 	}
 
 	return nil

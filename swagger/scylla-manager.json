@@ -798,6 +798,9 @@
           "type": "string",
           "format": "date-time",
           "x-nullable": true
+        },
+        "repair_progress": {
+          "$ref": "#/definitions/RepairProgress"
         }
       }
     },
