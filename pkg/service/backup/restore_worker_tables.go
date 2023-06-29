@@ -29,15 +29,48 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		w.initRemainingBytesMetric(ctx, run, target)
 	}
 
-	if run.Stage.Index() <= StageRestoreData.Index() {
-		if err := w.stageRestoreData(ctx, run, target); err != nil {
-			return errors.Wrap(err, "restore data")
-		}
+	stageFunc := map[RestoreStage]func() error{
+		StageRestoreDisableTGC: func() error {
+			w.AwaitSchemaAgreement(ctx, w.clusterSession)
+			for _, u := range run.Units {
+				for _, t := range u.Tables {
+					if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, modeDisabled); err != nil {
+						return errors.Wrap(err, "disable table's tombstone_gc")
+					}
+				}
+			}
+			return nil
+		},
+		StageRestoreData: func() error {
+			return w.stageRestoreData(ctx, run, target)
+		},
+		StageRestoreRepair: func() error {
+			return w.stageRepair(ctx, run, target)
+		},
+		StageRestoreEnableTGC: func() error {
+			w.AwaitSchemaAgreement(ctx, w.clusterSession)
+			for _, u := range run.Units {
+				for _, t := range u.Tables {
+					if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, t.TombstoneGC); err != nil {
+						return errors.Wrap(err, "enable table's tombstone_gc")
+					}
+				}
+			}
+			return nil
+		},
 	}
 
-	if run.Stage.Index() <= StageRestoreRepair.Index() {
-		if err := w.stageRepair(ctx, run, target); err != nil {
-			return errors.Wrap(err, "repair")
+	for i, s := range RestoreStageOrder {
+		if i < run.Stage.Index() {
+			continue
+		}
+		run.Stage = s
+		w.insertRun(ctx, run)
+
+		if f, ok := stageFunc[s]; ok {
+			if err := f(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -45,23 +78,9 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 }
 
 func (w *tablesWorker) stageRestoreData(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
-	run.Stage = StageRestoreData
-	w.insertRun(ctx, run)
-
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.Logger.Info(ctx, "Started restoring tables")
 	defer w.Logger.Info(ctx, "Restoring tables finished")
-
-	// Disable tombstone_gc
-	for _, u := range run.Units {
-		for _, t := range u.Tables {
-			if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, modeDisabled); err != nil {
-				return errors.Wrap(err, "disable table's tombstone_gc")
-			}
-		}
-	}
-	// Disabling table's ggs alters schema, so we need to wait for the agreement again
-	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 
 	// Restore locations in deterministic order
 	for _, l := range target.Location {
@@ -181,7 +200,6 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context, run *RestoreRun, _ RestoreTarget) error {
-	run.Stage = StageRestoreRepair
 	if run.RepairTaskID == uuid.Nil {
 		run.RepairTaskID = uuid.NewTime()
 	}

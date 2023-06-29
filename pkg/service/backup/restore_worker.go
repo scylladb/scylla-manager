@@ -95,10 +95,12 @@ func (w *restoreWorkerTools) newUnits(ctx context.Context, target RestoreTarget)
 	}
 
 	for _, u := range units {
-		for _, t := range u.Tables {
-			if err := w.ValidateTableExists(ctx, u.Keyspace, t.Table); err != nil {
-				return nil, err
+		for i, t := range u.Tables {
+			mode, err := w.GetTableTombstoneGC(u.Keyspace, t.Table)
+			if err != nil {
+				return nil, errors.Wrapf(err, "get tombstone_gc of %s.%s", u.Keyspace, t.Table)
 			}
+			u.Tables[i].TombstoneGC = mode
 		}
 	}
 
@@ -231,8 +233,37 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 	return retry.WithNotify(ctx, op, backoff, notify)
 }
 
+// GetTableTombstoneGC returns table's tombstone_gc mode.
+func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombstoneGCMode, error) {
+	var ext map[string]string
+
+	err := qb.Select("system_schema.tables").
+		Columns("extensions").
+		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
+		Query(w.clusterSession).
+		Bind(keyspace, table).
+		Scan(&ext)
+	if err != nil {
+		return "", err
+	}
+
+	// Timeout (just using gc_grace_seconds) is the default mode
+	mode, ok := ext["tombstone_gc"]
+	if !ok {
+		return modeTimeout, nil
+	}
+
+	allModes := []tombstoneGCMode{modeDisabled, modeTimeout, modeRepair, modeImmediate}
+	for _, m := range allModes {
+		if strings.Contains(mode, string(m)) {
+			return m, nil
+		}
+	}
+	return "", errors.Errorf("unrecognised tombstone_gc mode: %s", mode)
+}
+
 func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
-	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode': '%s'}`, mode, keyspace, table)
+	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
 }
 
 func (w *restoreWorkerTools) insertRun(ctx context.Context, run *RestoreRun) {
@@ -264,28 +295,32 @@ func (w *restoreWorkerTools) deleteRunProgress(ctx context.Context, pr *RestoreR
 
 // decorateWithPrevRun gets restore task previous run and if it is not done
 // sets prev ID on the given run.
-func (w *restoreWorkerTools) decorateWithPrevRun(ctx context.Context, run *RestoreRun) error {
+func (w *restoreWorkerTools) decorateWithPrevRun(ctx context.Context, run *RestoreRun, cont bool) error {
 	prev, err := w.GetRun(ctx, run.ClusterID, run.TaskID, uuid.Nil)
-	if errors.Is(err, gocql.ErrNotFound) {
-		return nil
-	}
 	if err != nil {
+		if errors.Is(err, gocql.ErrNotFound) {
+			return nil
+		}
 		return errors.Wrap(err, "get run")
 	}
+
 	if prev.Stage == StageRestoreDone {
 		return nil
 	}
 
-	w.Logger.Info(ctx, "Resuming previous run", "prev_run_id", prev.ID)
-
-	run.PrevID = prev.ID
-	run.Location = prev.Location
-	run.ManifestPath = prev.ManifestPath
-	run.Keyspace = prev.Keyspace
-	run.Table = prev.Table
-	run.Stage = prev.Stage
+	// Always copy Units as they contain information about original tombstone_gc mode
 	run.Units = prev.Units
+	if cont {
+		run.PrevID = prev.ID
+		run.Location = prev.Location
+		run.ManifestPath = prev.ManifestPath
+		run.Keyspace = prev.Keyspace
+		run.Table = prev.Table
+		run.Stage = prev.Stage
+		run.RepairTaskID = prev.RepairTaskID
+	}
 
+	w.Logger.Info(ctx, "Decorated run", "run", *run)
 	return nil
 }
 

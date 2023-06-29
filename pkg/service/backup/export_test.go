@@ -52,3 +52,13 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 func (t Target) Hosts() []string {
 	return t.liveNodes.Hosts()
 }
+
+func (s *Service) GetTableTombstoneGC(ctx context.Context, clusterID uuid.UUID, keyspace, table string) (string, error) {
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return "", err
+	}
+	tools := restoreWorkerTools{clusterSession: clusterSession}
+	mode, err := tools.GetTableTombstoneGC(keyspace, table)
+	return string(mode), err
+}
