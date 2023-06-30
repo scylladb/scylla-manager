@@ -13,7 +13,7 @@ Prerequisites
 
 * Scylla Manager with CQL credentials to restore destination cluster.
 
-* It is strongly advised to restore schema only into an empty cluster.
+* It is strongly advised to restore schema only into an empty cluster with no schema change history of the keyspace that is going to be restored.
    Otherwise, the restored schema might be overwritten by the already existing one and cause unexpected errors.
 
 * All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
