@@ -990,7 +990,8 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
 {{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
 Snapshot Tag:	{{ .SnapshotTag }}
-{{ end -}}
+{{ else }}Progress:	0%
+{{ end }}
 {{- if .Errors -}}
 Errors:	{{ range .Errors }}
   - {{ . }}
@@ -1012,15 +1013,18 @@ func (rp RestoreProgress) addHeader(w io.Writer) error {
 
 // status returns task status with optional restore stage.
 func (rp RestoreProgress) status() string {
-	stage := RestoreStageName(rp.Progress.Stage)
 	s := rp.Run.Status
-	if s != TaskStatusNew && s != TaskStatusDone && stage != "" {
-		s += " (" + stage + ")"
+	if rp.Progress == nil {
+		return s
 	}
 	if s == TaskStatusDone {
 		if len(rp.Progress.Keyspaces) == 1 && rp.Progress.Keyspaces[0].Keyspace == "system_schema" {
 			return "DONE - restart required (see restore docs)"
 		}
+	}
+	stage := RestoreStageName(rp.Progress.Stage)
+	if s != TaskStatusNew && s != TaskStatusDone && stage != "" {
+		s += " (" + stage + ")"
 	}
 	return s
 }
@@ -1037,12 +1041,14 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 	if rp.Progress != nil {
 		fmt.Fprintf(w, "Restore progress\n")
 	}
-
 	if err := rp.addHeader(w); err != nil {
 		return err
 	}
+	if rp.Progress == nil {
+		return nil
+	}
 
-	if rp.Progress != nil && rp.Progress.Size > 0 {
+	if rp.Progress.Size > 0 {
 		t := table.New()
 		rp.addKeyspaceProgress(t)
 		if _, err := io.WriteString(w, t.String()); err != nil {
@@ -1050,7 +1056,7 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 		}
 	}
 
-	if rp.Detailed && rp.Progress != nil && rp.Progress.Size > 0 {
+	if rp.Detailed && rp.Progress.Size > 0 {
 		if err := rp.addTableProgress(w); err != nil {
 			return err
 		}
