@@ -355,7 +355,33 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		RestoreTables: true,
 	}
 
-	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
+	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+}
+
+func TestRestoreTablesSmokeNoReplicationIntegration(t *testing.T) {
+	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
+	const (
+		testLoadCnt   = 2
+		testLoadSize  = 2
+		testBatchSize = 1
+		testParallel  = 0
+	)
+
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
+		},
+		Keyspace:      []string{testKeyspace},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+
+	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'SimpleStrategy', 'replication_factor': 1}")
 }
 
 func TestRestoreSchemaSmokeIntegration(t *testing.T) {
@@ -380,10 +406,10 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 		RestoreSchema: true,
 	}
 
-	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
+	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
-func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int, user string) {
+func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int, user, replication string) {
 	var (
 		ctx          = context.Background()
 		cfg          = DefaultConfig()
@@ -403,7 +429,8 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
-		WriteData(t, dstSession, keyspace, 0)
+		ExecStmt(t, dstSession, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
+		ExecStmt(t, dstSession, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, BigTableName))
 	}
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
