@@ -607,10 +607,6 @@ func restoreWithResume(t *testing.T, target RestoreTarget, keyspace string, load
 		body, _ := io.ReadAll(tee)
 		resp.Body = io.NopCloser(&copiedBody)
 
-		if strings.Contains(resp.Request.URL.Path, "repair") {
-			fmt.Println("")
-		}
-
 		// Response to repair status
 		if resp.Request.URL.Path == "/storage_service/repair_status" && resp.Request.Method == http.MethodGet && resp.Request.URL.Query()["id"][0] != "-1" {
 			status := string(body)

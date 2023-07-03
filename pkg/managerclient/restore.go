@@ -4,17 +4,21 @@ package managerclient
 
 // Stage enumeration.
 const (
-	RestoreStageInit   = "INIT"
-	RestoreStageData   = "DATA"
-	RestoreStageRepair = "REPAIR"
-	RestoreStageDone   = "DONE"
+	RestoreStageInit       = "INIT"
+	RestoreStageDisableTGC = "DISABLE_TGC"
+	RestoreStageData       = "DATA"
+	RestoreStageRepair     = "REPAIR"
+	RestoreStageEnableTG   = "ENABLE_TGC"
+	RestoreStageDone       = "DONE"
 )
 
 var restoreStageName = map[string]string{
-	RestoreStageInit:   "initialising",
-	RestoreStageData:   "restoring backed-up data",
-	RestoreStageRepair: "repairing restored tables",
-	RestoreStageDone:   "",
+	RestoreStageInit:       "initialising",
+	RestoreStageDisableTGC: "disabling restored tables tombstone_gc",
+	RestoreStageData:       "restoring backed-up data",
+	RestoreStageRepair:     "repairing restored tables",
+	RestoreStageEnableTG:   "enabling restored tables tombstone_gc",
+	RestoreStageDone:       "",
 }
 
 // RestoreStageName returns verbose name for restore stage.

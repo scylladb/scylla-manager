@@ -69,8 +69,8 @@ const (
 	StageRestoreDisableTGC              = "DISABLE_TGC"
 	StageRestoreData       RestoreStage = "DATA"
 	StageRestoreRepair     RestoreStage = "REPAIR"
-	StageRestoreDone       RestoreStage = "DONE"
 	StageRestoreEnableTGC               = "ENABLE_TGC"
+	StageRestoreDone       RestoreStage = "DONE"
 )
 
 // RestoreStageOrder lists all restore stages in the order of their execution.
