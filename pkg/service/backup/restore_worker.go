@@ -83,7 +83,7 @@ func (w *restoreWorkerTools) newUnits(ctx context.Context, target RestoreTarget)
 	}
 
 	if !foundManifest {
-		return nil, errors.Errorf("no snapshot with given tag: %s", target.SnapshotTag)
+		return nil, errors.Errorf("no snapshot with tag %s", target.SnapshotTag)
 	}
 
 	for _, u := range unitMap {
@@ -143,7 +143,7 @@ func (w *restoreWorkerTools) cleanUploadDir(ctx context.Context, host, uploadDir
 	return nil
 }
 
-func (w *restoreWorkerTools) ValidateTableExists(ctx context.Context, keyspace, table string) error {
+func (w *restoreWorkerTools) ValidateTableExists(keyspace, table string) error {
 	q := qb.Select("system_schema.tables").
 		Columns("table_name").
 		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
@@ -153,7 +153,7 @@ func (w *restoreWorkerTools) ValidateTableExists(ctx context.Context, keyspace, 
 
 	var name string
 	if err := q.Scan(&name); err != nil {
-		return errors.Wrap(err, "validate table exists")
+		return err
 	}
 
 	return nil

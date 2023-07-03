@@ -177,11 +177,21 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 	tools.insertRun(ctx, run)
 
-	// As manifests are immutable, units can be initialized only once per task
 	if run.Units == nil {
+		// Units must be initialised only once, as they contain the original tombstone_gc mode
+		// which is altered during restore tables.
 		run.Units, err = tools.newUnits(ctx, target)
 		if err != nil {
 			return errors.Wrap(err, "initialize units")
+		}
+	} else {
+		// Check that all units are still present after resume
+		for _, u := range run.Units {
+			for _, t := range u.Tables {
+				if err = tools.ValidateTableExists(u.Keyspace, t.Table); err != nil {
+					return errors.Wrapf(err, "validate table %s.%s still exists", u.Keyspace, t.Table)
+				}
+			}
 		}
 	}
 
