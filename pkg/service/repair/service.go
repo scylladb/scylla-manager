@@ -65,6 +65,9 @@ func (s *Service) Runner() Runner {
 	return Runner{service: s}
 }
 
+// ErrEmptyRepair is returned when there is nothing to repair (e.g. repaired keyspaces are not replicated).
+var ErrEmptyRepair = errors.New("nothing to repair")
+
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
 	p := defaultTaskProperties()
@@ -176,7 +179,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Get the filtered units
 	t.Units, err = f.Apply(false)
 	if err != nil {
-		return t, err
+		return t, errors.Wrap(ErrEmptyRepair, err.Error())
 	}
 
 	// Ignore nodes in status DOWN

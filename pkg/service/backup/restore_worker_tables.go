@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -200,11 +201,6 @@ func (w *tablesWorker) initHosts(ctx context.Context, run *RestoreRun) error {
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context, run *RestoreRun, _ RestoreTarget) error {
-	if run.RepairTaskID == uuid.Nil {
-		run.RepairTaskID = uuid.NewTime()
-	}
-	w.insertRun(ctx, run)
-
 	var keyspace []string
 	for _, u := range run.Units {
 		for _, t := range u.Tables {
@@ -220,10 +216,18 @@ func (w *tablesWorker) stageRepair(ctx context.Context, run *RestoreRun, _ Resto
 
 	repairTarget, err := w.repairSvc.GetTarget(ctx, run.ClusterID, repairProps)
 	if err != nil {
+		if errors.Is(err, repair.ErrEmptyRepair) {
+			return nil
+		}
 		return errors.Wrap(err, "get repair target")
 	}
 
+	if run.RepairTaskID == uuid.Nil {
+		run.RepairTaskID = uuid.NewTime()
+	}
+	w.insertRun(ctx, run)
 	repairRunID := uuid.NewTime()
+
 	return w.repairSvc.Repair(ctx, run.ClusterID, run.RepairTaskID, repairRunID, repairTarget)
 }
 
