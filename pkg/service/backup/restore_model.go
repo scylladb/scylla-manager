@@ -83,7 +83,9 @@ type RestoreRun struct {
 
 	RepairTaskID uuid.UUID // task ID of the automated post-restore repair
 
-	Units []RestoreUnit // cache that's initialized once for entire task
+	// Cache that's initialized once for entire task
+	Units []RestoreUnit
+	Views []RestoreView
 }
 
 // RestoreUnit represents restored keyspace and its tables with their size.
@@ -116,6 +118,34 @@ func (t RestoreTable) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, erro
 }
 
 func (t *RestoreTable) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
+	return gocql.Unmarshal(info, data, f.Addr().Interface())
+}
+
+// ViewType either Materialized View or Secondary Index.
+type ViewType string
+
+// ViewType enumeration.
+const (
+	MaterializedView ViewType = "MaterializedView"
+	SecondaryIndex   ViewType = "SecondaryIndex"
+)
+
+// RestoreView represents statement used for recreating restored (dropped) views.
+type RestoreView struct {
+	Keyspace   string   `db:"keyspace_name"`
+	View       string   `db:"view_name"`
+	Type       ViewType `db:"view_type"`
+	BaseTable  string
+	CreateStmt string
+}
+
+func (t RestoreView) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
+	return gocql.Marshal(info, f.Interface())
+}
+
+func (t *RestoreView) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
