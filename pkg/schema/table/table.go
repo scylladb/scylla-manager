@@ -191,6 +191,7 @@ var (
 			"stage",
 			"table_name",
 			"units",
+			"views",
 		},
 		PartKey: []string{
 			"cluster_id",
