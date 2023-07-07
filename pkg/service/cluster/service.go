@@ -111,20 +111,37 @@ func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	}
 	defer client.Close()
 
-	hosts, err := s.discoverHosts(ctx, client)
+	s.updateKnownHosts(ctx, c, client)
+
+	hosts, err := s.discoverHostsFromClosestDC(ctx, client)
 	if err != nil {
 		return nil, errors.Wrap(err, "discover cluster topology")
 	}
-	if err := s.setKnownHosts(c, hosts); err != nil {
-		return nil, errors.Wrap(err, "update cluster")
-	}
-
-	return s.createClient(c)
+	return s.createClientToSpecificHosts(c, hosts)
 }
 
-func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
+func (s *Service) updateKnownHosts(ctx context.Context, c *Cluster, client *scyllaclient.Client) {
+	status, err := client.Status(ctx)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to update known hosts",
+			"cluster_id", c.ID, "error", errors.Wrap(err, "get connection status").Error())
+		return
+	}
+
+	allHosts := status.Hosts()
+	if len(allHosts) == 0 {
+		s.logger.Error(ctx, "Failed to update known hosts", "cluster_id", c.ID, "error", "no hosts available")
+		return
+	}
+
+	if err = s.setKnownHosts(c, allHosts); err != nil {
+		s.logger.Error(ctx, "Failed to update known hosts", "cluster_id", c.ID, "error", err.Error())
+	}
+}
+
+func (s *Service) createClientToSpecificHosts(c *Cluster, hosts []string) (*scyllaclient.Client, error) {
 	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
-	config.Hosts = c.KnownHosts
+	config.Hosts = hosts
 	if c.Port != 0 {
 		config.Port = fmt.Sprint(c.Port)
 	}
@@ -133,10 +150,14 @@ func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
 	return scyllaclient.NewClient(config, s.logger.Named("client"))
 }
 
-// discoverHosts returns a list of all hosts sorted by DC speed. This is
+func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
+	return s.createClientToSpecificHosts(c, c.KnownHosts)
+}
+
+// discoverHostsFromClosestDC returns a list of all hosts sorted by DC speed. This is
 // an optimisation for Epsilon-Greedy host pool used internally by
 // scyllaclient.Client that makes it use supposedly faster hosts first.
-func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client) (hosts []string, err error) {
+func (s *Service) discoverHostsFromClosestDC(ctx context.Context, client *scyllaclient.Client) (hosts []string, err error) {
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
 		return nil, err
