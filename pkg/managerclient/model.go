@@ -1111,7 +1111,7 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 		}
 		fmt.Fprintf(w, "\nKeyspace: %s\n", ks.Keyspace)
 
-		t := table.New("Table", "Progress", "Size", "Success", "Downloaded", "Failed", "Started at", "Completed at")
+		t := table.New("Table", "Progress", "Size", "Success", "Downloaded", "Failed", "Started at", "Completed at", "tombstone_gc mode")
 		for i, tab := range ks.Tables {
 			if i > 0 {
 				t.AddSeparator()
@@ -1137,6 +1137,7 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 				FormatSizeSuffix(tab.Failed),
 				FormatTime(startedAt),
 				FormatTime(completedAt),
+				tab.TombstoneGc,
 			)
 		}
 		t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4, 5)

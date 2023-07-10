@@ -27,7 +27,8 @@ func (w *restoreWorkerTools) aggregateProgress(ctx context.Context, run *Restore
 		for _, t := range u.Tables {
 			key.table = t.Table
 			tableMap[key] = &RestoreTableProgress{
-				Table: t.Table,
+				Table:       t.Table,
+				TombstoneGC: t.TombstoneGC,
 				restoreProgress: restoreProgress{
 					Size:        t.Size,
 					StartedAt:   &maxTime,
