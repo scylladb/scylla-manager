@@ -1063,24 +1063,27 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 	}
 
 	// Check if there is repair progress to display
-	if rp.Progress.RepairProgress == nil {
-		return nil
+	if rp.Progress.RepairProgress != nil {
+		fmt.Fprintf(w, "\nPost-restore repair progress\n")
+
+		repairRunPr := &models.TaskRunRepairProgress{
+			Progress: rp.Progress.RepairProgress,
+			Run:      rp.Run,
+		}
+		repairPr := RepairProgress{
+			TaskRunRepairProgress: repairRunPr,
+			Task:                  rp.Task,
+			Detailed:              rp.Detailed,
+			keyspaceFilter:        rp.KeyspaceFilter,
+		}
+
+		if err := repairPr.Render(w); err != nil {
+			return err
+		}
 	}
 
-	fmt.Fprintf(w, "\nPost-restore repair progress:\n")
-
-	repairRunPr := &models.TaskRunRepairProgress{
-		Progress: rp.Progress.RepairProgress,
-		Run:      rp.Run,
-	}
-	repairPr := RepairProgress{
-		TaskRunRepairProgress: repairRunPr,
-		Task:                  rp.Task,
-		Detailed:              rp.Detailed,
-		keyspaceFilter:        rp.KeyspaceFilter,
-	}
-
-	return repairPr.Render(w)
+	rp.addViewProgress(w)
+	return nil
 }
 
 func (rp RestoreProgress) addKeyspaceProgress(t *table.Table) {
@@ -1146,6 +1149,21 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+func (rp RestoreProgress) addViewProgress(w io.Writer) {
+	if len(rp.Progress.Views) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintf(w, "\nRestored views\n")
+	for _, v := range rp.Progress.Views {
+		if rp.Detailed {
+			_, _ = fmt.Fprintf(w, "View: %s.%s, Status: %s, Schema definition:\n  %s\n", v.Keyspace, v.View, v.Status, v.CreateStmt)
+		} else {
+			_, _ = fmt.Fprintf(w, "View: %s.%s, Status: %s\n", v.Keyspace, v.View, v.Status)
+		}
+	}
 }
 
 // ValidateBackupProgress prints validate_backup task progress.
