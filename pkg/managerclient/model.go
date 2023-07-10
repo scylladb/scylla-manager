@@ -1062,12 +1062,14 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 		}
 	}
 
+	rp.addViewProgress(w)
+
 	// Check if there is repair progress to display
 	if rp.Progress.RepairProgress == nil {
 		return nil
 	}
 
-	fmt.Fprintf(w, "\nPost-restore repair progress:\n")
+	fmt.Fprintf(w, "\nPost-restore repair progress\n")
 
 	repairRunPr := &models.TaskRunRepairProgress{
 		Progress: rp.Progress.RepairProgress,
@@ -1146,6 +1148,21 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+func (rp RestoreProgress) addViewProgress(w io.Writer) {
+	if len(rp.Progress.Views) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintf(w, "\nRestored views\n")
+	for _, v := range rp.Progress.Views {
+		if rp.Detailed {
+			_, _ = fmt.Fprintf(w, "View: %s.%s, Status: %s, Schema definition:\n  %s\n", v.Keyspace, v.View, v.Status, v.CreateStmt)
+		} else {
+			_, _ = fmt.Fprintf(w, "View: %s.%s, Status: %s\n", v.Keyspace, v.View, v.Status)
+		}
+	}
 }
 
 // ValidateBackupProgress prints validate_backup task progress.
