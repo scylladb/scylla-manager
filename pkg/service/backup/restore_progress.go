@@ -8,6 +8,7 @@ import (
 
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // aggregateProgress returns restore progress information classified by keyspace and tables.
@@ -66,6 +67,22 @@ func (w *restoreWorkerTools) aggregateProgress(ctx context.Context, run *Restore
 	}
 
 	p.extremeToNil()
+
+	for _, v := range run.Views {
+		status, err := w.Client.ViewBuildStatus(ctx, v.Keyspace, v.View)
+		if err != nil {
+			w.Logger.Error(ctx, "Couldn't get view build status",
+				"keyspace", v.Keyspace,
+				"view", v.View,
+				"error", err,
+			)
+			status = scyllaclient.StatusUnknown
+		}
+		p.Views = append(p.Views, RestoreViewProgress{
+			RestoreView: v,
+			Status:      status,
+		})
+	}
 
 	return p
 }

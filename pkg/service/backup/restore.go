@@ -250,11 +250,18 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 // GetRestoreProgress aggregates progress for the run of the task and breaks it down
 // by keyspace and table.json.
 func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (RestoreProgress, error) {
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return RestoreProgress{}, errors.Wrap(err, "get client")
+	}
+
 	w := &restoreWorkerTools{
 		workerTools: workerTools{
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			RunID:     runID,
+			Client:    client,
+			Logger:    s.logger.Named("restore"),
 		},
 		repairSvc:      s.repairSvc,
 		managerSession: s.session,
