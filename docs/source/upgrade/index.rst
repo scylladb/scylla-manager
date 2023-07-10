@@ -9,10 +9,9 @@ Applicable versions
 
 This guide covers the general steps for upgrading Scylla Manager between any two versions on the following platforms:
 
-- Red Hat Enterprise Linux, version 7
-- CentOS, version 7
-- Debian, version 9
-- Ubuntu, versions 16.04, 18.04
+- Red Hat Enterprise Linux, versions 7 and 8
+- Debian, versions 10 and 11
+- Ubuntu, versions 18.04, 20.04, 22.04
 
 Upgrade Procedure
 =================
