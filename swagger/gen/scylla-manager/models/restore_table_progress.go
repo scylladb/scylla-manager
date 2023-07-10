@@ -42,6 +42,9 @@ type RestoreTableProgress struct {
 
 	// table
 	Table string `json:"table,omitempty"`
+
+	// tombstone gc
+	TombstoneGc string `json:"tombstone_gc,omitempty"`
 }
 
 // Validate validates this restore table progress

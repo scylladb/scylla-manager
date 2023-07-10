@@ -50,6 +50,9 @@ type RestoreProgress struct {
 	// started at
 	// Format: date-time
 	StartedAt *strfmt.DateTime `json:"started_at,omitempty"`
+
+	// views
+	Views []*RestoreViewProgress `json:"views"`
 }
 
 // Validate validates this restore progress
@@ -69,6 +72,10 @@ func (m *RestoreProgress) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateViews(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -142,6 +149,31 @@ func (m *RestoreProgress) validateStartedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("started_at", "body", "date-time", m.StartedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *RestoreProgress) validateViews(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Views) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Views); i++ {
+		if swag.IsZero(m.Views[i]) { // not required
+			continue
+		}
+
+		if m.Views[i] != nil {
+			if err := m.Views[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("views" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

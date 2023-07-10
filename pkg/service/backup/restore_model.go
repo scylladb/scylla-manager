@@ -10,6 +10,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -90,9 +91,9 @@ type RestoreRun struct {
 
 // RestoreUnit represents restored keyspace and its tables with their size.
 type RestoreUnit struct {
-	Keyspace string `db:"keyspace_name"`
-	Size     int64
-	Tables   []RestoreTable
+	Keyspace string         `json:"keyspace" db:"keyspace_name"`
+	Size     int64          `json:"size"`
+	Tables   []RestoreTable `json:"tables"`
 }
 
 func (u RestoreUnit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
@@ -107,9 +108,9 @@ func (u *RestoreUnit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte
 
 // RestoreTable represents restored table, its size and original tombstone_gc mode.
 type RestoreTable struct {
-	Table       string `db:"table_name"`
-	TombstoneGC tombstoneGCMode
-	Size        int64
+	Table       string          `json:"table" db:"table_name"`
+	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
+	Size        int64           `json:"size"`
 }
 
 func (t RestoreTable) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
@@ -133,11 +134,11 @@ const (
 
 // RestoreView represents statement used for recreating restored (dropped) views.
 type RestoreView struct {
-	Keyspace   string   `db:"keyspace_name"`
-	View       string   `db:"view_name"`
-	Type       ViewType `db:"view_type"`
-	BaseTable  string
-	CreateStmt string
+	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
+	View       string   `json:"view" db:"view_name"`
+	Type       ViewType `json:"type" db:"view_type"`
+	BaseTable  string   `json:"base_table"`
+	CreateStmt string   `json:"create_stmt"`
 }
 
 func (t RestoreView) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
@@ -205,6 +206,7 @@ type RestoreProgress struct {
 
 	SnapshotTag string                    `json:"snapshot_tag"`
 	Keyspaces   []RestoreKeyspaceProgress `json:"keyspaces,omitempty"`
+	Views       []RestoreViewProgress     `json:"views,omitempty"`
 	Stage       RestoreStage              `json:"stage"`
 }
 
@@ -220,6 +222,14 @@ type RestoreKeyspaceProgress struct {
 type RestoreTableProgress struct {
 	restoreProgress
 
-	Table string `json:"table"`
-	Error string `json:"error,omitempty"`
+	Table       string          `json:"table"`
+	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
+	Error       string          `json:"error,omitempty"`
+}
+
+// RestoreViewProgress defines restore progress for the view.
+type RestoreViewProgress struct {
+	RestoreView
+
+	Status scyllaclient.ViewBuildStatus `json:"status"`
 }
