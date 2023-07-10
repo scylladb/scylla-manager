@@ -676,6 +676,9 @@
         "table": {
           "type": "string"
         },
+        "tombstone_gc": {
+          "type": "string"
+        },
         "size": {
           "type": "integer"
         }
@@ -772,6 +775,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/RestoreKeyspaceProgress"
+          }
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RestoreViewProgress"
           }
         },
         "stage": {
@@ -909,6 +918,29 @@
         }
       }
     },
+    "RestoreViewProgress": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "base_table": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "create_stmt": {
+          "type": "string"
+        }
+      }
+    },
     "RestoreKeyspaceProgress": {
       "type": "object",
       "properties": {
@@ -949,6 +981,9 @@
       "type": "object",
       "properties": {
         "table": {
+          "type": "string"
+        },
+        "tombstone_gc": {
           "type": "string"
         },
         "error": {
