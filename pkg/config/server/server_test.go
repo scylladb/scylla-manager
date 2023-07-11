@@ -76,7 +76,7 @@ func TestConfigModification(t *testing.T) {
 		Backup: backup.Config{
 			DiskSpaceFreeMinPercent:   1,
 			LongPollingTimeoutSeconds: 5,
-			AgeMax:                    12 * time.Hour,
+			AgeMax:                    24 * time.Hour,
 		},
 		Repair: repair.Config{
 			PollInterval:                    500 * time.Millisecond,

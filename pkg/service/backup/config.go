@@ -21,7 +21,7 @@ func DefaultConfig() Config {
 	return Config{
 		DiskSpaceFreeMinPercent:   10,
 		LongPollingTimeoutSeconds: 10,
-		AgeMax:                    12 * time.Hour,
+		AgeMax:                    24 * time.Hour,
 	}
 }
 
