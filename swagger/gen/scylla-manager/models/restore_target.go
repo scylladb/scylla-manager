@@ -38,6 +38,9 @@ type RestoreTarget struct {
 
 	// units
 	Units []*RestoreUnit `json:"units"`
+
+	// views
+	Views []*RestoreView `json:"views"`
 }
 
 // Validate validates this restore target
@@ -45,6 +48,10 @@ func (m *RestoreTarget) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateUnits(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateViews(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -69,6 +76,31 @@ func (m *RestoreTarget) validateUnits(formats strfmt.Registry) error {
 			if err := m.Units[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("units" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *RestoreTarget) validateViews(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Views) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Views); i++ {
+		if swag.IsZero(m.Views[i]) { // not required
+			continue
+		}
+
+		if m.Views[i] != nil {
+			if err := m.Views[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("views" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

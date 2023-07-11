@@ -161,6 +161,7 @@ type backupTarget struct {
 type restoreTarget struct {
 	backup.RestoreTarget
 	Units []backup.RestoreUnit
+	Views []backup.RestoreView
 	Size  int64 // Total size of restored tables in bytes.
 }
 
