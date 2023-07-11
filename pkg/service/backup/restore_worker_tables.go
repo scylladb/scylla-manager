@@ -73,12 +73,20 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 	}
 
 	stageFunc := map[RestoreStage]func() error{
+		StageRestoreDropViews: func() error {
+			for _, v := range run.Views {
+				if err := w.DropView(ctx, v); err != nil {
+					return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
+				}
+			}
+			return nil
+		},
 		StageRestoreDisableTGC: func() error {
 			w.AwaitSchemaAgreement(ctx, w.clusterSession)
 			for _, u := range run.Units {
 				for _, t := range u.Tables {
 					if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, modeDisabled); err != nil {
-						return errors.Wrap(err, "disable table's tombstone_gc")
+						return errors.Wrapf(err, "disable %s.%s tombstone_gc", u.Keyspace, t.Table)
 					}
 				}
 			}
@@ -95,8 +103,19 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 			for _, u := range run.Units {
 				for _, t := range u.Tables {
 					if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, t.TombstoneGC); err != nil {
-						return errors.Wrap(err, "enable table's tombstone_gc")
+						return errors.Wrapf(err, "enable %s.%s tombstone_gc", u.Keyspace, t.Table)
 					}
+				}
+			}
+			return nil
+		},
+		StageRestoreRecreateViews: func() error {
+			for _, v := range run.Views {
+				if err := w.CreateView(ctx, v); err != nil {
+					return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
+				}
+				if err := w.WaitForViewBuilding(ctx, v); err != nil {
+					return errors.Wrapf(err, "wait for %s.%s", v.Keyspace, v.View)
 				}
 			}
 			return nil
