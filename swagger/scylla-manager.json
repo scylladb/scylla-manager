@@ -645,6 +645,12 @@
         "size": {
           "type": "integer"
         },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RestoreView"
+          }
+        },
         "batch_size": {
           "type": "integer"
         },
@@ -667,6 +673,26 @@
           "items": {
             "$ref": "#/definitions/RestoreTable"
           }
+        }
+      }
+    },
+    "RestoreView": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "base_table": {
+          "type": "string"
+        },
+        "create_stmt": {
+          "type": "string"
         }
       }
     },
