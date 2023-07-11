@@ -55,6 +55,7 @@ type BackupService interface {
 	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
 	GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.RestoreTarget, error)
 	GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, target backup.RestoreTarget) ([]backup.RestoreUnit, error)
+	GetRestoreViews(ctx context.Context, clusterID uuid.UUID, units []backup.RestoreUnit) ([]backup.RestoreView, error)
 	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupspec.Location
 	List(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backup.ListItem, error)
 	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backupspec.FilesInfo, error)

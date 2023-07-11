@@ -126,6 +126,21 @@ func (mr *MockBackupServiceMockRecorder) GetRestoreUnits(arg0, arg1, arg2 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRestoreUnits", reflect.TypeOf((*MockBackupService)(nil).GetRestoreUnits), arg0, arg1, arg2)
 }
 
+// GetRestoreViews mocks base method.
+func (m *MockBackupService) GetRestoreViews(arg0 context.Context, arg1 uuid.UUID, arg2 []backup.RestoreUnit) ([]backup.RestoreView, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRestoreViews", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]backup.RestoreView)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRestoreViews indicates an expected call of GetRestoreViews.
+func (mr *MockBackupServiceMockRecorder) GetRestoreViews(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRestoreViews", reflect.TypeOf((*MockBackupService)(nil).GetRestoreViews), arg0, arg1, arg2)
+}
+
 // GetTarget mocks base method.
 func (m *MockBackupService) GetTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (backup.Target, error) {
 	m.ctrl.T.Helper()
