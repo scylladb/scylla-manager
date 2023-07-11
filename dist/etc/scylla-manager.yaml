@@ -101,7 +101,7 @@ http: 127.0.0.1:5080
 # Maximal time for backup run to be considered fresh and can be continued from
 # the same snapshot. If exceeded, new run with new snapshot will be created.
 # Zero means no limit.
-#  age_max: 12h
+#  age_max: 24h
 
 # Repair service configuration.
 #repair:

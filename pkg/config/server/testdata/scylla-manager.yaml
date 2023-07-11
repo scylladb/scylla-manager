@@ -39,7 +39,7 @@ healthcheck:
 backup:
   disk_space_free_min_percent: 1
   long_polling_timeout_seconds: 5
-  age_max: 12h
+  age_max: 24h
 
 repair:
   poll_interval: 500ms
