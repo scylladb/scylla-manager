@@ -131,14 +131,14 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 		h := &w.hosts[n]
 		defer func() {
 			if err != nil {
-				w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateError)
+				w.metrics.SetRestoreState(run.ClusterID, w.location, h.Host, metrics.RestoreStateError)
 				return
 			}
-			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
+			w.metrics.SetRestoreState(run.ClusterID, w.location, h.Host, metrics.RestoreStateIdle)
 		}()
 		for {
 			pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
-			w.metrics.SetRestoreState(w.ClusterID, w.location, w.miwc.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
+			w.metrics.SetRestoreState(w.ClusterID, w.location, h.Host, metrics.RestoreStateDownloading)
 
 			if ctx.Err() != nil {
 				w.Logger.Info(ctx, "Canceled context", "host", h.Host)
@@ -171,7 +171,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					return errors.Wrapf(err, "wait on rclone job, id: %d, host: %s", pr.AgentJobID, h.Host)
 				}
 			}
-			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateLoading)
+			w.metrics.SetRestoreState(run.ClusterID, w.location, h.Host, metrics.RestoreStateLoading)
 
 			if !validateTimeIsSet(pr.RestoreStartedAt) {
 				pr.setRestoreStartedAt()
@@ -191,20 +191,19 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 
 				return errors.Wrapf(err, "call load and stream, host: %s", h.Host)
 			}
-			w.metrics.SetRestoreState(run.ClusterID, w.location, target.SnapshotTag, h.Host, metrics.RestoreStateIdle)
+			w.metrics.SetRestoreState(run.ClusterID, w.location, h.Host, metrics.RestoreStateIdle)
 
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)
 			restoredBytes := pr.Downloaded + pr.Skipped + pr.VersionedProgress
 
 			labels := metrics.RestoreBytesLabels{
-				ClusterID:   w.ClusterID.String(),
-				SnapshotTag: target.SnapshotTag,
-				Location:    w.location.String(),
-				DC:          w.miwc.DC,
-				Node:        w.miwc.NodeID,
-				Keyspace:    pr.Keyspace,
-				Table:       pr.Table,
+				ClusterID: w.ClusterID.String(),
+				Location:  w.location.String(),
+				DC:        w.miwc.DC,
+				Node:      w.miwc.NodeID,
+				Keyspace:  pr.Keyspace,
+				Table:     pr.Table,
 			}
 			w.metrics.DecreaseRemainingBytes(labels, restoredBytes)
 
@@ -212,8 +211,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 			progress := w.progress.CurrentProgress()
 
 			progressLabels := metrics.RestoreProgressLabels{
-				ClusterID:   w.ClusterID.String(),
-				SnapshotTag: target.SnapshotTag,
+				ClusterID: w.ClusterID.String(),
 			}
 			w.metrics.SetProgress(progressLabels, progress)
 

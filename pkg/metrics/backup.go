@@ -36,11 +36,13 @@ func NewBackupMetrics() BackupMetrics {
 				"purge_deleted_files", "cluster", "host"),
 		},
 		Restore: RestoreM{
-			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
+			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size",
+				"cluster", "host"),
 			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
-				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-			state:    gr("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
-			progress: gr("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
+				"cluster", "location", "dc", "node", "keyspace", "table"),
+			state: gr("Defines current state of the restore process (idle/download/load/error).", "state",
+				"cluster", "location", "host"),
+			progress: gr("Defines current progress of the restore process.", "progress", "cluster"),
 		},
 	}
 }
@@ -169,38 +171,35 @@ func (rm RestoreM) DecreaseBatchSize(clusterID uuid.UUID, host string, size int6
 // SetRemainingBytes sets restore "remaining_bytes" metric.
 func (rm RestoreM) SetRemainingBytes(labels RestoreBytesLabels, remainingBytes int64) {
 	l := prometheus.Labels{
-		"cluster":      labels.ClusterID,
-		"snapshot_tag": labels.SnapshotTag,
-		"location":     labels.Location,
-		"dc":           labels.DC,
-		"node":         labels.Node,
-		"keyspace":     labels.Keyspace,
-		"table":        labels.Table,
+		"cluster":  labels.ClusterID,
+		"location": labels.Location,
+		"dc":       labels.DC,
+		"node":     labels.Node,
+		"keyspace": labels.Keyspace,
+		"table":    labels.Table,
 	}
 	rm.remainingBytes.With(l).Set(float64(remainingBytes))
 }
 
 // RestoreBytesLabels is a set of labels for restore metrics.
 type RestoreBytesLabels struct {
-	ClusterID   string
-	SnapshotTag string
-	Location    string
-	DC          string
-	Node        string
-	Keyspace    string
-	Table       string
+	ClusterID string
+	Location  string
+	DC        string
+	Node      string
+	Keyspace  string
+	Table     string
 }
 
 // DecreaseRemainingBytes decreases restore "remaining_bytes" metric.
 func (rm RestoreM) DecreaseRemainingBytes(labels RestoreBytesLabels, restoredBytes int64) {
 	l := prometheus.Labels{
-		"cluster":      labels.ClusterID,
-		"snapshot_tag": labels.SnapshotTag,
-		"location":     labels.Location,
-		"dc":           labels.DC,
-		"node":         labels.Node,
-		"keyspace":     labels.Keyspace,
-		"table":        labels.Table,
+		"cluster":  labels.ClusterID,
+		"location": labels.Location,
+		"dc":       labels.DC,
+		"node":     labels.Node,
+		"keyspace": labels.Keyspace,
+		"table":    labels.Table,
 	}
 	rm.remainingBytes.With(l).Sub(float64(restoredBytes))
 }
@@ -208,16 +207,14 @@ func (rm RestoreM) DecreaseRemainingBytes(labels RestoreBytesLabels, restoredByt
 // RestoreProgressLabels is a set of labels for restore "progress" metric.
 // RestorePrgoressLabels does not contain DC and Node labels since we only care about global restore progress.
 type RestoreProgressLabels struct {
-	ClusterID   string
-	SnapshotTag string
+	ClusterID string
 }
 
 // SetProgress sets restore "progress" metric,
 // progress should be a value between 0 and 100, that indicates global restore progress.
 func (rm RestoreM) SetProgress(labels RestoreProgressLabels, progress float64) {
 	l := prometheus.Labels{
-		"cluster":      labels.ClusterID,
-		"snapshot_tag": labels.SnapshotTag,
+		"cluster": labels.ClusterID,
 	}
 	rm.progress.With(l).Set(progress)
 }
@@ -237,12 +234,11 @@ const (
 )
 
 // SetRestoreState sets restore "state" metric.
-func (rm RestoreM) SetRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state RestoreState) {
+func (rm RestoreM) SetRestoreState(clusterID uuid.UUID, location backupspec.Location, host string, state RestoreState) {
 	l := prometheus.Labels{
-		"cluster":      clusterID.String(),
-		"location":     location.String(),
-		"snapshot_tag": snapshotTag,
-		"host":         host,
+		"cluster":  clusterID.String(),
+		"location": location.String(),
+		"host":     host,
 	}
 	rm.state.With(l).Set(float64(state))
 }

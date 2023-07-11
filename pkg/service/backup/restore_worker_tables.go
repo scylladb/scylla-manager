@@ -293,13 +293,12 @@ func (w *tablesWorker) initRestoreMetrics(ctx context.Context, run *RestoreRun, 
 				for kspace, sizePerTable := range sizePerTableAndKeyspace {
 					for table, size := range sizePerTable {
 						labels := metrics.RestoreBytesLabels{
-							ClusterID:   run.ClusterID.String(),
-							SnapshotTag: target.SnapshotTag,
-							Location:    location.String(),
-							DC:          miwc.DC,
-							Node:        miwc.NodeID,
-							Keyspace:    kspace,
-							Table:       table,
+							ClusterID: run.ClusterID.String(),
+							Location:  location.String(),
+							DC:        miwc.DC,
+							Node:      miwc.NodeID,
+							Keyspace:  kspace,
+							Table:     table,
 						}
 						w.metrics.SetRemainingBytes(labels, size)
 					}
@@ -307,8 +306,7 @@ func (w *tablesWorker) initRestoreMetrics(ctx context.Context, run *RestoreRun, 
 				return err
 			})
 		progressLabels := metrics.RestoreProgressLabels{
-			ClusterID:   run.ClusterID.String(),
-			SnapshotTag: target.SnapshotTag,
+			ClusterID: run.ClusterID.String(),
 		}
 		w.metrics.SetProgress(progressLabels, 0)
 		if err != nil {
