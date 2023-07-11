@@ -720,7 +720,7 @@ func unknownSSTableError(sstable string) error {
 }
 
 var (
-	regexLaMx = regexp.MustCompile(`(la|m[cde])-(\d+)-(\w+)-(.*)`)
+	regexLaMx = regexp.MustCompile(`(la|m[cde])-(\w+)-(\w+)-(.*)`)
 	regexKa   = regexp.MustCompile(`(\w+)-(\w+)-ka-(\d+)-(.*)`)
 )
 
