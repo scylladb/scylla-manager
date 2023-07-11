@@ -214,6 +214,12 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, errors.Wrap(err, "get restore units"))
 			return
 		}
+		views, err := h.Backup.GetRestoreViews(r.Context(), newTask.ClusterID, units)
+		if err != nil {
+			respondError(w, r, errors.Wrap(err, "get restore views"))
+			return
+		}
+
 		var size int64
 		for _, u := range units {
 			size += u.Size
@@ -222,6 +228,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			RestoreTarget: rt,
 			Size:          size,
 			Units:         units,
+			Views:         views,
 		}
 	case scheduler.RepairTask:
 		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {

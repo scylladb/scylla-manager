@@ -231,7 +231,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	return nil
 }
 
-// GetRestoreUnits restored units specified in restore target.
+// GetRestoreUnits restored units specified by restore target.
 func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, target RestoreTarget) ([]RestoreUnit, error) {
 	clusterSession, err := s.clusterSession(ctx, clusterID)
 	if err != nil {
@@ -245,6 +245,28 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 	}
 
 	return w.newUnits(ctx, target)
+}
+
+// GetRestoreViews restored views specified by restore units.
+func (s *Service) GetRestoreViews(ctx context.Context, clusterID uuid.UUID, units []RestoreUnit) ([]RestoreView, error) {
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client")
+	}
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get cluster session")
+	}
+	defer clusterSession.Close()
+
+	w := &restoreWorkerTools{
+		workerTools: workerTools{
+			Client: client,
+		},
+		clusterSession: clusterSession,
+	}
+
+	return w.newViews(ctx, units)
 }
 
 // GetRestoreProgress aggregates progress for the run of the task and breaks it down
