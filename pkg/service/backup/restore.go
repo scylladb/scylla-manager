@@ -42,13 +42,13 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 	}
 	t.sortLocations()
 
+	if t.Keyspace == nil {
+		t.Keyspace = []string{"*"}
+	}
 	if t.RestoreSchema {
 		t.Keyspace = []string{"system_schema"}
 	}
 	if t.RestoreTables {
-		if t.Keyspace == nil {
-			t.Keyspace = []string{"*"}
-		}
 		// Skip restoration of those tables regardless of the '--keyspace' param
 		doNotRestore := []string{
 			"system",        // system.* tables are recreated on every cluster and shouldn't even be backed-up
@@ -179,11 +179,15 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	tools.insertRun(ctx, run)
 
 	if run.Units == nil {
-		// Units must be initialised only once, as they contain the original tombstone_gc mode
-		// which is altered during restore tables.
+		// Cache must be initialised only once, as they contain the original tombstone_gc mode
+		// and statements for recreating dropped views.
 		run.Units, err = tools.newUnits(ctx, target)
 		if err != nil {
 			return errors.Wrap(err, "initialize units")
+		}
+		run.Views, err = tools.newViews(ctx, run.Units)
+		if err != nil {
+			return errors.Wrap(err, "initialize views")
 		}
 	} else {
 		// Check that all units are still present after resume
@@ -195,6 +199,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			}
 		}
 	}
+	tools.insertRun(ctx, run)
 
 	var w restorer
 	ru, err := s.GetRestoreUnits(ctx, clusterID, target)
