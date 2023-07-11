@@ -65,21 +65,25 @@ type RestoreStage string
 
 // RestoreStage enumeration.
 const (
-	StageRestoreInit       RestoreStage = "INIT"
-	StageRestoreDisableTGC              = "DISABLE_TGC"
-	StageRestoreData       RestoreStage = "DATA"
-	StageRestoreRepair     RestoreStage = "REPAIR"
-	StageRestoreEnableTGC               = "ENABLE_TGC"
-	StageRestoreDone       RestoreStage = "DONE"
+	StageRestoreInit          RestoreStage = "INIT"
+	StageRestoreDropViews     RestoreStage = "DROP_VIEWS"
+	StageRestoreDisableTGC    RestoreStage = "DISABLE_TGC"
+	StageRestoreData          RestoreStage = "DATA"
+	StageRestoreRepair        RestoreStage = "REPAIR"
+	StageRestoreEnableTGC     RestoreStage = "ENABLE_TGC"
+	StageRestoreRecreateViews RestoreStage = "RECREATE_VIEWS"
+	StageRestoreDone          RestoreStage = "DONE"
 )
 
 // RestoreStageOrder lists all restore stages in the order of their execution.
 var RestoreStageOrder = []RestoreStage{
 	StageRestoreInit,
+	StageRestoreDropViews,
 	StageRestoreDisableTGC,
 	StageRestoreData,
 	StageRestoreRepair,
 	StageRestoreEnableTGC,
+	StageRestoreRecreateViews,
 	StageRestoreDone,
 }
 
