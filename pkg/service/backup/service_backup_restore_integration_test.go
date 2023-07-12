@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"go.uber.org/atomic"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
@@ -918,6 +919,197 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate...)
 }
 
+const (
+	mvName      = "testmv"
+	siName      = "bydata"
+	siTableName = "bydata_index"
+)
+
+func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
+	// It seems like view created on restored table (which schema comes from CQL) still needs to be repaired.
+	// This is not the case if restored table's schema comes from SSTables.
+	t.Skip()
+
+	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
+	const (
+		testLoadCnt   = 4
+		testLoadSize  = 25
+		testBatchSize = 1
+		testParallel  = 0
+	)
+
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
+		},
+		// Check whether view will be restored even when it's not included
+		Keyspace:      []string{testKeyspace + "." + BigTableName},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+
+	restoreViewCQLSchema(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
+}
+
+func restoreViewCQLSchema(t *testing.T, target RestoreTarget, keyspace string, loadCnt, loadSize int, user string) {
+	var (
+		ctx          = context.Background()
+		cfg          = DefaultConfig()
+		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
+		mgrSession   = CreateScyllaManagerDBSession(t)
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
+	)
+
+	Print("When: Create Restore user")
+	if err := createUser(dstSession, user, "pass"); err != nil {
+		t.Fatal(err)
+	}
+	dstH = newRestoreTestHelperWithUser(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
+
+	if target.RestoreTables {
+		Print("When: Recreate dst schema from CQL")
+		WriteData(t, dstSession, keyspace, 0, BigTableName)
+		createEmptyTableWithViews(t, dstSession, keyspace, BigTableName, mvName, siName)
+	}
+
+	Print("When: Create src table with MV and SI")
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	createEmptyTableWithViews(t, srcSession, keyspace, BigTableName, mvName, siName)
+	time.Sleep(5 * time.Second)
+
+	Print("When: Make src backup")
+	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = dstH.regenerateRestoreTarget(target)
+
+	Print("When: Grant minimal user permissions for restore")
+	if err := grantPermissionsToUser(dstSession, target, user); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: Restore")
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	toValidate := []string{
+		keyspace + "." + BigTableName,
+		keyspace + "." + mvName,
+		keyspace + "." + siTableName,
+	}
+
+	Print("When: Validate restore success")
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate...)
+}
+
+func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
+	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
+	const (
+		testLoadCnt   = 4
+		testLoadSize  = 25
+		testBatchSize = 1
+		testParallel  = 0
+	)
+
+	locs := []Location{
+		{
+			DC:       "dc1",
+			Provider: S3,
+			Path:     testBucket,
+		},
+	}
+
+	schemaTarget := RestoreTarget{
+		Location:      locs,
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreSchema: true,
+	}
+
+	tablesTarget := RestoreTarget{
+		Location: locs,
+		// Check whether view will be restored even when it's not included
+		Keyspace:      []string{testKeyspace + "." + BigTableName},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+
+	restoreViewSSTableSchema(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize, testUser)
+}
+
+func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget RestoreTarget, keyspace string, loadCnt, loadSize int, user string) {
+	var (
+		ctx          = context.Background()
+		cfg          = DefaultConfig()
+		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
+		mgrSession   = CreateScyllaManagerDBSession(t)
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], &srcClientCfg)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
+	)
+
+	Print("When: Create Restore user")
+	if err := createUser(dstSession, user, "pass"); err != nil {
+		t.Fatal(err)
+	}
+	dstH = newRestoreTestHelperWithUser(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
+
+	Print("When: Create src table with MV and SI")
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	createEmptyTableWithViews(t, srcSession, keyspace, BigTableName, mvName, siName)
+	time.Sleep(5 * time.Second)
+
+	Print("When: Make src backup")
+	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
+	schemaTarget = dstH.regenerateRestoreTarget(schemaTarget)
+
+	Print("When: Grant minimal user permissions for restore schema")
+	if err := grantPermissionsToUser(dstSession, schemaTarget, user); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: Restore schema")
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, schemaTarget); err != nil {
+		t.Fatal(err)
+	}
+
+	toValidate := []string{
+		keyspace + "." + BigTableName,
+		keyspace + "." + mvName,
+		keyspace + "." + siTableName,
+	}
+
+	Print("When: Validate restore schema success")
+	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate...)
+
+	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
+	dstH.ClusterID = uuid.MustRandom()
+	dstH.RunID = uuid.MustRandom()
+	tablesTarget = dstH.regenerateRestoreTarget(tablesTarget)
+
+	Print("When: Grant minimal user permissions for restore tables")
+	if err := grantPermissionsToUser(dstSession, tablesTarget, user); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: Restore tables")
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, tablesTarget); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: Validate restore tables success")
+	dstH.validateRestoreSuccess(dstSession, srcSession, tablesTarget, toValidate...)
+}
+
 func TestRestoreFullIntegration(t *testing.T) {
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
@@ -992,7 +1184,9 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget RestoreTarget, ke
 	}
 
 	toValidate := []string{
-		fmt.Sprintf("%s.%s", keyspace, BigTableName),
+		keyspace + "." + BigTableName,
+		keyspace + "." + mvName,
+		keyspace + "." + siTableName,
 		"system_auth.role_attributes",
 		"system_auth.role_members",
 		"system_auth.role_permissions",
@@ -1077,9 +1271,21 @@ func grantPermissionsToUser(s gocqlx.Session, target RestoreTarget, user string)
 	var ks, t string
 	iter := s.Query("SELECT keyspace_name, table_name FROM system_schema.tables", nil).Iter()
 	for iter.Scan(&ks, &t) {
+		// Regular tables require ALTER permission.
 		if f.Check(ks, t) {
 			if err = s.ExecStmt(fmt.Sprintf("GRANT ALTER ON %s.%s TO %s", ks, t, user)); err != nil {
 				return errors.Wrap(err, "grant alter permission")
+			}
+		}
+		// Views of restored base tables require DROP and CREATE permissions.
+		if bt := baseTable(s, ks, t); bt != "" {
+			if f.Check(ks, bt) {
+				if err = s.ExecStmt(fmt.Sprintf("GRANT DROP ON %s.%s TO %s", ks, bt, user)); err != nil {
+					return errors.Wrap(err, "grant drop permission")
+				}
+				if err = s.ExecStmt(fmt.Sprintf("GRANT CREATE ON %s TO %s", ks, user)); err != nil {
+					return errors.Wrap(err, "grant create permission")
+				}
 			}
 		}
 	}
@@ -1117,6 +1323,11 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	// Validate restored tombstone_gc mode
 	for _, t := range tables {
 		kst := strings.Split(t, ".")
+		// Don't validate views tombstone_gc
+		if baseTable(srcSession, kst[0], kst[1]) != "" {
+			continue
+		}
+
 		mode, err := h.service.GetTableTombstoneGC(context.Background(), h.ClusterID, kst[0], kst[1])
 		if err != nil {
 			h.T.Fatalf("Couldn't check %s tombstone_gc mode: %s", t, err)
@@ -1190,7 +1401,7 @@ func cleanScyllaTables(session gocqlx.Session) error {
 // - adds materialized view and secondary index
 // - adds CDC log table
 // - populates system_auth, system_traces, system_distributed tables
-func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
+func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(s gocqlx.Session, keyspace string, loadCnt, loadSize int) {
 	statements := []string{
 		"CREATE ROLE role1 WITH PASSWORD = 'pas' AND LOGIN = true",
 		"CREATE SERVICE LEVEL sl WITH timeout = 500ms AND workload_type = 'interactive'",
@@ -1200,30 +1411,36 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(session gocqlx.Sess
 		"GRANT role1 TO role2",
 	}
 
-	t := gocql.NewTraceWriter(session.Session, os.Stdout) // Populate system_traces
+	t := gocql.NewTraceWriter(s.Session, os.Stdout) // Populate system_traces
 	for _, stmt := range statements {
-		if err := session.Query(stmt, nil).Trace(t).Exec(); err != nil {
+		if err := s.Query(stmt, nil).Trace(t).Exec(); err != nil {
 			h.T.Fatalf("Exec stmt: %s, error: %s", stmt, err.Error())
 		}
 	}
 
 	// Create keyspace and table
-	WriteDataToSecondCluster(h.T, session, keyspace, 0, 0)
+	WriteDataToSecondCluster(h.T, s, keyspace, 0, 0)
 
-	ExecStmt(h.T,
-		session,
+	ExecStmt(h.T, s,
 		fmt.Sprintf("ALTER TABLE %s.%s WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName),
 	)
-	ExecStmt(h.T,
-		session,
-		fmt.Sprintf("CREATE MATERIALIZED VIEW %s.testmv AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, keyspace, BigTableName),
-	)
-	ExecStmt(h.T,
-		session,
-		fmt.Sprintf("CREATE INDEX bydata ON %s.%s (data)", keyspace, BigTableName),
-	)
 
-	h.prepareRestoreBackup(session, keyspace, loadCnt, loadSize)
+	createEmptyTableWithViews(h.T, s, keyspace, BigTableName, mvName, siName)
+
+	h.prepareRestoreBackup(s, keyspace, loadCnt, loadSize)
+}
+
+func createEmptyTableWithViews(t *testing.T, s gocqlx.Session, keyspace, baseTable, mv, si string) {
+	t.Helper()
+
+	ExecStmt(t, s,
+		fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, baseTable))
+	ExecStmt(t, s,
+		fmt.Sprintf("CREATE MATERIALIZED VIEW IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, mv, keyspace, baseTable),
+	)
+	ExecStmt(t, s,
+		fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s.%s (data)", si, keyspace, baseTable),
+	)
 }
 
 // prepareRestoreBackup populates second cluster with loadCnt * loadSize MiB of data living in keyspace.big_table table.
@@ -1393,4 +1610,22 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 		userName     = keyspaceName + "_user"
 	)
 	return bucketName, keyspaceName, userName
+}
+
+// baseTable returns view's base table or "" if it's not a view.
+func baseTable(s gocqlx.Session, keyspace, table string) string {
+	q := qb.Select("system_schema.views").
+		Columns("base_table_name").
+		Where(qb.Eq("keyspace_name")).
+		Where(qb.Eq("view_name")).Query(s).BindMap(qb.M{
+		"keyspace_name": keyspace,
+		"view_name":     table,
+	})
+	defer q.Release()
+
+	var baseTable string
+	if err := q.Scan(&baseTable); err != nil {
+		return ""
+	}
+	return baseTable
 }
