@@ -134,7 +134,7 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 
 	manifestDownloadHandler := func(miwc ManifestInfoWithContent) error {
 		w.Logger.Info(ctx, "Downloading schema from manifest", "manifest", miwc.ManifestInfo)
-		defer w.Logger.Info(ctx, "Downloading schema from manifest", "manifest", miwc.ManifestInfo)
+		defer w.Logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
 
 		w.miwc = miwc
 		run.ManifestPath = miwc.Path()
