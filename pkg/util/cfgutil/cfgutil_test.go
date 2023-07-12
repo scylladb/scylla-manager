@@ -10,6 +10,8 @@ import (
 )
 
 func TestParseYAML(t *testing.T) {
+	t.Parallel()
+
 	type result struct {
 		AuthToken  string `yaml:"auth_token"`
 		Prometheus string
@@ -86,8 +88,11 @@ func TestParseYAML(t *testing.T) {
 			ErrorExpected: true,
 		},
 	}
-	for _, test := range table {
+	for id := range table {
+		test := table[id]
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			got := &result{}
 			if err := ParseYAML(got, result{}, test.Input...); err != nil {
 				if test.ErrorExpected {

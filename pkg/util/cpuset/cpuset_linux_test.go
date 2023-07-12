@@ -13,6 +13,8 @@ import (
 )
 
 func TestAvailableCPUs(t *testing.T) {
+	t.Parallel()
+
 	var cpus unix.CPUSet
 	if err := unix.SchedGetaffinity(0, &cpus); err != nil {
 		t.Fatal(err)
@@ -56,6 +58,8 @@ func TestSchedSetAffinity(t *testing.T) {
 }
 
 func TestCPUSetCPUList(t *testing.T) {
+	t.Parallel()
+
 	cpus := []int{0, 1, 2, 3, 5}
 	if diff := cmp.Diff(cpulist(cpuset(cpus)), cpus); diff != "" {
 		t.Fatal(diff)
@@ -63,6 +67,8 @@ func TestCPUSetCPUList(t *testing.T) {
 }
 
 func TestOsTasks(t *testing.T) {
+	t.Parallel()
+
 	pids, err := osTasks(os.Getpid())
 	if err != nil {
 		t.Fatal(err)

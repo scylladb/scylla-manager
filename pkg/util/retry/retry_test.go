@@ -9,6 +9,8 @@ import (
 )
 
 func TestPermanent(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name string
 		Err  error
@@ -26,6 +28,8 @@ func TestPermanent(t *testing.T) {
 	for i := range table {
 		test := table[i]
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			if !IsPermanent(test.Err) {
 				t.Fatal("Not permanent")
 			}

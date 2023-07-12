@@ -113,17 +113,23 @@ func TestValidateTokenFailure(t *testing.T) {
 	}
 
 	t.Run("no token", func(t *testing.T) {
+		t.Parallel()
+
 		r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 		verify(t, r, 0)
 	})
 
 	t.Run("invalid token", func(t *testing.T) {
+		t.Parallel()
+
 		r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 		r.Header.Set("Authorization", "Bearer foobar")
 		verify(t, r, 0)
 	})
 
 	t.Run("penalty", func(t *testing.T) {
+		t.Parallel()
+
 		r := httptest.NewRequest(http.MethodGet, "/foobar", nil)
 		penalty := 150 * time.Millisecond
 		start := timeutc.Now()
