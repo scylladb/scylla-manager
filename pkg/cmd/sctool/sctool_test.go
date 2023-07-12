@@ -10,6 +10,8 @@ import (
 )
 
 func TestCommandTree(t *testing.T) {
+	t.Parallel()
+
 	printCommandTree(buildCommand(), "")
 }
 

@@ -9,6 +9,8 @@ import (
 )
 
 func TestBaseURL(t *testing.T) {
+	t.Parallel()
+
 	table := []struct {
 		Name   string
 		HTTP   string
@@ -61,6 +63,8 @@ func TestBaseURL(t *testing.T) {
 	for i := range table {
 		test := table[i]
 		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
 			if diff := cmp.Diff(test.Golden, baseURL(test.HTTP, test.HTTPS)); diff != "" {
 				t.Error(diff)
 			}
