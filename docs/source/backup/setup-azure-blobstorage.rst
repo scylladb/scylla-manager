@@ -91,6 +91,12 @@ Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
       scylla-manager-agent check-location --location azure:<blob storage container name>
 
+#. Restart Scylla Manager Agent service.
+
+   .. code-block:: none
+
+      sudo systemctl start scylla-manager-agent
+
 Troubleshoot connectivity
 =========================
 
