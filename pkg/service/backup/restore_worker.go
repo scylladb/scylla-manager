@@ -380,6 +380,12 @@ func (w *restoreWorkerTools) CreateView(ctx context.Context, view RestoreView) e
 }
 
 func (w *restoreWorkerTools) WaitForViewBuilding(ctx context.Context, view RestoreView) error {
+	labels := metrics.RestoreViewBuildStatusLabels{
+		ClusterID: w.ClusterID.String(),
+		Keyspace:  view.Keyspace,
+		View:      view.View,
+	}
+
 	op := func() error {
 		viewTableName := view.View
 		if view.Type == SecondaryIndex {
@@ -388,10 +394,19 @@ func (w *restoreWorkerTools) WaitForViewBuilding(ctx context.Context, view Resto
 
 		status, err := w.Client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
 		if err != nil {
+			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusError)
 			return retry.Permanent(err)
 		}
-		if status != scyllaclient.StatusSuccess {
+
+		switch status {
+		case scyllaclient.StatusUnknown:
+			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusUnknown)
 			return fmt.Errorf("current status: %s", status)
+		case scyllaclient.StatusStarted:
+			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusStarted)
+			return fmt.Errorf("current status: %s", status)
+		case scyllaclient.StatusSuccess:
+			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusSuccess)
 		}
 
 		return nil

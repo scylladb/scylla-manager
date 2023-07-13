@@ -39,8 +39,9 @@ func NewBackupMetrics() BackupMetrics {
 			batchSize: gr("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 			remainingBytes: gr("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 				"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-			state:    gr("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
-			progress: gr("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
+			state:           gr("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+			progress:        gr("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
+			viewBuildStatus: gr("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
 		},
 	}
 }
@@ -124,10 +125,11 @@ func (bm BackupM) SetPurgeFiles(clusterID uuid.UUID, host string, total, deleted
 
 // RestoreM is the part of BackupMetrics that is only responsible for restore.
 type RestoreM struct {
-	batchSize      *prometheus.GaugeVec
-	remainingBytes *prometheus.GaugeVec
-	state          *prometheus.GaugeVec
-	progress       *prometheus.GaugeVec
+	batchSize       *prometheus.GaugeVec
+	remainingBytes  *prometheus.GaugeVec
+	state           *prometheus.GaugeVec
+	progress        *prometheus.GaugeVec
+	viewBuildStatus *prometheus.GaugeVec
 }
 
 func (rm RestoreM) all() []prometheus.Collector {
@@ -136,6 +138,7 @@ func (rm RestoreM) all() []prometheus.Collector {
 		rm.remainingBytes,
 		rm.state,
 		rm.progress,
+		rm.viewBuildStatus,
 	}
 }
 
@@ -206,7 +209,7 @@ func (rm RestoreM) DecreaseRemainingBytes(labels RestoreBytesLabels, restoredByt
 }
 
 // RestoreProgressLabels is a set of labels for restore "progress" metric.
-// RestorePrgoressLabels does not contain DC and Node labels since we only care about global restore progress.
+// RestoreProgressLabels does not contain DC and Node labels since we only care about global restore progress.
 type RestoreProgressLabels struct {
 	ClusterID   string
 	SnapshotTag string
@@ -245,4 +248,32 @@ func (rm RestoreM) SetRestoreState(clusterID uuid.UUID, location backupspec.Loca
 		"host":         host,
 	}
 	rm.state.With(l).Set(float64(state))
+}
+
+// ViewBuildStatus defines build status of a view.
+type ViewBuildStatus int
+
+// ViewBuildStatus enumeration.
+const (
+	BuildStatusUnknown ViewBuildStatus = iota
+	BuildStatusStarted
+	BuildStatusSuccess
+	BuildStatusError
+)
+
+// RestoreViewBuildStatusLabels is a set of labels for restore "view_build_status" metric.
+type RestoreViewBuildStatusLabels struct {
+	ClusterID string
+	Keyspace  string
+	View      string
+}
+
+// SetViewBuildStatus sets restore "view_build_status" metric.
+func (rm RestoreM) SetViewBuildStatus(labels RestoreViewBuildStatusLabels, status ViewBuildStatus) {
+	l := prometheus.Labels{
+		"cluster":  labels.ClusterID,
+		"keyspace": labels.Keyspace,
+		"view":     labels.View,
+	}
+	rm.viewBuildStatus.With(l).Set(float64(status))
 }
