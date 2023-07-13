@@ -303,14 +303,9 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 		"mode", mode,
 	)
 
-	const (
-		minWait      = 5 * time.Second
-		maxWait      = 1 * time.Minute
-		maxTotalTime = 15 * time.Minute
-		multiplier   = 2
-		jitter       = 0.2
-	)
-	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
+	op := func() error {
+		return w.clusterSession.ExecStmt(alterTableTombstoneGCStmt(keyspace, table, mode))
+	}
 
 	notify := func(err error, wait time.Duration) {
 		w.Logger.Info(ctx, "Altering table's tombstone_gc mode failed",
@@ -322,16 +317,32 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 		)
 	}
 
-	op := func() error {
-		err := w.clusterSession.ExecStmt(alterTableTombstoneGCStmt(keyspace, table, mode))
+	return alterSchemaRetryWrapper(ctx, op, notify)
+}
 
+// alterSchemaRetryWrapper is useful when executing many statements altering schema,
+// as it might take more time for Scylla to process them one after another.
+// This wrapper exits on: success, context cancel, op returned non-timeout error or after maxTotalTime has passed.
+func alterSchemaRetryWrapper(ctx context.Context, op func() error, notify func(err error, wait time.Duration)) error {
+	const (
+		minWait      = 5 * time.Second
+		maxWait      = 1 * time.Minute
+		maxTotalTime = 15 * time.Minute
+		multiplier   = 2
+		jitter       = 0.2
+	)
+	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
+
+	wrappedOp := func() error {
+		err := op()
 		if err == nil || strings.Contains(err.Error(), "timeout") {
 			return err
 		}
+		// All non-timeout errors shouldn't be retried
 		return retry.Permanent(err)
 	}
 
-	return retry.WithNotify(ctx, op, backoff, notify)
+	return retry.WithNotify(ctx, wrappedOp, backoff, notify)
 }
 
 // GetTableTombstoneGC returns table's tombstone_gc mode.
@@ -365,6 +376,60 @@ func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombst
 
 func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
 	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
+}
+
+func (w *restoreWorkerTools) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+	w.Logger.Info(ctx, "Load SSTables for the first time",
+		"host", host,
+		"load_and_stream", loadAndStream,
+		"primary_replica_only", primaryReplicaOnly,
+	)
+
+	op := func() error {
+		running, err := w.Client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+		if err == nil || running || strings.Contains(err.Error(), "timeout") {
+			return err
+		}
+		// Don't retry if error isn't connected to timeout or already running l&s
+		return retry.Permanent(err)
+	}
+
+	notify := func(err error) {
+		w.Logger.Info(ctx, "Waiting for SSTables loading to finish",
+			"host", host,
+			"error", err,
+		)
+	}
+
+	return indefiniteHangingRetryWrapper(ctx, op, notify)
+}
+
+// indefiniteHangingRetryWrapper is useful when waiting on
+// Scylla operation that might take a really long (and difficult to estimate) time.
+// This wrapper exits ONLY on: success, context cancel, op returned retry.IsPermanent error.
+func indefiniteHangingRetryWrapper(ctx context.Context, op func() error, notify func(err error)) error {
+	const repeatInterval = 10 * time.Second
+
+	ticker := time.NewTicker(repeatInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+
+		err := op()
+		switch {
+		case err == nil:
+			return nil
+		case retry.IsPermanent(err):
+			return err
+		default:
+			notify(err)
+		}
+	}
 }
 
 func (w *restoreWorkerTools) insertRun(ctx context.Context, run *RestoreRun) {
