@@ -942,6 +942,31 @@ func (c *Client) FlushTable(ctx context.Context, keyspace, table string) error {
 	return err
 }
 
+// ViewBuildStatus returns the earliest (among all nodes) build status for given view.
+func (c *Client) ViewBuildStatus(ctx context.Context, keyspace, view string) (ViewBuildStatus, error) {
+	resp, err := c.scyllaOps.StorageServiceViewBuildStatusesByKeyspaceAndViewGet(&operations.StorageServiceViewBuildStatusesByKeyspaceAndViewGetParams{
+		Context:  ctx,
+		Keyspace: keyspace,
+		View:     view,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(resp.Payload) == 0 {
+		return StatusUnknown, nil
+	}
+
+	minStatus := StatusSuccess
+	for _, v := range resp.Payload {
+		status := ViewBuildStatus(v.Value)
+		if status.Index() < minStatus.Index() {
+			minStatus = status
+		}
+	}
+	return minStatus, nil
+}
+
 // ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
 // ToCanonicalIP("192.168.0.1") -> "192.168.0.1"
 // ToCanonicalIP("100:200:0:0:0:0:0:1") -> "100:200::1".
