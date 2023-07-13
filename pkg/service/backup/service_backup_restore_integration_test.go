@@ -333,6 +333,118 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 	})
 }
 
+func TestCreateMVAfterRestoreIntegration(t *testing.T) {
+	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
+	const (
+		testLoadSize  = 10
+		testBatchSize = 1
+		testParallel  = 3
+	)
+
+	target := RestoreTarget{
+		Location: []Location{
+			{
+				DC:       "dc1",
+				Provider: S3,
+				Path:     testBucket,
+			},
+		},
+		Keyspace:      []string{testKeyspace},
+		BatchSize:     testBatchSize,
+		Parallel:      testParallel,
+		RestoreTables: true,
+	}
+
+	smokeRestoreMVCreation(t, target, testKeyspace, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
+}
+
+func smokeRestoreMVCreation(t *testing.T, target RestoreTarget, keyspace string, loadSize int, user, replication string) {
+	var (
+		ctx          = context.Background()
+		cfg          = DefaultConfig()
+		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
+		mgrSession   = CreateScyllaManagerDBSession(t)
+		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil)
+		srcH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], &srcClientCfg)
+		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
+		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
+	)
+
+	Print("When: Create restore user")
+	if err := createUser(dstSession, user, "pass"); err != nil {
+		t.Fatal(err)
+	}
+	dstH = newRestoreTestHelperWithUser(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
+
+	// Recreate schema on destination cluster
+	if target.RestoreTables {
+		Print("When: Recreate schema on dst cluster")
+		ExecStmt(t, dstSession, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
+		ExecStmt(t, dstSession, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, BigTableName))
+	}
+
+	Print("When: Make single table backup")
+	WriteDataToSecondCluster(t, srcSession, keyspace, 0, loadSize)
+	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	target = dstH.regenerateRestoreTarget(target)
+
+	Print("When: Grant necessary restore permissions to user ")
+	if err := grantPermissionsToUser(dstSession, target, user); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
+	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	toValidate := []string{
+		keyspace + "." + BigTableName,
+	}
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate...)
+
+	Print("When: Create materialized view on restored table")
+	// Create materialized view which should contain the same number of rows as the base table
+	ExecStmt(t, dstSession,
+		fmt.Sprintf("CREATE MATERIALIZED VIEW IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, mvName, keyspace, BigTableName),
+	)
+
+	Print("When: Wait for view to finish building")
+	WaitCond(t, func() bool {
+		i := qb.Select("system_distributed.view_build_status").
+			Columns("status").
+			Where(qb.Eq("keyspace_name"), qb.Eq("view_name")).
+			Query(dstSession).
+			Bind(keyspace, mvName).
+			Iter()
+		defer i.Close()
+
+		var cnt int
+		var status string
+		for i.Scan(&status) {
+			if status == "SUCCESS" {
+				cnt++
+			}
+		}
+
+		return cnt == 6
+	}, time.Second, 15*time.Minute)
+
+	countStmtF := "SELECT COUNT(*) FROM %s.%s"
+	var viewRows int
+	var tableRows int
+	if err := dstSession.Query(fmt.Sprintf(countStmtF, keyspace, BigTableName), nil).Scan(&tableRows); err != nil {
+		t.Fatalf("Couldn't get base table row count: %s", err.Error())
+	}
+	if err := dstSession.Query(fmt.Sprintf(countStmtF, keyspace, mvName), nil).Scan(&viewRows); err != nil {
+		t.Fatalf("Couldn't get view row count: %s", err.Error())
+	}
+
+	if viewRows != tableRows {
+		t.Fatalf("base table rows: %d, view rows: %d", tableRows, viewRows)
+	}
+}
+
 func TestRestoreTablesSmokeIntegration(t *testing.T) {
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
@@ -1569,7 +1681,7 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 	)
 
 	name := t.Name()
-	if !strings.HasPrefix(name, prefix) {
+	if !strings.HasPrefix(name, prefix) && name != "TestCreateMVAfterRestoreIntegration" {
 		t.Fatalf("Test name should start with '%s'", prefix)
 	}
 	if !strings.HasSuffix(name, suffix) {
