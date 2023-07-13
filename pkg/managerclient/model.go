@@ -429,11 +429,16 @@ Cron:	{{ .Schedule.Cron }} {{ CronDesc .Schedule.Cron }}
 Tz:	{{ .Schedule.Timezone }}
 {{ end }}
 {{ end -}}
-Keyspaces:
+Restored tables:
 {{- range .Units }}
   - {{ .Keyspace }}: {{ FormatSizeSuffix .Size }} {{ FormatRestoreTables .Tables }}
 {{- end }}
-
+{{ if .Views }}
+Restored views:
+{{- range .Views }}
+  - {{ .Keyspace }}.{{ .View }}
+{{- end }}
+{{ end }}
 Disk size: ~{{ FormatSizeSuffix .Size }}
 
 Locations:
