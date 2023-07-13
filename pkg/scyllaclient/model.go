@@ -239,3 +239,30 @@ func makeScyllaFeatures(endpointStates []*models.EndpointState) map[string]Scyll
 
 	return sfs
 }
+
+// ViewBuildStatus defines build status of a view.
+type ViewBuildStatus string
+
+// ViewBuildStatus enumeration.
+const (
+	StatusUnknown ViewBuildStatus = "UNKNOWN"
+	StatusStarted ViewBuildStatus = "STARTED"
+	StatusSuccess ViewBuildStatus = "SUCCESS"
+)
+
+// ViewBuildStatusOrder lists all view build statuses in the order of their execution.
+var ViewBuildStatusOrder = []ViewBuildStatus{
+	StatusUnknown,
+	StatusStarted,
+	StatusSuccess,
+}
+
+// Index returns status position in ViewBuildStatusOrder.
+func (s ViewBuildStatus) Index() int {
+	for i, stage := range ViewBuildStatusOrder {
+		if s == stage {
+			return i
+		}
+	}
+	panic("Unknown status: " + s)
+}
