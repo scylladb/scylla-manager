@@ -320,6 +320,95 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
+// DropView drops specified Materialized View or Secondary Index.
+func (w *restoreWorkerTools) DropView(ctx context.Context, view RestoreView) error {
+	w.Logger.Info(ctx, "Dropping view",
+		"keyspace", view.Keyspace,
+		"view", view.View,
+		"type", view.Type,
+	)
+
+	op := func() error {
+		dropStmt := ""
+		switch view.Type {
+		case SecondaryIndex:
+			dropStmt = "DROP INDEX IF EXISTS %s.%s"
+		case MaterializedView:
+			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %s.%s"
+		}
+
+		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, view.View))
+	}
+
+	notify := func(err error, wait time.Duration) {
+		w.Logger.Info(ctx, "Dropping view failed",
+			"keyspace", view.Keyspace,
+			"view", view.View,
+			"type", view.Type,
+			"error", err,
+			"wait", wait,
+		)
+	}
+
+	return alterSchemaRetryWrapper(ctx, op, notify)
+}
+
+// CreateView creates specified Materialized View or Secondary Index.
+func (w *restoreWorkerTools) CreateView(ctx context.Context, view RestoreView) error {
+	w.Logger.Info(ctx, "Creating view",
+		"keyspace", view.Keyspace,
+		"view", view.View,
+		"type", view.Type,
+		"statement", view.CreateStmt,
+	)
+
+	op := func() error {
+		return w.clusterSession.ExecStmt(view.CreateStmt)
+	}
+
+	notify := func(err error, wait time.Duration) {
+		w.Logger.Info(ctx, "Creating view failed",
+			"keyspace", view.Keyspace,
+			"view", view.View,
+			"type", view.Type,
+			"error", err,
+			"wait", wait,
+		)
+	}
+
+	return alterSchemaRetryWrapper(ctx, op, notify)
+}
+
+func (w *restoreWorkerTools) WaitForViewBuilding(ctx context.Context, view RestoreView) error {
+	op := func() error {
+		viewTableName := view.View
+		if view.Type == SecondaryIndex {
+			viewTableName += "_index"
+		}
+
+		status, err := w.Client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
+		if err != nil {
+			return retry.Permanent(err)
+		}
+		if status != scyllaclient.StatusSuccess {
+			return fmt.Errorf("current status: %s", status)
+		}
+
+		return nil
+	}
+
+	notify := func(err error) {
+		w.Logger.Info(ctx, "Waiting for view",
+			"keyspace", view.Keyspace,
+			"view", view.View,
+			"type", view.Type,
+			"error", err,
+		)
+	}
+
+	return indefiniteHangingRetryWrapper(ctx, op, notify)
+}
+
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
 // as it might take more time for Scylla to process them one after another.
 // This wrapper exits on: success, context cancel, op returned non-timeout error or after maxTotalTime has passed.
