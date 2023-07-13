@@ -576,55 +576,6 @@ func (w *indexWorker) updateDownloadProgress(ctx context.Context, pr *RestoreRun
 	w.insertRunProgress(ctx, pr)
 }
 
-func (w *indexWorker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
-	const repeatInterval = 10 * time.Second
-
-	w.Logger.Info(ctx, "Load SSTables for the first time",
-		"host", host,
-		"load_and_stream", loadAndStream,
-		"primary_replica_only", primaryReplicaOnly,
-	)
-
-	running, err := w.Client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
-	if err == nil {
-		w.Logger.Info(ctx, "Loading SSTables finished with success", "host", host)
-		return nil
-	}
-	if !running {
-		return err
-	}
-
-	w.Logger.Info(ctx, "Waiting for SSTables loading to finish, retry every 10 seconds",
-		"host", host,
-		"error", err,
-	)
-
-	ticker := time.NewTicker(repeatInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-
-		running, err := w.Client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
-		if err == nil {
-			w.Logger.Info(ctx, "Loading SSTables finished with success", "host", host)
-			return nil
-		}
-		if running {
-			w.Logger.Info(ctx, "Waiting for SSTables loading to finish",
-				"host", host,
-				"error", err,
-			)
-			continue
-		}
-		return err
-	}
-}
-
 // batchFromIDs creates batch of SSTables with IDs present in ids.
 func (w *indexWorker) batchFromIDs(ids []string) []string {
 	var batch []string
