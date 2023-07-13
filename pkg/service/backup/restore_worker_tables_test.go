@@ -8,7 +8,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 )
 
-func TestTotalRestoreProgres(t *testing.T) {
+func TestTotalRestoreProgress(t *testing.T) {
 	type inputs struct {
 		restoredBytes       int64
 		totalBytesToRestore int64
