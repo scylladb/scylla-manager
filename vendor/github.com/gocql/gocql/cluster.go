@@ -48,7 +48,6 @@ type ClusterConfig struct {
 	ProtoVersion       int
 	Timeout            time.Duration                            // connection timeout (default: 600ms)
 	ConnectTimeout     time.Duration                            // initial connection timeout, used during initial dial to server (default: 600ms)
-	WriteTimeout       time.Duration                            // timeout for writing a query. defaults to Timeout if not specified.
 	Port               int                                      // port (default: 9042)
 	Keyspace           string                                   // initial keyspace (optional)
 	NumConns           int                                      // number of connections per host (default: 2), this option has no effect when working with Scylla - instead, one connection for each shard will be created
@@ -128,19 +127,13 @@ type ClusterConfig struct {
 	// Use it to collect metrics / stats from batch queries by providing an implementation of BatchObserver.
 	BatchObserver BatchObserver
 
-	// ConnectObserver will receive information about all connections created in this session.
+	// ConnectObserver will set the provided connect observer on all queries
+	// created from this session.
 	ConnectObserver ConnectObserver
-
-	// DisconnectObserver will receive information about all closed connections in this session.
-	DisconnectObserver DisconnectObserver
 
 	// FrameHeaderObserver will set the provided frame header observer on all frames' headers created from this session.
 	// Use it to collect metrics / stats from frames by providing an implementation of FrameHeaderObserver.
 	FrameHeaderObserver FrameHeaderObserver
-
-	// StreamObserver will be notified of stream state changes.
-	// This can be used to track in-flight protocol requests and responses.
-	StreamObserver StreamObserver
 
 	// Default idempotence for queries
 	DefaultIdempotence bool

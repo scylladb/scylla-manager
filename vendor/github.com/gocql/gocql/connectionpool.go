@@ -106,7 +106,6 @@ func connConfig(cfg *ClusterConfig) (*ConnConfig, error) {
 		ProtoVersion:    cfg.ProtoVersion,
 		CQLVersion:      cfg.CQLVersion,
 		Timeout:         cfg.Timeout,
-		WriteTimeout:    cfg.WriteTimeout,
 		ConnectTimeout:  cfg.ConnectTimeout,
 		Dialer:          cfg.Dialer,
 		Compressor:      cfg.Compressor,
@@ -298,7 +297,7 @@ func newHostConnPool(session *Session, host *HostInfo, port, size int,
 		connPicker: nopConnPicker{},
 		filling:    false,
 		closed:     false,
-		logger:     session.logger,
+		logger:   session.logger,
 	}
 
 	// the pool is not filled or connected
