@@ -86,47 +86,61 @@ It should have a status of *“Active: inactive (dead)”*.
 Upgrade the ScyllaDB Manager Server and Client 
 ------------------------------------------------
 
-**Before you Begin**
+.. TODO This section must be udpated when the installation instructions are moved to the docs:
+.. The link should take the user to the relevant page in the docs, not to the Download Center.
 
-Confirm that the settings for ``scylla-manager.repo`` are correct.
+#. **On the Manager server**, update the Manager repo file. Go to ScyllaDB Manager in 
+   the `ScyllaDB Download Center <https://www.scylladb.com/download/#manager>`_, 
+   and select your platform and the version to which you want to upgrade to display the relevant command.
+   
+   The following examples show how to update the repo for Manager 3.1:
 
-**On the Manager Server** display the contents of the scylla-manager.repo and confirm the version displayed is the desired version, in this example 3.0.
+   .. tabs::
 
-CentOS, Red Hat:
+      .. group-tab:: Example for Centos
 
-.. code:: sh
+           .. code:: console
+              :class: hide-copy-button
 
-   cat /etc/yum.repos.d/scylla-manager.repo
+              sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L http://downloads.scylladb.com/rpm/centos/scylladb-manager-3.1.repo
 
-   [scylla-manager-3.0] name=Scylla Manager for Centos - $basearch baseurl=http://downloads.scylladb.com/downloads/scylla-manager/rpm/centos/scylladb-manager-3.0/$basearch/ enabled=1 gpgcheck=0
+      .. group-tab::  Example for Ubuntu
 
+           .. code:: console
+              :class: hide-copy-button
 
-Debian, Ubuntu:
+              sudo wget -O /etc/apt/sources.list.d/scylla-manager.list http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.1.list
 
-.. code:: sh
+   .. note:: 
+    
+     You don't need to update the repo file if you upgrade to a patch release, for example, 
+     from Manager 3.1.1 to 3.1.2.
 
-   cat /etc/apt/sources.list/scylla-manager.repo
+   You can display the contents of the Manager repo file to confirm that the displayed version 
+   is the version to which you want to upgrade.
 
-   [scylla-manager-3.0] name=Scylla Manager for Centos - $basearch baseurl=http://downloads.scylladb.com/downloads/scylla-manager/rpm/centos/scylladb-manager-3.0/$basearch/ enabled=1 gpgcheck=0
+     - On CentOS/Red Hat, run: ``cat /etc/yum.repos.d/scylla-manager.repo``
+     - On Debian/Ubuntu, run: ``cat /etc/apt/sources.list.d/scylla-manager.list``
 
+#. **On the Manager server**, instruct the package manager to update the server and the client:
 
-**On the Manager Server** instruct package manager to update server and the client:
+   .. tabs::
 
-CentOS, Red Hat:
+      .. group-tab:: CentOS/ Red Hat
 
-.. code:: sh
+        .. code:: console
+            
+            sudo yum update scylla-manager-server scylla-manager-client -y
 
-    sudo yum update scylla-manager-server scylla-manager-client -y
+      .. group-tab:: Debian/ Ubuntu
 
+        .. code:: console
+            
+            sudo apt-get update
+            sudo apt-get install scylla-manager-server scylla-manager-client -y
 
-Debian, Ubuntu:
+        .. note:: When using apt-get, if a previous version of the Scylla Manager package had a modified configuration file, you will be asked what to do with this file during the installation process. In order to keep both files for reconciliation (covered later in the procedure), select the "keep your currently-installed version" option when prompted. 
 
-.. code:: sh
-
-    sudo apt-get update
-    sudo apt-get install scylla-manager-server scylla-manager-client -y
-
-.. note:: When using apt-get, if a previous version of the Scylla Manager package had a modified configuration file, you will be asked what to do with this file during the installation process. In order to keep both files for reconciliation (covered later in the procedure), select the "keep your currently-installed version" option when prompted. 
 
 Upgrade the ScyllaDB Manager Agent on all nodes
 ------------------------------------------------------
