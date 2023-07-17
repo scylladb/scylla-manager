@@ -87,29 +87,40 @@ It should have a status of *“Active: inactive (dead)”*.
 Upgrade the ScyllaDB Manager Server and Client 
 ------------------------------------------------
 
-**Before you Begin**
+#. **On the Manager server**, update the Manager repo file. Go to ScyllaDB Manager in 
+   the `ScyllaDB Download Center <https://www.scylladb.com/download/#manager>`_, 
+   and select your platform and the version to which you want to upgrade to display the relevant command.
+   
+   The following examples show how to update the repo for Manager 3.1:
 
 Confirm that the settings for ``scylla-manager.repo`` are correct.
 
-**On the Manager Server** display the contents of the scylla-manager.repo and confirm the version displayed is the desired version, in this example 3.0.
+      .. group-tab:: Example for Centos
 
-CentOS, Red Hat:
+           .. code:: console
+              :class: hide-copy-button
 
-.. code:: sh
+              sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L http://downloads.scylladb.com/rpm/centos/scylladb-manager-3.1.repo
 
-   cat /etc/yum.repos.d/scylla-manager.repo
+      .. group-tab::  Example for Ubuntu
 
-   [scylla-manager-3.0] name=Scylla Manager for Centos - $basearch baseurl=http://downloads.scylladb.com/downloads/scylla-manager/rpm/centos/scylladb-manager-3.0/$basearch/ enabled=1 gpgcheck=0
+           .. code:: console
+              :class: hide-copy-button
 
+              sudo wget -O /etc/apt/sources.list.d/scylla-manager.list http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.1.list
 
-Debian, Ubuntu:
+   .. note:: 
+    
+     You don't need to update the repo file if you upgrade to a patch release, for example, 
+     from Manager 3.1.1 to 3.1.2.
 
-.. code:: sh
+   You can display the contents of the Manager repo file to confirm that the displayed version 
+   is the version to which you want to upgrade.
 
-   cat /etc/apt/sources.list/scylla-manager.repo
+     - On CentOS/Red Hat, run: ``cat /etc/yum.repos.d/scylla-manager.repo``
+     - On Debian/Ubuntu, run: ``cat /etc/apt/sources.list.d/scylla-manager.list``
 
-   [scylla-manager-3.0] name=Scylla Manager for Centos - $basearch baseurl=http://downloads.scylladb.com/downloads/scylla-manager/rpm/centos/scylladb-manager-3.0/$basearch/ enabled=1 gpgcheck=0
-
+#. **On the Manager server**, instruct the package manager to update the server and the client:
 
 **On the Manager Server** instruct package manager to update server and the client:
 
