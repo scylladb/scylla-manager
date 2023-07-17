@@ -9,7 +9,8 @@ YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-IPV6?=false
+SCYLLA_VERSION?=5.1.13
+IP_FAMILY?=IPV4
 
 MINIO_ENDPOINT := http://192.168.200.99:9000
 COMPOSE_FILE := docker-compose-ipv4.yaml
@@ -17,7 +18,7 @@ AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent.yaml
 PUBLIC_NET := 192.168.100.
 SECOND_NET := 192.168.200.
 
-ifneq ($(IPV6), false)
+ifeq ($(IP_FAMILY), IPV6)
 	MINIO_ENDPOINT := http://[2001:0DB9:200::99]:9000
 	COMPOSE_FILE := docker-compose-ipv6.yaml
 	AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent-ipv6.yaml
@@ -36,7 +37,7 @@ include .env
 
 .PHONY: build
 build: ## Build custom docker image
-	@echo "==> Building custom Scylla image for testing"
+	@echo "==> Building custom Scylla $(SCYLLA_VERSION) image for testing"
 	@docker build --network=host \
 		--build-arg=SCYLLA_IMAGE=$(SCYLLA_IMAGE) \
 		--build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) \
@@ -48,6 +49,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY)"
 # Scylla bootstap proceedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2

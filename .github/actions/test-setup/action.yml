@@ -1,13 +1,18 @@
 name: "Set up testing dependencies"
 description: "Set up GO, package dependencies and install-dependencies"
+
 inputs:
+  scylla-version:
+    description: "Specifies Scylla version for test environment"
+    required: false
   ip-family:
-    description: "Should test environment target IPV6 instead of IPV4"
+    description: "Specifies IP family for test environment (IPV4/IPV6)"
     required: false
   start-dev-env:
     description: "Should this action run 'make start-dev-env'"
     required: false
     default: 'true'
+
 runs:
   using: "composite"
   steps:
@@ -16,12 +21,6 @@ runs:
       with:
         go-version-file: ./go.mod
         cache-dependency-path: '**/go.sum'
-
-    - name: Set target IP-family
-      shell: bash
-      run: |
-        echo "IPV6=true" >> $GITHUB_ENV
-      if: ${{ inputs.ip-family == 'IPV6' }}
 
     - name: Restore dependencies
       uses: actions/cache@v3
@@ -37,5 +36,5 @@ runs:
 
     - name: Start dev env
       if: inputs.start-dev-env == 'true'
-      run: make start-dev-env
+      run: make start-dev-env SCYLLA_VERSION=${{ inputs.scylla-version }} IP_FAMILY=${{ inputs.ip-family }}
       shell: bash

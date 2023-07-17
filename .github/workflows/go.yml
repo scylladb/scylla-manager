@@ -5,7 +5,7 @@ on:
     branches:
       - master
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   checks:
@@ -26,12 +26,13 @@ jobs:
       - name: Run unit tests
         run: make unit-test
 
-  ipv4-run-integration-tests:
+  integration-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        scylla-version: [ 5.0.0, 5.0.13, 5.1.0, 5.1.13, 5.2.0, 5.2.4 ]
+        ip-family: [ IPV4, IPV6 ]
     uses: ./.github/workflows/integration-tests.yaml
     with:
-      ip-family: IPV4
-
-  ipv6-run-integration-tests:
-    uses: ./.github/workflows/integration-tests.yaml
-    with:
-      ip-family: IPV6
+      scylla-version: ${{ matrix.scylla-version }}
+      ip-family: ${{ matrix.ip-family }}
