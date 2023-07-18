@@ -45,8 +45,6 @@ restore-tables: |
   It requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).
   Moreover, in order to prevent situation in which current tables' contents overlaps restored data,
   tables should be truncated before initializing restore.
-  For the table contents to be visible, repair of the entire cluster is required after completion.
-  See sctool repair: https://manager.docs.scylladb.com/stable/sctool/repair.html#sctool-repair for details.
 
 dry-run: |
   Validates and displays restore information without actually running the restore.
