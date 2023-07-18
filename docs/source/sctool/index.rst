@@ -25,8 +25,8 @@ CLI sctool
    version
 
 
-``sctool`` is a Command Line Interface (CLI) for the Scylla Manager server.
-The server communicates with managed Scylla clusters and performs cluster-wide operations such as automatic repair and backup.
+``sctool`` is a Command Line Interface (CLI) for the ScyllaDB Manager server.
+The server communicates with managed ScyllaDB clusters and performs cluster-wide operations such as automatic repair and backup.
 
 Syntax
 ---------
