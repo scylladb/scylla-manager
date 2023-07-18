@@ -26,8 +26,8 @@ ifeq ($(IP_FAMILY), IPV6)
 	SECOND_NET := 2001:0DB9:200::
 endif
 
-SCYLLA_ARGS := --smp 2 --memory 1G --seeds $(SECOND_NET)11,$(SECOND_NET)21
-SCYLLA_SECOND_CLUSTER_ARGS := --smp 2 --memory 1G --seeds $(SECOND_NET)31
+SCYLLA_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)11,$(SECOND_NET)21
+SCYLLA_SECOND_CLUSTER_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)31
 
 export SCYLLA_ARGS
 export SCYLLA_SECOND_CLUSTER_ARGS
