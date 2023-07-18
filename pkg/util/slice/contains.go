@@ -2,6 +2,8 @@
 
 package slice
 
+import "fmt"
+
 // Contains is a general purpose function to check if a slice contains element.
 // It has a linear complexity, and does not assume any structure of data.
 // Most likely you want to use one of the typed functions `ContainsX` from this
@@ -20,4 +22,14 @@ func ContainsString(a []string, s string) bool {
 	return Contains(len(a), func(i int) bool {
 		return a[i] == s
 	})
+}
+
+// Index returns position of e in s or panics if e can't be found in s.
+func Index[T comparable](s []T, e T) int {
+	for i := range s {
+		if e == s[i] {
+			return i
+		}
+	}
+	panic(fmt.Sprintf("unknown element: %v in slice: %v", e, s))
 }

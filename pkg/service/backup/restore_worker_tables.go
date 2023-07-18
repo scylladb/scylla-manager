@@ -122,7 +122,7 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		},
 	}
 
-	for i, s := range RestoreStageOrder {
+	for i, s := range RestoreStageOrder() {
 		if i < run.Stage.Index() {
 			continue
 		}
