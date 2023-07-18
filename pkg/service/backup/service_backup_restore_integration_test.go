@@ -1307,7 +1307,14 @@ func (h *restoreTestHelper) restartScylla() {
 	cfg := cqlping.Config{Timeout: 100 * time.Millisecond}
 	const cmdRestart = "supervisorctl restart scylla"
 
-	for _, host := range h.GetAllHosts() {
+	allHosts := h.GetAllHosts()
+	var allClients []*scyllaclient.Client
+	for _, host := range allHosts {
+		hostCfg := scyllaclient.TestConfig([]string{host}, AgentAuthToken())
+		allClients = append(allClients, newTestClient(h.T, h.Hrt, h.Logger.Named("client"), &hostCfg))
+	}
+
+	for _, host := range allHosts {
 		Print("When: restart Scylla on host: " + host)
 		stdout, stderr, err := ExecOnHost(host, cmdRestart)
 		if err != nil {
@@ -1331,11 +1338,17 @@ func (h *restoreTestHelper) restartScylla() {
 			if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
 				return false
 			}
-			status, err := h.Client.Status(ctx)
-			if err != nil {
-				return false
+
+			for _, client := range allClients {
+				status, err := client.Status(ctx)
+				if err != nil {
+					return false
+				}
+				if len(status.Live()) != 6 {
+					return false
+				}
 			}
-			return len(status.Live()) == 6
+			return true
 		}
 
 		WaitCond(h.T, cond, time.Second, 60*time.Second)
