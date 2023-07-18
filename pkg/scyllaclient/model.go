@@ -251,18 +251,15 @@ const (
 )
 
 // ViewBuildStatusOrder lists all view build statuses in the order of their execution.
-var ViewBuildStatusOrder = []ViewBuildStatus{
-	StatusUnknown,
-	StatusStarted,
-	StatusSuccess,
+func ViewBuildStatusOrder() []ViewBuildStatus {
+	return []ViewBuildStatus{
+		StatusUnknown,
+		StatusStarted,
+		StatusSuccess,
+	}
 }
 
 // Index returns status position in ViewBuildStatusOrder.
 func (s ViewBuildStatus) Index() int {
-	for i, stage := range ViewBuildStatusOrder {
-		if s == stage {
-			return i
-		}
-	}
-	panic("Unknown status: " + s)
+	return slice.Index(ViewBuildStatusOrder(), s)
 }

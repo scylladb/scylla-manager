@@ -2,6 +2,8 @@
 
 package backupspec
 
+import "github.com/scylladb/scylla-manager/v3/pkg/util/slice"
+
 // Stage specifies the backup worker stage.
 type Stage string
 
@@ -20,23 +22,21 @@ const (
 	StageDone         Stage = "DONE"
 )
 
-var stageOrder = []Stage{
-	StageInit,
-	StageAwaitSchema,
-	StageSnapshot,
-	StageIndex,
-	StageManifest,
-	StageSchema,
-	StageUpload,
-	StageMoveManifest,
-	StageMigrate,
-	StagePurge,
-	StageDone,
-}
-
 // StageOrder listing of all stages in the order of execution.
 func StageOrder() []Stage {
-	return stageOrder
+	return []Stage{
+		StageInit,
+		StageAwaitSchema,
+		StageSnapshot,
+		StageIndex,
+		StageManifest,
+		StageSchema,
+		StageUpload,
+		StageMoveManifest,
+		StageMigrate,
+		StagePurge,
+		StageDone,
+	}
 }
 
 // Resumable run can be continued.
@@ -52,12 +52,7 @@ func (s Stage) Resumable() bool {
 // Index returns stage position among all stages, stage with index n+1 happens
 // after stage n.
 func (s Stage) Index() int {
-	for i := 0; i < len(stageOrder); i++ {
-		if s == stageOrder[i] {
-			return i
-		}
-	}
-	panic("Unknown stage " + s)
+	return slice.Index(StageOrder(), s)
 }
 
 // RestoreStage specifies the restore worker stage.
@@ -76,23 +71,20 @@ const (
 )
 
 // RestoreStageOrder lists all restore stages in the order of their execution.
-var RestoreStageOrder = []RestoreStage{
-	StageRestoreInit,
-	StageRestoreDropViews,
-	StageRestoreDisableTGC,
-	StageRestoreData,
-	StageRestoreRepair,
-	StageRestoreEnableTGC,
-	StageRestoreRecreateViews,
-	StageRestoreDone,
+func RestoreStageOrder() []RestoreStage {
+	return []RestoreStage{
+		StageRestoreInit,
+		StageRestoreDropViews,
+		StageRestoreDisableTGC,
+		StageRestoreData,
+		StageRestoreRepair,
+		StageRestoreEnableTGC,
+		StageRestoreRecreateViews,
+		StageRestoreDone,
+	}
 }
 
 // Index returns stage position in RestoreStageOrder.
 func (s RestoreStage) Index() int {
-	for i, stage := range RestoreStageOrder {
-		if s == stage {
-			return i
-		}
-	}
-	panic("Unknown stage: " + s)
+	return slice.Index(RestoreStageOrder(), s)
 }
