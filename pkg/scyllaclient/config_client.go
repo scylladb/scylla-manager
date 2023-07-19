@@ -164,7 +164,7 @@ func (c *ConfigClient) CQLPasswordProtectionEnabled(ctx context.Context) (bool, 
 // AlternatorPort returns node alternator port.
 func (c *ConfigClient) AlternatorPort(ctx context.Context) (string, error) {
 	resp, err := c.client.Config.FindConfigAlternatorPort(config.NewFindConfigAlternatorPortParamsWithContext(ctx))
-	if alternatorDisabled(err) {
+	if isStatusCode400(err) {
 		return "", nil
 	}
 	if err != nil {
@@ -176,7 +176,7 @@ func (c *ConfigClient) AlternatorPort(ctx context.Context) (string, error) {
 // AlternatorAddress returns node alternator address.
 func (c *ConfigClient) AlternatorAddress(ctx context.Context) (string, error) {
 	resp, err := c.client.Config.FindConfigAlternatorAddress(config.NewFindConfigAlternatorAddressParamsWithContext(ctx))
-	if alternatorDisabled(err) {
+	if isStatusCode400(err) {
 		return "", nil
 	}
 	if err != nil {
@@ -188,7 +188,7 @@ func (c *ConfigClient) AlternatorAddress(ctx context.Context) (string, error) {
 // AlternatorHTTPSPort returns node alternator HTTPS port.
 func (c *ConfigClient) AlternatorHTTPSPort(ctx context.Context) (string, error) {
 	resp, err := c.client.Config.FindConfigAlternatorHTTPSPort(config.NewFindConfigAlternatorHTTPSPortParamsWithContext(ctx))
-	if alternatorDisabled(err) {
+	if isStatusCode400(err) {
 		return "", nil
 	}
 	if err != nil {
@@ -197,10 +197,10 @@ func (c *ConfigClient) AlternatorHTTPSPort(ctx context.Context) (string, error) 
 	return fmt.Sprint(resp.Payload), err
 }
 
-// AlternatorEnforceAuthorization returns whether alternator requires authorization.
-func (c *ConfigClient) AlternatorEnforceAuthorization(ctx context.Context) (bool, error) {
-	resp, err := c.client.Config.FindConfigAlternatorEnforceAuthorization(config.NewFindConfigAlternatorEnforceAuthorizationParamsWithContext(ctx))
-	if alternatorDisabled(err) {
+// UUIDSStableIdentifiers returns if node is using uuid-like sstable naming.
+func (c *ConfigClient) UUIDSStableIdentifiers(ctx context.Context) (bool, error) {
+	resp, err := c.client.Config.FindConfigUUIDSstableIdentifiersEnabled(config.NewFindConfigUUIDSstableIdentifiersEnabledParamsWithContext(ctx))
+	if isStatusCode400(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -209,7 +209,19 @@ func (c *ConfigClient) AlternatorEnforceAuthorization(ctx context.Context) (bool
 	return resp.Payload, err
 }
 
-func alternatorDisabled(err error) bool {
+// AlternatorEnforceAuthorization returns whether alternator requires authorization.
+func (c *ConfigClient) AlternatorEnforceAuthorization(ctx context.Context) (bool, error) {
+	resp, err := c.client.Config.FindConfigAlternatorEnforceAuthorization(config.NewFindConfigAlternatorEnforceAuthorizationParamsWithContext(ctx))
+	if isStatusCode400(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return resp.Payload, err
+}
+
+func isStatusCode400(err error) bool {
 	// Scylla will return 400 when alternator is disabled, for example:
 	// {"message": "No such config entry: alternator_port", "code": 400}
 	return StatusCodeOf(err) == http.StatusBadRequest
@@ -265,6 +277,7 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 	}{
 		{Field: &ni.CqlPasswordProtected, Fetcher: c.CQLPasswordProtectionEnabled},
 		{Field: &ni.AlternatorEnforceAuthorization, Fetcher: c.AlternatorEnforceAuthorization},
+		{Field: &ni.SstableUUIDFormat, Fetcher: c.UUIDSStableIdentifiers},
 	}
 
 	for i, ff := range ffb {

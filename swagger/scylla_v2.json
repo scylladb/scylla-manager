@@ -4956,6 +4956,33 @@
         }
       }
     },
+    "/config/uuid_sstable_identifiers_enabled": {
+      "get": {
+        "description": "Return true if node is using uuid sstable format: me-3g7k_098r_4wtqo2asamoc1i8h9n-big-CompressionInfo.db",
+        "operationId": "find_config_uuid_sstable_identifiers_enabled",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "config"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Config value",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
     "/config/alternator_enforce_authorization": {
       "get": {
         "description": "Whether alternator requires authorization",

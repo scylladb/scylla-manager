@@ -381,6 +381,8 @@ type ClientService interface {
 
 	FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncateRequestTimeoutInMsParams) (*FindConfigTruncateRequestTimeoutInMsOK, error)
 
+	FindConfigUUIDSstableIdentifiersEnabled(params *FindConfigUUIDSstableIdentifiersEnabledParams) (*FindConfigUUIDSstableIdentifiersEnabledOK, error)
+
 	FindConfigViewBuilding(params *FindConfigViewBuildingParams) (*FindConfigViewBuildingOK, error)
 
 	FindConfigViewHintsDirectory(params *FindConfigViewHintsDirectoryParams) (*FindConfigViewHintsDirectoryOK, error)
@@ -6441,6 +6443,39 @@ func (a *Client) FindConfigTruncateRequestTimeoutInMs(params *FindConfigTruncate
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*FindConfigTruncateRequestTimeoutInMsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigUUIDSstableIdentifiersEnabled Return true if node is using uuid sstable format: me-3g7k_098r_4wtqo2asamoc1i8h9n-big-CompressionInfo.db
+*/
+func (a *Client) FindConfigUUIDSstableIdentifiersEnabled(params *FindConfigUUIDSstableIdentifiersEnabledParams) (*FindConfigUUIDSstableIdentifiersEnabledOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigUUIDSstableIdentifiersEnabledParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_uuid_sstable_identifiers_enabled",
+		Method:             "GET",
+		PathPattern:        "/config/uuid_sstable_identifiers_enabled",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigUUIDSstableIdentifiersEnabledReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigUUIDSstableIdentifiersEnabledOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigUUIDSstableIdentifiersEnabledDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

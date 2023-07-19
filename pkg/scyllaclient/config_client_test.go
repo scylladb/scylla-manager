@@ -17,9 +17,23 @@ import (
 )
 
 type (
-	configClientFunc     func(context.Context) (string, error)
+	configClientFunc     func(context.Context) (interface{}, error)
 	configClientBindFunc func(client *scyllaclient.ConfigClient) configClientFunc
 )
+
+func convertString(handler func(ctx context.Context) (string, error)) func(ctx context.Context) (interface{}, error) {
+	return func(ctx context.Context) (interface{}, error) {
+		out, err := handler(ctx)
+		return out, err
+	}
+}
+
+func convertBool(handler func(ctx context.Context) (bool, error)) func(ctx context.Context) (interface{}, error) {
+	return func(ctx context.Context) (interface{}, error) {
+		out, err := handler(ctx)
+		return out, err
+	}
+}
 
 func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 	t.Parallel()
@@ -28,13 +42,13 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 		Name             string
 		ResponseFilePath string
 		BindClientFunc   configClientBindFunc
-		Golden           string
+		Golden           interface{}
 	}{
 		{
 			Name:             "Prometheus port",
 			ResponseFilePath: "testdata/scylla_api/v2_config_prometheus_port.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.PrometheusPort
+				return convertString(client.PrometheusPort)
 			},
 			Golden: "9180",
 		},
@@ -42,7 +56,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Prometheus address",
 			ResponseFilePath: "testdata/scylla_api/v2_config_prometheus_address.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.PrometheusAddress
+				return convertString(client.PrometheusAddress)
 			},
 			Golden: "0.0.0.0",
 		},
@@ -50,7 +64,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Broadcast address",
 			ResponseFilePath: "testdata/scylla_api/v2_config_broadcast_address.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.BroadcastAddress
+				return convertString(client.BroadcastAddress)
 			},
 			Golden: "192.168.100.100",
 		},
@@ -58,7 +72,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Listen address",
 			ResponseFilePath: "testdata/scylla_api/v2_config_listen_address.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.ListenAddress
+				return convertString(client.ListenAddress)
 			},
 			Golden: "192.168.100.100",
 		},
@@ -66,7 +80,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Broadcast RPC address",
 			ResponseFilePath: "testdata/scylla_api/v2_config_broadcast_rpc_address.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.BroadcastRPCAddress
+				return convertString(client.BroadcastRPCAddress)
 			},
 			Golden: "1.2.3.4",
 		},
@@ -74,7 +88,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "RPC port",
 			ResponseFilePath: "testdata/scylla_api/v2_config_rpc_port.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.RPCPort
+				return convertString(client.RPCPort)
 			},
 			Golden: "9160",
 		},
@@ -82,7 +96,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "RPC address",
 			ResponseFilePath: "testdata/scylla_api/v2_config_rpc_address.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.RPCAddress
+				return convertString(client.RPCAddress)
 			},
 			Golden: "192.168.100.101",
 		},
@@ -90,7 +104,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Native transport port",
 			ResponseFilePath: "testdata/scylla_api/v2_config_native_transport_port.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.NativeTransportPort
+				return convertString(client.NativeTransportPort)
 			},
 			Golden: "9042",
 		},
@@ -98,9 +112,25 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Data directories",
 			ResponseFilePath: "testdata/scylla_api/v2_config_data_file_directories.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return client.DataDirectory
+				return convertString(client.DataDirectory)
 			},
 			Golden: "/var/lib/scylla/data",
+		},
+		{
+			Name:             "Alternator requires authorization",
+			ResponseFilePath: "testdata/scylla_api/v2_config_alternator_enforce_authorization.json",
+			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
+				return convertBool(client.UUIDSStableIdentifiers)
+			},
+			Golden: true,
+		},
+		{
+			Name:             "UUID-like sstable naming",
+			ResponseFilePath: "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.json",
+			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
+				return convertBool(client.UUIDSStableIdentifiers)
+			},
+			Golden: true,
 		},
 	}
 
@@ -143,6 +173,7 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_https_port", "testdata/scylla_api/v2_config_alternator_https_port.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_address", "testdata/scylla_api/v2_config_alternator_address.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_enforce_authorization", "testdata/scylla_api/v2_config_alternator_enforce_authorization.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/uuid_sstable_identifiers_enabled", "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.json"),
 		),
 	)
 	defer closeServer()
@@ -171,7 +202,7 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 	}
 }
 
-func TestConfigClientAlternatorDisabledNodeInformationUsingScyllaAPI(t *testing.T) {
+func TestConfigOptionIsNotSupported(t *testing.T) {
 	client, closeServer := scyllaclienttest.NewFakeScyllaV2ServerMatching(t,
 		scyllaclienttest.MultiPathFileMatcher(
 			scyllaclienttest.PathFileMatcher("/v2/config/broadcast_address", "testdata/scylla_api/v2_config_broadcast_address.json"),
@@ -190,6 +221,7 @@ func TestConfigClientAlternatorDisabledNodeInformationUsingScyllaAPI(t *testing.
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_https_port", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_address", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_enforce_authorization", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/uuid_sstable_identifiers_enabled", "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.400.json"),
 		),
 	)
 	defer closeServer()

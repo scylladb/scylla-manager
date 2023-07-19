@@ -83,6 +83,9 @@ type NodeInfo struct {
 	// Scylla version.
 	ScyllaVersion string `json:"scylla_version,omitempty"`
 
+	// Whether Scylla supports uuid-like sstable naming.
+	SstableUUIDFormat bool `json:"sstable_uuid_format,omitempty"`
+
 	// Uptime in seconds.
 	Uptime int64 `json:"uptime,omitempty"`
 }
