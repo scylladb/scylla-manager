@@ -16,12 +16,13 @@ GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 
-IPV6?=false
+SCYLLA_VERSION?=5.1.13
+IP_FAMILY?=IPV4
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
 MINIO_ENDPOINT := http://192.168.200.99:9000
-ifneq ($(IPV6), false)
+ifeq ($(IP_FAMILY), IPV6)
 	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:200::
 	MINIO_ENDPOINT := http://[2001:0DB9:200::99]:9000

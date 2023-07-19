@@ -1131,17 +1131,17 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		var dstCount int
 		// Right after repair, we can expect to get correct responses with consistency 1
 		q := dstSession.Query("SELECT COUNT(*) FROM "+t, nil).Consistency(gocql.One)
-		if err := q.Get(&dstCount); err != nil {
-			h.T.Fatal(err)
-		}
+		WaitCond(h.T, func() bool {
+			return q.Get(&dstCount) == nil
+		}, condCheckInterval, maxWaitCond)
 
 		// srcCount should be treated as 0 when restoring schema
 		var srcCount int
 		if target.RestoreTables {
 			q = srcSession.Query("SELECT COUNT(*) FROM "+t, nil).Consistency(gocql.One)
-			if err := q.Get(&srcCount); err != nil {
-				h.T.Fatal(err)
-			}
+			WaitCond(h.T, func() bool {
+				return q.Get(&srcCount) == nil
+			}, condCheckInterval, maxWaitCond)
 		}
 
 		h.T.Logf("%s, srcCount = %d, dstCount = %d", t, srcCount, dstCount)
