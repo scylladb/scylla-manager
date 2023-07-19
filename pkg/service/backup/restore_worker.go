@@ -683,47 +683,6 @@ func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, 
 	return pr, nil
 }
 
-// sstableID returns ID from SSTable name.
-// Supported SSTable format versions are: "mc", "md", "me", "la", "ka".
-// Scylla code validating SSTable format can be found here:
-// https://github.com/scylladb/scylladb/blob/2c1ef0d2b768a793c284fc68944526179bfd0171/sstables/sstables.cc#L2333
-func sstableID(sstable string) string {
-	parts := strings.Split(sstable, "-")
-
-	if regexLaMx.MatchString(sstable) {
-		return parts[1]
-	}
-	if regexKa.MatchString(sstable) {
-		return parts[3]
-	}
-
-	panic(unknownSSTableError(sstable))
-}
-
-func renameSSTableID(sstable, newID string) string {
-	parts := strings.Split(sstable, "-")
-
-	switch {
-	case regexLaMx.MatchString(sstable):
-		parts[1] = newID
-	case regexKa.MatchString(sstable):
-		parts[3] = newID
-	default:
-		panic(unknownSSTableError(sstable))
-	}
-
-	return strings.Join(parts, "-")
-}
-
-func unknownSSTableError(sstable string) error {
-	return errors.Errorf("unknown SSTable format version: %s. Supported versions are: 'mc', 'md', 'me', 'la', 'ka'", sstable)
-}
-
-var (
-	regexLaMx = regexp.MustCompile(`(la|m[cde])-(\w+)-(\w+)-(.*)`)
-	regexKa   = regexp.MustCompile(`(\w+)-(\w+)-ka-(\d+)-(.*)`)
-)
-
 func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {
 	filesSizesCache := make(map[string]int64)
 	opts := &scyllaclient.RcloneListDirOpts{

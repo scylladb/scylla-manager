@@ -5,12 +5,12 @@ package backup
 import (
 	"context"
 	"path"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
 
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -18,10 +18,9 @@ import (
 type schemaWorker struct {
 	restoreWorkerTools
 
-	hosts           []string
-	generationCnt   atomic.Int64
-	renamedSSTables map[string]string
-	miwc            ManifestInfoWithContent // Currently restored manifest
+	hosts         []string
+	generationCnt atomic.Int64
+	miwc          ManifestInfoWithContent // Currently restored manifest
 	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
 	// that should be used during the restore procedure. It should be initialized per each restored table.
 	versionedFiles VersionedMap
@@ -165,17 +164,28 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		"files", fm.Files,
 	)
 
-	w.initRenamedID(fm.Files)
 	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0], srcDir, w.Logger)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
 
+	idMapping := w.getFileNamesMapping(fm.Files, false)
+	uuidMapping := w.getFileNamesMapping(fm.Files, true)
+
 	f := func(i int) error {
 		host := w.hosts[i]
+		nodeInfo, err := w.Client.NodeInfo(ctx, host)
+		if err != nil {
+			return errors.Wrapf(err, "get node info on host %s", host)
+		}
+
+		renamedSSTables := idMapping
+		if nodeInfo.SstableUUIDFormat {
+			renamedSSTables = uuidMapping
+		}
 
 		if err := w.checkAvailableDiskSpace(ctx, hostInfo{IP: host}); err != nil {
-			return errors.Wrapf(err, "validate free disk space on host: %s", host)
+			return errors.Wrapf(err, "validate free disk space on host %s", host)
 		}
 
 		start := timeutc.Now()
@@ -183,7 +193,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		fHost := func(j int) error {
 			file := fm.Files[j]
 			// Rename SSTable in the destination in order to avoid name conflicts
-			dstFile := w.renamedSSTables[file]
+			dstFile := renamedSSTables[file]
 			// Take the correct version of restored file
 			srcFile := file
 			if v, ok := w.versionedFiles[file]; ok {
@@ -205,7 +215,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		}
 
 		// Rely on rclone ability to limit number of concurrent transfers
-		err := parallel.Run(len(fm.Files), parallel.NoLimit, fHost, notifyHost)
+		err = parallel.Run(len(fm.Files), parallel.NoLimit, fHost, notifyHost)
 		if err != nil {
 			return errors.Wrapf(err, "download renamed SSTables on host: %s", host)
 		}
@@ -261,18 +271,11 @@ func (w *schemaWorker) initHosts(ctx context.Context) error {
 	return nil
 }
 
-func (w *schemaWorker) initRenamedID(sstables []string) {
-	bundles := make(map[string][]string)
-	for _, sst := range sstables {
-		id := sstableID(sst)
-		bundles[id] = append(bundles[id], sst)
+// getFileNamesMapping creates renaming mapping for the sstables solving problems with sstables file names.
+func (w *schemaWorker) getFileNamesMapping(sstables []string, sstableUUIDFormat bool) map[string]string {
+	if sstableUUIDFormat {
+		// Target naming scheme is UUID-like
+		return sstable.RenameToUUIDs(sstables)
 	}
-
-	w.renamedSSTables = make(map[string]string)
-	for _, b := range bundles {
-		newID := int(w.generationCnt.Add(1))
-		for _, sst := range b {
-			w.renamedSSTables[sst] = renameSSTableID(sst, strconv.Itoa(newID))
-		}
-	}
+	return sstable.RenameToIDs(sstables, &w.generationCnt)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -241,7 +242,7 @@ func (w *indexWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstab
 	w.bundles = make(map[string]bundle)
 
 	for _, f := range sstables {
-		id := sstableID(f)
+		id := sstable.ExtractID(f)
 		w.bundles[id] = append(w.bundles[id], f)
 	}
 
