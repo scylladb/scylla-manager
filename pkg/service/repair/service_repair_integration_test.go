@@ -10,16 +10,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"io"
+	"math/rand"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -480,7 +483,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
-	t.Skip() // This test should be enabled when after repair algorithm is refactored
+	//t.Skip() // This test should be enabled when after repair algorithm is refactored
 
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, repair.DefaultConfig())
@@ -501,86 +504,110 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 	WriteData(t, clusterSession, ks2, 5, t1, t2)
 	WriteData(t, clusterSession, ks3, 5, t1, t2)
 
-	t.Run("repair schedules only one job per host at any given time", func(t *testing.T) {
-		ctx := context.Background()
+	for i := 1; i <= 10; i++ {
+		t.Run(fmt.Sprintf("%d: repair schedules only one job per host at any given time", i), func(t *testing.T) {
+			ctx := context.Background()
 
-		target := h.generateTarget(map[string]any{
-			"FailFast": true,
-		})
+			target := h.generateTarget(map[string]any{
+				"fail_fast": true,
+				"intensity": 0.1 * float64(i),
+			})
 
-		// The amount of currently executed repair jobs on host
-		jobsPerHost := make(map[string]int)
-		muJPH := sync.Mutex{}
+			// The amount of currently executed repair jobs on host
+			jobsPerHost := make(map[string]int)
+			muJPH := sync.Mutex{}
 
-		// Set of hosts used for given repair job
-		hostsInJob := make(map[string][]string)
-		muHIJ := sync.Mutex{}
+			// Set of hosts used for given repair job
+			hostsInJob := make(map[string][]string)
+			muHIJ := sync.Mutex{}
 
-		cnt := atomic.Int64{}
+			cnt := atomic.Int64{}
 
-		// Repair request
-		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-				hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
-				muJPH.Lock()
-				defer muJPH.Unlock()
+			h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if !repairEndpointRegexp.MatchString(req.URL.Path) {
+					return nil, nil
+				}
 
-				for _, host := range hosts {
-					jobsPerHost[host]++
-					if jobsPerHost[host] > maxJobsOnHost {
-						cnt.Add(1)
+				resp := httpx.MakeResponse(req, 200)
+				// Simulate some random response time
+				time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+
+				switch req.Method {
+				case http.MethodGet: // Status query
+					resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.CommandSuccessful)))
+					id := req.URL.Query()["id"][0]
+					if id == "-1" {
 						return nil, nil
 					}
-				}
-			}
 
-			return nil, nil
-		}))
-
-		h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
-			if resp == nil {
-				return
-			}
-
-			var copiedBody bytes.Buffer
-			tee := io.TeeReader(resp.Body, &copiedBody)
-			body, _ := io.ReadAll(tee)
-			resp.Body = io.NopCloser(&copiedBody)
-
-			// Response to repair schedule
-			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
-				muHIJ.Lock()
-				hostsInJob[string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
-				muHIJ.Unlock()
-			}
-
-			// Response to repair status
-			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
-				status := string(body)
-				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
 					muHIJ.Lock()
-					hosts := hostsInJob[resp.Request.URL.Query()["id"][0]]
+					hosts := hostsInJob[id]
+					muHIJ.Unlock()
+
+					if len(hosts) == 0 {
+						cnt.Add(10000)
+					}
+
+					muJPH.Lock()
+					for _, host := range hosts {
+						jobsPerHost[host]--
+					}
+					muJPH.Unlock()
+
+				case http.MethodPost: // Schedule query
+					id := atomic.AddInt32(&commandCounter, 1)
+					resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+					hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
+
+					muHIJ.Lock()
+					hostsInJob[strconv.Itoa(int(id))] = strings.Split(req.URL.Query()["hosts"][0], ",")
 					muHIJ.Unlock()
 
 					muJPH.Lock()
 					defer muJPH.Unlock()
-
 					for _, host := range hosts {
-						jobsPerHost[host]--
+						jobsPerHost[host]++
+						if jobsPerHost[host] > maxJobsOnHost {
+							cnt.Add(1)
+							return resp, nil
+						}
 					}
 				}
+
+				return resp, nil
+			}))
+
+			Print("When: run repair")
+			if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+				t.Errorf("Repair failed: %s", err)
+			}
+
+			fail := false
+			if cnt.Load() > 0 {
+				t.Logf("too many (%d times) repair jobs are being executed on host", cnt.Load())
+				fail = true
+			}
+			for k, v := range jobsPerHost {
+				if v > 0 {
+					t.Logf("host %s has unfinished %d jobs", k, v)
+					fail = true
+				}
+			}
+
+			// Reverse result when running with default intensity 1,
+			// as this test aims to check the contrast between intensity
+			// in (0, 1) and >= 1.
+			if i == 10 {
+				fail = !fail
+			}
+
+			if fail {
+				t.Fatal("we failed")
+			} else {
+				t.Log("we succeeded")
 			}
 		})
-
-		Print("When: run repair")
-		if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
-			t.Errorf("Repair failed: %s", err)
-		}
-
-		if cnt.Load() > 0 {
-			t.Fatal("too many repair jobs are being executed on host")
-		}
-	})
+	}
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
