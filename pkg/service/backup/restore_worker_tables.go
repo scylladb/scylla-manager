@@ -109,6 +109,7 @@ func (w *tablesWorker) restore(ctx context.Context, run *RestoreRun, target Rest
 		}
 		run.Stage = s
 		w.insertRun(ctx, run)
+		w.Logger.Info(ctx, "Executing stage", "name", s)
 
 		if f, ok := stageFunc[s]; ok {
 			if err := f(); err != nil {
@@ -169,7 +170,11 @@ func (w *tablesWorker) locationRestoreHandler(ctx context.Context, run *RestoreR
 			progress:           w.progress,
 		}
 
-		return miwc.ForEachIndexIterWithError(target.Keyspace, iw.filesMetaRestoreHandler(ctx, run, target))
+		err := miwc.ForEachIndexIterWithError(target.Keyspace, iw.filesMetaRestoreHandler(ctx, run, target))
+		// We have to keep track of continuation from filesMetaHandler,
+		// so that can stop skipping not restored manifests and locations.
+		w.continuation = iw.continuation
+		return err
 	}
 
 	return w.forEachRestoredManifest(ctx, w.location, manifestHandler)
