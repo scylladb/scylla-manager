@@ -192,11 +192,11 @@ func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB in
 	writeData(t, session, keyspace, 0, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", tables...)
 }
 
-// WriteDataToSecondCluster creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
-func WriteDataToSecondCluster(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, tables ...string) int {
+// WriteDataSecondClusterSchema creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
+func WriteDataSecondClusterSchema(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, tables ...string) int {
 	t.Helper()
 
-	return writeData(t, session, keyspace, startingID, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}", tables...)
+	return writeData(t, session, keyspace, startingID, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}", tables...)
 }
 
 // WriteData creates big_table in the provided keyspace with the size in MiB.
