@@ -136,9 +136,10 @@ func (c *defaultController) MaxWorkerCount() int {
 // If parallel is set it caps the number of distinct replica sets that can be
 // repaired at the same time.
 type rowLevelRepairController struct {
-	intensity      *intensityHandler
-	limits         hostRangesLimit
-	maxWorkerCount int
+	intensity             *intensityHandler
+	limits                hostRangesLimit
+	singleHostParallelism int
+	maxWorkerCount        int
 
 	allJobs      int
 	jobs         map[string]int
@@ -148,7 +149,7 @@ type rowLevelRepairController struct {
 
 var _ controller = &rowLevelRepairController{}
 
-func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit, nodes, minRf int) *rowLevelRepairController {
+func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit, nodes, minRf, singleHostParallelism int) *rowLevelRepairController {
 	if ih.MaxParallel() == 0 {
 		panic("No available workers")
 	}
@@ -157,12 +158,13 @@ func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit, nodes
 	}
 
 	return &rowLevelRepairController{
-		intensity:      ih,
-		limits:         hl,
-		maxWorkerCount: hl.MaxShards() * nodes / minRf,
-		jobs:           make(map[string]int),
-		busyRanges:     make(map[string]int),
-		busyReplicas:   make(map[uint64]int),
+		intensity:             ih,
+		limits:                hl,
+		maxWorkerCount:        hl.MaxShards() * nodes / minRf,
+		jobs:                  make(map[string]int),
+		busyRanges:            make(map[string]int),
+		busyReplicas:          make(map[uint64]int),
+		singleHostParallelism: singleHostParallelism,
 	}
 }
 
@@ -185,8 +187,16 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 
 	// DENY if any host has max nr of jobs already running
 	for _, h := range hosts {
-		if c.jobs[h] >= c.limits[h].Default {
-			return false
+		// The default behavior cannot be changed.
+		// SingleHostParallelism responsibility is to make sure that there is max x parallel repair jobs running on the host.
+		if c.singleHostParallelism == 0 {
+			if c.jobs[h] >= c.limits[h].Default {
+				return false
+			}
+		} else {
+			if c.jobs[h] >= c.singleHostParallelism {
+				return false
+			}
 		}
 	}
 

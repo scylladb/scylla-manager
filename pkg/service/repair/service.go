@@ -76,12 +76,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy basic properties
 	t := Target{
-		Host:                p.Host,
-		FailFast:            p.FailFast,
-		Continue:            p.Continue,
-		Intensity:           p.Intensity,
-		Parallel:            p.Parallel,
-		SmallTableThreshold: p.SmallTableThreshold,
+		Host:                  p.Host,
+		FailFast:              p.FailFast,
+		Continue:              p.Continue,
+		Intensity:             p.Intensity,
+		Parallel:              p.Parallel,
+		SmallTableThreshold:   p.SmallTableThreshold,
+		SingleHostParallelism: p.SingleHostParallelism,
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -370,7 +371,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	repairType := s.repairType(ctx, hostFeatures)
 	var ctl controller
 	if repairType == TypeRowLevel {
-		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
+		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor(), target.SingleHostParallelism)
 		s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
 	} else {
 		ctl = newDefaultController(ih, hostRangesLimits)

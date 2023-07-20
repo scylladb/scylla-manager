@@ -45,7 +45,7 @@ func (s controllerTestSuite) newDefaultController() *defaultController {
 }
 
 func (s controllerTestSuite) newRowLevelRepairController() *rowLevelRepairController {
-	return newRowLevelRepairController(s.intensityHandler, s.hostRangesLimit, len(s.hostRangesLimit), controllerTestRf)
+	return newRowLevelRepairController(s.intensityHandler, s.hostRangesLimit, len(s.hostRangesLimit), controllerTestRf, 0)
 }
 
 func TestDefaultController(t *testing.T) {
@@ -336,7 +336,7 @@ func TestRowLevelRepairControllerIssue2446(t *testing.T) {
 		n3: rangesLimit{Default: 8, Max: 22},
 	}
 
-	ctl := newRowLevelRepairController(ih, hl, 3, 2)
+	ctl := newRowLevelRepairController(ih, hl, 3, 2, 0)
 
 	ranges := [][]string{
 		{n1, n2},

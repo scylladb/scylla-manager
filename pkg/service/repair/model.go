@@ -16,28 +16,30 @@ type Unit = ksfilter.Unit
 
 // Target specifies what shall be repaired.
 type Target struct {
-	Units               []Unit   `json:"units"`
-	DC                  []string `json:"dc"`
-	Host                string   `json:"host,omitempty"`
-	IgnoreHosts         []string `json:"ignore_hosts,omitempty"`
-	FailFast            bool     `json:"fail_fast"`
-	Continue            bool     `json:"continue"`
-	Intensity           float64  `json:"intensity"`
-	Parallel            int      `json:"parallel"`
-	SmallTableThreshold int64    `json:"small_table_threshold"`
+	Units                 []Unit   `json:"units"`
+	DC                    []string `json:"dc"`
+	Host                  string   `json:"host,omitempty"`
+	IgnoreHosts           []string `json:"ignore_hosts,omitempty"`
+	FailFast              bool     `json:"fail_fast"`
+	Continue              bool     `json:"continue"`
+	Intensity             float64  `json:"intensity"`
+	Parallel              int      `json:"parallel"`
+	SmallTableThreshold   int64    `json:"small_table_threshold"`
+	SingleHostParallelism int      `json:"single_host_parallelism"`
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace            []string `json:"keyspace"`
-	DC                  []string `json:"dc"`
-	Host                string   `json:"host"`
-	IgnoreDownHosts     bool     `json:"ignore_down_hosts"`
-	FailFast            bool     `json:"fail_fast"`
-	Continue            bool     `json:"continue"`
-	Intensity           float64  `json:"intensity"`
-	Parallel            int      `json:"parallel"`
-	SmallTableThreshold int64    `json:"small_table_threshold"`
+	Keyspace              []string `json:"keyspace"`
+	DC                    []string `json:"dc"`
+	Host                  string   `json:"host"`
+	IgnoreDownHosts       bool     `json:"ignore_down_hosts"`
+	FailFast              bool     `json:"fail_fast"`
+	Continue              bool     `json:"continue"`
+	Intensity             float64  `json:"intensity"`
+	Parallel              int      `json:"parallel"`
+	SmallTableThreshold   int64    `json:"small_table_threshold"`
+	SingleHostParallelism int      `json:"single_host_parallelism"`
 }
 
 func defaultTaskProperties() *taskProperties {

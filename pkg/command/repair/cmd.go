@@ -23,17 +23,18 @@ type command struct {
 	flag.TaskBase
 	client *managerclient.Client
 
-	cluster             string
-	dc                  []string
-	keyspace            []string
-	failFast            bool
-	host                string
-	ignoreDownHosts     bool
-	intensity           *flag.Intensity
-	parallel            int
-	smallTableThreshold managerclient.SizeSuffix
-	dryRun              bool
-	showTables          bool
+	cluster               string
+	dc                    []string
+	keyspace              []string
+	failFast              bool
+	host                  string
+	ignoreDownHosts       bool
+	intensity             *flag.Intensity
+	parallel              int
+	singleHostParallelism int
+	smallTableThreshold   managerclient.SizeSuffix
+	dryRun                bool
+	showTables            bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -82,6 +83,7 @@ func (cmd *command) init() {
 	w.Unwrap().StringVar(&cmd.host, "host", "", "")
 	w.Unwrap().BoolVar(&cmd.ignoreDownHosts, "ignore-down-hosts", false, "")
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
+	w.Unwrap().IntVar(&cmd.singleHostParallelism, "single-host-parallelism", 0, "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 	w.Unwrap().Var(&cmd.smallTableThreshold, "small-table-threshold", "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -141,6 +143,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("intensity").Changed {
 		props["intensity"] = cmd.intensity.Value()
+		ok = true
+	}
+	if cmd.Flag("single-host-parallelism").Changed {
+		props["single_host_parallelism"] = cmd.singleHostParallelism
 		ok = true
 	}
 	if cmd.Flag("parallel").Changed {
