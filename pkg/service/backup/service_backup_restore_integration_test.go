@@ -1330,7 +1330,6 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 
 func (h *restoreTestHelper) simpleBackup(location Location) string {
 	h.T.Helper()
-	Print("When: backup cluster = (dc1: node1)")
 
 	ctx := context.Background()
 	keyspaces, err := h.Client.Keyspaces(ctx)
@@ -1352,19 +1351,25 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 		Retention: 3,
 	}
 
-	if err := h.service.InitTarget(ctx, h.ClusterID, &backupTarget); err != nil {
-		h.T.Fatal(err)
+	Print("When: init backup target")
+	if err = h.service.InitTarget(ctx, h.ClusterID, &backupTarget); err != nil {
+		h.T.Fatalf("Couldn't init backup target: %s", err)
 	}
 
-	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, backupTarget); err != nil {
-		h.T.Fatal(err)
+	Print("When: backup cluster")
+	// Task and Run IDs from restoreTestHelper should be reserved for restore tasks
+	backupID := uuid.NewTime()
+	if err = h.service.Backup(ctx, h.ClusterID, backupID, uuid.NewTime(), backupTarget); err != nil {
+		h.T.Fatalf("Couldn't backup cluster: %s", err)
 	}
-	Print("Then: cluster is backed-up")
 
-	Print("When: list backup")
-	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, ListFilter{})
+	Print("When: list newly created backup")
+	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, ListFilter{
+		ClusterID: h.ClusterID,
+		TaskID:    backupID,
+	})
 	if err != nil {
-		h.T.Fatal(err)
+		h.T.Fatalf("Couldn't list backup: %s", err)
 	}
 	if len(items) != 1 {
 		h.T.Fatalf("List() = %v, expected one item", items)
