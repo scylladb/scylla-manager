@@ -79,6 +79,30 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	}
 }
 
+func (h *repairTestHelper) T() *testing.T {
+	return h.t
+}
+
+func (h *repairTestHelper) ClusterID() uuid.UUID {
+	return h.clusterID
+}
+
+func (h *repairTestHelper) Client() *scyllaclient.Client {
+	return h.client
+}
+
+func (h *repairTestHelper) Hrt() *HackableRoundTripper {
+	return h.hrt
+}
+
+func (h *repairTestHelper) RunID() uuid.UUID {
+	return h.runID
+}
+
+func (h *repairTestHelper) TaskID() uuid.UUID {
+	return h.taskID
+}
+
 func (h *repairTestHelper) runRepair(ctx context.Context, t repair.Target) {
 	go func() {
 		h.mu.Lock()
@@ -396,6 +420,10 @@ func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 	ExecStmt(t, session, "CREATE KEYSPACE "+keyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}")
 }
 
+func createKeyspaceWithRF(t *testing.T, session gocqlx.Session, keyspace string, dc1RF, dc2RF int) {
+	ExecStmt(t, session, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}", keyspace, dc1RF, dc2RF))
+}
+
 func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 	ExecStmt(t, session, "DROP KEYSPACE IF EXISTS "+keyspace)
 }
@@ -442,6 +470,24 @@ func multipleUnits() repair.Target {
 	}
 }
 
+// generateTarget applies GetTarget onto given properties.
+// It's useful for filling keyspace boilerplate.
+func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Target {
+	h.T().Helper()
+
+	props, err := json.Marshal(properties)
+	if err != nil {
+		h.T().Fatal(err)
+	}
+
+	target, err := h.service.GetTarget(context.Background(), h.ClusterID(), props)
+	if err != nil {
+		h.T().Fatal(err)
+	}
+
+	return target
+}
+
 func TestServiceGetTargetIntegration(t *testing.T) {
 	// Test names
 	testNames := []string{
@@ -481,6 +527,109 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
+	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	clusterSession := CreateSessionAndDropAllKeyspaces(context.Background(), t, h.Client(), ManagedClusterHosts())
+
+	const (
+		ks1           = "test_repair_rf_1"
+		ks2           = "test_repair_rf_2"
+		ks3           = "test_repair_rf_3"
+		t1            = "test_table_1"
+		t2            = "test_table_2"
+		maxJobsOnHost = 1
+	)
+	createKeyspaceWithRF(t, clusterSession, ks1, 1, 1)
+	createKeyspaceWithRF(t, clusterSession, ks2, 2, 2)
+	createKeyspaceWithRF(t, clusterSession, ks3, 3, 3)
+	WriteData(t, clusterSession, ks1, 5, t1, t2)
+	WriteData(t, clusterSession, ks2, 5, t1, t2)
+	WriteData(t, clusterSession, ks3, 5, t1, t2)
+
+	t.Run("repair schedules only one job per host at any given time", func(t *testing.T) {
+		ctx := context.Background()
+
+		target := h.generateTarget(map[string]any{
+			"fail_fast":               true,
+			"single_host_parallelism": maxJobsOnHost,
+		})
+
+		// The amount of currently executed repair jobs on host
+		jobsPerHost := make(map[string]int)
+		muJPH := sync.Mutex{}
+
+		// Set of hosts used for given repair job
+		hostsInJob := make(map[string][]string)
+		muHIJ := sync.Mutex{}
+
+		cnt := atomic.Int64{}
+
+		// Repair request
+		h.Hrt().SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+				hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
+				muJPH.Lock()
+				defer muJPH.Unlock()
+
+				for _, host := range hosts {
+					jobsPerHost[host]++
+					if jobsPerHost[host] > maxJobsOnHost {
+						cnt.Add(1)
+						return nil, nil
+					}
+				}
+			}
+
+			return nil, nil
+		}))
+
+		h.Hrt().SetRespNotifier(func(resp *http.Response, err error) {
+			if resp == nil {
+				return
+			}
+
+			var copiedBody bytes.Buffer
+			tee := io.TeeReader(resp.Body, &copiedBody)
+			body, _ := io.ReadAll(tee)
+			resp.Body = io.NopCloser(&copiedBody)
+
+			// Response to repair schedule
+			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
+				muHIJ.Lock()
+				hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
+				muHIJ.Unlock()
+			}
+
+			// Response to repair status
+			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
+				status := string(body)
+				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
+					muHIJ.Lock()
+					hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
+					muHIJ.Unlock()
+
+					muJPH.Lock()
+					defer muJPH.Unlock()
+
+					for _, host := range hosts {
+						jobsPerHost[host]--
+					}
+				}
+			}
+		})
+
+		Print("When: run repair")
+		if err := h.service.Repair(ctx, h.ClusterID(), h.TaskID(), h.RunID(), target); err != nil {
+			t.Errorf("Repair failed: %s", err)
+		}
+
+		if cnt.Load() > 0 {
+			t.Fatal("too many repair jobs are being executed on host")
+		}
+	})
 }
 
 func TestServiceRepairIntegration(t *testing.T) {

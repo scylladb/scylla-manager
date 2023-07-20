@@ -9,9 +9,10 @@ import (
 
 // HackableRoundTripper is a round tripper that allows for interceptor injection.
 type HackableRoundTripper struct {
-	inner       http.RoundTripper
-	interceptor http.RoundTripper
-	mu          sync.Mutex
+	inner        http.RoundTripper
+	interceptor  http.RoundTripper
+	respNotifier func(resp *http.Response, err error)
+	mu           sync.Mutex
 }
 
 func NewHackableRoundTripper(inner http.RoundTripper) *HackableRoundTripper {
@@ -29,6 +30,21 @@ func (h *HackableRoundTripper) SetInterceptor(rt http.RoundTripper) {
 	h.interceptor = rt
 }
 
+// SetRespNotifier sets a respNotifier which is called on responses returned by both
+// interceptor and inner round tripper.
+func (h *HackableRoundTripper) SetRespNotifier(rn func(*http.Response, error)) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.respNotifier = rn
+}
+
+// RespNotifier returns the current respNotifier.
+func (h *HackableRoundTripper) RespNotifier() func(*http.Response, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.respNotifier
+}
+
 // Interceptor returns the current interceptor.
 func (h *HackableRoundTripper) Interceptor() http.RoundTripper {
 	h.mu.Lock()
@@ -43,6 +59,9 @@ func (h *HackableRoundTripper) RoundTrip(req *http.Request) (resp *http.Response
 	}
 	if resp == nil && err == nil {
 		resp, err = h.inner.RoundTrip(req)
+	}
+	if rn := h.RespNotifier(); rn != nil {
+		rn(resp, err)
 	}
 	return
 }
