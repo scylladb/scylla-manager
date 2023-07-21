@@ -429,8 +429,7 @@ func smokeRestore(t *testing.T, target RestoreTarget, keyspace string, loadCnt, 
 
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
-		ExecStmt(t, dstSession, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
-		ExecStmt(t, dstSession, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, BigTableName))
+		RawWriteData(t, dstSession, keyspace, 0, 0, replication, false)
 	}
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
@@ -788,11 +787,8 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	srcH.simpleBackup(target.Location[0])
 
-	// Make sure that next backup will have different snapshot tag
-	time.Sleep(time.Second)
 	// Corrupting SSTables allows us to force the creation of versioned files
 	Print("Choose SSTables to corrupt")
-
 	status, err := srcH.Client.Status(ctx)
 	if err != nil {
 		t.Fatal("Get status")
@@ -863,13 +859,12 @@ func restoreWithVersions(t *testing.T, target RestoreTarget, keyspace string, lo
 
 		Print("Backup with corrupted SSTables in remote location")
 		tag := srcH.simpleBackup(target.Location[0])
-		time.Sleep(time.Second)
 
 		Print("Validate creation of versioned files in remote location")
 		for _, tc := range toCorrupt {
 			corruptedPath := path.Join(remoteDir, tc) + VersionedFileExt(tag)
 			if _, err = srcH.Client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
-				t.Fatal(err)
+				t.Fatalf("Validate file %s: %s", corruptedPath, err)
 			}
 		}
 
@@ -1308,21 +1303,15 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(session gocqlx.Sess
 // This way we can efficiently test restore procedure without the need to produce big backups
 // (restore functionality depends more on the amount of restored SSTables rather than on their total size).
 func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
-	ctx := context.Background()
-
 	// Create keyspace and table
 	WriteDataSecondClusterSchema(h.T, session, keyspace, 0, 0)
-
-	if err := h.Client.DisableAutoCompaction(ctx, keyspace, BigTableName); err != nil {
-		h.T.Fatal(err)
-	}
 
 	var startingID int
 	for i := 0; i < loadCnt; i++ {
 		Printf("When: Write load nr %d to second cluster", i)
 
 		startingID = WriteDataSecondClusterSchema(h.T, session, keyspace, startingID, loadSize)
-		if err := h.Client.FlushTable(ctx, keyspace, BigTableName); err != nil {
+		if err := h.Client.FlushTable(context.Background(), keyspace, BigTableName); err != nil {
 			h.T.Fatal(err)
 		}
 	}
@@ -1330,6 +1319,9 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 
 func (h *restoreTestHelper) simpleBackup(location Location) string {
 	h.T.Helper()
+
+	// Make sure that next backup will have different snapshot tag
+	time.Sleep(time.Second)
 
 	ctx := context.Background()
 	keyspaces, err := h.Client.Keyspaces(ctx)
