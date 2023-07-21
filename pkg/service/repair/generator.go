@@ -200,7 +200,7 @@ func (g *generator) Result() chan<- jobResult {
 	return g.result
 }
 
-func (g *generator) Run(ctx context.Context) (err error) {
+func (g *generator) Run(ctx context.Context) error {
 	g.logger.Info(ctx, "Start repair")
 
 	g.fillNext(ctx)
@@ -217,7 +217,6 @@ func (g *generator) Run(ctx context.Context) (err error) {
 		time.AfterFunc(g.gracefulStopTimeout, func() {
 			close(stop)
 		})
-		err = ctx.Err()
 	}
 loop:
 	for {
@@ -249,7 +248,7 @@ loop:
 	if g.failed > 0 {
 		return errors.Errorf("repair %d token ranges out of %d", g.failed, g.count)
 	}
-	return err
+	return ctx.Err()
 }
 
 func (g *generator) processResult(ctx context.Context, r jobResult) {

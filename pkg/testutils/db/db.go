@@ -189,23 +189,32 @@ const BigTableName = "big_table"
 func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB int, tables ...string) {
 	t.Helper()
 
-	writeData(t, session, keyspace, 0, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", tables...)
+	RawWriteData(t, session, keyspace, 0, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", true, tables...)
 }
 
-// WriteDataToSecondCluster creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
-func WriteDataToSecondCluster(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, tables ...string) int {
+// WriteDataSecondClusterSchema creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
+func WriteDataSecondClusterSchema(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, tables ...string) int {
 	t.Helper()
 
-	return writeData(t, session, keyspace, startingID, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 1}", tables...)
+	return RawWriteData(t, session, keyspace, startingID, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}", false, tables...)
 }
 
-// WriteData creates big_table in the provided keyspace with the size in MiB.
+// RawWriteData creates big_table in the provided keyspace with the size in MiB.
 // It returns starting ID for the future calls, so that rows created from different calls to this function does not overlap.
-func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, replication string, tables ...string) int {
+// It's also required to specify keyspace replication and whether table should use compaction.
+func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, replication string, compaction bool, tables ...string) int {
 	t.Helper()
 
-	ExecStmt(t, session, "CREATE KEYSPACE IF NOT EXISTS "+keyspace+" WITH replication = "+replication)
+	var (
+		ksStmt     = "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = %s"
+		tStmt      = "CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)"
+		insertStmt = "INSERT INTO %s.%s (id, data) VALUES (?, ?)"
+	)
+	if !compaction {
+		tStmt += " WITH compaction = {'enabled': 'false', 'class': 'NullCompactionStrategy'}"
+	}
 
+	ExecStmt(t, session, fmt.Sprintf(ksStmt, keyspace, replication))
 	if len(tables) == 0 {
 		tables = []string{BigTableName}
 	}
@@ -214,10 +223,10 @@ func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID
 	rowsCnt := bytes / 4096
 
 	for i := range tables {
-		ExecStmt(t, session, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)", keyspace, tables[i]))
-		stmt := fmt.Sprintf("INSERT INTO %s.%s (id, data) VALUES (?, ?)", keyspace, tables[i])
+		ExecStmt(t, session, fmt.Sprintf(tStmt, keyspace, tables[i]))
+
+		stmt := fmt.Sprintf(insertStmt, keyspace, tables[i])
 		q := session.Query(stmt, []string{"id", "data"})
-		defer q.Release()
 
 		data := make([]byte, 4096)
 		if _, err := rand.Read(data); err != nil {
@@ -229,6 +238,8 @@ func writeData(t *testing.T, session gocqlx.Session, keyspace string, startingID
 				t.Fatal(err)
 			}
 		}
+
+		q.Release()
 	}
 
 	return startingID + rowsCnt

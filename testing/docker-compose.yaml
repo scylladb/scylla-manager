@@ -141,6 +141,26 @@ services:
       public:
       second:
 
+  second_cluster_dc1_node_2:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-second-cluster.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla-second-cluster.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public:
+      second:
+
   scylla-manager-db:
     image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
     ports:

@@ -117,7 +117,7 @@ include testing/.env
 INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
 -managed-cluster $(PUBLIC_NET)11,$(PUBLIC_NET)12,$(PUBLIC_NET)13,$(PUBLIC_NET)21,$(PUBLIC_NET)22,$(PUBLIC_NET)23 \
 -test-network $(PUBLIC_NET) \
--managed-second-cluster $(PUBLIC_NET)30 \
+-managed-second-cluster $(PUBLIC_NET)31,$(PUBLIC_NET)32 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
 -s3-data-dir ./testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
@@ -159,7 +159,7 @@ start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
-	@IPV6=$(IPV6) make -C testing build down up
+	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes
