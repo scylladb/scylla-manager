@@ -117,6 +117,11 @@ options:
   default_value: "false"
   usage: |
     Prints table names together with keyspace, used in combination with --dry-run.
+- name: single-host-parallelism
+  default_value: "0"
+  usage: |-
+    Defines max parallelism per single host. Use this flag to ensure there will be no more than `single-host-parallelism`
+    repair jobs executed on a single node at the same time. There is no limitation by default.
 - name: small-table-threshold
   default_value: 1G
   usage: |

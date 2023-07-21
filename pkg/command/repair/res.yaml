@@ -37,3 +37,7 @@ dry-run: |
 
 show-tables: |
   Prints table names together with keyspace, used in combination with --dry-run.
+
+single-host-parallelism: |
+  Defines max parallelism per single host. Use this flag to ensure there will be no more than `single-host-parallelism`
+  repair jobs executed on a single node at the same time. There is no limitation by default.
