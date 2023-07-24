@@ -158,7 +158,7 @@ func (c *ConfigClient) CQLPasswordProtectionEnabled(ctx context.Context) (bool, 
 	if err != nil {
 		return false, err
 	}
-	return resp.Payload == passwordAuthenticator, err
+	return strings.Replace(resp.Payload, "org.apache.cassandra.auth.", "", 1) == passwordAuthenticator, err
 }
 
 // AlternatorPort returns node alternator port.
