@@ -1,6 +1,6 @@
 all: gen/agent gen/scylla-manager gen/scylla/v1 gen/scylla/v2
 
-CLIENT := swagger generate client
+CLIENT := ../bin/swagger generate client
 
 gen/agent: agent.json
 	@rm -Rf $@ && mkdir -p $@

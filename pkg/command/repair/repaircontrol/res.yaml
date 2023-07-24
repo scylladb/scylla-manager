@@ -17,3 +17,7 @@ parallel: |
   By default the maximum possible parallelism is used.
   The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
   The formula to calculate is is as follows: number of nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
+
+single-host-parallelism: |
+  Defines max parallelism per single host. Use this flag to ensure there will be no more than `single-host-parallelism`
+  repair jobs executed on a single node at the same time. There is no limitation by default.

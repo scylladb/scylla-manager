@@ -75,6 +75,8 @@ type ClientService interface {
 
 	PutClusterClusterIDRepairsParallel(params *PutClusterClusterIDRepairsParallelParams) (*PutClusterClusterIDRepairsParallelOK, error)
 
+	PutClusterClusterIDRepairsShparallelism(params *PutClusterClusterIDRepairsShparallelismParams) (*PutClusterClusterIDRepairsShparallelismOK, error)
+
 	PutClusterClusterIDSuspended(params *PutClusterClusterIDSuspendedParams) (*PutClusterClusterIDSuspendedOK, error)
 
 	PutClusterClusterIDTaskTaskTypeTaskID(params *PutClusterClusterIDTaskTaskTypeTaskIDParams) (*PutClusterClusterIDTaskTaskTypeTaskIDOK, error)
@@ -908,6 +910,39 @@ func (a *Client) PutClusterClusterIDRepairsParallel(params *PutClusterClusterIDR
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*PutClusterClusterIDRepairsParallelDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PutClusterClusterIDRepairsShparallelism put cluster cluster ID repairs shparallelism API
+*/
+func (a *Client) PutClusterClusterIDRepairsShparallelism(params *PutClusterClusterIDRepairsShparallelismParams) (*PutClusterClusterIDRepairsShparallelismOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDRepairsShparallelismParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDRepairsShparallelism",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/repairs/shparallelism",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDRepairsShparallelismReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PutClusterClusterIDRepairsShparallelismOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PutClusterClusterIDRepairsShparallelismDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

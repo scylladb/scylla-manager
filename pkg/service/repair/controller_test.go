@@ -24,10 +24,11 @@ const (
 func makeControllerTestSuite() controllerTestSuite {
 	return controllerTestSuite{
 		intensityHandler: &intensityHandler{
-			logger:      log.NewDevelopment(),
-			intensity:   atomic.NewFloat64(1),
-			parallel:    atomic.NewInt64(0),
-			maxParallel: 2,
+			logger:                log.NewDevelopment(),
+			intensity:             atomic.NewFloat64(1),
+			parallel:              atomic.NewInt64(0),
+			singleHostParallelism: atomic.NewInt64(0),
+			maxParallel:           2,
 		},
 		hostRangesLimit: hostRangesLimit{
 			"a": rangesLimit{Default: controllerTestDefaultRangesLimit, Max: controllerTestMaxRangesLimit},
@@ -45,7 +46,7 @@ func (s controllerTestSuite) newDefaultController() *defaultController {
 }
 
 func (s controllerTestSuite) newRowLevelRepairController() *rowLevelRepairController {
-	return newRowLevelRepairController(s.intensityHandler, s.hostRangesLimit, len(s.hostRangesLimit), controllerTestRf, 0)
+	return newRowLevelRepairController(s.intensityHandler, s.hostRangesLimit, len(s.hostRangesLimit), controllerTestRf)
 }
 
 func TestDefaultController(t *testing.T) {
@@ -318,10 +319,11 @@ func TestRowLevelRepairController(t *testing.T) {
 
 func TestRowLevelRepairControllerIssue2446(t *testing.T) {
 	ih := &intensityHandler{
-		logger:      log.NewDevelopment(),
-		intensity:   atomic.NewFloat64(1),
-		parallel:    atomic.NewInt64(0),
-		maxParallel: 1,
+		logger:                log.NewDevelopment(),
+		intensity:             atomic.NewFloat64(1),
+		parallel:              atomic.NewInt64(0),
+		singleHostParallelism: atomic.NewInt64(0),
+		maxParallel:           1,
 	}
 
 	const (
@@ -336,7 +338,7 @@ func TestRowLevelRepairControllerIssue2446(t *testing.T) {
 		n3: rangesLimit{Default: 8, Max: 22},
 	}
 
-	ctl := newRowLevelRepairController(ih, hl, 3, 2, 0)
+	ctl := newRowLevelRepairController(ih, hl, 3, 2)
 
 	ranges := [][]string{
 		{n1, n2},
