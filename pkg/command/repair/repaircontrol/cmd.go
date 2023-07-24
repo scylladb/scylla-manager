@@ -19,9 +19,10 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	cluster   string
-	intensity *flag.Intensity
-	parallel  int
+	cluster               string
+	intensity             *flag.Intensity
+	parallel              int
+	singleHostParallelism int
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -46,11 +47,13 @@ func (cmd *command) init() {
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
+	w.Unwrap().IntVar(&cmd.singleHostParallelism, "single-host-parallelism", 0, "")
 }
 
 func (cmd *command) run() error {
-	if !cmd.Flag("intensity").Changed && !cmd.Flag("parallel").Changed {
-		return errors.New("at least one of intensity or parallel flags needs to be specified")
+	if !cmd.Flag("intensity").Changed && !cmd.Flag("parallel").Changed &&
+		!cmd.Flag("single-host-parallelism").Changed {
+		return errors.New("at least one of intensity, parallel or single-host-parallelism flags needs to be specified")
 	}
 
 	if cmd.Flag("intensity").Changed {
@@ -60,6 +63,12 @@ func (cmd *command) run() error {
 	}
 	if cmd.Flag("parallel").Changed {
 		if err := cmd.client.SetRepairParallel(cmd.Context(), cmd.cluster, int64(cmd.parallel)); err != nil {
+			return err
+		}
+	}
+
+	if cmd.Flag("single-host-parallelism").Changed {
+		if err := cmd.client.SetRepairSingleHostParallelism(cmd.Context(), cmd.cluster, int64(cmd.singleHostParallelism)); err != nil {
 			return err
 		}
 	}

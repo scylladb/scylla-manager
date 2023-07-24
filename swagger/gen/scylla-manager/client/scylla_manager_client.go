@@ -9,7 +9,6 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/client/operations"
 )
 
 // Default scylla manager HTTP client.

@@ -22,6 +22,7 @@ func newRepairHandler(services Services) *chi.Mux {
 
 	m.Put("/intensity", h.updateIntensity)
 	m.Put("/parallel", h.updateParallel)
+	m.Put("/shparallelism", h.updateSingleHostParallelism)
 
 	return m
 }
@@ -50,6 +51,22 @@ func (h repairHandler) parallel(r *http.Request) (int64, error) {
 
 	// Read parallel value from the request
 	if v := r.FormValue("parallel"); v != "" {
+		if parallel, err = strconv.ParseInt(v, 10, 64); err != nil {
+			return parallel, service.ErrValidate(err)
+		}
+	}
+
+	return parallel, err
+}
+
+func (h repairHandler) singleHostParallelism(r *http.Request) (int64, error) {
+	var (
+		parallel int64
+		err      error
+	)
+
+	// Read shparallelism value from the request
+	if v := r.FormValue("shparallelism"); v != "" {
 		if parallel, err = strconv.ParseInt(v, 10, 64); err != nil {
 			return parallel, service.ErrValidate(err)
 		}
@@ -87,6 +104,25 @@ func (h repairHandler) updateParallel(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		mustClusterIDFromCtx(r),
 		int(parallel),
+	); err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h repairHandler) updateSingleHostParallelism(w http.ResponseWriter, r *http.Request) {
+	shParallelism, err := h.singleHostParallelism(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if err := h.svc.SetSingleHostParallelism(
+		r.Context(),
+		mustClusterIDFromCtx(r),
+		int(shParallelism),
 	); err != nil {
 		respondError(w, r, err)
 		return

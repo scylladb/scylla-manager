@@ -643,6 +643,18 @@ func (c Client) SetRepairParallel(ctx context.Context, clusterID string, paralle
 	return err
 }
 
+// SetRepairSingleHostParallelism updates ongoing repair single host parallelism.
+func (c Client) SetRepairSingleHostParallelism(ctx context.Context, clusterID string, shParallelism int64) error {
+	p := &operations.PutClusterClusterIDRepairsShparallelismParams{
+		Context:       ctx,
+		ClusterID:     clusterID,
+		Shparallelism: shParallelism,
+	}
+
+	_, err := c.operations.PutClusterClusterIDRepairsShparallelism(p) // nolint: errcheck
+	return err
+}
+
 // IsSuspended returns true iff the current cluster is suspended.
 func (c Client) IsSuspended(ctx context.Context, clusterID string) (bool, error) {
 	p := &operations.GetClusterClusterIDSuspendedParams{
