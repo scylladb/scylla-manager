@@ -126,7 +126,7 @@ func FormatTime(t strfmt.DateTime) string {
 	if isZero(t) {
 		return ""
 	}
-	return time.Time(t).Local().Format(rfc822WithSec)
+	return time.Time(t).UTC().Format(rfc822WithSec)
 }
 
 // FormatTimePointer see FormatTime.

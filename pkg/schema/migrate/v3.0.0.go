@@ -16,7 +16,7 @@ func init() {
 	reg.Add(migrate.CallComment, "rewriteHealthCheck30", rewriteHealthCheck30)
 }
 
-func rewriteHealthCheck30(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func rewriteHealthCheck30(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	schedulerTask := table.New(table.Metadata{
 		Name: "scheduler_task",
 		Columns: []string{

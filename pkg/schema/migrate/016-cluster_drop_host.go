@@ -15,7 +15,7 @@ func init() {
 	reg.Add(migrate.BeforeMigration, "016-cluster_drop_host.cql", clusterMoveHostToKnownHostsBefore016)
 }
 
-func clusterMoveHostToKnownHostsBefore016(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func clusterMoveHostToKnownHostsBefore016(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	type cluster struct {
 		ID         uuid.UUID
 		Host       string

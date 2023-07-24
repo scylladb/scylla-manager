@@ -129,11 +129,11 @@ func (l *Location) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func (l Location) MarshalCQL(info gocql.TypeInfo) ([]byte, error) {
+func (l Location) MarshalCQL(_ gocql.TypeInfo) ([]byte, error) {
 	return l.MarshalText()
 }
 
-func (l *Location) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+func (l *Location) UnmarshalCQL(_ gocql.TypeInfo, data []byte) error {
 	return l.UnmarshalText(data)
 }
 

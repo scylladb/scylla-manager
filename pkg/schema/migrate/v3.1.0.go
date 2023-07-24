@@ -15,7 +15,7 @@ func init() {
 	reg.Add(migrate.CallComment, "setExistingTasksDeleted", setExistingTasksDeleted)
 }
 
-func setExistingTasksDeleted(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func setExistingTasksDeleted(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	q := qb.Select("scheduler_task").Columns("id", "cluster_id", "type").Query(session)
 
 	type Task struct {

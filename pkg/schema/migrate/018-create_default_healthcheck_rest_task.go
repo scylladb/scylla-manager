@@ -17,7 +17,7 @@ func init() {
 	reg.Add(migrate.AfterMigration, "018-empty.cql", createDefaultHealthCheckRestTaskForClusterAfter018)
 }
 
-func createDefaultHealthCheckRestTaskForClusterAfter018(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func createDefaultHealthCheckRestTaskForClusterAfter018(ctx context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	q := qb.Select("cluster").Columns("id").Query(session)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {

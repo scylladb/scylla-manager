@@ -77,7 +77,7 @@ func newProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repair
 	}
 }
 
-func (pm *dbProgressManager) Init(ctx context.Context, ttrs []*tableTokenRange) error {
+func (pm *dbProgressManager) Init(_ context.Context, ttrs []*tableTokenRange) error {
 	if err := pm.restoreState(); err != nil {
 		return err
 	}

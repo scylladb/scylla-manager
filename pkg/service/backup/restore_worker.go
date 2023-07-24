@@ -152,11 +152,7 @@ func (w *restoreWorkerTools) ValidateTableExists(keyspace, table string) error {
 	defer q.Release()
 
 	var name string
-	if err := q.Scan(&name); err != nil {
-		return err
-	}
-
-	return nil
+	return q.Scan(&name)
 }
 
 func (w *restoreWorkerTools) GetTableVersion(ctx context.Context, keyspace, table string) (string, error) {

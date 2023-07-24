@@ -30,7 +30,7 @@ func isErrAbort(err error) (bool, error) {
 }
 
 // NopNotify does not perform any operation when encountering an error during Run.
-func NopNotify(i int, err error) {}
+func NopNotify(int, error) {}
 
 // Run executes function f with arguments ranging from 0 to n-1 executing at
 // most limit in parallel.

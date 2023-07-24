@@ -455,11 +455,7 @@ func (s *Service) putRunAndUpdateTask(r *Run) error {
 	if err := s.putRun(r); err != nil {
 		return err
 	}
-	if err := s.updateTaskWithRun(r); err != nil {
-		return err
-	}
-
-	return nil
+	return s.updateTaskWithRun(r)
 }
 
 func (s *Service) putRun(r *Run) error {

@@ -10,8 +10,8 @@ import (
 // Listener specifies pluggable hooks for scheduler events.
 // Parametrized by scheduler key type.
 type Listener[K comparable] interface {
-	OnSchedulerStart(ctx context.Context)
-	OnSchedulerStop(ctx context.Context)
+	OnSchedulerStart(context.Context)
+	OnSchedulerStop(context.Context)
 	OnRunStart(ctx *RunContext[K])
 	OnRunSuccess(ctx *RunContext[K])
 	OnRunStop(ctx *RunContext[K])
@@ -28,46 +28,46 @@ type Listener[K comparable] interface {
 
 type nopListener[K comparable] struct{}
 
-func (l nopListener[_]) OnSchedulerStart(ctx context.Context) {
+func (l nopListener[_]) OnSchedulerStart(context.Context) {
 }
 
-func (l nopListener[_]) OnSchedulerStop(ctx context.Context) {
+func (l nopListener[_]) OnSchedulerStop(context.Context) {
 }
 
-func (l nopListener[K]) OnRunStart(ctx *RunContext[K]) {
+func (l nopListener[K]) OnRunStart(*RunContext[K]) {
 }
 
-func (l nopListener[K]) OnRunSuccess(ctx *RunContext[K]) {
+func (l nopListener[K]) OnRunSuccess(*RunContext[K]) {
 }
 
-func (l nopListener[K]) OnRunStop(ctx *RunContext[K]) {
+func (l nopListener[K]) OnRunStop(*RunContext[K]) {
 }
 
-func (l nopListener[K]) OnRunWindowEnd(ctx *RunContext[K]) {
+func (l nopListener[K]) OnRunWindowEnd(*RunContext[K]) {
 }
 
-func (l nopListener[K]) OnRunError(ctx *RunContext[K], err error) {
+func (l nopListener[K]) OnRunError(*RunContext[K], error) {
 }
 
-func (l nopListener[K]) OnSchedule(ctx context.Context, key K, begin, end time.Time, retno int8) {
+func (l nopListener[K]) OnSchedule(_ context.Context, _ K, _, _ time.Time, _ int8) {
 }
 
-func (l nopListener[K]) OnUnschedule(ctx context.Context, key K) {
+func (l nopListener[K]) OnUnschedule(context.Context, K) {
 }
 
-func (l nopListener[K]) OnTrigger(ctx context.Context, key K, success bool) {
+func (l nopListener[K]) OnTrigger(context.Context, K, bool) {
 }
 
-func (l nopListener[K]) OnStop(ctx context.Context, key K) {
+func (l nopListener[K]) OnStop(context.Context, K) {
 }
 
-func (l nopListener[K]) OnRetryBackoff(ctx context.Context, key K, backoff time.Duration, retno int8) {
+func (l nopListener[K]) OnRetryBackoff(context.Context, K, time.Duration, int8) {
 }
 
-func (l nopListener[K]) OnNoTrigger(ctx context.Context, key K) {
+func (l nopListener[K]) OnNoTrigger(context.Context, K) {
 }
 
-func (l nopListener[K]) OnSleep(ctx context.Context, key K, d time.Duration) {
+func (l nopListener[K]) OnSleep(context.Context, K, time.Duration) {
 }
 
 // NopListener returns a Listener implementation that has no effects.

@@ -23,7 +23,7 @@ type clusterMoveHostsToHost011 struct {
 	m map[uuid.UUID]string
 }
 
-func (h clusterMoveHostsToHost011) Before(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func (h clusterMoveHostsToHost011) Before(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	type cluster struct {
 		ID    uuid.UUID
 		Hosts []string
@@ -42,7 +42,7 @@ func (h clusterMoveHostsToHost011) Before(ctx context.Context, session gocqlx.Se
 	return nil
 }
 
-func (h clusterMoveHostsToHost011) After(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func (h clusterMoveHostsToHost011) After(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	const updateClusterCql = `INSERT INTO cluster(id, host) VALUES (?, ?)`
 	q := session.Query(updateClusterCql, nil)
 	defer q.Release()

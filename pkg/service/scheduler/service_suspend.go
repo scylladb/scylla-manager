@@ -280,7 +280,7 @@ type suspendRunner struct {
 	service *Service
 }
 
-func (s suspendRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+func (s suspendRunner) Run(ctx context.Context, clusterID, _, _ uuid.UUID, properties json.RawMessage) error {
 	p, err := GetSuspendProperties(properties)
 	if err != nil {
 		return service.ErrValidate(err)

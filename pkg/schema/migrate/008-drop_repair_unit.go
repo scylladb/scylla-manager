@@ -16,7 +16,7 @@ func init() {
 	reg.Add(migrate.AfterMigration, "008-drop_repair_unit.cql", createDefaultRepairTaskForClusterAfter008)
 }
 
-func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func createDefaultRepairTaskForClusterAfter008(ctx context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	q := qb.Select("cluster").Columns("id").Query(session)
 	var ids []uuid.UUID
 	if err := q.SelectRelease(&ids); err != nil {

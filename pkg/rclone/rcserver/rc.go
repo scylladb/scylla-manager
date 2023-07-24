@@ -189,7 +189,7 @@ type fileFields struct {
 }
 
 type transFields struct {
-	Transferred []accounting.TransferSnapshot
+	Transferred []accounting.TransferSnapshot `mapstructure:"transferred"`
 }
 
 func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {

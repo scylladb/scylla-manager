@@ -22,8 +22,8 @@ func Since(t time.Time) time.Duration {
 
 // TodayMidnight returns local midnight time in UTC.
 func TodayMidnight() time.Time {
-	t := time.Now().AddDate(0, 0, 1)
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local).UTC()
+	t := time.Now().UTC().AddDate(0, 0, 1)
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 // MustParse call time.Parse and returns value in UTC.

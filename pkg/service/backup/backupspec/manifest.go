@@ -231,19 +231,20 @@ func (m *ManifestContentWithIndex) ForEachIndexIterWithError(keyspace []string, 
 	iter := jsoniter.Parse(jsoniter.ConfigDefault, gr, 1024)
 
 	for k := iter.ReadObject(); iter.Error == nil; k = iter.ReadObject() {
-		if k == "index" {
-			iter.ReadArrayCB(func(it *jsoniter.Iterator) bool {
-				var m FilesMeta
-				it.ReadVal(&m)
-				if filter.Check(m.Keyspace, m.Table) {
-					err = cb(m)
-				}
-				return err == nil
-			})
-			break
-		} else {
+		if k != "index" {
 			iter.Skip()
+			continue
 		}
+
+		iter.ReadArrayCB(func(it *jsoniter.Iterator) bool {
+			var m FilesMeta
+			it.ReadVal(&m)
+			if filter.Check(m.Keyspace, m.Table) {
+				err = cb(m)
+			}
+			return err == nil
+		})
+		break
 	}
 
 	return multierr.Append(iter.Error, err)
