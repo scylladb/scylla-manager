@@ -188,7 +188,7 @@ build-server: ## Build development server
 .PHONY: run-server
 run-server: build-server ## Build and run development server
 	@docker run --name "scylla_manager_server" \
-		--network scylla_manager_second --network scylla_manager_public \
+		--network scylla_manager_second \
 		-p "5080:5080" \
 		-p "5443:5443" \
 		-p "5090:5090" \
@@ -197,6 +197,7 @@ run-server: build-server ## Build and run development server
 		-v "$(PWD)/$(MANAGER_CONFIG):/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-v "/tmp:/tmp" \
 		-i --read-only --rm scylladb/scylla-manager-dev scylla-manager
+	@docker network connect scylla_manager_public scylla-manager
 
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries
