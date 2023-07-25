@@ -31,7 +31,7 @@ func clusterMoveHostToKnownHostsBefore016(_ context.Context, session gocqlx.Sess
 
 	const updateClusterCql = `INSERT INTO cluster(id, known_hosts) VALUES (?, ?)`
 	u := session.Query(updateClusterCql, nil)
-	defer q.Release()
+	defer u.Release()
 
 	for _, c := range clusters {
 		if len(c.KnownHosts) == 0 {

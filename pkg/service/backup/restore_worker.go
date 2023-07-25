@@ -232,13 +232,14 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 // GetTableTombstoneGC returns table's tombstone_gc mode.
 func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombstoneGCMode, error) {
 	var ext map[string]string
-
-	err := qb.Select("system_schema.tables").
+	q := qb.Select("system_schema.tables").
 		Columns("extensions").
 		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
 		Query(w.clusterSession).
-		Bind(keyspace, table).
-		Scan(&ext)
+		Bind(keyspace, table)
+
+	defer q.Release()
+	err := q.Scan(&ext)
 	if err != nil {
 		return "", err
 	}

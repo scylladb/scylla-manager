@@ -224,7 +224,9 @@ func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
 // If visit wants to reuse RunProgress it must copy it because memory is reused
 // between calls.
 func (i *progressVisitor) ForEach(visit func(*RunProgress) error) error {
-	iter := table.BackupRunProgress.SelectQuery(i.session).BindMap(qb.M{
+	q := table.BackupRunProgress.SelectQuery(i.session)
+	defer q.Release()
+	iter := q.BindMap(qb.M{
 		"cluster_id": i.run.ClusterID,
 		"task_id":    i.run.TaskID,
 		"run_id":     i.run.ID,

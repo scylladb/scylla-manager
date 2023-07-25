@@ -279,9 +279,11 @@ func (s *Service) listAllViews(ctx context.Context, clusterID uuid.UUID) ([]stri
 	}
 	defer clusterSession.Close()
 
-	iter := qb.Select("system_schema.views").
+	q := qb.Select("system_schema.views").
 		Columns("keyspace_name", "view_name").
-		Query(clusterSession).Iter()
+		Query(clusterSession)
+	defer q.Release()
+	iter := q.Iter()
 
 	var views []string
 	var keyspace, view string
