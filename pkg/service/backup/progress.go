@@ -139,7 +139,7 @@ func calcParentProgress(parent, child progress) progress {
 	return parent
 }
 
-func calcParentStartedAt(parent *time.Time, child *time.Time) *time.Time {
+func calcParentStartedAt(parent, child *time.Time) *time.Time {
 	if child != nil {
 		// Use child start time as parent start time only if it started before
 		// parent.
@@ -150,7 +150,7 @@ func calcParentStartedAt(parent *time.Time, child *time.Time) *time.Time {
 	return parent
 }
 
-func calcParentCompletedAt(parent *time.Time, child *time.Time) *time.Time {
+func calcParentCompletedAt(parent, child *time.Time) *time.Time {
 	if child != nil {
 		// Use child end time as parent end time only if it ended after parent.
 		if parent != nil && child.After(*parent) {

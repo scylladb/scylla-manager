@@ -168,7 +168,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
 
-	if err = tools.decorateWithPrevRun(ctx, run, target.Continue); err != nil {
+	if err := tools.decorateWithPrevRun(ctx, run, target.Continue); err != nil {
 		return err
 	}
 	if run.PrevID != uuid.Nil {
@@ -216,7 +216,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		w = &schemaWorker{restoreWorkerTools: tools}
 	}
 
-	if err = w.restore(ctx, run, target); err != nil {
+	if err := w.restore(ctx, run, target); err != nil {
 		return err
 	}
 

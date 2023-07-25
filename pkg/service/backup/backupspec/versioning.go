@@ -65,7 +65,7 @@ func IsVersionedFileRemovable(oldest time.Time, versioned string) (bool, error) 
 }
 
 // SplitNameAndVersion splits versioned file name into its original name and its version.
-func SplitNameAndVersion(versioned string) (string, string) {
+func SplitNameAndVersion(versioned string) (name, version string) {
 	versionExt := path.Ext(versioned)
 	baseName := strings.TrimSuffix(versioned, versionExt)
 	return baseName, versionExt[1:]

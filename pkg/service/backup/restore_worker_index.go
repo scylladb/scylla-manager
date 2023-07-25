@@ -390,11 +390,14 @@ func (w *indexWorker) decreaseBatchSizeMetric(clusterID uuid.UUID, batch []strin
 // Downloading of versioned files happens first in a synchronous way.
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
-func (w *indexWorker) startDownload(ctx context.Context, host, dstDir, srcDir string, batch []string) (int64, int64, error) {
+func (w *indexWorker) startDownload(
+	ctx context.Context,
+	host, dstDir, srcDir string,
+	batch []string,
+) (jobID, versionedPr int64, err error) {
 	var (
 		regularBatch   = make([]string, 0)
 		versionedBatch = make([]VersionedSSTable, 0)
-		versionedPr    int64
 	)
 	// Decide which files require to be downloaded in their older version
 	for _, file := range batch {
@@ -447,7 +450,7 @@ func (w *indexWorker) startDownload(ctx context.Context, host, dstDir, srcDir st
 		return 0, 0, err
 	}
 	// Start asynchronous job for downloading the newest versions of remaining files
-	jobID, err := w.Client.RcloneCopyPaths(ctx, host, dstDir, srcDir, regularBatch)
+	jobID, err = w.Client.RcloneCopyPaths(ctx, host, dstDir, srcDir, regularBatch)
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}

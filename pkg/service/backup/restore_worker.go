@@ -259,7 +259,7 @@ func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombst
 }
 
 func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
-	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
+	return fmt.Sprintf(`ALTER TABLE %q.%q WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
 }
 
 func (w *restoreWorkerTools) insertRun(ctx context.Context, run *RestoreRun) {

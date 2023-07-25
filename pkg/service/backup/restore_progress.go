@@ -4,7 +4,6 @@ package backup
 
 import (
 	"context"
-	"strings"
 
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -94,7 +93,7 @@ func aggregateRestoreTableProgress(tableMap map[tableKey]*RestoreTableProgress) 
 		if tab.Error == "" {
 			tab.Error = pr.Error
 		} else if pr.Error != "" {
-			tab.Error = strings.Join([]string{tab.Error, pr.Error}, "\n")
+			tab.Error = tab.Error + "\n" + pr.Error
 		}
 
 		tableMap[key] = tab
