@@ -2111,7 +2111,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	}
 
 	for _, nis := range status {
-		stdout, stderr, err := ExecOnHost(nis.Addr, "chown scylla:scylla -R /var/lib/scylla/data")
+		stdout, stderr, err := ExecOnHost(nis.Addr, "chown scylla:scylla -R /var/lib/scylla/data/"+testKeyspace)
 		if err != nil {
 			t.Log("stdout", stdout)
 			t.Log("stderr", stderr)
