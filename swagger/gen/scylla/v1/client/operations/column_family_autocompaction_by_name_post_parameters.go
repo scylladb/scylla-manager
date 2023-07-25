@@ -55,7 +55,8 @@ func NewColumnFamilyAutocompactionByNamePostParamsWithHTTPClient(client *http.Cl
 	}
 }
 
-/*ColumnFamilyAutocompactionByNamePostParams contains all the parameters to send to the API endpoint
+/*
+ColumnFamilyAutocompactionByNamePostParams contains all the parameters to send to the API endpoint
 for the column family autocompaction by name post operation typically these are written to a http.Request
 */
 type ColumnFamilyAutocompactionByNamePostParams struct {

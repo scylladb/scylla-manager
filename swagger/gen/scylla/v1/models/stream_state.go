@@ -15,7 +15,7 @@ import (
 
 // StreamState stream_state
 //
-// Current snapshot of streaming progress
+// # Current snapshot of streaming progress
 //
 // swagger:model stream_state
 type StreamState struct {

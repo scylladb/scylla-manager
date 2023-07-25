@@ -47,9 +47,10 @@ func NewFailureDetectorEndpointsGetOK() *FailureDetectorEndpointsGetOK {
 	return &FailureDetectorEndpointsGetOK{}
 }
 
-/*FailureDetectorEndpointsGetOK handles this case with default header values.
+/*
+FailureDetectorEndpointsGetOK handles this case with default header values.
 
-FailureDetectorEndpointsGetOK failure detector endpoints get o k
+Success
 */
 type FailureDetectorEndpointsGetOK struct {
 	Payload []*models.EndpointState
@@ -76,7 +77,8 @@ func NewFailureDetectorEndpointsGetDefault(code int) *FailureDetectorEndpointsGe
 	}
 }
 
-/*FailureDetectorEndpointsGetDefault handles this case with default header values.
+/*
+FailureDetectorEndpointsGetDefault handles this case with default header values.
 
 internal server error
 */

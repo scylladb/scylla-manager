@@ -47,7 +47,8 @@ func NewFindConfigSstablePreemptiveOpenIntervalInMbOK() *FindConfigSstablePreemp
 	return &FindConfigSstablePreemptiveOpenIntervalInMbOK{}
 }
 
-/*FindConfigSstablePreemptiveOpenIntervalInMbOK handles this case with default header values.
+/*
+FindConfigSstablePreemptiveOpenIntervalInMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigSstablePreemptiveOpenIntervalInMbDefault(code int) *FindConfig
 	}
 }
 
-/*FindConfigSstablePreemptiveOpenIntervalInMbDefault handles this case with default header values.
+/*
+FindConfigSstablePreemptiveOpenIntervalInMbDefault handles this case with default header values.
 
 unexpected error
 */

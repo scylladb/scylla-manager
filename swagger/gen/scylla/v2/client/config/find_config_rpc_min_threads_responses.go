@@ -47,7 +47,8 @@ func NewFindConfigRPCMinThreadsOK() *FindConfigRPCMinThreadsOK {
 	return &FindConfigRPCMinThreadsOK{}
 }
 
-/*FindConfigRPCMinThreadsOK handles this case with default header values.
+/*
+FindConfigRPCMinThreadsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCMinThreadsDefault(code int) *FindConfigRPCMinThreadsDefault
 	}
 }
 
-/*FindConfigRPCMinThreadsDefault handles this case with default header values.
+/*
+FindConfigRPCMinThreadsDefault handles this case with default header values.
 
 unexpected error
 */

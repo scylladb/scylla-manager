@@ -12,7 +12,7 @@ import (
 
 // Snapshot snapshot
 //
-// Snapshot detail
+// # Snapshot detail
 //
 // swagger:model snapshot
 type Snapshot struct {

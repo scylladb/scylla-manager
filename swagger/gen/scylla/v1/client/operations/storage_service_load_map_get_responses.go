@@ -47,9 +47,10 @@ func NewStorageServiceLoadMapGetOK() *StorageServiceLoadMapGetOK {
 	return &StorageServiceLoadMapGetOK{}
 }
 
-/*StorageServiceLoadMapGetOK handles this case with default header values.
+/*
+StorageServiceLoadMapGetOK handles this case with default header values.
 
-StorageServiceLoadMapGetOK storage service load map get o k
+Success
 */
 type StorageServiceLoadMapGetOK struct {
 	Payload []*models.MapStringDouble
@@ -76,7 +77,8 @@ func NewStorageServiceLoadMapGetDefault(code int) *StorageServiceLoadMapGetDefau
 	}
 }
 
-/*StorageServiceLoadMapGetDefault handles this case with default header values.
+/*
+StorageServiceLoadMapGetDefault handles this case with default header values.
 
 internal server error
 */

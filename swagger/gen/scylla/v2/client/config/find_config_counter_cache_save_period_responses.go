@@ -47,7 +47,8 @@ func NewFindConfigCounterCacheSavePeriodOK() *FindConfigCounterCacheSavePeriodOK
 	return &FindConfigCounterCacheSavePeriodOK{}
 }
 
-/*FindConfigCounterCacheSavePeriodOK handles this case with default header values.
+/*
+FindConfigCounterCacheSavePeriodOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCounterCacheSavePeriodDefault(code int) *FindConfigCounterCach
 	}
 }
 
-/*FindConfigCounterCacheSavePeriodDefault handles this case with default header values.
+/*
+FindConfigCounterCacheSavePeriodDefault handles this case with default header values.
 
 unexpected error
 */

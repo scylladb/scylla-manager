@@ -47,7 +47,8 @@ func NewFindConfigAutoAdjustFlushQuotaOK() *FindConfigAutoAdjustFlushQuotaOK {
 	return &FindConfigAutoAdjustFlushQuotaOK{}
 }
 
-/*FindConfigAutoAdjustFlushQuotaOK handles this case with default header values.
+/*
+FindConfigAutoAdjustFlushQuotaOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAutoAdjustFlushQuotaDefault(code int) *FindConfigAutoAdjustFlu
 	}
 }
 
-/*FindConfigAutoAdjustFlushQuotaDefault handles this case with default header values.
+/*
+FindConfigAutoAdjustFlushQuotaDefault handles this case with default header values.
 
 unexpected error
 */

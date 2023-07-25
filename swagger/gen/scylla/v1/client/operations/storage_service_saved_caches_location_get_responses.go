@@ -47,9 +47,10 @@ func NewStorageServiceSavedCachesLocationGetOK() *StorageServiceSavedCachesLocat
 	return &StorageServiceSavedCachesLocationGetOK{}
 }
 
-/*StorageServiceSavedCachesLocationGetOK handles this case with default header values.
+/*
+StorageServiceSavedCachesLocationGetOK handles this case with default header values.
 
-StorageServiceSavedCachesLocationGetOK storage service saved caches location get o k
+Success
 */
 type StorageServiceSavedCachesLocationGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewStorageServiceSavedCachesLocationGetDefault(code int) *StorageServiceSav
 	}
 }
 
-/*StorageServiceSavedCachesLocationGetDefault handles this case with default header values.
+/*
+StorageServiceSavedCachesLocationGetDefault handles this case with default header values.
 
 internal server error
 */

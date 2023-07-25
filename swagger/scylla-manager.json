@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Scylla Manager API",
-    "version": ""
+    "version": "1.2.0"
   },
   "basePath": "/api/v1",
   "produces": [

@@ -47,9 +47,10 @@ func NewCacheServiceRowCacheSavePeriodPostOK() *CacheServiceRowCacheSavePeriodPo
 	return &CacheServiceRowCacheSavePeriodPostOK{}
 }
 
-/*CacheServiceRowCacheSavePeriodPostOK handles this case with default header values.
+/*
+CacheServiceRowCacheSavePeriodPostOK handles this case with default header values.
 
-CacheServiceRowCacheSavePeriodPostOK cache service row cache save period post o k
+Success
 */
 type CacheServiceRowCacheSavePeriodPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewCacheServiceRowCacheSavePeriodPostDefault(code int) *CacheServiceRowCach
 	}
 }
 
-/*CacheServiceRowCacheSavePeriodPostDefault handles this case with default header values.
+/*
+CacheServiceRowCacheSavePeriodPostDefault handles this case with default header values.
 
 internal server error
 */

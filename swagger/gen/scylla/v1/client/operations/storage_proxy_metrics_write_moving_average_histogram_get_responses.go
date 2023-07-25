@@ -47,9 +47,10 @@ func NewStorageProxyMetricsWriteMovingAverageHistogramGetOK() *StorageProxyMetri
 	return &StorageProxyMetricsWriteMovingAverageHistogramGetOK{}
 }
 
-/*StorageProxyMetricsWriteMovingAverageHistogramGetOK handles this case with default header values.
+/*
+StorageProxyMetricsWriteMovingAverageHistogramGetOK handles this case with default header values.
 
-StorageProxyMetricsWriteMovingAverageHistogramGetOK storage proxy metrics write moving average histogram get o k
+Success
 */
 type StorageProxyMetricsWriteMovingAverageHistogramGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageProxyMetricsWriteMovingAverageHistogramGetDefault(code int) *Stor
 	}
 }
 
-/*StorageProxyMetricsWriteMovingAverageHistogramGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsWriteMovingAverageHistogramGetDefault handles this case with default header values.
 
 internal server error
 */

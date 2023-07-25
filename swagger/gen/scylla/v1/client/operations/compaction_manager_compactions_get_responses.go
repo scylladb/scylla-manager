@@ -47,9 +47,10 @@ func NewCompactionManagerCompactionsGetOK() *CompactionManagerCompactionsGetOK {
 	return &CompactionManagerCompactionsGetOK{}
 }
 
-/*CompactionManagerCompactionsGetOK handles this case with default header values.
+/*
+CompactionManagerCompactionsGetOK handles this case with default header values.
 
-CompactionManagerCompactionsGetOK compaction manager compactions get o k
+Success
 */
 type CompactionManagerCompactionsGetOK struct {
 	Payload []*models.Summary
@@ -76,7 +77,8 @@ func NewCompactionManagerCompactionsGetDefault(code int) *CompactionManagerCompa
 	}
 }
 
-/*CompactionManagerCompactionsGetDefault handles this case with default header values.
+/*
+CompactionManagerCompactionsGetDefault handles this case with default header values.
 
 internal server error
 */

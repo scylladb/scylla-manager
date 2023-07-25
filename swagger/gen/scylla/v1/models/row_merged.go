@@ -12,7 +12,7 @@ import (
 
 // RowMerged row_merged
 //
-// A row merged information
+// # A row merged information
 //
 // swagger:model row_merged
 type RowMerged struct {

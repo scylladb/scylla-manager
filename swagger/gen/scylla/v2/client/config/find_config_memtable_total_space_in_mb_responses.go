@@ -47,7 +47,8 @@ func NewFindConfigMemtableTotalSpaceInMbOK() *FindConfigMemtableTotalSpaceInMbOK
 	return &FindConfigMemtableTotalSpaceInMbOK{}
 }
 
-/*FindConfigMemtableTotalSpaceInMbOK handles this case with default header values.
+/*
+FindConfigMemtableTotalSpaceInMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigMemtableTotalSpaceInMbDefault(code int) *FindConfigMemtableTot
 	}
 }
 
-/*FindConfigMemtableTotalSpaceInMbDefault handles this case with default header values.
+/*
+FindConfigMemtableTotalSpaceInMbDefault handles this case with default header values.
 
 unexpected error
 */

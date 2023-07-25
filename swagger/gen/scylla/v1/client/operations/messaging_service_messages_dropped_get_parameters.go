@@ -55,7 +55,8 @@ func NewMessagingServiceMessagesDroppedGetParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*MessagingServiceMessagesDroppedGetParams contains all the parameters to send to the API endpoint
+/*
+MessagingServiceMessagesDroppedGetParams contains all the parameters to send to the API endpoint
 for the messaging service messages dropped get operation typically these are written to a http.Request
 */
 type MessagingServiceMessagesDroppedGetParams struct {

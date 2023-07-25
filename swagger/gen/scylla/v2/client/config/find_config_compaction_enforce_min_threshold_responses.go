@@ -47,7 +47,8 @@ func NewFindConfigCompactionEnforceMinThresholdOK() *FindConfigCompactionEnforce
 	return &FindConfigCompactionEnforceMinThresholdOK{}
 }
 
-/*FindConfigCompactionEnforceMinThresholdOK handles this case with default header values.
+/*
+FindConfigCompactionEnforceMinThresholdOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCompactionEnforceMinThresholdDefault(code int) *FindConfigComp
 	}
 }
 
-/*FindConfigCompactionEnforceMinThresholdDefault handles this case with default header values.
+/*
+FindConfigCompactionEnforceMinThresholdDefault handles this case with default header values.
 
 unexpected error
 */

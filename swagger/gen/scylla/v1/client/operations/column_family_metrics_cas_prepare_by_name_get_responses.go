@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsCasPrepareByNameGetOK() *ColumnFamilyMetricsCasPrepar
 	return &ColumnFamilyMetricsCasPrepareByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsCasPrepareByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsCasPrepareByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsCasPrepareByNameGetOK column family metrics cas prepare by name get o k
+Success
 */
 type ColumnFamilyMetricsCasPrepareByNameGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsCasPrepareByNameGetDefault(code int) *ColumnFamilyMet
 	}
 }
 
-/*ColumnFamilyMetricsCasPrepareByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsCasPrepareByNameGetDefault handles this case with default header values.
 
 internal server error
 */

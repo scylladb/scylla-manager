@@ -12,7 +12,7 @@ import (
 
 // VersionValue version_value
 //
-// Holds a version value for an application state
+// # Holds a version value for an application state
 //
 // swagger:model version_value
 type VersionValue struct {

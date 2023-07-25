@@ -47,9 +47,10 @@ func NewFailureDetectorEndpointsStatesByAddrGetOK() *FailureDetectorEndpointsSta
 	return &FailureDetectorEndpointsStatesByAddrGetOK{}
 }
 
-/*FailureDetectorEndpointsStatesByAddrGetOK handles this case with default header values.
+/*
+FailureDetectorEndpointsStatesByAddrGetOK handles this case with default header values.
 
-FailureDetectorEndpointsStatesByAddrGetOK failure detector endpoints states by addr get o k
+Success
 */
 type FailureDetectorEndpointsStatesByAddrGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewFailureDetectorEndpointsStatesByAddrGetDefault(code int) *FailureDetecto
 	}
 }
 
-/*FailureDetectorEndpointsStatesByAddrGetDefault handles this case with default header values.
+/*
+FailureDetectorEndpointsStatesByAddrGetDefault handles this case with default header values.
 
 internal server error
 */

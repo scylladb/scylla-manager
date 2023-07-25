@@ -47,7 +47,8 @@ func NewFindConfigCommitlogSyncPeriodInMsOK() *FindConfigCommitlogSyncPeriodInMs
 	return &FindConfigCommitlogSyncPeriodInMsOK{}
 }
 
-/*FindConfigCommitlogSyncPeriodInMsOK handles this case with default header values.
+/*
+FindConfigCommitlogSyncPeriodInMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCommitlogSyncPeriodInMsDefault(code int) *FindConfigCommitlogS
 	}
 }
 
-/*FindConfigCommitlogSyncPeriodInMsDefault handles this case with default header values.
+/*
+FindConfigCommitlogSyncPeriodInMsDefault handles this case with default header values.
 
 unexpected error
 */

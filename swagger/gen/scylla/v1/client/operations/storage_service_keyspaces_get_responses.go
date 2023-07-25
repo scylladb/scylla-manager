@@ -47,9 +47,10 @@ func NewStorageServiceKeyspacesGetOK() *StorageServiceKeyspacesGetOK {
 	return &StorageServiceKeyspacesGetOK{}
 }
 
-/*StorageServiceKeyspacesGetOK handles this case with default header values.
+/*
+StorageServiceKeyspacesGetOK handles this case with default header values.
 
-StorageServiceKeyspacesGetOK storage service keyspaces get o k
+Success
 */
 type StorageServiceKeyspacesGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewStorageServiceKeyspacesGetDefault(code int) *StorageServiceKeyspacesGetD
 	}
 }
 
-/*StorageServiceKeyspacesGetDefault handles this case with default header values.
+/*
+StorageServiceKeyspacesGetDefault handles this case with default header values.
 
 internal server error
 */

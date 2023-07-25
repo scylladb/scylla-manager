@@ -47,7 +47,8 @@ func NewFindConfigPrometheusPrefixOK() *FindConfigPrometheusPrefixOK {
 	return &FindConfigPrometheusPrefixOK{}
 }
 
-/*FindConfigPrometheusPrefixOK handles this case with default header values.
+/*
+FindConfigPrometheusPrefixOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPrometheusPrefixDefault(code int) *FindConfigPrometheusPrefixD
 	}
 }
 
-/*FindConfigPrometheusPrefixDefault handles this case with default header values.
+/*
+FindConfigPrometheusPrefixDefault handles this case with default header values.
 
 unexpected error
 */

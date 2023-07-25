@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK() *ColumnFamilyMetrics
 	return &ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK column family metrics memtable off heap size by name get o k
+Success
 */
 type ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMemtableOffHeapSizeByNameGetDefault(code int) *Column
 	}
 }
 
-/*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableOffHeapSizeByNameGetDefault handles this case with default header values.
 
 internal server error
 */

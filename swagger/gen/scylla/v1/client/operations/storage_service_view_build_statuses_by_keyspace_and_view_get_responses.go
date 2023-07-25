@@ -47,9 +47,10 @@ func NewStorageServiceViewBuildStatusesByKeyspaceAndViewGetOK() *StorageServiceV
 	return &StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK{}
 }
 
-/*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK handles this case with default header values.
+/*
+StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK handles this case with default header values.
 
-StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK storage service view build statuses by keyspace and view get o k
+Success
 */
 type StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK struct {
 	Payload []*models.Mapper
@@ -76,7 +77,8 @@ func NewStorageServiceViewBuildStatusesByKeyspaceAndViewGetDefault(code int) *St
 	}
 }
 
-/*StorageServiceViewBuildStatusesByKeyspaceAndViewGetDefault handles this case with default header values.
+/*
+StorageServiceViewBuildStatusesByKeyspaceAndViewGetDefault handles this case with default header values.
 
 internal server error
 */

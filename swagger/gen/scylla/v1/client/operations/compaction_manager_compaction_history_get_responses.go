@@ -47,9 +47,10 @@ func NewCompactionManagerCompactionHistoryGetOK() *CompactionManagerCompactionHi
 	return &CompactionManagerCompactionHistoryGetOK{}
 }
 
-/*CompactionManagerCompactionHistoryGetOK handles this case with default header values.
+/*
+CompactionManagerCompactionHistoryGetOK handles this case with default header values.
 
-CompactionManagerCompactionHistoryGetOK compaction manager compaction history get o k
+Success
 */
 type CompactionManagerCompactionHistoryGetOK struct {
 	Payload []*models.History
@@ -76,7 +77,8 @@ func NewCompactionManagerCompactionHistoryGetDefault(code int) *CompactionManage
 	}
 }
 
-/*CompactionManagerCompactionHistoryGetDefault handles this case with default header values.
+/*
+CompactionManagerCompactionHistoryGetDefault handles this case with default header values.
 
 internal server error
 */

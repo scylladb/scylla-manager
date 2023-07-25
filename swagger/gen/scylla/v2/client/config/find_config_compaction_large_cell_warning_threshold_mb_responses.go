@@ -47,7 +47,8 @@ func NewFindConfigCompactionLargeCellWarningThresholdMbOK() *FindConfigCompactio
 	return &FindConfigCompactionLargeCellWarningThresholdMbOK{}
 }
 
-/*FindConfigCompactionLargeCellWarningThresholdMbOK handles this case with default header values.
+/*
+FindConfigCompactionLargeCellWarningThresholdMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCompactionLargeCellWarningThresholdMbDefault(code int) *FindCo
 	}
 }
 
-/*FindConfigCompactionLargeCellWarningThresholdMbDefault handles this case with default header values.
+/*
+FindConfigCompactionLargeCellWarningThresholdMbDefault handles this case with default header values.
 
 unexpected error
 */

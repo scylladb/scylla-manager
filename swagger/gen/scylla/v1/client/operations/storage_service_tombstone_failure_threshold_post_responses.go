@@ -47,9 +47,10 @@ func NewStorageServiceTombstoneFailureThresholdPostOK() *StorageServiceTombstone
 	return &StorageServiceTombstoneFailureThresholdPostOK{}
 }
 
-/*StorageServiceTombstoneFailureThresholdPostOK handles this case with default header values.
+/*
+StorageServiceTombstoneFailureThresholdPostOK handles this case with default header values.
 
-StorageServiceTombstoneFailureThresholdPostOK storage service tombstone failure threshold post o k
+Success
 */
 type StorageServiceTombstoneFailureThresholdPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceTombstoneFailureThresholdPostDefault(code int) *StorageSer
 	}
 }
 
-/*StorageServiceTombstoneFailureThresholdPostDefault handles this case with default header values.
+/*
+StorageServiceTombstoneFailureThresholdPostDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,7 +47,8 @@ func NewFindConfigRowCacheKeysToSaveOK() *FindConfigRowCacheKeysToSaveOK {
 	return &FindConfigRowCacheKeysToSaveOK{}
 }
 
-/*FindConfigRowCacheKeysToSaveOK handles this case with default header values.
+/*
+FindConfigRowCacheKeysToSaveOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRowCacheKeysToSaveDefault(code int) *FindConfigRowCacheKeysToS
 	}
 }
 
-/*FindConfigRowCacheKeysToSaveDefault handles this case with default header values.
+/*
+FindConfigRowCacheKeysToSaveDefault handles this case with default header values.
 
 unexpected error
 */

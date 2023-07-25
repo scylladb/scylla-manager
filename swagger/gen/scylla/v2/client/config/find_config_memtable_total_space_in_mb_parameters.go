@@ -55,7 +55,8 @@ func NewFindConfigMemtableTotalSpaceInMbParamsWithHTTPClient(client *http.Client
 	}
 }
 
-/*FindConfigMemtableTotalSpaceInMbParams contains all the parameters to send to the API endpoint
+/*
+FindConfigMemtableTotalSpaceInMbParams contains all the parameters to send to the API endpoint
 for the find config memtable total space in mb operation typically these are written to a http.Request
 */
 type FindConfigMemtableTotalSpaceInMbParams struct {

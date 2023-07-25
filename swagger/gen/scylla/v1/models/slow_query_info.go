@@ -12,7 +12,7 @@ import (
 
 // SlowQueryInfo slow_query_info
 //
-// Slow query triggering information
+// # Slow query triggering information
 //
 // swagger:model slow_query_info
 type SlowQueryInfo struct {

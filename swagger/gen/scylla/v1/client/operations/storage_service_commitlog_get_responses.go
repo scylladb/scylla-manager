@@ -47,9 +47,10 @@ func NewStorageServiceCommitlogGetOK() *StorageServiceCommitlogGetOK {
 	return &StorageServiceCommitlogGetOK{}
 }
 
-/*StorageServiceCommitlogGetOK handles this case with default header values.
+/*
+StorageServiceCommitlogGetOK handles this case with default header values.
 
-StorageServiceCommitlogGetOK storage service commitlog get o k
+Success
 */
 type StorageServiceCommitlogGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewStorageServiceCommitlogGetDefault(code int) *StorageServiceCommitlogGetD
 	}
 }
 
-/*StorageServiceCommitlogGetDefault handles this case with default header values.
+/*
+StorageServiceCommitlogGetDefault handles this case with default header values.
 
 internal server error
 */

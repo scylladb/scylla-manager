@@ -47,9 +47,10 @@ func NewStorageProxyHintedHandoffEnabledByDcGetOK() *StorageProxyHintedHandoffEn
 	return &StorageProxyHintedHandoffEnabledByDcGetOK{}
 }
 
-/*StorageProxyHintedHandoffEnabledByDcGetOK handles this case with default header values.
+/*
+StorageProxyHintedHandoffEnabledByDcGetOK handles this case with default header values.
 
-StorageProxyHintedHandoffEnabledByDcGetOK storage proxy hinted handoff enabled by dc get o k
+Success
 */
 type StorageProxyHintedHandoffEnabledByDcGetOK struct {
 	Payload []*models.MapperList
@@ -76,7 +77,8 @@ func NewStorageProxyHintedHandoffEnabledByDcGetDefault(code int) *StorageProxyHi
 	}
 }
 
-/*StorageProxyHintedHandoffEnabledByDcGetDefault handles this case with default header values.
+/*
+StorageProxyHintedHandoffEnabledByDcGetDefault handles this case with default header values.
 
 internal server error
 */

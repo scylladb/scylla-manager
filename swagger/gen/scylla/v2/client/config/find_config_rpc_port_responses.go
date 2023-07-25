@@ -47,7 +47,8 @@ func NewFindConfigRPCPortOK() *FindConfigRPCPortOK {
 	return &FindConfigRPCPortOK{}
 }
 
-/*FindConfigRPCPortOK handles this case with default header values.
+/*
+FindConfigRPCPortOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCPortDefault(code int) *FindConfigRPCPortDefault {
 	}
 }
 
-/*FindConfigRPCPortDefault handles this case with default header values.
+/*
+FindConfigRPCPortDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStorageServiceRepairAsyncByKeyspaceGetOK() *StorageServiceRepairAsyncByK
 	return &StorageServiceRepairAsyncByKeyspaceGetOK{}
 }
 
-/*StorageServiceRepairAsyncByKeyspaceGetOK handles this case with default header values.
+/*
+StorageServiceRepairAsyncByKeyspaceGetOK handles this case with default header values.
 
-StorageServiceRepairAsyncByKeyspaceGetOK storage service repair async by keyspace get o k
+Success
 */
 type StorageServiceRepairAsyncByKeyspaceGetOK struct {
 	Payload models.RepairAsyncStatusResponse
@@ -76,7 +77,8 @@ func NewStorageServiceRepairAsyncByKeyspaceGetDefault(code int) *StorageServiceR
 	}
 }
 
-/*StorageServiceRepairAsyncByKeyspaceGetDefault handles this case with default header values.
+/*
+StorageServiceRepairAsyncByKeyspaceGetDefault handles this case with default header values.
 
 internal server error
 */

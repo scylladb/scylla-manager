@@ -47,9 +47,10 @@ func NewColumnFamilyNameKeyspaceGetOK() *ColumnFamilyNameKeyspaceGetOK {
 	return &ColumnFamilyNameKeyspaceGetOK{}
 }
 
-/*ColumnFamilyNameKeyspaceGetOK handles this case with default header values.
+/*
+ColumnFamilyNameKeyspaceGetOK handles this case with default header values.
 
-ColumnFamilyNameKeyspaceGetOK column family name keyspace get o k
+Success
 */
 type ColumnFamilyNameKeyspaceGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewColumnFamilyNameKeyspaceGetDefault(code int) *ColumnFamilyNameKeyspaceGe
 	}
 }
 
-/*ColumnFamilyNameKeyspaceGetDefault handles this case with default header values.
+/*
+ColumnFamilyNameKeyspaceGetDefault handles this case with default header values.
 
 internal server error
 */

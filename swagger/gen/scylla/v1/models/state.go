@@ -15,7 +15,7 @@ import (
 
 // State State
 //
-// Current session state
+// # Current session state
 //
 // swagger:model State
 type State string

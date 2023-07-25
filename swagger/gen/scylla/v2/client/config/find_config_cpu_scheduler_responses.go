@@ -47,7 +47,8 @@ func NewFindConfigCPUSchedulerOK() *FindConfigCPUSchedulerOK {
 	return &FindConfigCPUSchedulerOK{}
 }
 
-/*FindConfigCPUSchedulerOK handles this case with default header values.
+/*
+FindConfigCPUSchedulerOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCPUSchedulerDefault(code int) *FindConfigCPUSchedulerDefault {
 	}
 }
 
-/*FindConfigCPUSchedulerDefault handles this case with default header values.
+/*
+FindConfigCPUSchedulerDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStorageServiceRPCServerDeleteOK() *StorageServiceRPCServerDeleteOK {
 	return &StorageServiceRPCServerDeleteOK{}
 }
 
-/*StorageServiceRPCServerDeleteOK handles this case with default header values.
+/*
+StorageServiceRPCServerDeleteOK handles this case with default header values.
 
-StorageServiceRPCServerDeleteOK storage service Rpc server delete o k
+Success
 */
 type StorageServiceRPCServerDeleteOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceRPCServerDeleteDefault(code int) *StorageServiceRPCServerD
 	}
 }
 
-/*StorageServiceRPCServerDeleteDefault handles this case with default header values.
+/*
+StorageServiceRPCServerDeleteDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,7 +47,8 @@ func NewFindConfigFdMaxIntervalMsOK() *FindConfigFdMaxIntervalMsOK {
 	return &FindConfigFdMaxIntervalMsOK{}
 }
 
-/*FindConfigFdMaxIntervalMsOK handles this case with default header values.
+/*
+FindConfigFdMaxIntervalMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigFdMaxIntervalMsDefault(code int) *FindConfigFdMaxIntervalMsDef
 	}
 }
 
-/*FindConfigFdMaxIntervalMsDefault handles this case with default header values.
+/*
+FindConfigFdMaxIntervalMsDefault handles this case with default header values.
 
 unexpected error
 */

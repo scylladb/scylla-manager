@@ -47,7 +47,8 @@ func NewFindConfigDefragmentMemoryOnIdleOK() *FindConfigDefragmentMemoryOnIdleOK
 	return &FindConfigDefragmentMemoryOnIdleOK{}
 }
 
-/*FindConfigDefragmentMemoryOnIdleOK handles this case with default header values.
+/*
+FindConfigDefragmentMemoryOnIdleOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigDefragmentMemoryOnIdleDefault(code int) *FindConfigDefragmentM
 	}
 }
 
-/*FindConfigDefragmentMemoryOnIdleDefault handles this case with default header values.
+/*
+FindConfigDefragmentMemoryOnIdleDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewSnitchRackGetOK() *SnitchRackGetOK {
 	return &SnitchRackGetOK{}
 }
 
-/*SnitchRackGetOK handles this case with default header values.
+/*
+SnitchRackGetOK handles this case with default header values.
 
-SnitchRackGetOK snitch rack get o k
+Success
 */
 type SnitchRackGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewSnitchRackGetDefault(code int) *SnitchRackGetDefault {
 	}
 }
 
-/*SnitchRackGetDefault handles this case with default header values.
+/*
+SnitchRackGetDefault handles this case with default header values.
 
 internal server error
 */

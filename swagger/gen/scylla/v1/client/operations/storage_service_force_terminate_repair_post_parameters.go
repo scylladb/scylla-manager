@@ -55,7 +55,8 @@ func NewStorageServiceForceTerminateRepairPostParamsWithHTTPClient(client *http.
 	}
 }
 
-/*StorageServiceForceTerminateRepairPostParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceForceTerminateRepairPostParams contains all the parameters to send to the API endpoint
 for the storage service force terminate repair post operation typically these are written to a http.Request
 */
 type StorageServiceForceTerminateRepairPostParams struct {

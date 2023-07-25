@@ -47,7 +47,8 @@ func NewFindConfigConcurrentReadsOK() *FindConfigConcurrentReadsOK {
 	return &FindConfigConcurrentReadsOK{}
 }
 
-/*FindConfigConcurrentReadsOK handles this case with default header values.
+/*
+FindConfigConcurrentReadsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigConcurrentReadsDefault(code int) *FindConfigConcurrentReadsDef
 	}
 }
 
-/*FindConfigConcurrentReadsDefault handles this case with default header values.
+/*
+FindConfigConcurrentReadsDefault handles this case with default header values.
 
 unexpected error
 */

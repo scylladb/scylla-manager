@@ -47,7 +47,8 @@ func NewFindConfigPermissionsCacheMaxEntriesOK() *FindConfigPermissionsCacheMaxE
 	return &FindConfigPermissionsCacheMaxEntriesOK{}
 }
 
-/*FindConfigPermissionsCacheMaxEntriesOK handles this case with default header values.
+/*
+FindConfigPermissionsCacheMaxEntriesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPermissionsCacheMaxEntriesDefault(code int) *FindConfigPermiss
 	}
 }
 
-/*FindConfigPermissionsCacheMaxEntriesDefault handles this case with default header values.
+/*
+FindConfigPermissionsCacheMaxEntriesDefault handles this case with default header values.
 
 unexpected error
 */

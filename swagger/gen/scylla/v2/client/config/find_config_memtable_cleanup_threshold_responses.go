@@ -47,7 +47,8 @@ func NewFindConfigMemtableCleanupThresholdOK() *FindConfigMemtableCleanupThresho
 	return &FindConfigMemtableCleanupThresholdOK{}
 }
 
-/*FindConfigMemtableCleanupThresholdOK handles this case with default header values.
+/*
+FindConfigMemtableCleanupThresholdOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigMemtableCleanupThresholdDefault(code int) *FindConfigMemtableC
 	}
 }
 
-/*FindConfigMemtableCleanupThresholdDefault handles this case with default header values.
+/*
+FindConfigMemtableCleanupThresholdDefault handles this case with default header values.
 
 unexpected error
 */

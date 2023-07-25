@@ -47,7 +47,8 @@ func NewFindConfigPermissionsValidityInMsOK() *FindConfigPermissionsValidityInMs
 	return &FindConfigPermissionsValidityInMsOK{}
 }
 
-/*FindConfigPermissionsValidityInMsOK handles this case with default header values.
+/*
+FindConfigPermissionsValidityInMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPermissionsValidityInMsDefault(code int) *FindConfigPermission
 	}
 }
 
-/*FindConfigPermissionsValidityInMsDefault handles this case with default header values.
+/*
+FindConfigPermissionsValidityInMsDefault handles this case with default header values.
 
 unexpected error
 */

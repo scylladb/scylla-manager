@@ -47,9 +47,10 @@ func NewColumnFamilyCompactionStrategyByNamePostOK() *ColumnFamilyCompactionStra
 	return &ColumnFamilyCompactionStrategyByNamePostOK{}
 }
 
-/*ColumnFamilyCompactionStrategyByNamePostOK handles this case with default header values.
+/*
+ColumnFamilyCompactionStrategyByNamePostOK handles this case with default header values.
 
-ColumnFamilyCompactionStrategyByNamePostOK column family compaction strategy by name post o k
+Success
 */
 type ColumnFamilyCompactionStrategyByNamePostOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyCompactionStrategyByNamePostDefault(code int) *ColumnFamilyC
 	}
 }
 
-/*ColumnFamilyCompactionStrategyByNamePostDefault handles this case with default header values.
+/*
+ColumnFamilyCompactionStrategyByNamePostDefault handles this case with default header values.
 
 internal server error
 */

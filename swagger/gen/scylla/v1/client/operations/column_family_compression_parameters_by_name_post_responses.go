@@ -47,9 +47,10 @@ func NewColumnFamilyCompressionParametersByNamePostOK() *ColumnFamilyCompression
 	return &ColumnFamilyCompressionParametersByNamePostOK{}
 }
 
-/*ColumnFamilyCompressionParametersByNamePostOK handles this case with default header values.
+/*
+ColumnFamilyCompressionParametersByNamePostOK handles this case with default header values.
 
-ColumnFamilyCompressionParametersByNamePostOK column family compression parameters by name post o k
+Success
 */
 type ColumnFamilyCompressionParametersByNamePostOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyCompressionParametersByNamePostDefault(code int) *ColumnFami
 	}
 }
 
-/*ColumnFamilyCompressionParametersByNamePostDefault handles this case with default header values.
+/*
+ColumnFamilyCompressionParametersByNamePostDefault handles this case with default header values.
 
 internal server error
 */

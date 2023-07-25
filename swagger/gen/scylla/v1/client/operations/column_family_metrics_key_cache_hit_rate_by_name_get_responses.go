@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsKeyCacheHitRateByNameGetOK() *ColumnFamilyMetricsKeyC
 	return &ColumnFamilyMetricsKeyCacheHitRateByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsKeyCacheHitRateByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsKeyCacheHitRateByNameGetOK column family metrics key cache hit rate by name get o k
+Success
 */
 type ColumnFamilyMetricsKeyCacheHitRateByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsKeyCacheHitRateByNameGetDefault(code int) *ColumnFami
 	}
 }
 
-/*ColumnFamilyMetricsKeyCacheHitRateByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsKeyCacheHitRateByNameGetDefault handles this case with default header values.
 
 internal server error
 */

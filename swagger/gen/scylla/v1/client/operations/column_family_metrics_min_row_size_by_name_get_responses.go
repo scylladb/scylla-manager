@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMinRowSizeByNameGetOK() *ColumnFamilyMetricsMinRowSiz
 	return &ColumnFamilyMetricsMinRowSizeByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsMinRowSizeByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMinRowSizeByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMinRowSizeByNameGetOK column family metrics min row size by name get o k
+Success
 */
 type ColumnFamilyMetricsMinRowSizeByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMinRowSizeByNameGetDefault(code int) *ColumnFamilyMet
 	}
 }
 
-/*ColumnFamilyMetricsMinRowSizeByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMinRowSizeByNameGetDefault handles this case with default header values.
 
 internal server error
 */

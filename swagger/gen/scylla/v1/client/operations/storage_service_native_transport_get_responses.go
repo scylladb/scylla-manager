@@ -47,9 +47,10 @@ func NewStorageServiceNativeTransportGetOK() *StorageServiceNativeTransportGetOK
 	return &StorageServiceNativeTransportGetOK{}
 }
 
-/*StorageServiceNativeTransportGetOK handles this case with default header values.
+/*
+StorageServiceNativeTransportGetOK handles this case with default header values.
 
-StorageServiceNativeTransportGetOK storage service native transport get o k
+Success
 */
 type StorageServiceNativeTransportGetOK struct {
 	Payload bool
@@ -76,7 +77,8 @@ func NewStorageServiceNativeTransportGetDefault(code int) *StorageServiceNativeT
 	}
 }
 
-/*StorageServiceNativeTransportGetDefault handles this case with default header values.
+/*
+StorageServiceNativeTransportGetDefault handles this case with default header values.
 
 internal server error
 */

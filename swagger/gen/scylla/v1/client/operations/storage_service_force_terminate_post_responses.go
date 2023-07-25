@@ -47,9 +47,10 @@ func NewStorageServiceForceTerminatePostOK() *StorageServiceForceTerminatePostOK
 	return &StorageServiceForceTerminatePostOK{}
 }
 
-/*StorageServiceForceTerminatePostOK handles this case with default header values.
+/*
+StorageServiceForceTerminatePostOK handles this case with default header values.
 
-StorageServiceForceTerminatePostOK storage service force terminate post o k
+Success
 */
 type StorageServiceForceTerminatePostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceForceTerminatePostDefault(code int) *StorageServiceForceTe
 	}
 }
 
-/*StorageServiceForceTerminatePostDefault handles this case with default header values.
+/*
+StorageServiceForceTerminatePostDefault handles this case with default header values.
 
 internal server error
 */

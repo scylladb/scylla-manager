@@ -47,9 +47,10 @@ func NewStorageServiceSlowQueryPostOK() *StorageServiceSlowQueryPostOK {
 	return &StorageServiceSlowQueryPostOK{}
 }
 
-/*StorageServiceSlowQueryPostOK handles this case with default header values.
+/*
+StorageServiceSlowQueryPostOK handles this case with default header values.
 
-StorageServiceSlowQueryPostOK storage service slow query post o k
+Success
 */
 type StorageServiceSlowQueryPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceSlowQueryPostDefault(code int) *StorageServiceSlowQueryPos
 	}
 }
 
-/*StorageServiceSlowQueryPostDefault handles this case with default header values.
+/*
+StorageServiceSlowQueryPostDefault handles this case with default header values.
 
 internal server error
 */

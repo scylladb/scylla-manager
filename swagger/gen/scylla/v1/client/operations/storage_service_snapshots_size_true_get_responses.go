@@ -47,9 +47,10 @@ func NewStorageServiceSnapshotsSizeTrueGetOK() *StorageServiceSnapshotsSizeTrueG
 	return &StorageServiceSnapshotsSizeTrueGetOK{}
 }
 
-/*StorageServiceSnapshotsSizeTrueGetOK handles this case with default header values.
+/*
+StorageServiceSnapshotsSizeTrueGetOK handles this case with default header values.
 
-StorageServiceSnapshotsSizeTrueGetOK storage service snapshots size true get o k
+Success
 */
 type StorageServiceSnapshotsSizeTrueGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewStorageServiceSnapshotsSizeTrueGetDefault(code int) *StorageServiceSnaps
 	}
 }
 
-/*StorageServiceSnapshotsSizeTrueGetDefault handles this case with default header values.
+/*
+StorageServiceSnapshotsSizeTrueGetDefault handles this case with default header values.
 
 internal server error
 */

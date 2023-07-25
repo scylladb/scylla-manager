@@ -47,7 +47,8 @@ func NewFindConfigDynamicSnitchUpdateIntervalInMsOK() *FindConfigDynamicSnitchUp
 	return &FindConfigDynamicSnitchUpdateIntervalInMsOK{}
 }
 
-/*FindConfigDynamicSnitchUpdateIntervalInMsOK handles this case with default header values.
+/*
+FindConfigDynamicSnitchUpdateIntervalInMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigDynamicSnitchUpdateIntervalInMsDefault(code int) *FindConfigDy
 	}
 }
 
-/*FindConfigDynamicSnitchUpdateIntervalInMsDefault handles this case with default header values.
+/*
+FindConfigDynamicSnitchUpdateIntervalInMsDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMemtableSwitchCountByNameGetOK() *ColumnFamilyMetrics
 	return &ColumnFamilyMetricsMemtableSwitchCountByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableSwitchCountByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMemtableSwitchCountByNameGetOK column family metrics memtable switch count by name get o k
+Success
 */
 type ColumnFamilyMetricsMemtableSwitchCountByNameGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMemtableSwitchCountByNameGetDefault(code int) *Column
 	}
 }
 
-/*ColumnFamilyMetricsMemtableSwitchCountByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableSwitchCountByNameGetDefault handles this case with default header values.
 
 internal server error
 */

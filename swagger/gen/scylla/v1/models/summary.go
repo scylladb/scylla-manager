@@ -12,7 +12,7 @@ import (
 
 // Summary summary
 //
-// A compaction summary object
+// # A compaction summary object
 //
 // swagger:model summary
 type Summary struct {

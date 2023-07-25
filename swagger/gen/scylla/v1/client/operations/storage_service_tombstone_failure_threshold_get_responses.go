@@ -47,9 +47,10 @@ func NewStorageServiceTombstoneFailureThresholdGetOK() *StorageServiceTombstoneF
 	return &StorageServiceTombstoneFailureThresholdGetOK{}
 }
 
-/*StorageServiceTombstoneFailureThresholdGetOK handles this case with default header values.
+/*
+StorageServiceTombstoneFailureThresholdGetOK handles this case with default header values.
 
-StorageServiceTombstoneFailureThresholdGetOK storage service tombstone failure threshold get o k
+Success
 */
 type StorageServiceTombstoneFailureThresholdGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageServiceTombstoneFailureThresholdGetDefault(code int) *StorageServ
 	}
 }
 
-/*StorageServiceTombstoneFailureThresholdGetDefault handles this case with default header values.
+/*
+StorageServiceTombstoneFailureThresholdGetDefault handles this case with default header values.
 
 internal server error
 */

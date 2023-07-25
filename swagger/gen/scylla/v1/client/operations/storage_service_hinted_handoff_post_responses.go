@@ -47,9 +47,10 @@ func NewStorageServiceHintedHandoffPostOK() *StorageServiceHintedHandoffPostOK {
 	return &StorageServiceHintedHandoffPostOK{}
 }
 
-/*StorageServiceHintedHandoffPostOK handles this case with default header values.
+/*
+StorageServiceHintedHandoffPostOK handles this case with default header values.
 
-StorageServiceHintedHandoffPostOK storage service hinted handoff post o k
+Success
 */
 type StorageServiceHintedHandoffPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceHintedHandoffPostDefault(code int) *StorageServiceHintedHa
 	}
 }
 
-/*StorageServiceHintedHandoffPostDefault handles this case with default header values.
+/*
+StorageServiceHintedHandoffPostDefault handles this case with default header values.
 
 internal server error
 */

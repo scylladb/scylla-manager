@@ -47,7 +47,8 @@ func NewFindConfigMaxHintsDeliveryThreadsOK() *FindConfigMaxHintsDeliveryThreads
 	return &FindConfigMaxHintsDeliveryThreadsOK{}
 }
 
-/*FindConfigMaxHintsDeliveryThreadsOK handles this case with default header values.
+/*
+FindConfigMaxHintsDeliveryThreadsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigMaxHintsDeliveryThreadsDefault(code int) *FindConfigMaxHintsDe
 	}
 }
 
-/*FindConfigMaxHintsDeliveryThreadsDefault handles this case with default header values.
+/*
+FindConfigMaxHintsDeliveryThreadsDefault handles this case with default header values.
 
 unexpected error
 */

@@ -55,7 +55,8 @@ func NewStorageProxyMetricsRangeGetParamsWithHTTPClient(client *http.Client) *St
 	}
 }
 
-/*StorageProxyMetricsRangeGetParams contains all the parameters to send to the API endpoint
+/*
+StorageProxyMetricsRangeGetParams contains all the parameters to send to the API endpoint
 for the storage proxy metrics range get operation typically these are written to a http.Request
 */
 type StorageProxyMetricsRangeGetParams struct {

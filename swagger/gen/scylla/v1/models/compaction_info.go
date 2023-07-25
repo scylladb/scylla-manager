@@ -12,7 +12,7 @@ import (
 
 // CompactionInfo compaction_info
 //
-// A key value mapping
+// # A key value mapping
 //
 // swagger:model compaction_info
 type CompactionInfo struct {

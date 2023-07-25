@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK() *ColumnFamilyMetric
 	return &ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK column family metrics memtable live data size by name get o k
+Success
 */
 type ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMemtableLiveDataSizeByNameGetDefault(code int) *Colum
 	}
 }
 
-/*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableLiveDataSizeByNameGetDefault handles this case with default header values.
 
 internal server error
 */

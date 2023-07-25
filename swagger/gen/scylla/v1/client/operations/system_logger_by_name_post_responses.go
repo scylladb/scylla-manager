@@ -47,9 +47,10 @@ func NewSystemLoggerByNamePostOK() *SystemLoggerByNamePostOK {
 	return &SystemLoggerByNamePostOK{}
 }
 
-/*SystemLoggerByNamePostOK handles this case with default header values.
+/*
+SystemLoggerByNamePostOK handles this case with default header values.
 
-SystemLoggerByNamePostOK system logger by name post o k
+Success
 */
 type SystemLoggerByNamePostOK struct {
 }
@@ -66,7 +67,8 @@ func NewSystemLoggerByNamePostDefault(code int) *SystemLoggerByNamePostDefault {
 	}
 }
 
-/*SystemLoggerByNamePostDefault handles this case with default header values.
+/*
+SystemLoggerByNamePostDefault handles this case with default header values.
 
 internal server error
 */

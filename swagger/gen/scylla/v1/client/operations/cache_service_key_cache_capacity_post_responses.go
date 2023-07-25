@@ -47,9 +47,10 @@ func NewCacheServiceKeyCacheCapacityPostOK() *CacheServiceKeyCacheCapacityPostOK
 	return &CacheServiceKeyCacheCapacityPostOK{}
 }
 
-/*CacheServiceKeyCacheCapacityPostOK handles this case with default header values.
+/*
+CacheServiceKeyCacheCapacityPostOK handles this case with default header values.
 
-CacheServiceKeyCacheCapacityPostOK cache service key cache capacity post o k
+Success
 */
 type CacheServiceKeyCacheCapacityPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewCacheServiceKeyCacheCapacityPostDefault(code int) *CacheServiceKeyCacheC
 	}
 }
 
-/*CacheServiceKeyCacheCapacityPostDefault handles this case with default header values.
+/*
+CacheServiceKeyCacheCapacityPostDefault handles this case with default header values.
 
 internal server error
 */

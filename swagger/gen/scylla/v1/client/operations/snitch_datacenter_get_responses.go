@@ -47,9 +47,10 @@ func NewSnitchDatacenterGetOK() *SnitchDatacenterGetOK {
 	return &SnitchDatacenterGetOK{}
 }
 
-/*SnitchDatacenterGetOK handles this case with default header values.
+/*
+SnitchDatacenterGetOK handles this case with default header values.
 
-SnitchDatacenterGetOK snitch datacenter get o k
+Success
 */
 type SnitchDatacenterGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewSnitchDatacenterGetDefault(code int) *SnitchDatacenterGetDefault {
 	}
 }
 
-/*SnitchDatacenterGetDefault handles this case with default header values.
+/*
+SnitchDatacenterGetDefault handles this case with default header values.
 
 internal server error
 */

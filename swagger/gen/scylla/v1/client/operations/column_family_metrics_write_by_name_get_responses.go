@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsWriteByNameGetOK() *ColumnFamilyMetricsWriteByNameGet
 	return &ColumnFamilyMetricsWriteByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsWriteByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsWriteByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsWriteByNameGetOK column family metrics write by name get o k
+Success
 */
 type ColumnFamilyMetricsWriteByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsWriteByNameGetDefault(code int) *ColumnFamilyMetricsW
 	}
 }
 
-/*ColumnFamilyMetricsWriteByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsWriteByNameGetDefault handles this case with default header values.
 
 internal server error
 */

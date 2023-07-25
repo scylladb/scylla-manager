@@ -47,7 +47,8 @@ func NewFindConfigPrometheusPortOK() *FindConfigPrometheusPortOK {
 	return &FindConfigPrometheusPortOK{}
 }
 
-/*FindConfigPrometheusPortOK handles this case with default header values.
+/*
+FindConfigPrometheusPortOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPrometheusPortDefault(code int) *FindConfigPrometheusPortDefau
 	}
 }
 
-/*FindConfigPrometheusPortDefault handles this case with default header values.
+/*
+FindConfigPrometheusPortDefault handles this case with default header values.
 
 unexpected error
 */

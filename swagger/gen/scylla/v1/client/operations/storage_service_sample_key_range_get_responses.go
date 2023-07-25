@@ -47,9 +47,10 @@ func NewStorageServiceSampleKeyRangeGetOK() *StorageServiceSampleKeyRangeGetOK {
 	return &StorageServiceSampleKeyRangeGetOK{}
 }
 
-/*StorageServiceSampleKeyRangeGetOK handles this case with default header values.
+/*
+StorageServiceSampleKeyRangeGetOK handles this case with default header values.
 
-StorageServiceSampleKeyRangeGetOK storage service sample key range get o k
+Success
 */
 type StorageServiceSampleKeyRangeGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewStorageServiceSampleKeyRangeGetDefault(code int) *StorageServiceSampleKe
 	}
 }
 
-/*StorageServiceSampleKeyRangeGetDefault handles this case with default header values.
+/*
+StorageServiceSampleKeyRangeGetDefault handles this case with default header values.
 
 internal server error
 */

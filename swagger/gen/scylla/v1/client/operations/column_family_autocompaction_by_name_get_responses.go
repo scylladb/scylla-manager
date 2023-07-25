@@ -47,9 +47,10 @@ func NewColumnFamilyAutocompactionByNameGetOK() *ColumnFamilyAutocompactionByNam
 	return &ColumnFamilyAutocompactionByNameGetOK{}
 }
 
-/*ColumnFamilyAutocompactionByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyAutocompactionByNameGetOK handles this case with default header values.
 
-ColumnFamilyAutocompactionByNameGetOK column family autocompaction by name get o k
+Success
 */
 type ColumnFamilyAutocompactionByNameGetOK struct {
 	Payload bool
@@ -76,7 +77,8 @@ func NewColumnFamilyAutocompactionByNameGetDefault(code int) *ColumnFamilyAutoco
 	}
 }
 
-/*ColumnFamilyAutocompactionByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyAutocompactionByNameGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,7 +47,8 @@ func NewFindConfigInternodeAuthenticatorOK() *FindConfigInternodeAuthenticatorOK
 	return &FindConfigInternodeAuthenticatorOK{}
 }
 
-/*FindConfigInternodeAuthenticatorOK handles this case with default header values.
+/*
+FindConfigInternodeAuthenticatorOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigInternodeAuthenticatorDefault(code int) *FindConfigInternodeAu
 	}
 }
 
-/*FindConfigInternodeAuthenticatorDefault handles this case with default header values.
+/*
+FindConfigInternodeAuthenticatorDefault handles this case with default header values.
 
 unexpected error
 */

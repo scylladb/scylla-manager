@@ -12,7 +12,7 @@ import (
 
 // RateMovingAverage rate_moving_average
 //
-// A meter metric which measures mean throughput and one, five, and fifteen-minute exponentially-weighted moving average throughputs
+// # A meter metric which measures mean throughput and one, five, and fifteen-minute exponentially-weighted moving average throughputs
 //
 // swagger:model rate_moving_average
 type RateMovingAverage struct {

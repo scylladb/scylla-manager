@@ -47,7 +47,8 @@ func NewFindConfigAlternatorPortOK() *FindConfigAlternatorPortOK {
 	return &FindConfigAlternatorPortOK{}
 }
 
-/*FindConfigAlternatorPortOK handles this case with default header values.
+/*
+FindConfigAlternatorPortOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAlternatorPortDefault(code int) *FindConfigAlternatorPortDefau
 	}
 }
 
-/*FindConfigAlternatorPortDefault handles this case with default header values.
+/*
+FindConfigAlternatorPortDefault handles this case with default header values.
 
 unexpected error
 */

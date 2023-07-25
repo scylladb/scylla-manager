@@ -12,7 +12,7 @@ import (
 
 // MapStringDouble map_string_double
 //
-// A key value mapping between a string and a double
+// # A key value mapping between a string and a double
 //
 // swagger:model map_string_double
 type MapStringDouble struct {

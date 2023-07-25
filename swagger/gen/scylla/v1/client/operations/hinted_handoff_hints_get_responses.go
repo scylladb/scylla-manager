@@ -47,9 +47,10 @@ func NewHintedHandoffHintsGetOK() *HintedHandoffHintsGetOK {
 	return &HintedHandoffHintsGetOK{}
 }
 
-/*HintedHandoffHintsGetOK handles this case with default header values.
+/*
+HintedHandoffHintsGetOK handles this case with default header values.
 
-HintedHandoffHintsGetOK hinted handoff hints get o k
+Success
 */
 type HintedHandoffHintsGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewHintedHandoffHintsGetDefault(code int) *HintedHandoffHintsGetDefault {
 	}
 }
 
-/*HintedHandoffHintsGetDefault handles this case with default header values.
+/*
+HintedHandoffHintsGetDefault handles this case with default header values.
 
 internal server error
 */

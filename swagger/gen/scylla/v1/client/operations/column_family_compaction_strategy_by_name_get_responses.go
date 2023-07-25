@@ -47,9 +47,10 @@ func NewColumnFamilyCompactionStrategyByNameGetOK() *ColumnFamilyCompactionStrat
 	return &ColumnFamilyCompactionStrategyByNameGetOK{}
 }
 
-/*ColumnFamilyCompactionStrategyByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyCompactionStrategyByNameGetOK handles this case with default header values.
 
-ColumnFamilyCompactionStrategyByNameGetOK column family compaction strategy by name get o k
+Success
 */
 type ColumnFamilyCompactionStrategyByNameGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewColumnFamilyCompactionStrategyByNameGetDefault(code int) *ColumnFamilyCo
 	}
 }
 
-/*ColumnFamilyCompactionStrategyByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyCompactionStrategyByNameGetDefault handles this case with default header values.
 
 internal server error
 */

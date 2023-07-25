@@ -55,7 +55,8 @@ func NewStorageServiceSlowQueryGetParamsWithHTTPClient(client *http.Client) *Sto
 	}
 }
 
-/*StorageServiceSlowQueryGetParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceSlowQueryGetParams contains all the parameters to send to the API endpoint
 for the storage service slow query get operation typically these are written to a http.Request
 */
 type StorageServiceSlowQueryGetParams struct {

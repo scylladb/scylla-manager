@@ -55,7 +55,8 @@ func NewStorageServiceMetricsExceptionsGetParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*StorageServiceMetricsExceptionsGetParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceMetricsExceptionsGetParams contains all the parameters to send to the API endpoint
 for the storage service metrics exceptions get operation typically these are written to a http.Request
 */
 type StorageServiceMetricsExceptionsGetParams struct {

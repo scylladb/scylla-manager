@@ -47,9 +47,10 @@ func NewStorageProxyRangeRPCTimeoutGetOK() *StorageProxyRangeRPCTimeoutGetOK {
 	return &StorageProxyRangeRPCTimeoutGetOK{}
 }
 
-/*StorageProxyRangeRPCTimeoutGetOK handles this case with default header values.
+/*
+StorageProxyRangeRPCTimeoutGetOK handles this case with default header values.
 
-StorageProxyRangeRPCTimeoutGetOK storage proxy range Rpc timeout get o k
+Success
 */
 type StorageProxyRangeRPCTimeoutGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewStorageProxyRangeRPCTimeoutGetDefault(code int) *StorageProxyRangeRPCTim
 	}
 }
 
-/*StorageProxyRangeRPCTimeoutGetDefault handles this case with default header values.
+/*
+StorageProxyRangeRPCTimeoutGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,9 +47,10 @@ func NewColumnFamilyMajorCompactionByNamePostOK() *ColumnFamilyMajorCompactionBy
 	return &ColumnFamilyMajorCompactionByNamePostOK{}
 }
 
-/*ColumnFamilyMajorCompactionByNamePostOK handles this case with default header values.
+/*
+ColumnFamilyMajorCompactionByNamePostOK handles this case with default header values.
 
-ColumnFamilyMajorCompactionByNamePostOK column family major compaction by name post o k
+Success
 */
 type ColumnFamilyMajorCompactionByNamePostOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewColumnFamilyMajorCompactionByNamePostDefault(code int) *ColumnFamilyMajo
 	}
 }
 
-/*ColumnFamilyMajorCompactionByNamePostDefault handles this case with default header values.
+/*
+ColumnFamilyMajorCompactionByNamePostDefault handles this case with default header values.
 
 internal server error
 */

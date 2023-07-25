@@ -47,7 +47,8 @@ func NewFindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK() *FindConfigI
 	return &FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK{}
 }
 
-/*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK handles this case with default header values.
+/*
+FindConfigInterDcStreamThroughputOutboundMegabitsPerSecOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault(code int)
 	}
 }
 
-/*FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault handles this case with default header values.
+/*
+FindConfigInterDcStreamThroughputOutboundMegabitsPerSecDefault handles this case with default header values.
 
 unexpected error
 */

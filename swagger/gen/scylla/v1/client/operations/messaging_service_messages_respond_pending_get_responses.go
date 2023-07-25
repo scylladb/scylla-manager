@@ -47,9 +47,10 @@ func NewMessagingServiceMessagesRespondPendingGetOK() *MessagingServiceMessagesR
 	return &MessagingServiceMessagesRespondPendingGetOK{}
 }
 
-/*MessagingServiceMessagesRespondPendingGetOK handles this case with default header values.
+/*
+MessagingServiceMessagesRespondPendingGetOK handles this case with default header values.
 
-MessagingServiceMessagesRespondPendingGetOK messaging service messages respond pending get o k
+Success
 */
 type MessagingServiceMessagesRespondPendingGetOK struct {
 	Payload []*models.MessageCounter
@@ -76,7 +77,8 @@ func NewMessagingServiceMessagesRespondPendingGetDefault(code int) *MessagingSer
 	}
 }
 
-/*MessagingServiceMessagesRespondPendingGetDefault handles this case with default header values.
+/*
+MessagingServiceMessagesRespondPendingGetDefault handles this case with default header values.
 
 internal server error
 */

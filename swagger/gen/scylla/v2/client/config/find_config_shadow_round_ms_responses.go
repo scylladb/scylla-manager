@@ -47,7 +47,8 @@ func NewFindConfigShadowRoundMsOK() *FindConfigShadowRoundMsOK {
 	return &FindConfigShadowRoundMsOK{}
 }
 
-/*FindConfigShadowRoundMsOK handles this case with default header values.
+/*
+FindConfigShadowRoundMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigShadowRoundMsDefault(code int) *FindConfigShadowRoundMsDefault
 	}
 }
 
-/*FindConfigShadowRoundMsDefault handles this case with default header values.
+/*
+FindConfigShadowRoundMsDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStreamManagerGetOK() *StreamManagerGetOK {
 	return &StreamManagerGetOK{}
 }
 
-/*StreamManagerGetOK handles this case with default header values.
+/*
+StreamManagerGetOK handles this case with default header values.
 
-StreamManagerGetOK stream manager get o k
+Success
 */
 type StreamManagerGetOK struct {
 	Payload []*models.StreamState
@@ -76,7 +77,8 @@ func NewStreamManagerGetDefault(code int) *StreamManagerGetDefault {
 	}
 }
 
-/*StreamManagerGetDefault handles this case with default header values.
+/*
+StreamManagerGetDefault handles this case with default header values.
 
 internal server error
 */

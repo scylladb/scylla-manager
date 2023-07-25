@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMemtableColumnsCountGetOK() *ColumnFamilyMetricsMemta
 	return &ColumnFamilyMetricsMemtableColumnsCountGetOK{}
 }
 
-/*ColumnFamilyMetricsMemtableColumnsCountGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableColumnsCountGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMemtableColumnsCountGetOK column family metrics memtable columns count get o k
+Success
 */
 type ColumnFamilyMetricsMemtableColumnsCountGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMemtableColumnsCountGetDefault(code int) *ColumnFamil
 	}
 }
 
-/*ColumnFamilyMetricsMemtableColumnsCountGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMemtableColumnsCountGetDefault handles this case with default header values.
 
 internal server error
 */

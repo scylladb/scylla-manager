@@ -47,9 +47,10 @@ func NewFailureDetectorEndpointPhiValuesGetOK() *FailureDetectorEndpointPhiValue
 	return &FailureDetectorEndpointPhiValuesGetOK{}
 }
 
-/*FailureDetectorEndpointPhiValuesGetOK handles this case with default header values.
+/*
+FailureDetectorEndpointPhiValuesGetOK handles this case with default header values.
 
-FailureDetectorEndpointPhiValuesGetOK failure detector endpoint phi values get o k
+Success
 */
 type FailureDetectorEndpointPhiValuesGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewFailureDetectorEndpointPhiValuesGetDefault(code int) *FailureDetectorEnd
 	}
 }
 
-/*FailureDetectorEndpointPhiValuesGetDefault handles this case with default header values.
+/*
+FailureDetectorEndpointPhiValuesGetDefault handles this case with default header values.
 
 internal server error
 */

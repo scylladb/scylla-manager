@@ -47,7 +47,8 @@ func NewFindConfigReduceCacheSizesAtOK() *FindConfigReduceCacheSizesAtOK {
 	return &FindConfigReduceCacheSizesAtOK{}
 }
 
-/*FindConfigReduceCacheSizesAtOK handles this case with default header values.
+/*
+FindConfigReduceCacheSizesAtOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigReduceCacheSizesAtDefault(code int) *FindConfigReduceCacheSize
 	}
 }
 
-/*FindConfigReduceCacheSizesAtDefault handles this case with default header values.
+/*
+FindConfigReduceCacheSizesAtDefault handles this case with default header values.
 
 unexpected error
 */

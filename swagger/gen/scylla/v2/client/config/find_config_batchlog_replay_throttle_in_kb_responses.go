@@ -47,7 +47,8 @@ func NewFindConfigBatchlogReplayThrottleInKbOK() *FindConfigBatchlogReplayThrott
 	return &FindConfigBatchlogReplayThrottleInKbOK{}
 }
 
-/*FindConfigBatchlogReplayThrottleInKbOK handles this case with default header values.
+/*
+FindConfigBatchlogReplayThrottleInKbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigBatchlogReplayThrottleInKbDefault(code int) *FindConfigBatchlo
 	}
 }
 
-/*FindConfigBatchlogReplayThrottleInKbDefault handles this case with default header values.
+/*
+FindConfigBatchlogReplayThrottleInKbDefault handles this case with default header values.
 
 unexpected error
 */

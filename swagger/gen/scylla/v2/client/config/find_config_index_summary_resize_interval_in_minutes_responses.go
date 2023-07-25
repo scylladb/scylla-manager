@@ -47,7 +47,8 @@ func NewFindConfigIndexSummaryResizeIntervalInMinutesOK() *FindConfigIndexSummar
 	return &FindConfigIndexSummaryResizeIntervalInMinutesOK{}
 }
 
-/*FindConfigIndexSummaryResizeIntervalInMinutesOK handles this case with default header values.
+/*
+FindConfigIndexSummaryResizeIntervalInMinutesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigIndexSummaryResizeIntervalInMinutesDefault(code int) *FindConf
 	}
 }
 
-/*FindConfigIndexSummaryResizeIntervalInMinutesDefault handles this case with default header values.
+/*
+FindConfigIndexSummaryResizeIntervalInMinutesDefault handles this case with default header values.
 
 unexpected error
 */

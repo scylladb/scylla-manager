@@ -12,7 +12,7 @@ import (
 
 // EndpointDetail endpoint_detail
 //
-// Endpoint detail
+// # Endpoint detail
 //
 // swagger:model endpoint_detail
 type EndpointDetail struct {

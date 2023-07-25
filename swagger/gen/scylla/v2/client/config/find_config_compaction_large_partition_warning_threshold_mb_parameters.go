@@ -55,7 +55,8 @@ func NewFindConfigCompactionLargePartitionWarningThresholdMbParamsWithHTTPClient
 	}
 }
 
-/*FindConfigCompactionLargePartitionWarningThresholdMbParams contains all the parameters to send to the API endpoint
+/*
+FindConfigCompactionLargePartitionWarningThresholdMbParams contains all the parameters to send to the API endpoint
 for the find config compaction large partition warning threshold mb operation typically these are written to a http.Request
 */
 type FindConfigCompactionLargePartitionWarningThresholdMbParams struct {

@@ -47,9 +47,10 @@ func NewCollectdByPluginidGetOK() *CollectdByPluginidGetOK {
 	return &CollectdByPluginidGetOK{}
 }
 
-/*CollectdByPluginidGetOK handles this case with default header values.
+/*
+CollectdByPluginidGetOK handles this case with default header values.
 
-CollectdByPluginidGetOK collectd by pluginid get o k
+Success
 */
 type CollectdByPluginidGetOK struct {
 	Payload []*models.CollectdValue
@@ -76,7 +77,8 @@ func NewCollectdByPluginidGetDefault(code int) *CollectdByPluginidGetDefault {
 	}
 }
 
-/*CollectdByPluginidGetDefault handles this case with default header values.
+/*
+CollectdByPluginidGetDefault handles this case with default header values.
 
 internal server error
 */

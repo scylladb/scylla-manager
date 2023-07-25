@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsCoordinatorScanGetOK() *ColumnFamilyMetricsCoordinato
 	return &ColumnFamilyMetricsCoordinatorScanGetOK{}
 }
 
-/*ColumnFamilyMetricsCoordinatorScanGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsCoordinatorScanGetOK handles this case with default header values.
 
-ColumnFamilyMetricsCoordinatorScanGetOK column family metrics coordinator scan get o k
+Success
 */
 type ColumnFamilyMetricsCoordinatorScanGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyMetricsCoordinatorScanGetDefault(code int) *ColumnFamilyMetr
 	}
 }
 
-/*ColumnFamilyMetricsCoordinatorScanGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsCoordinatorScanGetDefault handles this case with default header values.
 
 internal server error
 */

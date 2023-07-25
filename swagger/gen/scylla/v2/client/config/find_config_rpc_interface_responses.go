@@ -47,7 +47,8 @@ func NewFindConfigRPCInterfaceOK() *FindConfigRPCInterfaceOK {
 	return &FindConfigRPCInterfaceOK{}
 }
 
-/*FindConfigRPCInterfaceOK handles this case with default header values.
+/*
+FindConfigRPCInterfaceOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCInterfaceDefault(code int) *FindConfigRPCInterfaceDefault {
 	}
 }
 
-/*FindConfigRPCInterfaceDefault handles this case with default header values.
+/*
+FindConfigRPCInterfaceDefault handles this case with default header values.
 
 unexpected error
 */

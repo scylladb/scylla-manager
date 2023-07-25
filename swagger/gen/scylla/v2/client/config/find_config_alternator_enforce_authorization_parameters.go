@@ -55,7 +55,8 @@ func NewFindConfigAlternatorEnforceAuthorizationParamsWithHTTPClient(client *htt
 	}
 }
 
-/*FindConfigAlternatorEnforceAuthorizationParams contains all the parameters to send to the API endpoint
+/*
+FindConfigAlternatorEnforceAuthorizationParams contains all the parameters to send to the API endpoint
 for the find config alternator enforce authorization operation typically these are written to a http.Request
 */
 type FindConfigAlternatorEnforceAuthorizationParams struct {

@@ -47,9 +47,10 @@ func NewStorageServiceJoinRingGetOK() *StorageServiceJoinRingGetOK {
 	return &StorageServiceJoinRingGetOK{}
 }
 
-/*StorageServiceJoinRingGetOK handles this case with default header values.
+/*
+StorageServiceJoinRingGetOK handles this case with default header values.
 
-StorageServiceJoinRingGetOK storage service join ring get o k
+Success
 */
 type StorageServiceJoinRingGetOK struct {
 	Payload bool
@@ -76,7 +77,8 @@ func NewStorageServiceJoinRingGetDefault(code int) *StorageServiceJoinRingGetDef
 	}
 }
 
-/*StorageServiceJoinRingGetDefault handles this case with default header values.
+/*
+StorageServiceJoinRingGetDefault handles this case with default header values.
 
 internal server error
 */

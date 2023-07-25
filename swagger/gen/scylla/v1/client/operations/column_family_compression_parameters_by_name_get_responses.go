@@ -47,9 +47,10 @@ func NewColumnFamilyCompressionParametersByNameGetOK() *ColumnFamilyCompressionP
 	return &ColumnFamilyCompressionParametersByNameGetOK{}
 }
 
-/*ColumnFamilyCompressionParametersByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyCompressionParametersByNameGetOK handles this case with default header values.
 
-ColumnFamilyCompressionParametersByNameGetOK column family compression parameters by name get o k
+Success
 */
 type ColumnFamilyCompressionParametersByNameGetOK struct {
 	Payload []*models.Mapper
@@ -76,7 +77,8 @@ func NewColumnFamilyCompressionParametersByNameGetDefault(code int) *ColumnFamil
 	}
 }
 
-/*ColumnFamilyCompressionParametersByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyCompressionParametersByNameGetDefault handles this case with default header values.
 
 internal server error
 */

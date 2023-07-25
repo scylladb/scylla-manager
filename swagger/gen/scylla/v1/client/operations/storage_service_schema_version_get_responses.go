@@ -47,9 +47,10 @@ func NewStorageServiceSchemaVersionGetOK() *StorageServiceSchemaVersionGetOK {
 	return &StorageServiceSchemaVersionGetOK{}
 }
 
-/*StorageServiceSchemaVersionGetOK handles this case with default header values.
+/*
+StorageServiceSchemaVersionGetOK handles this case with default header values.
 
-StorageServiceSchemaVersionGetOK storage service schema version get o k
+Success
 */
 type StorageServiceSchemaVersionGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewStorageServiceSchemaVersionGetDefault(code int) *StorageServiceSchemaVer
 	}
 }
 
-/*StorageServiceSchemaVersionGetDefault handles this case with default header values.
+/*
+StorageServiceSchemaVersionGetDefault handles this case with default header values.
 
 internal server error
 */

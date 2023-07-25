@@ -47,7 +47,8 @@ func NewFindConfigDiskFailurePolicyOK() *FindConfigDiskFailurePolicyOK {
 	return &FindConfigDiskFailurePolicyOK{}
 }
 
-/*FindConfigDiskFailurePolicyOK handles this case with default header values.
+/*
+FindConfigDiskFailurePolicyOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigDiskFailurePolicyDefault(code int) *FindConfigDiskFailurePolic
 	}
 }
 
-/*FindConfigDiskFailurePolicyDefault handles this case with default header values.
+/*
+FindConfigDiskFailurePolicyDefault handles this case with default header values.
 
 unexpected error
 */

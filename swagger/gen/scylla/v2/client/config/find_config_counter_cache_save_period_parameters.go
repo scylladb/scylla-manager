@@ -55,7 +55,8 @@ func NewFindConfigCounterCacheSavePeriodParamsWithHTTPClient(client *http.Client
 	}
 }
 
-/*FindConfigCounterCacheSavePeriodParams contains all the parameters to send to the API endpoint
+/*
+FindConfigCounterCacheSavePeriodParams contains all the parameters to send to the API endpoint
 for the find config counter cache save period operation typically these are written to a http.Request
 */
 type FindConfigCounterCacheSavePeriodParams struct {

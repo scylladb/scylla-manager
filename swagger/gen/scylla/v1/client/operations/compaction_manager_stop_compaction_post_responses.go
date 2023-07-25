@@ -47,9 +47,10 @@ func NewCompactionManagerStopCompactionPostOK() *CompactionManagerStopCompaction
 	return &CompactionManagerStopCompactionPostOK{}
 }
 
-/*CompactionManagerStopCompactionPostOK handles this case with default header values.
+/*
+CompactionManagerStopCompactionPostOK handles this case with default header values.
 
-CompactionManagerStopCompactionPostOK compaction manager stop compaction post o k
+Success
 */
 type CompactionManagerStopCompactionPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewCompactionManagerStopCompactionPostDefault(code int) *CompactionManagerS
 	}
 }
 
-/*CompactionManagerStopCompactionPostDefault handles this case with default header values.
+/*
+CompactionManagerStopCompactionPostDefault handles this case with default header values.
 
 internal server error
 */

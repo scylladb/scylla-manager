@@ -47,9 +47,10 @@ func NewColumnFamilyMinimumCompactionByNameGetOK() *ColumnFamilyMinimumCompactio
 	return &ColumnFamilyMinimumCompactionByNameGetOK{}
 }
 
-/*ColumnFamilyMinimumCompactionByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMinimumCompactionByNameGetOK handles this case with default header values.
 
-ColumnFamilyMinimumCompactionByNameGetOK column family minimum compaction by name get o k
+Success
 */
 type ColumnFamilyMinimumCompactionByNameGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewColumnFamilyMinimumCompactionByNameGetDefault(code int) *ColumnFamilyMin
 	}
 }
 
-/*ColumnFamilyMinimumCompactionByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMinimumCompactionByNameGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,9 +47,10 @@ func NewCacheServiceMetricsKeyHitRateGetOK() *CacheServiceMetricsKeyHitRateGetOK
 	return &CacheServiceMetricsKeyHitRateGetOK{}
 }
 
-/*CacheServiceMetricsKeyHitRateGetOK handles this case with default header values.
+/*
+CacheServiceMetricsKeyHitRateGetOK handles this case with default header values.
 
-CacheServiceMetricsKeyHitRateGetOK cache service metrics key hit rate get o k
+Success
 */
 type CacheServiceMetricsKeyHitRateGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCacheServiceMetricsKeyHitRateGetDefault(code int) *CacheServiceMetricsKe
 	}
 }
 
-/*CacheServiceMetricsKeyHitRateGetDefault handles this case with default header values.
+/*
+CacheServiceMetricsKeyHitRateGetDefault handles this case with default header values.
 
 internal server error
 */

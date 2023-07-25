@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsReadGetOK() *ColumnFamilyMetricsReadGetOK {
 	return &ColumnFamilyMetricsReadGetOK{}
 }
 
-/*ColumnFamilyMetricsReadGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsReadGetOK handles this case with default header values.
 
-ColumnFamilyMetricsReadGetOK column family metrics read get o k
+Success
 */
 type ColumnFamilyMetricsReadGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsReadGetDefault(code int) *ColumnFamilyMetricsReadGetD
 	}
 }
 
-/*ColumnFamilyMetricsReadGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsReadGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,9 +47,10 @@ func NewStorageServiceTokensEndpointGetOK() *StorageServiceTokensEndpointGetOK {
 	return &StorageServiceTokensEndpointGetOK{}
 }
 
-/*StorageServiceTokensEndpointGetOK handles this case with default header values.
+/*
+StorageServiceTokensEndpointGetOK handles this case with default header values.
 
-StorageServiceTokensEndpointGetOK storage service tokens endpoint get o k
+Success
 */
 type StorageServiceTokensEndpointGetOK struct {
 	Payload []*models.Mapper
@@ -76,7 +77,8 @@ func NewStorageServiceTokensEndpointGetDefault(code int) *StorageServiceTokensEn
 	}
 }
 
-/*StorageServiceTokensEndpointGetDefault handles this case with default header values.
+/*
+StorageServiceTokensEndpointGetDefault handles this case with default header values.
 
 internal server error
 */

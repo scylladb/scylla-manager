@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMaxRowSizeByNameGetOK() *ColumnFamilyMetricsMaxRowSiz
 	return &ColumnFamilyMetricsMaxRowSizeByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsMaxRowSizeByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMaxRowSizeByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMaxRowSizeByNameGetOK column family metrics max row size by name get o k
+Success
 */
 type ColumnFamilyMetricsMaxRowSizeByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMaxRowSizeByNameGetDefault(code int) *ColumnFamilyMet
 	}
 }
 
-/*ColumnFamilyMetricsMaxRowSizeByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMaxRowSizeByNameGetDefault handles this case with default header values.
 
 internal server error
 */

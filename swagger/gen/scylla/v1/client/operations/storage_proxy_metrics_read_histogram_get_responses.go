@@ -47,9 +47,10 @@ func NewStorageProxyMetricsReadHistogramGetOK() *StorageProxyMetricsReadHistogra
 	return &StorageProxyMetricsReadHistogramGetOK{}
 }
 
-/*StorageProxyMetricsReadHistogramGetOK handles this case with default header values.
+/*
+StorageProxyMetricsReadHistogramGetOK handles this case with default header values.
 
-StorageProxyMetricsReadHistogramGetOK storage proxy metrics read histogram get o k
+Success
 */
 type StorageProxyMetricsReadHistogramGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageProxyMetricsReadHistogramGetDefault(code int) *StorageProxyMetric
 	}
 }
 
-/*StorageProxyMetricsReadHistogramGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsReadHistogramGetDefault handles this case with default header values.
 
 internal server error
 */

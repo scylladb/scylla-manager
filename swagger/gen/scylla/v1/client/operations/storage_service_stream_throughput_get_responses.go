@@ -47,9 +47,10 @@ func NewStorageServiceStreamThroughputGetOK() *StorageServiceStreamThroughputGet
 	return &StorageServiceStreamThroughputGetOK{}
 }
 
-/*StorageServiceStreamThroughputGetOK handles this case with default header values.
+/*
+StorageServiceStreamThroughputGetOK handles this case with default header values.
 
-StorageServiceStreamThroughputGetOK storage service stream throughput get o k
+Success
 */
 type StorageServiceStreamThroughputGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageServiceStreamThroughputGetDefault(code int) *StorageServiceStream
 	}
 }
 
-/*StorageServiceStreamThroughputGetDefault handles this case with default header values.
+/*
+StorageServiceStreamThroughputGetDefault handles this case with default header values.
 
 internal server error
 */

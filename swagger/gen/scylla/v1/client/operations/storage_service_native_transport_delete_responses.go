@@ -47,9 +47,10 @@ func NewStorageServiceNativeTransportDeleteOK() *StorageServiceNativeTransportDe
 	return &StorageServiceNativeTransportDeleteOK{}
 }
 
-/*StorageServiceNativeTransportDeleteOK handles this case with default header values.
+/*
+StorageServiceNativeTransportDeleteOK handles this case with default header values.
 
-StorageServiceNativeTransportDeleteOK storage service native transport delete o k
+Success
 */
 type StorageServiceNativeTransportDeleteOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceNativeTransportDeleteDefault(code int) *StorageServiceNati
 	}
 }
 
-/*StorageServiceNativeTransportDeleteDefault handles this case with default header values.
+/*
+StorageServiceNativeTransportDeleteDefault handles this case with default header values.
 
 internal server error
 */

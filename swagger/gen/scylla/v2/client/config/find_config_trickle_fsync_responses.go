@@ -47,7 +47,8 @@ func NewFindConfigTrickleFsyncOK() *FindConfigTrickleFsyncOK {
 	return &FindConfigTrickleFsyncOK{}
 }
 
-/*FindConfigTrickleFsyncOK handles this case with default header values.
+/*
+FindConfigTrickleFsyncOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigTrickleFsyncDefault(code int) *FindConfigTrickleFsyncDefault {
 	}
 }
 
-/*FindConfigTrickleFsyncDefault handles this case with default header values.
+/*
+FindConfigTrickleFsyncDefault handles this case with default header values.
 
 unexpected error
 */

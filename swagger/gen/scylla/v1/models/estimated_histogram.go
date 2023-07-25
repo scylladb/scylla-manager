@@ -12,7 +12,7 @@ import (
 
 // EstimatedHistogram estimated_histogram
 //
-// An estimated histogram values
+// # An estimated histogram values
 //
 // swagger:model estimated_histogram
 type EstimatedHistogram struct {

@@ -47,7 +47,8 @@ func NewFindConfigBackgroundWriterSchedulingQuotaOK() *FindConfigBackgroundWrite
 	return &FindConfigBackgroundWriterSchedulingQuotaOK{}
 }
 
-/*FindConfigBackgroundWriterSchedulingQuotaOK handles this case with default header values.
+/*
+FindConfigBackgroundWriterSchedulingQuotaOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigBackgroundWriterSchedulingQuotaDefault(code int) *FindConfigBa
 	}
 }
 
-/*FindConfigBackgroundWriterSchedulingQuotaDefault handles this case with default header values.
+/*
+FindConfigBackgroundWriterSchedulingQuotaDefault handles this case with default header values.
 
 unexpected error
 */

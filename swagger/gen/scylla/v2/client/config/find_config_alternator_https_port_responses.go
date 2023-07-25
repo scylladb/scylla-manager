@@ -47,7 +47,8 @@ func NewFindConfigAlternatorHTTPSPortOK() *FindConfigAlternatorHTTPSPortOK {
 	return &FindConfigAlternatorHTTPSPortOK{}
 }
 
-/*FindConfigAlternatorHTTPSPortOK handles this case with default header values.
+/*
+FindConfigAlternatorHTTPSPortOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAlternatorHTTPSPortDefault(code int) *FindConfigAlternatorHTTP
 	}
 }
 
-/*FindConfigAlternatorHTTPSPortDefault handles this case with default header values.
+/*
+FindConfigAlternatorHTTPSPortDefault handles this case with default header values.
 
 unexpected error
 */

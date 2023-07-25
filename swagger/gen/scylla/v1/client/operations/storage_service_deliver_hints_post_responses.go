@@ -47,9 +47,10 @@ func NewStorageServiceDeliverHintsPostOK() *StorageServiceDeliverHintsPostOK {
 	return &StorageServiceDeliverHintsPostOK{}
 }
 
-/*StorageServiceDeliverHintsPostOK handles this case with default header values.
+/*
+StorageServiceDeliverHintsPostOK handles this case with default header values.
 
-StorageServiceDeliverHintsPostOK storage service deliver hints post o k
+Success
 */
 type StorageServiceDeliverHintsPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceDeliverHintsPostDefault(code int) *StorageServiceDeliverHi
 	}
 }
 
-/*StorageServiceDeliverHintsPostDefault handles this case with default header values.
+/*
+StorageServiceDeliverHintsPostDefault handles this case with default header values.
 
 internal server error
 */

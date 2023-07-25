@@ -47,7 +47,8 @@ func NewFindConfigDataFileDirectoriesOK() *FindConfigDataFileDirectoriesOK {
 	return &FindConfigDataFileDirectoriesOK{}
 }
 
-/*FindConfigDataFileDirectoriesOK handles this case with default header values.
+/*
+FindConfigDataFileDirectoriesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigDataFileDirectoriesDefault(code int) *FindConfigDataFileDirect
 	}
 }
 
-/*FindConfigDataFileDirectoriesDefault handles this case with default header values.
+/*
+FindConfigDataFileDirectoriesDefault handles this case with default header values.
 
 unexpected error
 */

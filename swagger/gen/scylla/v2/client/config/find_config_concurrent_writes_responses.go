@@ -47,7 +47,8 @@ func NewFindConfigConcurrentWritesOK() *FindConfigConcurrentWritesOK {
 	return &FindConfigConcurrentWritesOK{}
 }
 
-/*FindConfigConcurrentWritesOK handles this case with default header values.
+/*
+FindConfigConcurrentWritesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigConcurrentWritesDefault(code int) *FindConfigConcurrentWritesD
 	}
 }
 
-/*FindConfigConcurrentWritesDefault handles this case with default header values.
+/*
+FindConfigConcurrentWritesDefault handles this case with default header values.
 
 unexpected error
 */

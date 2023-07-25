@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsMeanRowSizeGetOK() *ColumnFamilyMetricsMeanRowSizeGet
 	return &ColumnFamilyMetricsMeanRowSizeGetOK{}
 }
 
-/*ColumnFamilyMetricsMeanRowSizeGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsMeanRowSizeGetOK handles this case with default header values.
 
-ColumnFamilyMetricsMeanRowSizeGetOK column family metrics mean row size get o k
+Success
 */
 type ColumnFamilyMetricsMeanRowSizeGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsMeanRowSizeGetDefault(code int) *ColumnFamilyMetricsM
 	}
 }
 
-/*ColumnFamilyMetricsMeanRowSizeGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsMeanRowSizeGetDefault handles this case with default header values.
 
 internal server error
 */

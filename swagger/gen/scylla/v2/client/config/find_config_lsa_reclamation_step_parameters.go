@@ -55,7 +55,8 @@ func NewFindConfigLsaReclamationStepParamsWithHTTPClient(client *http.Client) *F
 	}
 }
 
-/*FindConfigLsaReclamationStepParams contains all the parameters to send to the API endpoint
+/*
+FindConfigLsaReclamationStepParams contains all the parameters to send to the API endpoint
 for the find config lsa reclamation step operation typically these are written to a http.Request
 */
 type FindConfigLsaReclamationStepParams struct {

@@ -47,7 +47,8 @@ func NewFindConfigLogToStdoutOK() *FindConfigLogToStdoutOK {
 	return &FindConfigLogToStdoutOK{}
 }
 
-/*FindConfigLogToStdoutOK handles this case with default header values.
+/*
+FindConfigLogToStdoutOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigLogToStdoutDefault(code int) *FindConfigLogToStdoutDefault {
 	}
 }
 
-/*FindConfigLogToStdoutDefault handles this case with default header values.
+/*
+FindConfigLogToStdoutDefault handles this case with default header values.
 
 unexpected error
 */

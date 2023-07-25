@@ -55,7 +55,8 @@ func NewFindConfigSavedCachesDirectoryParamsWithHTTPClient(client *http.Client) 
 	}
 }
 
-/*FindConfigSavedCachesDirectoryParams contains all the parameters to send to the API endpoint
+/*
+FindConfigSavedCachesDirectoryParams contains all the parameters to send to the API endpoint
 for the find config saved caches directory operation typically these are written to a http.Request
 */
 type FindConfigSavedCachesDirectoryParams struct {

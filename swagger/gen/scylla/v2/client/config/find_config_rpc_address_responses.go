@@ -47,7 +47,8 @@ func NewFindConfigRPCAddressOK() *FindConfigRPCAddressOK {
 	return &FindConfigRPCAddressOK{}
 }
 
-/*FindConfigRPCAddressOK handles this case with default header values.
+/*
+FindConfigRPCAddressOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCAddressDefault(code int) *FindConfigRPCAddressDefault {
 	}
 }
 
-/*FindConfigRPCAddressDefault handles this case with default header values.
+/*
+FindConfigRPCAddressDefault handles this case with default header values.
 
 unexpected error
 */

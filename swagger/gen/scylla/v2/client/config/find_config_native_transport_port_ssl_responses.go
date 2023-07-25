@@ -47,7 +47,8 @@ func NewFindConfigNativeTransportPortSslOK() *FindConfigNativeTransportPortSslOK
 	return &FindConfigNativeTransportPortSslOK{}
 }
 
-/*FindConfigNativeTransportPortSslOK handles this case with default header values.
+/*
+FindConfigNativeTransportPortSslOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigNativeTransportPortSslDefault(code int) *FindConfigNativeTrans
 	}
 }
 
-/*FindConfigNativeTransportPortSslDefault handles this case with default header values.
+/*
+FindConfigNativeTransportPortSslDefault handles this case with default header values.
 
 unexpected error
 */

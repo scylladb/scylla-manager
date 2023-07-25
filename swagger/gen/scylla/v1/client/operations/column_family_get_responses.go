@@ -47,9 +47,10 @@ func NewColumnFamilyGetOK() *ColumnFamilyGetOK {
 	return &ColumnFamilyGetOK{}
 }
 
-/*ColumnFamilyGetOK handles this case with default header values.
+/*
+ColumnFamilyGetOK handles this case with default header values.
 
-ColumnFamilyGetOK column family get o k
+Success
 */
 type ColumnFamilyGetOK struct {
 	Payload []*models.ColumnFamilyInfo
@@ -76,7 +77,8 @@ func NewColumnFamilyGetDefault(code int) *ColumnFamilyGetDefault {
 	}
 }
 
-/*ColumnFamilyGetDefault handles this case with default header values.
+/*
+ColumnFamilyGetDefault handles this case with default header values.
 
 internal server error
 */

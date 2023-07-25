@@ -15,7 +15,7 @@ import (
 
 // History history
 //
-// Compaction history information
+// # Compaction history information
 //
 // swagger:model history
 type History struct {

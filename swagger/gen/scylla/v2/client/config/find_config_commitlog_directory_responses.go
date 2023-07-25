@@ -47,7 +47,8 @@ func NewFindConfigCommitlogDirectoryOK() *FindConfigCommitlogDirectoryOK {
 	return &FindConfigCommitlogDirectoryOK{}
 }
 
-/*FindConfigCommitlogDirectoryOK handles this case with default header values.
+/*
+FindConfigCommitlogDirectoryOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCommitlogDirectoryDefault(code int) *FindConfigCommitlogDirect
 	}
 }
 
-/*FindConfigCommitlogDirectoryDefault handles this case with default header values.
+/*
+FindConfigCommitlogDirectoryDefault handles this case with default header values.
 
 unexpected error
 */

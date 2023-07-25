@@ -47,9 +47,10 @@ func NewStorageServiceDrainPostOK() *StorageServiceDrainPostOK {
 	return &StorageServiceDrainPostOK{}
 }
 
-/*StorageServiceDrainPostOK handles this case with default header values.
+/*
+StorageServiceDrainPostOK handles this case with default header values.
 
-StorageServiceDrainPostOK storage service drain post o k
+Success
 */
 type StorageServiceDrainPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceDrainPostDefault(code int) *StorageServiceDrainPostDefault
 	}
 }
 
-/*StorageServiceDrainPostDefault handles this case with default header values.
+/*
+StorageServiceDrainPostDefault handles this case with default header values.
 
 internal server error
 */

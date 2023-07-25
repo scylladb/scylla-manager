@@ -47,9 +47,10 @@ func NewCacheServiceMetricsCounterRequestsMovingAvrageGetOK() *CacheServiceMetri
 	return &CacheServiceMetricsCounterRequestsMovingAvrageGetOK{}
 }
 
-/*CacheServiceMetricsCounterRequestsMovingAvrageGetOK handles this case with default header values.
+/*
+CacheServiceMetricsCounterRequestsMovingAvrageGetOK handles this case with default header values.
 
-CacheServiceMetricsCounterRequestsMovingAvrageGetOK cache service metrics counter requests moving avrage get o k
+Success
 */
 type CacheServiceMetricsCounterRequestsMovingAvrageGetOK struct {
 	Payload *models.RateMovingAverage
@@ -78,7 +79,8 @@ func NewCacheServiceMetricsCounterRequestsMovingAvrageGetDefault(code int) *Cach
 	}
 }
 
-/*CacheServiceMetricsCounterRequestsMovingAvrageGetDefault handles this case with default header values.
+/*
+CacheServiceMetricsCounterRequestsMovingAvrageGetDefault handles this case with default header values.
 
 internal server error
 */

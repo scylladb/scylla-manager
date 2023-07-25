@@ -47,7 +47,8 @@ func NewFindConfigStartRPCOK() *FindConfigStartRPCOK {
 	return &FindConfigStartRPCOK{}
 }
 
-/*FindConfigStartRPCOK handles this case with default header values.
+/*
+FindConfigStartRPCOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigStartRPCDefault(code int) *FindConfigStartRPCDefault {
 	}
 }
 
-/*FindConfigStartRPCDefault handles this case with default header values.
+/*
+FindConfigStartRPCDefault handles this case with default header values.
 
 unexpected error
 */

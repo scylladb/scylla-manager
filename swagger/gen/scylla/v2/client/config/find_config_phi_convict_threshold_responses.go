@@ -47,7 +47,8 @@ func NewFindConfigPhiConvictThresholdOK() *FindConfigPhiConvictThresholdOK {
 	return &FindConfigPhiConvictThresholdOK{}
 }
 
-/*FindConfigPhiConvictThresholdOK handles this case with default header values.
+/*
+FindConfigPhiConvictThresholdOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPhiConvictThresholdDefault(code int) *FindConfigPhiConvictThre
 	}
 }
 
-/*FindConfigPhiConvictThresholdDefault handles this case with default header values.
+/*
+FindConfigPhiConvictThresholdDefault handles this case with default header values.
 
 unexpected error
 */

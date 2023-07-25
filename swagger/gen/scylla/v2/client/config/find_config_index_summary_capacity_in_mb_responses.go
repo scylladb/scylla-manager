@@ -47,7 +47,8 @@ func NewFindConfigIndexSummaryCapacityInMbOK() *FindConfigIndexSummaryCapacityIn
 	return &FindConfigIndexSummaryCapacityInMbOK{}
 }
 
-/*FindConfigIndexSummaryCapacityInMbOK handles this case with default header values.
+/*
+FindConfigIndexSummaryCapacityInMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigIndexSummaryCapacityInMbDefault(code int) *FindConfigIndexSumm
 	}
 }
 
-/*FindConfigIndexSummaryCapacityInMbDefault handles this case with default header values.
+/*
+FindConfigIndexSummaryCapacityInMbDefault handles this case with default header values.
 
 unexpected error
 */
