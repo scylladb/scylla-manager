@@ -151,59 +151,61 @@ func (w *restoreWorkerTools) newViews(ctx context.Context, units []RestoreUnit) 
 		}
 
 		for _, index := range meta.Indexes {
-			if restoredTables.Has(index.KeyspaceName + "." + index.TableName) {
-				dummyMeta := gocql.KeyspaceMetadata{
-					Indexes: map[string]*gocql.IndexMetadata{index.Name: index},
-				}
-
-				schema, err := dummyMeta.ToCQL()
-				if err != nil {
-					return nil, errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
-				}
-
-				// DummyMeta schema consists of create keyspace and create view statements
-				stmt := strings.Split(schema, ";")[1]
-				stmt, err = addIfNotExists(stmt, SecondaryIndex)
-				if err != nil {
-					return nil, err
-				}
-
-				views = append(views, RestoreView{
-					Keyspace:   index.KeyspaceName,
-					View:       index.Name,
-					Type:       SecondaryIndex,
-					BaseTable:  index.TableName,
-					CreateStmt: stmt,
-				})
+			if !restoredTables.Has(index.KeyspaceName + "." + index.TableName) {
+				continue
 			}
+			dummyMeta := gocql.KeyspaceMetadata{
+				Indexes: map[string]*gocql.IndexMetadata{index.Name: index},
+			}
+
+			schema, err := dummyMeta.ToCQL()
+			if err != nil {
+				return nil, errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
+			}
+
+			// DummyMeta schema consists of create keyspace and create view statements
+			stmt := strings.Split(schema, ";")[1]
+			stmt, err = addIfNotExists(stmt, SecondaryIndex)
+			if err != nil {
+				return nil, err
+			}
+
+			views = append(views, RestoreView{
+				Keyspace:   index.KeyspaceName,
+				View:       index.Name,
+				Type:       SecondaryIndex,
+				BaseTable:  index.TableName,
+				CreateStmt: stmt,
+			})
 		}
 
 		for _, view := range meta.Views {
-			if restoredTables.Has(view.KeyspaceName + "." + view.BaseTableName) {
-				dummyMeta := gocql.KeyspaceMetadata{
-					Views: map[string]*gocql.ViewMetadata{view.ViewName: view},
-				}
-
-				schema, err := dummyMeta.ToCQL()
-				if err != nil {
-					return nil, errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
-				}
-
-				// DummyMeta schema consists of create keyspace and create view statements
-				stmt := strings.Split(schema, ";")[1]
-				stmt, err = addIfNotExists(stmt, MaterializedView)
-				if err != nil {
-					return nil, err
-				}
-
-				views = append(views, RestoreView{
-					Keyspace:   view.KeyspaceName,
-					View:       view.ViewName,
-					Type:       MaterializedView,
-					BaseTable:  view.BaseTableName,
-					CreateStmt: stmt,
-				})
+			if !restoredTables.Has(view.KeyspaceName + "." + view.BaseTableName) {
+				continue
 			}
+			dummyMeta := gocql.KeyspaceMetadata{
+				Views: map[string]*gocql.ViewMetadata{view.ViewName: view},
+			}
+
+			schema, err := dummyMeta.ToCQL()
+			if err != nil {
+				return nil, errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
+			}
+
+			// DummyMeta schema consists of create keyspace and create view statements
+			stmt := strings.Split(schema, ";")[1]
+			stmt, err = addIfNotExists(stmt, MaterializedView)
+			if err != nil {
+				return nil, err
+			}
+
+			views = append(views, RestoreView{
+				Keyspace:   view.KeyspaceName,
+				View:       view.ViewName,
+				Type:       MaterializedView,
+				BaseTable:  view.BaseTableName,
+				CreateStmt: stmt,
+			})
 		}
 	}
 
