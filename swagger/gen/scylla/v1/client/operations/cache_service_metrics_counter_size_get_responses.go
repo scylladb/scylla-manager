@@ -47,9 +47,10 @@ func NewCacheServiceMetricsCounterSizeGetOK() *CacheServiceMetricsCounterSizeGet
 	return &CacheServiceMetricsCounterSizeGetOK{}
 }
 
-/*CacheServiceMetricsCounterSizeGetOK handles this case with default header values.
+/*
+CacheServiceMetricsCounterSizeGetOK handles this case with default header values.
 
-CacheServiceMetricsCounterSizeGetOK cache service metrics counter size get o k
+Success
 */
 type CacheServiceMetricsCounterSizeGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCacheServiceMetricsCounterSizeGetDefault(code int) *CacheServiceMetricsC
 	}
 }
 
-/*CacheServiceMetricsCounterSizeGetDefault handles this case with default header values.
+/*
+CacheServiceMetricsCounterSizeGetDefault handles this case with default header values.
 
 internal server error
 */

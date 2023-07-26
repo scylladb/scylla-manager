@@ -47,9 +47,10 @@ func NewStorageProxyMaxHintWindowGetOK() *StorageProxyMaxHintWindowGetOK {
 	return &StorageProxyMaxHintWindowGetOK{}
 }
 
-/*StorageProxyMaxHintWindowGetOK handles this case with default header values.
+/*
+StorageProxyMaxHintWindowGetOK handles this case with default header values.
 
-StorageProxyMaxHintWindowGetOK storage proxy max hint window get o k
+Success
 */
 type StorageProxyMaxHintWindowGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageProxyMaxHintWindowGetDefault(code int) *StorageProxyMaxHintWindow
 	}
 }
 
-/*StorageProxyMaxHintWindowGetDefault handles this case with default header values.
+/*
+StorageProxyMaxHintWindowGetDefault handles this case with default header values.
 
 internal server error
 */

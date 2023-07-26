@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsWaitingOnFreeMemtableGetOK() *ColumnFamilyMetricsWait
 	return &ColumnFamilyMetricsWaitingOnFreeMemtableGetOK{}
 }
 
-/*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsWaitingOnFreeMemtableGetOK handles this case with default header values.
 
-ColumnFamilyMetricsWaitingOnFreeMemtableGetOK column family metrics waiting on free memtable get o k
+Success
 */
 type ColumnFamilyMetricsWaitingOnFreeMemtableGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyMetricsWaitingOnFreeMemtableGetDefault(code int) *ColumnFami
 	}
 }
 
-/*ColumnFamilyMetricsWaitingOnFreeMemtableGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsWaitingOnFreeMemtableGetDefault handles this case with default header values.
 
 internal server error
 */

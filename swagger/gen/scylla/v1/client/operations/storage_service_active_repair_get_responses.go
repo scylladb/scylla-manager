@@ -47,9 +47,10 @@ func NewStorageServiceActiveRepairGetOK() *StorageServiceActiveRepairGetOK {
 	return &StorageServiceActiveRepairGetOK{}
 }
 
-/*StorageServiceActiveRepairGetOK handles this case with default header values.
+/*
+StorageServiceActiveRepairGetOK handles this case with default header values.
 
-StorageServiceActiveRepairGetOK storage service active repair get o k
+Success
 */
 type StorageServiceActiveRepairGetOK struct {
 	Payload []int32
@@ -76,7 +77,8 @@ func NewStorageServiceActiveRepairGetDefault(code int) *StorageServiceActiveRepa
 	}
 }
 
-/*StorageServiceActiveRepairGetDefault handles this case with default header values.
+/*
+StorageServiceActiveRepairGetDefault handles this case with default header values.
 
 internal server error
 */

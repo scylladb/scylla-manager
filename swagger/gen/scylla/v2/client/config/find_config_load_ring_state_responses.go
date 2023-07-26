@@ -47,7 +47,8 @@ func NewFindConfigLoadRingStateOK() *FindConfigLoadRingStateOK {
 	return &FindConfigLoadRingStateOK{}
 }
 
-/*FindConfigLoadRingStateOK handles this case with default header values.
+/*
+FindConfigLoadRingStateOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigLoadRingStateDefault(code int) *FindConfigLoadRingStateDefault
 	}
 }
 
-/*FindConfigLoadRingStateDefault handles this case with default header values.
+/*
+FindConfigLoadRingStateDefault handles this case with default header values.
 
 unexpected error
 */

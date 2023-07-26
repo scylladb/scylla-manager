@@ -47,9 +47,10 @@ func NewGossiperHeartBeatVersionByAddrGetOK() *GossiperHeartBeatVersionByAddrGet
 	return &GossiperHeartBeatVersionByAddrGetOK{}
 }
 
-/*GossiperHeartBeatVersionByAddrGetOK handles this case with default header values.
+/*
+GossiperHeartBeatVersionByAddrGetOK handles this case with default header values.
 
-GossiperHeartBeatVersionByAddrGetOK gossiper heart beat version by addr get o k
+Success
 */
 type GossiperHeartBeatVersionByAddrGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewGossiperHeartBeatVersionByAddrGetDefault(code int) *GossiperHeartBeatVer
 	}
 }
 
-/*GossiperHeartBeatVersionByAddrGetDefault handles this case with default header values.
+/*
+GossiperHeartBeatVersionByAddrGetDefault handles this case with default header values.
 
 internal server error
 */

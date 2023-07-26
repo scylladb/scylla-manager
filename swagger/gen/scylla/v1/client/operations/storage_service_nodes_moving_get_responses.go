@@ -47,9 +47,10 @@ func NewStorageServiceNodesMovingGetOK() *StorageServiceNodesMovingGetOK {
 	return &StorageServiceNodesMovingGetOK{}
 }
 
-/*StorageServiceNodesMovingGetOK handles this case with default header values.
+/*
+StorageServiceNodesMovingGetOK handles this case with default header values.
 
-StorageServiceNodesMovingGetOK storage service nodes moving get o k
+Success
 */
 type StorageServiceNodesMovingGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewStorageServiceNodesMovingGetDefault(code int) *StorageServiceNodesMoving
 	}
 }
 
-/*StorageServiceNodesMovingGetDefault handles this case with default header values.
+/*
+StorageServiceNodesMovingGetDefault handles this case with default header values.
 
 internal server error
 */

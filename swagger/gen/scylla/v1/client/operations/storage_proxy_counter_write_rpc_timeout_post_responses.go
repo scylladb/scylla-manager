@@ -47,9 +47,10 @@ func NewStorageProxyCounterWriteRPCTimeoutPostOK() *StorageProxyCounterWriteRPCT
 	return &StorageProxyCounterWriteRPCTimeoutPostOK{}
 }
 
-/*StorageProxyCounterWriteRPCTimeoutPostOK handles this case with default header values.
+/*
+StorageProxyCounterWriteRPCTimeoutPostOK handles this case with default header values.
 
-StorageProxyCounterWriteRPCTimeoutPostOK storage proxy counter write Rpc timeout post o k
+Success
 */
 type StorageProxyCounterWriteRPCTimeoutPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageProxyCounterWriteRPCTimeoutPostDefault(code int) *StorageProxyCou
 	}
 }
 
-/*StorageProxyCounterWriteRPCTimeoutPostDefault handles this case with default header values.
+/*
+StorageProxyCounterWriteRPCTimeoutPostDefault handles this case with default header values.
 
 internal server error
 */

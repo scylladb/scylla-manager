@@ -47,9 +47,10 @@ func NewCacheServiceSaveCachesPostOK() *CacheServiceSaveCachesPostOK {
 	return &CacheServiceSaveCachesPostOK{}
 }
 
-/*CacheServiceSaveCachesPostOK handles this case with default header values.
+/*
+CacheServiceSaveCachesPostOK handles this case with default header values.
 
-CacheServiceSaveCachesPostOK cache service save caches post o k
+Success
 */
 type CacheServiceSaveCachesPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewCacheServiceSaveCachesPostDefault(code int) *CacheServiceSaveCachesPostD
 	}
 }
 
-/*CacheServiceSaveCachesPostDefault handles this case with default header values.
+/*
+CacheServiceSaveCachesPostDefault handles this case with default header values.
 
 internal server error
 */

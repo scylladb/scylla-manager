@@ -13,7 +13,7 @@ import (
 
 // ProgressInfo progress_info
 //
-// File transfer progress
+// # File transfer progress
 //
 // swagger:model progress_info
 type ProgressInfo struct {

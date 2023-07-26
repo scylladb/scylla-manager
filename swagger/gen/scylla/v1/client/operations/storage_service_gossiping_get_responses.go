@@ -47,9 +47,10 @@ func NewStorageServiceGossipingGetOK() *StorageServiceGossipingGetOK {
 	return &StorageServiceGossipingGetOK{}
 }
 
-/*StorageServiceGossipingGetOK handles this case with default header values.
+/*
+StorageServiceGossipingGetOK handles this case with default header values.
 
-StorageServiceGossipingGetOK storage service gossiping get o k
+Success
 */
 type StorageServiceGossipingGetOK struct {
 	Payload bool
@@ -76,7 +77,8 @@ func NewStorageServiceGossipingGetDefault(code int) *StorageServiceGossipingGetD
 	}
 }
 
-/*StorageServiceGossipingGetDefault handles this case with default header values.
+/*
+StorageServiceGossipingGetDefault handles this case with default header values.
 
 internal server error
 */

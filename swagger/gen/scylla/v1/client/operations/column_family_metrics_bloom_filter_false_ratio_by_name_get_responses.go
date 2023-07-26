@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK() *ColumnFamilyMetri
 	return &ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK column family metrics bloom filter false ratio by name get o k
+Success
 */
 type ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault(code int) *Colu
 	}
 }
 
-/*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsBloomFilterFalseRatioByNameGetDefault handles this case with default header values.
 
 internal server error
 */

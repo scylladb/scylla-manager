@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsRangeLatencyGetOK() *ColumnFamilyMetricsRangeLatencyG
 	return &ColumnFamilyMetricsRangeLatencyGetOK{}
 }
 
-/*ColumnFamilyMetricsRangeLatencyGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsRangeLatencyGetOK handles this case with default header values.
 
-ColumnFamilyMetricsRangeLatencyGetOK column family metrics range latency get o k
+Success
 */
 type ColumnFamilyMetricsRangeLatencyGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsRangeLatencyGetDefault(code int) *ColumnFamilyMetrics
 	}
 }
 
-/*ColumnFamilyMetricsRangeLatencyGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsRangeLatencyGetDefault handles this case with default header values.
 
 internal server error
 */

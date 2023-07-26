@@ -47,7 +47,8 @@ func NewFindConfigPermissionsUpdateIntervalInMsOK() *FindConfigPermissionsUpdate
 	return &FindConfigPermissionsUpdateIntervalInMsOK{}
 }
 
-/*FindConfigPermissionsUpdateIntervalInMsOK handles this case with default header values.
+/*
+FindConfigPermissionsUpdateIntervalInMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPermissionsUpdateIntervalInMsDefault(code int) *FindConfigPerm
 	}
 }
 
-/*FindConfigPermissionsUpdateIntervalInMsDefault handles this case with default header values.
+/*
+FindConfigPermissionsUpdateIntervalInMsDefault handles this case with default header values.
 
 unexpected error
 */

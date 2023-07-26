@@ -47,9 +47,10 @@ func NewStorageServiceHostIDGetOK() *StorageServiceHostIDGetOK {
 	return &StorageServiceHostIDGetOK{}
 }
 
-/*StorageServiceHostIDGetOK handles this case with default header values.
+/*
+StorageServiceHostIDGetOK handles this case with default header values.
 
-StorageServiceHostIDGetOK storage service host Id get o k
+Success
 */
 type StorageServiceHostIDGetOK struct {
 	Payload []*models.Mapper
@@ -76,7 +77,8 @@ func NewStorageServiceHostIDGetDefault(code int) *StorageServiceHostIDGetDefault
 	}
 }
 
-/*StorageServiceHostIDGetDefault handles this case with default header values.
+/*
+StorageServiceHostIDGetDefault handles this case with default header values.
 
 internal server error
 */

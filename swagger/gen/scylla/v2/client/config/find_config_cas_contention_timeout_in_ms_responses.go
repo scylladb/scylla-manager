@@ -47,7 +47,8 @@ func NewFindConfigCasContentionTimeoutInMsOK() *FindConfigCasContentionTimeoutIn
 	return &FindConfigCasContentionTimeoutInMsOK{}
 }
 
-/*FindConfigCasContentionTimeoutInMsOK handles this case with default header values.
+/*
+FindConfigCasContentionTimeoutInMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCasContentionTimeoutInMsDefault(code int) *FindConfigCasConten
 	}
 }
 
-/*FindConfigCasContentionTimeoutInMsDefault handles this case with default header values.
+/*
+FindConfigCasContentionTimeoutInMsDefault handles this case with default header values.
 
 unexpected error
 */

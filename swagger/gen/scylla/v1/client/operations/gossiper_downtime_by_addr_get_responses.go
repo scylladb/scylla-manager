@@ -47,9 +47,10 @@ func NewGossiperDowntimeByAddrGetOK() *GossiperDowntimeByAddrGetOK {
 	return &GossiperDowntimeByAddrGetOK{}
 }
 
-/*GossiperDowntimeByAddrGetOK handles this case with default header values.
+/*
+GossiperDowntimeByAddrGetOK handles this case with default header values.
 
-GossiperDowntimeByAddrGetOK gossiper downtime by addr get o k
+Success
 */
 type GossiperDowntimeByAddrGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewGossiperDowntimeByAddrGetDefault(code int) *GossiperDowntimeByAddrGetDef
 	}
 }
 
-/*GossiperDowntimeByAddrGetDefault handles this case with default header values.
+/*
+GossiperDowntimeByAddrGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,7 +47,8 @@ func NewStorageServiceRepairStatusOK() *StorageServiceRepairStatusOK {
 	return &StorageServiceRepairStatusOK{}
 }
 
-/*StorageServiceRepairStatusOK handles this case with default header values.
+/*
+StorageServiceRepairStatusOK handles this case with default header values.
 
 Repair status value
 */
@@ -76,7 +77,8 @@ func NewStorageServiceRepairStatusDefault(code int) *StorageServiceRepairStatusD
 	}
 }
 
-/*StorageServiceRepairStatusDefault handles this case with default header values.
+/*
+StorageServiceRepairStatusDefault handles this case with default header values.
 
 internal server error
 */

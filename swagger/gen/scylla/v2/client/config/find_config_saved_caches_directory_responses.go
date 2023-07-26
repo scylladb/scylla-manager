@@ -47,7 +47,8 @@ func NewFindConfigSavedCachesDirectoryOK() *FindConfigSavedCachesDirectoryOK {
 	return &FindConfigSavedCachesDirectoryOK{}
 }
 
-/*FindConfigSavedCachesDirectoryOK handles this case with default header values.
+/*
+FindConfigSavedCachesDirectoryOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigSavedCachesDirectoryDefault(code int) *FindConfigSavedCachesDi
 	}
 }
 
-/*FindConfigSavedCachesDirectoryDefault handles this case with default header values.
+/*
+FindConfigSavedCachesDirectoryDefault handles this case with default header values.
 
 unexpected error
 */

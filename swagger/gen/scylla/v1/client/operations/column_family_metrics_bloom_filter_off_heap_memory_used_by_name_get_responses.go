@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK() *ColumnFami
 	return &ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK column family metrics bloom filter off heap memory used by name get o k
+Success
 */
 type ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetDefault(code int
 	}
 }
 
-/*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetDefault handles this case with default header values.
 
 internal server error
 */

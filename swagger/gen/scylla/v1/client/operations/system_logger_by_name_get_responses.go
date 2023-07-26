@@ -47,9 +47,10 @@ func NewSystemLoggerByNameGetOK() *SystemLoggerByNameGetOK {
 	return &SystemLoggerByNameGetOK{}
 }
 
-/*SystemLoggerByNameGetOK handles this case with default header values.
+/*
+SystemLoggerByNameGetOK handles this case with default header values.
 
-SystemLoggerByNameGetOK system logger by name get o k
+Success
 */
 type SystemLoggerByNameGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewSystemLoggerByNameGetDefault(code int) *SystemLoggerByNameGetDefault {
 	}
 }
 
-/*SystemLoggerByNameGetDefault handles this case with default header values.
+/*
+SystemLoggerByNameGetDefault handles this case with default header values.
 
 internal server error
 */

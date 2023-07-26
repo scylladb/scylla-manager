@@ -47,7 +47,8 @@ func NewFindConfigTombstoneWarnThresholdOK() *FindConfigTombstoneWarnThresholdOK
 	return &FindConfigTombstoneWarnThresholdOK{}
 }
 
-/*FindConfigTombstoneWarnThresholdOK handles this case with default header values.
+/*
+FindConfigTombstoneWarnThresholdOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigTombstoneWarnThresholdDefault(code int) *FindConfigTombstoneWa
 	}
 }
 
-/*FindConfigTombstoneWarnThresholdDefault handles this case with default header values.
+/*
+FindConfigTombstoneWarnThresholdDefault handles this case with default header values.
 
 unexpected error
 */

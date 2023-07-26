@@ -55,7 +55,8 @@ func NewMessagingServiceVersionGetParamsWithHTTPClient(client *http.Client) *Mes
 	}
 }
 
-/*MessagingServiceVersionGetParams contains all the parameters to send to the API endpoint
+/*
+MessagingServiceVersionGetParams contains all the parameters to send to the API endpoint
 for the messaging service version get operation typically these are written to a http.Request
 */
 type MessagingServiceVersionGetParams struct {

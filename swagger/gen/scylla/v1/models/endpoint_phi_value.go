@@ -12,7 +12,7 @@ import (
 
 // EndpointPhiValue endpoint_phi_value
 //
-// Holds phi value for a single end point
+// # Holds phi value for a single end point
 //
 // swagger:model endpoint_phi_value
 type EndpointPhiValue struct {

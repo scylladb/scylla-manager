@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK() *ColumnFamilyMetr
 	return &ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK column family metrics all memtables on heap size by name get o k
+Success
 */
 type ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetDefault(code int) *Col
 	}
 }
 
-/*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetDefault handles this case with default header values.
 
 internal server error
 */

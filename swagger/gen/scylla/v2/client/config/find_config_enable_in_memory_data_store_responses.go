@@ -47,7 +47,8 @@ func NewFindConfigEnableInMemoryDataStoreOK() *FindConfigEnableInMemoryDataStore
 	return &FindConfigEnableInMemoryDataStoreOK{}
 }
 
-/*FindConfigEnableInMemoryDataStoreOK handles this case with default header values.
+/*
+FindConfigEnableInMemoryDataStoreOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigEnableInMemoryDataStoreDefault(code int) *FindConfigEnableInMe
 	}
 }
 
-/*FindConfigEnableInMemoryDataStoreDefault handles this case with default header values.
+/*
+FindConfigEnableInMemoryDataStoreDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,7 +47,8 @@ func NewFindConfigCompactionStaticSharesOK() *FindConfigCompactionStaticSharesOK
 	return &FindConfigCompactionStaticSharesOK{}
 }
 
-/*FindConfigCompactionStaticSharesOK handles this case with default header values.
+/*
+FindConfigCompactionStaticSharesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCompactionStaticSharesDefault(code int) *FindConfigCompactionS
 	}
 }
 
-/*FindConfigCompactionStaticSharesDefault handles this case with default header values.
+/*
+FindConfigCompactionStaticSharesDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStorageServiceRPCServerPostOK() *StorageServiceRPCServerPostOK {
 	return &StorageServiceRPCServerPostOK{}
 }
 
-/*StorageServiceRPCServerPostOK handles this case with default header values.
+/*
+StorageServiceRPCServerPostOK handles this case with default header values.
 
-StorageServiceRPCServerPostOK storage service Rpc server post o k
+Success
 */
 type StorageServiceRPCServerPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceRPCServerPostDefault(code int) *StorageServiceRPCServerPos
 	}
 }
 
-/*StorageServiceRPCServerPostDefault handles this case with default header values.
+/*
+StorageServiceRPCServerPostDefault handles this case with default header values.
 
 internal server error
 */

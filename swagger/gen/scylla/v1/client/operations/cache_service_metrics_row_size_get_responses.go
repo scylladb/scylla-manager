@@ -47,9 +47,10 @@ func NewCacheServiceMetricsRowSizeGetOK() *CacheServiceMetricsRowSizeGetOK {
 	return &CacheServiceMetricsRowSizeGetOK{}
 }
 
-/*CacheServiceMetricsRowSizeGetOK handles this case with default header values.
+/*
+CacheServiceMetricsRowSizeGetOK handles this case with default header values.
 
-CacheServiceMetricsRowSizeGetOK cache service metrics row size get o k
+Success
 */
 type CacheServiceMetricsRowSizeGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCacheServiceMetricsRowSizeGetDefault(code int) *CacheServiceMetricsRowSi
 	}
 }
 
-/*CacheServiceMetricsRowSizeGetDefault handles this case with default header values.
+/*
+CacheServiceMetricsRowSizeGetDefault handles this case with default header values.
 
 internal server error
 */

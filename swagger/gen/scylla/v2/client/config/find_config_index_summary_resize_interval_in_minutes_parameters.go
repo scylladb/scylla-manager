@@ -55,7 +55,8 @@ func NewFindConfigIndexSummaryResizeIntervalInMinutesParamsWithHTTPClient(client
 	}
 }
 
-/*FindConfigIndexSummaryResizeIntervalInMinutesParams contains all the parameters to send to the API endpoint
+/*
+FindConfigIndexSummaryResizeIntervalInMinutesParams contains all the parameters to send to the API endpoint
 for the find config index summary resize interval in minutes operation typically these are written to a http.Request
 */
 type FindConfigIndexSummaryResizeIntervalInMinutesParams struct {

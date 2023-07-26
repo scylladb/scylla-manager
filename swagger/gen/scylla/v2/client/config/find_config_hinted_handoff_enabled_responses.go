@@ -47,7 +47,8 @@ func NewFindConfigHintedHandoffEnabledOK() *FindConfigHintedHandoffEnabledOK {
 	return &FindConfigHintedHandoffEnabledOK{}
 }
 
-/*FindConfigHintedHandoffEnabledOK handles this case with default header values.
+/*
+FindConfigHintedHandoffEnabledOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigHintedHandoffEnabledDefault(code int) *FindConfigHintedHandoff
 	}
 }
 
-/*FindConfigHintedHandoffEnabledDefault handles this case with default header values.
+/*
+FindConfigHintedHandoffEnabledDefault handles this case with default header values.
 
 unexpected error
 */

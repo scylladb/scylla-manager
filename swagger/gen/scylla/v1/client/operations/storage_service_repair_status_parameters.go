@@ -56,7 +56,8 @@ func NewStorageServiceRepairStatusParamsWithHTTPClient(client *http.Client) *Sto
 	}
 }
 
-/*StorageServiceRepairStatusParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceRepairStatusParams contains all the parameters to send to the API endpoint
 for the storage service repair status operation typically these are written to a http.Request
 */
 type StorageServiceRepairStatusParams struct {

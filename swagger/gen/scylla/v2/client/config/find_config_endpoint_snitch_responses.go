@@ -47,7 +47,8 @@ func NewFindConfigEndpointSnitchOK() *FindConfigEndpointSnitchOK {
 	return &FindConfigEndpointSnitchOK{}
 }
 
-/*FindConfigEndpointSnitchOK handles this case with default header values.
+/*
+FindConfigEndpointSnitchOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigEndpointSnitchDefault(code int) *FindConfigEndpointSnitchDefau
 	}
 }
 
-/*FindConfigEndpointSnitchDefault handles this case with default header values.
+/*
+FindConfigEndpointSnitchDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,7 +47,8 @@ func NewFindConfigConcurrentCompactorsOK() *FindConfigConcurrentCompactorsOK {
 	return &FindConfigConcurrentCompactorsOK{}
 }
 
-/*FindConfigConcurrentCompactorsOK handles this case with default header values.
+/*
+FindConfigConcurrentCompactorsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigConcurrentCompactorsDefault(code int) *FindConfigConcurrentCom
 	}
 }
 
-/*FindConfigConcurrentCompactorsDefault handles this case with default header values.
+/*
+FindConfigConcurrentCompactorsDefault handles this case with default header values.
 
 unexpected error
 */

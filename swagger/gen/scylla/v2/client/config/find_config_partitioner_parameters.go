@@ -55,7 +55,8 @@ func NewFindConfigPartitionerParamsWithHTTPClient(client *http.Client) *FindConf
 	}
 }
 
-/*FindConfigPartitionerParams contains all the parameters to send to the API endpoint
+/*
+FindConfigPartitionerParams contains all the parameters to send to the API endpoint
 for the find config partitioner operation typically these are written to a http.Request
 */
 type FindConfigPartitionerParams struct {

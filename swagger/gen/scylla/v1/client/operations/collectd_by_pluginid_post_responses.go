@@ -47,9 +47,10 @@ func NewCollectdByPluginidPostOK() *CollectdByPluginidPostOK {
 	return &CollectdByPluginidPostOK{}
 }
 
-/*CollectdByPluginidPostOK handles this case with default header values.
+/*
+CollectdByPluginidPostOK handles this case with default header values.
 
-CollectdByPluginidPostOK collectd by pluginid post o k
+Success
 */
 type CollectdByPluginidPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewCollectdByPluginidPostDefault(code int) *CollectdByPluginidPostDefault {
 	}
 }
 
-/*CollectdByPluginidPostDefault handles this case with default header values.
+/*
+CollectdByPluginidPostDefault handles this case with default header values.
 
 internal server error
 */

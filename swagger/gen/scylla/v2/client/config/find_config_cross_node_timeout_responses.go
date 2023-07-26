@@ -47,7 +47,8 @@ func NewFindConfigCrossNodeTimeoutOK() *FindConfigCrossNodeTimeoutOK {
 	return &FindConfigCrossNodeTimeoutOK{}
 }
 
-/*FindConfigCrossNodeTimeoutOK handles this case with default header values.
+/*
+FindConfigCrossNodeTimeoutOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCrossNodeTimeoutDefault(code int) *FindConfigCrossNodeTimeoutD
 	}
 }
 
-/*FindConfigCrossNodeTimeoutDefault handles this case with default header values.
+/*
+FindConfigCrossNodeTimeoutDefault handles this case with default header values.
 
 unexpected error
 */

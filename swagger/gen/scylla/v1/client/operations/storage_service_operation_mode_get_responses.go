@@ -47,9 +47,10 @@ func NewStorageServiceOperationModeGetOK() *StorageServiceOperationModeGetOK {
 	return &StorageServiceOperationModeGetOK{}
 }
 
-/*StorageServiceOperationModeGetOK handles this case with default header values.
+/*
+StorageServiceOperationModeGetOK handles this case with default header values.
 
-StorageServiceOperationModeGetOK storage service operation mode get o k
+Success
 */
 type StorageServiceOperationModeGetOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewStorageServiceOperationModeGetDefault(code int) *StorageServiceOperation
 	}
 }
 
-/*StorageServiceOperationModeGetDefault handles this case with default header values.
+/*
+StorageServiceOperationModeGetDefault handles this case with default header values.
 
 internal server error
 */

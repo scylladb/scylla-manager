@@ -47,7 +47,8 @@ func NewFindConfigInitialTokenOK() *FindConfigInitialTokenOK {
 	return &FindConfigInitialTokenOK{}
 }
 
-/*FindConfigInitialTokenOK handles this case with default header values.
+/*
+FindConfigInitialTokenOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigInitialTokenDefault(code int) *FindConfigInitialTokenDefault {
 	}
 }
 
-/*FindConfigInitialTokenDefault handles this case with default header values.
+/*
+FindConfigInitialTokenDefault handles this case with default header values.
 
 unexpected error
 */

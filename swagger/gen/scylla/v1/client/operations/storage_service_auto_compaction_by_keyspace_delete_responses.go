@@ -47,9 +47,10 @@ func NewStorageServiceAutoCompactionByKeyspaceDeleteOK() *StorageServiceAutoComp
 	return &StorageServiceAutoCompactionByKeyspaceDeleteOK{}
 }
 
-/*StorageServiceAutoCompactionByKeyspaceDeleteOK handles this case with default header values.
+/*
+StorageServiceAutoCompactionByKeyspaceDeleteOK handles this case with default header values.
 
-StorageServiceAutoCompactionByKeyspaceDeleteOK storage service auto compaction by keyspace delete o k
+Success
 */
 type StorageServiceAutoCompactionByKeyspaceDeleteOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceAutoCompactionByKeyspaceDeleteDefault(code int) *StorageSe
 	}
 }
 
-/*StorageServiceAutoCompactionByKeyspaceDeleteDefault handles this case with default header values.
+/*
+StorageServiceAutoCompactionByKeyspaceDeleteDefault handles this case with default header values.
 
 internal server error
 */

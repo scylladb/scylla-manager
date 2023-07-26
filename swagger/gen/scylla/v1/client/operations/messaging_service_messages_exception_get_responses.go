@@ -47,9 +47,10 @@ func NewMessagingServiceMessagesExceptionGetOK() *MessagingServiceMessagesExcept
 	return &MessagingServiceMessagesExceptionGetOK{}
 }
 
-/*MessagingServiceMessagesExceptionGetOK handles this case with default header values.
+/*
+MessagingServiceMessagesExceptionGetOK handles this case with default header values.
 
-MessagingServiceMessagesExceptionGetOK messaging service messages exception get o k
+Success
 */
 type MessagingServiceMessagesExceptionGetOK struct {
 	Payload []*models.MessageCounter
@@ -76,7 +77,8 @@ func NewMessagingServiceMessagesExceptionGetDefault(code int) *MessagingServiceM
 	}
 }
 
-/*MessagingServiceMessagesExceptionGetDefault handles this case with default header values.
+/*
+MessagingServiceMessagesExceptionGetDefault handles this case with default header values.
 
 internal server error
 */

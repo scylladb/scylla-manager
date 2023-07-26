@@ -55,7 +55,8 @@ func NewFindConfigClusterNameParamsWithHTTPClient(client *http.Client) *FindConf
 	}
 }
 
-/*FindConfigClusterNameParams contains all the parameters to send to the API endpoint
+/*
+FindConfigClusterNameParams contains all the parameters to send to the API endpoint
 for the find config cluster name operation typically these are written to a http.Request
 */
 type FindConfigClusterNameParams struct {

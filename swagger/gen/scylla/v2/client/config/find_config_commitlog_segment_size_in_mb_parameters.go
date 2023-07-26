@@ -55,7 +55,8 @@ func NewFindConfigCommitlogSegmentSizeInMbParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*FindConfigCommitlogSegmentSizeInMbParams contains all the parameters to send to the API endpoint
+/*
+FindConfigCommitlogSegmentSizeInMbParams contains all the parameters to send to the API endpoint
 for the find config commitlog segment size in mb operation typically these are written to a http.Request
 */
 type FindConfigCommitlogSegmentSizeInMbParams struct {

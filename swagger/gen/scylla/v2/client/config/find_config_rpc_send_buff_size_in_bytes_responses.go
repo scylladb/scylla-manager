@@ -47,7 +47,8 @@ func NewFindConfigRPCSendBuffSizeInBytesOK() *FindConfigRPCSendBuffSizeInBytesOK
 	return &FindConfigRPCSendBuffSizeInBytesOK{}
 }
 
-/*FindConfigRPCSendBuffSizeInBytesOK handles this case with default header values.
+/*
+FindConfigRPCSendBuffSizeInBytesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCSendBuffSizeInBytesDefault(code int) *FindConfigRPCSendBuff
 	}
 }
 
-/*FindConfigRPCSendBuffSizeInBytesDefault handles this case with default header values.
+/*
+FindConfigRPCSendBuffSizeInBytesDefault handles this case with default header values.
 
 unexpected error
 */

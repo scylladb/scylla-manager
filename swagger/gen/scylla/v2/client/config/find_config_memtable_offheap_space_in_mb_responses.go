@@ -47,7 +47,8 @@ func NewFindConfigMemtableOffheapSpaceInMbOK() *FindConfigMemtableOffheapSpaceIn
 	return &FindConfigMemtableOffheapSpaceInMbOK{}
 }
 
-/*FindConfigMemtableOffheapSpaceInMbOK handles this case with default header values.
+/*
+FindConfigMemtableOffheapSpaceInMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigMemtableOffheapSpaceInMbDefault(code int) *FindConfigMemtableO
 	}
 }
 
-/*FindConfigMemtableOffheapSpaceInMbDefault handles this case with default header values.
+/*
+FindConfigMemtableOffheapSpaceInMbDefault handles this case with default header values.
 
 unexpected error
 */

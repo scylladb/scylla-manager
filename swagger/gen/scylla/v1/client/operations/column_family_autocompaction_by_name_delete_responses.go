@@ -47,9 +47,10 @@ func NewColumnFamilyAutocompactionByNameDeleteOK() *ColumnFamilyAutocompactionBy
 	return &ColumnFamilyAutocompactionByNameDeleteOK{}
 }
 
-/*ColumnFamilyAutocompactionByNameDeleteOK handles this case with default header values.
+/*
+ColumnFamilyAutocompactionByNameDeleteOK handles this case with default header values.
 
-ColumnFamilyAutocompactionByNameDeleteOK column family autocompaction by name delete o k
+Success
 */
 type ColumnFamilyAutocompactionByNameDeleteOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyAutocompactionByNameDeleteDefault(code int) *ColumnFamilyAut
 	}
 }
 
-/*ColumnFamilyAutocompactionByNameDeleteDefault handles this case with default header values.
+/*
+ColumnFamilyAutocompactionByNameDeleteDefault handles this case with default header values.
 
 internal server error
 */

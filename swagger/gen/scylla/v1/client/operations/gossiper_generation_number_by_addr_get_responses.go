@@ -47,9 +47,10 @@ func NewGossiperGenerationNumberByAddrGetOK() *GossiperGenerationNumberByAddrGet
 	return &GossiperGenerationNumberByAddrGetOK{}
 }
 
-/*GossiperGenerationNumberByAddrGetOK handles this case with default header values.
+/*
+GossiperGenerationNumberByAddrGetOK handles this case with default header values.
 
-GossiperGenerationNumberByAddrGetOK gossiper generation number by addr get o k
+Success
 */
 type GossiperGenerationNumberByAddrGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewGossiperGenerationNumberByAddrGetDefault(code int) *GossiperGenerationNu
 	}
 }
 
-/*GossiperGenerationNumberByAddrGetDefault handles this case with default header values.
+/*
+GossiperGenerationNumberByAddrGetDefault handles this case with default header values.
 
 internal server error
 */

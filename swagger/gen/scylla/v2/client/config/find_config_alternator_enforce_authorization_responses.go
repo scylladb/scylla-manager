@@ -47,7 +47,8 @@ func NewFindConfigAlternatorEnforceAuthorizationOK() *FindConfigAlternatorEnforc
 	return &FindConfigAlternatorEnforceAuthorizationOK{}
 }
 
-/*FindConfigAlternatorEnforceAuthorizationOK handles this case with default header values.
+/*
+FindConfigAlternatorEnforceAuthorizationOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAlternatorEnforceAuthorizationDefault(code int) *FindConfigAlt
 	}
 }
 
-/*FindConfigAlternatorEnforceAuthorizationDefault handles this case with default header values.
+/*
+FindConfigAlternatorEnforceAuthorizationDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsCasCommitByNameGetOK() *ColumnFamilyMetricsCasCommitB
 	return &ColumnFamilyMetricsCasCommitByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsCasCommitByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsCasCommitByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsCasCommitByNameGetOK column family metrics cas commit by name get o k
+Success
 */
 type ColumnFamilyMetricsCasCommitByNameGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsCasCommitByNameGetDefault(code int) *ColumnFamilyMetr
 	}
 }
 
-/*ColumnFamilyMetricsCasCommitByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsCasCommitByNameGetDefault handles this case with default header values.
 
 internal server error
 */

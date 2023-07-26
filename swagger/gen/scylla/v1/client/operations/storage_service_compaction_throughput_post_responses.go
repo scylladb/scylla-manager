@@ -47,9 +47,10 @@ func NewStorageServiceCompactionThroughputPostOK() *StorageServiceCompactionThro
 	return &StorageServiceCompactionThroughputPostOK{}
 }
 
-/*StorageServiceCompactionThroughputPostOK handles this case with default header values.
+/*
+StorageServiceCompactionThroughputPostOK handles this case with default header values.
 
-StorageServiceCompactionThroughputPostOK storage service compaction throughput post o k
+Success
 */
 type StorageServiceCompactionThroughputPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceCompactionThroughputPostDefault(code int) *StorageServiceC
 	}
 }
 
-/*StorageServiceCompactionThroughputPostDefault handles this case with default header values.
+/*
+StorageServiceCompactionThroughputPostDefault handles this case with default header values.
 
 internal server error
 */

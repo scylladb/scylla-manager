@@ -13,7 +13,7 @@ import (
 
 // CollectdMetricStatus collectd_metric_status
 //
-// Holds a collectd id and an enable flag
+// # Holds a collectd id and an enable flag
 //
 // swagger:model collectd_metric_status
 type CollectdMetricStatus struct {

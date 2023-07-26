@@ -47,9 +47,10 @@ func NewMessagingServiceMessagesRespondCompletedGetOK() *MessagingServiceMessage
 	return &MessagingServiceMessagesRespondCompletedGetOK{}
 }
 
-/*MessagingServiceMessagesRespondCompletedGetOK handles this case with default header values.
+/*
+MessagingServiceMessagesRespondCompletedGetOK handles this case with default header values.
 
-MessagingServiceMessagesRespondCompletedGetOK messaging service messages respond completed get o k
+Success
 */
 type MessagingServiceMessagesRespondCompletedGetOK struct {
 	Payload []*models.MessageCounter
@@ -76,7 +77,8 @@ func NewMessagingServiceMessagesRespondCompletedGetDefault(code int) *MessagingS
 	}
 }
 
-/*MessagingServiceMessagesRespondCompletedGetDefault handles this case with default header values.
+/*
+MessagingServiceMessagesRespondCompletedGetDefault handles this case with default header values.
 
 internal server error
 */

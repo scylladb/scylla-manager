@@ -47,9 +47,10 @@ func NewGossiperEndpointLiveGetOK() *GossiperEndpointLiveGetOK {
 	return &GossiperEndpointLiveGetOK{}
 }
 
-/*GossiperEndpointLiveGetOK handles this case with default header values.
+/*
+GossiperEndpointLiveGetOK handles this case with default header values.
 
-GossiperEndpointLiveGetOK gossiper endpoint live get o k
+Success
 */
 type GossiperEndpointLiveGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewGossiperEndpointLiveGetDefault(code int) *GossiperEndpointLiveGetDefault
 	}
 }
 
-/*GossiperEndpointLiveGetDefault handles this case with default header values.
+/*
+GossiperEndpointLiveGetDefault handles this case with default header values.
 
 internal server error
 */

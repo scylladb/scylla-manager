@@ -47,9 +47,10 @@ func NewCacheServiceKeyCacheSavePeriodGetOK() *CacheServiceKeyCacheSavePeriodGet
 	return &CacheServiceKeyCacheSavePeriodGetOK{}
 }
 
-/*CacheServiceKeyCacheSavePeriodGetOK handles this case with default header values.
+/*
+CacheServiceKeyCacheSavePeriodGetOK handles this case with default header values.
 
-CacheServiceKeyCacheSavePeriodGetOK cache service key cache save period get o k
+Success
 */
 type CacheServiceKeyCacheSavePeriodGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewCacheServiceKeyCacheSavePeriodGetDefault(code int) *CacheServiceKeyCache
 	}
 }
 
-/*CacheServiceKeyCacheSavePeriodGetDefault handles this case with default header values.
+/*
+CacheServiceKeyCacheSavePeriodGetDefault handles this case with default header values.
 
 internal server error
 */

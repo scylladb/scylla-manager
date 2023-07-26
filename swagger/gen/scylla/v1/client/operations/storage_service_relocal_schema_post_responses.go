@@ -47,9 +47,10 @@ func NewStorageServiceRelocalSchemaPostOK() *StorageServiceRelocalSchemaPostOK {
 	return &StorageServiceRelocalSchemaPostOK{}
 }
 
-/*StorageServiceRelocalSchemaPostOK handles this case with default header values.
+/*
+StorageServiceRelocalSchemaPostOK handles this case with default header values.
 
-StorageServiceRelocalSchemaPostOK storage service relocal schema post o k
+Success
 */
 type StorageServiceRelocalSchemaPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceRelocalSchemaPostDefault(code int) *StorageServiceRelocalS
 	}
 }
 
-/*StorageServiceRelocalSchemaPostDefault handles this case with default header values.
+/*
+StorageServiceRelocalSchemaPostDefault handles this case with default header values.
 
 internal server error
 */

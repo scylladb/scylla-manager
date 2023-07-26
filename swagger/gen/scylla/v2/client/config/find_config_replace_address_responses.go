@@ -47,7 +47,8 @@ func NewFindConfigReplaceAddressOK() *FindConfigReplaceAddressOK {
 	return &FindConfigReplaceAddressOK{}
 }
 
-/*FindConfigReplaceAddressOK handles this case with default header values.
+/*
+FindConfigReplaceAddressOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigReplaceAddressDefault(code int) *FindConfigReplaceAddressDefau
 	}
 }
 
-/*FindConfigReplaceAddressDefault handles this case with default header values.
+/*
+FindConfigReplaceAddressDefault handles this case with default header values.
 
 unexpected error
 */

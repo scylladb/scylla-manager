@@ -47,7 +47,8 @@ func NewFindConfigPreheatKernelPageCacheOK() *FindConfigPreheatKernelPageCacheOK
 	return &FindConfigPreheatKernelPageCacheOK{}
 }
 
-/*FindConfigPreheatKernelPageCacheOK handles this case with default header values.
+/*
+FindConfigPreheatKernelPageCacheOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPreheatKernelPageCacheDefault(code int) *FindConfigPreheatKern
 	}
 }
 
-/*FindConfigPreheatKernelPageCacheDefault handles this case with default header values.
+/*
+FindConfigPreheatKernelPageCacheDefault handles this case with default header values.
 
 unexpected error
 */

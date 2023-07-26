@@ -15,7 +15,7 @@ import (
 
 // EndpointState endpoint_state
 //
-// Holds an endpoint state
+// # Holds an endpoint state
 //
 // swagger:model endpoint_state
 type EndpointState struct {

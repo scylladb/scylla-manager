@@ -47,9 +47,10 @@ func NewCacheServiceRowCacheKeysToSaveGetOK() *CacheServiceRowCacheKeysToSaveGet
 	return &CacheServiceRowCacheKeysToSaveGetOK{}
 }
 
-/*CacheServiceRowCacheKeysToSaveGetOK handles this case with default header values.
+/*
+CacheServiceRowCacheKeysToSaveGetOK handles this case with default header values.
 
-CacheServiceRowCacheKeysToSaveGetOK cache service row cache keys to save get o k
+Success
 */
 type CacheServiceRowCacheKeysToSaveGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewCacheServiceRowCacheKeysToSaveGetDefault(code int) *CacheServiceRowCache
 	}
 }
 
-/*CacheServiceRowCacheKeysToSaveGetDefault handles this case with default header values.
+/*
+CacheServiceRowCacheKeysToSaveGetDefault handles this case with default header values.
 
 internal server error
 */

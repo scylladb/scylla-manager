@@ -47,7 +47,8 @@ func NewFindConfigJoinRingOK() *FindConfigJoinRingOK {
 	return &FindConfigJoinRingOK{}
 }
 
-/*FindConfigJoinRingOK handles this case with default header values.
+/*
+FindConfigJoinRingOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigJoinRingDefault(code int) *FindConfigJoinRingDefault {
 	}
 }
 
-/*FindConfigJoinRingDefault handles this case with default header values.
+/*
+FindConfigJoinRingDefault handles this case with default header values.
 
 unexpected error
 */

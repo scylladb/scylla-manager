@@ -47,9 +47,10 @@ func NewStorageServiceSnapshotsGetOK() *StorageServiceSnapshotsGetOK {
 	return &StorageServiceSnapshotsGetOK{}
 }
 
-/*StorageServiceSnapshotsGetOK handles this case with default header values.
+/*
+StorageServiceSnapshotsGetOK handles this case with default header values.
 
-StorageServiceSnapshotsGetOK storage service snapshots get o k
+Success
 */
 type StorageServiceSnapshotsGetOK struct {
 	Payload []*models.Snapshots
@@ -76,7 +77,8 @@ func NewStorageServiceSnapshotsGetDefault(code int) *StorageServiceSnapshotsGetD
 	}
 }
 
-/*StorageServiceSnapshotsGetDefault handles this case with default header values.
+/*
+StorageServiceSnapshotsGetDefault handles this case with default header values.
 
 internal server error
 */

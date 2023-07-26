@@ -55,7 +55,8 @@ func NewFindConfigExperimentalParamsWithHTTPClient(client *http.Client) *FindCon
 	}
 }
 
-/*FindConfigExperimentalParams contains all the parameters to send to the API endpoint
+/*
+FindConfigExperimentalParams contains all the parameters to send to the API endpoint
 for the find config experimental operation typically these are written to a http.Request
 */
 type FindConfigExperimentalParams struct {

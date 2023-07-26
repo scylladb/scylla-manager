@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsLiveScannedHistogramByNameGetOK() *ColumnFamilyMetric
 	return &ColumnFamilyMetricsLiveScannedHistogramByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsLiveScannedHistogramByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsLiveScannedHistogramByNameGetOK column family metrics live scanned histogram by name get o k
+Success
 */
 type ColumnFamilyMetricsLiveScannedHistogramByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsLiveScannedHistogramByNameGetDefault(code int) *Colum
 	}
 }
 
-/*ColumnFamilyMetricsLiveScannedHistogramByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsLiveScannedHistogramByNameGetDefault handles this case with default header values.
 
 internal server error
 */

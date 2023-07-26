@@ -47,9 +47,10 @@ func NewStorageProxyReadRepairAttemptedGetOK() *StorageProxyReadRepairAttemptedG
 	return &StorageProxyReadRepairAttemptedGetOK{}
 }
 
-/*StorageProxyReadRepairAttemptedGetOK handles this case with default header values.
+/*
+StorageProxyReadRepairAttemptedGetOK handles this case with default header values.
 
-StorageProxyReadRepairAttemptedGetOK storage proxy read repair attempted get o k
+Success
 */
 type StorageProxyReadRepairAttemptedGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewStorageProxyReadRepairAttemptedGetDefault(code int) *StorageProxyReadRep
 	}
 }
 
-/*StorageProxyReadRepairAttemptedGetDefault handles this case with default header values.
+/*
+StorageProxyReadRepairAttemptedGetDefault handles this case with default header values.
 
 internal server error
 */

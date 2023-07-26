@@ -12,7 +12,7 @@ import (
 
 // MaplistMapper maplist_mapper
 //
-// A key value mapping, where key and value are list
+// # A key value mapping, where key and value are list
 //
 // swagger:model maplist_mapper
 type MaplistMapper struct {

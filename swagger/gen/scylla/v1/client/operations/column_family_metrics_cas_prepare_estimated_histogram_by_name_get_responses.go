@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK() *ColumnFami
 	return &ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK column family metrics cas prepare estimated histogram by name get o k
+Success
 */
 type ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetDefault(code int
 	}
 }
 
-/*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetDefault handles this case with default header values.
 
 internal server error
 */

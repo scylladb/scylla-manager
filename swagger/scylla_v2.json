@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "1.0.0",
+    "version": "2.0.1",
     "title": "Scylla API",
     "description": "The scylla API version 2.0",
     "termsOfService": "http://www.scylladb.com/tos/",
@@ -4766,7 +4766,7 @@
     },
     "/config/default_log_level": {
       "get": {
-        "description": "",
+        "description": "Default Log level",
         "operationId": "find_config_default_log_level",
         "produces": [
           "application/json"
@@ -4793,7 +4793,7 @@
     },
     "/config/logger_log_level": {
       "get": {
-        "description": "",
+        "description": "Logger log levels",
         "operationId": "find_config_logger_log_level",
         "produces": [
           "application/json"
@@ -4823,7 +4823,7 @@
     },
     "/config/log_to_stdout": {
       "get": {
-        "description": "",
+        "description": "Log to stdout",
         "operationId": "find_config_log_to_stdout",
         "produces": [
           "application/json"
@@ -4850,7 +4850,7 @@
     },
     "/config/log_to_syslog": {
       "get": {
-        "description": "",
+        "description": "Log to syslog",
         "operationId": "find_config_log_to_syslog",
         "produces": [
           "application/json"
@@ -4945,6 +4945,33 @@
             "description": "Config value",
             "schema": {
               "type": "string"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
+    "/config/uuid_sstable_identifiers_enabled": {
+      "get": {
+        "description": "Return true if node is using uuid sstable format: me-3g7k_098r_4wtqo2asamoc1i8h9n-big-CompressionInfo.db",
+        "operationId": "find_config_uuid_sstable_identifiers_enabled",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "config"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Config value",
+            "schema": {
+              "type": "boolean"
             }
           },
           "default": {

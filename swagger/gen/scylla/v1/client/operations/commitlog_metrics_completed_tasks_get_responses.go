@@ -47,9 +47,10 @@ func NewCommitlogMetricsCompletedTasksGetOK() *CommitlogMetricsCompletedTasksGet
 	return &CommitlogMetricsCompletedTasksGetOK{}
 }
 
-/*CommitlogMetricsCompletedTasksGetOK handles this case with default header values.
+/*
+CommitlogMetricsCompletedTasksGetOK handles this case with default header values.
 
-CommitlogMetricsCompletedTasksGetOK commitlog metrics completed tasks get o k
+Success
 */
 type CommitlogMetricsCompletedTasksGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCommitlogMetricsCompletedTasksGetDefault(code int) *CommitlogMetricsComp
 	}
 }
 
-/*CommitlogMetricsCompletedTasksGetDefault handles this case with default header values.
+/*
+CommitlogMetricsCompletedTasksGetDefault handles this case with default header values.
 
 internal server error
 */

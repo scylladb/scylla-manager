@@ -47,9 +47,10 @@ func NewStorageProxyHintsInProgressGetOK() *StorageProxyHintsInProgressGetOK {
 	return &StorageProxyHintsInProgressGetOK{}
 }
 
-/*StorageProxyHintsInProgressGetOK handles this case with default header values.
+/*
+StorageProxyHintsInProgressGetOK handles this case with default header values.
 
-StorageProxyHintsInProgressGetOK storage proxy hints in progress get o k
+Success
 */
 type StorageProxyHintsInProgressGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageProxyHintsInProgressGetDefault(code int) *StorageProxyHintsInProg
 	}
 }
 
-/*StorageProxyHintsInProgressGetDefault handles this case with default header values.
+/*
+StorageProxyHintsInProgressGetDefault handles this case with default header values.
 
 internal server error
 */

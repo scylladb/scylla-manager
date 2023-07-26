@@ -55,7 +55,8 @@ func NewCompactionManagerCompactionsGetParamsWithHTTPClient(client *http.Client)
 	}
 }
 
-/*CompactionManagerCompactionsGetParams contains all the parameters to send to the API endpoint
+/*
+CompactionManagerCompactionsGetParams contains all the parameters to send to the API endpoint
 for the compaction manager compactions get operation typically these are written to a http.Request
 */
 type CompactionManagerCompactionsGetParams struct {

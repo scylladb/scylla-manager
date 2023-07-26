@@ -55,7 +55,8 @@ func NewFindConfigAlternatorAddressParamsWithHTTPClient(client *http.Client) *Fi
 	}
 }
 
-/*FindConfigAlternatorAddressParams contains all the parameters to send to the API endpoint
+/*
+FindConfigAlternatorAddressParams contains all the parameters to send to the API endpoint
 for the find config alternator address operation typically these are written to a http.Request
 */
 type FindConfigAlternatorAddressParams struct {

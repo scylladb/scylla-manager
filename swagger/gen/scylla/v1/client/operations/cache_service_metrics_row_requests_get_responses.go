@@ -47,9 +47,10 @@ func NewCacheServiceMetricsRowRequestsGetOK() *CacheServiceMetricsRowRequestsGet
 	return &CacheServiceMetricsRowRequestsGetOK{}
 }
 
-/*CacheServiceMetricsRowRequestsGetOK handles this case with default header values.
+/*
+CacheServiceMetricsRowRequestsGetOK handles this case with default header values.
 
-CacheServiceMetricsRowRequestsGetOK cache service metrics row requests get o k
+Success
 */
 type CacheServiceMetricsRowRequestsGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCacheServiceMetricsRowRequestsGetDefault(code int) *CacheServiceMetricsR
 	}
 }
 
-/*CacheServiceMetricsRowRequestsGetDefault handles this case with default header values.
+/*
+CacheServiceMetricsRowRequestsGetDefault handles this case with default header values.
 
 internal server error
 */

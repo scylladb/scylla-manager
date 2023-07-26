@@ -47,7 +47,8 @@ func NewFindConfigSnapshotBeforeCompactionOK() *FindConfigSnapshotBeforeCompacti
 	return &FindConfigSnapshotBeforeCompactionOK{}
 }
 
-/*FindConfigSnapshotBeforeCompactionOK handles this case with default header values.
+/*
+FindConfigSnapshotBeforeCompactionOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigSnapshotBeforeCompactionDefault(code int) *FindConfigSnapshotB
 	}
 }
 
-/*FindConfigSnapshotBeforeCompactionDefault handles this case with default header values.
+/*
+FindConfigSnapshotBeforeCompactionDefault handles this case with default header values.
 
 unexpected error
 */

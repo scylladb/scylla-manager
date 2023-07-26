@@ -55,7 +55,8 @@ func NewCommitlogMetricsCompletedTasksGetParamsWithHTTPClient(client *http.Clien
 	}
 }
 
-/*CommitlogMetricsCompletedTasksGetParams contains all the parameters to send to the API endpoint
+/*
+CommitlogMetricsCompletedTasksGetParams contains all the parameters to send to the API endpoint
 for the commitlog metrics completed tasks get operation typically these are written to a http.Request
 */
 type CommitlogMetricsCompletedTasksGetParams struct {

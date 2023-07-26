@@ -47,7 +47,8 @@ func NewFindConfigMemtableFlushQueueSizeOK() *FindConfigMemtableFlushQueueSizeOK
 	return &FindConfigMemtableFlushQueueSizeOK{}
 }
 
-/*FindConfigMemtableFlushQueueSizeOK handles this case with default header values.
+/*
+FindConfigMemtableFlushQueueSizeOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigMemtableFlushQueueSizeDefault(code int) *FindConfigMemtableFlu
 	}
 }
 
-/*FindConfigMemtableFlushQueueSizeDefault handles this case with default header values.
+/*
+FindConfigMemtableFlushQueueSizeDefault handles this case with default header values.
 
 unexpected error
 */

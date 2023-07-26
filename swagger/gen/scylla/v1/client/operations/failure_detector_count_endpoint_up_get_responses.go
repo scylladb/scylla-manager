@@ -47,9 +47,10 @@ func NewFailureDetectorCountEndpointUpGetOK() *FailureDetectorCountEndpointUpGet
 	return &FailureDetectorCountEndpointUpGetOK{}
 }
 
-/*FailureDetectorCountEndpointUpGetOK handles this case with default header values.
+/*
+FailureDetectorCountEndpointUpGetOK handles this case with default header values.
 
-FailureDetectorCountEndpointUpGetOK failure detector count endpoint up get o k
+Success
 */
 type FailureDetectorCountEndpointUpGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewFailureDetectorCountEndpointUpGetDefault(code int) *FailureDetectorCount
 	}
 }
 
-/*FailureDetectorCountEndpointUpGetDefault handles this case with default header values.
+/*
+FailureDetectorCountEndpointUpGetDefault handles this case with default header values.
 
 internal server error
 */

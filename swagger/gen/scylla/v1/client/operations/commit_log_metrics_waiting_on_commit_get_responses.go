@@ -47,9 +47,10 @@ func NewCommitLogMetricsWaitingOnCommitGetOK() *CommitLogMetricsWaitingOnCommitG
 	return &CommitLogMetricsWaitingOnCommitGetOK{}
 }
 
-/*CommitLogMetricsWaitingOnCommitGetOK handles this case with default header values.
+/*
+CommitLogMetricsWaitingOnCommitGetOK handles this case with default header values.
 
-CommitLogMetricsWaitingOnCommitGetOK commit log metrics waiting on commit get o k
+Success
 */
 type CommitLogMetricsWaitingOnCommitGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewCommitLogMetricsWaitingOnCommitGetDefault(code int) *CommitLogMetricsWai
 	}
 }
 
-/*CommitLogMetricsWaitingOnCommitGetDefault handles this case with default header values.
+/*
+CommitLogMetricsWaitingOnCommitGetDefault handles this case with default header values.
 
 internal server error
 */

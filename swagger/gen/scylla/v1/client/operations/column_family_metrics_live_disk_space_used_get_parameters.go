@@ -55,7 +55,8 @@ func NewColumnFamilyMetricsLiveDiskSpaceUsedGetParamsWithHTTPClient(client *http
 	}
 }
 
-/*ColumnFamilyMetricsLiveDiskSpaceUsedGetParams contains all the parameters to send to the API endpoint
+/*
+ColumnFamilyMetricsLiveDiskSpaceUsedGetParams contains all the parameters to send to the API endpoint
 for the column family metrics live disk space used get operation typically these are written to a http.Request
 */
 type ColumnFamilyMetricsLiveDiskSpaceUsedGetParams struct {

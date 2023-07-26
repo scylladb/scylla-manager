@@ -47,9 +47,10 @@ func NewStorageProxyMetricsCasWriteUnfinishedCommitGetOK() *StorageProxyMetricsC
 	return &StorageProxyMetricsCasWriteUnfinishedCommitGetOK{}
 }
 
-/*StorageProxyMetricsCasWriteUnfinishedCommitGetOK handles this case with default header values.
+/*
+StorageProxyMetricsCasWriteUnfinishedCommitGetOK handles this case with default header values.
 
-StorageProxyMetricsCasWriteUnfinishedCommitGetOK storage proxy metrics cas write unfinished commit get o k
+Success
 */
 type StorageProxyMetricsCasWriteUnfinishedCommitGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageProxyMetricsCasWriteUnfinishedCommitGetDefault(code int) *Storage
 	}
 }
 
-/*StorageProxyMetricsCasWriteUnfinishedCommitGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsCasWriteUnfinishedCommitGetDefault handles this case with default header values.
 
 internal server error
 */

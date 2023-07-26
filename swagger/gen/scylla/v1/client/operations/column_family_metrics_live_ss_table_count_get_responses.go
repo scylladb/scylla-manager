@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsLiveSsTableCountGetOK() *ColumnFamilyMetricsLiveSsTab
 	return &ColumnFamilyMetricsLiveSsTableCountGetOK{}
 }
 
-/*ColumnFamilyMetricsLiveSsTableCountGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsLiveSsTableCountGetOK handles this case with default header values.
 
-ColumnFamilyMetricsLiveSsTableCountGetOK column family metrics live ss table count get o k
+Success
 */
 type ColumnFamilyMetricsLiveSsTableCountGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsLiveSsTableCountGetDefault(code int) *ColumnFamilyMet
 	}
 }
 
-/*ColumnFamilyMetricsLiveSsTableCountGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsLiveSsTableCountGetDefault handles this case with default header values.
 
 internal server error
 */

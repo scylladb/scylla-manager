@@ -47,7 +47,8 @@ func NewFindConfigRingDelayMsOK() *FindConfigRingDelayMsOK {
 	return &FindConfigRingDelayMsOK{}
 }
 
-/*FindConfigRingDelayMsOK handles this case with default header values.
+/*
+FindConfigRingDelayMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRingDelayMsDefault(code int) *FindConfigRingDelayMsDefault {
 	}
 }
 
-/*FindConfigRingDelayMsDefault handles this case with default header values.
+/*
+FindConfigRingDelayMsDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStorageServiceMetricsHintsInProgressGetOK() *StorageServiceMetricsHintsI
 	return &StorageServiceMetricsHintsInProgressGetOK{}
 }
 
-/*StorageServiceMetricsHintsInProgressGetOK handles this case with default header values.
+/*
+StorageServiceMetricsHintsInProgressGetOK handles this case with default header values.
 
-StorageServiceMetricsHintsInProgressGetOK storage service metrics hints in progress get o k
+Success
 */
 type StorageServiceMetricsHintsInProgressGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageServiceMetricsHintsInProgressGetDefault(code int) *StorageService
 	}
 }
 
-/*StorageServiceMetricsHintsInProgressGetDefault handles this case with default header values.
+/*
+StorageServiceMetricsHintsInProgressGetDefault handles this case with default header values.
 
 internal server error
 */

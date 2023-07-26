@@ -47,7 +47,8 @@ func NewFindConfigCompactionRowsCountWarningThresholdOK() *FindConfigCompactionR
 	return &FindConfigCompactionRowsCountWarningThresholdOK{}
 }
 
-/*FindConfigCompactionRowsCountWarningThresholdOK handles this case with default header values.
+/*
+FindConfigCompactionRowsCountWarningThresholdOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCompactionRowsCountWarningThresholdDefault(code int) *FindConf
 	}
 }
 
-/*FindConfigCompactionRowsCountWarningThresholdDefault handles this case with default header values.
+/*
+FindConfigCompactionRowsCountWarningThresholdDefault handles this case with default header values.
 
 unexpected error
 */

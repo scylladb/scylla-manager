@@ -47,7 +47,8 @@ func NewFindConfigVirtualDirtySoftLimitOK() *FindConfigVirtualDirtySoftLimitOK {
 	return &FindConfigVirtualDirtySoftLimitOK{}
 }
 
-/*FindConfigVirtualDirtySoftLimitOK handles this case with default header values.
+/*
+FindConfigVirtualDirtySoftLimitOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigVirtualDirtySoftLimitDefault(code int) *FindConfigVirtualDirty
 	}
 }
 
-/*FindConfigVirtualDirtySoftLimitDefault handles this case with default header values.
+/*
+FindConfigVirtualDirtySoftLimitDefault handles this case with default header values.
 
 unexpected error
 */

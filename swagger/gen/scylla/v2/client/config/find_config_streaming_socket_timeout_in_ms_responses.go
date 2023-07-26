@@ -47,7 +47,8 @@ func NewFindConfigStreamingSocketTimeoutInMsOK() *FindConfigStreamingSocketTimeo
 	return &FindConfigStreamingSocketTimeoutInMsOK{}
 }
 
-/*FindConfigStreamingSocketTimeoutInMsOK handles this case with default header values.
+/*
+FindConfigStreamingSocketTimeoutInMsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigStreamingSocketTimeoutInMsDefault(code int) *FindConfigStreami
 	}
 }
 
-/*FindConfigStreamingSocketTimeoutInMsDefault handles this case with default header values.
+/*
+FindConfigStreamingSocketTimeoutInMsDefault handles this case with default header values.
 
 unexpected error
 */

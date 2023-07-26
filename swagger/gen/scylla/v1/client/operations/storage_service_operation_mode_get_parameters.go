@@ -55,7 +55,8 @@ func NewStorageServiceOperationModeGetParamsWithHTTPClient(client *http.Client) 
 	}
 }
 
-/*StorageServiceOperationModeGetParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceOperationModeGetParams contains all the parameters to send to the API endpoint
 for the storage service operation mode get operation typically these are written to a http.Request
 */
 type StorageServiceOperationModeGetParams struct {

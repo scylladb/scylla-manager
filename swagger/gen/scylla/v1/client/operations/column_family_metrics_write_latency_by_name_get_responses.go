@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsWriteLatencyByNameGetOK() *ColumnFamilyMetricsWriteLa
 	return &ColumnFamilyMetricsWriteLatencyByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsWriteLatencyByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsWriteLatencyByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsWriteLatencyByNameGetOK column family metrics write latency by name get o k
+Success
 */
 type ColumnFamilyMetricsWriteLatencyByNameGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsWriteLatencyByNameGetDefault(code int) *ColumnFamilyM
 	}
 }
 
-/*ColumnFamilyMetricsWriteLatencyByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsWriteLatencyByNameGetDefault handles this case with default header values.
 
 internal server error
 */

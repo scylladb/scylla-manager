@@ -47,9 +47,10 @@ func NewStorageServiceIsInitializedGetOK() *StorageServiceIsInitializedGetOK {
 	return &StorageServiceIsInitializedGetOK{}
 }
 
-/*StorageServiceIsInitializedGetOK handles this case with default header values.
+/*
+StorageServiceIsInitializedGetOK handles this case with default header values.
 
-StorageServiceIsInitializedGetOK storage service is initialized get o k
+Success
 */
 type StorageServiceIsInitializedGetOK struct {
 	Payload bool
@@ -76,7 +77,8 @@ func NewStorageServiceIsInitializedGetDefault(code int) *StorageServiceIsInitial
 	}
 }
 
-/*StorageServiceIsInitializedGetDefault handles this case with default header values.
+/*
+StorageServiceIsInitializedGetDefault handles this case with default header values.
 
 internal server error
 */

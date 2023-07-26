@@ -47,9 +47,10 @@ func NewStorageServiceMetricsExceptionsGetOK() *StorageServiceMetricsExceptionsG
 	return &StorageServiceMetricsExceptionsGetOK{}
 }
 
-/*StorageServiceMetricsExceptionsGetOK handles this case with default header values.
+/*
+StorageServiceMetricsExceptionsGetOK handles this case with default header values.
 
-StorageServiceMetricsExceptionsGetOK storage service metrics exceptions get o k
+Success
 */
 type StorageServiceMetricsExceptionsGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageServiceMetricsExceptionsGetDefault(code int) *StorageServiceMetri
 	}
 }
 
-/*StorageServiceMetricsExceptionsGetDefault handles this case with default header values.
+/*
+StorageServiceMetricsExceptionsGetDefault handles this case with default header values.
 
 internal server error
 */

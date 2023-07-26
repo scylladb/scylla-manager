@@ -47,7 +47,8 @@ func NewFindConfigLogToSyslogOK() *FindConfigLogToSyslogOK {
 	return &FindConfigLogToSyslogOK{}
 }
 
-/*FindConfigLogToSyslogOK handles this case with default header values.
+/*
+FindConfigLogToSyslogOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigLogToSyslogDefault(code int) *FindConfigLogToSyslogDefault {
 	}
 }
 
-/*FindConfigLogToSyslogDefault handles this case with default header values.
+/*
+FindConfigLogToSyslogDefault handles this case with default header values.
 
 unexpected error
 */

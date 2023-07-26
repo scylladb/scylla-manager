@@ -55,7 +55,8 @@ func NewCacheServiceMetricsRowCapacityGetParamsWithHTTPClient(client *http.Clien
 	}
 }
 
-/*CacheServiceMetricsRowCapacityGetParams contains all the parameters to send to the API endpoint
+/*
+CacheServiceMetricsRowCapacityGetParams contains all the parameters to send to the API endpoint
 for the cache service metrics row capacity get operation typically these are written to a http.Request
 */
 type CacheServiceMetricsRowCapacityGetParams struct {

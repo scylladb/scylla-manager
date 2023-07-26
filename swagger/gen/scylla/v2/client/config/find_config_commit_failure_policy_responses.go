@@ -47,7 +47,8 @@ func NewFindConfigCommitFailurePolicyOK() *FindConfigCommitFailurePolicyOK {
 	return &FindConfigCommitFailurePolicyOK{}
 }
 
-/*FindConfigCommitFailurePolicyOK handles this case with default header values.
+/*
+FindConfigCommitFailurePolicyOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCommitFailurePolicyDefault(code int) *FindConfigCommitFailureP
 	}
 }
 
-/*FindConfigCommitFailurePolicyDefault handles this case with default header values.
+/*
+FindConfigCommitFailurePolicyDefault handles this case with default header values.
 
 unexpected error
 */

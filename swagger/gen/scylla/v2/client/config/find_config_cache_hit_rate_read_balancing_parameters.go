@@ -55,7 +55,8 @@ func NewFindConfigCacheHitRateReadBalancingParamsWithHTTPClient(client *http.Cli
 	}
 }
 
-/*FindConfigCacheHitRateReadBalancingParams contains all the parameters to send to the API endpoint
+/*
+FindConfigCacheHitRateReadBalancingParams contains all the parameters to send to the API endpoint
 for the find config cache hit rate read balancing operation typically these are written to a http.Request
 */
 type FindConfigCacheHitRateReadBalancingParams struct {

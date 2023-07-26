@@ -47,7 +47,8 @@ func NewFindConfigLoggerLogLevelOK() *FindConfigLoggerLogLevelOK {
 	return &FindConfigLoggerLogLevelOK{}
 }
 
-/*FindConfigLoggerLogLevelOK handles this case with default header values.
+/*
+FindConfigLoggerLogLevelOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigLoggerLogLevelDefault(code int) *FindConfigLoggerLogLevelDefau
 	}
 }
 
-/*FindConfigLoggerLogLevelDefault handles this case with default header values.
+/*
+FindConfigLoggerLogLevelDefault handles this case with default header values.
 
 unexpected error
 */

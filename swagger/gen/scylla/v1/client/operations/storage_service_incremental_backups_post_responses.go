@@ -47,9 +47,10 @@ func NewStorageServiceIncrementalBackupsPostOK() *StorageServiceIncrementalBacku
 	return &StorageServiceIncrementalBackupsPostOK{}
 }
 
-/*StorageServiceIncrementalBackupsPostOK handles this case with default header values.
+/*
+StorageServiceIncrementalBackupsPostOK handles this case with default header values.
 
-StorageServiceIncrementalBackupsPostOK storage service incremental backups post o k
+Success
 */
 type StorageServiceIncrementalBackupsPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceIncrementalBackupsPostDefault(code int) *StorageServiceInc
 	}
 }
 
-/*StorageServiceIncrementalBackupsPostDefault handles this case with default header values.
+/*
+StorageServiceIncrementalBackupsPostDefault handles this case with default header values.
 
 internal server error
 */

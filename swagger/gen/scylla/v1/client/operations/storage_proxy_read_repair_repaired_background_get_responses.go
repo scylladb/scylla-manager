@@ -47,9 +47,10 @@ func NewStorageProxyReadRepairRepairedBackgroundGetOK() *StorageProxyReadRepairR
 	return &StorageProxyReadRepairRepairedBackgroundGetOK{}
 }
 
-/*StorageProxyReadRepairRepairedBackgroundGetOK handles this case with default header values.
+/*
+StorageProxyReadRepairRepairedBackgroundGetOK handles this case with default header values.
 
-StorageProxyReadRepairRepairedBackgroundGetOK storage proxy read repair repaired background get o k
+Success
 */
 type StorageProxyReadRepairRepairedBackgroundGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewStorageProxyReadRepairRepairedBackgroundGetDefault(code int) *StoragePro
 	}
 }
 
-/*StorageProxyReadRepairRepairedBackgroundGetDefault handles this case with default header values.
+/*
+StorageProxyReadRepairRepairedBackgroundGetDefault handles this case with default header values.
 
 internal server error
 */

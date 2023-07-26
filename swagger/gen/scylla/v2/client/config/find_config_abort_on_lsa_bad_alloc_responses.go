@@ -47,7 +47,8 @@ func NewFindConfigAbortOnLsaBadAllocOK() *FindConfigAbortOnLsaBadAllocOK {
 	return &FindConfigAbortOnLsaBadAllocOK{}
 }
 
-/*FindConfigAbortOnLsaBadAllocOK handles this case with default header values.
+/*
+FindConfigAbortOnLsaBadAllocOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAbortOnLsaBadAllocDefault(code int) *FindConfigAbortOnLsaBadAl
 	}
 }
 
-/*FindConfigAbortOnLsaBadAllocDefault handles this case with default header values.
+/*
+FindConfigAbortOnLsaBadAllocDefault handles this case with default header values.
 
 unexpected error
 */

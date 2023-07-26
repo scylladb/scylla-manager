@@ -15,7 +15,7 @@ import (
 
 // Snapshots snapshots
 //
-// List of Snapshot detail
+// # List of Snapshot detail
 //
 // swagger:model snapshots
 type Snapshots struct {

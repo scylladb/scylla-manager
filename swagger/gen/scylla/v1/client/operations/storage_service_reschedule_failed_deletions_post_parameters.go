@@ -55,7 +55,8 @@ func NewStorageServiceRescheduleFailedDeletionsPostParamsWithHTTPClient(client *
 	}
 }
 
-/*StorageServiceRescheduleFailedDeletionsPostParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceRescheduleFailedDeletionsPostParams contains all the parameters to send to the API endpoint
 for the storage service reschedule failed deletions post operation typically these are written to a http.Request
 */
 type StorageServiceRescheduleFailedDeletionsPostParams struct {

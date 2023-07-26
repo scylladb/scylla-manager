@@ -55,7 +55,8 @@ func NewStorageServiceMetricsHintsInProgressGetParamsWithHTTPClient(client *http
 	}
 }
 
-/*StorageServiceMetricsHintsInProgressGetParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceMetricsHintsInProgressGetParams contains all the parameters to send to the API endpoint
 for the storage service metrics hints in progress get operation typically these are written to a http.Request
 */
 type StorageServiceMetricsHintsInProgressGetParams struct {

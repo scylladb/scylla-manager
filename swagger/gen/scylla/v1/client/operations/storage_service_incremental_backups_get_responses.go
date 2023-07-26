@@ -47,9 +47,10 @@ func NewStorageServiceIncrementalBackupsGetOK() *StorageServiceIncrementalBackup
 	return &StorageServiceIncrementalBackupsGetOK{}
 }
 
-/*StorageServiceIncrementalBackupsGetOK handles this case with default header values.
+/*
+StorageServiceIncrementalBackupsGetOK handles this case with default header values.
 
-StorageServiceIncrementalBackupsGetOK storage service incremental backups get o k
+Success
 */
 type StorageServiceIncrementalBackupsGetOK struct {
 	Payload bool
@@ -76,7 +77,8 @@ func NewStorageServiceIncrementalBackupsGetDefault(code int) *StorageServiceIncr
 	}
 }
 
-/*StorageServiceIncrementalBackupsGetDefault handles this case with default header values.
+/*
+StorageServiceIncrementalBackupsGetDefault handles this case with default header values.
 
 internal server error
 */

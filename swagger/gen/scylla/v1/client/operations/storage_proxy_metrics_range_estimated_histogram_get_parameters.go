@@ -55,7 +55,8 @@ func NewStorageProxyMetricsRangeEstimatedHistogramGetParamsWithHTTPClient(client
 	}
 }
 
-/*StorageProxyMetricsRangeEstimatedHistogramGetParams contains all the parameters to send to the API endpoint
+/*
+StorageProxyMetricsRangeEstimatedHistogramGetParams contains all the parameters to send to the API endpoint
 for the storage proxy metrics range estimated histogram get operation typically these are written to a http.Request
 */
 type StorageProxyMetricsRangeEstimatedHistogramGetParams struct {

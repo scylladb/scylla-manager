@@ -47,7 +47,8 @@ func NewFindConfigCompactionLargePartitionWarningThresholdMbOK() *FindConfigComp
 	return &FindConfigCompactionLargePartitionWarningThresholdMbOK{}
 }
 
-/*FindConfigCompactionLargePartitionWarningThresholdMbOK handles this case with default header values.
+/*
+FindConfigCompactionLargePartitionWarningThresholdMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigCompactionLargePartitionWarningThresholdMbDefault(code int) *F
 	}
 }
 
-/*FindConfigCompactionLargePartitionWarningThresholdMbDefault handles this case with default header values.
+/*
+FindConfigCompactionLargePartitionWarningThresholdMbDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStorageProxyMetricsWriteUnavailablesRatesGetOK() *StorageProxyMetricsWri
 	return &StorageProxyMetricsWriteUnavailablesRatesGetOK{}
 }
 
-/*StorageProxyMetricsWriteUnavailablesRatesGetOK handles this case with default header values.
+/*
+StorageProxyMetricsWriteUnavailablesRatesGetOK handles this case with default header values.
 
-StorageProxyMetricsWriteUnavailablesRatesGetOK storage proxy metrics write unavailables rates get o k
+Success
 */
 type StorageProxyMetricsWriteUnavailablesRatesGetOK struct {
 	Payload *models.RateMovingAverage
@@ -78,7 +79,8 @@ func NewStorageProxyMetricsWriteUnavailablesRatesGetDefault(code int) *StoragePr
 	}
 }
 
-/*StorageProxyMetricsWriteUnavailablesRatesGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsWriteUnavailablesRatesGetDefault handles this case with default header values.
 
 internal server error
 */

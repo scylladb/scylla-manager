@@ -12,7 +12,7 @@ import (
 
 // MessageCounter message_counter
 //
-// Holds command counters
+// # Holds command counters
 //
 // swagger:model message_counter
 type MessageCounter struct {

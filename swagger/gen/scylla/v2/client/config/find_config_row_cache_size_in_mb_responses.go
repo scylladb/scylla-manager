@@ -47,7 +47,8 @@ func NewFindConfigRowCacheSizeInMbOK() *FindConfigRowCacheSizeInMbOK {
 	return &FindConfigRowCacheSizeInMbOK{}
 }
 
-/*FindConfigRowCacheSizeInMbOK handles this case with default header values.
+/*
+FindConfigRowCacheSizeInMbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRowCacheSizeInMbDefault(code int) *FindConfigRowCacheSizeInMbD
 	}
 }
 
-/*FindConfigRowCacheSizeInMbDefault handles this case with default header values.
+/*
+FindConfigRowCacheSizeInMbDefault handles this case with default header values.
 
 unexpected error
 */

@@ -13,7 +13,7 @@ import (
 
 // VerbCounter verb_counter
 //
-// Holds verb counters
+// # Holds verb counters
 //
 // swagger:model verb_counter
 type VerbCounter struct {

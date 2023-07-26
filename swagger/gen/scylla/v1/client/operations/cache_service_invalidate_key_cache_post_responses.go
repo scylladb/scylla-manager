@@ -47,9 +47,10 @@ func NewCacheServiceInvalidateKeyCachePostOK() *CacheServiceInvalidateKeyCachePo
 	return &CacheServiceInvalidateKeyCachePostOK{}
 }
 
-/*CacheServiceInvalidateKeyCachePostOK handles this case with default header values.
+/*
+CacheServiceInvalidateKeyCachePostOK handles this case with default header values.
 
-CacheServiceInvalidateKeyCachePostOK cache service invalidate key cache post o k
+Success
 */
 type CacheServiceInvalidateKeyCachePostOK struct {
 }
@@ -66,7 +67,8 @@ func NewCacheServiceInvalidateKeyCachePostDefault(code int) *CacheServiceInvalid
 	}
 }
 
-/*CacheServiceInvalidateKeyCachePostDefault handles this case with default header values.
+/*
+CacheServiceInvalidateKeyCachePostDefault handles this case with default header values.
 
 internal server error
 */

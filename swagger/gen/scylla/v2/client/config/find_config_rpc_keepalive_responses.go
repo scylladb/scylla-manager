@@ -47,7 +47,8 @@ func NewFindConfigRPCKeepaliveOK() *FindConfigRPCKeepaliveOK {
 	return &FindConfigRPCKeepaliveOK{}
 }
 
-/*FindConfigRPCKeepaliveOK handles this case with default header values.
+/*
+FindConfigRPCKeepaliveOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCKeepaliveDefault(code int) *FindConfigRPCKeepaliveDefault {
 	}
 }
 
-/*FindConfigRPCKeepaliveDefault handles this case with default header values.
+/*
+FindConfigRPCKeepaliveDefault handles this case with default header values.
 
 unexpected error
 */

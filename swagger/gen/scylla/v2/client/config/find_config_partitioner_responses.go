@@ -47,7 +47,8 @@ func NewFindConfigPartitionerOK() *FindConfigPartitionerOK {
 	return &FindConfigPartitionerOK{}
 }
 
-/*FindConfigPartitionerOK handles this case with default header values.
+/*
+FindConfigPartitionerOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigPartitionerDefault(code int) *FindConfigPartitionerDefault {
 	}
 }
 
-/*FindConfigPartitionerDefault handles this case with default header values.
+/*
+FindConfigPartitionerDefault handles this case with default header values.
 
 unexpected error
 */

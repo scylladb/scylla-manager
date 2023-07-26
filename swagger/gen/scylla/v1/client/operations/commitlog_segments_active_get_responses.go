@@ -47,9 +47,10 @@ func NewCommitlogSegmentsActiveGetOK() *CommitlogSegmentsActiveGetOK {
 	return &CommitlogSegmentsActiveGetOK{}
 }
 
-/*CommitlogSegmentsActiveGetOK handles this case with default header values.
+/*
+CommitlogSegmentsActiveGetOK handles this case with default header values.
 
-CommitlogSegmentsActiveGetOK commitlog segments active get o k
+Success
 */
 type CommitlogSegmentsActiveGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewCommitlogSegmentsActiveGetDefault(code int) *CommitlogSegmentsActiveGetD
 	}
 }
 
-/*CommitlogSegmentsActiveGetDefault handles this case with default header values.
+/*
+CommitlogSegmentsActiveGetDefault handles this case with default header values.
 
 internal server error
 */

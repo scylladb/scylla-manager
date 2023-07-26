@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsRowCacheHitOutOfRangeGetOK() *ColumnFamilyMetricsRowC
 	return &ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK{}
 }
 
-/*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK handles this case with default header values.
 
-ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK column family metrics row cache hit out of range get o k
+Success
 */
 type ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsRowCacheHitOutOfRangeGetDefault(code int) *ColumnFami
 	}
 }
 
-/*ColumnFamilyMetricsRowCacheHitOutOfRangeGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsRowCacheHitOutOfRangeGetDefault handles this case with default header values.
 
 internal server error
 */

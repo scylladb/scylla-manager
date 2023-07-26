@@ -47,9 +47,10 @@ func NewColumnFamilySstablesByKeyByNameGetOK() *ColumnFamilySstablesByKeyByNameG
 	return &ColumnFamilySstablesByKeyByNameGetOK{}
 }
 
-/*ColumnFamilySstablesByKeyByNameGetOK handles this case with default header values.
+/*
+ColumnFamilySstablesByKeyByNameGetOK handles this case with default header values.
 
-ColumnFamilySstablesByKeyByNameGetOK column family sstables by key by name get o k
+Success
 */
 type ColumnFamilySstablesByKeyByNameGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewColumnFamilySstablesByKeyByNameGetDefault(code int) *ColumnFamilySstable
 	}
 }
 
-/*ColumnFamilySstablesByKeyByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilySstablesByKeyByNameGetDefault handles this case with default header values.
 
 internal server error
 */

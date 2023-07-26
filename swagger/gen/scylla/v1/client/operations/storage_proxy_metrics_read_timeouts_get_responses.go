@@ -47,9 +47,10 @@ func NewStorageProxyMetricsReadTimeoutsGetOK() *StorageProxyMetricsReadTimeoutsG
 	return &StorageProxyMetricsReadTimeoutsGetOK{}
 }
 
-/*StorageProxyMetricsReadTimeoutsGetOK handles this case with default header values.
+/*
+StorageProxyMetricsReadTimeoutsGetOK handles this case with default header values.
 
-StorageProxyMetricsReadTimeoutsGetOK storage proxy metrics read timeouts get o k
+Success
 */
 type StorageProxyMetricsReadTimeoutsGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageProxyMetricsReadTimeoutsGetDefault(code int) *StorageProxyMetrics
 	}
 }
 
-/*StorageProxyMetricsReadTimeoutsGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsReadTimeoutsGetDefault handles this case with default header values.
 
 internal server error
 */

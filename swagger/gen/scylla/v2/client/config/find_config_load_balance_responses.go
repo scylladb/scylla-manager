@@ -47,7 +47,8 @@ func NewFindConfigLoadBalanceOK() *FindConfigLoadBalanceOK {
 	return &FindConfigLoadBalanceOK{}
 }
 
-/*FindConfigLoadBalanceOK handles this case with default header values.
+/*
+FindConfigLoadBalanceOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigLoadBalanceDefault(code int) *FindConfigLoadBalanceDefault {
 	}
 }
 
-/*FindConfigLoadBalanceDefault handles this case with default header values.
+/*
+FindConfigLoadBalanceDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewCacheServiceMetricsKeySizeGetOK() *CacheServiceMetricsKeySizeGetOK {
 	return &CacheServiceMetricsKeySizeGetOK{}
 }
 
-/*CacheServiceMetricsKeySizeGetOK handles this case with default header values.
+/*
+CacheServiceMetricsKeySizeGetOK handles this case with default header values.
 
-CacheServiceMetricsKeySizeGetOK cache service metrics key size get o k
+Success
 */
 type CacheServiceMetricsKeySizeGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCacheServiceMetricsKeySizeGetDefault(code int) *CacheServiceMetricsKeySi
 	}
 }
 
-/*CacheServiceMetricsKeySizeGetDefault handles this case with default header values.
+/*
+CacheServiceMetricsKeySizeGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsLiveDiskSpaceUsedGetOK() *ColumnFamilyMetricsLiveDisk
 	return &ColumnFamilyMetricsLiveDiskSpaceUsedGetOK{}
 }
 
-/*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsLiveDiskSpaceUsedGetOK handles this case with default header values.
 
-ColumnFamilyMetricsLiveDiskSpaceUsedGetOK column family metrics live disk space used get o k
+Success
 */
 type ColumnFamilyMetricsLiveDiskSpaceUsedGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsLiveDiskSpaceUsedGetDefault(code int) *ColumnFamilyMe
 	}
 }
 
-/*ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsLiveDiskSpaceUsedGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -15,7 +15,7 @@ import (
 
 // Direction Direction
 //
-// The file name
+// # The file name
 //
 // swagger:model Direction
 type Direction string

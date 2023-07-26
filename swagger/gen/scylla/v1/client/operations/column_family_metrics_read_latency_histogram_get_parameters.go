@@ -55,7 +55,8 @@ func NewColumnFamilyMetricsReadLatencyHistogramGetParamsWithHTTPClient(client *h
 	}
 }
 
-/*ColumnFamilyMetricsReadLatencyHistogramGetParams contains all the parameters to send to the API endpoint
+/*
+ColumnFamilyMetricsReadLatencyHistogramGetParams contains all the parameters to send to the API endpoint
 for the column family metrics read latency histogram get operation typically these are written to a http.Request
 */
 type ColumnFamilyMetricsReadLatencyHistogramGetParams struct {

@@ -47,9 +47,10 @@ func NewColumnFamilyAutocompactionByNamePostOK() *ColumnFamilyAutocompactionByNa
 	return &ColumnFamilyAutocompactionByNamePostOK{}
 }
 
-/*ColumnFamilyAutocompactionByNamePostOK handles this case with default header values.
+/*
+ColumnFamilyAutocompactionByNamePostOK handles this case with default header values.
 
-ColumnFamilyAutocompactionByNamePostOK column family autocompaction by name post o k
+Success
 */
 type ColumnFamilyAutocompactionByNamePostOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyAutocompactionByNamePostDefault(code int) *ColumnFamilyAutoc
 	}
 }
 
-/*ColumnFamilyAutocompactionByNamePostDefault handles this case with default header values.
+/*
+ColumnFamilyAutocompactionByNamePostDefault handles this case with default header values.
 
 internal server error
 */

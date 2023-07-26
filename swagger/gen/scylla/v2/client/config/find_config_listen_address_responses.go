@@ -47,7 +47,8 @@ func NewFindConfigListenAddressOK() *FindConfigListenAddressOK {
 	return &FindConfigListenAddressOK{}
 }
 
-/*FindConfigListenAddressOK handles this case with default header values.
+/*
+FindConfigListenAddressOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigListenAddressDefault(code int) *FindConfigListenAddressDefault
 	}
 }
 
-/*FindConfigListenAddressDefault handles this case with default header values.
+/*
+FindConfigListenAddressDefault handles this case with default header values.
 
 unexpected error
 */

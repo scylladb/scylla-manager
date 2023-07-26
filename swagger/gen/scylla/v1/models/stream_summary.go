@@ -12,7 +12,7 @@ import (
 
 // StreamSummary stream_summary
 //
-// Stream summary info
+// # Stream summary info
 //
 // swagger:model stream_summary
 type StreamSummary struct {

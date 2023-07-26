@@ -47,9 +47,10 @@ func NewStorageProxyMetricsCasWriteContentionGetOK() *StorageProxyMetricsCasWrit
 	return &StorageProxyMetricsCasWriteContentionGetOK{}
 }
 
-/*StorageProxyMetricsCasWriteContentionGetOK handles this case with default header values.
+/*
+StorageProxyMetricsCasWriteContentionGetOK handles this case with default header values.
 
-StorageProxyMetricsCasWriteContentionGetOK storage proxy metrics cas write contention get o k
+Success
 */
 type StorageProxyMetricsCasWriteContentionGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewStorageProxyMetricsCasWriteContentionGetDefault(code int) *StorageProxyM
 	}
 }
 
-/*StorageProxyMetricsCasWriteContentionGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsCasWriteContentionGetDefault handles this case with default header values.
 
 internal server error
 */

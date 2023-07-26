@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsEstimatedRowCountByNameGetOK() *ColumnFamilyMetricsEs
 	return &ColumnFamilyMetricsEstimatedRowCountByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsEstimatedRowCountByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsEstimatedRowCountByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsEstimatedRowCountByNameGetOK column family metrics estimated row count by name get o k
+Success
 */
 type ColumnFamilyMetricsEstimatedRowCountByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsEstimatedRowCountByNameGetDefault(code int) *ColumnFa
 	}
 }
 
-/*ColumnFamilyMetricsEstimatedRowCountByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsEstimatedRowCountByNameGetDefault handles this case with default header values.
 
 internal server error
 */

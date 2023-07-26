@@ -47,9 +47,10 @@ func NewLsaCompactPostOK() *LsaCompactPostOK {
 	return &LsaCompactPostOK{}
 }
 
-/*LsaCompactPostOK handles this case with default header values.
+/*
+LsaCompactPostOK handles this case with default header values.
 
-LsaCompactPostOK lsa compact post o k
+Success
 */
 type LsaCompactPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewLsaCompactPostDefault(code int) *LsaCompactPostDefault {
 	}
 }
 
-/*LsaCompactPostDefault handles this case with default header values.
+/*
+LsaCompactPostDefault handles this case with default header values.
 
 internal server error
 */

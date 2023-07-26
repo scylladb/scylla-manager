@@ -47,7 +47,8 @@ func NewFindConfigListenOnBroadcastAddressOK() *FindConfigListenOnBroadcastAddre
 	return &FindConfigListenOnBroadcastAddressOK{}
 }
 
-/*FindConfigListenOnBroadcastAddressOK handles this case with default header values.
+/*
+FindConfigListenOnBroadcastAddressOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigListenOnBroadcastAddressDefault(code int) *FindConfigListenOnB
 	}
 }
 
-/*FindConfigListenOnBroadcastAddressDefault handles this case with default header values.
+/*
+FindConfigListenOnBroadcastAddressDefault handles this case with default header values.
 
 unexpected error
 */

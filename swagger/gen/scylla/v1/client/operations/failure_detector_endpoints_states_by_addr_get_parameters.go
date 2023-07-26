@@ -55,7 +55,8 @@ func NewFailureDetectorEndpointsStatesByAddrGetParamsWithHTTPClient(client *http
 	}
 }
 
-/*FailureDetectorEndpointsStatesByAddrGetParams contains all the parameters to send to the API endpoint
+/*
+FailureDetectorEndpointsStatesByAddrGetParams contains all the parameters to send to the API endpoint
 for the failure detector endpoints states by addr get operation typically these are written to a http.Request
 */
 type FailureDetectorEndpointsStatesByAddrGetParams struct {

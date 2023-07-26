@@ -12,7 +12,7 @@ import (
 
 // TypeInstanceID type_instance_id
 //
-// A type instance ID
+// # A type instance ID
 //
 // swagger:model type_instance_id
 type TypeInstanceID struct {

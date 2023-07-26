@@ -47,7 +47,8 @@ func NewFindConfigConsistentRangemovementOK() *FindConfigConsistentRangemovement
 	return &FindConfigConsistentRangemovementOK{}
 }
 
-/*FindConfigConsistentRangemovementOK handles this case with default header values.
+/*
+FindConfigConsistentRangemovementOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigConsistentRangemovementDefault(code int) *FindConfigConsistent
 	}
 }
 
-/*FindConfigConsistentRangemovementDefault handles this case with default header values.
+/*
+FindConfigConsistentRangemovementDefault handles this case with default header values.
 
 unexpected error
 */

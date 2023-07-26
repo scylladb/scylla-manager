@@ -55,7 +55,8 @@ func NewColumnFamilyDroppableRatioByNameGetParamsWithHTTPClient(client *http.Cli
 	}
 }
 
-/*ColumnFamilyDroppableRatioByNameGetParams contains all the parameters to send to the API endpoint
+/*
+ColumnFamilyDroppableRatioByNameGetParams contains all the parameters to send to the API endpoint
 for the column family droppable ratio by name get operation typically these are written to a http.Request
 */
 type ColumnFamilyDroppableRatioByNameGetParams struct {

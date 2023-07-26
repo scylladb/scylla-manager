@@ -47,9 +47,10 @@ func NewCompactionManagerMetricsCompletedTasksGetOK() *CompactionManagerMetricsC
 	return &CompactionManagerMetricsCompletedTasksGetOK{}
 }
 
-/*CompactionManagerMetricsCompletedTasksGetOK handles this case with default header values.
+/*
+CompactionManagerMetricsCompletedTasksGetOK handles this case with default header values.
 
-CompactionManagerMetricsCompletedTasksGetOK compaction manager metrics completed tasks get o k
+Success
 */
 type CompactionManagerMetricsCompletedTasksGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewCompactionManagerMetricsCompletedTasksGetDefault(code int) *CompactionMa
 	}
 }
 
-/*CompactionManagerMetricsCompletedTasksGetDefault handles this case with default header values.
+/*
+CompactionManagerMetricsCompletedTasksGetDefault handles this case with default header values.
 
 internal server error
 */

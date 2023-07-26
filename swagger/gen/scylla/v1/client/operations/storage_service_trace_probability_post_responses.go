@@ -47,9 +47,10 @@ func NewStorageServiceTraceProbabilityPostOK() *StorageServiceTraceProbabilityPo
 	return &StorageServiceTraceProbabilityPostOK{}
 }
 
-/*StorageServiceTraceProbabilityPostOK handles this case with default header values.
+/*
+StorageServiceTraceProbabilityPostOK handles this case with default header values.
 
-StorageServiceTraceProbabilityPostOK storage service trace probability post o k
+Success
 */
 type StorageServiceTraceProbabilityPostOK struct {
 }
@@ -66,7 +67,8 @@ func NewStorageServiceTraceProbabilityPostDefault(code int) *StorageServiceTrace
 	}
 }
 
-/*StorageServiceTraceProbabilityPostDefault handles this case with default header values.
+/*
+StorageServiceTraceProbabilityPostDefault handles this case with default header values.
 
 internal server error
 */

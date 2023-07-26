@@ -47,9 +47,10 @@ func NewColumnFamilyLoadSstableByNamePostOK() *ColumnFamilyLoadSstableByNamePost
 	return &ColumnFamilyLoadSstableByNamePostOK{}
 }
 
-/*ColumnFamilyLoadSstableByNamePostOK handles this case with default header values.
+/*
+ColumnFamilyLoadSstableByNamePostOK handles this case with default header values.
 
-ColumnFamilyLoadSstableByNamePostOK column family load sstable by name post o k
+Success
 */
 type ColumnFamilyLoadSstableByNamePostOK struct {
 	Payload string
@@ -76,7 +77,8 @@ func NewColumnFamilyLoadSstableByNamePostDefault(code int) *ColumnFamilyLoadSsta
 	}
 }
 
-/*ColumnFamilyLoadSstableByNamePostDefault handles this case with default header values.
+/*
+ColumnFamilyLoadSstableByNamePostDefault handles this case with default header values.
 
 internal server error
 */

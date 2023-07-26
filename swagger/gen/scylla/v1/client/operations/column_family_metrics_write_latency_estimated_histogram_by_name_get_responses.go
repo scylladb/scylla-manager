@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK() *ColumnFa
 	return &ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK column family metrics write latency estimated histogram by name get o k
+Success
 */
 type ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK struct {
 }
@@ -66,7 +67,8 @@ func NewColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetDefault(code i
 	}
 }
 
-/*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetDefault handles this case with default header values.
 
 internal server error
 */

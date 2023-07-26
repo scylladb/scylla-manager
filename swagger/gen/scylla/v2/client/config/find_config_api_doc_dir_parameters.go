@@ -55,7 +55,8 @@ func NewFindConfigAPIDocDirParamsWithHTTPClient(client *http.Client) *FindConfig
 	}
 }
 
-/*FindConfigAPIDocDirParams contains all the parameters to send to the API endpoint
+/*
+FindConfigAPIDocDirParams contains all the parameters to send to the API endpoint
 for the find config api doc dir operation typically these are written to a http.Request
 */
 type FindConfigAPIDocDirParams struct {

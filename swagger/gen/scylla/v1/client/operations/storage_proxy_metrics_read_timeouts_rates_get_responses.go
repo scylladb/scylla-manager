@@ -47,9 +47,10 @@ func NewStorageProxyMetricsReadTimeoutsRatesGetOK() *StorageProxyMetricsReadTime
 	return &StorageProxyMetricsReadTimeoutsRatesGetOK{}
 }
 
-/*StorageProxyMetricsReadTimeoutsRatesGetOK handles this case with default header values.
+/*
+StorageProxyMetricsReadTimeoutsRatesGetOK handles this case with default header values.
 
-StorageProxyMetricsReadTimeoutsRatesGetOK storage proxy metrics read timeouts rates get o k
+Success
 */
 type StorageProxyMetricsReadTimeoutsRatesGetOK struct {
 	Payload *models.RateMovingAverage
@@ -78,7 +79,8 @@ func NewStorageProxyMetricsReadTimeoutsRatesGetDefault(code int) *StorageProxyMe
 	}
 }
 
-/*StorageProxyMetricsReadTimeoutsRatesGetDefault handles this case with default header values.
+/*
+StorageProxyMetricsReadTimeoutsRatesGetDefault handles this case with default header values.
 
 internal server error
 */

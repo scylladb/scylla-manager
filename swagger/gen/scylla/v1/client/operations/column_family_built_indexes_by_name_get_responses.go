@@ -47,9 +47,10 @@ func NewColumnFamilyBuiltIndexesByNameGetOK() *ColumnFamilyBuiltIndexesByNameGet
 	return &ColumnFamilyBuiltIndexesByNameGetOK{}
 }
 
-/*ColumnFamilyBuiltIndexesByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyBuiltIndexesByNameGetOK handles this case with default header values.
 
-ColumnFamilyBuiltIndexesByNameGetOK column family built indexes by name get o k
+Success
 */
 type ColumnFamilyBuiltIndexesByNameGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewColumnFamilyBuiltIndexesByNameGetDefault(code int) *ColumnFamilyBuiltInd
 	}
 }
 
-/*ColumnFamilyBuiltIndexesByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyBuiltIndexesByNameGetDefault handles this case with default header values.
 
 internal server error
 */

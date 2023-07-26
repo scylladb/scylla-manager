@@ -12,7 +12,7 @@ import (
 
 // CollectdValue collectd_value
 //
-// Holds a collectd value
+// # Holds a collectd value
 //
 // swagger:model collectd_value
 type CollectdValue struct {

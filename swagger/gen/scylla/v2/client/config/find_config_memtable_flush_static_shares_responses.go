@@ -47,7 +47,8 @@ func NewFindConfigMemtableFlushStaticSharesOK() *FindConfigMemtableFlushStaticSh
 	return &FindConfigMemtableFlushStaticSharesOK{}
 }
 
-/*FindConfigMemtableFlushStaticSharesOK handles this case with default header values.
+/*
+FindConfigMemtableFlushStaticSharesOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigMemtableFlushStaticSharesDefault(code int) *FindConfigMemtable
 	}
 }
 
-/*FindConfigMemtableFlushStaticSharesDefault handles this case with default header values.
+/*
+FindConfigMemtableFlushStaticSharesDefault handles this case with default header values.
 
 unexpected error
 */

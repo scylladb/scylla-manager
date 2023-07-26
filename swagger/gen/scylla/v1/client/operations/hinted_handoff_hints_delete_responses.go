@@ -47,9 +47,10 @@ func NewHintedHandoffHintsDeleteOK() *HintedHandoffHintsDeleteOK {
 	return &HintedHandoffHintsDeleteOK{}
 }
 
-/*HintedHandoffHintsDeleteOK handles this case with default header values.
+/*
+HintedHandoffHintsDeleteOK handles this case with default header values.
 
-HintedHandoffHintsDeleteOK hinted handoff hints delete o k
+Success
 */
 type HintedHandoffHintsDeleteOK struct {
 }
@@ -66,7 +67,8 @@ func NewHintedHandoffHintsDeleteDefault(code int) *HintedHandoffHintsDeleteDefau
 	}
 }
 
-/*HintedHandoffHintsDeleteDefault handles this case with default header values.
+/*
+HintedHandoffHintsDeleteDefault handles this case with default header values.
 
 internal server error
 */

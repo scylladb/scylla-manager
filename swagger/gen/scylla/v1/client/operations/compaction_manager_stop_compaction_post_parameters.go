@@ -55,7 +55,8 @@ func NewCompactionManagerStopCompactionPostParamsWithHTTPClient(client *http.Cli
 	}
 }
 
-/*CompactionManagerStopCompactionPostParams contains all the parameters to send to the API endpoint
+/*
+CompactionManagerStopCompactionPostParams contains all the parameters to send to the API endpoint
 for the compaction manager stop compaction post operation typically these are written to a http.Request
 */
 type CompactionManagerStopCompactionPostParams struct {

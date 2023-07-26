@@ -12,7 +12,7 @@ import (
 
 // Mapper mapper
 //
-// A key value mapping
+// # A key value mapping
 //
 // swagger:model mapper
 type Mapper struct {

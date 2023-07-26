@@ -47,9 +47,10 @@ func NewColumnFamilySstablesPerLevelByNameGetOK() *ColumnFamilySstablesPerLevelB
 	return &ColumnFamilySstablesPerLevelByNameGetOK{}
 }
 
-/*ColumnFamilySstablesPerLevelByNameGetOK handles this case with default header values.
+/*
+ColumnFamilySstablesPerLevelByNameGetOK handles this case with default header values.
 
-ColumnFamilySstablesPerLevelByNameGetOK column family sstables per level by name get o k
+Success
 */
 type ColumnFamilySstablesPerLevelByNameGetOK struct {
 	Payload []int32
@@ -76,7 +77,8 @@ func NewColumnFamilySstablesPerLevelByNameGetDefault(code int) *ColumnFamilySsta
 	}
 }
 
-/*ColumnFamilySstablesPerLevelByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilySstablesPerLevelByNameGetDefault handles this case with default header values.
 
 internal server error
 */

@@ -55,7 +55,8 @@ func NewColumnFamilyAutocompactionByNameDeleteParamsWithHTTPClient(client *http.
 	}
 }
 
-/*ColumnFamilyAutocompactionByNameDeleteParams contains all the parameters to send to the API endpoint
+/*
+ColumnFamilyAutocompactionByNameDeleteParams contains all the parameters to send to the API endpoint
 for the column family autocompaction by name delete operation typically these are written to a http.Request
 */
 type ColumnFamilyAutocompactionByNameDeleteParams struct {

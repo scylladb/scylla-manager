@@ -47,7 +47,8 @@ func NewFindConfigAuthenticatorOK() *FindConfigAuthenticatorOK {
 	return &FindConfigAuthenticatorOK{}
 }
 
-/*FindConfigAuthenticatorOK handles this case with default header values.
+/*
+FindConfigAuthenticatorOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAuthenticatorDefault(code int) *FindConfigAuthenticatorDefault
 	}
 }
 
-/*FindConfigAuthenticatorDefault handles this case with default header values.
+/*
+FindConfigAuthenticatorDefault handles this case with default header values.
 
 unexpected error
 */

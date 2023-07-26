@@ -55,7 +55,8 @@ func NewFindConfigCasContentionTimeoutInMsParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*FindConfigCasContentionTimeoutInMsParams contains all the parameters to send to the API endpoint
+/*
+FindConfigCasContentionTimeoutInMsParams contains all the parameters to send to the API endpoint
 for the find config cas contention timeout in ms operation typically these are written to a http.Request
 */
 type FindConfigCasContentionTimeoutInMsParams struct {

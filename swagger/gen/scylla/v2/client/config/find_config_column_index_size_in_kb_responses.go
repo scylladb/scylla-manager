@@ -47,7 +47,8 @@ func NewFindConfigColumnIndexSizeInKbOK() *FindConfigColumnIndexSizeInKbOK {
 	return &FindConfigColumnIndexSizeInKbOK{}
 }
 
-/*FindConfigColumnIndexSizeInKbOK handles this case with default header values.
+/*
+FindConfigColumnIndexSizeInKbOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigColumnIndexSizeInKbDefault(code int) *FindConfigColumnIndexSiz
 	}
 }
 
-/*FindConfigColumnIndexSizeInKbDefault handles this case with default header values.
+/*
+FindConfigColumnIndexSizeInKbDefault handles this case with default header values.
 
 unexpected error
 */

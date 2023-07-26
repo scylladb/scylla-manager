@@ -55,7 +55,8 @@ func NewStorageServiceSnapshotsDeleteParamsWithHTTPClient(client *http.Client) *
 	}
 }
 
-/*StorageServiceSnapshotsDeleteParams contains all the parameters to send to the API endpoint
+/*
+StorageServiceSnapshotsDeleteParams contains all the parameters to send to the API endpoint
 for the storage service snapshots delete operation typically these are written to a http.Request
 */
 type StorageServiceSnapshotsDeleteParams struct {

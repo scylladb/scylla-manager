@@ -55,7 +55,8 @@ func NewFindConfigAlternatorHTTPSPortParamsWithHTTPClient(client *http.Client) *
 	}
 }
 
-/*FindConfigAlternatorHTTPSPortParams contains all the parameters to send to the API endpoint
+/*
+FindConfigAlternatorHTTPSPortParams contains all the parameters to send to the API endpoint
 for the find config alternator https port operation typically these are written to a http.Request
 */
 type FindConfigAlternatorHTTPSPortParams struct {

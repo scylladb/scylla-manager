@@ -47,7 +47,8 @@ func NewFindConfigAlternatorAddressOK() *FindConfigAlternatorAddressOK {
 	return &FindConfigAlternatorAddressOK{}
 }
 
-/*FindConfigAlternatorAddressOK handles this case with default header values.
+/*
+FindConfigAlternatorAddressOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigAlternatorAddressDefault(code int) *FindConfigAlternatorAddres
 	}
 }
 
-/*FindConfigAlternatorAddressDefault handles this case with default header values.
+/*
+FindConfigAlternatorAddressDefault handles this case with default header values.
 
 unexpected error
 */

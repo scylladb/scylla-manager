@@ -47,9 +47,10 @@ func NewCompactionManagerCompactionInfoGetOK() *CompactionManagerCompactionInfoG
 	return &CompactionManagerCompactionInfoGetOK{}
 }
 
-/*CompactionManagerCompactionInfoGetOK handles this case with default header values.
+/*
+CompactionManagerCompactionInfoGetOK handles this case with default header values.
 
-CompactionManagerCompactionInfoGetOK compaction manager compaction info get o k
+Success
 */
 type CompactionManagerCompactionInfoGetOK struct {
 	Payload []*models.CompactionInfo
@@ -76,7 +77,8 @@ func NewCompactionManagerCompactionInfoGetDefault(code int) *CompactionManagerCo
 	}
 }
 
-/*CompactionManagerCompactionInfoGetDefault handles this case with default header values.
+/*
+CompactionManagerCompactionInfoGetDefault handles this case with default header values.
 
 internal server error
 */

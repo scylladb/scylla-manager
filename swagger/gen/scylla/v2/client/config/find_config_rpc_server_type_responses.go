@@ -47,7 +47,8 @@ func NewFindConfigRPCServerTypeOK() *FindConfigRPCServerTypeOK {
 	return &FindConfigRPCServerTypeOK{}
 }
 
-/*FindConfigRPCServerTypeOK handles this case with default header values.
+/*
+FindConfigRPCServerTypeOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigRPCServerTypeDefault(code int) *FindConfigRPCServerTypeDefault
 	}
 }
 
-/*FindConfigRPCServerTypeDefault handles this case with default header values.
+/*
+FindConfigRPCServerTypeDefault handles this case with default header values.
 
 unexpected error
 */

@@ -12,7 +12,7 @@ import (
 
 // Histogram histogram
 //
-// A histogram values
+// # A histogram values
 //
 // swagger:model histogram
 type Histogram struct {

@@ -55,7 +55,8 @@ func NewFindConfigVolatileSystemKeyspaceForTestingParamsWithHTTPClient(client *h
 	}
 }
 
-/*FindConfigVolatileSystemKeyspaceForTestingParams contains all the parameters to send to the API endpoint
+/*
+FindConfigVolatileSystemKeyspaceForTestingParams contains all the parameters to send to the API endpoint
 for the find config volatile system keyspace for testing operation typically these are written to a http.Request
 */
 type FindConfigVolatileSystemKeyspaceForTestingParams struct {

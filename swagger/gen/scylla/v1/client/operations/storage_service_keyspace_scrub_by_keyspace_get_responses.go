@@ -47,9 +47,10 @@ func NewStorageServiceKeyspaceScrubByKeyspaceGetOK() *StorageServiceKeyspaceScru
 	return &StorageServiceKeyspaceScrubByKeyspaceGetOK{}
 }
 
-/*StorageServiceKeyspaceScrubByKeyspaceGetOK handles this case with default header values.
+/*
+StorageServiceKeyspaceScrubByKeyspaceGetOK handles this case with default header values.
 
-StorageServiceKeyspaceScrubByKeyspaceGetOK storage service keyspace scrub by keyspace get o k
+Success
 */
 type StorageServiceKeyspaceScrubByKeyspaceGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStorageServiceKeyspaceScrubByKeyspaceGetDefault(code int) *StorageServic
 	}
 }
 
-/*StorageServiceKeyspaceScrubByKeyspaceGetDefault handles this case with default header values.
+/*
+StorageServiceKeyspaceScrubByKeyspaceGetDefault handles this case with default header values.
 
 internal server error
 */

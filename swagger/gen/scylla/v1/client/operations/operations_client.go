@@ -825,9 +825,9 @@ type ClientService interface {
 }
 
 /*
-  CacheServiceCounterCacheCapacityPost sets counter cache capacity in mb
+CacheServiceCounterCacheCapacityPost sets counter cache capacity in mb
 
-  set counter cache capacity in mb
+set counter cache capacity in mb
 */
 func (a *Client) CacheServiceCounterCacheCapacityPost(params *CacheServiceCounterCacheCapacityPostParams) (*CacheServiceCounterCacheCapacityPostOK, error) {
 	// TODO: Validate the params before sending
@@ -860,9 +860,9 @@ func (a *Client) CacheServiceCounterCacheCapacityPost(params *CacheServiceCounte
 }
 
 /*
-  CacheServiceCounterCacheKeysToSaveGet gets counter cache keys to save
+CacheServiceCounterCacheKeysToSaveGet gets counter cache keys to save
 
-  get counter cache keys to save
+get counter cache keys to save
 */
 func (a *Client) CacheServiceCounterCacheKeysToSaveGet(params *CacheServiceCounterCacheKeysToSaveGetParams) (*CacheServiceCounterCacheKeysToSaveGetOK, error) {
 	// TODO: Validate the params before sending
@@ -895,9 +895,9 @@ func (a *Client) CacheServiceCounterCacheKeysToSaveGet(params *CacheServiceCount
 }
 
 /*
-  CacheServiceCounterCacheKeysToSavePost sets counter cache keys to save
+CacheServiceCounterCacheKeysToSavePost sets counter cache keys to save
 
-  set counter cache keys to save
+set counter cache keys to save
 */
 func (a *Client) CacheServiceCounterCacheKeysToSavePost(params *CacheServiceCounterCacheKeysToSavePostParams) (*CacheServiceCounterCacheKeysToSavePostOK, error) {
 	// TODO: Validate the params before sending
@@ -930,9 +930,9 @@ func (a *Client) CacheServiceCounterCacheKeysToSavePost(params *CacheServiceCoun
 }
 
 /*
-  CacheServiceCounterCacheSavePeriodGet gets counter cache save period in seconds
+CacheServiceCounterCacheSavePeriodGet gets counter cache save period in seconds
 
-  get counter cache save period in seconds
+get counter cache save period in seconds
 */
 func (a *Client) CacheServiceCounterCacheSavePeriodGet(params *CacheServiceCounterCacheSavePeriodGetParams) (*CacheServiceCounterCacheSavePeriodGetOK, error) {
 	// TODO: Validate the params before sending
@@ -965,9 +965,9 @@ func (a *Client) CacheServiceCounterCacheSavePeriodGet(params *CacheServiceCount
 }
 
 /*
-  CacheServiceCounterCacheSavePeriodPost sets counter cache save period in seconds
+CacheServiceCounterCacheSavePeriodPost sets counter cache save period in seconds
 
-  set counter cache save period in seconds
+set counter cache save period in seconds
 */
 func (a *Client) CacheServiceCounterCacheSavePeriodPost(params *CacheServiceCounterCacheSavePeriodPostParams) (*CacheServiceCounterCacheSavePeriodPostOK, error) {
 	// TODO: Validate the params before sending
@@ -1000,9 +1000,9 @@ func (a *Client) CacheServiceCounterCacheSavePeriodPost(params *CacheServiceCoun
 }
 
 /*
-  CacheServiceInvalidateCounterCachePost invalidates counter cache
+CacheServiceInvalidateCounterCachePost invalidates counter cache
 
-  invalidate counter cache
+invalidate counter cache
 */
 func (a *Client) CacheServiceInvalidateCounterCachePost(params *CacheServiceInvalidateCounterCachePostParams) (*CacheServiceInvalidateCounterCachePostOK, error) {
 	// TODO: Validate the params before sending
@@ -1035,9 +1035,9 @@ func (a *Client) CacheServiceInvalidateCounterCachePost(params *CacheServiceInva
 }
 
 /*
-  CacheServiceInvalidateKeyCachePost invalidates key cache
+CacheServiceInvalidateKeyCachePost invalidates key cache
 
-  invalidate the key cache; for use after invalidating row cache
+invalidate the key cache; for use after invalidating row cache
 */
 func (a *Client) CacheServiceInvalidateKeyCachePost(params *CacheServiceInvalidateKeyCachePostParams) (*CacheServiceInvalidateKeyCachePostOK, error) {
 	// TODO: Validate the params before sending
@@ -1070,9 +1070,9 @@ func (a *Client) CacheServiceInvalidateKeyCachePost(params *CacheServiceInvalida
 }
 
 /*
-  CacheServiceKeyCacheCapacityPost sets key cache capacity in mb
+CacheServiceKeyCacheCapacityPost sets key cache capacity in mb
 
-  set key cache capacity in mb
+set key cache capacity in mb
 */
 func (a *Client) CacheServiceKeyCacheCapacityPost(params *CacheServiceKeyCacheCapacityPostParams) (*CacheServiceKeyCacheCapacityPostOK, error) {
 	// TODO: Validate the params before sending
@@ -1105,9 +1105,9 @@ func (a *Client) CacheServiceKeyCacheCapacityPost(params *CacheServiceKeyCacheCa
 }
 
 /*
-  CacheServiceKeyCacheKeysToSaveGet gets key cache keys to save
+CacheServiceKeyCacheKeysToSaveGet gets key cache keys to save
 
-  get key cache keys to save
+get key cache keys to save
 */
 func (a *Client) CacheServiceKeyCacheKeysToSaveGet(params *CacheServiceKeyCacheKeysToSaveGetParams) (*CacheServiceKeyCacheKeysToSaveGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1140,9 +1140,9 @@ func (a *Client) CacheServiceKeyCacheKeysToSaveGet(params *CacheServiceKeyCacheK
 }
 
 /*
-  CacheServiceKeyCacheKeysToSavePost sets key cache keys to save
+CacheServiceKeyCacheKeysToSavePost sets key cache keys to save
 
-  set key cache keys to save
+set key cache keys to save
 */
 func (a *Client) CacheServiceKeyCacheKeysToSavePost(params *CacheServiceKeyCacheKeysToSavePostParams) (*CacheServiceKeyCacheKeysToSavePostOK, error) {
 	// TODO: Validate the params before sending
@@ -1175,9 +1175,9 @@ func (a *Client) CacheServiceKeyCacheKeysToSavePost(params *CacheServiceKeyCache
 }
 
 /*
-  CacheServiceKeyCacheSavePeriodGet gets key cache save period in seconds
+CacheServiceKeyCacheSavePeriodGet gets key cache save period in seconds
 
-  get key cache save period in seconds
+get key cache save period in seconds
 */
 func (a *Client) CacheServiceKeyCacheSavePeriodGet(params *CacheServiceKeyCacheSavePeriodGetParams) (*CacheServiceKeyCacheSavePeriodGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1210,9 +1210,9 @@ func (a *Client) CacheServiceKeyCacheSavePeriodGet(params *CacheServiceKeyCacheS
 }
 
 /*
-  CacheServiceKeyCacheSavePeriodPost sets key cache save period in seconds
+CacheServiceKeyCacheSavePeriodPost sets key cache save period in seconds
 
-  set key cache save period in seconds
+set key cache save period in seconds
 */
 func (a *Client) CacheServiceKeyCacheSavePeriodPost(params *CacheServiceKeyCacheSavePeriodPostParams) (*CacheServiceKeyCacheSavePeriodPostOK, error) {
 	// TODO: Validate the params before sending
@@ -1245,9 +1245,9 @@ func (a *Client) CacheServiceKeyCacheSavePeriodPost(params *CacheServiceKeyCache
 }
 
 /*
-  CacheServiceMetricsCounterCapacityGet gets counter capacity
+CacheServiceMetricsCounterCapacityGet gets counter capacity
 
-  Get counter capacity
+Get counter capacity
 */
 func (a *Client) CacheServiceMetricsCounterCapacityGet(params *CacheServiceMetricsCounterCapacityGetParams) (*CacheServiceMetricsCounterCapacityGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1280,9 +1280,9 @@ func (a *Client) CacheServiceMetricsCounterCapacityGet(params *CacheServiceMetri
 }
 
 /*
-  CacheServiceMetricsCounterEntriesGet gets counter entries
+CacheServiceMetricsCounterEntriesGet gets counter entries
 
-  Get counter entries
+Get counter entries
 */
 func (a *Client) CacheServiceMetricsCounterEntriesGet(params *CacheServiceMetricsCounterEntriesGetParams) (*CacheServiceMetricsCounterEntriesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1315,9 +1315,9 @@ func (a *Client) CacheServiceMetricsCounterEntriesGet(params *CacheServiceMetric
 }
 
 /*
-  CacheServiceMetricsCounterHitRateGet gets counter hit rate
+CacheServiceMetricsCounterHitRateGet gets counter hit rate
 
-  Get counter hit rate
+Get counter hit rate
 */
 func (a *Client) CacheServiceMetricsCounterHitRateGet(params *CacheServiceMetricsCounterHitRateGetParams) (*CacheServiceMetricsCounterHitRateGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1350,9 +1350,9 @@ func (a *Client) CacheServiceMetricsCounterHitRateGet(params *CacheServiceMetric
 }
 
 /*
-  CacheServiceMetricsCounterHitsGet gets counter hits
+CacheServiceMetricsCounterHitsGet gets counter hits
 
-  Get counter hits
+Get counter hits
 */
 func (a *Client) CacheServiceMetricsCounterHitsGet(params *CacheServiceMetricsCounterHitsGetParams) (*CacheServiceMetricsCounterHitsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1385,9 +1385,9 @@ func (a *Client) CacheServiceMetricsCounterHitsGet(params *CacheServiceMetricsCo
 }
 
 /*
-  CacheServiceMetricsCounterHitsMovingAvrageGet gets counter hits moving avrage
+CacheServiceMetricsCounterHitsMovingAvrageGet gets counter hits moving avrage
 
-  Get counter hits moving avrage
+Get counter hits moving avrage
 */
 func (a *Client) CacheServiceMetricsCounterHitsMovingAvrageGet(params *CacheServiceMetricsCounterHitsMovingAvrageGetParams) (*CacheServiceMetricsCounterHitsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1420,9 +1420,9 @@ func (a *Client) CacheServiceMetricsCounterHitsMovingAvrageGet(params *CacheServ
 }
 
 /*
-  CacheServiceMetricsCounterRequestsGet gets counter requests
+CacheServiceMetricsCounterRequestsGet gets counter requests
 
-  Get counter requests
+Get counter requests
 */
 func (a *Client) CacheServiceMetricsCounterRequestsGet(params *CacheServiceMetricsCounterRequestsGetParams) (*CacheServiceMetricsCounterRequestsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1455,9 +1455,9 @@ func (a *Client) CacheServiceMetricsCounterRequestsGet(params *CacheServiceMetri
 }
 
 /*
-  CacheServiceMetricsCounterRequestsMovingAvrageGet gets counter requests moving avrage
+CacheServiceMetricsCounterRequestsMovingAvrageGet gets counter requests moving avrage
 
-  Get counter requests moving avrage
+Get counter requests moving avrage
 */
 func (a *Client) CacheServiceMetricsCounterRequestsMovingAvrageGet(params *CacheServiceMetricsCounterRequestsMovingAvrageGetParams) (*CacheServiceMetricsCounterRequestsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1490,9 +1490,9 @@ func (a *Client) CacheServiceMetricsCounterRequestsMovingAvrageGet(params *Cache
 }
 
 /*
-  CacheServiceMetricsCounterSizeGet gets counter size
+CacheServiceMetricsCounterSizeGet gets counter size
 
-  Get counter cache waited size
+Get counter cache waited size
 */
 func (a *Client) CacheServiceMetricsCounterSizeGet(params *CacheServiceMetricsCounterSizeGetParams) (*CacheServiceMetricsCounterSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1525,9 +1525,9 @@ func (a *Client) CacheServiceMetricsCounterSizeGet(params *CacheServiceMetricsCo
 }
 
 /*
-  CacheServiceMetricsKeyCapacityGet gets key capacity
+CacheServiceMetricsKeyCapacityGet gets key capacity
 
-  Get key capacity
+Get key capacity
 */
 func (a *Client) CacheServiceMetricsKeyCapacityGet(params *CacheServiceMetricsKeyCapacityGetParams) (*CacheServiceMetricsKeyCapacityGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1560,9 +1560,9 @@ func (a *Client) CacheServiceMetricsKeyCapacityGet(params *CacheServiceMetricsKe
 }
 
 /*
-  CacheServiceMetricsKeyEntriesGet gets key entries
+CacheServiceMetricsKeyEntriesGet gets key entries
 
-  Get key entries
+Get key entries
 */
 func (a *Client) CacheServiceMetricsKeyEntriesGet(params *CacheServiceMetricsKeyEntriesGetParams) (*CacheServiceMetricsKeyEntriesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1595,9 +1595,9 @@ func (a *Client) CacheServiceMetricsKeyEntriesGet(params *CacheServiceMetricsKey
 }
 
 /*
-  CacheServiceMetricsKeyHitRateGet gets key hit rate
+CacheServiceMetricsKeyHitRateGet gets key hit rate
 
-  Get key hit rate
+Get key hit rate
 */
 func (a *Client) CacheServiceMetricsKeyHitRateGet(params *CacheServiceMetricsKeyHitRateGetParams) (*CacheServiceMetricsKeyHitRateGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1630,9 +1630,9 @@ func (a *Client) CacheServiceMetricsKeyHitRateGet(params *CacheServiceMetricsKey
 }
 
 /*
-  CacheServiceMetricsKeyHitsGet gets key hits
+CacheServiceMetricsKeyHitsGet gets key hits
 
-  Get key hits
+Get key hits
 */
 func (a *Client) CacheServiceMetricsKeyHitsGet(params *CacheServiceMetricsKeyHitsGetParams) (*CacheServiceMetricsKeyHitsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1665,9 +1665,9 @@ func (a *Client) CacheServiceMetricsKeyHitsGet(params *CacheServiceMetricsKeyHit
 }
 
 /*
-  CacheServiceMetricsKeyHitsMovingAvrageGet gets key hits moving avrage
+CacheServiceMetricsKeyHitsMovingAvrageGet gets key hits moving avrage
 
-  Get key hits moving avrage
+Get key hits moving avrage
 */
 func (a *Client) CacheServiceMetricsKeyHitsMovingAvrageGet(params *CacheServiceMetricsKeyHitsMovingAvrageGetParams) (*CacheServiceMetricsKeyHitsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1700,9 +1700,9 @@ func (a *Client) CacheServiceMetricsKeyHitsMovingAvrageGet(params *CacheServiceM
 }
 
 /*
-  CacheServiceMetricsKeyRequestsGet gets key requests
+CacheServiceMetricsKeyRequestsGet gets key requests
 
-  Get key requests
+Get key requests
 */
 func (a *Client) CacheServiceMetricsKeyRequestsGet(params *CacheServiceMetricsKeyRequestsGetParams) (*CacheServiceMetricsKeyRequestsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1735,9 +1735,9 @@ func (a *Client) CacheServiceMetricsKeyRequestsGet(params *CacheServiceMetricsKe
 }
 
 /*
-  CacheServiceMetricsKeyRequestsMovingAvrageGet gets key requests moving avrage
+CacheServiceMetricsKeyRequestsMovingAvrageGet gets key requests moving avrage
 
-  Get key requests moving avrage
+Get key requests moving avrage
 */
 func (a *Client) CacheServiceMetricsKeyRequestsMovingAvrageGet(params *CacheServiceMetricsKeyRequestsMovingAvrageGetParams) (*CacheServiceMetricsKeyRequestsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1770,9 +1770,9 @@ func (a *Client) CacheServiceMetricsKeyRequestsMovingAvrageGet(params *CacheServ
 }
 
 /*
-  CacheServiceMetricsKeySizeGet gets key size
+CacheServiceMetricsKeySizeGet gets key size
 
-  Get key cache waited size
+Get key cache waited size
 */
 func (a *Client) CacheServiceMetricsKeySizeGet(params *CacheServiceMetricsKeySizeGetParams) (*CacheServiceMetricsKeySizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1805,9 +1805,9 @@ func (a *Client) CacheServiceMetricsKeySizeGet(params *CacheServiceMetricsKeySiz
 }
 
 /*
-  CacheServiceMetricsRowCapacityGet gets row capacity
+CacheServiceMetricsRowCapacityGet gets row capacity
 
-  Get row capacity
+Get row capacity
 */
 func (a *Client) CacheServiceMetricsRowCapacityGet(params *CacheServiceMetricsRowCapacityGetParams) (*CacheServiceMetricsRowCapacityGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1840,9 +1840,9 @@ func (a *Client) CacheServiceMetricsRowCapacityGet(params *CacheServiceMetricsRo
 }
 
 /*
-  CacheServiceMetricsRowEntriesGet gets row entries
+CacheServiceMetricsRowEntriesGet gets row entries
 
-  Get row entries
+Get row entries
 */
 func (a *Client) CacheServiceMetricsRowEntriesGet(params *CacheServiceMetricsRowEntriesGetParams) (*CacheServiceMetricsRowEntriesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1875,9 +1875,9 @@ func (a *Client) CacheServiceMetricsRowEntriesGet(params *CacheServiceMetricsRow
 }
 
 /*
-  CacheServiceMetricsRowHitRateGet gets row hit rate
+CacheServiceMetricsRowHitRateGet gets row hit rate
 
-  Get row hit rate
+Get row hit rate
 */
 func (a *Client) CacheServiceMetricsRowHitRateGet(params *CacheServiceMetricsRowHitRateGetParams) (*CacheServiceMetricsRowHitRateGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1910,9 +1910,9 @@ func (a *Client) CacheServiceMetricsRowHitRateGet(params *CacheServiceMetricsRow
 }
 
 /*
-  CacheServiceMetricsRowHitsGet gets row hits
+CacheServiceMetricsRowHitsGet gets row hits
 
-  Get row hits
+Get row hits
 */
 func (a *Client) CacheServiceMetricsRowHitsGet(params *CacheServiceMetricsRowHitsGetParams) (*CacheServiceMetricsRowHitsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1945,9 +1945,9 @@ func (a *Client) CacheServiceMetricsRowHitsGet(params *CacheServiceMetricsRowHit
 }
 
 /*
-  CacheServiceMetricsRowHitsMovingAvrageGet gets row hits moving avrage
+CacheServiceMetricsRowHitsMovingAvrageGet gets row hits moving avrage
 
-  Get row hits moving avrage
+Get row hits moving avrage
 */
 func (a *Client) CacheServiceMetricsRowHitsMovingAvrageGet(params *CacheServiceMetricsRowHitsMovingAvrageGetParams) (*CacheServiceMetricsRowHitsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
@@ -1980,9 +1980,9 @@ func (a *Client) CacheServiceMetricsRowHitsMovingAvrageGet(params *CacheServiceM
 }
 
 /*
-  CacheServiceMetricsRowRequestsGet gets row requests
+CacheServiceMetricsRowRequestsGet gets row requests
 
-  Get row requests
+Get row requests
 */
 func (a *Client) CacheServiceMetricsRowRequestsGet(params *CacheServiceMetricsRowRequestsGetParams) (*CacheServiceMetricsRowRequestsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2015,9 +2015,9 @@ func (a *Client) CacheServiceMetricsRowRequestsGet(params *CacheServiceMetricsRo
 }
 
 /*
-  CacheServiceMetricsRowRequestsMovingAvrageGet gets row requests moving avrage
+CacheServiceMetricsRowRequestsMovingAvrageGet gets row requests moving avrage
 
-  Get row requests moving avrage
+Get row requests moving avrage
 */
 func (a *Client) CacheServiceMetricsRowRequestsMovingAvrageGet(params *CacheServiceMetricsRowRequestsMovingAvrageGetParams) (*CacheServiceMetricsRowRequestsMovingAvrageGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2050,9 +2050,9 @@ func (a *Client) CacheServiceMetricsRowRequestsMovingAvrageGet(params *CacheServ
 }
 
 /*
-  CacheServiceMetricsRowSizeGet gets row size
+CacheServiceMetricsRowSizeGet gets row size
 
-  Get row cache waited size
+Get row cache waited size
 */
 func (a *Client) CacheServiceMetricsRowSizeGet(params *CacheServiceMetricsRowSizeGetParams) (*CacheServiceMetricsRowSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2085,9 +2085,9 @@ func (a *Client) CacheServiceMetricsRowSizeGet(params *CacheServiceMetricsRowSiz
 }
 
 /*
-  CacheServiceRowCacheCapacityPost sets row cache capacity in mb
+CacheServiceRowCacheCapacityPost sets row cache capacity in mb
 
-  set row cache capacity in mb
+set row cache capacity in mb
 */
 func (a *Client) CacheServiceRowCacheCapacityPost(params *CacheServiceRowCacheCapacityPostParams) (*CacheServiceRowCacheCapacityPostOK, error) {
 	// TODO: Validate the params before sending
@@ -2120,9 +2120,9 @@ func (a *Client) CacheServiceRowCacheCapacityPost(params *CacheServiceRowCacheCa
 }
 
 /*
-  CacheServiceRowCacheKeysToSaveGet gets row cache keys to save
+CacheServiceRowCacheKeysToSaveGet gets row cache keys to save
 
-  get row cache keys to save
+get row cache keys to save
 */
 func (a *Client) CacheServiceRowCacheKeysToSaveGet(params *CacheServiceRowCacheKeysToSaveGetParams) (*CacheServiceRowCacheKeysToSaveGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2155,9 +2155,9 @@ func (a *Client) CacheServiceRowCacheKeysToSaveGet(params *CacheServiceRowCacheK
 }
 
 /*
-  CacheServiceRowCacheKeysToSavePost sets row cache keys to save
+CacheServiceRowCacheKeysToSavePost sets row cache keys to save
 
-  set row cache keys to save
+set row cache keys to save
 */
 func (a *Client) CacheServiceRowCacheKeysToSavePost(params *CacheServiceRowCacheKeysToSavePostParams) (*CacheServiceRowCacheKeysToSavePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2190,9 +2190,9 @@ func (a *Client) CacheServiceRowCacheKeysToSavePost(params *CacheServiceRowCache
 }
 
 /*
-  CacheServiceRowCacheSavePeriodGet gets row cache save period in seconds
+CacheServiceRowCacheSavePeriodGet gets row cache save period in seconds
 
-  get row cache save period in seconds
+get row cache save period in seconds
 */
 func (a *Client) CacheServiceRowCacheSavePeriodGet(params *CacheServiceRowCacheSavePeriodGetParams) (*CacheServiceRowCacheSavePeriodGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2225,9 +2225,9 @@ func (a *Client) CacheServiceRowCacheSavePeriodGet(params *CacheServiceRowCacheS
 }
 
 /*
-  CacheServiceRowCacheSavePeriodPost sets row cache save period in seconds
+CacheServiceRowCacheSavePeriodPost sets row cache save period in seconds
 
-  set row cache save period in seconds
+set row cache save period in seconds
 */
 func (a *Client) CacheServiceRowCacheSavePeriodPost(params *CacheServiceRowCacheSavePeriodPostParams) (*CacheServiceRowCacheSavePeriodPostOK, error) {
 	// TODO: Validate the params before sending
@@ -2260,9 +2260,9 @@ func (a *Client) CacheServiceRowCacheSavePeriodPost(params *CacheServiceRowCache
 }
 
 /*
-  CacheServiceSaveCachesPost saves caches
+CacheServiceSaveCachesPost saves caches
 
-  save row and key caches
+save row and key caches
 */
 func (a *Client) CacheServiceSaveCachesPost(params *CacheServiceSaveCachesPostParams) (*CacheServiceSaveCachesPostOK, error) {
 	// TODO: Validate the params before sending
@@ -2295,9 +2295,9 @@ func (a *Client) CacheServiceSaveCachesPost(params *CacheServiceSaveCachesPostPa
 }
 
 /*
-  CollectdByPluginidGet gets collectd
+CollectdByPluginidGet gets collectd
 
-  Get a collectd value
+Get a collectd value
 */
 func (a *Client) CollectdByPluginidGet(params *CollectdByPluginidGetParams) (*CollectdByPluginidGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2330,9 +2330,9 @@ func (a *Client) CollectdByPluginidGet(params *CollectdByPluginidGetParams) (*Co
 }
 
 /*
-  CollectdByPluginidPost enables collectd
+CollectdByPluginidPost enables collectd
 
-  Start reporting on one or more collectd metric
+Start reporting on one or more collectd metric
 */
 func (a *Client) CollectdByPluginidPost(params *CollectdByPluginidPostParams) (*CollectdByPluginidPostOK, error) {
 	// TODO: Validate the params before sending
@@ -2365,9 +2365,9 @@ func (a *Client) CollectdByPluginidPost(params *CollectdByPluginidPostParams) (*
 }
 
 /*
-  CollectdGet gets collectd items
+CollectdGet gets collectd items
 
-  Get a list of all collectd metrics and their status
+Get a list of all collectd metrics and their status
 */
 func (a *Client) CollectdGet(params *CollectdGetParams) (*CollectdGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2400,9 +2400,9 @@ func (a *Client) CollectdGet(params *CollectdGetParams) (*CollectdGetOK, error) 
 }
 
 /*
-  CollectdPost enables all collectd
+CollectdPost enables all collectd
 
-  Enable or disable all collectd metrics
+Enable or disable all collectd metrics
 */
 func (a *Client) CollectdPost(params *CollectdPostParams) (*CollectdPostOK, error) {
 	// TODO: Validate the params before sending
@@ -2435,9 +2435,9 @@ func (a *Client) CollectdPost(params *CollectdPostParams) (*CollectdPostOK, erro
 }
 
 /*
-  ColumnFamilyAutocompactionByNameDelete disables auto compaction
+ColumnFamilyAutocompactionByNameDelete disables auto compaction
 
-  Disable table auto compaction
+Disable table auto compaction
 */
 func (a *Client) ColumnFamilyAutocompactionByNameDelete(params *ColumnFamilyAutocompactionByNameDeleteParams) (*ColumnFamilyAutocompactionByNameDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -2470,9 +2470,9 @@ func (a *Client) ColumnFamilyAutocompactionByNameDelete(params *ColumnFamilyAuto
 }
 
 /*
-  ColumnFamilyAutocompactionByNameGet is auto compaction enabled
+ColumnFamilyAutocompactionByNameGet is auto compaction enabled
 
-  check if the auto_compaction property is enabled for a given table
+check if the auto_compaction property is enabled for a given table
 */
 func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocompactionByNameGetParams) (*ColumnFamilyAutocompactionByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2505,9 +2505,9 @@ func (a *Client) ColumnFamilyAutocompactionByNameGet(params *ColumnFamilyAutocom
 }
 
 /*
-  ColumnFamilyAutocompactionByNamePost enables auto compaction
+ColumnFamilyAutocompactionByNamePost enables auto compaction
 
-  Enable table auto compaction
+Enable table auto compaction
 */
 func (a *Client) ColumnFamilyAutocompactionByNamePost(params *ColumnFamilyAutocompactionByNamePostParams) (*ColumnFamilyAutocompactionByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2540,9 +2540,9 @@ func (a *Client) ColumnFamilyAutocompactionByNamePost(params *ColumnFamilyAutoco
 }
 
 /*
-  ColumnFamilyBuiltIndexesByNameGet gets built indexes
+ColumnFamilyBuiltIndexesByNameGet gets built indexes
 
-  Returns a list of the names of the built column indexes for current store
+Returns a list of the names of the built column indexes for current store
 */
 func (a *Client) ColumnFamilyBuiltIndexesByNameGet(params *ColumnFamilyBuiltIndexesByNameGetParams) (*ColumnFamilyBuiltIndexesByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2575,9 +2575,9 @@ func (a *Client) ColumnFamilyBuiltIndexesByNameGet(params *ColumnFamilyBuiltInde
 }
 
 /*
-  ColumnFamilyCompactionByNamePost sets compaction threshold
+ColumnFamilyCompactionByNamePost sets compaction threshold
 
-  Sets the minumum and maximum number of sstables in queue before compaction kicks off
+Sets the minumum and maximum number of sstables in queue before compaction kicks off
 */
 func (a *Client) ColumnFamilyCompactionByNamePost(params *ColumnFamilyCompactionByNamePostParams) (*ColumnFamilyCompactionByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2610,9 +2610,9 @@ func (a *Client) ColumnFamilyCompactionByNamePost(params *ColumnFamilyCompaction
 }
 
 /*
-  ColumnFamilyCompactionStrategyByNameGet gets compaction strategy class
+ColumnFamilyCompactionStrategyByNameGet gets compaction strategy class
 
-  Gets the compaction strategy class name
+Gets the compaction strategy class name
 */
 func (a *Client) ColumnFamilyCompactionStrategyByNameGet(params *ColumnFamilyCompactionStrategyByNameGetParams) (*ColumnFamilyCompactionStrategyByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2645,9 +2645,9 @@ func (a *Client) ColumnFamilyCompactionStrategyByNameGet(params *ColumnFamilyCom
 }
 
 /*
-  ColumnFamilyCompactionStrategyByNamePost sets compaction strategy class
+ColumnFamilyCompactionStrategyByNamePost sets compaction strategy class
 
-  Sets the compaction strategy by class name
+Sets the compaction strategy by class name
 */
 func (a *Client) ColumnFamilyCompactionStrategyByNamePost(params *ColumnFamilyCompactionStrategyByNamePostParams) (*ColumnFamilyCompactionStrategyByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2680,9 +2680,9 @@ func (a *Client) ColumnFamilyCompactionStrategyByNamePost(params *ColumnFamilyCo
 }
 
 /*
-  ColumnFamilyCompressionParametersByNameGet gets compression parameters
+ColumnFamilyCompressionParametersByNameGet gets compression parameters
 
-  get the compression parameters
+get the compression parameters
 */
 func (a *Client) ColumnFamilyCompressionParametersByNameGet(params *ColumnFamilyCompressionParametersByNameGetParams) (*ColumnFamilyCompressionParametersByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2715,9 +2715,9 @@ func (a *Client) ColumnFamilyCompressionParametersByNameGet(params *ColumnFamily
 }
 
 /*
-  ColumnFamilyCompressionParametersByNamePost sets compression parameters
+ColumnFamilyCompressionParametersByNamePost sets compression parameters
 
-  Sets the compression parameters
+Sets the compression parameters
 */
 func (a *Client) ColumnFamilyCompressionParametersByNamePost(params *ColumnFamilyCompressionParametersByNamePostParams) (*ColumnFamilyCompressionParametersByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2750,9 +2750,9 @@ func (a *Client) ColumnFamilyCompressionParametersByNamePost(params *ColumnFamil
 }
 
 /*
-  ColumnFamilyCrcCheckChanceByNamePost sets crc check chance
+ColumnFamilyCrcCheckChanceByNamePost sets crc check chance
 
-  Set new crc check chance
+Set new crc check chance
 */
 func (a *Client) ColumnFamilyCrcCheckChanceByNamePost(params *ColumnFamilyCrcCheckChanceByNamePostParams) (*ColumnFamilyCrcCheckChanceByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2785,9 +2785,9 @@ func (a *Client) ColumnFamilyCrcCheckChanceByNamePost(params *ColumnFamilyCrcChe
 }
 
 /*
-  ColumnFamilyDroppableRatioByNameGet gets droppable tombstone ratio
+ColumnFamilyDroppableRatioByNameGet gets droppable tombstone ratio
 
-  Get the ratio of droppable tombstones to real columns (and non-droppable tombstones)
+Get the ratio of droppable tombstones to real columns (and non-droppable tombstones)
 */
 func (a *Client) ColumnFamilyDroppableRatioByNameGet(params *ColumnFamilyDroppableRatioByNameGetParams) (*ColumnFamilyDroppableRatioByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2820,9 +2820,9 @@ func (a *Client) ColumnFamilyDroppableRatioByNameGet(params *ColumnFamilyDroppab
 }
 
 /*
-  ColumnFamilyEstimateKeysByNameGet estimates keys
+ColumnFamilyEstimateKeysByNameGet estimates keys
 
-  Get the estimate keys
+Get the estimate keys
 */
 func (a *Client) ColumnFamilyEstimateKeysByNameGet(params *ColumnFamilyEstimateKeysByNameGetParams) (*ColumnFamilyEstimateKeysByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2855,9 +2855,9 @@ func (a *Client) ColumnFamilyEstimateKeysByNameGet(params *ColumnFamilyEstimateK
 }
 
 /*
-  ColumnFamilyGet gets column family
+ColumnFamilyGet gets column family
 
-  Get a list of all column family info
+Get a list of all column family info
 */
 func (a *Client) ColumnFamilyGet(params *ColumnFamilyGetParams) (*ColumnFamilyGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2890,9 +2890,9 @@ func (a *Client) ColumnFamilyGet(params *ColumnFamilyGetParams) (*ColumnFamilyGe
 }
 
 /*
-  ColumnFamilyLoadSstableByNamePost loads new sstables
+ColumnFamilyLoadSstableByNamePost loads new sstables
 
-  Scan through Keyspace/ColumnFamily's data directory determine which SSTables should be loaded and load them
+Scan through Keyspace/ColumnFamily's data directory determine which SSTables should be loaded and load them
 */
 func (a *Client) ColumnFamilyLoadSstableByNamePost(params *ColumnFamilyLoadSstableByNamePostParams) (*ColumnFamilyLoadSstableByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2925,9 +2925,9 @@ func (a *Client) ColumnFamilyLoadSstableByNamePost(params *ColumnFamilyLoadSstab
 }
 
 /*
-  ColumnFamilyMajorCompactionByNamePost forces major compaction
+ColumnFamilyMajorCompactionByNamePost forces major compaction
 
-  Force a major compaction of this column family
+Force a major compaction of this column family
 */
 func (a *Client) ColumnFamilyMajorCompactionByNamePost(params *ColumnFamilyMajorCompactionByNamePostParams) (*ColumnFamilyMajorCompactionByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -2960,9 +2960,9 @@ func (a *Client) ColumnFamilyMajorCompactionByNamePost(params *ColumnFamilyMajor
 }
 
 /*
-  ColumnFamilyMaximumCompactionByNameGet gets maximum compaction threshold
+ColumnFamilyMaximumCompactionByNameGet gets maximum compaction threshold
 
-  get the maximum number of sstables in queue before compaction kicks off
+get the maximum number of sstables in queue before compaction kicks off
 */
 func (a *Client) ColumnFamilyMaximumCompactionByNameGet(params *ColumnFamilyMaximumCompactionByNameGetParams) (*ColumnFamilyMaximumCompactionByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -2995,9 +2995,9 @@ func (a *Client) ColumnFamilyMaximumCompactionByNameGet(params *ColumnFamilyMaxi
 }
 
 /*
-  ColumnFamilyMaximumCompactionByNamePost sets maximum compaction threshold
+ColumnFamilyMaximumCompactionByNamePost sets maximum compaction threshold
 
-  Sets the maximum number of sstables in queue before compaction kicks off
+Sets the maximum number of sstables in queue before compaction kicks off
 */
 func (a *Client) ColumnFamilyMaximumCompactionByNamePost(params *ColumnFamilyMaximumCompactionByNamePostParams) (*ColumnFamilyMaximumCompactionByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -3030,9 +3030,9 @@ func (a *Client) ColumnFamilyMaximumCompactionByNamePost(params *ColumnFamilyMax
 }
 
 /*
-  ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet gets cf all memtables live data size
+ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet gets cf all memtables live data size
 
-  Get all of the column family active and not memtables live data size
+Get all of the column family active and not memtables live data size
 */
 func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet(params *ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetParams) (*ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3065,9 +3065,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeByNameGet(params *Co
 }
 
 /*
-  ColumnFamilyMetricsAllMemtablesLiveDataSizeGet gets all cf all memtables live data size
+ColumnFamilyMetricsAllMemtablesLiveDataSizeGet gets all cf all memtables live data size
 
-  Get all memtables active and not of all column family live data size
+Get all memtables active and not of all column family live data size
 */
 func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeGet(params *ColumnFamilyMetricsAllMemtablesLiveDataSizeGetParams) (*ColumnFamilyMetricsAllMemtablesLiveDataSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3100,9 +3100,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesLiveDataSizeGet(params *ColumnFa
 }
 
 /*
-  ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet gets cf all memtables off heap size
+ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet gets cf all memtables off heap size
 
-  Get all of the column family active and not memtables off heap size
+Get all of the column family active and not memtables off heap size
 */
 func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet(params *ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetParams) (*ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3135,9 +3135,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeByNameGet(params *Col
 }
 
 /*
-  ColumnFamilyMetricsAllMemtablesOffHeapSizeGet gets all cf all memtables off heap size
+ColumnFamilyMetricsAllMemtablesOffHeapSizeGet gets all cf all memtables off heap size
 
-  Get all memtables active and not of all column family off heap size
+Get all memtables active and not of all column family off heap size
 */
 func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeGet(params *ColumnFamilyMetricsAllMemtablesOffHeapSizeGetParams) (*ColumnFamilyMetricsAllMemtablesOffHeapSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3170,9 +3170,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOffHeapSizeGet(params *ColumnFam
 }
 
 /*
-  ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet gets cf all memtables on heap size
+ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet gets cf all memtables on heap size
 
-  Get all of the column family active and not memtables on heap size
+Get all of the column family active and not memtables on heap size
 */
 func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet(params *ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetParams) (*ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3205,9 +3205,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeByNameGet(params *Colu
 }
 
 /*
-  ColumnFamilyMetricsAllMemtablesOnHeapSizeGet gets all cf all memtables on heap size
+ColumnFamilyMetricsAllMemtablesOnHeapSizeGet gets all cf all memtables on heap size
 
-  Get all memtables active and not of all column family on heap size
+Get all memtables active and not of all column family on heap size
 */
 func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeGet(params *ColumnFamilyMetricsAllMemtablesOnHeapSizeGetParams) (*ColumnFamilyMetricsAllMemtablesOnHeapSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3240,9 +3240,9 @@ func (a *Client) ColumnFamilyMetricsAllMemtablesOnHeapSizeGet(params *ColumnFami
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet gets bloom filter disk space used
+ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet gets bloom filter disk space used
 
-  Get bloom filter disk space used
+Get bloom filter disk space used
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet(params *ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetParams) (*ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3275,9 +3275,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedByNameGet(params *Co
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet gets all bloom filter disk space used
+ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet gets all bloom filter disk space used
 
-  Get all bloom filter disk space used
+Get all bloom filter disk space used
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet(params *ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetParams) (*ColumnFamilyMetricsBloomFilterDiskSpaceUsedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3310,9 +3310,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterDiskSpaceUsedGet(params *ColumnFa
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet gets bloom filter false positives
+ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet gets bloom filter false positives
 
-  Get bloom filter false positives
+Get bloom filter false positives
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet(params *ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetParams) (*ColumnFamilyMetricsBloomFilterFalsePositivesByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3345,9 +3345,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesByNameGet(params *C
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterFalsePositivesGet gets all bloom filter false positives
+ColumnFamilyMetricsBloomFilterFalsePositivesGet gets all bloom filter false positives
 
-  Get all bloom filter false positives
+Get all bloom filter false positives
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesGet(params *ColumnFamilyMetricsBloomFilterFalsePositivesGetParams) (*ColumnFamilyMetricsBloomFilterFalsePositivesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3380,9 +3380,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalsePositivesGet(params *ColumnF
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterFalseRatioByNameGet gets bloom filter false ratio
+ColumnFamilyMetricsBloomFilterFalseRatioByNameGet gets bloom filter false ratio
 
-  Get bloom filter false ratio
+Get bloom filter false ratio
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioByNameGet(params *ColumnFamilyMetricsBloomFilterFalseRatioByNameGetParams) (*ColumnFamilyMetricsBloomFilterFalseRatioByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3415,9 +3415,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioByNameGet(params *Colum
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterFalseRatioGet gets all bloom filter false ratio
+ColumnFamilyMetricsBloomFilterFalseRatioGet gets all bloom filter false ratio
 
-  Get all bloom filter false ratio
+Get all bloom filter false ratio
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioGet(params *ColumnFamilyMetricsBloomFilterFalseRatioGetParams) (*ColumnFamilyMetricsBloomFilterFalseRatioGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3450,9 +3450,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterFalseRatioGet(params *ColumnFamil
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet gets bloom filter off heap memory used
+ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet gets bloom filter off heap memory used
 
-  Get bloom filter off heap memory used
+Get bloom filter off heap memory used
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet(params *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetParams) (*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3485,9 +3485,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedByNameGet(params
 }
 
 /*
-  ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet gets all bloom filter off heap memory used
+ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet gets all bloom filter off heap memory used
 
-  Get all bloom filter off heap memory used
+Get all bloom filter off heap memory used
 */
 func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet(params *ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetParams) (*ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3520,9 +3520,9 @@ func (a *Client) ColumnFamilyMetricsBloomFilterOffHeapMemoryUsedGet(params *Colu
 }
 
 /*
-  ColumnFamilyMetricsCasCommitByNameGet gets cas commit
+ColumnFamilyMetricsCasCommitByNameGet gets cas commit
 
-  Get cas commit
+Get cas commit
 */
 func (a *Client) ColumnFamilyMetricsCasCommitByNameGet(params *ColumnFamilyMetricsCasCommitByNameGetParams) (*ColumnFamilyMetricsCasCommitByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3555,9 +3555,9 @@ func (a *Client) ColumnFamilyMetricsCasCommitByNameGet(params *ColumnFamilyMetri
 }
 
 /*
-  ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet gets cas commit estimated histogram
+ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet gets cas commit estimated histogram
 
-  Get cas commit
+Get cas commit
 */
 func (a *Client) ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet(params *ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3590,9 +3590,9 @@ func (a *Client) ColumnFamilyMetricsCasCommitEstimatedHistogramByNameGet(params 
 }
 
 /*
-  ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet gets cas commit estimated recent histogram
+ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet gets cas commit estimated recent histogram
 
-  Get cas commit
+Get cas commit
 */
 func (a *Client) ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3625,9 +3625,9 @@ func (a *Client) ColumnFamilyMetricsCasCommitEstimatedRecentHistogramByNameGet(p
 }
 
 /*
-  ColumnFamilyMetricsCasPrepareByNameGet gets cas prepare
+ColumnFamilyMetricsCasPrepareByNameGet gets cas prepare
 
-  Get cas prepare
+Get cas prepare
 */
 func (a *Client) ColumnFamilyMetricsCasPrepareByNameGet(params *ColumnFamilyMetricsCasPrepareByNameGetParams) (*ColumnFamilyMetricsCasPrepareByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3660,9 +3660,9 @@ func (a *Client) ColumnFamilyMetricsCasPrepareByNameGet(params *ColumnFamilyMetr
 }
 
 /*
-  ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet gets cas prepare estimated histogram
+ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet gets cas prepare estimated histogram
 
-  Get cas prepare
+Get cas prepare
 */
 func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet(params *ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3695,9 +3695,9 @@ func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedHistogramByNameGet(params
 }
 
 /*
-  ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet gets cas prepare estimated recent histogram
+ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet gets cas prepare estimated recent histogram
 
-  Get cas prepare
+Get cas prepare
 */
 func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3730,9 +3730,9 @@ func (a *Client) ColumnFamilyMetricsCasPrepareEstimatedRecentHistogramByNameGet(
 }
 
 /*
-  ColumnFamilyMetricsCasProposeByNameGet gets cas propose
+ColumnFamilyMetricsCasProposeByNameGet gets cas propose
 
-  Get cas propose
+Get cas propose
 */
 func (a *Client) ColumnFamilyMetricsCasProposeByNameGet(params *ColumnFamilyMetricsCasProposeByNameGetParams) (*ColumnFamilyMetricsCasProposeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3765,9 +3765,9 @@ func (a *Client) ColumnFamilyMetricsCasProposeByNameGet(params *ColumnFamilyMetr
 }
 
 /*
-  ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet gets cas propose estimated histogram
+ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet gets cas propose estimated histogram
 
-  Get cas propose
+Get cas propose
 */
 func (a *Client) ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet(params *ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3800,9 +3800,9 @@ func (a *Client) ColumnFamilyMetricsCasProposeEstimatedHistogramByNameGet(params
 }
 
 /*
-  ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet gets cas propose estimated recent histogram
+ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet gets cas propose estimated recent histogram
 
-  Get cas propose
+Get cas propose
 */
 func (a *Client) ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3835,9 +3835,9 @@ func (a *Client) ColumnFamilyMetricsCasProposeEstimatedRecentHistogramByNameGet(
 }
 
 /*
-  ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet gets col update time delta histogram
+ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet gets col update time delta histogram
 
-  Get col update time delta histogram
+Get col update time delta histogram
 */
 func (a *Client) ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet(params *ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetParams) (*ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3870,9 +3870,9 @@ func (a *Client) ColumnFamilyMetricsColUpdateTimeDeltaHistogramByNameGet(params 
 }
 
 /*
-  ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet gets compression metadata off heap memory used
+ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet gets compression metadata off heap memory used
 
-  Get compression metadata off heap memory used
+Get compression metadata off heap memory used
 */
 func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGet(params *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetParams) (*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3905,9 +3905,9 @@ func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedByNameGe
 }
 
 /*
-  ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet gets all compression metadata off heap memory used
+ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet gets all compression metadata off heap memory used
 
-  Get all compression metadata off heap memory used
+Get all compression metadata off heap memory used
 */
 func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet(params *ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetParams) (*ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3940,9 +3940,9 @@ func (a *Client) ColumnFamilyMetricsCompressionMetadataOffHeapMemoryUsedGet(para
 }
 
 /*
-  ColumnFamilyMetricsCompressionRatioByNameGet gets compression ratio
+ColumnFamilyMetricsCompressionRatioByNameGet gets compression ratio
 
-  Get compression ratio
+Get compression ratio
 */
 func (a *Client) ColumnFamilyMetricsCompressionRatioByNameGet(params *ColumnFamilyMetricsCompressionRatioByNameGetParams) (*ColumnFamilyMetricsCompressionRatioByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -3975,9 +3975,9 @@ func (a *Client) ColumnFamilyMetricsCompressionRatioByNameGet(params *ColumnFami
 }
 
 /*
-  ColumnFamilyMetricsCompressionRatioGet gets all compression ratio
+ColumnFamilyMetricsCompressionRatioGet gets all compression ratio
 
-  Get all compression ratio
+Get all compression ratio
 */
 func (a *Client) ColumnFamilyMetricsCompressionRatioGet(params *ColumnFamilyMetricsCompressionRatioGetParams) (*ColumnFamilyMetricsCompressionRatioGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4010,9 +4010,9 @@ func (a *Client) ColumnFamilyMetricsCompressionRatioGet(params *ColumnFamilyMetr
 }
 
 /*
-  ColumnFamilyMetricsCoordinatorReadGet gets coordinator read latency
+ColumnFamilyMetricsCoordinatorReadGet gets coordinator read latency
 
-  Get coordinator read latency
+Get coordinator read latency
 */
 func (a *Client) ColumnFamilyMetricsCoordinatorReadGet(params *ColumnFamilyMetricsCoordinatorReadGetParams) (*ColumnFamilyMetricsCoordinatorReadGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4045,9 +4045,9 @@ func (a *Client) ColumnFamilyMetricsCoordinatorReadGet(params *ColumnFamilyMetri
 }
 
 /*
-  ColumnFamilyMetricsCoordinatorScanGet gets coordinator scan latency
+ColumnFamilyMetricsCoordinatorScanGet gets coordinator scan latency
 
-  Get coordinator scan latency
+Get coordinator scan latency
 */
 func (a *Client) ColumnFamilyMetricsCoordinatorScanGet(params *ColumnFamilyMetricsCoordinatorScanGetParams) (*ColumnFamilyMetricsCoordinatorScanGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4080,9 +4080,9 @@ func (a *Client) ColumnFamilyMetricsCoordinatorScanGet(params *ColumnFamilyMetri
 }
 
 /*
-  ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet gets estimated column count histogram
+ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet gets estimated column count histogram
 
-  Get estimated column count histogram
+Get estimated column count histogram
 */
 func (a *Client) ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet(params *ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetParams) (*ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4115,9 +4115,9 @@ func (a *Client) ColumnFamilyMetricsEstimatedColumnCountHistogramByNameGet(param
 }
 
 /*
-  ColumnFamilyMetricsEstimatedRowCountByNameGet gets estimated row count
+ColumnFamilyMetricsEstimatedRowCountByNameGet gets estimated row count
 
-  Get estimated row count
+Get estimated row count
 */
 func (a *Client) ColumnFamilyMetricsEstimatedRowCountByNameGet(params *ColumnFamilyMetricsEstimatedRowCountByNameGetParams) (*ColumnFamilyMetricsEstimatedRowCountByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4150,9 +4150,9 @@ func (a *Client) ColumnFamilyMetricsEstimatedRowCountByNameGet(params *ColumnFam
 }
 
 /*
-  ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet gets estimated row size histogram
+ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet gets estimated row size histogram
 
-  Get estimated row size histogram
+Get estimated row size histogram
 */
 func (a *Client) ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet(params *ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetParams) (*ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4185,9 +4185,9 @@ func (a *Client) ColumnFamilyMetricsEstimatedRowSizeHistogramByNameGet(params *C
 }
 
 /*
-  ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet gets index summary off heap memory used
+ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet gets index summary off heap memory used
 
-  Get index summary off heap memory used
+Get index summary off heap memory used
 */
 func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet(params *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetParams) (*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4220,9 +4220,9 @@ func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedByNameGet(param
 }
 
 /*
-  ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet gets all index summary off heap memory used
+ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet gets all index summary off heap memory used
 
-  Get all index summary off heap memory used
+Get all index summary off heap memory used
 */
 func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet(params *ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetParams) (*ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4255,9 +4255,9 @@ func (a *Client) ColumnFamilyMetricsIndexSummaryOffHeapMemoryUsedGet(params *Col
 }
 
 /*
-  ColumnFamilyMetricsKeyCacheHitRateByNameGet gets key cache hit rate
+ColumnFamilyMetricsKeyCacheHitRateByNameGet gets key cache hit rate
 
-  Get key cache hit rate
+Get key cache hit rate
 */
 func (a *Client) ColumnFamilyMetricsKeyCacheHitRateByNameGet(params *ColumnFamilyMetricsKeyCacheHitRateByNameGetParams) (*ColumnFamilyMetricsKeyCacheHitRateByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4290,9 +4290,9 @@ func (a *Client) ColumnFamilyMetricsKeyCacheHitRateByNameGet(params *ColumnFamil
 }
 
 /*
-  ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet gets live disk space used
+ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet gets live disk space used
 
-  Get live disk space used
+Get live disk space used
 */
 func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet(params *ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetParams) (*ColumnFamilyMetricsLiveDiskSpaceUsedByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4325,9 +4325,9 @@ func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedByNameGet(params *ColumnFam
 }
 
 /*
-  ColumnFamilyMetricsLiveDiskSpaceUsedGet gets all live disk space used
+ColumnFamilyMetricsLiveDiskSpaceUsedGet gets all live disk space used
 
-  Get all live disk space used
+Get all live disk space used
 */
 func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedGet(params *ColumnFamilyMetricsLiveDiskSpaceUsedGetParams) (*ColumnFamilyMetricsLiveDiskSpaceUsedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4360,9 +4360,9 @@ func (a *Client) ColumnFamilyMetricsLiveDiskSpaceUsedGet(params *ColumnFamilyMet
 }
 
 /*
-  ColumnFamilyMetricsLiveScannedHistogramByNameGet gets live scanned histogram
+ColumnFamilyMetricsLiveScannedHistogramByNameGet gets live scanned histogram
 
-  Get live scanned histogram
+Get live scanned histogram
 */
 func (a *Client) ColumnFamilyMetricsLiveScannedHistogramByNameGet(params *ColumnFamilyMetricsLiveScannedHistogramByNameGetParams) (*ColumnFamilyMetricsLiveScannedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4395,9 +4395,9 @@ func (a *Client) ColumnFamilyMetricsLiveScannedHistogramByNameGet(params *Column
 }
 
 /*
-  ColumnFamilyMetricsLiveSsTableCountByNameGet gets live ss table count
+ColumnFamilyMetricsLiveSsTableCountByNameGet gets live ss table count
 
-  Get live ss table count
+Get live ss table count
 */
 func (a *Client) ColumnFamilyMetricsLiveSsTableCountByNameGet(params *ColumnFamilyMetricsLiveSsTableCountByNameGetParams) (*ColumnFamilyMetricsLiveSsTableCountByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4430,9 +4430,9 @@ func (a *Client) ColumnFamilyMetricsLiveSsTableCountByNameGet(params *ColumnFami
 }
 
 /*
-  ColumnFamilyMetricsLiveSsTableCountGet gets all live ss table count
+ColumnFamilyMetricsLiveSsTableCountGet gets all live ss table count
 
-  Get all live ss table count
+Get all live ss table count
 */
 func (a *Client) ColumnFamilyMetricsLiveSsTableCountGet(params *ColumnFamilyMetricsLiveSsTableCountGetParams) (*ColumnFamilyMetricsLiveSsTableCountGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4465,9 +4465,9 @@ func (a *Client) ColumnFamilyMetricsLiveSsTableCountGet(params *ColumnFamilyMetr
 }
 
 /*
-  ColumnFamilyMetricsMaxRowSizeByNameGet gets max row size
+ColumnFamilyMetricsMaxRowSizeByNameGet gets max row size
 
-  Get max row size
+Get max row size
 */
 func (a *Client) ColumnFamilyMetricsMaxRowSizeByNameGet(params *ColumnFamilyMetricsMaxRowSizeByNameGetParams) (*ColumnFamilyMetricsMaxRowSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4500,9 +4500,9 @@ func (a *Client) ColumnFamilyMetricsMaxRowSizeByNameGet(params *ColumnFamilyMetr
 }
 
 /*
-  ColumnFamilyMetricsMaxRowSizeGet gets all max row size
+ColumnFamilyMetricsMaxRowSizeGet gets all max row size
 
-  Get all max row size
+Get all max row size
 */
 func (a *Client) ColumnFamilyMetricsMaxRowSizeGet(params *ColumnFamilyMetricsMaxRowSizeGetParams) (*ColumnFamilyMetricsMaxRowSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4535,9 +4535,9 @@ func (a *Client) ColumnFamilyMetricsMaxRowSizeGet(params *ColumnFamilyMetricsMax
 }
 
 /*
-  ColumnFamilyMetricsMeanRowSizeByNameGet gets mean row size
+ColumnFamilyMetricsMeanRowSizeByNameGet gets mean row size
 
-  Get mean row size
+Get mean row size
 */
 func (a *Client) ColumnFamilyMetricsMeanRowSizeByNameGet(params *ColumnFamilyMetricsMeanRowSizeByNameGetParams) (*ColumnFamilyMetricsMeanRowSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4570,9 +4570,9 @@ func (a *Client) ColumnFamilyMetricsMeanRowSizeByNameGet(params *ColumnFamilyMet
 }
 
 /*
-  ColumnFamilyMetricsMeanRowSizeGet gets all mean row size
+ColumnFamilyMetricsMeanRowSizeGet gets all mean row size
 
-  Get all mean row size
+Get all mean row size
 */
 func (a *Client) ColumnFamilyMetricsMeanRowSizeGet(params *ColumnFamilyMetricsMeanRowSizeGetParams) (*ColumnFamilyMetricsMeanRowSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4605,9 +4605,9 @@ func (a *Client) ColumnFamilyMetricsMeanRowSizeGet(params *ColumnFamilyMetricsMe
 }
 
 /*
-  ColumnFamilyMetricsMemtableColumnsCountByNameGet gets memtable columns count
+ColumnFamilyMetricsMemtableColumnsCountByNameGet gets memtable columns count
 
-  get memtable columns count
+get memtable columns count
 */
 func (a *Client) ColumnFamilyMetricsMemtableColumnsCountByNameGet(params *ColumnFamilyMetricsMemtableColumnsCountByNameGetParams) (*ColumnFamilyMetricsMemtableColumnsCountByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4640,9 +4640,9 @@ func (a *Client) ColumnFamilyMetricsMemtableColumnsCountByNameGet(params *Column
 }
 
 /*
-  ColumnFamilyMetricsMemtableColumnsCountGet gets all memtable columns count
+ColumnFamilyMetricsMemtableColumnsCountGet gets all memtable columns count
 
-  get all memtable columns count
+get all memtable columns count
 */
 func (a *Client) ColumnFamilyMetricsMemtableColumnsCountGet(params *ColumnFamilyMetricsMemtableColumnsCountGetParams) (*ColumnFamilyMetricsMemtableColumnsCountGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4675,9 +4675,9 @@ func (a *Client) ColumnFamilyMetricsMemtableColumnsCountGet(params *ColumnFamily
 }
 
 /*
-  ColumnFamilyMetricsMemtableLiveDataSizeByNameGet gets memtable live data size
+ColumnFamilyMetricsMemtableLiveDataSizeByNameGet gets memtable live data size
 
-  Get the column family active memtable live data size
+Get the column family active memtable live data size
 */
 func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeByNameGet(params *ColumnFamilyMetricsMemtableLiveDataSizeByNameGetParams) (*ColumnFamilyMetricsMemtableLiveDataSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4710,9 +4710,9 @@ func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeByNameGet(params *Column
 }
 
 /*
-  ColumnFamilyMetricsMemtableLiveDataSizeGet gets all memtable live data size
+ColumnFamilyMetricsMemtableLiveDataSizeGet gets all memtable live data size
 
-  Get all active memtable of all column family live data size
+Get all active memtable of all column family live data size
 */
 func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeGet(params *ColumnFamilyMetricsMemtableLiveDataSizeGetParams) (*ColumnFamilyMetricsMemtableLiveDataSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4745,9 +4745,9 @@ func (a *Client) ColumnFamilyMetricsMemtableLiveDataSizeGet(params *ColumnFamily
 }
 
 /*
-  ColumnFamilyMetricsMemtableOffHeapSizeByNameGet gets memtable off heap size
+ColumnFamilyMetricsMemtableOffHeapSizeByNameGet gets memtable off heap size
 
-  Get the column family active memtable off heap size
+Get the column family active memtable off heap size
 */
 func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeByNameGet(params *ColumnFamilyMetricsMemtableOffHeapSizeByNameGetParams) (*ColumnFamilyMetricsMemtableOffHeapSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4780,9 +4780,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeByNameGet(params *ColumnF
 }
 
 /*
-  ColumnFamilyMetricsMemtableOffHeapSizeGet gets all memtable off heap size
+ColumnFamilyMetricsMemtableOffHeapSizeGet gets all memtable off heap size
 
-  Get all active memtable of all column family off heap size
+Get all active memtable of all column family off heap size
 */
 func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeGet(params *ColumnFamilyMetricsMemtableOffHeapSizeGetParams) (*ColumnFamilyMetricsMemtableOffHeapSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4815,9 +4815,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOffHeapSizeGet(params *ColumnFamilyM
 }
 
 /*
-  ColumnFamilyMetricsMemtableOnHeapSizeByNameGet gets memtable on heap size
+ColumnFamilyMetricsMemtableOnHeapSizeByNameGet gets memtable on heap size
 
-  Get the column family active memtable on heap size
+Get the column family active memtable on heap size
 */
 func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeByNameGet(params *ColumnFamilyMetricsMemtableOnHeapSizeByNameGetParams) (*ColumnFamilyMetricsMemtableOnHeapSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4850,9 +4850,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeByNameGet(params *ColumnFa
 }
 
 /*
-  ColumnFamilyMetricsMemtableOnHeapSizeGet gets all memtable on heap size
+ColumnFamilyMetricsMemtableOnHeapSizeGet gets all memtable on heap size
 
-  Get all active memtable of all column family on heap size
+Get all active memtable of all column family on heap size
 */
 func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeGet(params *ColumnFamilyMetricsMemtableOnHeapSizeGetParams) (*ColumnFamilyMetricsMemtableOnHeapSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4885,9 +4885,9 @@ func (a *Client) ColumnFamilyMetricsMemtableOnHeapSizeGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsMemtableSwitchCountByNameGet gets memtable switch count
+ColumnFamilyMetricsMemtableSwitchCountByNameGet gets memtable switch count
 
-  Get memtable switch count
+Get memtable switch count
 */
 func (a *Client) ColumnFamilyMetricsMemtableSwitchCountByNameGet(params *ColumnFamilyMetricsMemtableSwitchCountByNameGetParams) (*ColumnFamilyMetricsMemtableSwitchCountByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4920,9 +4920,9 @@ func (a *Client) ColumnFamilyMetricsMemtableSwitchCountByNameGet(params *ColumnF
 }
 
 /*
-  ColumnFamilyMetricsMemtableSwitchCountGet gets all memtable switch count
+ColumnFamilyMetricsMemtableSwitchCountGet gets all memtable switch count
 
-  Get all memtable switch count
+Get all memtable switch count
 */
 func (a *Client) ColumnFamilyMetricsMemtableSwitchCountGet(params *ColumnFamilyMetricsMemtableSwitchCountGetParams) (*ColumnFamilyMetricsMemtableSwitchCountGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4955,9 +4955,9 @@ func (a *Client) ColumnFamilyMetricsMemtableSwitchCountGet(params *ColumnFamilyM
 }
 
 /*
-  ColumnFamilyMetricsMinRowSizeByNameGet gets min row size
+ColumnFamilyMetricsMinRowSizeByNameGet gets min row size
 
-  Get min row size
+Get min row size
 */
 func (a *Client) ColumnFamilyMetricsMinRowSizeByNameGet(params *ColumnFamilyMetricsMinRowSizeByNameGetParams) (*ColumnFamilyMetricsMinRowSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -4990,9 +4990,9 @@ func (a *Client) ColumnFamilyMetricsMinRowSizeByNameGet(params *ColumnFamilyMetr
 }
 
 /*
-  ColumnFamilyMetricsMinRowSizeGet gets all min row size
+ColumnFamilyMetricsMinRowSizeGet gets all min row size
 
-  Get all min row size
+Get all min row size
 */
 func (a *Client) ColumnFamilyMetricsMinRowSizeGet(params *ColumnFamilyMetricsMinRowSizeGetParams) (*ColumnFamilyMetricsMinRowSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5025,9 +5025,9 @@ func (a *Client) ColumnFamilyMetricsMinRowSizeGet(params *ColumnFamilyMetricsMin
 }
 
 /*
-  ColumnFamilyMetricsPendingCompactionsByNameGet gets pending compactions
+ColumnFamilyMetricsPendingCompactionsByNameGet gets pending compactions
 
-  Get pending compactions
+Get pending compactions
 */
 func (a *Client) ColumnFamilyMetricsPendingCompactionsByNameGet(params *ColumnFamilyMetricsPendingCompactionsByNameGetParams) (*ColumnFamilyMetricsPendingCompactionsByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5060,9 +5060,9 @@ func (a *Client) ColumnFamilyMetricsPendingCompactionsByNameGet(params *ColumnFa
 }
 
 /*
-  ColumnFamilyMetricsPendingCompactionsGet gets all pending compactions
+ColumnFamilyMetricsPendingCompactionsGet gets all pending compactions
 
-  Get all pending compactions
+Get all pending compactions
 */
 func (a *Client) ColumnFamilyMetricsPendingCompactionsGet(params *ColumnFamilyMetricsPendingCompactionsGetParams) (*ColumnFamilyMetricsPendingCompactionsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5095,9 +5095,9 @@ func (a *Client) ColumnFamilyMetricsPendingCompactionsGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsPendingFlushesByNameGet gets pending flushes
+ColumnFamilyMetricsPendingFlushesByNameGet gets pending flushes
 
-  Get pending flushes
+Get pending flushes
 */
 func (a *Client) ColumnFamilyMetricsPendingFlushesByNameGet(params *ColumnFamilyMetricsPendingFlushesByNameGetParams) (*ColumnFamilyMetricsPendingFlushesByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5130,9 +5130,9 @@ func (a *Client) ColumnFamilyMetricsPendingFlushesByNameGet(params *ColumnFamily
 }
 
 /*
-  ColumnFamilyMetricsPendingFlushesGet gets all pending flushes
+ColumnFamilyMetricsPendingFlushesGet gets all pending flushes
 
-  Get all pending flushes
+Get all pending flushes
 */
 func (a *Client) ColumnFamilyMetricsPendingFlushesGet(params *ColumnFamilyMetricsPendingFlushesGetParams) (*ColumnFamilyMetricsPendingFlushesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5165,9 +5165,9 @@ func (a *Client) ColumnFamilyMetricsPendingFlushesGet(params *ColumnFamilyMetric
 }
 
 /*
-  ColumnFamilyMetricsRangeLatencyByNameGet gets range latency
+ColumnFamilyMetricsRangeLatencyByNameGet gets range latency
 
-  Get range latency
+Get range latency
 */
 func (a *Client) ColumnFamilyMetricsRangeLatencyByNameGet(params *ColumnFamilyMetricsRangeLatencyByNameGetParams) (*ColumnFamilyMetricsRangeLatencyByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5200,9 +5200,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyByNameGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet gets range latency estimated histogram
+ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet gets range latency estimated histogram
 
-  Get range latency
+Get range latency
 */
 func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet(params *ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5235,9 +5235,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedHistogramByNameGet(para
 }
 
 /*
-  ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet gets range latency estimated recent histogram
+ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet gets range latency estimated recent histogram
 
-  Get range latency
+Get range latency
 */
 func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5270,9 +5270,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyEstimatedRecentHistogramByNameGe
 }
 
 /*
-  ColumnFamilyMetricsRangeLatencyGet gets all range latency
+ColumnFamilyMetricsRangeLatencyGet gets all range latency
 
-  Get all range latency
+Get all range latency
 */
 func (a *Client) ColumnFamilyMetricsRangeLatencyGet(params *ColumnFamilyMetricsRangeLatencyGetParams) (*ColumnFamilyMetricsRangeLatencyGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5305,9 +5305,9 @@ func (a *Client) ColumnFamilyMetricsRangeLatencyGet(params *ColumnFamilyMetricsR
 }
 
 /*
-  ColumnFamilyMetricsReadByNameGet gets read
+ColumnFamilyMetricsReadByNameGet gets read
 
-  Get number of reads
+Get number of reads
 */
 func (a *Client) ColumnFamilyMetricsReadByNameGet(params *ColumnFamilyMetricsReadByNameGetParams) (*ColumnFamilyMetricsReadByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5340,9 +5340,9 @@ func (a *Client) ColumnFamilyMetricsReadByNameGet(params *ColumnFamilyMetricsRea
 }
 
 /*
-  ColumnFamilyMetricsReadGet gets all read
+ColumnFamilyMetricsReadGet gets all read
 
-  Get number of reads from all column family, per shard
+Get number of reads from all column family, per shard
 */
 func (a *Client) ColumnFamilyMetricsReadGet(params *ColumnFamilyMetricsReadGetParams) (*ColumnFamilyMetricsReadGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5375,9 +5375,9 @@ func (a *Client) ColumnFamilyMetricsReadGet(params *ColumnFamilyMetricsReadGetPa
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyByNameGet gets read latency
+ColumnFamilyMetricsReadLatencyByNameGet gets read latency
 
-  Get read latency
+Get read latency
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyByNameGet(params *ColumnFamilyMetricsReadLatencyByNameGetParams) (*ColumnFamilyMetricsReadLatencyByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5410,9 +5410,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyByNameGet(params *ColumnFamilyMet
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet gets read latency estimated histogram
+ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet gets read latency estimated histogram
 
-  Get read latency
+Get read latency
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5445,9 +5445,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedHistogramByNameGet(param
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet gets read latency estimated recent histogram
+ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet gets read latency estimated recent histogram
 
-  Get read latency
+Get read latency
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5480,9 +5480,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyEstimatedRecentHistogramByNameGet
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyGet gets all read latency
+ColumnFamilyMetricsReadLatencyGet gets all read latency
 
-  Get all read latency
+Get all read latency
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyGet(params *ColumnFamilyMetricsReadLatencyGetParams) (*ColumnFamilyMetricsReadLatencyGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5515,9 +5515,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyGet(params *ColumnFamilyMetricsRe
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyHistogramByNameGet gets read latency histogram depricated
+ColumnFamilyMetricsReadLatencyHistogramByNameGet gets read latency histogram depricated
 
-  Get read latency histogram
+Get read latency histogram
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5550,9 +5550,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyHistogramByNameGet(params *Column
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyHistogramGet gets all read latency histogram depricated
+ColumnFamilyMetricsReadLatencyHistogramGet gets all read latency histogram depricated
 
-  Get read latency histogram from all column family
+Get read latency histogram from all column family
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyHistogramGet(params *ColumnFamilyMetricsReadLatencyHistogramGetParams) (*ColumnFamilyMetricsReadLatencyHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5585,9 +5585,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyHistogramGet(params *ColumnFamily
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet gets read latency histogram
+ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet gets read latency histogram
 
-  Get read latency moving avrage histogram
+Get read latency moving avrage histogram
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet(params *ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetParams) (*ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5620,9 +5620,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramByNameGet(p
 }
 
 /*
-  ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet gets all read latency histogram
+ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet gets all read latency histogram
 
-  Get read latency moving avrage histogram from all column family
+Get read latency moving avrage histogram from all column family
 */
 func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet(params *ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetParams) (*ColumnFamilyMetricsReadLatencyMovingAverageHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5655,9 +5655,9 @@ func (a *Client) ColumnFamilyMetricsReadLatencyMovingAverageHistogramGet(params 
 }
 
 /*
-  ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet gets recent bloom filter false positives
+ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet gets recent bloom filter false positives
 
-  Get recent bloom filter false positives
+Get recent bloom filter false positives
 */
 func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet(params *ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5690,9 +5690,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesByNameGet(par
 }
 
 /*
-  ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet gets all recent bloom filter false positives
+ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet gets all recent bloom filter false positives
 
-  Get all recent bloom filter false positives
+Get all recent bloom filter false positives
 */
 func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet(params *ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalsePositivesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5725,9 +5725,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalsePositivesGet(params *C
 }
 
 /*
-  ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet gets recent bloom filter false ratio
+ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet gets recent bloom filter false ratio
 
-  Get recent bloom filter false ratio
+Get recent bloom filter false ratio
 */
 func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet(params *ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5760,9 +5760,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioByNameGet(params 
 }
 
 /*
-  ColumnFamilyMetricsRecentBloomFilterFalseRatioGet gets all recent bloom filter false ratio
+ColumnFamilyMetricsRecentBloomFilterFalseRatioGet gets all recent bloom filter false ratio
 
-  Get all recent bloom filter false ratio
+Get all recent bloom filter false ratio
 */
 func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioGet(params *ColumnFamilyMetricsRecentBloomFilterFalseRatioGetParams) (*ColumnFamilyMetricsRecentBloomFilterFalseRatioGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5795,9 +5795,9 @@ func (a *Client) ColumnFamilyMetricsRecentBloomFilterFalseRatioGet(params *Colum
 }
 
 /*
-  ColumnFamilyMetricsRowCacheHitByNameGet gets row cache hit
+ColumnFamilyMetricsRowCacheHitByNameGet gets row cache hit
 
-  Get row cache hit
+Get row cache hit
 */
 func (a *Client) ColumnFamilyMetricsRowCacheHitByNameGet(params *ColumnFamilyMetricsRowCacheHitByNameGetParams) (*ColumnFamilyMetricsRowCacheHitByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5830,9 +5830,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitByNameGet(params *ColumnFamilyMet
 }
 
 /*
-  ColumnFamilyMetricsRowCacheHitGet gets all row cache hit
+ColumnFamilyMetricsRowCacheHitGet gets all row cache hit
 
-  Get all row cache hit
+Get all row cache hit
 */
 func (a *Client) ColumnFamilyMetricsRowCacheHitGet(params *ColumnFamilyMetricsRowCacheHitGetParams) (*ColumnFamilyMetricsRowCacheHitGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5865,9 +5865,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitGet(params *ColumnFamilyMetricsRo
 }
 
 /*
-  ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet gets row cache hit out of range
+ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet gets row cache hit out of range
 
-  Get row cache hit out of range
+Get row cache hit out of range
 */
 func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet(params *ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetParams) (*ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5900,9 +5900,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeByNameGet(params *Colum
 }
 
 /*
-  ColumnFamilyMetricsRowCacheHitOutOfRangeGet gets all row cache hit out of range
+ColumnFamilyMetricsRowCacheHitOutOfRangeGet gets all row cache hit out of range
 
-  Get all row cache hit out of range
+Get all row cache hit out of range
 */
 func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeGet(params *ColumnFamilyMetricsRowCacheHitOutOfRangeGetParams) (*ColumnFamilyMetricsRowCacheHitOutOfRangeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5935,9 +5935,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheHitOutOfRangeGet(params *ColumnFamil
 }
 
 /*
-  ColumnFamilyMetricsRowCacheMissByNameGet gets row cache miss
+ColumnFamilyMetricsRowCacheMissByNameGet gets row cache miss
 
-  Get row cache miss
+Get row cache miss
 */
 func (a *Client) ColumnFamilyMetricsRowCacheMissByNameGet(params *ColumnFamilyMetricsRowCacheMissByNameGetParams) (*ColumnFamilyMetricsRowCacheMissByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -5970,9 +5970,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheMissByNameGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsRowCacheMissGet gets all row cache miss
+ColumnFamilyMetricsRowCacheMissGet gets all row cache miss
 
-  Get all row cache miss
+Get all row cache miss
 */
 func (a *Client) ColumnFamilyMetricsRowCacheMissGet(params *ColumnFamilyMetricsRowCacheMissGetParams) (*ColumnFamilyMetricsRowCacheMissGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6005,9 +6005,9 @@ func (a *Client) ColumnFamilyMetricsRowCacheMissGet(params *ColumnFamilyMetricsR
 }
 
 /*
-  ColumnFamilyMetricsSnapshotsSizeByNameGet gets true snapshots size
+ColumnFamilyMetricsSnapshotsSizeByNameGet gets true snapshots size
 
-  Get true snapshots size
+Get true snapshots size
 */
 func (a *Client) ColumnFamilyMetricsSnapshotsSizeByNameGet(params *ColumnFamilyMetricsSnapshotsSizeByNameGetParams) (*ColumnFamilyMetricsSnapshotsSizeByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6040,9 +6040,9 @@ func (a *Client) ColumnFamilyMetricsSnapshotsSizeByNameGet(params *ColumnFamilyM
 }
 
 /*
-  ColumnFamilyMetricsSpeculativeRetriesByNameGet gets speculative retries
+ColumnFamilyMetricsSpeculativeRetriesByNameGet gets speculative retries
 
-  Get speculative retries
+Get speculative retries
 */
 func (a *Client) ColumnFamilyMetricsSpeculativeRetriesByNameGet(params *ColumnFamilyMetricsSpeculativeRetriesByNameGetParams) (*ColumnFamilyMetricsSpeculativeRetriesByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6075,9 +6075,9 @@ func (a *Client) ColumnFamilyMetricsSpeculativeRetriesByNameGet(params *ColumnFa
 }
 
 /*
-  ColumnFamilyMetricsSpeculativeRetriesGet gets all speculative retries
+ColumnFamilyMetricsSpeculativeRetriesGet gets all speculative retries
 
-  Get all speculative retries
+Get all speculative retries
 */
 func (a *Client) ColumnFamilyMetricsSpeculativeRetriesGet(params *ColumnFamilyMetricsSpeculativeRetriesGetParams) (*ColumnFamilyMetricsSpeculativeRetriesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6110,9 +6110,9 @@ func (a *Client) ColumnFamilyMetricsSpeculativeRetriesGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsSstablesPerReadHistogramByNameGet gets sstables per read histogram
+ColumnFamilyMetricsSstablesPerReadHistogramByNameGet gets sstables per read histogram
 
-  Get sstables per read histogram
+Get sstables per read histogram
 */
 func (a *Client) ColumnFamilyMetricsSstablesPerReadHistogramByNameGet(params *ColumnFamilyMetricsSstablesPerReadHistogramByNameGetParams) (*ColumnFamilyMetricsSstablesPerReadHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6145,9 +6145,9 @@ func (a *Client) ColumnFamilyMetricsSstablesPerReadHistogramByNameGet(params *Co
 }
 
 /*
-  ColumnFamilyMetricsTombstoneScannedHistogramByNameGet gets tombstone scanned histogram
+ColumnFamilyMetricsTombstoneScannedHistogramByNameGet gets tombstone scanned histogram
 
-  Get tombstone scanned histogram
+Get tombstone scanned histogram
 */
 func (a *Client) ColumnFamilyMetricsTombstoneScannedHistogramByNameGet(params *ColumnFamilyMetricsTombstoneScannedHistogramByNameGetParams) (*ColumnFamilyMetricsTombstoneScannedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6180,9 +6180,9 @@ func (a *Client) ColumnFamilyMetricsTombstoneScannedHistogramByNameGet(params *C
 }
 
 /*
-  ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet gets total disk space used
+ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet gets total disk space used
 
-  Get total disk space used
+Get total disk space used
 */
 func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(params *ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetParams) (*ColumnFamilyMetricsTotalDiskSpaceUsedByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6215,9 +6215,9 @@ func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedByNameGet(params *ColumnFa
 }
 
 /*
-  ColumnFamilyMetricsTotalDiskSpaceUsedGet gets all total disk space used
+ColumnFamilyMetricsTotalDiskSpaceUsedGet gets all total disk space used
 
-  Get all total disk space used
+Get all total disk space used
 */
 func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedGet(params *ColumnFamilyMetricsTotalDiskSpaceUsedGetParams) (*ColumnFamilyMetricsTotalDiskSpaceUsedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6250,9 +6250,9 @@ func (a *Client) ColumnFamilyMetricsTotalDiskSpaceUsedGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsTrueSnapshotsSizeGet gets all true snapshots size
+ColumnFamilyMetricsTrueSnapshotsSizeGet gets all true snapshots size
 
-  Get all true snapshots size
+Get all true snapshots size
 */
 func (a *Client) ColumnFamilyMetricsTrueSnapshotsSizeGet(params *ColumnFamilyMetricsTrueSnapshotsSizeGetParams) (*ColumnFamilyMetricsTrueSnapshotsSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6285,9 +6285,9 @@ func (a *Client) ColumnFamilyMetricsTrueSnapshotsSizeGet(params *ColumnFamilyMet
 }
 
 /*
-  ColumnFamilyMetricsWaitingOnFreeMemtableGet gets waiting on free memtable space
+ColumnFamilyMetricsWaitingOnFreeMemtableGet gets waiting on free memtable space
 
-  Get waiting on free memtable space
+Get waiting on free memtable space
 */
 func (a *Client) ColumnFamilyMetricsWaitingOnFreeMemtableGet(params *ColumnFamilyMetricsWaitingOnFreeMemtableGetParams) (*ColumnFamilyMetricsWaitingOnFreeMemtableGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6320,9 +6320,9 @@ func (a *Client) ColumnFamilyMetricsWaitingOnFreeMemtableGet(params *ColumnFamil
 }
 
 /*
-  ColumnFamilyMetricsWriteByNameGet gets write
+ColumnFamilyMetricsWriteByNameGet gets write
 
-  Get number of writes
+Get number of writes
 */
 func (a *Client) ColumnFamilyMetricsWriteByNameGet(params *ColumnFamilyMetricsWriteByNameGetParams) (*ColumnFamilyMetricsWriteByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6355,9 +6355,9 @@ func (a *Client) ColumnFamilyMetricsWriteByNameGet(params *ColumnFamilyMetricsWr
 }
 
 /*
-  ColumnFamilyMetricsWriteGet gets all write
+ColumnFamilyMetricsWriteGet gets all write
 
-  Get number of writes from all column family, per shard
+Get number of writes from all column family, per shard
 */
 func (a *Client) ColumnFamilyMetricsWriteGet(params *ColumnFamilyMetricsWriteGetParams) (*ColumnFamilyMetricsWriteGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6390,9 +6390,9 @@ func (a *Client) ColumnFamilyMetricsWriteGet(params *ColumnFamilyMetricsWriteGet
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyByNameGet gets write latency
+ColumnFamilyMetricsWriteLatencyByNameGet gets write latency
 
-  Get write latency
+Get write latency
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyByNameGet(params *ColumnFamilyMetricsWriteLatencyByNameGetParams) (*ColumnFamilyMetricsWriteLatencyByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6425,9 +6425,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyByNameGet(params *ColumnFamilyMe
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet gets write latency estimated histogram
+ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet gets write latency estimated histogram
 
-  Get write latency
+Get write latency
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6460,9 +6460,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedHistogramByNameGet(para
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet gets write latency estimated recent histogram
+ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet gets write latency estimated recent histogram
 
-  Get write latency
+Get write latency
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6495,9 +6495,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyEstimatedRecentHistogramByNameGe
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyGet gets all write latency
+ColumnFamilyMetricsWriteLatencyGet gets all write latency
 
-  Get all write latency
+Get all write latency
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyGet(params *ColumnFamilyMetricsWriteLatencyGetParams) (*ColumnFamilyMetricsWriteLatencyGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6530,9 +6530,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyGet(params *ColumnFamilyMetricsW
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyHistogramByNameGet gets write latency histogram depricated
+ColumnFamilyMetricsWriteLatencyHistogramByNameGet gets write latency histogram depricated
 
-  Get write latency histogram
+Get write latency histogram
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6565,9 +6565,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramByNameGet(params *Colum
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyHistogramGet gets all write latency histogram depricated
+ColumnFamilyMetricsWriteLatencyHistogramGet gets all write latency histogram depricated
 
-  Get write latency histogram of all column family
+Get write latency histogram of all column family
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramGet(params *ColumnFamilyMetricsWriteLatencyHistogramGetParams) (*ColumnFamilyMetricsWriteLatencyHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6600,9 +6600,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyHistogramGet(params *ColumnFamil
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet gets write latency histogram
+ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet gets write latency histogram
 
-  Get write latency moving average histogram
+Get write latency moving average histogram
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet(params *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetParams) (*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6635,9 +6635,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramByNameGet(
 }
 
 /*
-  ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet gets all write latency histogram
+ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet gets all write latency histogram
 
-  Get write latency moving average histogram of all column family
+Get write latency moving average histogram of all column family
 */
 func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet(params *ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetParams) (*ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6670,9 +6670,9 @@ func (a *Client) ColumnFamilyMetricsWriteLatencyMovingAverageHistogramGet(params
 }
 
 /*
-  ColumnFamilyMinimumCompactionByNameGet gets minimum compaction threshold
+ColumnFamilyMinimumCompactionByNameGet gets minimum compaction threshold
 
-  get the minimum number of sstables in queue before compaction kicks off
+get the minimum number of sstables in queue before compaction kicks off
 */
 func (a *Client) ColumnFamilyMinimumCompactionByNameGet(params *ColumnFamilyMinimumCompactionByNameGetParams) (*ColumnFamilyMinimumCompactionByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6705,9 +6705,9 @@ func (a *Client) ColumnFamilyMinimumCompactionByNameGet(params *ColumnFamilyMini
 }
 
 /*
-  ColumnFamilyMinimumCompactionByNamePost sets minimum compaction threshold
+ColumnFamilyMinimumCompactionByNamePost sets minimum compaction threshold
 
-  Sets the minimum number of sstables in queue before compaction kicks off
+Sets the minimum number of sstables in queue before compaction kicks off
 */
 func (a *Client) ColumnFamilyMinimumCompactionByNamePost(params *ColumnFamilyMinimumCompactionByNamePostParams) (*ColumnFamilyMinimumCompactionByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -6740,9 +6740,9 @@ func (a *Client) ColumnFamilyMinimumCompactionByNamePost(params *ColumnFamilyMin
 }
 
 /*
-  ColumnFamilyNameGet gets column family name
+ColumnFamilyNameGet gets column family name
 
-  Get a list of all column family names
+Get a list of all column family names
 */
 func (a *Client) ColumnFamilyNameGet(params *ColumnFamilyNameGetParams) (*ColumnFamilyNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6775,9 +6775,9 @@ func (a *Client) ColumnFamilyNameGet(params *ColumnFamilyNameGetParams) (*Column
 }
 
 /*
-  ColumnFamilyNameKeyspaceGet gets column family name keyspace
+ColumnFamilyNameKeyspaceGet gets column family name keyspace
 
-  Get a list of the key space names
+Get a list of the key space names
 */
 func (a *Client) ColumnFamilyNameKeyspaceGet(params *ColumnFamilyNameKeyspaceGetParams) (*ColumnFamilyNameKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6810,9 +6810,9 @@ func (a *Client) ColumnFamilyNameKeyspaceGet(params *ColumnFamilyNameKeyspaceGet
 }
 
 /*
-  ColumnFamilySstablesByKeyByNameGet gets sstables for key
+ColumnFamilySstablesByKeyByNameGet gets sstables for key
 
-  Returns a list of sstable filenames that contain the given partition key on this node
+Returns a list of sstable filenames that contain the given partition key on this node
 */
 func (a *Client) ColumnFamilySstablesByKeyByNameGet(params *ColumnFamilySstablesByKeyByNameGetParams) (*ColumnFamilySstablesByKeyByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6845,9 +6845,9 @@ func (a *Client) ColumnFamilySstablesByKeyByNameGet(params *ColumnFamilySstables
 }
 
 /*
-  ColumnFamilySstablesPerLevelByNameGet gets sstable count per level
+ColumnFamilySstablesPerLevelByNameGet gets sstable count per level
 
-  sstable count for each level. empty unless leveled compaction is used
+sstable count for each level. empty unless leveled compaction is used
 */
 func (a *Client) ColumnFamilySstablesPerLevelByNameGet(params *ColumnFamilySstablesPerLevelByNameGetParams) (*ColumnFamilySstablesPerLevelByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6880,9 +6880,9 @@ func (a *Client) ColumnFamilySstablesPerLevelByNameGet(params *ColumnFamilySstab
 }
 
 /*
-  ColumnFamilySstablesUnleveledByNameGet gets unleveled sstables
+ColumnFamilySstablesUnleveledByNameGet gets unleveled sstables
 
-  the number of SSTables in L0.  Always return 0 if Leveled compaction is not enabled.
+the number of SSTables in L0.  Always return 0 if Leveled compaction is not enabled.
 */
 func (a *Client) ColumnFamilySstablesUnleveledByNameGet(params *ColumnFamilySstablesUnleveledByNameGetParams) (*ColumnFamilySstablesUnleveledByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6915,9 +6915,9 @@ func (a *Client) ColumnFamilySstablesUnleveledByNameGet(params *ColumnFamilySsta
 }
 
 /*
-  CommitLogMetricsWaitingOnCommitGet gets waiting on commit
+CommitLogMetricsWaitingOnCommitGet gets waiting on commit
 
-  Get waiting on commit
+Get waiting on commit
 */
 func (a *Client) CommitLogMetricsWaitingOnCommitGet(params *CommitLogMetricsWaitingOnCommitGetParams) (*CommitLogMetricsWaitingOnCommitGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6950,9 +6950,9 @@ func (a *Client) CommitLogMetricsWaitingOnCommitGet(params *CommitLogMetricsWait
 }
 
 /*
-  CommitLogMetricsWaitingOnSegmentAllocationGet gets waiting on segment allocation
+CommitLogMetricsWaitingOnSegmentAllocationGet gets waiting on segment allocation
 
-  Get waiting on segment allocation
+Get waiting on segment allocation
 */
 func (a *Client) CommitLogMetricsWaitingOnSegmentAllocationGet(params *CommitLogMetricsWaitingOnSegmentAllocationGetParams) (*CommitLogMetricsWaitingOnSegmentAllocationGetOK, error) {
 	// TODO: Validate the params before sending
@@ -6985,9 +6985,9 @@ func (a *Client) CommitLogMetricsWaitingOnSegmentAllocationGet(params *CommitLog
 }
 
 /*
-  CommitlogMetricsCompletedTasksGet gets completed tasks
+CommitlogMetricsCompletedTasksGet gets completed tasks
 
-  Get completed tasks
+Get completed tasks
 */
 func (a *Client) CommitlogMetricsCompletedTasksGet(params *CommitlogMetricsCompletedTasksGetParams) (*CommitlogMetricsCompletedTasksGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7020,9 +7020,9 @@ func (a *Client) CommitlogMetricsCompletedTasksGet(params *CommitlogMetricsCompl
 }
 
 /*
-  CommitlogMetricsPendingTasksGet gets pending tasks
+CommitlogMetricsPendingTasksGet gets pending tasks
 
-  Get pending tasks
+Get pending tasks
 */
 func (a *Client) CommitlogMetricsPendingTasksGet(params *CommitlogMetricsPendingTasksGetParams) (*CommitlogMetricsPendingTasksGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7055,9 +7055,9 @@ func (a *Client) CommitlogMetricsPendingTasksGet(params *CommitlogMetricsPending
 }
 
 /*
-  CommitlogMetricsTotalCommitLogSizeGet gets total commit log size
+CommitlogMetricsTotalCommitLogSizeGet gets total commit log size
 
-  Get total commit log size
+Get total commit log size
 */
 func (a *Client) CommitlogMetricsTotalCommitLogSizeGet(params *CommitlogMetricsTotalCommitLogSizeGetParams) (*CommitlogMetricsTotalCommitLogSizeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7090,9 +7090,9 @@ func (a *Client) CommitlogMetricsTotalCommitLogSizeGet(params *CommitlogMetricsT
 }
 
 /*
-  CommitlogRecoverByPathPost commitlogs recover
+CommitlogRecoverByPathPost commitlogs recover
 
-  Recover a single file
+Recover a single file
 */
 func (a *Client) CommitlogRecoverByPathPost(params *CommitlogRecoverByPathPostParams) (*CommitlogRecoverByPathPostOK, error) {
 	// TODO: Validate the params before sending
@@ -7125,9 +7125,9 @@ func (a *Client) CommitlogRecoverByPathPost(params *CommitlogRecoverByPathPostPa
 }
 
 /*
-  CommitlogSegmentsActiveGet gets active segment names
+CommitlogSegmentsActiveGet gets active segment names
 
-  file names (not full paths) of active commit log segments (segments containing unflushed data)
+file names (not full paths) of active commit log segments (segments containing unflushed data)
 */
 func (a *Client) CommitlogSegmentsActiveGet(params *CommitlogSegmentsActiveGetParams) (*CommitlogSegmentsActiveGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7160,9 +7160,9 @@ func (a *Client) CommitlogSegmentsActiveGet(params *CommitlogSegmentsActiveGetPa
 }
 
 /*
-  CommitlogSegmentsArchivingGet gets archiving segment names
+CommitlogSegmentsArchivingGet gets archiving segment names
 
-  Returns files which are pending for archival attempt. Does NOT include failed archive attempts
+Returns files which are pending for archival attempt. Does NOT include failed archive attempts
 */
 func (a *Client) CommitlogSegmentsArchivingGet(params *CommitlogSegmentsArchivingGetParams) (*CommitlogSegmentsArchivingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7195,9 +7195,9 @@ func (a *Client) CommitlogSegmentsArchivingGet(params *CommitlogSegmentsArchivin
 }
 
 /*
-  CompactionManagerCompactionHistoryGet gets compaction history
+CompactionManagerCompactionHistoryGet gets compaction history
 
-  get List of the compaction history
+get List of the compaction history
 */
 func (a *Client) CompactionManagerCompactionHistoryGet(params *CompactionManagerCompactionHistoryGetParams) (*CompactionManagerCompactionHistoryGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7230,9 +7230,9 @@ func (a *Client) CompactionManagerCompactionHistoryGet(params *CompactionManager
 }
 
 /*
-  CompactionManagerCompactionInfoGet gets compaction info
+CompactionManagerCompactionInfoGet gets compaction info
 
-  get a list of all active compaction info
+get a list of all active compaction info
 */
 func (a *Client) CompactionManagerCompactionInfoGet(params *CompactionManagerCompactionInfoGetParams) (*CompactionManagerCompactionInfoGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7265,9 +7265,9 @@ func (a *Client) CompactionManagerCompactionInfoGet(params *CompactionManagerCom
 }
 
 /*
-  CompactionManagerCompactionsGet gets compactions
+CompactionManagerCompactionsGet gets compactions
 
-  get List of running compactions
+get List of running compactions
 */
 func (a *Client) CompactionManagerCompactionsGet(params *CompactionManagerCompactionsGetParams) (*CompactionManagerCompactionsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7300,9 +7300,9 @@ func (a *Client) CompactionManagerCompactionsGet(params *CompactionManagerCompac
 }
 
 /*
-  CompactionManagerForceUserDefinedCompactionPost forces user defined compaction
+CompactionManagerForceUserDefinedCompactionPost forces user defined compaction
 
-  Triggers the compaction of user specified sstables. You can specify files from various keyspaces and columnfamilies. If you do so, user defined compaction is performed several times to the groups of files in the same keyspace/columnfamily. must contain keyspace and columnfamily name in path(for 2.1+) or file name itself.
+Triggers the compaction of user specified sstables. You can specify files from various keyspaces and columnfamilies. If you do so, user defined compaction is performed several times to the groups of files in the same keyspace/columnfamily. must contain keyspace and columnfamily name in path(for 2.1+) or file name itself.
 */
 func (a *Client) CompactionManagerForceUserDefinedCompactionPost(params *CompactionManagerForceUserDefinedCompactionPostParams) (*CompactionManagerForceUserDefinedCompactionPostOK, error) {
 	// TODO: Validate the params before sending
@@ -7335,9 +7335,9 @@ func (a *Client) CompactionManagerForceUserDefinedCompactionPost(params *Compact
 }
 
 /*
-  CompactionManagerMetricsBytesCompactedGet gets bytes compacted
+CompactionManagerMetricsBytesCompactedGet gets bytes compacted
 
-  Get bytes compacted
+Get bytes compacted
 */
 func (a *Client) CompactionManagerMetricsBytesCompactedGet(params *CompactionManagerMetricsBytesCompactedGetParams) (*CompactionManagerMetricsBytesCompactedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7370,9 +7370,9 @@ func (a *Client) CompactionManagerMetricsBytesCompactedGet(params *CompactionMan
 }
 
 /*
-  CompactionManagerMetricsCompletedTasksGet gets completed tasks1
+CompactionManagerMetricsCompletedTasksGet gets completed tasks1
 
-  Get completed tasks
+Get completed tasks
 */
 func (a *Client) CompactionManagerMetricsCompletedTasksGet(params *CompactionManagerMetricsCompletedTasksGetParams) (*CompactionManagerMetricsCompletedTasksGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7405,9 +7405,9 @@ func (a *Client) CompactionManagerMetricsCompletedTasksGet(params *CompactionMan
 }
 
 /*
-  CompactionManagerMetricsPendingTasksGet gets pending tasks1
+CompactionManagerMetricsPendingTasksGet gets pending tasks1
 
-  Get pending tasks
+Get pending tasks
 */
 func (a *Client) CompactionManagerMetricsPendingTasksGet(params *CompactionManagerMetricsPendingTasksGetParams) (*CompactionManagerMetricsPendingTasksGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7440,9 +7440,9 @@ func (a *Client) CompactionManagerMetricsPendingTasksGet(params *CompactionManag
 }
 
 /*
-  CompactionManagerMetricsTotalCompactionsCompletedGet gets total compactions completed
+CompactionManagerMetricsTotalCompactionsCompletedGet gets total compactions completed
 
-  Get total compactions completed
+Get total compactions completed
 */
 func (a *Client) CompactionManagerMetricsTotalCompactionsCompletedGet(params *CompactionManagerMetricsTotalCompactionsCompletedGetParams) (*CompactionManagerMetricsTotalCompactionsCompletedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7475,9 +7475,9 @@ func (a *Client) CompactionManagerMetricsTotalCompactionsCompletedGet(params *Co
 }
 
 /*
-  CompactionManagerStopCompactionPost stops compaction
+CompactionManagerStopCompactionPost stops compaction
 
-  Stop all running compaction-like tasks having the provided type
+Stop all running compaction-like tasks having the provided type
 */
 func (a *Client) CompactionManagerStopCompactionPost(params *CompactionManagerStopCompactionPostParams) (*CompactionManagerStopCompactionPostOK, error) {
 	// TODO: Validate the params before sending
@@ -7510,9 +7510,9 @@ func (a *Client) CompactionManagerStopCompactionPost(params *CompactionManagerSt
 }
 
 /*
-  FailureDetectorCountEndpointDownGet gets down endpoint count
+FailureDetectorCountEndpointDownGet gets down endpoint count
 
-  Get count down endpoint
+Get count down endpoint
 */
 func (a *Client) FailureDetectorCountEndpointDownGet(params *FailureDetectorCountEndpointDownGetParams) (*FailureDetectorCountEndpointDownGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7545,9 +7545,9 @@ func (a *Client) FailureDetectorCountEndpointDownGet(params *FailureDetectorCoun
 }
 
 /*
-  FailureDetectorCountEndpointUpGet gets up endpoint count
+FailureDetectorCountEndpointUpGet gets up endpoint count
 
-  Get count up endpoint
+Get count up endpoint
 */
 func (a *Client) FailureDetectorCountEndpointUpGet(params *FailureDetectorCountEndpointUpGetParams) (*FailureDetectorCountEndpointUpGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7580,9 +7580,9 @@ func (a *Client) FailureDetectorCountEndpointUpGet(params *FailureDetectorCountE
 }
 
 /*
-  FailureDetectorEndpointPhiValuesGet gets endpoint phi values
+FailureDetectorEndpointPhiValuesGet gets endpoint phi values
 
-  Get end point phi values
+Get end point phi values
 */
 func (a *Client) FailureDetectorEndpointPhiValuesGet(params *FailureDetectorEndpointPhiValuesGetParams) (*FailureDetectorEndpointPhiValuesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7615,9 +7615,9 @@ func (a *Client) FailureDetectorEndpointPhiValuesGet(params *FailureDetectorEndp
 }
 
 /*
-  FailureDetectorEndpointsGet gets all endpoint states
+FailureDetectorEndpointsGet gets all endpoint states
 
-  Get all endpoint states
+Get all endpoint states
 */
 func (a *Client) FailureDetectorEndpointsGet(params *FailureDetectorEndpointsGetParams) (*FailureDetectorEndpointsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7650,9 +7650,9 @@ func (a *Client) FailureDetectorEndpointsGet(params *FailureDetectorEndpointsGet
 }
 
 /*
-  FailureDetectorEndpointsStatesByAddrGet gets endpoint state
+FailureDetectorEndpointsStatesByAddrGet gets endpoint state
 
-  Get endpoint states
+Get endpoint states
 */
 func (a *Client) FailureDetectorEndpointsStatesByAddrGet(params *FailureDetectorEndpointsStatesByAddrGetParams) (*FailureDetectorEndpointsStatesByAddrGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7685,9 +7685,9 @@ func (a *Client) FailureDetectorEndpointsStatesByAddrGet(params *FailureDetector
 }
 
 /*
-  FailureDetectorPhiGet gets phi convict threshold
+FailureDetectorPhiGet gets phi convict threshold
 
-  Get the phi convict threshold
+Get the phi convict threshold
 */
 func (a *Client) FailureDetectorPhiGet(params *FailureDetectorPhiGetParams) (*FailureDetectorPhiGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7720,9 +7720,9 @@ func (a *Client) FailureDetectorPhiGet(params *FailureDetectorPhiGetParams) (*Fa
 }
 
 /*
-  FailureDetectorPhiPost sets phi convict threshold
+FailureDetectorPhiPost sets phi convict threshold
 
-  Set the phi convict threshold
+Set the phi convict threshold
 */
 func (a *Client) FailureDetectorPhiPost(params *FailureDetectorPhiPostParams) (*FailureDetectorPhiPostOK, error) {
 	// TODO: Validate the params before sending
@@ -7755,9 +7755,9 @@ func (a *Client) FailureDetectorPhiPost(params *FailureDetectorPhiPostParams) (*
 }
 
 /*
-  FailureDetectorSimpleStatesGet gets simple states
+FailureDetectorSimpleStatesGet gets simple states
 
-  Get simple_states
+Get simple_states
 */
 func (a *Client) FailureDetectorSimpleStatesGet(params *FailureDetectorSimpleStatesGetParams) (*FailureDetectorSimpleStatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7790,9 +7790,9 @@ func (a *Client) FailureDetectorSimpleStatesGet(params *FailureDetectorSimpleSta
 }
 
 /*
-  GossiperAssassinateByAddrPost assassinates endpoint
+GossiperAssassinateByAddrPost assassinates endpoint
 
-  Assassinate an end point
+Assassinate an end point
 */
 func (a *Client) GossiperAssassinateByAddrPost(params *GossiperAssassinateByAddrPostParams) (*GossiperAssassinateByAddrPostOK, error) {
 	// TODO: Validate the params before sending
@@ -7825,9 +7825,9 @@ func (a *Client) GossiperAssassinateByAddrPost(params *GossiperAssassinateByAddr
 }
 
 /*
-  GossiperDowntimeByAddrGet gets endpoint downtime
+GossiperDowntimeByAddrGet gets endpoint downtime
 
-  Get the downtime of an end point
+Get the downtime of an end point
 */
 func (a *Client) GossiperDowntimeByAddrGet(params *GossiperDowntimeByAddrGetParams) (*GossiperDowntimeByAddrGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7860,9 +7860,9 @@ func (a *Client) GossiperDowntimeByAddrGet(params *GossiperDowntimeByAddrGetPara
 }
 
 /*
-  GossiperEndpointDownGet gets down endpoint
+GossiperEndpointDownGet gets down endpoint
 
-  Get the addreses of the down endpoints
+Get the addreses of the down endpoints
 */
 func (a *Client) GossiperEndpointDownGet(params *GossiperEndpointDownGetParams) (*GossiperEndpointDownGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7895,9 +7895,9 @@ func (a *Client) GossiperEndpointDownGet(params *GossiperEndpointDownGetParams) 
 }
 
 /*
-  GossiperEndpointLiveGet gets live endpoint
+GossiperEndpointLiveGet gets live endpoint
 
-  Get the addreses of live endpoints
+Get the addreses of live endpoints
 */
 func (a *Client) GossiperEndpointLiveGet(params *GossiperEndpointLiveGetParams) (*GossiperEndpointLiveGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7930,9 +7930,9 @@ func (a *Client) GossiperEndpointLiveGet(params *GossiperEndpointLiveGetParams) 
 }
 
 /*
-  GossiperGenerationNumberByAddrGet gets current generation number
+GossiperGenerationNumberByAddrGet gets current generation number
 
-  Returns files which are pending for archival attempt. Does NOT include failed archive attempts
+Returns files which are pending for archival attempt. Does NOT include failed archive attempts
 */
 func (a *Client) GossiperGenerationNumberByAddrGet(params *GossiperGenerationNumberByAddrGetParams) (*GossiperGenerationNumberByAddrGetOK, error) {
 	// TODO: Validate the params before sending
@@ -7965,9 +7965,9 @@ func (a *Client) GossiperGenerationNumberByAddrGet(params *GossiperGenerationNum
 }
 
 /*
-  GossiperHeartBeatVersionByAddrGet gets current heart beat version
+GossiperHeartBeatVersionByAddrGet gets current heart beat version
 
-  Get heart beat version for a node
+Get heart beat version for a node
 */
 func (a *Client) GossiperHeartBeatVersionByAddrGet(params *GossiperHeartBeatVersionByAddrGetParams) (*GossiperHeartBeatVersionByAddrGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8000,9 +8000,9 @@ func (a *Client) GossiperHeartBeatVersionByAddrGet(params *GossiperHeartBeatVers
 }
 
 /*
-  HintedHandoffHintsDelete truncates all hints
+HintedHandoffHintsDelete truncates all hints
 
-  Truncate all the hints
+Truncate all the hints
 */
 func (a *Client) HintedHandoffHintsDelete(params *HintedHandoffHintsDeleteParams) (*HintedHandoffHintsDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -8035,9 +8035,9 @@ func (a *Client) HintedHandoffHintsDelete(params *HintedHandoffHintsDeleteParams
 }
 
 /*
-  HintedHandoffHintsGet lists endpoints pending hints
+HintedHandoffHintsGet lists endpoints pending hints
 
-  List all the endpoints that this node has hints for.
+List all the endpoints that this node has hints for.
 */
 func (a *Client) HintedHandoffHintsGet(params *HintedHandoffHintsGetParams) (*HintedHandoffHintsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8070,9 +8070,9 @@ func (a *Client) HintedHandoffHintsGet(params *HintedHandoffHintsGetParams) (*Hi
 }
 
 /*
-  HintedHandoffMetricsCreateHintByAddrGet gets create hint count
+HintedHandoffMetricsCreateHintByAddrGet gets create hint count
 
-  Get create hint count
+Get create hint count
 */
 func (a *Client) HintedHandoffMetricsCreateHintByAddrGet(params *HintedHandoffMetricsCreateHintByAddrGetParams) (*HintedHandoffMetricsCreateHintByAddrGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8105,9 +8105,9 @@ func (a *Client) HintedHandoffMetricsCreateHintByAddrGet(params *HintedHandoffMe
 }
 
 /*
-  HintedHandoffMetricsNotStoredHintsByAddrGet gets not stored hints count
+HintedHandoffMetricsNotStoredHintsByAddrGet gets not stored hints count
 
-  Get not stored hints count
+Get not stored hints count
 */
 func (a *Client) HintedHandoffMetricsNotStoredHintsByAddrGet(params *HintedHandoffMetricsNotStoredHintsByAddrGetParams) (*HintedHandoffMetricsNotStoredHintsByAddrGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8140,9 +8140,9 @@ func (a *Client) HintedHandoffMetricsNotStoredHintsByAddrGet(params *HintedHando
 }
 
 /*
-  HintedHandoffPausePost pauses hints delivery
+HintedHandoffPausePost pauses hints delivery
 
-  pause hints delivery
+pause hints delivery
 */
 func (a *Client) HintedHandoffPausePost(params *HintedHandoffPausePostParams) (*HintedHandoffPausePostOK, error) {
 	// TODO: Validate the params before sending
@@ -8175,9 +8175,9 @@ func (a *Client) HintedHandoffPausePost(params *HintedHandoffPausePostParams) (*
 }
 
 /*
-  HintedHandoffSchedulePost schedules hint delivery
+HintedHandoffSchedulePost schedules hint delivery
 
-  force hint delivery to an endpoint
+force hint delivery to an endpoint
 */
 func (a *Client) HintedHandoffSchedulePost(params *HintedHandoffSchedulePostParams) (*HintedHandoffSchedulePostOK, error) {
 	// TODO: Validate the params before sending
@@ -8210,9 +8210,9 @@ func (a *Client) HintedHandoffSchedulePost(params *HintedHandoffSchedulePostPara
 }
 
 /*
-  LsaCompactPost lsas compact
+LsaCompactPost lsas compact
 
-  Force compaction of all regions
+Force compaction of all regions
 */
 func (a *Client) LsaCompactPost(params *LsaCompactPostParams) (*LsaCompactPostOK, error) {
 	// TODO: Validate the params before sending
@@ -8245,9 +8245,9 @@ func (a *Client) LsaCompactPost(params *LsaCompactPostParams) (*LsaCompactPostOK
 }
 
 /*
-  MessagingServiceMessagesDroppedByVerGet gets dropped messages by ver
+MessagingServiceMessagesDroppedByVerGet gets dropped messages by ver
 
-  Get the number of dropped messages per verb
+Get the number of dropped messages per verb
 */
 func (a *Client) MessagingServiceMessagesDroppedByVerGet(params *MessagingServiceMessagesDroppedByVerGetParams) (*MessagingServiceMessagesDroppedByVerGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8280,9 +8280,9 @@ func (a *Client) MessagingServiceMessagesDroppedByVerGet(params *MessagingServic
 }
 
 /*
-  MessagingServiceMessagesDroppedGet gets dropped messages
+MessagingServiceMessagesDroppedGet gets dropped messages
 
-  Get the number of messages that were dropped before sending
+Get the number of messages that were dropped before sending
 */
 func (a *Client) MessagingServiceMessagesDroppedGet(params *MessagingServiceMessagesDroppedGetParams) (*MessagingServiceMessagesDroppedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8315,9 +8315,9 @@ func (a *Client) MessagingServiceMessagesDroppedGet(params *MessagingServiceMess
 }
 
 /*
-  MessagingServiceMessagesExceptionGet gets exception messages
+MessagingServiceMessagesExceptionGet gets exception messages
 
-  Get the number of messages return with an exception
+Get the number of messages return with an exception
 */
 func (a *Client) MessagingServiceMessagesExceptionGet(params *MessagingServiceMessagesExceptionGetParams) (*MessagingServiceMessagesExceptionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8350,9 +8350,9 @@ func (a *Client) MessagingServiceMessagesExceptionGet(params *MessagingServiceMe
 }
 
 /*
-  MessagingServiceMessagesPendingGet gets pending messages
+MessagingServiceMessagesPendingGet gets pending messages
 
-  Get the number of pending messages
+Get the number of pending messages
 */
 func (a *Client) MessagingServiceMessagesPendingGet(params *MessagingServiceMessagesPendingGetParams) (*MessagingServiceMessagesPendingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8385,9 +8385,9 @@ func (a *Client) MessagingServiceMessagesPendingGet(params *MessagingServiceMess
 }
 
 /*
-  MessagingServiceMessagesRepliedGet gets completed messages
+MessagingServiceMessagesRepliedGet gets completed messages
 
-  Get the number of replied messages
+Get the number of replied messages
 */
 func (a *Client) MessagingServiceMessagesRepliedGet(params *MessagingServiceMessagesRepliedGetParams) (*MessagingServiceMessagesRepliedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8420,9 +8420,9 @@ func (a *Client) MessagingServiceMessagesRepliedGet(params *MessagingServiceMess
 }
 
 /*
-  MessagingServiceMessagesRespondCompletedGet gets respond completed messages
+MessagingServiceMessagesRespondCompletedGet gets respond completed messages
 
-  Get the number of completed respond messages
+Get the number of completed respond messages
 */
 func (a *Client) MessagingServiceMessagesRespondCompletedGet(params *MessagingServiceMessagesRespondCompletedGetParams) (*MessagingServiceMessagesRespondCompletedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8455,9 +8455,9 @@ func (a *Client) MessagingServiceMessagesRespondCompletedGet(params *MessagingSe
 }
 
 /*
-  MessagingServiceMessagesRespondPendingGet gets respond pending messages
+MessagingServiceMessagesRespondPendingGet gets respond pending messages
 
-  Get the number of messages waiting for respond
+Get the number of messages waiting for respond
 */
 func (a *Client) MessagingServiceMessagesRespondPendingGet(params *MessagingServiceMessagesRespondPendingGetParams) (*MessagingServiceMessagesRespondPendingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8490,9 +8490,9 @@ func (a *Client) MessagingServiceMessagesRespondPendingGet(params *MessagingServ
 }
 
 /*
-  MessagingServiceMessagesSentGet gets sent messages
+MessagingServiceMessagesSentGet gets sent messages
 
-  Get the number of sent messages
+Get the number of sent messages
 */
 func (a *Client) MessagingServiceMessagesSentGet(params *MessagingServiceMessagesSentGetParams) (*MessagingServiceMessagesSentGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8525,9 +8525,9 @@ func (a *Client) MessagingServiceMessagesSentGet(params *MessagingServiceMessage
 }
 
 /*
-  MessagingServiceMessagesTimeoutGet gets timeout messages
+MessagingServiceMessagesTimeoutGet gets timeout messages
 
-  Get the number of timeout messages
+Get the number of timeout messages
 */
 func (a *Client) MessagingServiceMessagesTimeoutGet(params *MessagingServiceMessagesTimeoutGetParams) (*MessagingServiceMessagesTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8560,9 +8560,9 @@ func (a *Client) MessagingServiceMessagesTimeoutGet(params *MessagingServiceMess
 }
 
 /*
-  MessagingServiceVersionGet gets version
+MessagingServiceVersionGet gets version
 
-  Get the version number
+Get the version number
 */
 func (a *Client) MessagingServiceVersionGet(params *MessagingServiceVersionGetParams) (*MessagingServiceVersionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8595,9 +8595,9 @@ func (a *Client) MessagingServiceVersionGet(params *MessagingServiceVersionGetPa
 }
 
 /*
-  SnitchDatacenterGet gets datacenter
+SnitchDatacenterGet gets datacenter
 
-  Provides the Datacenter name depending on the respective snitch used, given the hostname/ip
+Provides the Datacenter name depending on the respective snitch used, given the hostname/ip
 */
 func (a *Client) SnitchDatacenterGet(params *SnitchDatacenterGetParams) (*SnitchDatacenterGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8630,9 +8630,9 @@ func (a *Client) SnitchDatacenterGet(params *SnitchDatacenterGetParams) (*Snitch
 }
 
 /*
-  SnitchNameGet gets snitch name
+SnitchNameGet gets snitch name
 
-  Provides the snitch name of the cluster
+Provides the snitch name of the cluster
 */
 func (a *Client) SnitchNameGet(params *SnitchNameGetParams) (*SnitchNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8665,9 +8665,9 @@ func (a *Client) SnitchNameGet(params *SnitchNameGetParams) (*SnitchNameGetOK, e
 }
 
 /*
-  SnitchRackGet gets rack
+SnitchRackGet gets rack
 
-  Provides the Rack name depending on the respective snitch used, given the host name/ip
+Provides the Rack name depending on the respective snitch used, given the host name/ip
 */
 func (a *Client) SnitchRackGet(params *SnitchRackGetParams) (*SnitchRackGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8700,9 +8700,9 @@ func (a *Client) SnitchRackGet(params *SnitchRackGetParams) (*SnitchRackGetOK, e
 }
 
 /*
-  StorageProxyCasContentionTimeoutGet gets cas contention timeout
+StorageProxyCasContentionTimeoutGet gets cas contention timeout
 
-  Get CAS contention timeout in seconds
+Get CAS contention timeout in seconds
 */
 func (a *Client) StorageProxyCasContentionTimeoutGet(params *StorageProxyCasContentionTimeoutGetParams) (*StorageProxyCasContentionTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8735,9 +8735,9 @@ func (a *Client) StorageProxyCasContentionTimeoutGet(params *StorageProxyCasCont
 }
 
 /*
-  StorageProxyCasContentionTimeoutPost sets cas contention timeout
+StorageProxyCasContentionTimeoutPost sets cas contention timeout
 
-  Set CAS contention timeout
+Set CAS contention timeout
 */
 func (a *Client) StorageProxyCasContentionTimeoutPost(params *StorageProxyCasContentionTimeoutPostParams) (*StorageProxyCasContentionTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -8770,9 +8770,9 @@ func (a *Client) StorageProxyCasContentionTimeoutPost(params *StorageProxyCasCon
 }
 
 /*
-  StorageProxyCounterWriteRPCTimeoutGet gets counter write rpc timeout
+StorageProxyCounterWriteRPCTimeoutGet gets counter write rpc timeout
 
-  Get counter write rpc timeout in seconds
+Get counter write rpc timeout in seconds
 */
 func (a *Client) StorageProxyCounterWriteRPCTimeoutGet(params *StorageProxyCounterWriteRPCTimeoutGetParams) (*StorageProxyCounterWriteRPCTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8805,9 +8805,9 @@ func (a *Client) StorageProxyCounterWriteRPCTimeoutGet(params *StorageProxyCount
 }
 
 /*
-  StorageProxyCounterWriteRPCTimeoutPost sets counter write rpc timeout
+StorageProxyCounterWriteRPCTimeoutPost sets counter write rpc timeout
 
-  Set counter write rpc timeout
+Set counter write rpc timeout
 */
 func (a *Client) StorageProxyCounterWriteRPCTimeoutPost(params *StorageProxyCounterWriteRPCTimeoutPostParams) (*StorageProxyCounterWriteRPCTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -8840,9 +8840,9 @@ func (a *Client) StorageProxyCounterWriteRPCTimeoutPost(params *StorageProxyCoun
 }
 
 /*
-  StorageProxyHintedHandoffEnabledByDcGet gets hinted handoff enabled by dc
+StorageProxyHintedHandoffEnabledByDcGet gets hinted handoff enabled by dc
 
-  Get the hinted handoff enabled by dc
+Get the hinted handoff enabled by dc
 */
 func (a *Client) StorageProxyHintedHandoffEnabledByDcGet(params *StorageProxyHintedHandoffEnabledByDcGetParams) (*StorageProxyHintedHandoffEnabledByDcGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8875,9 +8875,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledByDcGet(params *StorageProxyHin
 }
 
 /*
-  StorageProxyHintedHandoffEnabledByDcPost sets hinted handoff enabled by dc list
+StorageProxyHintedHandoffEnabledByDcPost sets hinted handoff enabled by dc list
 
-  Set the hinted handoff enabled by dc
+Set the hinted handoff enabled by dc
 */
 func (a *Client) StorageProxyHintedHandoffEnabledByDcPost(params *StorageProxyHintedHandoffEnabledByDcPostParams) (*StorageProxyHintedHandoffEnabledByDcPostOK, error) {
 	// TODO: Validate the params before sending
@@ -8910,9 +8910,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledByDcPost(params *StorageProxyHi
 }
 
 /*
-  StorageProxyHintedHandoffEnabledGet gets hinted handoff enabled
+StorageProxyHintedHandoffEnabledGet gets hinted handoff enabled
 
-  Return true if hinted handoff enabled
+Return true if hinted handoff enabled
 */
 func (a *Client) StorageProxyHintedHandoffEnabledGet(params *StorageProxyHintedHandoffEnabledGetParams) (*StorageProxyHintedHandoffEnabledGetOK, error) {
 	// TODO: Validate the params before sending
@@ -8945,9 +8945,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledGet(params *StorageProxyHintedH
 }
 
 /*
-  StorageProxyHintedHandoffEnabledPost sets hinted handoff enabled
+StorageProxyHintedHandoffEnabledPost sets hinted handoff enabled
 
-  Set hinted handoff status
+Set hinted handoff status
 */
 func (a *Client) StorageProxyHintedHandoffEnabledPost(params *StorageProxyHintedHandoffEnabledPostParams) (*StorageProxyHintedHandoffEnabledPostOK, error) {
 	// TODO: Validate the params before sending
@@ -8980,9 +8980,9 @@ func (a *Client) StorageProxyHintedHandoffEnabledPost(params *StorageProxyHinted
 }
 
 /*
-  StorageProxyHintsInProgressGet gets hints in progress
+StorageProxyHintsInProgressGet gets hints in progress
 
-  get hints in progress
+get hints in progress
 */
 func (a *Client) StorageProxyHintsInProgressGet(params *StorageProxyHintsInProgressGetParams) (*StorageProxyHintsInProgressGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9015,9 +9015,9 @@ func (a *Client) StorageProxyHintsInProgressGet(params *StorageProxyHintsInProgr
 }
 
 /*
-  StorageProxyMaxHintWindowGet gets max hint window
+StorageProxyMaxHintWindowGet gets max hint window
 
-  Get the max hint window
+Get the max hint window
 */
 func (a *Client) StorageProxyMaxHintWindowGet(params *StorageProxyMaxHintWindowGetParams) (*StorageProxyMaxHintWindowGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9050,9 +9050,9 @@ func (a *Client) StorageProxyMaxHintWindowGet(params *StorageProxyMaxHintWindowG
 }
 
 /*
-  StorageProxyMaxHintWindowPost sets max hint window
+StorageProxyMaxHintWindowPost sets max hint window
 
-  Set the max hint window
+Set the max hint window
 */
 func (a *Client) StorageProxyMaxHintWindowPost(params *StorageProxyMaxHintWindowPostParams) (*StorageProxyMaxHintWindowPostOK, error) {
 	// TODO: Validate the params before sending
@@ -9085,9 +9085,9 @@ func (a *Client) StorageProxyMaxHintWindowPost(params *StorageProxyMaxHintWindow
 }
 
 /*
-  StorageProxyMaxHintsInProgressGet gets max hints in progress
+StorageProxyMaxHintsInProgressGet gets max hints in progress
 
-  Get max hints in progress
+Get max hints in progress
 */
 func (a *Client) StorageProxyMaxHintsInProgressGet(params *StorageProxyMaxHintsInProgressGetParams) (*StorageProxyMaxHintsInProgressGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9120,9 +9120,9 @@ func (a *Client) StorageProxyMaxHintsInProgressGet(params *StorageProxyMaxHintsI
 }
 
 /*
-  StorageProxyMaxHintsInProgressPost sets max hints in progress
+StorageProxyMaxHintsInProgressPost sets max hints in progress
 
-  Set max hints in progress
+Set max hints in progress
 */
 func (a *Client) StorageProxyMaxHintsInProgressPost(params *StorageProxyMaxHintsInProgressPostParams) (*StorageProxyMaxHintsInProgressPostOK, error) {
 	// TODO: Validate the params before sending
@@ -9155,9 +9155,9 @@ func (a *Client) StorageProxyMaxHintsInProgressPost(params *StorageProxyMaxHints
 }
 
 /*
-  StorageProxyMetricsCasReadConditionNotMetGet gets cas read metrics condition not met
+StorageProxyMetricsCasReadConditionNotMetGet gets cas read metrics condition not met
 
-  Get cas read metrics
+Get cas read metrics
 */
 func (a *Client) StorageProxyMetricsCasReadConditionNotMetGet(params *StorageProxyMetricsCasReadConditionNotMetGetParams) (*StorageProxyMetricsCasReadConditionNotMetGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9190,9 +9190,9 @@ func (a *Client) StorageProxyMetricsCasReadConditionNotMetGet(params *StoragePro
 }
 
 /*
-  StorageProxyMetricsCasReadContentionGet gets cas read metrics contention
+StorageProxyMetricsCasReadContentionGet gets cas read metrics contention
 
-  Get cas read metrics
+Get cas read metrics
 */
 func (a *Client) StorageProxyMetricsCasReadContentionGet(params *StorageProxyMetricsCasReadContentionGetParams) (*StorageProxyMetricsCasReadContentionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9225,9 +9225,9 @@ func (a *Client) StorageProxyMetricsCasReadContentionGet(params *StorageProxyMet
 }
 
 /*
-  StorageProxyMetricsCasReadTimeoutsGet gets cas read timeouts
+StorageProxyMetricsCasReadTimeoutsGet gets cas read timeouts
 
-  Get CAS read timeout
+Get CAS read timeout
 */
 func (a *Client) StorageProxyMetricsCasReadTimeoutsGet(params *StorageProxyMetricsCasReadTimeoutsGetParams) (*StorageProxyMetricsCasReadTimeoutsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9260,9 +9260,9 @@ func (a *Client) StorageProxyMetricsCasReadTimeoutsGet(params *StorageProxyMetri
 }
 
 /*
-  StorageProxyMetricsCasReadUnavailablesGet gets cas read unavailables
+StorageProxyMetricsCasReadUnavailablesGet gets cas read unavailables
 
-  Get CAS read unavailables
+Get CAS read unavailables
 */
 func (a *Client) StorageProxyMetricsCasReadUnavailablesGet(params *StorageProxyMetricsCasReadUnavailablesGetParams) (*StorageProxyMetricsCasReadUnavailablesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9295,9 +9295,9 @@ func (a *Client) StorageProxyMetricsCasReadUnavailablesGet(params *StorageProxyM
 }
 
 /*
-  StorageProxyMetricsCasReadUnfinishedCommitGet gets cas read metrics unfinished commit
+StorageProxyMetricsCasReadUnfinishedCommitGet gets cas read metrics unfinished commit
 
-  Get cas read metrics
+Get cas read metrics
 */
 func (a *Client) StorageProxyMetricsCasReadUnfinishedCommitGet(params *StorageProxyMetricsCasReadUnfinishedCommitGetParams) (*StorageProxyMetricsCasReadUnfinishedCommitGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9330,9 +9330,9 @@ func (a *Client) StorageProxyMetricsCasReadUnfinishedCommitGet(params *StoragePr
 }
 
 /*
-  StorageProxyMetricsCasWriteConditionNotMetGet gets cas write metrics condition not met
+StorageProxyMetricsCasWriteConditionNotMetGet gets cas write metrics condition not met
 
-  Get cas write metrics
+Get cas write metrics
 */
 func (a *Client) StorageProxyMetricsCasWriteConditionNotMetGet(params *StorageProxyMetricsCasWriteConditionNotMetGetParams) (*StorageProxyMetricsCasWriteConditionNotMetGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9365,9 +9365,9 @@ func (a *Client) StorageProxyMetricsCasWriteConditionNotMetGet(params *StoragePr
 }
 
 /*
-  StorageProxyMetricsCasWriteContentionGet gets cas write metrics contention
+StorageProxyMetricsCasWriteContentionGet gets cas write metrics contention
 
-  Get cas write metrics
+Get cas write metrics
 */
 func (a *Client) StorageProxyMetricsCasWriteContentionGet(params *StorageProxyMetricsCasWriteContentionGetParams) (*StorageProxyMetricsCasWriteContentionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9400,9 +9400,9 @@ func (a *Client) StorageProxyMetricsCasWriteContentionGet(params *StorageProxyMe
 }
 
 /*
-  StorageProxyMetricsCasWriteTimeoutsGet gets cas write timeouts
+StorageProxyMetricsCasWriteTimeoutsGet gets cas write timeouts
 
-  Get CAS write timeout
+Get CAS write timeout
 */
 func (a *Client) StorageProxyMetricsCasWriteTimeoutsGet(params *StorageProxyMetricsCasWriteTimeoutsGetParams) (*StorageProxyMetricsCasWriteTimeoutsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9435,9 +9435,9 @@ func (a *Client) StorageProxyMetricsCasWriteTimeoutsGet(params *StorageProxyMetr
 }
 
 /*
-  StorageProxyMetricsCasWriteUnavailablesGet gets cas write unavailables
+StorageProxyMetricsCasWriteUnavailablesGet gets cas write unavailables
 
-  Get CAS write unavailables
+Get CAS write unavailables
 */
 func (a *Client) StorageProxyMetricsCasWriteUnavailablesGet(params *StorageProxyMetricsCasWriteUnavailablesGetParams) (*StorageProxyMetricsCasWriteUnavailablesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9470,9 +9470,9 @@ func (a *Client) StorageProxyMetricsCasWriteUnavailablesGet(params *StorageProxy
 }
 
 /*
-  StorageProxyMetricsCasWriteUnfinishedCommitGet gets cas write metrics unfinished commit
+StorageProxyMetricsCasWriteUnfinishedCommitGet gets cas write metrics unfinished commit
 
-  Get cas write metrics
+Get cas write metrics
 */
 func (a *Client) StorageProxyMetricsCasWriteUnfinishedCommitGet(params *StorageProxyMetricsCasWriteUnfinishedCommitGetParams) (*StorageProxyMetricsCasWriteUnfinishedCommitGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9505,9 +9505,9 @@ func (a *Client) StorageProxyMetricsCasWriteUnfinishedCommitGet(params *StorageP
 }
 
 /*
-  StorageProxyMetricsRangeEstimatedHistogramGet gets range estimated histogram
+StorageProxyMetricsRangeEstimatedHistogramGet gets range estimated histogram
 
-  Get range estimated latency
+Get range estimated latency
 */
 func (a *Client) StorageProxyMetricsRangeEstimatedHistogramGet(params *StorageProxyMetricsRangeEstimatedHistogramGetParams) (*StorageProxyMetricsRangeEstimatedHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9540,9 +9540,9 @@ func (a *Client) StorageProxyMetricsRangeEstimatedHistogramGet(params *StoragePr
 }
 
 /*
-  StorageProxyMetricsRangeGet gets range latency
+StorageProxyMetricsRangeGet gets range latency
 
-  Get range latency
+Get range latency
 */
 func (a *Client) StorageProxyMetricsRangeGet(params *StorageProxyMetricsRangeGetParams) (*StorageProxyMetricsRangeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9575,9 +9575,9 @@ func (a *Client) StorageProxyMetricsRangeGet(params *StorageProxyMetricsRangeGet
 }
 
 /*
-  StorageProxyMetricsRangeHistogramGet gets range metrics latency histogram depricated
+StorageProxyMetricsRangeHistogramGet gets range metrics latency histogram depricated
 
-  Get range metrics
+Get range metrics
 */
 func (a *Client) StorageProxyMetricsRangeHistogramGet(params *StorageProxyMetricsRangeHistogramGetParams) (*StorageProxyMetricsRangeHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9610,9 +9610,9 @@ func (a *Client) StorageProxyMetricsRangeHistogramGet(params *StorageProxyMetric
 }
 
 /*
-  StorageProxyMetricsRangeMovingAverageHistogramGet gets range metrics latency histogram
+StorageProxyMetricsRangeMovingAverageHistogramGet gets range metrics latency histogram
 
-  Get range metrics rate and histogram
+Get range metrics rate and histogram
 */
 func (a *Client) StorageProxyMetricsRangeMovingAverageHistogramGet(params *StorageProxyMetricsRangeMovingAverageHistogramGetParams) (*StorageProxyMetricsRangeMovingAverageHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9645,9 +9645,9 @@ func (a *Client) StorageProxyMetricsRangeMovingAverageHistogramGet(params *Stora
 }
 
 /*
-  StorageProxyMetricsRangeTimeoutsGet gets range metrics timeouts
+StorageProxyMetricsRangeTimeoutsGet gets range metrics timeouts
 
-  Get range metrics
+Get range metrics
 */
 func (a *Client) StorageProxyMetricsRangeTimeoutsGet(params *StorageProxyMetricsRangeTimeoutsGetParams) (*StorageProxyMetricsRangeTimeoutsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9680,9 +9680,9 @@ func (a *Client) StorageProxyMetricsRangeTimeoutsGet(params *StorageProxyMetrics
 }
 
 /*
-  StorageProxyMetricsRangeTimeoutsRatesGet gets range metrics timeouts rates
+StorageProxyMetricsRangeTimeoutsRatesGet gets range metrics timeouts rates
 
-  Get range metrics rates
+Get range metrics rates
 */
 func (a *Client) StorageProxyMetricsRangeTimeoutsRatesGet(params *StorageProxyMetricsRangeTimeoutsRatesGetParams) (*StorageProxyMetricsRangeTimeoutsRatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9715,9 +9715,9 @@ func (a *Client) StorageProxyMetricsRangeTimeoutsRatesGet(params *StorageProxyMe
 }
 
 /*
-  StorageProxyMetricsRangeUnavailablesGet gets range metrics unavailables
+StorageProxyMetricsRangeUnavailablesGet gets range metrics unavailables
 
-  Get range metrics
+Get range metrics
 */
 func (a *Client) StorageProxyMetricsRangeUnavailablesGet(params *StorageProxyMetricsRangeUnavailablesGetParams) (*StorageProxyMetricsRangeUnavailablesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9750,9 +9750,9 @@ func (a *Client) StorageProxyMetricsRangeUnavailablesGet(params *StorageProxyMet
 }
 
 /*
-  StorageProxyMetricsRangeUnavailablesRatesGet gets range metrics unavailables rates
+StorageProxyMetricsRangeUnavailablesRatesGet gets range metrics unavailables rates
 
-  Get range metrics rates
+Get range metrics rates
 */
 func (a *Client) StorageProxyMetricsRangeUnavailablesRatesGet(params *StorageProxyMetricsRangeUnavailablesRatesGetParams) (*StorageProxyMetricsRangeUnavailablesRatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9785,9 +9785,9 @@ func (a *Client) StorageProxyMetricsRangeUnavailablesRatesGet(params *StoragePro
 }
 
 /*
-  StorageProxyMetricsReadEstimatedHistogramGet gets read estimated histogram
+StorageProxyMetricsReadEstimatedHistogramGet gets read estimated histogram
 
-  Get read estimated latency
+Get read estimated latency
 */
 func (a *Client) StorageProxyMetricsReadEstimatedHistogramGet(params *StorageProxyMetricsReadEstimatedHistogramGetParams) (*StorageProxyMetricsReadEstimatedHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9820,9 +9820,9 @@ func (a *Client) StorageProxyMetricsReadEstimatedHistogramGet(params *StoragePro
 }
 
 /*
-  StorageProxyMetricsReadGet gets read latency
+StorageProxyMetricsReadGet gets read latency
 
-  Get read latency
+Get read latency
 */
 func (a *Client) StorageProxyMetricsReadGet(params *StorageProxyMetricsReadGetParams) (*StorageProxyMetricsReadGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9855,9 +9855,9 @@ func (a *Client) StorageProxyMetricsReadGet(params *StorageProxyMetricsReadGetPa
 }
 
 /*
-  StorageProxyMetricsReadHistogramGet gets read metrics latency histogram depricated
+StorageProxyMetricsReadHistogramGet gets read metrics latency histogram depricated
 
-  Get read metrics
+Get read metrics
 */
 func (a *Client) StorageProxyMetricsReadHistogramGet(params *StorageProxyMetricsReadHistogramGetParams) (*StorageProxyMetricsReadHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9890,9 +9890,9 @@ func (a *Client) StorageProxyMetricsReadHistogramGet(params *StorageProxyMetrics
 }
 
 /*
-  StorageProxyMetricsReadMovingAverageHistogramGet gets read metrics latency histogram
+StorageProxyMetricsReadMovingAverageHistogramGet gets read metrics latency histogram
 
-  Get read metrics
+Get read metrics
 */
 func (a *Client) StorageProxyMetricsReadMovingAverageHistogramGet(params *StorageProxyMetricsReadMovingAverageHistogramGetParams) (*StorageProxyMetricsReadMovingAverageHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9925,9 +9925,9 @@ func (a *Client) StorageProxyMetricsReadMovingAverageHistogramGet(params *Storag
 }
 
 /*
-  StorageProxyMetricsReadTimeoutsGet gets read metrics timeouts
+StorageProxyMetricsReadTimeoutsGet gets read metrics timeouts
 
-  Get read metrics
+Get read metrics
 */
 func (a *Client) StorageProxyMetricsReadTimeoutsGet(params *StorageProxyMetricsReadTimeoutsGetParams) (*StorageProxyMetricsReadTimeoutsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9960,9 +9960,9 @@ func (a *Client) StorageProxyMetricsReadTimeoutsGet(params *StorageProxyMetricsR
 }
 
 /*
-  StorageProxyMetricsReadTimeoutsRatesGet gets read metrics timeouts rates
+StorageProxyMetricsReadTimeoutsRatesGet gets read metrics timeouts rates
 
-  Get read metrics rates
+Get read metrics rates
 */
 func (a *Client) StorageProxyMetricsReadTimeoutsRatesGet(params *StorageProxyMetricsReadTimeoutsRatesGetParams) (*StorageProxyMetricsReadTimeoutsRatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -9995,9 +9995,9 @@ func (a *Client) StorageProxyMetricsReadTimeoutsRatesGet(params *StorageProxyMet
 }
 
 /*
-  StorageProxyMetricsReadUnavailablesGet gets read metrics unavailables
+StorageProxyMetricsReadUnavailablesGet gets read metrics unavailables
 
-  Get read metrics
+Get read metrics
 */
 func (a *Client) StorageProxyMetricsReadUnavailablesGet(params *StorageProxyMetricsReadUnavailablesGetParams) (*StorageProxyMetricsReadUnavailablesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10030,9 +10030,9 @@ func (a *Client) StorageProxyMetricsReadUnavailablesGet(params *StorageProxyMetr
 }
 
 /*
-  StorageProxyMetricsReadUnavailablesRatesGet gets read metrics unavailables rates
+StorageProxyMetricsReadUnavailablesRatesGet gets read metrics unavailables rates
 
-  Get read metrics rates
+Get read metrics rates
 */
 func (a *Client) StorageProxyMetricsReadUnavailablesRatesGet(params *StorageProxyMetricsReadUnavailablesRatesGetParams) (*StorageProxyMetricsReadUnavailablesRatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10065,9 +10065,9 @@ func (a *Client) StorageProxyMetricsReadUnavailablesRatesGet(params *StorageProx
 }
 
 /*
-  StorageProxyMetricsWriteEstimatedHistogramGet gets write estimated histogram
+StorageProxyMetricsWriteEstimatedHistogramGet gets write estimated histogram
 
-  Get write estimated latency
+Get write estimated latency
 */
 func (a *Client) StorageProxyMetricsWriteEstimatedHistogramGet(params *StorageProxyMetricsWriteEstimatedHistogramGetParams) (*StorageProxyMetricsWriteEstimatedHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10100,9 +10100,9 @@ func (a *Client) StorageProxyMetricsWriteEstimatedHistogramGet(params *StoragePr
 }
 
 /*
-  StorageProxyMetricsWriteGet gets write latency
+StorageProxyMetricsWriteGet gets write latency
 
-  Get write latency
+Get write latency
 */
 func (a *Client) StorageProxyMetricsWriteGet(params *StorageProxyMetricsWriteGetParams) (*StorageProxyMetricsWriteGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10135,9 +10135,9 @@ func (a *Client) StorageProxyMetricsWriteGet(params *StorageProxyMetricsWriteGet
 }
 
 /*
-  StorageProxyMetricsWriteHistogramGet gets write metrics latency histogram depricated
+StorageProxyMetricsWriteHistogramGet gets write metrics latency histogram depricated
 
-  Get write metrics
+Get write metrics
 */
 func (a *Client) StorageProxyMetricsWriteHistogramGet(params *StorageProxyMetricsWriteHistogramGetParams) (*StorageProxyMetricsWriteHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10170,9 +10170,9 @@ func (a *Client) StorageProxyMetricsWriteHistogramGet(params *StorageProxyMetric
 }
 
 /*
-  StorageProxyMetricsWriteMovingAverageHistogramGet gets write metrics latency histogram
+StorageProxyMetricsWriteMovingAverageHistogramGet gets write metrics latency histogram
 
-  Get write metrics
+Get write metrics
 */
 func (a *Client) StorageProxyMetricsWriteMovingAverageHistogramGet(params *StorageProxyMetricsWriteMovingAverageHistogramGetParams) (*StorageProxyMetricsWriteMovingAverageHistogramGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10205,9 +10205,9 @@ func (a *Client) StorageProxyMetricsWriteMovingAverageHistogramGet(params *Stora
 }
 
 /*
-  StorageProxyMetricsWriteTimeoutsGet gets write metrics timeouts
+StorageProxyMetricsWriteTimeoutsGet gets write metrics timeouts
 
-  Get write metrics
+Get write metrics
 */
 func (a *Client) StorageProxyMetricsWriteTimeoutsGet(params *StorageProxyMetricsWriteTimeoutsGetParams) (*StorageProxyMetricsWriteTimeoutsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10240,9 +10240,9 @@ func (a *Client) StorageProxyMetricsWriteTimeoutsGet(params *StorageProxyMetrics
 }
 
 /*
-  StorageProxyMetricsWriteTimeoutsRatesGet gets write metrics timeouts rates
+StorageProxyMetricsWriteTimeoutsRatesGet gets write metrics timeouts rates
 
-  Get write metrics rates
+Get write metrics rates
 */
 func (a *Client) StorageProxyMetricsWriteTimeoutsRatesGet(params *StorageProxyMetricsWriteTimeoutsRatesGetParams) (*StorageProxyMetricsWriteTimeoutsRatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10275,9 +10275,9 @@ func (a *Client) StorageProxyMetricsWriteTimeoutsRatesGet(params *StorageProxyMe
 }
 
 /*
-  StorageProxyMetricsWriteUnavailablesGet gets write metrics unavailables
+StorageProxyMetricsWriteUnavailablesGet gets write metrics unavailables
 
-  Get write metrics
+Get write metrics
 */
 func (a *Client) StorageProxyMetricsWriteUnavailablesGet(params *StorageProxyMetricsWriteUnavailablesGetParams) (*StorageProxyMetricsWriteUnavailablesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10310,9 +10310,9 @@ func (a *Client) StorageProxyMetricsWriteUnavailablesGet(params *StorageProxyMet
 }
 
 /*
-  StorageProxyMetricsWriteUnavailablesRatesGet gets write metrics unavailables rates
+StorageProxyMetricsWriteUnavailablesRatesGet gets write metrics unavailables rates
 
-  Get write metrics rates
+Get write metrics rates
 */
 func (a *Client) StorageProxyMetricsWriteUnavailablesRatesGet(params *StorageProxyMetricsWriteUnavailablesRatesGetParams) (*StorageProxyMetricsWriteUnavailablesRatesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10345,9 +10345,9 @@ func (a *Client) StorageProxyMetricsWriteUnavailablesRatesGet(params *StoragePro
 }
 
 /*
-  StorageProxyRangeRPCTimeoutGet gets range rpc timeout
+StorageProxyRangeRPCTimeoutGet gets range rpc timeout
 
-  Get range rpc timeout in seconds
+Get range rpc timeout in seconds
 */
 func (a *Client) StorageProxyRangeRPCTimeoutGet(params *StorageProxyRangeRPCTimeoutGetParams) (*StorageProxyRangeRPCTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10380,9 +10380,9 @@ func (a *Client) StorageProxyRangeRPCTimeoutGet(params *StorageProxyRangeRPCTime
 }
 
 /*
-  StorageProxyRangeRPCTimeoutPost sets range rpc timeout
+StorageProxyRangeRPCTimeoutPost sets range rpc timeout
 
-  Set range rpc timeout
+Set range rpc timeout
 */
 func (a *Client) StorageProxyRangeRPCTimeoutPost(params *StorageProxyRangeRPCTimeoutPostParams) (*StorageProxyRangeRPCTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -10415,9 +10415,9 @@ func (a *Client) StorageProxyRangeRPCTimeoutPost(params *StorageProxyRangeRPCTim
 }
 
 /*
-  StorageProxyReadRepairAttemptedGet gets read repair attempted
+StorageProxyReadRepairAttemptedGet gets read repair attempted
 
-  Get read repair attempted
+Get read repair attempted
 */
 func (a *Client) StorageProxyReadRepairAttemptedGet(params *StorageProxyReadRepairAttemptedGetParams) (*StorageProxyReadRepairAttemptedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10450,9 +10450,9 @@ func (a *Client) StorageProxyReadRepairAttemptedGet(params *StorageProxyReadRepa
 }
 
 /*
-  StorageProxyReadRepairRepairedBackgroundGet gets read repair repaired background
+StorageProxyReadRepairRepairedBackgroundGet gets read repair repaired background
 
-  Get read repair repaired background
+Get read repair repaired background
 */
 func (a *Client) StorageProxyReadRepairRepairedBackgroundGet(params *StorageProxyReadRepairRepairedBackgroundGetParams) (*StorageProxyReadRepairRepairedBackgroundGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10485,9 +10485,9 @@ func (a *Client) StorageProxyReadRepairRepairedBackgroundGet(params *StorageProx
 }
 
 /*
-  StorageProxyReadRepairRepairedBlockingGet gets read repair repaired blocking
+StorageProxyReadRepairRepairedBlockingGet gets read repair repaired blocking
 
-  Get read repair repaired blocking
+Get read repair repaired blocking
 */
 func (a *Client) StorageProxyReadRepairRepairedBlockingGet(params *StorageProxyReadRepairRepairedBlockingGetParams) (*StorageProxyReadRepairRepairedBlockingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10520,9 +10520,9 @@ func (a *Client) StorageProxyReadRepairRepairedBlockingGet(params *StorageProxyR
 }
 
 /*
-  StorageProxyReadRPCTimeoutGet gets read rpc timeout
+StorageProxyReadRPCTimeoutGet gets read rpc timeout
 
-  Get the read RPC timeout in seconds
+Get the read RPC timeout in seconds
 */
 func (a *Client) StorageProxyReadRPCTimeoutGet(params *StorageProxyReadRPCTimeoutGetParams) (*StorageProxyReadRPCTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10555,9 +10555,9 @@ func (a *Client) StorageProxyReadRPCTimeoutGet(params *StorageProxyReadRPCTimeou
 }
 
 /*
-  StorageProxyReadRPCTimeoutPost sets read rpc timeout
+StorageProxyReadRPCTimeoutPost sets read rpc timeout
 
-  Set the read RPC timeout
+Set the read RPC timeout
 */
 func (a *Client) StorageProxyReadRPCTimeoutPost(params *StorageProxyReadRPCTimeoutPostParams) (*StorageProxyReadRPCTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -10590,9 +10590,9 @@ func (a *Client) StorageProxyReadRPCTimeoutPost(params *StorageProxyReadRPCTimeo
 }
 
 /*
-  StorageProxyReloadTriggerClassesPost reloads trigger classes
+StorageProxyReloadTriggerClassesPost reloads trigger classes
 
-  Reload trigger classes
+Reload trigger classes
 */
 func (a *Client) StorageProxyReloadTriggerClassesPost(params *StorageProxyReloadTriggerClassesPostParams) (*StorageProxyReloadTriggerClassesPostOK, error) {
 	// TODO: Validate the params before sending
@@ -10625,9 +10625,9 @@ func (a *Client) StorageProxyReloadTriggerClassesPost(params *StorageProxyReload
 }
 
 /*
-  StorageProxyRPCTimeoutGet gets rpc timeout
+StorageProxyRPCTimeoutGet gets rpc timeout
 
-  Get the RPC timeout in seconds
+Get the RPC timeout in seconds
 */
 func (a *Client) StorageProxyRPCTimeoutGet(params *StorageProxyRPCTimeoutGetParams) (*StorageProxyRPCTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10660,9 +10660,9 @@ func (a *Client) StorageProxyRPCTimeoutGet(params *StorageProxyRPCTimeoutGetPara
 }
 
 /*
-  StorageProxyRPCTimeoutPost sets rpc timeout
+StorageProxyRPCTimeoutPost sets rpc timeout
 
-  Set the RPC timeout
+Set the RPC timeout
 */
 func (a *Client) StorageProxyRPCTimeoutPost(params *StorageProxyRPCTimeoutPostParams) (*StorageProxyRPCTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -10695,9 +10695,9 @@ func (a *Client) StorageProxyRPCTimeoutPost(params *StorageProxyRPCTimeoutPostPa
 }
 
 /*
-  StorageProxySchemaVersionsGet gets schema versions
+StorageProxySchemaVersionsGet gets schema versions
 
-  Get a map of the schema versions
+Get a map of the schema versions
 */
 func (a *Client) StorageProxySchemaVersionsGet(params *StorageProxySchemaVersionsGetParams) (*StorageProxySchemaVersionsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10730,9 +10730,9 @@ func (a *Client) StorageProxySchemaVersionsGet(params *StorageProxySchemaVersion
 }
 
 /*
-  StorageProxyTotalHintsGet gets total hints
+StorageProxyTotalHintsGet gets total hints
 
-  Get total hints
+Get total hints
 */
 func (a *Client) StorageProxyTotalHintsGet(params *StorageProxyTotalHintsGetParams) (*StorageProxyTotalHintsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10765,9 +10765,9 @@ func (a *Client) StorageProxyTotalHintsGet(params *StorageProxyTotalHintsGetPara
 }
 
 /*
-  StorageProxyTruncateRPCTimeoutGet gets truncate rpc timeout
+StorageProxyTruncateRPCTimeoutGet gets truncate rpc timeout
 
-  Get truncate rpc timeout in seconds
+Get truncate rpc timeout in seconds
 */
 func (a *Client) StorageProxyTruncateRPCTimeoutGet(params *StorageProxyTruncateRPCTimeoutGetParams) (*StorageProxyTruncateRPCTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10800,9 +10800,9 @@ func (a *Client) StorageProxyTruncateRPCTimeoutGet(params *StorageProxyTruncateR
 }
 
 /*
-  StorageProxyTruncateRPCTimeoutPost sets truncate rpc timeout
+StorageProxyTruncateRPCTimeoutPost sets truncate rpc timeout
 
-  Set truncate rpc timeout
+Set truncate rpc timeout
 */
 func (a *Client) StorageProxyTruncateRPCTimeoutPost(params *StorageProxyTruncateRPCTimeoutPostParams) (*StorageProxyTruncateRPCTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -10835,9 +10835,9 @@ func (a *Client) StorageProxyTruncateRPCTimeoutPost(params *StorageProxyTruncate
 }
 
 /*
-  StorageProxyWriteRPCTimeoutGet gets write rpc timeout
+StorageProxyWriteRPCTimeoutGet gets write rpc timeout
 
-  Get the write RPC timeout in seconds
+Get the write RPC timeout in seconds
 */
 func (a *Client) StorageProxyWriteRPCTimeoutGet(params *StorageProxyWriteRPCTimeoutGetParams) (*StorageProxyWriteRPCTimeoutGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10870,9 +10870,9 @@ func (a *Client) StorageProxyWriteRPCTimeoutGet(params *StorageProxyWriteRPCTime
 }
 
 /*
-  StorageProxyWriteRPCTimeoutPost sets write rpc timeout
+StorageProxyWriteRPCTimeoutPost sets write rpc timeout
 
-  Set the write RPC timeout
+Set the write RPC timeout
 */
 func (a *Client) StorageProxyWriteRPCTimeoutPost(params *StorageProxyWriteRPCTimeoutPostParams) (*StorageProxyWriteRPCTimeoutPostOK, error) {
 	// TODO: Validate the params before sending
@@ -10905,9 +10905,9 @@ func (a *Client) StorageProxyWriteRPCTimeoutPost(params *StorageProxyWriteRPCTim
 }
 
 /*
-  StorageServiceActiveRepairGet gets active repair async
+StorageServiceActiveRepairGet gets active repair async
 
-  Return an array with the ids of the currently active repairs
+Return an array with the ids of the currently active repairs
 */
 func (a *Client) StorageServiceActiveRepairGet(params *StorageServiceActiveRepairGetParams) (*StorageServiceActiveRepairGetOK, error) {
 	// TODO: Validate the params before sending
@@ -10940,9 +10940,9 @@ func (a *Client) StorageServiceActiveRepairGet(params *StorageServiceActiveRepai
 }
 
 /*
-  StorageServiceAutoCompactionByKeyspaceDelete disables auto compaction
+StorageServiceAutoCompactionByKeyspaceDelete disables auto compaction
 
-  Disable auto compaction
+Disable auto compaction
 */
 func (a *Client) StorageServiceAutoCompactionByKeyspaceDelete(params *StorageServiceAutoCompactionByKeyspaceDeleteParams) (*StorageServiceAutoCompactionByKeyspaceDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -10975,9 +10975,9 @@ func (a *Client) StorageServiceAutoCompactionByKeyspaceDelete(params *StorageSer
 }
 
 /*
-  StorageServiceAutoCompactionByKeyspacePost enables auto compaction
+StorageServiceAutoCompactionByKeyspacePost enables auto compaction
 
-  Enable auto compaction
+Enable auto compaction
 */
 func (a *Client) StorageServiceAutoCompactionByKeyspacePost(params *StorageServiceAutoCompactionByKeyspacePostParams) (*StorageServiceAutoCompactionByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -11010,9 +11010,9 @@ func (a *Client) StorageServiceAutoCompactionByKeyspacePost(params *StorageServi
 }
 
 /*
-  StorageServiceBatchSizeFailureThresholdGet gets batch size failure threshold
+StorageServiceBatchSizeFailureThresholdGet gets batch size failure threshold
 
-  Returns the threshold for rejecting queries due to a large batch size
+Returns the threshold for rejecting queries due to a large batch size
 */
 func (a *Client) StorageServiceBatchSizeFailureThresholdGet(params *StorageServiceBatchSizeFailureThresholdGetParams) (*StorageServiceBatchSizeFailureThresholdGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11045,9 +11045,9 @@ func (a *Client) StorageServiceBatchSizeFailureThresholdGet(params *StorageServi
 }
 
 /*
-  StorageServiceBatchSizeFailureThresholdPost sets batch size failure threshold
+StorageServiceBatchSizeFailureThresholdPost sets batch size failure threshold
 
-  Sets the threshold for rejecting queries due to a large batch size
+Sets the threshold for rejecting queries due to a large batch size
 */
 func (a *Client) StorageServiceBatchSizeFailureThresholdPost(params *StorageServiceBatchSizeFailureThresholdPostParams) (*StorageServiceBatchSizeFailureThresholdPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11080,9 +11080,9 @@ func (a *Client) StorageServiceBatchSizeFailureThresholdPost(params *StorageServ
 }
 
 /*
-  StorageServiceBulkLoadAsyncByPathGet bulks load async
+StorageServiceBulkLoadAsyncByPathGet bulks load async
 
-  Starts a bulk load asynchronously and returns the String representation of the planID for the new streaming session.
+Starts a bulk load asynchronously and returns the String representation of the planID for the new streaming session.
 */
 func (a *Client) StorageServiceBulkLoadAsyncByPathGet(params *StorageServiceBulkLoadAsyncByPathGetParams) (*StorageServiceBulkLoadAsyncByPathGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11115,9 +11115,9 @@ func (a *Client) StorageServiceBulkLoadAsyncByPathGet(params *StorageServiceBulk
 }
 
 /*
-  StorageServiceBulkLoadByPathPost bulks load
+StorageServiceBulkLoadByPathPost bulks load
 
-  Starts a bulk load and blocks until it completes
+Starts a bulk load and blocks until it completes
 */
 func (a *Client) StorageServiceBulkLoadByPathPost(params *StorageServiceBulkLoadByPathPostParams) (*StorageServiceBulkLoadByPathPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11150,9 +11150,9 @@ func (a *Client) StorageServiceBulkLoadByPathPost(params *StorageServiceBulkLoad
 }
 
 /*
-  StorageServiceClusterNameGet gets cluster name
+StorageServiceClusterNameGet gets cluster name
 
-  Returns the name of the cluster
+Returns the name of the cluster
 */
 func (a *Client) StorageServiceClusterNameGet(params *StorageServiceClusterNameGetParams) (*StorageServiceClusterNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11185,9 +11185,9 @@ func (a *Client) StorageServiceClusterNameGet(params *StorageServiceClusterNameG
 }
 
 /*
-  StorageServiceCommitlogGet gets commitlog
+StorageServiceCommitlogGet gets commitlog
 
-  Returns the location of the commit log files
+Returns the location of the commit log files
 */
 func (a *Client) StorageServiceCommitlogGet(params *StorageServiceCommitlogGetParams) (*StorageServiceCommitlogGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11220,9 +11220,9 @@ func (a *Client) StorageServiceCommitlogGet(params *StorageServiceCommitlogGetPa
 }
 
 /*
-  StorageServiceCompactionThroughputGet gets compaction throughput mb per sec
+StorageServiceCompactionThroughputGet gets compaction throughput mb per sec
 
-  get compaction throughput mb per sec
+get compaction throughput mb per sec
 */
 func (a *Client) StorageServiceCompactionThroughputGet(params *StorageServiceCompactionThroughputGetParams) (*StorageServiceCompactionThroughputGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11255,9 +11255,9 @@ func (a *Client) StorageServiceCompactionThroughputGet(params *StorageServiceCom
 }
 
 /*
-  StorageServiceCompactionThroughputPost sets compaction throughput mb per sec
+StorageServiceCompactionThroughputPost sets compaction throughput mb per sec
 
-  Set compaction throughput mb per sec
+Set compaction throughput mb per sec
 */
 func (a *Client) StorageServiceCompactionThroughputPost(params *StorageServiceCompactionThroughputPostParams) (*StorageServiceCompactionThroughputPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11290,9 +11290,9 @@ func (a *Client) StorageServiceCompactionThroughputPost(params *StorageServiceCo
 }
 
 /*
-  StorageServiceDataFileLocationsGet gets all data file locations
+StorageServiceDataFileLocationsGet gets all data file locations
 
-  Get the list of all data file locations from conf
+Get the list of all data file locations from conf
 */
 func (a *Client) StorageServiceDataFileLocationsGet(params *StorageServiceDataFileLocationsGetParams) (*StorageServiceDataFileLocationsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11325,9 +11325,9 @@ func (a *Client) StorageServiceDataFileLocationsGet(params *StorageServiceDataFi
 }
 
 /*
-  StorageServiceDecommissionPost decommissions
+StorageServiceDecommissionPost decommissions
 
-  transfer this node's data to other machines and remove it from service.
+transfer this node's data to other machines and remove it from service.
 */
 func (a *Client) StorageServiceDecommissionPost(params *StorageServiceDecommissionPostParams) (*StorageServiceDecommissionPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11360,7 +11360,7 @@ func (a *Client) StorageServiceDecommissionPost(params *StorageServiceDecommissi
 }
 
 /*
-  StorageServiceDeliverHintsPost delivers hints
+StorageServiceDeliverHintsPost delivers hints
 */
 func (a *Client) StorageServiceDeliverHintsPost(params *StorageServiceDeliverHintsPostParams) (*StorageServiceDeliverHintsPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11393,9 +11393,9 @@ func (a *Client) StorageServiceDeliverHintsPost(params *StorageServiceDeliverHin
 }
 
 /*
-  StorageServiceDescribeRingByKeyspaceGet describes ring
+StorageServiceDescribeRingByKeyspaceGet describes ring
 
-  The TokenRange for a given keyspace
+The TokenRange for a given keyspace
 */
 func (a *Client) StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceDescribeRingByKeyspaceGetParams) (*StorageServiceDescribeRingByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11428,9 +11428,9 @@ func (a *Client) StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceD
 }
 
 /*
-  StorageServiceDescribeRingGet describes any ring
+StorageServiceDescribeRingGet describes any ring
 
-  The TokenRange for a any keyspace
+The TokenRange for a any keyspace
 */
 func (a *Client) StorageServiceDescribeRingGet(params *StorageServiceDescribeRingGetParams) (*StorageServiceDescribeRingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11463,9 +11463,9 @@ func (a *Client) StorageServiceDescribeRingGet(params *StorageServiceDescribeRin
 }
 
 /*
-  StorageServiceDrainGet gets drain progress
+StorageServiceDrainGet gets drain progress
 
-  Get the progress of a drain operation
+Get the progress of a drain operation
 */
 func (a *Client) StorageServiceDrainGet(params *StorageServiceDrainGetParams) (*StorageServiceDrainGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11498,9 +11498,9 @@ func (a *Client) StorageServiceDrainGet(params *StorageServiceDrainGetParams) (*
 }
 
 /*
-  StorageServiceDrainPost drains
+StorageServiceDrainPost drains
 
-  makes node unavailable for writes, flushes memtables and replays commitlog
+makes node unavailable for writes, flushes memtables and replays commitlog
 */
 func (a *Client) StorageServiceDrainPost(params *StorageServiceDrainPostParams) (*StorageServiceDrainPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11533,9 +11533,9 @@ func (a *Client) StorageServiceDrainPost(params *StorageServiceDrainPostParams) 
 }
 
 /*
-  StorageServiceForceRemoveCompletionPost forces remove completion
+StorageServiceForceRemoveCompletionPost forces remove completion
 
-  Force a remove operation to finish.
+Force a remove operation to finish.
 */
 func (a *Client) StorageServiceForceRemoveCompletionPost(params *StorageServiceForceRemoveCompletionPostParams) (*StorageServiceForceRemoveCompletionPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11568,9 +11568,9 @@ func (a *Client) StorageServiceForceRemoveCompletionPost(params *StorageServiceF
 }
 
 /*
-  StorageServiceForceTerminatePost forces terminate all repair sessions
+StorageServiceForceTerminatePost forces terminate all repair sessions
 
-  Force terminate all repair sessions
+Force terminate all repair sessions
 */
 func (a *Client) StorageServiceForceTerminatePost(params *StorageServiceForceTerminatePostParams) (*StorageServiceForceTerminatePostOK, error) {
 	// TODO: Validate the params before sending
@@ -11603,9 +11603,9 @@ func (a *Client) StorageServiceForceTerminatePost(params *StorageServiceForceTer
 }
 
 /*
-  StorageServiceForceTerminateRepairPost forces terminate all repair sessions new
+StorageServiceForceTerminateRepairPost forces terminate all repair sessions new
 
-  Force terminate all repair sessions
+Force terminate all repair sessions
 */
 func (a *Client) StorageServiceForceTerminateRepairPost(params *StorageServiceForceTerminateRepairPostParams) (*StorageServiceForceTerminateRepairPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11638,9 +11638,9 @@ func (a *Client) StorageServiceForceTerminateRepairPost(params *StorageServiceFo
 }
 
 /*
-  StorageServiceGenerationNumberGet gets current generation number
+StorageServiceGenerationNumberGet gets current generation number
 
-  Return the generation value for this node.
+Return the generation value for this node.
 */
 func (a *Client) StorageServiceGenerationNumberGet(params *StorageServiceGenerationNumberGetParams) (*StorageServiceGenerationNumberGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11673,9 +11673,9 @@ func (a *Client) StorageServiceGenerationNumberGet(params *StorageServiceGenerat
 }
 
 /*
-  StorageServiceGossipingDelete stops gossiping
+StorageServiceGossipingDelete stops gossiping
 
-  allows a user to forcibly 'kill' a sick node
+allows a user to forcibly 'kill' a sick node
 */
 func (a *Client) StorageServiceGossipingDelete(params *StorageServiceGossipingDeleteParams) (*StorageServiceGossipingDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -11708,9 +11708,9 @@ func (a *Client) StorageServiceGossipingDelete(params *StorageServiceGossipingDe
 }
 
 /*
-  StorageServiceGossipingGet is gossip running
+StorageServiceGossipingGet is gossip running
 
-  allows a user to see whether gossip is running or not
+allows a user to see whether gossip is running or not
 */
 func (a *Client) StorageServiceGossipingGet(params *StorageServiceGossipingGetParams) (*StorageServiceGossipingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11743,9 +11743,9 @@ func (a *Client) StorageServiceGossipingGet(params *StorageServiceGossipingGetPa
 }
 
 /*
-  StorageServiceGossipingPost starts gossiping
+StorageServiceGossipingPost starts gossiping
 
-  allows a user to recover a forcibly 'killed' node
+allows a user to recover a forcibly 'killed' node
 */
 func (a *Client) StorageServiceGossipingPost(params *StorageServiceGossipingPostParams) (*StorageServiceGossipingPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11778,9 +11778,9 @@ func (a *Client) StorageServiceGossipingPost(params *StorageServiceGossipingPost
 }
 
 /*
-  StorageServiceHintedHandoffPost sets hinted handoff throttle in kb
+StorageServiceHintedHandoffPost sets hinted handoff throttle in kb
 
-  Sets the hinted handoff throttle in kb per second, per delivery thread
+Sets the hinted handoff throttle in kb per second, per delivery thread
 */
 func (a *Client) StorageServiceHintedHandoffPost(params *StorageServiceHintedHandoffPostParams) (*StorageServiceHintedHandoffPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11813,9 +11813,9 @@ func (a *Client) StorageServiceHintedHandoffPost(params *StorageServiceHintedHan
 }
 
 /*
-  StorageServiceHostIDGet gets host id map
+StorageServiceHostIDGet gets host id map
 
-  Retrieve the mapping of endpoint to host ID
+Retrieve the mapping of endpoint to host ID
 */
 func (a *Client) StorageServiceHostIDGet(params *StorageServiceHostIDGetParams) (*StorageServiceHostIDGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11848,9 +11848,9 @@ func (a *Client) StorageServiceHostIDGet(params *StorageServiceHostIDGetParams) 
 }
 
 /*
-  StorageServiceHostidLocalGet locals hostid
+StorageServiceHostidLocalGet locals hostid
 
-  Returns the local host id
+Returns the local host id
 */
 func (a *Client) StorageServiceHostidLocalGet(params *StorageServiceHostidLocalGetParams) (*StorageServiceHostidLocalGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11883,9 +11883,9 @@ func (a *Client) StorageServiceHostidLocalGet(params *StorageServiceHostidLocalG
 }
 
 /*
-  StorageServiceIncrementalBackupsGet is incremental backups enabled
+StorageServiceIncrementalBackupsGet is incremental backups enabled
 
-  Check if incremental backup is enabled
+Check if incremental backup is enabled
 */
 func (a *Client) StorageServiceIncrementalBackupsGet(params *StorageServiceIncrementalBackupsGetParams) (*StorageServiceIncrementalBackupsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11918,7 +11918,7 @@ func (a *Client) StorageServiceIncrementalBackupsGet(params *StorageServiceIncre
 }
 
 /*
-  StorageServiceIncrementalBackupsPost sets incremental backups enabled
+StorageServiceIncrementalBackupsPost sets incremental backups enabled
 */
 func (a *Client) StorageServiceIncrementalBackupsPost(params *StorageServiceIncrementalBackupsPostParams) (*StorageServiceIncrementalBackupsPostOK, error) {
 	// TODO: Validate the params before sending
@@ -11951,9 +11951,9 @@ func (a *Client) StorageServiceIncrementalBackupsPost(params *StorageServiceIncr
 }
 
 /*
-  StorageServiceIsInitializedGet is initialized
+StorageServiceIsInitializedGet is initialized
 
-  Determine if gossip is enable
+Determine if gossip is enable
 */
 func (a *Client) StorageServiceIsInitializedGet(params *StorageServiceIsInitializedGetParams) (*StorageServiceIsInitializedGetOK, error) {
 	// TODO: Validate the params before sending
@@ -11986,9 +11986,9 @@ func (a *Client) StorageServiceIsInitializedGet(params *StorageServiceIsInitiali
 }
 
 /*
-  StorageServiceIsStartingGet is starting
+StorageServiceIsStartingGet is starting
 
-  Returns whether the storage service is starting or not
+Returns whether the storage service is starting or not
 */
 func (a *Client) StorageServiceIsStartingGet(params *StorageServiceIsStartingGetParams) (*StorageServiceIsStartingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12021,7 +12021,7 @@ func (a *Client) StorageServiceIsStartingGet(params *StorageServiceIsStartingGet
 }
 
 /*
-  StorageServiceJoinRingGet is joined
+StorageServiceJoinRingGet is joined
 */
 func (a *Client) StorageServiceJoinRingGet(params *StorageServiceJoinRingGetParams) (*StorageServiceJoinRingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12054,9 +12054,9 @@ func (a *Client) StorageServiceJoinRingGet(params *StorageServiceJoinRingGetPara
 }
 
 /*
-  StorageServiceJoinRingPost joins ring
+StorageServiceJoinRingPost joins ring
 
-  Allows a node that have been started without joining the ring to join it
+Allows a node that have been started without joining the ring to join it
 */
 func (a *Client) StorageServiceJoinRingPost(params *StorageServiceJoinRingPostParams) (*StorageServiceJoinRingPostOK, error) {
 	// TODO: Validate the params before sending
@@ -12089,9 +12089,9 @@ func (a *Client) StorageServiceJoinRingPost(params *StorageServiceJoinRingPostPa
 }
 
 /*
-  StorageServiceKeyspaceCleanupByKeyspacePost forces keyspace cleanup
+StorageServiceKeyspaceCleanupByKeyspacePost forces keyspace cleanup
 
-  Trigger a cleanup of keys on a single keyspace
+Trigger a cleanup of keys on a single keyspace
 */
 func (a *Client) StorageServiceKeyspaceCleanupByKeyspacePost(params *StorageServiceKeyspaceCleanupByKeyspacePostParams) (*StorageServiceKeyspaceCleanupByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -12124,9 +12124,9 @@ func (a *Client) StorageServiceKeyspaceCleanupByKeyspacePost(params *StorageServ
 }
 
 /*
-  StorageServiceKeyspaceCompactionByKeyspacePost forces keyspace compaction
+StorageServiceKeyspaceCompactionByKeyspacePost forces keyspace compaction
 
-  Forces major compaction of a single keyspace
+Forces major compaction of a single keyspace
 */
 func (a *Client) StorageServiceKeyspaceCompactionByKeyspacePost(params *StorageServiceKeyspaceCompactionByKeyspacePostParams) (*StorageServiceKeyspaceCompactionByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -12159,9 +12159,9 @@ func (a *Client) StorageServiceKeyspaceCompactionByKeyspacePost(params *StorageS
 }
 
 /*
-  StorageServiceKeyspaceFlushByKeyspacePost forces keyspace flush
+StorageServiceKeyspaceFlushByKeyspacePost forces keyspace flush
 
-  Flush all memtables for the given column families, or all columnfamilies for the given keyspace if none are explicitly listed.
+Flush all memtables for the given column families, or all columnfamilies for the given keyspace if none are explicitly listed.
 */
 func (a *Client) StorageServiceKeyspaceFlushByKeyspacePost(params *StorageServiceKeyspaceFlushByKeyspacePostParams) (*StorageServiceKeyspaceFlushByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -12194,9 +12194,9 @@ func (a *Client) StorageServiceKeyspaceFlushByKeyspacePost(params *StorageServic
 }
 
 /*
-  StorageServiceKeyspaceScrubByKeyspaceGet scrubs
+StorageServiceKeyspaceScrubByKeyspaceGet scrubs
 
-  Scrub (deserialize + reserialize at the latest version, skipping bad rows if any) the given keyspace. If columnFamilies array is empty, all CFs are scrubbed. Scrubbed CFs will be snapshotted first, if disableSnapshot is false
+Scrub (deserialize + reserialize at the latest version, skipping bad rows if any) the given keyspace. If columnFamilies array is empty, all CFs are scrubbed. Scrubbed CFs will be snapshotted first, if disableSnapshot is false
 */
 func (a *Client) StorageServiceKeyspaceScrubByKeyspaceGet(params *StorageServiceKeyspaceScrubByKeyspaceGetParams) (*StorageServiceKeyspaceScrubByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12229,9 +12229,9 @@ func (a *Client) StorageServiceKeyspaceScrubByKeyspaceGet(params *StorageService
 }
 
 /*
-  StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet upgrades sstables
+StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet upgrades sstables
 
-  Rewrite all sstables to the latest version. Unlike scrub, it doesn't skip bad rows and do not snapshot sstables first.
+Rewrite all sstables to the latest version. Unlike scrub, it doesn't skip bad rows and do not snapshot sstables first.
 */
 func (a *Client) StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet(params *StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetParams) (*StorageServiceKeyspaceUpgradeSstablesByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12264,9 +12264,9 @@ func (a *Client) StorageServiceKeyspaceUpgradeSstablesByKeyspaceGet(params *Stor
 }
 
 /*
-  StorageServiceKeyspacesGet gets keyspaces
+StorageServiceKeyspacesGet gets keyspaces
 
-  Get the keyspaces
+Get the keyspaces
 */
 func (a *Client) StorageServiceKeyspacesGet(params *StorageServiceKeyspacesGetParams) (*StorageServiceKeyspacesGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12299,9 +12299,9 @@ func (a *Client) StorageServiceKeyspacesGet(params *StorageServiceKeyspacesGetPa
 }
 
 /*
-  StorageServiceLoadGet gets load
+StorageServiceLoadGet gets load
 
-  get load value
+get load value
 */
 func (a *Client) StorageServiceLoadGet(params *StorageServiceLoadGetParams) (*StorageServiceLoadGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12334,9 +12334,9 @@ func (a *Client) StorageServiceLoadGet(params *StorageServiceLoadGetParams) (*St
 }
 
 /*
-  StorageServiceLoadMapGet gets load map
+StorageServiceLoadMapGet gets load map
 
-  load value. Keys are IP addresses
+load value. Keys are IP addresses
 */
 func (a *Client) StorageServiceLoadMapGet(params *StorageServiceLoadMapGetParams) (*StorageServiceLoadMapGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12369,9 +12369,9 @@ func (a *Client) StorageServiceLoadMapGet(params *StorageServiceLoadMapGetParams
 }
 
 /*
-  StorageServiceLoggingLevelGet gets logging levels
+StorageServiceLoggingLevelGet gets logging levels
 
-  get the runtime logging levels
+get the runtime logging levels
 */
 func (a *Client) StorageServiceLoggingLevelGet(params *StorageServiceLoggingLevelGetParams) (*StorageServiceLoggingLevelGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12404,9 +12404,9 @@ func (a *Client) StorageServiceLoggingLevelGet(params *StorageServiceLoggingLeve
 }
 
 /*
-  StorageServiceLoggingLevelPost sets logging level
+StorageServiceLoggingLevelPost sets logging level
 
-  set the logging level at runtime<br> <br> If both classQualifer and level are empty/null, it will reload the configuration to reset.<br> If classQualifer is not empty but level is empty/null, it will set the level to null for the defined classQualifer<br> If level cannot be parsed, then the level will be defaulted to DEBUG<br> <br> The logback configuration should have < jmxConfigurator /> set
+set the logging level at runtime<br> <br> If both classQualifer and level are empty/null, it will reload the configuration to reset.<br> If classQualifer is not empty but level is empty/null, it will set the level to null for the defined classQualifer<br> If level cannot be parsed, then the level will be defaulted to DEBUG<br> <br> The logback configuration should have < jmxConfigurator /> set
 */
 func (a *Client) StorageServiceLoggingLevelPost(params *StorageServiceLoggingLevelPostParams) (*StorageServiceLoggingLevelPostOK, error) {
 	// TODO: Validate the params before sending
@@ -12439,9 +12439,9 @@ func (a *Client) StorageServiceLoggingLevelPost(params *StorageServiceLoggingLev
 }
 
 /*
-  StorageServiceMetricsExceptionsGet gets exceptions
+StorageServiceMetricsExceptionsGet gets exceptions
 
-  Get exceptions
+Get exceptions
 */
 func (a *Client) StorageServiceMetricsExceptionsGet(params *StorageServiceMetricsExceptionsGetParams) (*StorageServiceMetricsExceptionsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12474,9 +12474,9 @@ func (a *Client) StorageServiceMetricsExceptionsGet(params *StorageServiceMetric
 }
 
 /*
-  StorageServiceMetricsHintsInProgressGet gets total hints in progress
+StorageServiceMetricsHintsInProgressGet gets total hints in progress
 
-  Get total hints in progress
+Get total hints in progress
 */
 func (a *Client) StorageServiceMetricsHintsInProgressGet(params *StorageServiceMetricsHintsInProgressGetParams) (*StorageServiceMetricsHintsInProgressGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12509,9 +12509,9 @@ func (a *Client) StorageServiceMetricsHintsInProgressGet(params *StorageServiceM
 }
 
 /*
-  StorageServiceMetricsLoadGet gets metrics load
+StorageServiceMetricsLoadGet gets metrics load
 
-  Get load
+Get load
 */
 func (a *Client) StorageServiceMetricsLoadGet(params *StorageServiceMetricsLoadGetParams) (*StorageServiceMetricsLoadGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12544,9 +12544,9 @@ func (a *Client) StorageServiceMetricsLoadGet(params *StorageServiceMetricsLoadG
 }
 
 /*
-  StorageServiceMetricsTotalHintsGet gets total hints1
+StorageServiceMetricsTotalHintsGet gets total hints1
 
-  Get total hints
+Get total hints
 */
 func (a *Client) StorageServiceMetricsTotalHintsGet(params *StorageServiceMetricsTotalHintsGetParams) (*StorageServiceMetricsTotalHintsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12579,9 +12579,9 @@ func (a *Client) StorageServiceMetricsTotalHintsGet(params *StorageServiceMetric
 }
 
 /*
-  StorageServiceMovePost moves
+StorageServiceMovePost moves
 
-  This node will unload its data onto its neighbors, and bootstrap to the new token.
+This node will unload its data onto its neighbors, and bootstrap to the new token.
 */
 func (a *Client) StorageServiceMovePost(params *StorageServiceMovePostParams) (*StorageServiceMovePostOK, error) {
 	// TODO: Validate the params before sending
@@ -12614,9 +12614,9 @@ func (a *Client) StorageServiceMovePost(params *StorageServiceMovePostParams) (*
 }
 
 /*
-  StorageServiceNativeTransportDelete stops native transport
+StorageServiceNativeTransportDelete stops native transport
 
-  Stop native transport
+Stop native transport
 */
 func (a *Client) StorageServiceNativeTransportDelete(params *StorageServiceNativeTransportDeleteParams) (*StorageServiceNativeTransportDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -12649,9 +12649,9 @@ func (a *Client) StorageServiceNativeTransportDelete(params *StorageServiceNativ
 }
 
 /*
-  StorageServiceNativeTransportGet is native transport running
+StorageServiceNativeTransportGet is native transport running
 
-  Is native transport running
+Is native transport running
 */
 func (a *Client) StorageServiceNativeTransportGet(params *StorageServiceNativeTransportGetParams) (*StorageServiceNativeTransportGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12684,9 +12684,9 @@ func (a *Client) StorageServiceNativeTransportGet(params *StorageServiceNativeTr
 }
 
 /*
-  StorageServiceNativeTransportPost starts native transport
+StorageServiceNativeTransportPost starts native transport
 
-  Start native transport
+Start native transport
 */
 func (a *Client) StorageServiceNativeTransportPost(params *StorageServiceNativeTransportPostParams) (*StorageServiceNativeTransportPostOK, error) {
 	// TODO: Validate the params before sending
@@ -12719,9 +12719,9 @@ func (a *Client) StorageServiceNativeTransportPost(params *StorageServiceNativeT
 }
 
 /*
-  StorageServiceNaturalEndpointsByKeyspaceGet gets natural endpoints
+StorageServiceNaturalEndpointsByKeyspaceGet gets natural endpoints
 
-  This method returns the N endpoints that are responsible for storing the specified key i.e for replication. the endpoint responsible for this key
+This method returns the N endpoints that are responsible for storing the specified key i.e for replication. the endpoint responsible for this key
 */
 func (a *Client) StorageServiceNaturalEndpointsByKeyspaceGet(params *StorageServiceNaturalEndpointsByKeyspaceGetParams) (*StorageServiceNaturalEndpointsByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12754,9 +12754,9 @@ func (a *Client) StorageServiceNaturalEndpointsByKeyspaceGet(params *StorageServ
 }
 
 /*
-  StorageServiceNodesJoiningGet gets joining nodes
+StorageServiceNodesJoiningGet gets joining nodes
 
-  Retrieve the list of nodes currently bootstrapping into the ring
+Retrieve the list of nodes currently bootstrapping into the ring
 */
 func (a *Client) StorageServiceNodesJoiningGet(params *StorageServiceNodesJoiningGetParams) (*StorageServiceNodesJoiningGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12789,9 +12789,9 @@ func (a *Client) StorageServiceNodesJoiningGet(params *StorageServiceNodesJoinin
 }
 
 /*
-  StorageServiceNodesLeavingGet gets leaving nodes
+StorageServiceNodesLeavingGet gets leaving nodes
 
-  Retrieve the list of nodes currently leaving the ring
+Retrieve the list of nodes currently leaving the ring
 */
 func (a *Client) StorageServiceNodesLeavingGet(params *StorageServiceNodesLeavingGetParams) (*StorageServiceNodesLeavingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12824,9 +12824,9 @@ func (a *Client) StorageServiceNodesLeavingGet(params *StorageServiceNodesLeavin
 }
 
 /*
-  StorageServiceNodesMovingGet gets moving nodes
+StorageServiceNodesMovingGet gets moving nodes
 
-  Retrieve the list of nodes currently moving in the ring
+Retrieve the list of nodes currently moving in the ring
 */
 func (a *Client) StorageServiceNodesMovingGet(params *StorageServiceNodesMovingGetParams) (*StorageServiceNodesMovingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12859,9 +12859,9 @@ func (a *Client) StorageServiceNodesMovingGet(params *StorageServiceNodesMovingG
 }
 
 /*
-  StorageServiceOperationModeGet gets operation mode
+StorageServiceOperationModeGet gets operation mode
 
-  Get the operational mode (leaving, joining, normal, decommissioned, client)
+Get the operational mode (leaving, joining, normal, decommissioned, client)
 */
 func (a *Client) StorageServiceOperationModeGet(params *StorageServiceOperationModeGetParams) (*StorageServiceOperationModeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12894,9 +12894,9 @@ func (a *Client) StorageServiceOperationModeGet(params *StorageServiceOperationM
 }
 
 /*
-  StorageServiceOwnershipByKeyspaceGet gets effective ownership
+StorageServiceOwnershipByKeyspaceGet gets effective ownership
 
-  Effective ownership is % of the data each node owns given the keyspace
+Effective ownership is % of the data each node owns given the keyspace
 */
 func (a *Client) StorageServiceOwnershipByKeyspaceGet(params *StorageServiceOwnershipByKeyspaceGetParams) (*StorageServiceOwnershipByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12929,9 +12929,9 @@ func (a *Client) StorageServiceOwnershipByKeyspaceGet(params *StorageServiceOwne
 }
 
 /*
-  StorageServiceOwnershipGet gets ownership
+StorageServiceOwnershipGet gets ownership
 
-  The mapping from token -> % of cluster owned by that token
+The mapping from token -> % of cluster owned by that token
 */
 func (a *Client) StorageServiceOwnershipGet(params *StorageServiceOwnershipGetParams) (*StorageServiceOwnershipGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12964,9 +12964,9 @@ func (a *Client) StorageServiceOwnershipGet(params *StorageServiceOwnershipGetPa
 }
 
 /*
-  StorageServicePartitionerNameGet gets partitioner name
+StorageServicePartitionerNameGet gets partitioner name
 
-  Returns the cluster partitioner
+Returns the cluster partitioner
 */
 func (a *Client) StorageServicePartitionerNameGet(params *StorageServicePartitionerNameGetParams) (*StorageServicePartitionerNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -12999,9 +12999,9 @@ func (a *Client) StorageServicePartitionerNameGet(params *StorageServicePartitio
 }
 
 /*
-  StorageServicePendingRangeByKeyspaceGet gets pending range to endpoint map
+StorageServicePendingRangeByKeyspaceGet gets pending range to endpoint map
 
-  Retrieve a map of pending ranges to endpoints that describe the ring topology
+Retrieve a map of pending ranges to endpoints that describe the ring topology
 */
 func (a *Client) StorageServicePendingRangeByKeyspaceGet(params *StorageServicePendingRangeByKeyspaceGetParams) (*StorageServicePendingRangeByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13034,9 +13034,9 @@ func (a *Client) StorageServicePendingRangeByKeyspaceGet(params *StorageServiceP
 }
 
 /*
-  StorageServiceRangeToEndpointMapByKeyspaceGet gets range to endpoint map
+StorageServiceRangeToEndpointMapByKeyspaceGet gets range to endpoint map
 
-  Retrieve a map of range to end points that describe the ring topology of a Cassandra cluster.
+Retrieve a map of range to end points that describe the ring topology of a Cassandra cluster.
 */
 func (a *Client) StorageServiceRangeToEndpointMapByKeyspaceGet(params *StorageServiceRangeToEndpointMapByKeyspaceGetParams) (*StorageServiceRangeToEndpointMapByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13069,9 +13069,9 @@ func (a *Client) StorageServiceRangeToEndpointMapByKeyspaceGet(params *StorageSe
 }
 
 /*
-  StorageServiceRebuildPost rebuilds
+StorageServiceRebuildPost rebuilds
 
-  Initiate a process of streaming data for which we are responsible from other nodes. It is similar to bootstrap except meant to be used on a node which is already in the cluster (typically containing no data) as an alternative to running repair.
+Initiate a process of streaming data for which we are responsible from other nodes. It is similar to bootstrap except meant to be used on a node which is already in the cluster (typically containing no data) as an alternative to running repair.
 */
 func (a *Client) StorageServiceRebuildPost(params *StorageServiceRebuildPostParams) (*StorageServiceRebuildPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13104,9 +13104,9 @@ func (a *Client) StorageServiceRebuildPost(params *StorageServiceRebuildPostPara
 }
 
 /*
-  StorageServiceReleaseVersionGet gets release version
+StorageServiceReleaseVersionGet gets release version
 
-  Fetch a string representation of the Cassandra version.
+Fetch a string representation of the Cassandra version.
 */
 func (a *Client) StorageServiceReleaseVersionGet(params *StorageServiceReleaseVersionGetParams) (*StorageServiceReleaseVersionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13139,9 +13139,9 @@ func (a *Client) StorageServiceReleaseVersionGet(params *StorageServiceReleaseVe
 }
 
 /*
-  StorageServiceRelocalSchemaPost resets local schema
+StorageServiceRelocalSchemaPost resets local schema
 
-  Reset local schema
+Reset local schema
 */
 func (a *Client) StorageServiceRelocalSchemaPost(params *StorageServiceRelocalSchemaPostParams) (*StorageServiceRelocalSchemaPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13174,9 +13174,9 @@ func (a *Client) StorageServiceRelocalSchemaPost(params *StorageServiceRelocalSc
 }
 
 /*
-  StorageServiceRemovalStatusGet gets removal status
+StorageServiceRemovalStatusGet gets removal status
 
-  Get the status of a token removal.
+Get the status of a token removal.
 */
 func (a *Client) StorageServiceRemovalStatusGet(params *StorageServiceRemovalStatusGetParams) (*StorageServiceRemovalStatusGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13209,9 +13209,9 @@ func (a *Client) StorageServiceRemovalStatusGet(params *StorageServiceRemovalSta
 }
 
 /*
-  StorageServiceRemoveNodePost removes node
+StorageServiceRemoveNodePost removes node
 
-  Removes token (and all data associated with enpoint that had it) from the ring
+Removes token (and all data associated with enpoint that had it) from the ring
 */
 func (a *Client) StorageServiceRemoveNodePost(params *StorageServiceRemoveNodePostParams) (*StorageServiceRemoveNodePostOK, error) {
 	// TODO: Validate the params before sending
@@ -13244,9 +13244,9 @@ func (a *Client) StorageServiceRemoveNodePost(params *StorageServiceRemoveNodePo
 }
 
 /*
-  StorageServiceRepairAsyncByKeyspaceGet repairs async status
+StorageServiceRepairAsyncByKeyspaceGet repairs async status
 
-  Track already running repair progress
+Track already running repair progress
 */
 func (a *Client) StorageServiceRepairAsyncByKeyspaceGet(params *StorageServiceRepairAsyncByKeyspaceGetParams) (*StorageServiceRepairAsyncByKeyspaceGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13279,9 +13279,9 @@ func (a *Client) StorageServiceRepairAsyncByKeyspaceGet(params *StorageServiceRe
 }
 
 /*
-  StorageServiceRepairAsyncByKeyspacePost repairs async
+StorageServiceRepairAsyncByKeyspacePost repairs async
 
-  Invoke repair asynchronously. You can track repair progress by using the get supplying id
+Invoke repair asynchronously. You can track repair progress by using the get supplying id
 */
 func (a *Client) StorageServiceRepairAsyncByKeyspacePost(params *StorageServiceRepairAsyncByKeyspacePostParams) (*StorageServiceRepairAsyncByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -13314,9 +13314,9 @@ func (a *Client) StorageServiceRepairAsyncByKeyspacePost(params *StorageServiceR
 }
 
 /*
-  StorageServiceRepairStatus storages service repair status
+StorageServiceRepairStatus storages service repair status
 
-  Query the repair status and return when the repair is finished or timeout
+Query the repair status and return when the repair is finished or timeout
 */
 func (a *Client) StorageServiceRepairStatus(params *StorageServiceRepairStatusParams) (*StorageServiceRepairStatusOK, error) {
 	// TODO: Validate the params before sending
@@ -13349,9 +13349,9 @@ func (a *Client) StorageServiceRepairStatus(params *StorageServiceRepairStatusPa
 }
 
 /*
-  StorageServiceRescheduleFailedDeletionsPost reschedules failed deletions
+StorageServiceRescheduleFailedDeletionsPost reschedules failed deletions
 
-  Reschedule failed deletions
+Reschedule failed deletions
 */
 func (a *Client) StorageServiceRescheduleFailedDeletionsPost(params *StorageServiceRescheduleFailedDeletionsPostParams) (*StorageServiceRescheduleFailedDeletionsPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13384,9 +13384,9 @@ func (a *Client) StorageServiceRescheduleFailedDeletionsPost(params *StorageServ
 }
 
 /*
-  StorageServiceRPCServerDelete stops rpc server
+StorageServiceRPCServerDelete stops rpc server
 
-  Allows a user to disable thrift
+Allows a user to disable thrift
 */
 func (a *Client) StorageServiceRPCServerDelete(params *StorageServiceRPCServerDeleteParams) (*StorageServiceRPCServerDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -13419,9 +13419,9 @@ func (a *Client) StorageServiceRPCServerDelete(params *StorageServiceRPCServerDe
 }
 
 /*
-  StorageServiceRPCServerGet is rpc server running
+StorageServiceRPCServerGet is rpc server running
 
-  Determine if thrift is running
+Determine if thrift is running
 */
 func (a *Client) StorageServiceRPCServerGet(params *StorageServiceRPCServerGetParams) (*StorageServiceRPCServerGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13454,9 +13454,9 @@ func (a *Client) StorageServiceRPCServerGet(params *StorageServiceRPCServerGetPa
 }
 
 /*
-  StorageServiceRPCServerPost starts rpc server
+StorageServiceRPCServerPost starts rpc server
 
-  allows a user to reenable thrift
+allows a user to reenable thrift
 */
 func (a *Client) StorageServiceRPCServerPost(params *StorageServiceRPCServerPostParams) (*StorageServiceRPCServerPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13489,9 +13489,9 @@ func (a *Client) StorageServiceRPCServerPost(params *StorageServiceRPCServerPost
 }
 
 /*
-  StorageServiceSampleKeyRangeGet samples key range
+StorageServiceSampleKeyRangeGet samples key range
 
-  Return a List of Tokens representing a sample of keys across all ColumnFamilyStores.
+Return a List of Tokens representing a sample of keys across all ColumnFamilyStores.
 */
 func (a *Client) StorageServiceSampleKeyRangeGet(params *StorageServiceSampleKeyRangeGetParams) (*StorageServiceSampleKeyRangeGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13524,9 +13524,9 @@ func (a *Client) StorageServiceSampleKeyRangeGet(params *StorageServiceSampleKey
 }
 
 /*
-  StorageServiceSavedCachesLocationGet gets saved caches location
+StorageServiceSavedCachesLocationGet gets saved caches location
 
-  Get location of the saved caches dir
+Get location of the saved caches dir
 */
 func (a *Client) StorageServiceSavedCachesLocationGet(params *StorageServiceSavedCachesLocationGetParams) (*StorageServiceSavedCachesLocationGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13559,9 +13559,9 @@ func (a *Client) StorageServiceSavedCachesLocationGet(params *StorageServiceSave
 }
 
 /*
-  StorageServiceSchemaVersionGet gets schema version
+StorageServiceSchemaVersionGet gets schema version
 
-  Fetch a string representation of the current Schema version.
+Fetch a string representation of the current Schema version.
 */
 func (a *Client) StorageServiceSchemaVersionGet(params *StorageServiceSchemaVersionGetParams) (*StorageServiceSchemaVersionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13594,9 +13594,9 @@ func (a *Client) StorageServiceSchemaVersionGet(params *StorageServiceSchemaVers
 }
 
 /*
-  StorageServiceScyllaReleaseVersionGet gets scylla release version
+StorageServiceScyllaReleaseVersionGet gets scylla release version
 
-  Fetch a string representation of the Scylla version.
+Fetch a string representation of the Scylla version.
 */
 func (a *Client) StorageServiceScyllaReleaseVersionGet(params *StorageServiceScyllaReleaseVersionGetParams) (*StorageServiceScyllaReleaseVersionGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13629,9 +13629,9 @@ func (a *Client) StorageServiceScyllaReleaseVersionGet(params *StorageServiceScy
 }
 
 /*
-  StorageServiceSlowQueryGet gets slow query info
+StorageServiceSlowQueryGet gets slow query info
 
-  Returns the slow query record configuration.
+Returns the slow query record configuration.
 */
 func (a *Client) StorageServiceSlowQueryGet(params *StorageServiceSlowQueryGetParams) (*StorageServiceSlowQueryGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13664,9 +13664,9 @@ func (a *Client) StorageServiceSlowQueryGet(params *StorageServiceSlowQueryGetPa
 }
 
 /*
-  StorageServiceSlowQueryPost sets slow query
+StorageServiceSlowQueryPost sets slow query
 
-  Set slow query parameter
+Set slow query parameter
 */
 func (a *Client) StorageServiceSlowQueryPost(params *StorageServiceSlowQueryPostParams) (*StorageServiceSlowQueryPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13699,9 +13699,9 @@ func (a *Client) StorageServiceSlowQueryPost(params *StorageServiceSlowQueryPost
 }
 
 /*
-  StorageServiceSnapshotsDelete dels snapshot
+StorageServiceSnapshotsDelete dels snapshot
 
-  Remove the snapshot with the given name from the given keyspaces. If no tag is specified all snapshots will be removed
+Remove the snapshot with the given name from the given keyspaces. If no tag is specified all snapshots will be removed
 */
 func (a *Client) StorageServiceSnapshotsDelete(params *StorageServiceSnapshotsDeleteParams) (*StorageServiceSnapshotsDeleteOK, error) {
 	// TODO: Validate the params before sending
@@ -13734,9 +13734,9 @@ func (a *Client) StorageServiceSnapshotsDelete(params *StorageServiceSnapshotsDe
 }
 
 /*
-  StorageServiceSnapshotsGet gets snapshot details
+StorageServiceSnapshotsGet gets snapshot details
 
-  Get the details of all the snapshot
+Get the details of all the snapshot
 */
 func (a *Client) StorageServiceSnapshotsGet(params *StorageServiceSnapshotsGetParams) (*StorageServiceSnapshotsGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13769,9 +13769,9 @@ func (a *Client) StorageServiceSnapshotsGet(params *StorageServiceSnapshotsGetPa
 }
 
 /*
-  StorageServiceSnapshotsPost takes snapshot
+StorageServiceSnapshotsPost takes snapshot
 
-  Takes the snapshot for the given keyspaces. A snapshot name must be specified.
+Takes the snapshot for the given keyspaces. A snapshot name must be specified.
 */
 func (a *Client) StorageServiceSnapshotsPost(params *StorageServiceSnapshotsPostParams) (*StorageServiceSnapshotsPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13804,9 +13804,9 @@ func (a *Client) StorageServiceSnapshotsPost(params *StorageServiceSnapshotsPost
 }
 
 /*
-  StorageServiceSnapshotsSizeTrueGet trues snapshots size
+StorageServiceSnapshotsSizeTrueGet trues snapshots size
 
-  Get the true size taken by all snapshots across all keyspaces.
+Get the true size taken by all snapshots across all keyspaces.
 */
 func (a *Client) StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapshotsSizeTrueGetParams) (*StorageServiceSnapshotsSizeTrueGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13839,9 +13839,9 @@ func (a *Client) StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapsh
 }
 
 /*
-  StorageServiceSstablesByKeyspacePost loads new ss tables
+StorageServiceSstablesByKeyspacePost loads new ss tables
 
-  Load new SSTables to the given keyspace/columnFamily
+Load new SSTables to the given keyspace/columnFamily
 */
 func (a *Client) StorageServiceSstablesByKeyspacePost(params *StorageServiceSstablesByKeyspacePostParams) (*StorageServiceSstablesByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -13874,9 +13874,9 @@ func (a *Client) StorageServiceSstablesByKeyspacePost(params *StorageServiceSsta
 }
 
 /*
-  StorageServiceStopDaemonPost stops daemon
+StorageServiceStopDaemonPost stops daemon
 
-  allows a user to forcibly completely stop cassandra
+allows a user to forcibly completely stop cassandra
 */
 func (a *Client) StorageServiceStopDaemonPost(params *StorageServiceStopDaemonPostParams) (*StorageServiceStopDaemonPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13909,9 +13909,9 @@ func (a *Client) StorageServiceStopDaemonPost(params *StorageServiceStopDaemonPo
 }
 
 /*
-  StorageServiceStreamThroughputGet gets stream throughput mb per sec
+StorageServiceStreamThroughputGet gets stream throughput mb per sec
 
-  Get stream throughput mb per sec
+Get stream throughput mb per sec
 */
 func (a *Client) StorageServiceStreamThroughputGet(params *StorageServiceStreamThroughputGetParams) (*StorageServiceStreamThroughputGetOK, error) {
 	// TODO: Validate the params before sending
@@ -13944,9 +13944,9 @@ func (a *Client) StorageServiceStreamThroughputGet(params *StorageServiceStreamT
 }
 
 /*
-  StorageServiceStreamThroughputPost sets stream throughput mb per sec
+StorageServiceStreamThroughputPost sets stream throughput mb per sec
 
-  set stream throughput mb per sec
+set stream throughput mb per sec
 */
 func (a *Client) StorageServiceStreamThroughputPost(params *StorageServiceStreamThroughputPostParams) (*StorageServiceStreamThroughputPostOK, error) {
 	// TODO: Validate the params before sending
@@ -13979,9 +13979,9 @@ func (a *Client) StorageServiceStreamThroughputPost(params *StorageServiceStream
 }
 
 /*
-  StorageServiceTokensByEndpointGet gets node tokens
+StorageServiceTokensByEndpointGet gets node tokens
 
-  Returns a list of the tokens for or a specified node
+Returns a list of the tokens for or a specified node
 */
 func (a *Client) StorageServiceTokensByEndpointGet(params *StorageServiceTokensByEndpointGetParams) (*StorageServiceTokensByEndpointGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14014,9 +14014,9 @@ func (a *Client) StorageServiceTokensByEndpointGet(params *StorageServiceTokensB
 }
 
 /*
-  StorageServiceTokensEndpointGet gets token endpoint
+StorageServiceTokensEndpointGet gets token endpoint
 
-  Returns a list of the tokens endpoint mapping
+Returns a list of the tokens endpoint mapping
 */
 func (a *Client) StorageServiceTokensEndpointGet(params *StorageServiceTokensEndpointGetParams) (*StorageServiceTokensEndpointGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14049,9 +14049,9 @@ func (a *Client) StorageServiceTokensEndpointGet(params *StorageServiceTokensEnd
 }
 
 /*
-  StorageServiceTokensGet gets tokens
+StorageServiceTokensGet gets tokens
 
-  Returns a list of the tokens for this node
+Returns a list of the tokens for this node
 */
 func (a *Client) StorageServiceTokensGet(params *StorageServiceTokensGetParams) (*StorageServiceTokensGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14084,7 +14084,7 @@ func (a *Client) StorageServiceTokensGet(params *StorageServiceTokensGetParams) 
 }
 
 /*
-  StorageServiceTombstoneFailureThresholdGet gets tombstone failure threshold
+StorageServiceTombstoneFailureThresholdGet gets tombstone failure threshold
 */
 func (a *Client) StorageServiceTombstoneFailureThresholdGet(params *StorageServiceTombstoneFailureThresholdGetParams) (*StorageServiceTombstoneFailureThresholdGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14117,7 +14117,7 @@ func (a *Client) StorageServiceTombstoneFailureThresholdGet(params *StorageServi
 }
 
 /*
-  StorageServiceTombstoneFailureThresholdPost sets tombstone failure threshold
+StorageServiceTombstoneFailureThresholdPost sets tombstone failure threshold
 */
 func (a *Client) StorageServiceTombstoneFailureThresholdPost(params *StorageServiceTombstoneFailureThresholdPostParams) (*StorageServiceTombstoneFailureThresholdPostOK, error) {
 	// TODO: Validate the params before sending
@@ -14150,9 +14150,9 @@ func (a *Client) StorageServiceTombstoneFailureThresholdPost(params *StorageServ
 }
 
 /*
-  StorageServiceTombstoneWarnThresholdGet gets tombstone warn threshold
+StorageServiceTombstoneWarnThresholdGet gets tombstone warn threshold
 
-  Returns the threshold for warning of queries with many tombstones
+Returns the threshold for warning of queries with many tombstones
 */
 func (a *Client) StorageServiceTombstoneWarnThresholdGet(params *StorageServiceTombstoneWarnThresholdGetParams) (*StorageServiceTombstoneWarnThresholdGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14185,9 +14185,9 @@ func (a *Client) StorageServiceTombstoneWarnThresholdGet(params *StorageServiceT
 }
 
 /*
-  StorageServiceTombstoneWarnThresholdPost sets tombstone warn threshold
+StorageServiceTombstoneWarnThresholdPost sets tombstone warn threshold
 
-  Sets the threshold for warning queries with many tombstones
+Sets the threshold for warning queries with many tombstones
 */
 func (a *Client) StorageServiceTombstoneWarnThresholdPost(params *StorageServiceTombstoneWarnThresholdPostParams) (*StorageServiceTombstoneWarnThresholdPostOK, error) {
 	// TODO: Validate the params before sending
@@ -14220,9 +14220,9 @@ func (a *Client) StorageServiceTombstoneWarnThresholdPost(params *StorageService
 }
 
 /*
-  StorageServiceTraceProbabilityGet gets trace probability
+StorageServiceTraceProbabilityGet gets trace probability
 
-  Returns the configured tracing probability.
+Returns the configured tracing probability.
 */
 func (a *Client) StorageServiceTraceProbabilityGet(params *StorageServiceTraceProbabilityGetParams) (*StorageServiceTraceProbabilityGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14255,9 +14255,9 @@ func (a *Client) StorageServiceTraceProbabilityGet(params *StorageServiceTracePr
 }
 
 /*
-  StorageServiceTraceProbabilityPost sets trace probability
+StorageServiceTraceProbabilityPost sets trace probability
 
-  Enables/Disables tracing for the whole system. Only thrift requests can start tracing currently
+Enables/Disables tracing for the whole system. Only thrift requests can start tracing currently
 */
 func (a *Client) StorageServiceTraceProbabilityPost(params *StorageServiceTraceProbabilityPostParams) (*StorageServiceTraceProbabilityPostOK, error) {
 	// TODO: Validate the params before sending
@@ -14290,9 +14290,9 @@ func (a *Client) StorageServiceTraceProbabilityPost(params *StorageServiceTraceP
 }
 
 /*
-  StorageServiceTruncateByKeyspacePost truncates
+StorageServiceTruncateByKeyspacePost truncates
 
-  Truncates (deletes) the given columnFamily from the provided keyspace. Calling truncate results in actual deletion of all data in the cluster under the given columnFamily and it will fail unless all hosts are up. All data in the given column family will be deleted, but its definition will not be affected.
+Truncates (deletes) the given columnFamily from the provided keyspace. Calling truncate results in actual deletion of all data in the cluster under the given columnFamily and it will fail unless all hosts are up. All data in the given column family will be deleted, but its definition will not be affected.
 */
 func (a *Client) StorageServiceTruncateByKeyspacePost(params *StorageServiceTruncateByKeyspacePostParams) (*StorageServiceTruncateByKeyspacePostOK, error) {
 	// TODO: Validate the params before sending
@@ -14325,9 +14325,9 @@ func (a *Client) StorageServiceTruncateByKeyspacePost(params *StorageServiceTrun
 }
 
 /*
-  StorageServiceUpdateSnitchPost updates snitch
+StorageServiceUpdateSnitchPost updates snitch
 
-  Change endpointsnitch class and dynamic-ness (and dynamic attributes) at runtime
+Change endpointsnitch class and dynamic-ness (and dynamic attributes) at runtime
 */
 func (a *Client) StorageServiceUpdateSnitchPost(params *StorageServiceUpdateSnitchPostParams) (*StorageServiceUpdateSnitchPostOK, error) {
 	// TODO: Validate the params before sending
@@ -14360,9 +14360,9 @@ func (a *Client) StorageServiceUpdateSnitchPost(params *StorageServiceUpdateSnit
 }
 
 /*
-  StorageServiceViewBuildStatusesByKeyspaceAndViewGet views build statuses
+StorageServiceViewBuildStatusesByKeyspaceAndViewGet views build statuses
 
-  Gets the progress of a materialized view build
+Gets the progress of a materialized view build
 */
 func (a *Client) StorageServiceViewBuildStatusesByKeyspaceAndViewGet(params *StorageServiceViewBuildStatusesByKeyspaceAndViewGetParams) (*StorageServiceViewBuildStatusesByKeyspaceAndViewGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14395,9 +14395,9 @@ func (a *Client) StorageServiceViewBuildStatusesByKeyspaceAndViewGet(params *Sto
 }
 
 /*
-  StreamManagerGet gets current streams
+StreamManagerGet gets current streams
 
-  Returns the current state of all ongoing streams.
+Returns the current state of all ongoing streams.
 */
 func (a *Client) StreamManagerGet(params *StreamManagerGetParams) (*StreamManagerGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14430,9 +14430,9 @@ func (a *Client) StreamManagerGet(params *StreamManagerGetParams) (*StreamManage
 }
 
 /*
-  StreamManagerMetricsIncomingByPeerGet gets total incoming bytes
+StreamManagerMetricsIncomingByPeerGet gets total incoming bytes
 
-  Get total incoming bytes
+Get total incoming bytes
 */
 func (a *Client) StreamManagerMetricsIncomingByPeerGet(params *StreamManagerMetricsIncomingByPeerGetParams) (*StreamManagerMetricsIncomingByPeerGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14465,9 +14465,9 @@ func (a *Client) StreamManagerMetricsIncomingByPeerGet(params *StreamManagerMetr
 }
 
 /*
-  StreamManagerMetricsIncomingGet gets all total incoming bytes
+StreamManagerMetricsIncomingGet gets all total incoming bytes
 
-  Get all total incoming bytes
+Get all total incoming bytes
 */
 func (a *Client) StreamManagerMetricsIncomingGet(params *StreamManagerMetricsIncomingGetParams) (*StreamManagerMetricsIncomingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14500,9 +14500,9 @@ func (a *Client) StreamManagerMetricsIncomingGet(params *StreamManagerMetricsInc
 }
 
 /*
-  StreamManagerMetricsOutboundGet gets all active streams outbound
+StreamManagerMetricsOutboundGet gets all active streams outbound
 
-  Get number of active outbound streams
+Get number of active outbound streams
 */
 func (a *Client) StreamManagerMetricsOutboundGet(params *StreamManagerMetricsOutboundGetParams) (*StreamManagerMetricsOutboundGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14535,9 +14535,9 @@ func (a *Client) StreamManagerMetricsOutboundGet(params *StreamManagerMetricsOut
 }
 
 /*
-  StreamManagerMetricsOutgoingByPeerGet gets total outgoing bytes
+StreamManagerMetricsOutgoingByPeerGet gets total outgoing bytes
 
-  Get total outgoing bytes
+Get total outgoing bytes
 */
 func (a *Client) StreamManagerMetricsOutgoingByPeerGet(params *StreamManagerMetricsOutgoingByPeerGetParams) (*StreamManagerMetricsOutgoingByPeerGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14570,9 +14570,9 @@ func (a *Client) StreamManagerMetricsOutgoingByPeerGet(params *StreamManagerMetr
 }
 
 /*
-  StreamManagerMetricsOutgoingGet gets all total outgoing bytes
+StreamManagerMetricsOutgoingGet gets all total outgoing bytes
 
-  Get all total outgoing bytes
+Get all total outgoing bytes
 */
 func (a *Client) StreamManagerMetricsOutgoingGet(params *StreamManagerMetricsOutgoingGetParams) (*StreamManagerMetricsOutgoingGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14605,9 +14605,9 @@ func (a *Client) StreamManagerMetricsOutgoingGet(params *StreamManagerMetricsOut
 }
 
 /*
-  SystemLoggerByNameGet gets logger level
+SystemLoggerByNameGet gets logger level
 
-  Get logger level
+Get logger level
 */
 func (a *Client) SystemLoggerByNameGet(params *SystemLoggerByNameGetParams) (*SystemLoggerByNameGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14640,9 +14640,9 @@ func (a *Client) SystemLoggerByNameGet(params *SystemLoggerByNameGetParams) (*Sy
 }
 
 /*
-  SystemLoggerByNamePost sets logger level
+SystemLoggerByNamePost sets logger level
 
-  Set logger level
+Set logger level
 */
 func (a *Client) SystemLoggerByNamePost(params *SystemLoggerByNamePostParams) (*SystemLoggerByNamePostOK, error) {
 	// TODO: Validate the params before sending
@@ -14675,9 +14675,9 @@ func (a *Client) SystemLoggerByNamePost(params *SystemLoggerByNamePostParams) (*
 }
 
 /*
-  SystemLoggerGet gets all logger names
+SystemLoggerGet gets all logger names
 
-  Get all logger names
+Get all logger names
 */
 func (a *Client) SystemLoggerGet(params *SystemLoggerGetParams) (*SystemLoggerGetOK, error) {
 	// TODO: Validate the params before sending
@@ -14710,9 +14710,9 @@ func (a *Client) SystemLoggerGet(params *SystemLoggerGetParams) (*SystemLoggerGe
 }
 
 /*
-  SystemLoggerPost sets all logger level
+SystemLoggerPost sets all logger level
 
-  Set all logger level
+Set all logger level
 */
 func (a *Client) SystemLoggerPost(params *SystemLoggerPostParams) (*SystemLoggerPostOK, error) {
 	// TODO: Validate the params before sending

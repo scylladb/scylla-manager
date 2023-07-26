@@ -47,9 +47,10 @@ func NewStreamManagerMetricsIncomingGetOK() *StreamManagerMetricsIncomingGetOK {
 	return &StreamManagerMetricsIncomingGetOK{}
 }
 
-/*StreamManagerMetricsIncomingGetOK handles this case with default header values.
+/*
+StreamManagerMetricsIncomingGetOK handles this case with default header values.
 
-StreamManagerMetricsIncomingGetOK stream manager metrics incoming get o k
+Success
 */
 type StreamManagerMetricsIncomingGetOK struct {
 	Payload int32
@@ -76,7 +77,8 @@ func NewStreamManagerMetricsIncomingGetDefault(code int) *StreamManagerMetricsIn
 	}
 }
 
-/*StreamManagerMetricsIncomingGetDefault handles this case with default header values.
+/*
+StreamManagerMetricsIncomingGetDefault handles this case with default header values.
 
 internal server error
 */

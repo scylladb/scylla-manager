@@ -47,7 +47,8 @@ func NewFindConfigEnableKeyspaceColumnFamilyMetricsOK() *FindConfigEnableKeyspac
 	return &FindConfigEnableKeyspaceColumnFamilyMetricsOK{}
 }
 
-/*FindConfigEnableKeyspaceColumnFamilyMetricsOK handles this case with default header values.
+/*
+FindConfigEnableKeyspaceColumnFamilyMetricsOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigEnableKeyspaceColumnFamilyMetricsDefault(code int) *FindConfig
 	}
 }
 
-/*FindConfigEnableKeyspaceColumnFamilyMetricsDefault handles this case with default header values.
+/*
+FindConfigEnableKeyspaceColumnFamilyMetricsDefault handles this case with default header values.
 
 unexpected error
 */

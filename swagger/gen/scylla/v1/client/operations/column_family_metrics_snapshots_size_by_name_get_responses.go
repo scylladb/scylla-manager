@@ -47,9 +47,10 @@ func NewColumnFamilyMetricsSnapshotsSizeByNameGetOK() *ColumnFamilyMetricsSnapsh
 	return &ColumnFamilyMetricsSnapshotsSizeByNameGetOK{}
 }
 
-/*ColumnFamilyMetricsSnapshotsSizeByNameGetOK handles this case with default header values.
+/*
+ColumnFamilyMetricsSnapshotsSizeByNameGetOK handles this case with default header values.
 
-ColumnFamilyMetricsSnapshotsSizeByNameGetOK column family metrics snapshots size by name get o k
+Success
 */
 type ColumnFamilyMetricsSnapshotsSizeByNameGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewColumnFamilyMetricsSnapshotsSizeByNameGetDefault(code int) *ColumnFamily
 	}
 }
 
-/*ColumnFamilyMetricsSnapshotsSizeByNameGetDefault handles this case with default header values.
+/*
+ColumnFamilyMetricsSnapshotsSizeByNameGetDefault handles this case with default header values.
 
 internal server error
 */

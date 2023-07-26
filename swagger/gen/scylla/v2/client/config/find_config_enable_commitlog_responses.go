@@ -47,7 +47,8 @@ func NewFindConfigEnableCommitlogOK() *FindConfigEnableCommitlogOK {
 	return &FindConfigEnableCommitlogOK{}
 }
 
-/*FindConfigEnableCommitlogOK handles this case with default header values.
+/*
+FindConfigEnableCommitlogOK handles this case with default header values.
 
 Config value
 */
@@ -76,7 +77,8 @@ func NewFindConfigEnableCommitlogDefault(code int) *FindConfigEnableCommitlogDef
 	}
 }
 
-/*FindConfigEnableCommitlogDefault handles this case with default header values.
+/*
+FindConfigEnableCommitlogDefault handles this case with default header values.
 
 unexpected error
 */

@@ -47,9 +47,10 @@ func NewStorageProxyTotalHintsGetOK() *StorageProxyTotalHintsGetOK {
 	return &StorageProxyTotalHintsGetOK{}
 }
 
-/*StorageProxyTotalHintsGetOK handles this case with default header values.
+/*
+StorageProxyTotalHintsGetOK handles this case with default header values.
 
-StorageProxyTotalHintsGetOK storage proxy total hints get o k
+Success
 */
 type StorageProxyTotalHintsGetOK struct {
 	Payload interface{}
@@ -76,7 +77,8 @@ func NewStorageProxyTotalHintsGetDefault(code int) *StorageProxyTotalHintsGetDef
 	}
 }
 
-/*StorageProxyTotalHintsGetDefault handles this case with default header values.
+/*
+StorageProxyTotalHintsGetDefault handles this case with default header values.
 
 internal server error
 */

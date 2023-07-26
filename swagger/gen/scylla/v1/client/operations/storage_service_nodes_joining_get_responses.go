@@ -47,9 +47,10 @@ func NewStorageServiceNodesJoiningGetOK() *StorageServiceNodesJoiningGetOK {
 	return &StorageServiceNodesJoiningGetOK{}
 }
 
-/*StorageServiceNodesJoiningGetOK handles this case with default header values.
+/*
+StorageServiceNodesJoiningGetOK handles this case with default header values.
 
-StorageServiceNodesJoiningGetOK storage service nodes joining get o k
+Success
 */
 type StorageServiceNodesJoiningGetOK struct {
 	Payload []string
@@ -76,7 +77,8 @@ func NewStorageServiceNodesJoiningGetDefault(code int) *StorageServiceNodesJoini
 	}
 }
 
-/*StorageServiceNodesJoiningGetDefault handles this case with default header values.
+/*
+StorageServiceNodesJoiningGetDefault handles this case with default header values.
 
 internal server error
 */
