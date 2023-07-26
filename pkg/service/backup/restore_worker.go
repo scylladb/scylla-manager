@@ -253,11 +253,7 @@ func (w *restoreWorkerTools) ValidateTableExists(keyspace, table string) error {
 	defer q.Release()
 
 	var name string
-	if err := q.Scan(&name); err != nil {
-		return err
-	}
-
-	return nil
+	return q.Scan(&name)
 }
 
 func (w *restoreWorkerTools) GetTableVersion(ctx context.Context, keyspace, table string) (string, error) {
@@ -452,13 +448,14 @@ func alterSchemaRetryWrapper(ctx context.Context, op func() error, notify func(e
 // GetTableTombstoneGC returns table's tombstone_gc mode.
 func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombstoneGCMode, error) {
 	var ext map[string]string
-
-	err := qb.Select("system_schema.tables").
+	q := qb.Select("system_schema.tables").
 		Columns("extensions").
 		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
 		Query(w.clusterSession).
-		Bind(keyspace, table).
-		Scan(&ext)
+		Bind(keyspace, table)
+
+	defer q.Release()
+	err := q.Scan(&ext)
 	if err != nil {
 		return "", err
 	}
@@ -479,7 +476,7 @@ func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombst
 }
 
 func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
-	return fmt.Sprintf(`ALTER TABLE "%s"."%s" WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
+	return fmt.Sprintf(`ALTER TABLE %q.%q WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
 }
 
 func (w *restoreWorkerTools) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {

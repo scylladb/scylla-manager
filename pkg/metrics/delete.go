@@ -16,14 +16,19 @@ type CollectorDeleter interface {
 // DeleteMatching removes metric instances with matching labels.
 func DeleteMatching(c CollectorDeleter, matcher func(*dto.Metric) bool) {
 	var data dto.Metric
+	var toDelete []prometheus.Labels
 
 	for m := range collect(c) {
 		if err := m.Write(&data); err != nil {
 			continue
 		}
 		if matcher(&data) {
-			defer c.Delete(makeLabels(data.Label)) // nolint: staticcheck
+			toDelete = append(toDelete, makeLabels(data.Label))
 		}
+	}
+
+	for _, labels := range toDelete {
+		c.Delete(labels)
 	}
 }
 

@@ -45,7 +45,7 @@ func IsIPV6Network() bool {
 }
 
 // IPBelongsToDC returns true if ip belongs to given DC.
-func IPBelongsToDC(dc string, host string) bool {
+func IPBelongsToDC(dc, host string) bool {
 	var hostEnding string
 	switch dc {
 	case "dc1":

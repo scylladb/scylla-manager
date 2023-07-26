@@ -41,7 +41,7 @@ var rootCmd = &cobra.Command{
 		// Print version and return
 		if rootArgs.version {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", pkg.Version())
-			return
+			return nil
 		}
 
 		// Read configuration
@@ -49,12 +49,12 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
-			return
+			return runError
 		}
 		if err := c.Validate(); err != nil {
 			runError = errors.Wrapf(err, "configuration %q", rootArgs.configFiles)
 			fmt.Fprintf(cmd.OutOrStderr(), "%s\n", runError)
-			return
+			return runError
 		}
 
 		// Create logger

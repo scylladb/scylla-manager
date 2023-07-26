@@ -11,7 +11,7 @@ import (
 
 var reg = make(migrate.CallbackRegister)
 
-func nopCallback(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func nopCallback(context.Context, gocqlx.Session, migrate.CallbackEvent, string) error {
 	return nil
 }
 

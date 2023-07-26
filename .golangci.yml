@@ -28,6 +28,7 @@ linters-settings:
       - regexpSimplify
       - yodaStyleExpr
       - whyNoLint
+      - timeCmpSimplify
   lll:
     line-length: 180
   nestif:
@@ -36,6 +37,8 @@ linters-settings:
 linters:
   enable-all: true
   disable:
+    - depguard
+    - tagalign
     - deadcode
     - varcheck
     - structcheck
@@ -54,7 +57,6 @@ linters:
     - gas
     - gochecknoglobals
     - gochecknoinits
-    - gocritic
     - goerr113
     - golint
     - gomnd

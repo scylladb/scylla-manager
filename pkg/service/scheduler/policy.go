@@ -47,7 +47,7 @@ func NewLockClusterPolicy() *LockClusterPolicy {
 }
 
 // PreRun implements Policy.
-func (p *LockClusterPolicy) PreRun(clusterID, taskID, runID uuid.UUID) error {
+func (p *LockClusterPolicy) PreRun(clusterID, _, _ uuid.UUID) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -60,7 +60,7 @@ func (p *LockClusterPolicy) PreRun(clusterID, taskID, runID uuid.UUID) error {
 }
 
 // PostRun implements Policy.
-func (p *LockClusterPolicy) PostRun(clusterID, taskID, runID uuid.UUID) {
+func (p *LockClusterPolicy) PostRun(clusterID, _, _ uuid.UUID) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	delete(p.busy, clusterID)

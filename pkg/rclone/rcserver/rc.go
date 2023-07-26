@@ -189,7 +189,7 @@ type fileFields struct {
 }
 
 type transFields struct {
-	Transferred []accounting.TransferSnapshot
+	Transferred []accounting.TransferSnapshot `mapstructure:"transferred"`
 }
 
 func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
@@ -555,15 +555,15 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 
 	ctx, cfg := filter.AddConfig(ctx)
 	if newest {
-		if err = cfg.Add(false, VersionedFileRegex); err != nil {
+		if err := cfg.Add(false, VersionedFileRegex); err != nil {
 			return nil, err
 		}
 	}
 	if versioned {
-		if err = cfg.Add(true, VersionedFileRegex); err != nil {
+		if err := cfg.Add(true, VersionedFileRegex); err != nil {
 			return nil, err
 		}
-		if err = cfg.Add(false, `{**}`); err != nil {
+		if err := cfg.Add(false, `{**}`); err != nil {
 			return nil, err
 		}
 	}

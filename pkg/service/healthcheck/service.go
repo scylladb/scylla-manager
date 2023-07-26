@@ -143,10 +143,10 @@ func (s *Service) Status(ctx context.Context, clusterID uuid.UUID) ([]NodeStatus
 
 func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
 	return func() error {
-		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) error {
 			// Ignore check if node is not Un and Normal
 			if !status[i].IsUN() {
-				return
+				return nil
 			}
 
 			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
@@ -160,19 +160,19 @@ func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID,
 			if ni.NodeInfo != nil {
 				s.decorateNodeStatus(&out[i], ni)
 			}
-			return
+			return nil
 		}, parallel.NopNotify)
 	}
 }
 
 func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
 	return func() error {
-		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) error {
 			o := &out[i]
 
 			// Ignore check if node is not Un and Normal
 			if !status[i].IsUN() {
-				return
+				return nil
 			}
 
 			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
@@ -201,19 +201,19 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				o.RESTStatus = statusUp
 			}
 
-			return
+			return nil
 		}, parallel.NopNotify)
 	}
 }
 
 func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, status scyllaclient.NodeStatusInfoSlice, out []NodeStatus) func() error {
 	return func() error {
-		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) error {
 			o := &out[i]
 
 			// Ignore check if node is not Un and Normal.
 			if !status[i].IsUN() {
-				return
+				return nil
 			}
 
 			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
@@ -254,7 +254,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				o.SSL = ni.hasTLSConfig(cqlPing)
 			}
 
-			return
+			return nil
 		}, parallel.NopNotify)
 	}
 }
@@ -263,12 +263,12 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 	status scyllaclient.NodeStatusInfoSlice, out []NodeStatus,
 ) func() error {
 	return func() error {
-		return parallel.Run(len(status), parallel.NoLimit, func(i int) (_ error) {
+		return parallel.Run(len(status), parallel.NoLimit, func(i int) error {
 			o := &out[i]
 
 			// Ignore check if node is not Un and Normal.
 			if !status[i].IsUN() {
-				return
+				return nil
 			}
 
 			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
@@ -298,7 +298,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				o.AlternatorRtt = float64(rtt.Milliseconds())
 			}
 
-			return
+			return nil
 		}, parallel.NopNotify)
 	}
 }

@@ -27,7 +27,7 @@ type copySSHInfoToCluster006 struct {
 	dir           string
 }
 
-func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func (h copySSHInfoToCluster006) After(ctx context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	type sshConfig struct {
 		User         string `yaml:"user,omitempty"`
 		IdentityFile string `yaml:"identity_file,omitempty"`

@@ -48,7 +48,7 @@ type logEntry struct {
 	err error
 }
 
-func (le *logEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
+func (le *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ interface{}) {
 	f := []interface{}{
 		"from", le.r.RemoteAddr,
 		"status", status,

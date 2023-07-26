@@ -14,7 +14,7 @@ import (
 var LocalName string
 
 func init() {
-	tz := time.Local.String()
+	tz := time.Local.String() //nolint: gosmopolitan
 	if tz == "Local" {
 		p, err := os.Readlink("/etc/localtime")
 		if err != nil {

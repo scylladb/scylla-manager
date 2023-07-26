@@ -54,7 +54,7 @@ type runnerMetrics struct {
 	rtt    *prometheus.GaugeVec
 }
 
-func (r runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) (err error) {
+func (r runner) Run(ctx context.Context, clusterID, _, _ uuid.UUID, _ json.RawMessage) (err error) {
 	defer func() {
 		if err != nil {
 			r.removeMetricsForCluster(clusterID)

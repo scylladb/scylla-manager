@@ -71,7 +71,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	}
 	// Download files
 	for _, l := range target.Location {
-		if err = w.locationDownloadHandler(ctx, run, target, l); err != nil {
+		if err := w.locationDownloadHandler(ctx, run, target, l); err != nil {
 			return err
 		}
 	}
@@ -100,7 +100,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 		)
 	}
 
-	if err = parallel.Run(len(status), parallel.NoLimit, f, notify); err != nil {
+	if err := parallel.Run(len(status), parallel.NoLimit, f, notify); err != nil {
 		return err
 	}
 	// Set restore completed in all run progresses

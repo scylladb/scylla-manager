@@ -173,13 +173,16 @@ func (h *backupTestHelper) progressFilesSet() *strset.Set {
 	h.T.Helper()
 
 	files := strset.New()
-
-	iter := table.BackupRunProgress.SelectQuery(h.Session).BindMap(qb.M{
+	q := table.BackupRunProgress.SelectQuery(h.Session).BindMap(qb.M{
 		"cluster_id": h.ClusterID,
 		"task_id":    h.TaskID,
 		"run_id":     h.RunID,
-	}).Iter()
-	defer iter.Close()
+	})
+	iter := q.Iter()
+	defer func() {
+		iter.Close()
+		q.Release()
+	}()
 
 	pr := &backup.RunProgress{}
 	for iter.StructScan(pr) {

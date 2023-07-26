@@ -15,7 +15,7 @@ func init() {
 	reg.Add(migrate.AfterMigration, "014-scheduler_rename_interval_days_to_interval_seconds.cql", adjustScheduleIntervalAfter014)
 }
 
-func adjustScheduleIntervalAfter014(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+func adjustScheduleIntervalAfter014(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	const selectSchedStmt = "SELECT cluster_id, type, id, sched FROM scheduler_task"
 	q := session.Query(selectSchedStmt, nil)
 	defer q.Release()

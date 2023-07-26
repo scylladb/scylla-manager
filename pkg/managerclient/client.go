@@ -87,7 +87,7 @@ func NewClient(rawURL string, opts ...Option) (Client, error) {
 }
 
 // CreateCluster creates a new cluster.
-func (c Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, error) {
+func (c *Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, error) {
 	resp, err := c.operations.PostClusters(&operations.PostClustersParams{
 		Context: ctx,
 		Cluster: cluster,
@@ -105,7 +105,7 @@ func (c Client) CreateCluster(ctx context.Context, cluster *Cluster) (string, er
 }
 
 // GetCluster returns a cluster for a given ID.
-func (c Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, error) {
+func (c *Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, error) {
 	resp, err := c.operations.GetClusterClusterID(&operations.GetClusterClusterIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -118,7 +118,7 @@ func (c Client) GetCluster(ctx context.Context, clusterID string) (*Cluster, err
 }
 
 // UpdateCluster updates cluster.
-func (c Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
+func (c *Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
 	_, err := c.operations.PutClusterClusterID(&operations.PutClusterClusterIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: cluster.ID,
@@ -128,7 +128,7 @@ func (c Client) UpdateCluster(ctx context.Context, cluster *Cluster) error {
 }
 
 // DeleteCluster removes cluster.
-func (c Client) DeleteCluster(ctx context.Context, clusterID string) error {
+func (c *Client) DeleteCluster(ctx context.Context, clusterID string) error {
 	_, err := c.operations.DeleteClusterClusterID(&operations.DeleteClusterClusterIDParams{ // nolint: errcheck
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -137,7 +137,7 @@ func (c Client) DeleteCluster(ctx context.Context, clusterID string) error {
 }
 
 // DeleteClusterSecrets removes cluster secrets.
-func (c Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, sslUserCert bool) error {
+func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, sslUserCert bool) error {
 	ok := false
 	p := &operations.DeleteClusterClusterIDParams{
 		Context:   ctx,
@@ -161,7 +161,7 @@ func (c Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlC
 }
 
 // ListClusters returns clusters.
-func (c Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
+func (c *Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
 	resp, err := c.operations.GetClusters(&operations.GetClustersParams{
 		Context: ctx,
 	})
@@ -173,7 +173,7 @@ func (c Client) ListClusters(ctx context.Context) (ClusterSlice, error) {
 }
 
 // ClusterStatus returns health check progress.
-func (c Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterStatus, error) {
+func (c *Client) ClusterStatus(ctx context.Context, clusterID string) (ClusterStatus, error) {
 	resp, err := c.operations.GetClusterClusterIDStatus(&operations.GetClusterClusterIDStatusParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -338,7 +338,7 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, t *Task) erro
 }
 
 // ListTasks returns tasks within a clusterID, optionally filtered by task type tp.
-func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status string, taskID string) (TaskListItems, error) {
+func (c *Client) ListTasks(ctx context.Context, clusterID, taskType string, all bool, status, taskID string) (TaskListItems, error) {
 	resp, err := c.operations.GetClusterClusterIDTasks(&operations.GetClusterClusterIDTasksParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -456,7 +456,7 @@ func formatTaskList(tasks []*models.TaskListItem) string {
 }
 
 // RepairProgress returns repair progress.
-func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (RepairProgress, error) {
+func (c *Client) RepairProgress(ctx context.Context, clusterID, taskID, runID string) (RepairProgress, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskRepairTaskIDRunID(&operations.GetClusterClusterIDTaskRepairTaskIDRunIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -473,7 +473,7 @@ func (c Client) RepairProgress(ctx context.Context, clusterID, taskID, runID str
 }
 
 // BackupProgress returns backup progress.
-func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
+func (c *Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
 	tr := &models.TaskRunBackupProgress{
 		Progress: &models.BackupProgress{
 			Stage: "INIT",
@@ -508,7 +508,7 @@ func (c Client) BackupProgress(ctx context.Context, clusterID, taskID, runID str
 }
 
 // RestoreProgress returns restore progress.
-func (c Client) RestoreProgress(ctx context.Context, clusterID, taskID, runID string) (RestoreProgress, error) {
+func (c *Client) RestoreProgress(ctx context.Context, clusterID, taskID, runID string) (RestoreProgress, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskRestoreTaskIDRunID(&operations.GetClusterClusterIDTaskRestoreTaskIDRunIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -525,7 +525,7 @@ func (c Client) RestoreProgress(ctx context.Context, clusterID, taskID, runID st
 }
 
 // ValidateBackupProgress returns validate backup progress.
-func (c Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, runID string) (ValidateBackupProgress, error) {
+func (c *Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, runID string) (ValidateBackupProgress, error) {
 	resp, err := c.operations.GetClusterClusterIDTaskValidateBackupTaskIDRunID(&operations.GetClusterClusterIDTaskValidateBackupTaskIDRunIDParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -542,7 +542,7 @@ func (c Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, r
 }
 
 // ListBackups returns listing of available backups.
-func (c Client) ListBackups(ctx context.Context, clusterID string,
+func (c *Client) ListBackups(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, minDate, maxDate time.Time,
 ) (BackupListItems, error) {
 	p := &operations.GetClusterClusterIDBackupsParams{
@@ -570,7 +570,7 @@ func (c Client) ListBackups(ctx context.Context, clusterID string,
 }
 
 // ListBackupFiles returns a listing of available backup files.
-func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
+func (c *Client) ListBackupFiles(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, snapshotTag string,
 ) ([]*models.BackupFilesInfo, error) {
 	p := &operations.GetClusterClusterIDBackupsFilesParams{
@@ -593,7 +593,7 @@ func (c Client) ListBackupFiles(ctx context.Context, clusterID string,
 }
 
 // DeleteSnapshot deletes backup snapshot with all data associated with it.
-func (c Client) DeleteSnapshot(ctx context.Context, clusterID string,
+func (c *Client) DeleteSnapshot(ctx context.Context, clusterID string,
 	locations []string, snapshotTags []string,
 ) error {
 	p := &operations.DeleteClusterClusterIDBackupsParams{
@@ -608,7 +608,7 @@ func (c Client) DeleteSnapshot(ctx context.Context, clusterID string,
 }
 
 // Version returns server version.
-func (c Client) Version(ctx context.Context) (*models.Version, error) {
+func (c *Client) Version(ctx context.Context) (*models.Version, error) {
 	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
 		Context: ctx,
 	})
@@ -620,7 +620,7 @@ func (c Client) Version(ctx context.Context) (*models.Version, error) {
 }
 
 // SetRepairIntensity updates ongoing repair intensity.
-func (c Client) SetRepairIntensity(ctx context.Context, clusterID string, intensity float64) error {
+func (c *Client) SetRepairIntensity(ctx context.Context, clusterID string, intensity float64) error {
 	p := &operations.PutClusterClusterIDRepairsIntensityParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -632,7 +632,7 @@ func (c Client) SetRepairIntensity(ctx context.Context, clusterID string, intens
 }
 
 // SetRepairParallel updates ongoing repair parallel disjoint host groups.
-func (c Client) SetRepairParallel(ctx context.Context, clusterID string, parallel int64) error {
+func (c *Client) SetRepairParallel(ctx context.Context, clusterID string, parallel int64) error {
 	p := &operations.PutClusterClusterIDRepairsParallelParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -644,7 +644,7 @@ func (c Client) SetRepairParallel(ctx context.Context, clusterID string, paralle
 }
 
 // IsSuspended returns true iff the current cluster is suspended.
-func (c Client) IsSuspended(ctx context.Context, clusterID string) (bool, error) {
+func (c *Client) IsSuspended(ctx context.Context, clusterID string) (bool, error) {
 	p := &operations.GetClusterClusterIDSuspendedParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -659,7 +659,7 @@ func (c Client) IsSuspended(ctx context.Context, clusterID string) (bool, error)
 }
 
 // Suspend updates cluster suspended property.
-func (c Client) Suspend(ctx context.Context, clusterID string) error {
+func (c *Client) Suspend(ctx context.Context, clusterID string) error {
 	p := &operations.PutClusterClusterIDSuspendedParams{
 		Context:   ctx,
 		ClusterID: clusterID,
@@ -671,7 +671,7 @@ func (c Client) Suspend(ctx context.Context, clusterID string) error {
 }
 
 // Resume updates cluster suspended property.
-func (c Client) Resume(ctx context.Context, clusterID string, startTasks bool) error {
+func (c *Client) Resume(ctx context.Context, clusterID string, startTasks bool) error {
 	p := &operations.PutClusterClusterIDSuspendedParams{
 		Context:    ctx,
 		ClusterID:  clusterID,

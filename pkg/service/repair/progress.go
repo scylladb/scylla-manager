@@ -77,7 +77,7 @@ func newProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repair
 	}
 }
 
-func (pm *dbProgressManager) Init(ctx context.Context, ttrs []*tableTokenRange) error {
+func (pm *dbProgressManager) Init(_ context.Context, ttrs []*tableTokenRange) error {
 	if err := pm.restoreState(); err != nil {
 		return err
 	}
@@ -486,11 +486,13 @@ func NewProgressVisitor(run *Run, session gocqlx.Session) ProgressVisitor {
 // To reuse RunProgress in visit it must make a copy because memory is reused
 // between calls.
 func (i *progressVisitor) ForEach(visit func(*RunProgress)) error {
-	iter := table.RepairRunProgress.SelectQuery(i.session).BindMap(qb.M{
+	q := table.RepairRunProgress.SelectQuery(i.session).BindMap(qb.M{
 		"cluster_id": i.run.ClusterID,
 		"task_id":    i.run.TaskID,
 		"run_id":     i.run.ID,
-	}).Iter()
+	})
+	defer q.Release()
+	iter := q.Iter()
 
 	pr := &RunProgress{}
 	for iter.StructScan(pr) {
