@@ -23,10 +23,10 @@ intensity: |
 
 parallel: |
   The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
-  Each node can take part in at most one repair at any given moment.
   By default the maximum possible parallelism is used.
   The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
-  The formula to calculate is is as follows: number of nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.
+  The formula to calculate is is as follows: number of nodes / RF.
+  For example, the maximum parallelism for a 6 node cluster with RF=3 is 2.
 
 small-table-threshold: |
   Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T].
