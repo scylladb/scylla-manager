@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // controller informs generator if repair can be executed on a given set of
@@ -214,7 +215,7 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 
 	// DENY if there is too much parallel replicas being repaired
 	if parallel := c.intensity.Parallel(); parallel != defaultParallel {
-		hash := replicaHash(hosts)
+		hash := scyllaclient.ReplicaHash(hosts)
 		if _, ok := c.busyReplicas[hash]; !ok {
 			l := len(c.busyReplicas) + 1
 			if l > parallel || l > c.intensity.MaxParallel() {
@@ -237,7 +238,7 @@ func (c *rowLevelRepairController) block(hosts []string, ranges int) {
 		c.jobs[h]++
 		c.busyRanges[h] += ranges
 	}
-	c.busyReplicas[replicaHash(hosts)]++
+	c.busyReplicas[scyllaclient.ReplicaHash(hosts)]++
 }
 
 func (c *rowLevelRepairController) allowance(hosts []string, intensity float64) allowance {
@@ -287,7 +288,7 @@ func (c *rowLevelRepairController) Unblock(a allowance) {
 		c.busyRanges[h] -= a.Ranges
 	}
 
-	hash := replicaHash(a.Replicas)
+	hash := scyllaclient.ReplicaHash(a.Replicas)
 	switch c.busyReplicas[hash] {
 	case 0:
 		panic("Missing entry for hash" + strconv.FormatUint(hash, 10))

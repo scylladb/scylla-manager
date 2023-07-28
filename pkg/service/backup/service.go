@@ -311,14 +311,14 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 		return nil, err
 	}
 
-	// Validate that there are enough live nodes to backup all tokens
+	// Validate that there are enough live nodes to back up all tokens
 	if len(liveNodes) < len(nodes) {
 		hosts := strset.New(liveNodes.Hosts()...)
 		for i := range target.Units {
 			r := rings[target.Units[i].Keyspace]
 			if r.Replication != scyllaclient.LocalStrategy {
-				for _, tr := range r.Tokens {
-					if !hosts.HasAny(tr.Replicas...) {
+				for _, rt := range r.ReplicaTokens {
+					if !hosts.HasAny(rt.ReplicaSet...) {
 						return nil, errors.Errorf("not enough live nodes to backup keyspace %s", target.Units[i].Keyspace)
 					}
 				}

@@ -148,7 +148,7 @@ const (
 	Murmur3Partitioner = "org.apache.cassandra.dht.Murmur3Partitioner"
 )
 
-// ReplicationStrategy specifies type of a keyspace replication strategy.
+// ReplicationStrategy specifies type of keyspace replication strategy.
 type ReplicationStrategy string
 
 // Replication strategies.
@@ -160,9 +160,9 @@ const (
 
 // Ring describes token ring of a keyspace.
 type Ring struct {
-	Tokens      []TokenRange
-	HostDC      map[string]string
-	Replication ReplicationStrategy
+	ReplicaTokens []ReplicaTokenRanges
+	HostDC        map[string]string
+	Replication   ReplicationStrategy
 }
 
 // Datacenters returns a list of datacenters the keyspace is replicated in.
@@ -174,23 +174,16 @@ func (r Ring) Datacenters() []string {
 	return v.List()
 }
 
-// HostTokenRanges returns a list of token ranges given host is a replica.
-// It returns pairs of token range start and end.
-func (r Ring) HostTokenRanges(host string) []int64 {
-	var tr []int64
-	for _, t := range r.Tokens {
-		if slice.ContainsString(t.Replicas, host) {
-			tr = append(tr, t.StartToken, t.EndToken)
-		}
-	}
-	return tr
-}
-
-// TokenRange describes replicas of a token (range).
+// TokenRange describes the beginning and end of a token range.
 type TokenRange struct {
 	StartToken int64
 	EndToken   int64
-	Replicas   []string
+}
+
+// ReplicaTokenRanges describes all token ranges belonging to given replica set.
+type ReplicaTokenRanges struct {
+	ReplicaSet []string     // Sorted lexicographically
+	Ranges     []TokenRange // Sorted by start token
 }
 
 // Unit describes keyspace and some tables in that keyspace.

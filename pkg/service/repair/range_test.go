@@ -16,17 +16,10 @@ func TestTableTokenRangeReplicaHash(t *testing.T) {
 		Replicas: []string{"a", "b", "c"},
 	}
 	ttr1 := tableTokenRange{
-		Replicas: []string{"c", "b", "a"},
-	}
-	ttr2 := tableTokenRange{
 		Replicas: []string{"c", "b"},
 	}
 
-	if ttr0.ReplicaHash() != ttr1.ReplicaHash() {
-		t.Error("Hash mismatch")
-	}
-
-	if ttr0.ReplicaHash() == ttr2.ReplicaHash() {
+	if ttr0.ReplicaHash() == ttr1.ReplicaHash() {
 		t.Error("Unexpeced hash match")
 	}
 }
@@ -62,21 +55,18 @@ func TestTableTokenRangeBuilder(t *testing.T) {
 		"f": "dc2",
 	}
 
-	ranges := []scyllaclient.TokenRange{
+	ranges := []scyllaclient.ReplicaTokenRanges{
 		{
-			StartToken: 1,
-			EndToken:   2,
-			Replicas:   []string{"b", "a", "f", "e"},
+			ReplicaSet: []string{"b", "a", "f", "e"},
+			Ranges:     []scyllaclient.TokenRange{{StartToken: 1, EndToken: 2}},
 		},
 		{
-			StartToken: 3,
-			EndToken:   4,
-			Replicas:   []string{"f", "c", "a", "d"},
+			ReplicaSet: []string{"f", "c", "a", "d"},
+			Ranges:     []scyllaclient.TokenRange{{StartToken: 3, EndToken: 4}},
 		},
 		{
-			StartToken: 5,
-			EndToken:   6,
-			Replicas:   []string{"c", "b", "d", "e"},
+			ReplicaSet: []string{"c", "b", "d", "e"},
+			Ranges:     []scyllaclient.TokenRange{{StartToken: 5, EndToken: 6}},
 		},
 	}
 
@@ -211,9 +201,13 @@ func TestTestTableTokenRangeBuilderMaxParallelRepairs(t *testing.T) {
 			if err := json.Unmarshal(data, &content); err != nil {
 				t.Fatal(err)
 			}
-			var ranges []scyllaclient.TokenRange
+
+			var ranges []scyllaclient.ReplicaTokenRanges
 			for i := range content {
-				ranges = append(ranges, scyllaclient.TokenRange{Replicas: content[i].Endpoints})
+				ranges = append(ranges, scyllaclient.ReplicaTokenRanges{
+					ReplicaSet: content[i].Endpoints,
+					Ranges:     []scyllaclient.TokenRange{{}},
+				})
 			}
 
 			target := Target{DC: []string{"dc1"}}

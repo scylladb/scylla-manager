@@ -229,20 +229,22 @@ func TestClientDescribeRing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ring.Tokens) != 6*256 {
-		t.Fatal(len(ring.Tokens))
+	if len(ring.ReplicaTokens[0].Ranges) != 6*256 {
+		t.Fatal(len(ring.ReplicaTokens[0].Ranges))
 	}
 	if len(ring.HostDC) != 6 {
 		t.Fatal(len(ring.HostDC))
 	}
 
 	{
-		golden := scyllaclient.TokenRange{
-			StartToken: 9170930477372008214,
-			EndToken:   9192981293347332843,
-			Replicas:   []string{"172.16.1.10", "172.16.1.4", "172.16.1.2", "172.16.1.3", "172.16.1.20", "172.16.1.5"},
+		golden := scyllaclient.ReplicaTokenRanges{
+			ReplicaSet: []string{"172.16.1.10", "172.16.1.2", "172.16.1.20", "172.16.1.3", "172.16.1.4", "172.16.1.5"},
+			Ranges:     []scyllaclient.TokenRange{{StartToken: -9223128845313325022, EndToken: -9197905337938558763}},
 		}
-		if diff := cmp.Diff(ring.Tokens[0], golden); diff != "" {
+		if diff := cmp.Diff(ring.ReplicaTokens[0].ReplicaSet, golden.ReplicaSet); diff != "" {
+			t.Fatal(diff)
+		}
+		if diff := cmp.Diff(ring.ReplicaTokens[0].Ranges[0], golden.Ranges[0]); diff != "" {
 			t.Fatal(diff)
 		}
 	}

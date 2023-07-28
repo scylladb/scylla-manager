@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"go.uber.org/multierr"
@@ -364,30 +365,42 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	}
 
 	ring := Ring{
-		Tokens: make([]TokenRange, len(resp.Payload)),
-		HostDC: map[string]string{},
+		ReplicaTokens: make([]ReplicaTokenRanges, 0),
+		HostDC:        map[string]string{},
 	}
 	dcTokens := make(map[string]int)
 
-	for i, p := range resp.Payload {
-		// parse tokens
-		ring.Tokens[i].StartToken, err = strconv.ParseInt(p.StartToken, 10, 64)
+	replicaTokens := make(map[uint64][]TokenRange)
+	replicaHash := make(map[uint64][]string)
+
+	for _, p := range resp.Payload {
+		// Parse tokens
+		startToken, err := strconv.ParseInt(p.StartToken, 10, 64)
 		if err != nil {
 			return Ring{}, errors.Wrap(err, "parse StartToken")
 		}
-		ring.Tokens[i].EndToken, err = strconv.ParseInt(p.EndToken, 10, 64)
+		endToken, err := strconv.ParseInt(p.EndToken, 10, 64)
 		if err != nil {
 			return Ring{}, errors.Wrap(err, "parse EndToken")
 		}
-		// save replicas
-		ring.Tokens[i].Replicas = p.Endpoints
+
+		// Ensure deterministic order or nodes in replica set
+		sort.Strings(p.Endpoints)
+
+		// Aggregate replica set token ranges
+		hash := ReplicaHash(p.Endpoints)
+		replicaHash[hash] = p.Endpoints
+		replicaTokens[hash] = append(replicaTokens[hash], TokenRange{
+			StartToken: startToken,
+			EndToken:   endToken,
+		})
 
 		// Update host to DC mapping
 		for _, e := range p.EndpointDetails {
 			ring.HostDC[e.Host] = e.Datacenter
 		}
 
-		// Update DC token mertics
+		// Update DC token metrics
 		dcs := strset.New()
 		for _, e := range p.EndpointDetails {
 			if !dcs.Has(e.Datacenter) {
@@ -397,13 +410,25 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 		}
 	}
 
+	for hash, tokens := range replicaTokens {
+		// Ensure deterministic order of tokens
+		sort.Slice(tokens, func(i, j int) bool {
+			return tokens[i].StartToken < tokens[j].StartToken
+		})
+
+		ring.ReplicaTokens = append(ring.ReplicaTokens, ReplicaTokenRanges{
+			ReplicaSet: replicaHash[hash],
+			Ranges:     tokens,
+		})
+	}
+
 	// Detect replication strategy
 	if len(ring.HostDC) == 1 {
 		ring.Replication = LocalStrategy
 	} else {
 		ring.Replication = NetworkTopologyStrategy
 		for _, tokens := range dcTokens {
-			if tokens != len(ring.Tokens) {
+			if tokens != len(resp.Payload) {
 				ring.Replication = SimpleStrategy
 				break
 			}
@@ -411,6 +436,16 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	}
 
 	return ring, nil
+}
+
+// ReplicaHash hashes replicas so that it can be used as a map key.
+func ReplicaHash(replicaSet []string) uint64 {
+	hash := xxhash.New()
+	for _, r := range replicaSet {
+		_, _ = hash.WriteString(r)   // nolint: errcheck
+		_, _ = hash.WriteString(",") // nolint: errcheck
+	}
+	return hash.Sum64()
 }
 
 // RepairConfig specifies what to repair.
