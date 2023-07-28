@@ -3,18 +3,18 @@
     {
       "Keyspace": "system_auth",
       "Tables": [
-        "roles",
-        "role_permissions",
+        "role_attributes",
         "role_members",
-        "role_attributes"
+        "role_permissions",
+        "roles"
       ],
       "AllTables": true
     },
     {
       "Keyspace": "system_distributed",
       "Tables": [
-        "service_levels",
         "view_build_status",
+        "service_levels",
         "cdc_generation_timestamps",
         "cdc_streams_descriptions_v2"
       ],
@@ -26,24 +26,13 @@
         "cdc_generation_descriptions_v2"
       ],
       "AllTables": true
-    },
-    {
-      "Keyspace": "system_traces",
-      "Tables": [
-        "node_slow_log_time_idx",
-        "sessions",
-        "sessions_time_idx",
-        "node_slow_log",
-        "events"
-      ],
-      "AllTables": true
     }
   ],
   "dc": [
     "dc1",
     "dc2"
   ],
-  "fail_fast": true,
+  "fail_fast": false,
   "continue": true,
   "intensity": 1,
   "parallel": 0,

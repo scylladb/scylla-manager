@@ -3,10 +3,10 @@
     {
       "Keyspace": "system_auth",
       "Tables": [
-        "role_attributes",
         "role_members",
         "roles",
-        "role_permissions"
+        "role_permissions",
+        "role_attributes"
       ],
       "AllTables": true
     },
