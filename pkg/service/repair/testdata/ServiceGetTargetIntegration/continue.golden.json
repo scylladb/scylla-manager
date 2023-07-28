@@ -13,10 +13,10 @@
     {
       "Keyspace": "system_distributed",
       "Tables": [
-        "cdc_streams_descriptions_v2",
         "cdc_generation_timestamps",
         "view_build_status",
-        "service_levels"
+        "service_levels",
+        "cdc_streams_descriptions_v2"
       ],
       "AllTables": true
     },
@@ -31,10 +31,10 @@
       "Keyspace": "system_traces",
       "Tables": [
         "events",
-        "node_slow_log",
+        "sessions_time_idx",
         "node_slow_log_time_idx",
         "sessions",
-        "sessions_time_idx"
+        "node_slow_log"
       ],
       "AllTables": true
     }

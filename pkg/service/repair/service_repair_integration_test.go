@@ -10,8 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"io"
 	"net/http"
 	"regexp"
@@ -20,6 +18,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -441,6 +442,7 @@ func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Targ
 func TestServiceGetTargetIntegration(t *testing.T) {
 	// Test names
 	testNames := []string{
+		"default",
 		"everything",
 		"filter keyspaces",
 		"filter dc",

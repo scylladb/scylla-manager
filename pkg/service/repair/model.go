@@ -42,6 +42,9 @@ type taskProperties struct {
 
 func defaultTaskProperties() *taskProperties {
 	return &taskProperties{
+		// Don't repair system_traces unless it has been deliberately specified.
+		Keyspace: []string{"*", "!system_traces"},
+
 		Continue:  true,
 		Intensity: 1,
 

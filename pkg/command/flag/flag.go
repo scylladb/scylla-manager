@@ -107,6 +107,10 @@ func (w Wrapper) Keyspace(p *[]string) {
 	w.fs.StringSliceVarP(p, "keyspace", "K", nil, usage["keyspace"])
 }
 
+func (w Wrapper) KeyspaceWithDefaultV(p *[]string, dv []string) {
+	w.fs.StringSliceVarP(p, "keyspace", "K", dv, usage["keyspace"])
+}
+
 func (w Wrapper) Location(p *[]string) {
 	w.fs.StringSliceVarP(p, "location", "L", nil, usage["location"])
 }

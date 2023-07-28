@@ -77,7 +77,7 @@ func (cmd *command) init() {
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Datacenter(&cmd.dc)
-	w.Keyspace(&cmd.keyspace)
+	w.KeyspaceWithDefaultV(&cmd.keyspace, []string{"*", "!system_traces"})
 	w.FailFast(&cmd.failFast)
 	w.Unwrap().StringVar(&cmd.host, "host", "", "")
 	w.Unwrap().BoolVar(&cmd.ignoreDownHosts, "ignore-down-hosts", false, "")
