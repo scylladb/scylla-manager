@@ -5,9 +5,7 @@ package repair
 import (
 	"bytes"
 	"fmt"
-	"sort"
 
-	"github.com/cespare/xxhash/v2"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -29,21 +27,7 @@ func (ttr *tableTokenRange) String() string {
 }
 
 func (ttr *tableTokenRange) ReplicaHash() uint64 {
-	return replicaHash(ttr.Replicas)
-}
-
-func replicaHash(replicas []string) uint64 {
-	s := make([]string, len(replicas))
-	copy(s, replicas)
-
-	sort.Strings(s)
-
-	hash := xxhash.New()
-	for i := range s {
-		hash.WriteString(s[i]) // nolint: errcheck
-		hash.WriteString(",")  // nolint: errcheck
-	}
-	return hash.Sum64()
+	return scyllaclient.ReplicaHash(ttr.Replicas)
 }
 
 // fixRanges ensures that start token < end token at all times.
@@ -118,21 +102,21 @@ func newTableTokenRangeBuilder(target Target, hostDC map[string]string) *tableTo
 	return r
 }
 
-func (b *tableTokenRangeBuilder) Add(ranges []scyllaclient.TokenRange) *tableTokenRangeBuilder {
-	for _, tr := range ranges {
-		if b.shouldAdd(tr) {
-			b.add(tr)
+func (b *tableTokenRangeBuilder) Add(replicaTokens []scyllaclient.ReplicaTokenRanges) *tableTokenRangeBuilder {
+	for _, rt := range replicaTokens {
+		if b.shouldAdd(rt) {
+			b.add(rt)
 		}
 	}
 	return b
 }
 
-func (b *tableTokenRangeBuilder) shouldAdd(tr scyllaclient.TokenRange) bool {
-	if b.target.Host != "" && !b.isReplica(b.target.Host, tr.Replicas) {
+func (b *tableTokenRangeBuilder) shouldAdd(rt scyllaclient.ReplicaTokenRanges) bool {
+	if b.target.Host != "" && !b.isReplica(b.target.Host, rt.ReplicaSet) {
 		return false
 	}
 
-	if len(b.filteredReplicas(tr.Replicas)) == 0 {
+	if len(b.filteredReplicas(rt.ReplicaSet)) == 0 {
 		return false
 	}
 
@@ -143,15 +127,17 @@ func (b *tableTokenRangeBuilder) isReplica(host string, replicas []string) bool 
 	return strset.New(replicas...).Has(host)
 }
 
-func (b *tableTokenRangeBuilder) add(tr scyllaclient.TokenRange) {
-	ttr := tableTokenRange{
-		Pos:        b.pos,
-		StartToken: tr.StartToken,
-		EndToken:   tr.EndToken,
-		Replicas:   b.filteredReplicas(tr.Replicas),
+func (b *tableTokenRangeBuilder) add(rt scyllaclient.ReplicaTokenRanges) {
+	for _, r := range rt.Ranges {
+		ttr := tableTokenRange{
+			Pos:        b.pos,
+			StartToken: r.StartToken,
+			EndToken:   r.EndToken,
+			Replicas:   b.filteredReplicas(rt.ReplicaSet),
+		}
+		b.prototypes = append(b.prototypes, &ttr)
+		b.pos++
 	}
-	b.prototypes = append(b.prototypes, &ttr)
-	b.pos++
 }
 
 func (b *tableTokenRangeBuilder) filteredReplicas(replicas []string) (out []string) {

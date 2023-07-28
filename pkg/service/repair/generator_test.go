@@ -112,7 +112,7 @@ type generatorTestSuite struct {
 	hostRangesLimits hostRangesLimit
 	dcs              []string
 	units            []Unit
-	ranges           []scyllaclient.TokenRange
+	ranges           []scyllaclient.ReplicaTokenRanges
 
 	rowLevelRepair bool
 }
@@ -174,10 +174,9 @@ func newGeneratorTestSuite() generatorTestSuite {
 		offset := i * tokensInRange
 
 		suite.ranges = append(suite.ranges,
-			scyllaclient.TokenRange{
-				StartToken: int64(offset),
-				EndToken:   int64(offset + tokensInRange),
-				Replicas:   replicas,
+			scyllaclient.ReplicaTokenRanges{
+				ReplicaSet: replicas,
+				Ranges:     []scyllaclient.TokenRange{{StartToken: int64(offset), EndToken: int64(offset + tokensInRange)}},
 			},
 		)
 	}

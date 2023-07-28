@@ -147,9 +147,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			}
 
 			notEnoughReplicas := false
-			for _, tr := range ring.Tokens {
+			for _, rt := range ring.ReplicaTokens {
 				replicas := 0
-				for _, r := range tr.Replicas {
+				for _, r := range rt.ReplicaSet {
 					if dcs.Has(ring.HostDC[r]) {
 						replicas++
 					}
@@ -277,7 +277,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		// Transform ring to tableTokenRanges
 		b := newTableTokenRangeBuilder(target, ring.HostDC)
-		b.Add(ring.Tokens)
+		b.Add(ring.ReplicaTokens)
 
 		// Calculate worker count
 		if v := b.MaxParallelRepairs(); v > maxParallel {
@@ -492,7 +492,7 @@ func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.
 }
 
 func mergeSmallTableRanges(gen *generator) {
-	h := replicaHash(gen.Hosts().List())
+	h := scyllaclient.ReplicaHash(gen.Hosts().List())
 	smallTableRanges := make(map[string]*tableTokenRange)
 	i := 0
 	for _, r := range gen.ranges[h] {
