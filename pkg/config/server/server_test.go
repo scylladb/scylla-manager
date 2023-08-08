@@ -83,7 +83,6 @@ func TestConfigModification(t *testing.T) {
 			LongPollingTimeoutSeconds:       5,
 			AgeMax:                          12 * time.Hour,
 			GracefulStopTimeout:             60 * time.Second,
-			ForceRepairType:                 repair.TypeAuto,
 			Murmur3PartitionerIgnoreMSBBits: 12,
 		},
 		TimeoutConfig: scyllaclient.TimeoutConfig{

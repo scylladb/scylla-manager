@@ -5,8 +5,6 @@ package repair
 import (
 	"math"
 	"strconv"
-
-	"github.com/scylladb/go-set/strset"
 )
 
 // controller informs generator if repair can be executed on a given set of
@@ -16,115 +14,6 @@ type controller interface {
 	Unblock(a allowance)
 	Busy() bool
 	MaxWorkerCount() int
-}
-
-// defaultController ensures that there is at most one repair running at any node.
-// If parallel is set it caps the number of replica sets that can be
-// repaired at the same time.
-// If intensity is set it changes the number of ranges in allowance returned
-// when blocking replicas.
-type defaultController struct {
-	intensity *intensityHandler
-	limits    hostRangesLimit
-
-	busy *strset.Set
-	jobs int
-}
-
-var _ controller = &defaultController{}
-
-func newDefaultController(ih *intensityHandler, hl hostRangesLimit) *defaultController {
-	if ih.MaxParallel() == 0 {
-		panic("No available workers")
-	}
-
-	return &defaultController{
-		intensity: ih,
-		limits:    hl,
-		busy:      strset.New(),
-	}
-}
-
-func (c *defaultController) TryBlock(hosts []string) (bool, allowance) {
-	if !c.shouldBlock(hosts) {
-		return false, nilAllowance
-	}
-
-	a := c.allowance(hosts)
-	c.block(hosts)
-	return true, a
-}
-
-func (c *defaultController) shouldBlock(hosts []string) bool {
-	// ALLOW if nothing is running
-	if c.busy.IsEmpty() {
-		return true
-	}
-
-	// DENY if there is too much parallel jobs running
-	if c.jobs >= c.parallelLimit() {
-		return false
-	}
-
-	// DENY if any host is already being repaired
-	return !c.busy.HasAny(hosts...)
-}
-
-func (c *defaultController) parallelLimit() int {
-	p := c.intensity.Parallel()
-
-	if p == defaultParallel || p > c.intensity.MaxParallel() {
-		return c.intensity.MaxParallel()
-	}
-
-	return p
-}
-
-func (c *defaultController) block(hosts []string) {
-	c.busy.Add(hosts...)
-	c.jobs++
-}
-
-func (c *defaultController) allowance(hosts []string) allowance {
-	i := c.intensity.Intensity()
-
-	a := allowance{
-		Replicas: hosts,
-		Ranges:   math.MaxInt32,
-	}
-	if i < 1 {
-		a.ShardsPercent = i
-	}
-
-	for _, h := range hosts {
-		var v int
-		switch {
-		case i == maxIntensity:
-			v = c.limits[h].Max
-		case i < 1:
-			v = c.limits[h].Default
-		default:
-			v = int(i) * c.limits[h].Default
-		}
-		if v < a.Ranges {
-			a.Ranges = v
-		}
-	}
-
-	return a
-}
-
-func (c *defaultController) Unblock(a allowance) {
-	c.busy.Remove(a.Replicas...)
-	c.jobs--
-}
-
-func (c *defaultController) Busy() bool {
-	return c.jobs > 0
-}
-
-func (c *defaultController) MaxWorkerCount() int {
-	return c.intensity.MaxParallel()
 }
 
 // rowLevelRepairController is a specialised controller for row-level repair.
@@ -205,7 +94,7 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 		case intensity <= 1:
 			ok = r <= c.limits[h].Default
 		default:
-			ok = r <= int(intensity)*c.limits[h].Default && r <= c.limits[h].Max
+			ok = r <= intensity*c.limits[h].Default && r <= c.limits[h].Max
 		}
 		if !ok {
 			return false
@@ -263,19 +152,8 @@ func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity 
 		if ranges == 0 {
 			ranges = 1
 		}
-	case intensity < 1:
-		// If intensity < 1 return all token ranges (nr. of shards) in a single
-		// call. This is to avoid multiple workers repairing the same host in
-		// parallel. Single worker will offload work from shards using
-		// the legacy repair logic i.e. repair shard by shard.
-		ranges = math.MaxInt32
-		for _, h := range hosts {
-			if v := c.limits[h].Default; v < ranges {
-				ranges = v
-			}
-		}
 	default:
-		ranges = int(intensity)
+		ranges = intensity
 	}
 	return
 }

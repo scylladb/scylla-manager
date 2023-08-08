@@ -84,7 +84,6 @@ func TestGenerator(t *testing.T) {
 	suite := newGeneratorTestSuite()
 	t.Run("Basic", suite.Basic)
 	t.Run("Intensity", suite.Intensity)
-	t.Run("IntensityChange", suite.IntensityChange)
 	t.Run("Parallel", suite.Parallel)
 	t.Run("SingleDatacenter", suite.SingleDatacenter)
 	t.Run("SmallTables", suite.SmallTables)
@@ -217,14 +216,7 @@ func (s *generatorTestSuite) newController(intensity float64, parallel, maxParal
 		maxParallel: maxParallel,
 	}
 
-	var ctl controller
-	if s.rowLevelRepair {
-		ctl = newRowLevelRepairController(ih, s.hostRangesLimits, 6, 2)
-	} else {
-		ctl = newDefaultController(ih, s.hostRangesLimits)
-	}
-
-	return ctl, ih
+	return newRowLevelRepairController(ih, s.hostRangesLimits, 6, 2), ih
 }
 
 func (s *generatorTestSuite) Basic(t *testing.T) {
@@ -341,63 +333,6 @@ func (s *generatorTestSuite) Intensity(t *testing.T) {
 				test.Assert(j)
 			}
 		})
-	}
-}
-
-func (s *generatorTestSuite) IntensityChange(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	Print("Given: intensity of 1")
-	target := Target{
-		DC:        s.dcs,
-		Intensity: 1,
-	}
-
-	Print("Given: running generator")
-	g, ih := s.newGenerator(ctx, target)
-	generatorFinished := atomic.NewBool(false)
-	go func() {
-		g.Run(ctx)
-		generatorFinished.Store(true)
-	}()
-	waitGeneratorFillsNext(g)
-
-	Print("Given: worker")
-	w := fakeWorker{
-		In:       g.Next(),
-		Out:      g.Result(),
-		DumpJobs: true,
-		Logger:   log.NewDevelopment(),
-	}
-
-	Print("When: initial jobs are processed")
-	jobs := make([]job, len(g.Next()))
-	var ok bool
-	for i := range jobs {
-		jobs[i], ok = w.takeJob()
-		if !ok {
-			t.Error("Worker couldn't take a job")
-		}
-	}
-
-	Print("And: intensity is changed to 2")
-	if err := ih.SetIntensity(ctx, 2); err != nil {
-		t.Fatal(err)
-	}
-	for _, j := range jobs {
-		w.execute(j)
-	}
-
-	Print("Then: worker gets 2 token ranges per shard")
-	newJob, ok := w.takeJob()
-	if !ok {
-		t.Error("Worker couldn't take a job")
-	}
-
-	const minHostRangesLimitsDefault = 2
-	if v := len(newJob.Ranges); v != 2*minHostRangesLimitsDefault {
-		t.Errorf("len(newJob.Ranges)=%d, expected %d", len(newJob.Ranges), 2*s.hostRangesLimits[newJob.Host].Default)
 	}
 }
 

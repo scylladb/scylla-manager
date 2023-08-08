@@ -23,7 +23,6 @@ type worker struct {
 	progress                  progressManager
 	hostPartitioner           map[string]*dht.Murmur3Partitioner
 	hostFeatures              map[string]scyllaclient.ScyllaFeatures
-	repairType                Type
 	pollInterval              time.Duration
 	longPollingTimeoutSeconds int
 	logger                    log.Logger
@@ -31,7 +30,7 @@ type worker struct {
 
 func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
 	manager progressManager, hostPartitioner map[string]*dht.Murmur3Partitioner,
-	hostFeatures map[string]scyllaclient.ScyllaFeatures, repairType Type,
+	hostFeatures map[string]scyllaclient.ScyllaFeatures,
 	pollInterval time.Duration, longPollingTimeoutSeconds int, logger log.Logger,
 ) *worker {
 	return &worker{
@@ -42,7 +41,6 @@ func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclie
 		progress:                  manager,
 		hostPartitioner:           hostPartitioner,
 		hostFeatures:              hostFeatures,
-		repairType:                repairType,
 		pollInterval:              pollInterval,
 		longPollingTimeoutSeconds: longPollingTimeoutSeconds,
 		logger:                    logger,
@@ -80,13 +78,7 @@ func (w *worker) Run(ctx context.Context) error {
 }
 
 func (w *worker) handleJob(ctx context.Context, job job) error {
-	var err error
-	if w.repairType == TypeRowLevel && job.Allowance.ShardsPercent == 0 {
-		err = w.rowLevelRepair(ctx, job)
-	} else {
-		err = w.legacyRepair(ctx, job)
-	}
-	return err
+	return w.rowLevelRepair(ctx, job)
 }
 
 func (w *worker) runRepair(ctx context.Context, job job) error {

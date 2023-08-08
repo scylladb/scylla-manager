@@ -7,13 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"io"
 	"net/http"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
@@ -45,7 +46,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, true), TypeRowLevel, pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, true), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -99,7 +100,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(false, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, false), TypeRowLevel, pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, false), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {
@@ -145,60 +146,6 @@ func TestWorkerRun(t *testing.T) {
 		}
 	})
 
-	t.Run("legacy run", func(t *testing.T) {
-		in := make(chan job)
-		out := make(chan jobResult)
-		ranges := []tokenRange{
-			{StartToken: 3689195723611658698, EndToken: 3689195723611658798}, {StartToken: -8022912513662303546, EndToken: -8022912513662303446},
-		}
-		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
-
-		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(false, false), TypeLegacy, pollInterval, longPollingTimeoutSeconds, logger)
-
-		go func() {
-			if err := w.Run(ctx); err != nil {
-				t.Fatal(err)
-			}
-		}()
-
-		go func() {
-			for i := 1; i <= 2; i++ {
-				in <- job{
-					Host: fmt.Sprintf("h%d", i),
-					Ranges: []*tableTokenRange{
-						{
-							Keyspace:   "k1",
-							Table:      fmt.Sprintf("t%d", i),
-							Pos:        0,
-							StartToken: ranges[0].StartToken,
-							EndToken:   ranges[0].EndToken,
-							Replicas:   []string{"h1", "h2"},
-						},
-						{
-							Keyspace:   "k1",
-							Table:      fmt.Sprintf("t%d", i),
-							Pos:        1,
-							StartToken: ranges[1].StartToken,
-							EndToken:   ranges[1].EndToken,
-							Replicas:   []string{"h1", "h2"},
-						},
-					},
-				}
-			}
-			close(in)
-		}()
-
-		for i := 0; i < 2; i++ {
-			res := <-out
-			if res.Err != nil {
-				t.Error(res.Err)
-			}
-			if res.Ranges[0].StartToken != ranges[0].StartToken || res.Ranges[1].EndToken != ranges[1].EndToken {
-				t.Errorf("Unexpected ranges %+v", res.Ranges)
-			}
-		}
-	})
-
 	t.Run("force row level repair", func(t *testing.T) {
 		in := make(chan job)
 		out := make(chan jobResult)
@@ -207,7 +154,7 @@ func TestWorkerRun(t *testing.T) {
 		}
 		hrt.SetInterceptor(repairInterceptor(true, ranges, 2))
 
-		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, true), TypeRowLevel, pollInterval, longPollingTimeoutSeconds, logger)
+		w := newWorker(run, in, out, c, newNopProgressManager(), hostPartitioner, scyllaFeatures(true, true), pollInterval, longPollingTimeoutSeconds, logger)
 
 		go func() {
 			if err := w.Run(ctx); err != nil {

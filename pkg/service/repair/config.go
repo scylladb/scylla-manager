@@ -18,8 +18,6 @@ const (
 	TypeAuto Type = "auto"
 	// TypeRowLevel row level repair.
 	TypeRowLevel Type = "row_level"
-	// TypeLegacy legacy repair type.
-	TypeLegacy Type = "legacy"
 )
 
 // Config specifies the repair service configuration.
@@ -58,7 +56,7 @@ func (c *Config) Validate() error {
 		err = multierr.Append(err, errors.New("invalid graceful_stop_timeout, must be > 0"))
 	}
 	switch c.ForceRepairType {
-	case TypeAuto, TypeRowLevel, TypeLegacy:
+	case TypeAuto, TypeRowLevel:
 	default:
 		err = multierr.Append(err, errors.Errorf("invalid force_repair_type value %s", c.ForceRepairType))
 	}

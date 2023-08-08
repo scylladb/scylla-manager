@@ -369,16 +369,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "initialize host partitioner")
 	}
 
-	// Enable row-level repair controller optimisation
-	repairType := s.repairType(ctx, hostFeatures)
-	var ctl controller
-	if repairType == TypeRowLevel {
-		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
-		s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
-	} else {
-		ctl = newDefaultController(ih, hostRangesLimits)
-		s.logger.Info(ctx, "Using default repair controller", "workers", ctl.MaxWorkerCount())
-	}
+	ctl := newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
+	s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
 
 	// Get options
 	var opts []generatorOption
@@ -403,7 +395,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		i := i
 		eg.Go(func() error {
 			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
-				hostPartitioner, hostFeatures, repairType,
+				hostPartitioner, hostFeatures,
 				s.config.PollInterval, s.config.LongPollingTimeoutSeconds,
 				s.logger.Named(fmt.Sprintf("worker %d", i)),
 			)
@@ -685,23 +677,6 @@ func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *s
 		}
 	}
 	return out, nil
-}
-
-func (s *Service) repairType(ctx context.Context, hostFeatures map[string]scyllaclient.ScyllaFeatures) Type {
-	if s.config.ForceRepairType == TypeRowLevel || s.config.ForceRepairType == TypeLegacy {
-		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
-		return s.config.ForceRepairType
-	}
-
-	// Handle auto mode
-	t := TypeRowLevel
-	for _, f := range hostFeatures {
-		if !f.RowLevelRepair {
-			t = TypeLegacy
-			break
-		}
-	}
-	return t
 }
 
 func (s *Service) partitioner(ctx context.Context, host string, client *scyllaclient.Client) (*dht.Murmur3Partitioner, error) {
