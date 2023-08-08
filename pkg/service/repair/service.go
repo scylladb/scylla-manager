@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 
@@ -609,7 +610,7 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, 
 	ih = &intensityHandler{
 		logger:      s.logger.Named("control"),
 		intensity:   atomic.NewFloat64(intensity),
-		parallel:    atomic.NewInt64(int64(parallel)),
+		parallel:    atomic.NewInt64(int64(math.Min(float64(parallel), float64(maxParallel)))),
 		maxParallel: maxParallel,
 	}
 
@@ -886,12 +887,13 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error 
 		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
 	}
 
-	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
-	i.parallel.Store(int64(parallel))
-
 	if parallel > i.maxParallel {
 		i.logger.Info(ctx, "Requested parallel value will be capped to maximum possible", "requested", parallel, "maximum", i.maxParallel)
+		parallel = i.maxParallel
 	}
+
+	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
+	i.parallel.Store(int64(parallel))
 
 	return nil
 }
