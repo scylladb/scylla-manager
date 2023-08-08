@@ -172,28 +172,39 @@ func (c *rowLevelRepairController) TryBlock(hosts []string) (bool, allowance) {
 	return true, a
 }
 
+func (c *rowLevelRepairController) parallelLimit() int {
+	p := c.intensity.Parallel()
+
+	if p <= defaultParallel {
+		return c.intensity.MaxParallel()
+	}
+
+	return p
+}
+
 func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64) bool {
 	// ALLOW if nothing is running
 	if !c.Busy() {
 		return true
 	}
 
-	// DENY if any host has max nr of jobs already running
+	// DENY if any host has a job running already. We don't allow more than a single repair job per host.
 	for _, h := range hosts {
-		if c.jobs[h] >= c.limits[h].Default {
+		if c.jobs[h] >= 1 {
 			return false
 		}
 	}
 
-	// DENY if there is too much parallel replicas being repaired
-	if parallel := c.intensity.Parallel(); parallel != defaultParallel {
-		hash := replicaHash(hosts)
-		if _, ok := c.busyReplicas[hash]; !ok {
-			l := len(c.busyReplicas) + 1
-			if l > parallel || l > c.intensity.MaxParallel() {
-				return false
-			}
-		}
+	// DENY (Sanity) if allJobs + 1 > MaxParallel.
+	// However, this should never happen due to "up to 1 repair task per replica" and the fact that MaxParallel is
+	// calculated the way that allows up to 1 repair task per host.
+	if c.allJobs+1 > c.intensity.MaxParallel() {
+		return false
+	}
+
+	// DENY if allJobs is greater than the configured parallelism
+	if c.allJobs+1 > c.parallelLimit() {
+		return false
 	}
 
 	// DENY if all workers are busy
@@ -210,6 +221,8 @@ func (c *rowLevelRepairController) block(hosts []string, ranges int) {
 		c.jobs[h]++
 		c.busyRanges[h] += ranges
 	}
+	//TODO: the value for every replica set should never be greater than 1
+	// We should build some test around this fact.
 	c.busyReplicas[replicaHash(hosts)]++
 }
 
