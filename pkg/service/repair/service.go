@@ -565,9 +565,15 @@ func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Clie
 			return errors.Wrapf(err, "%s: get shard count", h)
 		}
 
+		// Since we don't issue repairs for per-shard ranges anymore floating point 'intensity' becomes irrelevant.
+		// We will allow up to a single repair task per replica host as our documentation mandates and will allow
+		// 1 or more token ranges per repair task. The maximum amount ranges per task is limited by
+		// s.maxRepairRangesInParallel().
 		v := rangesLimit{
-			Default: int(shards),
-			Max:     s.maxRepairRangesInParallel(shards, totalMemory),
+			Default: 1,
+			//TODO: collect max_repair_ranges_in_parallel from scylla hosts using a not-yet-existing API
+			// In the meantime use good-enough value
+			Max: s.maxRepairRangesInParallel(shards, totalMemory),
 		}
 		s.logger.Info(ctx, "Host repair intensity limit", "host", h, "limit", v)
 

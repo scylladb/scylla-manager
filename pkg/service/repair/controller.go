@@ -92,19 +92,14 @@ func (c *defaultController) allowance(hosts []string) allowance {
 		Replicas: hosts,
 		Ranges:   math.MaxInt32,
 	}
-	if i < 1 {
-		a.ShardsPercent = i
-	}
 
 	for _, h := range hosts {
 		var v int
 		switch {
 		case i == maxIntensity:
 			v = c.limits[h].Max
-		case i < 1:
-			v = c.limits[h].Default
 		default:
-			v = int(i) * c.limits[h].Default
+			v = int(i)
 		}
 		if v < a.Ranges {
 			a.Ranges = v
@@ -190,28 +185,6 @@ func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64
 		}
 	}
 
-	// DENY if any host already runs at the full intensity.
-	// This may happen if we decrease intensity, for a while we need to reduce
-	// number of jobs to reduce number of busy ranges.
-	ranges := c.rangesForIntensity(hosts, intensity)
-	for _, h := range hosts {
-		var (
-			r  = c.busyRanges[h] + ranges
-			ok bool
-		)
-		switch {
-		case intensity == maxIntensity:
-			ok = r <= c.limits[h].Max
-		case intensity <= 1:
-			ok = r <= c.limits[h].Default
-		default:
-			ok = r <= int(intensity)*c.limits[h].Default && r <= c.limits[h].Max
-		}
-		if !ok {
-			return false
-		}
-	}
-
 	// DENY if there is too much parallel replicas being repaired
 	if parallel := c.intensity.Parallel(); parallel != defaultParallel {
 		hash := replicaHash(hosts)
@@ -245,9 +218,7 @@ func (c *rowLevelRepairController) allowance(hosts []string, intensity float64) 
 		Replicas: hosts,
 		Ranges:   c.rangesForIntensity(hosts, intensity),
 	}
-	if intensity < 1 {
-		a.ShardsPercent = intensity
-	}
+
 	return a
 }
 
@@ -255,27 +226,17 @@ func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity 
 	switch {
 	case intensity == maxIntensity:
 		ranges = math.MaxInt32
-		for _, h := range hosts {
-			if v := c.limits[h].Max / c.limits[h].Default; v < ranges {
-				ranges = v
-			}
-		}
-		if ranges == 0 {
-			ranges = 1
-		}
-	case intensity < 1:
-		// If intensity < 1 return all token ranges (nr. of shards) in a single
-		// call. This is to avoid multiple workers repairing the same host in
-		// parallel. Single worker will offload work from shards using
-		// the legacy repair logic i.e. repair shard by shard.
-		ranges = math.MaxInt32
-		for _, h := range hosts {
-			if v := c.limits[h].Default; v < ranges {
-				ranges = v
-			}
-		}
 	default:
 		ranges = int(intensity)
+	}
+
+	for _, h := range hosts {
+		if v := c.limits[h].Max; v < ranges {
+			ranges = v
+		}
+	}
+	if ranges == 0 {
+		ranges = 1
 	}
 	return
 }

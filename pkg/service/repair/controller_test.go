@@ -240,9 +240,7 @@ func TestRowLevelRepairController(t *testing.T) {
 			if a.Ranges != controllerTestDefaultRangesLimit {
 				t.Fatalf("TryBlock()=%v, expected %d ranges", a, controllerTestDefaultRangesLimit)
 			}
-			if a.ShardsPercent != 0.5 {
-				t.Fatalf("TryBlock()=%v, expected %f shards percent", a, 0.5)
-			}
+
 			queue = append(queue, a)
 		}
 		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
