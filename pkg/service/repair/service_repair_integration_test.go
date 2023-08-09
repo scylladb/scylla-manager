@@ -10,8 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"io"
 	"net/http"
 	"regexp"
@@ -20,6 +18,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -480,8 +481,6 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
-	t.Skip() // This test should be enabled when after repair algorithm is refactored
-
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, repair.DefaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
@@ -550,7 +549,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 			// Response to repair schedule
 			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
 				muHIJ.Lock()
-				hostsInJob[string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
+				hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
 				muHIJ.Unlock()
 			}
 
@@ -559,7 +558,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 				status := string(body)
 				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
 					muHIJ.Lock()
-					hosts := hostsInJob[resp.Request.URL.Query()["id"][0]]
+					hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
 					muHIJ.Unlock()
 
 					muJPH.Lock()
