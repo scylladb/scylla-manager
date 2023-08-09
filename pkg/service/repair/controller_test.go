@@ -47,125 +47,81 @@ func (s controllerTestSuite) newRowLevelRepairController() *rowLevelRepairContro
 func TestRowLevelRepairController(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("TryBlock", func(t *testing.T) {
+	t.Run("TryBlock with maxIntensity to follow the to ensure number of token ranges per job", func(t *testing.T) {
 		s := makeControllerTestSuite()
 		ctl := s.newRowLevelRepairController()
 
-		for i := 0; i < controllerTestDefaultRangesLimit; i++ {
-			if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
-				t.Fatal("TryBlock() failed to block")
-			}
-		}
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
-			t.Fatal("TryBlock() unexpected success")
-		}
-		ctl.Unblock(allowance{
-			Replicas: []string{"a", "b", "c"},
-			Ranges:   1,
-		})
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
-			t.Fatal("TryBlock() failed to block")
-		}
-	})
+		const intensity = 1000
 
-	t.Run("TryBlock with intensity", func(t *testing.T) {
-		s := makeControllerTestSuite()
-		ctl := s.newRowLevelRepairController()
+		s.intensityHandler.SetIntensity(ctx, intensity)
 
-		var queue []allowance
-
-		unblockAll := func() {
-			for _, a := range queue {
-				ctl.Unblock(a)
-			}
-			queue = nil
-		}
-
-		for i := 0; i < controllerTestDefaultRangesLimit; i++ {
-			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
-				t.Fatal("TryBlock() failed to block")
-			} else {
-				queue = append(queue, a)
-			}
-		}
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
-			t.Fatal("TryBlock() unexpected success")
-		}
-
-		s.intensityHandler.SetIntensity(ctx, 2)
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
-			t.Fatal("TryBlock() unexpected success - all workers busy")
-		}
-
-		unblockAll()
-
-		for i := 0; i < controllerTestDefaultRangesLimit/2-1; i++ {
-			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
-				t.Fatal("TryBlock() failed to block")
-			} else {
-				queue = append(queue, a)
-			}
-		}
-
-		s.intensityHandler.SetIntensity(ctx, 0)
-		ok, ma := ctl.TryBlock([]string{"a", "b", "c"})
+		ok, a := ctl.TryBlock([]string{"a", "b", "c"})
 		if !ok {
 			t.Fatal("TryBlock() failed to block")
 		}
-		if ma.Ranges <= 2 {
-			t.Fatalf("TryBlock() = %v, expected full intensity", ma)
+		if a.Ranges != intensity {
+			t.Fatal("Picked up more ranges than defined with intensity")
 		}
 
-		s.intensityHandler.SetIntensity(ctx, 1)
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); ok {
-			t.Fatal("TryBlock() unexpected success - too many ranges")
-		}
-
-		ctl.Unblock(ma)
-
-		for i := 0; i < 2; i++ {
-			if ok, a := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
-				t.Fatal("TryBlock() failed to block")
-			} else {
-				queue = append(queue, a)
-			}
-		}
-
-		unblockAll()
 	})
 
-	t.Run("TryBlock with parallel", func(t *testing.T) {
+	t.Run("TryBlock to ensure number of token ranges per job", func(t *testing.T) {
 		s := makeControllerTestSuite()
 		ctl := s.newRowLevelRepairController()
 
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
+		const intensity = 1000
+
+		s.intensityHandler.SetIntensity(ctx, intensity)
+
+		ok, a := ctl.TryBlock([]string{"a", "b", "c"})
+		if !ok {
 			t.Fatal("TryBlock() failed to block")
 		}
+		if a.Ranges != intensity {
+			t.Fatal("Picked up more ranges than defined with intensity")
+		}
+
+	})
+
+	t.Run("TryBlock to ensure max number of non-overlapping replica sets in parallel", func(t *testing.T) {
+		s := makeControllerTestSuite()
+		ctl := s.newRowLevelRepairController()
+
+		// parallel = 2 => max two non-overlapping replica sets to be repaired at the moment
+		s.intensityHandler.SetParallel(ctx, 2)
+		ok, a1 := ctl.TryBlock([]string{"a", "b", "c"})
+		if !ok {
+			t.Fatal("TryBlock() failed to block")
+		}
+		ok, a2 := ctl.TryBlock([]string{"d", "e", "f"})
+		if !ok {
+			t.Fatal("TryBlock() failed to block")
+		}
+		ctl.Unblock(a1)
+		ctl.Unblock(a2)
+
+		// parallel = 1 => max one non-overlapping replica sets to be repaired at the moment
 		s.intensityHandler.SetParallel(ctx, 1)
-		if ok, _ := ctl.TryBlock([]string{"d", "e", "f"}); ok {
+		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
 			t.Fatal("TryBlock() failed to block")
 		}
-		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
+		if ok, _ := ctl.TryBlock([]string{"d", "e", "f"}); ok {
 			t.Fatal("TryBlock() unexpected success")
 		}
-		s.intensityHandler.SetParallel(ctx, 2)
-		if ok, _ := ctl.TryBlock([]string{"d", "e", "f"}); !ok {
-			t.Fatal("TryBlock() failed to block")
-		}
 	})
 
-	t.Run("TryBlock cross replicas", func(t *testing.T) {
+	t.Run("TryBlock cross replicas not allowed", func(t *testing.T) {
 		s := makeControllerTestSuite()
 		ctl := s.newRowLevelRepairController()
 
 		if ok, _ := ctl.TryBlock([]string{"a", "b", "c"}); !ok {
 			t.Fatal("TryBlock() failed to block")
 		}
-		if ok, _ := ctl.TryBlock([]string{"b", "c", "d"}); !ok {
-			t.Fatal("TryBlock() failed to block")
+		if ok, _ := ctl.TryBlock([]string{"b", "c", "d"}); ok {
+			t.Fatal("TryBlock() unexpected success")
 		}
-		if ok, _ := ctl.TryBlock([]string{"c", "d", "e"}); !ok {
-			t.Fatal("TryBlock() failed to block")
+		if ok, _ := ctl.TryBlock([]string{"c", "d", "e"}); ok {
+			t.Fatal("TryBlock() unexpected success")
 		}
 		if ok, _ := ctl.TryBlock([]string{"d", "e", "f"}); !ok {
 			t.Fatal("TryBlock() failed to block")
@@ -198,45 +154,4 @@ func TestRowLevelRepairController(t *testing.T) {
 			t.Fatalf("MaxWorkerCount() = %d, expected %d", ctl.MaxWorkerCount(), golden)
 		}
 	})
-}
-
-func TestRowLevelRepairControllerIssue2446(t *testing.T) {
-	ih := &intensityHandler{
-		logger:      log.NewDevelopment(),
-		intensity:   atomic.NewInt64(1),
-		parallel:    atomic.NewInt64(0),
-		maxParallel: 1,
-	}
-
-	const (
-		n1 = "a"
-		n2 = "b"
-		n3 = "c"
-	)
-
-	hl := hostRangesLimit{
-		n1: rangesLimit{Default: 8, Max: 22},
-		n2: rangesLimit{Default: 8, Max: 22},
-		n3: rangesLimit{Default: 8, Max: 22},
-	}
-
-	ctl := newRowLevelRepairController(ih, hl, 3, 2)
-
-	ranges := [][]string{
-		{n1, n2},
-		{n2, n3},
-		{n3, n1},
-	}
-
-	i := 0
-	for {
-		ok, _ := ctl.TryBlock(ranges[i%3])
-		if !ok {
-			break
-		}
-		i++
-	}
-	if i != 3*8/2 {
-		t.Fatalf("Expected total shards / rf, got %d", i)
-	}
 }

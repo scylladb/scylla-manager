@@ -4,7 +4,6 @@ package repair
 
 import (
 	"math"
-	"strconv"
 )
 
 // controller informs generator if repair can be executed on a given set of
@@ -16,23 +15,16 @@ type controller interface {
 	MaxWorkerCount() int
 }
 
-// rowLevelRepairController is a specialised controller for row-level repair.
-// While defaultController sets token ranges equal to the number of shards times
-// intensity in one allowance the rowLevelRepairController splits that to the
-// number of shards into chunks that can be executed independently.
-// Each node can handle at most one repair task per shard.
-// The number of ranges returned in allocation typically equals the intensity.
-// If parallel is set it caps the number of distinct replica sets that can be
-// repaired at the same time.
+// rowLevelRepairController is a responsible for ensuring that just a single repair
+// job is scheduled against single host. It guarantees as well that no more than X (--parallel flag)
+// replicas are repaired in parallel.
+// It's responsible for controlling amount of token ranges included into the job.
 type rowLevelRepairController struct {
 	intensity      *intensityHandler
 	limits         hostRangesLimit
 	maxWorkerCount int
-
-	allJobs      int
-	jobs         map[string]int
-	busyRanges   map[string]int
-	busyReplicas map[uint64]int
+	allJobs        int
+	jobs           map[string]int
 }
 
 var _ controller = &rowLevelRepairController{}
@@ -50,68 +42,36 @@ func newRowLevelRepairController(ih *intensityHandler, hl hostRangesLimit, nodes
 		limits:         hl,
 		maxWorkerCount: hl.MaxShards() * nodes / minRf,
 		jobs:           make(map[string]int),
-		busyRanges:     make(map[string]int),
-		busyReplicas:   make(map[uint64]int),
 	}
 }
 
 func (c *rowLevelRepairController) TryBlock(hosts []string) (bool, allowance) {
-	i := c.intensity.Intensity()
-	if !c.shouldBlock(hosts, i) {
+	if !c.shouldBlock(hosts) {
 		return false, nilAllowance
 	}
 
-	a := c.allowance(hosts, i)
+	a := c.allowance(hosts, c.intensity.Intensity())
 	c.block(hosts, a.Ranges)
 	return true, a
 }
 
-func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity int) bool {
+func (c *rowLevelRepairController) shouldBlock(hosts []string) bool {
 	// ALLOW if nothing is running
 	if !c.Busy() {
 		return true
 	}
 
-	// DENY if any host has max nr of jobs already running
+	// DENY if any host has a job already running
 	for _, h := range hosts {
-		if c.jobs[h] >= c.limits[h].Default {
+		if c.jobs[h] >= 1 {
 			return false
 		}
 	}
-
-	// DENY if any host already runs at the full intensity.
-	// This may happen if we decrease intensity, for a while we need to reduce
-	// number of jobs to reduce number of busy ranges.
-	ranges := c.rangesForIntensity(hosts, intensity)
-	for _, h := range hosts {
-		var (
-			r  = c.busyRanges[h] + ranges
-			ok bool
-		)
-		switch {
-		case intensity == maxIntensity:
-			ok = r <= c.limits[h].Max
-		case intensity <= 1:
-			ok = r <= c.limits[h].Default
-		default:
-			ok = r <= intensity*c.limits[h].Default && r <= c.limits[h].Max
-		}
-		if !ok {
-			return false
-		}
-	}
-
 	// DENY if there is too much parallel replicas being repaired
-	if parallel := c.intensity.Parallel(); parallel != defaultParallel {
-		hash := replicaHash(hosts)
-		if _, ok := c.busyReplicas[hash]; !ok {
-			l := len(c.busyReplicas) + 1
-			if l > parallel || l > c.intensity.MaxParallel() {
-				return false
-			}
-		}
+	parallelReplicas := c.intensity.Parallel()
+	if parallelReplicas != defaultParallel && c.allJobs >= parallelReplicas {
+		return false
 	}
-
 	// DENY if all workers are busy
 	if c.allJobs == c.maxWorkerCount {
 		return false
@@ -124,9 +84,7 @@ func (c *rowLevelRepairController) block(hosts []string, ranges int) {
 	c.allJobs++
 	for _, h := range hosts {
 		c.jobs[h]++
-		c.busyRanges[h] += ranges
 	}
-	c.busyReplicas[replicaHash(hosts)]++
 }
 
 func (c *rowLevelRepairController) allowance(hosts []string, intensity int) allowance {
@@ -159,22 +117,11 @@ func (c *rowLevelRepairController) Unblock(a allowance) {
 	c.allJobs--
 	for _, h := range a.Replicas {
 		c.jobs[h]--
-		c.busyRanges[h] -= a.Ranges
-	}
-
-	hash := replicaHash(a.Replicas)
-	switch c.busyReplicas[hash] {
-	case 0:
-		panic("Missing entry for hash" + strconv.FormatUint(hash, 10))
-	case 1:
-		delete(c.busyReplicas, hash)
-	default:
-		c.busyReplicas[hash]--
 	}
 }
 
 func (c *rowLevelRepairController) Busy() bool {
-	return len(c.busyReplicas) > 0
+	return c.allJobs > 0
 }
 
 func (c *rowLevelRepairController) MaxWorkerCount() int {
