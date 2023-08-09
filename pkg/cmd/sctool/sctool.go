@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backupdelete"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backuplist"
+	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backuppurge"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backupvalidate"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusteradd"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusterdelete"
@@ -56,6 +57,7 @@ func buildCommand() *cobra.Command {
 
 	backupCmd := backup.NewCommand(&client)
 	backupCmd.AddCommand(
+		backuppurge.NewCommand(&client),
 		backupdelete.NewCommand(&client),
 		backupfiles.NewCommand(&client),
 		backuplist.NewCommand(&client),

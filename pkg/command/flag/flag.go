@@ -115,6 +115,10 @@ func (w Wrapper) Location(p *[]string) {
 	w.fs.StringSliceVarP(p, "location", "L", nil, usage["location"])
 }
 
+func (w Wrapper) DryRun(p *bool) {
+	w.fs.BoolVarP(p, "dry-run", "d", false, usage["dry-run"])
+}
+
 //
 // Task schedule flags
 //

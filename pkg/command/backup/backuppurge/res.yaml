@@ -1,0 +1,15 @@
+use: purge --cluster <id|name> [--location [<dc>:]<provider>:<bucket>] [--dry-run] [flags]
+
+short: Purge backup files in remote locations
+
+long: |
+  Purge stale backup data and meta files in remote locations for provided cluster.
+  That is data and files of:
+  - temporary manifests,
+  - manifests over task days retention days policy,
+  - manifests over task retention policy,
+  - manifests of deleted tasks.
+  It`s return information from manifests of deleted files.
+
+location: |
+  If no location provided - locations gets from all tasks

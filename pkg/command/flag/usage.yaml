@@ -19,6 +19,9 @@ dc: |
 fail-fast: |
   Stops the task run on the first error.
 
+dry-run: |
+  In dry-run mode no any changes will be done, result be returned like with changes.
+
 keyspace: |
   A list of `glob` patterns separated by a comma used to include or exclude tables.
   The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. ``keyspace,!keyspace.table_prefix_*``.
