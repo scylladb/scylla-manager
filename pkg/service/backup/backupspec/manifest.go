@@ -5,6 +5,7 @@ package backupspec
 import (
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -13,10 +14,12 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
+	"go.uber.org/multierr"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pathparser"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/multierr"
 )
 
 // ManifestInfo represents manifest on remote location.
@@ -28,6 +31,40 @@ type ManifestInfo struct {
 	TaskID      uuid.UUID
 	SnapshotTag string
 	Temporary   bool
+}
+
+// Manifests is a slice of ManifestInfo.
+type Manifests []*ManifestInfo
+
+// Len returns slice len.
+func (l Manifests) Len() int {
+	return len(l)
+}
+
+// GetSnapshots returns slice of unique and not empty SnapshotTag.
+func (l Manifests) GetSnapshots() []string {
+	out := strset.New()
+	for _, m := range l {
+		out.Add(m.SnapshotTag)
+	}
+	out.Remove("")
+	return out.List()
+}
+
+// GroupByClusterNodeDC returns slice of Manifests grouped by ClusterID, NodeID, DC.
+func (l Manifests) GroupByClusterNodeDC() []Manifests {
+	tmp := make(map[string]Manifests)
+	for _, manifest := range l {
+		group := fmt.Sprint(manifest.ClusterID.String(), manifest.NodeID, manifest.DC)
+		tmp[group] = append(tmp[group], manifest)
+	}
+	out := make([]Manifests, len(tmp))
+	idx := 0
+	for _, manifests := range tmp {
+		out[idx] = manifests
+		idx++
+	}
+	return out
 }
 
 // Path returns path to the file that manifest points to.
