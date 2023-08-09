@@ -65,6 +65,7 @@ type BackupService interface {
 	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, snapshotTags []string) error
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)
+	PurgeBackups(ctx context.Context, clusterID uuid.UUID, locations backupspec.Locations, retentionMap backup.RetentionMap, dryRun bool) (backupspec.Manifests, []string, error)
 }
 
 // SchedService service interface for the REST API handlers.

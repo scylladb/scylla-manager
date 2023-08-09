@@ -5,14 +5,17 @@ package restapi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type backupHandler struct {
@@ -27,13 +30,14 @@ func newBackupHandler(services Services) *chi.Mux {
 		schedSvc: services.Scheduler,
 	}
 
-	m.Use(
+	rt := m.With(
 		h.locationsCtx,
 		h.listFilterCtx,
 	)
-	m.Get("/", h.list)
-	m.Delete("/", h.deleteSnapshot)
-	m.Get("/files", h.listFiles)
+	rt.Get("/", h.list)
+	rt.Delete("/", h.deleteSnapshot)
+	rt.Get("/files", h.listFiles)
+	m.With(h.orphanedLocationsCtx).Delete("/purge", h.purge)
 
 	return m
 }
@@ -41,7 +45,7 @@ func newBackupHandler(services Services) *chi.Mux {
 func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			locations []backupspec.Location
+			locations backupspec.Locations
 			err       error
 		)
 
@@ -92,8 +96,66 @@ func (h backupHandler) extractLocations(r *http.Request) ([]backupspec.Location,
 	return h.svc.ExtractLocations(r.Context(), properties), nil
 }
 
+func (h backupHandler) orphanedLocationsCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var locations backupspec.Locations
+
+		// Read locations from the request
+		if v := r.FormValue("locations"); v != "" {
+			for _, v := range r.Form["locations"] {
+				var l backupspec.Location
+				if err := l.UnmarshalText([]byte(v)); err != nil {
+					respondBadRequest(w, r, err)
+					return
+				}
+				locations = append(locations, l)
+			}
+		}
+
+		// Fallback read locations from scheduler
+		if len(locations) == 0 {
+			tasksProperties, err := h.getTasksProperties(r.Context(), mustClusterIDFromCtx(r), true, true)
+			if err != nil {
+				respondError(w, r, err)
+				return
+			}
+			locations = tasksProperties.GetLocations()
+		}
+
+		// Report error if no locations can be found
+		if len(locations) == 0 {
+			respondBadRequest(w, r, errors.New("missing locations"))
+			return
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, ctxBackupLocations, locations)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (h backupHandler) getTasksProperties(ctx context.Context, clusterID uuid.UUID, deleted, disabled bool) (backup.TaskPropertiesByUUID, error) {
+	filter := scheduler.ListFilter{
+		TaskType: []scheduler.TaskType{scheduler.BackupTask},
+		Deleted:  deleted,
+		Disabled: disabled,
+	}
+	tasksItems, err := h.schedSvc.ListTasks(ctx, clusterID, filter)
+	if err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	tasksProperties, err := backup.GetTasksProperties(tasksItems)
+	if err != nil {
+		return nil, err
+	}
+	return tasksProperties, nil
+}
+
 func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backupspec.Location {
-	v, ok := r.Context().Value(ctxBackupLocations).([]backupspec.Location)
+	v, ok := r.Context().Value(ctxBackupLocations).(backupspec.Locations)
 	if !ok {
 		panic("missing locations in context")
 	}
@@ -193,4 +255,48 @@ func (h backupHandler) deleteSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h backupHandler) purge(w http.ResponseWriter, r *http.Request) {
+	tasksProp, err := h.getTasksProperties(r.Context(), mustClusterIDFromCtx(r), false, false)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	dryRun := false
+	if v := r.FormValue("dry_run"); v == "true" {
+		dryRun = true
+	}
+
+	deleted, warnings, err := h.svc.PurgeBackups(
+		r.Context(),
+		mustClusterIDFromCtx(r),
+		h.mustLocationsFromCtx(r),
+		tasksProp.GetRetentionMap(),
+		dryRun,
+	)
+	if err != nil {
+		fmt.Println("")
+		respondError(w, r, errors.Wrap(err, "manual purge snapshots"))
+		return
+	}
+	render.Respond(w, r, BackupPurgeOut{Deleted: ConvertManifestsToListItems(deleted), Warnings: warnings})
+}
+
+// ConvertManifestsToListItems converts Manifests to ListItems.
+func ConvertManifestsToListItems(deleted backupspec.Manifests) backup.ListItems {
+	out := &backup.ListItems{}
+	for _, manifest := range deleted {
+		item := out.GetOrAppend(manifest.ClusterID, manifest.TaskID)
+		sInfo := item.SnapshotInfo.GetOrAppend(manifest.SnapshotTag)
+		sInfo.Nodes++
+	}
+	return *out
+}
+
+// BackupPurgeOut represent response information backup purge.
+type BackupPurgeOut struct {
+	Deleted  backup.ListItems `json:"deleted"`
+	Warnings []string         `json:"warnings"`
 }

@@ -29,7 +29,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 		return errors.Wrap(err, "list manifests")
 	}
 	// Get a list of stale tags
-	tags, oldest, err := staleTags(manifests, retentionMap)
+	tags, oldest, err := staleTags(manifests, retentionMap, false)
 	if err != nil {
 		return errors.Wrap(err, "get stale snapshot tags")
 	}
@@ -81,7 +81,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			}
 			p.logger = logger
 
-			if _, err := p.PurgeSnapshotTags(ctx, manifests, tags, oldest); err != nil {
+			if _, _, err := p.PurgeSnapshotTags(ctx, manifests, tags, oldest, false); err != nil {
 				return err
 			}
 

@@ -4,6 +4,7 @@ package backup
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"path"
 	"sort"
@@ -24,14 +25,16 @@ import (
 // - temporary manifests,
 // - manifests over task days retention days policy,
 // - manifests over task retention policy,
-// - manifests older than threshold if retention policy is unknown.
+// - if cleanup - false - manifests older than threshold if retention policy is unknown.
+// - if cleanup - true - manifests with unknown retention policy.
 // Moreover, it returns the oldest snapshot tag time that remains undeleted by retention policy.
-func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) (*strset.Set, time.Time, error) {
+func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap, cleanup bool) (*strset.Set, time.Time, error) {
 	tags := strset.New()
 	var oldest time.Time
 
 	for taskID, taskManifests := range groupManifestsByTask(manifests) {
-		taskPolicy := GetRetention(taskID, retentionMap)
+		taskPolicy := retentionMap.GetPolicy(taskID)
+
 		taskTags := strset.New()
 		for _, m := range taskManifests {
 			t, err := SnapshotTagTime(m.SnapshotTag)
@@ -40,6 +43,8 @@ func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) (*strset.Se
 			}
 
 			switch {
+			case cleanup && !retentionMap.PolicyExists(taskID):
+				tags.Add(m.SnapshotTag)
 			case m.Temporary:
 				tags.Add(m.SnapshotTag)
 			// Tasks can have a Retention policy and a RetentionDays policy so fall through if tag is not too old
@@ -96,17 +101,19 @@ func newPurger(client *scyllaclient.Client, host string, logger log.Logger) purg
 
 // PurgeSnapshotTags removes files that are no longer needed as given snapshot tags are purged.
 // Oldest represents the time of the oldest backup that we intend to keep - it is used to purge versioned files.
-func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set, oldest time.Time) (int, error) {
+// If dryRun true - no any changes be, results be like usual run.
+func (p purger) PurgeSnapshotTags(ctx context.Context, manifests Manifests, tags *strset.Set, oldest time.Time, dryRun bool) (Manifests, []string, error) {
 	if len(manifests) == 0 {
-		return 0, nil
+		return nil, nil, nil
 	}
 
 	var (
 		// Used to obtain values which are common for all manifests in this function call
 		// (e.g. location, clusterID, nodeID, ...)
-		anyM  = manifests[0]
-		files = make(fileSet)
-		stale = 0
+		anyM             = manifests[0]
+		files            = make(fileSet)
+		stale            = 0
+		deletedManifests = make(Manifests, 0, len(manifests))
 	)
 
 	for _, m := range manifests {
@@ -118,17 +125,17 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 				"temporary", m.Temporary,
 			)
 			if err := p.forEachDirInManifest(ctx, m, files.AddFiles); err != nil {
-				return 0, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
+				return nil, nil, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
 			}
 		}
 	}
 	if stale == 0 {
-		return 0, nil
+		return nil, nil, nil
 	}
 	for _, m := range manifests {
 		if !tags.Has(m.SnapshotTag) {
 			if err := p.forEachDirInManifest(ctx, m, files.RemoveFiles); err != nil {
-				return 0, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
+				return nil, nil, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
 			}
 		}
 	}
@@ -153,37 +160,48 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 			if ok {
 				fileDir := path.Join(nodeDir, path.Dir(item.Path))
 				files.AddFiles(fileDir, []string{item.Name})
-
 				p.logger.Info(ctx, "Found versioned SSTable to be removed",
 					"dir", fileDir,
 					"file", item.Name,
 				)
 			}
 		}
+
 		if err := p.client.RcloneListDirIter(ctx, p.host, anyM.Location.RemotePath(nodeDir), opts, cb); err != nil {
-			return 0, errors.Wrapf(err, "find versioned SSTables")
+			return nil, nil, errors.Wrapf(err, "find versioned SSTables")
 		}
 	}
 
-	if _, err := p.deleteFiles(ctx, anyM.Location, files); err != nil {
-		return 0, errors.Wrapf(err, "delete SSTables")
+	if dryRun {
+		for _, m := range manifests {
+			if tags.Has(m.SnapshotTag) {
+				deletedManifests = append(deletedManifests, m)
+			}
+		}
+		return deletedManifests, nil, nil
 	}
 
-	deletedManifests := 0
+	if _, err := p.deleteFiles(ctx, anyM.Location, files); err != nil {
+		p.logger.Error(ctx, "Failed to delete SSTables", "location", anyM.Location, "error", err)
+		return nil, nil, errors.Wrapf(err, "delete SSTables")
+	}
+	var warnings []string
 	for _, m := range manifests {
 		if tags.Has(m.SnapshotTag) {
 			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
 				p.logger.Info(ctx, "Failed to remove schema file", "path", m.SchemaPath(), "error", err)
+				warnings = append(warnings, fmt.Sprintf("failed to remove schema file ,path:%s, error:%s", m.SchemaPath(), err.Error()))
 			}
 			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
 				p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
+				warnings = append(warnings, fmt.Sprintf("failed to remove manifest , path:%s, error:%s", m.Path(), err.Error()))
 			} else {
-				deletedManifests++
+				deletedManifests = append(deletedManifests, m)
 			}
 		}
 	}
 
-	return deletedManifests, nil
+	return deletedManifests, warnings, nil
 }
 
 // ValidationResult is a summary generated by Validate.

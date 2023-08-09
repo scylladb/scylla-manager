@@ -4,6 +4,7 @@ package backup
 
 import (
 	"encoding/json"
+	stdErrors "errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -28,12 +30,29 @@ type SnapshotInfo struct {
 	Size        int64  `json:"size"`
 }
 
+// SnapshotInfoList slice of SnapshotInfo.
+type SnapshotInfoList []SnapshotInfo
+
+// GetOrAppend returns pointer to the item that has provided snapshotTag, if it is not present adds it to the list.
+func (l *SnapshotInfoList) GetOrAppend(snapshotTag string) *SnapshotInfo {
+	for id := range *l {
+		item := &(*l)[id]
+		if item.SnapshotTag == snapshotTag {
+			return item
+		}
+	}
+	*l = append(*l, SnapshotInfo{
+		SnapshotTag: snapshotTag,
+	})
+	return &(*l)[len(*l)-1]
+}
+
 // ListItem represents contents of a snapshot within list boundaries.
 type ListItem struct {
-	ClusterID    uuid.UUID      `json:"cluster_id"`
-	TaskID       uuid.UUID      `json:"task_id"`
-	Units        []Unit         `json:"units"`
-	SnapshotInfo []SnapshotInfo `json:"snapshot_info"`
+	ClusterID    uuid.UUID        `json:"cluster_id"`
+	TaskID       uuid.UUID        `json:"task_id"`
+	Units        []Unit           `json:"units"`
+	SnapshotInfo SnapshotInfoList `json:"snapshot_info"`
 
 	unitCache map[string]*strset.Set `json:"-"`
 }
@@ -41,14 +60,21 @@ type ListItem struct {
 // ListItems is a slice of ListItem.
 type ListItems []*ListItem
 
-// GetIdx return index of item with specified clusterID and taskID, if missing - return '-1'.
-func (l ListItems) GetIdx(clusterID, taskID uuid.UUID) int {
-	for idx := range l {
-		if l[idx].ClusterID == clusterID && l[idx].TaskID == taskID {
-			return idx
+// GetOrAppend returns item that has provided clusterID and taskID, if it is not present adds it.
+func (l *ListItems) GetOrAppend(clusterID, taskID uuid.UUID) *ListItem {
+	for _, item := range *l {
+		if item.ClusterID == clusterID && item.TaskID == taskID {
+			return item
 		}
 	}
-	return -1
+	item := &ListItem{
+		ClusterID:    clusterID,
+		TaskID:       taskID,
+		Units:        nil,
+		SnapshotInfo: []SnapshotInfo{},
+	}
+	*l = append(*l, item)
+	return item
 }
 
 // Target specifies what should be backed up and where.
@@ -249,8 +275,8 @@ func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
 	}
 }
 
-// taskProperties is the main data structure of the runner.Properties blob.
-type taskProperties struct {
+// TaskProperties is the main data structure of the runner.Properties blob.
+type TaskProperties struct {
 	Keyspace         []string     `json:"keyspace"`
 	DC               []string     `json:"dc"`
 	Location         []Location   `json:"location"`
@@ -264,7 +290,7 @@ type taskProperties struct {
 	PurgeOnly        bool         `json:"purge_only"`
 }
 
-func (p taskProperties) extractRetention() RetentionPolicy {
+func (p TaskProperties) extractRetention() RetentionPolicy {
 	if p.Retention == nil && p.RetentionDays == nil {
 		return defaultRetention()
 	}
@@ -279,8 +305,8 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 	return r
 }
 
-func defaultTaskProperties() taskProperties {
-	return taskProperties{
+func defaultTaskProperties() TaskProperties {
+	return TaskProperties{
 		Continue: true,
 	}
 }
@@ -293,7 +319,7 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 	)
 
 	for i := range properties {
-		var p taskProperties
+		var p TaskProperties
 		if err := json.Unmarshal(properties[i], &p); err != nil {
 			errs = multierr.Append(errs, errors.Wrapf(err, "parse %q", string(properties[i])))
 			continue
@@ -308,6 +334,46 @@ func extractLocations(properties []json.RawMessage) ([]Location, error) {
 	}
 
 	return locations, errs
+}
+
+// GetTasksProperties extract TaskProperties from specified Tasks array.
+func GetTasksProperties(tasks []*scheduler.TaskListItem) (TaskPropertiesByUUID, error) {
+	var errs []error
+	propertiesByTaskIds := make(TaskPropertiesByUUID)
+	for _, task := range tasks {
+		var properties TaskProperties
+		if err := json.Unmarshal(task.Properties, &properties); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		propertiesByTaskIds[task.ID] = &properties
+	}
+	return propertiesByTaskIds, stdErrors.Join(errs...)
+}
+
+// TaskPropertiesByUUID represent map with uuid as key and reference on TaskProperties as value.
+type TaskPropertiesByUUID map[uuid.UUID]*TaskProperties
+
+// GetLocations return all tasks locations exclude duplicates.
+func (p TaskPropertiesByUUID) GetLocations() Locations {
+	locations := make(Locations, 0)
+	for _, taskProp := range p {
+		for _, loc := range taskProp.Location {
+			if !locations.Contains(loc.Provider, loc.Path) {
+				locations = append(locations, loc)
+			}
+		}
+	}
+	return locations
+}
+
+// GetRetentionMap return combined RetentionMap for all tasks.
+func (p TaskPropertiesByUUID) GetRetentionMap() RetentionMap {
+	retentionMap := make(RetentionMap)
+	for taskID, taskProp := range p {
+		retentionMap[taskID] = taskProp.RetentionMap[taskID]
+	}
+	return retentionMap
 }
 
 // RetentionPolicy defines the retention policy for a backup task.
@@ -369,7 +435,7 @@ func (r RetentionMap) PolicyExists(taskID uuid.UUID) bool {
 
 // ExtractRetention parses properties as task properties and returns "retention".
 func ExtractRetention(properties json.RawMessage) (RetentionPolicy, error) {
-	var p taskProperties
+	var p TaskProperties
 	if err := json.Unmarshal(properties, &p); err != nil {
 		return RetentionPolicy{}, err
 	}

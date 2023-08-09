@@ -93,3 +93,28 @@ func Run(n, limit int, f func(i int) error, notify func(i int, err error)) error
 	}
 	return retErr
 }
+
+type (
+	// RunMapElem called on each elem of array in RunMap.
+	RunMapElem[key comparable, val any] func(key key, val val) error
+	// OnErrorMapFunc called on each error of RunMapElem  in RunMap.
+	OnErrorMapFunc[key comparable, val any] func(key key, val val, err error)
+)
+
+// RunMap executes function RunMapElem on each elem in map (list) in parallel, limit - count running goroutine at one time.
+// OnErrorMapFunc is called when RunMapElem function encounters error.
+func RunMap[key comparable, val any](list map[key]val, elemFunc RunMapElem[key, val], onErrorFunc OnErrorMapFunc[key, val], limit int) error {
+	keys := make([]key, len(list))
+	idx := 0
+	for lKey := range list {
+		keys[idx] = lKey
+		idx++
+	}
+	elemF := func(i int) error {
+		return elemFunc(keys[i], list[keys[i]])
+	}
+	onErrorF := func(i int, err error) {
+		onErrorFunc(keys[i], list[keys[i]], err)
+	}
+	return Run(len(list), limit, elemF, onErrorF)
+}

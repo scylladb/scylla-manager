@@ -180,12 +180,21 @@ func filterManifests(manifests []*ManifestInfo, filter ListFilter) []*ManifestIn
 	return out
 }
 
-func groupManifestsByNode(manifests []*ManifestInfo) map[string][]*ManifestInfo {
-	v := map[string][]*ManifestInfo{}
+func groupManifestsByNode(manifests []*ManifestInfo) map[string]Manifests {
+	v := map[string]Manifests{}
 	for _, m := range manifests {
 		v[m.NodeID] = append(v[m.NodeID], m)
 	}
 	return v
+}
+
+func groupManifestsByHostIP(manifests []*ManifestInfo, locationHostIP map[Location]string) map[string]Manifests {
+	out := map[string]Manifests{}
+	for _, m := range manifests {
+		hostIP := locationHostIP[m.Location]
+		out[hostIP] = append(out[hostIP], m)
+	}
+	return out
 }
 
 func groupManifestsByTask(manifests []*ManifestInfo) map[uuid.UUID][]*ManifestInfo {

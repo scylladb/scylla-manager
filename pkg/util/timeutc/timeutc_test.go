@@ -4,11 +4,10 @@ package timeutc
 
 import (
 	"testing"
-	"time"
 )
 
 func TestTodayMidnight(t *testing.T) {
-	l := TodayMidnight().In(time.Local)
+	l := TodayMidnight().Local()
 	if l.Hour() != 0 {
 		t.Error("invalid hour", l)
 	}

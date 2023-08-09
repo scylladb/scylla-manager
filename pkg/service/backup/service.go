@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/atomic"
+
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
@@ -31,7 +33,12 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/atomic"
+)
+
+var (
+	errNoLocation       = errors.New("no locations")
+	errNoStaleSnapshots = errors.New("no stale snapshots")
+	errorIPsNotResolved = service.ErrValidate(errors.New("can`t resolve host ip"))
 )
 
 const defaultRateLimit = 100 // 100MiB
@@ -103,15 +110,6 @@ func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Co
 		}
 		return jsonutil.Set(properties, "retention_map", retentionMap), nil
 	}
-}
-
-// GetRetention returns the retention policy for a given task ID.
-// In case task ID cannot be found in the RetentionMap, default retention for deleted task is returned.
-func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) RetentionPolicy {
-	if r, ok := retentionMap[taskID]; ok {
-		return r
-	}
-	return defaultRetentionForDeletedTask()
 }
 
 // GetTarget converts runner properties into backup Target.
@@ -475,24 +473,9 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 			ptr = &items[len(items)-1]
 		}
 
-		// Find snapshot info or create a new one
-		var siptr *SnapshotInfo
-		for i, r := range ptr.SnapshotInfo {
-			if r.SnapshotTag == mc.SnapshotTag {
-				siptr = &ptr.SnapshotInfo[i]
-				break
-			}
-		}
-		if siptr == nil {
-			ptr.SnapshotInfo = append(ptr.SnapshotInfo, SnapshotInfo{
-				SnapshotTag: mc.SnapshotTag,
-				Nodes:       1,
-				Size:        size,
-			})
-		} else {
-			siptr.Nodes++
-			siptr.Size += size
-		}
+		sInfo := ptr.SnapshotInfo.GetOrAppend(mc.SnapshotTag)
+		sInfo.Nodes++
+		sInfo.Size += size
 
 		// Add unit information from index
 		return mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
@@ -582,16 +565,13 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	}
 
 	// Resolve hosts for locations
-	hosts := make([]hostInfo, len(locations))
-	for i := range locations {
-		hosts[i].Location = locations[i]
-	}
-	if err := s.resolveHosts(ctx, client, hosts); err != nil {
+	hosts, err := s.resolveHosts(ctx, client, locations)
+	if err != nil {
 		return errors.Wrap(err, "resolve hosts")
 	}
 	locationHost := map[Location]string{}
-	for _, h := range hosts {
-		locationHost[h.Location] = h.IP
+	for _, host := range hosts {
+		locationHost[host.Location] = host.IP
 	}
 
 	manifests, err := listManifestsInAllLocations(ctx, client, hosts, filter.ClusterID)
@@ -627,27 +607,24 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	return nil
 }
 
-func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo) error {
+func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client, locations Locations) ([]hostInfo, error) {
 	s.logger.Debug(ctx, "Resolving hosts for locations")
-
+	hosts := make([]hostInfo, len(locations))
+	for i := range locations {
+		hosts[i].Location = locations[i]
+	}
 	var (
 		dcMap map[string][]string
 		err   error
 	)
 
 	// Check if we need to load DC map
-	hasDC := false
-	for i := range hosts {
-		if hosts[i].Location.DC != "" {
-			hasDC = true
-			break
-		}
-	}
+	hasDC := locations.HaveLocationWithDC()
 	// Load DC map if needed
 	if hasDC {
 		dcMap, err = client.Datacenters(ctx)
 		if err != nil {
-			return errors.Wrap(err, "read datacenters")
+			return nil, errors.Wrap(err, "read datacenters")
 		}
 	}
 
@@ -663,7 +640,7 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 		}
 
 		if len(checklist) == 0 {
-			return errors.Errorf("no matching hosts found for location %s", l)
+			return errors.Wrapf(errorIPsNotResolved, " for location %s", l)
 		}
 
 		for _, h := range checklist {
@@ -678,7 +655,7 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 			}
 		}
 
-		return errors.Errorf("no matching hosts found for location %s", l)
+		return errors.Wrapf(errorIPsNotResolved, " for location %s", l)
 	}
 
 	notify := func(i int, err error) {
@@ -690,7 +667,7 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 		)
 	}
 
-	return parallel.Run(len(hosts), parallel.NoLimit, f, notify)
+	return hosts, parallel.Run(len(hosts), parallel.NoLimit, f, notify)
 }
 
 // Backup executes a backup on a given target.
@@ -1126,11 +1103,8 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	// Resolve hosts for locations
-	hosts := make([]hostInfo, len(locations))
-	for i := range locations {
-		hosts[i].Location = locations[i]
-	}
-	if err := s.resolveHosts(ctx, client, hosts); err != nil {
+	hosts, err := s.resolveHosts(ctx, client, locations)
+	if err != nil {
 		return errors.Wrap(err, "resolve hosts")
 	}
 
@@ -1161,9 +1135,8 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 			}
 		}
 
-		n, err := p.PurgeSnapshotTags(ctx, manifests, tagS, oldest)
-		deletedManifests.Add(int32(n))
-
+		deleted, _, err := p.PurgeSnapshotTags(ctx, manifests, tagS, oldest, false)
+		deletedManifests.Add(int32(deleted.Len()))
 		if err == nil {
 			s.logger.Info(ctx, "Done purging snapshot data on host", "host", h.IP)
 		}
@@ -1177,7 +1150,8 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 		)
 	}
 
-	if err := hostsInParallel(hosts, parallel.NoLimit, f, notify); err != nil {
+	err = hostsInParallel(hosts, parallel.NoLimit, f, notify)
+	if err != nil {
 		return err
 	}
 
@@ -1186,4 +1160,161 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
+}
+
+// PurgeBackups purge stale backup data and meta files for clusterID in the Locations.
+// That is data and files of:
+//
+//	*temporary manifests,
+//	*manifests over task days retention days policy,
+//	*manifests over task retention policy,
+//	*manifests of with unknown retention policy.
+//
+// It returns deleted Manifests. if dryRun is true nothing is deleted.
+func (s *Service) PurgeBackups(
+	ctx context.Context,
+	clusterID uuid.UUID,
+	locations Locations,
+	retentionMap RetentionMap,
+	dryRun bool,
+) (deleted Manifests,
+	warnings []string,
+	err error,
+) {
+	logger := s.logger.Named("PurgeBackups")
+	if dryRun {
+		logger = log.NopLogger
+	}
+
+	logger.Debug(ctx, "Start", "cluster", clusterID, "locations", locations, "retentionMap", retentionMap, "dryRun", dryRun)
+	start := timeutc.Now()
+	defer func() {
+		if err != nil {
+			logger.Error(ctx, "Got an error", "error", err, "duration", timeutc.Since(start))
+		}
+		logger.Debug(ctx, "Done", "deleted manifests", deleted, "duration", timeutc.Since(start))
+	}()
+
+	if locations.Len() == 0 {
+		return nil, []string{errNoLocation.Error()}, nil
+	}
+	locations = locations.Unique()
+
+	deleted = make(Manifests, 0)
+
+	// Get the cluster client
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "get scylla client")
+	}
+
+	// Resolve hosts for locations
+	hosts, err := s.resolveHosts(ctx, client, locations)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "resolve hosts")
+	}
+
+	locationHostIP := map[Location]string{}
+	for idx := range hosts {
+		locationHostIP[hosts[idx].Location] = hosts[idx].IP
+	}
+
+	hostIPLocations := map[string]Locations{}
+	for idx := range hosts {
+		hostIPLocations[hosts[idx].IP] = append(hostIPLocations[hosts[idx].IP], hosts[idx].Location)
+	}
+
+	// List manifests in all locations
+	manifests, err := listManifestsInAllLocations(ctx, client, hosts, clusterID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "list manifests")
+	}
+
+	// Get a list of stale tags
+	tags, oldest, err := staleTags(manifests, retentionMap, true)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "get stale snapshot tags")
+	}
+
+	if tags.IsEmpty() {
+		return nil, []string{errNoStaleSnapshots.Error()}, nil
+	}
+
+	snapshots := tags.Copy()
+	hostIPManifests := groupManifestsByHostIP(manifests, locationHostIP)
+	var mut sync.Mutex
+
+	runFunc := func(hostIP string, m Manifests) error {
+		if m.Len() == 0 {
+			return nil
+		}
+
+		manifestsList := m.GroupByClusterNodeDC()
+		for idx := range manifestsList {
+			manifests = manifestsList[idx]
+			logg := logger.With(
+				"host", hostIP,
+				"node", manifests[0].NodeID,
+			)
+
+			p := newPurger(client, hostIP, logg)
+			p.OnDelete = func(total, success int) {
+				if dryRun {
+					return
+				}
+				s.metrics.Backup.SetPurgeFiles(manifests[0].ClusterID, hostIP, total, success)
+			}
+
+			logg.Info(ctx, "Purging stale snapshots of node from host")
+
+			del, warn, err := p.PurgeSnapshotTags(ctx, manifests, tags, oldest, dryRun)
+			if err != nil {
+				mut.Lock()
+				warnings = append(warnings, err.Error())
+				mut.Unlock()
+			}
+			if len(warn) != 0 {
+				mut.Lock()
+				warnings = append(warnings, warn...)
+				mut.Unlock()
+			}
+
+			if del.Len() != 0 {
+				mut.Lock()
+				deleted = append(deleted, del...)
+				mut.Unlock()
+			}
+
+			if dryRun {
+				continue
+			}
+			deletedSnapshots := del.GetSnapshots()
+			for dIdx := range deletedSnapshots {
+				snapshot := deletedSnapshots[dIdx]
+				if snapshots.Has(snapshot) {
+					if err = client.DeleteSnapshot(ctx, hostIP, snapshot); err != nil {
+						mut.Lock()
+						warnings = append(warnings, fmt.Sprintf("Failed to delete uploaded snapshot, host:%s, snapshot_tag:%s, error:%s", hostIP, snapshot, err.Error()))
+						mut.Unlock()
+						logg.Error(ctx, "Failed to delete uploaded snapshot",
+							"host", hostIP,
+							"snapshot_tag", snapshot,
+							"error", err,
+						)
+					} else {
+						logg.Info(ctx, "Deleted uploaded snapshot",
+							"host", hostIP,
+							"snapshot_tag", snapshot,
+						)
+					}
+					mut.Lock()
+					snapshots.Remove(snapshot)
+					mut.Unlock()
+				}
+			}
+			logg.Info(ctx, "Done purging stale snapshots of node from host")
+		}
+		return nil
+	}
+	return deleted, warnings, parallel.RunMap[string, Manifests](hostIPManifests, runFunc, nil, 10)
 }

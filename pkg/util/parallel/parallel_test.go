@@ -4,6 +4,9 @@ package parallel
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -118,5 +121,40 @@ func TestEmpty(t *testing.T) {
 
 	if err := Run(0, NoLimit, nil, NopNotify); err != nil {
 		t.Fatal("Run() error", err)
+	}
+}
+
+func TestRunMap(t *testing.T) {
+	t.Parallel()
+	testMap1 := map[string]string{"1": "1", "2": "2", "3": "3", "4": "4", "5": "5"}
+
+	testExp1 := map[string]string{"1": "11", "2": "22", "3": "33", "4": "44", "5": "55"}
+
+	result := map[string]string{}
+	mut := sync.Mutex{}
+	onEachElem := func(key, val string) error {
+		mut.Lock()
+		result[key] = key + val
+		mut.Unlock()
+		return nil
+	}
+
+	err := RunMap[string, string](testMap1, onEachElem, nil, 2)
+	if err != nil {
+		t.Fatalf("wrong work RunMap function, error:%s", err)
+	}
+	if !reflect.DeepEqual(testExp1, result) {
+		t.Fatal("wrong work RunMap function")
+	}
+	result = map[string]string{}
+	testMap2 := map[string]string{"1": "1"}
+	testExp2 := map[string]string{"1": "11"}
+
+	err = RunMap[string, string](testMap2, onEachElem, nil, 1)
+	if err != nil {
+		t.Fatalf("wrong work RunMap function, error:%s", err)
+	}
+	if !reflect.DeepEqual(testExp2, result) {
+		t.Fatal(fmt.Sprintf("wrong work RunMap function, \nexpected:%v\nrecieved:%v\n", testExp2, result))
 	}
 }
