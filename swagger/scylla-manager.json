@@ -485,6 +485,23 @@
         }
       }
     },
+    "BackupPurgeResp": {
+      "type": "object",
+      "properties": {
+        "Deleted": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BackupListItem"
+          }
+        },
+        "Warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "BackupListItem": {
       "type": "object",
       "properties": {
@@ -1997,6 +2014,45 @@
               "items": {
                 "$ref": "#/definitions/BackupFilesInfo"
               }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/backups/purge": {
+      "delete": {
+        "parameters": [
+          {
+            "name": "cluster_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "dry_run",
+            "in": "query",
+            "type": "boolean"
+          },
+          {
+            "name": "locations",
+            "in": "query",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backup purge response",
+            "schema": {
+              "$ref": "#/definitions/BackupPurgeResp"
             }
           },
           "default": {

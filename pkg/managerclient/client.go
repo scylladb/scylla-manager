@@ -570,6 +570,30 @@ func (c *Client) ListBackups(ctx context.Context, clusterID string,
 	return BackupListItems{items: resp.Payload}, nil
 }
 
+// PurgeBackups purge stale snapshots for clusterID and locations.
+//
+//   - locations, list of locations, if empty it is populated from existing,deleted and disabled tasks.
+//   - dryRun, if true nothing is deleted.
+func (c *Client) PurgeBackups(ctx context.Context, clusterID string, locations []string, dryRun bool) (BackupListItems, []string, error) {
+	p := &operations.DeleteClusterClusterIDBackupsPurgeParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		Locations: locations,
+		DryRun:    &dryRun,
+	}
+
+	resp, err := c.operations.DeleteClusterClusterIDBackupsPurge(p)
+	if err != nil {
+		return BackupListItems{}, nil, err
+	}
+	out := BackupListItems{
+		items:       resp.Payload.Deleted,
+		AllClusters: false,
+		ShowTables:  0,
+	}
+	return out, resp.Payload.Warnings, nil
+}
+
 // ListBackupFiles returns a listing of available backup files.
 func (c *Client) ListBackupFiles(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, snapshotTag string,
