@@ -591,10 +591,10 @@ func (s *Service) maxRepairRangesInParallel(shards uint, totalMemory int64) int 
 	return max
 }
 
-func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64, parallel, maxParallel int) (ih *intensityHandler, cleanup func()) {
+func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity, parallel, maxParallel int) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
 		logger:      s.logger.Named("control"),
-		intensity:   atomic.NewFloat64(intensity),
+		intensity:   atomic.NewInt64(int64(intensity)),
 		parallel:    atomic.NewInt64(int64(parallel)),
 		maxParallel: maxParallel,
 	}
@@ -774,16 +774,16 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	return p, nil
 }
 
-func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func() (float64, int) {
+func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func() (int, int) {
 	// When repair is running, intensity is dynamic.
 	// Otherwise always return 0, 0.
-	intensityFunc := func() (float64, int) {
+	intensityFunc := func() (int, int) {
 		return 0, 0
 	}
 
 	s.mu.Lock()
 	if ih, ok := s.intensityHandlers[clusterID]; ok {
-		intensityFunc = func() (float64, int) {
+		intensityFunc = func() (int, int) {
 			return ih.Intensity(), ih.Parallel()
 		}
 	}
@@ -793,7 +793,7 @@ func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func() (float64, int) {
 }
 
 // SetIntensity changes intensity of an ongoing repair.
-func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity float64) error {
+func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity int) error {
 	s.mu.Lock()
 	ih, ok := s.intensityHandlers[clusterID]
 	s.mu.Unlock()
@@ -828,7 +828,7 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 
 type intensityHandler struct {
 	logger      log.Logger
-	intensity   *atomic.Float64
+	intensity   *atomic.Int64
 	parallel    *atomic.Int64
 	maxParallel int
 }
@@ -838,18 +838,18 @@ const (
 	defaultParallel = 0
 )
 
-// Sets repair intensity value.
-func (i *intensityHandler) SetIntensity(ctx context.Context, intensity float64) error {
+// SetIntensity sets repair intensity value.
+func (i *intensityHandler) SetIntensity(ctx context.Context, intensity int) error {
 	if intensity < maxIntensity {
-		return service.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
+		return service.ErrValidate(errors.Errorf("setting invalid intensity value %d", intensity))
 	}
 	i.logger.Info(ctx, "Setting repair intensity", "value", intensity, "previous", i.intensity.Load())
-	i.intensity.Store(intensity)
+	i.intensity.Store(int64(intensity))
 
 	return nil
 }
 
-// Sets repair parallel value.
+// SetParallel sets repair parallel value.
 func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error {
 	if parallel < defaultParallel {
 		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
@@ -866,8 +866,8 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error 
 }
 
 // Intensity returns stored value for intensity.
-func (i *intensityHandler) Intensity() float64 {
-	return i.intensity.Load()
+func (i *intensityHandler) Intensity() int {
+	return int(i.intensity.Load())
 }
 
 // Parallel returns stored value for parallel.

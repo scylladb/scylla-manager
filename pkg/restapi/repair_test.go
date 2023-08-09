@@ -18,10 +18,10 @@ import (
 
 //go:generate mockgen -destination mock_repairservice_test.go -mock_names RepairService=MockRepairService -package restapi github.com/scylladb/scylla-manager/v3/pkg/restapi RepairService
 
-func updateIntensityRequest(clusterID uuid.UUID, intensity float64) *http.Request {
+func updateIntensityRequest(clusterID uuid.UUID, intensity int) *http.Request {
 	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v1/cluster/%s/repairs/intensity", clusterID.String()), nil)
 	r.Form = url.Values{}
-	r.Form.Add("intensity", fmt.Sprintf("%f", intensity))
+	r.Form.Add("intensity", fmt.Sprintf("%d", intensity))
 
 	return r
 }
@@ -51,7 +51,7 @@ func TestRepairSetIntensity(t *testing.T) {
 	var (
 		cluster = givenCluster()
 
-		intensity = float64(50)
+		intensity = 50
 		parallel  = 3
 	)
 

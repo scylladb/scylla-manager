@@ -83,7 +83,7 @@ func (mr *MockRepairServiceMockRecorder) GetTarget(arg0, arg1, arg2 interface{})
 }
 
 // SetIntensity mocks base method.
-func (m *MockRepairService) SetIntensity(arg0 context.Context, arg1 uuid.UUID, arg2 float64) error {
+func (m *MockRepairService) SetIntensity(arg0 context.Context, arg1 uuid.UUID, arg2 int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetIntensity", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)

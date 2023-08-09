@@ -91,6 +91,6 @@ func (v *testVisitor) ForEach(visit func(*RunProgress)) error {
 	return nil
 }
 
-func staticIntensity() (float64, int) {
+func staticIntensity() (int, int) {
 	return 666, 6
 }

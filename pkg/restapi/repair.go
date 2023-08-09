@@ -26,20 +26,20 @@ func newRepairHandler(services Services) *chi.Mux {
 	return m
 }
 
-func (h repairHandler) intensity(r *http.Request) (float64, error) {
+func (h repairHandler) intensity(r *http.Request) (int, error) {
 	var (
-		intensity float64
+		intensity int64
 		err       error
 	)
 
 	// Read intensity from the request
 	if v := r.FormValue("intensity"); v != "" {
-		if intensity, err = strconv.ParseFloat(v, 64); err != nil {
+		if intensity, err = strconv.ParseInt(v, 10, 0); err != nil {
 			return 0, service.ErrValidate(err)
 		}
 	}
 
-	return intensity, err
+	return int(intensity), err
 }
 
 func (h repairHandler) parallel(r *http.Request) (int64, error) {

@@ -208,10 +208,10 @@ func (s *generatorTestSuite) newGenerator(ctx context.Context, target Target, sm
 	return g, ih
 }
 
-func (s *generatorTestSuite) newController(intensity float64, parallel, maxParallel int) (controller, *intensityHandler) {
+func (s *generatorTestSuite) newController(intensity, parallel, maxParallel int) (controller, *intensityHandler) {
 	ih := &intensityHandler{
 		logger:      log.NewDevelopment(),
-		intensity:   atomic.NewFloat64(intensity),
+		intensity:   atomic.NewInt64(int64(intensity)),
 		parallel:    atomic.NewInt64(int64(parallel)),
 		maxParallel: maxParallel,
 	}
@@ -220,7 +220,7 @@ func (s *generatorTestSuite) newController(intensity float64, parallel, maxParal
 }
 
 func (s *generatorTestSuite) Basic(t *testing.T) {
-	for _, intensity := range []float64{0, 0.001, 0.25, 0.5, 1, 2, 4} {
+	for _, intensity := range []int{0, 1, 2, 4} {
 		for _, parallel := range []int{0, 1, 2, 3} {
 			name := fmt.Sprint("with intensity=", intensity, " parallel=", parallel)
 			t.Run(name, func(t *testing.T) {
@@ -272,7 +272,7 @@ func (s *generatorTestSuite) Intensity(t *testing.T) {
 
 	table := []struct {
 		Name      string
-		Intensity float64
+		Intensity int
 		Assert    func(j job)
 	}{
 		{

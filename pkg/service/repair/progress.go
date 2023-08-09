@@ -343,7 +343,7 @@ type perTableAggregate struct {
 	progress    TableProgress
 }
 
-func aggregateProgress(intensityFunc func() (float64, int), v ProgressVisitor) (Progress, error) {
+func aggregateProgress(intensityFunc func() (int, int), v ProgressVisitor) (Progress, error) {
 	var (
 		p        Progress
 		perHost  = make(map[string][]TableProgress)

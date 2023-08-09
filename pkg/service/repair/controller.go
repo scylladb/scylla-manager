@@ -66,7 +66,7 @@ func (c *rowLevelRepairController) TryBlock(hosts []string) (bool, allowance) {
 	return true, a
 }
 
-func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity float64) bool {
+func (c *rowLevelRepairController) shouldBlock(hosts []string, intensity int) bool {
 	// ALLOW if nothing is running
 	if !c.Busy() {
 		return true
@@ -129,18 +129,15 @@ func (c *rowLevelRepairController) block(hosts []string, ranges int) {
 	c.busyReplicas[replicaHash(hosts)]++
 }
 
-func (c *rowLevelRepairController) allowance(hosts []string, intensity float64) allowance {
+func (c *rowLevelRepairController) allowance(hosts []string, intensity int) allowance {
 	a := allowance{
 		Replicas: hosts,
 		Ranges:   c.rangesForIntensity(hosts, intensity),
 	}
-	if intensity < 1 {
-		a.ShardsPercent = intensity
-	}
 	return a
 }
 
-func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity float64) (ranges int) {
+func (c *rowLevelRepairController) rangesForIntensity(hosts []string, intensity int) (ranges int) {
 	switch {
 	case intensity == maxIntensity:
 		ranges = math.MaxInt32

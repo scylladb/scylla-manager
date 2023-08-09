@@ -45,7 +45,7 @@ type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (repair.Target, error)
-	SetIntensity(ctx context.Context, runID uuid.UUID, intensity float64) error
+	SetIntensity(ctx context.Context, runID uuid.UUID, intensity int) error
 	SetParallel(ctx context.Context, runID uuid.UUID, parallel int) error
 }
 

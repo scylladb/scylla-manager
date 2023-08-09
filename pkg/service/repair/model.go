@@ -22,7 +22,7 @@ type Target struct {
 	IgnoreHosts         []string `json:"ignore_hosts,omitempty"`
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
-	Intensity           float64  `json:"intensity"`
+	Intensity           int      `json:"intensity"`
 	Parallel            int      `json:"parallel"`
 	SmallTableThreshold int64    `json:"small_table_threshold"`
 }
@@ -35,7 +35,7 @@ type taskProperties struct {
 	IgnoreDownHosts     bool     `json:"ignore_down_hosts"`
 	FailFast            bool     `json:"fail_fast"`
 	Continue            bool     `json:"continue"`
-	Intensity           float64  `json:"intensity"`
+	Intensity           int      `json:"intensity"`
 	Parallel            int      `json:"parallel"`
 	SmallTableThreshold int64    `json:"small_table_threshold"`
 }
@@ -191,6 +191,6 @@ type Progress struct {
 	Host      string          `json:"host"`
 	Hosts     []HostProgress  `json:"hosts"`
 	Tables    []TableProgress `json:"tables"`
-	Intensity float64         `json:"intensity"`
+	Intensity int             `json:"intensity"`
 	Parallel  int             `json:"parallel"`
 }

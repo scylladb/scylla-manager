@@ -10,7 +10,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
 var errTableDeleted = errors.New("table deleted during repair")
@@ -135,58 +134,6 @@ func (w *worker) rowLevelRepair(ctx context.Context, job job) error {
 		w.logger.Error(ctx, "Run row-level repair", "error", err)
 	}
 	return err
-}
-
-func (w *worker) legacyRepair(ctx context.Context, job job) error {
-	p := w.hostPartitioner[job.Host]
-
-	// In a very rare case when there is a strange partitioner
-	// do not split to shards.
-	if p == nil {
-		err := w.runRepair(ctx, job)
-		if err != nil {
-			w.logger.Error(ctx, "Run legacy repair, no sharding due to unsupported partitioner", "error", err)
-		}
-		return err
-	}
-
-	// Calculate max parallel shard repairs
-	limit := int(p.ShardCount())
-	if job.Allowance.ShardsPercent != 0 {
-		l := float64(limit) * job.Allowance.ShardsPercent
-		if l < 1 {
-			l = 1
-		}
-		limit = int(l)
-
-		w.logger.Debug(ctx, "Limiting parallel shard repairs", "total", p.ShardCount(), "limit", limit)
-	}
-
-	// Split ranges to shards
-	shardRanges, err := splitToShardsAndValidate(job.Ranges, p)
-	if err != nil {
-		return errors.Wrap(err, "split to shards")
-	}
-
-	f := func(i int) error {
-		if ctx.Err() != nil {
-			return nil
-		}
-
-		if len(shardRanges[i]) == 0 {
-			return nil
-		}
-
-		shardJob := job
-		shardJob.Ranges = shardRanges[i]
-		return w.runRepair(log.WithFields(ctx, "subranges_of_shard", i), shardJob)
-	}
-
-	notify := func(i int, err error) {
-		w.logger.Error(ctx, "Run legacy repair", "error", err)
-	}
-
-	return parallel.Run(len(shardRanges), limit, f, notify)
 }
 
 func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {

@@ -28,9 +28,8 @@ func (hp hostPriority) PickHost(replicas []string) string {
 
 // allowance specifies the amount of work a worker can do in a job.
 type allowance struct {
-	Replicas      []string
-	Ranges        int
-	ShardsPercent float64
+	Replicas []string
+	Ranges   int
 }
 
 var nilAllowance = allowance{}
