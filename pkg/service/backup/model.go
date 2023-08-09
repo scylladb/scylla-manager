@@ -333,6 +333,40 @@ func defaultRetentionForDeletedTask() RetentionPolicy {
 // RetentionMap is a mapping of TaskIDs to retention policies.
 type RetentionMap map[uuid.UUID]RetentionPolicy
 
+// Contains return true if specified taskID is in map.
+func (r RetentionMap) Contains(taskID uuid.UUID) bool {
+	_, ok := r[taskID]
+	return ok
+}
+
+// Add RetentionPolicy and return true if specified taskID is not in map.
+func (r RetentionMap) Add(taskID uuid.UUID, retention, days int) bool {
+	if r.Contains(taskID) {
+		return false
+	}
+
+	r[taskID] = RetentionPolicy{
+		Retention:     retention,
+		RetentionDays: days,
+	}
+
+	return true
+}
+
+// GetPolicy return retention policy for a given task ID. If missing - return default policy.
+func (r RetentionMap) GetPolicy(taskID uuid.UUID) RetentionPolicy {
+	if policy, ok := r[taskID]; ok {
+		return policy
+	}
+	return defaultRetentionForDeletedTask()
+}
+
+// PolicyExists return if policy exists for such taskID.
+func (r RetentionMap) PolicyExists(taskID uuid.UUID) bool {
+	_, ok := r[taskID]
+	return ok
+}
+
 // ExtractRetention parses properties as task properties and returns "retention".
 func ExtractRetention(properties json.RawMessage) (RetentionPolicy, error) {
 	var p taskProperties
