@@ -230,3 +230,19 @@ func (mr *MockBackupServiceMockRecorder) ListFiles(arg0, arg1, arg2, arg3 interf
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFiles", reflect.TypeOf((*MockBackupService)(nil).ListFiles), arg0, arg1, arg2, arg3)
 }
+
+// PurgeBackups mocks base method.
+func (m *MockBackupService) PurgeBackups(arg0 context.Context, arg1 uuid.UUID, arg2 backupspec.Locations, arg3 backup.RetentionMap, arg4 bool) (backupspec.Manifests, []string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PurgeBackups", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(backupspec.Manifests)
+	ret1, _ := ret[1].([]string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// PurgeBackups indicates an expected call of PurgeBackups.
+func (mr *MockBackupServiceMockRecorder) PurgeBackups(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PurgeBackups", reflect.TypeOf((*MockBackupService)(nil).PurgeBackups), arg0, arg1, arg2, arg3, arg4)
+}

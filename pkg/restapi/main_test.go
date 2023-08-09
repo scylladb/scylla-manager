@@ -30,6 +30,8 @@ func jsonBody(t testing.TB, v interface{}) *bytes.Reader {
 }
 
 func assertJsonBody(t testing.TB, w *httptest.ResponseRecorder, expected interface{}) {
+	t.Helper()
+
 	b, err := json.Marshal(expected)
 	if err != nil {
 		t.Fatal(err)
