@@ -38,6 +38,19 @@ type ListItem struct {
 	unitCache map[string]*strset.Set `json:"-"`
 }
 
+// ListItems is a slice of ListItem.
+type ListItems []*ListItem
+
+// GetIdx return index of item with specified clusterID and taskID, if missing - return '-1'.
+func (l ListItems) GetIdx(clusterID, taskID uuid.UUID) int {
+	for idx := range l {
+		if l[idx].ClusterID == clusterID && l[idx].TaskID == taskID {
+			return idx
+		}
+	}
+	return -1
+}
+
 // Target specifies what should be backed up and where.
 type Target struct {
 	Units            []Unit       `json:"units,omitempty"`
