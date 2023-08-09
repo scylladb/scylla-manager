@@ -151,3 +151,42 @@ func (l Location) RemotePath(p string) string {
 	}
 	return path.Join(r+l.Path, p)
 }
+
+// Locations is a slice of Location.
+type Locations []Location
+
+// Len return slice len.
+func (l Locations) Len() int {
+	return len(l)
+}
+
+// Contains return true if Location is in array.
+func (l Locations) Contains(provider Provider, path string) bool {
+	for _, loc := range l {
+		if loc.Path == path && loc.Provider == provider {
+			return true
+		}
+	}
+	return false
+}
+
+// Unique return new Locations array without same locations.
+func (l Locations) Unique() Locations {
+	out := make(Locations, 0, l.Len())
+	for _, loc := range l {
+		if !out.Contains(loc.Provider, loc.Path) {
+			out = append(out, loc)
+		}
+	}
+	return out
+}
+
+// HaveLocationWithDC return true if slice contains location with non-empty DC.
+func (l Locations) HaveLocationWithDC() bool {
+	for _, loc := range l {
+		if loc.DC != "" {
+			return true
+		}
+	}
+	return false
+}
