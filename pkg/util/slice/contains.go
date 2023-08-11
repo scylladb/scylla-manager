@@ -2,7 +2,9 @@
 
 package slice
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Contains is a general purpose function to check if a slice contains element.
 // It has a linear complexity, and does not assume any structure of data.

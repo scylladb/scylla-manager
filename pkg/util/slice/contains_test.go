@@ -2,7 +2,9 @@
 
 package slice
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestContains(t *testing.T) {
 	t.Parallel()
@@ -23,4 +25,5 @@ func TestContains(t *testing.T) {
 
 		check(nil, "a", false)
 	})
+
 }
