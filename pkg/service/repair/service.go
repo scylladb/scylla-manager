@@ -588,7 +588,12 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error 
 
 // Intensity returns effective intensity.
 func (i *intensityHandler) Intensity() int {
-	return int(i.intensity.Load())
+	intensity := i.intensity.Load()
+	// Deprecate float intensity
+	if 0 < intensity && intensity < 1 {
+		intensity = defaultIntensity
+	}
+	return int(intensity)
 }
 
 // Parallel returns stored value for parallel.
