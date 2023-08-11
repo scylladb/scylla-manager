@@ -361,6 +361,10 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
+		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+			// TODO: add tests for repair base table before view
+			return gocqlx.Session{}, errors.New("not implemented")
+		},
 		logger.Named("repair"),
 	)
 	if err != nil {
