@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -257,6 +258,19 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	p, err := newPlan(ctx, target, client)
 	if err != nil {
 		return errors.Wrap(err, "create repair plan")
+	}
+
+	p.SizeSort()
+	p.PrioritySort(internalTablePreference)
+	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
+		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
+	} else {
+		views, err := query.GetAllViews(clusterSession)
+		if err != nil {
+			s.logger.Info(ctx, "Couldn't get cluster views and ensure repairing base table before its views", "error", err)
+		} else {
+			p.ViewSort(views)
+		}
 	}
 
 	pm := &dbProgressManager{
