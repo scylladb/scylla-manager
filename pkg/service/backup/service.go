@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
@@ -35,12 +36,6 @@ import (
 
 const defaultRateLimit = 100 // 100MiB
 
-// ClusterNameFunc returns name for a given ID.
-type ClusterNameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
-
-// SessionFunc returns CQL session for given cluster ID.
-type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
-
 // Service orchestrates clusterName backups.
 type Service struct {
 	repairSvc *repair.Service
@@ -49,14 +44,14 @@ type Service struct {
 	config  Config
 	metrics metrics.BackupMetrics
 
-	clusterName    ClusterNameFunc
+	clusterName    cluster.NameFunc
 	scyllaClient   scyllaclient.ProviderFunc
-	clusterSession SessionFunc
+	clusterSession cluster.SessionFunc
 	logger         log.Logger
 }
 
 func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
-	clusterName ClusterNameFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession SessionFunc, logger log.Logger,
+	clusterName cluster.NameFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")

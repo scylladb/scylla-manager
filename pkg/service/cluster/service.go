@@ -251,6 +251,9 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 	}
 }
 
+// NameFunc returns name for a given ID.
+type NameFunc func(ctx context.Context, clusterID uuid.UUID) (string, error)
+
 // GetClusterName returns cluster name for a given ID. If nothing was found
 // scylla-manager.ErrNotFound is returned.
 func (s *Service) GetClusterName(ctx context.Context, id uuid.UUID) (string, error) {
@@ -511,6 +514,9 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 
 	return nodes, nil
 }
+
+// SessionFunc returns CQL session for given cluster ID.
+type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
 
 // GetSession returns CQL session to provided cluster.
 func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session gocqlx.Session, err error) {

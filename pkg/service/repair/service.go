@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -34,14 +35,17 @@ type Service struct {
 	config  Config
 	metrics metrics.RepairMetrics
 
-	scyllaClient scyllaclient.ProviderFunc
-	logger       log.Logger
+	scyllaClient   scyllaclient.ProviderFunc
+	clusterSession cluster.SessionFunc
+	logger         log.Logger
 
 	intensityHandlers map[uuid.UUID]*intensityHandler
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics,
+	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
+) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config")
 	}
@@ -55,6 +59,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 		config:            config,
 		metrics:           metrics,
 		scyllaClient:      scyllaClient,
+		clusterSession:    clusterSession,
 		logger:            logger,
 		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
 	}, nil
