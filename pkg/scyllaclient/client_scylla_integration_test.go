@@ -7,11 +7,12 @@ package scyllaclient_test
 
 import (
 	"context"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -58,19 +59,6 @@ func TestClientStatusIntegration(t *testing.T) {
 
 	if diff := cmp.Diff(golden, status, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {
 		t.Fatalf("Status() = %#+v, diff %s", status, diff)
-	}
-}
-
-func TestClientRepairStatusIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, longPolling := range []int{0, 1} {
-		_, err = client.RepairStatus(context.Background(), ManagedClusterHost(), "system_auth", 999, longPolling)
-		if strings.Contains(err.Error(), "attempts") {
-			t.Fatalf("RepairStatus() error %s, expected 1 attempt", err)
-		}
 	}
 }
 
@@ -227,37 +215,6 @@ func TestClientTableExistsIntegration(t *testing.T) {
 		if exists != test.Exists {
 			t.Fatalf("TableExists() = %v, expected %v", exists, test.Exists)
 		}
-	}
-}
-
-func TestScyllaFeaturesIntegration(t *testing.T) {
-	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx := context.Background()
-	sf, err := client.ScyllaFeatures(ctx, ManagedClusterHosts()...)
-	if err != nil {
-		t.Error(err)
-	}
-
-hostsLoop:
-	for _, h := range ManagedClusterHosts() {
-		for reportedHost, hostFeatures := range sf {
-			if ToCanonicalIP(h) == ToCanonicalIP(reportedHost) {
-				if !hostFeatures.RowLevelRepair {
-					t.Errorf("%s host doesn't support row-level repair, but it should", h)
-				}
-				if !hostFeatures.RepairLongPolling {
-					t.Errorf("%s host doesn't support long polling repair, but it should", h)
-				}
-				continue hostsLoop
-			}
-		}
-		t.Errorf("%s cql did not report info on it", h)
-
 	}
 }
 

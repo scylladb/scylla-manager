@@ -107,7 +107,6 @@ const (
 
 func (h *repairTestHelper) assertRunning(wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		_, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
@@ -122,7 +121,6 @@ func (h *repairTestHelper) assertRunning(wait time.Duration) {
 
 func (h *repairTestHelper) assertDone(wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		h.mu.RLock()
 		defer h.mu.RUnlock()
@@ -147,7 +145,6 @@ func (h *repairTestHelper) assertProgressSuccess() {
 
 func (h *repairTestHelper) assertError(wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		h.mu.RLock()
 		defer h.mu.RUnlock()
@@ -172,7 +169,6 @@ func (h *repairTestHelper) assertStopped(wait time.Duration) {
 
 func (h *repairTestHelper) assertProgress(node string, percent int, wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p >= percent
@@ -181,7 +177,6 @@ func (h *repairTestHelper) assertProgress(node string, percent int, wait time.Du
 
 func (h *repairTestHelper) assertProgressFailed(node string, percent int, wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		_, f := h.progress(node)
 		return f >= percent
@@ -190,7 +185,6 @@ func (h *repairTestHelper) assertProgressFailed(node string, percent int, wait t
 
 func (h *repairTestHelper) assertMaxProgress(node string, percent int, wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p <= percent
@@ -199,7 +193,6 @@ func (h *repairTestHelper) assertMaxProgress(node string, percent int, wait time
 
 func (h *repairTestHelper) assertShardProgress(node string, percent int, wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p >= percent
@@ -208,7 +201,6 @@ func (h *repairTestHelper) assertShardProgress(node string, percent int, wait ti
 
 func (h *repairTestHelper) assertMaxShardProgress(node string, percent int, wait time.Duration) {
 	h.T.Helper()
-
 	WaitCond(h.T, func() bool {
 		p, _ := h.progress(node)
 		return p <= percent
@@ -217,13 +209,9 @@ func (h *repairTestHelper) assertMaxShardProgress(node string, percent int, wait
 
 func (h *repairTestHelper) progress(node string) (int, int) {
 	h.T.Helper()
-
 	p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 	if err != nil {
 		h.T.Fatal(err)
-	}
-	if node != "" {
-
 	}
 
 	return percentComplete(p)
@@ -486,8 +474,6 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 }
 
 func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
-	t.Skip() // This test should be enabled when after repair algorithm is refactored
-
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, repair.DefaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
@@ -511,7 +497,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		target := h.generateTarget(map[string]any{
-			"FailFast": true,
+			"fail_fast": true,
 		})
 
 		// The amount of currently executed repair jobs on host
@@ -556,7 +542,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 			// Response to repair schedule
 			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
 				muHIJ.Lock()
-				hostsInJob[string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
+				hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
 				muHIJ.Unlock()
 			}
 
@@ -565,7 +551,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 				status := string(body)
 				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
 					muHIJ.Lock()
-					hosts := hostsInJob[resp.Request.URL.Query()["id"][0]]
+					hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
 					muHIJ.Unlock()
 
 					muJPH.Lock()
@@ -1029,7 +1015,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, singleUnit())
+		su := singleUnit()
+		su.SmallTableThreshold = -1
+		h.runRepair(ctx, su)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1289,8 +1277,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.T.Fatal(err)
 		}
 
-		if p.TokenRanges != 1 {
-			t.Fatalf("Expected all tokens in one range, got %d ranges", p.TokenRanges)
+		if p.TokenRanges != p.Success {
+			t.Fatalf("Expected full success, got %d/%d", p.Success, p.TokenRanges)
 		}
 	})
 

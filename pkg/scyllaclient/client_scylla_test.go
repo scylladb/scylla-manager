@@ -172,21 +172,6 @@ func TestClientTokens(t *testing.T) {
 	}
 }
 
-func TestClientPartitioner(t *testing.T) {
-	t.Parallel()
-
-	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_partitioner_name.json")
-	defer closeServer()
-
-	v, err := client.Partitioner(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != scyllaclient.Murmur3Partitioner {
-		t.Fatal(v)
-	}
-}
-
 func TestClientShardCount(t *testing.T) {
 	t.Parallel()
 
@@ -309,83 +294,6 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 	}
 }
 
-func TestClientRepair(t *testing.T) {
-	t.Parallel()
-
-	client, closeServer := scyllaclienttest.NewFakeScyllaServerRequestChecker(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_0.json", func(t *testing.T, r *http.Request) {
-		if strings.Count(r.URL.RawQuery, "127.0.0.1") > 1 {
-			t.Errorf("Ivalid host query count: %s", r.URL.RawQuery)
-		}
-	})
-	defer closeServer()
-
-	v, err := client.Repair(context.Background(), scyllaclienttest.TestHost, scyllaclient.RepairConfig{
-		Keyspace: "scylla_manager",
-		Hosts:    []string{"1.1.1.1", "127.0.0.1"},
-		Ranges:   "100:110,120:130",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v != 1 {
-		t.Fatal(v)
-	}
-}
-
-func TestClientRepairStatus(t *testing.T) {
-	t.Parallel()
-
-	t.Run("async", func(t *testing.T) {
-		t.Parallel()
-
-		client, closeServer := scyllaclienttest.NewFakeScyllaServerMatching(t, scyllaclienttest.MultiPathFileMatcher(
-			scyllaclienttest.PathFileMatcher("/failure_detector/endpoints/", "testdata/scylla_api/failure_detector_endpoints.json"),
-			scyllaclienttest.PathFileMatcher("/storage_service/repair_status", "testdata/scylla_api/storage_service_repair_status.404.json"),
-			scyllaclienttest.PathFileMatcher("/storage_service/repair_async", "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json"),
-			scyllaclienttest.PathFileMatcher("/storage_service/repair_async/scylla_manager", "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json"),
-		))
-		defer closeServer()
-
-		v, err := client.RepairStatus(context.Background(), scyllaclienttest.TestHost, "scylla_manager", 1, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if v != scyllaclient.CommandSuccessful {
-			t.Fatal(v)
-		}
-	})
-
-	t.Run("sync", func(t *testing.T) {
-		t.Parallel()
-
-		client, closeServer := scyllaclienttest.NewFakeScyllaServerMatching(t, scyllaclienttest.MultiPathFileMatcher(
-			scyllaclienttest.PathFileMatcher("/failure_detector/endpoints/", "testdata/scylla_api/failure_detector_endpoints.json"),
-			scyllaclienttest.PathFileMatcher("/storage_service/repair_status", "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json"),
-		))
-		defer closeServer()
-
-		v, err := client.RepairStatus(context.Background(), scyllaclienttest.TestHost, "", 1, 2)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if v != scyllaclient.CommandSuccessful {
-			t.Fatal(v)
-		}
-	})
-}
-
-func TestClientRepairStatusForWrongID(t *testing.T) {
-	t.Parallel()
-
-	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/storage_service_repair_async_scylla_manager_2.400.json")
-	defer closeServer()
-
-	_, err := client.RepairStatus(context.Background(), scyllaclienttest.TestHost, "scylla_manager", 5, 0)
-	if err == nil {
-		t.Fatal("Expected error")
-	}
-}
-
 func TestClientActiveRepairs(t *testing.T) {
 	t.Parallel()
 
@@ -453,73 +361,6 @@ func TestClientTableDiskSize(t *testing.T) {
 	const expected = 4818909025
 	if size != expected {
 		t.Fatalf("Expected size %d, got %d", expected, size)
-	}
-}
-
-func TestClientTableExists(t *testing.T) {
-	t.Parallel()
-
-	t.Run("exists", func(t *testing.T) {
-		client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_metrics_total_disk_space_used.json")
-		defer closeServer()
-
-		ok, err := client.TableExists(context.Background(), "system_schema", "tables")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !ok {
-			t.Fatalf("Expected true, got %v", ok)
-		}
-	})
-
-	t.Run("no table", func(t *testing.T) {
-		client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_metrics_total_disk_space_used_no_table.400.json")
-		defer closeServer()
-
-		ok, err := client.TableExists(context.Background(), "system_schema", "tables")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if ok {
-			t.Fatalf("Expected false, got %v", ok)
-		}
-	})
-
-	t.Run("no keyspace", func(t *testing.T) {
-		client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/column_family_metrics_total_disk_space_used_no_keyspace.400.json")
-		defer closeServer()
-
-		ok, err := client.TableExists(context.Background(), "system_schema", "tables")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if ok {
-			t.Fatalf("Expected false, got %v", ok)
-		}
-	})
-}
-
-func TestScyllaFeatures(t *testing.T) {
-	t.Parallel()
-
-	client, closeServer := scyllaclienttest.NewFakeScyllaServerMatching(t, scyllaclienttest.MultiPathFileMatcher(
-		scyllaclienttest.PathFileMatcher("/failure_detector/endpoints/", "testdata/scylla_api/long_polling_feature_detection.json"),
-		scyllaclienttest.PathFileMatcher("/storage_service/repair_status", "testdata/scylla_api/storage_service_repair_async_scylla_manager_1.json"),
-	))
-	defer closeServer()
-
-	sf, err := client.ScyllaFeatures(context.Background(), scyllaclienttest.TestHost)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(sf) != 1 {
-		t.Errorf("Expected scylla features for each host, got %d", len(sf))
-	}
-	if !sf[scyllaclienttest.TestHost].RowLevelRepair {
-		t.Error("Expected host to support row-level repair")
-	}
-	if !sf[scyllaclienttest.TestHost].RepairLongPolling {
-		t.Error("Expected host to support long polling repair")
 	}
 }
 

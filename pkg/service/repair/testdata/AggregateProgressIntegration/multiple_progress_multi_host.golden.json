@@ -1,11 +1,11 @@
 {
   "percent_complete": 100,
-  "token_ranges": 18,
-  "success": 18,
+  "token_ranges": 23,
+  "success": 23,
   "error": 0,
   "started_at": "2019-01-01T00:00:00Z",
   "completed_at": "2019-01-01T00:02:00Z",
-  "duration_ms": 240000,
+  "duration_ms": 120000,
   "intensity": 666,
   "parallel": 6,
   "hosts": [
@@ -87,8 +87,8 @@
       "table": "t1"
     }, {
       "percent_complete": 100,
-      "token_ranges": 5,
-      "success": 5,
+      "token_ranges": 10,
+      "success": 10,
       "error": 0,
       "started_at": "2019-01-01T00:01:00Z",
       "completed_at": "2019-01-01T00:02:00Z",

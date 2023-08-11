@@ -4,13 +4,14 @@ package repair
 
 import (
 	"context"
-	"math"
 	"strings"
-	"time"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 type hostPriority map[string]int
@@ -26,378 +27,235 @@ func (hp hostPriority) PickHost(replicas []string) string {
 	return replicas[0]
 }
 
-// allowance specifies the amount of work a worker can do in a job.
-type allowance struct {
-	Replicas      []string
-	Ranges        int
-	ShardsPercent float64
+type job struct {
+	keyspace   string
+	table      string
+	master     string
+	replicaSet []string
+	ranges     []scyllaclient.TokenRange
+	// jobs of optimized tables should merge all token ranges into one.
+	optimize bool
+	// jobs of deleted tables are sent only for progress updates.
+	deleted bool
 }
 
-var nilAllowance = allowance{}
-
-type job struct {
-	Host      string
-	Allowance allowance
-	Ranges    []*tableTokenRange
+// tryOptimizeRanges returns either predefined ranges
+// or one full token range for small fully replicated tables.
+func (j job) tryOptimizeRanges() []scyllaclient.TokenRange {
+	if j.optimize {
+		return []scyllaclient.TokenRange{
+			{
+				StartToken: dht.Murmur3MinToken,
+				EndToken:   dht.Murmur3MaxToken,
+			},
+		}
+	}
+	return j.ranges
 }
 
 type jobResult struct {
 	job
-	Err error
+	err error
+}
+
+func (r jobResult) Success() bool {
+	// jobs of deleted tables are considered to by successful
+	return r.err == nil || errors.Is(r.err, errTableDeleted)
 }
 
 type generator struct {
-	gracefulStopTimeout time.Duration
-	progress            progressManager
-	logger              log.Logger
+	plan   *plan
+	ctl    controller
+	hp     hostPriority
+	client *scyllaclient.Client
 
+	logger   log.Logger
 	failFast bool
 
-	replicas      map[uint64][]string
-	replicasIndex map[uint64]int
-	ranges        map[uint64][]*tableTokenRange
-	minRf         int
-	smallTables   *strset.Set
-	deletedTables *strset.Set
-	lastPercent   int
+	// Jobs for workers.
+	next chan job
+	// Job results from workers.
+	result chan jobResult
+	// Determines if generator should keep on generating new jobs.
+	stop atomic.Bool
 
-	ctl          controller
-	hostPriority hostPriority
-
-	keys       []uint64
-	pos        int
-	next       chan job
-	nextClosed bool
-	result     chan jobResult
-
-	count   int
-	success int
-	failed  int
+	// Statistics for logging purposes.
+	count       int
+	success     int
+	failed      int
+	lastPercent int
 }
 
-type generatorOption func(*generator)
-
-func failFast(g *generator) {
-	g.failFast = true
-}
-
-func newGenerator(gracefulStopTimeout time.Duration, progress progressManager, logger log.Logger) *generator {
-	g := &generator{
-		gracefulStopTimeout: gracefulStopTimeout,
-		progress:            progress,
-		logger:              logger,
-
-		replicas:      make(map[uint64][]string),
-		replicasIndex: make(map[uint64]int),
-		ranges:        make(map[uint64][]*tableTokenRange),
-		minRf:         math.MaxInt8,
-		smallTables:   strset.New(),
-		deletedTables: strset.New(),
-		lastPercent:   -1,
-	}
-
-	return g
-}
-
-func (g *generator) Add(ctx context.Context, ranges []*tableTokenRange) {
-	for _, ttr := range ranges {
-		g.add(ctx, ttr)
-	}
-}
-
-func (g *generator) add(ctx context.Context, ttr *tableTokenRange) {
-	hash := ttr.ReplicaHash()
-
-	if len(ttr.Replicas) == 0 {
-		// This is handled in the builder and should never happen.
-		// It is logged just in case - so that we are aware.
-		g.logger.Error(ctx, "Trying to add not replicated token range, ignoring", "value", ttr)
-		return
-	}
-
-	if _, ok := g.replicas[hash]; !ok {
-		g.replicas[hash] = ttr.Replicas
-		g.replicasIndex[hash] = len(g.replicasIndex)
-	}
-	g.ranges[hash] = append(g.ranges[hash], ttr)
-
-	if l := len(ttr.Replicas); l < g.minRf {
-		g.minRf = l
-	}
-}
-
-func (g *generator) Hosts() *strset.Set {
-	all := strset.New()
-	for _, v := range g.replicas {
-		all.Add(v...)
-	}
-	return all
-}
-
-func (g *generator) MinReplicationFactor() int {
-	return g.minRf
-}
-
-func (g *generator) Size() int {
-	return len(g.replicas)
-}
-
-func (g *generator) Init(ctx context.Context, ctl controller, hp hostPriority, opts ...generatorOption) error {
-	for _, o := range opts {
-		o(g)
-	}
-
-	g.ctl = ctl
-	g.hostPriority = hp
-
-	if g.Size() == 0 {
-		return errors.New("no replicas to repair")
-	}
-
-	// Preserve replicas order in the ring. This improves parallel behaviour,
-	// if we pick replicas randomly we increase repair fragmentation.
-	// Say we have 6 nodes [a, b, c, d, e, f] and RF=2 if, when we block replicas
-	// [a,b] and [d,e] we cannot repair any more replicas in parallel even when
-	// it's possible in theory to have 3 repairs in parallel.
-	g.keys = make([]uint64, len(g.replicas))
-	for hash, i := range g.replicasIndex {
-		g.keys[i] = hash
-	}
-
-	g.next = make(chan job, ctl.MaxWorkerCount())
-	g.result = make(chan jobResult)
-
-	var trs []*tableTokenRange
-	for _, ttrs := range g.ranges {
-		trs = append(trs, ttrs...)
-	}
-	if err := g.progress.Init(ctx, trs); err != nil {
-		return err
-	}
-
-	// Remove repaired ranges from the pool of available ones to avoid their
-	// scheduling.
-	for k := range g.ranges {
-		ttrs := g.ranges[k][:0]
-		for i := range g.ranges[k] {
-			if g.progress.CheckRepaired(g.ranges[k][i]) {
-				continue
-			}
-			ttrs = append(ttrs, g.ranges[k][i])
+func newGenerator(ctx context.Context, target Target, plan *plan,
+	client *scyllaclient.Client, ih *intensityHandler, hp hostPriority, logger log.Logger,
+) (*generator, error) {
+	var ord, cnt int
+	for _, kp := range plan.Keyspaces {
+		for _, tp := range kp.Tables {
+			cnt += len(kp.TokenRepIdx)
+			ord++
+			logger.Info(ctx, "Repair order",
+				"order", ord,
+				"keyspace", kp.Keyspace,
+				"table", tp.Table,
+				"merge_ranges", tp.Optimize,
+			)
 		}
-		g.ranges[k] = ttrs
-		g.count += len(ttrs)
 	}
 
-	return nil
-}
+	hosts := plan.Hosts()
+	status, err := client.Status(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get status")
+	}
+	if down := strset.New(status.Down().Hosts()...); down.HasAny(hosts...) {
+		return nil, errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down.List(), ","))
+	}
 
-func (g *generator) Next() <-chan job {
-	return g.next
-}
+	shards, err := client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return nil, err
+	}
+	memory, err := client.HostsTotalMemory(ctx, hosts)
+	if err != nil {
+		return nil, err
+	}
 
-func (g *generator) Result() chan<- jobResult {
-	return g.result
+	// As each host can take part in at most one repair job,
+	// this is the max possible amount of jobs that can be
+	// run in parallel in enter cluster.
+	maxParallel := len(hosts) / plan.MinRF()
+	return &generator{
+		plan:        plan,
+		ctl:         newRowLevelRepairController(ih, maxParallel, hostMaxRanges(shards, memory)),
+		hp:          hp,
+		client:      client,
+		next:        make(chan job, maxParallel),
+		result:      make(chan jobResult, maxParallel),
+		logger:      logger,
+		failFast:    target.FailFast,
+		count:       cnt,
+		lastPercent: -1,
+	}, nil
 }
 
 func (g *generator) Run(ctx context.Context) error {
-	g.logger.Info(ctx, "Start repair")
+	g.logger.Info(ctx, "Start generator")
+	running := true
 
-	g.fillNext(ctx)
-
-	done := ctx.Done()
-	stop := make(chan struct{})
-
-	gracefulShutdown := func() {
-		g.logger.Info(ctx, "Graceful repair shutdown", "timeout", g.gracefulStopTimeout)
-		// Stop workers by closing next channel
-		g.closeNext()
-
-		done = nil
-		time.AfterFunc(g.gracefulStopTimeout, func() {
-			close(stop)
-		})
+	g.generateJobs()
+	if g.shouldExit() {
+		running = false
 	}
-loop:
-	for {
-		select {
-		case <-done:
-			gracefulShutdown()
-		default:
-		}
 
+	for running {
+		if ctx.Err() != nil {
+			break
+		}
 		select {
-		case <-done:
-			gracefulShutdown()
-		case <-stop:
-			break loop
+		case <-ctx.Done():
+			running = false
 		case r := <-g.result:
 			g.processResult(ctx, r)
-			g.fillNext(ctx)
-
-			// At this point if there are no blocked replicas it means no worker
-			// will process anything and report results ever, we should stop now.
-			if !g.ctl.Busy() {
-				g.logger.Info(ctx, "Done repair")
-				g.closeNext()
-				break loop
+			g.generateJobs()
+			if g.shouldExit() {
+				running = false
 			}
 		}
 	}
 
+	g.logger.Info(ctx, "Close generator")
+	close(g.next) // Free workers waiting on next
+
+	// Don't return ctx error as graceful ctx is handled from service level
 	if g.failed > 0 {
 		return errors.Errorf("repair %d token ranges out of %d", g.failed, g.count)
 	}
-	return ctx.Err()
+	return nil
 }
 
 func (g *generator) processResult(ctx context.Context, r jobResult) {
-	if errors.Is(r.Err, errTableDeleted) {
-		g.markDeletedTable(keyspaceTableForRanges(r.Ranges))
-		r.Err = nil
+	if r.err != nil && errors.Is(r.err, errTableDeleted) {
+		g.logger.Info(ctx, "Detected table deletion", "keyspace", r.keyspace, "table", r.table)
+		g.plan.MarkDeleted(r.keyspace, r.table)
 	}
 
-	n := len(r.Ranges)
-
-	if r.Err != nil {
-		g.failed += n
-		g.logger.Info(ctx, "Repair failed", "error", r.Err)
-		if g.failFast {
-			// If worker failed with fail fast error then initiate shutdown.
-			// Setting nextClosed to true will prevent scheduling any new
-			// jobs but will also allow draining queue of any existing jobs.
-			// generator/worker pair will shutdown once there are no more
-			// busy replicas.
-			g.closeNext()
-		}
+	g.plan.MarkDoneRanges(r.keyspace, r.table, len(r.ranges))
+	if r.Success() {
+		g.success += len(r.ranges)
 	} else {
-		g.success += n
+		g.logger.Error(ctx, "Repair failed", "error", r.err)
+		g.failed += len(r.ranges)
+		if g.failFast {
+			g.stopGenerating()
+		}
 	}
 
 	if percent := 100 * (g.success + g.failed) / g.count; percent > g.lastPercent {
 		g.logger.Info(ctx, "Progress", "percent", percent, "count", g.count, "success", g.success, "failed", g.failed)
 		g.lastPercent = percent
 	}
-
-	g.ctl.Unblock(r.Allowance)
+	g.ctl.Unblock(r.replicaSet)
 }
 
-func (g *generator) closeNext() {
-	if !g.nextClosed {
-		g.nextClosed = true
-		close(g.next)
-	}
-}
-
-func (g *generator) fillNext(ctx context.Context) {
-	if ctx.Err() != nil || g.nextClosed {
-		return
-	}
+func (g *generator) generateJobs() {
 	for {
-		hash, allowance := g.pickReplicas()
-		if hash == 0 {
+		j, ok := g.newJob()
+		if !ok {
 			return
 		}
 
-		j := job{
-			Host:      g.pickHost(hash),
-			Allowance: allowance,
-			Ranges:    g.pickRanges(hash, allowance.Ranges),
-		}
-
-		// Process deleted table as a success without sending to worker
-		if k, t := keyspaceTableForRanges(j.Ranges); g.deletedTable(k, t) {
-			g.logger.Debug(ctx, "Repair skipping deleted table",
-				"keyspace", k,
-				"table", t,
-				"hosts", j.Ranges[0].Replicas,
-				"ranges", len(j.Ranges),
-			)
-			r := jobResult{job: j}
-			g.processResult(ctx, r)
-			g.progress.OnJobResult(ctx, r)
-			continue
-		}
-
-		// Send job to worker
 		select {
 		case g.next <- j:
 		default:
-			panic("next buffer full")
+			panic("next is full")
 		}
 	}
 }
 
-// pickReplicas blocks replicas and returns hash, if no replicas can be found
-// then 0 is returned.
-func (g *generator) pickReplicas() (uint64, allowance) {
-	var (
-		stop = g.pos
-		pos  = g.pos
-	)
-
-	for {
-		pos = (pos + 1) % len(g.keys)
-		hash := g.keys[pos]
-
-		if len(g.ranges[hash]) > 0 {
-			ok, a := g.ctl.TryBlock(g.replicas[hash])
-			if ok {
-				return hash, a
-			}
-		}
-
-		if pos == stop {
-			return 0, nilAllowance
-		}
+// newJob tries to return job passing controller restrictions.
+func (g *generator) newJob() (job, bool) {
+	if ok := g.plan.UpdateIdx(); !ok {
+		g.stopGenerating()
 	}
-}
-
-func (g *generator) pickRanges(hash uint64, limit int) []*tableTokenRange {
-	ranges := g.ranges[hash]
-
-	// Speedup repair of small tables by repairing all ranges together.
-	keyspace, table := keyspaceTableForRanges(ranges)
-	if strings.HasPrefix(keyspace, "system") || g.smallTable(keyspace, table) || g.deletedTable(keyspace, table) {
-		limit = len(ranges)
+	if !g.shouldGenerate() {
+		return job{}, false
 	}
 
-	var i int
-	for i = 0; i < limit; i++ {
-		if len(ranges) <= i {
-			break
+	ksIdx := g.plan.Idx
+	kp := g.plan.Keyspaces[ksIdx]
+	tabIdx := kp.Idx
+	tp := kp.Tables[tabIdx]
+
+	for repIdx, rep := range kp.Replicas {
+		if kp.IsReplicaMarked(repIdx, tabIdx) {
+			continue
 		}
-		if i > 0 {
-			if ranges[i-1].Keyspace != ranges[i].Keyspace || ranges[i-1].Table != ranges[i].Table {
-				break
-			}
+
+		if ranges := g.ctl.TryBlock(rep.ReplicaSet); ranges > 0 {
+			return job{
+				keyspace:   kp.Keyspace,
+				table:      tp.Table,
+				master:     g.hp.PickHost(rep.ReplicaSet),
+				replicaSet: rep.ReplicaSet,
+				ranges:     kp.GetRangesToRepair(repIdx, tabIdx, ranges),
+				optimize:   tp.Optimize,
+				deleted:    tp.Deleted,
+			}, true
 		}
 	}
 
-	g.ranges[hash] = ranges[i:]
-	return ranges[0:i]
+	return job{}, false
 }
 
-func keyspaceTableForRanges(ranges []*tableTokenRange) (keyspace, table string) {
-	return ranges[0].Keyspace, ranges[0].Table
+func (g *generator) stopGenerating() {
+	g.stop.Store(true)
 }
 
-func (g *generator) markSmallTable(keyspace, table string) {
-	g.smallTables.Add(keyspace + "." + table)
+func (g *generator) shouldGenerate() bool {
+	return !g.stop.Load()
 }
 
-func (g *generator) smallTable(keyspace, table string) bool {
-	return g.smallTables.Has(keyspace + "." + table)
-}
-
-func (g *generator) markDeletedTable(keyspace, table string) {
-	g.deletedTables.Add(keyspace + "." + table)
-}
-
-func (g *generator) deletedTable(keyspace, table string) bool {
-	return g.deletedTables.Has(keyspace + "." + table)
-}
-
-func (g *generator) pickHost(hash uint64) string {
-	return g.hostPriority.PickHost(g.replicas[hash])
+func (g *generator) shouldExit() bool {
+	return !g.ctl.Busy() && !g.shouldGenerate()
 }

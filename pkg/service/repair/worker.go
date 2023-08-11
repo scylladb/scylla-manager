@@ -8,271 +8,161 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 )
+
+type worker struct {
+	in     <-chan job
+	out    chan<- jobResult
+	client *scyllaclient.Client
+	// Marks tables for which handleRunningStatus didn't have any effect.
+	// We want to limit the usage of handleRunningStatus to once per table
+	// in order to avoid long waiting time on failed ranges.
+	stopTrying map[string]struct{}
+	progress   progressManager
+	logger     log.Logger
+}
+
+// Run starts worker which awaits repair jobs and performs them.
+// All encountered errors (except for ctx errors) are reported to generator.
+func (w *worker) Run(ctx context.Context) {
+	w.logger.Info(ctx, "Start")
+	defer w.logger.Info(ctx, "Done")
+
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case j, ok := <-w.in:
+			if !ok {
+				return
+			}
+
+			w.progress.OnJobStart(ctx, j)
+			r := jobResult{
+				job: j,
+				err: w.runRepair(ctx, j),
+			}
+
+			if ctx.Err() != nil {
+				return
+			}
+			w.progress.OnJobEnd(ctx, r)
+			w.out <- r
+		}
+	}
+}
 
 var errTableDeleted = errors.New("table deleted during repair")
 
-type worker struct {
-	run                       *Run
-	in                        <-chan job
-	out                       chan<- jobResult
-	client                    *scyllaclient.Client
-	progress                  progressManager
-	hostPartitioner           map[string]*dht.Murmur3Partitioner
-	hostFeatures              map[string]scyllaclient.ScyllaFeatures
-	repairType                Type
-	pollInterval              time.Duration
-	longPollingTimeoutSeconds int
-	logger                    log.Logger
-}
-
-func newWorker(run *Run, in <-chan job, out chan<- jobResult, client *scyllaclient.Client,
-	manager progressManager, hostPartitioner map[string]*dht.Murmur3Partitioner,
-	hostFeatures map[string]scyllaclient.ScyllaFeatures, repairType Type,
-	pollInterval time.Duration, longPollingTimeoutSeconds int, logger log.Logger,
-) *worker {
-	return &worker{
-		run:                       run,
-		in:                        in,
-		out:                       out,
-		client:                    client,
-		progress:                  manager,
-		hostPartitioner:           hostPartitioner,
-		hostFeatures:              hostFeatures,
-		repairType:                repairType,
-		pollInterval:              pollInterval,
-		longPollingTimeoutSeconds: longPollingTimeoutSeconds,
-		logger:                    logger,
-	}
-}
-
-func (w *worker) Run(ctx context.Context) error {
-	w.logger.Info(ctx, "Start")
-
-	defer func() {
-		w.logger.Info(ctx, "Done")
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case job, ok := <-w.in:
-			if !ok {
-				return nil
-			}
-
-			r := jobResult{
-				job: job,
-				Err: w.handleJob(ctx, job),
-			}
-			w.progress.OnJobResult(ctx, r)
-			select {
-			case w.out <- r:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-	}
-}
-
-func (w *worker) handleJob(ctx context.Context, job job) error {
-	var err error
-	if w.repairType == TypeRowLevel && job.Allowance.ShardsPercent == 0 {
-		err = w.rowLevelRepair(ctx, job)
-	} else {
-		err = w.legacyRepair(ctx, job)
-	}
-	return err
-}
-
-func (w *worker) runRepair(ctx context.Context, job job) error {
-	if len(job.Ranges) == 0 {
-		return errors.Errorf("host %s: nothing to repair", job.Host)
+func (w *worker) runRepair(ctx context.Context, j job) (out error) {
+	if j.deleted {
+		return nil
 	}
 
 	var (
-		host = job.Host
-		ttrs = job.Ranges
-		ttr  = job.Ranges[0]
+		jobID int32
+		err   error
 	)
-
-	cfg := scyllaclient.RepairConfig{
-		Keyspace: ttr.Keyspace,
-		Tables:   []string{ttr.Table},
-		Hosts:    ttr.Replicas,
-		Ranges:   dumpRanges(ttrs),
-	}
-
-	jobID, err := w.client.Repair(ctx, host, cfg)
-	if err != nil {
-		if w.tableDeleted(ctx, err, ttr.Keyspace, ttr.Table) {
-			return errTableDeleted
+	// Decorate returned error
+	defer func() {
+		w.logger.Info(ctx, "Repair done")
+		// Try to justify error by checking table deletion
+		if out != nil && w.isTableDeleted(ctx, j) {
+			out = errTableDeleted
 		}
+		out = errors.Wrapf(out, "master %s keyspace %s table %s command %d", j.master, j.keyspace, j.table, jobID)
+	}()
 
-		return errors.Wrapf(err, "host %s: schedule repair", host)
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, j.tryOptimizeRanges())
+	if err != nil {
+		return errors.Wrap(err, "schedule repair")
 	}
 
-	w.progress.OnScyllaJobStart(ctx, job, jobID)
-	defer w.progress.OnScyllaJobEnd(ctx, job, jobID)
-
-	logger := w.logger.With(
-		"keyspace", ttr.Keyspace,
-		"table", ttr.Table,
-		"hosts", ttr.Replicas,
-		"ranges", len(ttrs),
-		"master", host,
+	w.logger.Info(ctx, "Repairing",
+		"keyspace", j.keyspace,
+		"table", j.table,
+		"master", j.master,
+		"hosts", j.replicaSet,
+		"ranges", j.tryOptimizeRanges(),
 		"job_id", jobID,
 	)
 
-	logger.Info(ctx, "Repairing")
-	if err := w.waitRepairStatus(ctx, jobID, host, ttr.Keyspace, ttr.Table); err != nil {
-		return errors.Wrapf(err, "host %s: keyspace %s table %s command %d", host, ttr.Keyspace, ttr.Table, jobID)
-	}
-	logger.Info(ctx, "Repair done")
-
-	return nil
-}
-
-func (w *worker) rowLevelRepair(ctx context.Context, job job) error {
-	err := w.runRepair(ctx, job)
+	status, err := w.client.RepairStatus(ctx, j.master, jobID)
 	if err != nil {
-		w.logger.Error(ctx, "Run row-level repair", "error", err)
-	}
-	return err
-}
-
-func (w *worker) legacyRepair(ctx context.Context, job job) error {
-	p := w.hostPartitioner[job.Host]
-
-	// In a very rare case when there is a strange partitioner
-	// do not split to shards.
-	if p == nil {
-		err := w.runRepair(ctx, job)
-		if err != nil {
-			w.logger.Error(ctx, "Run legacy repair, no sharding due to unsupported partitioner", "error", err)
-		}
-		return err
+		return errors.Wrap(err, "get repair status")
 	}
 
-	// Calculate max parallel shard repairs
-	limit := int(p.ShardCount())
-	if job.Allowance.ShardsPercent != 0 {
-		l := float64(limit) * job.Allowance.ShardsPercent
-		if l < 1 {
-			l = 1
-		}
-		limit = int(l)
-
-		w.logger.Debug(ctx, "Limiting parallel shard repairs", "total", p.ShardCount(), "limit", limit)
-	}
-
-	// Split ranges to shards
-	shardRanges, err := splitToShardsAndValidate(job.Ranges, p)
-	if err != nil {
-		return errors.Wrap(err, "split to shards")
-	}
-
-	f := func(i int) error {
-		if ctx.Err() != nil {
-			return nil
-		}
-
-		if len(shardRanges[i]) == 0 {
-			return nil
-		}
-
-		shardJob := job
-		shardJob.Ranges = shardRanges[i]
-		return w.runRepair(log.WithFields(ctx, "subranges_of_shard", i), shardJob)
-	}
-
-	notify := func(i int, err error) {
-		w.logger.Error(ctx, "Run legacy repair", "error", err)
-	}
-
-	return parallel.Run(len(shardRanges), limit, f, notify)
-}
-
-func (w *worker) waitRepairStatus(ctx context.Context, id int32, host, keyspace, table string) error {
-	var (
-		waitSeconds int
-		ticker      *time.Ticker
-	)
-
-	if w.hostFeatures[host].RepairLongPolling {
-		waitSeconds = w.longPollingTimeoutSeconds
-	} else {
-		ticker = time.NewTicker(w.pollInterval)
-		defer ticker.Stop()
-	}
-
-	for {
-		if waitSeconds > 0 {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-		} else {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-ticker.C:
-			}
-		}
-		s, err := w.client.RepairStatus(ctx, host, keyspace, id, waitSeconds)
-		if err != nil {
-			if w.tableDeleted(ctx, err, keyspace, table) {
-				return errTableDeleted
-			}
-			return err
-		}
-		running, err := w.repairStatus(ctx, s, id, host, keyspace, table)
-		if err != nil || !running {
-			return err
-		}
-	}
-}
-
-func (w *worker) repairStatus(ctx context.Context, s scyllaclient.CommandStatus, id int32, host, keyspace, table string) (bool, error) {
-	switch s {
+	switch status {
 	case scyllaclient.CommandRunning:
-		return true, nil
-	case scyllaclient.CommandSuccessful:
-		return false, nil
+		return w.handleRunningStatus(ctx, j)
 	case scyllaclient.CommandFailed:
-		if w.tableDeleted(ctx, nil, keyspace, table) {
-			return false, errTableDeleted
-		}
-		return false, errors.Errorf("Scylla error - check logs on host %s for job %d", host, id)
+		return errors.Errorf("status %s", status)
+	case scyllaclient.CommandSuccessful:
+		return nil
 	default:
-		return false, errors.Errorf("unknown command status %q - check logs on host %s for job %d", s, host, id)
+		w.logger.Info(ctx, "Unexpected GET /storage_service/repair_status response", "response", status)
+		return nil
 	}
 }
 
-func (w *worker) tableDeleted(ctx context.Context, err error, keyspace, table string) bool {
-	if err != nil {
-		status, msg := scyllaclient.StatusCodeAndMessageOf(err)
-		switch {
-		case status >= 400 && scyllaclient.TableNotExistsRegex.MatchString(msg):
-			return true
-		case status < 400:
-			return false
-		}
+var errStatusRunning = errors.New("unexpected RUNNING status when synchronously waiting for repair end")
+
+// handleRunningStatus is a workaround for a strange Scylla behaviour.
+// Running status is sometimes returned from client.RepairStatus even
+// when it should wait for repair to finish. It should be considered
+// as an error in general, but this can also happen when waiting on
+// repair status of recently deleted table. So before treating it as
+// an error, we should wait a short while to check if this behaviour
+// was indeed caused by table deletion.
+func (w *worker) handleRunningStatus(ctx context.Context, j job) error {
+	// Don't retry it on the same table, if it failed before
+	if _, ok := w.stopTrying[j.keyspace+"."+j.table]; ok {
+		return errStatusRunning
 	}
 
-	exists, err := w.client.TableExists(ctx, keyspace, table)
+	const (
+		minWait      = 50 * time.Millisecond
+		maxWait      = time.Second
+		maxTotalTime = 30 * time.Second
+		multiplier   = 2
+		jitter       = 0.2
+	)
+	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
+
+	// Table deletion is visible only after a short while
+	op := func() error {
+		exists, err := w.client.TableExists(ctx, j.keyspace, j.table)
+		if err != nil {
+			return retry.Permanent(err)
+		}
+		if exists {
+			return errors.New("table exists")
+		}
+		return nil
+	}
+
+	err := retry.WithNotify(ctx, op, backoff, func(error, time.Duration) {})
 	if err != nil {
-		w.logger.Debug(ctx, "Failed to check if table exists after a Scylla repair failure", "error", err)
+		w.stopTrying[j.keyspace+"."+j.table] = struct{}{}
+		return errStatusRunning
+	}
+	return errTableDeleted
+}
+
+func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
+	exists, err := w.client.TableExists(ctx, j.keyspace, j.table)
+	if err != nil {
+		w.logger.Error(ctx, "Couldn't check for table deletion",
+			"keyspace", j.keyspace,
+			"table", j.table,
+			"error", err,
+		)
 		return false
 	}
-	deleted := !exists
-
-	if deleted {
-		w.logger.Info(ctx, "Detected table deletion", "keyspace", keyspace, "table", table)
-	}
-
-	return deleted
+	return !exists
 }
