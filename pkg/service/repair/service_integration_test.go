@@ -12,7 +12,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -34,13 +36,14 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return nil, errors.New("not implemented")
 		},
+		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+			return gocqlx.Session{}, errors.New("not implemented")
+		},
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("repair"),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	ctx := context.Background()
 
 	putRun := func(t *testing.T, r *repair.Run) {
 		if err := table.RepairRun.InsertQuery(session).BindStruct(&r).ExecRelease(); err != nil {
@@ -82,7 +85,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		}
 		putRun(t, r1)
 
-		_, err := s.GetLastResumableRun(ctx, clusterID, taskID)
+		_, err := s.GetLastResumableRun(clusterID, taskID)
 		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
@@ -106,11 +109,12 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 			ClusterID: clusterID,
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
+			EndTime:   timeutc.Now(),
 		}
 		putRun(t, r1)
-		putRunProgress(t, r0, 10, 10, 0)
+		putRunProgress(t, r1, 10, 10, 0)
 
-		_, err := s.GetLastResumableRun(ctx, clusterID, taskID)
+		_, err := s.GetLastResumableRun(clusterID, taskID)
 		if !errors.Is(err, service.ErrNotFound) {
 			t.Fatal(err)
 		}
@@ -137,7 +141,7 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		}
 		putRun(t, r1)
 
-		r, err := s.GetLastResumableRun(ctx, clusterID, taskID)
+		r, err := s.GetLastResumableRun(clusterID, taskID)
 		if err != nil {
 			t.Fatal(err)
 		}

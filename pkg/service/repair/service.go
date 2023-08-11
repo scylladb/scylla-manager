@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -22,7 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -109,10 +109,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	// Ensure Host belongs to DCs
-	if t.Host != "" {
-		if !s.hostBelongsToDCs(t.Host, t.DC, dcMap) {
-			return t, service.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
-		}
+	if t.Host != "" && !hostBelongsToDCs(t.Host, t.DC, dcMap) {
+		return t, service.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
 	}
 
 	// Filter keyspaces
@@ -145,7 +143,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 			continue
 		}
 
-		if !s.singleNodeCluster(dcMap) {
+		if !singleNodeCluster(dcMap) {
 			// Ignore not replicated keyspaces
 			if ring.Replication == scyllaclient.LocalStrategy {
 				continue
@@ -199,7 +197,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return t, nil
 }
 
-func (s *Service) hostBelongsToDCs(host string, dcs []string, dcMap map[string][]string) bool {
+func hostBelongsToDCs(host string, dcs []string, dcMap map[string][]string) bool {
 	for _, dc := range dcs {
 		for _, h := range dcMap[dc] {
 			if host == h {
@@ -210,7 +208,7 @@ func (s *Service) hostBelongsToDCs(host string, dcs []string, dcMap map[string][
 	return false
 }
 
-func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
+func singleNodeCluster(dcMap map[string][]string) bool {
 	if len(dcMap) == 1 {
 		for _, dc := range dcMap {
 			if len(dc) <= 1 {
@@ -223,7 +221,7 @@ func (s *Service) singleNodeCluster(dcMap map[string][]string) bool {
 
 // Repair performs the repair process on the Target.
 func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID, target Target) error {
-	s.logger.Debug(ctx, "Repair",
+	s.logger.Info(ctx, "Properties",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
@@ -236,27 +234,19 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		ID:        runID,
 		DC:        target.DC,
 		Host:      target.Host,
-		StartTime: timeutc.Now().UTC(),
+		StartTime: timeutc.Now(),
 	}
 	if err := s.putRun(run); err != nil {
 		return errors.Wrapf(err, "put run")
 	}
 
-	s.logger.Info(ctx, "Initializing repair",
-		"cluster_id", run.ClusterID,
-		"task_id", run.TaskID,
-		"run_id", run.ID,
-		"target", target,
-	)
-
-	// Get the cluster client
 	client, err := s.scyllaClient(ctx, run.ClusterID)
 	if err != nil {
-		return errors.Wrap(err, "get client proxy")
+		return errors.Wrap(err, "get client")
 	}
 
 	if target.Continue {
-		if err := s.decorateWithPrevRun(ctx, run); err != nil {
+		if err := s.fillPrevRunID(ctx, run); err != nil {
 			return err
 		}
 		if run.PrevID != uuid.Nil {
@@ -264,76 +254,28 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	// Create generator
-	var (
-		manager = newProgressManager(run, s.session, s.metrics, s.logger)
-		gen     = newGenerator(s.config.GracefulStopTimeout, manager, s.logger)
-	)
-
-	// Feed generator with token ranges and calculate max possible number of
-	// parallel repair threads in all keyspaces.
-	var maxParallel int
-	for _, u := range target.Units {
-		// Get ring
-		ring, err := client.DescribeRing(ctx, u.Keyspace)
-		if err != nil {
-			return errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
-		}
-
-		// Transform ring to tableTokenRanges
-		b := newTableTokenRangeBuilder(target, ring.HostDC)
-		b.Add(ring.ReplicaTokens)
-
-		// Calculate worker count
-		if v := b.MaxParallelRepairs(); v > maxParallel {
-			maxParallel = v
-		}
-
-		// Add token ranges to generator
-		gen.Add(ctx, b.Build(u))
+	p, err := newPlan(ctx, target, client)
+	if err != nil {
+		return errors.Wrap(err, "create repair plan")
 	}
 
-	// Check if there is anything to repair if not there is something wrong
-	if gen.Size() == 0 {
-		return errors.New("no replicas to repair")
+	pm := &dbProgressManager{
+		run:     run,
+		session: s.session,
+		metrics: s.metrics,
+		logger:  s.logger.Named("progress"),
 	}
+	if err := pm.Init(p); err != nil {
+		return err
+	}
+	pm.UpdatePlan(p)
+	hosts := p.Hosts()
 
-	// Dynamic Intensity
-	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity, target.Parallel, maxParallel)
+	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity, target.Parallel)
 	defer cleanup()
 
-	repairHosts := gen.Hosts()
-
-	// Check if no other repairs are running
-	if active, err := client.ActiveRepairs(ctx, repairHosts.List()); err != nil {
-		s.logger.Error(ctx, "Active repair check failed", "error", err)
-	} else if len(active) > 0 {
-		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
-	}
-
-	// Get hosts in all DCs
-	status, err := client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "status")
-	}
-
-	// Validate that all hosts to repair are up
-	if down := status.Down().Hosts(); repairHosts.HasAny(down...) {
-		return errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down, ","))
-	}
-
-	if err := s.optimizeSmallTables(ctx, client, target, gen); err != nil {
-		return errors.Wrap(err, "optimize small tables")
-	}
-
-	// Get max_repair_ranges_in_parallel value for hosts
-	hostRangesLimits, err := s.hostRangeLimits(ctx, client, repairHosts.List())
-	if err != nil {
-		return errors.Wrap(err, "fetch host range limits")
-	}
-
 	// In a multi-dc repair look for a local datacenter and assign host priorities
-	hostPriority := make(hostPriority)
+	hp := make(hostPriority)
 	if len(target.DC) > 1 {
 		dcMap, err := client.Datacenters(ctx)
 		if err != nil {
@@ -353,88 +295,77 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		for p, dc := range closest {
 			for _, h := range dcMap[dc] {
-				if repairHosts.Has(h) {
-					hostPriority[h] = p
+				if slice.ContainsString(hosts, h) {
+					hp[h] = p
 				}
 			}
 		}
 	}
 
-	hosts := repairHosts.List()
-
-	hostFeatures, err := client.ScyllaFeatures(ctx, hosts...)
+	gen, err := newGenerator(ctx, target, p, client, ih, hp, s.logger)
 	if err != nil {
-		s.logger.Error(ctx, "Checking scylla features failed", "error", err)
-		return errors.Wrap(err, "scylla features")
+		return errors.Wrap(err, "create generator")
 	}
 
-	// Create host partitioner for legacy repair
-	hostPartitioner, err := s.hostPartitioner(ctx, hosts, client)
-	if err != nil {
-		return errors.Wrap(err, "initialize host partitioner")
+	if active, err := client.ActiveRepairs(ctx, hosts); err != nil {
+		s.logger.Error(ctx, "Active repair check failed", "error", err)
+	} else if len(active) > 0 {
+		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
 	}
 
-	// Enable row-level repair controller optimisation
-	repairType := s.repairType(ctx, hostFeatures)
-	var ctl controller
-	if repairType == TypeRowLevel {
-		ctl = newRowLevelRepairController(ih, hostRangesLimits, gen.Hosts().Size(), gen.MinReplicationFactor())
-		s.logger.Info(ctx, "Using row-level repair controller", "workers", ctl.MaxWorkerCount())
-	} else {
-		ctl = newDefaultController(ih, hostRangesLimits)
-		s.logger.Info(ctx, "Using default repair controller", "workers", ctl.MaxWorkerCount())
-	}
+	// Both generator and workers use graceful ctx.
+	//
+	gracefulCtx, cancel := context.WithCancel(context.Background())
+	gracefulCtx = log.CopyTraceID(gracefulCtx, ctx)
+	done := make(chan struct{}, 1)
 
-	// Get options
-	var opts []generatorOption
-	if target.FailFast {
-		opts = append(opts, failFast)
-	}
-
-	// Init Generator
-	if err := gen.Init(ctx, ctl, hostPriority, opts...); err != nil {
-		return err
-	}
-
-	// Worker context doesn't derive from ctx, generator will handle graceful
-	// shutdown. Generator must receive ctx.
-	workerCtx, workerCancel := context.WithCancel(context.Background())
-	// Add trace ID for workers
-	workerCtx = log.CopyTraceID(workerCtx, ctx)
-
-	// Run Workers and Generator
 	var eg errgroup.Group
-	for i := 0; i < ctl.MaxWorkerCount(); i++ {
+	for i := 0; i < gen.ctl.MaxParallel(); i++ {
 		i := i
 		eg.Go(func() error {
-			w := newWorker(run, gen.Next(), gen.Result(), client, manager,
-				hostPartitioner, hostFeatures, repairType,
-				s.config.PollInterval, s.config.LongPollingTimeoutSeconds,
-				s.logger.Named(fmt.Sprintf("worker %d", i)),
-			)
-
-			err := w.Run(workerCtx)
-			if errors.Is(err, context.Canceled) {
-				err = nil
+			w := &worker{
+				in:         gen.next,
+				out:        gen.result,
+				client:     client,
+				stopTrying: make(map[string]struct{}),
+				progress:   pm,
+				logger:     s.logger.Named(fmt.Sprintf("worker %d", i)),
 			}
-			return err
+			w.Run(gracefulCtx)
+			return nil
 		})
 	}
 	eg.Go(func() error {
-		err := gen.Run(ctx)
-		workerCancel()
-		return err
+		return gen.Run(gracefulCtx)
 	})
 
-	if err := eg.Wait(); err != nil {
-		if errors.Is(err, context.Canceled) || target.FailFast {
-			// Send kill repair request to all hosts.
-			s.killAllRepairs(ctx, client, repairHosts.List())
+	go func() {
+		select {
+		case <-ctx.Done():
+			s.logger.Info(ctx, "Start graceful stop period", "time", s.config.GracefulStopTimeout)
+			gen.stopGenerating()
+			time.AfterFunc(s.config.GracefulStopTimeout, cancel)
+		case <-done:
+			cancel()
 		}
-		return err
+	}()
+
+	if err = eg.Wait(); (err != nil && target.FailFast) || ctx.Err() != nil {
+		s.killAllRepairs(ctx, client, hosts)
+	}
+	close(done)
+
+	// Check if repair is fully finished
+	if ok := gen.plan.UpdateIdx(); !ok {
+		run.EndTime = timeutc.Now()
+		s.putRunLogError(ctx, run)
 	}
 
-	return nil
+	// Prefer repair error to ctx error
+	if err != nil {
+		return err
+	}
+	return ctx.Err()
 }
 
 func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
@@ -445,156 +376,15 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 	}
 }
 
-func (s *Service) optimizeSmallTables(ctx context.Context, client *scyllaclient.Client, target Target, g *generator) error {
-	if target.SmallTableThreshold == 0 {
-		return nil
+func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]int {
+	out := make(map[string]int, len(shards))
+	for h, sh := range shards {
+		out[h] = maxRepairRangesInParallel(sh, memory[h])
 	}
-
-	repairHosts := g.Hosts()
-
-	// Get report for Host, Keyspace, Table tuples
-	var hkts []scyllaclient.HostKeyspaceTable
-	for _, u := range target.Units {
-		for _, t := range u.Tables {
-			for _, h := range repairHosts.List() {
-				hkts = append(hkts, scyllaclient.HostKeyspaceTable{Host: h, Keyspace: u.Keyspace, Table: t})
-			}
-		}
-	}
-	report, err := client.TableDiskSizeReport(ctx, hkts)
-	if err != nil {
-		return errors.Wrap(err, "fetch table disk size report")
-	}
-
-	// Calculate total table size across hosts
-	totalSize := make(map[string]int64)
-	for i, size := range report {
-		key := hkts[i].Keyspace + "." + hkts[i].Table
-		totalSize[key] += size
-	}
-
-	// Log and mark small tables
-	var smallTables []string
-	for _, u := range target.Units {
-		for _, t := range u.Tables {
-			key := u.Keyspace + "." + t
-			total := totalSize[key]
-
-			if total <= target.SmallTableThreshold {
-				s.logger.Debug(ctx, "Detected small table", "keyspace", u.Keyspace, "table", t, "size", total, "threshold", target.SmallTableThreshold)
-				g.markSmallTable(u.Keyspace, t)
-				smallTables = append(smallTables, key)
-			}
-		}
-	}
-	if len(smallTables) > 0 {
-		s.logger.Info(ctx, "Detected small tables", "tables", smallTables, "threshold", target.SmallTableThreshold)
-	}
-
-	mergeSmallTableRanges(g)
-
-	return nil
+	return out
 }
 
-func mergeSmallTableRanges(gen *generator) {
-	h := scyllaclient.ReplicaHash(gen.Hosts().List())
-	smallTableRanges := make(map[string]*tableTokenRange)
-	i := 0
-	for _, r := range gen.ranges[h] {
-		table := r.Keyspace + "." + r.Table
-		smallTable := false
-		for _, t := range gen.smallTables.List() {
-			if table == t {
-				smallTable = true
-				break
-			}
-		}
-		if smallTable && r.FullyReplicated {
-			if _, ok := smallTableRanges[table]; !ok {
-				smallTableRanges[table] = &tableTokenRange{
-					Keyspace:        r.Keyspace,
-					Table:           r.Table,
-					Replicas:        r.Replicas,
-					StartToken:      dht.Murmur3MinToken,
-					EndToken:        dht.Murmur3MaxToken,
-					FullyReplicated: r.FullyReplicated,
-				}
-			}
-		} else {
-			gen.ranges[h][i] = r
-			i++
-		}
-	}
-
-	gen.ranges[h] = gen.ranges[h][:i]
-
-	for _, v := range smallTableRanges {
-		gen.ranges[h] = append(gen.ranges[h], v)
-	}
-}
-
-type rangesLimit struct {
-	Default int
-	Max     int
-}
-
-type hostRangesLimit map[string]rangesLimit
-
-// MaxShards returns max number of shards for all hosts.
-func (hrl hostRangesLimit) MaxShards() int {
-	max := 0
-	for _, l := range hrl {
-		if v := l.Default; v > max {
-			max = v
-		}
-	}
-	return max
-}
-
-func (s *Service) hostRangeLimits(ctx context.Context, client *scyllaclient.Client, hosts []string) (hostRangesLimit, error) {
-	var (
-		out = make(hostRangesLimit, len(hosts))
-		mu  sync.Mutex
-	)
-
-	f := func(i int) error {
-		h := hosts[i]
-
-		totalMemory, err := client.TotalMemory(ctx, h)
-		if err != nil {
-			return errors.Wrapf(err, "%s: get total memory", h)
-		}
-
-		shards, err := client.ShardCount(ctx, h)
-		if err != nil {
-			return errors.Wrapf(err, "%s: get shard count", h)
-		}
-
-		v := rangesLimit{
-			Default: int(shards),
-			Max:     s.maxRepairRangesInParallel(shards, totalMemory),
-		}
-		s.logger.Info(ctx, "Host repair intensity limit", "host", h, "limit", v)
-
-		mu.Lock()
-		out[h] = v
-		mu.Unlock()
-
-		return nil
-	}
-
-	notify := func(i int, err error) {
-		s.logger.Error(ctx, "Failed to get repair intensity limit for host",
-			"host", hosts[i],
-			"error", err,
-		)
-	}
-
-	err := parallel.Run(len(hosts), parallel.NoLimit, f, notify)
-	return out, err
-}
-
-func (s *Service) maxRepairRangesInParallel(shards uint, totalMemory int64) int {
+func maxRepairRangesInParallel(shards uint, totalMemory int64) int {
 	const MiB = 1024 * 1024
 	memoryPerShard := totalMemory / int64(shards)
 	max := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
@@ -604,12 +394,11 @@ func (s *Service) maxRepairRangesInParallel(shards uint, totalMemory int64) int 
 	return max
 }
 
-func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64, parallel, maxParallel int) (ih *intensityHandler, cleanup func()) {
+func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64, parallel int) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
-		logger:      s.logger.Named("control"),
-		intensity:   atomic.NewFloat64(intensity),
-		parallel:    atomic.NewInt64(int64(parallel)),
-		maxParallel: maxParallel,
+		logger:    s.logger.Named("control"),
+		intensity: atomic.NewFloat64(intensity),
+		parallel:  atomic.NewInt64(int64(parallel)),
 	}
 
 	s.mu.Lock()
@@ -624,32 +413,6 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, 
 		delete(s.intensityHandlers, clusterID)
 		s.mu.Unlock()
 	}
-}
-
-// decorateWithPrevRun looks for previous run and if it can be continued sets
-// PrevID on the given run.
-func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
-	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
-	if errors.Is(err, service.ErrNotFound) {
-		return nil
-	}
-	if err != nil {
-		return errors.Wrap(err, "get previous run")
-	}
-
-	// Check if can continue from prev
-	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
-	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
-		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
-		return nil
-	}
-
-	// Decorate run with previous run id.
-	// Progress manager will use this as indication to restore state on
-	// generator init.
-	run.PrevID = prev.ID
-
-	return nil
 }
 
 // putRun upserts a repair run.
@@ -667,71 +430,13 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-func (s *Service) hostPartitioner(ctx context.Context, hosts []string, client *scyllaclient.Client) (map[string]*dht.Murmur3Partitioner, error) {
-	// Check the cluster partitioner
-	p, err := client.Partitioner(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get client partitioner name")
-	}
-
-	out := make(map[string]*dht.Murmur3Partitioner)
-	if p == scyllaclient.Murmur3Partitioner {
-		for _, h := range hosts {
-			p, err := s.partitioner(ctx, h, client)
-			if err != nil {
-				return nil, err
-			}
-			out[h] = p
-		}
-	} else {
-		s.logger.Info(ctx, "Unsupported partitioner", "partitioner", p)
-		for _, h := range hosts {
-			out[h] = nil
-		}
-	}
-	return out, nil
-}
-
-func (s *Service) repairType(ctx context.Context, hostFeatures map[string]scyllaclient.ScyllaFeatures) Type {
-	if s.config.ForceRepairType == TypeRowLevel || s.config.ForceRepairType == TypeLegacy {
-		s.logger.Info(ctx, "Forcing repair type", "type", s.config.ForceRepairType)
-		return s.config.ForceRepairType
-	}
-
-	// Handle auto mode
-	t := TypeRowLevel
-	for _, f := range hostFeatures {
-		if !f.RowLevelRepair {
-			t = TypeLegacy
-			break
-		}
-	}
-	return t
-}
-
-func (s *Service) partitioner(ctx context.Context, host string, client *scyllaclient.Client) (*dht.Murmur3Partitioner, error) {
-	shardCount, err := client.ShardCount(ctx, host)
-	if err != nil {
-		return nil, errors.Wrap(err, "get shard count")
-	}
-	return dht.NewMurmur3Partitioner(shardCount, uint(s.config.Murmur3PartitionerIgnoreMSBBits)), nil
-}
-
 // GetLastResumableRun returns the most recent started but not done run of
-// the task, if there is a recent run that is completely done ErrNotFound is
-// reported.
-func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetLastResumableRun",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-	)
-
-	stmt, names := qb.Select(table.RepairRun.Name()).Where(
+// the task, if there is a recent run that is completely done ErrNotFound is reported.
+func (s *Service) GetLastResumableRun(clusterID, taskID uuid.UUID) (*Run, error) {
+	q := qb.Select(table.RepairRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
-	).Limit(20).ToCql()
-
-	q := s.session.Query(stmt, names).BindMap(qb.M{
+	).Limit(20).Query(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    taskID,
 	})
@@ -742,30 +447,55 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 	}
 
 	for _, r := range runs {
-		p, err := aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(r, s.session))
-		if err != nil {
-			return nil, err
-		}
-		if p.TokenRanges > 0 {
-			if p.Success == p.TokenRanges {
+		if s.isRunInitialized(r) {
+			if !r.EndTime.IsZero() {
 				break
 			}
 			return r, nil
 		}
 	}
-
 	return nil, service.ErrNotFound
+}
+
+func (s *Service) isRunInitialized(run *Run) bool {
+	q := qb.Select(table.RepairRunProgress.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+		qb.Eq("run_id"),
+	).Limit(1).Query(s.session).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
+	})
+
+	var check []*RunProgress
+	err := q.SelectRelease(&check)
+	return err == nil && len(check) > 0
+}
+
+func (s *Service) fillPrevRunID(ctx context.Context, run *Run) error {
+	prev, err := s.GetLastResumableRun(run.ClusterID, run.TaskID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			return nil
+		}
+		return errors.Wrap(err, "get previous run")
+	}
+
+	// Check if we can continue from prev
+	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
+	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
+		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
+		return nil
+	}
+
+	run.PrevID = prev.ID
+	return nil
 }
 
 // GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
-func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
-	s.logger.Debug(ctx, "GetRun",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-		"run_id", runID,
-	)
-
+func (s *Service) GetRun(_ context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
 	var r Run
 	return &r, table.RepairRun.GetQuery(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
@@ -777,49 +507,30 @@ func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // GetProgress returns run progress for all shards on all the hosts. If nothing
 // was found scylla-manager.ErrNotFound is returned.
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
-	var p Progress
-	defer func() {
-		s.logger.Debug(ctx, "GetProgress",
-			"cluster_id", clusterID,
-			"task_id", taskID,
-			"run_id", runID,
-			"tokens", p.TokenRanges,
-			"success", p.Success,
-			"error", p.Error,
-		)
-	}()
-
 	run, err := s.GetRun(ctx, clusterID, taskID, runID)
 	if err != nil {
-		return p, err
+		return Progress{}, errors.Wrap(err, "get run")
+	}
+	manager := &dbProgressManager{
+		run:     run,
+		session: s.session,
 	}
 
-	p, err = aggregateProgress(s.hostIntensityFunc(clusterID), NewProgressVisitor(run, s.session))
+	p, err := manager.aggregateProgress()
 	if err != nil {
-		return p, err
-	}
-	p.DC = run.DC
-	p.Host = run.Host
-
-	return p, nil
-}
-
-func (s *Service) hostIntensityFunc(clusterID uuid.UUID) func() (float64, int) {
-	// When repair is running, intensity is dynamic.
-	// Otherwise always return 0, 0.
-	intensityFunc := func() (float64, int) {
-		return 0, 0
+		return Progress{}, errors.Wrap(err, "aggregate progress")
 	}
 
 	s.mu.Lock()
 	if ih, ok := s.intensityHandlers[clusterID]; ok {
-		intensityFunc = func() (float64, int) {
-			return ih.Intensity(), ih.Parallel()
-		}
+		p.Intensity = float64(ih.Intensity())
+		p.Parallel = ih.Parallel()
 	}
 	s.mu.Unlock()
 
-	return intensityFunc
+	p.DC = run.DC
+	p.Host = run.Host
+	return p, nil
 }
 
 // SetIntensity changes intensity of an ongoing repair.
@@ -857,55 +568,45 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 }
 
 type intensityHandler struct {
-	logger      log.Logger
-	intensity   *atomic.Float64
-	parallel    *atomic.Int64
-	maxParallel int
+	logger    log.Logger
+	intensity *atomic.Float64
+	parallel  *atomic.Int64
 }
 
 const (
-	maxIntensity    = 0
-	defaultParallel = 0
+	maxIntensity     = 0
+	defaultIntensity = 1
+	defaultParallel  = 0
 )
 
-// Sets repair intensity value.
+// SetIntensity sets the value of '--intensity' flag.
 func (i *intensityHandler) SetIntensity(ctx context.Context, intensity float64) error {
-	if intensity < maxIntensity {
+	if intensity < 0 {
 		return service.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
 	}
+
 	i.logger.Info(ctx, "Setting repair intensity", "value", intensity, "previous", i.intensity.Load())
 	i.intensity.Store(intensity)
-
 	return nil
 }
 
-// Sets repair parallel value.
+// SetParallel sets the value of '--parallel' flag.
 func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error {
-	if parallel < defaultParallel {
+	if parallel < 0 {
 		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
 	}
 
 	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
 	i.parallel.Store(int64(parallel))
-
-	if parallel > i.maxParallel {
-		i.logger.Info(ctx, "Requested parallel value will be capped to maximum possible", "requested", parallel, "maximum", i.maxParallel)
-	}
-
 	return nil
 }
 
-// Intensity returns stored value for intensity.
-func (i *intensityHandler) Intensity() float64 {
-	return i.intensity.Load()
+// Intensity returns effective intensity.
+func (i *intensityHandler) Intensity() int {
+	return int(i.intensity.Load())
 }
 
 // Parallel returns stored value for parallel.
 func (i *intensityHandler) Parallel() int {
 	return int(i.parallel.Load())
-}
-
-// MaxParallel returns maximum value of the parallel setting.
-func (i *intensityHandler) MaxParallel() int {
-	return i.maxParallel
 }
