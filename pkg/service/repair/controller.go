@@ -59,10 +59,13 @@ func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
 	}
 
 	// DENY if there are already '--parallel' repair jobs running
-	if parallel := c.intensity.Parallel(); parallel != defaultParallel {
-		if c.jobsCnt >= parallel {
-			return false
-		}
+	parallel := c.intensity.Parallel()
+	if parallel != defaultParallel && c.jobsCnt >= parallel {
+		return false
+	}
+	// DENY if it's trying to exceed maxParallel
+	if parallel == defaultParallel && c.jobsCnt >= c.maxParallel {
+		return false
 	}
 
 	return true

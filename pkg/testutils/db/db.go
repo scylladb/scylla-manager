@@ -244,3 +244,11 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 
 	return startingID + rowsCnt
 }
+
+// CreateMaterializedView is the utility function that executes CQL query creating MV for given keyspace.table.
+func CreateMaterializedView(t *testing.T, session gocqlx.Session, keyspace, table, mv string) {
+	t.Helper()
+
+	ExecStmt(t, session, fmt.Sprintf("CREATE MATERIALIZED VIEW %s.%s AS SELECT * FROM %s.%s PRIMARY KEY (id)",
+		keyspace, mv, keyspace, table))
+}

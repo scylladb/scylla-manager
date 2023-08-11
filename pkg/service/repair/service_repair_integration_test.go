@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -57,6 +58,28 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, log.NopLogger)
 	s := newTestService(t, session, c, config, logger)
+
+	return &repairTestHelper{
+		CommonTestHelper: &CommonTestHelper{
+			Logger:    logger,
+			Session:   session,
+			Hrt:       hrt,
+			Client:    c,
+			ClusterID: uuid.MustRandom(),
+			TaskID:    uuid.MustRandom(),
+			RunID:     uuid.NewTime(),
+			T:         t,
+		},
+		service: s,
+	}
+}
+
+func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session, clusterSession gocqlx.Session,
+	hrt *HackableRoundTripper, c *scyllaclient.Client, config repair.Config) *repairTestHelper {
+	t.Helper()
+
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+	s := newTestServiceWithClusterSession(t, session, clusterSession, c, config, logger)
 
 	return &repairTestHelper{
 		CommonTestHelper: &CommonTestHelper{
@@ -335,7 +358,6 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	return c
 }
 
@@ -350,8 +372,29 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 			return client, nil
 		},
 		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
-			// TODO: add tests for repair base table before view
 			return gocqlx.Session{}, errors.New("not implemented")
+		},
+		logger.Named("repair"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return s
+}
+
+func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clusterSession gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+	t.Helper()
+
+	s, err := repair.NewService(
+		session,
+		c,
+		metrics.NewRepairMetrics(),
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			return client, nil
+		},
+		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+			return clusterSession, nil
 		},
 		logger.Named("repair"),
 	)
@@ -573,6 +616,162 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 			t.Fatal("too many repair jobs are being executed on host")
 		}
 	})
+}
+
+func TestServiceRepairOrderOfTheRepairAndToRepairSingleTableAtATime(t *testing.T) {
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
+	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+	c := newTestClient(t, hrt, log.NopLogger)
+
+	session := CreateScyllaManagerDBSession(t)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, c)
+	h := newRepairWithClusterSessionTestHelper(t, session, clusterSession, hrt, c, repair.DefaultConfig())
+
+	const (
+		ks1 = "test_repair_rf_1"
+		t1  = "test_table_1"
+		t2  = "test_table_2"
+		mv  = "test_mv"
+	)
+	createKeyspace(t, clusterSession, ks1, 1, 1)
+	WriteData(t, clusterSession, ks1, 5, t1, t2)
+	CreateMaterializedView(t, clusterSession, ks1, t1, mv)
+
+	ctx := context.Background()
+
+	// Expected order defines the order of system tables to be repaired first
+	expectedKSOrder := []string{
+		"system_auth",
+		"system_distributed",
+		"system_distributed_everywhere",
+		ks1,
+	}
+	target := h.generateTarget(map[string]any{
+		"FailFast": true,
+	})
+
+	// Map showing how many jobs are already scheduled for given keyspace.table
+	repairsPerTable := make(map[string]int)
+	muRPT := sync.Mutex{}
+
+	// Keyspace and table handled by given repair job
+	jobId2KsAndTable := make(map[string]string)
+	muHIJ := sync.Mutex{}
+
+	var order []string
+
+	// Fail string
+	var failString atomic.Value
+
+	// Repair request
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+			pathParts := strings.Split(req.URL.Path, "/")
+			keyspace := pathParts[len(pathParts)-1]
+
+			muRPT.Lock()
+			defer muRPT.Unlock()
+
+			repairsPerTable[keyspace+"."+req.URL.Query().Get("columnFamilies")]++
+			if len(repairsPerTable) > 1 {
+				failString.Store(fmt.Sprintf("Expected to repair just a single table at a time, but got more. Example: %v",
+					repairsPerTable))
+			}
+		}
+
+		return nil, nil
+	}))
+
+	h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+		if resp == nil {
+			return
+		}
+
+		var copiedBody bytes.Buffer
+		tee := io.TeeReader(resp.Body, &copiedBody)
+		body, _ := io.ReadAll(tee)
+		resp.Body = io.NopCloser(&copiedBody)
+
+		// Response to repair schedule
+		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
+			pathParts := strings.Split(resp.Request.URL.Path, "/")
+
+			muHIJ.Lock()
+			defer muHIJ.Unlock()
+
+			keyspaceTable := pathParts[len(pathParts)-1] + "." + resp.Request.URL.Query().Get("columnFamilies")
+			jobId2KsAndTable[resp.Request.Host+string(body)] = keyspaceTable
+
+			if order != nil {
+				if order[len(order)-1] != keyspaceTable {
+					order = append(order, keyspaceTable)
+				}
+			} else {
+				order = []string{keyspaceTable}
+			}
+		}
+
+		// Response to repair status
+		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
+			status := string(body)
+			if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
+				muHIJ.Lock()
+				defer muHIJ.Unlock()
+
+				keyspaceTable := jobId2KsAndTable[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
+				if keyspaceTable == "" {
+					return
+				}
+				muRPT.Lock()
+				defer muRPT.Unlock()
+
+				repairsPerTable[keyspaceTable]--
+				if repairsPerTable[keyspaceTable] == 0 {
+					delete(repairsPerTable, keyspaceTable)
+				}
+			}
+		}
+	})
+
+	Print("When: run repair")
+	if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Errorf("Repair failed: %s", err)
+	}
+
+	var ksRepairOrder []string
+	for _, kt := range order {
+		ktPair := strings.Split(kt, ".")
+		if ksRepairOrder == nil {
+			ksRepairOrder = []string{ktPair[0]}
+		} else {
+			if ksRepairOrder[len(ksRepairOrder)-1] != ktPair[0] {
+				ksRepairOrder = append(ksRepairOrder, ktPair[0])
+			}
+		}
+	}
+
+	// assert repair just one table at a time
+	result := failString.Load()
+	if result != nil {
+		t.Fatal(result)
+	}
+
+	// assert MV is repaired after the base table
+	mp := make(map[string]struct{})
+	for _, kt := range order {
+		if kt == ks1+"."+mv {
+			if _, ok := mp[ks1+"."+t1]; !ok {
+				t.Fatalf("expected %s.%s to be repaired before %s.%s", ks1, t1, ks1, mv)
+			}
+		}
+		mp[kt] = struct{}{}
+	}
+
+	// assert repair order
+	if !reflect.DeepEqual(ksRepairOrder, expectedKSOrder) {
+		t.Fatalf("wrong repair order, got \n{%v}\n, expected \n{%v}", ksRepairOrder, expectedKSOrder)
+	}
+
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
