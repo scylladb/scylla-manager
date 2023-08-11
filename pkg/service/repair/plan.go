@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"math"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
@@ -187,6 +188,41 @@ func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallT
 	return nil
 }
 
+// ViewSort ensures that views are repaired after base tables.
+func (p *plan) ViewSort(views *strset.Set) {
+	for _, kp := range p.Keyspaces {
+		sort.SliceStable(kp.Tables, func(i, j int) bool {
+			kst1 := kp.Keyspace + "." + kp.Tables[i].Table
+			kst2 := kp.Keyspace + "." + kp.Tables[j].Table
+			return !views.Has(kst1) && views.Has(kst2)
+		})
+	}
+}
+
+// PrioritySort ensures that table with priority are repaired first.
+func (p *plan) PrioritySort(pref tablePreference) {
+	sort.SliceStable(p.Keyspaces, func(i, j int) bool {
+		return pref.KSLess(p.Keyspaces[i].Keyspace, p.Keyspaces[j].Keyspace)
+	})
+	for _, kp := range p.Keyspaces {
+		sort.SliceStable(kp.Tables, func(i, j int) bool {
+			return pref.TLess(kp.Keyspace, kp.Tables[i].Table, kp.Tables[j].Table)
+		})
+	}
+}
+
+// SizeSort ensures that smaller tables are repaired first.
+func (p *plan) SizeSort() {
+	sort.SliceStable(p.Keyspaces, func(i, j int) bool {
+		return p.Keyspaces[i].Size < p.Keyspaces[j].Size
+	})
+	for _, kp := range p.Keyspaces {
+		sort.SliceStable(kp.Tables, func(i, j int) bool {
+			return kp.Tables[i].Size < kp.Tables[j].Size
+		})
+	}
+}
+
 // keyspacePlan describes repair schedule and state for keyspace.
 type keyspacePlan struct {
 	Keyspace string
@@ -297,4 +333,58 @@ func filteredReplicaSet(replicaSet []string, filteredHosts *strset.Set, host str
 	}
 
 	return out
+}
+
+// tablePreference describes partial predefined order in which tables should be repaired.
+type tablePreference []Unit
+
+// internalTablePreference ensures that important system tables are repaired first.
+var internalTablePreference = []Unit{
+	{
+		Keyspace: "system_auth",
+		Tables: []string{
+			"role_attributes",
+			"role_members",
+		},
+	},
+	{Keyspace: "system_traces"},
+	{Keyspace: "system_distributed"},
+	{Keyspace: "system_distributed_everywhere"},
+}
+
+// KSLess compares priorities of two keyspaces according to preference.
+func (tp tablePreference) KSLess(ks1, ks2 string) bool {
+	if ks1 == ks2 {
+		return false
+	}
+	for _, u := range tp {
+		if u.Keyspace == ks1 {
+			return true
+		}
+		if u.Keyspace == ks2 {
+			return false
+		}
+	}
+	return false
+}
+
+// TLess compares priorities of two tables from the same keyspace according to preference.
+func (tp tablePreference) TLess(ks, t1, t2 string) bool {
+	if t1 == t2 {
+		return false
+	}
+	for _, u := range tp {
+		if u.Keyspace != ks {
+			continue
+		}
+		for _, t := range u.Tables {
+			if t == t1 {
+				return true
+			}
+			if t == t2 {
+				return false
+			}
+		}
+	}
+	return false
 }
