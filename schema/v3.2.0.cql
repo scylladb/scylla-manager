@@ -10,3 +10,14 @@ CREATE TYPE restore_view (
 );
 
 ALTER TABLE restore_run ADD views list<frozen<restore_view>>;
+
+ALTER TABLE repair_run ADD end_time timestamp;
+
+CREATE TYPE token_range (
+    start_token bigint,
+    end_token   bigint,
+);
+
+ALTER TABLE repair_run_state DROP success_pos;
+ALTER TABLE repair_run_state DROP error_pos;
+ALTER TABLE repair_run_state ADD success_ranges set<frozen<token_range>>;
