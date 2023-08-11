@@ -4,6 +4,8 @@ package repair
 
 import (
 	"context"
+	"math"
+	"sort"
 	"strings"
 	"sync/atomic"
 
@@ -12,19 +14,45 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 )
 
-type hostPriority map[string]int
+// masterSelector describes each host priority for being repair master.
+// Repair master is first chosen by smallest shard count,
+// then by smallest dc RTT from SM.
+type masterSelector map[string]int
 
-func (hp hostPriority) PickHost(replicas []string) string {
-	for p := 0; p < len(hp); p++ {
-		for _, r := range replicas {
-			if hp[r] == p {
-				return r
-			}
+func newMasterSelector(shards map[string]uint, hostDC map[string]string, closestDC []string) masterSelector {
+	hosts := make([]string, 0, len(shards))
+	for h := range shards {
+		hosts = append(hosts, h)
+	}
+
+	sort.Slice(hosts, func(i, j int) bool {
+		if shards[hosts[i]] != shards[hosts[j]] {
+			return shards[hosts[i]] < shards[hosts[j]]
+		}
+		return slice.Index(closestDC, hostDC[hosts[i]]) < slice.Index(closestDC, hostDC[hosts[j]])
+	})
+
+	ms := make(masterSelector)
+	for i, h := range hosts {
+		ms[h] = i
+	}
+	return ms
+}
+
+// Select returns repair master from replica set.
+func (ms masterSelector) Select(replicas []string) string {
+	var master string
+	p := math.MaxInt64
+	for _, r := range replicas {
+		if ms[r] < p {
+			p = ms[r]
+			master = r
 		}
 	}
-	return replicas[0]
+	return master
 }
 
 type job struct {
@@ -66,7 +94,7 @@ func (r jobResult) Success() bool {
 type generator struct {
 	plan   *plan
 	ctl    controller
-	hp     hostPriority
+	ms     masterSelector
 	client *scyllaclient.Client
 
 	logger   log.Logger
@@ -87,7 +115,7 @@ type generator struct {
 }
 
 func newGenerator(ctx context.Context, target Target, plan *plan,
-	client *scyllaclient.Client, ih *intensityHandler, hp hostPriority, logger log.Logger,
+	client *scyllaclient.Client, ih *intensityHandler, logger log.Logger,
 ) (*generator, error) {
 	var ord, cnt int
 	for _, kp := range plan.Keyspaces {
@@ -111,6 +139,10 @@ func newGenerator(ctx context.Context, target Target, plan *plan,
 	if down := strset.New(status.Down().Hosts()...); down.HasAny(hosts...) {
 		return nil, errors.Errorf("ensure nodes are up, down nodes: %s", strings.Join(down.List(), ","))
 	}
+	closestDC, err := client.ClosestDC(ctx, status.DatacenterMap(target.DC))
+	if err != nil {
+		return nil, errors.Wrap(err, "calculate closest dc")
+	}
 
 	shards, err := client.HostsShardCount(ctx, hosts)
 	if err != nil {
@@ -128,7 +160,7 @@ func newGenerator(ctx context.Context, target Target, plan *plan,
 	return &generator{
 		plan:        plan,
 		ctl:         newRowLevelRepairController(ih, maxParallel, hostMaxRanges(shards, memory)),
-		hp:          hp,
+		ms:          newMasterSelector(shards, status.HostDC(), closestDC),
 		client:      client,
 		next:        make(chan job, maxParallel),
 		result:      make(chan jobResult, maxParallel),
@@ -236,7 +268,7 @@ func (g *generator) newJob() (job, bool) {
 			return job{
 				keyspace:   kp.Keyspace,
 				table:      tp.Table,
-				master:     g.hp.PickHost(rep.ReplicaSet),
+				master:     g.ms.Select(rep.ReplicaSet),
 				replicaSet: rep.ReplicaSet,
 				ranges:     kp.GetRangesToRepair(repIdx, tabIdx, ranges),
 				optimize:   tp.Optimize,
