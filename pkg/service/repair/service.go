@@ -23,7 +23,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -283,44 +282,16 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return err
 	}
 	pm.UpdatePlan(p)
-	hosts := p.Hosts()
 
 	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity, target.Parallel)
 	defer cleanup()
 
-	// In a multi-dc repair look for a local datacenter and assign host priorities
-	hp := make(hostPriority)
-	if len(target.DC) > 1 {
-		dcMap, err := client.Datacenters(ctx)
-		if err != nil {
-			return errors.Wrap(err, "read datacenters")
-		}
-
-		targetDCs := strset.New(target.DC...)
-		for dc := range dcMap {
-			if !targetDCs.Has(dc) {
-				delete(dcMap, dc)
-			}
-		}
-		closest, err := client.ClosestDC(ctx, dcMap)
-		if err != nil {
-			return errors.Wrap(err, "calculate datacenter latency measurement")
-		}
-
-		for p, dc := range closest {
-			for _, h := range dcMap[dc] {
-				if slice.ContainsString(hosts, h) {
-					hp[h] = p
-				}
-			}
-		}
-	}
-
-	gen, err := newGenerator(ctx, target, p, client, ih, hp, s.logger)
+	gen, err := newGenerator(ctx, target, p, client, ih, s.logger)
 	if err != nil {
 		return errors.Wrap(err, "create generator")
 	}
 
+	hosts := p.Hosts()
 	if active, err := client.ActiveRepairs(ctx, hosts); err != nil {
 		s.logger.Error(ctx, "Active repair check failed", "error", err)
 	} else if len(active) > 0 {
