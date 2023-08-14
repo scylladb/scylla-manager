@@ -411,6 +411,7 @@ func (c *Client) taskByName(ctx context.Context, clusterID, taskType, taskName s
 		ClusterID: clusterID,
 		Type:      &taskType,
 		Short:     pointer.BoolPtr(true),
+		All:       pointer.BoolPtr(true),
 	})
 	if err != nil {
 		return uuid.Nil, err
