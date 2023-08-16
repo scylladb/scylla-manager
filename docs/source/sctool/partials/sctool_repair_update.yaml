@@ -56,7 +56,7 @@ options:
 - name: intensity
   default_value: "1"
   usage: |
-    How many token ranges per shard to repair in a single Scylla node at the same time.
+    How many token ranges to repair in a single Scylla node at the same time.
     Zero (0) is a special value, the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
     Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
 - name: interval
