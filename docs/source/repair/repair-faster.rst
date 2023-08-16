@@ -13,7 +13,7 @@ Speedup a running repair
 ========================
 
 If a repair is running on a cluster, you can change the intensity and parallelism level that should be applied while it is running.
-Run the following command to adjust the number of token ranges per Scylla repair job to the maximum supported (in parallel) by a repair master node.
+Run the following command to adjust the number of token ranges per Scylla repair job to the maximum supported (in parallel).
 
 .. code-block:: none
 
@@ -26,7 +26,7 @@ Speedup the future runs of a repair
 ===================================
 
 If you wish to change intensity or parallelism of a repair task that is scheduled, but not running use :ref:`sctool repair update <repair-update>` command.
-For example, the following command adjusts the number of token ranges per Scylla repair job to the maximum supported (in parallel) by a repair master node.
+For example, the following command adjusts the number of token ranges per Scylla repair job to the maximum supported (in parallel).
 
 .. code-block:: none
 

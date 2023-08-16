@@ -48,8 +48,7 @@ By default Scylla Manager runs repairs with full parallelism, you can change tha
 Repair intensity
 ================
 
-Intensity specifies how many token ranges per shard can be repaired in a Scylla node at every given time.
-It can be a decimal between (0,1). In that case the number of token ranges is a fraction of number of shards.
+Intensity specifies how many token ranges can be repaired in a Scylla node at every given time.
 The default intensity is one, you can change that using :ref:`sctool repair --intensity flag <sctool-repair>`.
 
 Scylla Manager 2.2 adds support for intensity value zero.
