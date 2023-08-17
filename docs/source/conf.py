@@ -7,9 +7,9 @@ from sphinx_scylladb_theme.utils import multiversion_regex_builder
 
 # Build documentation for the following tags and branches
 TAGS = []
-BRANCHES = ['master', 'branch-2.2', 'branch-2.3', 'branch-2.4', 'branch-2.5', 'branch-2.6', 'branch-3.0', 'branch-3.1']
+BRANCHES = ['master', 'branch-2.2', 'branch-2.3', 'branch-2.4', 'branch-2.5', 'branch-2.6', 'branch-3.0', 'branch-3.1', 'branch-3.2']
 # Set the latest version.
-LATEST_VERSION = 'branch-3.1'
+LATEST_VERSION = 'branch-3.2'
 # Set which versions are not released yet.
 UNSTABLE_VERSIONS = ['master']
 # Set which versions are deprecated
