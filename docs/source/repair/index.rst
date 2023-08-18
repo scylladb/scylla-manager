@@ -18,6 +18,11 @@ Repair is important to make sure that data across the nodes is consistent.
 To learn more about repairs please consult `this Scylla University lesson <https://university.scylladb.com/courses/scylla-operations/lessons/scylla-manager-repair-and-tombstones/topic/repairs>`_.
 
 Scylla Manager automates the repair process and allows you to configure how and when repair occurs.
+*Scylla Manager repair task* revolves around scheduling many *Scylla repair jobs* with selected ``--intensity`` in ``--parallel``.
+*Repair task* is responsible for fully repairing all tables selected with ``--keyspace`` parameter, while a single *repair job* repairs
+chosen (by Scylla Manager) token ranges of a given table owned by a specific replica set. All nodes from this replica set take part in
+the repair job and any node can take part only in a single repair job at any given time.
+
 When you create a cluster a repair task is automatically scheduled.
 This task is set to occur each week by default, but you can change it to another time, change its parameters or add additional repair tasks if needed.
 
@@ -35,7 +40,7 @@ Features
 Parallel repairs
 ================
 
-Each node can take part in at most one repair at any given moment, but Scylla Manager can repair distinct replica sets in a token ring in parallel.
+Each node can take part in at most one Scylla repair job at any given moment, but Scylla Manager can repair distinct replica sets in a token ring in parallel.
 This is beneficial for big clusters.
 For example, a 9 node cluster and a keyspace with replication factor 3, can be repaired up to 3 times faster in parallel.
 The following diagram presents a benchmark results comparing different parallel flag values.
