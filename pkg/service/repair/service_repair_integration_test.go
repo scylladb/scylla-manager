@@ -13,6 +13,8 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -20,6 +22,7 @@ import (
 	"time"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 
@@ -823,6 +826,250 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 	if expIdx != len(expectedRepairOrder) || actIdx != len(actualRepairOrder) {
 		t.Fatalf("Expected repair order and actual repair order didn't match, expIdx: %d, actIdx: %d", expIdx, actIdx)
+	}
+}
+
+func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
+	// This test checks if repair targets the full token range even when it is paused and resumed multiple times.
+	// It also checks if too many token ranges were redundantly repaired multiple times.
+
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
+	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+	c := newTestClient(t, hrt, log.NopLogger)
+	ctx := context.Background()
+
+	session := CreateScyllaManagerDBSession(t)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, c)
+	cfg := repair.DefaultConfig()
+	cfg.GracefulStopTimeout = time.Second
+	h := newRepairWithClusterSessionTestHelper(t, session, clusterSession, hrt, c, cfg)
+
+	const (
+		ks1 = "test_repair_1"
+		ks2 = "test_repair_2"
+		ks3 = "test_repair_3"
+		t1  = "test_table_1"
+		t2  = "test_table_2"
+		t3  = "test_table_3"
+		si1 = "test_si_1"
+		mv1 = "test_mv_1"
+		mv2 = "test_mv_2"
+		// This value has been chosen without much reasoning, but it seems fine.
+		// Each table consists of 6 * 256 token ranges (total number of vnodes in keyspace),
+		// so if stopping repair with short graceful stop timeout 4 times makes us
+		// redo only that many ranges, everything should be fine.
+		redundantLimit = 20
+	)
+
+	// Create keyspaces. Low RF increases repair parallelism.
+	createKeyspace(t, clusterSession, ks1, 2, 1)
+	createKeyspace(t, clusterSession, ks2, 1, 1)
+	createKeyspace(t, clusterSession, ks3, 1, 1)
+
+	// Create and fill tables
+	WriteData(t, clusterSession, ks1, 1, t1)
+	WriteData(t, clusterSession, ks1, 2, t2)
+
+	WriteData(t, clusterSession, ks2, 1, t1)
+	WriteData(t, clusterSession, ks2, 2, t2)
+	WriteData(t, clusterSession, ks2, 3, t3)
+
+	WriteData(t, clusterSession, ks3, 5, t1)
+
+	// Create views
+	CreateMaterializedView(t, clusterSession, ks1, t1, mv1)
+
+	CreateSecondaryIndex(t, clusterSession, ks2, t1, si1)
+	CreateMaterializedView(t, clusterSession, ks2, t2, mv1)
+	CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
+
+	target := h.generateTarget(map[string]any{
+		"fail_fast": false,
+		"continue":  true,
+	})
+
+	type TableRange struct {
+		FullTable string
+		Ranges    []scyllaclient.TokenRange
+	}
+
+	// Maps job ID to corresponding table and ranges
+	jobSpec := make(map[string]TableRange)
+	muJS := sync.Mutex{}
+
+	// Maps table to repaired ranges
+	doneRanges := make(map[string][]scyllaclient.TokenRange)
+	muDR := sync.Mutex{}
+
+	parseRanges := func(dumpedRanges string) []scyllaclient.TokenRange {
+		var out []scyllaclient.TokenRange
+		for _, r := range strings.Split(dumpedRanges, ",") {
+			tokens := strings.Split(r, ":")
+			s, err := strconv.ParseInt(tokens[0], 10, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			e, err := strconv.ParseInt(tokens[1], 10, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out = append(out, scyllaclient.TokenRange{
+				StartToken: s,
+				EndToken:   e,
+			})
+		}
+		return out
+	}
+
+	// Tools for performing a repair with 4 pauses
+	cnt := atomic.Int64{}
+	stop3000Ctx, stop3000 := context.WithCancel(ctx)
+	stop5000Ctx, stop5000 := context.WithCancel(ctx)
+	stop8000Ctx, stop8000 := context.WithCancel(ctx)
+	stop10000Ctx, stop10000 := context.WithCancel(ctx)
+
+	// Repair request
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+			switch cnt.Add(1) {
+			case 3000:
+				stop3000()
+				t.Log("First repair pause")
+			case 5000:
+				stop5000()
+				t.Log("Second repair pause")
+			case 8000:
+				stop8000()
+				t.Log("Third repair pause")
+			case 10000:
+				stop10000()
+				t.Log("Fourth repair pause")
+			}
+		}
+
+		return nil, nil
+	}))
+
+	h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+		if resp == nil {
+			return
+		}
+
+		var copiedBody bytes.Buffer
+		tee := io.TeeReader(resp.Body, &copiedBody)
+		body, _ := io.ReadAll(tee)
+		resp.Body = io.NopCloser(&copiedBody)
+
+		// Response to repair schedule
+		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
+			pathParts := strings.Split(resp.Request.URL.Path, "/")
+			keyspace := pathParts[len(pathParts)-1]
+			fullTable := keyspace + "." + resp.Request.URL.Query().Get("columnFamilies")
+			ranges := parseRanges(resp.Request.URL.Query().Get("ranges"))
+
+			// Register what table is being repaired
+			muJS.Lock()
+			jobSpec[resp.Request.Host+string(body)] = TableRange{
+				FullTable: fullTable,
+				Ranges:    ranges,
+			}
+			muJS.Unlock()
+		}
+
+		// Response to repair status
+		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
+			// Inject 5% errors on all runs except the last one.
+			// This helps to test repair error resilience.
+			if i := cnt.Load(); i < 10000 && i%20 == 0 {
+				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
+				return
+			}
+
+			status := string(body)
+			if status == "\"SUCCESSFUL\"" {
+				muJS.Lock()
+				tr := jobSpec[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
+				muJS.Unlock()
+
+				if tr.FullTable == "" {
+					t.Logf("This is strange %s", resp.Request.Host+resp.Request.URL.Query()["id"][0])
+					return
+				}
+
+				// Register done ranges
+				muDR.Lock()
+				dr := doneRanges[tr.FullTable]
+				dr = append(dr, tr.Ranges...)
+				doneRanges[tr.FullTable] = dr
+				muDR.Unlock()
+			}
+		}
+	})
+
+	Print("When: run first repair with context cancel")
+	if err := h.service.Repair(stop3000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run second repair with context cancel")
+	h.RunID = uuid.NewTime()
+	if err := h.service.Repair(stop5000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run third repair with context cancel")
+	h.RunID = uuid.NewTime()
+	if err := h.service.Repair(stop8000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run fourth repair with context cancel")
+	h.RunID = uuid.NewTime()
+	if err := h.service.Repair(stop10000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run fifth repair till it finishes")
+	h.RunID = uuid.NewTime()
+	if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Fatalf("Repair failed: %s", err)
+	}
+
+	Print("When: validate all, continuous ranges")
+	redundant := 0
+	for tab, tr := range doneRanges {
+		t.Logf("Checking table %s", tab)
+
+		sort.Slice(tr, func(i, j int) bool {
+			return tr[i].StartToken < tr[j].StartToken
+		})
+
+		// Check that full token range is repaired
+		if tr[0].StartToken != dht.Murmur3MinToken {
+			t.Fatalf("Expected min token %d, got %d", dht.Murmur3MinToken, tr[0].StartToken)
+		}
+		if tr[len(tr)-1].EndToken != dht.Murmur3MaxToken {
+			t.Fatalf("Expected max token %d, got %d", dht.Murmur3MaxToken, tr[len(tr)-1].EndToken)
+		}
+
+		// Check if repaired token ranges are continuous
+		for i := 1; i < len(tr); i++ {
+			// Redundant ranges might occur due to pausing repair,
+			// but there shouldn't be much of them.
+			if tr[i-1] == tr[i] {
+				t.Logf("Redundant range %v", tr[i])
+				redundant++
+				continue
+			}
+			if tr[i-1].EndToken != tr[i].StartToken {
+				t.Fatalf("Non continuous token ranges %v and %v", tr[i-1], tr[i])
+			}
+		}
+	}
+
+	t.Logf("Overall redundant ranges %d", redundant)
+	if redundant > redundantLimit {
+		t.Fatalf("Expected less redundant token ranges than %d", redundant)
 	}
 }
 
