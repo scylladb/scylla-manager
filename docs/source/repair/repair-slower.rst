@@ -6,7 +6,7 @@ You can make repair run slower by changing the level of parallelism or intensity
 By default Scylla Manager runs repairs with full parallelism and intensity one.
 
 Reduce amount of work performed by a single Scylla repair job.
-If ``--intensity`` has been previously increased, try setting it to ``--intensity 1``. That reduces the number of token ranges repaired in a single chunk of work.
+If ``--intensity`` has been previously increased, try setting it to ``--intensity 1``. That reduces the number of token ranges repaired in a single Scylla repair job.
 Beware that 0 is a special value, it means max intensity.
 
 Try setting ``--parallel 1``, that would cap the number of Scylla repair jobs in the cluster to one, frees nodes that are not being repaired.
