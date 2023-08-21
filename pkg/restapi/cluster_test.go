@@ -29,6 +29,7 @@ func TestClusterList(t *testing.T) {
 	expected := []*cluster.Cluster{{ID: uuid.MustRandom(), Name: "name"}}
 
 	m := restapi.NewMockClusterService(ctrl)
+	m.EXPECT().CheckCQLCredentials(gomock.Any()).Return(true, nil)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
 	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
