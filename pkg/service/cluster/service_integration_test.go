@@ -7,10 +7,11 @@ package cluster_test
 
 import (
 	"context"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"os"
 	"strconv"
 	"testing"
+
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -277,6 +278,44 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 
 		assertSecrets(t, c)
+	})
+
+	t.Run("check existing CQL credentials", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		ok, err := s.CheckCQLCredentials(c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Fatal("expected true")
+		}
+	})
+
+	t.Run("check non-existing CQL credentials", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+		c.Username = ""
+		c.Password = ""
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		ok, err := s.CheckCQLCredentials(c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Fatal("expected false")
+		}
 	})
 
 	t.Run("delete cluster removes secrets", func(t *testing.T) {
