@@ -75,10 +75,10 @@ func TestStorageIntegration(t *testing.T) {
 		if err := s.Get(truth); err != nil {
 			t.Fatal(err)
 		}
+
 		if cmp.Diff(truth.ClusterID, clusterID, UUIDComparer()) != "" {
 			t.Fatal("invalid cluster id")
 		}
-
 		if cmp.Diff(truth.Answer, answer) != "" {
 			t.Fatal("invalid entry value")
 		}
@@ -88,6 +88,31 @@ func TestStorageIntegration(t *testing.T) {
 		setup(t)
 		if err := s.Get(truth); err == nil || !errors.Is(err, service.ErrNotFound) {
 			t.Fatal("expected to get NotFound error")
+		}
+	})
+
+	t.Run("Check existing entry", func(t *testing.T) {
+		setup(t)
+		if err := s.Put(truth); err != nil {
+			t.Fatal(err)
+		}
+		ok, err := s.Check(truth)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Fatal("expected true")
+		}
+	})
+
+	t.Run("Check non-existing entry", func(t *testing.T) {
+		setup(t)
+		ok, err := s.Check(truth)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Fatal("expected false")
 		}
 	})
 
