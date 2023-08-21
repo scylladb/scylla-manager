@@ -206,9 +206,9 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 	t.Helper()
 
 	var (
-		ksStmt     = "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = %s"
-		tStmt      = "CREATE TABLE IF NOT EXISTS %s.%s (id int PRIMARY KEY, data blob)"
-		insertStmt = "INSERT INTO %s.%s (id, data) VALUES (?, ?)"
+		ksStmt     = "CREATE KEYSPACE IF NOT EXISTS %q WITH replication = %s"
+		tStmt      = "CREATE TABLE IF NOT EXISTS %q.%q (id int PRIMARY KEY, data blob)"
+		insertStmt = "INSERT INTO %q.%q (id, data) VALUES (?, ?)"
 	)
 	if !compaction {
 		tStmt += " WITH compaction = {'enabled': 'false', 'class': 'NullCompactionStrategy'}"
@@ -249,6 +249,63 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 func CreateMaterializedView(t *testing.T, session gocqlx.Session, keyspace, table, mv string) {
 	t.Helper()
 
-	ExecStmt(t, session, fmt.Sprintf("CREATE MATERIALIZED VIEW %s.%s AS SELECT * FROM %s.%s PRIMARY KEY (id)",
+	ExecStmt(t, session, fmt.Sprintf("CREATE MATERIALIZED VIEW %q.%q AS SELECT * FROM %q.%q WHERE data IS NOT NULL PRIMARY KEY (id, data)",
 		keyspace, mv, keyspace, table))
+
+	WaitForViews(t, session)
+}
+
+// CreateSecondaryIndex is the utility function that executes CQL query creating SI for given keyspace.table.
+func CreateSecondaryIndex(t *testing.T, session gocqlx.Session, keyspace, table, si string) {
+	t.Helper()
+
+	ExecStmt(t, session, fmt.Sprintf("CREATE INDEX %q ON %q.%q (data)", si, keyspace, table))
+
+	WaitForViews(t, session)
+}
+
+// FlushTable flushes memtable to sstables. It allows for more precise size calculations.
+func FlushTable(t *testing.T, client *scyllaclient.Client, hosts []string, keyspace, table string) {
+	t.Helper()
+
+	for _, h := range hosts {
+		if err := client.FlushTable(context.Background(), h, keyspace, table); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// WaitForViews returns only when all views in the cluster has been successfully built.
+func WaitForViews(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
+	var stats []string
+	q := qb.Select("system_distributed.view_build_status").Columns("status").Query(session)
+	defer q.Release()
+	timer := time.NewTimer(time.Minute)
+
+	for {
+		select {
+		case <-timer.C:
+			t.Fatal("Waiting for view creation timeout")
+		default:
+		}
+
+		if err := q.Select(&stats); err != nil {
+			t.Fatal(err)
+		}
+
+		ok := true
+		for _, s := range stats {
+			if s != "SUCCESS" {
+				ok = false
+				break
+			}
+		}
+
+		if ok {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
 }

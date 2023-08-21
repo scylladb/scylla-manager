@@ -1234,14 +1234,14 @@ func createUser(s gocqlx.Session, user, pass string) error {
 	iter := s.Query("LIST USERS", nil).Iter()
 	for iter.Scan(&name, &super) {
 		if !super {
-			if err := s.ExecStmt(fmt.Sprintf("DROP USER %s", name)); err != nil {
+			if err := s.ExecStmt(fmt.Sprintf("DROP USER '%s'", name)); err != nil {
 				return errors.Wrap(err, "drop user")
 			}
 		}
 	}
 	time.Sleep(time.Second)
 
-	if err := s.ExecStmt(fmt.Sprintf("CREATE USER %s WITH PASSWORD '%s'", user, pass)); err != nil {
+	if err := s.ExecStmt(fmt.Sprintf("CREATE USER '%s' WITH PASSWORD '%s'", user, pass)); err != nil {
 		return errors.Wrap(err, "create restore test user")
 	}
 	return nil
@@ -1264,17 +1264,17 @@ func grantPermissionsToUser(s gocqlx.Session, target RestoreTarget, user string)
 	for iter.Scan(&ks, &t) {
 		// Regular tables require ALTER permission.
 		if f.Check(ks, t) {
-			if err = s.ExecStmt(fmt.Sprintf("GRANT ALTER ON %s.%s TO %s", ks, t, user)); err != nil {
+			if err = s.ExecStmt(fmt.Sprintf("GRANT ALTER ON %q.%q TO '%s'", ks, t, user)); err != nil {
 				return errors.Wrap(err, "grant alter permission")
 			}
 		}
 		// Views of restored base tables require DROP and CREATE permissions.
 		if bt := baseTable(s, ks, t); bt != "" {
 			if f.Check(ks, bt) {
-				if err = s.ExecStmt(fmt.Sprintf("GRANT DROP ON %s.%s TO %s", ks, bt, user)); err != nil {
+				if err = s.ExecStmt(fmt.Sprintf("GRANT DROP ON %q.%q TO '%s'", ks, bt, user)); err != nil {
 					return errors.Wrap(err, "grant drop permission")
 				}
-				if err = s.ExecStmt(fmt.Sprintf("GRANT CREATE ON %s TO %s", ks, user)); err != nil {
+				if err = s.ExecStmt(fmt.Sprintf("GRANT CREATE ON %q TO '%s'", ks, user)); err != nil {
 					return errors.Wrap(err, "grant create permission")
 				}
 			}
@@ -1298,7 +1298,7 @@ func (h *restoreTestHelper) getRowCount(s gocqlx.Session, vt validateTable) int 
 		tmp string
 	)
 
-	it := s.Query(fmt.Sprintf("SELECT %s FROM %s.%s", vt.Column, vt.Keyspace, vt.Table), nil).Iter()
+	it := s.Query(fmt.Sprintf("SELECT %s FROM %q.%q", vt.Column, vt.Keyspace, vt.Table), nil).Iter()
 	for it.Scan(&tmp) {
 		cnt++
 	}
@@ -1461,9 +1461,7 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 		Printf("When: Write load nr %d to second cluster", i)
 
 		startingID = WriteDataSecondClusterSchema(h.T, session, keyspace, startingID, loadSize)
-		if err := h.Client.FlushTable(context.Background(), keyspace, BigTableName); err != nil {
-			h.T.Fatal(err)
-		}
+		FlushTable(h.T, h.Client, ManagedSecondClusterHosts(), keyspace, BigTableName)
 	}
 }
 
