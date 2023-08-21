@@ -36,6 +36,21 @@ func (m *MockClusterService) EXPECT() *MockClusterServiceMockRecorder {
 	return m.recorder
 }
 
+// CheckCQLCredentials mocks base method.
+func (m *MockClusterService) CheckCQLCredentials(arg0 uuid.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckCQLCredentials", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckCQLCredentials indicates an expected call of CheckCQLCredentials.
+func (mr *MockClusterServiceMockRecorder) CheckCQLCredentials(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckCQLCredentials", reflect.TypeOf((*MockClusterService)(nil).CheckCQLCredentials), arg0)
+}
+
 // DeleteCQLCredentials mocks base method.
 func (m *MockClusterService) DeleteCQLCredentials(arg0 context.Context, arg1 uuid.UUID) error {
 	m.ctrl.T.Helper()
