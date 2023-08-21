@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/go-set/strset"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 
@@ -618,65 +618,112 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 	})
 }
 
-func TestServiceRepairOrderOfTheRepairAndToRepairSingleTableAtATime(t *testing.T) {
+func TestServiceRepairOrderIntegration(t *testing.T) {
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, log.NopLogger)
+	ctx := context.Background()
 
 	session := CreateScyllaManagerDBSession(t)
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, c)
 	h := newRepairWithClusterSessionTestHelper(t, session, clusterSession, hrt, c, repair.DefaultConfig())
 
+	// Add prefixes ruining lexicographic order
 	const (
-		ks1 = "test_repair_rf_1"
-		t1  = "test_table_1"
-		t2  = "test_table_2"
-		mv  = "test_mv"
+		ks1 = "zz_test_repair_1"
+		ks2 = "hh_test_repair_2"
+		ks3 = "aa_test_repair_3"
+		t1  = "zz_test_table_1"
+		t2  = "hh_test_table_2"
+		t3  = "aa_test_table_3"
+		si1 = "aa_test_si_1"
+		mv1 = "zz_test_mv_1"
+		mv2 = "hh_test_mv_2"
 	)
+
+	// Create keyspaces. Low RF improves repair parallelism.
 	createKeyspace(t, clusterSession, ks1, 1, 1)
-	WriteData(t, clusterSession, ks1, 5, t1, t2)
-	CreateMaterializedView(t, clusterSession, ks1, t1, mv)
+	createKeyspace(t, clusterSession, ks2, 1, 1)
+	createKeyspace(t, clusterSession, ks3, 2, 1)
 
-	ctx := context.Background()
+	// Create and fill tables
+	WriteData(t, clusterSession, ks1, 1, t1)
+	WriteData(t, clusterSession, ks1, 2, t2)
 
-	// Expected order defines the order of system tables to be repaired first
-	expectedKSOrder := []string{
-		"system_auth",
-		"system_distributed",
-		"system_distributed_everywhere",
-		ks1,
+	WriteData(t, clusterSession, ks2, 1, t1)
+	WriteData(t, clusterSession, ks2, 2, t2)
+	WriteData(t, clusterSession, ks2, 3, t3)
+
+	WriteData(t, clusterSession, ks3, 20, t1)
+
+	// Create views
+	CreateMaterializedView(t, clusterSession, ks1, t1, mv1)
+
+	CreateSecondaryIndex(t, clusterSession, ks2, t1, si1)
+	CreateMaterializedView(t, clusterSession, ks2, t2, mv1)
+	CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
+
+	// Flush tables for correct memory calculations
+	FlushTable(t, c, ManagedClusterHosts(), ks1, t1)
+	FlushTable(t, c, ManagedClusterHosts(), ks1, t2)
+	FlushTable(t, c, ManagedClusterHosts(), ks1, mv1)
+
+	FlushTable(t, c, ManagedClusterHosts(), ks2, t1)
+	FlushTable(t, c, ManagedClusterHosts(), ks2, t2)
+	FlushTable(t, c, ManagedClusterHosts(), ks2, t3)
+	FlushTable(t, c, ManagedClusterHosts(), ks2, si1+"_index")
+	FlushTable(t, c, ManagedClusterHosts(), ks2, mv1)
+	FlushTable(t, c, ManagedClusterHosts(), ks2, mv2)
+
+	FlushTable(t, c, ManagedClusterHosts(), ks3, t1)
+
+	expectedRepairOrder := []string{
+		"system_auth.role_attributes",
+		"system_auth.role_members",
+		"system_auth.*",
+		"system_traces.*",
+		"system_distributed.*",
+		"system_distributed_everywhere.*",
+
+		ks1 + "." + t1,
+		ks1 + "." + t2,
+		ks1 + "." + mv1,
+
+		ks2 + "." + t1,
+		ks2 + "." + t2,
+		ks2 + "." + t3,
+		ks2 + "." + si1 + "_index",
+		ks2 + "." + mv1,
+		ks2 + "." + mv2,
+
+		ks3 + "." + t1,
 	}
+
 	target := h.generateTarget(map[string]any{
-		"FailFast": true,
+		"fail_fast": true,
 	})
 
-	// Map showing how many jobs are already scheduled for given keyspace.table
-	repairsPerTable := make(map[string]int)
-	muRPT := sync.Mutex{}
+	// Shows the actual order in which tables are repaired
+	var actualRepairOrder []string
+	muARO := sync.Mutex{}
 
-	// Keyspace and table handled by given repair job
-	jobId2KsAndTable := make(map[string]string)
-	muHIJ := sync.Mutex{}
-
-	var order []string
-
-	// Fail string
-	var failString atomic.Value
+	// Maps job ID to corresponding table
+	jobTable := make(map[string]string)
+	muJT := sync.Mutex{}
 
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
 			pathParts := strings.Split(req.URL.Path, "/")
 			keyspace := pathParts[len(pathParts)-1]
+			fullTable := keyspace + "." + req.URL.Query().Get("columnFamilies")
 
-			muRPT.Lock()
-			defer muRPT.Unlock()
-
-			repairsPerTable[keyspace+"."+req.URL.Query().Get("columnFamilies")]++
-			if len(repairsPerTable) > 1 {
-				failString.Store(fmt.Sprintf("Expected to repair just a single table at a time, but got more. Example: %v",
-					repairsPerTable))
+			// Update actual repair order on both repair start and end
+			muARO.Lock()
+			if len(actualRepairOrder) == 0 || actualRepairOrder[len(actualRepairOrder)-1] != fullTable {
+				actualRepairOrder = append(actualRepairOrder, fullTable)
 			}
+			muARO.Unlock()
 		}
 
 		return nil, nil
@@ -695,40 +742,37 @@ func TestServiceRepairOrderOfTheRepairAndToRepairSingleTableAtATime(t *testing.T
 		// Response to repair schedule
 		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
 			pathParts := strings.Split(resp.Request.URL.Path, "/")
+			keyspace := pathParts[len(pathParts)-1]
+			fullTable := keyspace + "." + resp.Request.URL.Query().Get("columnFamilies")
 
-			muHIJ.Lock()
-			defer muHIJ.Unlock()
-
-			keyspaceTable := pathParts[len(pathParts)-1] + "." + resp.Request.URL.Query().Get("columnFamilies")
-			jobId2KsAndTable[resp.Request.Host+string(body)] = keyspaceTable
-
-			if order != nil {
-				if order[len(order)-1] != keyspaceTable {
-					order = append(order, keyspaceTable)
-				}
-			} else {
-				order = []string{keyspaceTable}
-			}
+			// Register what table is being repaired
+			muJT.Lock()
+			jobTable[resp.Request.Host+string(body)] = fullTable
+			muJT.Unlock()
 		}
 
 		// Response to repair status
 		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
 			status := string(body)
 			if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
-				muHIJ.Lock()
-				defer muHIJ.Unlock()
+				// Add host prefix as IDs are unique only for a given host
+				jobID := resp.Request.Host + resp.Request.URL.Query()["id"][0]
 
-				keyspaceTable := jobId2KsAndTable[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
-				if keyspaceTable == "" {
+				muJT.Lock()
+				fullTable := jobTable[jobID]
+				muJT.Unlock()
+
+				if fullTable == "" {
+					t.Logf("This is strange %s", jobID)
 					return
 				}
-				muRPT.Lock()
-				defer muRPT.Unlock()
 
-				repairsPerTable[keyspaceTable]--
-				if repairsPerTable[keyspaceTable] == 0 {
-					delete(repairsPerTable, keyspaceTable)
+				// Update actual repair order on both repair start and end
+				muARO.Lock()
+				if len(actualRepairOrder) == 0 || actualRepairOrder[len(actualRepairOrder)-1] != fullTable {
+					actualRepairOrder = append(actualRepairOrder, fullTable)
 				}
+				muARO.Unlock()
 			}
 		}
 	})
@@ -738,40 +782,48 @@ func TestServiceRepairOrderOfTheRepairAndToRepairSingleTableAtATime(t *testing.T
 		t.Errorf("Repair failed: %s", err)
 	}
 
-	var ksRepairOrder []string
-	for _, kt := range order {
-		ktPair := strings.Split(kt, ".")
-		if ksRepairOrder == nil {
-			ksRepairOrder = []string{ktPair[0]}
-		} else {
-			if ksRepairOrder[len(ksRepairOrder)-1] != ktPair[0] {
-				ksRepairOrder = append(ksRepairOrder, ktPair[0])
-			}
+	Print("When: validate repair order")
+	t.Logf("Expected repair order: %v", expectedRepairOrder)
+	t.Logf("Recorded repair order: %v", actualRepairOrder)
+
+	// If there are duplicates in actual repair order, then it means that different tables had overlapping repairs.
+	if strset.New(actualRepairOrder...).Size() != len(actualRepairOrder) {
+		t.Fatal("Table by table requirement wasn't preserved")
+	}
+
+	expIdx := 0
+	actIdx := 0
+	for actIdx < len(actualRepairOrder) {
+		expTable := expectedRepairOrder[expIdx]
+		actTable := actualRepairOrder[actIdx]
+
+		if expTable == actTable {
+			t.Logf("Exact match: %s %s", expTable, actTable)
+			expIdx++
+			actIdx++
+			continue
 		}
-	}
 
-	// assert repair just one table at a time
-	result := failString.Load()
-	if result != nil {
-		t.Fatal(result)
-	}
-
-	// assert MV is repaired after the base table
-	mp := make(map[string]struct{})
-	for _, kt := range order {
-		if kt == ks1+"."+mv {
-			if _, ok := mp[ks1+"."+t1]; !ok {
-				t.Fatalf("expected %s.%s to be repaired before %s.%s", ks1, t1, ks1, mv)
+		expParts := strings.Split(expTable, ".")
+		actParts := strings.Split(actTable, ".")
+		if expParts[1] == "*" {
+			if expParts[0] == actParts[0] {
+				t.Logf("Star match: %s %s", expTable, actTable)
+				actIdx++
+				continue
 			}
+
+			t.Logf("Leave star behind: %s %s", expTable, actTable)
+			expIdx++
+			continue
 		}
-		mp[kt] = struct{}{}
+
+		t.Fatalf("No match: %s %s", expTable, actTable)
 	}
 
-	// assert repair order
-	if !reflect.DeepEqual(ksRepairOrder, expectedKSOrder) {
-		t.Fatalf("wrong repair order, got \n{%v}\n, expected \n{%v}", ksRepairOrder, expectedKSOrder)
+	if expIdx != len(expectedRepairOrder) || actIdx != len(actualRepairOrder) {
+		t.Fatalf("Expected repair order and actual repair order didn't match, expIdx: %d, actIdx: %d", expIdx, actIdx)
 	}
-
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
