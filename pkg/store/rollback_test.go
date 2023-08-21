@@ -48,6 +48,13 @@ func (t *testStore) Get(e Entry) error {
 	return e.UnmarshalBinary(*t)
 }
 
+func (t *testStore) Check(e Entry) (bool, error) {
+	if len(*t) == 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
 const deleted = 0xf
 
 func (t *testStore) Delete(e Entry) error {
