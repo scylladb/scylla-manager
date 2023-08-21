@@ -467,6 +467,14 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
 }
 
+// CheckCQLCredentials checks if associated CQLCreds exist in secrets store.
+func (s *Service) CheckCQLCredentials(id uuid.UUID) (bool, error) {
+	credentials := secrets.CQLCreds{
+		ClusterID: id,
+	}
+	return s.secretsStore.Check(&credentials)
+}
+
 // DeleteCQLCredentials removes the associated CQLCreds from secrets store.
 func (s *Service) DeleteCQLCredentials(_ context.Context, clusterID uuid.UUID) error {
 	return s.secretsStore.Delete(&secrets.CQLCreds{
