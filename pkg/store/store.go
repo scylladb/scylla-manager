@@ -28,6 +28,7 @@ type Entry interface {
 type Store interface {
 	Put(v Entry) error
 	Get(v Entry) error
+	Check(v Entry) (bool, error)
 	Delete(v Entry) error
 	DeleteAll(clusterID uuid.UUID) error
 }
@@ -81,6 +82,24 @@ func (s *TableStore) Get(e Entry) error {
 		return err
 	}
 	return e.UnmarshalBinary(v)
+}
+
+// Check if entry with given key exists.
+func (s *TableStore) Check(e Entry) (bool, error) {
+	clusterID, key := e.Key()
+	if clusterID == uuid.Nil || key == "" {
+		return false, ErrInvalidKey
+	}
+
+	var v int
+	err := s.table.GetQuery(s.session, "COUNT(value)").BindMap(qb.M{
+		"cluster_id": clusterID,
+		"key":        key,
+	}).GetRelease(&v)
+	if err != nil {
+		return false, err
+	}
+	return v > 0, nil
 }
 
 // Delete removes entry for a given cluster and key.
