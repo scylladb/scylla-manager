@@ -77,6 +77,22 @@ func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if cluster CQL credentials are set, but don't return them
+	for _, c := range ids {
+		ok, err := h.svc.CheckCQLCredentials(c.ID)
+		if err != nil {
+			respondError(w, r, errors.Wrapf(err, "cluster %s: check CQL credentials", c.ID))
+			return
+		}
+		if ok {
+			c.Username = "set"
+			c.Password = "set"
+		} else {
+			c.Username = "not set"
+			c.Password = "not set"
+		}
+	}
+
 	if len(ids) == 0 {
 		render.Respond(w, r, []struct{}{})
 		return
