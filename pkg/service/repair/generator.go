@@ -153,17 +153,13 @@ func newGenerator(ctx context.Context, target Target,
 		return nil, err
 	}
 
-	// As each host can take part in at most one repair job,
-	// this is the max possible amount of jobs that can be
-	// run in parallel in enter cluster.
-	maxParallel := len(hosts) / target.plan.MinRF()
 	return &generator{
 		plan:        target.plan,
-		ctl:         newRowLevelRepairController(ih, maxParallel, hostMaxRanges(shards, memory)),
+		ctl:         newRowLevelRepairController(ih, target.plan.MaxParallel, hostMaxRanges(shards, memory)),
 		ms:          newMasterSelector(shards, status.HostDC(), closestDC),
 		client:      client,
-		next:        make(chan job, maxParallel),
-		result:      make(chan jobResult, maxParallel),
+		next:        make(chan job, target.plan.MaxParallel),
+		result:      make(chan jobResult, target.plan.MaxParallel),
 		logger:      logger,
 		failFast:    target.FailFast,
 		count:       cnt,
