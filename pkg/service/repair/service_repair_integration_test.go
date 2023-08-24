@@ -99,22 +99,43 @@ func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session,
 	}
 }
 
-func (h *repairTestHelper) runRepair(ctx context.Context, t repair.Target) {
+func (h *repairTestHelper) runRepair(ctx context.Context, properties map[string]any) {
 	go func() {
+		var (
+			t   repair.Target
+			err error
+		)
+
 		h.mu.Lock()
 		h.done = false
 		h.result = nil
 		h.mu.Unlock()
+		defer func() {
+			h.mu.Lock()
+			h.done = true
+			h.result = err
+			h.mu.Unlock()
+		}()
+
+		h.Logger.Info(ctx, "Start generating target", "task", h.TaskID, "run", h.RunID)
+		t, err = h.generateTarget(properties)
+		h.Logger.Info(ctx, "End generating target", "task", h.TaskID, "run", h.RunID, "error", err)
+		if err != nil {
+			return
+		}
 
 		h.Logger.Info(ctx, "Running repair", "task", h.TaskID, "run", h.RunID)
-		err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, t)
+		err = h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, t)
 		h.Logger.Info(ctx, "Repair ended", "task", h.TaskID, "run", h.RunID, "error", err)
-
-		h.mu.Lock()
-		h.done = true
-		h.result = err
-		h.mu.Unlock()
 	}()
+}
+
+func (h *repairTestHelper) runRegularRepair(ctx context.Context, properties map[string]any) error {
+	t, err := h.generateTarget(properties)
+	if err != nil {
+		return err
+	}
+	return h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, t)
 }
 
 // WaitCond parameters
@@ -420,48 +441,54 @@ func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 // We must use -1 here to support working with empty tables or not flushed data.
 const repairAllSmallTableThreshold = -1
 
-func allUnits() repair.Target {
-	return repair.Target{
-		Units: []repair.Unit{
-			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
-			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
-			{Keyspace: "system_schema", Tables: []string{"indexes", "keyspaces"}},
-		},
-		DC:        []string{"dc1", "dc2"},
-		Continue:  true,
-		Intensity: 10,
+// allUnits decorate predefined properties with provided ones.
+func allUnits(properties map[string]any) map[string]any {
+	m := map[string]any{
+		"keyspace": []string{
+			"test_repair.test_table_0", "test_repair.test_table_1",
+			"system_schema.indexes", "system_schema.keyspaces"},
+		"dc":        []string{"dc1", "dc2"},
+		"continue":  true,
+		"intensity": 10,
 	}
+	for k, v := range properties {
+		m[k] = v
+	}
+	return m
 }
 
-func singleUnit() repair.Target {
-	return repair.Target{
-		Units: []repair.Unit{
-			{
-				Keyspace: "test_repair",
-				Tables:   []string{"test_table_0"},
-			},
-		},
-		DC:        []string{"dc1", "dc2"},
-		Continue:  true,
-		Intensity: 10,
+// multipleUnits decorate predefined properties with provided ones.
+func multipleUnits(properties map[string]any) map[string]any {
+	m := map[string]any{
+		"keyspace":  []string{"test_repair.test_table_0", "test_repair.test_table_1"},
+		"dc":        []string{"dc1", "dc2"},
+		"continue":  true,
+		"intensity": 10,
 	}
+	for k, v := range properties {
+		m[k] = v
+	}
+	return m
 }
 
-func multipleUnits() repair.Target {
-	return repair.Target{
-		Units: []repair.Unit{
-			{Keyspace: "test_repair", Tables: []string{"test_table_0"}},
-			{Keyspace: "test_repair", Tables: []string{"test_table_1"}},
-		},
-		DC:        []string{"dc1", "dc2"},
-		Continue:  true,
-		Intensity: 10,
+// singleUnit decorate predefined properties with provided ones.
+func singleUnit(properties map[string]any) map[string]any {
+	m := map[string]any{
+		"keyspace":  []string{"test_repair.test_table_0"},
+		"dc":        []string{"dc1", "dc2"},
+		"continue":  true,
+		"intensity": 10,
 	}
+	for k, v := range properties {
+		m[k] = v
+	}
+	return m
+
 }
 
 // generateTarget applies GetTarget onto given properties.
 // It's useful for filling keyspace boilerplate.
-func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Target {
+func (h *repairTestHelper) generateTarget(properties map[string]any) (repair.Target, error) {
 	h.T.Helper()
 
 	props, err := json.Marshal(properties)
@@ -469,12 +496,7 @@ func (h *repairTestHelper) generateTarget(properties map[string]any) repair.Targ
 		h.T.Fatal(err)
 	}
 
-	target, err := h.service.GetTarget(context.Background(), h.ClusterID, props)
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	return target
+	return h.service.GetTarget(context.Background(), h.ClusterID, props)
 }
 
 func TestServiceGetTargetIntegration(t *testing.T) {
@@ -512,7 +534,9 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			var golden repair.Target
 			LoadGoldenJSONFile(t, &golden)
 
-			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
+			if diff := cmp.Diff(golden, v,
+				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
+				cmpopts.IgnoreUnexported(repair.Target{})); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -542,9 +566,9 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 	t.Run("repair schedules only one job per host at any given time", func(t *testing.T) {
 		ctx := context.Background()
 
-		target := h.generateTarget(map[string]any{
+		props := map[string]any{
 			"fail_fast": true,
-		})
+		}
 
 		// The amount of currently executed repair jobs on host
 		jobsPerHost := make(map[string]int)
@@ -611,7 +635,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		})
 
 		Print("When: run repair")
-		if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		if err := h.runRegularRepair(ctx, props); err != nil {
 			t.Errorf("Repair failed: %s", err)
 		}
 
@@ -702,9 +726,9 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		ks3 + "." + t1,
 	}
 
-	target := h.generateTarget(map[string]any{
+	props := map[string]any{
 		"fail_fast": true,
-	})
+	}
 
 	// Shows the actual order in which tables are repaired
 	var actualRepairOrder []string
@@ -781,7 +805,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 	})
 
 	Print("When: run repair")
-	if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+	if err := h.runRegularRepair(ctx, props); err != nil {
 		t.Errorf("Repair failed: %s", err)
 	}
 
@@ -883,10 +907,10 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	CreateMaterializedView(t, clusterSession, ks2, t2, mv1)
 	CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
 
-	target := h.generateTarget(map[string]any{
+	props := map[string]any{
 		"fail_fast": false,
 		"continue":  true,
-	})
+	}
 
 	type TableRange struct {
 		FullTable string
@@ -1007,31 +1031,31 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	})
 
 	Print("When: run first repair with context cancel")
-	if err := h.service.Repair(stop3000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+	if err := h.runRegularRepair(stop3000Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run second repair with context cancel")
 	h.RunID = uuid.NewTime()
-	if err := h.service.Repair(stop5000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+	if err := h.runRegularRepair(stop5000Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run third repair with context cancel")
 	h.RunID = uuid.NewTime()
-	if err := h.service.Repair(stop8000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+	if err := h.runRegularRepair(stop8000Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run fourth repair with context cancel")
 	h.RunID = uuid.NewTime()
-	if err := h.service.Repair(stop10000Ctx, h.ClusterID, h.TaskID, h.RunID, target); err == nil {
+	if err := h.runRegularRepair(stop10000Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run fifth repair till it finishes")
 	h.RunID = uuid.NewTime()
-	if err := h.service.Repair(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+	if err := h.runRegularRepair(ctx, props); err != nil {
 		t.Fatalf("Repair failed: %s", err)
 	}
 
@@ -1093,7 +1117,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, multipleUnits())
+		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1119,11 +1143,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		units := multipleUnits()
-		units.DC = []string{"dc2"}
-
 		Print("When: run repair")
-		h.runRepair(ctx, units)
+		h.runRepair(ctx, multipleUnits(map[string]any{
+			"dc": []string{"dc2"},
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1152,11 +1175,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		var ignored = IPFromTestNet("12")
-		unit := singleUnit()
-		unit.IgnoreHosts = []string{ignored}
+		_, _, err := ExecOnHost(ignored, "sudo supervisorctl stop scylla")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			_, _, err := ExecOnHost(ignored, "sudo supervisorctl start scylla")
+			if err != nil {
+				t.Fatal(err)
+			}
+			time.Sleep(5 * time.Second)
+		}()
 
 		Print("When: run repair")
-		h.runRepair(ctx, unit)
+		h.runRepair(ctx, singleUnit(map[string]any{
+			"ignore_down_hosts": true,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1181,13 +1215,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		units := singleUnit()
 		host := h.GetHostsFromDC("dc1")[0]
-		units.Host = host
 		h.Hrt.SetInterceptor(assertReplicasRepairInterceptor(t, host))
 
 		Print("When: run repair")
-		h.runRepair(ctx, units)
+		h.runRepair(ctx, singleUnit(map[string]any{
+			"host": host,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1205,19 +1239,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ExecStmt(t, clusterSession, "CREATE KEYSPACE IF NOT EXISTS test_repair_dc2 WITH replication = {'class': 'NetworkTopologyStrategy', 'dc2': 3}")
 		ExecStmt(t, clusterSession, "CREATE TABLE IF NOT EXISTS test_repair_dc2.test_table_0 (id int PRIMARY KEY)")
 
-		units := singleUnit()
-		units.Units = []repair.Unit{
-			{
-				Keyspace: "test_repair_dc2",
-			},
-		}
-		units.DC = []string{"dc1"}
-
 		Print("When: run repair with dc1")
-		h.runRepair(ctx, units)
-
-		Print("Then: repair is running")
-		h.assertRunning(shortWait)
+		h.runRepair(ctx, singleUnit(map[string]any{
+			"keyspace": []string{"test_repair_dc2"},
+			"dc":       []string{"dc1"},
+		}))
 
 		Print("When: repair fails")
 		h.assertErrorContains("no replicas to repair", shortWait)
@@ -1231,22 +1257,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ExecStmt(t, clusterSession, "CREATE TABLE "+testKeyspace+".test_table_1 (id int PRIMARY KEY)")
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
-		testUnit := repair.Target{
-			Units: []repair.Unit{
-				{
-					Keyspace: testKeyspace,
-				},
-			},
-			DC:       []string{"dc1"},
-			Continue: true,
-		}
-
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, testUnit)
+		h.runRepair(ctx, map[string]any{
+			"keyspace": []string{testKeyspace},
+			"dc":       []string{"dc1"},
+			"continue": true,
+		})
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1287,10 +1307,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		u := multipleUnits()
-		u.SmallTableThreshold = repairAllSmallTableThreshold
 		Print("When: run repair")
-		h.runRepair(ctx, u)
+		h.runRepair(ctx, multipleUnits(map[string]any{
+			"small_table_threshold": repairAllSmallTableThreshold,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1311,10 +1331,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		u := multipleUnits()
-		u.SmallTableThreshold = repairAllSmallTableThreshold
 		Print("When: run repair")
-		h.runRepair(ctx, u)
+		h.runRepair(ctx, multipleUnits(map[string]any{
+			"small_table_threshold": repairAllSmallTableThreshold,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1334,7 +1354,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, multipleUnits())
+		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1351,7 +1371,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.runRepair(ctx, multipleUnits())
+		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1368,7 +1388,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.runRepair(ctx, multipleUnits())
+		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1384,11 +1404,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		unit := singleUnit()
-		unit.Continue = false
+		props := singleUnit(map[string]any{
+			"continue": false,
+		})
 
 		Print("When: run repair")
-		h.runRepair(ctx, unit)
+		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1405,7 +1426,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.runRepair(ctx, unit)
+		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1422,7 +1443,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.runRepair(ctx, multipleUnits())
+		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1437,13 +1458,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.RunID = uuid.NewTime()
 
 		Print("And: run repair with modified units")
-		modifiedUnits := multipleUnits()
-		modifiedUnits.Units = []repair.Unit{{Keyspace: "test_repair", Tables: []string{"test_table_1"}}}
-		modifiedUnits.DC = []string{"dc2"}
-
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.runRepair(ctx, modifiedUnits)
+		h.runRepair(ctx, multipleUnits(map[string]any{
+			"keyspace": []string{"test_repair.test_table_1"},
+			"dc":       []string{"dc2"},
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1458,7 +1478,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if err != nil {
 			h.T.Fatal(err)
 		}
-		if diff := cmp.Diff(prog.DC, modifiedUnits.DC); diff != "" {
+		if diff := cmp.Diff(prog.DC, []string{"dc2"}); diff != "" {
 			h.T.Fatal(diff, prog)
 		}
 		if len(prog.Tables) != 1 {
@@ -1474,9 +1494,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		units := allUnits()
-		units.FailFast = true
-		h.runRepair(ctx, units)
+		h.runRepair(ctx, allUnits(map[string]any{
+			"fail_fast": true,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1493,7 +1513,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 
 		Print("And: run repair")
-		h.runRepair(ctx, allUnits())
+		h.runRepair(ctx, allUnits(nil))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1513,9 +1533,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		su := singleUnit()
-		su.SmallTableThreshold = -1
-		h.runRepair(ctx, su)
+		h.runRepair(ctx, singleUnit(map[string]any{
+			"small_table_threshold": repairAllSmallTableThreshold,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1543,11 +1563,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		u := allUnits()
-		u.FailFast = true
-
 		Print("When: run repair")
-		h.runRepair(ctx, u)
+		h.runRepair(ctx, allUnits(map[string]any{
+			"fail_fast": true,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1567,13 +1586,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		Print("Given: non-existing keyspace")
-
-		target := singleUnit()
-		target.Units[0].Keyspace = "non_existing_keyspace"
-
-		Print("When: run repair")
-		h.runRepair(ctx, target)
+		Print("When: run repair with non-existing keyspace")
+		h.runRepair(ctx, singleUnit(map[string]any{
+			"keyspace": []string{"non_existing_keyspace"},
+		}))
 
 		Print("Then: repair fails")
 		h.assertError(shortWait)
@@ -1593,21 +1609,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		target := repair.Target{
-			Units: []repair.Unit{
-				{
-					Keyspace: testKeyspace,
-					Tables:   []string{testTable},
-				},
-			},
-			DC:                  []string{"dc1", "dc2"},
-			Intensity:           0,
-			Parallel:            1,
-			SmallTableThreshold: repairAllSmallTableThreshold,
-		}
-
 		Print("When: run repair")
-		h.runRepair(ctx, target)
+		h.runRepair(ctx, map[string]any{
+			"keyspace":              []string{testKeyspace + "." + testTable},
+			"dc":                    []string{"dc1", "dc2"},
+			"intensity":             0,
+			"parallel":              1,
+			"small_table_threshold": repairAllSmallTableThreshold,
+		})
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1639,20 +1648,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		target := repair.Target{
-			Units: []repair.Unit{
-				{
-					Keyspace: testKeyspace,
-					Tables:   []string{testTable},
-				},
-			},
-			DC:                  []string{"dc1", "dc2"},
-			Intensity:           1,
-			SmallTableThreshold: repairAllSmallTableThreshold,
+		props := map[string]any{
+			"keyspace":              []string{testKeyspace + "." + testTable},
+			"dc":                    []string{"dc1", "dc2"},
+			"intensity":             1,
+			"small_table_threshold": repairAllSmallTableThreshold,
 		}
 
 		Print("When: run repair")
-		h.runRepair(ctx, target)
+		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1673,8 +1677,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 	t.Run("kill repairs on task failure", func(t *testing.T) {
 		const killPath = "/storage_service/force_terminate_repair"
 
-		target := multipleUnits()
-		target.SmallTableThreshold = repairAllSmallTableThreshold
+		props := multipleUnits(map[string]any{
+			"small_table_threshold": repairAllSmallTableThreshold,
+		})
 
 		t.Run("when task is cancelled", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -1685,7 +1690,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", nil))
 
 			Print("When: run repair")
-			h.runRepair(ctx, target)
+			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
 			h.assertProgress(IPFromTestNet("11"), 1, longWait)
@@ -1705,10 +1710,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 			defer cancel()
 
 			h := newRepairTestHelper(t, session, defaultConfig())
-			target.FailFast = true
+			props["fail_fast"] = true
 
 			Print("When: run repair")
-			h.runRepair(ctx, target)
+			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
 			h.assertProgress(IPFromTestNet("11"), 1, longWait)
@@ -1744,23 +1749,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		target := repair.Target{
-			Units: []repair.Unit{
-				{
-					Keyspace: testKeyspace,
-					Tables:   []string{testTable},
-				},
-			},
-			DC:                  []string{"dc1", "dc2"},
-			Intensity:           1,
-			Parallel:            1,
-			SmallTableThreshold: 1 * 1024 * 1024 * 1024,
-		}
-
 		Print("When: run repair")
 		var repairCalled int32
 		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
-		h.runRepair(ctx, target)
+		h.runRepair(ctx, map[string]any{
+			"keyspace":              []string{testKeyspace + "." + testTable},
+			"dc":                    []string{"dc1", "dc2"},
+			"intensity":             1,
+			"parallel":              1,
+			"small_table_threshold": 1 * 1024 * 1024 * 1024,
+		})
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
@@ -1785,14 +1783,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		u := allUnits()
-		u.FailFast = true
-
 		Print("When: repair status is not responding in time")
 		h.Hrt.SetInterceptor(repairStatusNoResponseInterceptor(ctx))
 
 		Print("And: run repair")
-		h.runRepair(ctx, u)
+		h.runRepair(ctx, allUnits(map[string]any{
+			"fail_fast": true,
+		}))
 
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
@@ -1839,7 +1836,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 
 	<-done
 	Print("When: repair starts")
-	h.runRepair(ctx, singleUnit())
+	h.runRepair(ctx, singleUnit(nil))
 
 	Print("Then: repair fails")
 	h.assertErrorContains("active repair on hosts", longWait)
@@ -1869,12 +1866,10 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair_1.test_table_0 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, "test_repair_1")
 
-	properties := map[string]interface{}{
+	props, err := json.Marshal(map[string]any{
 		"keyspace": []string{"test_repair_0", "test_repair_1"},
 		"dc":       []string{"dc2"},
-	}
-
-	props, err := json.Marshal(properties)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
