@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scylla-version: [ 5.0.0, 5.0.13, 5.1.0, 5.1.13, 5.2.0, 5.2.4 ]
+        scylla-version: [ 2023.1.0 ]
         ip-family: [ IPV4, IPV6 ]
     uses: ./.github/workflows/integration-tests.yaml
     with:
