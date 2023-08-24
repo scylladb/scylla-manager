@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -23,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -71,129 +71,108 @@ func (s *Service) Runner() Runner {
 }
 
 // ErrEmptyRepair is returned when there is nothing to repair (e.g. repaired keyspaces are not replicated).
-var ErrEmptyRepair = errors.New("nothing to repair")
+var ErrEmptyRepair = errors.New("no replicas to repair")
 
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
-	p := defaultTaskProperties()
+	props := defaultTaskProperties()
 
 	// Parse task properties
-	if err := json.Unmarshal(properties, &p); err != nil {
+	if err := json.Unmarshal(properties, &props); err != nil {
 		return Target{}, service.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
 	}
 
 	// Copy basic properties
 	t := Target{
-		Host:                p.Host,
-		FailFast:            p.FailFast,
-		Continue:            p.Continue,
-		Intensity:           p.Intensity,
-		Parallel:            p.Parallel,
-		SmallTableThreshold: p.SmallTableThreshold,
+		Host:                props.Host,
+		FailFast:            props.FailFast,
+		Continue:            props.Continue,
+		Intensity:           props.Intensity,
+		Parallel:            props.Parallel,
+		SmallTableThreshold: props.SmallTableThreshold,
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return t, errors.Wrapf(err, "get client")
 	}
-
-	// Get hosts in DCs
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
 		return t, errors.Wrap(err, "read datacenters")
 	}
-
-	// Filter DCs
-	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
-		return t, err
+	status, err := client.Status(ctx)
+	if err != nil {
+		return t, errors.Wrap(err, "get status")
 	}
 
+	// Make it clear that repairing single node cluster does not make any sense (#1257)
+	if len(status) < 1 {
+		return t, service.ErrValidate(errors.New("repairing single node cluster does not have any effect"))
+	}
+	// Filter DCs
+	if t.DC, err = dcfilter.Apply(dcMap, props.DC); err != nil {
+		return t, err
+	}
+	// Ignore nodes with status DOWN
+	if props.IgnoreDownHosts {
+		t.IgnoreHosts = status.Datacenter(t.DC).Down().Hosts()
+	}
+	// Ensure Host is not ignored
+	if t.Host != "" && slice.ContainsString(t.IgnoreHosts, t.Host) {
+		return t, errors.New("host can't have status down")
+	}
 	// Ensure Host belongs to DCs
 	if t.Host != "" && !hostBelongsToDCs(t.Host, t.DC, dcMap) {
 		return t, service.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
 	}
 
-	// Filter keyspaces
-	f, err := ksfilter.NewFilter(p.Keyspace)
+	// Get potential units - all tables matched by keyspace flag
+	f, err := ksfilter.NewFilter(props.Keyspace)
 	if err != nil {
 		return t, err
 	}
-
 	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
-		return t, errors.Wrapf(err, "read keyspaces")
+		return t, errors.Wrapf(err, "get keyspaces")
 	}
-
-	dcs := strset.New(t.DC...)
-	var skippedKeyspaces []string
-	for _, keyspace := range keyspaces {
-		tables, err := client.Tables(ctx, keyspace)
+	for _, ks := range keyspaces {
+		tables, err := client.Tables(ctx, ks)
 		if err != nil {
-			return t, errors.Wrapf(err, "keyspace %s: get tables", keyspace)
+			return t, errors.Wrapf(err, "keyspace %s: get tables", ks)
 		}
-
-		// Get the ring description and skip local data
-		ring, err := client.DescribeRing(ctx, keyspace)
-		if err != nil {
-			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
-		}
-
-		// Ignore keyspaces not replicated in desired DCs
-		if !dcs.HasAny(ring.Datacenters()...) {
-			continue
-		}
-
-		if !singleNodeCluster(dcMap) {
-			// Ignore not replicated keyspaces
-			if ring.Replication == scyllaclient.LocalStrategy {
-				continue
-			}
-
-			notEnoughReplicas := false
-			for _, rt := range ring.ReplicaTokens {
-				replicas := 0
-				for _, r := range rt.ReplicaSet {
-					if dcs.Has(ring.HostDC[r]) {
-						replicas++
-					}
-				}
-				if replicas <= 1 {
-					notEnoughReplicas = true
-					break
-				}
-			}
-			if notEnoughReplicas {
-				skippedKeyspaces = append(skippedKeyspaces, keyspace)
-				continue
-			}
-		}
-
-		// Add to the filter
-		f.Add(keyspace, tables)
+		f.Add(ks, tables)
 	}
-
-	if len(skippedKeyspaces) > 0 {
-		s.logger.Info(ctx,
-			"Repair of the following keyspaces will be skipped because not all the tokens are present in the specified DCs",
-			"keyspaces", strings.Join(skippedKeyspaces, ", "),
-		)
-	}
-
-	// Get the filtered units
 	t.Units, err = f.Apply(false)
 	if err != nil {
 		return t, errors.Wrap(ErrEmptyRepair, err.Error())
 	}
 
-	// Ignore nodes in status DOWN
-	if p.IgnoreDownHosts {
-		status, err := client.Status(ctx)
+	t.plan, err = newPlan(ctx, t, client)
+	if err != nil {
+		return t, errors.Wrap(err, "create repair plan")
+	}
+	// Sort plan
+	t.plan.SizeSort()
+	t.plan.PrioritySort(NewInternalTablePreference())
+	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
+		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
+	} else {
+		views, err := query.GetAllViews(clusterSession)
 		if err != nil {
-			return t, errors.Wrap(err, "status")
+			return t, errors.Wrap(err, "get cluster views")
 		}
-		t.IgnoreHosts = status.Datacenter(t.DC).Down().Hosts()
+		t.plan.ViewSort(views)
 	}
 
+	if len(t.plan.SkippedKeyspaces) > 0 {
+		s.logger.Info(ctx,
+			"Repair of the following keyspaces will be skipped because not all the tokens are present in the specified DCs",
+			"keyspaces", strings.Join(t.plan.SkippedKeyspaces, ", "),
+		)
+	}
+
+	// Set filtered units as they are still used for displaying --dry-run
+	t.Units = t.plan.Units()
 	return t, nil
 }
 
@@ -201,17 +180,6 @@ func hostBelongsToDCs(host string, dcs []string, dcMap map[string][]string) bool
 	for _, dc := range dcs {
 		for _, h := range dcMap[dc] {
 			if host == h {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func singleNodeCluster(dcMap map[string][]string) bool {
-	if len(dcMap) == 1 {
-		for _, dc := range dcMap {
-			if len(dc) <= 1 {
 				return true
 			}
 		}
@@ -254,44 +222,26 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	p, err := newPlan(ctx, target, client)
-	if err != nil {
-		return errors.Wrap(err, "create repair plan")
-	}
-
-	p.SizeSort()
-	p.PrioritySort(NewInternalTablePreference())
-	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
-		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
-	} else {
-		views, err := query.GetAllViews(clusterSession)
-		if err != nil {
-			s.logger.Info(ctx, "Couldn't get cluster views and ensure repairing base table before its views", "error", err)
-		} else {
-			p.ViewSort(views)
-		}
-	}
-
 	pm := &dbProgressManager{
 		run:     run,
 		session: s.session,
 		metrics: s.metrics,
 		logger:  s.logger.Named("progress"),
 	}
-	if err := pm.Init(p); err != nil {
+	if err := pm.Init(target.plan); err != nil {
 		return err
 	}
-	pm.UpdatePlan(p)
+	pm.UpdatePlan(target.plan)
 
 	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity, target.Parallel)
 	defer cleanup()
 
-	gen, err := newGenerator(ctx, target, p, client, ih, s.logger)
+	gen, err := newGenerator(ctx, target, client, ih, s.logger)
 	if err != nil {
 		return errors.Wrap(err, "create generator")
 	}
 
-	hosts := p.Hosts()
+	hosts := target.plan.Hosts()
 	if active, err := client.ActiveRepairs(ctx, hosts); err != nil {
 		s.logger.Error(ctx, "Active repair check failed", "error", err)
 	} else if len(active) > 0 {
@@ -299,7 +249,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Both generator and workers use graceful ctx.
-	//
 	gracefulCtx, cancel := context.WithCancel(context.Background())
 	gracefulCtx = log.CopyTraceID(gracefulCtx, ctx)
 	done := make(chan struct{}, 1)
