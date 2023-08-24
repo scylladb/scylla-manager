@@ -15,9 +15,11 @@ import (
 
 // plan describes whole repair schedule and state.
 type plan struct {
-	Keyspaces        []keyspacePlan
-	Idx              int // Idx of currently repaired keyspace
+	Keyspaces []keyspacePlan
+	Idx       int // Idx of currently repaired keyspace
+
 	SkippedKeyspaces []string
+	MaxParallel      int
 }
 
 func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
@@ -112,9 +114,7 @@ func (p *plan) UpdateIdx() bool {
 func (p *plan) Hosts() []string {
 	out := strset.New()
 	for _, kp := range p.Keyspaces {
-		for _, rep := range kp.Replicas {
-			out.Add(rep.ReplicaSet...)
-		}
+		out.Add(kp.Hosts()...)
 	}
 	return out.List()
 }
@@ -135,17 +135,16 @@ func (p *plan) Units() []Unit {
 	return out
 }
 
-// MinRF returns the smallest repaired replica set size.
-func (p *plan) MinRF() int {
-	min := math.MaxInt64
+// SetMaxParallel sets maximal repair parallelism.
+func (p *plan) SetMaxParallel(dcMap map[string][]string) {
+	var max int
 	for _, kp := range p.Keyspaces {
-		for _, rep := range kp.Replicas {
-			if min > len(rep.ReplicaSet) {
-				min = len(rep.ReplicaSet)
-			}
+		// Max parallel is equal to the greatest max keyspace parallel
+		if cand := kp.maxParallel(dcMap); max < cand {
+			max = cand
 		}
 	}
-	return min
+	p.MaxParallel = max
 }
 
 func (p *plan) MarkDeleted(keyspace, table string) {
@@ -294,6 +293,64 @@ func (kp keyspacePlan) GetRangesToRepair(repIdx, tabIdx, cnt int) []scyllaclient
 		}
 	}
 
+	return out
+}
+
+// maxParallel returns maximal repair parallelism limited to keyspace.
+func (kp keyspacePlan) maxParallel(dcMap map[string][]string) int {
+	min := math.MaxInt
+	for _, dcHosts := range dcMap {
+		// Max keyspace parallel is equal to the smallest max DC parallel
+		if cand := kp.maxDCParallel(dcHosts); cand < min {
+			min = cand
+		}
+	}
+	return min
+}
+
+// maxDCParallel returns maximal repair parallelism limited to keyspace and nodes of given dc.
+func (kp keyspacePlan) maxDCParallel(dcHosts []string) int {
+	var max int
+	filteredDCHosts := setIntersection(strset.New(dcHosts...), strset.New(kp.Hosts()...))
+	// Not repaired DC does not have any limits on parallel
+	if filteredDCHosts.Size() == 0 {
+		return math.MaxInt
+	}
+
+	for _, rep := range kp.Replicas {
+		filteredRepSet := setIntersection(strset.New(rep.ReplicaSet...), filteredDCHosts)
+		if filteredRepSet.Size() == 0 {
+			continue
+		}
+		// Max DC parallel is equal to #(repaired nodes from DC) / #(smallest partial replica set from DC)
+		if cand := filteredDCHosts.Size() / filteredRepSet.Size(); max < cand {
+			max = cand
+		}
+	}
+
+	return max
+}
+
+// Hosts returns all hosts taking part in keyspace repair.
+func (kp keyspacePlan) Hosts() []string {
+	out := strset.New()
+	for _, rep := range kp.Replicas {
+		out.Add(rep.ReplicaSet...)
+	}
+	return out.List()
+}
+
+func setIntersection(s1, s2 *strset.Set) *strset.Set {
+	out := strset.New()
+	if s2.Size() < s1.Size() {
+		s1, s2 = s2, s1
+	}
+	s1.Each(func(item string) bool {
+		if s2.Has(item) {
+			out.Add(item)
+		}
+		return true
+	})
 	return out
 }
 
