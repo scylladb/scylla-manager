@@ -15,8 +15,9 @@ import (
 
 // plan describes whole repair schedule and state.
 type plan struct {
-	Keyspaces []keyspacePlan
-	Idx       int // Idx of currently repaired keyspace
+	Keyspaces        []keyspacePlan
+	Idx              int // Idx of currently repaired keyspace
+	SkippedKeyspaces []string
 }
 
 func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
@@ -31,28 +32,37 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		if err != nil {
 			return nil, errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
 		}
+		if ring.Replication == scyllaclient.LocalStrategy {
+			continue
+		}
 
 		kp := keyspacePlan{
 			Keyspace:    u.Keyspace,
 			TokenRepIdx: make(map[scyllaclient.TokenRange]int),
+			AllTables:   u.AllTables,
 		}
 
+		skip := false
 		for _, rep := range ring.ReplicaTokens {
 			rtr := scyllaclient.ReplicaTokenRanges{
 				ReplicaSet: filteredReplicaSet(rep.ReplicaSet, filtered, target.Host),
 				Ranges:     rep.Ranges,
 			}
-			// Don't add completely filtered out replica sets
-			if len(rtr.ReplicaSet) != 0 {
-				for _, r := range rtr.Ranges {
-					kp.TokenRepIdx[r] = len(kp.Replicas)
-				}
-				kp.Replicas = append(kp.Replicas, rtr)
+
+			// Don't add keyspace with some ranges not replicated in filtered hosts
+			if len(rtr.ReplicaSet) <= 1 {
+				skip = true
+				break
 			}
+
+			for _, r := range rtr.Ranges {
+				kp.TokenRepIdx[r] = len(kp.Replicas)
+			}
+			kp.Replicas = append(kp.Replicas, rtr)
 		}
 
-		// Don't add keyspace with completely filtered out replica sets
-		if len(kp.Replicas) == 0 {
+		if skip {
+			p.SkippedKeyspaces = append(p.SkippedKeyspaces, u.Keyspace)
 			continue
 		}
 
@@ -68,7 +78,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 
 	if len(p.Keyspaces) == 0 {
-		return nil, errors.New("no replicas to repair")
+		return nil, ErrEmptyRepair
 	}
 	if err := p.FillSize(ctx, client, target.SmallTableThreshold); err != nil {
 		return nil, errors.Wrap(err, "calculate tables size")
@@ -107,6 +117,22 @@ func (p *plan) Hosts() []string {
 		}
 	}
 	return out.List()
+}
+
+// Units returns repaired tables in unit format.
+func (p *plan) Units() []Unit {
+	var out []Unit
+	for _, kp := range p.Keyspaces {
+		u := Unit{
+			Keyspace:  kp.Keyspace,
+			AllTables: kp.AllTables,
+		}
+		for _, tp := range kp.Tables {
+			u.Tables = append(u.Tables, tp.Table)
+		}
+		out = append(out, u)
+	}
+	return out
 }
 
 // MinRF returns the smallest repaired replica set size.
@@ -231,7 +257,8 @@ type keyspacePlan struct {
 	// All tables in the same keyspace share the same replicas and ranges
 	Tables []tablePlan
 	// Idx of currently repaired table
-	Idx int
+	Idx       int
+	AllTables bool
 
 	Replicas []scyllaclient.ReplicaTokenRanges
 	// Maps token range to replica set (by index) that owns it.
