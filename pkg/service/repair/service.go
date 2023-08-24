@@ -297,7 +297,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	close(done)
 
 	// Check if repair is fully finished
-	if ok := gen.plan.UpdateIdx(); !ok {
+	if err == nil && ctx.Err() == nil {
 		run.EndTime = timeutc.Now()
 		s.putRunLogError(ctx, run)
 	}
