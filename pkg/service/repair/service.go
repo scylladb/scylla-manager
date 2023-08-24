@@ -26,6 +26,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
+	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -301,11 +302,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		s.putRunLogError(ctx, run)
 	}
 
-	// Prefer repair error to ctx error
-	if err != nil {
-		return err
-	}
-	return ctx.Err()
+	return multierr.Append(err, ctx.Err())
 }
 
 func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
