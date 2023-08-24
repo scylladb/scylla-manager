@@ -114,11 +114,11 @@ type generator struct {
 	lastPercent int
 }
 
-func newGenerator(ctx context.Context, target Target, plan *plan,
+func newGenerator(ctx context.Context, target Target,
 	client *scyllaclient.Client, ih *intensityHandler, logger log.Logger,
 ) (*generator, error) {
 	var ord, cnt int
-	for _, kp := range plan.Keyspaces {
+	for _, kp := range target.plan.Keyspaces {
 		for _, tp := range kp.Tables {
 			cnt += len(kp.TokenRepIdx)
 			ord++
@@ -131,7 +131,7 @@ func newGenerator(ctx context.Context, target Target, plan *plan,
 		}
 	}
 
-	hosts := plan.Hosts()
+	hosts := target.plan.Hosts()
 	status, err := client.Status(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get status")
@@ -156,9 +156,9 @@ func newGenerator(ctx context.Context, target Target, plan *plan,
 	// As each host can take part in at most one repair job,
 	// this is the max possible amount of jobs that can be
 	// run in parallel in enter cluster.
-	maxParallel := len(hosts) / plan.MinRF()
+	maxParallel := len(hosts) / target.plan.MinRF()
 	return &generator{
-		plan:        plan,
+		plan:        target.plan,
 		ctl:         newRowLevelRepairController(ih, maxParallel, hostMaxRanges(shards, memory)),
 		ms:          newMasterSelector(shards, status.HostDC(), closestDC),
 		client:      client,

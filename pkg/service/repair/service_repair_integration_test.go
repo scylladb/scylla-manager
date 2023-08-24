@@ -536,6 +536,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 
 			if diff := cmp.Diff(golden, v,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
+				cmpopts.SortSlices(func(u1, u2 repair.Unit) bool { return u1.Keyspace < u2.Keyspace }),
 				cmpopts.IgnoreUnexported(repair.Target{})); diff != "" {
 				t.Fatal(diff)
 			}
