@@ -29,7 +29,7 @@ type restoreHost struct {
 type bundle []string
 
 type indexWorker struct {
-	restoreWorkerTools
+	worker
 
 	bundles      map[string]bundle       // Maps bundle to it's ID
 	bundleIDPool chan string             // IDs of the bundles that are yet to be restored
@@ -48,13 +48,13 @@ func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreR
 		if w.continuation {
 			// Check if table has already been processed in previous run
 			if run.Keyspace != fm.Keyspace || run.Table != fm.Table {
-				w.Logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
+				w.logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
 				return nil
 			}
 		}
 
-		w.Logger.Info(ctx, "Restoring table", "keyspace", fm.Keyspace, "table", fm.Table)
-		defer w.Logger.Info(ctx, "Restoring table finished", "keyspace", fm.Keyspace, "table", fm.Table)
+		w.logger.Info(ctx, "Restoring table", "keyspace", fm.Keyspace, "table", fm.Table)
+		defer w.logger.Info(ctx, "Restoring table finished", "keyspace", fm.Keyspace, "table", fm.Table)
 
 		run.Table = fm.Table
 		run.Keyspace = fm.Keyspace
@@ -75,7 +75,7 @@ func (w *indexWorker) filesMetaRestoreHandler(ctx context.Context, run *RestoreR
 				return errors.Wrapf(err, "not restored bundles %v", w.drainBundleIDPool())
 			}
 
-			w.Logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
+			w.logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
 				"keyspace", run.Keyspace,
 				"table", run.Table,
 				"error", err,
@@ -99,7 +99,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 		dstDir = UploadTableDir(fm.Keyspace, fm.Table, version)
 	)
 
-	w.Logger.Info(ctx, "Found table's source and destination directory",
+	w.logger.Info(ctx, "Found table's source and destination directory",
 		"keyspace", fm.Keyspace,
 		"table", fm.Table,
 		"src_dir", srcDir,
@@ -108,17 +108,17 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 
 	ctr := newSSTableCounter(int64(len(w.bundleIDPool)), w.hosts)
 	if ctr.RestoreTables(0) == 0 {
-		w.Logger.Info(ctx, "Table does not have any more SSTables to restore",
+		w.logger.Info(ctx, "Table does not have any more SSTables to restore",
 			"keyspace", fm.Keyspace,
 			"table", fm.Table,
 		)
 		return nil
 	}
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0].Host, srcDir, w.Logger)
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.snapshotTag, w.hosts[0].Host, srcDir, w.logger)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
-	w.fileSizesCache, err = buildFilesSizesCache(ctx, w.Client, w.hosts[0].Host, srcDir, w.versionedFiles)
+	w.fileSizesCache, err = buildFilesSizesCache(ctx, w.client, w.hosts[0].Host, srcDir, w.versionedFiles)
 	if err != nil {
 		return errors.Wrap(err, "build files sizes cache")
 	}
@@ -139,23 +139,23 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 		}()
 		for {
 			pr, err := w.prepareRunProgress(ctx, run, target, h, dstDir, srcDir)
-			w.metrics.SetRestoreState(w.ClusterID, w.location, w.miwc.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
+			w.metrics.SetRestoreState(w.clusterID, w.location, w.miwc.SnapshotTag, h.Host, metrics.RestoreStateDownloading)
 
 			if ctx.Err() != nil {
-				w.Logger.Info(ctx, "Canceled context", "host", h.Host)
+				w.logger.Info(ctx, "Canceled context", "host", h.Host)
 				return parallel.Abort(ctx.Err())
 			}
 			if err != nil {
 				return errors.Wrap(err, "prepare run progress")
 			}
 			if pr == nil {
-				w.Logger.Info(ctx, "No more batches to restore", "host", h.Host)
+				w.logger.Info(ctx, "No more batches to restore", "host", h.Host)
 				return nil
 			}
 
 			// Check if download hasn't already completed in previous run
 			if !validateTimeIsSet(pr.DownloadCompletedAt) {
-				w.Logger.Info(ctx, "Waiting for job", "host", h.Host, "job_id", pr.AgentJobID)
+				w.logger.Info(ctx, "Waiting for job", "host", h.Host, "job_id", pr.AgentJobID)
 
 				if err = w.waitJob(ctx, pr); err != nil {
 					if ctx.Err() != nil {
@@ -166,7 +166,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 					w.deleteRunProgress(ctx, pr)
 					w.returnBatchToPool(pr.SSTableID, h.Host)
 					if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
-						w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
+						w.logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
 					}
 
 					return errors.Wrapf(err, "wait on rclone job, id: %d, host: %s", pr.AgentJobID, h.Host)
@@ -181,13 +181,13 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 
 			if err = w.restoreSSTables(ctx, h.Host, fm.Keyspace, fm.Table, true, true); err != nil {
 				if ctx.Err() != nil {
-					w.Logger.Info(ctx, "Stop load and stream: canceled context", "host", h.Host)
+					w.logger.Info(ctx, "Stop load and stream: canceled context", "host", h.Host)
 					return parallel.Abort(ctx.Err())
 				}
 				w.deleteRunProgress(ctx, pr)
 				w.returnBatchToPool(pr.SSTableID, h.Host)
 				if cleanErr := w.cleanUploadDir(ctx, h.Host, dstDir, nil); cleanErr != nil {
-					w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
+					w.logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", cleanErr)
 				}
 
 				return errors.Wrapf(err, "call load and stream, host: %s", h.Host)
@@ -199,7 +199,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 			restoredBytes := pr.Downloaded + pr.Skipped + pr.VersionedProgress
 
 			labels := metrics.RestoreBytesLabels{
-				ClusterID:   w.ClusterID.String(),
+				ClusterID:   w.clusterID.String(),
 				SnapshotTag: target.SnapshotTag,
 				Location:    w.location.String(),
 				DC:          w.miwc.DC,
@@ -213,12 +213,12 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 			progress := w.progress.CurrentProgress()
 
 			progressLabels := metrics.RestoreProgressLabels{
-				ClusterID:   w.ClusterID.String(),
+				ClusterID:   w.clusterID.String(),
 				SnapshotTag: target.SnapshotTag,
 			}
 			w.metrics.SetProgress(progressLabels, progress)
 
-			w.Logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
+			w.logger.Info(ctx, "Restored batch", "host", h.Host, "sstable_id", pr.SSTableID)
 			// Close pool and free hosts awaiting on it if all SSTables have been successfully restored.
 			if ctr.RestoreTables(len(pr.SSTableID)) == 0 {
 				close(w.bundleIDPool)
@@ -227,7 +227,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 	}
 
 	notify := func(n int, err error) {
-		w.Logger.Error(ctx, "Failed to restore files on host",
+		w.logger.Error(ctx, "Failed to restore files on host",
 			"host", w.hosts[n].Host,
 			"error", err,
 		)
@@ -264,7 +264,7 @@ func (w *indexWorker) initBundlePool(ctx context.Context, run *RestoreRun, sstab
 		}
 	}
 
-	w.Logger.Info(ctx, "Initialized SSTable bundle pool", "sstable_ids", takenIDs)
+	w.logger.Info(ctx, "Initialized SSTable bundle pool", "sstable_ids", takenIDs)
 }
 
 // prepareRunProgress either reactivates RestoreRunProgress created in previous run
@@ -296,7 +296,7 @@ func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunP
 		return nil
 	}
 	// Nothing to do if rclone job is still running
-	if job, err := w.Client.RcloneJobProgress(ctx, pr.Host, pr.AgentJobID, w.Config.LongPollingTimeoutSeconds); err != nil {
+	if job, err := w.client.RcloneJobProgress(ctx, pr.Host, pr.AgentJobID, w.config.LongPollingTimeoutSeconds); err != nil {
 		if scyllaclient.WorthWaitingForJob(job.Status) {
 			return nil
 		}
@@ -304,7 +304,7 @@ func (w *indexWorker) reactivateRunProgress(ctx context.Context, pr *RestoreRunP
 	// Recreate rclone job
 	batch := w.batchFromIDs(pr.SSTableID)
 	if err := w.cleanUploadDir(ctx, pr.Host, dstDir, batch); err != nil {
-		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", err)
+		w.logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", err)
 	}
 
 	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, dstDir, srcDir, batch)
@@ -338,14 +338,14 @@ func (w *indexWorker) newRunProgress(ctx context.Context, run *RestoreRun, targe
 		return nil, nil //nolint: nilnil
 	}
 
-	w.Logger.Info(ctx, "Created new batch",
+	w.logger.Info(ctx, "Created new batch",
 		"host", h.Host,
 		"sstable_id", takenIDs,
 	)
 
 	batch := w.batchFromIDs(takenIDs)
 	if err := w.cleanUploadDir(ctx, h.Host, dstDir, nil); err != nil {
-		w.Logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", err)
+		w.logger.Error(ctx, "Couldn't clear destination directory", "host", h.Host, "error", err)
 	}
 
 	jobID, versionedPr, err := w.startDownload(ctx, h.Host, dstDir, srcDir, batch)
@@ -421,11 +421,11 @@ func (w *indexWorker) startDownload(
 		dst := path.Join(dstDir, file.Name)
 		src := path.Join(srcDir, file.FullName())
 
-		if err := w.Client.RcloneCopyFile(ctx, host, dst, src); err != nil {
+		if err := w.client.RcloneCopyFile(ctx, host, dst, src); err != nil {
 			return parallel.Abort(errors.Wrapf(err, "host %s: download versioned file %s into %s", host, src, dst))
 		}
 
-		w.Logger.Info(ctx, "Downloaded versioned file",
+		w.logger.Info(ctx, "Downloaded versioned file",
 			"host", host,
 			"src", src,
 			"dst", dst,
@@ -439,7 +439,7 @@ func (w *indexWorker) startDownload(
 		file := versionedBatch[i]
 		dst := path.Join(dstDir, file.Name)
 		src := path.Join(srcDir, file.FullName())
-		w.Logger.Error(ctx, "Failed to download versioned SSTable",
+		w.logger.Error(ctx, "Failed to download versioned SSTable",
 			"file", file,
 			"dst", dst,
 			"src", src,
@@ -451,12 +451,12 @@ func (w *indexWorker) startDownload(
 		return 0, 0, err
 	}
 	// Start asynchronous job for downloading the newest versions of remaining files
-	jobID, err = w.Client.RcloneCopyPaths(ctx, host, dstDir, srcDir, regularBatch)
+	jobID, err = w.client.RcloneCopyPaths(ctx, host, dstDir, srcDir, regularBatch)
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}
 
-	w.Logger.Info(ctx, "Started downloading files",
+	w.logger.Info(ctx, "Started downloading files",
 		"host", host,
 		"job_id", jobID,
 		"batch", regularBatch,
@@ -468,7 +468,7 @@ func (w *indexWorker) startDownload(
 // chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
 func (w *indexWorker) chooseIDsForBatch(ctx context.Context, size int, host string) (takenIDs []string) {
 	defer func() {
-		w.increaseBatchSizeMetric(w.ClusterID, w.batchFromIDs(takenIDs), host)
+		w.increaseBatchSizeMetric(w.clusterID, w.batchFromIDs(takenIDs), host)
 	}()
 
 	// All restore hosts are trying to get IDs for batch from the pool.
@@ -519,9 +519,9 @@ func (w *indexWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err 
 	defer func() {
 		// On error stop job
 		if err != nil {
-			w.Logger.Info(ctx, "Stop job", "host", pr.Host, "run_progress", *pr, "error", err)
-			if e := w.Client.RcloneJobStop(context.Background(), pr.Host, pr.AgentJobID); e != nil {
-				w.Logger.Error(ctx, "Failed to stop job",
+			w.logger.Info(ctx, "Stop job", "host", pr.Host, "run_progress", *pr, "error", err)
+			if e := w.client.RcloneJobStop(context.Background(), pr.Host, pr.AgentJobID); e != nil {
+				w.logger.Error(ctx, "Failed to stop job",
 					"host", pr.Host,
 					"id", pr.AgentJobID,
 					"error", e,
@@ -530,7 +530,7 @@ func (w *indexWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err 
 		}
 		// On exit clear stats
 		if e := w.clearJobStats(context.Background(), pr.AgentJobID, pr.Host); e != nil {
-			w.Logger.Error(ctx, "Failed to clear job stats",
+			w.logger.Error(ctx, "Failed to clear job stats",
 				"host", pr.Host,
 				"id", pr.AgentJobID,
 				"error", e,
@@ -543,7 +543,7 @@ func (w *indexWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err 
 			return ctx.Err()
 		}
 
-		job, err := w.Client.RcloneJobProgress(ctx, pr.Host, pr.AgentJobID, w.Config.LongPollingTimeoutSeconds)
+		job, err := w.client.RcloneJobProgress(ctx, pr.Host, pr.AgentJobID, w.config.LongPollingTimeoutSeconds)
 		if err != nil {
 			return errors.Wrap(err, "fetch job info")
 		}
@@ -553,7 +553,7 @@ func (w *indexWorker) waitJob(ctx context.Context, pr *RestoreRunProgress) (err 
 			return errors.Errorf("job error (%d): %s", pr.AgentJobID, job.Error)
 		case scyllaclient.JobSuccess:
 			w.updateDownloadProgress(ctx, pr, job)
-			w.Logger.Info(ctx, "Batch download completed", "host", pr.Host, "job_id", pr.AgentJobID)
+			w.logger.Info(ctx, "Batch download completed", "host", pr.Host, "job_id", pr.AgentJobID)
 			return nil
 		case scyllaclient.JobRunning:
 			w.updateDownloadProgress(ctx, pr, job)
@@ -595,7 +595,7 @@ func (w *indexWorker) batchFromIDs(ids []string) []string {
 
 func (w *indexWorker) returnBatchToPool(ids []string, host string) {
 	defer func() {
-		w.decreaseBatchSizeMetric(w.ClusterID, w.batchFromIDs(ids), host)
+		w.decreaseBatchSizeMetric(w.clusterID, w.batchFromIDs(ids), host)
 	}()
 
 	for _, id := range ids {

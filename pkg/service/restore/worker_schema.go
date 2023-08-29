@@ -16,7 +16,7 @@ import (
 )
 
 type schemaWorker struct {
-	restoreWorkerTools
+	worker
 
 	hosts         []string
 	generationCnt atomic.Int64
@@ -44,10 +44,10 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	w.insertRun(ctx, run)
 
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
-	w.Logger.Info(ctx, "Started restoring schema")
-	defer w.Logger.Info(ctx, "Restoring schema finished")
+	w.logger.Info(ctx, "Started restoring schema")
+	defer w.logger.Info(ctx, "Restoring schema finished")
 
-	status, err := w.Client.Status(ctx)
+	status, err := w.client.Status(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get status")
 	}
@@ -84,7 +84,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 		host := status[i]
 		for _, ks := range run.Units {
 			for _, t := range ks.Tables {
-				if _, err := w.Client.LoadSSTables(ctx, host.Addr, ks.Keyspace, t.Table, false, false); err != nil {
+				if _, err := w.client.LoadSSTables(ctx, host.Addr, ks.Keyspace, t.Table, false, false); err != nil {
 					return errors.Wrap(err, "restore schema")
 				}
 			}
@@ -93,7 +93,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	}
 
 	notify := func(i int, err error) {
-		w.Logger.Error(ctx, "Failed to load schema on host",
+		w.logger.Error(ctx, "Failed to load schema on host",
 			"host", status[i],
 			"error", err,
 		)
@@ -111,8 +111,8 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 }
 
 func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location Location) error {
-	w.Logger.Info(ctx, "Downloading schema from location", "location", location)
-	defer w.Logger.Info(ctx, "Downloading schema from location finished", "location", location)
+	w.logger.Info(ctx, "Downloading schema from location", "location", location)
+	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location)
 
 	w.location = location
 	run.Location = location.String()
@@ -122,8 +122,8 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 	}
 
 	tableDownloadHandler := func(fm FilesMeta) error {
-		w.Logger.Info(ctx, "Downloading schema table", "keyspace", fm.Keyspace, "table", fm.Table)
-		defer w.Logger.Info(ctx, "Downloading schema table finished", "keyspace", fm.Keyspace, "table", fm.Table)
+		w.logger.Info(ctx, "Downloading schema table", "keyspace", fm.Keyspace, "table", fm.Table)
+		defer w.logger.Info(ctx, "Downloading schema table finished", "keyspace", fm.Keyspace, "table", fm.Table)
 
 		run.Table = fm.Table
 		run.Keyspace = fm.Keyspace
@@ -132,8 +132,8 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 	}
 
 	manifestDownloadHandler := func(miwc ManifestInfoWithContent) error {
-		w.Logger.Info(ctx, "Downloading schema from manifest", "manifest", miwc.ManifestInfo)
-		defer w.Logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
+		w.logger.Info(ctx, "Downloading schema from manifest", "manifest", miwc.ManifestInfo)
+		defer w.logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
 
 		w.miwc = miwc
 		run.ManifestPath = miwc.Path()
@@ -156,7 +156,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		dstDir = UploadTableDir(fm.Keyspace, fm.Table, version)
 	)
 
-	w.Logger.Info(ctx, "Start downloading schema files",
+	w.logger.Info(ctx, "Start downloading schema files",
 		"keyspace", fm.Keyspace,
 		"table", fm.Table,
 		"src_dir", srcDir,
@@ -164,7 +164,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		"files", fm.Files,
 	)
 
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0], srcDir, w.Logger)
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.snapshotTag, w.hosts[0], srcDir, w.logger)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
@@ -174,7 +174,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 
 	f := func(i int) error {
 		host := w.hosts[i]
-		nodeInfo, err := w.Client.NodeInfo(ctx, host)
+		nodeInfo, err := w.client.NodeInfo(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "get node info on host %s", host)
 		}
@@ -203,11 +203,11 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 			srcPath := path.Join(srcDir, srcFile)
 			dstPath := path.Join(dstDir, dstFile)
 
-			return w.Client.RcloneCopyFile(ctx, host, dstPath, srcPath)
+			return w.client.RcloneCopyFile(ctx, host, dstPath, srcPath)
 		}
 
 		notifyHost := func(j int, err error) {
-			w.Logger.Error(ctx, "Failed to download schema SSTable",
+			w.logger.Error(ctx, "Failed to download schema SSTable",
 				"host", host,
 				"file", fm.Files[j],
 				"error", err,
@@ -241,7 +241,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 	}
 
 	notify := func(i int, err error) {
-		w.Logger.Error(ctx, "Failed to restore schema on host",
+		w.logger.Error(ctx, "Failed to restore schema on host",
 			"host", w.hosts[i],
 			"error", err,
 		)
@@ -251,13 +251,13 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 }
 
 func (w *schemaWorker) initHosts(ctx context.Context) error {
-	status, err := w.Client.Status(ctx)
+	status, err := w.client.Status(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get client status")
 	}
 
 	remotePath := w.location.RemotePath("")
-	nodes, err := w.Client.GetNodesWithLocationAccess(ctx, status, remotePath)
+	nodes, err := w.client.GetNodesWithLocationAccess(ctx, status, remotePath)
 	if err != nil {
 		return errors.Wrap(err, "no live nodes with location access")
 	}
@@ -267,7 +267,7 @@ func (w *schemaWorker) initHosts(ctx context.Context) error {
 		w.hosts = append(w.hosts, n.Addr)
 	}
 
-	w.Logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
+	w.logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
 	return nil
 }
 

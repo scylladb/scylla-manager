@@ -23,7 +23,7 @@ type tableKey struct {
 }
 
 // aggregateProgress returns restore progress information classified by keyspace and tables.
-func (w *restoreWorkerTools) aggregateProgress(ctx context.Context, run *RestoreRun) RestoreProgress {
+func (w *worker) aggregateProgress(ctx context.Context, run *RestoreRun) RestoreProgress {
 	var (
 		p = RestoreProgress{
 			SnapshotTag: run.SnapshotTag,
@@ -80,9 +80,9 @@ func (w *restoreWorkerTools) aggregateProgress(ctx context.Context, run *Restore
 	p.extremeToNil()
 
 	for _, v := range run.Views {
-		status, err := w.Client.ViewBuildStatus(ctx, v.Keyspace, v.View)
+		status, err := w.client.ViewBuildStatus(ctx, v.Keyspace, v.View)
 		if err != nil {
-			w.Logger.Error(ctx, "Couldn't get view build status",
+			w.logger.Error(ctx, "Couldn't get view build status",
 				"keyspace", v.Keyspace,
 				"view", v.View,
 				"error", err,
@@ -178,8 +178,8 @@ func calcParentCompletedAt(parent, child *time.Time) *time.Time {
 
 // ForEachProgress iterates over all RestoreRunProgress that belong to the run.
 // NOTE: callback is always called with the same pointer - only the value that it points to changes.
-func (w *restoreWorkerTools) ForEachProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
-	q := table.RestoreRunProgress.SelectQuery(w.managerSession)
+func (w *worker) ForEachProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
+	q := table.RestoreRunProgress.SelectQuery(w.session)
 	iter := q.BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.TaskID,
@@ -187,7 +187,7 @@ func (w *restoreWorkerTools) ForEachProgress(ctx context.Context, run *RestoreRu
 	}).Iter()
 	defer func() {
 		if err := iter.Close(); err != nil {
-			w.Logger.Error(ctx, "Error while iterating over run progress",
+			w.logger.Error(ctx, "Error while iterating over run progress",
 				"cluster_id", run.ClusterID,
 				"task_id", run.TaskID,
 				"run_id", run.ID,
@@ -206,7 +206,7 @@ func (w *restoreWorkerTools) ForEachProgress(ctx context.Context, run *RestoreRu
 // ForEachTableProgress iterates over all RestoreRunProgress that belong to the run
 // with the same manifest, keyspace and table as the run.
 // NOTE: callback is always called with the same pointer - only the value that it points to changes.
-func (w *restoreWorkerTools) ForEachTableProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
+func (w *worker) ForEachTableProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
 	q := qb.Select(table.RestoreRunProgress.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
@@ -214,7 +214,7 @@ func (w *restoreWorkerTools) ForEachTableProgress(ctx context.Context, run *Rest
 		qb.Eq("manifest_path"),
 		qb.Eq("keyspace_name"),
 		qb.Eq("table_name"),
-	).Query(w.managerSession)
+	).Query(w.session)
 	iter := q.BindMap(qb.M{
 		"cluster_id":    run.ClusterID,
 		"task_id":       run.TaskID,
@@ -225,7 +225,7 @@ func (w *restoreWorkerTools) ForEachTableProgress(ctx context.Context, run *Rest
 	}).Iter()
 	defer func() {
 		if err := iter.Close(); err != nil {
-			w.Logger.Error(ctx, "Error while iterating over table's run progress",
+			w.logger.Error(ctx, "Error while iterating over table's run progress",
 				"cluster_id", run.ClusterID,
 				"task_id", run.TaskID,
 				"run_id", run.ID,
