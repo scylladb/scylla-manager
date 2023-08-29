@@ -189,11 +189,6 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		Stage:       StageRestoreInit,
 	}
 
-	// Get cluster name
-	clusterName, err := s.clusterName(ctx, clusterID)
-	if err != nil {
-		return errors.Wrap(err, "invalid cluster")
-	}
 	// Get the cluster client
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
@@ -206,22 +201,19 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 	defer clusterSession.Close()
 
-	tools := restoreWorkerTools{
-		workerTools: workerTools{
-			ClusterID:   clusterID,
-			ClusterName: clusterName,
-			TaskID:      taskID,
-			RunID:       runID,
-			SnapshotTag: target.SnapshotTag,
-			Client:      client,
-			Config:      s.config,
-			Logger:      s.logger.Named("restore"),
-		},
-		repairSvc:               s.repairSvc,
+	tools := worker{
+		clusterID:               clusterID,
+		taskID:                  taskID,
+		runID:                   runID,
+		snapshotTag:             target.SnapshotTag,
+		config:                  s.config,
+		logger:                  s.logger,
 		metrics:                 s.metrics.Restore,
-		managerSession:          s.session,
+		client:                  client,
+		session:                 s.session,
 		clusterSession:          clusterSession,
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
+		repairSvc:               s.repairSvc,
 	}
 
 	if err := tools.decorateWithPrevRun(ctx, run, target.Continue); err != nil {
@@ -270,11 +262,11 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 
 	if target.RestoreTables {
 		w = &tablesWorker{
-			restoreWorkerTools: tools,
-			progress:           NewTotalRestoreProgress(totalBytesToRestore),
+			worker:   tools,
+			progress: NewTotalRestoreProgress(totalBytesToRestore),
 		}
 	} else {
-		w = &schemaWorker{restoreWorkerTools: tools}
+		w = &schemaWorker{worker: tools}
 	}
 
 	if err := w.restore(ctx, run, target); err != nil {
@@ -295,7 +287,7 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 	}
 	defer clusterSession.Close()
 
-	w := &restoreWorkerTools{
+	w := &worker{
 		clusterSession:          clusterSession,
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
 	}
@@ -315,10 +307,8 @@ func (s *Service) GetRestoreViews(ctx context.Context, clusterID uuid.UUID, unit
 	}
 	defer clusterSession.Close()
 
-	w := &restoreWorkerTools{
-		workerTools: workerTools{
-			Client: client,
-		},
+	w := &worker{
+		client:         client,
 		clusterSession: clusterSession,
 	}
 
@@ -333,16 +323,14 @@ func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, run
 		return RestoreProgress{}, errors.Wrap(err, "get client")
 	}
 
-	w := &restoreWorkerTools{
-		workerTools: workerTools{
-			ClusterID: clusterID,
-			TaskID:    taskID,
-			RunID:     runID,
-			Client:    client,
-			Logger:    s.logger.Named("restore"),
-		},
-		repairSvc:      s.repairSvc,
-		managerSession: s.session,
+	w := &worker{
+		clusterID: clusterID,
+		taskID:    taskID,
+		runID:     runID,
+		client:    client,
+		logger:    s.logger,
+		repairSvc: s.repairSvc,
+		session:   s.session,
 	}
 
 	return w.getProgress(ctx)

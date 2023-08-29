@@ -30,34 +30,27 @@ type restorer interface {
 	restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error
 }
 
-// workerTools is an intersection of fields and methods
-// useful for both worker and restoreWorker.
-type workerTools struct {
-	ClusterID   uuid.UUID
-	ClusterName string
-	TaskID      uuid.UUID
-	RunID       uuid.UUID
-	SnapshotTag string
-	Config      Config
-	Client      *scyllaclient.Client
-	Logger      log.Logger
-}
-
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
-type restoreWorkerTools struct {
-	workerTools
+type worker struct {
+	clusterID   uuid.UUID
+	taskID      uuid.UUID
+	runID       uuid.UUID
+	snapshotTag string
 
-	repairSvc      *repair.Service
-	metrics        metrics.RestoreM
-	managerSession gocqlx.Session
+	config  Config
+	logger  log.Logger
+	metrics metrics.RestoreM
+
+	client         *scyllaclient.Client
+	session        gocqlx.Session
 	clusterSession gocqlx.Session
-	// Iterates over all manifests in given location with cluster ID and snapshot tag specified in restore target.
-	forEachRestoredManifest func(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error
 
-	location Location // Currently restored location
+	forEachRestoredManifest func(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error
+	repairSvc               *repair.Service
+	location                Location
 }
 
-func (w *restoreWorkerTools) newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error) {
+func (w *worker) newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error) {
 	var (
 		units   []RestoreUnit
 		unitMap = make(map[string]RestoreUnit)
@@ -119,7 +112,7 @@ func (w *restoreWorkerTools) newUnits(ctx context.Context, target RestoreTarget)
 		}
 	}
 
-	w.Logger.Info(ctx, "Created restore units", "units", units)
+	w.logger.Info(ctx, "Created restore units", "units", units)
 
 	return units, nil
 }
@@ -129,7 +122,7 @@ var (
 	regexSI = regexp.MustCompile(`CREATE\s*INDEX`)
 )
 
-func (w *restoreWorkerTools) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreView, error) {
+func (w *worker) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreView, error) {
 	restoredTables := strset.New()
 	for _, u := range units {
 		for _, t := range u.Tables {
@@ -137,7 +130,7 @@ func (w *restoreWorkerTools) newViews(ctx context.Context, units []RestoreUnit) 
 		}
 	}
 
-	keyspaces, err := w.Client.Keyspaces(ctx)
+	keyspaces, err := w.client.Keyspaces(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "get keyspaces")
 	}
@@ -228,7 +221,7 @@ func (w *restoreWorkerTools) newViews(ctx context.Context, units []RestoreUnit) 
 }
 
 // cleanUploadDir deletes all SSTables from host's upload directory except for those present in excludedFiles.
-func (w *restoreWorkerTools) cleanUploadDir(ctx context.Context, host, uploadDir string, excludedFiles []string) error {
+func (w *worker) cleanUploadDir(ctx context.Context, host, uploadDir string, excludedFiles []string) error {
 	s := strset.New(excludedFiles...)
 	var filesToBeDeleted []string
 
@@ -239,12 +232,12 @@ func (w *restoreWorkerTools) cleanUploadDir(ctx context.Context, host, uploadDir
 	}
 
 	opts := &scyllaclient.RcloneListDirOpts{FilesOnly: true}
-	if err := w.Client.RcloneListDirIter(ctx, host, uploadDir, opts, getFilesToBeDeleted); err != nil {
+	if err := w.client.RcloneListDirIter(ctx, host, uploadDir, opts, getFilesToBeDeleted); err != nil {
 		return errors.Wrapf(err, "list dir: %s on host: %s", uploadDir, host)
 	}
 
 	if len(filesToBeDeleted) > 0 {
-		w.Logger.Info(ctx, "Delete files from host's upload directory",
+		w.logger.Info(ctx, "Delete files from host's upload directory",
 			"host", host,
 			"upload_dir", uploadDir,
 			"files", filesToBeDeleted,
@@ -253,7 +246,7 @@ func (w *restoreWorkerTools) cleanUploadDir(ctx context.Context, host, uploadDir
 
 	for _, f := range filesToBeDeleted {
 		remotePath := path.Join(uploadDir, f)
-		if err := w.Client.RcloneDeleteFile(ctx, host, remotePath); err != nil {
+		if err := w.client.RcloneDeleteFile(ctx, host, remotePath); err != nil {
 			return errors.Wrapf(err, "delete file: %s on host: %s", remotePath, host)
 		}
 	}
@@ -261,7 +254,7 @@ func (w *restoreWorkerTools) cleanUploadDir(ctx context.Context, host, uploadDir
 	return nil
 }
 
-func (w *restoreWorkerTools) ValidateTableExists(keyspace, table string) error {
+func (w *worker) ValidateTableExists(keyspace, table string) error {
 	q := qb.Select("system_schema.tables").
 		Columns("table_name").
 		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
@@ -273,7 +266,7 @@ func (w *restoreWorkerTools) ValidateTableExists(keyspace, table string) error {
 	return q.Scan(&name)
 }
 
-func (w *restoreWorkerTools) GetTableVersion(ctx context.Context, keyspace, table string) (string, error) {
+func (w *worker) GetTableVersion(ctx context.Context, keyspace, table string) (string, error) {
 	q := qb.Select("system_schema.tables").
 		Columns("id").
 		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
@@ -289,7 +282,7 @@ func (w *restoreWorkerTools) GetTableVersion(ctx context.Context, keyspace, tabl
 	// Table's version is stripped of '-' characters
 	version = strings.ReplaceAll(version, "-", "")
 
-	w.Logger.Info(ctx, "Received table's version",
+	w.logger.Info(ctx, "Received table's version",
 		"keyspace", keyspace,
 		"table", table,
 		"version", version,
@@ -309,8 +302,8 @@ const (
 )
 
 // AlterTableTombstoneGC alters 'tombstone_gc' mode.
-func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace, table string, mode tombstoneGCMode) error {
-	w.Logger.Info(ctx, "Alter table's tombstone_gc mode",
+func (w *worker) AlterTableTombstoneGC(ctx context.Context, keyspace, table string, mode tombstoneGCMode) error {
+	w.logger.Info(ctx, "Alter table's tombstone_gc mode",
 		"keyspace", keyspace,
 		"table", table,
 		"mode", mode,
@@ -321,7 +314,7 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 	}
 
 	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Altering table's tombstone_gc mode failed",
+		w.logger.Info(ctx, "Altering table's tombstone_gc mode failed",
 			"keyspace", keyspace,
 			"table", table,
 			"mode", mode,
@@ -334,8 +327,8 @@ func (w *restoreWorkerTools) AlterTableTombstoneGC(ctx context.Context, keyspace
 }
 
 // DropView drops specified Materialized View or Secondary Index.
-func (w *restoreWorkerTools) DropView(ctx context.Context, view RestoreView) error {
-	w.Logger.Info(ctx, "Dropping view",
+func (w *worker) DropView(ctx context.Context, view RestoreView) error {
+	w.logger.Info(ctx, "Dropping view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
 		"type", view.Type,
@@ -354,7 +347,7 @@ func (w *restoreWorkerTools) DropView(ctx context.Context, view RestoreView) err
 	}
 
 	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Dropping view failed",
+		w.logger.Info(ctx, "Dropping view failed",
 			"keyspace", view.Keyspace,
 			"view", view.View,
 			"type", view.Type,
@@ -367,8 +360,8 @@ func (w *restoreWorkerTools) DropView(ctx context.Context, view RestoreView) err
 }
 
 // CreateView creates specified Materialized View or Secondary Index.
-func (w *restoreWorkerTools) CreateView(ctx context.Context, view RestoreView) error {
-	w.Logger.Info(ctx, "Creating view",
+func (w *worker) CreateView(ctx context.Context, view RestoreView) error {
+	w.logger.Info(ctx, "Creating view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
 		"type", view.Type,
@@ -380,7 +373,7 @@ func (w *restoreWorkerTools) CreateView(ctx context.Context, view RestoreView) e
 	}
 
 	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Creating view failed",
+		w.logger.Info(ctx, "Creating view failed",
 			"keyspace", view.Keyspace,
 			"view", view.View,
 			"type", view.Type,
@@ -392,9 +385,9 @@ func (w *restoreWorkerTools) CreateView(ctx context.Context, view RestoreView) e
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *restoreWorkerTools) WaitForViewBuilding(ctx context.Context, view RestoreView) error {
+func (w *worker) WaitForViewBuilding(ctx context.Context, view RestoreView) error {
 	labels := metrics.RestoreViewBuildStatusLabels{
-		ClusterID: w.ClusterID.String(),
+		ClusterID: w.clusterID.String(),
 		Keyspace:  view.Keyspace,
 		View:      view.View,
 	}
@@ -405,7 +398,7 @@ func (w *restoreWorkerTools) WaitForViewBuilding(ctx context.Context, view Resto
 			viewTableName += "_index"
 		}
 
-		status, err := w.Client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
+		status, err := w.client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
 		if err != nil {
 			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusError)
 			return retry.Permanent(err)
@@ -426,7 +419,7 @@ func (w *restoreWorkerTools) WaitForViewBuilding(ctx context.Context, view Resto
 	}
 
 	notify := func(err error) {
-		w.Logger.Info(ctx, "Waiting for view",
+		w.logger.Info(ctx, "Waiting for view",
 			"keyspace", view.Keyspace,
 			"view", view.View,
 			"type", view.Type,
@@ -463,7 +456,7 @@ func alterSchemaRetryWrapper(ctx context.Context, op func() error, notify func(e
 }
 
 // GetTableTombstoneGC returns table's tombstone_gc mode.
-func (w *restoreWorkerTools) GetTableTombstoneGC(keyspace, table string) (tombstoneGCMode, error) {
+func (w *worker) GetTableTombstoneGC(keyspace, table string) (tombstoneGCMode, error) {
 	var ext map[string]string
 	q := qb.Select("system_schema.tables").
 		Columns("extensions").
@@ -496,15 +489,15 @@ func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) str
 	return fmt.Sprintf(`ALTER TABLE %q.%q WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
 }
 
-func (w *restoreWorkerTools) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
-	w.Logger.Info(ctx, "Load SSTables for the first time",
+func (w *worker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+	w.logger.Info(ctx, "Load SSTables for the first time",
 		"host", host,
 		"load_and_stream", loadAndStream,
 		"primary_replica_only", primaryReplicaOnly,
 	)
 
 	op := func() error {
-		running, err := w.Client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+		running, err := w.client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
 		if err == nil || running || strings.Contains(err.Error(), "timeout") {
 			return err
 		}
@@ -513,7 +506,7 @@ func (w *restoreWorkerTools) restoreSSTables(ctx context.Context, host, keyspace
 	}
 
 	notify := func(err error) {
-		w.Logger.Info(ctx, "Waiting for SSTables loading to finish",
+		w.logger.Info(ctx, "Waiting for SSTables loading to finish",
 			"host", host,
 			"error", err,
 		)
@@ -550,27 +543,27 @@ func indefiniteHangingRetryWrapper(ctx context.Context, op func() error, notify 
 	}
 }
 
-func (w *restoreWorkerTools) insertRun(ctx context.Context, run *RestoreRun) {
-	if err := table.RestoreRun.InsertQuery(w.managerSession).BindStruct(run).ExecRelease(); err != nil {
-		w.Logger.Error(ctx, "Insert run",
+func (w *worker) insertRun(ctx context.Context, run *RestoreRun) {
+	if err := table.RestoreRun.InsertQuery(w.session).BindStruct(run).ExecRelease(); err != nil {
+		w.logger.Error(ctx, "Insert run",
 			"run", *run,
 			"error", err,
 		)
 	}
 }
 
-func (w *restoreWorkerTools) insertRunProgress(ctx context.Context, pr *RestoreRunProgress) {
-	if err := table.RestoreRunProgress.InsertQuery(w.managerSession).BindStruct(pr).ExecRelease(); err != nil {
-		w.Logger.Error(ctx, "Insert run progress",
+func (w *worker) insertRunProgress(ctx context.Context, pr *RestoreRunProgress) {
+	if err := table.RestoreRunProgress.InsertQuery(w.session).BindStruct(pr).ExecRelease(); err != nil {
+		w.logger.Error(ctx, "Insert run progress",
 			"progress", *pr,
 			"error", err,
 		)
 	}
 }
 
-func (w *restoreWorkerTools) deleteRunProgress(ctx context.Context, pr *RestoreRunProgress) {
-	if err := table.RestoreRunProgress.DeleteQuery(w.managerSession).BindStruct(pr).ExecRelease(); err != nil {
-		w.Logger.Error(ctx, "Delete run progress",
+func (w *worker) deleteRunProgress(ctx context.Context, pr *RestoreRunProgress) {
+	if err := table.RestoreRunProgress.DeleteQuery(w.session).BindStruct(pr).ExecRelease(); err != nil {
+		w.logger.Error(ctx, "Delete run progress",
 			"progress", *pr,
 			"error", err,
 		)
@@ -579,7 +572,7 @@ func (w *restoreWorkerTools) deleteRunProgress(ctx context.Context, pr *RestoreR
 
 // decorateWithPrevRun gets restore task previous run and if it is not done
 // sets prev ID on the given run.
-func (w *restoreWorkerTools) decorateWithPrevRun(ctx context.Context, run *RestoreRun, cont bool) error {
+func (w *worker) decorateWithPrevRun(ctx context.Context, run *RestoreRun, cont bool) error {
 	prev, err := w.GetRun(ctx, run.ClusterID, run.TaskID, uuid.Nil)
 	if err != nil {
 		if errors.Is(err, gocql.ErrNotFound) {
@@ -604,14 +597,14 @@ func (w *restoreWorkerTools) decorateWithPrevRun(ctx context.Context, run *Resto
 		run.RepairTaskID = prev.RepairTaskID
 	}
 
-	w.Logger.Info(ctx, "Decorated run", "run", *run)
+	w.logger.Info(ctx, "Decorated run", "run", *run)
 	return nil
 }
 
 // clonePrevProgress copies all the previous run progress into
 // current run progress.
-func (w *restoreWorkerTools) clonePrevProgress(ctx context.Context, run *RestoreRun) {
-	q := table.RestoreRunProgress.InsertQuery(w.managerSession)
+func (w *worker) clonePrevProgress(ctx context.Context, run *RestoreRun) {
+	q := table.RestoreRunProgress.InsertQuery(w.session)
 	defer q.Release()
 
 	prevRun := &RestoreRun{
@@ -624,20 +617,20 @@ func (w *restoreWorkerTools) clonePrevProgress(ctx context.Context, run *Restore
 		pr.RunID = run.ID
 
 		if err := q.BindStruct(pr).Exec(); err != nil {
-			w.Logger.Error(ctx, "Couldn't clone run progress",
+			w.logger.Error(ctx, "Couldn't clone run progress",
 				"run_progress", *pr,
 				"error", err,
 			)
 		}
 	})
 
-	w.Logger.Info(ctx, "Run after decoration", "run", *run)
+	w.logger.Info(ctx, "Run after decoration", "run", *run)
 }
 
 // GetRun returns run with specified cluster, task and run ID.
 // If run ID is not specified, it returns the latest run with specified cluster and task ID.
-func (w *restoreWorkerTools) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*RestoreRun, error) {
-	w.Logger.Debug(ctx, "Get run",
+func (w *worker) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*RestoreRun, error) {
+	w.logger.Debug(ctx, "Get run",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,
@@ -645,13 +638,13 @@ func (w *restoreWorkerTools) GetRun(ctx context.Context, clusterID, taskID, runI
 
 	var q *gocqlx.Queryx
 	if runID != uuid.Nil {
-		q = table.RestoreRun.GetQuery(w.managerSession).BindMap(qb.M{
+		q = table.RestoreRun.GetQuery(w.session).BindMap(qb.M{
 			"cluster_id": clusterID,
 			"task_id":    taskID,
 			"id":         runID,
 		})
 	} else {
-		q = table.RestoreRun.SelectQuery(w.managerSession).BindMap(qb.M{
+		q = table.RestoreRun.SelectQuery(w.session).BindMap(qb.M{
 			"cluster_id": clusterID,
 			"task_id":    taskID,
 		})
@@ -662,14 +655,14 @@ func (w *restoreWorkerTools) GetRun(ctx context.Context, clusterID, taskID, runI
 }
 
 // getProgress fetches restore worker's run and returns its aggregated progress information.
-func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, error) {
-	w.Logger.Debug(ctx, "Getting progress",
-		"cluster_id", w.ClusterID,
-		"task_id", w.TaskID,
-		"run_id", w.RunID,
+func (w *worker) getProgress(ctx context.Context) (RestoreProgress, error) {
+	w.logger.Debug(ctx, "Getting progress",
+		"cluster_id", w.clusterID,
+		"task_id", w.taskID,
+		"run_id", w.runID,
 	)
 
-	run, err := w.GetRun(ctx, w.ClusterID, w.TaskID, w.RunID)
+	run, err := w.GetRun(ctx, w.clusterID, w.taskID, w.runID)
 	if err != nil {
 		return RestoreProgress{}, errors.Wrap(err, "get restore run")
 	}
@@ -681,7 +674,7 @@ func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, 
 		return pr, nil
 	}
 
-	q := table.RepairRun.SelectQuery(w.managerSession).BindMap(qb.M{
+	q := table.RepairRun.SelectQuery(w.session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.RepairTaskID,
 	})
@@ -700,15 +693,15 @@ func (w *restoreWorkerTools) getProgress(ctx context.Context) (RestoreProgress, 
 	return pr, nil
 }
 
-func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
-	w.Logger.Info(ctx, "Awaiting schema agreement...")
+func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
+	w.logger.Info(ctx, "Awaiting schema agreement...")
 
 	var stepError error
 	defer func(start time.Time) {
 		if stepError != nil {
-			w.Logger.Error(ctx, "Awaiting schema agreement failed see exact errors above", "duration", timeutc.Since(start))
+			w.logger.Error(ctx, "Awaiting schema agreement failed see exact errors above", "duration", timeutc.Since(start))
 		} else {
-			w.Logger.Info(ctx, "Done awaiting schema agreement", "duration", timeutc.Since(start))
+			w.logger.Info(ctx, "Done awaiting schema agreement", "duration", timeutc.Since(start))
 		}
 	}(timeutc.Now())
 
@@ -729,7 +722,7 @@ func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession g
 	)
 
 	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Schema agreement not reached, retrying...", "error", err, "wait", wait)
+		w.logger.Info(ctx, "Schema agreement not reached, retrying...", "error", err, "wait", wait)
 	}
 
 	const (
@@ -758,29 +751,29 @@ func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession g
 	}, backoff, notify)
 }
 
-func (w *workerTools) checkAvailableDiskSpace(ctx context.Context, host string) error {
+func (w *worker) checkAvailableDiskSpace(ctx context.Context, host string) error {
 	freePercent, err := w.diskFreePercent(ctx, host)
 	if err != nil {
 		return err
 	}
-	w.Logger.Info(ctx, "Available disk space", "host", host, "percent", freePercent)
-	if freePercent < w.Config.DiskSpaceFreeMinPercent {
+	w.logger.Info(ctx, "Available disk space", "host", host, "percent", freePercent)
+	if freePercent < w.config.DiskSpaceFreeMinPercent {
 		return errors.New("not enough disk space")
 	}
 	return nil
 }
 
-func (w *workerTools) diskFreePercent(ctx context.Context, host string) (int, error) {
-	du, err := w.Client.RcloneDiskUsage(ctx, host, DataDir)
+func (w *worker) diskFreePercent(ctx context.Context, host string) (int, error) {
+	du, err := w.client.RcloneDiskUsage(ctx, host, DataDir)
 	if err != nil {
 		return 0, err
 	}
 	return int(100 * (float64(du.Free) / float64(du.Total))), nil
 }
 
-func (w *workerTools) clearJobStats(ctx context.Context, jobID int64, host string) error {
-	w.Logger.Debug(ctx, "Clearing job stats", "host", host, "job_id", jobID)
-	return errors.Wrap(w.Client.RcloneDeleteJobStats(ctx, host, jobID), "clear job stats")
+func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
+	w.logger.Debug(ctx, "Clearing job stats", "host", host, "job_id", jobID)
+	return errors.Wrap(w.client.RcloneDeleteJobStats(ctx, host, jobID), "clear job stats")
 }
 
 func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {
