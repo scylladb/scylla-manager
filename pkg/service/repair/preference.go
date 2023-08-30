@@ -2,6 +2,8 @@
 
 package repair
 
+import "strings"
+
 // TablePreference describes partial predefined order in which tables should be repaired.
 type TablePreference interface {
 	// KSLess compares priorities of two keyspaces according to preference.
@@ -30,7 +32,14 @@ func NewInternalTablePreference() TablePreference {
 }
 
 func (it internalTablePreference) KSLess(ks1, ks2 string) bool {
-	if ks1 == ks2 {
+	sys1 := strings.HasPrefix(ks1, "system")
+	sys2 := strings.HasPrefix(ks2, "system")
+	// Always repair internal keyspace before regular one
+	if sys1 != sys2 {
+		return sys1
+	}
+	// Repair order on regular keyspaces is not defined
+	if !sys1 || ks1 == ks2 {
 		return false
 	}
 	for _, u := range it {
