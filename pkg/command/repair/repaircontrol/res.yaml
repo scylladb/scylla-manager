@@ -3,7 +3,9 @@ use: control --cluster <id|name>
 short: Change parameters while a repair is running
 
 long: |
-  This command allows you to change repair parameters while a repair is running.
+  This command allows you to modify repair parameters while a repair is running.
+  Note that modified parameters apply only to the currently running task and not to the future task runs.
+  For modifying future repair task runs see 'sctool repair update' command.
 
 intensity: |
   How many token ranges per shard to repair in a single Scylla node at the same time.
