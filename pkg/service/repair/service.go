@@ -165,6 +165,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	t.plan.SetMaxParallel(dcMap)
+	if err := t.plan.SetMaxHostIntensity(ctx, client); err != nil {
+		return t, errors.Wrap(err, "calculate intensity limits")
+	}
 
 	if len(t.plan.SkippedKeyspaces) > 0 {
 		s.logger.Info(ctx,
@@ -235,7 +238,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	pm.UpdatePlan(target.plan)
 
-	ih, cleanup := s.newIntensityHandler(ctx, clusterID, target.Intensity, target.Parallel)
+	ih, cleanup := s.newIntensityHandler(ctx, clusterID,
+		target.plan.MaxHostIntensity, target.Intensity, target.plan.MaxParallel, target.Parallel)
 	defer cleanup()
 
 	gen, err := newGenerator(ctx, target, client, ih, s.logger)
@@ -256,7 +260,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	done := make(chan struct{}, 1)
 
 	var eg errgroup.Group
-	for i := 0; i < gen.ctl.MaxParallel(); i++ {
+	for i := 0; i < ih.MaxParallel(); i++ {
 		i := i
 		eg.Go(func() error {
 			w := &worker{
@@ -312,29 +316,15 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 	}
 }
 
-func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]int {
-	out := make(map[string]int, len(shards))
-	for h, sh := range shards {
-		out[h] = maxRepairRangesInParallel(sh, memory[h])
-	}
-	return out
-}
-
-func maxRepairRangesInParallel(shards uint, totalMemory int64) int {
-	const MiB = 1024 * 1024
-	memoryPerShard := totalMemory / int64(shards)
-	max := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
-	if max == 0 {
-		max = 1
-	}
-	return max
-}
-
-func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID, intensity float64, parallel int) (ih *intensityHandler, cleanup func()) {
+func (s *Service) newIntensityHandler(ctx context.Context, clusterID uuid.UUID,
+	maxHostIntensity map[string]int, intensity float64, maxParallel, parallel int,
+) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
-		logger:    s.logger.Named("control"),
-		intensity: atomic.NewFloat64(intensity),
-		parallel:  atomic.NewInt64(int64(parallel)),
+		logger:           s.logger.Named("control"),
+		maxHostIntensity: maxHostIntensity,
+		intensity:        atomic.NewFloat64(intensity),
+		maxParallel:      maxParallel,
+		parallel:         atomic.NewInt64(int64(parallel)),
 	}
 
 	s.mu.Lock()
@@ -504,9 +494,11 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 }
 
 type intensityHandler struct {
-	logger    log.Logger
-	intensity *atomic.Float64
-	parallel  *atomic.Int64
+	logger           log.Logger
+	maxHostIntensity map[string]int
+	intensity        *atomic.Float64
+	maxParallel      int
+	parallel         *atomic.Int64
 }
 
 const (
@@ -537,6 +529,11 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error 
 	return nil
 }
 
+// MaxHostIntensity returns max_token_ranges_in_parallel per host.
+func (i *intensityHandler) MaxHostIntensity() map[string]int {
+	return i.maxHostIntensity
+}
+
 // Intensity returns effective intensity.
 func (i *intensityHandler) Intensity() int {
 	intensity := i.intensity.Load()
@@ -545,6 +542,11 @@ func (i *intensityHandler) Intensity() int {
 		intensity = defaultIntensity
 	}
 	return int(intensity)
+}
+
+// MaxParallel returns maximal achievable parallelism.
+func (i *intensityHandler) MaxParallel() int {
+	return i.maxParallel
 }
 
 // Parallel returns stored value for parallel.
