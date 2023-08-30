@@ -347,9 +347,9 @@ var internalTablePreference = []Unit{
 			"role_members",
 		},
 	},
-	{Keyspace: "system_traces"},
 	{Keyspace: "system_distributed"},
 	{Keyspace: "system_distributed_everywhere"},
+	{Keyspace: "system_traces"},
 }
 
 // KSLess compares priorities of two keyspaces according to preference.
