@@ -20,6 +20,7 @@ type plan struct {
 
 	SkippedKeyspaces []string
 	MaxParallel      int
+	MaxHostIntensity map[string]int
 }
 
 func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
@@ -147,6 +148,22 @@ func (p *plan) SetMaxParallel(dcMap map[string][]string) {
 	p.MaxParallel = max
 }
 
+// SetMaxHostIntensity sets max_ranges_in_parallel for all repaired host.
+func (p *plan) SetMaxHostIntensity(ctx context.Context, client *scyllaclient.Client) error {
+	hosts := p.Hosts()
+	shards, err := client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return err
+	}
+	memory, err := client.HostsTotalMemory(ctx, hosts)
+	if err != nil {
+		return err
+	}
+
+	p.MaxHostIntensity = hostMaxRanges(shards, memory)
+	return nil
+}
+
 func (p *plan) MarkDeleted(keyspace, table string) {
 	for _, kp := range p.Keyspaces {
 		if kp.Keyspace != keyspace {
@@ -246,6 +263,24 @@ func (p *plan) SizeSort() {
 			return kp.Tables[i].Size < kp.Tables[j].Size
 		})
 	}
+}
+
+func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]int {
+	out := make(map[string]int, len(shards))
+	for h, sh := range shards {
+		out[h] = maxRepairRangesInParallel(sh, memory[h])
+	}
+	return out
+}
+
+func maxRepairRangesInParallel(shards uint, totalMemory int64) int {
+	const MiB = 1024 * 1024
+	memoryPerShard := totalMemory / int64(shards)
+	max := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
+	if max == 0 {
+		max = 1
+	}
+	return max
 }
 
 // keyspacePlan describes repair schedule and state for keyspace.
