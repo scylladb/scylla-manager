@@ -3,5 +3,7 @@ use: update --cluster <id|name> [flags] [<repair/task-id>]
 short: Modify properties of the existing repair task
 
 long: |
-  This command allows you to modify properties of an already existing repair task.
+  This command allows you to modify parameters of an already existing repair task.
   If there is one repair task the 'repair/task-id' argument is not needed.
+  Note that modified parameters apply only to the future task runs and not to the already running task.
+  For modifying already running repair task on the fly see 'sctool repair control' command.

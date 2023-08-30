@@ -153,6 +153,29 @@ Monitor progress of the repair task
 
 Progress of the repair task can be monitored by using the :ref:`sctool progress <task-progress>` command and providing UUID of the repair task.
 
-.. code-block:: none
+.. code-block:: console
 
-   sctool progress repair/143d160f-e53c-4890-a9e7-149561376cfd -c prod-cluster
+  sctool progress -c prod-cluster repair
+  Run:            84227f44-4e2a-11ee-acca-0892040e83bb
+  Status:         RUNNING
+  Start time:     08 Sep 23 11:31:40 CEST
+  Duration:       6s
+  Progress:       50%
+  Intensity:      5/5 (max) // running with '--intensity 0' when 5 is the max supported value
+  Parallel:       2/3       // running with '--parallel 2'  when 3 is the max supported value
+  Datacenters:
+    - dc1
+    - dc2
+
+  ╭───────────────────────────────┬────────────────────────────────┬──────────┬──────────╮
+  │ Keyspace                      │                          Table │ Progress │ Duration │
+  ├───────────────────────────────┼────────────────────────────────┼──────────┼──────────┤
+  │ system_auth                   │                role_attributes │ 100%     │ 0s       │
+  │ system_auth                   │                   role_members │ 100%     │ 0s       │
+  │ system_auth                   │               role_permissions │ 0%       │ 0s       │
+  │ system_auth                   │                          roles │ 0%       │ 0s       │
+  ╰───────────────────────────────┴────────────────────────────────┴──────────┴──────────╯
+
+Note that the ``Parallel`` and ``Intensity`` properties are displayed only for a running repair task and include
+changes applied via :ref:`sctool repair control <repair-control>`.
+To check the parameters of not running repair tasks, use :ref:`sctool tasks --show-properties <task-list>`.

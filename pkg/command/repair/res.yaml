@@ -19,6 +19,8 @@ intensity: |
   How many token ranges to repair in a single Scylla node at the same time.
   Zero (0) is a special value, the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
   Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
+  If you set intensity to a value greater than the maximum supported by the node, intensity will be capped at that maximum.
+  See effectively used intensity value in the display of 'sctool progress repair' command.
 
 parallel: |
   The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
@@ -26,6 +28,8 @@ parallel: |
   The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
   The formula to calculate is is as follows: number of nodes / RF.
   For example, the maximum parallelism for a 6 node cluster with RF=3 is 2.
+  If you set parallel to a value greater than the maximum supported by the node, parallel will be capped at that maximum.
+  See effectively used parallel value in the display of 'sctool progress repair' command.
 
 small-table-threshold: |
   Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T].
