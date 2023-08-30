@@ -148,14 +148,10 @@ func newGenerator(ctx context.Context, target Target,
 	if err != nil {
 		return nil, err
 	}
-	memory, err := client.HostsTotalMemory(ctx, hosts)
-	if err != nil {
-		return nil, err
-	}
 
 	return &generator{
 		plan:        target.plan,
-		ctl:         newRowLevelRepairController(ih, target.plan.MaxParallel, hostMaxRanges(shards, memory)),
+		ctl:         newRowLevelRepairController(ih),
 		ms:          newMasterSelector(shards, status.HostDC(), closestDC),
 		client:      client,
 		next:        make(chan job, target.plan.MaxParallel),

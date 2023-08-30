@@ -9,7 +9,6 @@ import "math"
 type controller interface {
 	TryBlock(replicaSet []string) (ranges int)
 	Unblock(replicaSet []string)
-	MaxParallel() int
 	Busy() bool
 }
 
@@ -18,9 +17,7 @@ type controller interface {
 // at most one job running on every node at any time.
 // It always returns either 0 or '--intensity' ranges.
 type rowLevelRepairController struct {
-	intensity     *intensityHandler
-	hostMaxRanges map[string]int // max_ranges_in_parallel limits for hosts
-	maxParallel   int
+	intensity *intensityHandler
 
 	jobsCnt  int            // Total amount of repair jobs in the cluster
 	nodeJobs map[string]int // Amount of repair jobs on a given node
@@ -28,12 +25,10 @@ type rowLevelRepairController struct {
 
 var _ controller = &rowLevelRepairController{}
 
-func newRowLevelRepairController(ih *intensityHandler, maxParallel int, hostMaxRanges map[string]int) *rowLevelRepairController {
+func newRowLevelRepairController(ih *intensityHandler) *rowLevelRepairController {
 	return &rowLevelRepairController{
-		intensity:     ih,
-		hostMaxRanges: hostMaxRanges,
-		maxParallel:   maxParallel,
-		nodeJobs:      make(map[string]int),
+		intensity: ih,
+		nodeJobs:  make(map[string]int),
 	}
 }
 
@@ -44,8 +39,8 @@ func (c *rowLevelRepairController) TryBlock(replicaSet []string) int {
 	c.block(replicaSet)
 
 	i := c.intensity.Intensity()
-	if i == maxIntensity {
-		i = c.replicaMaxRanges(replicaSet)
+	if max := c.replicaMaxRanges(replicaSet); i == maxIntensity || max < i {
+		i = max
 	}
 	return i
 }
@@ -64,7 +59,7 @@ func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
 		return false
 	}
 	// DENY if it's trying to exceed maxParallel
-	if parallel == defaultParallel && c.jobsCnt >= c.maxParallel {
+	if parallel == defaultParallel && c.jobsCnt >= c.intensity.MaxParallel() {
 		return false
 	}
 
@@ -80,8 +75,9 @@ func (c *rowLevelRepairController) block(replicaSet []string) {
 
 func (c *rowLevelRepairController) replicaMaxRanges(replicaSet []string) int {
 	min := math.MaxInt
+	maxRanges := c.intensity.MaxHostIntensity()
 	for _, rep := range replicaSet {
-		if ranges := c.hostMaxRanges[rep]; ranges < min {
+		if ranges := maxRanges[rep]; ranges < min {
 			min = ranges
 		}
 	}
@@ -93,10 +89,6 @@ func (c *rowLevelRepairController) Unblock(replicaSet []string) {
 	for _, r := range replicaSet {
 		c.nodeJobs[r]--
 	}
-}
-
-func (c *rowLevelRepairController) MaxParallel() int {
-	return c.maxParallel
 }
 
 func (c *rowLevelRepairController) Busy() bool {

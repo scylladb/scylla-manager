@@ -30,15 +30,17 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 	}
 	defaultIntensityHandler := func() *intensityHandler {
 		return &intensityHandler{
-			logger:    log.Logger{},
-			intensity: atomic.NewFloat64(defaultIntensity),
-			parallel:  atomic.NewInt64(0),
+			logger:           log.Logger{},
+			maxHostIntensity: maxRangesPerHost,
+			intensity:        atomic.NewFloat64(defaultIntensity),
+			maxParallel:      3,
+			parallel:         atomic.NewInt64(defaultParallel),
 		}
 	}
 
 	t.Run("make sure TryBlock() will deny if replicaset is already blocked", func(t *testing.T) {
 		replicaSet := []string{node1, node2}
-		c := newRowLevelRepairController(defaultIntensityHandler(), 2, maxRangesPerHost)
+		c := newRowLevelRepairController(defaultIntensityHandler())
 
 		if rangesCount := c.TryBlock(replicaSet); rangesCount == 0 {
 			t.Fatal("expected to return ranges to repair, but got 0")
@@ -54,10 +56,14 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 	})
 
 	t.Run("make sure TryBlock() returns {intensity} number of ranges when {intensity != 0}", func(t *testing.T) {
-		const expectedNrOfRanges = 10
+		const (
+			expectedNrOfRanges = 10
+			maxParallel        = 2
+		)
 		replicaSet := []string{node1, node2}
 		ih := defaultIntensityHandler()
-		c := newRowLevelRepairController(ih, 2, maxRangesPerHost)
+		ih.maxParallel = maxParallel
+		c := newRowLevelRepairController(ih)
 
 		if err := ih.SetIntensity(context.Background(), expectedNrOfRanges); err != nil {
 			t.Fatalf("unexpected error = {%v}", err)
@@ -68,10 +74,14 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 	})
 
 	t.Run("make sure TryBlock() returns {replicaMaxRanges} number of ranges when {intensity = 0}", func(t *testing.T) {
+		const (
+			maxParallel        = 2
+			expectedNrOfRanges = 19
+		)
 		replicaSet := []string{node1, node2}
 		ih := defaultIntensityHandler()
-		c := newRowLevelRepairController(ih, 2, maxRangesPerHost)
-		expectedNrOfRanges := c.replicaMaxRanges(replicaSet)
+		ih.maxParallel = maxParallel
+		c := newRowLevelRepairController(ih)
 
 		if err := ih.SetIntensity(context.Background(), float64(expectedNrOfRanges)); err != nil {
 			t.Fatalf("unexpected error = {%v}", err)
@@ -81,12 +91,32 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		}
 	})
 
+	t.Run("make sure TryBlock() returns min max_ranges_in_parallel ranges for replica set when it is less than set intensity", func(t *testing.T) {
+		const (
+			maxParallel         = 2
+			intensity           = 20
+			minRangesInParallel = 15
+		)
+		replicaSet := []string{node1, node2, node6}
+		ih := defaultIntensityHandler()
+		ih.maxParallel = maxParallel
+		c := newRowLevelRepairController(ih)
+
+		if err := ih.SetIntensity(context.Background(), intensity); err != nil {
+			t.Fatalf("unexpected error = {%v}", err)
+		}
+		if rangesCount := c.TryBlock(replicaSet); rangesCount != minRangesInParallel {
+			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", minRangesInParallel, rangesCount)
+		}
+	})
+
 	t.Run("make sure TryBlock() will deny if there is more jobs than {parallel} already", func(t *testing.T) {
 		replicaSet1 := []string{node1, node2}
 		replicaSet2 := []string{node3, node4}
 		maxParallel := 10
 		ih := defaultIntensityHandler()
-		c := newRowLevelRepairController(ih, maxParallel, maxRangesPerHost)
+		ih.maxParallel = maxParallel
+		c := newRowLevelRepairController(ih)
 
 		if err := ih.SetParallel(context.Background(), 1); err != nil {
 			t.Fatalf("unexpected error {%v}", err)
@@ -105,7 +135,8 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		replicaSet3 := []string{node3, node4}
 		maxParallel := 2
 		ih := defaultIntensityHandler()
-		c := newRowLevelRepairController(ih, maxParallel, maxRangesPerHost)
+		ih.maxParallel = maxParallel
+		c := newRowLevelRepairController(ih)
 
 		if rangesCount := c.TryBlock(replicaSet1); rangesCount == 0 {
 			t.Fatal("expected to let in, but was denied")
@@ -117,5 +148,4 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 			t.Fatal("expected to deny, but was let in")
 		}
 	})
-
 }
