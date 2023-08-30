@@ -684,9 +684,9 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		"system_auth.role_attributes",
 		"system_auth.role_members",
 		"system_auth.*",
-		"system_traces.*",
 		"system_distributed.*",
 		"system_distributed_everywhere.*",
+		"system_traces.*",
 
 		ks1 + "." + t1,
 		ks1 + "." + t2,
