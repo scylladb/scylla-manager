@@ -200,7 +200,7 @@ func (p *plan) ViewSort(views *strset.Set) {
 }
 
 // PrioritySort ensures that table with priority are repaired first.
-func (p *plan) PrioritySort(pref tablePreference) {
+func (p *plan) PrioritySort(pref TablePreference) {
 	sort.SliceStable(p.Keyspaces, func(i, j int) bool {
 		return pref.KSLess(p.Keyspaces[i].Keyspace, p.Keyspaces[j].Keyspace)
 	})
@@ -333,58 +333,4 @@ func filteredReplicaSet(replicaSet []string, filteredHosts *strset.Set, host str
 	}
 
 	return out
-}
-
-// tablePreference describes partial predefined order in which tables should be repaired.
-type tablePreference []Unit
-
-// internalTablePreference ensures that important system tables are repaired first.
-var internalTablePreference = []Unit{
-	{
-		Keyspace: "system_auth",
-		Tables: []string{
-			"role_attributes",
-			"role_members",
-		},
-	},
-	{Keyspace: "system_distributed"},
-	{Keyspace: "system_distributed_everywhere"},
-	{Keyspace: "system_traces"},
-}
-
-// KSLess compares priorities of two keyspaces according to preference.
-func (tp tablePreference) KSLess(ks1, ks2 string) bool {
-	if ks1 == ks2 {
-		return false
-	}
-	for _, u := range tp {
-		if u.Keyspace == ks1 {
-			return true
-		}
-		if u.Keyspace == ks2 {
-			return false
-		}
-	}
-	return false
-}
-
-// TLess compares priorities of two tables from the same keyspace according to preference.
-func (tp tablePreference) TLess(ks, t1, t2 string) bool {
-	if t1 == t2 {
-		return false
-	}
-	for _, u := range tp {
-		if u.Keyspace != ks {
-			continue
-		}
-		for _, t := range u.Tables {
-			if t == t1 {
-				return true
-			}
-			if t == t2 {
-				return false
-			}
-		}
-	}
-	return false
 }
