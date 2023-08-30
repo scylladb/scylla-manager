@@ -178,10 +178,16 @@
         "host": {
           "type": "string"
         },
+        "max_intensity": {
+          "type": "number"
+        },
         "intensity": {
           "type": "number"
         },
         "parallel": {
+          "type": "integer"
+        },
+        "max_parallel": {
           "type": "integer"
         },
         "hosts": {
