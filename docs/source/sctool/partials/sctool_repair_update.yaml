@@ -1,8 +1,10 @@
 name: sctool repair update
 synopsis: Modify properties of the existing repair task
 description: |
-  This command allows you to modify properties of an already existing repair task.
+  This command allows you to modify parameters of an already existing repair task.
   If there is one repair task the 'repair/task-id' argument is not needed.
+  Note that modified parameters apply only to the future task runs and not to the already running task.
+  For modifying already running repair task on the fly see 'sctool repair control' command.
 usage: sctool repair update --cluster <id|name> [flags] [<repair/task-id>]
 options:
 - name: cluster
@@ -59,6 +61,8 @@ options:
     How many token ranges to repair in a single Scylla node at the same time.
     Zero (0) is a special value, the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
     Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
+    If you set intensity to a value greater than the maximum supported by the node, intensity will be capped at that maximum.
+    See effectively used intensity value in the display of 'sctool progress repair' command.
 - name: interval
   shorthand: i
   usage: |
@@ -107,6 +111,8 @@ options:
     The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
     The formula to calculate is is as follows: number of nodes / RF.
     For example, the maximum parallelism for a 6 node cluster with RF=3 is 2.
+    If you set parallel to a value greater than the maximum supported by the node, parallel will be capped at that maximum.
+    See effectively used parallel value in the display of 'sctool progress repair' command.
 - name: retry-wait
   default_value: 10m
   usage: |

@@ -1,7 +1,9 @@
 name: sctool repair control
 synopsis: Change parameters while a repair is running
 description: |
-  This command allows you to change repair parameters while a repair is running.
+  This command allows you to modify repair parameters while a repair is running.
+  Note that modified parameters apply only to the currently running task and not to the future task runs.
+  For modifying future repair task runs see 'sctool repair update' command.
 usage: sctool repair control --cluster <id|name> [flags]
 options:
 - name: cluster
