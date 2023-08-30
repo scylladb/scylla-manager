@@ -41,6 +41,12 @@ type RepairProgress struct {
 	// intensity
 	Intensity float64 `json:"intensity,omitempty"`
 
+	// max intensity
+	MaxIntensity float64 `json:"max_intensity,omitempty"`
+
+	// max parallel
+	MaxParallel int64 `json:"max_parallel,omitempty"`
+
 	// parallel
 	Parallel int64 `json:"parallel,omitempty"`
 
