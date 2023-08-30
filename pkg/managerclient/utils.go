@@ -88,6 +88,28 @@ func FormatRepairProgress(total, success, failed int64) string {
 	return out
 }
 
+// FormatRepairParallel return string representation of currently used and maximal parallel value.
+func FormatRepairParallel(parallel, maxParallel int64) string {
+	if parallel > maxParallel {
+		parallel = maxParallel
+	}
+	if parallel == 0 {
+		return fmt.Sprintf("%d/%d (max)", maxParallel, maxParallel)
+	}
+	return fmt.Sprintf("%d/%d", parallel, maxParallel)
+}
+
+// FormatRepairIntensity return string representation of currently used and maximal intensity value.
+func FormatRepairIntensity(intensity, maxIntensity float64) string {
+	if intensity > maxIntensity {
+		intensity = maxIntensity
+	}
+	if intensity == 0 {
+		return fmt.Sprintf("%.0f/%.0f (max)", maxIntensity, maxIntensity)
+	}
+	return fmt.Sprintf("%.0f/%.0f", intensity, maxIntensity)
+}
+
 // FormatUploadProgress calculates percentage of success and failed uploads.
 func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 	if size == 0 {

@@ -449,7 +449,16 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 
 	s.mu.Lock()
 	if ih, ok := s.intensityHandlers[clusterID]; ok {
+		max := 0
+		for _, v := range ih.maxHostIntensity {
+			if max < v {
+				max = v
+			}
+		}
+
+		p.MaxIntensity = float64(max)
 		p.Intensity = float64(ih.Intensity())
+		p.MaxParallel = ih.MaxParallel()
 		p.Parallel = ih.Parallel()
 	}
 	s.mu.Unlock()
