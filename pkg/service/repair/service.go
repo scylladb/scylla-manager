@@ -260,7 +260,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	p.SizeSort()
-	p.PrioritySort(internalTablePreference)
+	p.PrioritySort(NewInternalTablePreference())
 	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
 		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
 	} else {
