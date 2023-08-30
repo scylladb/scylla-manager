@@ -691,8 +691,8 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{- with .Progress }}
 Progress:	{{ FormatRepairProgress .TokenRanges .Success .Error }}
 {{- if isRunning }}
-Intensity:	{{ .Intensity }}
-Parallel:	{{ .Parallel }}
+Intensity:	{{ FormatRepairIntensity .Intensity .MaxIntensity }}
+Parallel:	{{ FormatRepairParallel .Parallel .MaxParallel }}
 {{- end }}
 {{ if .Host }}Host:	{{ .Host }}
 {{ end -}}
@@ -707,12 +707,14 @@ Progress:	-
 
 func (rp RepairProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("repair_progress").Funcs(template.FuncMap{
-		"isZero":               isZero,
-		"isRunning":            rp.isRunning,
-		"FormatTime":           FormatTime,
-		"FormatDuration":       FormatDuration,
-		"FormatError":          FormatError,
-		"FormatRepairProgress": FormatRepairProgress,
+		"isZero":                isZero,
+		"isRunning":             rp.isRunning,
+		"FormatTime":            FormatTime,
+		"FormatDuration":        FormatDuration,
+		"FormatError":           FormatError,
+		"FormatRepairProgress":  FormatRepairProgress,
+		"FormatRepairIntensity": FormatRepairIntensity,
+		"FormatRepairParallel":  FormatRepairParallel,
 	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
 }
