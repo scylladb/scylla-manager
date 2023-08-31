@@ -36,7 +36,7 @@ func TestPingIntegration(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := NativeCQLPing(context.Background(), config)
+		d, err := NativeCQLPing(context.Background(), config, log.NopLogger)
 		if err != nil {
 			t.Error(err)
 		}
@@ -75,7 +75,7 @@ func TestPingTLSIntegration(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := NativeCQLPing(context.Background(), config)
+		d, err := NativeCQLPing(context.Background(), config, log.NopLogger)
 		if err != nil {
 			t.Error(err)
 		}

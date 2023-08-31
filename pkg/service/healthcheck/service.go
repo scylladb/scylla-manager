@@ -244,11 +244,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 
 			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
 			if err != nil {
-				s.logger.Error(ctx, "Unable to fetch node information",
-					"cluster_id", clusterID,
-					"host", status[i].Addr,
-					"error", err,
-				)
+				s.logger.Error(ctx, "Unable to fetch node information", "error", err)
 				o.SSL = false
 			} else {
 				o.SSL = ni.hasTLSConfig(cqlPing)
@@ -361,7 +357,11 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 	if c := s.cqlCreds(ctx, clusterID); c != nil {
 		rtt, err = cqlping.QueryPing(ctx, config, c.Username, c.Password)
 	} else {
-		rtt, err = cqlping.NativeCQLPing(ctx, config)
+		logger := s.logger.With(
+			"cluster_id", clusterID,
+			"host", host,
+		)
+		rtt, err = cqlping.NativeCQLPing(ctx, config, logger)
 	}
 
 	return rtt, err
