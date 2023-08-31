@@ -18,10 +18,13 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// progressManager manages state and progress.
-type progressManager interface {
+// ProgressManager manages state and progress.
+type ProgressManager interface {
 	// Init initializes progress for all tables for all hosts.
+	// Use SetPrevRunID before Init in order to initialize previous run progress and state.
 	Init(plan *plan) error
+	// SetPrevRunID sets ID of the latest initialized, uncompleted and fresh that can be resumed.
+	SetPrevRunID(ctx context.Context, ageMax time.Duration) error
 	// OnJobStart must be called when single repair job is started.
 	OnJobStart(ctx context.Context, job job)
 	// OnJobEnd must be called when single repair job is finished.
@@ -29,6 +32,8 @@ type progressManager interface {
 	// UpdatePlan marks plan's ranges which were already successfully
 	// repaired in the previous run.
 	UpdatePlan(plan *plan)
+	// AggregateProgress fetches RunProgress from DB and aggregates them into Progress.
+	AggregateProgress() (Progress, error)
 }
 
 type progressKey struct {
@@ -53,13 +58,78 @@ type dbProgressManager struct {
 	state    map[stateKey]*RunState
 }
 
-var _ progressManager = &dbProgressManager{}
+var _ ProgressManager = &dbProgressManager{}
+
+func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.RepairMetrics, logger log.Logger) ProgressManager {
+	return &dbProgressManager{
+		run:     run,
+		session: session,
+		metrics: metrics,
+		logger:  logger.Named("progress"),
+	}
+}
 
 func (pm *dbProgressManager) Init(plan *plan) error {
-	if err := pm.initProgress(plan); err != nil {
+	// Init state before progress, so that we don't resume progress when state is empty
+	if err := pm.initState(plan); err != nil {
 		return err
 	}
-	return pm.initState(plan)
+	return pm.initProgress(plan)
+}
+
+func (pm *dbProgressManager) SetPrevRunID(ctx context.Context, ageMax time.Duration) error {
+	q := qb.Select(table.RepairRun.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+	).Limit(20).Query(pm.session).BindMap(qb.M{
+		"cluster_id": pm.run.ClusterID,
+		"task_id":    pm.run.TaskID,
+	})
+
+	var runs []*Run
+	if err := q.SelectRelease(&runs); err != nil {
+		return err
+	}
+
+	var prev *Run
+	for _, r := range runs {
+		if pm.isRunInitialized(r) {
+			prev = r
+			break
+		}
+	}
+	if prev == nil {
+		return nil
+	}
+
+	pm.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
+	if !prev.EndTime.IsZero() {
+		pm.logger.Info(ctx, "Starting from scratch: previous run is completed")
+		return nil
+	}
+	if ageMax > 0 && timeutc.Since(prev.StartTime) > ageMax {
+		pm.logger.Info(ctx, "Starting from scratch: previous run is too old")
+		return nil
+	}
+
+	pm.run.PrevID = prev.ID
+	return nil
+}
+
+func (pm *dbProgressManager) isRunInitialized(run *Run) bool {
+	q := qb.Select(table.RepairRunProgress.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+		qb.Eq("run_id"),
+	).Limit(1).Query(pm.session).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.TaskID,
+		"run_id":     run.ID,
+	})
+
+	var check []*RunProgress
+	err := q.SelectRelease(&check)
+	return err == nil && len(check) > 0
 }
 
 func (pm *dbProgressManager) initProgress(plan *plan) error {
@@ -92,24 +162,27 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 		}
 	}
 
-	// Update progress entries from previous run
-	err := pm.ForEachPrevRunProgress(func(rp *RunProgress) {
-		pk := progressKey{
-			host:     rp.Host,
-			keyspace: rp.Keyspace,
-			table:    rp.Table,
+	// Update progress entries from previous run.
+	// Watch out for empty state after upgrade (#3534).
+	if !pm.emptyState() {
+		err := pm.ForEachPrevRunProgress(func(rp *RunProgress) {
+			pk := progressKey{
+				host:     rp.Host,
+				keyspace: rp.Keyspace,
+				table:    rp.Table,
+			}
+			if _, ok := pm.progress[pk]; !ok {
+				return
+			}
+			cp := *rp
+			cp.RunID = pm.run.ID
+			cp.DurationStartedAt = nil // Reset duration counter from previous run
+			cp.Error = 0               // Failed ranges will be retried
+			pm.progress[pk] = &cp
+		})
+		if err != nil {
+			return errors.Wrap(err, "fetch progress from previous run")
 		}
-		if _, ok := pm.progress[pk]; !ok {
-			return
-		}
-		cp := *rp
-		cp.RunID = pm.run.ID
-		cp.DurationStartedAt = nil // Reset duration counter from previous run
-		cp.Error = 0               // Failed ranges will be retried
-		pm.progress[pk] = &cp
-	})
-	if err != nil {
-		return errors.Wrap(err, "fetch progress from previous run")
 	}
 
 	// Insert updated progress into DB
@@ -172,6 +245,15 @@ func (pm *dbProgressManager) initState(plan *plan) error {
 	}
 
 	return nil
+}
+
+func (pm *dbProgressManager) emptyState() bool {
+	for _, rs := range pm.state {
+		if len(rs.SuccessRanges) > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // UpdatePlan marks already repaired token ranges in plan using state.
@@ -301,7 +383,7 @@ type tableKey struct {
 	table    string
 }
 
-func (pm *dbProgressManager) aggregateProgress() (Progress, error) {
+func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 	var (
 		perHost = make(map[string]HostProgress)
 		// As it is impossible to fill table progress solely from repair run progress,

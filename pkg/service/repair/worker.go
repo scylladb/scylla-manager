@@ -20,7 +20,7 @@ type worker struct {
 	// We want to limit the usage of handleRunningStatus to once per table
 	// in order to avoid long waiting time on failed ranges.
 	stopTrying map[string]struct{}
-	progress   progressManager
+	progress   ProgressManager
 	logger     log.Logger
 }
 
