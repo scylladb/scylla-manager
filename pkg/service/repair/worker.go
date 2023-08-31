@@ -136,7 +136,7 @@ func (w *worker) handleRunningStatus(ctx context.Context, j job) error {
 
 	// Table deletion is visible only after a short while
 	op := func() error {
-		exists, err := w.client.TableExists(ctx, j.keyspace, j.table)
+		exists, err := w.client.TableExists(ctx, j.master, j.keyspace, j.table)
 		if err != nil {
 			return retry.Permanent(err)
 		}
@@ -155,7 +155,7 @@ func (w *worker) handleRunningStatus(ctx context.Context, j job) error {
 }
 
 func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
-	exists, err := w.client.TableExists(ctx, j.keyspace, j.table)
+	exists, err := w.client.TableExists(ctx, j.master, j.keyspace, j.table)
 	if err != nil {
 		w.logger.Error(ctx, "Couldn't check for table deletion",
 			"keyspace", j.keyspace,

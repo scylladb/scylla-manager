@@ -762,7 +762,10 @@ func (c *Client) TableDiskSize(ctx context.Context, host, keyspace, table string
 }
 
 // TableExists returns true iff table exists.
-func (c *Client) TableExists(ctx context.Context, keyspace, table string) (bool, error) {
+func (c *Client) TableExists(ctx context.Context, host, keyspace, table string) (bool, error) {
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	resp, err := c.scyllaOps.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
 	if err != nil {
 		return false, err
