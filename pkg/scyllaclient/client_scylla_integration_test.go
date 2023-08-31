@@ -208,7 +208,7 @@ func TestClientTableExistsIntegration(t *testing.T) {
 	for i := range table {
 		test := table[i]
 
-		exists, err := client.TableExists(ctx, test.Keyspace, test.Table)
+		exists, err := client.TableExists(ctx, "", test.Keyspace, test.Table)
 		if err != nil {
 			t.Fatalf("TableExists failed: %s", err)
 		}
