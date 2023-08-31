@@ -6,7 +6,9 @@
   "started_at": "2019-01-01T00:00:00Z",
   "completed_at": "2019-01-01T00:01:00Z",
   "duration_ms": 60000,
+  "max_intensity": 777,
   "intensity": 666,
+  "max_parallel": 99,
   "parallel": 6,
   "hosts": [
     {

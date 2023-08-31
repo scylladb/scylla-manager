@@ -219,25 +219,17 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "get client")
 	}
 
+	pm := NewDBProgressManager(run, s.session, s.metrics, s.logger)
 	if target.Continue {
-		if err := s.fillPrevRunID(ctx, run); err != nil {
-			return err
+		if err := pm.SetPrevRunID(ctx, s.config.AgeMax); err != nil {
+			return errors.Wrap(err, "find previous run ID")
 		}
-		if run.PrevID != uuid.Nil {
-			s.putRunLogError(ctx, run)
-		}
-	}
-
-	pm := &dbProgressManager{
-		run:     run,
-		session: s.session,
-		metrics: s.metrics,
-		logger:  s.logger.Named("progress"),
 	}
 	if err := pm.Init(target.plan); err != nil {
 		return err
 	}
 	pm.UpdatePlan(target.plan)
+	s.putRunLogError(ctx, run)
 
 	ih, cleanup := s.newIntensityHandler(ctx, clusterID,
 		target.plan.MaxHostIntensity, target.Intensity, target.plan.MaxParallel, target.Parallel)
@@ -353,69 +345,6 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 	}
 }
 
-// GetLastResumableRun returns the most recent started but not done run of
-// the task, if there is a recent run that is completely done ErrNotFound is reported.
-func (s *Service) GetLastResumableRun(clusterID, taskID uuid.UUID) (*Run, error) {
-	q := qb.Select(table.RepairRun.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-	).Limit(20).Query(s.session).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-	})
-
-	var runs []*Run
-	if err := q.SelectRelease(&runs); err != nil {
-		return nil, err
-	}
-
-	for _, r := range runs {
-		if s.isRunInitialized(r) {
-			if !r.EndTime.IsZero() {
-				break
-			}
-			return r, nil
-		}
-	}
-	return nil, service.ErrNotFound
-}
-
-func (s *Service) isRunInitialized(run *Run) bool {
-	q := qb.Select(table.RepairRunProgress.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-		qb.Eq("run_id"),
-	).Limit(1).Query(s.session).BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.TaskID,
-		"run_id":     run.ID,
-	})
-
-	var check []*RunProgress
-	err := q.SelectRelease(&check)
-	return err == nil && len(check) > 0
-}
-
-func (s *Service) fillPrevRunID(ctx context.Context, run *Run) error {
-	prev, err := s.GetLastResumableRun(run.ClusterID, run.TaskID)
-	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
-			return nil
-		}
-		return errors.Wrap(err, "get previous run")
-	}
-
-	// Check if we can continue from prev
-	s.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
-	if s.config.AgeMax > 0 && timeutc.Since(prev.StartTime) > s.config.AgeMax {
-		s.logger.Info(ctx, "Starting from scratch: previous run is too old")
-		return nil
-	}
-
-	run.PrevID = prev.ID
-	return nil
-}
-
 // GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
 func (s *Service) GetRun(_ context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
@@ -434,12 +363,9 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "get run")
 	}
-	manager := &dbProgressManager{
-		run:     run,
-		session: s.session,
-	}
 
-	p, err := manager.aggregateProgress()
+	pm := NewDBProgressManager(run, s.session, s.metrics, s.logger)
+	p, err := pm.AggregateProgress()
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "aggregate progress")
 	}

@@ -26,13 +26,6 @@ import (
 )
 
 func TestProgressManagerIntegration(t *testing.T) {
-	run := &Run{
-		ClusterID: uuid.NewTime(),
-		TaskID:    uuid.NewTime(),
-		ID:        uuid.NewTime(),
-		StartTime: timeutc.Now(),
-	}
-
 	opts := cmp.Options{
 		cmpopts.IgnoreUnexported(RunProgress{}),
 		UUIDComparer(),
@@ -42,6 +35,13 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("progress update sequence (Init,OnJobStart,OnJobEnd)", func(t *testing.T) {
 		var (
+			run = &Run{
+				ClusterID: uuid.NewTime(),
+				TaskID:    uuid.NewTime(),
+				ID:        uuid.NewTime(),
+				StartTime: timeutc.Now(),
+			}
+
 			session = CreateScyllaManagerDBSession(t)
 			token1  = scyllaclient.TokenRange{
 				StartToken: 0,
@@ -78,11 +78,9 @@ func TestProgressManagerIntegration(t *testing.T) {
 		)
 
 		ctx := context.Background()
-		pm := &dbProgressManager{
-			run:     run,
-			session: session,
-			metrics: metrics.NewRepairMetrics(),
-			logger:  log.NewDevelopment(),
+		pm := NewDBProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
+		if err := pm.SetPrevRunID(ctx, 0); err != nil {
+			t.Fatal(err)
 		}
 		Print("When: run progress is initialized with incomplete values")
 		if err := pm.Init(p); err != nil {
@@ -176,6 +174,19 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 	t.Run("restoring state", func(t *testing.T) {
 		var (
+			prevRun = &Run{
+				ClusterID: uuid.NewTime(),
+				TaskID:    uuid.NewTime(),
+				ID:        uuid.NewTime(),
+				StartTime: timeutc.Now(),
+			}
+			run = &Run{
+				ClusterID: prevRun.ClusterID,
+				TaskID:    prevRun.TaskID,
+				ID:        uuid.NewTime(),
+				StartTime: timeutc.Now(),
+			}
+
 			session = CreateScyllaManagerDBSession(t)
 			token1  = scyllaclient.TokenRange{
 				StartToken: 5,
@@ -215,30 +226,40 @@ func TestProgressManagerIntegration(t *testing.T) {
 			}
 		)
 
-		table.RepairRunState.Insert()
-
-		run := *run
-		run.PrevID = uuid.NewTime()
-		pm := &dbProgressManager{
-			run:     &run,
-			session: session,
-			metrics: metrics.NewRepairMetrics(),
-			logger:  log.NewDevelopment(),
-		}
-
 		Print("When: there are present success ranges token1, token3")
+		// Fill all run, run state and run progress as progress manager takes
+		// all of them into consideration when resuming previous run.
+		if err := table.RepairRun.InsertQuery(session).BindStruct(&prevRun).Exec(); err != nil {
+			t.Fatal(err)
+		}
 		if err := table.RepairRunState.InsertQuery(session).BindStruct(&RunState{
-			ClusterID:     run.ClusterID,
-			TaskID:        run.TaskID,
-			RunID:         run.PrevID,
+			ClusterID:     prevRun.ClusterID,
+			TaskID:        prevRun.TaskID,
+			RunID:         prevRun.ID,
 			Keyspace:      "k1",
 			Table:         "t1",
 			SuccessRanges: []scyllaclient.TokenRange{token1, token3},
 		}).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
+		if err := table.RepairRunProgress.InsertQuery(session).BindStruct(&RunProgress{
+			ClusterID:   prevRun.ClusterID,
+			TaskID:      prevRun.TaskID,
+			RunID:       prevRun.ID,
+			Host:        "h1",
+			Keyspace:    "k1",
+			Table:       "t1",
+			TokenRanges: 3,
+			Success:     2,
+		}).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
 
-		Print("And: we init plan")
+		Print("And: we update plan")
+		pm := NewDBProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
+		if err := pm.SetPrevRunID(context.Background(), 0); err != nil {
+			t.Fatal(err)
+		}
 		if err := pm.Init(p); err != nil {
 			t.Fatal(err)
 		}
@@ -290,18 +311,14 @@ func TestAggregateProgressIntegration(t *testing.T) {
 			}
 			saveProgress(v, session)
 
-			pm := &dbProgressManager{
-				run:     run,
-				session: session,
-				metrics: metrics.NewRepairMetrics(),
-				logger:  log.NewDevelopment(),
-			}
-
-			res, err := pm.aggregateProgress()
+			pm := NewDBProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
+			res, err := pm.AggregateProgress()
 			if err != nil {
 				t.Error(err)
 			}
+			res.MaxIntensity = 777
 			res.Intensity = 666
+			res.MaxParallel = 99
 			res.Parallel = 6
 
 			var golden Progress

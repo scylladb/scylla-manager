@@ -8,6 +8,8 @@
   "duration_ms": 0,
   "hosts": null,
   "tables": null,
+  "max_intensity": 777,
   "intensity": 666,
+  "max_parallel": 99,
   "parallel": 6
 }
