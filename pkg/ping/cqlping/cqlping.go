@@ -5,15 +5,18 @@ package cqlping
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 
+	"github.com/gocql/gocql"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -32,22 +35,32 @@ var options = []byte{4, 0, 0, 0, 5, 0, 0, 0, 0}
 // for SUPPORTED frame in response. If connection fails, operation timeouts or
 // receives unexpected payload an error is returned.
 // It returns rtt and error.
-func NativeCQLPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
+func NativeCQLPing(ctx context.Context, config Config, logger log.Logger) (rtt time.Duration, err error) {
+	backoff := retry.NewExponentialBackoff(time.Millisecond, config.Timeout, config.Timeout/3, 2, 0)
+	deadline := timeutc.Now().Add(config.Timeout)
 	t := timeutc.Now()
-	defer func() {
-		rtt = timeutc.Since(t)
-		if rtt >= config.Timeout {
-			err = ping.ErrTimeout
+	for attempt := 1; ; attempt++ {
+		err = nativeCQLPingOnce(ctx, config, deadline)
+		if err == nil {
+			return timeutc.Since(t), nil
 		}
-	}()
+		duration := backoff.NextBackOff()
+		if duration == retry.Stop {
+			return timeutc.Since(t), ping.ErrTimeout
+		}
+		logger.Debug(ctx, fmt.Sprintf("CQL ping attempt %d failed", attempt), "error", err)
+		time.Sleep(duration)
+	}
+}
 
+func nativeCQLPingOnce(ctx context.Context, config Config, deadline time.Time) (err error) {
 	var (
 		conn   net.Conn
 		header [9]byte
 	)
 
 	d := &net.Dialer{
-		Deadline: t.Add(config.Timeout),
+		Deadline: deadline,
 	}
 	network := "tcp"
 	if strings.Count(config.Addr, ":") > 1 {
@@ -59,25 +72,25 @@ func NativeCQLPing(ctx context.Context, config Config) (rtt time.Duration, err e
 		conn, err = d.DialContext(ctx, network, config.Addr)
 	}
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer conn.Close()
 
 	if err := conn.SetDeadline(d.Deadline); err != nil {
-		return 0, err
+		return err
 	}
 
 	if _, err = conn.Write(options); err != nil {
-		return 0, err
+		return err
 	}
 	if _, err = conn.Read(header[:]); err != nil {
-		return 0, err
+		return err
 	}
 	if header[4] != 6 {
-		return 0, errors.New("unexpected opt")
+		return errors.New("unexpected opt")
 	}
 
-	return 0, nil
+	return nil
 }
 
 var cqlUnauthorisedMessage = []string{
