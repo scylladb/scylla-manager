@@ -4,6 +4,7 @@ package cqlping
 
 import (
 	"context"
+	"github.com/scylladb/go-log"
 	"net"
 	"testing"
 	"time"
@@ -42,7 +43,7 @@ func TestPingTimeout(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		d, err := NativeCQLPing(context.Background(), config)
+		d, err := NativeCQLPing(context.Background(), config, log.NopLogger)
 		if err != ping.ErrTimeout {
 			t.Errorf("NativeCQLPing() error %s, expected timeout", err)
 		}
