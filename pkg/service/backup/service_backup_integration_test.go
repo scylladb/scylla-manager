@@ -543,7 +543,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     StageInit,
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r0)
 
@@ -552,7 +552,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     StageInit,
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r1)
 
@@ -573,7 +573,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     StageUpload,
+			Stage:     backup.StageUpload,
 		}
 		putRun(t, r0)
 
@@ -582,7 +582,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test"}},
-			Stage:     StageDone,
+			Stage:     backup.StageDone,
 		}
 		putRun(t, r1)
 
@@ -603,7 +603,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test1"}},
-			Stage:     StageUpload,
+			Stage:     backup.StageUpload,
 		}
 		putRun(t, r0)
 
@@ -612,7 +612,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 			TaskID:    taskID,
 			ID:        uuid.NewTime(),
 			Units:     []backup.Unit{{Keyspace: "test2"}},
-			Stage:     StageInit,
+			Stage:     backup.StageInit,
 		}
 		putRun(t, r1)
 

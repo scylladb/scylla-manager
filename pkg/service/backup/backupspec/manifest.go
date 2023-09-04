@@ -49,6 +49,11 @@ func (m *ManifestInfo) SSTableVersionDir(keyspace, table, version string) string
 	return RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version)
 }
 
+// LocationSSTableVersionDir returns path to the sstable version directory with location remote path prefix.
+func (m *ManifestInfo) LocationSSTableVersionDir(keyspace, table, version string) string {
+	return m.Location.RemotePath(RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, keyspace, table, version))
+}
+
 // ParsePath extracts properties from full remote path to manifest.
 func (m *ManifestInfo) ParsePath(s string) error {
 	// Clear values

@@ -164,7 +164,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		"files", fm.Files,
 	)
 
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0], srcDir, w.Logger)
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0], srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}

@@ -10,13 +10,13 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// RestoreRunner implements scheduler.Runner.
-type RestoreRunner struct {
+// Runner implements scheduler.Runner.
+type Runner struct {
 	service *Service
 }
 
-// Run implementation for RestoreRunner.
-func (r RestoreRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+// Run implementation for Runner.
+func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
 	t, err := r.service.GetRestoreTarget(ctx, clusterID, properties)
 	if err != nil {
 		return errors.Wrap(err, "get restore target")
@@ -25,7 +25,7 @@ func (r RestoreRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UU
 	return r.service.Restore(ctx, clusterID, taskID, runID, t)
 }
 
-// RestoreRunner creates a RestoreRunner that handles restores.
-func (s *Service) RestoreRunner() RestoreRunner {
-	return RestoreRunner{service: s}
+// Runner creates a Runner that handles restores.
+func (s *Service) Runner() Runner {
+	return Runner{service: s}
 }

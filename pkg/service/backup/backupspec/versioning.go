@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -72,7 +71,7 @@ func SplitNameAndVersion(versioned string) (name, version string) {
 }
 
 // ListVersionedFiles gathers information about versioned files from specified dir.
-func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapshotTag, host, dir string, logger log.Logger) (VersionedMap, error) {
+func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapshotTag, host, dir string) (VersionedMap, error) {
 	versionedFiles := make(VersionedMap)
 	allVersions := make(map[string][]VersionedSSTable)
 
@@ -90,7 +89,7 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 	}
 
 	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		return nil, errors.Wrapf(err, "host %s: listing versioned SSTables", host)
+		return nil, errors.Wrapf(err, "host %s: listing versioned files", host)
 	}
 
 	restoreT, err := SnapshotTagTime(snapshotTag)
@@ -115,14 +114,6 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 		if candidate.Version != "" {
 			versionedFiles[candidate.Name] = candidate
 		}
-	}
-
-	if len(versionedFiles) > 0 {
-		logger.Info(ctx, "Chosen versioned SSTables",
-			"host", host,
-			"dir", dir,
-			"versionedSSTables", versionedFiles,
-		)
 	}
 
 	return versionedFiles, nil

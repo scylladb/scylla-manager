@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package backupspec
+package backup
 
 import "github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 
