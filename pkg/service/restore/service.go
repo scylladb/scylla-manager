@@ -11,7 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
@@ -65,8 +67,8 @@ func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config
 	}, nil
 }
 
-// GetRestoreTarget converts runner properties into RestoreTarget.
-func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (RestoreTarget, error) {
+// GetRestoreTarget converts runner properties into Target.
+func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
 	s.logger.Info(ctx, "GetRestoreTarget", "cluster_id", clusterID)
 
 	t := defaultRestoreTarget()
@@ -173,7 +175,7 @@ func (s *Service) GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, pro
 }
 
 // Restore executes restore on a given target.
-func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUID, target RestoreTarget) error {
+func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUID, target Target) error {
 	s.logger.Info(ctx, "Restore",
 		"cluster_id", clusterID,
 		"task_id", taskID,
@@ -181,20 +183,19 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		"target", target,
 	)
 
-	run := &RestoreRun{
+	run := &Run{
 		ClusterID:   clusterID,
 		TaskID:      taskID,
 		ID:          runID,
 		SnapshotTag: target.SnapshotTag,
-		Stage:       StageRestoreInit,
+		Stage:       StageInit,
 	}
 
-	// Get the cluster client
-	client, err := s.scyllaClient(ctx, clusterID)
+	// TODO: why is staticcheck complaining?
+	client, err := s.scyllaClient(ctx, clusterID) // nolint: staticcheck
 	if err != nil {
 		return errors.Wrap(err, "get client proxy")
 	}
-	// Get cluster session
 	clusterSession, err := s.clusterSession(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "get CQL cluster session")
@@ -202,10 +203,9 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	defer clusterSession.Close()
 
 	tools := worker{
-		clusterID:               clusterID,
-		taskID:                  taskID,
-		runID:                   runID,
-		snapshotTag:             target.SnapshotTag,
+		run:                     run,
+		parallel:                target.Parallel,
+		batchSize:               target.BatchSize,
 		config:                  s.config,
 		logger:                  s.logger,
 		metrics:                 s.metrics.Restore,
@@ -213,7 +213,6 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		session:                 s.session,
 		clusterSession:          clusterSession,
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
-		repairSvc:               s.repairSvc,
 	}
 
 	if err := tools.decorateWithPrevRun(ctx, run, target.Continue); err != nil {
@@ -224,7 +223,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	} else {
 		s.metrics.Restore.ResetClusterMetrics(clusterID)
 	}
-	tools.insertRun(ctx, run)
+	tools.insertRun(ctx)
 
 	if run.Units == nil {
 		// Cache must be initialised only once, as they contain the original tombstone_gc mode
@@ -247,7 +246,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			}
 		}
 	}
-	tools.insertRun(ctx, run)
+	tools.insertRun(ctx)
 
 	var w restorer
 	ru, err := s.GetRestoreUnits(ctx, clusterID, target)
@@ -261,26 +260,23 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	}
 
 	if target.RestoreTables {
-		w = &tablesWorker{
-			worker:   tools,
-			progress: NewTotalRestoreProgress(totalBytesToRestore),
-		}
+		w = newTablesWorker(tools, s.repairSvc, totalBytesToRestore)
 	} else {
 		w = &schemaWorker{worker: tools}
 	}
 
-	if err := w.restore(ctx, run, target); err != nil {
+	if err := w.restore(ctx, target); err != nil {
 		return err
 	}
 
-	run.Stage = StageRestoreDone
-	tools.insertRun(ctx, run)
+	run.Stage = StageDone
+	tools.insertRun(ctx)
 
 	return nil
 }
 
 // GetRestoreUnits restored units specified by restore target.
-func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, target RestoreTarget) ([]RestoreUnit, error) {
+func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, target Target) ([]Unit, error) {
 	clusterSession, err := s.clusterSession(ctx, clusterID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get CQL cluster session")
@@ -296,7 +292,7 @@ func (s *Service) GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, targ
 }
 
 // GetRestoreViews restored views specified by restore units.
-func (s *Service) GetRestoreViews(ctx context.Context, clusterID uuid.UUID, units []RestoreUnit) ([]RestoreView, error) {
+func (s *Service) GetRestoreViews(ctx context.Context, clusterID uuid.UUID, units []Unit) ([]View, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return nil, errors.Wrap(err, "get client")
@@ -317,27 +313,76 @@ func (s *Service) GetRestoreViews(ctx context.Context, clusterID uuid.UUID, unit
 
 // GetRestoreProgress aggregates progress for the run of the task and breaks it down
 // by keyspace and table.json.
-func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (RestoreProgress, error) {
+func (s *Service) GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (Progress, error) {
+	run, err := GetRun(s.session, clusterID, taskID, runID)
+	if err != nil {
+		return Progress{}, errors.Wrap(err, "get restore run")
+	}
+
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return RestoreProgress{}, errors.Wrap(err, "get client")
+		return Progress{}, errors.Wrap(err, "get client")
 	}
 
 	w := &worker{
-		clusterID: clusterID,
-		taskID:    taskID,
-		runID:     runID,
-		client:    client,
-		logger:    s.logger,
-		repairSvc: s.repairSvc,
-		session:   s.session,
+		run:     run,
+		client:  client,
+		logger:  s.logger,
+		session: s.session,
 	}
 
-	return w.getProgress(ctx)
+	pr, err := w.aggregateProgress(ctx)
+	if err != nil {
+		return pr, err
+	}
+
+	// Check if repair progress needs to be filled
+	if run.RepairTaskID == uuid.Nil {
+		return pr, nil
+	}
+
+	q := table.RepairRun.SelectQuery(w.session).BindMap(qb.M{
+		"cluster_id": run.ClusterID,
+		"task_id":    run.RepairTaskID,
+	})
+
+	var repairRun repair.Run
+	if err = q.GetRelease(&repairRun); err != nil {
+		return pr, errors.Wrap(err, "get repair run")
+	}
+
+	repairPr, err := s.repairSvc.GetProgress(ctx, repairRun.ClusterID, repairRun.TaskID, repairRun.ID)
+	if err != nil {
+		return pr, errors.Wrap(err, "get repair progress")
+	}
+
+	pr.RepairProgress = &repairPr
+	return pr, nil
 }
 
 // forEachRestoredManifest returns a wrapper for forEachManifest that iterates over
 // manifests with specified in restore target.
-func (s *Service) forEachRestoredManifest(clusterID uuid.UUID, target RestoreTarget) func(context.Context, Location, func(ManifestInfoWithContent) error) error {
+func (s *Service) forEachRestoredManifest(_ uuid.UUID, _ Target) func(context.Context, Location, func(ManifestInfoWithContent) error) error {
 	panic("This function needs to be reimplemented in restore pkg")
+}
+
+// GetRun returns run with specified cluster, task and run ID.
+// If run ID is not specified, it returns the latest run with specified cluster and task ID.
+func GetRun(s gocqlx.Session, clusterID, taskID, runID uuid.UUID) (*Run, error) {
+	var q *gocqlx.Queryx
+	if runID != uuid.Nil {
+		q = table.RestoreRun.GetQuery(s).BindMap(qb.M{
+			"cluster_id": clusterID,
+			"task_id":    taskID,
+			"id":         runID,
+		})
+	} else {
+		q = table.RestoreRun.SelectQuery(s).BindMap(qb.M{
+			"cluster_id": clusterID,
+			"task_id":    taskID,
+		})
+	}
+
+	var r Run
+	return &r, q.GetRelease(&r)
 }

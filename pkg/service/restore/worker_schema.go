@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"go.uber.org/atomic"
 
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -35,13 +36,13 @@ type schemaWorker struct {
 // - resuming schema restoration will always start from scratch
 // - schema restoration does not use long polling for updating download progress
 // Adding the ability to resume schema restoration might be added in the future.
-func (w *schemaWorker) restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
-	return errors.Wrap(w.stageRestoreData(ctx, run, target), "restore data")
+func (w *schemaWorker) restore(ctx context.Context, target Target) error {
+	return errors.Wrap(w.stageRestoreData(ctx, target), "restore data")
 }
 
-func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, target RestoreTarget) error {
-	run.Stage = StageRestoreData
-	w.insertRun(ctx, run)
+func (w *schemaWorker) stageRestoreData(ctx context.Context, target Target) error {
+	w.run.Stage = StageData
+	w.insertRun(ctx)
 
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.logger.Info(ctx, "Started restoring schema")
@@ -53,9 +54,9 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	}
 	// Clean upload dirs.
 	// This is required as we rename SSTables during download in order to avoid name overlaps.
-	for _, u := range run.Units {
+	for _, u := range w.run.Units {
 		for _, t := range u.Tables {
-			version, err := w.GetTableVersion(ctx, u.Keyspace, t.Table)
+			version, err := query.GetTableVersion(w.clusterSession, u.Keyspace, t.Table)
 			if err != nil {
 				return err
 			}
@@ -70,19 +71,23 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 	}
 	// Download files
 	for _, l := range target.Location {
-		if err := w.locationDownloadHandler(ctx, run, target, l); err != nil {
+		if err := w.locationDownloadHandler(ctx, target, l); err != nil {
 			return err
 		}
 	}
 	// Set restore start in all run progresses
-	w.ForEachProgress(ctx, run, func(pr *RestoreRunProgress) {
+	err = forEachProgress(w.clusterSession, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
 		pr.setRestoreStartedAt()
 		w.insertRunProgress(ctx, pr)
 	})
+	if err != nil {
+		w.logger.Error(ctx, "Couldn't set restore start", "error", err)
+	}
+
 	// Load schema SSTables on all nodes
 	f := func(i int) error {
 		host := status[i]
-		for _, ks := range run.Units {
+		for _, ks := range w.run.Units {
 			for _, t := range ks.Tables {
 				if _, err := w.client.LoadSSTables(ctx, host.Addr, ks.Keyspace, t.Table, false, false); err != nil {
 					return errors.Wrap(err, "restore schema")
@@ -103,21 +108,24 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, run *RestoreRun, ta
 		return err
 	}
 	// Set restore completed in all run progresses
-	w.ForEachProgress(ctx, run, func(pr *RestoreRunProgress) {
+	err = forEachProgress(w.clusterSession, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
 		pr.setRestoreCompletedAt()
 		w.insertRunProgress(ctx, pr)
 	})
+	if err != nil {
+		w.logger.Error(ctx, "Couldn't set restore end", "error", err)
+	}
+
 	return nil
 }
 
-func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *RestoreRun, target RestoreTarget, location Location) error {
+func (w *schemaWorker) locationDownloadHandler(ctx context.Context, target Target, location Location) error {
 	w.logger.Info(ctx, "Downloading schema from location", "location", location)
 	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location)
 
-	w.location = location
-	run.Location = location.String()
+	w.run.Location = location.String()
 
-	if err := w.initHosts(ctx); err != nil {
+	if err := w.initHosts(ctx, location); err != nil {
 		return errors.Wrap(err, "initialize hosts")
 	}
 
@@ -125,10 +133,10 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 		w.logger.Info(ctx, "Downloading schema table", "keyspace", fm.Keyspace, "table", fm.Table)
 		defer w.logger.Info(ctx, "Downloading schema table finished", "keyspace", fm.Keyspace, "table", fm.Table)
 
-		run.Table = fm.Table
-		run.Keyspace = fm.Keyspace
+		w.run.Table = fm.Table
+		w.run.Keyspace = fm.Keyspace
 
-		return w.workFunc(ctx, run, target, fm)
+		return w.workFunc(ctx, target, fm)
 	}
 
 	manifestDownloadHandler := func(miwc ManifestInfoWithContent) error {
@@ -136,8 +144,8 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 		defer w.logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
 
 		w.miwc = miwc
-		run.ManifestPath = miwc.Path()
-		w.insertRun(ctx, run)
+		w.run.ManifestPath = miwc.Path()
+		w.insertRun(ctx)
 
 		return miwc.ForEachIndexIterWithError(target.Keyspace, tableDownloadHandler)
 	}
@@ -145,14 +153,14 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, run *Restore
 	return w.forEachRestoredManifest(ctx, location, manifestDownloadHandler)
 }
 
-func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target RestoreTarget, fm FilesMeta) error {
-	version, err := w.GetTableVersion(ctx, fm.Keyspace, fm.Table)
+func (w *schemaWorker) workFunc(ctx context.Context, target Target, fm FilesMeta) error {
+	version, err := query.GetTableVersion(w.clusterSession, fm.Keyspace, fm.Table)
 	if err != nil {
 		return err
 	}
 
 	var (
-		srcDir = w.location.RemotePath(w.miwc.SSTableVersionDir(fm.Keyspace, fm.Table, fm.Version))
+		srcDir = w.miwc.LocationSSTableVersionDir(fm.Keyspace, fm.Table, fm.Version)
 		dstDir = UploadTableDir(fm.Keyspace, fm.Table, version)
 	)
 
@@ -164,9 +172,15 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		"files", fm.Files,
 	)
 
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.snapshotTag, w.hosts[0], srcDir, w.logger)
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, w.hosts[0], srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
+	}
+	if len(w.versionedFiles) > 0 {
+		w.logger.Info(ctx, "Chosen versioned SSTables",
+			"dir", srcDir,
+			"versioned_files", w.versionedFiles,
+		)
 	}
 
 	idMapping := w.getFileNamesMapping(fm.Files, false)
@@ -224,13 +238,13 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 		// run progresses, insert only fraction of the whole downloaded size. This is caused by the data duplication.
 		proportionalSize := int64((int(fm.Size) + i) / len(w.hosts))
 
-		w.insertRunProgress(ctx, &RestoreRunProgress{
-			ClusterID:           run.ClusterID,
-			TaskID:              run.TaskID,
-			RunID:               run.ID,
-			ManifestPath:        run.ManifestPath,
-			Keyspace:            run.Keyspace,
-			Table:               run.Table,
+		w.insertRunProgress(ctx, &RunProgress{
+			ClusterID:           w.run.ClusterID,
+			TaskID:              w.run.TaskID,
+			RunID:               w.run.ID,
+			ManifestPath:        w.run.ManifestPath,
+			Keyspace:            w.run.Keyspace,
+			Table:               w.run.Table,
 			Host:                host,
 			DownloadStartedAt:   &start,
 			DownloadCompletedAt: &end,
@@ -250,13 +264,13 @@ func (w *schemaWorker) workFunc(ctx context.Context, run *RestoreRun, target Res
 	return parallel.Run(len(w.hosts), target.Parallel, f, notify)
 }
 
-func (w *schemaWorker) initHosts(ctx context.Context) error {
+func (w *schemaWorker) initHosts(ctx context.Context, location Location) error {
 	status, err := w.client.Status(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get client status")
 	}
 
-	remotePath := w.location.RemotePath("")
+	remotePath := location.RemotePath("")
 	nodes, err := w.client.GetNodesWithLocationAccess(ctx, status, remotePath)
 	if err != nil {
 		return errors.Wrap(err, "no live nodes with location access")
