@@ -6,44 +6,46 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 var (
 	zeroTime time.Time
-	maxTime  = time.Unix(1<<62-1, 0).UTC()
+	bigTime  = time.Unix(1<<62-1, 0).UTC()
 )
 
 type tableKey struct {
-	host     string
 	keyspace string
 	table    string
 }
 
 // aggregateProgress returns restore progress information classified by keyspace and tables.
-func (w *worker) aggregateProgress(ctx context.Context, run *RestoreRun) RestoreProgress {
+func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 	var (
-		p = RestoreProgress{
-			SnapshotTag: run.SnapshotTag,
-			Stage:       run.Stage,
+		p = Progress{
+			SnapshotTag: w.run.SnapshotTag,
+			Stage:       w.run.Stage,
 		}
-		tableMap = make(map[tableKey]*RestoreTableProgress)
+		tableMap = make(map[tableKey]*TableProgress)
 		key      tableKey
 	)
 
 	// Initialize tables and their size
-	for _, u := range run.Units {
+	for _, u := range w.run.Units {
 		key.keyspace = u.Keyspace
 		for _, t := range u.Tables {
 			key.table = t.Table
-			tableMap[key] = &RestoreTableProgress{
+			tableMap[key] = &TableProgress{
 				Table:       t.Table,
 				TombstoneGC: t.TombstoneGC,
-				restoreProgress: restoreProgress{
+				progress: progress{
 					Size:        t.Size,
-					StartedAt:   &maxTime,
+					StartedAt:   &bigTime,
 					CompletedAt: &zeroTime,
 				},
 			}
@@ -51,35 +53,38 @@ func (w *worker) aggregateProgress(ctx context.Context, run *RestoreRun) Restore
 	}
 
 	// Initialize tables' progress
-	w.ForEachProgress(ctx, run, aggregateRestoreTableProgress(tableMap))
+	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, aggregateRestoreTableProgress(tableMap))
+	if err != nil {
+		return p, errors.Wrap(err, "iterate over restore progress")
+	}
 
 	// Aggregate progress
-	for _, u := range run.Units {
-		kp := RestoreKeyspaceProgress{
+	for _, u := range w.run.Units {
+		kp := KeyspaceProgress{
 			Keyspace: u.Keyspace,
-			restoreProgress: restoreProgress{
-				StartedAt:   &maxTime,
+			progress: progress{
+				StartedAt:   &bigTime,
 				CompletedAt: &zeroTime,
 			},
 		}
 
 		for _, t := range u.Tables {
 			tp := tableMap[tableKey{keyspace: u.Keyspace, table: t.Table}]
-			tp.restoreProgress.extremeToNil()
+			tp.progress.extremeToNil()
 
 			kp.Tables = append(kp.Tables, *tp)
-			kp.calcParentProgress(tp.restoreProgress)
+			kp.calcParentProgress(tp.progress)
 		}
 
 		kp.extremeToNil()
 
 		p.Keyspaces = append(p.Keyspaces, kp)
-		p.calcParentProgress(kp.restoreProgress)
+		p.calcParentProgress(kp.progress)
 	}
 
 	p.extremeToNil()
 
-	for _, v := range run.Views {
+	for _, v := range w.run.Views {
 		status, err := w.client.ViewBuildStatus(ctx, v.Keyspace, v.View)
 		if err != nil {
 			w.logger.Error(ctx, "Couldn't get view build status",
@@ -89,19 +94,19 @@ func (w *worker) aggregateProgress(ctx context.Context, run *RestoreRun) Restore
 			)
 			status = scyllaclient.StatusUnknown
 		}
-		p.Views = append(p.Views, RestoreViewProgress{
-			RestoreView: v,
-			Status:      status,
+		p.Views = append(p.Views, ViewProgress{
+			View:   v,
+			Status: status,
 		})
 	}
 
-	return p
+	return p, nil
 }
 
 // aggregateRestoreTableProgress returns function that can be used to aggregate
 // restore progress per table.
-func aggregateRestoreTableProgress(tableMap map[tableKey]*RestoreTableProgress) func(*RestoreRunProgress) {
-	return func(pr *RestoreRunProgress) {
+func aggregateRestoreTableProgress(tableMap map[tableKey]*TableProgress) func(*RunProgress) {
+	return func(pr *RunProgress) {
 		var (
 			key = tableKey{
 				keyspace: pr.Keyspace,
@@ -131,8 +136,8 @@ func aggregateRestoreTableProgress(tableMap map[tableKey]*RestoreTableProgress) 
 }
 
 // extremeToNil converts from temporary extreme time values to nil.
-func (rp *restoreProgress) extremeToNil() {
-	if rp.StartedAt == &maxTime {
+func (rp *progress) extremeToNil() {
+	if rp.StartedAt == &bigTime {
 		rp.StartedAt = nil
 	}
 	if rp.CompletedAt == &zeroTime {
@@ -142,7 +147,7 @@ func (rp *restoreProgress) extremeToNil() {
 
 // calcParentProgress returns updated progress for the parent that will include
 // child progress.
-func (rp *restoreProgress) calcParentProgress(child restoreProgress) {
+func (rp *progress) calcParentProgress(child progress) {
 	rp.Size += child.Size
 	rp.Restored += child.Restored
 	rp.Downloaded += child.Downloaded
@@ -176,70 +181,20 @@ func calcParentCompletedAt(parent, child *time.Time) *time.Time {
 	return parent
 }
 
-// ForEachProgress iterates over all RestoreRunProgress that belong to the run.
-// NOTE: callback is always called with the same pointer - only the value that it points to changes.
-func (w *worker) ForEachProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
-	q := table.RestoreRunProgress.SelectQuery(w.session)
+func forEachProgress(s gocqlx.Session, clusterID, taskID, runID uuid.UUID, cb func(*RunProgress)) error {
+	q := table.RestoreRunProgress.SelectQuery(s)
 	iter := q.BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.TaskID,
-		"run_id":     run.ID,
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+		"run_id":     runID,
 	}).Iter()
-	defer func() {
-		if err := iter.Close(); err != nil {
-			w.logger.Error(ctx, "Error while iterating over run progress",
-				"cluster_id", run.ClusterID,
-				"task_id", run.TaskID,
-				"run_id", run.ID,
-				"error", err,
-			)
-		}
-		q.Release()
-	}()
 
-	pr := new(RestoreRunProgress)
+	pr := new(RunProgress)
 	for iter.StructScan(pr) {
 		cb(pr)
 	}
-}
 
-// ForEachTableProgress iterates over all RestoreRunProgress that belong to the run
-// with the same manifest, keyspace and table as the run.
-// NOTE: callback is always called with the same pointer - only the value that it points to changes.
-func (w *worker) ForEachTableProgress(ctx context.Context, run *RestoreRun, cb func(*RestoreRunProgress)) {
-	q := qb.Select(table.RestoreRunProgress.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-		qb.Eq("run_id"),
-		qb.Eq("manifest_path"),
-		qb.Eq("keyspace_name"),
-		qb.Eq("table_name"),
-	).Query(w.session)
-	iter := q.BindMap(qb.M{
-		"cluster_id":    run.ClusterID,
-		"task_id":       run.TaskID,
-		"run_id":        run.ID,
-		"manifest_path": run.ManifestPath,
-		"keyspace_name": run.Keyspace,
-		"table_name":    run.Table,
-	}).Iter()
-	defer func() {
-		if err := iter.Close(); err != nil {
-			w.logger.Error(ctx, "Error while iterating over table's run progress",
-				"cluster_id", run.ClusterID,
-				"task_id", run.TaskID,
-				"run_id", run.ID,
-				"manifest_path", run.ManifestPath,
-				"keyspace", run.Keyspace,
-				"table", run.Table,
-				"error", err,
-			)
-		}
-		q.Release()
-	}()
-
-	pr := new(RestoreRunProgress)
-	for iter.StructScan(pr) {
-		cb(pr)
-	}
+	err := iter.Close()
+	q.Release()
+	return err
 }

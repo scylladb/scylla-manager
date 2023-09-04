@@ -20,22 +20,21 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type restorer interface {
-	restore(ctx context.Context, run *RestoreRun, target RestoreTarget) error
+	restore(ctx context.Context, target Target) error
 }
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
 type worker struct {
-	clusterID   uuid.UUID
-	taskID      uuid.UUID
-	runID       uuid.UUID
-	snapshotTag string
+	run *Run
+
+	parallel  int
+	batchSize int
 
 	config  Config
 	logger  log.Logger
@@ -46,14 +45,12 @@ type worker struct {
 	clusterSession gocqlx.Session
 
 	forEachRestoredManifest func(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error
-	repairSvc               *repair.Service
-	location                Location
 }
 
-func (w *worker) newUnits(ctx context.Context, target RestoreTarget) ([]RestoreUnit, error) {
+func (w *worker) newUnits(ctx context.Context, target Target) ([]Unit, error) {
 	var (
-		units   []RestoreUnit
-		unitMap = make(map[string]RestoreUnit)
+		units   []Unit
+		unitMap = make(map[string]Unit)
 	)
 
 	var foundManifest bool
@@ -75,7 +72,7 @@ func (w *worker) newUnits(ctx context.Context, target RestoreTarget) ([]RestoreU
 					}
 				}
 
-				ru.Tables = append(ru.Tables, RestoreTable{
+				ru.Tables = append(ru.Tables, Table{
 					Table: fm.Table,
 					Size:  fm.Size,
 				})
@@ -122,7 +119,7 @@ var (
 	regexSI = regexp.MustCompile(`CREATE\s*INDEX`)
 )
 
-func (w *worker) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreView, error) {
+func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
 	restoredTables := strset.New()
 	for _, u := range units {
 		for _, t := range u.Tables {
@@ -151,7 +148,7 @@ func (w *worker) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreVi
 		return stmt[loc[0]:loc[1]] + " IF NOT EXISTS" + stmt[loc[1]:], nil
 	}
 
-	var views []RestoreView
+	var views []View
 	for _, ks := range keyspaces {
 		meta, err := w.clusterSession.KeyspaceMetadata(ks)
 		if err != nil {
@@ -178,7 +175,7 @@ func (w *worker) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreVi
 				return nil, err
 			}
 
-			views = append(views, RestoreView{
+			views = append(views, View{
 				Keyspace:   index.KeyspaceName,
 				View:       index.Name,
 				Type:       SecondaryIndex,
@@ -207,7 +204,7 @@ func (w *worker) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreVi
 				return nil, err
 			}
 
-			views = append(views, RestoreView{
+			views = append(views, View{
 				Keyspace:   view.KeyspaceName,
 				View:       view.ViewName,
 				Type:       MaterializedView,
@@ -220,37 +217,35 @@ func (w *worker) newViews(ctx context.Context, units []RestoreUnit) ([]RestoreVi
 	return views, nil
 }
 
-// cleanUploadDir deletes all SSTables from host's upload directory except for those present in excludedFiles.
-func (w *worker) cleanUploadDir(ctx context.Context, host, uploadDir string, excludedFiles []string) error {
-	s := strset.New(excludedFiles...)
-	var filesToBeDeleted []string
-
-	getFilesToBeDeleted := func(item *scyllaclient.RcloneListDirItem) {
-		if !s.Has(item.Name) {
-			filesToBeDeleted = append(filesToBeDeleted, item.Name)
-		}
-	}
-
+// cleanUploadDir deletes all SSTables from host's upload directory except for those present in excluded.
+func (w *worker) cleanUploadDir(ctx context.Context, host, dir string, excluded []string) error {
+	var toBeDeleted []string
+	s := strset.New(excluded...)
 	opts := &scyllaclient.RcloneListDirOpts{FilesOnly: true}
-	if err := w.client.RcloneListDirIter(ctx, host, uploadDir, opts, getFilesToBeDeleted); err != nil {
-		return errors.Wrapf(err, "list dir: %s on host: %s", uploadDir, host)
+
+	err := w.client.RcloneListDirIter(ctx, host, dir, opts, func(item *scyllaclient.RcloneListDirItem) {
+		if !s.Has(item.Name) {
+			toBeDeleted = append(toBeDeleted, item.Name)
+		}
+	})
+	if err != nil {
+		return errors.Wrapf(err, "list dir: %s on host: %s", dir, host)
 	}
 
-	if len(filesToBeDeleted) > 0 {
+	if len(toBeDeleted) > 0 {
 		w.logger.Info(ctx, "Delete files from host's upload directory",
 			"host", host,
-			"upload_dir", uploadDir,
-			"files", filesToBeDeleted,
+			"upload_dir", dir,
+			"files", toBeDeleted,
 		)
 	}
 
-	for _, f := range filesToBeDeleted {
-		remotePath := path.Join(uploadDir, f)
+	for _, f := range toBeDeleted {
+		remotePath := path.Join(dir, f)
 		if err := w.client.RcloneDeleteFile(ctx, host, remotePath); err != nil {
 			return errors.Wrapf(err, "delete file: %s on host: %s", remotePath, host)
 		}
 	}
-
 	return nil
 }
 
@@ -264,31 +259,6 @@ func (w *worker) ValidateTableExists(keyspace, table string) error {
 
 	var name string
 	return q.Scan(&name)
-}
-
-func (w *worker) GetTableVersion(ctx context.Context, keyspace, table string) (string, error) {
-	q := qb.Select("system_schema.tables").
-		Columns("id").
-		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
-		Query(w.clusterSession).
-		Bind(keyspace, table)
-
-	defer q.Release()
-
-	var version string
-	if err := q.Scan(&version); err != nil {
-		return "", errors.Wrap(err, "record table's version")
-	}
-	// Table's version is stripped of '-' characters
-	version = strings.ReplaceAll(version, "-", "")
-
-	w.logger.Info(ctx, "Received table's version",
-		"keyspace", keyspace,
-		"table", table,
-		"version", version,
-	)
-
-	return version, nil
 }
 
 // Docs: https://docs.scylladb.com/stable/cql/ddl.html#tombstones-gc-options.
@@ -327,7 +297,7 @@ func (w *worker) AlterTableTombstoneGC(ctx context.Context, keyspace, table stri
 }
 
 // DropView drops specified Materialized View or Secondary Index.
-func (w *worker) DropView(ctx context.Context, view RestoreView) error {
+func (w *worker) DropView(ctx context.Context, view View) error {
 	w.logger.Info(ctx, "Dropping view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
@@ -360,7 +330,7 @@ func (w *worker) DropView(ctx context.Context, view RestoreView) error {
 }
 
 // CreateView creates specified Materialized View or Secondary Index.
-func (w *worker) CreateView(ctx context.Context, view RestoreView) error {
+func (w *worker) CreateView(ctx context.Context, view View) error {
 	w.logger.Info(ctx, "Creating view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
@@ -385,9 +355,9 @@ func (w *worker) CreateView(ctx context.Context, view RestoreView) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) WaitForViewBuilding(ctx context.Context, view RestoreView) error {
+func (w *worker) WaitForViewBuilding(ctx context.Context, view View) error {
 	labels := metrics.RestoreViewBuildStatusLabels{
-		ClusterID: w.clusterID.String(),
+		ClusterID: w.run.ClusterID.String(),
 		Keyspace:  view.Keyspace,
 		View:      view.View,
 	}
@@ -543,16 +513,16 @@ func indefiniteHangingRetryWrapper(ctx context.Context, op func() error, notify 
 	}
 }
 
-func (w *worker) insertRun(ctx context.Context, run *RestoreRun) {
-	if err := table.RestoreRun.InsertQuery(w.session).BindStruct(run).ExecRelease(); err != nil {
+func (w *worker) insertRun(ctx context.Context) {
+	if err := table.RestoreRun.InsertQuery(w.session).BindStruct(w.run).ExecRelease(); err != nil {
 		w.logger.Error(ctx, "Insert run",
-			"run", *run,
+			"run", *w.run,
 			"error", err,
 		)
 	}
 }
 
-func (w *worker) insertRunProgress(ctx context.Context, pr *RestoreRunProgress) {
+func (w *worker) insertRunProgress(ctx context.Context, pr *RunProgress) {
 	if err := table.RestoreRunProgress.InsertQuery(w.session).BindStruct(pr).ExecRelease(); err != nil {
 		w.logger.Error(ctx, "Insert run progress",
 			"progress", *pr,
@@ -561,7 +531,7 @@ func (w *worker) insertRunProgress(ctx context.Context, pr *RestoreRunProgress) 
 	}
 }
 
-func (w *worker) deleteRunProgress(ctx context.Context, pr *RestoreRunProgress) {
+func (w *worker) deleteRunProgress(ctx context.Context, pr *RunProgress) {
 	if err := table.RestoreRunProgress.DeleteQuery(w.session).BindStruct(pr).ExecRelease(); err != nil {
 		w.logger.Error(ctx, "Delete run progress",
 			"progress", *pr,
@@ -572,8 +542,8 @@ func (w *worker) deleteRunProgress(ctx context.Context, pr *RestoreRunProgress) 
 
 // decorateWithPrevRun gets restore task previous run and if it is not done
 // sets prev ID on the given run.
-func (w *worker) decorateWithPrevRun(ctx context.Context, run *RestoreRun, cont bool) error {
-	prev, err := w.GetRun(ctx, run.ClusterID, run.TaskID, uuid.Nil)
+func (w *worker) decorateWithPrevRun(ctx context.Context, run *Run, cont bool) error {
+	prev, err := GetRun(w.session, run.ClusterID, run.TaskID, uuid.Nil)
 	if err != nil {
 		if errors.Is(err, gocql.ErrNotFound) {
 			return nil
@@ -581,7 +551,7 @@ func (w *worker) decorateWithPrevRun(ctx context.Context, run *RestoreRun, cont 
 		return errors.Wrap(err, "get run")
 	}
 
-	if prev.Stage == StageRestoreDone {
+	if prev.Stage == StageDone {
 		return nil
 	}
 
@@ -603,17 +573,11 @@ func (w *worker) decorateWithPrevRun(ctx context.Context, run *RestoreRun, cont 
 
 // clonePrevProgress copies all the previous run progress into
 // current run progress.
-func (w *worker) clonePrevProgress(ctx context.Context, run *RestoreRun) {
+func (w *worker) clonePrevProgress(ctx context.Context, run *Run) {
 	q := table.RestoreRunProgress.InsertQuery(w.session)
 	defer q.Release()
 
-	prevRun := &RestoreRun{
-		ClusterID: run.ClusterID,
-		TaskID:    run.TaskID,
-		ID:        run.PrevID,
-	}
-
-	w.ForEachProgress(ctx, prevRun, func(pr *RestoreRunProgress) {
+	err := forEachProgress(w.session, run.ClusterID, run.TaskID, run.PrevID, func(pr *RunProgress) {
 		pr.RunID = run.ID
 
 		if err := q.BindStruct(pr).Exec(); err != nil {
@@ -623,74 +587,11 @@ func (w *worker) clonePrevProgress(ctx context.Context, run *RestoreRun) {
 			)
 		}
 	})
+	if err != nil {
+		w.logger.Error(ctx, "Couldn't clone run progress", "error", err)
+	}
 
 	w.logger.Info(ctx, "Run after decoration", "run", *run)
-}
-
-// GetRun returns run with specified cluster, task and run ID.
-// If run ID is not specified, it returns the latest run with specified cluster and task ID.
-func (w *worker) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*RestoreRun, error) {
-	w.logger.Debug(ctx, "Get run",
-		"cluster_id", clusterID,
-		"task_id", taskID,
-		"run_id", runID,
-	)
-
-	var q *gocqlx.Queryx
-	if runID != uuid.Nil {
-		q = table.RestoreRun.GetQuery(w.session).BindMap(qb.M{
-			"cluster_id": clusterID,
-			"task_id":    taskID,
-			"id":         runID,
-		})
-	} else {
-		q = table.RestoreRun.SelectQuery(w.session).BindMap(qb.M{
-			"cluster_id": clusterID,
-			"task_id":    taskID,
-		})
-	}
-
-	var r RestoreRun
-	return &r, q.GetRelease(&r)
-}
-
-// getProgress fetches restore worker's run and returns its aggregated progress information.
-func (w *worker) getProgress(ctx context.Context) (RestoreProgress, error) {
-	w.logger.Debug(ctx, "Getting progress",
-		"cluster_id", w.clusterID,
-		"task_id", w.taskID,
-		"run_id", w.runID,
-	)
-
-	run, err := w.GetRun(ctx, w.clusterID, w.taskID, w.runID)
-	if err != nil {
-		return RestoreProgress{}, errors.Wrap(err, "get restore run")
-	}
-
-	pr := w.aggregateProgress(ctx, run)
-
-	// Check if repair progress needs to be filled
-	if run.RepairTaskID == uuid.Nil {
-		return pr, nil
-	}
-
-	q := table.RepairRun.SelectQuery(w.session).BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.RepairTaskID,
-	})
-
-	var repairRun repair.Run
-	if err = q.GetRelease(&repairRun); err != nil {
-		return pr, errors.Wrap(err, "get repair run")
-	}
-
-	repairPr, err := w.repairSvc.GetProgress(ctx, repairRun.ClusterID, repairRun.TaskID, repairRun.ID)
-	if err != nil {
-		return pr, errors.Wrap(err, "get repair progress")
-	}
-
-	pr.RepairProgress = &repairPr
-	return pr, nil
 }
 
 func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
@@ -771,9 +672,24 @@ func (w *worker) diskFreePercent(ctx context.Context, host string) (int, error) 
 	return int(100 * (float64(du.Free) / float64(du.Total))), nil
 }
 
-func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) error {
-	w.logger.Debug(ctx, "Clearing job stats", "host", host, "job_id", jobID)
-	return errors.Wrap(w.client.RcloneDeleteJobStats(ctx, host, jobID), "clear job stats")
+func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) {
+	if err := w.client.RcloneDeleteJobStats(ctx, host, jobID); err != nil {
+		w.logger.Error(ctx, "Failed to clear job stats",
+			"host", host,
+			"id", jobID,
+			"error", err,
+		)
+	}
+}
+
+func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
+	if err := w.client.RcloneJobStop(ctx, host, jobID); err != nil {
+		w.logger.Error(ctx, "Failed to stop job",
+			"host", host,
+			"id", jobID,
+			"error", err,
+		)
+	}
 }
 
 func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {

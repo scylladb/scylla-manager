@@ -10,6 +10,8 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 
@@ -18,8 +20,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// RestoreTarget specifies what data should be restored and from which locations.
-type RestoreTarget struct {
+// Target specifies what data should be restored and from which locations.
+type Target struct {
 	Location      []Location `json:"location"`
 	Keyspace      []string   `json:"keyspace,omitempty"`
 	SnapshotTag   string     `json:"snapshot_tag"`
@@ -30,8 +32,8 @@ type RestoreTarget struct {
 	Continue      bool       `json:"continue"`
 }
 
-func defaultRestoreTarget() RestoreTarget {
-	return RestoreTarget{
+func defaultRestoreTarget() Target {
+	return Target{
 		BatchSize: 2,
 		Parallel:  0,
 		Continue:  true,
@@ -40,7 +42,7 @@ func defaultRestoreTarget() RestoreTarget {
 
 // validateProperties makes a simple validation of params set by user.
 // It does not perform validations that require access to the service.
-func (t RestoreTarget) validateProperties() error {
+func (t Target) validateProperties() error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
@@ -62,14 +64,14 @@ func (t RestoreTarget) validateProperties() error {
 	return nil
 }
 
-func (t RestoreTarget) sortLocations() {
+func (t Target) sortLocations() {
 	sort.SliceStable(t.Location, func(i, j int) bool {
 		return t.Location[i].String() < t.Location[j].String()
 	})
 }
 
-// RestoreRun tracks restore progress, shares ID with scheduler.Run that initiated it.
-type RestoreRun struct {
+// Run tracks restore progress, shares ID with scheduler.Run that initiated it.
+type Run struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	ID        uuid.UUID
@@ -80,45 +82,45 @@ type RestoreRun struct {
 	Keyspace     string `db:"keyspace_name"` // marks currently processed keyspace
 	Table        string `db:"table_name"`    // marks currently processed table
 	SnapshotTag  string
-	Stage        RestoreStage
+	Stage        Stage
 
 	RepairTaskID uuid.UUID // task ID of the automated post-restore repair
 
 	// Cache that's initialized once for entire task
-	Units []RestoreUnit
-	Views []RestoreView
+	Units []Unit
+	Views []View
 }
 
-// RestoreUnit represents restored keyspace and its tables with their size.
-type RestoreUnit struct {
-	Keyspace string         `json:"keyspace" db:"keyspace_name"`
-	Size     int64          `json:"size"`
-	Tables   []RestoreTable `json:"tables"`
+// Unit represents restored keyspace and its tables with their size.
+type Unit struct {
+	Keyspace string  `json:"keyspace" db:"keyspace_name"`
+	Size     int64   `json:"size"`
+	Tables   []Table `json:"tables"`
 }
 
-func (u RestoreUnit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Marshal(info, f.Interface())
 }
 
-func (u *RestoreUnit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// RestoreTable represents restored table, its size and original tombstone_gc mode.
-type RestoreTable struct {
+// Table represents restored table, its size and original tombstone_gc mode.
+type Table struct {
 	Table       string          `json:"table" db:"table_name"`
 	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
 	Size        int64           `json:"size"`
 }
 
-func (t RestoreTable) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+func (t Table) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Marshal(info, f.Interface())
 }
 
-func (t *RestoreTable) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+func (t *Table) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
@@ -132,8 +134,8 @@ const (
 	SecondaryIndex   ViewType = "SecondaryIndex"
 )
 
-// RestoreView represents statement used for recreating restored (dropped) views.
-type RestoreView struct {
+// View represents statement used for recreating restored (dropped) views.
+type View struct {
 	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
 	View       string   `json:"view" db:"view_name"`
 	Type       ViewType `json:"type" db:"view_type"`
@@ -141,19 +143,19 @@ type RestoreView struct {
 	CreateStmt string   `json:"create_stmt"`
 }
 
-func (t RestoreView) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+func (t View) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Marshal(info, f.Interface())
 }
 
-func (t *RestoreView) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+func (t *View) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// RestoreRunProgress describes restore progress (like in RunProgress) of
+// RunProgress describes restore progress (like in RunProgress) of
 // already started download of SSTables with specified IDs to host.
-type RestoreRunProgress struct {
+type RunProgress struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
@@ -176,21 +178,53 @@ type RestoreRunProgress struct {
 	VersionedProgress   int64
 }
 
+// ForEachTableProgress iterates over all TableProgress belonging to the same run/manifest/table as the receiver.
+func (pr *RunProgress) ForEachTableProgress(session gocqlx.Session, cb func(*RunProgress)) error {
+	q := qb.Select(table.RestoreRunProgress.Name()).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+		qb.Eq("run_id"),
+		qb.Eq("manifest_path"),
+		qb.Eq("keyspace_name"),
+		qb.Eq("table_name"),
+	).Query(session)
+	defer q.Release()
+
+	iter := q.BindMap(qb.M{
+		"cluster_id":    pr.ClusterID,
+		"task_id":       pr.TaskID,
+		"run_id":        pr.RunID,
+		"manifest_path": pr.ManifestPath,
+		"keyspace_name": pr.Keyspace,
+		"table_name":    pr.Table,
+	}).Iter()
+
+	res := new(RunProgress)
+	for iter.StructScan(res) {
+		cb(res)
+	}
+	return iter.Close()
+}
+
+func (pr *RunProgress) idCnt() int64 {
+	return int64(len(pr.SSTableID))
+}
+
+func (pr *RunProgress) setRestoreStartedAt() {
+	t := timeutc.Now()
+	pr.RestoreStartedAt = &t
+}
+
+func (pr *RunProgress) setRestoreCompletedAt() {
+	t := timeutc.Now()
+	pr.RestoreCompletedAt = &t
+}
+
 func validateTimeIsSet(t *time.Time) bool {
 	return t != nil && !t.IsZero()
 }
 
-func (rp *RestoreRunProgress) setRestoreStartedAt() {
-	t := timeutc.Now()
-	rp.RestoreStartedAt = &t
-}
-
-func (rp *RestoreRunProgress) setRestoreCompletedAt() {
-	t := timeutc.Now()
-	rp.RestoreCompletedAt = &t
-}
-
-type restoreProgress struct {
+type progress struct {
 	Size        int64      `json:"size"`
 	Restored    int64      `json:"restored"`
 	Downloaded  int64      `json:"downloaded"`
@@ -199,37 +233,37 @@ type restoreProgress struct {
 	CompletedAt *time.Time `json:"completed_at"`
 }
 
-// RestoreProgress groups restore progress for all restored keyspaces.
-type RestoreProgress struct {
-	restoreProgress
+// Progress groups restore progress for all restored keyspaces.
+type Progress struct {
+	progress
 	RepairProgress *repair.Progress `json:"repair_progress"`
 
-	SnapshotTag string                    `json:"snapshot_tag"`
-	Keyspaces   []RestoreKeyspaceProgress `json:"keyspaces,omitempty"`
-	Views       []RestoreViewProgress     `json:"views,omitempty"`
-	Stage       RestoreStage              `json:"stage"`
+	SnapshotTag string             `json:"snapshot_tag"`
+	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
+	Views       []ViewProgress     `json:"views,omitempty"`
+	Stage       Stage              `json:"stage"`
 }
 
-// RestoreKeyspaceProgress groups restore progress for the tables belonging to this keyspace.
-type RestoreKeyspaceProgress struct {
-	restoreProgress
+// KeyspaceProgress groups restore progress for the tables belonging to this keyspace.
+type KeyspaceProgress struct {
+	progress
 
-	Keyspace string                 `json:"keyspace"`
-	Tables   []RestoreTableProgress `json:"tables,omitempty"`
+	Keyspace string          `json:"keyspace"`
+	Tables   []TableProgress `json:"tables,omitempty"`
 }
 
-// RestoreTableProgress defines restore progress for the table.
-type RestoreTableProgress struct {
-	restoreProgress
+// TableProgress defines restore progress for the table.
+type TableProgress struct {
+	progress
 
 	Table       string          `json:"table"`
 	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
 	Error       string          `json:"error,omitempty"`
 }
 
-// RestoreViewProgress defines restore progress for the view.
-type RestoreViewProgress struct {
-	RestoreView
+// ViewProgress defines restore progress for the view.
+type ViewProgress struct {
+	View
 
 	Status scyllaclient.ViewBuildStatus `json:"status"`
 }

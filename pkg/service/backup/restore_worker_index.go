@@ -114,7 +114,7 @@ func (w *indexWorker) workFunc(ctx context.Context, run *RestoreRun, target Rest
 		)
 		return nil
 	}
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0].Host, srcDir, w.Logger)
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.Client, w.SnapshotTag, w.hosts[0].Host, srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
