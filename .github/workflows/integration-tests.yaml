@@ -27,7 +27,7 @@ jobs:
           ip-family: ${{ inputs.ip-family }}
 
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/backup RUN='"TestRestoreTables.*Integration"'
+        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
 
   restore-schema:
     name: Test restore schema
@@ -45,7 +45,7 @@ jobs:
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
         # This regex ensures that all restore tests that didn't match restore-tables job will be run here.
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/backup RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
 
   backup:
     name: Test backup
@@ -63,7 +63,7 @@ jobs:
         # Until backup and restore live in the same pkg, we have to use regex to separate their tests.
         # The same negative lookahead workaround as in restore-schema.
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/backup RUN='"Test([^R]|.{1}[^e]|.{2}[^s]|.{3}[^t]|.{4}[^o]|.{5}[^r]|.{6}[^e]).*Integration"'
+        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/backup
 
   repair:
     name: Test repair
