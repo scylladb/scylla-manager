@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -17,12 +16,7 @@ type Runner struct {
 
 // Run implementation for Runner.
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	t, err := r.service.GetRestoreTarget(ctx, clusterID, properties)
-	if err != nil {
-		return errors.Wrap(err, "get restore target")
-	}
-
-	return r.service.Restore(ctx, clusterID, taskID, runID, t)
+	return r.service.Restore(ctx, clusterID, taskID, runID, properties)
 }
 
 // Runner creates a Runner that handles restores.
