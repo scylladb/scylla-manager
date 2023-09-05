@@ -33,7 +33,7 @@ type restoreWorkerTools struct {
 	workerTools
 
 	repairSvc      *repair.Service
-	metrics        metrics.RestoreM
+	metrics        metrics.RestoreMetrics
 	managerSession gocqlx.Session
 	clusterSession gocqlx.Session
 	// Iterates over all manifests in given location with cluster ID and snapshot tag specified in restore target.

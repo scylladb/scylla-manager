@@ -17,10 +17,10 @@ func TestBackupMetrics(t *testing.T) {
 	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
 
 	t.Run("SetSnapshot", func(t *testing.T) {
-		m.Backup.SetSnapshot(c, "k0", "h", false)
-		m.Backup.SetSnapshot(c, "k1", "h", true)
+		m.SetSnapshot(c, "k0", "h", false)
+		m.SetSnapshot(c, "k1", "h", true)
 
-		text := Dump(t, m.Backup.snapshot)
+		text := Dump(t, m.snapshot)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
@@ -30,9 +30,9 @@ func TestBackupMetrics(t *testing.T) {
 	})
 
 	t.Run("SetFilesProgress", func(t *testing.T) {
-		m.Backup.SetFilesProgress(c, "k", "t", "h", 10, 5, 3, 2)
+		m.SetFilesProgress(c, "k", "t", "h", 10, 5, 3, 2)
 
-		text := Dump(t, m.Backup.filesSizeBytes, m.Backup.filesUploadedBytes, m.Backup.filesSkippedBytes, m.Backup.filesFailedBytes)
+		text := Dump(t, m.filesSizeBytes, m.filesUploadedBytes, m.filesSkippedBytes, m.filesFailedBytes)
 		fmt.Println(text)
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
@@ -42,9 +42,9 @@ func TestBackupMetrics(t *testing.T) {
 	})
 
 	t.Run("SetPurgeFiles", func(t *testing.T) {
-		m.Backup.SetPurgeFiles(c, "h", 2, 1)
+		m.SetPurgeFiles(c, "h", 2, 1)
 
-		text := Dump(t, m.Backup.purgeFiles, m.Backup.purgeDeletedFiles)
+		text := Dump(t, m.purgeFiles, m.purgeDeletedFiles)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
