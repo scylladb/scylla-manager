@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -21,6 +22,7 @@ type Services struct {
 	HealthCheck HealthCheckService
 	Repair      RepairService
 	Backup      BackupService
+	Restore     RestoreService
 	Scheduler   SchedService
 }
 
@@ -54,17 +56,19 @@ type RepairService interface {
 type BackupService interface {
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.Target, error)
 	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
-	GetRestoreTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.RestoreTarget, error)
-	GetRestoreUnits(ctx context.Context, clusterID uuid.UUID, target backup.RestoreTarget) ([]backup.RestoreUnit, error)
-	GetRestoreViews(ctx context.Context, clusterID uuid.UUID, units []backup.RestoreUnit) ([]backup.RestoreView, error)
 	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupspec.Location
 	List(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backup.ListItem, error)
 	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backupspec.FilesInfo, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
-	GetRestoreProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.RestoreProgress, error)
 	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, snapshotTags []string) error
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)
+}
+
+// RestoreService service interface for the REST API handlers.
+type RestoreService interface {
+	GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (restore.Target, []restore.Unit, []restore.View, error)
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (restore.Progress, error)
 }
 
 // SchedService service interface for the REST API handlers.
