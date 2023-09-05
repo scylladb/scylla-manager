@@ -25,14 +25,14 @@ type Service struct {
 
 	session gocqlx.Session
 	config  Config
-	metrics metrics.BackupMetrics
+	metrics metrics.RestoreMetrics
 
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
 	logger         log.Logger
 }
 
-func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
+func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config, metrics metrics.RestoreMetrics,
 	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
@@ -231,7 +231,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 		},
 		config:         s.config,
 		logger:         s.logger,
-		metrics:        s.metrics.Restore,
+		metrics:        s.metrics,
 		client:         client,
 		session:        s.session,
 		clusterSession: clusterSession,
@@ -253,7 +253,7 @@ func (s *Service) newProgressWorker(ctx context.Context, run *Run) (worker, erro
 		run:     run,
 		config:  s.config,
 		logger:  s.logger,
-		metrics: s.metrics.Restore,
+		metrics: s.metrics,
 		client:  client,
 		session: s.session,
 	}, nil

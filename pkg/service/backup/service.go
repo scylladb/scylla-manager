@@ -790,7 +790,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			Config:      s.config,
 			Client:      client,
 		},
-		Metrics:              s.metrics.Backup,
+		Metrics:              s.metrics,
 		Units:                run.Units,
 		OnRunProgress:        s.putRunProgressLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
