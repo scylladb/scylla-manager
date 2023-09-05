@@ -48,3 +48,20 @@ func (h *CommonTestHelper) GetAllHosts() []string {
 	}
 	return out
 }
+
+// RestartAgents via supervisorctl.
+func (h *CommonTestHelper) RestartAgents() {
+	execOnAllHosts(h, "supervisorctl restart scylla-manager-agent")
+}
+
+func execOnAllHosts(h *CommonTestHelper, cmd string) {
+	h.T.Helper()
+	for _, host := range h.GetAllHosts() {
+		stdout, stderr, err := testutils.ExecOnHost(host, cmd)
+		if err != nil {
+			h.T.Log("stdout", stdout)
+			h.T.Log("stderr", stderr)
+			h.T.Fatal("Command failed on host", host, err)
+		}
+	}
+}
