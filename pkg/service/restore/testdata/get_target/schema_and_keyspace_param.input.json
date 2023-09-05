@@ -1,0 +1,10 @@
+{
+  "location": [
+    "s3:restoretest-get-target-error"
+  ],
+  "keyspace": [
+    "my-keyspace"
+  ],
+  "snapshot_tag": "sm_20060102150405UTC",
+  "restore_schema": true
+}
