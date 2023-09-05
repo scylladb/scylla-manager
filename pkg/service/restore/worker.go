@@ -4,9 +4,11 @@ package restore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -20,21 +22,18 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
-
-type restorer interface {
-	restore(ctx context.Context, target Target) error
-}
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
 type worker struct {
-	run *Run
-
-	parallel  int
-	batchSize int
+	run    *Run
+	target Target
 
 	config  Config
 	logger  log.Logger
@@ -43,18 +42,132 @@ type worker struct {
 	client         *scyllaclient.Client
 	session        gocqlx.Session
 	clusterSession gocqlx.Session
-
-	forEachRestoredManifest func(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error
 }
 
-func (w *worker) newUnits(ctx context.Context, target Target) ([]Unit, error) {
+func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
+	if err := w.initTarget(ctx, properties); err != nil {
+		return errors.Wrap(err, "init target")
+	}
+	if err := w.initUnits(ctx); err != nil {
+		return errors.Wrap(err, "init units")
+	}
+	return errors.Wrap(w.initViews(ctx), "init views")
+}
+
+func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) error {
+	t := defaultTarget()
+	if err := json.Unmarshal(properties, &t); err != nil {
+		return err
+	}
+	if err := t.validateProperties(); err != nil {
+		return err
+	}
+
+	if t.Keyspace == nil {
+		t.Keyspace = []string{"*"}
+	}
+	if t.RestoreSchema {
+		t.Keyspace = []string{"system_schema"}
+	}
+	if t.RestoreTables {
+		// Skip restoration of those tables regardless of the '--keyspace' param
+		doNotRestore := []string{
+			"system",        // system.* tables are recreated on every cluster and shouldn't even be backed-up
+			"system_schema", // Schema restoration is only possible with '--restore-schema' flag
+			// Don't restore tables related to CDC.
+			// Currently, it is forbidden to alter those tables, so SM wouldn't be able to ensure their data consistency.
+			// Moreover, those tables usually contain data with small TTL value,
+			// so their contents would probably expire right after restore has ended.
+			"system_distributed_everywhere.cdc_generation_descriptions_v2",
+			"system_distributed.cdc_streams_descriptions_v2",
+			"system_distributed.cdc_generation_timestamps",
+			"*.*_scylla_cdc_log", // All regular CDC tables have "_scylla_cdc_log" suffix
+		}
+
+		for _, ks := range doNotRestore {
+			t.Keyspace = append(t.Keyspace, "!"+ks)
+		}
+
+		// Filter out all materialized views and secondary indexes. They are not a part of restore procedure at the moment.
+		// See https://docs.scylladb.com/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster.
+		views, err := query.GetAllViews(w.clusterSession)
+		if err != nil {
+			return errors.Wrap(err, "get cluster views")
+		}
+
+		for _, viewName := range views.List() {
+			t.Keyspace = append(t.Keyspace, "!"+viewName)
+		}
+	}
+
+	status, err := w.client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get status")
+	}
+
+	// All nodes should be up during restore
+	if err := w.client.VerifyNodesAvailability(ctx); err != nil {
+		return errors.Wrap(err, "verify all nodes availability")
+	}
+
+	allLocations := strset.New()
+	locationHosts := make(map[Location][]string)
+	for _, l := range t.Location {
+		p := l.RemotePath("")
+		if allLocations.Has(p) {
+			return errors.Errorf("location %s is specified multiple times", l)
+		}
+		allLocations.Add(p)
+
+		var (
+			remotePath     = l.RemotePath("")
+			locationStatus = status
+		)
+		// In case location does not have specified dc, use nodes from all dcs
+		if l.DC == "" {
+			w.logger.Info(ctx, "No datacenter specified for location - using all nodes for this location", "location", l)
+		} else {
+			locationStatus = status.Datacenter([]string{l.DC})
+		}
+
+		nodes, err := w.client.GetNodesWithLocationAccess(ctx, locationStatus, remotePath)
+		if err != nil {
+			if strings.Contains(err.Error(), "NoSuchBucket") {
+				return errors.Errorf("specified bucket does not exist: %s", l)
+			}
+			return errors.Wrapf(err, "location %s is not accessible", l)
+		}
+		if len(nodes) == 0 {
+			return fmt.Errorf("no nodes with location %s access", l)
+		}
+
+		var hosts []string
+		for _, n := range nodes {
+			hosts = append(hosts, n.Addr)
+		}
+
+		w.logger.Info(ctx, "Found hosts with location access", "location", l, "hosts", hosts)
+		locationHosts[l] = hosts
+	}
+	t.locationHosts = locationHosts
+	t.sortLocations()
+
+	w.target = t
+	w.run.SnapshotTag = t.SnapshotTag
+	w.logger.Info(ctx, "Initialized target", "target", t)
+
+	return nil
+}
+
+// initUnits should be called with already initialized target.
+func (w *worker) initUnits(ctx context.Context) error {
 	var (
 		units   []Unit
 		unitMap = make(map[string]Unit)
 	)
 
 	var foundManifest bool
-	for _, l := range target.Location {
+	for _, l := range w.target.Location {
 		manifestHandler := func(miwc ManifestInfoWithContent) error {
 			foundManifest = true
 
@@ -79,16 +192,16 @@ func (w *worker) newUnits(ctx context.Context, target Target) ([]Unit, error) {
 				unitMap[fm.Keyspace] = ru
 			}
 
-			return miwc.ForEachIndexIter(target.Keyspace, filesHandler)
+			return miwc.ForEachIndexIter(w.target.Keyspace, filesHandler)
 		}
 
-		if err := w.forEachRestoredManifest(ctx, l, manifestHandler); err != nil {
-			return nil, err
+		if err := w.forEachManifest(ctx, l, manifestHandler); err != nil {
+			return err
 		}
 	}
 
 	if !foundManifest {
-		return nil, errors.Errorf("no snapshot with tag %s", target.SnapshotTag)
+		return errors.Errorf("no snapshot with tag %s", w.run.SnapshotTag)
 	}
 
 	for _, u := range unitMap {
@@ -96,22 +209,23 @@ func (w *worker) newUnits(ctx context.Context, target Target) ([]Unit, error) {
 	}
 
 	if units == nil {
-		return nil, errors.New("no data in backup locations match given keyspace pattern")
+		return errors.New("no data in backup locations match given keyspace pattern")
 	}
 
 	for _, u := range units {
 		for i, t := range u.Tables {
-			mode, err := w.GetTableTombstoneGC(u.Keyspace, t.Table)
+			mode, err := w.GetTableTombstoneGCMode(u.Keyspace, t.Table)
 			if err != nil {
-				return nil, errors.Wrapf(err, "get tombstone_gc of %s.%s", u.Keyspace, t.Table)
+				return errors.Wrapf(err, "get tombstone_gc of %s.%s", u.Keyspace, t.Table)
 			}
 			u.Tables[i].TombstoneGC = mode
 		}
 	}
 
-	w.logger.Info(ctx, "Created restore units", "units", units)
+	w.run.Units = units
+	w.logger.Info(ctx, "Initialized units", "units", units)
 
-	return units, nil
+	return nil
 }
 
 var (
@@ -119,9 +233,10 @@ var (
 	regexSI = regexp.MustCompile(`CREATE\s*INDEX`)
 )
 
-func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
+// initViews should be called with already initialized target and units.
+func (w *worker) initViews(ctx context.Context) error {
 	restoredTables := strset.New()
-	for _, u := range units {
+	for _, u := range w.run.Units {
 		for _, t := range u.Tables {
 			restoredTables.Add(u.Keyspace + "." + t.Table)
 		}
@@ -129,7 +244,7 @@ func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
 
 	keyspaces, err := w.client.Keyspaces(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get keyspaces")
+		return errors.Wrapf(err, "get keyspaces")
 	}
 
 	// Create stmt has to contain "IF NOT EXISTS" clause as we have to be able to resume restore from any point
@@ -152,7 +267,7 @@ func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
 	for _, ks := range keyspaces {
 		meta, err := w.clusterSession.KeyspaceMetadata(ks)
 		if err != nil {
-			return nil, errors.Wrapf(err, "get keyspace %s metadata", ks)
+			return errors.Wrapf(err, "get keyspace %s metadata", ks)
 		}
 
 		for _, index := range meta.Indexes {
@@ -165,14 +280,14 @@ func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
 
 			schema, err := dummyMeta.ToCQL()
 			if err != nil {
-				return nil, errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
+				return errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
 			}
 
 			// DummyMeta schema consists of create keyspace and create view statements
 			stmt := strings.Split(schema, ";")[1]
 			stmt, err = addIfNotExists(stmt, SecondaryIndex)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			views = append(views, View{
@@ -194,14 +309,14 @@ func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
 
 			schema, err := dummyMeta.ToCQL()
 			if err != nil {
-				return nil, errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
+				return errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
 			}
 
 			// DummyMeta schema consists of create keyspace and create view statements
 			stmt := strings.Split(schema, ";")[1]
 			stmt, err = addIfNotExists(stmt, MaterializedView)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			views = append(views, View{
@@ -214,7 +329,10 @@ func (w *worker) newViews(ctx context.Context, units []Unit) ([]View, error) {
 		}
 	}
 
-	return views, nil
+	w.logger.Info(ctx, "Initialized views", "views", views)
+	w.run.Views = views
+
+	return nil
 }
 
 // cleanUploadDir deletes all SSTables from host's upload directory except for those present in excluded.
@@ -247,18 +365,6 @@ func (w *worker) cleanUploadDir(ctx context.Context, host, dir string, excluded 
 		}
 	}
 	return nil
-}
-
-func (w *worker) ValidateTableExists(keyspace, table string) error {
-	q := qb.Select("system_schema.tables").
-		Columns("table_name").
-		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
-		Query(w.clusterSession).
-		Bind(keyspace, table)
-	defer q.Release()
-
-	var name string
-	return q.Scan(&name)
 }
 
 // Docs: https://docs.scylladb.com/stable/cql/ddl.html#tombstones-gc-options.
@@ -425,8 +531,8 @@ func alterSchemaRetryWrapper(ctx context.Context, op func() error, notify func(e
 	return retry.WithNotify(ctx, wrappedOp, backoff, notify)
 }
 
-// GetTableTombstoneGC returns table's tombstone_gc mode.
-func (w *worker) GetTableTombstoneGC(keyspace, table string) (tombstoneGCMode, error) {
+// GetTableTombstoneGCMode returns table's tombstone_gc mode.
+func (w *worker) GetTableTombstoneGCMode(keyspace, table string) (tombstoneGCMode, error) {
 	var ext map[string]string
 	q := qb.Select("system_schema.tables").
 		Columns("extensions").
@@ -540,10 +646,8 @@ func (w *worker) deleteRunProgress(ctx context.Context, pr *RunProgress) {
 	}
 }
 
-// decorateWithPrevRun gets restore task previous run and if it is not done
-// sets prev ID on the given run.
-func (w *worker) decorateWithPrevRun(ctx context.Context, run *Run, cont bool) error {
-	prev, err := GetRun(w.session, run.ClusterID, run.TaskID, uuid.Nil)
+func (w *worker) decorateWithPrevRun(ctx context.Context) error {
+	prev, err := GetRun(w.session, w.run.ClusterID, w.run.TaskID, uuid.Nil)
 	if err != nil {
 		if errors.Is(err, gocql.ErrNotFound) {
 			return nil
@@ -554,32 +658,32 @@ func (w *worker) decorateWithPrevRun(ctx context.Context, run *Run, cont bool) e
 	if prev.Stage == StageDone {
 		return nil
 	}
+	// Always copy units and views from previous run. Otherwise, restore will believe
+	// that the initial cluster state has dropped views and disabled tombstone_gc.
+	w.run.Units = prev.Units
+	w.run.Views = prev.Views
 
-	// Always copy Units as they contain information about original tombstone_gc mode
-	run.Units = prev.Units
-	if cont {
-		run.PrevID = prev.ID
-		run.Location = prev.Location
-		run.ManifestPath = prev.ManifestPath
-		run.Keyspace = prev.Keyspace
-		run.Table = prev.Table
-		run.Stage = prev.Stage
-		run.RepairTaskID = prev.RepairTaskID
+	if w.target.Continue {
+		w.run.PrevID = prev.ID
+		w.run.Location = prev.Location
+		w.run.ManifestPath = prev.ManifestPath
+		w.run.Keyspace = prev.Keyspace
+		w.run.Table = prev.Table
+		w.run.Stage = prev.Stage
+		w.run.RepairTaskID = prev.RepairTaskID
 	}
 
-	w.logger.Info(ctx, "Decorated run", "run", *run)
+	w.logger.Info(ctx, "Decorated run", "run", *w.run)
 	return nil
 }
 
-// clonePrevProgress copies all the previous run progress into
-// current run progress.
-func (w *worker) clonePrevProgress(ctx context.Context, run *Run) {
+// Clone insert all previous RunProgress for current run.
+func (w *worker) clonePrevProgress(ctx context.Context) {
 	q := table.RestoreRunProgress.InsertQuery(w.session)
 	defer q.Release()
 
-	err := forEachProgress(w.session, run.ClusterID, run.TaskID, run.PrevID, func(pr *RunProgress) {
-		pr.RunID = run.ID
-
+	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.PrevID, func(pr *RunProgress) {
+		pr.RunID = w.run.ID
 		if err := q.BindStruct(pr).Exec(); err != nil {
 			w.logger.Error(ctx, "Couldn't clone run progress",
 				"run_progress", *pr,
@@ -590,8 +694,6 @@ func (w *worker) clonePrevProgress(ctx context.Context, run *Run) {
 	if err != nil {
 		w.logger.Error(ctx, "Couldn't clone run progress", "error", err)
 	}
-
-	w.logger.Info(ctx, "Run after decoration", "run", *run)
 }
 
 func (w *worker) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
@@ -690,6 +792,85 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
+}
+
+func (w *worker) forEachManifest(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error {
+	closest := w.client.Config().Hosts
+	hosts, ok := w.target.locationHosts[location]
+	if !ok {
+		return fmt.Errorf("no hosts for location %s", location)
+	}
+
+	var host string
+	for _, h := range closest {
+		if slice.ContainsString(hosts, h) {
+			host = h
+			break
+		}
+	}
+	if host == "" {
+		host = hosts[0]
+	}
+
+	manifests, err := w.getManifestInfo(ctx, host, location)
+	if err != nil {
+		return errors.Wrap(err, "list manifests")
+	}
+
+	// Load manifest content
+	load := func(c *ManifestContentWithIndex, m *ManifestInfo) error {
+		r, err := w.client.RcloneOpen(ctx, host, m.Location.RemotePath(m.Path()))
+		if err != nil {
+			return err
+		}
+		return multierr.Append(c.Read(r), r.Close())
+	}
+
+	for _, m := range manifests {
+		c := new(ManifestContentWithIndex)
+		if err := load(c, m); err != nil {
+			return err
+		}
+
+		err := f(ManifestInfoWithContent{
+			ManifestInfo:             m,
+			ManifestContentWithIndex: c,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getManifestInfo returns manifests with receiver's snapshot tag for all nodes in the location.
+func (w *worker) getManifestInfo(ctx context.Context, host string, location Location) ([]*ManifestInfo, error) {
+	baseDir := path.Join("backup", string(MetaDirKind))
+	opts := scyllaclient.RcloneListDirOpts{
+		FilesOnly: true,
+		Recurse:   true,
+	}
+
+	var manifests []*ManifestInfo
+	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
+		m := new(ManifestInfo)
+		if err := m.ParsePath(path.Join(baseDir, f.Path)); err != nil {
+			return
+		}
+		m.Location = location
+		if m.SnapshotTag == w.run.SnapshotTag {
+			manifests = append(manifests, m)
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure deterministic order
+	sort.Slice(manifests, func(i, j int) bool {
+		return manifests[i].NodeID < manifests[j].NodeID
+	})
+	return manifests, nil
 }
 
 func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {

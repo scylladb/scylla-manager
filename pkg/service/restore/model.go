@@ -1,4 +1,4 @@
-// Copyright (C) 2022 ScyllaDB
+// Copyright (C) 2023 ScyllaDB
 
 package restore
 
@@ -30,9 +30,12 @@ type Target struct {
 	RestoreSchema bool       `json:"restore_schema,omitempty"`
 	RestoreTables bool       `json:"restore_tables,omitempty"`
 	Continue      bool       `json:"continue"`
+
+	// Cache for host with access to remote location
+	locationHosts map[Location][]string `json:"-"`
 }
 
-func defaultRestoreTarget() Target {
+func defaultTarget() Target {
 	return Target{
 		BatchSize: 2,
 		Parallel:  0,
