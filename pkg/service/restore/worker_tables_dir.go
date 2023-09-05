@@ -31,7 +31,6 @@ type tablesDirWorker struct {
 	miwc   ManifestInfoWithContent // Manifest containing fm
 	fm     FilesMeta               // Describes table and it's files located in srcDir
 
-	hosts     []string       // Hosts with access to remote srcDir
 	ongoingPr []*RunProgress // Unfinished RunProgress from previous run of each host
 
 	// Maps original SSTable name to its existing older version
@@ -42,7 +41,7 @@ type tablesDirWorker struct {
 	progress       *TotalRestoreProgress
 }
 
-func newTablesDirWorker(ctx context.Context, w worker, hosts []string, miwc ManifestInfoWithContent, fm FilesMeta, progress *TotalRestoreProgress) (tablesDirWorker, error) {
+func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithContent, fm FilesMeta, progress *TotalRestoreProgress) (tablesDirWorker, error) {
 	bundles := newBundles(fm)
 	bundleIDPool := newIDPool(bundles)
 
@@ -60,6 +59,7 @@ func newTablesDirWorker(ctx context.Context, w worker, hosts []string, miwc Mani
 		"dst_dir", dstDir,
 	)
 
+	hosts := w.target.locationHosts[miwc.Location]
 	versionedFiles, err := ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
 	if err != nil {
 		return tablesDirWorker{}, errors.Wrap(err, "initialize versioned SSTables")
@@ -84,7 +84,6 @@ func newTablesDirWorker(ctx context.Context, w worker, hosts []string, miwc Mani
 		srcDir:         srcDir,
 		miwc:           miwc,
 		fm:             fm,
-		hosts:          hosts,
 		ongoingPr:      make([]*RunProgress, len(hosts)),
 		versionedFiles: versionedFiles,
 		fileSizesCache: fileSizesCache,
@@ -110,8 +109,9 @@ func (w *tablesDirWorker) restore(ctx context.Context) error {
 		return nil
 	}
 
+	hosts := w.target.locationHosts[w.miwc.Location]
 	f := func(n int) (err error) {
-		h := w.hosts[n]
+		h := hosts[n]
 		ongoingPr := w.ongoingPr[n]
 
 		// First handle ongoing restore
@@ -151,12 +151,12 @@ func (w *tablesDirWorker) restore(ctx context.Context) error {
 
 	notify := func(n int, err error) {
 		w.logger.Error(ctx, "Failed to restore files on host",
-			"host", w.hosts[n],
+			"host", hosts[n],
 			"error", err,
 		)
 	}
 
-	return parallel.Run(len(w.hosts), w.parallel, f, notify)
+	return parallel.Run(len(hosts), w.target.Parallel, f, notify)
 }
 
 func (w *tablesDirWorker) restoreBatch(ctx context.Context, pr *RunProgress) (err error) {
@@ -253,7 +253,7 @@ func (w *tablesDirWorker) restoreSSTables(ctx context.Context, pr *RunProgress) 
 	}
 
 	err := w.worker.restoreSSTables(ctx, pr.Host, pr.Keyspace, pr.Table, true, true)
-	if err != nil {
+	if err == nil {
 		pr.setRestoreCompletedAt()
 		w.insertRunProgress(ctx, pr)
 	}
@@ -293,8 +293,9 @@ func (w *tablesDirWorker) resumePrevProgress() error {
 		}
 	}
 
+	hosts := w.target.locationHosts[w.miwc.Location]
 	// Set ongoing RunProgress so that they can be resumed
-	for i, h := range w.hosts {
+	for i, h := range hosts {
 		w.ongoingPr[i] = ongoingPr[h]
 	}
 	return nil
@@ -341,7 +342,7 @@ func (w *tablesDirWorker) newRunProgress(ctx context.Context, host string) (*Run
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
-	takenIDs := w.chooseIDsForBatch(ctx, w.batchSize, host)
+	takenIDs := w.chooseIDsForBatch(ctx, w.target.BatchSize, host)
 	if ctx.Err() != nil {
 		w.returnBatchToPool(takenIDs, host)
 		return nil, ctx.Err()
