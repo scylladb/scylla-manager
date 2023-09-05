@@ -102,6 +102,17 @@ http: 127.0.0.1:5080
 # the same snapshot. If exceeded, new run with new snapshot will be created.
 # Zero means no limit.
 #  age_max: 24h
+#
+# Frequency with which Scylla Manager polls upload status.
+#  long_polling_timeout_seconds: 10
+
+# Restore service configuration.
+#restore:
+# Minimal amount of free disk space required for node to be used in restore process.
+#  disk_space_free_min_percent: 10
+#
+# Frequency with which Scylla Manager polls download status.
+#  long_polling_timeout_seconds: 10
 
 # Repair service configuration.
 #repair:
