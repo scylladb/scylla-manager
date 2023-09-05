@@ -167,7 +167,6 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 			Logger:      s.logger.Named("restore"),
 		},
 		repairSvc:               s.repairSvc,
-		metrics:                 s.metrics.Restore,
 		managerSession:          s.session,
 		clusterSession:          clusterSession,
 		forEachRestoredManifest: s.forEachRestoredManifest(clusterID, target),
@@ -179,7 +178,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	if run.PrevID != uuid.Nil {
 		tools.clonePrevProgress(ctx, run)
 	} else {
-		s.metrics.Restore.ResetClusterMetrics(clusterID)
+		s.metrics.ResetClusterMetrics(clusterID)
 	}
 	tools.insertRun(ctx, run)
 

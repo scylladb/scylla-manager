@@ -64,7 +64,7 @@ type workerTools struct {
 type worker struct {
 	workerTools
 
-	Metrics       metrics.BackupM
+	Metrics       metrics.BackupMetrics
 	Units         []Unit
 	Schema        *bytes.Buffer
 	OnRunProgress func(ctx context.Context, p *RunProgress)

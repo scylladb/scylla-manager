@@ -149,7 +149,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		repairSvc,
 		session,
 		c,
-		metrics.NewBackupMetrics(),
+		metrics.NewRestoreMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},

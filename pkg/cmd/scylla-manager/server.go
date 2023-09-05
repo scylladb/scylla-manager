@@ -117,7 +117,7 @@ func (s *server) makeServices() error {
 		s.repairSvc,
 		s.session,
 		s.config.Restore,
-		metrics.NewBackupMetrics().MustRegister(),
+		metrics.NewRestoreMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.logger.Named("restore"),
