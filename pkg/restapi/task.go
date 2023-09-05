@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -160,9 +161,9 @@ type backupTarget struct {
 }
 
 type restoreTarget struct {
-	backup.RestoreTarget
-	Units []backup.RestoreUnit
-	Views []backup.RestoreView
+	restore.Target
+	Units []restore.Unit
+	Views []restore.View
 	Size  int64 // Total size of restored tables in bytes.
 }
 
@@ -205,19 +206,9 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			Size:   size,
 		}
 	case scheduler.RestoreTask:
-		rt, err := h.Backup.GetRestoreTarget(r.Context(), newTask.ClusterID, p)
+		target, units, views, err := h.Restore.GetTargetUnitsViews(r.Context(), newTask.ClusterID, p)
 		if err != nil {
-			respondError(w, r, errors.Wrap(err, "get restore target"))
-			return
-		}
-		units, err := h.Backup.GetRestoreUnits(r.Context(), newTask.ClusterID, rt)
-		if err != nil {
-			respondError(w, r, errors.Wrap(err, "get restore units"))
-			return
-		}
-		views, err := h.Backup.GetRestoreViews(r.Context(), newTask.ClusterID, units)
-		if err != nil {
-			respondError(w, r, errors.Wrap(err, "get restore views"))
+			respondError(w, r, errors.Wrap(err, "get restore target, units and views"))
 			return
 		}
 
@@ -226,10 +217,10 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 			size += u.Size
 		}
 		t = restoreTarget{
-			RestoreTarget: rt,
-			Size:          size,
-			Units:         units,
-			Views:         views,
+			Target: target,
+			Size:   size,
+			Units:  units,
+			Views:  views,
 		}
 	case scheduler.RepairTask:
 		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
@@ -256,12 +247,8 @@ func (h *taskHandler) validateTask(ctx context.Context, newTask *scheduler.Task,
 			return errors.Wrap(err, "create backup target")
 		}
 	case scheduler.RestoreTask:
-		t, err := h.Backup.GetRestoreTarget(ctx, newTask.ClusterID, p)
-		if err != nil {
-			return errors.Wrap(err, "create restore target")
-		}
-		if _, err = h.Backup.GetRestoreUnits(ctx, newTask.ClusterID, t); err != nil {
-			return errors.Wrap(err, "create restore units")
+		if _, _, _, err := h.Restore.GetTargetUnitsViews(ctx, newTask.ClusterID, p); err != nil {
+			return errors.Wrap(err, "create restore target, units and views")
 		}
 	case scheduler.RepairTask:
 		if _, err := h.Repair.GetTarget(ctx, newTask.ClusterID, p); err != nil {
@@ -476,7 +463,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 			case scheduler.BackupTask:
 				prog.Progress = backup.Progress{}
 			case scheduler.RestoreTask:
-				prog.Progress = backup.RestoreProgress{}
+				prog.Progress = restore.Progress{}
 			case scheduler.ValidateBackupTask:
 				prog.Progress = backup.ValidationHostProgress{}
 			}
@@ -510,7 +497,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	case scheduler.BackupTask:
 		pr, err = h.Backup.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	case scheduler.RestoreTask:
-		pr, err = h.Backup.GetRestoreProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+		pr, err = h.Restore.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	case scheduler.ValidateBackupTask:
 		pr, err = h.Backup.GetValidationProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	default:
