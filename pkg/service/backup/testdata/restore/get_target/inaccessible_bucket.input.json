@@ -1,7 +1,0 @@
-{
-  "location": [
-    "s3:restoretest-fake-bucket"
-  ],
-  "snapshot_tag": "sm_20060102150405UTC",
-  "restore_tables": true
-}
