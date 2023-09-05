@@ -21,6 +21,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/certutil"
@@ -37,6 +38,7 @@ type server struct {
 	clusterSvc *cluster.Service
 	healthSvc  *healthcheck.Service
 	backupSvc  *backup.Service
+	restoreSvc *restore.Service
 	repairSvc  *repair.Service
 	schedSvc   *scheduler.Service
 
@@ -111,6 +113,19 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "backup service")
 	}
 
+	s.restoreSvc, err = restore.NewService(
+		s.repairSvc,
+		s.session,
+		s.config.Restore,
+		metrics.NewBackupMetrics().MustRegister(),
+		s.clusterSvc.Client,
+		s.clusterSvc.GetSession,
+		s.logger.Named("restore"),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "restore service")
+	}
+
 	s.schedSvc, err = scheduler.NewService(
 		s.session,
 		metrics.NewSchedulerMetrics().MustRegister(),
@@ -123,7 +138,7 @@ func (s *server) makeServices() error {
 
 	// Register the runners
 	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.backupSvc.Runner()})
-	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.backupSvc.RestoreRunner()})
+	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.restoreSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.repairSvc.Runner()})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
@@ -176,6 +191,7 @@ func (s *server) makeServers(ctx context.Context) error {
 		HealthCheck: s.healthSvc,
 		Repair:      s.repairSvc,
 		Backup:      s.backupSvc,
+		Restore:     s.restoreSvc,
 		Scheduler:   s.schedSvc,
 	}
 	h := restapi.New(services, s.logger.Named("http"))
