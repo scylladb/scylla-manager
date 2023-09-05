@@ -19,7 +19,6 @@ import (
 type schemaWorker struct {
 	worker
 
-	hosts         []string
 	generationCnt atomic.Int64
 	miwc          ManifestInfoWithContent // Currently restored manifest
 	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
@@ -36,11 +35,11 @@ type schemaWorker struct {
 // - resuming schema restoration will always start from scratch
 // - schema restoration does not use long polling for updating download progress
 // Adding the ability to resume schema restoration might be added in the future.
-func (w *schemaWorker) restore(ctx context.Context, target Target) error {
-	return errors.Wrap(w.stageRestoreData(ctx, target), "restore data")
+func (w *schemaWorker) restore(ctx context.Context) error {
+	return errors.Wrap(w.stageRestoreData(ctx), "restore data")
 }
 
-func (w *schemaWorker) stageRestoreData(ctx context.Context, target Target) error {
+func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 	w.run.Stage = StageData
 	w.insertRun(ctx)
 
@@ -70,13 +69,13 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, target Target) erro
 		}
 	}
 	// Download files
-	for _, l := range target.Location {
-		if err := w.locationDownloadHandler(ctx, target, l); err != nil {
+	for _, l := range w.target.Location {
+		if err := w.locationDownloadHandler(ctx, l); err != nil {
 			return err
 		}
 	}
 	// Set restore start in all run progresses
-	err = forEachProgress(w.clusterSession, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
+	err = forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
 		pr.setRestoreStartedAt()
 		w.insertRunProgress(ctx, pr)
 	})
@@ -108,7 +107,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, target Target) erro
 		return err
 	}
 	// Set restore completed in all run progresses
-	err = forEachProgress(w.clusterSession, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
+	err = forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
 		pr.setRestoreCompletedAt()
 		w.insertRunProgress(ctx, pr)
 	})
@@ -119,15 +118,11 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context, target Target) erro
 	return nil
 }
 
-func (w *schemaWorker) locationDownloadHandler(ctx context.Context, target Target, location Location) error {
+func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Location) error {
 	w.logger.Info(ctx, "Downloading schema from location", "location", location)
 	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location)
 
 	w.run.Location = location.String()
-
-	if err := w.initHosts(ctx, location); err != nil {
-		return errors.Wrap(err, "initialize hosts")
-	}
 
 	tableDownloadHandler := func(fm FilesMeta) error {
 		w.logger.Info(ctx, "Downloading schema table", "keyspace", fm.Keyspace, "table", fm.Table)
@@ -136,7 +131,7 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, target Targe
 		w.run.Table = fm.Table
 		w.run.Keyspace = fm.Keyspace
 
-		return w.workFunc(ctx, target, fm)
+		return w.workFunc(ctx, fm)
 	}
 
 	manifestDownloadHandler := func(miwc ManifestInfoWithContent) error {
@@ -147,13 +142,13 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, target Targe
 		w.run.ManifestPath = miwc.Path()
 		w.insertRun(ctx)
 
-		return miwc.ForEachIndexIterWithError(target.Keyspace, tableDownloadHandler)
+		return miwc.ForEachIndexIterWithError(w.target.Keyspace, tableDownloadHandler)
 	}
 
-	return w.forEachRestoredManifest(ctx, location, manifestDownloadHandler)
+	return w.forEachManifest(ctx, location, manifestDownloadHandler)
 }
 
-func (w *schemaWorker) workFunc(ctx context.Context, target Target, fm FilesMeta) error {
+func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 	version, err := query.GetTableVersion(w.clusterSession, fm.Keyspace, fm.Table)
 	if err != nil {
 		return err
@@ -172,7 +167,8 @@ func (w *schemaWorker) workFunc(ctx context.Context, target Target, fm FilesMeta
 		"files", fm.Files,
 	)
 
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, w.hosts[0], srcDir)
+	hosts := w.target.locationHosts[w.miwc.Location]
+	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
@@ -187,7 +183,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, target Target, fm FilesMeta
 	uuidMapping := w.getFileNamesMapping(fm.Files, true)
 
 	f := func(i int) error {
-		host := w.hosts[i]
+		host := hosts[i]
 		nodeInfo, err := w.client.NodeInfo(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "get node info on host %s", host)
@@ -236,7 +232,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, target Target, fm FilesMeta
 		end := timeutc.Now()
 		// In order to ensure that the size calculated in newUnits matches the sum of restored bytes from
 		// run progresses, insert only fraction of the whole downloaded size. This is caused by the data duplication.
-		proportionalSize := int64((int(fm.Size) + i) / len(w.hosts))
+		proportionalSize := int64((int(fm.Size) + i) / len(hosts))
 
 		w.insertRunProgress(ctx, &RunProgress{
 			ClusterID:           w.run.ClusterID,
@@ -256,33 +252,12 @@ func (w *schemaWorker) workFunc(ctx context.Context, target Target, fm FilesMeta
 
 	notify := func(i int, err error) {
 		w.logger.Error(ctx, "Failed to restore schema on host",
-			"host", w.hosts[i],
+			"host", hosts[i],
 			"error", err,
 		)
 	}
 
-	return parallel.Run(len(w.hosts), target.Parallel, f, notify)
-}
-
-func (w *schemaWorker) initHosts(ctx context.Context, location Location) error {
-	status, err := w.client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get client status")
-	}
-
-	remotePath := location.RemotePath("")
-	nodes, err := w.client.GetNodesWithLocationAccess(ctx, status, remotePath)
-	if err != nil {
-		return errors.Wrap(err, "no live nodes with location access")
-	}
-
-	w.hosts = make([]string, 0)
-	for _, n := range nodes {
-		w.hosts = append(w.hosts, n.Addr)
-	}
-
-	w.logger.Info(ctx, "Initialized restore hosts", "hosts", w.hosts)
-	return nil
+	return parallel.Run(len(hosts), w.target.Parallel, f, notify)
 }
 
 // getFileNamesMapping creates renaming mapping for the sstables solving problems with sstables file names.

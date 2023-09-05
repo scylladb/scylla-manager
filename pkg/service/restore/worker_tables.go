@@ -74,13 +74,13 @@ func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) *tab
 }
 
 // restore files from every location specified in restore target.
-func (w *tablesWorker) restore(ctx context.Context, target Target) error {
-	if target.Continue && w.run.PrevID != uuid.Nil && w.run.Table != "" {
+func (w *tablesWorker) restore(ctx context.Context) error {
+	if w.target.Continue && w.run.PrevID != uuid.Nil && w.run.Table != "" {
 		w.alreadyResumed = false
 	}
 	// Init metrics only on fresh start
 	if w.alreadyResumed {
-		w.initRestoreMetrics(ctx, target)
+		w.initRestoreMetrics(ctx)
 	}
 
 	stageFunc := map[Stage]func() error{
@@ -104,7 +104,7 @@ func (w *tablesWorker) restore(ctx context.Context, target Target) error {
 			return nil
 		},
 		StageData: func() error {
-			return w.stageRestoreData(ctx, target)
+			return w.stageRestoreData(ctx)
 		},
 		StageRepair: func() error {
 			return w.stageRepair(ctx)
@@ -151,32 +151,27 @@ func (w *tablesWorker) restore(ctx context.Context, target Target) error {
 	return nil
 }
 
-func (w *tablesWorker) stageRestoreData(ctx context.Context, target Target) error {
+func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
 
 	// Restore locations in deterministic order
-	for _, l := range target.Location {
+	for _, l := range w.target.Location {
 		if !w.alreadyResumed && w.run.Location != l.String() {
 			w.logger.Info(ctx, "Skipping location", "location", l)
 			continue
 		}
-		if err := w.restoreLocation(ctx, target, l); err != nil {
+		if err := w.restoreLocation(ctx, l); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (w *tablesWorker) restoreLocation(ctx context.Context, target Target, location Location) error {
+func (w *tablesWorker) restoreLocation(ctx context.Context, location Location) error {
 	w.logger.Info(ctx, "Restoring location", "location", location)
 	defer w.logger.Info(ctx, "Restoring location finished", "location", location)
-
-	hosts, err := w.hostsForLocation(ctx, location)
-	if err != nil {
-		return errors.Wrapf(err, "get hosts for location %s", location)
-	}
 
 	restoreManifest := func(miwc ManifestInfoWithContent) error {
 		if !w.alreadyResumed && w.run.ManifestPath != miwc.Path() {
@@ -187,13 +182,13 @@ func (w *tablesWorker) restoreLocation(ctx context.Context, target Target, locat
 		w.logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
 		defer w.logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
 
-		return miwc.ForEachIndexIterWithError(target.Keyspace, w.restoreDir(ctx, hosts, miwc))
+		return miwc.ForEachIndexIterWithError(w.target.Keyspace, w.restoreDir(ctx, miwc))
 	}
 
-	return w.forEachRestoredManifest(ctx, location, restoreManifest)
+	return w.forEachManifest(ctx, location, restoreManifest)
 }
 
-func (w *tablesWorker) restoreDir(ctx context.Context, hosts []string, miwc ManifestInfoWithContent) func(fm FilesMeta) error {
+func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithContent) func(fm FilesMeta) error {
 	return func(fm FilesMeta) error {
 		if !w.alreadyResumed {
 			if w.run.Keyspace != fm.Keyspace || w.run.Table != fm.Table {
@@ -211,7 +206,7 @@ func (w *tablesWorker) restoreDir(ctx context.Context, hosts []string, miwc Mani
 		w.run.Keyspace = fm.Keyspace
 		w.insertRun(ctx)
 
-		dw, err := newTablesDirWorker(ctx, w.worker, hosts, miwc, fm, w.progress)
+		dw, err := newTablesDirWorker(ctx, w.worker, miwc, fm, w.progress)
 		if err != nil {
 			return errors.Wrap(err, "create dir worker")
 		}
@@ -241,39 +236,6 @@ func (w *tablesWorker) restoreDir(ctx context.Context, hosts []string, miwc Mani
 
 		return nil
 	}
-}
-
-// hostsForLocation returns hosts living in currently restored location dc and with access to it.
-func (w *tablesWorker) hostsForLocation(ctx context.Context, location Location) ([]string, error) {
-	status, err := w.client.Status(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get client status")
-	}
-
-	var (
-		remotePath     = location.RemotePath("")
-		locationStatus = status
-	)
-	// In case location does not have specified dc, use nodes from all dcs.
-	if location.DC != "" {
-		locationStatus = status.Datacenter([]string{location.DC})
-		if len(locationStatus) == 0 {
-			return nil, errors.Errorf("no nodes in location's datacenter: %s", location)
-		}
-	}
-
-	nodes, err := w.client.GetNodesWithLocationAccess(ctx, locationStatus, remotePath)
-	if err != nil {
-		return nil, errors.Wrap(err, "no live nodes in location's dc")
-	}
-
-	var hosts []string
-	for _, n := range nodes {
-		hosts = append(hosts, n.Addr)
-	}
-
-	w.logger.Info(ctx, "Found hosts with location access", "location", location, "hosts", hosts)
-	return hosts, nil
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context) error {
@@ -307,15 +269,15 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 	return w.repairSvc.Repair(ctx, w.run.ClusterID, w.run.RepairTaskID, repairRunID, repairTarget)
 }
 
-func (w *tablesWorker) initRestoreMetrics(ctx context.Context, target Target) {
-	for _, location := range target.Location {
-		err := w.forEachRestoredManifest(
+func (w *tablesWorker) initRestoreMetrics(ctx context.Context) {
+	for _, location := range w.target.Location {
+		err := w.forEachManifest(
 			ctx,
 			location,
 			func(miwc ManifestInfoWithContent) error {
 				sizePerTableAndKeyspace := make(map[string]map[string]int64)
 				err := miwc.ForEachIndexIterWithError(
-					target.Keyspace,
+					w.target.Keyspace,
 					func(fm FilesMeta) error {
 						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
 							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
@@ -327,7 +289,7 @@ func (w *tablesWorker) initRestoreMetrics(ctx context.Context, target Target) {
 					for table, size := range sizePerTable {
 						labels := metrics.RestoreBytesLabels{
 							ClusterID:   w.run.ClusterID.String(),
-							SnapshotTag: target.SnapshotTag,
+							SnapshotTag: w.target.SnapshotTag,
 							Location:    location.String(),
 							DC:          miwc.DC,
 							Node:        miwc.NodeID,
@@ -341,7 +303,7 @@ func (w *tablesWorker) initRestoreMetrics(ctx context.Context, target Target) {
 			})
 		progressLabels := metrics.RestoreProgressLabels{
 			ClusterID:   w.run.ClusterID.String(),
-			SnapshotTag: target.SnapshotTag,
+			SnapshotTag: w.target.SnapshotTag,
 		}
 		w.metrics.SetProgress(progressLabels, 0)
 		if err != nil {
