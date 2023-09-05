@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -77,6 +78,10 @@ func TestConfigModification(t *testing.T) {
 			DiskSpaceFreeMinPercent:   1,
 			LongPollingTimeoutSeconds: 5,
 			AgeMax:                    24 * time.Hour,
+		},
+		Restore: restore.Config{
+			DiskSpaceFreeMinPercent:   1,
+			LongPollingTimeoutSeconds: 5,
 		},
 		Repair: repair.Config{
 			PollInterval:                    500 * time.Millisecond,
