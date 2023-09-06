@@ -85,7 +85,12 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 	p.extremeToNil()
 
 	for _, v := range w.run.Views {
-		status, err := w.client.ViewBuildStatus(ctx, v.Keyspace, v.View)
+		viewTableName := v.View
+		if v.Type == SecondaryIndex {
+			viewTableName += "_index"
+		}
+
+		status, err := w.client.ViewBuildStatus(ctx, v.Keyspace, viewTableName)
 		if err != nil {
 			w.logger.Error(ctx, "Couldn't get view build status",
 				"keyspace", v.Keyspace,
