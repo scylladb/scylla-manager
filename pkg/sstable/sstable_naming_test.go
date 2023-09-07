@@ -5,9 +5,12 @@ package sstable
 import (
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 	"go.uber.org/atomic"
 )
 
@@ -185,10 +188,52 @@ func TestRenameSStables(t *testing.T) {
 	}
 }
 
+func decodeBase36(input string, t *testing.T) uint64 {
+	if len(input) > 13 {
+		t.Fatalf("out of range: %s", input)
+	}
+	output := uint64(0)
+	for _, v := range input {
+		output *= uint64(len(alphabet))
+		index := strings.IndexByte(alphabet, byte(v))
+		if index < 0 {
+			t.Fatalf("malformatted base36 string: %s", input)
+		}
+		output += uint64(index)
+	}
+	return output
+}
+
+const Decimicrosecond = 100 * time.Nanosecond
+
+func decodeUUID(input string, t *testing.T) (uuid.Time, uint64) {
+	re := regexp.MustCompile(`(?P<days>\w{4})_(?P<seconds>\w{4})_(?P<decimicrosecs>\w{5})(?P<msb>\w{13})`)
+	matches := re.FindStringSubmatch(input)
+	if matches == nil {
+		t.Errorf("RandomSSTableUUID generated value '%s' that does not match regexp", input)
+	}
+	days := decodeBase36(matches[re.SubexpIndex("days")], t)
+	seconds := decodeBase36(matches[re.SubexpIndex("seconds")], t)
+	decimicrosecs := decodeBase36(matches[re.SubexpIndex("decimicrosecs")], t)
+	msb := decodeBase36(matches[re.SubexpIndex("msb")], t)
+
+	timestamp := (time.Duration(days*24)*time.Hour +
+		time.Duration(seconds)*time.Second +
+		time.Duration(decimicrosecs)*Decimicrosecond)
+	return uuid.Time(timestamp.Nanoseconds() / 100), msb
+}
+
 func TestRandomSSTableUUID(t *testing.T) {
-	re := regexp.MustCompile(`(\w{4})_(\w{4})_(\w+)`)
-	val := RandomSSTableUUID()
-	if !re.MatchString(val) {
-		t.Errorf("RandomSSTableUUID generated value '%s' that does not match regexp", val)
+	val1 := RandomSSTableUUID()
+	timestamp1, _ := decodeUUID(val1, t)
+
+	val2 := RandomSSTableUUID()
+	timestamp2, _ := decodeUUID(val2, t)
+
+	// Assume it does not take more than 1 second to generate and decode a UUID
+	elapsed_ns100 := timestamp2 - timestamp1
+	elapsed := time.Duration(elapsed_ns100) * Decimicrosecond
+	if elapsed.Seconds() < 0 || elapsed.Seconds() > 1 {
+		t.Fatal("time screw?")
 	}
 }
