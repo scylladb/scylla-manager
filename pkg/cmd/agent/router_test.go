@@ -25,7 +25,7 @@ func TestRcloneRouting(t *testing.T) {
 	c := agent.Config{}
 	rclone := assertURLPath(t, "/foo")
 
-	h := newRouter(c, rclone, log.NewDevelopment())
+	h := newRouter(c, NewAgentMetrics(), rclone, log.NewDevelopment())
 	r := httptest.NewRequest(http.MethodGet, "/agent/rclone/foo", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -52,7 +52,7 @@ func TestProxyRouting(t *testing.T) {
 		},
 	}
 
-	h := newRouter(c, nil, log.NewDevelopment())
+	h := newRouter(c, NewAgentMetrics(), nil, log.NewDevelopment())
 
 	r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
