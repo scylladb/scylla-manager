@@ -30,8 +30,9 @@ import (
 )
 
 type server struct {
-	config agent.Config
-	logger log.Logger
+	config  agent.Config
+	logger  log.Logger
+	metrics AgentMetrics
 
 	httpsServer      *http.Server
 	prometheusServer *http.Server
@@ -42,9 +43,10 @@ type server struct {
 
 func newServer(c agent.Config, logger log.Logger) *server {
 	return &server{
-		config: c,
-		logger: logger,
-		errCh:  make(chan error, 4),
+		config:  c,
+		logger:  logger,
+		metrics: NewAgentMetrics(),
+		errCh:   make(chan error, 4),
 	}
 }
 
@@ -121,6 +123,7 @@ func (s *server) init(ctx context.Context) error {
 	rclone.InitFsConfigWithOptions(s.config.Rclone)
 	// Add prometheus metrics
 	rclone.MustRegisterPrometheusMetrics("scylla_manager_agent_rclone")
+	s.metrics.MustRegister()
 
 	// Register rclone providers
 	return multierr.Combine(
@@ -139,7 +142,7 @@ func (s *server) makeServers(ctx context.Context) error {
 	s.httpsServer = &http.Server{
 		Addr:      s.config.HTTPS,
 		TLSConfig: tlsConfig,
-		Handler:   newRouter(s.config, rcserver.New(), s.logger.Named("http")),
+		Handler:   newRouter(s.config, s.metrics, rcserver.New(), s.logger.Named("http")),
 	}
 	if s.config.Prometheus != "" {
 		s.prometheusServer = &http.Server{
