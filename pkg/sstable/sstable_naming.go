@@ -3,17 +3,15 @@
 package sstable
 
 import (
-	"crypto/rand"
 	"encoding/binary"
-	"io"
-	"math/bits"
-	mathrand "math/rand"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/atomic"
 )
 
@@ -21,17 +19,9 @@ var (
 	regexNewLaMx = regexp.MustCompile(`(la|m[cde])-([^-]+)-(\w+)-(.*)`)
 	regexLaMx    = regexp.MustCompile(`(la|m[cde])-(\d+)-(\w+)-(.*)`)
 	regexKa      = regexp.MustCompile(`(\w+)-(\w+)-ka-(\d+)-(.*)`)
-
-	letters      = "abcdefghijklmnopqrstuvwxyz0123456789"
-	pseudoRandom = newTimeBasedRandom()
 )
 
-const (
-	incLow  = 1442695040888963407
-	incHigh = 6364136223846793005
-	mulLow  = 4865540595714422341
-	mulHigh = 2549297995355413924
-)
+const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 // ExtractID returns ID from SSTable name in a form string integer or UUID:
 // me-3g7k_098r_4wtqo2asamoc1i8h9n-big-CRC.db -> 3g7k_098r_4wtqo2asamoc1i8h9n
@@ -109,43 +99,40 @@ func RenameSStables(sstables []string, nameGen func(id string) string) map[strin
 	return out
 }
 
+func encodeBase36(input uint64) string {
+	// math.Log(math.MaxUint64) / math.Log(36) < 16, so we are safe
+	var output [16]byte
+	var i int
+	for i = len(output) - 1; ; i-- {
+		output[i] = alphabet[input%36]
+		input /= 36
+		if input == 0 {
+			break
+		}
+	}
+	return string(output[i:])
+}
+
 // RandomSSTableUUID generates random sstable uuid in a form of `497z_213k_3zpaqrwk2na921344z`.
 func RandomSSTableUUID() string {
-	var buff [26]byte
-	_, err := io.ReadFull(rand.Reader, buff[:])
-	if err != nil {
-		pseudoRandom.Read(buff[:])
-	}
-	var out [26]byte
-	for id, val := range buff {
-		out[id] = letters[val%36]
-	}
-	// related scylla code, that does the same is here:
+	// "time" package does not define Day, so..
+	const Day = 24 * time.Hour
+	// sstable uses UUID v1
+	uuidv1 := uuid.Must(uuid.NewUUID())
+
+	secs, nsecs := uuidv1.Time().UnixTime()
+	seconds := time.Duration(secs) * time.Second
+	days := seconds.Truncate(Day)
+	seconds -= days
+	// Cassandra's UUID representation encodes the higher 8 bytes as a single
+	// 64-bit number, so let's keep this way.
+	msb := binary.BigEndian.Uint64(uuidv1[8:])
+	// related scylla code, that does thvle same is here:
 	// https://github.com/scylladb/scylladb/blob/f014ccf36962135889a84cff15b0478d711b2306/sstables/generation_type.hh#L258-L262
-	return string(out[0:4]) + "_" + string(out[4:8]) + "_" + string(out[8:])
-}
-
-func newTimeBasedRandom() *mathrand.Rand {
-	return mathrand.New(mathrand.NewSource(int64(getUint64FromTime())))
-}
-
-// getUint64FromTime returns pseudorandom value based on time.
-// It partially follows simple fast statistically good algorithm https://www.pcg-random.org/pdf/toms-oneill-pcg-family-v1.02.pdf
-// to make it more random.
-func getUint64FromTime() uint64 {
-	//nolint:errcheck
-	binTime, _ := timeutc.Now().MarshalBinary()
-	high := binary.BigEndian.Uint64(binTime[5:13])
-	low := binary.LittleEndian.Uint64(binTime[5:13])
-
-	hi, lo := bits.Mul64(low, mulLow)
-	hi += high * mulLow
-	hi += low * mulHigh
-	low = lo
-	high = hi
-
-	low, carry := bits.Add64(low, incLow, 0)
-	high, _ = bits.Add64(high, incHigh, carry)
-
-	return bits.RotateLeft64(high^low, -int(high>>58))
+	return fmt.Sprintf("%04s_%04s_%05s%013s",
+		encodeBase36(uint64(days.Hours()/24)),
+		encodeBase36(uint64(seconds.Seconds())),
+		// the timestamp of UUID v1 is measured in units of 100 nanoseconds
+		encodeBase36(uint64(nsecs/100)),
+		encodeBase36(msb))
 }
