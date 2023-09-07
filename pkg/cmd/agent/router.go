@@ -11,21 +11,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/scylladb/go-log"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/auth"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httphandler"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
 )
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)
 
-func newRouter(c agent.Config, rclone http.Handler, logger log.Logger) http.Handler {
+func newRouter(c agent.Config, metrics AgentMetrics, rclone http.Handler, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	// Common middleware
 	r.Use(
-		httplog.RequestLogger(logger),
+		RequestLogger(logger, metrics),
 	)
 	// Common endpoints
 	r.Get("/ping", httphandler.Heartbeat())
