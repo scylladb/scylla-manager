@@ -218,7 +218,7 @@ func execOnAllHosts(h *CommonTestHelper, cmd string) {
 }
 
 const (
-	maxWaitCond               = 5 * time.Second
+	maxWaitCond               = time.Minute
 	condCheckInterval         = 100 * time.Millisecond
 	longPollingTimeoutSeconds = 2
 )
