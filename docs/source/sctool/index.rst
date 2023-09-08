@@ -63,7 +63,32 @@ Disable repair task
 
   .. code-block:: console
 
-    sctool repair update -c mycluster repair/aaaa1111-bb22-cc33-dd44-eeeeee555555 --enabled=false
+    sctool repair update -c mycluster repair/all-weekly --enabled=false
+
+List also the disabled tasks
+............................
+
+Note that disabled tasks are prefixed with ``*``.
+
+  .. code-block:: console
+
+    sctool tasks -c mycluster -a
+    ╭─────────────────────────────────────────────┬──────────────┬────────┬───────────────┬─────────┬───────┬─────────────────────────┬────────────┬────────┬─────────────────────────╮
+    │ Task                                        │ Schedule     │ Window │ Timezone      │ Success │ Error │ Last Success            │ Last Error │ Status │ Next                    │
+    ├─────────────────────────────────────────────┼──────────────┼────────┼───────────────┼─────────┼───────┼─────────────────────────┼────────────┼────────┼─────────────────────────┤
+    │ healthcheck/cql                             │ @every 15s   │        │ Europe/Warsaw │ 288     │ 0     │ 08 Sep 23 12:16:37 CEST │            │ DONE   │ 08 Sep 23 12:16:52 CEST │
+    │ healthcheck/rest                            │ @every 1m0s  │        │ Europe/Warsaw │ 72      │ 0     │ 08 Sep 23 12:16:37 CEST │            │ DONE   │ 08 Sep 23 12:17:37 CEST │
+    │ healthcheck/alternator                      │ @every 15s   │        │ Europe/Warsaw │ 288     │ 0     │ 08 Sep 23 12:16:37 CEST │            │ DONE   │ 08 Sep 23 12:16:52 CEST │
+    │ *repair/all-weekly                          │ 0 23 * * SAT │        │ Europe/Warsaw │ 0       │ 0     │                         │            │ NEW    │                         │
+    │ repair/e8552c59-dfd3-4b2e-ab58-8920b6d0662c │              │        │ Europe/Warsaw │ 1       │ 0     │ 08 Sep 23 11:05:56 CEST │            │ DONE   │                         │
+    ╰─────────────────────────────────────────────┴──────────────┴────────┴───────────────┴─────────┴───────┴─────────────────────────┴────────────┴────────┴─────────────────────────╯
+
+Enable repair task
+..................
+
+  .. code-block:: console
+
+    sctool repair update -c mycluster repair/all-weekly --enabled=true
 
 Download files from backup location
 ...................................
