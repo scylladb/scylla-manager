@@ -42,18 +42,34 @@ See the left pane menu for commands.
 Examples
 ----------
 
-.. code-block:: console
+List tasks with set properties
+..............................
 
-   sctool tasks -c mycluster --show-properties=true
+  .. code-block:: console
 
+    sctool tasks -c mycluster --show-properties
+    ╭─────────────────────────────────────────────┬──────────────┬────────┬───────────────┬─────────┬───────┬─────────────────────────┬────────────┬─────────┬─────────────────────────┬───────────────────────────╮
+    │ Task                                        │ Schedule     │ Window │ Timezone      │ Success │ Error │ Last Success            │ Last Error │ Status  │ Next                    │ Properties                │
+    ├─────────────────────────────────────────────┼──────────────┼────────┼───────────────┼─────────┼───────┼─────────────────────────┼────────────┼─────────┼─────────────────────────┼───────────────────────────┤
+    │ healthcheck/cql                             │ @every 15s   │        │ Europe/Warsaw │ 2       │ 0     │ 08 Sep 23 11:05:07 CEST │            │ DONE    │ 08 Sep 23 11:05:22 CEST │ mode: cql                 │
+    │ healthcheck/rest                            │ @every 1m0s  │        │ Europe/Warsaw │ 0       │ 0     │                         │            │ NEW     │ 08 Sep 23 11:05:37 CEST │ mode: rest                │
+    │ healthcheck/alternator                      │ @every 15s   │        │ Europe/Warsaw │ 2       │ 0     │ 08 Sep 23 11:05:07 CEST │            │ DONE    │ 08 Sep 23 11:05:22 CEST │ mode: alternator          │
+    │ repair/all-weekly                           │ 0 23 * * SAT │        │ Europe/Warsaw │ 0       │ 0     │                         │            │ NEW     │ 09 Sep 23 23:00:00 CEST │                           │
+    │ repair/e8552c59-dfd3-4b2e-ab58-8920b6d0662c │              │        │ Europe/Warsaw │ 0       │ 0     │                         │            │ RUNNING │                         │ intensity: 5, parallel: 7 │
+    ╰─────────────────────────────────────────────┴──────────────┴────────┴───────────────┴─────────┴───────┴─────────────────────────┴────────────┴─────────┴─────────────────────────┴───────────────────────────╯
 
-.. code-block:: console
+Disable repair task
+...................
 
-   sctool repair update -c mycluster repair/aaaa1111-bb22-cc33-dd44-eeeeee555555 --enabled=false
+  .. code-block:: console
 
+    sctool repair update -c mycluster repair/aaaa1111-bb22-cc33-dd44-eeeeee555555 --enabled=false
 
-.. code-block:: console
+Download files from backup location
+...................................
 
-   scylla-manager-agent download-files --location s3:my-bucket -p=10
+  .. code-block:: console
+
+    scylla-manager-agent download-files --location s3:my-bucket -p=10
 
 
