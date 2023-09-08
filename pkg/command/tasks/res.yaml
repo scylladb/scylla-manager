@@ -16,6 +16,7 @@ show-ids: |
 
 show-properties: |
   Additionally display task properties.
+  Only displays properties set to non-default values.
 
 status: |
   Filters tasks according to their last run `status`.
