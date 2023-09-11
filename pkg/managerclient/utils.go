@@ -88,6 +88,18 @@ func FormatRepairProgress(total, success, failed int64) string {
 	return out
 }
 
+// FormatTotalRepairProgress returns string representation of weighted repair progress.
+func FormatTotalRepairProgress(successPr, errorPr int64) string {
+	if successPr < 0 || errorPr < 0 {
+		return "-"
+	}
+	out := fmt.Sprintf("%d%%", successPr)
+	if errorPr > 0 {
+		out += fmt.Sprintf("/%d%%", errorPr)
+	}
+	return out
+}
+
 // FormatRepairParallel return string representation of currently used and maximal parallel value.
 func FormatRepairParallel(parallel, maxParallel int64) string {
 	if parallel > maxParallel {
