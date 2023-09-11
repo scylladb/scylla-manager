@@ -442,12 +442,20 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 		// and it is still mostly accurate.
 		// Duration is calculated based on StartedAt and CompletedAt
 		// in order to avoid aggregation duplication.
-		perTable = make(map[tableKey]TableProgress)
-		now      = timeutc.Now()
-		ancient  = time.Time{}.Add(time.Hour)
+		perTable  = make(map[tableKey]TableProgress)
+		tableSize = make(map[tableKey]int64)
+		totalSize int64
+		now       = timeutc.Now()
+		ancient   = time.Time{}.Add(time.Hour)
 	)
 
 	err := pm.ForEachRunProgress(func(rp *RunProgress) {
+		tableSize[tableKey{
+			keyspace: rp.Keyspace,
+			table:    rp.Table,
+		}] += rp.Size
+		totalSize += rp.Size
+
 		prog := extractProgress(rp, now)
 		tp := TableProgress{
 			progress: prog,
@@ -523,7 +531,47 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 		p.CompletedAt = nil
 	}
 	p.Duration = recalculateDuration(p.progress, now)
+
+	if p.TokenRanges == 0 {
+		p.SuccessPercentage = -1
+		p.ErrorPercentage = -1
+		return p, nil
+	}
+
+	var weight func(key tableKey) int64
+	var totalWeight int64
+	if totalSize == 0 {
+		weight = func(key tableKey) int64 {
+			return 1
+		}
+		totalWeight = int64(len(perTable))
+	} else {
+		weight = func(key tableKey) int64 {
+			return tableSize[key]
+		}
+		totalWeight = totalSize
+	}
+
+	successPr, errorPr := calcTotalProgress(perTable, weight, totalWeight)
+	p.SuccessPercentage = int(successPr)
+	p.ErrorPercentage = int(errorPr)
 	return p, nil
+}
+
+func calcTotalProgress(perTable map[tableKey]TableProgress, weight func(tableKey) int64, totalWeight int64) (successPr, errorPr float64) {
+	if totalWeight == 0 {
+		return -1, -1
+	}
+
+	for tk, tp := range perTable {
+		successPr += float64(tp.Success) / float64(tp.TokenRanges) * float64(weight(tk))
+		errorPr += float64(tp.Error) / float64(tp.TokenRanges) * float64(weight(tk))
+	}
+
+	successPr = successPr * 100 / float64(totalWeight)
+	errorPr = errorPr * 100 / float64(totalWeight)
+
+	return successPr, errorPr
 }
 
 // recalculateDuration returns duration calculated based on
