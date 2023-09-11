@@ -77,6 +77,7 @@ type RunProgress struct {
 	Keyspace  string `db:"keyspace_name"`
 	Table     string `db:"table_name"`
 
+	Size        int64
 	TokenRanges int64
 	Success     int64
 	Error       int64
