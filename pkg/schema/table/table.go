@@ -137,6 +137,7 @@ var (
 			"host",
 			"keyspace_name",
 			"run_id",
+			"size",
 			"started_at",
 			"success",
 			"table_name",
