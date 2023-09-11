@@ -8,6 +8,7 @@ import (
 )
 
 type RepairMetrics struct {
+	progress            *prometheus.GaugeVec
 	tokenRangesTotal    *prometheus.GaugeVec
 	tokenRangesSuccess  *prometheus.GaugeVec
 	tokenRangesError    *prometheus.GaugeVec
@@ -19,6 +20,7 @@ func NewRepairMetrics() RepairMetrics {
 	g := gaugeVecCreator("repair")
 
 	return RepairMetrics{
+		progress: g("Total percentage repair progress.", "progress", "cluster"),
 		tokenRangesTotal: g("Total number of token ranges to repair.",
 			"token_ranges_total", "cluster", "keyspace", "table", "host"),
 		tokenRangesSuccess: g("Number of repaired token ranges.",
@@ -34,6 +36,7 @@ func NewRepairMetrics() RepairMetrics {
 
 func (m RepairMetrics) all() []prometheus.Collector {
 	return []prometheus.Collector{
+		m.progress,
 		m.tokenRangesTotal,
 		m.tokenRangesSuccess,
 		m.tokenRangesError,
@@ -86,4 +89,20 @@ func (m RepairMetrics) SubJob(clusterID uuid.UUID, host string, tokenRanges int)
 	}
 	m.inFlightJobs.With(l).Sub(1)
 	m.inFlightTokenRanges.With(l).Sub(float64(tokenRanges))
+}
+
+// SetProgress sets "progress" metric.
+func (m RepairMetrics) SetProgress(clusterID uuid.UUID, progress float64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+	}
+	m.progress.With(l).Set(progress)
+}
+
+// AddProgress updates "progress" metric.
+func (m RepairMetrics) AddProgress(clusterID uuid.UUID, delta float64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+	}
+	m.progress.With(l).Add(delta)
 }

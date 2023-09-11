@@ -265,6 +265,27 @@ func (p *plan) SizeSort() {
 	}
 }
 
+// TableSizeMap returns recorded size of repaired tables.
+func (p *plan) TableSizeMap() map[string]int64 {
+	out := make(map[string]int64)
+	for _, kp := range p.Keyspaces {
+		for _, tp := range kp.Tables {
+			out[kp.Keyspace+"."+tp.Table] = tp.Size
+		}
+	}
+	return out
+}
+
+// KeyspaceRangesMap returns ranges count of repaired keyspaces.
+// All tables in the same keyspace have the same ranges count.
+func (p *plan) KeyspaceRangesMap() map[string]int64 {
+	out := make(map[string]int64)
+	for _, kp := range p.Keyspaces {
+		out[kp.Keyspace] = int64(len(kp.TokenRepIdx))
+	}
+	return out
+}
+
 func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]int {
 	out := make(map[string]int, len(shards))
 	for h, sh := range shards {

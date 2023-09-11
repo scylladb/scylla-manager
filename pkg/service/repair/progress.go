@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/atomic"
 )
 
 // ProgressManager manages state and progress.
@@ -48,7 +49,13 @@ type stateKey struct {
 }
 
 type dbProgressManager struct {
-	run     *Run
+	run *Run
+
+	total          atomic.Float64   // Total weighted repair progress
+	tableSize      map[string]int64 // Maps table to its size
+	totalTableSize int64            // Sum over tableSize
+	keyspaceRanges map[string]int64 // Maps keyspace to its range count
+
 	session gocqlx.Session
 	metrics metrics.RepairMetrics
 	logger  log.Logger
@@ -70,6 +77,16 @@ func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repa
 }
 
 func (pm *dbProgressManager) Init(plan *plan) error {
+	pm.total.Store(0)
+	pm.metrics.SetProgress(pm.run.ClusterID, 0)
+	pm.tableSize = plan.TableSizeMap()
+	var total int64
+	for _, s := range pm.tableSize {
+		total += s
+	}
+	pm.totalTableSize = total
+	pm.keyspaceRanges = plan.KeyspaceRangesMap()
+
 	// Init state before progress, so that we don't resume progress when state is empty
 	if err := pm.initState(plan); err != nil {
 		return err
@@ -230,6 +247,7 @@ func (pm *dbProgressManager) initState(plan *plan) error {
 		cp := *sp
 		cp.RunID = pm.run.ID
 		pm.state[sk] = &cp
+		pm.updateTotalProgress(cp.Keyspace, cp.Table, len(cp.SuccessRanges))
 	})
 	if err != nil {
 		return errors.Wrap(err, "fetch state from previous run")
@@ -309,6 +327,7 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 }
 
 func (pm *dbProgressManager) OnJobEnd(ctx context.Context, result jobResult) {
+	pm.updateTotalProgress(result.keyspace, result.table, len(result.ranges))
 	pm.onJobEndProgress(ctx, result)
 	pm.onJobEndState(ctx, result)
 }
@@ -375,6 +394,31 @@ func (pm *dbProgressManager) onJobEndState(ctx context.Context, result jobResult
 
 	if err := q.ExecRelease(); err != nil {
 		pm.logger.Error(ctx, "Update repair state", "key", sk, "error", err)
+	}
+}
+
+// updateTotalProgress updates total repair progress weighted by repaired table size.
+// It is done by calculating progress delta instead of doing it from scratch.
+// This approach is faster than iterating over all RunProgress (#nodes * #tables)
+// under mutex, but it also gives more room for float rounding errors.
+// However, rounding errors can't be totally avoided even
+// when calculating total progress from scratch, so it should be fine.
+func (pm *dbProgressManager) updateTotalProgress(keyspace, table string, ranges int) {
+	var weight, totalWeight int64
+	if pm.totalTableSize == 0 {
+		weight = 1
+		totalWeight = int64(len(pm.state))
+	} else {
+		weight = pm.tableSize[keyspace+"."+table]
+		totalWeight = pm.totalTableSize
+	}
+
+	delta := float64(ranges) / float64(pm.keyspaceRanges[keyspace]) * 100 // Not weighted percentage progress delta
+	delta *= float64(weight) / float64(totalWeight)                       // Apply weight
+
+	// Watch out for rounding over 100% errors
+	if total := pm.total.Add(delta); total <= 100 {
+		pm.metrics.AddProgress(pm.run.ClusterID, delta)
 	}
 }
 
