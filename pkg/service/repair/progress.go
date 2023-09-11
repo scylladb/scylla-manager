@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -170,6 +171,11 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 							Host:      pk.host,
 							Keyspace:  pk.keyspace,
 							Table:     pk.table,
+							Size: plan.HostTableSize[scyllaclient.HostKeyspaceTable{
+								Host:     pk.host,
+								Keyspace: pk.keyspace,
+								Table:    pk.table,
+							}],
 						}
 						pm.progress[pk] = rp
 					}
