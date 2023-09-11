@@ -288,10 +288,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 	close(done)
 
-	// Check if repair is fully finished
+	// Check if repair has ended successfully
 	if err == nil && ctx.Err() == nil {
 		run.EndTime = timeutc.Now()
 		s.putRunLogError(ctx, run)
+	}
+	// Ensure that not interrupted repair has 100% progress (invalidate rounding errors).
+	if gen.lastPercent == 100 {
+		s.metrics.SetProgress(clusterID, 100)
 	}
 
 	return multierr.Append(err, ctx.Err())
