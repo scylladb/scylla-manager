@@ -144,6 +144,14 @@
     "RepairProgress": {
       "type": "object",
       "properties": {
+        "success_percentage": {
+          "type": "number",
+          "format": "int"
+        },
+        "error_percentage": {
+          "type": "number",
+          "format": "int"
+        },
         "token_ranges": {
           "type": "number",
           "format": "int"
