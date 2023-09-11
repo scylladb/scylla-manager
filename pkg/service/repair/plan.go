@@ -21,6 +21,7 @@ type plan struct {
 	SkippedKeyspaces []string
 	MaxParallel      int
 	MaxHostIntensity map[string]int
+	HostTableSize    map[scyllaclient.HostKeyspaceTable]int64
 }
 
 func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
@@ -211,9 +212,15 @@ func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallT
 
 	ksSize := make(map[string]int64)
 	tableSize := make(map[string]int64)
+	p.HostTableSize = make(map[scyllaclient.HostKeyspaceTable]int64, len(hkts))
 	for i, size := range report {
 		ksSize[hkts[i].Keyspace] += size
 		tableSize[hkts[i].Keyspace+"."+hkts[i].Table] += size
+		p.HostTableSize[scyllaclient.HostKeyspaceTable{
+			Host:     hkts[i].Host,
+			Keyspace: hkts[i].Keyspace,
+			Table:    hkts[i].Table,
+		}] = size
 	}
 
 	for i, kp := range p.Keyspaces {
