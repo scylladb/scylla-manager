@@ -32,6 +32,9 @@ type RepairProgress struct {
 	// error
 	Error int64 `json:"error,omitempty"`
 
+	// error percentage
+	ErrorPercentage int64 `json:"error_percentage,omitempty"`
+
 	// host
 	Host string `json:"host,omitempty"`
 
@@ -56,6 +59,9 @@ type RepairProgress struct {
 
 	// success
 	Success int64 `json:"success,omitempty"`
+
+	// success percentage
+	SuccessPercentage int64 `json:"success_percentage,omitempty"`
 
 	// tables
 	Tables []*TableRepairProgress `json:"tables"`

@@ -161,14 +161,16 @@ type TableProgress struct {
 // separately.
 type Progress struct {
 	progress
-	DC           []string        `json:"dcs"`
-	Host         string          `json:"host"`
-	Hosts        []HostProgress  `json:"hosts"`
-	Tables       []TableProgress `json:"tables"`
-	MaxIntensity float64         `json:"max_intensity"`
-	Intensity    float64         `json:"intensity"`
-	MaxParallel  int             `json:"max_parallel"`
-	Parallel     int             `json:"parallel"`
+	SuccessPercentage int             `json:"success_percentage"`
+	ErrorPercentage   int             `json:"error_percentage"`
+	DC                []string        `json:"dcs"`
+	Host              string          `json:"host"`
+	Hosts             []HostProgress  `json:"hosts"`
+	Tables            []TableProgress `json:"tables"`
+	MaxIntensity      float64         `json:"max_intensity"`
+	Intensity         float64         `json:"intensity"`
+	MaxParallel       int             `json:"max_parallel"`
+	Parallel          int             `json:"parallel"`
 }
 
 func isTimeSet(t *time.Time) bool {
