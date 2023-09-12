@@ -93,7 +93,8 @@ func (s *Service) Runner() Runner {
 				status: cqlStatus,
 				rtt:    cqlRTT,
 			},
-			ping: s.pingCQL,
+			ping:      s.pingCQL,
+			pingAgent: s.pingAgent,
 		},
 		rest: runner{
 			scyllaClient: s.scyllaClient,
@@ -102,7 +103,8 @@ func (s *Service) Runner() Runner {
 				status: restStatus,
 				rtt:    restRTT,
 			},
-			ping: s.pingREST,
+			ping:      s.pingREST,
+			pingAgent: s.pingAgent,
 		},
 		alternator: runner{
 			scyllaClient: s.scyllaClient,
@@ -111,7 +113,8 @@ func (s *Service) Runner() Runner {
 				status: alternatorStatus,
 				rtt:    alternatorRTT,
 			},
-			ping: s.pingAlternator,
+			ping:      s.pingAlternator,
+			pingAgent: s.pingAgent,
 		},
 	}
 }
@@ -374,6 +377,15 @@ func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string
 	}
 
 	return client.Ping(ctx, host, timeout)
+}
+
+func (s *Service) pingAgent(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (time.Duration, error) {
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return 0, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
+	}
+
+	return client.PingAgent(ctx, host, timeout)
 }
 
 func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string) (nodeInfo, error) {

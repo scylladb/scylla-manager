@@ -21,42 +21,42 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_status",
-		Help:      "Host native port status",
+		Help:      "Host native port status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
 	}, []string{clusterKey, hostKey})
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_rtt_ms",
-		Help:      "Host native port RTT",
+		Help:      "Host native port RTT.",
 	}, []string{clusterKey, hostKey})
 
 	restStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_status",
-		Help:      "Host REST status",
+		Help:      "Host REST status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
 	}, []string{clusterKey, hostKey})
 
 	restRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_rtt_ms",
-		Help:      "Host REST RTT",
+		Help:      "Host REST RTT.",
 	}, []string{clusterKey, hostKey})
 
 	alternatorStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_status",
-		Help:      "Host Alternator status",
+		Help:      "Host Alternator status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
 	}, []string{clusterKey, hostKey})
 
 	alternatorRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_rtt_ms",
-		Help:      "Host Alternator RTT",
+		Help:      "Host Alternator RTT.",
 	}, []string{clusterKey, hostKey})
 )
 
