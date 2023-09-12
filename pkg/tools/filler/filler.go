@@ -4,8 +4,8 @@ package filler
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"runtime"
 	"time"
 
@@ -87,7 +87,9 @@ func (f *Filler) fill(i int) error {
 			return err
 		}
 
-		rand.Read(data)
+		if _, err := rand.Read(data); err != nil {
+			return err
+		}
 
 		if err := q.Bind(data).Exec(); err != nil {
 			f.logger.Info(f.ctx, "DB error", "worker", i, "error", err)
@@ -190,7 +192,9 @@ func (f *MultiFiller) fill(i int) error {
 			return err
 		}
 
-		rand.Read(data)
+		if _, err := rand.Read(data); err != nil {
+			return err
+		}
 
 		if err := qs[pos].Bind(data).Exec(); err != nil {
 			f.logger.Info(f.ctx, "DB error", "worker", i, "error", err)

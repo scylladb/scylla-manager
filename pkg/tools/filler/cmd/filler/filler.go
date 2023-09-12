@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	rand.Seed(666)
+	rand.New(rand.NewSource(666))
 }
 
 func main() {
