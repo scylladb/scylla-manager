@@ -8,6 +8,7 @@ import (
 )
 
 type SchedulerMetrics struct {
+	suspended    *prometheus.GaugeVec
 	runIndicator *prometheus.GaugeVec
 	runsTotal    *prometheus.GaugeVec
 	lastSuccess  *prometheus.GaugeVec
@@ -17,6 +18,8 @@ func NewSchedulerMetrics() SchedulerMetrics {
 	g := gaugeVecCreator("scheduler")
 
 	return SchedulerMetrics{
+		suspended: g("If the cluster is suspended the value is 1 otherwise it's 0.",
+			"suspended", "cluster"),
 		runIndicator: g("If the task is running the value is 1 otherwise it's 0.",
 			"run_indicator", "cluster", "type", "task"),
 		runsTotal: g("Total number of task runs parametrized by status.",
@@ -28,6 +31,7 @@ func NewSchedulerMetrics() SchedulerMetrics {
 
 func (m SchedulerMetrics) all() []prometheus.Collector {
 	return []prometheus.Collector{
+		m.suspended,
 		m.runIndicator,
 		m.runsTotal,
 		m.lastSuccess,
@@ -67,4 +71,14 @@ func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uu
 	if status == "DONE" {
 		m.lastSuccess.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
 	}
+}
+
+// Suspend sets "suspend" to 1.
+func (m SchedulerMetrics) Suspend(clusterID uuid.UUID) {
+	m.suspended.WithLabelValues(clusterID.String()).Set(1)
+}
+
+// Resume sets "suspend" to 0.
+func (m SchedulerMetrics) Resume(clusterID uuid.UUID) {
+	m.suspended.WithLabelValues(clusterID.String()).Set(0)
 }
