@@ -77,6 +77,7 @@ func (s *Service) initSuspended() error {
 			}
 		} else {
 			s.suspended.Add(c.Bytes16())
+			s.metrics.Suspend(c)
 		}
 	}
 
@@ -126,6 +127,7 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendPro
 		return nil, nil // nolint: nilnil
 	}
 	s.suspended.Add(clusterID.Bytes16())
+	s.metrics.Suspend(clusterID)
 	l := s.resetSchedulerLocked(si)
 	s.mu.Unlock()
 
@@ -231,6 +233,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 		s.logger.Error(ctx, "Failed to delete canceled tasks", "error", err)
 	}
 	s.suspended.Remove(clusterID.Bytes16())
+	s.metrics.Resume(clusterID)
 	s.mu.Unlock()
 
 	running := b16set.New()
