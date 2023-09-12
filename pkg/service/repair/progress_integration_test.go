@@ -285,6 +285,7 @@ func TestAggregateProgressIntegration(t *testing.T) {
 		"empty progress list",
 		"multiple progress multi host",
 		"single progress single host",
+		"weighted progress",
 	}
 
 	opts := cmp.Options{
@@ -322,7 +323,7 @@ func TestAggregateProgressIntegration(t *testing.T) {
 			res.Parallel = 6
 
 			var golden Progress
-			SaveGoldenJSONFileIfNeeded(t, golden)
+			SaveGoldenJSONFileIfNeeded(t, res)
 			LoadGoldenJSONFile(t, &golden)
 			if diff := cmp.Diff(golden, res, opts); diff != "" {
 				t.Error(name, diff)
