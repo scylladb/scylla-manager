@@ -1,18 +1,18 @@
 {
   "token_ranges": 23,
-  "success": 23,
-  "error": 0,
+  "success": 15,
+  "error": 3,
   "started_at": "2019-01-01T00:00:00Z",
   "completed_at": "2019-01-01T00:02:00Z",
   "duration_ms": 120000,
-  "success_percentage": 100,
-  "error_percentage": 0,
+  "success_percentage": 57,
+  "error_percentage": 15,
   "dcs": null,
   "host": "",
   "hosts": [
     {
       "token_ranges": 15,
-      "success": 15,
+      "success": 10,
       "error": 0,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
@@ -21,7 +21,7 @@
       "tables": [
         {
           "token_ranges": 10,
-          "success": 10,
+          "success": 5,
           "error": 0,
           "started_at": "2019-01-01T00:00:00Z",
           "completed_at": "2019-01-01T00:01:00Z",
@@ -43,8 +43,8 @@
     },
     {
       "token_ranges": 8,
-      "success": 8,
-      "error": 0,
+      "success": 5,
+      "error": 3,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
       "duration_ms": 179000,
@@ -62,8 +62,8 @@
         },
         {
           "token_ranges": 3,
-          "success": 3,
-          "error": 0,
+          "success": 0,
+          "error": 3,
           "started_at": "2019-01-01T00:00:00Z",
           "completed_at": "2019-01-01T00:02:00Z",
           "duration_ms": 120000,
@@ -76,7 +76,7 @@
   "tables": [
     {
       "token_ranges": 10,
-      "success": 10,
+      "success": 5,
       "error": 0,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:01:00Z",
@@ -96,8 +96,8 @@
     },
     {
       "token_ranges": 3,
-      "success": 3,
-      "error": 0,
+      "success": 0,
+      "error": 3,
       "started_at": "2019-01-01T00:00:00Z",
       "completed_at": "2019-01-01T00:02:00Z",
       "duration_ms": 120000,

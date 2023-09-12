@@ -3,6 +3,7 @@
     "Host": "h1",
     "Keyspace": "k1",
     "Table": "t1",
+    "Size": 0,
     "TokenRanges": 10,
     "Success": 10,
     "Error": 0,
