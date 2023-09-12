@@ -3,10 +3,13 @@
 package scyllaclient
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"math"
 	"math/rand"
 	"net"
+	"net/http"
 	"net/url"
 	"runtime"
 	"sort"
@@ -264,4 +267,34 @@ func min(a, b time.Duration) time.Duration {
 		return b
 	}
 	return a
+}
+
+// PingAgent is a simple heartbeat ping to agent.
+func (c *Client) PingAgent(ctx context.Context, host string, timeout time.Duration) (time.Duration, error) {
+	if timeout == 0 {
+		timeout = c.config.Timeout
+	}
+	if ctxTimeout, hasCustomTimeout := hasCustomTimeout(ctx); hasCustomTimeout {
+		timeout = min(ctxTimeout, timeout)
+	}
+	ctx = customTimeout(ctx, timeout)
+	ctx = noRetry(ctx)
+
+	u := c.newURL(host, "/ping")
+	req, err := http.NewRequestWithContext(forceHost(ctx, host), http.MethodGet, u.String(), bytes.NewReader(nil))
+	if err != nil {
+		return 0, err
+	}
+
+	t := timeutc.Now()
+	resp, err := c.client.Do("PingAgent", req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return 0, fmt.Errorf("expected %d status code from ping response, got %d", http.StatusNoContent, resp.StatusCode)
+	}
+	return timeutc.Since(t), nil
 }
