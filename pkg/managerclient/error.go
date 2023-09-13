@@ -16,6 +16,9 @@ func PrintError(w io.Writer, err error) {
 	if ok {
 		p := v.GetPayload()
 
+		if len(p.Details) > 0 {
+			fmt.Fprintf(w, "%s\n\n", p.Details)
+		}
 		fmt.Fprintf(w, "Error: %s\n", FormatError(p.Message))
 		fmt.Fprintf(w, "Trace ID: %s (grep in scylla-manager logs)\n", p.TraceID)
 	} else {

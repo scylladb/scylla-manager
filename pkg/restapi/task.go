@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
@@ -232,6 +233,11 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		}
 	case scheduler.RepairTask:
 		if t, err = h.Repair.GetTarget(r.Context(), newTask.ClusterID, p); err != nil {
+			if errors.Is(err, scyllaclient.ErrHostInvalidResponse) {
+				respondError(w, r, err, "One of the nodes is down. Task cannot be created.\n"+
+					"Check --ignore-down-hosts flag if you wish to exclude the node from the repair.")
+				return
+			}
 			respondError(w, r, errors.Wrap(err, "get repair target"))
 			return
 		}
@@ -295,6 +301,11 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validateTask(r.Context(), newTask, p); err != nil {
+		if newTask.Type == scheduler.RepairTask && errors.Is(err, scyllaclient.ErrHostInvalidResponse) {
+			respondError(w, r, err, "One of the nodes is down. Task cannot be created.\n"+
+				"Check --ignore-down-hosts flag if you wish to exclude the node from the repair.")
+			return
+		}
 		respondError(w, r, err)
 		return
 	}
@@ -329,6 +340,11 @@ func (h *taskHandler) updateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validateTask(r.Context(), newTask, newTask.Properties); err != nil {
+		if newTask.Type == scheduler.RepairTask && errors.Is(err, scyllaclient.ErrHostInvalidResponse) {
+			respondError(w, r, err, "One of the nodes is down. Task cannot be updated.\n"+
+				"Check --ignore-down-hosts flag if you wish to exclude the node from the repair.")
+			return
+		}
 		respondError(w, r, err)
 		return
 	}
