@@ -5,6 +5,7 @@ package scyllaclient
 import (
 	"bytes"
 	"context"
+	stdErrors "errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -28,6 +29,9 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
+
+// ErrHostInvalidResponse is to indicate that one of the root-causes is the invalid response from scylla-server.
+var ErrHostInvalidResponse = fmt.Errorf("invalid response from host")
 
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
@@ -123,7 +127,7 @@ func (c *Client) VerifyNodesAvailability(ctx context.Context) error {
 		}
 	}
 
-	return errors.Errorf("unavailable nodes: %v", unavailable)
+	return fmt.Errorf("unavailable nodes: %v", unavailable)
 }
 
 func setNodeStatus(all []NodeStatusInfo, status NodeStatus, addrs []string) {
@@ -862,7 +866,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 
 		size, err := c.TableDiskSize(ctx, v.Host, v.Keyspace, v.Table)
 		if err != nil {
-			return parallel.Abort(errors.Wrapf(err, v.Host))
+			return parallel.Abort(errors.Wrapf(stdErrors.Join(err, ErrHostInvalidResponse), v.Host))
 		}
 		c.logger.Debug(ctx, "Table disk size",
 			"host", v.Host,
