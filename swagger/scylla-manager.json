@@ -1113,6 +1113,10 @@
     "ErrorResponse": {
       "type": "object",
       "properties": {
+        "details": {
+          "description": "Human readable description",
+          "type": "string"
+        },
         "message": {
           "description": "Error description",
           "type": "string"

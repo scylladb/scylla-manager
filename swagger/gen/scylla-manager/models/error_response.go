@@ -15,6 +15,9 @@ import (
 // swagger:model ErrorResponse
 type ErrorResponse struct {
 
+	// Human readable description
+	Details string `json:"details,omitempty"`
+
 	// Error description
 	Message string `json:"message,omitempty"`
 

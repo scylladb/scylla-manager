@@ -20,7 +20,7 @@ func TestRespondError(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		respondError(response, request, errors.Wrap(err, "specific_msg"))
-		expected := `{"message":"get resource: specific_msg: wrapped: not found","trace_id":""}` + "\n"
+		expected := `{"message":"get resource: specific_msg: wrapped: not found","details":"","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}
@@ -34,7 +34,7 @@ func TestRespondError(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		respondError(response, request, errors.Wrap(err, "specific_msg"))
-		expected := `{"message":"specific_msg: some problem","trace_id":""}` + "\n"
+		expected := `{"message":"specific_msg: some problem","details":"","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}
@@ -48,7 +48,7 @@ func TestRespondError(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		respondError(response, request, errors.Wrap(err, "specific_msg"))
-		expected := `{"message":"specific_msg: wrapped: unknown problem","trace_id":""}` + "\n"
+		expected := `{"message":"specific_msg: wrapped: unknown problem","details":"","trace_id":""}` + "\n"
 		if diff := cmp.Diff(response.Body.String(), expected); diff != "" {
 			t.Fatal(diff)
 		}
