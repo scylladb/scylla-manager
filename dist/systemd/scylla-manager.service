@@ -3,6 +3,8 @@ Description=Scylla Manager Server
 Wants=scylla-server.service
 After=scylla-server.service
 After=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -13,7 +15,6 @@ LimitNOFILE=100000
 TimeoutStartSec=900
 KillMode=process
 Restart=on-failure
-RestartPreventExitStatus=1
 StandardOutput=journal
 StandardError=journal
 SyslogLevelPrefix=false
