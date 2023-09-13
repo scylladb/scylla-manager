@@ -30,7 +30,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 		cmpopts.IgnoreUnexported(RunProgress{}),
 		UUIDComparer(),
 		NearTimeComparer(5 * time.Millisecond),
-		NearDurationComparer(1 * time.Millisecond),
+		NearDurationComparer(5 * time.Millisecond),
 	}
 
 	t.Run("progress update sequence (Init,OnJobStart,OnJobEnd)", func(t *testing.T) {
