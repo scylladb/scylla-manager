@@ -5,9 +5,13 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"runtime"
 	"time"
 
@@ -207,12 +211,99 @@ func (s *server) startServers(ctx context.Context) {
 
 	if s.debugServer != nil {
 		s.logger.Info(ctx, "Starting debug server", "address", s.debugServer.Addr)
+		done := make(chan struct{}, 1)
+
 		go func() {
 			s.errCh <- errors.Wrap(s.debugServer.ListenAndServe(), "debug server start")
+			done <- struct{}{}
 		}()
+
+		go s.runDebugProfileScraper(ctx, done)
 	}
 
 	s.logger.Info(ctx, "Service started")
+}
+
+func (s *server) runDebugProfileScraper(ctx context.Context, done chan struct{}) {
+	const (
+		profileLimit     = 60
+		profileInterval  = 30 * time.Minute
+		heapProfile      = "heap"
+		allocsProfile    = "allocs"
+		goroutineProfile = "goroutine"
+	)
+
+	allProfiles := []string{heapProfile, allocsProfile, goroutineProfile}
+	// Create all required directories
+	for _, p := range allProfiles {
+		if err := os.MkdirAll(path.Dir(profilePath(p, 0)), 0o666); err != nil {
+			s.logger.Error(ctx, "Couldn't create profile directories", "error", err)
+			return
+		}
+	}
+
+	t := time.NewTicker(profileInterval)
+	defer t.Stop()
+
+	for cnt := 1; ; cnt++ {
+		select {
+		case <-done:
+			return
+		case <-t.C:
+			for _, p := range allProfiles {
+				// Delete too old profile
+				if cnt > profileLimit {
+					profilePath := profilePath(p, cnt-profileLimit)
+					if err := os.Remove(profilePath); err != nil {
+						s.logger.Error(ctx, "Couldn't delete old profile", "file", profilePath, "error", err)
+					}
+				}
+				// Save new profile
+				if err := s.saveDebugProfile(ctx, p, cnt); err != nil {
+					s.logger.Error(ctx, "Couldn't save new profile", "profile", p, "error", err)
+				} else {
+					s.logger.Info(ctx, "Created profile", "profile", p)
+				}
+			}
+		}
+	}
+}
+
+// saveDebugProfile queries agent debug server for given profile
+// and saves it to "/tmp/pprof/<profile-type>/file".
+func (s *server) saveDebugProfile(ctx context.Context, profileType string, cnt int) error {
+	u := url.URL{
+		Scheme: "HTTP",
+		Host:   s.config.Debug,
+		Path:   "/debug/pprof/" + profileType,
+	}
+
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
+	if err != nil {
+		return errors.Wrap(err, "create request")
+	}
+
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return errors.Wrap(err, "query profile")
+	}
+	defer resp.Body.Close()
+
+	filePath := profilePath(profileType, cnt)
+	profileFile, err := os.Create(filePath)
+	if err != nil {
+		return errors.Wrap(err, "create profile file "+filePath)
+	}
+	defer profileFile.Close()
+
+	if _, err := io.Copy(profileFile, resp.Body); err != nil {
+		return errors.Wrap(err, "save profile "+filePath)
+	}
+	return nil
+}
+
+func profilePath(profileType string, cnt int) string {
+	return path.Join("/tmp/pprof/", profileType, fmt.Sprint(cnt))
 }
 
 func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
