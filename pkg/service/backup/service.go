@@ -23,7 +23,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
@@ -38,8 +37,6 @@ const defaultRateLimit = 100 // 100MiB
 
 // Service orchestrates clusterName backups.
 type Service struct {
-	repairSvc *repair.Service
-
 	session gocqlx.Session
 	config  Config
 	metrics metrics.BackupMetrics
@@ -50,7 +47,7 @@ type Service struct {
 	logger         log.Logger
 }
 
-func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
+func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
 	clusterName cluster.NameFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
@@ -70,7 +67,6 @@ func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config
 	}
 
 	return &Service{
-		repairSvc:      repairSvc,
 		session:        session,
 		config:         config,
 		metrics:        metrics,
