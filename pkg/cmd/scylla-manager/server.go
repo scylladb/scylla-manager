@@ -100,7 +100,6 @@ func (s *server) makeServices() error {
 	}
 
 	s.backupSvc, err = backup.NewService(
-		s.repairSvc,
 		s.session,
 		s.config.Backup,
 		metrics.NewBackupMetrics().MustRegister(),

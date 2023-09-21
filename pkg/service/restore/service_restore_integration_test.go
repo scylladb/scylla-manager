@@ -126,7 +126,6 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	}
 
 	backupSvc, err := backup.NewService(
-		repairSvc,
 		session,
 		backup.DefaultConfig(),
 		metrics.NewBackupMetrics(),
