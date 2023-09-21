@@ -27,7 +27,6 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -112,24 +111,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger, user, pass string) *backup.Service {
 	t.Helper()
 
-	repairSvc, err := repair.NewService(
-		session,
-		repair.DefaultConfig(),
-		metrics.NewRepairMetrics(),
-		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return client, nil
-		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
-			return CreateManagedClusterSession(t, false, client, user, pass), nil
-		},
-		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	s, err := backup.NewService(
-		repairSvc,
 		session,
 		c,
 		metrics.NewBackupMetrics(),
