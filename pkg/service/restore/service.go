@@ -128,37 +128,6 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	return err
 }
 
-// GetTarget returns validated target from properties.
-func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
-	w, err := s.newWorker(ctx, clusterID)
-	if err != nil {
-		return Target{}, errors.Wrap(err, "create worker")
-	}
-	defer w.clusterSession.Close()
-
-	if err := w.initTarget(ctx, properties); err != nil {
-		return Target{}, errors.Wrap(err, "initialize target")
-	}
-	return w.target, nil
-}
-
-// GetUnits returns validated units from properties.
-func (s *Service) GetUnits(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) ([]Unit, error) {
-	w, err := s.newWorker(ctx, clusterID)
-	if err != nil {
-		return nil, errors.Wrap(err, "create worker")
-	}
-	defer w.clusterSession.Close()
-
-	if err := w.initTarget(ctx, properties); err != nil {
-		return nil, errors.Wrap(err, "initialize target")
-	}
-	if err := w.initUnits(ctx); err != nil {
-		return nil, errors.Wrap(err, "initialize units")
-	}
-	return w.run.Units, nil
-}
-
 // GetTargetUnitsViews returns all information necessary for task validation and --dry-run.
 func (s *Service) GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, []Unit, []View, error) {
 	w, err := s.newWorker(ctx, clusterID)

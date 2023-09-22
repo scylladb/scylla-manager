@@ -2,6 +2,9 @@
   "location": [
     "s3:restoretest-get-target-units-views-error"
   ],
-  "snapshot_tag": "20060102150405",
+  "keyspace": [
+    "fake_keyspace"
+  ],
+  "restore_schema": false,
   "restore_tables": true
 }

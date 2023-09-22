@@ -32,6 +32,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -171,44 +172,55 @@ func s3Location(bucket string) Location {
 	}
 }
 
-func TestRestoreGetTargetIntegration(t *testing.T) {
+func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  string
-		golden string
+		target string
+		units  string
+		views  string
 	}{
 		{
 			name:   "tables",
 			input:  "testdata/get_target/tables.input.json",
-			golden: "testdata/get_target/tables.golden.json",
+			target: "testdata/get_target/tables.target.json",
+			units:  "testdata/get_target/tables.units.json",
+			views:  "testdata/get_target/tables.views.json",
 		},
 		{
 			name:   "schema",
 			input:  "testdata/get_target/schema.input.json",
-			golden: "testdata/get_target/schema.golden.json",
+			target: "testdata/get_target/schema.target.json",
+			units:  "testdata/get_target/schema.units.json",
+			views:  "testdata/get_target/schema.views.json",
 		},
 		{
 			name:   "default values",
 			input:  "testdata/get_target/default_values.input.json",
-			golden: "testdata/get_target/default_values.golden.json",
+			target: "testdata/get_target/default_values.target.json",
+			units:  "testdata/get_target/default_values.units.json",
+			views:  "testdata/get_target/default_values.views.json",
 		},
 		{
 			name:   "continue false",
 			input:  "testdata/get_target/continue_false.input.json",
-			golden: "testdata/get_target/continue_false.golden.json",
+			target: "testdata/get_target/continue_false.target.json",
+			units:  "testdata/get_target/continue_false.units.json",
+			views:  "testdata/get_target/continue_false.views.json",
 		},
 	}
 
 	testBucket, _, _ := getBucketKeyspaceUser(t)
-
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newRestoreTestHelper(t, session, DefaultConfig(), s3Location(testBucket), nil, "", "")
-		ctx     = context.Background()
+		ctx            = context.Background()
+		cfg            = DefaultConfig()
+		mgrSession     = CreateScyllaManagerDBSession(t)
+		loc            = s3Location(testBucket)
+		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
-	S3InitBucket(t, testBucket)
+	tag := h.initGetTargetUnitViewsCluster(clusterSession, testBucket)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -216,92 +228,165 @@ func TestRestoreGetTargetIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			v, err := h.service.GetTarget(ctx, h.ClusterID, b)
+			b = jsonutil.Set(b, "snapshot_tag", tag)
+			target, units, views, err := h.service.GetTargetUnitsViews(ctx, h.ClusterID, b)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			if UpdateGoldenFiles() {
-				b, _ := json.Marshal(v)
 				var buf bytes.Buffer
-				json.Indent(&buf, b, "", "  ")
-				if err := os.WriteFile(tc.golden, buf.Bytes(), 0666); err != nil {
+
+				b, _ := json.Marshal(target)
+				_ = json.Indent(&buf, b, "", "  ")
+				if err := os.WriteFile(tc.target, buf.Bytes(), 0666); err != nil {
+					t.Fatal(err)
+				}
+				buf.Reset()
+
+				b, _ = json.Marshal(units)
+				_ = json.Indent(&buf, b, "", "  ")
+				if err := os.WriteFile(tc.units, buf.Bytes(), 0666); err != nil {
+					t.Fatal(err)
+				}
+				buf.Reset()
+
+				b, _ = json.Marshal(views)
+				_ = json.Indent(&buf, b, "", "  ")
+				if err := os.WriteFile(tc.views, buf.Bytes(), 0666); err != nil {
 					t.Fatal(err)
 				}
 			}
 
-			b, err = os.ReadFile(tc.golden)
+			b, err = os.ReadFile(tc.target)
 			if err != nil {
 				t.Fatal(err)
 			}
-			var golden Target
-			if err := json.Unmarshal(b, &golden); err != nil {
+			var goldenTarget Target
+			if err := json.Unmarshal(b, &goldenTarget); err != nil {
 				t.Fatal(err)
 			}
 
-			if diff := cmp.Diff(golden, v,
+			b, err = os.ReadFile(tc.units)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var goldenUnits []Unit
+			if err := json.Unmarshal(b, &goldenUnits); err != nil {
+				t.Fatal(err)
+			}
+
+			b, err = os.ReadFile(tc.views)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var goldenViews []View
+			if err := json.Unmarshal(b, &goldenViews); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(goldenTarget, target,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.IgnoreUnexported(Target{}),
+				cmpopts.IgnoreFields(Target{}, "SnapshotTag"),
 			); diff != "" {
-				t.Fatal(tc.golden, diff)
+				t.Fatal(tc.target, diff)
+			}
+
+			if diff := cmp.Diff(goldenUnits, units,
+				cmpopts.SortSlices(func(a, b Unit) bool { return a.Keyspace < b.Keyspace }),
+				cmpopts.SortSlices(func(a, b Table) bool { return a.Table < b.Table }),
+				cmpopts.IgnoreFields(Unit{}, "Size"),
+				cmpopts.IgnoreFields(Table{}, "Size")); diff != "" {
+				t.Fatal(tc.units, diff)
+			}
+
+			if diff := cmp.Diff(goldenViews, views,
+				cmpopts.SortSlices(func(a, b View) bool { return a.Keyspace+a.View < b.Keyspace+b.View })); diff != "" {
+				t.Fatal(tc.views, diff)
 			}
 		})
 	}
 }
 
-func TestRestoreGetTargetErrorIntegration(t *testing.T) {
+func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 	testCases := []struct {
-		name  string
-		input string
+		name     string
+		input    string
+		error    string
+		leaveTag bool
 	}{
 		{
 			name:  "missing location",
 			input: "testdata/get_target/missing_location.input.json",
+			error: "missing location",
 		},
 		{
 			name:  "duplicated locations",
 			input: "testdata/get_target/duplicated_locations.input.json",
-		},
-		{
-			name:  "incorrect snapshot tag",
-			input: "testdata/get_target/incorrect_snapshot_tag.input.json",
+			error: "specified multiple times",
 		},
 		{
 			name:  "restore both types",
 			input: "testdata/get_target/restore_both_types.input.json",
+			error: "choose EXACTLY ONE restore type",
 		},
 		{
 			name:  "restore no type",
 			input: "testdata/get_target/restore_no_type.input.json",
+			error: "choose EXACTLY ONE restore type",
 		},
 		{
 			name:  "schema and keyspace param",
 			input: "testdata/get_target/schema_and_keyspace_param.input.json",
+			error: "no need to specify '--keyspace' flag",
 		},
 		{
 			name:  "inaccessible bucket",
 			input: "testdata/get_target/inaccessible_bucket.input.json",
+			error: "specified bucket does not exist",
 		},
 		{
 			name:  "non-positive parallel",
 			input: "testdata/get_target/non_positive_parallel.input.json",
+			error: "parallel param has to be greater or equal to zero",
 		},
 		{
 			name:  "non-positive batch size",
 			input: "testdata/get_target/non_positive_batch_size.input.json",
+			error: "batch size param has to be greater than zero",
+		},
+		{
+			name:  "no data matching keyspace pattern",
+			input: "testdata/get_target/no_matching_keyspace.input.json",
+			error: "no data in backup locations match given keyspace pattern",
+		},
+		{
+			name:     "incorrect snapshot tag",
+			input:    "testdata/get_target/incorrect_snapshot_tag.input.json",
+			error:    "not a Scylla Manager snapshot tag",
+			leaveTag: true,
+		},
+		{
+			name:     "non-existing snapshot tag",
+			input:    "testdata/get_target/non_existing_snapshot_tag.input.json",
+			error:    "no snapshot with tag",
+			leaveTag: true,
 		},
 	}
 
 	testBucket, _, _ := getBucketKeyspaceUser(t)
 
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newRestoreTestHelper(t, session, DefaultConfig(), s3Location(testBucket), nil, "", "")
-		ctx     = context.Background()
+		ctx            = context.Background()
+		cfg            = DefaultConfig()
+		mgrSession     = CreateScyllaManagerDBSession(t)
+		loc            = s3Location(testBucket)
+		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
-	S3InitBucket(t, testBucket)
+	tag := h.initGetTargetUnitViewsCluster(clusterSession, testBucket)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -309,67 +394,43 @@ func TestRestoreGetTargetErrorIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-
-			_, err = h.service.GetTarget(ctx, h.ClusterID, b)
-			if err == nil {
-				t.Fatal("GetRestoreTarget() expected error")
+			if !tc.leaveTag {
+				b = jsonutil.Set(b, "snapshot_tag", tag)
 			}
 
-			t.Log("GetRestoreTarget(): ", err)
+			_, _, _, err = h.service.GetTargetUnitsViews(ctx, h.ClusterID, b)
+			if err == nil || !strings.Contains(err.Error(), tc.error) {
+				t.Fatalf("GetTargetUnitsViews() got %v, expected %v", err, tc.error)
+			}
+
+			t.Log("GetTargetUnitsViews(): ", err)
 		})
 	}
 }
 
-func TestRestoreGetUnitsIntegration(t *testing.T) {
-	testBucket, testKeyspace, _ := getBucketKeyspaceUser(t)
+func (h *restoreTestHelper) initGetTargetUnitViewsCluster(clusterSession gocqlx.Session, bucket string) string {
 	const (
+		testKs1        = "ks1"
+		testKs2        = "ks2"
+		testTable1     = "table1"
+		testTable2     = "table2"
+		testMV         = "mv1"
+		testSI         = "si1"
 		testBackupSize = 1
 	)
 
-	var (
-		ctx            = context.Background()
-		cfg            = DefaultConfig()
-		mgrSession     = CreateScyllaManagerDBSession(t)
-		loc            = Location{Provider: "s3", Path: testBucket}
-		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
-		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	S3InitBucket(h.T, bucket)
+
+	WriteData(h.T, clusterSession, testKs1, testBackupSize, testTable1, testTable2)
+	WriteData(h.T, clusterSession, testKs2, testBackupSize, testTable1, testTable2)
+	ExecStmt(h.T, clusterSession,
+		fmt.Sprintf("CREATE MATERIALIZED VIEW IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", testKs1, testMV, testKs1, testTable1),
+	)
+	ExecStmt(h.T, clusterSession,
+		fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s.%s (data)", testSI, testKs2, testTable2),
 	)
 
-	WriteData(t, clusterSession, testKeyspace, testBackupSize)
-
-	target := Target{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		SnapshotTag:   h.simpleBackup(loc),
-		RestoreTables: true,
-	}
-
-	units, err := h.service.GetUnits(ctx, h.ClusterID, h.targetToProperties(target))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := []Unit{
-		{
-			Keyspace: testKeyspace,
-			Tables: []Table{
-				{
-					Table:       BigTableName,
-					TombstoneGC: "timeout",
-				},
-			},
-		},
-	}
-
-	if diff := cmp.Diff(units, expected, cmpopts.IgnoreFields(Unit{}, "Size"), cmpopts.IgnoreFields(Table{}, "Size")); diff != "" {
-		t.Fatal(diff)
-	}
+	return h.simpleBackup(s3Location(bucket))
 }
 
 func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
@@ -406,7 +467,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		target := target
 		target.SnapshotTag = "sm_fake_snapshot_tagUTC"
 
-		_, err := h.service.GetUnits(ctx, h.ClusterID, h.targetToProperties(target))
+		_, _, _, err := h.service.GetTargetUnitsViews(ctx, h.ClusterID, h.targetToProperties(target))
 		if err == nil {
 			t.Fatal("GetRestoreUnits() expected error")
 		}

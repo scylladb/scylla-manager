@@ -1,0 +1,83 @@
+[
+  {
+    "keyspace": "system_schema",
+    "size": 697796,
+    "tables": [
+      {
+        "table": "columns",
+        "tombstone_gc": "timeout",
+        "size": 111193
+      },
+      {
+        "table": "tables",
+        "tombstone_gc": "timeout",
+        "size": 88392
+      },
+      {
+        "table": "scylla_tables",
+        "tombstone_gc": "timeout",
+        "size": 50230
+      },
+      {
+        "table": "views",
+        "tombstone_gc": "timeout",
+        "size": 47384
+      },
+      {
+        "table": "keyspaces",
+        "tombstone_gc": "timeout",
+        "size": 38302
+      },
+      {
+        "table": "functions",
+        "tombstone_gc": "timeout",
+        "size": 37520
+      },
+      {
+        "table": "dropped_columns",
+        "tombstone_gc": "timeout",
+        "size": 36140
+      },
+      {
+        "table": "indexes",
+        "tombstone_gc": "timeout",
+        "size": 36378
+      },
+      {
+        "table": "aggregates",
+        "tombstone_gc": "timeout",
+        "size": 36778
+      },
+      {
+        "table": "view_virtual_columns",
+        "tombstone_gc": "timeout",
+        "size": 36274
+      },
+      {
+        "table": "types",
+        "tombstone_gc": "timeout",
+        "size": 36290
+      },
+      {
+        "table": "scylla_aggregates",
+        "tombstone_gc": "timeout",
+        "size": 36014
+      },
+      {
+        "table": "computed_columns",
+        "tombstone_gc": "timeout",
+        "size": 35333
+      },
+      {
+        "table": "triggers",
+        "tombstone_gc": "timeout",
+        "size": 35924
+      },
+      {
+        "table": "scylla_keyspaces",
+        "tombstone_gc": "timeout",
+        "size": 35644
+      }
+    ]
+  }
+]

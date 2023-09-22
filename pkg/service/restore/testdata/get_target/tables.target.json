@@ -1,18 +1,20 @@
 {
   "location": [
-    "s3:restoretest-get-target"
+    "s3:restoretest-get-target-units-views"
   ],
   "keyspace": [
-    "my_keyspace.*",
-    "!my_keyspace.my_table",
-    "!system",
-    "!system_schema",
+    "ks1.*",
+    "!ks1.table2",
+    "!system.*",
+    "!system_schema.*",
     "!system_distributed_everywhere.cdc_generation_descriptions_v2",
     "!system_distributed.cdc_streams_descriptions_v2",
     "!system_distributed.cdc_generation_timestamps",
-    "!*.*_scylla_cdc_log"
+    "!*.*_scylla_cdc_log",
+    "!ks1.mv1",
+    "!ks2.si1_index"
   ],
-  "snapshot_tag": "sm_20060102150405UTC",
+  "snapshot_tag": "sm_20230921151320UTC",
   "batch_size": 99,
   "parallel": 98,
   "restore_tables": true,
