@@ -1,0 +1,13 @@
+[
+  {
+    "keyspace": "ks1",
+    "size": 7539036,
+    "tables": [
+      {
+        "table": "table1",
+        "tombstone_gc": "timeout",
+        "size": 7539036
+      }
+    ]
+  }
+]
