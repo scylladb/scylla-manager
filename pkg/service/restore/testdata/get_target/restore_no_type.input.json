@@ -1,6 +1,6 @@
 {
   "location": [
-    "s3:restoretest-get-target-error"
+    "s3:restoretest-get-target-units-views-error"
   ],
   "snapshot_tag": "sm_20060102150405UTC"
 }

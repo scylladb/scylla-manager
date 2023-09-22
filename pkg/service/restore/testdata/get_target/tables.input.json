@@ -1,12 +1,11 @@
 {
   "location": [
-    "s3:restoretest-get-target"
+    "s3:restoretest-get-target-units-views"
   ],
   "keyspace": [
-    "my_keyspace.*",
-    "!my_keyspace.my_table"
+    "ks1.*",
+    "!ks1.table2"
   ],
-  "snapshot_tag": "sm_20060102150405UTC",
   "batch_size": 99,
   "parallel": 98,
   "restore_schema": false,
