@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"path"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -17,17 +16,14 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/multierr"
 )
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
@@ -367,204 +363,6 @@ func (w *worker) cleanUploadDir(ctx context.Context, host, dir string, excluded 
 	return nil
 }
 
-// Docs: https://docs.scylladb.com/stable/cql/ddl.html#tombstones-gc-options.
-type tombstoneGCMode string
-
-const (
-	modeDisabled  tombstoneGCMode = "disabled"
-	modeTimeout   tombstoneGCMode = "timeout"
-	modeRepair    tombstoneGCMode = "repair"
-	modeImmediate tombstoneGCMode = "immediate"
-)
-
-// AlterTableTombstoneGC alters 'tombstone_gc' mode.
-func (w *worker) AlterTableTombstoneGC(ctx context.Context, keyspace, table string, mode tombstoneGCMode) error {
-	w.logger.Info(ctx, "Alter table's tombstone_gc mode",
-		"keyspace", keyspace,
-		"table", table,
-		"mode", mode,
-	)
-
-	op := func() error {
-		return w.clusterSession.ExecStmt(alterTableTombstoneGCStmt(keyspace, table, mode))
-	}
-
-	notify := func(err error, wait time.Duration) {
-		w.logger.Info(ctx, "Altering table's tombstone_gc mode failed",
-			"keyspace", keyspace,
-			"table", table,
-			"mode", mode,
-			"error", err,
-			"wait", wait,
-		)
-	}
-
-	return alterSchemaRetryWrapper(ctx, op, notify)
-}
-
-// DropView drops specified Materialized View or Secondary Index.
-func (w *worker) DropView(ctx context.Context, view View) error {
-	w.logger.Info(ctx, "Dropping view",
-		"keyspace", view.Keyspace,
-		"view", view.View,
-		"type", view.Type,
-	)
-
-	op := func() error {
-		dropStmt := ""
-		switch view.Type {
-		case SecondaryIndex:
-			dropStmt = "DROP INDEX IF EXISTS %s.%s"
-		case MaterializedView:
-			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %s.%s"
-		}
-
-		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, view.View))
-	}
-
-	notify := func(err error, wait time.Duration) {
-		w.logger.Info(ctx, "Dropping view failed",
-			"keyspace", view.Keyspace,
-			"view", view.View,
-			"type", view.Type,
-			"error", err,
-			"wait", wait,
-		)
-	}
-
-	return alterSchemaRetryWrapper(ctx, op, notify)
-}
-
-// CreateView creates specified Materialized View or Secondary Index.
-func (w *worker) CreateView(ctx context.Context, view View) error {
-	w.logger.Info(ctx, "Creating view",
-		"keyspace", view.Keyspace,
-		"view", view.View,
-		"type", view.Type,
-		"statement", view.CreateStmt,
-	)
-
-	op := func() error {
-		return w.clusterSession.ExecStmt(view.CreateStmt)
-	}
-
-	notify := func(err error, wait time.Duration) {
-		w.logger.Info(ctx, "Creating view failed",
-			"keyspace", view.Keyspace,
-			"view", view.View,
-			"type", view.Type,
-			"error", err,
-			"wait", wait,
-		)
-	}
-
-	return alterSchemaRetryWrapper(ctx, op, notify)
-}
-
-func (w *worker) WaitForViewBuilding(ctx context.Context, view View) error {
-	labels := metrics.RestoreViewBuildStatusLabels{
-		ClusterID: w.run.ClusterID.String(),
-		Keyspace:  view.Keyspace,
-		View:      view.View,
-	}
-
-	op := func() error {
-		viewTableName := view.View
-		if view.Type == SecondaryIndex {
-			viewTableName += "_index"
-		}
-
-		status, err := w.client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
-		if err != nil {
-			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusError)
-			return retry.Permanent(err)
-		}
-
-		switch status {
-		case scyllaclient.StatusUnknown:
-			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusUnknown)
-			return fmt.Errorf("current status: %s", status)
-		case scyllaclient.StatusStarted:
-			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusStarted)
-			return fmt.Errorf("current status: %s", status)
-		case scyllaclient.StatusSuccess:
-			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusSuccess)
-		}
-
-		return nil
-	}
-
-	notify := func(err error) {
-		w.logger.Info(ctx, "Waiting for view",
-			"keyspace", view.Keyspace,
-			"view", view.View,
-			"type", view.Type,
-			"error", err,
-		)
-	}
-
-	return indefiniteHangingRetryWrapper(ctx, op, notify)
-}
-
-// alterSchemaRetryWrapper is useful when executing many statements altering schema,
-// as it might take more time for Scylla to process them one after another.
-// This wrapper exits on: success, context cancel, op returned non-timeout error or after maxTotalTime has passed.
-func alterSchemaRetryWrapper(ctx context.Context, op func() error, notify func(err error, wait time.Duration)) error {
-	const (
-		minWait      = 5 * time.Second
-		maxWait      = 1 * time.Minute
-		maxTotalTime = 15 * time.Minute
-		multiplier   = 2
-		jitter       = 0.2
-	)
-	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
-
-	wrappedOp := func() error {
-		err := op()
-		if err == nil || strings.Contains(err.Error(), "timeout") {
-			return err
-		}
-		// All non-timeout errors shouldn't be retried
-		return retry.Permanent(err)
-	}
-
-	return retry.WithNotify(ctx, wrappedOp, backoff, notify)
-}
-
-// GetTableTombstoneGCMode returns table's tombstone_gc mode.
-func (w *worker) GetTableTombstoneGCMode(keyspace, table string) (tombstoneGCMode, error) {
-	var ext map[string]string
-	q := qb.Select("system_schema.tables").
-		Columns("extensions").
-		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
-		Query(w.clusterSession).
-		Bind(keyspace, table)
-
-	defer q.Release()
-	err := q.Scan(&ext)
-	if err != nil {
-		return "", err
-	}
-
-	// Timeout (just using gc_grace_seconds) is the default mode
-	mode, ok := ext["tombstone_gc"]
-	if !ok {
-		return modeTimeout, nil
-	}
-
-	allModes := []tombstoneGCMode{modeDisabled, modeTimeout, modeRepair, modeImmediate}
-	for _, m := range allModes {
-		if strings.Contains(mode, string(m)) {
-			return m, nil
-		}
-	}
-	return "", errors.Errorf("unrecognised tombstone_gc mode: %s", mode)
-}
-
-func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
-	return fmt.Sprintf(`ALTER TABLE %q.%q WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
-}
-
 func (w *worker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
 	w.logger.Info(ctx, "Load SSTables for the first time",
 		"host", host,
@@ -617,6 +415,31 @@ func indefiniteHangingRetryWrapper(ctx context.Context, op func() error, notify 
 			notify(err)
 		}
 	}
+}
+
+// alterSchemaRetryWrapper is useful when executing many statements altering schema,
+// as it might take more time for Scylla to process them one after another.
+// This wrapper exits on: success, context cancel, op returned non-timeout error or after maxTotalTime has passed.
+func alterSchemaRetryWrapper(ctx context.Context, op func() error, notify func(err error, wait time.Duration)) error {
+	const (
+		minWait      = 5 * time.Second
+		maxWait      = 1 * time.Minute
+		maxTotalTime = 15 * time.Minute
+		multiplier   = 2
+		jitter       = 0.2
+	)
+	backoff := retry.NewExponentialBackoff(minWait, maxTotalTime, maxWait, multiplier, jitter)
+
+	wrappedOp := func() error {
+		err := op()
+		if err == nil || strings.Contains(err.Error(), "timeout") {
+			return err
+		}
+		// All non-timeout errors shouldn't be retried
+		return retry.Permanent(err)
+	}
+
+	return retry.WithNotify(ctx, wrappedOp, backoff, notify)
 }
 
 func (w *worker) insertRun(ctx context.Context) {
@@ -792,85 +615,6 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
-}
-
-func (w *worker) forEachManifest(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error {
-	closest := w.client.Config().Hosts
-	hosts, ok := w.target.locationHosts[location]
-	if !ok {
-		return fmt.Errorf("no hosts for location %s", location)
-	}
-
-	var host string
-	for _, h := range closest {
-		if slice.ContainsString(hosts, h) {
-			host = h
-			break
-		}
-	}
-	if host == "" {
-		host = hosts[0]
-	}
-
-	manifests, err := w.getManifestInfo(ctx, host, location)
-	if err != nil {
-		return errors.Wrap(err, "list manifests")
-	}
-
-	// Load manifest content
-	load := func(c *ManifestContentWithIndex, m *ManifestInfo) error {
-		r, err := w.client.RcloneOpen(ctx, host, m.Location.RemotePath(m.Path()))
-		if err != nil {
-			return err
-		}
-		return multierr.Append(c.Read(r), r.Close())
-	}
-
-	for _, m := range manifests {
-		c := new(ManifestContentWithIndex)
-		if err := load(c, m); err != nil {
-			return err
-		}
-
-		err := f(ManifestInfoWithContent{
-			ManifestInfo:             m,
-			ManifestContentWithIndex: c,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// getManifestInfo returns manifests with receiver's snapshot tag for all nodes in the location.
-func (w *worker) getManifestInfo(ctx context.Context, host string, location Location) ([]*ManifestInfo, error) {
-	baseDir := path.Join("backup", string(MetaDirKind))
-	opts := scyllaclient.RcloneListDirOpts{
-		FilesOnly: true,
-		Recurse:   true,
-	}
-
-	var manifests []*ManifestInfo
-	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
-		m := new(ManifestInfo)
-		if err := m.ParsePath(path.Join(baseDir, f.Path)); err != nil {
-			return
-		}
-		m.Location = location
-		if m.SnapshotTag == w.run.SnapshotTag {
-			manifests = append(manifests, m)
-		}
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Ensure deterministic order
-	sort.Slice(manifests, func(i, j int) bool {
-		return manifests[i].NodeID < manifests[j].NodeID
-	})
-	return manifests, nil
 }
 
 func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {
