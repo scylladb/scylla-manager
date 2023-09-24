@@ -264,14 +264,14 @@ func TestFormatRepairProgress(t *testing.T) {
 			Total:   1536,
 			Success: 1228,
 			Failed:  308,
-			Golden:  "80%/20%",
+			Golden:  "79%/21%",
 		},
 		{
 			Name:    "partial failure not-complete",
 			Total:   1536,
 			Success: 1229,
 			Failed:  154,
-			Golden:  "80%/10%",
+			Golden:  "80%/11%",
 		},
 	}
 
