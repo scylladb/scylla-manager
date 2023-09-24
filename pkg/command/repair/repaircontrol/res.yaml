@@ -5,6 +5,9 @@ short: Change parameters while a repair is running
 long: |
   This command allows you to modify repair parameters while a repair is running.
   Note that modified parameters apply only to the currently running task and not to the future task runs.
+  Moreover, this change is applied only to newly created ScyllaDB repair jobs (and to the currently repaired table).
+  This means that all currently running jobs will continue to run with previous parallel/intensity settings,
+  but it shouldn't take much time for them to finish and observe the new behavior.
   For modifying future repair task runs see 'sctool repair update' command.
 
 intensity: |
