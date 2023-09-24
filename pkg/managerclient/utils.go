@@ -79,11 +79,9 @@ func FormatRepairProgress(total, success, failed int64) string {
 	if total == 0 {
 		return "-"
 	}
-	out := fmt.Sprintf("%.f%%",
-		float64(success)*100/float64(total),
-	)
+	out := fmt.Sprintf("%.f%%", math.Floor(float64(success)*100/float64(total)))
 	if failed > 0 {
-		out += fmt.Sprintf("/%.f%%", float64(failed)*100/float64(total))
+		out += fmt.Sprintf("/%.f%%", math.Ceil(float64(failed)*100/float64(total)))
 	}
 	return out
 }
@@ -128,11 +126,9 @@ func FormatUploadProgress(size, uploaded, skipped, failed int64) string {
 		return "100%"
 	}
 	transferred := uploaded + skipped
-	out := fmt.Sprintf("%d%%",
-		transferred*100/size,
-	)
+	out := fmt.Sprintf("%.f%%", math.Floor(float64(transferred)*100/float64(size)))
 	if failed > 0 {
-		out += fmt.Sprintf("/%d%%", failed*100/size)
+		out += fmt.Sprintf("/%.f%%", math.Ceil(float64(failed)*100/float64(size)))
 	}
 	return out
 }
@@ -142,10 +138,10 @@ func FormatRestoreProgress(size, restored, downloaded, failed int64) string {
 	if size == 0 {
 		return "100%"
 	}
-	out := fmt.Sprintf("%d%%", restored*100/size)
-	out += fmt.Sprintf(" | %d%%", downloaded*100/size)
+	out := fmt.Sprintf("%.f%%", math.Floor(float64(restored)*100/float64(size)))
+	out += fmt.Sprintf(" | %.f%%", math.Floor(float64(downloaded)*100/float64(size)))
 	if failed > 0 {
-		out += fmt.Sprintf(" / failed: %d%%", failed*100/size)
+		out += fmt.Sprintf(" / failed: %.f%%", math.Ceil(float64(failed)*100/float64(size)))
 	}
 	return out
 }
