@@ -63,6 +63,8 @@ type Run struct {
 
 	DC        []string
 	Host      string
+	Parallel  int
+	Intensity int
 	PrevID    uuid.UUID
 	StartTime time.Time
 	EndTime   time.Time
