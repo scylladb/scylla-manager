@@ -113,6 +113,8 @@ var (
 			"end_time",
 			"host",
 			"id",
+			"intensity",
+			"parallel",
 			"prev_id",
 			"start_time",
 			"task_id",
