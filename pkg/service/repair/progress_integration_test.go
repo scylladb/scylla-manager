@@ -79,11 +79,12 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 		ctx := context.Background()
 		pm := NewDBProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
-		if err := pm.SetPrevRunID(ctx, 0); err != nil {
-			t.Fatal(err)
+		prevID := uuid.Nil
+		if prev := pm.GetPrevRun(ctx, 0); prev != nil {
+			prevID = prev.ID
 		}
 		Print("When: run progress is initialized with incomplete values")
-		if err := pm.Init(p); err != nil {
+		if err := pm.Init(p, prevID); err != nil {
 			t.Fatal(err)
 		}
 
@@ -257,10 +258,11 @@ func TestProgressManagerIntegration(t *testing.T) {
 
 		Print("And: we update plan")
 		pm := NewDBProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
-		if err := pm.SetPrevRunID(context.Background(), 0); err != nil {
-			t.Fatal(err)
+		prevID := uuid.Nil
+		if prev := pm.GetPrevRun(context.Background(), 0); prev != nil {
+			prevID = prev.ID
 		}
-		if err := pm.Init(p); err != nil {
+		if err := pm.Init(p, prevID); err != nil {
 			t.Fatal(err)
 		}
 		pm.UpdatePlan(p)

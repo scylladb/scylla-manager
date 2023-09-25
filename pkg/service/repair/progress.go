@@ -23,10 +23,10 @@ import (
 // ProgressManager manages state and progress.
 type ProgressManager interface {
 	// Init initializes progress for all tables for all hosts.
-	// Use SetPrevRunID before Init in order to initialize previous run progress and state.
-	Init(plan *plan) error
-	// SetPrevRunID sets ID of the latest initialized, uncompleted and fresh that can be resumed.
-	SetPrevRunID(ctx context.Context, ageMax time.Duration) error
+	// Specify prevID in order to initialize previous run progress and state.
+	Init(plan *plan, prevID uuid.UUID) error
+	// GetPrevRun returns latest initialized, uncompleted and fresh run that can be resumed.
+	GetPrevRun(ctx context.Context, ageMax time.Duration) *Run
 	// OnJobStart must be called when single repair job is started.
 	OnJobStart(ctx context.Context, job job)
 	// OnJobEnd must be called when single repair job is finished.
@@ -77,7 +77,9 @@ func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repa
 	}
 }
 
-func (pm *dbProgressManager) Init(plan *plan) error {
+func (pm *dbProgressManager) Init(plan *plan, prevID uuid.UUID) error {
+	pm.run.PrevID = prevID
+
 	pm.total.Store(0)
 	pm.metrics.SetProgress(pm.run.ClusterID, 0)
 	pm.tableSize = plan.TableSizeMap()
@@ -95,7 +97,7 @@ func (pm *dbProgressManager) Init(plan *plan) error {
 	return pm.initProgress(plan)
 }
 
-func (pm *dbProgressManager) SetPrevRunID(ctx context.Context, ageMax time.Duration) error {
+func (pm *dbProgressManager) GetPrevRun(ctx context.Context, ageMax time.Duration) *Run {
 	q := qb.Select(table.RepairRun.Name()).Where(
 		qb.Eq("cluster_id"),
 		qb.Eq("task_id"),
@@ -106,7 +108,8 @@ func (pm *dbProgressManager) SetPrevRunID(ctx context.Context, ageMax time.Durat
 
 	var runs []*Run
 	if err := q.SelectRelease(&runs); err != nil {
-		return err
+		pm.logger.Info(ctx, "Couldn't query previous run", "error", err)
+		return nil
 	}
 
 	var prev *Run
@@ -130,8 +133,7 @@ func (pm *dbProgressManager) SetPrevRunID(ctx context.Context, ageMax time.Durat
 		return nil
 	}
 
-	pm.run.PrevID = prev.ID
-	return nil
+	return prev
 }
 
 func (pm *dbProgressManager) isRunInitialized(run *Run) bool {
