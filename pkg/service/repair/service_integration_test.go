@@ -68,10 +68,8 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		}
 
 		pm := repair.NewDBProgressManager(r2, session, metrics.NewRepairMetrics(), log.NewDevelopment())
-		if err := pm.SetPrevRunID(context.Background(), 0); err != nil {
-			t.Fatal(err)
-		}
-		if r2.PrevID != uuid.Nil {
+		prev := pm.GetPrevRun(context.Background(), 0)
+		if prev != nil {
 			t.Fatal("expected nil prev run ID")
 		}
 	})
@@ -106,10 +104,8 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		}
 
 		pm := repair.NewDBProgressManager(r2, session, metrics.NewRepairMetrics(), log.NewDevelopment())
-		if err := pm.SetPrevRunID(context.Background(), 0); err != nil {
-			t.Fatal(err)
-		}
-		if r2.PrevID != uuid.Nil {
+		prev := pm.GetPrevRun(context.Background(), 0)
+		if prev != nil {
 			t.Fatal("expected nil prev run ID")
 		}
 	})
@@ -142,10 +138,8 @@ func TestServiceGetLastResumableRunIntegration(t *testing.T) {
 		}
 
 		pm := repair.NewDBProgressManager(r2, session, metrics.NewRepairMetrics(), log.NewDevelopment())
-		if err := pm.SetPrevRunID(context.Background(), 0); err != nil {
-			t.Fatal(err)
-		}
-		if r2.PrevID != r0.ID {
+		prev := pm.GetPrevRun(context.Background(), 0)
+		if prev.ID != r0.ID {
 			t.Fatal("expected r0 run ID")
 		}
 	})

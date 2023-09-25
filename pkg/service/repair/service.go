@@ -220,12 +220,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	pm := NewDBProgressManager(run, s.session, s.metrics, s.logger)
+	prevID := uuid.Nil
 	if target.Continue {
-		if err := pm.SetPrevRunID(ctx, s.config.AgeMax); err != nil {
-			return errors.Wrap(err, "find previous run ID")
+		if prev := pm.GetPrevRun(ctx, s.config.AgeMax); prev != nil {
+			prevID = prev.ID
 		}
 	}
-	if err := pm.Init(target.plan); err != nil {
+	if err := pm.Init(target.plan, prevID); err != nil {
 		return err
 	}
 	pm.UpdatePlan(target.plan)
