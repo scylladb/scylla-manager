@@ -21,16 +21,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/dht"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -262,6 +261,18 @@ func (h *repairTestHelper) progress(node string) (int, int) {
 	}
 
 	return percentComplete(p)
+}
+
+func (h *repairTestHelper) assertParallelIntensity(parallel, intensity int) {
+	h.T.Helper()
+
+	p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
+	if err != nil {
+		h.T.Fatal(err)
+	}
+	if p.Parallel != parallel || int(p.Intensity) != intensity {
+		h.T.Fatalf("Expected parallel %d, intensity %d, got parallel %d, intensity %d", parallel, intensity, p.Parallel, int(p.Intensity))
+	}
 }
 
 func percentComplete(p repair.Progress) (int, int) {
@@ -1398,6 +1409,78 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertProgress(IPFromTestNet("11"), 100, longWait)
 		h.assertProgress(IPFromTestNet("12"), 100, shortWait)
 		h.assertProgress(IPFromTestNet("13"), 100, shortWait)
+	})
+
+	t.Run("repair restart respect repair control", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		props := singleUnit(map[string]any{
+			"parallel":              1,
+			"intensity":             1,
+			"small_table_threshold": -1,
+		})
+		h.runRepair(ctx, props)
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		Print("Then: assert parallel/intensity from properties")
+		h.assertParallelIntensity(1, 1)
+
+		Print("And: control parallel and intensity")
+		if err := h.service.SetParallel(ctx, h.ClusterID, 0); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.service.SetIntensity(ctx, h.ClusterID, 0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: assert parallel/intensity from control")
+		h.assertParallelIntensity(0, 0)
+
+		Print("And: repair is stopped")
+		cancel()
+
+		Print("Then: status is StatusStopped")
+		h.assertStopped(shortWait)
+
+		Print("When: create a new run")
+		h.RunID = uuid.NewTime()
+
+		Print("And: resume repair")
+		ctx = context.Background()
+		h.runRepair(ctx, props)
+
+		Print("Then: resumed repair is running")
+		h.assertRunning(shortWait)
+
+		Print("Then: assert resumed, running parallel/intensity from control")
+		h.assertParallelIntensity(0, 0)
+
+		Print("Then: repair is done")
+		h.assertDone(3 * longWait)
+
+		Print("Then: assert resumed, finished  parallel/intensity from control")
+		h.assertParallelIntensity(0, 0)
+
+		Print("And: run fresh repair")
+		h.RunID = uuid.NewTime()
+		h.runRepair(ctx, props)
+
+		Print("Then: fresh repair is running")
+		h.assertRunning(shortWait)
+
+		Print("Then: assert fresh, running parallel/intensity from properties")
+		h.assertParallelIntensity(1, 1)
+
+		Print("Then: repair is done")
+		h.assertDone(3 * longWait)
+
+		Print("Then: assert fresh, finished repair parallel/intensity from control")
+		h.assertParallelIntensity(1, 1)
 	})
 
 	t.Run("repair restart no continue", func(t *testing.T) {
