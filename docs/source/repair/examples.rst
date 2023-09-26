@@ -176,6 +176,12 @@ Progress of the repair task can be monitored by using the :ref:`sctool progress 
   │ system_auth                   │                          roles │ 0%       │ 0s       │
   ╰───────────────────────────────┴────────────────────────────────┴──────────┴──────────╯
 
-Note that the ``Parallel`` and ``Intensity`` properties are displayed only for a running repair task and include
-changes applied via :ref:`sctool repair control <repair-control>`.
-To check the parameters of not running repair tasks, use :ref:`sctool tasks --show-properties <task-list>`.
+Note that:
+
+  * displayed parallel and intensity account for changes introduce with :ref:`sctool repair control <repair-control>`
+  * when displaying progress of a running task:
+
+    * maximal supported values for parallel and intensity will be displayed (parallel and intensity will be trimmed to them)
+  * when displaying progress of an already finished task:
+
+    * untrimmed parallel and intensity will be displayed
