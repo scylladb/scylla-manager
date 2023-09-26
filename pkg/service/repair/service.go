@@ -387,20 +387,20 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "aggregate progress")
 	}
+	p.Parallel = run.Parallel
+	p.Intensity = float64(run.Intensity)
 
+	// Set max parallel/intensity only for running tasks
 	s.mu.Lock()
 	if ih, ok := s.intensityHandlers[clusterID]; ok {
-		max := 0
-		for _, v := range ih.maxHostIntensity {
-			if max < v {
-				max = v
+		maxI := 0
+		for _, v := range ih.MaxHostIntensity() {
+			if maxI < v {
+				maxI = v
 			}
 		}
-
-		p.MaxIntensity = float64(max)
-		p.Intensity = float64(ih.Intensity())
+		p.MaxIntensity = float64(maxI)
 		p.MaxParallel = ih.MaxParallel()
-		p.Parallel = ih.Parallel()
 	}
 	s.mu.Unlock()
 
