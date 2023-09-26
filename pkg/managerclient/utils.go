@@ -100,6 +100,9 @@ func FormatTotalRepairProgress(successPr, errorPr int64) string {
 
 // FormatRepairParallel return string representation of currently used and maximal parallel value.
 func FormatRepairParallel(parallel, maxParallel int64) string {
+	if maxParallel <= 0 {
+		return fmt.Sprint(parallel)
+	}
 	if parallel > maxParallel {
 		parallel = maxParallel
 	}
@@ -111,6 +114,9 @@ func FormatRepairParallel(parallel, maxParallel int64) string {
 
 // FormatRepairIntensity return string representation of currently used and maximal intensity value.
 func FormatRepairIntensity(intensity, maxIntensity float64) string {
+	if maxIntensity <= 0 {
+		return fmt.Sprint(maxIntensity)
+	}
 	if intensity > maxIntensity {
 		intensity = maxIntensity
 	}
