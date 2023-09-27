@@ -1779,6 +1779,51 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("small table optimisation not on big table", func(t *testing.T) {
+		const (
+			testKeyspace = "test_repair_big_table"
+			testTable    = "test_table_0"
+			tableMBSize  = 5
+
+			repairPath = "/storage_service/repair_async/"
+		)
+
+		Print("Given: big and fully replicated table")
+		ExecStmt(t, clusterSession, "CREATE KEYSPACE "+testKeyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3}")
+		WriteData(t, clusterSession, testKeyspace, tableMBSize, testTable)
+		FlushTable(t, h.Client, ManagedClusterHosts(), testKeyspace, testTable)
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		var repairCalled int32
+		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
+		h.runRepair(ctx, map[string]any{
+			"keyspace":              []string{testKeyspace + "." + testTable},
+			"small_table_threshold": tableMBSize * 1024 * 1024, // Actual table size is always greater because of replication
+		})
+
+		Print("Then: repair is done")
+		h.assertDone(3 * longWait)
+
+		Print("And: more than one repair jobs were scheduled")
+		if repairCalled <= 1 {
+			t.Fatalf("Expected more than 1 repair jobs, got %d", repairCalled)
+		}
+
+		p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
+		if err != nil {
+			h.T.Fatal(err)
+		}
+
+		if p.TokenRanges != p.Success {
+			t.Fatalf("Expected full success, got %d/%d", p.Success, p.TokenRanges)
+		}
+	})
+
 	t.Run("repair status context timeout", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
