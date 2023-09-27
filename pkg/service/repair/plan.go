@@ -221,7 +221,7 @@ func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallT
 		for j := range kp.Tables {
 			kp.Tables[j].Size = tableSize[kp.Keyspace+"."+kp.Tables[j].Table]
 			// Return merged ranges for small, fully replicated table (#3128)
-			if kp.Tables[j].Size <= smallTableThreshold && len(kp.Replicas) == 1 {
+			if kp.Tables[j].Size < smallTableThreshold && len(kp.Replicas) == 1 {
 				kp.Tables[j].Optimize = true
 			}
 		}
