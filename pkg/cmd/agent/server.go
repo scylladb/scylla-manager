@@ -303,7 +303,7 @@ func (s *server) saveDebugProfile(ctx context.Context, profileType string, cnt i
 }
 
 func profilePath(profileType string, cnt int) string {
-	return path.Join("/tmp/pprof/", profileType, fmt.Sprint(cnt))
+	return path.Join("/home/scyllaadm/logs/pprof", profileType, fmt.Sprint(cnt))
 }
 
 func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
