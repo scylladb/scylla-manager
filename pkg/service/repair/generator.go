@@ -126,6 +126,7 @@ func newGenerator(ctx context.Context, target Target,
 				"order", ord,
 				"keyspace", kp.Keyspace,
 				"table", tp.Table,
+				"size", tp.Size,
 				"merge_ranges", tp.Optimize,
 			)
 		}
