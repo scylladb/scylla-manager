@@ -3,6 +3,8 @@
 package metrics
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -12,6 +14,7 @@ type SchedulerMetrics struct {
 	runIndicator *prometheus.GaugeVec
 	runsTotal    *prometheus.GaugeVec
 	lastSuccess  *prometheus.GaugeVec
+	lastDuration *prometheus.GaugeVec
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -26,6 +29,9 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"run_total", "cluster", "type", "task", "status"),
 		lastSuccess: g("Start time of the last successful run as a Unix timestamp.",
 			"last_success", "cluster", "type", "task"),
+		lastDuration: g("Duration of the last successful run in nanoseconds."+
+			" This is a simple difference between end and start time (e.g. the time when the task was paused is also included).",
+			"last_duration", "cluster", "type", "task"),
 	}
 }
 
@@ -35,6 +41,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 		m.runIndicator,
 		m.runsTotal,
 		m.lastSuccess,
+		m.lastDuration,
 	}
 }
 
@@ -65,11 +72,12 @@ func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID 
 }
 
 // EndRun updates "run_indicator", "runs_total", and "last_success".
-func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string, startTime int64) {
+func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string, startTime int64, d time.Duration) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Dec()
 	m.runsTotal.WithLabelValues(clusterID.String(), taskType, taskID.String(), status).Inc()
 	if status == "DONE" {
 		m.lastSuccess.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
+		m.lastDuration.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(d))
 	}
 }
 

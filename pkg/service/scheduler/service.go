@@ -432,7 +432,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if err := s.putRunAndUpdateTask(r); err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix(), r.EndTime.Sub(r.StartTime))
 	}()
 
 	if ctx.Properties.(Properties) == nil {

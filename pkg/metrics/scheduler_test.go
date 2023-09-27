@@ -4,6 +4,7 @@ package metrics
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -34,10 +35,10 @@ func TestSchedulerMetrics(t *testing.T) {
 		m.BeginRun(c, p, t0)
 		m.BeginRun(c, p, t1)
 		m.BeginRun(c, p, t2)
-		m.EndRun(c, p, t0, "DONE", 1645517563)
-		m.EndRun(c, p, t1, "ERROR", 1645517563)
+		m.EndRun(c, p, t0, "DONE", 1645517563, time.Minute)
+		m.EndRun(c, p, t1, "ERROR", 1645517563, 3*time.Minute)
 
-		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess, m.lastDuration)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
