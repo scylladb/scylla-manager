@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -226,7 +226,6 @@ func (s *server) startServers(ctx context.Context) {
 
 func (s *server) runDebugProfileScraper(ctx context.Context, done chan struct{}) {
 	const (
-		profileLimit     = 60
 		profileInterval  = 30 * time.Minute
 		heapProfile      = "heap"
 		allocsProfile    = "allocs"
@@ -234,12 +233,8 @@ func (s *server) runDebugProfileScraper(ctx context.Context, done chan struct{})
 	)
 
 	allProfiles := []string{heapProfile, allocsProfile, goroutineProfile}
-	// Create all required directories
 	for _, p := range allProfiles {
-		if err := os.MkdirAll(path.Dir(profilePath(p, 0)), 0o666); err != nil {
-			s.logger.Error(ctx, "Couldn't create profile directories", "error", err)
-			return
-		}
+		s.logDebugProfile(ctx, p, 0)
 	}
 
 	t := time.NewTicker(profileInterval)
@@ -251,27 +246,14 @@ func (s *server) runDebugProfileScraper(ctx context.Context, done chan struct{})
 			return
 		case <-t.C:
 			for _, p := range allProfiles {
-				// Delete too old profile
-				if cnt > profileLimit {
-					profilePath := profilePath(p, cnt-profileLimit)
-					if err := os.Remove(profilePath); err != nil {
-						s.logger.Error(ctx, "Couldn't delete old profile", "file", profilePath, "error", err)
-					}
-				}
-				// Save new profile
-				if err := s.saveDebugProfile(ctx, p, cnt); err != nil {
-					s.logger.Error(ctx, "Couldn't save new profile", "profile", p, "error", err)
-				} else {
-					s.logger.Info(ctx, "Created profile", "profile", p)
-				}
+				s.logDebugProfile(ctx, p, cnt)
 			}
 		}
 	}
 }
 
-// saveDebugProfile queries agent debug server for given profile
-// and saves it to "/tmp/pprof/<profile-type>/file".
-func (s *server) saveDebugProfile(ctx context.Context, profileType string, cnt int) error {
+// logDebugProfile queries agent debug server for given profile and logs it in bytes format.
+func (s *server) logDebugProfile(ctx context.Context, profileType string, cnt int) {
 	u := url.URL{
 		Scheme: "HTTP",
 		Host:   s.config.Debug,
@@ -280,30 +262,32 @@ func (s *server) saveDebugProfile(ctx context.Context, profileType string, cnt i
 
 	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
-		return errors.Wrap(err, "create request")
+		s.logger.Error(ctx, "Create profile request", "error", err)
+		return
 	}
 
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
-		return errors.Wrap(err, "query profile")
+		s.logger.Error(ctx, "Query profile", "error", err)
+		return
 	}
 	defer resp.Body.Close()
 
-	filePath := profilePath(profileType, cnt)
-	profileFile, err := os.Create(filePath)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "create profile file "+filePath)
+		s.logger.Error(ctx, "Read profile", "error", err)
+		return
 	}
-	defer profileFile.Close()
 
-	if _, err := io.Copy(profileFile, resp.Body); err != nil {
-		return errors.Wrap(err, "save profile "+filePath)
-	}
-	return nil
+	s.logger.Info(ctx, "Obtained profile", "type", profileType, "cnt", cnt, "profile", encodeBytes(body))
 }
 
-func profilePath(profileType string, cnt int) string {
-	return path.Join("/home/scyllaadm/logs/pprof", profileType, fmt.Sprint(cnt))
+func encodeBytes(bs []byte) string {
+	var out []string
+	for _, b := range bs {
+		out = append(out, fmt.Sprint(b))
+	}
+	return fmt.Sprintf("[]byte{%s}", strings.Join(out, ","))
 }
 
 func (s *server) shutdownServers(ctx context.Context, timeout time.Duration) {
