@@ -4,6 +4,7 @@ debug: :5112
 
 logger:
   level: debug
+  sampling: null
 
 s3:
   access_key_id: miniouser
