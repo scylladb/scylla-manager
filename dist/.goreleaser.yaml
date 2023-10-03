@@ -72,7 +72,6 @@ archives:
       - license/LICENSE*
       - scripts
       - systemd
-    rlcp: true
 
 nfpms:
   - id: server
