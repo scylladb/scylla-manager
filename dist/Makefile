@@ -13,7 +13,7 @@ GORELEASER := goreleaser --clean
 .PHONY: release
 release:
 	git tag $(VERSION_NAME) || true
-	$(GORELEASER) --skip-publish --skip-validate
+	$(GORELEASER) --skip=publish --skip=validate
 
 .PHONY: snapshot
 snapshot:
