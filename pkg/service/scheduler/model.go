@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -411,6 +412,13 @@ type Run struct {
 	Owner     string     `json:"owner"`
 	StartTime time.Time  `json:"start_time"`
 	EndTime   *time.Time `json:"end_time,omitempty"`
+}
+
+func (r *Run) currentDuration() time.Duration {
+	if r.EndTime == nil || r.EndTime.IsZero() {
+		return timeutc.Now().Sub(r.StartTime)
+	}
+	return r.EndTime.Sub(r.StartTime)
 }
 
 func newRunFromTaskInfo(ti taskInfo) *Run {

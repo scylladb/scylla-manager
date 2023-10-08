@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-set/b16set"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	gocqlxTable "github.com/scylladb/gocqlx/v2/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler/trigger"
@@ -432,7 +433,16 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if err := s.putRunAndUpdateTask(r); err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix(), r.EndTime.Sub(r.StartTime))
+
+		startTime := r.StartTime
+		duration := r.EndTime.Sub(r.StartTime)
+		if fullStartTime, fullDuration, err := s.FullRunStartTimeAndDuration(r); err != nil {
+			logger.Error(runCtx, "Cannot calculate full run time", "task", ti, "run", r, "error", err)
+		} else {
+			startTime = fullStartTime
+			duration = fullDuration
+		}
+		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), startTime.Unix(), duration)
 	}()
 
 	if ctx.Properties.(Properties) == nil {
@@ -449,6 +459,62 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		ctx.Properties = p
 	}
 	return s.mustRunner(ti.TaskType).Run(runCtx, ti.ClusterID, ti.TaskID, r.ID, ctx.Properties.(Properties))
+}
+
+// FullRunStartTimeAndDuration accumulates start time and duration of interrupted run execution.
+// It is done only for longer tasks (backup/restore/repair) based on their run's prevID field.
+func (s *Service) FullRunStartTimeAndDuration(r *Run) (time.Time, time.Duration, error) {
+	var t *gocqlxTable.Table
+	switch r.Type {
+	case BackupTask:
+		t = table.BackupRun
+	case RestoreTask:
+		t = table.RestoreRun
+	case RepairTask:
+		t = table.RepairRun
+	default:
+		return r.StartTime, r.currentDuration(), nil
+	}
+
+	var (
+		schedQ    = table.SchedulerTaskRun.GetQuery(s.session, "start_time", "end_time")
+		taskQ     = t.GetQuery(s.session, "prev_id")
+		runID     = r.ID
+		startTime = r.StartTime
+		endTime   = r.EndTime
+		d         = r.currentDuration()
+	)
+	defer func() {
+		schedQ.Release()
+		taskQ.Release()
+	}()
+
+	for {
+		taskQ = taskQ.BindMap(qb.M{
+			"cluster_id": r.ClusterID,
+			"task_id":    r.TaskID,
+			"id":         runID,
+		})
+		if err := taskQ.Scan(&runID); err != nil {
+			return time.Time{}, 0, errors.Wrap(err, "query previous task ID")
+		}
+
+		if runID == uuid.Nil {
+			return startTime, d, nil
+		}
+
+		schedQ.BindMap(qb.M{
+			"cluster_id": r.ClusterID,
+			"type":       r.Type,
+			"task_id":    r.TaskID,
+			"id":         runID,
+		})
+		if err := schedQ.Scan(&startTime, &endTime); err != nil {
+			return time.Time{}, 0, errors.Wrap(err, "query task duration")
+		}
+
+		d += endTime.Sub(startTime)
+	}
 }
 
 func (s *Service) putRunAndUpdateTask(r *Run) error {
@@ -481,7 +547,12 @@ func (s *Service) updateTaskWithRun(r *Run) error {
 
 		u = b.Set("success_count", "last_success").Query(s.session)
 		t.SuccessCount++
-		t.LastSuccess = r.EndTime
+
+		fullStartTime, _, err := s.FullRunStartTimeAndDuration(r)
+		if err != nil {
+			return errors.Wrap(err, "get full run time")
+		}
+		t.LastSuccess = &fullStartTime
 	case StatusError:
 		q := table.SchedulerTask.GetQuery(s.session, "error_count").BindStruct(&t)
 		if err := q.GetRelease(&t); err != nil {
@@ -490,7 +561,12 @@ func (s *Service) updateTaskWithRun(r *Run) error {
 
 		u = b.Set("error_count", "last_error").Query(s.session)
 		t.ErrorCount++
-		t.LastError = r.EndTime
+
+		fullStartTime, _, err := s.FullRunStartTimeAndDuration(r)
+		if err != nil {
+			return errors.Wrap(err, "get full run time")
+		}
+		t.LastError = &fullStartTime
 	default:
 		u = b.Query(s.session)
 	}
