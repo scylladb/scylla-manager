@@ -19,7 +19,9 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -182,6 +184,22 @@ func (h *schedulerTestHelper) getStatus(task *scheduler.Task) scheduler.Status {
 		h.t.Fatal(err)
 	}
 	return r.Status
+}
+
+func (h *schedulerTestHelper) getLastStartTimeAndDuration(task *scheduler.Task) (time.Time, time.Duration) {
+	h.t.Helper()
+	r, err := h.service.GetLastRun(task)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			return time.Time{}, 0
+		}
+		h.t.Fatal(err)
+	}
+	startTime, d, err := h.service.FullRunStartTimeAndDuration(r)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	return startTime, d
 }
 
 func (h *schedulerTestHelper) close() {
@@ -989,6 +1007,76 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: scheduler reports not suspended status")
 		if h.service.IsSuspended(ctx, h.clusterID) {
 			t.Fatal("Expected resumed")
+		}
+	})
+
+	t.Run("paused task start time and duration", func(t *testing.T) {
+		var (
+			h           = newSchedTestHelper(t, session)
+			ctx         = context.Background()
+			past        = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+			taskType    = scheduler.RepairTask
+			runCnt      = 4
+			runTime     = 100 * time.Millisecond
+			runInterval = time.Second
+		)
+		defer h.close()
+
+		Print("Then: put scheduler task")
+		repairTask := scheduler.Task{
+			ClusterID: h.clusterID,
+			Type:      taskType,
+			ID:        uuid.NewTime(),
+			Enabled:   true,
+			Sched:     scheduler.Schedule{StartDate: now()},
+		}
+		if err := h.service.PutTask(ctx, &repairTask); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: put scheduler task runs")
+		var runs []scheduler.Run
+		for i := 0; i < runCnt; i++ {
+			r := scheduler.Run{
+				ClusterID: repairTask.ClusterID,
+				Type:      taskType,
+				TaskID:    repairTask.ID,
+				ID:        uuid.NewTime(),
+				StartTime: past,
+				EndTime:   pointer.TimePtr(past.Add(runTime)),
+			}
+
+			if err := table.SchedulerTaskRun.InsertQuery(h.session).BindStruct(r).ExecRelease(); err != nil {
+				h.t.Fatal(err)
+			}
+			runs = append(runs, r)
+			past = past.Add(runInterval)
+		}
+
+		Print("Then: put repair task runs")
+		for i := 0; i < runCnt; i++ {
+			r := repair.Run{
+				ClusterID: runs[i].ClusterID,
+				TaskID:    runs[i].TaskID,
+				ID:        runs[i].ID,
+			}
+			if i > 0 {
+				r.PrevID = runs[i-1].ID
+			}
+
+			if err := table.RepairRun.InsertQuery(h.session).BindStruct(r).ExecRelease(); err != nil {
+				h.t.Fatal(err)
+			}
+		}
+
+		Print("Then: validate accumulated start time and duration")
+		startTime, d := h.getLastStartTimeAndDuration(&repairTask)
+		if diff := cmp.Diff(runs[0].StartTime, startTime); diff != "" {
+			h.t.Fatalf("expected start time %v, got %v, diff %v", runs[0].StartTime, startTime, diff)
+		}
+		expectedDuration := time.Duration(runCnt) * runTime
+		if diff := cmp.Diff(expectedDuration, d); diff != "" {
+			h.t.Fatalf("expected duration %v, got %v, diff %v", expectedDuration, d, diff)
 		}
 	})
 }
