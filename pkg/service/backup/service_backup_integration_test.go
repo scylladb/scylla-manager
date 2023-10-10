@@ -150,6 +150,12 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 	return s
 }
 
+func defaultConfig() backup.Config {
+	c := backup.DefaultConfig()
+	c.DiskSpaceFreeMinPercent = 5
+	return c
+}
+
 func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
 	h.T.Helper()
 	opts := &scyllaclient.RcloneListDirOpts{
@@ -379,7 +385,7 @@ func TestGetTargetIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -485,7 +491,7 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -511,7 +517,7 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 func TestGetLastResumableRunIntegration(t *testing.T) {
 	const testBucket = "backuptest-void"
 
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session = CreateScyllaManagerDBSession(t)
@@ -628,7 +634,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -858,7 +864,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -919,7 +925,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1216,7 +1222,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1308,7 +1314,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1382,7 +1388,7 @@ func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1436,7 +1442,7 @@ func TestPurgeIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1586,7 +1592,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1650,7 +1656,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -1816,7 +1822,7 @@ func TestGetValidationTargetErrorIntegration(t *testing.T) {
 
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, backup.DefaultConfig(), s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -1846,7 +1852,7 @@ func TestValidateIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
@@ -2030,7 +2036,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session         = CreateScyllaManagerDBSession(t)
@@ -2166,7 +2172,7 @@ func TestBackupListIntegration(t *testing.T) {
 	)
 
 	location := s3Location(testBucket)
-	config := backup.DefaultConfig()
+	config := defaultConfig()
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
