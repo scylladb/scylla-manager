@@ -1,6 +1,6 @@
 # You can set these variables from the command line.
 POETRY        := poetry
-SPHINXOPTS    :=
+SPHINXOPTS    := -j auto
 SPHINXBUILD   := $(POETRY) run sphinx-build
 PAPER         :=
 BUILDDIR      := _build
