@@ -565,8 +565,17 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		close(errCh)
 	}()
 
-	timer := time.NewTimer(c.config.ListTimeout)
+	// Rclone filters versioned files on its side.
+	// Since the amount of versioned files is little (usually 0),
+	// the timer won't be refreshed even though rclone is correctly iterating over
+	// remote files. To solve that, we use the MaxTimeout instead of the usual ListTimeout (#3615).
+	resetTimeout := c.config.ListTimeout
+	if listOpts.VersionedOnly {
+		resetTimeout = c.config.MaxTimeout
+	}
+	timer := time.NewTimer(resetTimeout)
 	defer timer.Stop()
+
 	for {
 		select {
 		case err, ok := <-errCh:
@@ -576,7 +585,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 			if err != nil {
 				return err
 			}
-			timer.Reset(c.config.ListTimeout)
+			timer.Reset(resetTimeout)
 		case <-timer.C:
 			return errors.Errorf("rclone list dir timeout")
 		}
