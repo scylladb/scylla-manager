@@ -8,7 +8,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY scylla-manager-*$ARCH.deb /
+COPY release/scylla-manager-*$ARCH.deb /
 RUN dpkg -i scylla-manager-*$ARCH.deb && rm /scylla-manager-*.deb
 COPY docker/scylla-manager.yaml /etc/scylla-manager/
 
