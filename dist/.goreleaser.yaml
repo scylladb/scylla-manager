@@ -12,6 +12,7 @@ changelog:
 
 snapshot:
     name_template: '{{ .Version }}-SNAPSHOT'
+
 builds:
   - id: server
     dir: ../pkg
@@ -228,22 +229,6 @@ nfpms:
           postinstall: rpm/scylla-manager-agent.postinst
           preremove: rpm/scylla-manager-agent.prerm
           postremove: rpm/scylla-manager-agent.postrm
-
-dockers:
-  - ids:
-      - server
-      - client
-    image_templates:
-      - "scylladb/scylla-manager:{{ .Version }}"
-    dockerfile: docker/scylla-manager.dockerfile
-    extra_files:
-      - docker/scylla-manager.yaml
-
-  - ids:
-      - agent
-    image_templates:
-      - "scylladb/scylla-manager-agent:{{ .Version }}"
-    dockerfile: docker/scylla-manager-agent.dockerfile
 
 checksum:
   name_template: 'checksums'
