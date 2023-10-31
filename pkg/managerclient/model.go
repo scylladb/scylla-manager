@@ -694,10 +694,8 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{- end }}
 {{- with .Progress }}
 Progress:	{{ FormatTotalRepairProgress .SuccessPercentage .ErrorPercentage }}
-{{- if isRunning }}
 Intensity:	{{ FormatRepairIntensity .Intensity .MaxIntensity }}
 Parallel:	{{ FormatRepairParallel .Parallel .MaxParallel }}
-{{- end }}
 {{ if .Host }}Host:	{{ .Host }}
 {{ end -}}
 {{ if .Dcs }}Datacenters:	{{ range .Dcs }}
@@ -712,7 +710,6 @@ Progress:	-
 func (rp RepairProgress) addHeader(w io.Writer) error {
 	temp := template.Must(template.New("repair_progress").Funcs(template.FuncMap{
 		"isZero":                    isZero,
-		"isRunning":                 rp.isRunning,
 		"FormatTime":                FormatTime,
 		"FormatDuration":            FormatDuration,
 		"FormatError":               FormatError,
@@ -722,10 +719,6 @@ func (rp RepairProgress) addHeader(w io.Writer) error {
 		"FormatRepairParallel":      FormatRepairParallel,
 	}).Parse(repairProgressTemplate))
 	return temp.Execute(w, rp)
-}
-
-func (rp RepairProgress) isRunning() bool {
-	return rp.Run.Status == TaskStatusRunning
 }
 
 func (rp RepairProgress) addRepairTableProgress(d *table.Table) {
