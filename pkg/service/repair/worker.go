@@ -13,8 +13,6 @@ import (
 )
 
 type worker struct {
-	in     <-chan job
-	out    chan<- jobResult
 	client *scyllaclient.Client
 	// Marks tables for which handleRunningStatus didn't have any effect.
 	// We want to limit the usage of handleRunningStatus to once per table
@@ -24,37 +22,18 @@ type worker struct {
 	logger     log.Logger
 }
 
-// Run starts worker which awaits repair jobs and performs them.
-// All encountered errors (except for ctx errors) are reported to generator.
-func (w *worker) Run(ctx context.Context) {
-	w.logger.Info(ctx, "Start")
-	defer w.logger.Info(ctx, "Done")
-
-	for {
-		if ctx.Err() != nil {
-			return
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case j, ok := <-w.in:
-			if !ok {
-				return
-			}
-
-			w.progress.OnJobStart(ctx, j)
-			r := jobResult{
-				job: j,
-				err: w.runRepair(ctx, j),
-			}
-
-			if ctx.Err() != nil {
-				return
-			}
-			w.progress.OnJobEnd(ctx, r)
-			w.out <- r
-		}
+func (w *worker) HandleJob(ctx context.Context, j job) jobResult {
+	w.progress.OnJobStart(ctx, j)
+	r := jobResult{
+		job: j,
+		err: w.runRepair(ctx, j),
 	}
+	w.progress.OnJobEnd(ctx, r)
+	return r
+}
+
+func (w *worker) Done(ctx context.Context) {
+	w.logger.Info(ctx, "Done")
 }
 
 var errTableDeleted = errors.New("table deleted during repair")

@@ -2,8 +2,6 @@
 
 package repair
 
-import "math"
-
 // controller informs generator about the amount of ranges that can be repaired
 // on a given replica set. Returns 0 ranges when repair shouldn't be scheduled.
 type controller interface {
@@ -12,12 +10,19 @@ type controller interface {
 	Busy() bool
 }
 
+type intensityChecker interface {
+	Intensity() int
+	Parallel() int
+	MaxParallel() int
+	ReplicaSetMaxIntensity(replicaSet []string) int
+}
+
 // rowLevelRepairController is a specialised controller for row-level repair.
 // It allows for at most '--parallel' repair jobs running in the cluster and
 // at most one job running on every node at any time.
 // It always returns either 0 or '--intensity' ranges.
 type rowLevelRepairController struct {
-	intensity *intensityHandler
+	intensity intensityChecker
 
 	jobsCnt  int            // Total amount of repair jobs in the cluster
 	nodeJobs map[string]int // Amount of repair jobs on a given node
@@ -25,9 +30,9 @@ type rowLevelRepairController struct {
 
 var _ controller = &rowLevelRepairController{}
 
-func newRowLevelRepairController(ih *intensityHandler) *rowLevelRepairController {
+func newRowLevelRepairController(i intensityChecker) *rowLevelRepairController {
 	return &rowLevelRepairController{
-		intensity: ih,
+		intensity: i,
 		nodeJobs:  make(map[string]int),
 	}
 }
@@ -39,7 +44,7 @@ func (c *rowLevelRepairController) TryBlock(replicaSet []string) int {
 	c.block(replicaSet)
 
 	i := c.intensity.Intensity()
-	if max := c.replicaMaxRanges(replicaSet); i == maxIntensity || max < i {
+	if max := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || max < i {
 		i = max
 	}
 	return i
@@ -71,17 +76,6 @@ func (c *rowLevelRepairController) block(replicaSet []string) {
 	for _, r := range replicaSet {
 		c.nodeJobs[r]++
 	}
-}
-
-func (c *rowLevelRepairController) replicaMaxRanges(replicaSet []string) int {
-	min := math.MaxInt
-	maxRanges := c.intensity.MaxHostIntensity()
-	for _, rep := range replicaSet {
-		if ranges := maxRanges[rep]; ranges < min {
-			min = ranges
-		}
-	}
-	return min
 }
 
 func (c *rowLevelRepairController) Unblock(replicaSet []string) {
