@@ -55,6 +55,12 @@ func (ms masterSelector) Select(replicas []string) string {
 	return master
 }
 
+type submitter[T, R any] interface {
+	Submit(task T)
+	Results() chan R
+	Close()
+}
+
 type job struct {
 	keyspace   string
 	table      string
@@ -100,10 +106,8 @@ type generator struct {
 	logger   log.Logger
 	failFast bool
 
-	// Jobs for workers.
-	next chan job
-	// Job results from workers.
-	result chan jobResult
+	// Responsible for submitting jobs and receiving results.
+	submitter submitter[job, jobResult]
 	// Determines if generator should keep on generating new jobs.
 	stop atomic.Bool
 
@@ -114,8 +118,8 @@ type generator struct {
 	lastPercent int
 }
 
-func newGenerator(ctx context.Context, target Target,
-	client *scyllaclient.Client, ih *intensityHandler, logger log.Logger,
+func newGenerator(ctx context.Context, target Target, client *scyllaclient.Client,
+	i intensityChecker, s submitter[job, jobResult], logger log.Logger,
 ) (*generator, error) {
 	var ord, cnt int
 	for _, kp := range target.plan.Keyspaces {
@@ -152,13 +156,12 @@ func newGenerator(ctx context.Context, target Target,
 
 	return &generator{
 		plan:        target.plan,
-		ctl:         newRowLevelRepairController(ih),
+		ctl:         newRowLevelRepairController(i),
 		ms:          newMasterSelector(shards, status.HostDC(), closestDC),
 		client:      client,
-		next:        make(chan job, target.plan.MaxParallel),
-		result:      make(chan jobResult, target.plan.MaxParallel),
 		logger:      logger,
 		failFast:    target.FailFast,
+		submitter:   s,
 		count:       cnt,
 		lastPercent: -1,
 	}, nil
@@ -180,7 +183,7 @@ func (g *generator) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			running = false
-		case r := <-g.result:
+		case r := <-g.submitter.Results():
 			g.processResult(ctx, r)
 			g.generateJobs()
 			if g.shouldExit() {
@@ -190,7 +193,7 @@ func (g *generator) Run(ctx context.Context) error {
 	}
 
 	g.logger.Info(ctx, "Close generator")
-	close(g.next) // Free workers waiting on next
+	g.submitter.Close() // Free workers waiting on next
 
 	// Don't return ctx error as graceful ctx is handled from service level
 	if g.failed > 0 {
@@ -200,6 +203,11 @@ func (g *generator) Run(ctx context.Context) error {
 }
 
 func (g *generator) processResult(ctx context.Context, r jobResult) {
+	// Don't record context errors
+	if errors.Is(r.err, context.Canceled) {
+		return
+	}
+
 	if r.err != nil && errors.Is(r.err, errTableDeleted) {
 		g.logger.Info(ctx, "Detected table deletion", "keyspace", r.keyspace, "table", r.table)
 		g.plan.MarkDeleted(r.keyspace, r.table)
@@ -229,12 +237,7 @@ func (g *generator) generateJobs() {
 		if !ok {
 			return
 		}
-
-		select {
-		case g.next <- j:
-		default:
-			panic("next is full")
-		}
+		g.submitter.Submit(j)
 	}
 }
 
