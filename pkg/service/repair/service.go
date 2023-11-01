@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -25,9 +26,9 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/workerpool"
 	"go.uber.org/atomic"
 	"go.uber.org/multierr"
-	"golang.org/x/sync/errgroup"
 )
 
 // Service orchestrates cluster repairs.
@@ -237,9 +238,26 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	pm.UpdatePlan(target.plan)
 	s.putRunLogError(ctx, run)
 
+	gracefulCtx, cancel := context.WithCancel(context.Background())
+	gracefulCtx = log.CopyTraceID(gracefulCtx, ctx)
+	defer cancel()
+
+	// Create worker pool
+	workers := workerpool.New[*worker, job, jobResult](gracefulCtx, func(ctx context.Context, i int) *worker {
+		return &worker{
+			client:     client,
+			stopTrying: make(map[string]struct{}),
+			progress:   pm,
+			logger:     s.logger.Named(fmt.Sprintf("worker %d", i)),
+		}
+	}, chanSize)
+
+	// Give intensity handler the ability to set pool size
 	ih, cleanup := s.newIntensityHandler(ctx, clusterID, taskID, runID,
-		target.plan.MaxHostIntensity, target.plan.MaxParallel)
+		target.plan.MaxHostIntensity, target.plan.MaxParallel, workers)
 	defer cleanup()
+
+	// Set controlled parameters
 	if err := s.SetParallel(ctx, clusterID, run.Parallel); err != nil {
 		return errors.Wrap(err, "set initial parallel")
 	}
@@ -247,43 +265,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "set initial intensity")
 	}
 
-	gen, err := newGenerator(ctx, target, client, ih, s.logger)
+	// Give generator the ability to read parallel/intensity and
+	// to submit and receive results from worker pool.
+	gen, err := newGenerator(ctx, target, client, ih, workers, s.logger)
 	if err != nil {
 		return errors.Wrap(err, "create generator")
 	}
 
-	hosts := target.plan.Hosts()
-	if active, err := client.ActiveRepairs(ctx, hosts); err != nil {
-		s.logger.Error(ctx, "Active repair check failed", "error", err)
-	} else if len(active) > 0 {
-		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
-	}
-
-	// Both generator and workers use graceful ctx.
-	gracefulCtx, cancel := context.WithCancel(context.Background())
-	gracefulCtx = log.CopyTraceID(gracefulCtx, ctx)
 	done := make(chan struct{}, 1)
-
-	var eg errgroup.Group
-	for i := 0; i < ih.MaxParallel(); i++ {
-		i := i
-		eg.Go(func() error {
-			w := &worker{
-				in:         gen.next,
-				out:        gen.result,
-				client:     client,
-				stopTrying: make(map[string]struct{}),
-				progress:   pm,
-				logger:     s.logger.Named(fmt.Sprintf("worker %d", i)),
-			}
-			w.Run(gracefulCtx)
-			return nil
-		})
-	}
-	eg.Go(func() error {
-		return gen.Run(gracefulCtx)
-	})
-
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -295,7 +284,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}()
 
-	if err = eg.Wait(); (err != nil && target.FailFast) || ctx.Err() != nil {
+	hosts := target.plan.Hosts()
+	if active, err := client.ActiveRepairs(ctx, hosts); err != nil {
+		s.logger.Error(ctx, "Active repair check failed", "error", err)
+	} else if len(active) > 0 {
+		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
+	}
+
+	if err = gen.Run(gracefulCtx); (err != nil && target.FailFast) || ctx.Err() != nil {
 		s.killAllRepairs(ctx, client, hosts)
 	}
 	close(done)
@@ -322,7 +318,7 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 }
 
 func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, runID uuid.UUID,
-	maxHostIntensity map[string]int, maxParallel int,
+	maxHostIntensity map[string]int, maxParallel int, poolController sizeSetter,
 ) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
 		taskID:           taskID,
@@ -332,6 +328,7 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, ru
 		intensity:        &atomic.Float64{},
 		maxParallel:      maxParallel,
 		parallel:         &atomic.Int64{},
+		poolController:   poolController,
 	}
 
 	s.mu.Lock()
@@ -455,6 +452,10 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 	return errors.Wrap(err, "update db")
 }
 
+type sizeSetter interface {
+	SetSize(size int)
+}
+
 type intensityHandler struct {
 	taskID           uuid.UUID
 	runID            uuid.UUID
@@ -463,12 +464,14 @@ type intensityHandler struct {
 	intensity        *atomic.Float64
 	maxParallel      int
 	parallel         *atomic.Int64
+	poolController   sizeSetter
 }
 
 const (
 	maxIntensity     = 0
 	defaultIntensity = 1
 	defaultParallel  = 0
+	chanSize         = 10000
 )
 
 // SetIntensity sets the value of '--intensity' flag.
@@ -490,7 +493,22 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) error 
 
 	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
 	i.parallel.Store(int64(parallel))
+	if parallel == defaultParallel {
+		i.poolController.SetSize(i.maxParallel)
+	} else {
+		i.poolController.SetSize(parallel)
+	}
 	return nil
+}
+
+func (i *intensityHandler) ReplicaSetMaxIntensity(replicaSet []string) int {
+	out := math.MaxInt
+	for _, rep := range replicaSet {
+		if ranges := i.maxHostIntensity[rep]; ranges < out {
+			out = ranges
+		}
+	}
+	return out
 }
 
 // MaxHostIntensity returns max_token_ranges_in_parallel per host.

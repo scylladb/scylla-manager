@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/workerpool"
 	"go.uber.org/atomic"
 )
 
@@ -35,6 +36,9 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 			intensity:        atomic.NewFloat64(defaultIntensity),
 			maxParallel:      3,
 			parallel:         atomic.NewInt64(defaultParallel),
+			poolController: workerpool.New[*worker, job, jobResult](context.Background(), func(ctx context.Context, id int) *worker {
+				return &worker{}
+			}, 1024),
 		}
 	}
 
