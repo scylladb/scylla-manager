@@ -180,7 +180,7 @@ services:
     image: minio/minio:${MINIO_VERSION}
     privileged: true
     user: ${CURRENT_UID}:${CURRENT_GID}
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":9001" --certs-dir=/.minio
     environment:
       MINIO_REGION: ${MINIO_REGION}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -189,6 +189,9 @@ services:
       - type: bind
         source: ${MINIO_DATA_DIR}
         target: /data
+      - type: bind
+        source: ${MINIO_CERT_DIR}
+        target: /.minio
     ports:
       - "9000:9000"
       - "9001:9001"

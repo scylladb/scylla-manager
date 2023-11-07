@@ -12,18 +12,20 @@ CURRENT_GID  := $(shell id -g)
 SCYLLA_VERSION?=5.1.13
 IP_FAMILY?=IPV4
 
-MINIO_ENDPOINT := http://192.168.200.99:9000
+MINIO_ENDPOINT := https://192.168.200.99:9000
 COMPOSE_FILE := docker-compose-ipv4.yaml
 AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent.yaml
 PUBLIC_NET := 192.168.100.
 SECOND_NET := 192.168.200.
+MINIO_CERT_DIR := ./minio/certs_ipv4
 
 ifeq ($(IP_FAMILY), IPV6)
-	MINIO_ENDPOINT := http://[2001:0DB9:200::99]:9000
+	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 	COMPOSE_FILE := docker-compose-ipv6.yaml
 	AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:100::
 	SECOND_NET := 2001:0DB9:200::
+	MINIO_CERT_DIR := ./minio/certs_ipv6
 endif
 
 SCYLLA_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)11,$(SECOND_NET)21
@@ -32,6 +34,7 @@ SCYLLA_SECOND_CLUSTER_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)31
 export SCYLLA_ARGS
 export SCYLLA_SECOND_CLUSTER_ARGS
 export MINIO_ENDPOINT
+export MINIO_CERT_DIR
 
 include .env
 
@@ -89,7 +92,7 @@ endif
 
 	@./nodes_exec "rm /root/.cqlshrc || true"
 	@echo "==> Adding Minio user"
-	./minio/add_user.sh
+	./minio/add_user.sh || true
 	@echo "==> Initialising cluster"
 	@$(CQLSH_NODE) $(PUBLIC_NET)11 -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
 
@@ -134,6 +137,12 @@ drop-keyspace: ## Drop Scylla Manager keyspace
 deploy-agent: ## Update agent to the latest build on all nodes
 	@./nodes_cp ../scylla-manager-agent.dev /usr/bin/scylla-manager-agent
 	@./nodes_cp $(AGENT_CONFIG) /etc/scylla-manager-agent/scylla-manager-agent.yaml
+ifeq ($(IP_FAMILY), IPV6)
+	@./nodes_cp minio/certs_ipv6/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt
+else
+	@./nodes_cp minio/certs_ipv4/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt
+endif
+	@./nodes_exec "sudo update-ca-certificates"
 
 .PHONY: restart-agent
 restart-agent: ## Restart agent on all nodes

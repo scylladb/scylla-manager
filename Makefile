@@ -21,11 +21,11 @@ IP_FAMILY?=IPV4
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
-MINIO_ENDPOINT := http://192.168.200.99:9000
+MINIO_ENDPOINT := https://192.168.200.99:9000
 ifeq ($(IP_FAMILY), IPV6)
 	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:200::
-	MINIO_ENDPOINT := http://[2001:0DB9:200::99]:9000
+	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 endif
 
 .PHONY: fmt
