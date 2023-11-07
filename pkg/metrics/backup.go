@@ -4,6 +4,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -16,6 +17,17 @@ type BackupMetrics struct {
 	filesFailedBytes   *prometheus.GaugeVec
 	purgeFiles         *prometheus.GaugeVec
 	purgeDeletedFiles  *prometheus.GaugeVec
+
+	alloc        *prometheus.GaugeVec
+	frees        *prometheus.GaugeVec
+	heapIdle     *prometheus.GaugeVec
+	heapInuse    *prometheus.GaugeVec
+	heapReleased *prometheus.GaugeVec
+	heapSys      *prometheus.GaugeVec
+	mallocs      *prometheus.GaugeVec
+	otherSys     *prometheus.GaugeVec
+	sys          *prometheus.GaugeVec
+	totalAlloc   *prometheus.GaugeVec
 }
 
 func NewBackupMetrics() BackupMetrics {
@@ -36,6 +48,16 @@ func NewBackupMetrics() BackupMetrics {
 			"purge_files", "cluster", "host"),
 		purgeDeletedFiles: g("Number of files that were deleted.",
 			"purge_deleted_files", "cluster", "host"),
+		alloc:        g("Alloc.", "alloc", "cluster", "host"),
+		frees:        g("Frees.", "frees", "cluster", "host"),
+		heapIdle:     g("HeapIdle.", "heap_idle", "cluster", "host"),
+		heapInuse:    g("HeapInuse.", "heap_inuse", "cluster", "host"),
+		heapReleased: g("HeapReleased.", "heap_released", "cluster", "host"),
+		heapSys:      g("HeapSys.", "heap_sys", "cluster", "host"),
+		mallocs:      g("Mallocs.", "mallocs", "cluster", "host"),
+		otherSys:     g("OtherSys.", "other_sys", "cluster", "host"),
+		sys:          g("Sys.", "sys", "cluster", "host"),
+		totalAlloc:   g("TotalAlloc.", "total_alloc", "cluster", "host"),
 	}
 }
 
@@ -54,6 +76,17 @@ func (m BackupMetrics) all() []prometheus.Collector {
 		m.filesFailedBytes,
 		m.purgeFiles,
 		m.purgeDeletedFiles,
+
+		m.alloc,
+		m.frees,
+		m.heapIdle,
+		m.heapInuse,
+		m.heapReleased,
+		m.heapSys,
+		m.mallocs,
+		m.otherSys,
+		m.sys,
+		m.totalAlloc,
 	}
 }
 
@@ -96,4 +129,18 @@ func (m BackupMetrics) SetFilesProgress(clusterID uuid.UUID, keyspace, table, ho
 func (m BackupMetrics) SetPurgeFiles(clusterID uuid.UUID, host string, total, deleted int) {
 	m.purgeFiles.WithLabelValues(clusterID.String(), host).Set(float64(total))
 	m.purgeDeletedFiles.WithLabelValues(clusterID.String(), host).Set(float64(deleted))
+}
+
+// SetMemStats sets all agent memory metrics.
+func (m BackupMetrics) SetMemStats(clusterID uuid.UUID, host string, stats models.MemStats) {
+	m.alloc.WithLabelValues(clusterID.String(), host).Set(float64(stats.Alloc))
+	m.frees.WithLabelValues(clusterID.String(), host).Set(float64(stats.Frees))
+	m.heapIdle.WithLabelValues(clusterID.String(), host).Set(float64(stats.HeapIdle))
+	m.heapInuse.WithLabelValues(clusterID.String(), host).Set(float64(stats.HeapInuse))
+	m.heapReleased.WithLabelValues(clusterID.String(), host).Set(float64(stats.HeapReleased))
+	m.heapSys.WithLabelValues(clusterID.String(), host).Set(float64(stats.HeapSys))
+	m.mallocs.WithLabelValues(clusterID.String(), host).Set(float64(stats.Mallocs))
+	m.otherSys.WithLabelValues(clusterID.String(), host).Set(float64(stats.OtherSys))
+	m.sys.WithLabelValues(clusterID.String(), host).Set(float64(stats.Sys))
+	m.totalAlloc.WithLabelValues(clusterID.String(), host).Set(float64(stats.TotalAlloc))
 }

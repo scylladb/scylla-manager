@@ -57,6 +57,8 @@ type ClientService interface {
 
 	OperationsPurge(params *OperationsPurgeParams) (*OperationsPurgeOK, error)
 
+	ReadMemStats(params *ReadMemStatsParams) (*ReadMemStatsOK, error)
+
 	Reload(params *ReloadParams) (*ReloadOK, error)
 
 	SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error)
@@ -625,6 +627,41 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*OperationsPurgeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+ReadMemStats collects memory statistics
+
+Collect runtime.ReadMemStats output
+*/
+func (a *Client) ReadMemStats(params *ReadMemStatsParams) (*ReadMemStatsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewReadMemStatsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ReadMemStats",
+		Method:             "GET",
+		PathPattern:        "/mem_stats",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ReadMemStatsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*ReadMemStatsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ReadMemStatsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

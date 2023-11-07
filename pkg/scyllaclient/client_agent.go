@@ -173,3 +173,15 @@ func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 	_, err := c.agentOps.FreeOSMemory(&p)
 	return errors.Wrap(err, "free OS memory")
 }
+
+// AgentMemStats calls runtime.ReadMemStats on the agent to collect memory statistics.
+func (c *Client) AgentMemStats(ctx context.Context, host string) (*models.MemStats, error) {
+	p := operations.ReadMemStatsParams{
+		Context: noTimeout(noRetry(forceHost(ctx, host))),
+	}
+	resp, err := c.agentOps.ReadMemStats(&p)
+	if err != nil {
+		return nil, errors.Wrap(err, "read mem stats")
+	}
+	return resp.Payload, nil
+}

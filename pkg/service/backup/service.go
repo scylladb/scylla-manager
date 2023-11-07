@@ -775,6 +775,33 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "invalid cluster")
 	}
 
+	// Hacky way to save agent memory metrics in manager metrics.
+	done := make(chan struct{}, 1)
+	defer close(done)
+	go func() {
+		i := time.NewTicker(15 * time.Second)
+		for {
+			select {
+			case <-done:
+				return
+			case <-i.C:
+				for _, h := range hi {
+					ms, err := client.AgentMemStats(context.Background(), h.IP)
+					if err != nil {
+						s.logger.Error(ctx, "Couldn't collect agent memory stats", "host", h.IP, "error", err)
+					} else {
+						s.metrics.SetMemStats(clusterID, h.IP, *ms)
+					}
+				}
+			}
+			select {
+			case <-done:
+				return
+			default:
+			}
+		}
+	}()
+
 	// Create a worker
 	w := &worker{
 		workerTools: workerTools{

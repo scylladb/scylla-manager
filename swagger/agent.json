@@ -820,6 +820,34 @@
         },
         "security": []
       }
+    },
+    "/mem_stats": {
+      "get": {
+        "description": "Collect runtime.ReadMemStats output",
+        "summary": "Collect memory statistics",
+        "operationId": "ReadMemStats",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "MemStats",
+            "schema": {
+              "$ref": "#/definitions/MemStats"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
     }
   },
   "definitions": {
@@ -895,6 +923,53 @@
         "output": {
           "description": "Output of the job as would have been returned if called synchronously",
           "type": "object"
+        }
+      }
+    },
+    "MemStats": {
+      "title": "memory stats",
+      "description": "agent runtime.MemStats.",
+      "type": "object",
+      "properties": {
+        "alloc": {
+          "description": "Alloc.",
+          "type": "integer"
+        },
+        "total_alloc": {
+          "description": "TotalAlloc.",
+          "type": "integer"
+        },
+        "sys": {
+          "description": "Sys.",
+          "type": "integer"
+        },
+        "mallocs": {
+          "description": "Mallocs.",
+          "type": "integer"
+        },
+        "frees": {
+          "description": "Frees.",
+          "type": "integer"
+        },
+        "heap_sys": {
+          "description": "HeapSys.",
+          "type": "integer"
+        },
+        "heap_idle": {
+          "description": "HeapIdle.",
+          "type": "integer"
+        },
+        "heap_inuse": {
+          "description": "HeapInuse.",
+          "type": "integer"
+        },
+        "heap_released": {
+          "description": "HeapReleased.",
+          "type": "integer"
+        },
+        "other_sys": {
+          "description": "OtherSys.",
+          "type": "integer"
         }
       }
     },
