@@ -68,24 +68,33 @@ else
 endif
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
+
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 dc2_node_1 second_cluster_dc1_node_1
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
-	@echo "==> Waiting for first nodes from DC1 and DC2 to spin up"
+	@echo "==> Waiting for dc1_node_1 and dc2_node_1 to spin up"
 	@until [ 2 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> First nodes from DC1 and DC2 are ready"
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_2 dc2_node_2 second_cluster_dc1_node_2
-	@echo "==> Waiting for second nodes from DC1 and DC2 to spin up"
+
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_2 second_cluster_dc1_node_2
+	@echo "==> Waiting for dc1_node_2 to spin up"
+	@until [ 3 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc2_node_2
+	@echo "==> Waiting for dc2_node_2 to spin up"
 	@until [ 4 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> Second nodes from DC1 and DC2 are ready"
+
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_3
+	@echo "==> Waiting for dc1_node_3 to  spin up"
+	@until [ 5 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc2_node_3
+	@echo "==> Waiting for dc2_node_3 to spin up"
+	@until [ 6 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
-	@echo "==> Waiting for sm db cluster"
+	@echo "==> Waiting for SM cluster"
 	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 	@echo "==> SM cluster is ready"
-
-	@echo "==> Waiting for rest of the cluster"
-	@until [ 6 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> Cluster is ready"
 
 	@./nodes_exec "rm /root/.cqlshrc || true"
 	@echo "==> Adding Minio user"
