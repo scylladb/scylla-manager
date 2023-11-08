@@ -170,7 +170,7 @@ func dropAllKeyspaces(tb testing.TB, session gocqlx.Session) {
 func dropKeyspace(tb testing.TB, session gocqlx.Session, keyspace string) {
 	tb.Helper()
 
-	ExecStmt(tb, session, "DROP KEYSPACE IF EXISTS "+keyspace)
+	ExecStmt(tb, session, fmt.Sprintf("DROP KEYSPACE IF EXISTS %q", keyspace))
 }
 
 // ExecStmt executes given statement.

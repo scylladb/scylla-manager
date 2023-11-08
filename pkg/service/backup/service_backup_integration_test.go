@@ -19,6 +19,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	dbsession "github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -2305,5 +2309,174 @@ func TestBackupListIntegration(t *testing.T) {
 				t.Fatalf("List() = %v, expected %d SnapshotTags", items, tc.expected)
 			}
 		})
+	}
+}
+
+func TestBackupAlternatorIntegration(t *testing.T) {
+	const (
+		testBucket     = "backuptest-alternator"
+		testTable      = "table-with-dash"
+		testKeyspace   = "alternator_" + testTable
+		alternatorPort = 8000
+	)
+
+	location := s3Location(testBucket)
+	config := defaultConfig()
+
+	var (
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	cfg := &aws.Config{
+		Endpoint: aws.String(fmt.Sprintf("http://%s:%d", ManagedClusterHost(), alternatorPort)),
+		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
+			AccessKeyID:     "None",
+			SecretAccessKey: "None",
+		}),
+		Region: aws.String("None"),
+	}
+	dbs, err := dbsession.NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	svc := dynamodb.New(dbs)
+	createTable := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("key"),
+				AttributeType: aws.String("S"),
+			},
+		},
+		BillingMode: aws.String("PAY_PER_REQUEST"),
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("key"),
+				KeyType:       aws.String("HASH"),
+			},
+		},
+		TableName: aws.String(testTable),
+	}
+
+	Print("When: create alternator table")
+	_, err = svc.CreateTable(createTable)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	insertData := &dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]*dynamodb.WriteRequest{
+			testTable: {
+				{
+					PutRequest: &dynamodb.PutRequest{
+						Item: map[string]*dynamodb.AttributeValue{
+							"key": {
+								S: aws.String("test"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	Print("When: insert alternator data")
+	_, err = svc.BatchWriteItem(insertData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: validate data insertion")
+	selectStmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q WHERE key='test'", testKeyspace, testTable)
+	var result int
+	if err := clusterSession.Query(selectStmt, nil).Scan(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result != 1 {
+		t.Fatal("Expected 1 row in alternator table")
+	}
+
+	target := backup.Target{
+		Units: []backup.Unit{
+			{
+				Keyspace: testKeyspace,
+			},
+		},
+		DC:        []string{"dc1", "dc2"},
+		Location:  []Location{location},
+		Retention: 3,
+	}
+	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("And: validate snapshot creation")
+	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatal("Expected 1 item")
+	}
+	if len(items[0].SnapshotInfo) != 1 {
+		t.Fatal("Expected 1 snapshot tag")
+	}
+
+	Print("And: validate manifest creation")
+	manifests, _, _ := h.listS3Files()
+	if len(manifests) != len(ManagedClusterHosts()) {
+		t.Fatalf("expected manifest for each node, got %d", len(manifests))
+	}
+	for _, s := range manifests {
+		var m ManifestInfo
+		if err := m.ParsePath(s); err != nil {
+			t.Fatal("manifest file with wrong path", s)
+		}
+	}
+
+	Print("And: validate files creation")
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filesInfo) != len(manifests) {
+		t.Fatalf("Expected file info for each manifest, got %d", len(filesInfo))
+	}
+	for _, fi := range filesInfo {
+		for _, fs := range fi.Files {
+			remoteFiles, err := h.Client.RcloneListDir(ctx, ManagedClusterHost(), h.location.RemotePath(fs.Path), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var remoteFileNames []string
+			for _, f := range remoteFiles {
+				remoteFileNames = append(remoteFileNames, f.Name)
+			}
+
+			for _, rfn := range remoteFileNames {
+				if strings.Contains(rfn, ScyllaManifest) {
+					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
+				}
+			}
+
+			tableFileNames := make([]string, 0, len(fs.Files))
+			for _, f := range fs.Files {
+				tableFileNames = append(tableFileNames, f)
+			}
+
+			opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
+			if !cmp.Equal(tableFileNames, remoteFileNames, opts...) {
+				t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(fs.Files, remoteFileNames, opts...))
+			}
+		}
 	}
 }
