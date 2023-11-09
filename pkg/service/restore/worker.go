@@ -74,7 +74,9 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 			// Currently, it is forbidden to alter those tables, so SM wouldn't be able to ensure their data consistency.
 			// Moreover, those tables usually contain data with small TTL value,
 			// so their contents would probably expire right after restore has ended.
+			"system_distributed_everywhere.cdc_generation_descriptions",
 			"system_distributed_everywhere.cdc_generation_descriptions_v2",
+			"system_distributed.cdc_streams_descriptions",
 			"system_distributed.cdc_streams_descriptions_v2",
 			"system_distributed.cdc_generation_timestamps",
 			"*.*_scylla_cdc_log", // All regular CDC tables have "_scylla_cdc_log" suffix
