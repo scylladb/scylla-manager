@@ -102,3 +102,30 @@ To troubleshoot Node to bucket connectivity issues you can run:
 .. code-block:: none
 
    scylla-manager-agent check-location --debug --location s3:<your S3 bucket name>
+
+Custom root Certificate Authority (CA)
+======================================
+
+Some providers, such as MinIO, support the option to choose a custom Certificate Authority for verifying the authenticity.
+See `Network Encryption (TLS) <https://min.io/docs/minio/linux/operations/network-encryption.html>`_ in the MinIO documentation for details.
+
+To ensure that ScyllaDB Manager functions correctly with MinIO's enhanced security, you must add that specific Certificate Authority
+to the system's Certificate Authorities on every VM where the ScyllaDB Manager Agent is running.
+
+   .. tabs::
+
+      .. group-tab::  Example for Ubuntu
+
+           .. code:: console
+              :class: hide-copy-button
+
+              sudo cp <source_path>/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt
+              sudo update-ca-certificates
+
+      .. group-tab::  Example for Centos
+
+           .. code:: console
+              :class: hide-copy-button
+
+              cp <source_path>/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt
+              update-ca-trust extract
