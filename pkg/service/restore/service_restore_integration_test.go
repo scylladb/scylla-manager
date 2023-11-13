@@ -1356,7 +1356,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	testBucket, _, testUser := getBucketKeyspaceUser(t)
 	const (
-		testTable          = "table-with-dash"
+		testTable          = "Tab_le-With1.da_sh2-aNd.d33ot.-"
 		testKeyspace       = "alternator_" + testTable
 		testBatchSize      = 1
 		testParallel       = 3
