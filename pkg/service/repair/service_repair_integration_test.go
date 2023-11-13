@@ -446,7 +446,7 @@ func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, 
 }
 
 func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
-	ExecStmt(t, session, "DROP KEYSPACE IF EXISTS "+keyspace)
+	ExecStmt(t, session, fmt.Sprintf("DROP KEYSPACE IF EXISTS %q", keyspace))
 }
 
 // We must use -1 here to support working with empty tables or not flushed data.
@@ -1927,6 +1927,56 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
+	})
+
+	t.Run("repair alternator table", func(t *testing.T) {
+		const (
+			testTable      = "Tab_le-With1.da_sh2-aNd.d33ot.-"
+			testKeyspace   = "alternator_" + testTable
+			alternatorPort = 8000
+			repairPath     = "/storage_service/repair_async/"
+		)
+
+		Print("When: create alternator table with 1 row")
+		CreateAlternatorTable(t, ManagedClusterHost(), alternatorPort, testTable)
+		FillAlternatorTableWithOneRow(t, ManagedClusterHost(), alternatorPort, testTable)
+		defer dropKeyspace(t, clusterSession, testKeyspace)
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		var repairCalled int32
+		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
+		h.runRepair(ctx, map[string]any{
+			"keyspace": []string{testKeyspace + "." + testTable},
+		})
+
+		Print("Then: repair is done")
+		h.assertDone(3 * longWait)
+
+		Print("And: jobs were scheduled")
+		if repairCalled < 1 {
+			t.Fatalf("Expected at least 1 repair job, got %d", repairCalled)
+		}
+
+		p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
+		if err != nil {
+			h.T.Fatal(err)
+		}
+		if p.TokenRanges != p.Success {
+			t.Fatalf("Expected full success, got %d/%d", p.Success, p.TokenRanges)
+		}
+		if len(p.Tables) != 1 {
+			t.Fatalf("Expected only 1 table to be repaired, got %d", len(p.Tables))
+		}
+		if p.Tables[0].Keyspace != testKeyspace || p.Tables[0].Table != testTable {
+			t.Fatalf("Expected %q.%q to be repaired, got %q.%q", testKeyspace, testTable, p.Tables[0].Keyspace, p.Tables[0].Table)
+		}
+		if p.Tables[0].TokenRanges != p.Tables[0].Success {
+			t.Fatalf("Expected table to be fully repaired, got %d/%d", p.Tables[0].TokenRanges, p.Tables[0].Success)
+		}
 	})
 }
 
