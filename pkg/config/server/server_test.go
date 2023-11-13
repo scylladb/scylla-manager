@@ -55,6 +55,7 @@ func TestConfigModification(t *testing.T) {
 			Hosts:                         []string{"172.16.1.10", "172.16.1.20"},
 			SSL:                           true,
 			User:                          "user",
+			Port:                          9042,
 			Password:                      "password",
 			LocalDC:                       "local",
 			Keyspace:                      "scylla_manager",
