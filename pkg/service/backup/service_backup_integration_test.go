@@ -19,10 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	dbsession "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -2330,64 +2326,8 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	cfg := &aws.Config{
-		Endpoint: aws.String(fmt.Sprintf("http://%s:%d", ManagedClusterHost(), alternatorPort)),
-		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
-			AccessKeyID:     "None",
-			SecretAccessKey: "None",
-		}),
-		Region: aws.String("None"),
-	}
-	dbs, err := dbsession.NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	svc := dynamodb.New(dbs)
-	createTable := &dynamodb.CreateTableInput{
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("key"),
-				AttributeType: aws.String("S"),
-			},
-		},
-		BillingMode: aws.String("PAY_PER_REQUEST"),
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("key"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		TableName: aws.String(testTable),
-	}
-
-	Print("When: create alternator table")
-	_, err = svc.CreateTable(createTable)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	insertData := &dynamodb.BatchWriteItemInput{
-		RequestItems: map[string][]*dynamodb.WriteRequest{
-			testTable: {
-				{
-					PutRequest: &dynamodb.PutRequest{
-						Item: map[string]*dynamodb.AttributeValue{
-							"key": {
-								S: aws.String("test"),
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	Print("When: insert alternator data")
-	_, err = svc.BatchWriteItem(insertData)
-	if err != nil {
-		t.Fatal(err)
-	}
+	CreateAlternatorTable(t, ManagedClusterHost(), alternatorPort, testTable)
+	FillAlternatorTableWithOneRow(t, ManagedClusterHost(), alternatorPort, testTable)
 
 	Print("When: validate data insertion")
 	selectStmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q WHERE key='test'", testKeyspace, testTable)
@@ -2451,6 +2391,9 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		t.Fatalf("Expected file info for each manifest, got %d", len(filesInfo))
 	}
 	for _, fi := range filesInfo {
+		if len(fi.Files) == 0 {
+			t.Fatal("Expected some files to be created")
+		}
 		for _, fs := range fi.Files {
 			remoteFiles, err := h.Client.RcloneListDir(ctx, ManagedClusterHost(), h.location.RemotePath(fs.Path), nil)
 			if err != nil {
