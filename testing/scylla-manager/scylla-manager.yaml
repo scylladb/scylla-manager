@@ -9,4 +9,3 @@ database:
   hosts:
     - 192.168.200.100
   timeout: 1s
-  port: 9041
