@@ -30,6 +30,7 @@ type DBConfig struct {
 	ReplicationFactor             int           `yaml:"replication_factor"`
 	Timeout                       time.Duration `yaml:"timeout"`
 	TokenAware                    bool          `yaml:"token_aware"`
+	Port                          int           `yaml:"port"`
 
 	// InitAddr specifies address used to create manager keyspace and tables.
 	InitAddr string
@@ -77,6 +78,7 @@ func DefaultConfig() Config {
 			ReplicationFactor:             1,
 			Timeout:                       1 * time.Second,
 			TokenAware:                    true,
+			Port:                          9042,
 		},
 		SSL: SSLConfig{
 			Validate: true,

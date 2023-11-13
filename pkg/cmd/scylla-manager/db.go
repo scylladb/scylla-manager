@@ -186,6 +186,9 @@ func gocqlClusterConfig(c config.Config) *gocql.ClusterConfig {
 		}
 		cluster.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(fallback)
 	}
+	if c.Database.Port != 0 {
+		cluster.Port = c.Database.Port
+	}
 
 	return cluster
 }
