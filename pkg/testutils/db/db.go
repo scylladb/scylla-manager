@@ -6,12 +6,17 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	dbsession "github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
@@ -308,4 +313,79 @@ func WaitForViews(t *testing.T, session gocqlx.Session) {
 		}
 		time.Sleep(2 * time.Second)
 	}
+}
+
+// CreateAlternatorTable creates "alternator_{table}.{table}" table via alternator API.
+func CreateAlternatorTable(t *testing.T, host string, alternatorPort int, table string) {
+	t.Helper()
+
+	svc := CreateDynamoDBService(t, host, alternatorPort)
+	createTable := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("key"),
+				AttributeType: aws.String("S"),
+			},
+		},
+		BillingMode: aws.String("PAY_PER_REQUEST"),
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("key"),
+				KeyType:       aws.String("HASH"),
+			},
+		},
+		TableName: aws.String(table),
+	}
+
+	_, err := svc.CreateTable(createTable)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// FillAlternatorTableWithOneRow inserts 1 row into "alternator_{table}.{table}" table via alternator API.
+func FillAlternatorTableWithOneRow(t *testing.T, host string, alternatorPort int, table string) {
+	t.Helper()
+
+	svc := CreateDynamoDBService(t, host, alternatorPort)
+	insertData := &dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]*dynamodb.WriteRequest{
+			table: {
+				{
+					PutRequest: &dynamodb.PutRequest{
+						Item: map[string]*dynamodb.AttributeValue{
+							"key": {
+								S: aws.String("test"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := svc.BatchWriteItem(insertData)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CreateDynamoDBService returns DynamoDB service.
+func CreateDynamoDBService(t *testing.T, host string, alternatorPort int) *dynamodb.DynamoDB {
+	t.Helper()
+
+	awsCfg := &aws.Config{
+		Endpoint: aws.String("http://" + net.JoinHostPort(host, fmt.Sprint(alternatorPort))),
+		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
+			AccessKeyID:     "None",
+			SecretAccessKey: "None",
+		}),
+		Region: aws.String("None"),
+	}
+	dbs, err := dbsession.NewSession(awsCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return dynamodb.New(dbs)
 }
