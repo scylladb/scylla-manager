@@ -51,6 +51,9 @@ Scylla Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml`` co
    database:
      hosts:
        - 127.0.0.1
+   # Override default 9042 CQL port
+   #  port: 5555
+   #
    # Enable or disable client/server encryption.
    #  ssl: false
    #
