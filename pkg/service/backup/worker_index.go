@@ -50,8 +50,8 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 	var dirs []snapshotDir
 
 	nftt := w.newFilesTimeThreshold()
-	// Include '-' as valid character because of alternator tables
-	r := regexp.MustCompile("^([A-Za-z0-9_-]+)-([a-f0-9]{32})$")
+	// Include '-' and '.' as valid character because of alternator tables
+	r := regexp.MustCompile("^([A-Za-z0-9_.-]+)-([a-f0-9]{32})$")
 
 	for i, u := range w.Units {
 		w.Logger.Debug(ctx, "Finding table snapshot directories",
