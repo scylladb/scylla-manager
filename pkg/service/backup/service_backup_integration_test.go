@@ -2311,7 +2311,7 @@ func TestBackupListIntegration(t *testing.T) {
 func TestBackupAlternatorIntegration(t *testing.T) {
 	const (
 		testBucket     = "backuptest-alternator"
-		testTable      = "table-with-dash"
+		testTable      = "Tab_le-With1.da_sh2-aNd.d33ot.-"
 		testKeyspace   = "alternator_" + testTable
 		alternatorPort = 8000
 	)
