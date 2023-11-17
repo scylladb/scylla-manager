@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -89,7 +87,7 @@ transferred: transferred stats
 
 // rcJobProgress aggregates and returns prepared job progress information.
 func rcJobProgress(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	var jobOut, statsOut, transOut map[string]interface{}
+	var jobOut, aggregatedOut map[string]interface{}
 	jobid, err := in.GetInt64("jobid")
 	if err != nil {
 		return nil, err
@@ -111,16 +109,12 @@ func rcJobProgress(ctx context.Context, in rc.Params) (out rc.Params, err error)
 		return nil, err
 	}
 	in["group"] = fmt.Sprintf("job/%d", jobid)
-	statsOut, err = rcCalls.Get("core/stats").Fn(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	transOut, err = rcCalls.Get("core/transferred").Fn(ctx, in)
+	aggregatedOut, err = rcCalls.Get("core/aggregated").Fn(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := rc.Reshape(&out, aggregateJobInfo(jobOut, statsOut, transOut)); err != nil {
+	if err := rc.Reshape(&out, aggregateJobInfo(jobOut, aggregatedOut)); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -179,31 +173,18 @@ type jobFields struct {
 	Error     string `mapstructure:"error"`
 }
 
-type statsFields struct {
-	Transferring []fileFields `mapstructure:"transferring"`
+type aggFields struct {
+	Aggregated accounting.AggregatedTransferInfo `mapstructure:"aggregated"`
 }
 
-type fileFields struct {
-	Name  string `mapstructure:"name"`
-	Bytes int64  `mapstructure:"bytes"`
-}
-
-type transFields struct {
-	Transferred []accounting.TransferSnapshot `mapstructure:"transferred"`
-}
-
-func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
+func aggregateJobInfo(jobParam, aggregatedParam rc.Params) jobProgress {
 	// Parse parameters
 	var job jobFields
 	if err := mapstructure.Decode(jobParam, &job); err != nil {
 		panic(err)
 	}
-	var stats statsFields
-	if err := mapstructure.Decode(statsParam, &stats); err != nil {
-		panic(err)
-	}
-	var trans transFields
-	if err := mapstructure.Decode(transParam, &trans); err != nil {
+	var aggregated aggFields
+	if err := mapstructure.Decode(aggregatedParam, &aggregated); err != nil {
 		panic(err)
 	}
 
@@ -219,75 +200,9 @@ func aggregateJobInfo(jobParam, statsParam, transParam rc.Params) jobProgress {
 		p.CompletedAt = t
 	}
 
-	// Create artificial transferred entries for in progress items
-	transfers := trans.Transferred
-	for _, tr := range stats.Transferring {
-		transfers = append(transfers, accounting.TransferSnapshot{
-			Name:  tr.Name,
-			Bytes: tr.Bytes,
-		})
-	}
-
-	// Sort transfers by name, and event start time in descending order.
-	// This is needed to process the most recent events first.
-	sort.Slice(transfers, func(i, j int) bool {
-		if v := strings.Compare(transfers[i].Name, transfers[j].Name); v != 0 {
-			return v < 0
-		}
-		return !transfers[i].StartedAt.Before(transfers[j].StartedAt)
-	})
-
-	// Process all the transfers
-	g := func(b, e int) (uploaded, failed, skipped int64, err error) {
-		var (
-			size  int64
-			bytes int64
-		)
-		for _, tr := range transfers[b:e] {
-			if size == 0 && tr.Size > 0 {
-				size = tr.Size
-			}
-			if bytes == 0 && !tr.Checked && tr.Bytes > 0 {
-				bytes = tr.Bytes
-			}
-			if tr.Error != nil {
-				err = multierr.Append(err, errors.Errorf("%s %s", tr.Name, tr.Error))
-			}
-		}
-		switch {
-		case err != nil:
-			failed = size
-		case bytes > 0:
-			uploaded = bytes
-		default:
-			skipped = size
-		}
-		return
-	}
-
-	i := 0
-	for {
-		b := i
-		for i < len(transfers) && transfers[b].Name == transfers[i].Name {
-			i++
-		}
-		e := i
-
-		u, f, s, err := g(b, e)
-		p.Uploaded += u
-		p.Failed += f
-		p.Skipped += s
-		if err != nil {
-			if p.Error != "" {
-				p.Error += "; "
-			}
-			p.Error += err.Error()
-		}
-
-		if i >= len(transfers) {
-			break
-		}
-	}
+	p.Uploaded = aggregated.Aggregated.Uploaded
+	p.Skipped = aggregated.Aggregated.Skipped
+	p.Failed = aggregated.Aggregated.Failed
 
 	return p
 }

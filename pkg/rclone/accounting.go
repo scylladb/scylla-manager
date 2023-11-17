@@ -11,8 +11,6 @@ import (
 // StartAccountingOperations starts token bucket and transaction limiter
 // tracking.
 func StartAccountingOperations() {
-	// Disable finished transfer statistics purging
-	accounting.MaxCompletedTransfers = -1
 	// Start the token bucket limiter
 	accounting.TokenBucket.StartTokenBucket(context.Background())
 	// Start the bandwidth update ticker
