@@ -3,6 +3,7 @@ package accounting
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -10,6 +11,66 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
 )
+
+// AggregatedTransferInfo aggregated transfer statistics.
+type AggregatedTransferInfo struct {
+	Uploaded    int64     `json:"uploaded"`
+	Skipped     int64     `json:"skipped"`
+	Failed      int64     `json:"failed"`
+	Size        int64     `json:"size"`
+	Error       error     `json:"error"`
+	StartedAt   time.Time `json:"started_at"`
+	CompletedAt time.Time `json:"completed_at,omitempty"`
+}
+
+func (ai *AggregatedTransferInfo) update(t *Transfer) {
+	if t.checking {
+		return
+	}
+
+	if ai.StartedAt.IsZero() {
+		ai.StartedAt = t.startedAt
+	}
+	if !t.startedAt.IsZero() && t.startedAt.Before(ai.StartedAt) {
+		ai.StartedAt = t.startedAt
+	}
+
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	if !t.completedAt.IsZero() && ai.CompletedAt.Before(t.completedAt) {
+		ai.CompletedAt = t.completedAt
+	}
+
+	var b, s int64 = 0, t.size
+	if t.acc != nil {
+		b, s = t.acc.progress()
+	}
+	ai.Size += s
+	switch {
+	case t.err != nil:
+		ai.Failed += s
+		ai.Error = errors.Join(ai.Error, t.err)
+	case b > 0:
+		ai.Uploaded += b
+	default:
+		ai.Skipped += s
+	}
+}
+
+func (ai *AggregatedTransferInfo) merge(other AggregatedTransferInfo) {
+	ai.Uploaded += other.Uploaded
+	ai.Skipped += other.Skipped
+	ai.Failed += other.Failed
+	ai.Size += other.Size
+	ai.Error = errors.Join(ai.Error, other.Error)
+	if !other.StartedAt.IsZero() && other.StartedAt.Before(ai.StartedAt) {
+		ai.StartedAt = other.StartedAt
+	}
+	if ai.CompletedAt.Before(other.CompletedAt) {
+		ai.CompletedAt = other.CompletedAt
+	}
+}
 
 // TransferSnapshot represents state of an account at point in time.
 type TransferSnapshot struct {

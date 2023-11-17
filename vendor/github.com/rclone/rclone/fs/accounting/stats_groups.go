@@ -177,6 +177,60 @@ Returns the following values:
 	})
 }
 
+func rcAggregatedStats(ctx context.Context, in rc.Params) (rc.Params, error) {
+	// Check to see if we should filter by group.
+	group, err := in.GetString("group")
+	if rc.NotErrParamNotFound(err) {
+		return rc.Params{}, err
+	}
+
+	out := make(rc.Params)
+	if group != "" {
+		out["aggregated"] = StatsGroup(ctx, group).Aggregated()
+	} else {
+		out["aggregated"] = groups.sum(ctx).Aggregated()
+	}
+
+	return out, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:  "core/aggregated",
+		Fn:    rcAggregatedStats,
+		Title: "Returns aggregated stats about all transfers since last stats reset.",
+		Help: `
+This returns all stats about transfers since last stats reset:
+
+	rclone rc core/aggregated
+
+If group is not provided then completed transfers for all groups will be
+returned.
+
+Parameters
+
+- group - name of the stats group (string)
+
+Returns the following values:
+` + "```" + `
+{
+	"aggregated":  aggregated stats of all transfers:
+		{
+			"uploaded": total transferred bytes,
+			"skipped": total skipped bytes because file has already been present at destination,
+			"failed": total failed bytes,
+			"size": total size in bytes,
+			"error": string description of the error (empty if successful),
+			"checked": if the transfer is only checked (skipped, deleted),
+			"started_at": the earliest transfer start time,
+			"completed_at": the latest transfer end time,
+		}
+}
+` + "```" + `
+`,
+	})
+}
+
 func rcResetStats(ctx context.Context, in rc.Params) (rc.Params, error) {
 	// Check to see if we should filter by group.
 	group, err := in.GetString("group")
@@ -370,6 +424,7 @@ func (sg *statsGroups) sum(ctx context.Context) *StatsInfo {
 			sum.startedTransfers = append(sum.startedTransfers, stats.startedTransfers...)
 			sum.oldDuration += stats.oldDuration
 			sum.oldTimeRanges = append(sum.oldTimeRanges, stats.oldTimeRanges...)
+			sum.oldTransfers.merge(stats.oldTransfers)
 		}
 		stats.mu.RUnlock()
 	}

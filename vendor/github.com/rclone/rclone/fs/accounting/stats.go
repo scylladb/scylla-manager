@@ -45,10 +45,17 @@ type StatsInfo struct {
 	deletes           int64
 	deletedDirs       int64
 	inProgress        *inProgress
-	startedTransfers  []*Transfer   // currently active transfers
-	oldTimeRanges     timeRanges    // a merged list of time ranges for the transfers
-	oldDuration       time.Duration // duration of transfers we have culled
-	group             string
+
+	// The root cause of SM issue #3298 were transfer stats (startedTransfers)
+	// accumulated and never pruned during the whole backup run.
+	// Even though by default MaxCompletedTransfers should take care of that,
+	// SM relies on full access to transfer statistics and disables it by setting it to -1 in agent setup.
+	// The solution is to keep aggregated stats for transfers pruned from startedTransfers in oldTransfers.
+	startedTransfers []*Transfer // currently active transfers
+	oldTransfers     AggregatedTransferInfo
+	oldTimeRanges    timeRanges    // a merged list of time ranges for the transfers
+	oldDuration      time.Duration // duration of transfers we have culled
+	group            string
 }
 
 // NewStats creates an initialised StatsInfo
@@ -364,6 +371,17 @@ func (s *StatsInfo) Transferred() []TransferSnapshot {
 	return ts
 }
 
+// Aggregated returns aggregated stats for all completed and running transfers.
+func (s *StatsInfo) Aggregated() AggregatedTransferInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	ai := s.oldTransfers
+	for _, tr := range s.startedTransfers {
+		ai.update(tr)
+	}
+	return ai
+}
+
 // Log outputs the StatsInfo to the log
 func (s *StatsInfo) Log() {
 	if s.ci.UseJSONLog {
@@ -501,6 +519,7 @@ func (s *StatsInfo) ResetCounters() {
 	s.deletedDirs = 0
 	s.renames = 0
 	s.startedTransfers = nil
+	s.oldTransfers = AggregatedTransferInfo{}
 	s.oldDuration = 0
 }
 
@@ -513,6 +532,8 @@ func (s *StatsInfo) ResetErrors() {
 	s.fatalError = false
 	s.retryError = false
 	s.retryAfter = time.Time{}
+	s.oldTransfers.Failed = 0
+	s.oldTransfers.Error = nil
 }
 
 // Errored returns whether there have been any errors
@@ -649,11 +670,12 @@ func (s *StatsInfo) removeTransfer(transfer *Transfer, i int) {
 	}
 	s.oldTimeRanges = append(s.oldTimeRanges, timeRange{start, end})
 	s.oldTimeRanges.merge()
+	s.oldTransfers.update(transfer)
 
 	// remove the found entry
 	s.startedTransfers = append(s.startedTransfers[:i], s.startedTransfers[i+1:]...)
 
-	// Find youngest active transfer
+	// Find the youngest active transfer
 	oldestStart := now
 	for i := range s.startedTransfers {
 		start, _ := s.startedTransfers[i].TimeRange()
