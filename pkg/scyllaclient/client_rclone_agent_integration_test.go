@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"path"
 	"strings"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 )
 
 var longPollingTimeoutSeconds = 1
@@ -171,6 +171,123 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 
 	if job.Transferred[0].Error == "" {
 		t.Fatal("Expected error but got empty")
+	}
+}
+
+func TestRcloneJobProgressIntegration(t *testing.T) {
+	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testHost := ManagedClusterHost()
+	S3InitBucket(t, testBucket)
+	ctx := context.Background()
+
+	if err := client.RcloneSetBandwidthLimit(ctx, testHost, 1); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := client.RcloneSetBandwidthLimit(ctx, testHost, 0); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	firstBatchSize := 1024 * 1024
+	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy1 count=1024 bs=1024")
+	_, _, err = ExecOnHost(testHost, cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		cmd := injectDataDir("rm -rf %s/tmp")
+		_, _, err := ExecOnHost(testHost, cmd)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	Print("When: first batch upload")
+	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	WaitCond(t, func() bool {
+		job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return job.Job.Finished
+	}, time.Second, 10*time.Second)
+
+	jp, err := client.RcloneJobProgress(ctx, testHost, id, longPollingTimeoutSeconds)
+	switch {
+	case err != nil:
+		t.Fatal(err)
+	case jp.Failed != 0:
+		t.Fatal("expected no failed bytes")
+	case jp.Skipped != 0:
+		t.Fatal("expected no skipped bytes on first upload")
+	case jp.Uploaded != int64(firstBatchSize):
+		t.Fatalf("expected exactly %d bytes, got %d", firstBatchSize, jp.Uploaded)
+	}
+
+	secondBatchSize := 2048 * 2048
+	cmd = injectDataDir("dd if=/dev/zero of=%s/tmp/copy2 count=2048 bs=2048")
+	_, _, err = ExecOnHost(testHost, cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: second batch upload")
+	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	WaitCond(t, func() bool {
+		job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return job.Job.Finished
+	}, time.Second, 10*time.Second)
+
+	jp, err = client.RcloneJobProgress(ctx, testHost, id, longPollingTimeoutSeconds)
+	switch {
+	case err != nil:
+		t.Fatal(err)
+	case jp.Failed != 0:
+		t.Fatal("expected no failed bytes")
+	case jp.Skipped != int64(firstBatchSize):
+		t.Fatalf("expected %d skipped bytes from first upload, got %d", firstBatchSize, jp.Skipped)
+	case jp.Uploaded != int64(secondBatchSize):
+		t.Fatalf("expected exactly %d bytes, got %d", secondBatchSize, jp.Uploaded)
+	}
+
+	Print("When: third batch upload")
+	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	WaitCond(t, func() bool {
+		job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return job.Job.Finished
+	}, time.Second, 10*time.Second)
+
+	jp, err = client.RcloneJobProgress(ctx, testHost, id, longPollingTimeoutSeconds)
+	switch {
+	case err != nil:
+		t.Fatal(err)
+	case jp.Failed != 0:
+		t.Fatal("expected no failed bytes")
+	case jp.Skipped != int64(firstBatchSize+secondBatchSize):
+		t.Fatalf("expected %d skipped bytes from both uploads, got %d", firstBatchSize+secondBatchSize, jp.Skipped)
+	case jp.Uploaded != 0:
+		t.Fatalf("expected no new uploaded bytes, got %d", jp.Uploaded)
 	}
 }
 

@@ -21,12 +21,21 @@ import (
 
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
+	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver/internal"
 )
 
 func newTestServer() Server {
 	rclone.InitFsConfig()
 	filterRcCallsForTests()
 	return New()
+}
+
+func filterRcCallsForTests() {
+	internal.RcloneSupportedCalls.Add(
+		"rc/noop",
+		"rc/error",
+	)
+	filterRcCalls()
 }
 
 // Run a suite of tests
