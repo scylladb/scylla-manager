@@ -625,6 +625,13 @@ func (s *StatsInfo) DoneTransferring(remote string, ok bool) {
 	}
 }
 
+// UpdateSkipped marks file bytes as skipped in oldTransfers.
+func (s *StatsInfo) UpdateSkipped(size int64) {
+	s.mu.Lock()
+	s.oldTransfers.Skipped += size
+	s.mu.Unlock()
+}
+
 // SetCheckQueue sets the number of queued checks
 func (s *StatsInfo) SetCheckQueue(n int, size int64) {
 	s.mu.Lock()

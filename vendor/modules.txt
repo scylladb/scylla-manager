@@ -285,7 +285,7 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/rclone/rclone v1.51.0 => github.com/scylladb/rclone v1.54.1-0.20231121122311-39b1bed60788
+# github.com/rclone/rclone v1.51.0 => github.com/scylladb/rclone v1.54.1-0.20231123155033-b76ed0b9adac
 ## explicit; go 1.21
 github.com/rclone/rclone/backend/azureblob
 github.com/rclone/rclone/backend/crypt
@@ -639,4 +639,4 @@ gopkg.in/inf.v0
 ## explicit
 gopkg.in/yaml.v2
 # github.com/gocql/gocql => github.com/scylladb/gocql v1.5.1-0.20210906110332-fb22d64efc33
-# github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20231121122311-39b1bed60788
+# github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20231123155033-b76ed0b9adac

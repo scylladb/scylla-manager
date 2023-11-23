@@ -654,9 +654,9 @@ func (f *Fs) Purge(ctx context.Context, dir string) error {
 
 // Move src to this remote using server-side move operations.
 //
-// This is stored with the remote path given
+// # This is stored with the remote path given
 //
-// It returns the destination Object and a possible error
+// # It returns the destination Object and a possible error
 //
 // Will only be called if src.Fs().Name() == f.Name()
 //
@@ -896,6 +896,13 @@ func (o *Object) Hash(ctx context.Context, r hash.Type) (string, error) {
 		o.fs.objectMetaMu.Unlock()
 	}
 	return hashValue, nil
+}
+
+// ClearHashes clears all types of calculated hashes.
+func (o *Object) ClearHashes() {
+	o.fs.objectMetaMu.RLock()
+	defer o.fs.objectMetaMu.RUnlock()
+	o.hashes = nil
 }
 
 // Size returns the size of an object in bytes

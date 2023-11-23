@@ -47,14 +47,11 @@ func (ai *AggregatedTransferInfo) update(t *Transfer) {
 		b, s = t.acc.progress()
 	}
 	ai.Size += s
-	switch {
-	case t.err != nil:
+	if t.err != nil {
 		ai.Failed += s
 		ai.Error = errors.Join(ai.Error, t.err)
-	case b > 0:
+	} else {
 		ai.Uploaded += b
-	default:
-		ai.Skipped += s
 	}
 }
 
