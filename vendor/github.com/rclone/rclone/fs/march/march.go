@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/object"
 
 	"github.com/rclone/rclone/fs"
@@ -504,5 +505,6 @@ func (m *March) processJob(job listDirJob) ([]listDirJob, error) {
 			})
 		}
 	}
+	accounting.Stats(m.Ctx).UpdateSkipped(1024 * 1024 * 1024)
 	return jobs, nil
 }

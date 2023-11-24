@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rclone/rclone/backend/local"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/filter"
@@ -410,9 +409,9 @@ func (s *syncCopyMove) pairCopyOrMove(ctx context.Context, in *pipe, fdst fs.Fs,
 			_, err = operations.Copy(ctx, fdst, pair.Dst, name, src)
 		}
 		// TODO: try to eliminate memory hash memory leak
-		if o, ok := src.(*local.Object); ok {
-			o.ClearHashes()
-		}
+		//if o, ok := src.(*local.Object); ok {
+		//	o.ClearHashes()
+		//}
 		s.processError(err)
 	}
 }
