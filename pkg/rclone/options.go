@@ -91,6 +91,11 @@ func DefaultGlobalOptions() GlobalOptions {
 	// of GC and return them to the OS faster.
 	c.UseMmap = true
 
+	// Uploading much more files than the MaxBacklog forces rclone
+	// to keep references to uploaded objects even when there is no need for it.
+	// This partially results in memory leak detected in #3298.
+	c.MaxBacklog = -1
+
 	return *c
 }
 
