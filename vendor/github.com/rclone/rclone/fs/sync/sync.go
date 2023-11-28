@@ -288,9 +288,10 @@ func (s *syncCopyMove) processError(err error) {
 }
 
 // Returns the current error (if any) in the order of precedence
-//   fatalErr
-//   normal error
-//   noRetryErr
+//
+//	fatalErr
+//	normal error
+//	noRetryErr
 func (s *syncCopyMove) currentError() error {
 	s.errorMu.Lock()
 	defer s.errorMu.Unlock()
@@ -317,6 +318,7 @@ func (s *syncCopyMove) pairChecker(in *pipe, out *pipe, fraction int, wg *sync.W
 		var err error
 		tr := accounting.Stats(s.ctx).NewCheckingTransfer(src)
 		// Check to see if can store this
+		ok = false
 		if src.Storable() {
 			NoNeedTransfer, err := operations.CompareOrCopyDest(s.ctx, s.fdst, pair.Dst, pair.Src, s.compareCopyDest, s.backupDir)
 			if err != nil {
@@ -361,6 +363,9 @@ func (s *syncCopyMove) pairChecker(in *pipe, out *pipe, fraction int, wg *sync.W
 				}
 			}
 		}
+		if !ok {
+			accounting.Stats(s.ctx).UpdateSkipped(tr.Snapshot().Size)
+		}
 		tr.Done(s.ctx, err)
 	}
 }
@@ -381,6 +386,8 @@ func (s *syncCopyMove) pairRenamer(in *pipe, out *pipe, fraction int, wg *sync.W
 			if !ok {
 				return
 			}
+		} else {
+			accounting.Stats(s.ctx).UpdateSkipped(src.Size())
 		}
 	}
 }
@@ -829,11 +836,11 @@ func (s *syncCopyMove) tryRename(src fs.Object) bool {
 
 // Syncs fsrc into fdst
 //
-// If paths is provided then only those paths will be synced
+// # If paths is provided then only those paths will be synced
 //
 // If Delete is true then it deletes any files in fdst that aren't in fsrc
 //
-// If DoMove is true then files will be moved instead of copied
+// # If DoMove is true then files will be moved instead of copied
 //
 // dir is the start directory, "" for root
 func (s *syncCopyMove) run() error {
@@ -1005,6 +1012,8 @@ func (s *syncCopyMove) SrcOnly(src fs.DirEntry) (recurse bool) {
 				if !ok {
 					return
 				}
+			} else {
+				accounting.Stats(s.ctx).UpdateSkipped(x.Size())
 			}
 		}
 	case fs.Directory:
