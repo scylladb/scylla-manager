@@ -84,7 +84,7 @@ rclone:
   max_transfer: -1
   max_duration: 0s
   cutoff_mode: 0
-  max_backlog: 10000
+  max_backlog: -1
   max_stats_groups: 1000
   stats_one_line: false
   stats_one_line_date: false
