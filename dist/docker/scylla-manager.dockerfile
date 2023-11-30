@@ -3,6 +3,7 @@ ARG BASE_IMAGE
 FROM $BASE_IMAGE
 ARG ARCH
 RUN apt-get update && \
+    apt-get -y upgrade && \
     apt-get install -y --no-install-recommends ca-certificates && \
     apt-get autoremove -y && \
     apt-get clean && \
