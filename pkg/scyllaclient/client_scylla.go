@@ -470,14 +470,17 @@ func ReplicaHash(replicaSet []string) uint64 {
 
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, keyspace, table, master string, replicaSet []string, ranges []TokenRange) (int32, error) {
-	hosts := strings.Join(replicaSet, ",")
 	dr := dumpRanges(ranges)
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
 		Context:        forceHost(ctx, master),
 		Keyspace:       keyspace,
 		ColumnFamilies: &table,
-		Hosts:          &hosts,
 		Ranges:         &dr,
+	}
+	// Single node cluster repair fails with hosts param
+	if len(replicaSet) > 1 {
+		hosts := strings.Join(replicaSet, ",")
+		p.Hosts = &hosts
 	}
 
 	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspacePost(&p)
