@@ -25,10 +25,11 @@ type plan struct {
 }
 
 func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
-	filtered, err := filteredHosts(ctx, target, client)
+	status, err := client.Status(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "filter hosts")
+		return nil, errors.Wrap(err, "get status")
 	}
+	filtered := filteredHosts(target, status)
 
 	p := new(plan)
 	for _, u := range target.Units {
@@ -36,7 +37,8 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		if err != nil {
 			return nil, errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
 		}
-		if ring.Replication == scyllaclient.LocalStrategy {
+		// Allow repairing single node cluster for better UX and tests
+		if ring.Replication == scyllaclient.LocalStrategy && len(status) > 1 {
 			continue
 		}
 
@@ -53,8 +55,9 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 				Ranges:     rep.Ranges,
 			}
 
-			// Don't add keyspace with some ranges not replicated in filtered hosts
-			if len(rtr.ReplicaSet) <= 1 {
+			// Don't add keyspace with some ranges not replicated in filtered hosts,
+			// unless it's a single node cluster.
+			if len(rtr.ReplicaSet) <= 1 && len(status) > 1 {
 				skip = true
 				break
 			}
@@ -447,12 +450,7 @@ func (tp tablePlan) MarkRange(repIdx int, r scyllaclient.TokenRange) bool {
 }
 
 // filteredHosts returns hosts passing '--dc' and '--ignore-down-hosts' criteria.
-func filteredHosts(ctx context.Context, target Target, client *scyllaclient.Client) (*strset.Set, error) {
-	status, err := client.Status(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get status")
-	}
-
+func filteredHosts(target Target, status scyllaclient.NodeStatusInfoSlice) *strset.Set {
 	ignoredHosts := strset.New(target.IgnoreHosts...)
 	dcs := strset.New(target.DC...)
 	filtered := strset.New()
@@ -463,7 +461,7 @@ func filteredHosts(ctx context.Context, target Target, client *scyllaclient.Clie
 		}
 	}
 
-	return filtered, nil
+	return filtered
 }
 
 // filterReplicaSet returns hosts present in filteredHosts and passing '--host' criteria.
