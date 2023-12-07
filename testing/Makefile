@@ -9,7 +9,7 @@ YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-SCYLLA_VERSION?=5.1.13
+SCYLLA_VERSION?=5.4.0
 IP_FAMILY?=IPV4
 
 MINIO_ENDPOINT := https://192.168.200.99:9000
