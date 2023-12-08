@@ -76,6 +76,10 @@ ifeq ($(RAFT_ENABLED),false)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
 	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'consistent_cluster_management' false
 endif
+ifeq ($(SKIP_GOSSIP),true)
+	@$(YQ) write -i scylla/scylla.yaml 'skip_wait_for_gossip_to_settle' 0
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'skip_wait_for_gossip_to_settle' 0
+endif
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
 
