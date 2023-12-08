@@ -8,6 +8,9 @@ inputs:
   ip-family:
     description: "Specifies IP family for test environment (IPV4/IPV6)"
     required: false
+  raft-enabled:
+    description: "Specifies if cluster should use consistent_cluster_management option"
+    required: false
   start-dev-env:
     description: "Should this action run 'make start-dev-env'"
     required: false
@@ -36,5 +39,5 @@ runs:
 
     - name: Start dev env
       if: inputs.start-dev-env == 'true'
-      run: make start-dev-env SCYLLA_VERSION=${{ inputs.scylla-version }} IP_FAMILY=${{ inputs.ip-family }}
+      run: make start-dev-env SCYLLA_VERSION=${{ inputs.scylla-version }} IP_FAMILY=${{ inputs.ip-family }} RAFT_ENABLED=${{ inputs.raft-enabled }}
       shell: bash

@@ -9,6 +9,9 @@ on:
       ip-family:
         required: false
         type: string
+      raft-enabled:
+        required: false
+        type: string
 
 jobs:
   # Right now both restore-tables and restore-schema tests take way longer than any other pkg tests.
@@ -25,6 +28,7 @@ jobs:
         with:
           scylla-version: ${{ inputs.scylla-version }}
           ip-family: ${{ inputs.ip-family }}
+          raft-enabled: ${{ inputs.raft-enabled }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
@@ -41,6 +45,7 @@ jobs:
         with:
           scylla-version: ${{ inputs.scylla-version }}
           ip-family: ${{ inputs.ip-family }}
+          raft-enabled: ${{ inputs.raft-enabled }}
 
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
         # This regex ensures that all restore tests that didn't match restore-tables job will be run here.
@@ -59,6 +64,7 @@ jobs:
         with:
           scylla-version: ${{ inputs.scylla-version }}
           ip-family: ${{ inputs.ip-family }}
+          raft-enabled: ${{ inputs.raft-enabled }}
 
         # Until backup and restore live in the same pkg, we have to use regex to separate their tests.
         # The same negative lookahead workaround as in restore-schema.
@@ -77,6 +83,7 @@ jobs:
         with:
           scylla-version: ${{ inputs.scylla-version }}
           ip-family: ${{ inputs.ip-family }}
+          raft-enabled: ${{ inputs.raft-enabled }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/repair
@@ -97,6 +104,7 @@ jobs:
         with:
           scylla-version: ${{ inputs.scylla-version }}
           ip-family: ${{ inputs.ip-family }}
+          raft-enabled: ${{ inputs.raft-enabled }}
 
       - name: Run cqlping tests
         run: make pkg-integration-test PKG=./pkg/ping/cqlping
