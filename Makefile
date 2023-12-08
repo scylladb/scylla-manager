@@ -18,7 +18,8 @@ GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .Tes
 
 SCYLLA_VERSION?=5.4.0
 IP_FAMILY?=IPV4
-RAFT_ENABLED?=false
+RAFT_ENABLED?=true
+SKIP_GOSSIP?=false
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
