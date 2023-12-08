@@ -920,9 +920,9 @@ func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string,
 }
 
 // IsAutoCompactionEnabled checks if auto compaction of given table is enabled on the host.
-func (c *Client) IsAutoCompactionEnabled(ctx context.Context, keyspace, table string) (bool, error) {
+func (c *Client) IsAutoCompactionEnabled(ctx context.Context, host, keyspace, table string) (bool, error) {
 	resp, err := c.scyllaOps.ColumnFamilyAutocompactionByNameGet(&operations.ColumnFamilyAutocompactionByNameGetParams{
-		Context: ctx,
+		Context: forceHost(ctx, host),
 		Name:    keyspace + ":" + table,
 	})
 	if err != nil {
@@ -932,18 +932,18 @@ func (c *Client) IsAutoCompactionEnabled(ctx context.Context, keyspace, table st
 }
 
 // EnableAutoCompaction enables auto compaction on the host.
-func (c *Client) EnableAutoCompaction(ctx context.Context, keyspace, table string) error {
+func (c *Client) EnableAutoCompaction(ctx context.Context, host, keyspace, table string) error {
 	_, err := c.scyllaOps.ColumnFamilyAutocompactionByNamePost(&operations.ColumnFamilyAutocompactionByNamePostParams{
-		Context: ctx,
+		Context: forceHost(ctx, host),
 		Name:    keyspace + ":" + table,
 	})
 	return err
 }
 
 // DisableAutoCompaction disables auto compaction on the host.
-func (c *Client) DisableAutoCompaction(ctx context.Context, keyspace, table string) error {
+func (c *Client) DisableAutoCompaction(ctx context.Context, host, keyspace, table string) error {
 	_, err := c.scyllaOps.ColumnFamilyAutocompactionByNameDelete(&operations.ColumnFamilyAutocompactionByNameDeleteParams{
-		Context: ctx,
+		Context: forceHost(ctx, host),
 		Name:    keyspace + ":" + table,
 	})
 	return err

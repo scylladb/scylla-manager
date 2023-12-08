@@ -912,28 +912,12 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		ctx          = context.Background()
 	)
 
-	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
-	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
-
-	Print("Recreate schema on destination cluster")
-	if target.RestoreTables {
-		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
-	}
-
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	srcH.simpleBackup(target.Location[0])
-
-	// Corrupting SSTables allows us to force the creation of versioned files
-	Print("Choose SSTables to corrupt")
 	status, err := srcH.Client.Status(ctx)
 	if err != nil {
 		t.Fatal("Get status")
 	}
-
 	host := status[0]
+
 	var corruptedKeyspace string
 	var corruptedTable string
 	if target.RestoreTables {
@@ -944,6 +928,30 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		corruptedTable = "keyspaces"
 	}
 
+	// Restore should be performed on user with limited permissions
+	if err := createUser(dstSession, user, "pass"); err != nil {
+		t.Fatal(err)
+	}
+	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
+
+	if target.RestoreTables {
+		Print("Recreate schema on destination cluster")
+		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
+	} else {
+		// This test requires SSTables in Scylla data dir to remain unchanged.
+		// This is achieved by NullCompactionStrategy in user table, but since system tables
+		// cannot be altered, it has to be handled separately.
+		if err := srcH.Client.DisableAutoCompaction(ctx, host.Addr, corruptedKeyspace, corruptedTable); err != nil {
+			t.Fatal(err)
+		}
+		defer srcH.Client.EnableAutoCompaction(ctx, host.Addr, corruptedKeyspace, corruptedTable)
+	}
+
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	srcH.simpleBackup(target.Location[0])
+
+	// Corrupting SSTables allows us to force the creation of versioned files
+	Print("Choose SSTables to corrupt")
 	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.ClusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
@@ -1568,8 +1576,8 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		if baseTable(srcSession, t.Keyspace, t.Table) != "" {
 			continue
 		}
-		if mode := tombstoneGCMode(dstSession, t.Keyspace, t.Table); mode != "timeout" {
-			h.T.Fatalf("Expected 'timeout' tombstone_gc mode, got: %s", mode)
+		if mode, err := tombstoneGCMode(dstSession, t.Keyspace, t.Table); mode != "timeout" || err != nil {
+			h.T.Fatalf("Expected 'timeout' tombstone_gc mode, got: %s, with err: %s", mode, err)
 		}
 	}
 
@@ -1842,7 +1850,7 @@ func baseTable(s gocqlx.Session, keyspace, table string) string {
 	return baseTable
 }
 
-func tombstoneGCMode(s gocqlx.Session, keyspace, table string) string {
+func tombstoneGCMode(s gocqlx.Session, keyspace, table string) (string, error) {
 	var ext map[string]string
 	q := qb.Select("system_schema.tables").
 		Columns("extensions").
@@ -1853,20 +1861,20 @@ func tombstoneGCMode(s gocqlx.Session, keyspace, table string) string {
 	defer q.Release()
 	err := q.Scan(&ext)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	// Timeout (just using gc_grace_seconds) is the default mode
 	mode, ok := ext["tombstone_gc"]
 	if !ok {
-		return "timeout"
+		return "timeout", nil
 	}
 
 	allModes := []string{"disabled", "timeout", "repair", "immediate"}
 	for _, m := range allModes {
 		if strings.Contains(mode, m) {
-			return m
+			return m, nil
 		}
 	}
-	return ""
+	return "", errors.New("unknown mode")
 }
