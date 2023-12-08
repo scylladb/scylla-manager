@@ -7,6 +7,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -15,7 +16,6 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -48,16 +48,25 @@ func TestClientStatusIntegration(t *testing.T) {
 		t.Fatal("Status() error", err)
 	}
 
+	ipCmp := cmp.Comparer(func(n1, n2 scyllaclient.NodeStatusInfo) bool {
+		out := true
+		out = out && n1.Datacenter == n2.Datacenter
+		out = out && n1.State == n2.State
+		out = out && n1.Status == n2.Status
+		out = out && net.ParseIP(n1.Addr).Equal(net.ParseIP(n2.Addr))
+		return out
+	})
+
 	golden := scyllaclient.NodeStatusInfoSlice{
-		{Datacenter: "dc1", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("11"))), State: "", Status: true},
-		{Datacenter: "dc1", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("12"))), State: "", Status: true},
-		{Datacenter: "dc1", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("13"))), State: "", Status: true},
-		{Datacenter: "dc2", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("21"))), State: "", Status: true},
-		{Datacenter: "dc2", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("22"))), State: "", Status: true},
-		{Datacenter: "dc2", Addr: ExpandIP(ToCanonicalIP(IPFromTestNet("23"))), State: "", Status: true},
+		{Datacenter: "dc1", Addr: IPFromTestNet("11"), State: "", Status: true},
+		{Datacenter: "dc1", Addr: IPFromTestNet("12"), State: "", Status: true},
+		{Datacenter: "dc1", Addr: IPFromTestNet("13"), State: "", Status: true},
+		{Datacenter: "dc2", Addr: IPFromTestNet("21"), State: "", Status: true},
+		{Datacenter: "dc2", Addr: IPFromTestNet("22"), State: "", Status: true},
+		{Datacenter: "dc2", Addr: IPFromTestNet("23"), State: "", Status: true},
 	}
 
-	if diff := cmp.Diff(golden, status, cmpopts.IgnoreFields(scyllaclient.NodeStatusInfo{}, "HostID")); diff != "" {
+	if diff := cmp.Diff(golden, status, ipCmp); diff != "" {
 		t.Fatalf("Status() = %#+v, diff %s", status, diff)
 	}
 }
