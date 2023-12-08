@@ -583,7 +583,7 @@ task_ttl_in_seconds: 10
 #
 # A cluster not using Raft can be 'upgraded' to use Raft. Refer to the aforementioned
 # documentation, section 'Enabling Raft in ScyllaDB 5.2 and further', for the procedure.
-# consistent_cluster_management: true
+consistent_cluster_management: true
 
 # In materialized views, restrictions are allowed only on the view's primary key columns.
 # In old versions Scylla mistakenly allowed IS NOT NULL restrictions on columns which were not part

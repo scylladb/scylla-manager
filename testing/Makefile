@@ -12,6 +12,8 @@ CURRENT_GID  := $(shell id -g)
 
 SCYLLA_VERSION?=5.4.0
 IP_FAMILY?=IPV4
+RAFT_ENABLED?=true
+SKIP_GOSSIP?=false
 
 MINIO_ENDPOINT := https://192.168.200.99:9000
 COMPOSE_FILE := docker-compose-ipv4.yaml
@@ -53,7 +55,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
-	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY)"
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_ENABLED=$(RAFT_ENABLED)"
 # Scylla bootstap proceedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
@@ -69,6 +71,10 @@ else
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
 	@cp scylla/config/scylla-second-cluster.yaml scylla/scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
+endif
+ifeq ($(RAFT_ENABLED),false)
+	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'consistent_cluster_management' false
 endif
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
