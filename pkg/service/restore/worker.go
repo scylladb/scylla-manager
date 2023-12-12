@@ -121,11 +121,13 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 			remotePath     = l.RemotePath("")
 			locationStatus = status
 		)
-		// In case location does not have specified dc, use nodes from all dcs
-		if l.DC == "" {
-			w.logger.Info(ctx, "No datacenter specified for location - using all nodes for this location", "location", l)
-		} else {
-			locationStatus = status.Datacenter([]string{l.DC})
+		// In order to improve restore schema stability, we ignore location's dc assignment
+		if t.RestoreTables {
+			if l.DC == "" {
+				w.logger.Info(ctx, "No datacenter specified for location - using all nodes for this location", "location", l)
+			} else {
+				locationStatus = status.Datacenter([]string{l.DC})
+			}
 		}
 
 		nodes, err := w.client.GetNodesWithLocationAccess(ctx, locationStatus, remotePath)
