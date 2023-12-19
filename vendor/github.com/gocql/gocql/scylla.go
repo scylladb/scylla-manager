@@ -2,6 +2,7 @@ package gocql
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"math"
@@ -49,7 +50,57 @@ func findCQLProtoExtByName(exts []cqlProtocolExtension, name string) cqlProtocol
 // Each key identifies a single extension.
 const (
 	lwtAddMetadataMarkKey = "SCYLLA_LWT_ADD_METADATA_MARK"
+	rateLimitError        = "SCYLLA_RATE_LIMIT_ERROR"
 )
+
+// "Rate limit" CQL Protocol Extension.
+// This extension, if enabled (properly negotiated), allows Scylla server
+// to send a special kind of error.
+//
+// Implements cqlProtocolExtension interface.
+type rateLimitExt struct {
+	rateLimitErrorCode int
+}
+
+var _ cqlProtocolExtension = &rateLimitExt{}
+
+// Factory function to deserialize and create an `rateLimitExt` instance
+// from SUPPORTED message payload.
+func newRateLimitExt(supported map[string][]string) *rateLimitExt {
+	const rateLimitErrorCode = "ERROR_CODE"
+
+	if v, found := supported[rateLimitError]; found {
+		for i := range v {
+			splitVal := strings.Split(v[i], "=")
+			if splitVal[0] == rateLimitErrorCode {
+				var (
+					err       error
+					errorCode int
+				)
+				if errorCode, err = strconv.Atoi(splitVal[1]); err != nil {
+					if gocqlDebug {
+						Logger.Printf("scylla: failed to parse %s value %v: %s", rateLimitErrorCode, splitVal[1], err)
+						return nil
+					}
+				}
+				return &rateLimitExt{
+					rateLimitErrorCode: errorCode,
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (ext *rateLimitExt) serialize() map[string]string {
+	return map[string]string{
+		rateLimitError: "",
+	}
+}
+
+func (ext *rateLimitExt) name() string {
+	return rateLimitError
+}
 
 // "LWT prepared statements metadata mark" CQL Protocol Extension.
 // This extension, if enabled (properly negotiated), allows Scylla server
@@ -187,6 +238,11 @@ func parseCQLProtocolExtensions(supported map[string][]string) []cqlProtocolExte
 		exts = append(exts, lwtExt)
 	}
 
+	rateLimitExt := newRateLimitExt(supported)
+	if rateLimitExt != nil {
+		exts = append(exts, rateLimitExt)
+	}
+
 	return exts
 }
 
@@ -216,7 +272,6 @@ type scyllaConnPicker struct {
 	nrShards               int
 	msbIgnore              uint64
 	pos                    uint64
-	dialer                 Dialer
 	lastAttemptedShard     int
 	shardAwarePortDisabled bool
 
@@ -253,27 +308,11 @@ func newScyllaConnPicker(conn *Conn) *scyllaConnPicker {
 		shardAwareAddress:      shardAwareAddress,
 		nrShards:               conn.scyllaSupported.nrShards,
 		msbIgnore:              conn.scyllaSupported.msbIgnore,
-		dialer:                 makeDialerForScyllaConnPicker(conn),
 		lastAttemptedShard:     0,
 		shardAwarePortDisabled: conn.session.cfg.DisableShardAwarePort,
 
 		disableShardAwarePortUntil: new(atomic.Value),
 	}
-}
-
-func makeDialerForScyllaConnPicker(conn *Conn) Dialer {
-	cfg := conn.session.connCfg
-	dialer := cfg.Dialer
-	if dialer == nil {
-		d := &ScyllaShardAwareDialer{}
-		d.Timeout = cfg.ConnectTimeout
-		if cfg.Keepalive > 0 {
-			d.KeepAlive = cfg.Keepalive
-		}
-		dialer = d
-	}
-
-	return dialer
 }
 
 func (p *scyllaConnPicker) Pick(t token) *Conn {
@@ -282,7 +321,7 @@ func (p *scyllaConnPicker) Pick(t token) *Conn {
 	}
 
 	if t == nil {
-		return p.randomConn()
+		return p.leastBusyConn()
 	}
 
 	mmt, ok := t.(int64Token)
@@ -295,19 +334,44 @@ func (p *scyllaConnPicker) Pick(t token) *Conn {
 	if c := p.conns[idx]; c != nil {
 		// We have this shard's connection
 		// so let's give it to the caller.
-		return c
+		// But only if it's not loaded too much and load is well distributed.
+		return p.maybeReplaceWithLessBusyConnection(c)
 	}
-	return p.randomConn()
+	return p.leastBusyConn()
 }
 
-func (p *scyllaConnPicker) randomConn() *Conn {
+func (p *scyllaConnPicker) maybeReplaceWithLessBusyConnection(c *Conn) *Conn {
+	if !isHeavyLoaded(c) {
+		return c
+	}
+	alternative := p.leastBusyConn()
+	if alternative == nil || alternative.AvailableStreams() * 120 > c.AvailableStreams() * 100 {
+		return c
+	} else {
+		return alternative
+	}
+}
+
+func isHeavyLoaded(c *Conn) bool {
+    return c.streams.NumStreams / 2 > c.AvailableStreams();
+}
+
+func (p *scyllaConnPicker) leastBusyConn() *Conn {
+	var (
+		leastBusyConn    *Conn
+		streamsAvailable int
+	)
 	idx := int(atomic.AddUint64(&p.pos, 1))
-	for i := 0; i < len(p.conns); i++ {
+	// find the conn which has the most available streams, this is racy
+	for i := range p.conns {
 		if conn := p.conns[(idx+i)%len(p.conns)]; conn != nil {
-			return conn
+			if streams := conn.AvailableStreams(); streams > streamsAvailable {
+				leastBusyConn = conn
+				streamsAvailable = streams
+			}
 		}
 	}
-	return nil
+	return leastBusyConn
 }
 
 func (p *scyllaConnPicker) shardOf(token int64Token) int {
@@ -465,16 +529,19 @@ func closeConns(conns ...*Conn) {
 	}
 }
 
-func (p *scyllaConnPicker) GetCustomDialer() Dialer {
+// NextShard returns the shardID to connect to.
+// nrShard specifies how many shards the host has.
+// If nrShards is zero, the caller shouldn't use shard-aware port.
+func (p *scyllaConnPicker) NextShard() (shardID, nrShards int) {
 	if p.shardAwarePortDisabled {
-		return nil
+		return 0, 0
 	}
 
 	disableUntil, _ := p.disableShardAwarePortUntil.Load().(time.Time)
 	if time.Now().Before(disableUntil) {
 		// There is suspicion that the shard-aware-port is not reachable
 		// or misconfigured, fall back to the non-shard-aware port
-		return nil
+		return 0, 0
 	}
 
 	// Find the shard without a connection
@@ -484,53 +551,111 @@ func (p *scyllaConnPicker) GetCustomDialer() Dialer {
 		shardID := (p.lastAttemptedShard + i) % p.nrShards
 		if p.conns == nil || p.conns[shardID] == nil {
 			p.lastAttemptedShard = shardID
-			return &scyllaOneShardDialer{
-				shardAwareAddress: p.shardAwareAddress,
-				shardID:           shardID,
-				nrShards:          p.nrShards,
-				dialer:            p.dialer,
-			}
+			return shardID, p.nrShards
 		}
 	}
 
 	// We did not find an unallocated shard
 	// We will dial the non-shard-aware port
-	return nil
+	return 0, 0
+}
+
+// ShardDialer is like HostDialer but is shard-aware.
+// If the driver wants to connect to a specific shard, it will call DialShard,
+// otherwise it will call DialHost.
+type ShardDialer interface {
+	HostDialer
+
+	// DialShard establishes a connection to the specified shard ID out of nrShards.
+	// The returned connection must be directly usable for CQL protocol,
+	// specifically DialShard is responsible also for setting up the TLS session if needed.
+	DialShard(ctx context.Context, host *HostInfo, shardID, nrShards int) (*DialedHost, error)
 }
 
 // A dialer which dials a particular shard
-type scyllaOneShardDialer struct {
-	shardAwareAddress string
-	shardID           int
-	nrShards          int
-	dialer            Dialer
+type scyllaDialer struct {
+	dialer    Dialer
+	logger    StdLogger
+	tlsConfig *tls.Config
+	cfg       *ClusterConfig
 }
 
 const scyllaShardAwarePortFallbackDuration time.Duration = 5 * time.Minute
 
-func (sosd *scyllaOneShardDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	iter := newScyllaPortIterator(sosd.shardID, sosd.nrShards)
+func (sd *scyllaDialer) DialHost(ctx context.Context, host *HostInfo) (*DialedHost, error) {
+	ip := host.ConnectAddress()
+	port := host.Port()
 
-	if gocqlDebug {
-		Logger.Printf("scylla: connecting to shard %d", sosd.shardID)
+	if !validIpAddr(ip) {
+		return nil, fmt.Errorf("host missing connect ip address: %v", ip)
+	} else if port == 0 {
+		return nil, fmt.Errorf("host missing port: %v", port)
 	}
 
+	addr := host.HostnameAndPort()
+	conn, err := sd.dialer.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return WrapTLS(ctx, conn, addr, sd.tlsConfig)
+}
+
+func (sd *scyllaDialer) DialShard(ctx context.Context, host *HostInfo, shardID, nrShards int) (*DialedHost, error) {
+	ip := host.ConnectAddress()
+	port := host.Port()
+
+	if !validIpAddr(ip) {
+		return nil, fmt.Errorf("host missing connect ip address: %v", ip)
+	} else if port == 0 {
+		return nil, fmt.Errorf("host missing port: %v", port)
+	}
+
+	iter := newScyllaPortIterator(shardID, nrShards)
+
+	addr := host.HostnameAndPort()
+
+	var shardAwarePort uint16
+	if sd.tlsConfig != nil {
+		shardAwarePort = host.ScyllaShardAwarePortTLS()
+	} else {
+		shardAwarePort = host.ScyllaShardAwarePort()
+	}
+
+	var shardAwareAddress string
+	if shardAwarePort != 0 {
+		tIP, tPort := sd.cfg.translateAddressPort(host.UntranslatedConnectAddress(), int(shardAwarePort))
+		shardAwareAddress = net.JoinHostPort(tIP.String(), strconv.Itoa(tPort))
+	}
+
+	if gocqlDebug {
+		sd.logger.Printf("scylla: connecting to shard %d", shardID)
+	}
+
+	conn, err := sd.dialShardAware(ctx, addr, shardAwareAddress, iter)
+	if err != nil {
+		return nil, err
+	}
+
+	return WrapTLS(ctx, conn, addr, sd.tlsConfig)
+}
+
+func (sd *scyllaDialer) dialShardAware(ctx context.Context, addr, shardAwareAddr string, iter *scyllaPortIterator) (net.Conn, error) {
 	for {
 		port, ok := iter.Next()
 		if !ok {
 			// We exhausted ports to connect from. Try the non-shard-aware port.
-			return sosd.dialer.DialContext(ctx, network, addr)
+			return sd.dialer.DialContext(ctx, "tcp", addr)
 		}
 
 		ctxWithPort := context.WithValue(ctx, scyllaSourcePortCtx{}, port)
-		conn, err := sosd.dialer.DialContext(ctxWithPort, network, sosd.shardAwareAddress)
+		conn, err := sd.dialer.DialContext(ctxWithPort, "tcp", shardAwareAddr)
 
 		if isLocalAddrInUseErr(err) {
 			// This indicates that the source port is already in use
 			// We can immediately retry with another source port for this shard
 			continue
 		} else if err != nil {
-			conn, err := sosd.dialer.DialContext(ctx, network, addr)
+			conn, err := sd.dialer.DialContext(ctx, "tcp", addr)
 			if err == nil {
 				// We failed to connect to the shard-aware port, but succeeded
 				// in connecting to the non-shard-aware port. This might
@@ -540,10 +665,10 @@ func (sosd *scyllaOneShardDialer) DialContext(ctx context.Context, network, addr
 				// We can't avoid false positives here, so I'm putting it
 				// behind a debug flag.
 				if gocqlDebug {
-					Logger.Printf(
+					sd.logger.Printf(
 						"scylla: %s couldn't connect to shard-aware address while the non-shard-aware address %s is available; this might be an issue with ",
 						addr,
-						sosd.shardAwareAddress,
+						shardAwareAddr,
 					)
 				}
 			}
