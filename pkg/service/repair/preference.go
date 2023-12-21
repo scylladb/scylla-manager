@@ -25,6 +25,7 @@ func NewInternalTablePreference() TablePreference {
 				"role_members",
 			},
 		},
+		{Keyspace: "system_replicated_keys"},
 		{Keyspace: "system_distributed"},
 		{Keyspace: "system_distributed_everywhere"},
 		{Keyspace: "system_traces"},

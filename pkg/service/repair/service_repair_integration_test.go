@@ -548,7 +548,8 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			if diff := cmp.Diff(golden, v,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.SortSlices(func(u1, u2 repair.Unit) bool { return u1.Keyspace < u2.Keyspace }),
-				cmpopts.IgnoreUnexported(repair.Target{})); diff != "" {
+				cmpopts.IgnoreUnexported(repair.Target{}),
+				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool { return u.Keyspace == "system_replicated_keys" })); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -720,6 +721,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		"system_auth.role_attributes",
 		"system_auth.role_members",
 		"system_auth.*",
+		"system_replicated_keys.*",
 		"system_distributed.*",
 		"system_distributed_everywhere.*",
 		"system_traces.*",
