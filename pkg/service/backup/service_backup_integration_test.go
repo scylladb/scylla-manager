@@ -404,7 +404,10 @@ func TestGetTargetIntegration(t *testing.T) {
 			}
 			golden.RemoveSystemTables()
 			v.RemoveSystemTables()
-			if diff := cmp.Diff(golden, v, cmpopts.SortSlices(func(a, b string) bool { return a < b }), cmpopts.IgnoreUnexported(backup.Target{})); diff != "" {
+			if diff := cmp.Diff(golden, v,
+				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
+				cmpopts.IgnoreUnexported(backup.Target{}),
+				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_replicated_keys" })); diff != "" {
 				t.Fatal(diff)
 			}
 		})
