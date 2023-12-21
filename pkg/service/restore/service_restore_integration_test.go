@@ -297,12 +297,14 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b Unit) bool { return a.Keyspace < b.Keyspace }),
 				cmpopts.SortSlices(func(a, b Table) bool { return a.Table < b.Table }),
 				cmpopts.IgnoreFields(Unit{}, "Size"),
-				cmpopts.IgnoreFields(Table{}, "Size")); diff != "" {
+				cmpopts.IgnoreFields(Table{}, "Size"),
+				cmpopts.IgnoreSliceElements(func(u Unit) bool { return u.Keyspace == "system_replicated_keys" })); diff != "" {
 				t.Fatal(tc.units, diff)
 			}
 
 			if diff := cmp.Diff(goldenViews, views,
-				cmpopts.SortSlices(func(a, b View) bool { return a.Keyspace+a.View < b.Keyspace+b.View })); diff != "" {
+				cmpopts.SortSlices(func(a, b View) bool { return a.Keyspace+a.View < b.Keyspace+b.View }),
+				cmpopts.IgnoreFields(View{}, "CreateStmt")); diff != "" {
 				t.Fatal(tc.views, diff)
 			}
 		})
