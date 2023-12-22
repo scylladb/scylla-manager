@@ -21,6 +21,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"go.uber.org/multierr"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -982,6 +983,45 @@ func (c *Client) ViewBuildStatus(ctx context.Context, keyspace, view string) (Vi
 		}
 	}
 	return minStatus, nil
+}
+
+// CheckClusterVersionConstraint returns true when all hosts satisfy provided version.CheckConstraint.
+func (c *Client) CheckClusterVersionConstraint(ctx context.Context, hosts []string, constraint string) bool {
+	l := c.logger.Named("CheckClusterVersionConstraint")
+	if len(hosts) == 0 {
+		l.Info(ctx, "Empty Hosts")
+		return false
+	}
+
+	for _, h := range hosts {
+		resp, err := c.scyllaOps.StorageServiceScyllaReleaseVersionGet(&operations.StorageServiceScyllaReleaseVersionGetParams{
+			Context: forceHost(ctx, h),
+		})
+		if err != nil {
+			l.Info(ctx, "Couldn't get Scylla version", "error", err)
+			return false
+		}
+
+		v := resp.GetPayload()
+		check, err := version.CheckConstraint(v, constraint)
+		if err != nil {
+			l.Info(ctx, "Couldn't check version constraint",
+				"version", v,
+				"constraint", constraint,
+				"error", err,
+			)
+			return false
+		}
+		if !check {
+			l.Info(ctx, "Failed version constraint check",
+				"version", v,
+				"constraint", constraint,
+			)
+			return false
+		}
+	}
+
+	return true
 }
 
 // ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"

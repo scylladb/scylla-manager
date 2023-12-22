@@ -33,6 +33,10 @@ func TestShortVersion(t *testing.T) {
 			Version:  "i'm - not a version",
 			Expected: "i'm - not a version",
 		},
+		{
+			Version:  "2024.1.0~rc1-0.20231119.c41aeb701889",
+			Expected: "2024.1.0",
+		},
 	}
 
 	for i := range ts {
@@ -67,6 +71,10 @@ func TestTransformReleaseCandidate(t *testing.T) {
 		{
 			Version:  "i'm - not a version",
 			Expected: "i'm - not a version",
+		},
+		{
+			Version:  "2024.1.0~rc1-0.20231119.c41aeb701889",
+			Expected: "2024.1.0~rc1-0.20231119.c41aeb701889",
 		},
 	}
 
@@ -111,6 +119,16 @@ func TestCheckConstraint(t *testing.T) {
 		{
 			Version:    "3.9",
 			Constraint: ">= 4.1, < 2000",
+			Match:      false,
+		},
+		{
+			Version:    "2024.1.0~rc1-0.20231119.c41aeb701889",
+			Constraint: ">= 2024.1",
+			Match:      true,
+		},
+		{
+			Version:    "5.4.0~rc1-0.20231119.c41aeb701889",
+			Constraint: ">= 2024.1",
 			Match:      false,
 		},
 	}
