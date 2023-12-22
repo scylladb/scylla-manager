@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   dc1_node_1:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -22,7 +22,7 @@ services:
       second:
 
   dc1_node_2:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -42,7 +42,7 @@ services:
       second:
 
   dc1_node_3:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -62,7 +62,7 @@ services:
       second:
 
   dc2_node_1:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -82,7 +82,7 @@ services:
       second:
 
   dc2_node_2:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -102,7 +102,7 @@ services:
       second:
 
   dc2_node_3:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -122,7 +122,7 @@ services:
       second:
 
   second_cluster_dc1_node_1:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -142,7 +142,7 @@ services:
       second:
 
   second_cluster_dc1_node_2:
-    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     volumes:
       - type: bind
@@ -162,7 +162,7 @@ services:
       second:
 
   scylla-manager-db:
-    image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
+    image: scylladb/${SCYLLA_VERSION}
     ports:
       - "9042:9042"
       - "10000:10000"
