@@ -10,7 +10,7 @@ YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-SCYLLA_VERSION?=5.4.0
+SCYLLA_VERSION?=scylla:5.4.1
 IP_FAMILY?=IPV4
 RAFT_ENABLED?=true
 SKIP_GOSSIP?=false
@@ -45,9 +45,8 @@ include .env
 build: ## Build custom docker image
 	@echo "==> Building custom Scylla $(SCYLLA_VERSION) image for testing"
 	@docker build --network=host \
-		--build-arg=SCYLLA_IMAGE=$(SCYLLA_IMAGE) \
 		--build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) \
-		-t scylladb/scylla-agent:$(SCYLLA_VERSION) \
+		-t scylladb/agent-$(SCYLLA_VERSION) \
 		scylla
 	@echo "==> Building development image for Scylla Manager Server"
 	@docker build --network=host -t scylladb/scylla-manager-dev scylla-manager
@@ -87,7 +86,11 @@ endif
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
 	@echo "==> Waiting for dc1 node1"
-	@until [ 1 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+	@cnt=0; until [ 1 -le $$($(NODETOOL) status | grep -c "UN") ]; do \
+		cnt=$$(expr $$cnt + 1); \
+		if [ $$cnt -eq 300 ]; then exit 1; fi; \
+		echo -n "."; sleep 2; done; echo ""
+
 	@until [ 1 -le $$($(SECOND_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d second_cluster_dc1_node_2
 
@@ -105,7 +108,7 @@ endif
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh || true
 	@echo "==> Initialising cluster"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
+	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
 
 .PHONY: down
 down: ## Stop docker containers

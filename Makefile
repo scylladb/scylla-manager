@@ -16,7 +16,7 @@ GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 
-SCYLLA_VERSION?=5.4.0
+SCYLLA_VERSION?=scylla:5.4.1
 IP_FAMILY?=IPV4
 RAFT_ENABLED?=true
 SKIP_GOSSIP?=false
