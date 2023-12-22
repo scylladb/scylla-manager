@@ -60,8 +60,6 @@ jobs:
           scylla-version: ${{ inputs.scylla-version }}
           ip-family: ${{ inputs.ip-family }}
 
-        # Until backup and restore live in the same pkg, we have to use regex to separate their tests.
-        # The same negative lookahead workaround as in restore-schema.
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/backup
 
