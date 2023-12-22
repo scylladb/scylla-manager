@@ -57,7 +57,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		out = errors.Wrapf(out, "master %s keyspace %s table %s command %d", j.master, j.keyspace, j.table, jobID)
 	}()
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, j.tryOptimizeRanges())
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, j.tryOptimizeRanges(), j.optimize == repairOptScyllaAPI)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}

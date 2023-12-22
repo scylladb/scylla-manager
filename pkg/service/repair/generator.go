@@ -67,16 +67,15 @@ type job struct {
 	master     string
 	replicaSet []string
 	ranges     []scyllaclient.TokenRange
-	// jobs of optimized tables should merge all token ranges into one.
-	optimize bool
+	optimize   repairOpt
 	// jobs of deleted tables are sent only for progress updates.
 	deleted bool
 }
 
 // tryOptimizeRanges returns either predefined ranges
-// or one full token range for small fully replicated tables.
+// or one full token range for optimized tables.
 func (j job) tryOptimizeRanges() []scyllaclient.TokenRange {
-	if j.optimize {
+	if j.optimize == repairOptMergeRanges {
 		return []scyllaclient.TokenRange{
 			{
 				StartToken: dht.Murmur3MinToken,
@@ -131,7 +130,7 @@ func newGenerator(ctx context.Context, target Target, client *scyllaclient.Clien
 				"keyspace", kp.Keyspace,
 				"table", tp.Table,
 				"size", tp.Size,
-				"merge_ranges", tp.Optimize,
+				"optimization kind", tp.Optimize,
 			)
 		}
 	}

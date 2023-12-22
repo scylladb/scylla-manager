@@ -470,18 +470,23 @@ func ReplicaHash(replicaSet []string) uint64 {
 }
 
 // Repair invokes async repair and returns the repair command ID.
-func (c *Client) Repair(ctx context.Context, keyspace, table, master string, replicaSet []string, ranges []TokenRange) (int32, error) {
+func (c *Client) Repair(ctx context.Context, keyspace, table, master string, replicaSet []string, ranges []TokenRange, smallTableOpt bool) (int32, error) {
 	dr := dumpRanges(ranges)
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
 		Context:        forceHost(ctx, master),
 		Keyspace:       keyspace,
 		ColumnFamilies: &table,
-		Ranges:         &dr,
+	}
+	if dr != "" {
+		p.Ranges = &dr
 	}
 	// Single node cluster repair fails with hosts param
 	if len(replicaSet) > 1 {
 		hosts := strings.Join(replicaSet, ",")
 		p.Hosts = &hosts
+	}
+	if smallTableOpt {
+		p.SmallTableOptimization = pointer.StringPtr("true")
 	}
 
 	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspacePost(&p)

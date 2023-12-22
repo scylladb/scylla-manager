@@ -54,6 +54,9 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 				ReplicaSet: filteredReplicaSet(rep.ReplicaSet, filtered, target.Host),
 				Ranges:     rep.Ranges,
 			}
+			if len(rtr.ReplicaSet) != len(rep.ReplicaSet) {
+				kp.FilteredOut = true
+			}
 
 			// Don't add keyspace with some ranges not replicated in filtered hosts,
 			// unless it's a single node cluster.
@@ -87,9 +90,11 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	if len(p.Keyspaces) == 0 {
 		return nil, ErrEmptyRepair
 	}
-	if err := p.FillSize(ctx, client, target.SmallTableThreshold); err != nil {
+	if err := p.FillSize(ctx, client); err != nil {
 		return nil, errors.Wrap(err, "calculate tables size")
 	}
+	p.ChooseOptimization(ctx, client, target.SmallTableThreshold)
+
 	return p, nil
 }
 
@@ -197,7 +202,7 @@ func (p *plan) MarkDoneRanges(keyspace, table string, cnt int) {
 }
 
 // FillSize sets size and optimize of each table.
-func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallTableThreshold int64) error {
+func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client) error {
 	var hkts []scyllaclient.HostKeyspaceTable
 	hosts := p.Hosts()
 	for _, kp := range p.Keyspaces {
@@ -230,14 +235,46 @@ func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallT
 		p.Keyspaces[i].Size = ksSize[kp.Keyspace]
 		for j := range kp.Tables {
 			kp.Tables[j].Size = tableSize[kp.Keyspace+"."+kp.Tables[j].Table]
-			// Return merged ranges for small, fully replicated table (#3128)
-			if kp.Tables[j].Size < smallTableThreshold && len(kp.Replicas) == 1 {
-				kp.Tables[j].Optimize = true
-			}
 		}
 	}
 
 	return nil
+}
+
+// Describes the type of repair optimization used on table.
+// The bigger the number, the better the optimization.
+type repairOpt int
+
+const (
+	// No optimization.
+	repairOptNone repairOpt = iota
+	// Send all ranges in one request (used on small and fully replicated tables).
+	repairOptMergeRanges
+	// Use Scylla 'small_table_optimization' param (used on small tables when repair hosts are not filtered).
+	// This param is supported from Scylla 2024.1 above.
+	// Description:
+	// - Always repairs all ranges (ignores 'ranges' param).
+	// - Must be called from only one node that will orchestrate all the work.
+	//   It can be any node in the cluster.
+	// - Doesn't need table to be fully replicated, only reasonably small.
+	repairOptScyllaAPI
+)
+
+// ChooseOptimization for each repaired table.
+func (p *plan) ChooseOptimization(ctx context.Context, client *scyllaclient.Client, smallTableThreshold int64) {
+	serverSideSmallTableOpt := client.CheckClusterVersionConstraint(ctx, p.Hosts(), ">= 2024.1")
+	for _, kp := range p.Keyspaces {
+		for j, tp := range kp.Tables {
+			switch {
+			case tp.Size < smallTableThreshold && !kp.FilteredOut && serverSideSmallTableOpt:
+				kp.Tables[j].Optimize = repairOptScyllaAPI
+			case tp.Size < smallTableThreshold && len(kp.Replicas) == 1:
+				kp.Tables[j].Optimize = repairOptMergeRanges
+			default:
+				kp.Tables[j].Optimize = repairOptNone
+			}
+		}
+	}
 }
 
 // ViewSort ensures that views are repaired after base tables.
@@ -325,7 +362,9 @@ type keyspacePlan struct {
 	Idx       int
 	AllTables bool
 
-	Replicas []scyllaclient.ReplicaTokenRanges
+	// True if any node from any replica set has been filtered out
+	FilteredOut bool
+	Replicas    []scyllaclient.ReplicaTokenRanges
 	// Maps token range to replica set (by index) that owns it.
 	// Contains all token ranges as entries.
 	TokenRepIdx map[scyllaclient.TokenRange]int
@@ -339,14 +378,24 @@ func (kp keyspacePlan) IsTableRepaired(tabIdx int) bool {
 	return len(kp.TokenRepIdx) == kp.Tables[tabIdx].Done
 }
 
+// MarkAllRanges for given table.
+func (kp keyspacePlan) MarkAllRanges(tabIdx int) {
+	tp := kp.Tables[tabIdx]
+	for tr, repIdx := range kp.TokenRepIdx {
+		_ = tp.MarkRange(repIdx, tr)
+	}
+}
+
 // GetRangesToRepair returns at most cnt ranges of table owned by replica set.
 func (kp keyspacePlan) GetRangesToRepair(repIdx, tabIdx, cnt int) []scyllaclient.TokenRange {
 	rep := kp.Replicas[repIdx]
 	tp := kp.Tables[tabIdx]
 
-	// Return all ranges for optimized or deleted table
-	if tp.Optimize || tp.Deleted {
-		cnt = len(rep.Ranges)
+	// Both optimization works around sending just one query that repairs all ranges.
+	// They don't need the actual ranges.
+	if tp.Optimize != repairOptNone || tp.Deleted {
+		kp.MarkAllRanges(tabIdx)
+		return nil
 	}
 
 	var out []scyllaclient.TokenRange
@@ -427,10 +476,8 @@ type tablePlan struct {
 	// Deleted tables are still being sent to workers,
 	// so that their progress can still be updated in a fake way,
 	// as their jobs are not actually sent to Scylla.
-	Deleted bool
-	// Optimized tables (small and fully replicated)
-	// have all ranges for replica set repaired in a single job.
-	Optimize bool
+	Deleted  bool
+	Optimize repairOpt
 	// Marks scheduled ranges.
 	MarkedRanges map[scyllaclient.TokenRange]struct{}
 	// Marks amount of scheduled ranges in replica set (by index).
