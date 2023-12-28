@@ -513,9 +513,12 @@ func repairStatusShouldRetryHandler(err error) *bool {
 	return nil
 }
 
+const repairStatusTimeout = 30 * time.Minute
+
 // RepairStatus waits for repair job to finish and returns its status.
 func (c *Client) RepairStatus(ctx context.Context, host string, id int32) (CommandStatus, error) {
 	ctx = forceHost(ctx, host)
+	ctx = customTimeout(ctx, repairStatusTimeout)
 	ctx = withShouldRetryHandler(ctx, repairStatusShouldRetryHandler)
 	var (
 		resp interface {
