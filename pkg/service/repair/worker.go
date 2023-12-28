@@ -49,7 +49,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 	)
 	// Decorate returned error
 	defer func() {
-		w.logger.Info(ctx, "Repair done")
+		w.logger.Info(ctx, "Repair done", "job_id", jobID)
 		// Try to justify error by checking table deletion
 		if out != nil && w.isTableDeleted(ctx, j) {
 			out = errTableDeleted
