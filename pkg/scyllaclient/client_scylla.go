@@ -899,6 +899,8 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 	return report, err
 }
 
+const loadSSTablesTimeout = time.Hour
+
 // LoadSSTables that are already downloaded to host's table upload directory.
 // Used API endpoint has the following properties:
 // - It is synchronous - response is received only after the loading has finished
@@ -909,7 +911,7 @@ func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string,
 	const WIPError = "Already loading SSTables"
 
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
-		Context:            forceHost(ctx, host),
+		Context:            customTimeout(forceHost(ctx, host), loadSSTablesTimeout),
 		Keyspace:           keyspace,
 		Cf:                 table,
 		LoadAndStream:      &loadAndStream,
