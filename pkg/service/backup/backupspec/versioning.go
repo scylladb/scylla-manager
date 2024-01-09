@@ -17,17 +17,39 @@ import (
 // 'suffix' option to rename otherwise overwritten files during upload.
 // Choosing snapshot tag as the suffix allows us to determine when to purge/restore versioned files.
 
-// VersionedSSTable represents older version of SSTable that we still need to store in a backup.
+// VersionedSSTable represents version of SSTable that we still need to store in a backup.
 // (e.g. older version of 'md-2-big-Data.db' could be 'md-2-big-Data.db.sm_20230114183231UTC')
 // Note, that the newest version of SSTable does not have snapshot tag extension.
 type VersionedSSTable struct {
-	Name    string // Original SSTable name (e.g. md-2-big-Data.db)
-	Version string // Snapshot tag extension representing backup that introduced newer version of this SSTable (e.g. sm_20230114183231UTC)
+	Name string // Original SSTable name (e.g. md-2-big-Data.db)
+	// Snapshot tag extension representing backup that introduced newer version of this SSTable (e.g. sm_20230114183231UTC).
+	// Empty string for the newest version.
+	Version string
 	Size    int64
+}
+
+// NewVersionedSStable creates VersionedSSTable from listed item.
+func NewVersionedSStable(item *scyllaclient.RcloneListDirItem) VersionedSSTable {
+	ext := path.Ext(item.Name)
+	if ext == "" || !IsSnapshotTag(ext[1:]) {
+		return VersionedSSTable{
+			Name: item.Name,
+			Size: item.Size,
+		}
+	}
+
+	return VersionedSSTable{
+		Name:    strings.TrimSuffix(item.Name, ext),
+		Version: ext[1:],
+		Size:    item.Size,
+	}
 }
 
 // FullName returns versioned file name.
 func (vt VersionedSSTable) FullName() string {
+	if vt.Version == "" {
+		return vt.Name
+	}
 	return vt.Name + "." + vt.Version
 }
 
@@ -41,17 +63,16 @@ func VersionedFileExt(snapshotTag string) string {
 	return "." + snapshotTag
 }
 
-// VersionedFileCreationTime returns the time of versioned file creation
-// (the time when the newer version of the file has been uploaded to the backup location).
-func VersionedFileCreationTime(versioned string) (time.Time, error) {
-	snapshotExt := path.Ext(versioned)[1:]
-	return SnapshotTagTime(snapshotExt)
-}
-
-// IsVersionedFileRemovable checks if versioned file can be safely purged.
+// IsVersionedFileRemovable checks if versioned file is redundant because of its newer versions.
 // In order to decide that, the time of the oldest stored backup is required.
 func IsVersionedFileRemovable(oldest time.Time, versioned string) (bool, error) {
-	t, err := VersionedFileCreationTime(versioned)
+	ext := path.Ext(versioned)
+	// Don't remove the newest versions
+	if ext == "" || !IsSnapshotTag(ext[1:]) {
+		return false, nil
+	}
+
+	t, err := SnapshotTagTime(ext[1:])
 	if err != nil {
 		return false, err
 	}
@@ -63,29 +84,17 @@ func IsVersionedFileRemovable(oldest time.Time, versioned string) (bool, error) 
 	return false, nil
 }
 
-// SplitNameAndVersion splits versioned file name into its original name and its version.
-func SplitNameAndVersion(versioned string) (name, version string) {
-	versionExt := path.Ext(versioned)
-	baseName := strings.TrimSuffix(versioned, versionExt)
-	return baseName, versionExt[1:]
-}
-
 // ListVersionedFiles gathers information about versioned files from specified dir.
 func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapshotTag, host, dir string) (VersionedMap, error) {
 	versionedFiles := make(VersionedMap)
 	allVersions := make(map[string][]VersionedSSTable)
 
 	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly:     true,
-		VersionedOnly: true,
+		FilesOnly: true,
 	}
 	f := func(item *scyllaclient.RcloneListDirItem) {
-		name, version := SplitNameAndVersion(item.Name)
-		allVersions[name] = append(allVersions[name], VersionedSSTable{
-			Name:    name,
-			Version: version,
-			Size:    item.Size,
-		})
+		v := NewVersionedSStable(item)
+		allVersions[v.Name] = append(allVersions[v.Name], v)
 	}
 
 	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
@@ -96,24 +105,31 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 	if err != nil {
 		return nil, err
 	}
+	futureT := time.Unix(1<<60, 0)
 	// Chose correct version with respect to currently restored snapshot tag
 	for _, versions := range allVersions {
-		var candidate VersionedSSTable
+		var (
+			candidate VersionedSSTable
+			candT     = time.Time{}
+		)
 		for _, v := range versions {
-			tagT, err := SnapshotTagTime(v.Version)
-			if err != nil {
-				return nil, err
+			tagT := futureT
+			if v.Version != "" {
+				tagT, err = SnapshotTagTime(v.Version)
+				if err != nil {
+					return nil, err
+				}
 			}
+
 			if tagT.After(restoreT) {
-				if candidate.Version == "" || v.Version < candidate.Version {
+				if candT.IsZero() || tagT.Before(candT) {
 					candidate = v
+					candT = tagT
 				}
 			}
 		}
 
-		if candidate.Version != "" {
-			versionedFiles[candidate.Name] = candidate
-		}
+		versionedFiles[candidate.Name] = candidate
 	}
 
 	return versionedFiles, nil

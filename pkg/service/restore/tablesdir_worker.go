@@ -33,11 +33,10 @@ type tablesDirWorker struct {
 
 	ongoingPr []*RunProgress // Unfinished RunProgress from previous run of each host
 
-	// Maps original SSTable name to its existing older version
+	// Maps original SSTable name to its existing version
 	// (with respect to currently restored snapshot tag)
 	// that should be used during the restore procedure.
 	versionedFiles VersionedMap
-	fileSizesCache map[string]int64
 	progress       *TotalRestoreProgress
 }
 
@@ -64,17 +63,6 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 	if err != nil {
 		return tablesDirWorker{}, errors.Wrap(err, "initialize versioned SSTables")
 	}
-	if len(versionedFiles) > 0 {
-		w.logger.Info(ctx, "Chosen versioned SSTables",
-			"dir", srcDir,
-			"versioned_files", versionedFiles,
-		)
-	}
-
-	fileSizesCache, err := buildFilesSizesCache(ctx, w.client, hosts[0], srcDir, versionedFiles)
-	if err != nil {
-		return tablesDirWorker{}, errors.Wrap(err, "build files sizes cache")
-	}
 
 	return tablesDirWorker{
 		worker:         w,
@@ -86,7 +74,6 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 		fm:             fm,
 		ongoingPr:      make([]*RunProgress, len(hosts)),
 		versionedFiles: versionedFiles,
-		fileSizesCache: fileSizesCache,
 		progress:       progress,
 	}, nil
 }
@@ -395,7 +382,7 @@ func (w *tablesDirWorker) startDownload(ctx context.Context, host string, batch 
 	)
 	// Decide which files require to be downloaded in their older version
 	for _, file := range batch {
-		if v, ok := w.versionedFiles[file]; ok {
+		if v, ok := w.versionedFiles[file]; ok && v.Version != "" {
 			versionedBatch = append(versionedBatch, v)
 			versionedPr += v.Size
 		} else {
@@ -560,7 +547,7 @@ func (w *tablesDirWorker) batchFromIDs(ids []string) []string {
 func (w *tablesDirWorker) countBatchSize(batch []string) int64 {
 	var batchSize int64
 	for _, file := range batch {
-		batchSize += w.fileSizesCache[file]
+		batchSize += w.versionedFiles[file].Size
 	}
 	return batchSize
 }

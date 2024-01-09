@@ -620,20 +620,3 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 		)
 	}
 }
-
-func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {
-	filesSizesCache := make(map[string]int64)
-	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly: true,
-	}
-	f := func(item *scyllaclient.RcloneListDirItem) {
-		filesSizesCache[item.Name] = item.Size
-	}
-	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		return nil, errors.Wrapf(err, "host %s: listing all files from %s", host, dir)
-	}
-	for k, v := range versioned {
-		filesSizesCache[k] = v.Size
-	}
-	return filesSizesCache, nil
-}

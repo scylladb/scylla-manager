@@ -172,12 +172,6 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
-	if len(w.versionedFiles) > 0 {
-		w.logger.Info(ctx, "Chosen versioned SSTables",
-			"dir", srcDir,
-			"versioned_files", w.versionedFiles,
-		)
-	}
 
 	idMapping := w.getFileNamesMapping(fm.Files, false)
 	uuidMapping := w.getFileNamesMapping(fm.Files, true)
@@ -205,10 +199,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 			// Rename SSTable in the destination in order to avoid name conflicts
 			dstFile := renamedSSTables[file]
 			// Take the correct version of restored file
-			srcFile := file
-			if v, ok := w.versionedFiles[file]; ok {
-				srcFile = v.FullName()
-			}
+			srcFile := w.versionedFiles[file].FullName()
 
 			srcPath := path.Join(srcDir, srcFile)
 			dstPath := path.Join(dstDir, dstFile)
