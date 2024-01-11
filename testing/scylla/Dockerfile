@@ -1,10 +1,9 @@
-ARG SCYLLA_IMAGE
 ARG SCYLLA_VERSION
 
-FROM ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
+FROM scylladb/${SCYLLA_VERSION}
 
 # Install 3rd party tools
-RUN apt-get install -y iptables less net-tools
+RUN apt-get update && apt-get install -y iptables less net-tools ssh
 
 # Set root password
 RUN echo "root:root" | chpasswd root

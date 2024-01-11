@@ -4,13 +4,16 @@ COMPOSE      := docker-compose
 CQLSH        := $(COMPOSE) exec scylla-manager-db cqlsh
 CQLSH_NODE   := $(COMPOSE) exec -T dc1_node_1 cqlsh
 NODETOOL     := $(COMPOSE) exec -T dc1_node_1 nodetool
-SM_NODETOOL := $(COMPOSE) exec -T scylla-manager-db nodetool
+SECOND_NODETOOL := $(COMPOSE) exec -T second_cluster_dc1_node_1 nodetool
+SM_NODETOOL  := $(COMPOSE) exec -T scylla-manager-db nodetool
 YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-SCYLLA_VERSION?=5.1.13
+SCYLLA_VERSION?=scylla:5.4.1
 IP_FAMILY?=IPV4
+RAFT_ENABLED?=true
+SKIP_GOSSIP?=false
 
 MINIO_ENDPOINT := https://192.168.200.99:9000
 COMPOSE_FILE := docker-compose-ipv4.yaml
@@ -28,7 +31,7 @@ ifeq ($(IP_FAMILY), IPV6)
 	MINIO_CERT_DIR := ./minio/certs_ipv6
 endif
 
-SCYLLA_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)11,$(SECOND_NET)21
+SCYLLA_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)11
 SCYLLA_SECOND_CLUSTER_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)31
 
 export SCYLLA_ARGS
@@ -42,9 +45,8 @@ include .env
 build: ## Build custom docker image
 	@echo "==> Building custom Scylla $(SCYLLA_VERSION) image for testing"
 	@docker build --network=host \
-		--build-arg=SCYLLA_IMAGE=$(SCYLLA_IMAGE) \
 		--build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) \
-		-t scylladb/scylla-agent:$(SCYLLA_VERSION) \
+		-t scylladb/agent-$(SCYLLA_VERSION) \
 		scylla
 	@echo "==> Building development image for Scylla Manager Server"
 	@docker build --network=host -t scylladb/scylla-manager-dev scylla-manager
@@ -52,7 +54,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
-	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY)"
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_ENABLED=$(RAFT_ENABLED)"
 # Scylla bootstap proceedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
@@ -69,32 +71,47 @@ else
 	@cp scylla/config/scylla-second-cluster.yaml scylla/scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
+ifeq ($(RAFT_ENABLED),false)
+	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'consistent_cluster_management' false
+endif
+ifeq ($(SKIP_GOSSIP),true)
+	@$(YQ) write -i scylla/scylla.yaml 'skip_wait_for_gossip_to_settle' 0
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'skip_wait_for_gossip_to_settle' 0
+endif
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 dc2_node_1 second_cluster_dc1_node_1
+
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 second_cluster_dc1_node_1
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
-	@echo "==> Waiting for first nodes from DC1 and DC2 to spin up"
-	@until [ 2 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> First nodes from DC1 and DC2 are ready"
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_2 dc2_node_2 second_cluster_dc1_node_2
-	@echo "==> Waiting for second nodes from DC1 and DC2 to spin up"
-	@until [ 4 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> Second nodes from DC1 and DC2 are ready"
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
-	@echo "==> Waiting for sm db cluster"
-	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> SM cluster is ready"
+	@echo "==> Waiting for dc1 node1"
+	@cnt=0; until [ 1 -le $$($(NODETOOL) status | grep -c "UN") ]; do \
+		cnt=$$(expr $$cnt + 1); \
+		if [ $$cnt -eq 300 ]; then exit 1; fi; \
+		echo -n "."; sleep 2; done; echo ""
 
-	@echo "==> Waiting for rest of the cluster"
-	@until [ 6 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@echo "==> Cluster is ready"
+	@until [ 1 -le $$($(SECOND_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d second_cluster_dc1_node_2
+
+	@cnt=1; for node in dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3; do \
+  		. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d $$node; \
+		cnt=$$(expr $$cnt + 1); \
+		echo "==> Waiting node $$node number $$cnt"; \
+		until [ $$cnt -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
+
+	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2; do \
+		$(COMPOSE) exec -T --privileged $$node sudo bash -c 'service ssh start'; done
+
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
+	@echo "==> Waiting for the rest of containers"
+	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 
 	@./nodes_exec "rm /root/.cqlshrc || true"
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh || true
 	@echo "==> Initialising cluster"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
+	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
 
 .PHONY: down
 down: ## Stop docker containers
