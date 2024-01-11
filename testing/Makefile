@@ -100,6 +100,9 @@ endif
 		echo "==> Waiting node $$node number $$cnt"; \
 		until [ $$cnt -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
 
+	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2; do \
+		$(COMPOSE) exec -T --privileged $$node sudo bash -c 'service ssh start'; done
+
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
 	@echo "==> Waiting for the rest of containers"
 	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
