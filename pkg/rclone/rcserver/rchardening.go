@@ -6,7 +6,6 @@ import (
 	"context"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/fspath"
@@ -21,26 +20,6 @@ func wrap(fn rc.Func, v paramsValidator) rc.Func {
 			return nil, err
 		}
 		return fn(ctx, in)
-	}
-}
-
-// pathHasPrefix reads "fs" and "remote" params, evaluates absolute path and
-// ensures it has the required prefix.
-func pathHasPrefix(prefix string) paramsValidator {
-	return func(ctx context.Context, in rc.Params) error {
-		_, p, err := joined(in, "fs", "remote")
-		if err != nil {
-			return err
-		}
-
-		// Strip bucket name
-		i := strings.Index(p, "/")
-		p = p[i+1:]
-
-		if !strings.HasPrefix(p, prefix) {
-			return fs.ErrorPermissionDenied
-		}
-		return nil
 	}
 }
 

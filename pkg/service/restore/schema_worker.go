@@ -21,9 +21,6 @@ type schemaWorker struct {
 
 	generationCnt atomic.Int64
 	miwc          ManifestInfoWithContent // Currently restored manifest
-	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
-	// that should be used during the restore procedure. It should be initialized per each restored table.
-	versionedFiles VersionedMap
 }
 
 // restore downloads all backed-up schema files to each node in the cluster. This approach is necessary because
@@ -168,7 +165,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 	)
 
 	hosts := w.target.locationHosts[w.miwc.Location]
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
+	versionedFiles, err := ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
@@ -199,7 +196,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 			// Rename SSTable in the destination in order to avoid name conflicts
 			dstFile := renamedSSTables[file]
 			// Take the correct version of restored file
-			srcFile := w.versionedFiles[file].FullName()
+			srcFile := versionedFiles[file].FullName()
 
 			srcPath := path.Join(srcDir, srcFile)
 			dstPath := path.Join(dstDir, dstFile)
@@ -248,7 +245,21 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 		)
 	}
 
-	return parallel.Run(len(hosts), w.target.Parallel, f, notify)
+	if err := parallel.Run(len(hosts), w.target.Parallel, f, notify); err != nil {
+		return err
+	}
+
+	// Download SSTables to nodes from other regions (workaround for scylla issue #16349)
+	dirW := &schemaDirWorker{
+		schemaWorker:   w,
+		fm:             fm,
+		srcDir:         srcDir,
+		dstDir:         dstDir,
+		versionedFiles: versionedFiles,
+		idM:            idMapping,
+		uuidM:          uuidMapping,
+	}
+	return dirW.crossLocationSSTableDownload(ctx)
 }
 
 // getFileNamesMapping creates renaming mapping for the sstables solving problems with sstables file names.

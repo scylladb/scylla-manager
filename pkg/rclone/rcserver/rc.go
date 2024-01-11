@@ -331,7 +331,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "operations/cat",
 		AuthRequired: true,
-		Fn:           wrap(rcCat, pathHasPrefix("backup/meta/")),
+		Fn:           rcCat,
 		Title:        "Concatenate any files and send them in response",
 		Help: `This takes the following parameters
 

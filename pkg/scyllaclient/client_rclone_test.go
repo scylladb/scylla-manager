@@ -101,16 +101,6 @@ func TestRcloneCat(t *testing.T) {
 			Path:   "rclonetest:cat/backup/meta/file.txt",
 			Golden: b,
 		},
-		{
-			Name:  "other file",
-			Path:  "rclonetest:cat/file.txt",
-			Error: "agent [HTTP 500] permission denied",
-		},
-		{
-			Name:  "check escape",
-			Path:  "rclonetest:cat/backup/meta/../../file.txt",
-			Error: "agent [HTTP 500] permission denied",
-		},
 	}
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
