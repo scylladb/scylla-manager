@@ -26,6 +26,11 @@ type schemaWorker struct {
 	versionedFiles VersionedMap
 }
 
+// Due to Scylla issue #16349 it is expected that restore schema tests will fail
+// when running with the following setup:
+// - scylla-version: scylla:5.2.X,               raft-enabled: true
+// - scylla-version: scylla-enterprise:2024.1.X, raft-enabled: true
+
 // restore downloads all backed-up schema files to each node in the cluster. This approach is necessary because
 // it's not possible to alter gc_grace_seconds or tombstone_gc on schema tables (safety requirement for nodetool refresh).
 // It introduces great data duplication, but is necessary in order to simulate schema repair on each node.
