@@ -26,7 +26,7 @@ Use the example below to run the sctool restore command.
 
 where:
 
-* ``-c`` - the :ref:`name <cluster-add>` you used when you created the cluster
+* ``-c`` - the :ref:`name or ID <cluster-add>` of the restore destination cluster
 * ``-L`` - points to backup storage location in ``s3:<your S3 bucket name>`` format
 * ``-T`` - snapshot tag that you want to restore
 * ``--restore-schema or --restore-tables`` - type of restore task
