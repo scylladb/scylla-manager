@@ -111,48 +111,6 @@ Complete the restore procedure - restore both the schema and the content of the 
      │ table3 │ 100% | 100% │ 2.640M │  2.640M │     2.640M │            0 │      0 │ 16 Feb 23 17:17:39 CET │ 16 Feb 23 17:18:41 CET │
      ╰────────┴─────────────┴────────┴─────────┴────────────┴──────────────┴────────┴────────────────────────┴────────────────────────╯
 
-#. Perform restore tables follow-up action - :ref:`sctool repair <sctool-repair>`.
-
-   .. code-block:: none
-
-     sctool repair -c prod-cluster -K test_keyspace
-     repair/7ff514c1-c55d-4a1b-841c-cb98225aa05d`
-
-#. Ensure that repair has finished using :ref:`sctool progress <task-progress>`.
-
-   .. code-block:: none
-
-     sctool progress repair/7ff514c1-c55d-4a1b-841c-cb98225aa05d -c prod-cluster
-     Run:            b4621e0f-a7c1-11ed-b05b-0892040e83bb
-     Status:         DONE
-     Start time:     16 Feb 23 17:22:32 CET
-     End time:       16 Feb 23 17:22:36 CET
-     Duration:       2s
-     Progress:       100%
-     Datacenters:
-       - dc1
-       - dc2
-
-     ╭───────────────────────────────┬────────────────────────────────┬──────────┬──────────╮
-     │ Keyspace                      │                          Table │ Progress │ Duration │
-     ├───────────────────────────────┼────────────────────────────────┼──────────┼──────────┤
-     │ test_keyspace                 │                         table1 │ 100%     │ 0s       │
-     │ test_keyspace                 │                         table2 │ 100%     │ 0s       │
-     │ test_keyspace                 │                         table3 │ 100%     │ 0s       │
-     ╰───────────────────────────────┴────────────────────────────────┴──────────┴──────────╯
-
-#. Reset the `tombstone_gc <https://www.scylladb.com/2022/06/30/preventing-data-resurrection-with-repair-based-tombstone-garbage-collection/>`_ option via `CQLSH <https://docs.scylladb.com/stable/cql/cqlsh.html#>`_.
-
-   Although, all schema and contents of selected tables should be properly restored into the destination cluster by now,
-   it is extremely important to reset restored tables `tombstone_gc <https://www.scylladb.com/2022/06/30/preventing-data-resurrection-with-repair-based-tombstone-garbage-collection/>`_ option
-   in order to avoid great memory consumption caused by the ``tombstone_gc = {'mode': 'disabled'}`` mode.
-
-   .. code-block:: none
-
-     ALTER TABLE test_keyspace.table1 with tombstone_gc = {'mode': 'repair'}
-     ALTER TABLE test_keyspace.table2 with tombstone_gc = {'mode': 'repair'}
-     ALTER TABLE test_keyspace.table3 with tombstone_gc = {'mode': 'repair'}
-
 Perform a dry run of a restore
 ------------------------------
 
