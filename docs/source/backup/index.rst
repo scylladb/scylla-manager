@@ -19,6 +19,9 @@ Backup
 
 Using :ref:`sctool backup <sctool-backup>` command, you can schedule a backup of a managed cluster.
 Backups and repairs are scheduled in the same manner, you can start, stop, resume, and track task progress on demand.
+
+.. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/manager.html>`_.
+
 The following backup storage engines are supported:
 
 * Amazon S3,
