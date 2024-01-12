@@ -17,6 +17,8 @@ Repair
 Repair is important to make sure that data across the nodes is consistent.
 To learn more about repairs please consult `this Scylla University lesson <https://university.scylladb.com/courses/scylla-operations/lessons/scylla-manager-repair-and-tombstones/topic/repairs>`_.
 
+.. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/manager.html>`_.
+
 Scylla Manager automates the repair process and allows you to configure how and when repair occurs.
 *Scylla Manager repair task* revolves around scheduling many *Scylla repair jobs* with selected ``--intensity`` in ``--parallel``.
 *Repair task* is responsible for fully repairing all tables selected with ``--keyspace`` parameter, while a single *repair job* repairs
