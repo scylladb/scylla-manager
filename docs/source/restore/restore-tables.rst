@@ -34,10 +34,10 @@ Prerequisites
 
 * All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
 
-Process
-=======
+Procedure
+=========
 
-Restore procedure works iteratively over restored locations, manifests and tables.
+This section contains a description of the restore-tables procedure performed by ScyllaDB Manager.
 
     * For each backup location:
 
