@@ -20,7 +20,7 @@ type plan struct {
 
 	SkippedKeyspaces []string
 	MaxParallel      int
-	MaxHostIntensity map[string]int
+	MaxHostIntensity map[string]Intensity
 	HostTableSize    map[scyllaclient.HostKeyspaceTable]int64
 }
 
@@ -296,22 +296,22 @@ func (p *plan) KeyspaceRangesMap() map[string]int64 {
 	return out
 }
 
-func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]int {
-	out := make(map[string]int, len(shards))
+func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]Intensity {
+	out := make(map[string]Intensity, len(shards))
 	for h, sh := range shards {
 		out[h] = maxRepairRangesInParallel(sh, memory[h])
 	}
 	return out
 }
 
-func maxRepairRangesInParallel(shards uint, totalMemory int64) int {
+func maxRepairRangesInParallel(shards uint, totalMemory int64) Intensity {
 	const MiB = 1024 * 1024
 	memoryPerShard := totalMemory / int64(shards)
 	max := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
 	if max == 0 {
 		max = 1
 	}
-	return max
+	return NewIntensity(max)
 }
 
 // keyspacePlan describes repair schedule and state for keyspace.
@@ -340,20 +340,20 @@ func (kp keyspacePlan) IsTableRepaired(tabIdx int) bool {
 }
 
 // GetRangesToRepair returns at most cnt ranges of table owned by replica set.
-func (kp keyspacePlan) GetRangesToRepair(repIdx, tabIdx, cnt int) []scyllaclient.TokenRange {
+func (kp keyspacePlan) GetRangesToRepair(repIdx, tabIdx int, intensity Intensity) []scyllaclient.TokenRange {
 	rep := kp.Replicas[repIdx]
 	tp := kp.Tables[tabIdx]
 
 	// Return all ranges for optimized or deleted table
 	if tp.Optimize || tp.Deleted {
-		cnt = len(rep.Ranges)
+		intensity = NewIntensity(len(rep.Ranges))
 	}
 
 	var out []scyllaclient.TokenRange
 	for _, r := range rep.Ranges {
 		if tp.MarkRange(repIdx, r) {
 			out = append(out, r)
-			if len(out) >= cnt {
+			if NewIntensity(len(out)) >= intensity {
 				break
 			}
 		}
