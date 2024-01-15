@@ -270,6 +270,7 @@ func (h *repairTestHelper) assertParallelIntensity(parallel, intensity int) {
 	if err != nil {
 		h.T.Fatal(err)
 	}
+
 	if p.Parallel != parallel || int(p.Intensity) != intensity {
 		h.T.Fatalf("Expected parallel %d, intensity %d, got parallel %d, intensity %d", parallel, intensity, p.Parallel, int(p.Intensity))
 	}
@@ -1416,10 +1417,18 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		const (
+			propParallel               = 0
+			propIntensity              = 0
+			controlParallel            = 1
+			controlIntensity           = 1
+			deprecatedControlIntensity = 0.5
+		)
+
 		Print("When: run repair")
 		props := singleUnit(map[string]any{
-			"parallel":              1,
-			"intensity":             1,
+			"parallel":              propParallel,
+			"intensity":             propIntensity,
 			"small_table_threshold": -1,
 		})
 		h.runRepair(ctx, props)
@@ -1428,18 +1437,18 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("Then: assert parallel/intensity from properties")
-		h.assertParallelIntensity(1, 1)
+		h.assertParallelIntensity(propParallel, propIntensity)
 
 		Print("And: control parallel and intensity")
-		if err := h.service.SetParallel(ctx, h.ClusterID, 0); err != nil {
+		if err := h.service.SetParallel(ctx, h.ClusterID, controlParallel); err != nil {
 			t.Fatal(err)
 		}
-		if err := h.service.SetIntensity(ctx, h.ClusterID, 0); err != nil {
+		if err := h.service.SetIntensity(ctx, h.ClusterID, deprecatedControlIntensity); err != nil {
 			t.Fatal(err)
 		}
 
 		Print("Then: assert parallel/intensity from control")
-		h.assertParallelIntensity(0, 0)
+		h.assertParallelIntensity(controlParallel, controlIntensity)
 
 		Print("And: repair is stopped")
 		cancel()
@@ -1458,13 +1467,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("Then: assert resumed, running parallel/intensity from control")
-		h.assertParallelIntensity(0, 0)
+		h.assertParallelIntensity(controlParallel, controlIntensity)
 
 		Print("Then: repair is done")
 		h.assertDone(3 * longWait)
 
 		Print("Then: assert resumed, finished  parallel/intensity from control")
-		h.assertParallelIntensity(0, 0)
+		h.assertParallelIntensity(controlParallel, controlIntensity)
 
 		Print("And: run fresh repair")
 		h.RunID = uuid.NewTime()
@@ -1474,13 +1483,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("Then: assert fresh, running parallel/intensity from properties")
-		h.assertParallelIntensity(1, 1)
+		h.assertParallelIntensity(propParallel, propIntensity)
 
 		Print("Then: repair is done")
 		h.assertDone(3 * longWait)
 
 		Print("Then: assert fresh, finished repair parallel/intensity from control")
-		h.assertParallelIntensity(1, 1)
+		h.assertParallelIntensity(propParallel, propIntensity)
 	})
 
 	t.Run("repair restart no continue", func(t *testing.T) {
@@ -1905,6 +1914,31 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if p.TokenRanges != p.Success {
 			t.Fatalf("Expected full success, got %d/%d", p.Success, p.TokenRanges)
 		}
+	})
+
+	t.Run("deprecated float intensity", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		Print("When: run repair")
+		h.runRepair(ctx, multipleUnits(map[string]any{
+			"intensity": 0.5,
+		}))
+
+		Print("Then: repair is running")
+		h.assertRunning(shortWait)
+
+		p, err := h.service.GetProgress(ctx, h.ClusterID, h.TaskID, h.RunID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.Intensity != 1 {
+			t.Fatalf("Expected default intensity (1) when using float value, got: %v", p.Intensity)
+		}
+
+		Print("And: repair is done")
+		h.assertDone(longWait)
 	})
 
 	t.Run("repair status context timeout", func(t *testing.T) {
