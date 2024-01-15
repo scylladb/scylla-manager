@@ -21,7 +21,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		node6 = "192.168.1.6"
 	)
 
-	maxRangesPerHost := map[string]int{
+	maxRangesPerHost := map[string]Intensity{
 		node1: 20,
 		node2: 19,
 		node3: 18,
@@ -33,7 +33,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		return &intensityHandler{
 			logger:           log.Logger{},
 			maxHostIntensity: maxRangesPerHost,
-			intensity:        atomic.NewFloat64(defaultIntensity),
+			intensity:        atomic.NewInt64(int64(defaultIntensity)),
 			maxParallel:      3,
 			parallel:         atomic.NewInt64(defaultParallel),
 			poolController: workerpool.New[*worker, job, jobResult](context.Background(), func(ctx context.Context, id int) *worker {
@@ -69,9 +69,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
 
-		if err := ih.SetIntensity(context.Background(), expectedNrOfRanges); err != nil {
-			t.Fatalf("unexpected error = {%v}", err)
-		}
+		ih.SetIntensity(context.Background(), expectedNrOfRanges)
 		if rangesCount := c.TryBlock(replicaSet); rangesCount != expectedNrOfRanges {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", expectedNrOfRanges, rangesCount)
 		}
@@ -87,9 +85,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
 
-		if err := ih.SetIntensity(context.Background(), float64(expectedNrOfRanges)); err != nil {
-			t.Fatalf("unexpected error = {%v}", err)
-		}
+		ih.SetIntensity(context.Background(), expectedNrOfRanges)
 		if rangesCount := c.TryBlock(replicaSet); rangesCount != expectedNrOfRanges {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", expectedNrOfRanges, rangesCount)
 		}
@@ -106,9 +102,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
 
-		if err := ih.SetIntensity(context.Background(), intensity); err != nil {
-			t.Fatalf("unexpected error = {%v}", err)
-		}
+		ih.SetIntensity(context.Background(), intensity)
 		if rangesCount := c.TryBlock(replicaSet); rangesCount != minRangesInParallel {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", minRangesInParallel, rangesCount)
 		}
@@ -122,9 +116,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
 
-		if err := ih.SetParallel(context.Background(), 1); err != nil {
-			t.Fatalf("unexpected error {%v}", err)
-		}
+		ih.SetParallel(context.Background(), 1)
 		if rangesCount := c.TryBlock(replicaSet1); rangesCount == 0 {
 			t.Fatal("expected to let in, but was denied")
 		}

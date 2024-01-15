@@ -13,17 +13,33 @@ import (
 // Unit represents keyspace and its tables.
 type Unit = ksfilter.Unit
 
+// Intensity represents parsed internal intensity.
+type Intensity int
+
+// NewIntensity returns Intensity.
+func NewIntensity(i int) Intensity {
+	return Intensity(i)
+}
+
+// NewIntensityFromDeprecated returns Intensity parsed from deprecated float value.
+func NewIntensityFromDeprecated(i float64) Intensity {
+	if 0 < i && i < 1 {
+		return defaultIntensity
+	}
+	return Intensity(i)
+}
+
 // Target specifies what shall be repaired.
 type Target struct {
-	Units               []Unit   `json:"units"`
-	DC                  []string `json:"dc"`
-	Host                string   `json:"host,omitempty"`
-	IgnoreHosts         []string `json:"ignore_hosts,omitempty"`
-	FailFast            bool     `json:"fail_fast"`
-	Continue            bool     `json:"continue"`
-	Intensity           float64  `json:"intensity"`
-	Parallel            int      `json:"parallel"`
-	SmallTableThreshold int64    `json:"small_table_threshold"`
+	Units               []Unit    `json:"units"`
+	DC                  []string  `json:"dc"`
+	Host                string    `json:"host,omitempty"`
+	IgnoreHosts         []string  `json:"ignore_hosts,omitempty"`
+	FailFast            bool      `json:"fail_fast"`
+	Continue            bool      `json:"continue"`
+	Intensity           Intensity `json:"intensity"`
+	Parallel            int       `json:"parallel"`
+	SmallTableThreshold int64     `json:"small_table_threshold"`
 	// Cache for repair plan so that it does not have to be generated
 	// in both GetTarget and Repair functions.
 	plan *plan `json:"-"`
@@ -48,7 +64,7 @@ func defaultTaskProperties() *taskProperties {
 		Keyspace: []string{"*", "!system_traces"},
 
 		Continue:  true,
-		Intensity: defaultIntensity,
+		Intensity: float64(defaultIntensity),
 
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
@@ -64,7 +80,7 @@ type Run struct {
 	DC        []string
 	Host      string
 	Parallel  int
-	Intensity int
+	Intensity Intensity
 	PrevID    uuid.UUID
 	StartTime time.Time
 	EndTime   time.Time
@@ -169,8 +185,8 @@ type Progress struct {
 	Host              string          `json:"host"`
 	Hosts             []HostProgress  `json:"hosts"`
 	Tables            []TableProgress `json:"tables"`
-	MaxIntensity      float64         `json:"max_intensity"`
-	Intensity         float64         `json:"intensity"`
+	MaxIntensity      Intensity       `json:"max_intensity"`
+	Intensity         Intensity       `json:"intensity"`
 	MaxParallel       int             `json:"max_parallel"`
 	Parallel          int             `json:"parallel"`
 }
