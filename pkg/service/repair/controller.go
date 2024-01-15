@@ -5,16 +5,16 @@ package repair
 // controller informs generator about the amount of ranges that can be repaired
 // on a given replica set. Returns 0 ranges when repair shouldn't be scheduled.
 type controller interface {
-	TryBlock(replicaSet []string) (ranges int)
+	TryBlock(replicaSet []string) (ranges Intensity)
 	Unblock(replicaSet []string)
 	Busy() bool
 }
 
 type intensityChecker interface {
-	Intensity() int
+	Intensity() Intensity
 	Parallel() int
 	MaxParallel() int
-	ReplicaSetMaxIntensity(replicaSet []string) int
+	ReplicaSetMaxIntensity(replicaSet []string) Intensity
 }
 
 // rowLevelRepairController is a specialised controller for row-level repair.
@@ -37,15 +37,15 @@ func newRowLevelRepairController(i intensityChecker) *rowLevelRepairController {
 	}
 }
 
-func (c *rowLevelRepairController) TryBlock(replicaSet []string) int {
+func (c *rowLevelRepairController) TryBlock(replicaSet []string) Intensity {
 	if !c.shouldBlock(replicaSet) {
 		return 0
 	}
 	c.block(replicaSet)
 
 	i := c.intensity.Intensity()
-	if max := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || max < i {
-		i = max
+	if maxI := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || maxI < i {
+		i = maxI
 	}
 	return i
 }
