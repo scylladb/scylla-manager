@@ -238,7 +238,7 @@ func (fl *Intensity) String() string {
 
 // Set implements pflag.Value.
 func (fl *Intensity) Set(s string) error {
-	errValidation := errors.New("intensity must be an integer >= 1 or a decimal between (0,1)")
+	errValidation := errors.New("intensity must be a non-negative integer")
 
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
