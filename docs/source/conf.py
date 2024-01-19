@@ -103,7 +103,7 @@ html_theme_options = {
     'tag_substring_removed': 'scylla-manager-',
     'versions_unstable': UNSTABLE_VERSIONS,
     'versions_deprecated': DEPRECATED_VERSIONS,
-    'zendesk_tag': 'jiigc536se3g139312rad',
+    'zendesk_tag': '7x6adcx8o6lc6ug5w6tfvi',
 }
 
 # If not None, a 'Last updated on:' timestamp is inserted at every page
