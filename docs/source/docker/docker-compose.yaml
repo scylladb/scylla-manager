@@ -14,7 +14,7 @@ services:
       - scylla_manager_db_data:/var/lib/scylla
     networks:
       public:
-    command: --smp 1 --memory 100M
+    command: --smp 1 --memory 1G
 
   scylla:
     build:
