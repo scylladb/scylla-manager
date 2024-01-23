@@ -606,6 +606,38 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate)
 }
 
+// Functions used to validate that restored cluster is in a correct
+// state after enabling raft.
+func TestValidateSpecialRestoreSchemaIntegration(t *testing.T) {
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
+	client := newTestClient(t, hrt, logger.Named("client"), nil)
+	dstSession := CreateSession(t, client)
+	toValidate := fmt.Sprintf("%q.%q", specialRestoreSchema, BigTableName)
+	insertAndValidate(t, dstSession, toValidate)
+	toCreate := fmt.Sprintf("%q.%q", specialRestoreSchema, "create_table")
+	if err := dstSession.ExecStmt("CREATE TABLE " + toCreate + " (id int PRIMARY KEY)"); err != nil {
+		t.Fatal(err)
+	}
+	insertAndValidate(t, dstSession, toCreate)
+}
+
+func insertAndValidate(t *testing.T, session gocqlx.Session, table string) {
+	if err := session.ExecStmt("TRUNCATE  " + table); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.ExecStmt("INSERT INTO " + table + " (id) VALUES (777)"); err != nil {
+		t.Fatal(err)
+	}
+	var id []int
+	if err := session.Query("SELECT id FROM "+table, nil).Consistency(gocql.All).SelectRelease(&id); err != nil {
+		t.Fatal(err)
+	}
+	if len(id) != 1 && id[0] != 777 {
+		t.Fatal(id)
+	}
+}
+
 func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
@@ -1831,8 +1863,10 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 		keyspaceName = strings.Join(elements, "_")
 		userName     = keyspaceName + "_user"
 	)
-	return bucketName, keyspaceName, userName
+	return bucketName, specialRestoreSchema, userName
 }
+
+const specialRestoreSchema = "special_restore_schema"
 
 // baseTable returns view's base table or "" if it's not a view.
 func baseTable(s gocqlx.Session, keyspace, table string) string {

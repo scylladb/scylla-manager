@@ -12,7 +12,8 @@ CURRENT_GID  := $(shell id -g)
 
 SCYLLA_VERSION?=scylla:5.4.1
 IP_FAMILY?=IPV4
-RAFT_ENABLED?=true
+DST_RAFT_ENABLED?=true
+SRC_RAFT_ENABLED?=true
 SKIP_GOSSIP?=false
 
 MINIO_ENDPOINT := https://192.168.200.99:9000
@@ -51,6 +52,14 @@ build: ## Build custom docker image
 	@echo "==> Building development image for Scylla Manager Server"
 	@docker build --network=host -t scylladb/scylla-manager-dev scylla-manager
 
+.PHONY: enable-raft
+enable-raft: ## Enable raft managed schema
+enable-raft:
+	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' true
+	@for node in scylla_manager_dc1_node_1_1 scylla_manager_dc1_node_2_1 scylla_manager_dc1_node_3_1 scylla_manager_dc2_node_1_1 scylla_manager_dc2_node_2_1 scylla_manager_dc2_node_3_1; do \
+       docker exec -it $$node supervisorctl restart scylla; \
+       until [ 6 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
+
 .PHONY: up
 up: ## Start docker containers
 up:
@@ -71,8 +80,11 @@ else
 	@cp scylla/config/scylla-second-cluster.yaml scylla/scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
-ifeq ($(RAFT_ENABLED),false)
+ifeq ($(DST_RAFT_ENABLED),false)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
+endif
+ifeq ($(SRC_RAFT_ENABLED),false)
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'consistent_cluster_management' false
 endif
 ifeq ($(SKIP_GOSSIP),true)
 	@$(YQ) write -i scylla/scylla.yaml 'skip_wait_for_gossip_to_settle' 0

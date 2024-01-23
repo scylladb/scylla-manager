@@ -18,7 +18,8 @@ GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .Tes
 
 SCYLLA_VERSION?=scylla:5.4.1
 IP_FAMILY?=IPV4
-RAFT_ENABLED?=true
+DST_RAFT_ENABLED?=true
+SRC_RAFT_ENABLED?=true
 SKIP_GOSSIP?=false
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
@@ -161,7 +162,7 @@ start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
-	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) RAFT_ENABLED=$(RAFT_ENABLED) make -C testing build down up
+	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) DST_RAFT_ENABLED=$(DST_RAFT_ENABLED) SRC_RAFT_ENABLED=$(SRC_RAFT_ENABLED) make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes
