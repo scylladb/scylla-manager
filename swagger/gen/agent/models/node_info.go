@@ -50,6 +50,9 @@ type NodeInfo struct {
 	// Whether client authorization is required.
 	ClientEncryptionRequireAuth bool `json:"client_encryption_require_auth,omitempty"`
 
+	// Whether Scylla uses RAFT for cluster management and DDL.
+	ConsistentClusterManagement bool `json:"consistent_cluster_management,omitempty"`
+
 	// Logical CPU count.
 	CPUCount int64 `json:"cpu_count,omitempty"`
 
