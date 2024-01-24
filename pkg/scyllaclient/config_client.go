@@ -209,6 +209,18 @@ func (c *ConfigClient) UUIDSStableIdentifiers(ctx context.Context) (bool, error)
 	return resp.Payload, err
 }
 
+// ConsistentClusterManagement returns true if node uses RAFT for cluster management and DDL.
+func (c *ConfigClient) ConsistentClusterManagement(ctx context.Context) (bool, error) {
+	resp, err := c.client.Config.FindConfigConsistentClusterManagement(config.NewFindConfigConsistentClusterManagementParamsWithContext(ctx))
+	if isStatusCode400(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return resp.Payload, err
+}
+
 // AlternatorEnforceAuthorization returns whether alternator requires authorization.
 func (c *ConfigClient) AlternatorEnforceAuthorization(ctx context.Context) (bool, error) {
 	resp, err := c.client.Config.FindConfigAlternatorEnforceAuthorization(config.NewFindConfigAlternatorEnforceAuthorizationParamsWithContext(ctx))
@@ -278,6 +290,7 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		{Field: &ni.CqlPasswordProtected, Fetcher: c.CQLPasswordProtectionEnabled},
 		{Field: &ni.AlternatorEnforceAuthorization, Fetcher: c.AlternatorEnforceAuthorization},
 		{Field: &ni.SstableUUIDFormat, Fetcher: c.UUIDSStableIdentifiers},
+		{Field: &ni.ConsistentClusterManagement, Fetcher: c.ConsistentClusterManagement},
 	}
 
 	for i, ff := range ffb {
