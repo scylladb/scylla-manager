@@ -3,6 +3,7 @@ Compatibility Matrix
 
 The following table shows which version of Scylla Manager restore task supports which versions of Scylla.
 
+.. include:: _common/restore-raft-schema-warn.rst
 
 .. list-table::
    :widths: 25 25 25
