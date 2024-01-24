@@ -4983,6 +4983,33 @@
         }
       }
     },
+    "/config/consistent_cluster_management": {
+      "get": {
+        "description": "Return true if node uses RAFT for cluster management and DDL.",
+        "operationId": "find_config_consistent_cluster_management",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "config"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Config value",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
     "/config/alternator_enforce_authorization": {
       "get": {
         "description": "Whether alternator requires authorization",
