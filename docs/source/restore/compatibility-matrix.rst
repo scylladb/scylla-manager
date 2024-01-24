@@ -13,8 +13,8 @@ The following table shows which version of Scylla Manager restore task supports 
      - ScyllaDB Open Source Version
      - ScyllaDB Enterprise Version
    * - 3.2
-     - 5.0, 5.1, 5.2
-     - 2022.1, 2022.2, 2023.1
+     - 5.0, 5.1, 5.2, 5.4
+     - 2022.1, 2022.2, 2023.1, 2024.1
    * - 3.1
      - 5.0, 5.1, 5.2
      - 2022.1, 2022.2, 2023.1
