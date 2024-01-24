@@ -117,6 +117,8 @@ type ClientService interface {
 
 	FindConfigConcurrentWrites(params *FindConfigConcurrentWritesParams) (*FindConfigConcurrentWritesOK, error)
 
+	FindConfigConsistentClusterManagement(params *FindConfigConsistentClusterManagementParams) (*FindConfigConsistentClusterManagementOK, error)
+
 	FindConfigConsistentRangemovement(params *FindConfigConsistentRangemovementParams) (*FindConfigConsistentRangemovementOK, error)
 
 	FindConfigCounterCacheKeysToSave(params *FindConfigCounterCacheKeysToSaveParams) (*FindConfigCounterCacheKeysToSaveOK, error)
@@ -1954,6 +1956,39 @@ func (a *Client) FindConfigConcurrentWrites(params *FindConfigConcurrentWritesPa
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*FindConfigConcurrentWritesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigConsistentClusterManagement Return true if node uses RAFT for cluster management and DDL.
+*/
+func (a *Client) FindConfigConsistentClusterManagement(params *FindConfigConsistentClusterManagementParams) (*FindConfigConsistentClusterManagementOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigConsistentClusterManagementParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_consistent_cluster_management",
+		Method:             "GET",
+		PathPattern:        "/config/consistent_cluster_management",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigConsistentClusterManagementReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigConsistentClusterManagementOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigConsistentClusterManagementDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
