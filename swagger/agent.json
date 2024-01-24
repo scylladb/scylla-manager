@@ -1470,6 +1470,10 @@
         "sstable_uuid_format": {
           "description": "Whether Scylla supports uuid-like sstable naming.",
           "type": "boolean"
+        },
+        "consistent_cluster_management": {
+          "description": "Whether Scylla uses RAFT for cluster management and DDL.",
+          "type": "boolean"
         }
       }
     }
