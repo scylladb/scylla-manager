@@ -120,7 +120,7 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Alternator requires authorization",
 			ResponseFilePath: "testdata/scylla_api/v2_config_alternator_enforce_authorization.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return convertBool(client.UUIDSStableIdentifiers)
+				return convertBool(client.AlternatorEnforceAuthorization)
 			},
 			Golden: true,
 		},
@@ -129,6 +129,14 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			ResponseFilePath: "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
 				return convertBool(client.UUIDSStableIdentifiers)
+			},
+			Golden: true,
+		},
+		{
+			Name:             "Raft schema enabled",
+			ResponseFilePath: "testdata/scylla_api/v2_config_consistent_cluster_management.json",
+			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
+				return convertBool(client.ConsistentClusterManagement)
 			},
 			Golden: true,
 		},
@@ -174,6 +182,7 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_address", "testdata/scylla_api/v2_config_alternator_address.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_enforce_authorization", "testdata/scylla_api/v2_config_alternator_enforce_authorization.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/uuid_sstable_identifiers_enabled", "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/consistent_cluster_management", "testdata/scylla_api/v2_config_consistent_cluster_management.json"),
 		),
 	)
 	defer closeServer()
@@ -222,6 +231,7 @@ func TestConfigOptionIsNotSupported(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_address", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/alternator_enforce_authorization", "testdata/scylla_api/v2_config_alternator_disabled.400.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/uuid_sstable_identifiers_enabled", "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.400.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/consistent_cluster_management", "testdata/scylla_api/v2_config_consistent_cluster_management.400.json"),
 		),
 	)
 	defer closeServer()
