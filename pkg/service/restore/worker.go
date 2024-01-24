@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 )
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
@@ -108,6 +109,12 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		return errors.Wrap(err, "verify all nodes availability")
 	}
 
+	if t.RestoreSchema {
+		if err := isRestoreSchemaSupported(ctx, w.client); err != nil {
+			return err
+		}
+	}
+
 	allLocations := strset.New()
 	locationHosts := make(map[Location][]string)
 	for _, l := range t.Location {
@@ -154,6 +161,62 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	w.run.SnapshotTag = t.SnapshotTag
 	w.logger.Info(ctx, "Initialized target", "target", t)
 
+	return nil
+}
+
+// Because of #3662, there is no way fo SM to safely restore schema into cluster with consistent_cluster_management
+// and version higher or equal to OSS 5.4 or ENT 2024. There is a documented workaround in SM docs.
+func isRestoreSchemaSupported(ctx context.Context, client *scyllaclient.Client) error {
+	const (
+		DangerousConstraintOSS = ">= 6.0, < 2000"
+		DangerousConstraintENT = ">= 2024.2, > 1000"
+		SafeConstraintOSS      = "< 5.4, < 2000"
+		SafeConstraintENT      = "< 2024, > 1000"
+	)
+
+	raftSchema := false
+	raftIsSafe := true
+
+	status, err := client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get status")
+	}
+	for _, n := range status {
+		ni, err := client.NodeInfo(ctx, n.Addr)
+		if err != nil {
+			return errors.Wrapf(err, "get node %s info", n.Addr)
+		}
+
+		dangerousOSS, err := version.CheckConstraint(ni.ScyllaVersion, DangerousConstraintOSS)
+		if err != nil {
+			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
+		}
+		dangerousENT, err := version.CheckConstraint(ni.ScyllaVersion, DangerousConstraintENT)
+		if err != nil {
+			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
+		}
+		safeOSS, err := version.CheckConstraint(ni.ScyllaVersion, SafeConstraintOSS)
+		if err != nil {
+			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
+		}
+		safeENT, err := version.CheckConstraint(ni.ScyllaVersion, SafeConstraintENT)
+		if err != nil {
+			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
+		}
+
+		if dangerousOSS || dangerousENT {
+			raftSchema = true
+			raftIsSafe = false
+		} else if !safeOSS && !safeENT {
+			raftSchema = raftSchema || ni.ConsistentClusterManagement
+			raftIsSafe = false
+		}
+	}
+
+	if raftSchema && !raftIsSafe {
+		return errors.Errorf("restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
+			"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
+	}
 	return nil
 }
 
