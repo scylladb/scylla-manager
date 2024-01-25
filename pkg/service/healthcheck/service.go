@@ -354,6 +354,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 
 	tlsConfig := ni.tlsConfig(cqlPing)
 	if tlsConfig != nil {
+		config.Addr = ni.CQLSSLAddr(host)
 		config.TLSConfig = tlsConfig.Clone()
 	}
 
@@ -418,10 +419,16 @@ func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string
 		}
 		if tlsEnabled {
 			tlsConfig, err := s.tlsConfig(clusterID, clientCertAuth)
-			if err != nil {
+			if err != nil && !errors.Is(err, service.ErrNotFound) {
 				return ni, errors.Wrap(err, "fetch TLS config")
 			}
-			ni.TLSConfig[p] = tlsConfig
+			if clientCertAuth && errors.Is(err, service.ErrNotFound) {
+				s.logger.Info(ctx, "Client encryption is enabled, but Cluster wasn't registered with certificate in Scylla Manager, falling back to nonSSL port.",
+					"cluster_id", clusterID,
+				)
+			} else {
+				ni.TLSConfig[p] = tlsConfig
+			}
 		}
 	}
 
