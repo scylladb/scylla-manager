@@ -6,7 +6,6 @@ import (
 	"context"
 	"net"
 	"net/url"
-	"time"
 
 	"github.com/pkg/errors"
 	scyllaversion "github.com/scylladb/scylla-manager/v3/pkg/util/version"
@@ -47,7 +46,17 @@ func (c *Client) AnyNodeInfo(ctx context.Context) (*NodeInfo, error) {
 // is added.
 // `fallback` argument is used in case any of above addresses is zero address.
 func (ni *NodeInfo) CQLAddr(fallback string) string {
-	addr, port := ni.cqlAddr(fallback), ni.CQLPort(fallback)
+	addr, port := ni.cqlAddr(fallback), ni.CQLPort()
+	return net.JoinHostPort(addr, port)
+}
+
+// CQLSSLAddr returns CQL SSL address from NodeInfo.
+// Scylla can have separate rpc_address (CQL), listen_address and respectfully
+// broadcast_rpc_address and broadcast_address if some 3rd party routing
+// is added.
+// `fallback` argument is used in case any of above addresses is zero address.
+func (ni *NodeInfo) CQLSSLAddr(fallback string) string {
+	addr, port := ni.cqlAddr(fallback), ni.CQLSSLPort()
 	return net.JoinHostPort(addr, port)
 }
 
@@ -71,29 +80,13 @@ func (ni *NodeInfo) cqlAddr(fallback string) string {
 }
 
 // CQLPort returns CQL port from NodeInfo.
-// `fallbackAddress` argument is needed for Scylla bug workaround, see CQLAddr for description.
-func (ni *NodeInfo) CQLPort(fallbackAddress string) string {
-	if ni.ClientEncryptionEnabled {
-		// Scylla API always returns non-empty NativeTransportPortSSL even when
-		// value is explicitly disabled in configuration file.
-		// This makes impossible to determine which port is being used for CQL
-		// frontend. To workaround it, we try to dial SSL port when
-		// client encryption is enabled. If any error happens, assume this port
-		// is not used.
-		// Ref: https://github.com/scylladb/scylla/issues/7206
-
-		d := &net.Dialer{
-			Timeout: time.Second,
-		}
-		addr := net.JoinHostPort(ni.cqlAddr(fallbackAddress), ni.NativeTransportPortSsl)
-		c, err := d.Dial("tcp", addr)
-		if err != nil {
-			return ni.NativeTransportPort
-		}
-		defer c.Close()
-		return ni.NativeTransportPortSsl
-	}
+func (ni *NodeInfo) CQLPort() string {
 	return ni.NativeTransportPort
+}
+
+// CQLSSLPort returns CQL SSL port from NodeInfo.
+func (ni *NodeInfo) CQLSSLPort() string {
+	return ni.NativeTransportPortSsl
 }
 
 // AlternatorEnabled returns if Alternator is enabled on host.
