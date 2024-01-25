@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -549,6 +550,7 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 	}
 
 	scyllaCluster := gocql.NewCluster(sessionHosts...)
+	cqlPort := ni.CQLPort()
 
 	if ni.CqlPasswordProtected {
 		credentials := secrets.CQLCreds{
@@ -568,20 +570,41 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 		}
 	}
 
-	if ni.ClientEncryptionEnabled {
+	keyPair, err := s.loadTLSIdentity(clusterID)
+	if err != nil && !errors.Is(err, service.ErrNotFound) {
+		return session, err
+	}
+
+	if ni.ClientEncryptionEnabled && !ni.ClientEncryptionRequireAuth {
+		cqlPort = ni.CQLSSLPort()
 		scyllaCluster.SslOpts = &gocql.SslOptions{
 			Config: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 		}
-		if ni.ClientEncryptionRequireAuth {
-			keyPair, err := s.loadTLSIdentity(clusterID)
-			if err != nil {
-				return session, err
-			}
-			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
-		}
 	}
+
+	if ni.ClientEncryptionEnabled && ni.ClientEncryptionRequireAuth && !errors.Is(err, service.ErrNotFound) {
+		cqlPort = ni.CQLSSLPort()
+		scyllaCluster.SslOpts = &gocql.SslOptions{
+			Config: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+		scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
+	}
+
+	if ni.ClientEncryptionEnabled && ni.ClientEncryptionRequireAuth && errors.Is(err, service.ErrNotFound) {
+		s.logger.Info(ctx, "Client encryption is enabled, but Cluster wasn't registered with certificate in Scylla Manager, falling back to nonSSL port.",
+			"cluster_id", clusterID,
+		)
+	}
+
+	p, err := strconv.Atoi(cqlPort)
+	if err != nil {
+		return session, errors.Wrap(err, "parse cql port")
+	}
+	scyllaCluster.Port = p
 
 	return gocqlx.WrapSession(scyllaCluster.CreateSession())
 }
