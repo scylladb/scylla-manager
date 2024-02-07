@@ -631,8 +631,6 @@ type ClientService interface {
 
 	StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceDescribeRingByKeyspaceGetParams) (*StorageServiceDescribeRingByKeyspaceGetOK, error)
 
-	StorageServiceDescribeRingGet(params *StorageServiceDescribeRingGetParams) (*StorageServiceDescribeRingGetOK, error)
-
 	StorageServiceDrainGet(params *StorageServiceDrainGetParams) (*StorageServiceDrainGetOK, error)
 
 	StorageServiceDrainPost(params *StorageServiceDrainPostParams) (*StorageServiceDrainPostOK, error)
@@ -11424,41 +11422,6 @@ func (a *Client) StorageServiceDescribeRingByKeyspaceGet(params *StorageServiceD
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*StorageServiceDescribeRingByKeyspaceGetDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-StorageServiceDescribeRingGet describes any ring
-
-The TokenRange for a any keyspace
-*/
-func (a *Client) StorageServiceDescribeRingGet(params *StorageServiceDescribeRingGetParams) (*StorageServiceDescribeRingGetOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewStorageServiceDescribeRingGetParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "StorageServiceDescribeRingGet",
-		Method:             "GET",
-		PathPattern:        "/storage_service/describe_ring/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &StorageServiceDescribeRingGetReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*StorageServiceDescribeRingGetOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*StorageServiceDescribeRingGetDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
