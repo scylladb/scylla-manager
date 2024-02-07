@@ -9600,37 +9600,6 @@
         "security": []
       }
     },
-    "/storage_service/describe_ring/": {
-      "get": {
-        "description": "The TokenRange for a any keyspace",
-        "summary": "describe_any_ring",
-        "operationId": "StorageServiceDescribeRingGet",
-        "deprecated": false,
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/token_range"
-              }
-            },
-            "headers": {}
-          },
-          "default": {
-            "description": "internal server error",
-            "schema": {
-              "$ref": "#/definitions/ErrorModel"
-            }
-          }
-        },
-        "security": []
-      }
-    },
     "/storage_service/describe_ring/{keyspace}": {
       "get": {
         "description": "The TokenRange for a given keyspace",
