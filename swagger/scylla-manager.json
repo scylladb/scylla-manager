@@ -54,6 +54,12 @@
         },
         "without_repair": {
           "type": "boolean"
+        },
+        "force_tls_disabled": {
+          "type": "boolean"
+        },
+        "force_non_ssl_session_port": {
+          "type": "boolean"
         }
       }
     },
