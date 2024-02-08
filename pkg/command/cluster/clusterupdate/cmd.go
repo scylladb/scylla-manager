@@ -20,17 +20,19 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	cluster              string
-	name                 string
-	host                 string
-	port                 int64
-	authToken            string
-	username             string
-	password             string
-	sslUserCertFile      string
-	sslUserKeyFile       string
-	deleteCQLCredentials bool
-	deleteSSLUserCert    bool
+	cluster                string
+	name                   string
+	host                   string
+	port                   int64
+	authToken              string
+	username               string
+	password               string
+	sslUserCertFile        string
+	sslUserKeyFile         string
+	deleteCQLCredentials   bool
+	deleteSSLUserCert      bool
+	forceTLSDisabled       bool
+	forceNonSSLSessionPort bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -62,6 +64,8 @@ func (cmd *command) init() {
 	w.Unwrap().StringVar(&cmd.sslUserKeyFile, "ssl-user-key-file", "", "")
 	w.Unwrap().BoolVar(&cmd.deleteCQLCredentials, "delete-cql-credentials", false, "")
 	w.Unwrap().BoolVar(&cmd.deleteSSLUserCert, "delete-ssl-user-cert", false, "")
+	w.Unwrap().BoolVar(&cmd.forceTLSDisabled, "force-tls-disabled", false, "")
+	w.Unwrap().BoolVar(&cmd.forceNonSSLSessionPort, "force-non-ssl-session-port", false, "")
 }
 
 func (cmd *command) run() error {
@@ -93,6 +97,14 @@ func (cmd *command) run() error {
 	}
 	if cmd.Flags().Changed("auth-token") {
 		cluster.AuthToken = cmd.authToken
+		ok = true
+	}
+	if cmd.Flags().Changed("force-tls-disabled") {
+		cluster.ForceTLSDisabled = cmd.forceTLSDisabled
+		ok = true
+	}
+	if cmd.Flags().Changed("force-non-ssl-session-port") {
+		cluster.ForceNonSslSessionPort = cmd.forceNonSSLSessionPort
 		ok = true
 	}
 
