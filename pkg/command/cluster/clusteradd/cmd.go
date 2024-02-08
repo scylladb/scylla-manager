@@ -23,16 +23,18 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	id              string
-	name            string
-	host            string
-	port            int64
-	authToken       string
-	username        string
-	password        string
-	sslUserCertFile string
-	sslUserKeyFile  string
-	withoutRepair   bool
+	id                     string
+	name                   string
+	host                   string
+	port                   int64
+	authToken              string
+	username               string
+	password               string
+	sslUserCertFile        string
+	sslUserKeyFile         string
+	withoutRepair          bool
+	forceTLSDisabled       bool
+	forceNonSSLSessionPort bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -63,6 +65,8 @@ func (cmd *command) init() {
 	w.StringVar(&cmd.sslUserCertFile, "ssl-user-cert-file", "", "")
 	w.StringVar(&cmd.sslUserKeyFile, "ssl-user-key-file", "", "")
 	w.BoolVar(&cmd.withoutRepair, "without-repair", false, "")
+	w.BoolVar(&cmd.forceTLSDisabled, "force-tls-disabled", false, "")
+	w.BoolVar(&cmd.forceNonSSLSessionPort, "force-non-ssl-session-port", false, "")
 }
 
 func (cmd *command) run() error {
@@ -79,13 +83,15 @@ func (cmd *command) run() error {
 	}
 
 	c := &managerclient.Cluster{
-		ID:            cmd.id,
-		Name:          cmd.name,
-		Host:          cmd.host,
-		AuthToken:     cmd.authToken,
-		Username:      cmd.username,
-		Password:      cmd.password,
-		WithoutRepair: cmd.withoutRepair,
+		ID:                     cmd.id,
+		Name:                   cmd.name,
+		Host:                   cmd.host,
+		AuthToken:              cmd.authToken,
+		Username:               cmd.username,
+		Password:               cmd.password,
+		WithoutRepair:          cmd.withoutRepair,
+		ForceTLSDisabled:       cmd.forceTLSDisabled,
+		ForceNonSslSessionPort: cmd.forceNonSSLSessionPort,
 	}
 	if cmd.port != 10001 {
 		c.Port = cmd.port
@@ -104,6 +110,9 @@ func (cmd *command) run() error {
 	if cmd.sslUserKeyFile != "" && cmd.sslUserCertFile == "" {
 		return errors.New("missing flag \"ssl-user-cert-file\"")
 	}
+
+	w := cmd.OutOrStdout()
+
 	if cmd.sslUserCertFile != "" {
 		b0, err := fsutil.ReadFile(cmd.sslUserCertFile)
 		if err != nil {
@@ -123,10 +132,16 @@ func (cmd *command) run() error {
 		return err
 	}
 
-	w := cmd.OutOrStdout()
 	fmt.Fprintln(w, id)
 
 	w = cmd.OutOrStderr()
+	if cmd.forceTLSDisabled {
+		fmt.Fprintln(w, clusterForceTLSDisabledWarning)
+	}
+	if cmd.forceNonSSLSessionPort {
+		fmt.Fprintln(w, clusterNonSSLPortWarning)
+	}
+
 	if err := clusterAddedMessage(w, id, cmd.name); err != nil {
 		return err
 	}
@@ -169,3 +184,7 @@ func clusterAddedMessage(w io.Writer, id, name string) error {
 const clusterAddNoAuthTokenWarning = `
 WARNING! Scylla data may be exposed
 Protect it by specifying auth_token in /etc/scylla-manager-agent/scylla-manager-agent.yaml on Scylla nodes`
+
+const clusterForceTLSDisabledWarning = `WARNING! TLS is explicitly disabled on cluster sessions (--force-tls-disabled).`
+
+const clusterNonSSLPortWarning = `WARNING! Cluster session is going to always use non SSL port (--force-non-ssl-session-port).`
