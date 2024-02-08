@@ -68,6 +68,8 @@ var (
 			"known_hosts",
 			"name",
 			"port",
+			"force_tls_disabled",
+			"force_non_ssl_session_port",
 		},
 		PartKey: []string{
 			"id",
