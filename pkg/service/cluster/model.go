@@ -20,6 +20,9 @@ type Cluster struct {
 	Port       int       `json:"port,omitempty"`
 	AuthToken  string    `json:"auth_token"`
 
+	ForceTLSDisabled       bool `json:"force_tls_disabled"`
+	ForceNonSSLSessionPort bool `json:"force_non_ssl_session_port"`
+
 	Username        string `json:"username,omitempty" db:"-"`
 	Password        string `json:"password,omitempty" db:"-"`
 	SSLUserCertFile []byte `json:"ssl_user_cert_file,omitempty" db:"-"`
