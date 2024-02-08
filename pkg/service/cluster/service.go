@@ -385,6 +385,13 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		)
 	}
 
+	// Create the session and log error
+	_, err = s.GetSession(ctx, c.ID)
+	if err != nil {
+		s.logger.Info(ctx, "WARNING! Cannot create CQL session to the cluster. It will affect backup/restore/healthcheck services.",
+			"cluster_id", c.ID)
+	}
+
 	switch t {
 	case Create:
 		s.logger.Info(ctx, "Cluster added", "cluster_id", c.ID)
@@ -570,34 +577,27 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 		}
 	}
 
-	keyPair, err := s.loadTLSIdentity(clusterID)
-	if err != nil && !errors.Is(err, service.ErrNotFound) {
-		return session, err
+	cluster, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return session, errors.Wrap(err, "get cluster by id")
 	}
 
-	if ni.ClientEncryptionEnabled && !ni.ClientEncryptionRequireAuth {
-		cqlPort = ni.CQLSSLPort()
+	if ni.ClientEncryptionEnabled && !cluster.ForceTLSDisabled {
+		if !cluster.ForceNonSSLSessionPort {
+			cqlPort = ni.CQLSSLPort()
+		}
 		scyllaCluster.SslOpts = &gocql.SslOptions{
 			Config: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 		}
-	}
-
-	if ni.ClientEncryptionEnabled && ni.ClientEncryptionRequireAuth && !errors.Is(err, service.ErrNotFound) {
-		cqlPort = ni.CQLSSLPort()
-		scyllaCluster.SslOpts = &gocql.SslOptions{
-			Config: &tls.Config{
-				InsecureSkipVerify: true,
-			},
+		if ni.ClientEncryptionRequireAuth {
+			keyPair, err := s.loadTLSIdentity(clusterID)
+			if err != nil {
+				return session, err
+			}
+			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
 		}
-		scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
-	}
-
-	if ni.ClientEncryptionEnabled && ni.ClientEncryptionRequireAuth && errors.Is(err, service.ErrNotFound) {
-		s.logger.Info(ctx, "Client encryption is enabled, but Cluster wasn't registered with certificate in Scylla Manager, falling back to nonSSL port.",
-			"cluster_id", clusterID,
-		)
 	}
 
 	p, err := strconv.Atoi(cqlPort)
