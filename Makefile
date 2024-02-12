@@ -147,6 +147,23 @@ pkg-integration-test:
 		-u $(CURRENT_UID):$(CURRENT_GID) \
 		-i --read-only --rm ubuntu integration-test -test.v -test.run $(RUN) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
 
+.PHONY: api-integration-test
+api-integration-test: build-cli clean-server run-server
+	@echo "==> Running API integration"
+	@docker build -t scylla-manager-api-tests -f testing/api-tests.Dockerfile .
+	@docker run --name scylla_manager_server_api_integration \
+		--network host \
+		-e "CGO_ENABLED=0" \
+		-e "GOOD=linux" \
+		-e "GOCACHE=/tmp/go-build" \
+		-v "$(PWD):/scylla-manager" \
+		-w "/scylla-manager" \
+		-u $(CURRENT_UID):$(CURRENT_GID) \
+		-i -d --rm scylla-manager-api-tests sleep infinity
+	@docker exec -it scylla_manager_server_api_integration make build-cli OUTPUT=sctool.api-tests
+	@docker exec -it scylla_manager_server_api_integration go test -tags api_integration ./pkg/command/... -test.v -test.run IntegrationAPI
+	@$(MAKE) clean-server
+
 .PHONY: pkg-stress-test
 pkg-stress-test: ## Run unit tests for a package in parallel in a loop to detect sporadic failures, requires PKG parameter
 pkg-stress-test: RUN=Test
@@ -179,13 +196,21 @@ deploy-agent: build-agent ## Deploy it to testing containers
 
 .PHONY: build-cli
 build-cli: ## Build development cli binary
+build-cli: OUTPUT=./sctool.dev
+build-cli:
 	@echo "==> Building sctool"
-	@go build -trimpath -mod=vendor -o ./sctool.dev ./pkg/cmd/sctool
+	@go build -trimpath -mod=vendor -o $(OUTPUT) ./pkg/cmd/sctool
 
 .PHONY: build-server
 build-server: ## Build development server
 	@echo "==> Building scylla-manager"
 	@CGO_ENABLED=0 GOOS=linux go build -trimpath -mod=vendor -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
+
+.PHONY: clean-server
+clean-server: ## Remove development server container
+	@echo "==> Removing (if exists) scylla_manager_server container"
+	@docker rm -f scylla_manager_server 2> /dev/null || true
+	@docker rm -f scylla_manager_server_api_integration 2> /dev/null || true
 
 .PHONY: run-server
 run-server: build-server ## Build and run development server
@@ -198,8 +223,8 @@ run-server: build-server ## Build and run development server
 		-v "$(PWD)/sctool.dev:/usr/bin/sctool:ro" \
 		-v "$(PWD)/$(MANAGER_CONFIG):/etc/scylla-manager/scylla-manager.yaml:ro" \
 		-v "/tmp:/tmp" \
-		-i --read-only --rm scylladb/scylla-manager-dev scylla-manager
-	@docker network connect scylla_manager_public scylla-manager
+		-d --read-only --rm scylladb/scylla-manager-dev scylla-manager
+	@docker network connect scylla_manager_public scylla_manager_server
 
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries
