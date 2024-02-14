@@ -68,7 +68,7 @@ func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsS
 		logger:        l,
 		timeoutConfig: timeoutConfig,
 	}
-	s.clientCache = scyllaclient.NewCachedProvider(s.client)
+	s.clientCache = scyllaclient.NewCachedProvider(s.createClient)
 
 	return s, nil
 }
@@ -101,32 +101,7 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	return s.clientCache.Client(ctx, clusterID)
 }
 
-func (s *Service) client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
-	s.logger.Info(ctx, "Creating new Scylla REST client", "cluster_id", clusterID)
-
-	c, err := s.GetClusterByID(ctx, clusterID)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := s.createClient(c)
-	if err != nil {
-		return nil, errors.Wrap(err, "create client")
-	}
-	defer client.Close()
-
-	hosts, err := s.discoverHosts(ctx, client)
-	if err != nil {
-		return nil, errors.Wrap(err, "discover cluster topology")
-	}
-	if err := s.setKnownHosts(c, hosts); err != nil {
-		return nil, errors.Wrap(err, "update cluster")
-	}
-
-	return s.createClient(c)
-}
-
-func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
+func (s *Service) createClientNoValidation(c *Cluster) (*scyllaclient.Client, error) {
 	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
 	config.Hosts = c.KnownHosts
 	if c.Port != 0 {
@@ -135,6 +110,61 @@ func (s *Service) createClient(c *Cluster) (*scyllaclient.Client, error) {
 	config.AuthToken = c.AuthToken
 
 	return scyllaclient.NewClient(config, s.logger.Named("client"))
+}
+
+// createClient creates Scylla API that load balances calls to every node from given cluster.
+// There may be a situation that cluster keeps outdated information about list of available hosts.
+// To work it around:
+//   - function iterates over all currently known hosts
+//   - calls consecutive client to get list of available hosts known by Scylla server
+//   - updates list of known hosts to Scylla Manager DB
+//   - returns client created on top of list of hosts returned by the Scylla server
+func (s *Service) createClient(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+	s.logger.Info(ctx, "Creating new Scylla HTTP client", "cluster_id", clusterID)
+
+	c, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
+	if c.Port != 0 {
+		config.Port = fmt.Sprint(c.Port)
+	}
+	config.AuthToken = c.AuthToken
+	config.Hosts = c.KnownHosts
+
+	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := client.Close(); err != nil {
+			s.logger.Error(ctx, "Couldn't close scylla client", "error", err)
+		}
+	}()
+
+	for _, host := range config.Hosts {
+		knownHosts, err := s.discoverHosts(scyllaclient.ClientContextWithSelectedHost(ctx, host), client)
+		if err != nil {
+			s.logger.Error(ctx, "Cannot find known hosts using coordinator host", "host", host, "error", err)
+			continue
+		}
+		if err := s.setKnownHosts(c, knownHosts); err != nil {
+			return nil, errors.Wrap(err, "update known_hosts on cluster")
+		}
+
+		config.Hosts = knownHosts
+		allHostsClient, err := scyllaclient.NewClient(config, s.logger.Named("client"))
+		if err != nil {
+			s.logger.Error(ctx, "Cannot create scylla API client", "error", err)
+			continue
+		}
+
+		return allHostsClient, nil
+	}
+
+	return nil, errors.Errorf("cannot create client for cluster %v not hosts available", c.ID)
 }
 
 // discoverHosts returns a list of all hosts sorted by DC speed. This is
@@ -421,7 +451,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 		return errors.Wrap(err, "load known hosts")
 	}
 
-	client, err := s.createClient(c)
+	client, err := s.createClientNoValidation(c)
 	if err != nil {
 		return errors.Wrap(err, "create client")
 	}
@@ -507,7 +537,7 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 
 	var nodes []Node
 
-	client, err := s.client(ctx, clusterID)
+	client, err := s.createClient(ctx, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -541,7 +571,7 @@ type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session,
 func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session gocqlx.Session, err error) {
 	s.logger.Debug(ctx, "GetSession", "cluster_id", clusterID)
 
-	client, err := s.client(ctx, clusterID)
+	client, err := s.createClient(ctx, clusterID)
 	if err != nil {
 		return session, errors.Wrap(err, "get client")
 	}

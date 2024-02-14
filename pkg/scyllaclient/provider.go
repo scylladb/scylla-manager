@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -28,13 +29,15 @@ type CachedProvider struct {
 	validity time.Duration
 	clients  map[uuid.UUID]clientTTL
 	mu       sync.Mutex
+	logger   log.Logger
 }
 
-func NewCachedProvider(f ProviderFunc) *CachedProvider {
+func NewCachedProvider(f ProviderFunc, logger log.Logger) *CachedProvider {
 	return &CachedProvider{
 		inner:    f,
 		validity: hostCheckValidity,
 		clients:  make(map[uuid.UUID]clientTTL),
+		logger:   logger.Named("cache-provider"),
 	}
 }
 
@@ -53,9 +56,9 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 		// Check if hosts did not change before returning
 		changed, err := c.client.CheckHostsChanged(ctx)
 		if err != nil {
-			return nil, err
+			p.logger.Error(ctx, "Cannot check if hosts changed", "error", err)
 		}
-		if !changed {
+		if !changed && err == nil {
 			return c.client, nil
 		}
 	}
