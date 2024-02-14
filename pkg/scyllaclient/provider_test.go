@@ -7,6 +7,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -28,8 +30,7 @@ func TestCachedProvider(t *testing.T) {
 
 	id := uuid.MustRandom()
 	m := mockProvider{}
-	p := scyllaclient.NewCachedProvider(m.Client)
-	p.SetValidity(0)
+	p := scyllaclient.NewCachedProvider(m.Client, server.DefaultConfig().ClientCacheTimeout, log.Logger{})
 
 	// Error
 	m.err = errors.New("mock")
