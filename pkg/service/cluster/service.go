@@ -25,6 +25,9 @@ import (
 	"go.uber.org/multierr"
 )
 
+// ProviderFunc defines the function that will be used by other services to get current cluster data.
+type ProviderFunc func(ctx context.Context, id uuid.UUID) (*Cluster, error)
+
 // ChangeType specifies type on Change.
 type ChangeType int8
 
