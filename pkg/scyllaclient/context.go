@@ -31,6 +31,12 @@ func isInteractive(ctx context.Context) bool {
 	return ok
 }
 
+// ClientContextWithSelectedHost is a public method that returns copy of the given context,
+// but extended with the selected host that will be hit with client calls.
+func ClientContextWithSelectedHost(ctx context.Context, host string) context.Context {
+	return forceHost(ctx, host)
+}
+
 // forceHost makes hostPool middleware use the given host instead of selecting
 // one.
 func forceHost(ctx context.Context, host string) context.Context {
