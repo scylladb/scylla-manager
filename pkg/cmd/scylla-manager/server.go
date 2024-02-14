@@ -81,6 +81,7 @@ func (s *server) makeServices() error {
 		s.config.Healthcheck,
 		s.clusterSvc.Client,
 		secretsStore,
+		s.clusterSvc.GetClusterByID,
 		s.logger.Named("healthcheck"),
 	)
 	if err != nil {
