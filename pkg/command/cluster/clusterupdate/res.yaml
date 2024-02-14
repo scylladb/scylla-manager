@@ -45,3 +45,9 @@ delete-cql-credentials: |
 
 delete-ssl-user-cert: |
   Deletes SSL user certificate, added with --ssl-user-cert-file flag.
+
+force-tls-disabled: |
+  Forces Scylla Manager to always disable TLS for the cluster's CQL session, even if TLS is enabled in scylla.yaml.
+
+force-non-ssl-session-port: |
+  Forces Scylla Manager to always use the non-SSL port for TLS-enabled cluster CQL sessions.
