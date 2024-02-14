@@ -18,11 +18,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
@@ -40,10 +41,22 @@ func TestStatusIntegration(t *testing.T) {
 	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
-	clusterID := uuid.MustRandom()
-
 	s := store.NewTableStore(session, table.Secrets)
-	testStatusIntegration(t, clusterID, s)
+	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := &cluster.Cluster{
+		Host:      "192.168.200.11",
+		AuthToken: "token",
+	}
+	err = clusterSvc.PutCluster(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testStatusIntegration(t, c.ID, clusterSvc.GetClusterByID, s)
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
@@ -55,21 +68,26 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	session := CreateScyllaManagerDBSession(t)
 	defer session.Close()
 
-	clusterID := uuid.MustRandom()
-
 	s := store.NewTableStore(session, table.Secrets)
-	if err := s.Put(&secrets.CQLCreds{
-		ClusterID: clusterID,
+	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := &cluster.Cluster{
+		Host:      "192.168.200.11",
+		AuthToken: "token",
 		Username:  username,
 		Password:  password,
-	}); err != nil {
+	}
+	err = clusterSvc.PutCluster(context.Background(), c)
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	testStatusIntegration(t, clusterID, s)
+	testStatusIntegration(t, c.ID, clusterSvc.GetClusterByID, s)
 }
 
-func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store.Store) {
+func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterProvider cluster.ProviderFunc, secretsStore store.Store) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	// Tests here do not test the dynamic t/o functionality
@@ -97,6 +115,7 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, secretsStore store
 			return scyllaclient.NewClient(sc, logger.Named("scylla"))
 		},
 		secretsStore,
+		clusterProvider,
 		logger,
 	)
 	if err != nil {
