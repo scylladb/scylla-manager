@@ -56,3 +56,9 @@ ssl-user-key-file: |
 without-repair: |
   When cluster is added, Manager schedules repair to repeat weekly.
   Use this flag to create a cluster without a scheduled repair.
+
+force-tls-disabled: |
+  Forces Scylla Manager to always disable TLS for the cluster's CQL session, even if TLS is enabled in scylla.yaml.
+
+force-non-ssl-session-port: |
+  Forces Scylla Manager to always use the non-SSL port for TLS-enabled cluster CQL sessions.
