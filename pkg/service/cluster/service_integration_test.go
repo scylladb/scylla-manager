@@ -7,16 +7,16 @@ package cluster_test
 
 import (
 	"context"
+	"net"
 	"os"
 	"strconv"
 	"testing"
-
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -29,6 +29,74 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
+
+func TestClientIntegration(t *testing.T) {
+	expectedHosts := ManagedClusterHosts()
+
+	session := CreateScyllaManagerDBSession(t)
+	secretsStore := store.NewTableStore(session, table.Secrets)
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := &cluster.Cluster{
+		AuthToken: "token",
+		Host:      ManagedClusterHost(),
+	}
+	err = s.PutCluster(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err = s.GetClusterByID(context.Background(), c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// #1
+	// update cluster.known_hosts to put non-existing IPs on top of existing one
+	// the expectation is that client will finally manage to clean it up
+	// and will update known_hosts to its proper values
+	fakeHostWithOnlyOneCorrect := []string{"192.168.10.1", "192.168.10.2", c.KnownHosts[0]}
+	c.KnownHosts = fakeHostWithOnlyOneCorrect
+	q := table.Cluster.UpdateQuery(session, "known_hosts").BindStruct(c)
+	if err := q.ExecRelease(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.Client(context.Background(), c.ID)
+	if err != nil {
+		t.Fatal("Cannot create Scylla API client", err)
+	}
+	c, err = s.GetClusterByID(context.Background(), c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// assert that all nodes are available on cluster.known_hosts
+	diff := ipsNotInSlice(c.KnownHosts, expectedHosts)
+	if len(diff) > 0 {
+		t.Fatalf("Not all expected elements are available on cluster knownHosts, current = {%v}, expected = {%v}",
+			c.KnownHosts, expectedHosts)
+	}
+}
+
+func ipsNotInSlice(a []string, b []string) []string {
+	m := make(map[string]struct{})
+	for _, elem := range a {
+		m[net.ParseIP(elem).String()] = struct{}{}
+	}
+
+	var diff []string
+	for _, elem := range b {
+		_, ok := m[net.ParseIP(elem).String()]
+		if !ok {
+			diff = append(diff, elem)
+		}
+	}
+
+	return diff
+}
 
 func TestServiceStorageIntegration(t *testing.T) {
 	session := CreateScyllaManagerDBSession(t)
