@@ -70,6 +70,7 @@ var (
 			"port",
 			"force_tls_disabled",
 			"force_non_ssl_session_port",
+			"host",
 		},
 		PartKey: []string{
 			"id",
