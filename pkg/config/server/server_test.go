@@ -37,14 +37,15 @@ func TestConfigModification(t *testing.T) {
 	}
 
 	golden := server.Config{
-		HTTP:        "127.0.0.1:80",
-		HTTPS:       "127.0.0.1:443",
-		TLSVersion:  "TLSv1.3",
-		TLSCertFile: "tls.cert",
-		TLSKeyFile:  "tls.key",
-		TLSCAFile:   "ca.cert",
-		Prometheus:  "127.0.0.1:9090",
-		Debug:       "127.0.0.1:112",
+		HTTP:               "127.0.0.1:80",
+		HTTPS:              "127.0.0.1:443",
+		TLSVersion:         "TLSv1.3",
+		TLSCertFile:        "tls.cert",
+		TLSKeyFile:         "tls.key",
+		TLSCAFile:          "ca.cert",
+		Prometheus:         "127.0.0.1:9090",
+		Debug:              "127.0.0.1:112",
+		ClientCacheTimeout: 15 * time.Minute,
 		Logger: config.LogConfig{
 			Config: log.Config{
 				Mode:  log.StderrMode,
