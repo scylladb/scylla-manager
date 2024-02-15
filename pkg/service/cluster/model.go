@@ -15,7 +15,7 @@ import (
 type Cluster struct {
 	ID         uuid.UUID `json:"id"`
 	Name       string    `json:"name"`
-	Host       string    `json:"host" db:"-"`
+	Host       string    `json:"host"`
 	KnownHosts []string  `json:"-"`
 	Port       int       `json:"port,omitempty"`
 	AuthToken  string    `json:"auth_token"`
