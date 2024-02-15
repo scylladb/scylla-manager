@@ -34,6 +34,10 @@ http: 127.0.0.1:5080
 # Debug server that allows to run pporf profiling on demand on a live system.
 #debug: 127.0.0.1:5112
 
+# Set the validity timeout for Scylla Manager Agent API clients cached by Scylla Manager.
+# Use 0 to disable the cache.
+#client_cache_timeout: 15m
+
 # Logging configuration.
 #logger:
 # Where to print logs, stderr or stdout.
