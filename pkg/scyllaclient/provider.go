@@ -15,9 +15,6 @@ import (
 // ProviderFunc is a function that returns a Client for a given cluster.
 type ProviderFunc func(ctx context.Context, clusterID uuid.UUID) (*Client, error)
 
-// hostCheckValidity specifies how often to check if hosts changed.
-const hostCheckValidity = 15 * time.Minute
-
 type clientTTL struct {
 	client *Client
 	ttl    time.Time
@@ -32,10 +29,10 @@ type CachedProvider struct {
 	logger   log.Logger
 }
 
-func NewCachedProvider(f ProviderFunc, logger log.Logger) *CachedProvider {
+func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout time.Duration, logger log.Logger) *CachedProvider {
 	return &CachedProvider{
 		inner:    f,
-		validity: hostCheckValidity,
+		validity: cacheInvalidationTimeout,
 		clients:  make(map[uuid.UUID]clientTTL),
 		logger:   logger.Named("cache-provider"),
 	}
@@ -49,16 +46,12 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 
 	// Cache hit
 	if ok {
-		if c.ttl.After(timeutc.Now()) {
-			return c.client, nil
-		}
-
 		// Check if hosts did not change before returning
 		changed, err := c.client.CheckHostsChanged(ctx)
 		if err != nil {
 			p.logger.Error(ctx, "Cannot check if hosts changed", "error", err)
 		}
-		if !changed && err == nil {
+		if c.ttl.After(timeutc.Now()) && !changed && err == nil {
 			return c.client, nil
 		}
 	}
