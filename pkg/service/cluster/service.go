@@ -132,7 +132,7 @@ func (s *Service) createClient(ctx context.Context, clusterID uuid.UUID) (*scyll
 		config.Port = fmt.Sprint(c.Port)
 	}
 	config.AuthToken = c.AuthToken
-	config.Hosts = c.KnownHosts
+	config.Hosts = append([]string{c.Host}, c.KnownHosts...)
 
 	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
 	if err != nil {
