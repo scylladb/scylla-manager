@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -35,7 +36,8 @@ func TestClientIntegration(t *testing.T) {
 
 	session := CreateScyllaManagerDBSession(t)
 	secretsStore := store.NewTableStore(session, table.Secrets)
-	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
+		server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +105,8 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	secretsStore := store.NewTableStore(session, table.Secrets)
 
-	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
+		server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

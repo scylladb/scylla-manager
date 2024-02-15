@@ -42,7 +42,8 @@ func TestStatusIntegration(t *testing.T) {
 	defer session.Close()
 
 	s := store.NewTableStore(session, table.Secrets)
-	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(),
+		15*time.Minute, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +70,8 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	defer session.Close()
 
 	s := store.NewTableStore(session, table.Secrets)
-	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(), log.NewDevelopment())
+	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(),
+		15*time.Minute, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
 	}

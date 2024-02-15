@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -56,7 +57,9 @@ type Service struct {
 	onChangeListener func(ctx context.Context, c Change) error
 }
 
-func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsStore store.Store, timeoutConfig scyllaclient.TimeoutConfig, l log.Logger) (*Service, error) {
+func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsStore store.Store, timeoutConfig scyllaclient.TimeoutConfig,
+	cacheInvalidationTimeout time.Duration, l log.Logger,
+) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
@@ -68,7 +71,7 @@ func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsS
 		logger:        l,
 		timeoutConfig: timeoutConfig,
 	}
-	s.clientCache = scyllaclient.NewCachedProvider(s.createClient)
+	s.clientCache = scyllaclient.NewCachedProvider(s.createClient, cacheInvalidationTimeout, l)
 
 	return s, nil
 }
