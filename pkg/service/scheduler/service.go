@@ -286,7 +286,7 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 			if t.Sched.Cron.IsZero() {
 				run = true
 			}
-		} else if t.Sched.StartDate.Before(now()) {
+		} else if t.Sched.StartDate.Before(now()) && t.Sched.Interval != 0 {
 			return errors.New("start date of scheduled task cannot be in the past")
 		}
 
