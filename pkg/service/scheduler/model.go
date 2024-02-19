@@ -70,30 +70,38 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 // Cron implements a trigger based on cron expression.
 // It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every <time.Duration>.
 type Cron struct {
-	spec  []byte
+	cronSpecification
 	inner scheduler.Trigger
 }
 
-func NewCron(spec string) (Cron, error) {
+type cronSpecification struct {
+	Spec      string    `json:"spec"`
+	StartDate time.Time `json:"start_date"`
+}
+
+func NewCron(spec string, startDate time.Time) (Cron, error) {
 	t, err := trigger.NewCron(spec)
 	if err != nil {
 		return Cron{}, err
 	}
 
 	return Cron{
-		spec:  []byte(spec),
+		cronSpecification: cronSpecification{
+			Spec:      spec,
+			StartDate: startDate,
+		},
 		inner: t,
 	}, nil
 }
 
-func NewCronEvery(d time.Duration) Cron {
-	c, _ := NewCron("@every " + d.String()) // nolint: errcheck
+func NewCronEvery(d time.Duration, startDate time.Time) Cron {
+	c, _ := NewCron("@every "+d.String(), startDate) // nolint: errcheck
 	return c
 }
 
 // MustCron calls NewCron and panics on error.
-func MustCron(spec string) Cron {
-	c, err := NewCron(spec)
+func MustCron(spec string, startDate time.Time) Cron {
+	c, err := NewCron(spec, startDate)
 	if err != nil {
 		panic(err)
 	}
@@ -105,11 +113,18 @@ func (c Cron) Next(now time.Time) time.Time {
 	if c.inner == nil {
 		return time.Time{}
 	}
+	if c.StartDate.After(now) {
+		return c.inner.Next(c.StartDate)
+	}
 	return c.inner.Next(now)
 }
 
 func (c Cron) MarshalText() (text []byte, err error) {
-	return c.spec, nil
+	bytes, err := json.Marshal(c.cronSpecification)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot json marshal {%v}", c.cronSpecification)
+	}
+	return bytes, nil
 }
 
 func (c *Cron) UnmarshalText(text []byte) error {
@@ -117,9 +132,21 @@ func (c *Cron) UnmarshalText(text []byte) error {
 		return nil
 	}
 
-	v, err := NewCron(string(text))
+	var cronSpec cronSpecification
+	err := json.Unmarshal(text, &cronSpec)
 	if err != nil {
-		return errors.Wrap(err, "cron")
+		// fallback to the < 3.2.6 approach where cron was not coupled with start date
+		cronSpec = cronSpecification{
+			Spec: string(text),
+		}
+	}
+
+	if cronSpec.Spec == "" {
+		return nil
+	}
+	v, err2 := NewCron(cronSpec.Spec, cronSpec.StartDate)
+	if err2 != nil {
+		return errors.Wrap(multierr.Combine(err, err2), "cron")
 	}
 
 	*c = v
@@ -265,7 +292,7 @@ type Schedule struct {
 	Window    Window    `json:"window"`
 	Timezone  Timezone  `json:"timezone"`
 	StartDate time.Time `json:"start_date"`
-	// deprecated: use cron instead
+	// Deprecated: use cron instead
 	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries int               `json:"num_retries"`
 	RetryWait  duration.Duration `json:"retry_wait"`
