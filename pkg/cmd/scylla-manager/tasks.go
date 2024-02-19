@@ -35,7 +35,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "cql",
 			Sched: scheduler.Schedule{
-				Cron:     scheduler.NewCronEvery(15 * time.Second),
+				Cron:     scheduler.NewCronEvery(15*time.Second, time.Time{}),
 				Timezone: localTimezone(),
 			},
 			Properties: healthCheckModeProperties(healthcheck.CQLMode),
@@ -46,7 +46,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "rest",
 			Sched: scheduler.Schedule{
-				Cron:     scheduler.NewCronEvery(1 * time.Minute),
+				Cron:     scheduler.NewCronEvery(1*time.Minute, time.Time{}),
 				Timezone: localTimezone(),
 			},
 			Properties: healthCheckModeProperties(healthcheck.RESTMode),
@@ -57,7 +57,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "alternator",
 			Sched: scheduler.Schedule{
-				Cron:     scheduler.NewCronEvery(15 * time.Second),
+				Cron:     scheduler.NewCronEvery(15*time.Second, time.Time{}),
 				Timezone: localTimezone(),
 			},
 			Properties: healthCheckModeProperties(healthcheck.AlternatorMode),
@@ -74,7 +74,7 @@ func makeAutoRepairTask(clusterID uuid.UUID) *scheduler.Task {
 		Enabled:   true,
 		Name:      "all-weekly",
 		Sched: scheduler.Schedule{
-			Cron:       scheduler.MustCron("0 23 * * SAT"),
+			Cron:       scheduler.MustCron("0 23 * * SAT", time.Time{}),
 			Timezone:   localTimezone(),
 			NumRetries: 3,
 		},
