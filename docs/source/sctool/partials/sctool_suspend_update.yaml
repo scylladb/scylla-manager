@@ -58,8 +58,6 @@ options:
 - name: start-date
   shorthand: s
   usage: |
-    --start-date is deprecated, please use `--cron` instead
-
     The date can be expressed relatively to now or as a RFC3339 formatted string.
     To run the task in 2 hours use 'now+2h'. The supported units are:
 
