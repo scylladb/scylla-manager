@@ -285,7 +285,8 @@
           "x-nullable": true
         },
         "interval": {
-          "type": "string"
+          "type": "string",
+          "description": "This field is DEPRECATED. Use cron instead."
         },
         "num_retries": {
           "type": "number",
