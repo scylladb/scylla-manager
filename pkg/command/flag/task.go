@@ -15,11 +15,12 @@ type TaskBase struct {
 	cobra.Command
 	update bool
 
-	enabled    bool
-	name       string
-	cron       Cron
-	window     []string
-	timezone   Timezone
+	enabled  bool
+	name     string
+	cron     Cron
+	window   []string
+	timezone Timezone
+	// Deprecated: use cron instead
 	interval   Duration
 	startDate  StartDate
 	numRetries int
