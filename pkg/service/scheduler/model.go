@@ -261,10 +261,11 @@ func (tz Timezone) Location() *time.Location {
 type Schedule struct {
 	gocqlx.UDT `json:"-"`
 
-	Cron       Cron              `json:"cron"`
-	Window     Window            `json:"window"`
-	Timezone   Timezone          `json:"timezone"`
-	StartDate  time.Time         `json:"start_date"`
+	Cron      Cron      `json:"cron"`
+	Window    Window    `json:"window"`
+	Timezone  Timezone  `json:"timezone"`
+	StartDate time.Time `json:"start_date"`
+	// deprecated: use cron instead
 	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries int               `json:"num_retries"`
 	RetryWait  duration.Duration `json:"retry_wait"`
