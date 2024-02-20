@@ -1,0 +1,31 @@
+name: Sanity check
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Various checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Setup testing dependencies
+        uses: ./.github/actions/test-setup
+        with:
+          start-dev-env: false
+
+      - name: Run checks
+        run: make check
+
+      - name: Run unit tests
+        run: make unit-test
