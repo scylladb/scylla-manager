@@ -1,21 +1,22 @@
-run-name: Integration tests
+name: Integration tests (Scylla 5.4.1, IPV4, raft)
 
 on:
-  workflow_call:
-    inputs:
-      scylla-version:
-        required: false
-        type: string
-      ip-family:
-        required: false
-        type: string
-      raft-enabled:
-        required: false
-        type: string
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: int-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  scylla-version: 'scylla:5.4.1'
+  ip-family: IPV4
+  raft-enabled: true
 
 jobs:
-  # Right now both restore-tables and restore-schema tests take way longer than any other pkg tests.
-  # For this reason they are divided into two distinct jobs, so that the whole workflow can be executed faster.
+  #   Right now both restore-tables and restore-schema tests take way longer than any other pkg tests.
+  #   For this reason they are divided into two distinct jobs, so that the whole workflow can be executed faster.
   restore-tables:
     name: Test restore tables
     runs-on: ubuntu-latest
@@ -26,12 +27,12 @@ jobs:
       - name: Setup testing dependencies
         uses: ./.github/actions/test-setup
         with:
-          scylla-version: ${{ inputs.scylla-version }}
-          ip-family: ${{ inputs.ip-family }}
-          raft-enabled: ${{ inputs.raft-enabled }}
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          raft-enabled: ${{ env.raft-enabled }}
 
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
 
   restore-schema:
     name: Test restore schema
@@ -43,14 +44,14 @@ jobs:
       - name: Setup testing dependencies
         uses: ./.github/actions/test-setup
         with:
-          scylla-version: ${{ inputs.scylla-version }}
-          ip-family: ${{ inputs.ip-family }}
-          raft-enabled: ${{ inputs.raft-enabled }}
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          raft-enabled: ${{ env.raft-enabled }}
 
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
         # This regex ensures that all restore tests that didn't match restore-tables job will be run here.
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
 
   backup:
     name: Test backup
@@ -62,12 +63,12 @@ jobs:
       - name: Setup testing dependencies
         uses: ./.github/actions/test-setup
         with:
-          scylla-version: ${{ inputs.scylla-version }}
-          ip-family: ${{ inputs.ip-family }}
-          raft-enabled: ${{ inputs.raft-enabled }}
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          raft-enabled: ${{ env.raft-enabled }}
 
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/backup
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/backup
 
   repair:
     name: Test repair
@@ -79,12 +80,12 @@ jobs:
       - name: Setup testing dependencies
         uses: ./.github/actions/test-setup
         with:
-          scylla-version: ${{ inputs.scylla-version }}
-          ip-family: ${{ inputs.ip-family }}
-          raft-enabled: ${{ inputs.raft-enabled }}
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          raft-enabled: ${{ env.raft-enabled }}
 
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ inputs.ip-family }} PKG=./pkg/service/repair
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/repair
 
   small-pkg:
     name: Test other, smaller packages
@@ -95,14 +96,14 @@ jobs:
 
       - name: Set IP_FAMILY var for all tests
         run: |
-          echo "IP_FAMILY=${{ inputs.ip-family }}" >> $GITHUB_ENV
+          echo "IP_FAMILY=${{ env.ip-family }}" >> $GITHUB_ENV
 
       - name: Setup testing dependencies
         uses: ./.github/actions/test-setup
         with:
-          scylla-version: ${{ inputs.scylla-version }}
-          ip-family: ${{ inputs.ip-family }}
-          raft-enabled: ${{ inputs.raft-enabled }}
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          raft-enabled: ${{ env.raft-enabled }}
 
       - name: Run cqlping tests
         run: make pkg-integration-test PKG=./pkg/ping/cqlping
