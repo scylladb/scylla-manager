@@ -9616,6 +9616,13 @@
             "required": true,
             "type": "string",
             "description": "The keyspace to fetch information about"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The name of table to fetch information about"
           }
         ],
         "responses": {
@@ -10929,6 +10936,18 @@
             ],
             "type": "string",
             "description": "Which keyspaces to return"
+          },
+          {
+            "name": "replication",
+            "in": "query",
+            "required": false,
+            "enum": [
+              "all",
+              "vnodes",
+              "tablets"
+            ],
+            "type": "string",
+            "description": "Filter keyspaces for the replication used: vnodes or tablets (default: all)"
           }
         ],
         "responses": {
