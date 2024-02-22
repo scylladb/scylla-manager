@@ -37,7 +37,7 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 	// Collect ring information
 	rings := make(map[string]scyllaclient.Ring, len(target.Units))
 	for _, u := range target.Units {
-		ring, err := client.DescribeRing(ctx, u.Keyspace)
+		ring, err := client.DescribeVnodeRing(ctx, u.Keyspace)
 		if err != nil {
 			return errors.Wrap(err, "initialize: describe keyspace ring")
 		}
