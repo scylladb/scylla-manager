@@ -246,13 +246,31 @@ func (c *Client) hosts(ctx context.Context) ([]string, error) {
 	return v, nil
 }
 
-// Keyspaces return a list of all the keyspaces.
-func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
-	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
+// KeyspaceReplication describes keyspace replication type.
+type KeyspaceReplication = string
+
+// KeyspaceReplication enum.
+const (
+	ReplicationAll    = "all"
+	ReplicationVnode  = "vnodes"
+	ReplicationTablet = "tablets"
+)
+
+// ReplicationKeyspaces return a list of keyspaces with given replication.
+func (c *Client) ReplicationKeyspaces(ctx context.Context, replication KeyspaceReplication) ([]string, error) {
+	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{
+		Context:     ctx,
+		Replication: &replication,
+	})
 	if err != nil {
 		return nil, err
 	}
 	return resp.Payload, nil
+}
+
+// Keyspaces return a list of all the keyspaces.
+func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
+	return c.ReplicationKeyspaces(ctx, ReplicationAll)
 }
 
 // Tables returns a slice of table names in a given keyspace.
