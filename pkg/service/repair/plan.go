@@ -33,7 +33,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 
 	p := new(plan)
 	for _, u := range target.Units {
-		ring, err := client.DescribeRing(ctx, u.Keyspace)
+		ring, err := client.DescribeVnodeRing(ctx, u.Keyspace)
 		if err != nil {
 			return nil, errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
 		}

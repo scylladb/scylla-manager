@@ -227,7 +227,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		}
 
 		// Get the ring description and skip local data
-		ring, err := client.DescribeRing(ctx, keyspace)
+		ring, err := client.DescribeVnodeRing(ctx, keyspace)
 		if err != nil {
 			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
 		}
