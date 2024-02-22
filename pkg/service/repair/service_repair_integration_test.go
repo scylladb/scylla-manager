@@ -1648,7 +1648,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertProgress(IPFromTestNet("12"), 60, longWait)
 
 		Print("And: repair contains error")
-		h.assertErrorContains("token ranges out of", longWait)
+		h.assertErrorContains("logs", longWait)
 	})
 
 	t.Run("repair error fail fast", func(t *testing.T) {

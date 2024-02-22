@@ -40,9 +40,6 @@ type Target struct {
 	Intensity           Intensity `json:"intensity"`
 	Parallel            int       `json:"parallel"`
 	SmallTableThreshold int64     `json:"small_table_threshold"`
-	// Cache for repair plan so that it does not have to be generated
-	// in both GetTarget and Repair functions.
-	plan *plan `json:"-"`
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.

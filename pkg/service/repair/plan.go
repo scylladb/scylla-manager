@@ -13,15 +13,18 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 )
 
+type hkt = scyllaclient.HostKeyspaceTable
+
 // plan describes whole repair schedule and state.
 type plan struct {
 	Keyspaces []keyspacePlan
-	Idx       int // Idx of currently repaired keyspace
 
-	SkippedKeyspaces []string
+	Hosts            []string
 	MaxParallel      int
 	MaxHostIntensity map[string]Intensity
-	HostTableSize    map[scyllaclient.HostKeyspaceTable]int64
+	// Used for progress purposes
+	HostSize   map[hkt]int64
+	HostRanges map[hkt]int
 }
 
 func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
@@ -29,108 +32,119 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	if err != nil {
 		return nil, errors.Wrap(err, "get status")
 	}
-	filtered := filteredHosts(target, status)
 
-	p := new(plan)
+	dcMap, err := client.Datacenters(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get datacenters")
+	}
+
+	var (
+		keyspaces  []keyspacePlan
+		hostRanges = make(map[hkt]int)
+		allHosts   = strset.New()
+		maxP       int
+	)
+
 	for _, u := range target.Units {
 		ring, err := client.DescribeRing(ctx, u.Keyspace)
 		if err != nil {
 			return nil, errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
 		}
-		// Allow repairing single node cluster for better UX and tests
-		if ring.Replication == scyllaclient.LocalStrategy && len(status) > 1 {
+		if !filteredRing(target, status, ring) {
 			continue
 		}
 
-		kp := keyspacePlan{
-			Keyspace:    u.Keyspace,
-			TokenRepIdx: make(map[scyllaclient.TokenRange]int),
-			AllTables:   u.AllTables,
-		}
-
-		skip := false
+		var (
+			sets      [][]string
+			tables    []tablePlan
+			rangesCnt int
+		)
 		for _, rep := range ring.ReplicaTokens {
-			rtr := scyllaclient.ReplicaTokenRanges{
-				ReplicaSet: filteredReplicaSet(rep.ReplicaSet, filtered, target.Host),
-				Ranges:     rep.Ranges,
+			for _, t := range u.Tables {
+				for _, h := range rep.ReplicaSet {
+					k := hkt{
+						Host:     h,
+						Keyspace: u.Keyspace,
+						Table:    t,
+					}
+					hostRanges[k] += len(rep.Ranges)
+				}
 			}
-
-			// Don't add keyspace with some ranges not replicated in filtered hosts,
-			// unless it's a single node cluster.
-			if len(rtr.ReplicaSet) <= 1 && len(status) > 1 {
-				skip = true
-				break
-			}
-
-			for _, r := range rtr.Ranges {
-				kp.TokenRepIdx[r] = len(kp.Replicas)
-			}
-			kp.Replicas = append(kp.Replicas, rtr)
+			sets = append(sets, rep.ReplicaSet)
+			allHosts.Add(rep.ReplicaSet...)
+			rangesCnt += len(rep.Ranges)
 		}
 
-		if skip {
-			p.SkippedKeyspaces = append(p.SkippedKeyspaces, u.Keyspace)
-			continue
+		if p := maxParallel(dcMap, sets); maxP < p {
+			maxP = p
 		}
 
-		// Fill tables
 		for _, t := range u.Tables {
-			kp.Tables = append(kp.Tables, tablePlan{
-				Table:           t,
-				MarkedRanges:    make(map[scyllaclient.TokenRange]struct{}),
-				MarkedInReplica: make([]int, len(kp.Replicas)),
+			tables = append(tables, tablePlan{
+				Table:         t,
+				Size:          -1, // Filled with fillSize
+				ReplicaSetCnt: len(sets),
+				RangesCnt:     rangesCnt,
+				Optimize:      false, // Filled with fillOptimize
 			})
 		}
-		p.Keyspaces = append(p.Keyspaces, kp)
+		keyspaces = append(keyspaces, keyspacePlan{
+			Keyspace: u.Keyspace,
+			Size:     -1, // Filled with fillSize
+			Tables:   tables,
+		})
 	}
 
-	if len(p.Keyspaces) == 0 {
+	if len(keyspaces) == 0 {
 		return nil, ErrEmptyRepair
 	}
-	if err := p.FillSize(ctx, client, target.SmallTableThreshold); err != nil {
-		return nil, errors.Wrap(err, "calculate tables size")
-	}
-	return p, nil
-}
+	hosts := allHosts.List()
 
-// UpdateIdx sets keyspace and table idx to the next not repaired table.
-// Returns false if there are no more tables to repair.
-func (p *plan) UpdateIdx() bool {
-	ksIdx := p.Idx
-	tabIdx := p.Keyspaces[ksIdx].Idx
-
-	for ; ksIdx < len(p.Keyspaces); ksIdx++ {
-		kp := p.Keyspaces[ksIdx]
-		for ; tabIdx < len(kp.Tables); tabIdx++ {
-			// Always wait for current table to be fully repaired before moving to the next one
-			if !kp.IsTableRepaired(tabIdx) {
-				p.Idx = ksIdx
-				p.Keyspaces[ksIdx].Idx = tabIdx
-				return true
+	var hkts []hkt
+	for _, ksp := range keyspaces {
+		for _, tp := range ksp.Tables {
+			for _, h := range hosts {
+				hkts = append(hkts, hkt{Host: h, Keyspace: ksp.Keyspace, Table: tp.Table})
 			}
 		}
-		tabIdx = 0
+	}
+	hostSize, err := perHostTableSize(ctx, client, hkts)
+	if err != nil {
+		return nil, errors.Wrap(err, "calculate tables size")
+	}
+	fillSize(hostSize, keyspaces)
+	fillOptimize(keyspaces, target.SmallTableThreshold)
+
+	mhi, err := maxHostIntensity(ctx, client, hosts)
+	if err != nil {
+		return nil, errors.Wrap(err, "calculate max host intensity")
 	}
 
-	return false
+	return &plan{
+		Keyspaces:        keyspaces,
+		Hosts:            hosts,
+		MaxParallel:      maxP,
+		MaxHostIntensity: mhi,
+		HostSize:         hostSize,
+		HostRanges:       hostRanges,
+	}, nil
 }
 
-// Hosts returns all hosts taking part in repair.
-func (p *plan) Hosts() []string {
-	out := strset.New()
-	for _, kp := range p.Keyspaces {
-		out.Add(kp.Hosts()...)
+// FilteredUnits returns repaired tables in unit format.
+func (p *plan) FilteredUnits(units []Unit) []Unit {
+	allTables := make(map[string]int)
+	for _, u := range units {
+		if u.AllTables {
+			allTables[u.Keyspace] = len(u.Tables)
+		} else {
+			allTables[u.Keyspace] = -1
+		}
 	}
-	return out.List()
-}
-
-// Units returns repaired tables in unit format.
-func (p *plan) Units() []Unit {
 	var out []Unit
 	for _, kp := range p.Keyspaces {
 		u := Unit{
 			Keyspace:  kp.Keyspace,
-			AllTables: kp.AllTables,
+			AllTables: allTables[kp.Keyspace] == len(kp.Tables),
 		}
 		for _, tp := range kp.Tables {
 			u.Tables = append(u.Tables, tp.Table)
@@ -140,104 +154,111 @@ func (p *plan) Units() []Unit {
 	return out
 }
 
-// SetMaxParallel sets maximal repair parallelism.
-func (p *plan) SetMaxParallel(dcMap map[string][]string) {
-	var max int
-	for _, kp := range p.Keyspaces {
-		// Max parallel is equal to the greatest max keyspace parallel
-		if cand := kp.maxParallel(dcMap); max < cand {
-			max = cand
-		}
-	}
-	p.MaxParallel = max
-}
-
-// SetMaxHostIntensity sets max_ranges_in_parallel for all repaired host.
-func (p *plan) SetMaxHostIntensity(ctx context.Context, client *scyllaclient.Client) error {
-	hosts := p.Hosts()
-	shards, err := client.HostsShardCount(ctx, hosts)
-	if err != nil {
-		return err
-	}
-	memory, err := client.HostsTotalMemory(ctx, hosts)
-	if err != nil {
-		return err
-	}
-
-	p.MaxHostIntensity = hostMaxRanges(shards, memory)
-	return nil
-}
-
-func (p *plan) MarkDeleted(keyspace, table string) {
-	for _, kp := range p.Keyspaces {
-		if kp.Keyspace != keyspace {
-			continue
-		}
-		for tabIdx, tp := range kp.Tables {
-			if tp.Table == table {
-				kp.Tables[tabIdx].Deleted = true
-				return
-			}
-		}
-	}
-}
-
-func (p *plan) MarkDoneRanges(keyspace, table string, cnt int) {
-	for _, kp := range p.Keyspaces {
-		if kp.Keyspace != keyspace {
-			continue
-		}
-		for tabIdx, tp := range kp.Tables {
-			if tp.Table == table {
-				kp.Tables[tabIdx].Done += cnt
-				return
-			}
-		}
-	}
-}
-
-// FillSize sets size and optimize of each table.
-func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallTableThreshold int64) error {
-	var hkts []scyllaclient.HostKeyspaceTable
-	hosts := p.Hosts()
-	for _, kp := range p.Keyspaces {
-		for _, tp := range kp.Tables {
-			for _, h := range hosts {
-				hkts = append(hkts, scyllaclient.HostKeyspaceTable{Host: h, Keyspace: kp.Keyspace, Table: tp.Table})
-			}
-		}
-	}
-
+func perHostTableSize(ctx context.Context, client *scyllaclient.Client, hkts []hkt) (map[hkt]int64, error) {
 	report, err := client.TableDiskSizeReport(ctx, hkts)
 	if err != nil {
-		return errors.Wrap(err, "fetch table disk size report")
+		return nil, errors.Wrap(err, "fetch table disk size report")
 	}
-
-	ksSize := make(map[string]int64)
-	tableSize := make(map[string]int64)
-	p.HostTableSize = make(map[scyllaclient.HostKeyspaceTable]int64, len(hkts))
+	hostSize := make(map[hkt]int64, len(hkts))
 	for i, size := range report {
-		ksSize[hkts[i].Keyspace] += size
-		tableSize[hkts[i].Keyspace+"."+hkts[i].Table] += size
-		p.HostTableSize[scyllaclient.HostKeyspaceTable{
+		hostSize[hkt{
 			Host:     hkts[i].Host,
 			Keyspace: hkts[i].Keyspace,
 			Table:    hkts[i].Table,
 		}] = size
 	}
+	return hostSize, nil
+}
 
-	for i, kp := range p.Keyspaces {
-		p.Keyspaces[i].Size = ksSize[kp.Keyspace]
-		for j := range kp.Tables {
-			kp.Tables[j].Size = tableSize[kp.Keyspace+"."+kp.Tables[j].Table]
+func fillSize(hostSize map[hkt]int64, keyspaces []keyspacePlan) {
+	ksSize := make(map[string]int64)
+	tableSize := make(map[string]int64)
+	for k, v := range hostSize {
+		ksSize[k.Keyspace] += v
+		tableSize[k.Keyspace+"."+k.Table] += v
+	}
+	for i, ksp := range keyspaces {
+		keyspaces[i].Size = ksSize[ksp.Keyspace]
+		for j, tp := range ksp.Tables {
+			ksp.Tables[j].Size = tableSize[ksp.Keyspace+"."+tp.Table]
+		}
+	}
+}
+
+func fillOptimize(keyspaces []keyspacePlan, smallTableThreshold int64) {
+	for _, ksp := range keyspaces {
+		for j, tp := range ksp.Tables {
 			// Return merged ranges for small, fully replicated table (#3128)
-			if kp.Tables[j].Size < smallTableThreshold && len(kp.Replicas) == 1 {
-				kp.Tables[j].Optimize = true
+			if tp.Size < smallTableThreshold && tp.ReplicaSetCnt == 1 {
+				ksp.Tables[j].Optimize = true
 			}
 		}
 	}
+}
 
-	return nil
+// maxHostIntensity sets max_ranges_in_parallel for all repaired host.
+func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []string) (map[string]Intensity, error) {
+	shards, err := client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return nil, err
+	}
+	memory, err := client.HostsTotalMemory(ctx, hosts)
+	if err != nil {
+		return nil, err
+	}
+	return hostMaxRanges(shards, memory), nil
+}
+
+func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]Intensity {
+	out := make(map[string]Intensity, len(shards))
+	for h, sh := range shards {
+		out[h] = maxRepairRangesInParallel(sh, memory[h])
+	}
+	return out
+}
+
+func maxRepairRangesInParallel(shards uint, totalMemory int64) Intensity {
+	const MiB = 1024 * 1024
+	memoryPerShard := totalMemory / int64(shards)
+	maxI := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
+	if maxI == 0 {
+		maxI = 1
+	}
+	return NewIntensity(maxI)
+}
+
+// maxParallel returns maximal repair parallelism limited to given replica sets.
+func maxParallel(dcMap map[string][]string, sets [][]string) int {
+	minP := math.MaxInt
+	for _, dcHosts := range dcMap {
+		// Max keyspace parallel is equal to the smallest max DC parallel
+		if p := maxDCParallel(dcHosts, sets); p < minP {
+			minP = p
+		}
+	}
+	return minP
+}
+
+// maxDCParallel returns maximal repair parallelism limited to given replica sets and nodes of given dc.
+func maxDCParallel(dcHosts []string, sets [][]string) int {
+	var maxP int
+	dcHostsSet := strset.New(dcHosts...)
+
+	for _, rep := range sets {
+		filteredRepSet := setIntersection(strset.New(rep...), dcHostsSet)
+		if filteredRepSet.Size() == 0 {
+			continue
+		}
+		// Max DC parallel is equal to #(repaired nodes from DC) / #(smallest partial replica set from DC)
+		if p := dcHostsSet.Size() / filteredRepSet.Size(); maxP < p {
+			maxP = p
+		}
+	}
+
+	if maxP == 0 {
+		return math.MaxInt
+	}
+	return maxP
 }
 
 // ViewSort ensures that views are repaired after base tables.
@@ -275,135 +296,11 @@ func (p *plan) SizeSort() {
 	}
 }
 
-// TableSizeMap returns recorded size of repaired tables.
-func (p *plan) TableSizeMap() map[string]int64 {
-	out := make(map[string]int64)
-	for _, kp := range p.Keyspaces {
-		for _, tp := range kp.Tables {
-			out[kp.Keyspace+"."+tp.Table] = tp.Size
-		}
-	}
-	return out
-}
-
-// KeyspaceRangesMap returns ranges count of repaired keyspaces.
-// All tables in the same keyspace have the same ranges count.
-func (p *plan) KeyspaceRangesMap() map[string]int64 {
-	out := make(map[string]int64)
-	for _, kp := range p.Keyspaces {
-		out[kp.Keyspace] = int64(len(kp.TokenRepIdx))
-	}
-	return out
-}
-
-func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]Intensity {
-	out := make(map[string]Intensity, len(shards))
-	for h, sh := range shards {
-		out[h] = maxRepairRangesInParallel(sh, memory[h])
-	}
-	return out
-}
-
-func maxRepairRangesInParallel(shards uint, totalMemory int64) Intensity {
-	const MiB = 1024 * 1024
-	memoryPerShard := totalMemory / int64(shards)
-	max := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
-	if max == 0 {
-		max = 1
-	}
-	return NewIntensity(max)
-}
-
 // keyspacePlan describes repair schedule and state for keyspace.
 type keyspacePlan struct {
 	Keyspace string
 	Size     int64
-
-	// All tables in the same keyspace share the same replicas and ranges
-	Tables []tablePlan
-	// Idx of currently repaired table
-	Idx       int
-	AllTables bool
-
-	Replicas []scyllaclient.ReplicaTokenRanges
-	// Maps token range to replica set (by index) that owns it.
-	// Contains all token ranges as entries.
-	TokenRepIdx map[scyllaclient.TokenRange]int
-}
-
-func (kp keyspacePlan) IsReplicaMarked(repIdx, tabIdx int) bool {
-	return len(kp.Replicas[repIdx].Ranges) == kp.Tables[tabIdx].MarkedInReplica[repIdx]
-}
-
-func (kp keyspacePlan) IsTableRepaired(tabIdx int) bool {
-	return len(kp.TokenRepIdx) == kp.Tables[tabIdx].Done
-}
-
-// GetRangesToRepair returns at most cnt ranges of table owned by replica set.
-func (kp keyspacePlan) GetRangesToRepair(repIdx, tabIdx int, intensity Intensity) []scyllaclient.TokenRange {
-	rep := kp.Replicas[repIdx]
-	tp := kp.Tables[tabIdx]
-
-	// Return all ranges for optimized or deleted table
-	if tp.Optimize || tp.Deleted {
-		intensity = NewIntensity(len(rep.Ranges))
-	}
-
-	var out []scyllaclient.TokenRange
-	for _, r := range rep.Ranges {
-		if tp.MarkRange(repIdx, r) {
-			out = append(out, r)
-			if NewIntensity(len(out)) >= intensity {
-				break
-			}
-		}
-	}
-
-	return out
-}
-
-// maxParallel returns maximal repair parallelism limited to keyspace.
-func (kp keyspacePlan) maxParallel(dcMap map[string][]string) int {
-	min := math.MaxInt
-	for _, dcHosts := range dcMap {
-		// Max keyspace parallel is equal to the smallest max DC parallel
-		if cand := kp.maxDCParallel(dcHosts); cand < min {
-			min = cand
-		}
-	}
-	return min
-}
-
-// maxDCParallel returns maximal repair parallelism limited to keyspace and nodes of given dc.
-func (kp keyspacePlan) maxDCParallel(dcHosts []string) int {
-	var max int
-	filteredDCHosts := setIntersection(strset.New(dcHosts...), strset.New(kp.Hosts()...))
-	// Not repaired DC does not have any limits on parallel
-	if filteredDCHosts.Size() == 0 {
-		return math.MaxInt
-	}
-
-	for _, rep := range kp.Replicas {
-		filteredRepSet := setIntersection(strset.New(rep.ReplicaSet...), filteredDCHosts)
-		if filteredRepSet.Size() == 0 {
-			continue
-		}
-		// Max DC parallel is equal to #(repaired nodes from DC) / #(smallest partial replica set from DC)
-		if cand := filteredDCHosts.Size() / filteredRepSet.Size(); max < cand {
-			max = cand
-		}
-	}
-
-	return max
-}
-
-// Hosts returns all hosts taking part in keyspace repair.
-func (kp keyspacePlan) Hosts() []string {
-	out := strset.New()
-	for _, rep := range kp.Replicas {
-		out.Add(rep.ReplicaSet...)
-	}
-	return out.List()
+	Tables   []tablePlan
 }
 
 func setIntersection(s1, s2 *strset.Set) *strset.Set {
@@ -422,31 +319,32 @@ func setIntersection(s1, s2 *strset.Set) *strset.Set {
 
 // tablePlan describes repair schedule and state for table.
 type tablePlan struct {
-	Table string
-	Size  int64
-	// Deleted tables are still being sent to workers,
-	// so that their progress can still be updated in a fake way,
-	// as their jobs are not actually sent to Scylla.
-	Deleted bool
+	Table         string
+	Size          int64
+	RangesCnt     int
+	ReplicaSetCnt int
 	// Optimized tables (small and fully replicated)
 	// have all ranges for replica set repaired in a single job.
 	Optimize bool
-	// Marks scheduled ranges.
-	MarkedRanges map[scyllaclient.TokenRange]struct{}
-	// Marks amount of scheduled ranges in replica set (by index).
-	MarkedInReplica []int
-	// Amount of scheduled and finished ranges.
-	Done int
 }
 
-// MarkRange sets range as done for replica.
-func (tp tablePlan) MarkRange(repIdx int, r scyllaclient.TokenRange) bool {
-	if _, ok := tp.MarkedRanges[r]; !ok {
-		tp.MarkedRanges[r] = struct{}{}
-		tp.MarkedInReplica[repIdx]++
-		return true
+func filteredRing(target Target, status scyllaclient.NodeStatusInfoSlice, ring scyllaclient.Ring) bool {
+	// Allow repairing single node cluster for better UX and tests
+	if ring.Replication == scyllaclient.LocalStrategy && len(status) > 1 {
+		return false
 	}
-	return false
+
+	filtered := filteredHosts(target, status)
+	for i, rep := range ring.ReplicaTokens {
+		// Don't add keyspace with some ranges not replicated in filtered hosts,
+		// unless it's a single node cluster.
+		rs := filteredReplicaSet(rep.ReplicaSet, filtered, target.Host)
+		if len(rs) <= 1 && len(status) > 1 {
+			return false
+		}
+		ring.ReplicaTokens[i].ReplicaSet = rs
+	}
+	return true
 }
 
 // filteredHosts returns hosts passing '--dc' and '--ignore-down-hosts' criteria.
