@@ -180,7 +180,7 @@ func TestClientDescribeRing(t *testing.T) {
 	client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, "testdata/scylla_api/describe_ring_scylla_manager.json")
 	defer closeServer()
 
-	ring, err := client.DescribeRing(context.Background(), "scylla_manager")
+	ring, err := client.DescribeVnodeRing(context.Background(), "scylla_manager")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestClientDescribeRingReplicationStrategy(t *testing.T) {
 			client, closeServer := scyllaclienttest.NewFakeScyllaServer(t, test.File)
 			defer closeServer()
 
-			ring, err := client.DescribeRing(context.Background(), "scylla_manager")
+			ring, err := client.DescribeVnodeRing(context.Background(), "scylla_manager")
 			if err != nil {
 				t.Fatal(err)
 			}
