@@ -1,26 +1,26 @@
 ![GitHub release](https://img.shields.io/github/tag/scylladb/scylla-manager.svg?label=release)
-![Sanity check](https://github.com/scylladb/scylla-manager/actions/workflows/sanity-checks.yml/badge.svg?branch=master)
+![Sanity check](https://github.com/scylladb/scylla-manager/actions/workflows/sanity-checks.yml/badge.svg?branch=branch-3.2)
 ![Language](https://img.shields.io/badge/Language-Go-blue.svg)
 
-![Integration tests 5.2.13 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv4.yaml/badge.svg?branch=master)
-![Integration tests 5.2.13 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv4-raft.yaml/badge.svg?branch=master)
-![Integration tests 5.2.13 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv6.yaml/badge.svg?branch=master)
-![Integration tests 5.2.13 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv6-raft.yaml/badge.svg?branch=master)
+![Integration tests 5.2.13 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv4.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 5.2.13 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv4-raft.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 5.2.13 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv6.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 5.2.13 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.2.13-ipv6-raft.yaml/badge.svg?branch=branch-3.2)
 
-![Integration tests 5.4.1 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4.yaml/badge.svg?branch=master)
-![Integration tests 5.4.1 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4-raft.yaml/badge.svg?branch=master)
-![Integration tests 5.4.1 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6.yaml/badge.svg?branch=master)
-![Integration tests 5.4.1 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6-raft.yaml/badge.svg?branch=master)
+![Integration tests 5.4.1 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 5.4.1 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4-raft.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 5.4.1 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 5.4.1 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6-raft.yaml/badge.svg?branch=branch-3.2)
 
-![Integration tests 2023.1.3 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4.yaml/badge.svg?branch=master)
-![Integration tests 2023.1.3 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4-raft.yaml/badge.svg?branch=master)
-![Integration tests 2023.1.3 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6.yaml/badge.svg?branch=master)
-![Integration tests 2023.1.3 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6-raft.yaml/badge.svg?branch=master)
+![Integration tests 2023.1.3 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 2023.1.3 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4-raft.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 2023.1.3 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 2023.1.3 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6-raft.yaml/badge.svg?branch=branch-3.2)
 
-![Integration tests 2024.1.0-rc3 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv4.yaml/badge.svg?branch=master)
-![Integration tests 2024.1.0-rc3 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv4-raft.yaml/badge.svg?branch=master)
-![Integration tests 2024.1.0-rc3 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv6.yaml/badge.svg?branch=master)
-![Integration tests 2024.1.0-rc3 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv6-raft.yaml/badge.svg?branch=master)
+![Integration tests 2024.1.0-rc3 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv4.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 2024.1.0-rc3 IPV4 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv4-raft.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 2024.1.0-rc3 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv6.yaml/badge.svg?branch=branch-3.2)
+![Integration tests 2024.1.0-rc3 IPV6 raft](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.0.rc3-ipv6-raft.yaml/badge.svg?branch=branch-3.2)
 # Scylla Manager
 
 Welcome to Scylla Manager repository!
