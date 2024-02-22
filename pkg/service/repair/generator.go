@@ -164,23 +164,24 @@ func (g *generator) Run(ctx context.Context) error {
 	}
 	var genErr error
 
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, g.client)
 	for _, ksp := range g.plan.Keyspaces {
 		if !g.shouldGenerate() {
 			break
 		}
 
-		ring, err := g.client.DescribeVnodeRing(ctx, ksp.Keyspace)
-		if err != nil {
-			return errors.Wrap(err, "describe ring")
-		}
-		// Make sure that replica sets are filtered as we might not include
-		// all hosts in size/ranges/intensity calculations.
-		_ = filteredRing(g.target, status, ring)
-
 		for _, tp := range ksp.Tables {
 			if !g.shouldGenerate() {
 				break
 			}
+
+			ring, err := ringDescriber.DescribeRing(ctx, ksp.Keyspace, tp.Table)
+			if err != nil {
+				return errors.Wrap(err, "describe ring")
+			}
+			// Make sure that replica sets are filtered as we might not include
+			// all hosts in size/ranges/intensity calculations.
+			_ = filteredRing(g.target, status, ring)
 
 			tg := g.newTableGenerator(ksp.Keyspace, tp, ring)
 			// All errors are logged, so in order to reduce clutter,

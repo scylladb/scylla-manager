@@ -45,22 +45,23 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		maxP       int
 	)
 
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, client)
 	for _, u := range target.Units {
-		ring, err := client.DescribeVnodeRing(ctx, u.Keyspace)
-		if err != nil {
-			return nil, errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
-		}
-		if !filteredRing(target, status, ring) {
-			continue
-		}
+		var tables []tablePlan
+		for _, t := range u.Tables {
+			ring, err := ringDescriber.DescribeRing(ctx, u.Keyspace, t)
+			if err != nil {
+				return nil, errors.Wrapf(err, "get ring description of %s.%s", u.Keyspace, t)
+			}
+			if !filteredRing(target, status, ring) {
+				continue
+			}
 
-		var (
-			sets      [][]string
-			tables    []tablePlan
-			rangesCnt int
-		)
-		for _, rep := range ring.ReplicaTokens {
-			for _, t := range u.Tables {
+			var (
+				sets      [][]string
+				rangesCnt int
+			)
+			for _, rep := range ring.ReplicaTokens {
 				for _, h := range rep.ReplicaSet {
 					k := hkt{
 						Host:     h,
@@ -69,17 +70,14 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 					}
 					hostRanges[k] += len(rep.Ranges)
 				}
+				sets = append(sets, rep.ReplicaSet)
+				allHosts.Add(rep.ReplicaSet...)
+				rangesCnt += len(rep.Ranges)
 			}
-			sets = append(sets, rep.ReplicaSet)
-			allHosts.Add(rep.ReplicaSet...)
-			rangesCnt += len(rep.Ranges)
-		}
 
-		if p := maxParallel(dcMap, sets); maxP < p {
-			maxP = p
-		}
-
-		for _, t := range u.Tables {
+			if p := maxParallel(dcMap, sets); maxP < p {
+				maxP = p
+			}
 			tables = append(tables, tablePlan{
 				Table:         t,
 				Size:          -1, // Filled with fillSize
