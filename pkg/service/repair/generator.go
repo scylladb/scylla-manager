@@ -169,7 +169,7 @@ func (g *generator) Run(ctx context.Context) error {
 			break
 		}
 
-		ring, err := g.client.DescribeRing(ctx, ksp.Keyspace)
+		ring, err := g.client.DescribeVnodeRing(ctx, ksp.Keyspace)
 		if err != nil {
 			return errors.Wrap(err, "describe ring")
 		}
