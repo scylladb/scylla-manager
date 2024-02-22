@@ -128,7 +128,7 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 		if err := clusterSession.ExecStmt("CREATE KEYSPACE test_ks WITH replication = " + tc.replicationStmt); err != nil {
 			t.Fatal(err)
 		}
-		ring, err := client.DescribeRing(context.Background(), "test_ks")
+		ring, err := client.DescribeVnodeRing(context.Background(), "test_ks")
 		if err != nil {
 			t.Fatal(err)
 		}
