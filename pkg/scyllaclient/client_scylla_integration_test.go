@@ -120,15 +120,17 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 	clusterSession := db.CreateSessionAndDropAllKeyspaces(t, client)
 	defer clusterSession.Close()
 
+	ringDescriber := scyllaclient.NewRingDescriber(context.Background(), client)
 	for i := range testCases {
 		tc := testCases[i]
-		if err := clusterSession.ExecStmt("DROP KEYSPACE IF EXISTS test_ks"); err != nil {
-			t.Fatal(err)
-		}
 		if err := clusterSession.ExecStmt("CREATE KEYSPACE test_ks WITH replication = " + tc.replicationStmt); err != nil {
 			t.Fatal(err)
 		}
-		ring, err := client.DescribeVnodeRing(context.Background(), "test_ks")
+		if err := clusterSession.ExecStmt("CREATE TABLE test_ks.test_tab (a int PRIMARY KEY, b int)"); err != nil {
+			t.Fatal(err)
+		}
+		ringDescriber.Reset(context.Background())
+		ring, err := ringDescriber.DescribeRing(context.Background(), "test_ks", "test_tab")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,6 +142,9 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 		}
 		if !maputil.Equal(tc.dcRF, ring.DCrf) {
 			t.Fatalf("DCrf: expected %v, got %v", tc.dcRF, ring.DCrf)
+		}
+		if err := clusterSession.ExecStmt("DROP KEYSPACE test_ks"); err != nil {
+			t.Fatal(err)
 		}
 	}
 }
