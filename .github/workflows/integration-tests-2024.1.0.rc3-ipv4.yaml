@@ -3,7 +3,7 @@ name: Integration tests (Scylla Enterprise 2024.1.0-rc3, IPV4)
 on:
   push:
     branches:
-      - master
+      - branch-3.2
   pull_request:
     types: [ opened, synchronize, reopened ]
 
