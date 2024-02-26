@@ -138,6 +138,29 @@ func defaultConfig() backup.Config {
 	return c
 }
 
+func (h *backupTestHelper) setInterceptorBlockEndpointOnFirstHost(method string, path string) {
+	var (
+		brokenHost string
+		mu         sync.Mutex
+	)
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.Method == method && req.URL.Path == path {
+			mu.Lock()
+			defer mu.Unlock()
+			
+			if brokenHost == "" {
+				h.T.Log("Setting broken host", req.Host)
+				brokenHost = req.Host
+			}
+
+			if brokenHost == req.Host {
+				return nil, errors.New("dial error")
+			}
+		}
+		return nil, nil
+	}))
+}
+
 func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
 	h.T.Helper()
 	opts := &scyllaclient.RcloneListDirOpts{
@@ -897,6 +920,28 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	}
 }
 
+func assertMaxProgress(t *testing.T, pr backup.Progress) {
+	msg := "expected all bytes to be uploaded"
+	if _, left := pr.ByteProgress(); left != 0 {
+		t.Fatal(msg, pr)
+	}
+	for _, hpr := range pr.Hosts {
+		if _, left := hpr.ByteProgress(); left != 0 {
+			t.Fatal(msg, hpr)
+		}
+		for _, kpr := range hpr.Keyspaces {
+			if _, left := kpr.ByteProgress(); left != 0 {
+				t.Fatal(msg, kpr)
+			}
+			for _, tpr := range kpr.Tables {
+				if _, left := tpr.ByteProgress(); left != 0 {
+					t.Fatal(msg, tpr)
+				}
+			}
+		}
+	}
+}
+
 var backupTimeout = 10 * time.Second
 
 // Tests resuming a stopped backup.
@@ -1079,28 +1124,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 
 	t.Run("resume after snapshot failed", func(t *testing.T) {
-		var (
-			h          = newBackupTestHelper(t, session, config, location, nil)
-			brokenHost string
-			mu         sync.Mutex
-		)
-
+		h := newBackupTestHelper(t, session, config, location, nil)
 		Print("Given: snapshot fails on a host")
-		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if req.Method == http.MethodPost && req.URL.Path == "/storage_service/snapshots" {
-				mu.Lock()
-				if brokenHost == "" {
-					t.Log("Setting broken host", req.Host)
-					brokenHost = req.Host
-				}
-				mu.Unlock()
-
-				if brokenHost == req.Host {
-					return nil, errors.New("dial error on snapshot")
-				}
-			}
-			return nil, nil
-		}))
+		h.setInterceptorBlockEndpointOnFirstHost(http.MethodPost, "/storage_service/snapshots")
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -1130,6 +1156,48 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("Then: data is uploaded")
 		assertDataUploadedAfterTag(t, h, tag)
+
+		Print("And: nothing is transferring")
+		h.waitNoTransfers()
+	})
+
+	t.Run("resume after upload failed", func(t *testing.T) {
+		h := newBackupTestHelper(t, session, config, location, nil)
+		Print("Given: upload fails on a host")
+		h.setInterceptorBlockEndpointOnFirstHost(http.MethodPost, "/agent/rclone/job/progress")
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: run backup")
+		err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+
+		Print("Then: it fails")
+		if err == nil {
+			t.Error("Expected error on run but got nil")
+		}
+		t.Log("Backup() error", err)
+
+		Print("Given: upload not longer fails on a host")
+		h.Hrt.SetInterceptor(nil)
+
+		Print("When: backup is resumed with new RunID")
+		runID := uuid.NewTime()
+		err = h.service.Backup(context.Background(), h.ClusterID, h.TaskID, runID, target)
+		if err != nil {
+			t.Error("Unexpected error", err)
+		}
+
+		Print("Then: data is uploaded")
+		pr, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, runID)
+		if err != nil {
+			t.Error(err)
+		}
+		assertMaxProgress(t, pr)
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
