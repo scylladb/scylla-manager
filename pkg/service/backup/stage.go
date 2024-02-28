@@ -54,37 +54,3 @@ func (s Stage) Resumable() bool {
 func (s Stage) Index() int {
 	return slice.Index(StageOrder(), s)
 }
-
-// RestoreStage specifies the restore worker stage.
-type RestoreStage string
-
-// RestoreStage enumeration.
-const (
-	StageRestoreInit          RestoreStage = "INIT"
-	StageRestoreDropViews     RestoreStage = "DROP_VIEWS"
-	StageRestoreDisableTGC    RestoreStage = "DISABLE_TGC"
-	StageRestoreData          RestoreStage = "DATA"
-	StageRestoreRepair        RestoreStage = "REPAIR"
-	StageRestoreEnableTGC     RestoreStage = "ENABLE_TGC"
-	StageRestoreRecreateViews RestoreStage = "RECREATE_VIEWS"
-	StageRestoreDone          RestoreStage = "DONE"
-)
-
-// RestoreStageOrder lists all restore stages in the order of their execution.
-func RestoreStageOrder() []RestoreStage {
-	return []RestoreStage{
-		StageRestoreInit,
-		StageRestoreDropViews,
-		StageRestoreDisableTGC,
-		StageRestoreData,
-		StageRestoreRepair,
-		StageRestoreEnableTGC,
-		StageRestoreRecreateViews,
-		StageRestoreDone,
-	}
-}
-
-// Index returns stage position in RestoreStageOrder.
-func (s RestoreStage) Index() int {
-	return slice.Index(RestoreStageOrder(), s)
-}
