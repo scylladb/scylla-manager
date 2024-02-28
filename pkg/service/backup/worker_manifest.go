@@ -6,25 +6,14 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo) (stepError error) {
-	w.Logger.Info(ctx, "Uploading manifest files...")
-	defer func(start time.Time) {
-		if stepError != nil {
-			w.Logger.Error(ctx, "Uploading manifest files failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done uploading manifest files", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
 	// Limit parallelism level, on huge clusters creating manifest content in
 	// memory for all nodes at the same time can lead to memory issues.
 	const maxParallel = 12
@@ -124,15 +113,6 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m ManifestI
 }
 
 func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error) {
-	w.Logger.Info(ctx, "Moving manifest files...")
-	defer func(start time.Time) {
-		if err != nil {
-			w.Logger.Error(ctx, "Moving manifest files failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done moving manifest files", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
 	rollbacks := make([]func(context.Context) error, len(hosts))
 
 	f := func(i int) (hostErr error) {

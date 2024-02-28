@@ -22,6 +22,18 @@ const (
 	StageDone         Stage = "DONE"
 )
 
+var stageDescription = map[Stage]string{
+	StageInit:         "initialising",
+	StageAwaitSchema:  "awaiting schema agreement",
+	StageSnapshot:     "taking snapshot",
+	StageIndex:        "indexing snapshot files",
+	StageManifest:     "uploading manifest files",
+	StageSchema:       "uploading cql schema",
+	StageUpload:       "uploading snapshot files",
+	StageMoveManifest: "moving manifest files",
+	StagePurge:        "purging stale snapshots",
+}
+
 // StageOrder listing of all stages in the order of execution.
 func StageOrder() []Stage {
 	return []Stage{
