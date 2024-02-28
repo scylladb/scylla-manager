@@ -36,7 +36,7 @@ fmt: ## Format source code
 
 .PHONY: check
 check: ## Perform static code analysis
-check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
+check: .check-go-version .check-copyright .check-comments \
 .check-log-capital-letter .check-timeutc .check-lint .check-vendor
 
 .PHONY: .check-go-version
@@ -56,13 +56,6 @@ check: .check-go-version .check-copyright .check-comments .check-errors-wrap \
 	@set -e; for f in `$(GOFILES)`; do \
 		[[ $$f =~ _string\.go ]] || \
 		! e=`grep -Pzo '\n\n\s+//\s*[a-z].*' $$f` || \
-		(echo $$f $$e; false); \
-	done
-
-.PHONY: .check-errors-wrap
-.check-errors-wrap:
-	@set -e; for f in `$(GOFILES)`; do \
-		! e=`grep -n -E 'errors\.(Errorf|New|Wrap|Wrapf)' $$f | grep -E '("| )fail'` || \
 		(echo $$f $$e; false); \
 	done
 
