@@ -4,25 +4,14 @@ package backup
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap RetentionMap) (err error) {
-	w.Logger.Info(ctx, "Purging stale snapshots...")
-	defer func(start time.Time) {
-		if err != nil {
-			w.Logger.Error(ctx, "Purging stale snapshots failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done purging stale snapshots", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
 	// List manifests in all locations
 	manifests, err := listManifestsInAllLocations(ctx, w.Client, hosts, w.ClusterID)
 	if err != nil {

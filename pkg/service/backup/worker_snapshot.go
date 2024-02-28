@@ -4,23 +4,12 @@ package backup
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
-	w.Logger.Info(ctx, "Taking snapshots...")
-	defer func(start time.Time) {
-		if err != nil {
-			w.Logger.Error(ctx, "Taking snapshots failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done taking snapshots", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
 	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Taking snapshots on host", "host", h.IP)
 		err := w.snapshotHost(ctx, h)
