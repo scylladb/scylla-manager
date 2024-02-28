@@ -25,7 +25,8 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit)
 
 	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Uploading snapshot files on host", "host", h.IP)
-		if err := w.uploadHost(ctx, h); err == nil {
+		err := w.uploadHost(ctx, h)
+		if err == nil {
 			w.Logger.Info(ctx, "Done uploading snapshot files on host", "host", h.IP)
 		}
 		return err
