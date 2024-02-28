@@ -147,7 +147,9 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 		}
 	}
 
-	if len(dirs) == 0 {
+	// In case of reindexing, it's possible that all snapshot dirs
+	// were already uploaded and deleted in the previous run (#3733).
+	if w.PrevStage != StageUpload && len(dirs) == 0 {
 		return nil, errors.New("could not find any files")
 	}
 
