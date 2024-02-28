@@ -14,19 +14,9 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
-	w.Logger.Info(ctx, "Indexing snapshot files...")
-	defer func(start time.Time) {
-		if err != nil {
-			w.Logger.Error(ctx, "Indexing snapshot files failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done indexing snapshot files", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
 	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Indexing snapshot files on host", "host", h.IP)
 
