@@ -810,8 +810,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			}
 			defer clusterSession.Close()
 
-			w.AwaitSchemaAgreement(ctx, clusterSession)
-
+			if err := w.AwaitSchemaAgreement(ctx, clusterSession); err != nil {
+				w.Logger.Info(ctx, "Couldn't await schema agreement, backup of schema as CQL files will be skipped", "error", err)
+				return nil
+			}
 			if err = w.DumpSchema(ctx, clusterSession); err != nil {
 				w.Logger.Info(ctx, "Couldn't dump schema, backup of schema as CQL files will be skipped", "error", err)
 				w.Schema = nil
@@ -848,7 +850,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	prevStage := run.Stage
 
 	// Execute stages according to the stage order.
-	execStage := func(stage Stage, f func() error) error {
+	execStage := func(stage Stage, f func() error) (err error) {
 		// In purge only mode skip all stages before purge.
 		if target.PurgeOnly {
 			if stage.Index() < StagePurge.Index() {
@@ -873,6 +875,18 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		// Always cleanup stats
 		defer w.cleanup(ctx, hi)
+
+		if desc, ok := stageDescription[stage]; ok {
+			up := strings.ToUpper(desc[:1]) + desc[1:]
+			w.Logger.Info(ctx, up+"...")
+			defer func(start time.Time) {
+				if err != nil {
+					w.Logger.Error(ctx, up+" failed see exact errors above", "duration", timeutc.Since(start))
+				} else {
+					w.Logger.Info(ctx, "Done "+desc, "duration", timeutc.Since(start))
+				}
+			}(timeutc.Now())
+		}
 
 		// Run function
 		return errors.Wrap(f(), strings.ReplaceAll(name, "_", " "))

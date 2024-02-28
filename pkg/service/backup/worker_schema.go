@@ -12,21 +12,9 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
-func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
-	w.Logger.Info(ctx, "Awaiting schema agreement...")
-
-	var stepError error
-	defer func(start time.Time) {
-		if stepError != nil {
-			w.Logger.Error(ctx, "Awaiting schema agreement failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done awaiting schema agreement", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
+func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) error {
 	const (
 		waitMin        = 15 * time.Second // nolint: revive
 		waitMax        = 1 * time.Minute
@@ -52,7 +40,7 @@ func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession g
 		localSchemaStmt = "SELECT schema_version FROM system.local WHERE key='local'"
 	)
 
-	stepError = retry.WithNotify(ctx, func() error {
+	return retry.WithNotify(ctx, func() error {
 		var v []string
 		if err := clusterSession.Query(peerSchemasStmt, nil).SelectRelease(&v); err != nil {
 			return retry.Permanent(err)
@@ -84,18 +72,9 @@ func (w *worker) DumpSchema(ctx context.Context, clusterSession gocqlx.Session) 
 
 func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError error) {
 	if w.Schema == nil {
+		w.Logger.Info(ctx, "No schema CQL file to upload")
 		return nil
 	}
-
-	w.Logger.Info(ctx, "Uploading schema...")
-
-	defer func(start time.Time) {
-		if stepError != nil {
-			w.Logger.Error(ctx, "Uploading schema failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.Logger.Info(ctx, "Done uploading schema", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
 
 	// Select single host per location
 	locations := map[string]hostInfo{}
