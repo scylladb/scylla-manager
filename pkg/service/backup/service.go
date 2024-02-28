@@ -786,6 +786,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			Config:      s.config,
 			Client:      client,
 		},
+		PrevStage:            run.Stage,
 		Metrics:              s.metrics,
 		Units:                run.Units,
 		OnRunProgress:        s.putRunProgressLogError,
