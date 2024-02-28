@@ -64,6 +64,7 @@ type workerTools struct {
 type worker struct {
 	workerTools
 
+	PrevStage     Stage
 	Metrics       metrics.BackupMetrics
 	Units         []Unit
 	Schema        *bytes.Buffer
