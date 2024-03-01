@@ -1,18 +1,22 @@
-name: Integration tests (Scylla 5.2.13, IPV4)
+name: Integration tests (Scylla Nightly, IPV4, raft schema, raft topology)
 
 on:
   push:
     branches:
       - master
+  pull_request:
+    types: [ opened, synchronize, reopened ]
 
 concurrency:
   group: int-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  scylla-version: 'scylla:5.2.13'
+  scylla-version: 'scylla-nightly:5.5.0-dev-0.20240321.900b56b117a1'
   ip-family: IPV4
-  raft-enabled: false
+  raft-schema: true
+  raft-topology: true
+  tablets: false
 
 jobs:
   #   Right now both restore-tables and restore-schema tests take way longer than any other pkg tests.
@@ -29,7 +33,9 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-enabled: ${{ env.raft-enabled }}
+          raft-schema: ${{ env.raft-schema }}
+          raft-topology: ${{ env.raft-topology }}
+          tablets: ${{ env.tablets }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
@@ -46,7 +52,9 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-enabled: ${{ env.raft-enabled }}
+          raft-schema: ${{ env.raft-schema }}
+          raft-topology: ${{ env.raft-topology }}
+          tablets: ${{ env.tablets }}
 
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
         # This regex ensures that all restore tests that didn't match restore-tables job will be run here.
@@ -65,7 +73,9 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-enabled: ${{ env.raft-enabled }}
+          raft-schema: ${{ env.raft-schema }}
+          raft-topology: ${{ env.raft-topology }}
+          tablets: ${{ env.tablets }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/backup
@@ -82,7 +92,9 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-enabled: ${{ env.raft-enabled }}
+          raft-schema: ${{ env.raft-schema }}
+          raft-topology: ${{ env.raft-topology }}
+          tablets: ${{ env.tablets }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/repair
@@ -103,7 +115,9 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-enabled: ${{ env.raft-enabled }}
+          raft-schema: ${{ env.raft-schema }}
+          raft-topology: ${{ env.raft-topology }}
+          tablets: ${{ env.tablets }}
 
       - name: Run cqlping tests
         run: make pkg-integration-test PKG=./pkg/ping/cqlping
