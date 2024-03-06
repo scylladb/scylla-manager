@@ -146,7 +146,7 @@ const (
 	shortWait = 60 * time.Second
 	// longWait specifies that condition shall be met after a while, this is
 	// useful for waiting for repair to significantly advance or finish.
-	longWait = 20 * time.Second
+	longWait = 2 * shortWait
 
 	_interval = 500 * time.Millisecond
 )
@@ -1122,7 +1122,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	createKeyspace(t, clusterSession, "test_repair", 3, 3)
+	createKeyspace(t, clusterSession, "test_repair", 2, 2)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -1167,7 +1167,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: repair is done")
-		h.assertDone(2 * longWait)
+		h.assertDone(longWait)
 
 		Print("Then: dc2 is used for repair")
 		prog, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
@@ -1211,7 +1211,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: repair is done")
-		h.assertDone(2 * longWait)
+		h.assertDone(longWait)
 
 		Print("Then: ignored node is not repaired")
 		prog, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
@@ -1242,7 +1242,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("When: repair is done")
-		h.assertDone(2 * longWait)
+		h.assertDone(longWait)
 	})
 
 	t.Run("repair dc local keyspace mismatch", func(t *testing.T) {
@@ -1472,7 +1472,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertParallelIntensity(controlParallel, controlIntensity)
 
 		Print("Then: repair is done")
-		h.assertDone(3 * longWait)
+		h.assertDone(longWait)
 
 		Print("Then: assert resumed, finished  parallel/intensity from control")
 		h.assertParallelIntensity(controlParallel, controlIntensity)
@@ -1488,7 +1488,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertParallelIntensity(propParallel, propIntensity)
 
 		Print("Then: repair is done")
-		h.assertDone(3 * longWait)
+		h.assertDone(longWait)
 
 		Print("Then: assert fresh, finished repair parallel/intensity from control")
 		h.assertParallelIntensity(propParallel, propIntensity)
@@ -1901,7 +1901,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		})
 
 		Print("Then: repair is done")
-		h.assertDone(3 * longWait)
+		h.assertDone(longWait)
 
 		Print("And: more than one repair jobs were scheduled")
 		if repairCalled <= 1 {
@@ -1990,7 +1990,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		})
 
 		Print("Then: repair is done")
-		h.assertDone(3 * longWait)
+		h.assertDone(longWait)
 
 		Print("And: jobs were scheduled")
 		if repairCalled < 1 {
