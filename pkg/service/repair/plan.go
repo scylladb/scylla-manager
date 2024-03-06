@@ -49,17 +49,23 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		}
 
 		skip := false
-		for _, rep := range ring.ReplicaTokens {
-			rtr := scyllaclient.ReplicaTokenRanges{
-				ReplicaSet: filteredReplicaSet(rep.ReplicaSet, filtered, target.Host),
-				Ranges:     rep.Ranges,
+		for _, rtr := range ring.ReplicaTokens {
+			// Skip the whole keyspace based on repaired dcs only
+			// (unless it's a single node cluster).
+			replicas := 0
+			for _, h := range rtr.ReplicaSet {
+				if slice.ContainsString(target.DC, ring.HostDC[h]) {
+					replicas++
+				}
 			}
-
-			// Don't add keyspace with some ranges not replicated in filtered hosts,
-			// unless it's a single node cluster.
-			if len(rtr.ReplicaSet) <= 1 && len(status) > 1 {
+			if replicas <= 1 && len(status) > 1 {
 				skip = true
 				break
+			}
+			// Skip given replica sets based on all filtering factors
+			rtr.ReplicaSet = filteredReplicaSet(rtr.ReplicaSet, filtered, target.Host)
+			if len(rtr.ReplicaSet) <= 1 && len(status) > 1 {
+				continue
 			}
 
 			for _, r := range rtr.Ranges {
@@ -68,7 +74,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 			kp.Replicas = append(kp.Replicas, rtr)
 		}
 
-		if skip {
+		if skip || len(kp.Replicas) == 0 {
 			p.SkippedKeyspaces = append(p.SkippedKeyspaces, u.Keyspace)
 			continue
 		}
