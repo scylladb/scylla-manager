@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"go.uber.org/multierr"
 
@@ -383,6 +384,9 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	if err != nil {
 		return Ring{}, err
 	}
+	if len(resp.Payload) == 0 {
+		return Ring{}, errors.New("received empty token range list")
+	}
 
 	ring := Ring{
 		ReplicaTokens: make([]ReplicaTokenRanges, 0),
@@ -393,6 +397,9 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	replicaTokens := make(map[uint64][]TokenRange)
 	replicaHash := make(map[uint64][]string)
 
+	isNetworkTopologyStrategy := true
+	rf := len(resp.Payload[0].Endpoints)
+	var dcRF map[string]int
 	for _, p := range resp.Payload {
 		// Parse tokens
 		startToken, err := strconv.ParseInt(p.StartToken, 10, 64)
@@ -414,6 +421,21 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 			StartToken: startToken,
 			EndToken:   endToken,
 		})
+
+		// Update replication factors
+		if rf != len(p.Endpoints) {
+			return Ring{}, errors.Errorf("ifferent token ranges have different rf (%d/%d). Repair is not safe for now", rf, len(p.Endpoints))
+		}
+		tokenDCrf := make(map[string]int)
+		for _, e := range p.EndpointDetails {
+			tokenDCrf[e.Datacenter]++
+		}
+		// NetworkTopologyStrategy -> all token ranges have the same dc to rf mapping
+		if dcRF == nil || maputil.Equal(dcRF, tokenDCrf) {
+			dcRF = tokenDCrf
+		} else {
+			isNetworkTopologyStrategy = false
+		}
 
 		// Update host to DC mapping
 		for _, e := range p.EndpointDetails {
@@ -443,16 +465,15 @@ func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error
 	}
 
 	// Detect replication strategy
-	if len(ring.HostDC) == 1 {
+	ring.RF = rf
+	switch {
+	case len(ring.HostDC) == 1:
 		ring.Replication = LocalStrategy
-	} else {
+	case isNetworkTopologyStrategy:
 		ring.Replication = NetworkTopologyStrategy
-		for _, tokens := range dcTokens {
-			if tokens != len(resp.Payload) {
-				ring.Replication = SimpleStrategy
-				break
-			}
-		}
+		ring.DCrf = dcRF
+	default:
+		ring.Replication = SimpleStrategy
 	}
 
 	return ring, nil
