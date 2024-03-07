@@ -13,7 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
@@ -68,6 +70,77 @@ func TestClientStatusIntegration(t *testing.T) {
 
 	if diff := cmp.Diff(golden, status, ipCmp); diff != "" {
 		t.Fatalf("Status() = %#+v, diff %s", status, diff)
+	}
+}
+
+func TestClientDescribeRingIntegration(t *testing.T) {
+	testCases := []struct {
+		replicationStmt string
+		replication     scyllaclient.ReplicationStrategy
+		rf              int
+		dcRF            map[string]int
+	}{
+		{
+			replicationStmt: "{'class': 'SimpleStrategy', 'replication_factor': 4}",
+			replication:     scyllaclient.SimpleStrategy,
+			rf:              4,
+		},
+		{
+			replicationStmt: "{'class': 'NetworkTopologyStrategy', 'dc1': 1}",
+			replication:     scyllaclient.NetworkTopologyStrategy,
+			rf:              1,
+			dcRF: map[string]int{
+				"dc1": 1,
+			},
+		},
+		{
+			replicationStmt: "{'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2}",
+			replication:     scyllaclient.NetworkTopologyStrategy,
+			rf:              4,
+			dcRF: map[string]int{
+				"dc1": 2,
+				"dc2": 2,
+			},
+		},
+		{
+			replicationStmt: "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}",
+			replication:     scyllaclient.NetworkTopologyStrategy,
+			rf:              6,
+			dcRF: map[string]int{
+				"dc1": 3,
+				"dc2": 3,
+			},
+		},
+	}
+
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	clusterSession := db.CreateSessionAndDropAllKeyspaces(t, client)
+	defer clusterSession.Close()
+
+	for i := range testCases {
+		tc := testCases[i]
+		if err := clusterSession.ExecStmt("DROP KEYSPACE IF EXISTS test_ks"); err != nil {
+			t.Fatal(err)
+		}
+		if err := clusterSession.ExecStmt("CREATE KEYSPACE test_ks WITH replication = " + tc.replicationStmt); err != nil {
+			t.Fatal(err)
+		}
+		ring, err := client.DescribeRing(context.Background(), "test_ks")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tc.replication != ring.Replication {
+			t.Fatalf("Replication: expected %s, got %s", tc.replication, ring.Replication)
+		}
+		if tc.rf != ring.RF {
+			t.Fatalf("RF: expected %d, got %d", tc.rf, ring.RF)
+		}
+		if !maputil.Equal(tc.dcRF, ring.DCrf) {
+			t.Fatalf("DCrf: expected %v, got %v", tc.dcRF, ring.DCrf)
+		}
 	}
 }
 
