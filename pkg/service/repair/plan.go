@@ -320,6 +320,39 @@ func maxRepairRangesInParallel(shards uint, totalMemory int64) Intensity {
 	return NewIntensity(max)
 }
 
+// MaxRingParallel calculates max amount of repair jobs on ring limited to dcs.
+func MaxRingParallel(ring scyllaclient.Ring, dcs []string) int {
+	repairedDCs := strset.New(dcs...)
+	dcNodeCnt := make(map[string]int)
+	for _, dc := range ring.HostDC {
+		dcNodeCnt[dc]++
+	}
+
+	switch ring.Replication {
+	case scyllaclient.SimpleStrategy:
+		repaired := 0
+		for dc, cnt := range dcNodeCnt {
+			if repairedDCs.Has(dc) {
+				repaired += cnt
+			}
+		}
+		return repaired / ring.RF
+	case scyllaclient.NetworkTopologyStrategy:
+		minDC := math.MaxInt / 2
+		for dc, rf := range ring.DCrf {
+			if repairedDCs.Has(dc) {
+				minDC = min(minDC, dcNodeCnt[dc]/rf)
+			}
+		}
+		if minDC == math.MaxInt/2 {
+			minDC = 1
+		}
+		return minDC
+	default:
+		return 1
+	}
+}
+
 // keyspacePlan describes repair schedule and state for keyspace.
 type keyspacePlan struct {
 	Keyspace string
