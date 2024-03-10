@@ -302,6 +302,39 @@ func (p *plan) KeyspaceRangesMap() map[string]int64 {
 	return out
 }
 
+// ShouldRepairRing when all ranges are replicated (len(replicaSet) > 1) in specified dcs.
+// If host is set, it also checks if host belongs to the dcs.
+func ShouldRepairRing(ring scyllaclient.Ring, dcs []string, host string) bool {
+	repairedDCs := strset.New(dcs...)
+	if host != "" {
+		if dc, ok := ring.HostDC[host]; !ok || !repairedDCs.Has(dc) {
+			return false
+		}
+	}
+
+	switch ring.Replication {
+	case scyllaclient.SimpleStrategy:
+		// Check range consisting of excluded hosts
+		excluded := 0
+		for _, dc := range ring.HostDC {
+			if !repairedDCs.Has(dc) {
+				excluded++
+			}
+		}
+		return ring.RF > excluded+1
+	case scyllaclient.NetworkTopologyStrategy:
+		rep := 0
+		for dc, rf := range ring.DCrf {
+			if repairedDCs.Has(dc) {
+				rep += rf
+			}
+		}
+		return rep > 1
+	default:
+		return false
+	}
+}
+
 func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]Intensity {
 	out := make(map[string]Intensity, len(shards))
 	for h, sh := range shards {
