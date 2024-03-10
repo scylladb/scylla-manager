@@ -149,13 +149,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(ErrEmptyRepair, err.Error())
 	}
 
-	t.plan, err = newPlan(ctx, t, client)
+	p, err := newPlan(ctx, t, client)
 	if err != nil {
 		return t, errors.Wrap(err, "create repair plan")
 	}
 	// Sort plan
-	t.plan.SizeSort()
-	t.plan.PrioritySort(NewInternalTablePreference())
+	p.SizeSort()
+	p.PrioritySort(NewInternalTablePreference())
 	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
 		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
 	} else {
@@ -163,23 +163,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		if err != nil {
 			return t, errors.Wrap(err, "get cluster views")
 		}
-		t.plan.ViewSort(views)
-	}
-
-	t.plan.SetMaxParallel(dcMap)
-	if err := t.plan.SetMaxHostIntensity(ctx, client); err != nil {
-		return t, errors.Wrap(err, "calculate intensity limits")
-	}
-
-	if len(t.plan.SkippedKeyspaces) > 0 {
-		s.logger.Info(ctx,
-			"Repair of the following keyspaces will be skipped because not all the tokens are present in the specified DCs",
-			"keyspaces", strings.Join(t.plan.SkippedKeyspaces, ", "),
-		)
+		p.ViewSort(views)
 	}
 
 	// Set filtered units as they are still used for displaying --dry-run
-	t.Units = t.plan.Units()
+	t.Units = p.FilteredUnits(t.Units)
 	return t, nil
 }
 
@@ -202,7 +190,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		"run_id", runID,
 		"target", target,
 	)
-
 	run := &Run{
 		ClusterID: clusterID,
 		TaskID:    taskID,
@@ -222,6 +209,24 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "get client")
 	}
 
+	p, err := newPlan(ctx, target, client)
+	if err != nil {
+		return errors.Wrap(err, "create repair plan")
+	}
+	var ord int
+	for _, kp := range p.Keyspaces {
+		for _, tp := range kp.Tables {
+			ord++
+			s.logger.Info(ctx, "Repair order",
+				"order", ord,
+				"keyspace", kp.Keyspace,
+				"table", tp.Table,
+				"size", tp.Size,
+				"merge_ranges", tp.Optimize,
+			)
+		}
+	}
+
 	pm := NewDBProgressManager(run, s.session, s.metrics, s.logger)
 	prevID := uuid.Nil
 	if target.Continue {
@@ -232,10 +237,10 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			run.Intensity = prev.Intensity
 		}
 	}
-	if err := pm.Init(target.plan, prevID); err != nil {
+
+	if err := pm.Init(p, prevID); err != nil {
 		return err
 	}
-	pm.UpdatePlan(target.plan)
 	s.putRunLogError(ctx, run)
 
 	gracefulCtx, cancel := context.WithCancel(context.Background())
@@ -254,7 +259,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Give intensity handler the ability to set pool size
 	ih, cleanup := s.newIntensityHandler(ctx, clusterID, taskID, runID,
-		target.plan.MaxHostIntensity, target.plan.MaxParallel, workers)
+		p.MaxHostIntensity, p.MaxParallel, workers)
 	defer cleanup()
 
 	// Set controlled parameters
@@ -263,7 +268,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Give generator the ability to read parallel/intensity and
 	// to submit and receive results from worker pool.
-	gen, err := newGenerator(ctx, target, client, ih, workers, s.logger)
+	gen, err := newGenerator(ctx, target, client, ih, workers, p, pm, s.logger)
 	if err != nil {
 		return errors.Wrap(err, "create generator")
 	}
@@ -280,15 +285,14 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}()
 
-	hosts := target.plan.Hosts()
-	if active, err := client.ActiveRepairs(ctx, hosts); err != nil {
+	if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
 		s.logger.Error(ctx, "Active repair check failed", "error", err)
 	} else if len(active) > 0 {
 		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
 	}
 
 	if err = gen.Run(gracefulCtx); (err != nil && target.FailFast) || ctx.Err() != nil {
-		s.killAllRepairs(ctx, client, hosts)
+		s.killAllRepairs(ctx, client, p.Hosts)
 	}
 	close(done)
 
@@ -298,7 +302,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		s.putRunLogError(ctx, run)
 	}
 	// Ensure that not interrupted repair has 100% progress (invalidate rounding errors).
-	if gen.lastPercent == 100 {
+	if ctx.Err() == nil && (!target.FailFast || err == nil) {
 		s.metrics.SetProgress(clusterID, 100)
 	}
 

@@ -31,17 +31,10 @@ type ProgressManager interface {
 	OnJobStart(ctx context.Context, job job)
 	// OnJobEnd must be called when single repair job is finished.
 	OnJobEnd(ctx context.Context, job jobResult)
-	// UpdatePlan marks plan's ranges which were already successfully
-	// repaired in the previous run.
-	UpdatePlan(plan *plan)
+	// GetCompletedRanges returns ranges already successfully repaired in the previous runs.
+	GetCompletedRanges(keyspace, table string) []scyllaclient.TokenRange
 	// AggregateProgress fetches RunProgress from DB and aggregates them into Progress.
 	AggregateProgress() (Progress, error)
-}
-
-type progressKey struct {
-	host     string
-	keyspace string
-	table    string
 }
 
 type stateKey struct {
@@ -55,14 +48,14 @@ type dbProgressManager struct {
 	total          atomic.Float64   // Total weighted repair progress
 	tableSize      map[string]int64 // Maps table to its size
 	totalTableSize int64            // Sum over tableSize
-	keyspaceRanges map[string]int64 // Maps keyspace to its range count
+	tableRanges    map[string]int   // Maps table to its range count
 
 	session gocqlx.Session
 	metrics metrics.RepairMetrics
 	logger  log.Logger
 
 	mu       sync.Mutex
-	progress map[progressKey]*RunProgress
+	progress map[scyllaclient.HostKeyspaceTable]*RunProgress
 	state    map[stateKey]*RunState
 }
 
@@ -79,16 +72,20 @@ func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repa
 
 func (pm *dbProgressManager) Init(plan *plan, prevID uuid.UUID) error {
 	pm.run.PrevID = prevID
-
 	pm.total.Store(0)
 	pm.metrics.SetProgress(pm.run.ClusterID, 0)
-	pm.tableSize = plan.TableSizeMap()
-	var total int64
-	for _, s := range pm.tableSize {
-		total += s
+
+	pm.tableSize = make(map[string]int64)
+	pm.totalTableSize = 0
+	pm.tableRanges = make(map[string]int)
+	for _, ksp := range plan.Keyspaces {
+		for _, tp := range ksp.Tables {
+			fullName := ksp.Keyspace + "." + tp.Table
+			pm.tableSize[fullName] = tp.Size
+			pm.totalTableSize += tp.Size
+			pm.tableRanges[fullName] = tp.RangesCnt
+		}
 	}
-	pm.totalTableSize = total
-	pm.keyspaceRanges = plan.KeyspaceRangesMap()
 
 	// Init state before progress, so that we don't resume progress when state is empty
 	if err := pm.initState(plan); err != nil {
@@ -153,35 +150,21 @@ func (pm *dbProgressManager) isRunInitialized(run *Run) bool {
 }
 
 func (pm *dbProgressManager) initProgress(plan *plan) error {
-	pm.progress = make(map[progressKey]*RunProgress)
+	pm.progress = make(map[scyllaclient.HostKeyspaceTable]*RunProgress)
 	// Fill all possible progress entries (#tables * #nodes)
 	for _, kp := range plan.Keyspaces {
 		for _, tp := range kp.Tables {
-			for _, rep := range kp.Replicas {
-				for _, h := range rep.ReplicaSet {
-					pk := progressKey{
-						host:     h,
-						keyspace: kp.Keyspace,
-						table:    tp.Table,
-					}
-					rp := pm.progress[pk]
-					if rp == nil {
-						rp = &RunProgress{
-							ClusterID: pm.run.ClusterID,
-							TaskID:    pm.run.TaskID,
-							RunID:     pm.run.ID,
-							Host:      pk.host,
-							Keyspace:  pk.keyspace,
-							Table:     pk.table,
-							Size: plan.HostTableSize[scyllaclient.HostKeyspaceTable{
-								Host:     pk.host,
-								Keyspace: pk.keyspace,
-								Table:    pk.table,
-							}],
-						}
-						pm.progress[pk] = rp
-					}
-					rp.TokenRanges += int64(len(rep.Ranges))
+			for _, h := range plan.Hosts {
+				pk := newHostKsTable(h, kp.Keyspace, tp.Table)
+				pm.progress[newHostKsTable(h, kp.Keyspace, tp.Table)] = &RunProgress{
+					ClusterID:   pm.run.ClusterID,
+					TaskID:      pm.run.TaskID,
+					RunID:       pm.run.ID,
+					Host:        pk.Host,
+					Keyspace:    pk.Keyspace,
+					Table:       pk.Table,
+					Size:        plan.Stats[pk].Size,
+					TokenRanges: int64(plan.Stats[pk].Ranges),
 				}
 			}
 		}
@@ -191,11 +174,7 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 	// Watch out for empty state after upgrade (#3534).
 	if !pm.emptyState() {
 		err := pm.ForEachPrevRunProgress(func(rp *RunProgress) {
-			pk := progressKey{
-				host:     rp.Host,
-				keyspace: rp.Keyspace,
-				table:    rp.Table,
-			}
+			pk := newHostKsTable(rp.Host, rp.Keyspace, rp.Table)
 			if _, ok := pm.progress[pk]; !ok {
 				return
 			}
@@ -282,23 +261,12 @@ func (pm *dbProgressManager) emptyState() bool {
 	return true
 }
 
-// UpdatePlan marks already repaired token ranges in plan using state.
-func (pm *dbProgressManager) UpdatePlan(plan *plan) {
-	for _, kp := range plan.Keyspaces {
-		for tabIdx, tp := range kp.Tables {
-			sk := stateKey{
-				keyspace: kp.Keyspace,
-				table:    tp.Table,
-			}
-			// Skip only successfully repaired ranges
-			for _, r := range pm.state[sk].SuccessRanges {
-				if repIdx, ok := kp.TokenRepIdx[r]; ok {
-					_ = tp.MarkRange(repIdx, r)
-					kp.Tables[tabIdx].Done++
-				}
-			}
-		}
+func (pm *dbProgressManager) GetCompletedRanges(keyspace, table string) []scyllaclient.TokenRange {
+	sk := stateKey{
+		keyspace: keyspace,
+		table:    table,
 	}
+	return pm.state[sk].SuccessRanges
 }
 
 func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
@@ -307,11 +275,7 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 	defer q.Release()
 
 	for _, h := range j.replicaSet {
-		pk := progressKey{
-			host:     h,
-			keyspace: j.keyspace,
-			table:    j.table,
-		}
+		pk := newHostKsTable(h, j.keyspace, j.table)
 
 		pm.mu.Lock()
 		rp := pm.progress[pk]
@@ -346,11 +310,7 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 	defer q.Release()
 
 	for _, h := range result.replicaSet {
-		pk := progressKey{
-			host:     h,
-			keyspace: result.keyspace,
-			table:    result.table,
-		}
+		pk := newHostKsTable(h, result.keyspace, result.table)
 
 		pm.mu.Lock()
 		rp := pm.progress[pk]
@@ -421,8 +381,8 @@ func (pm *dbProgressManager) updateTotalProgress(keyspace, table string, ranges 
 		totalWeight = pm.totalTableSize
 	}
 
-	delta := float64(ranges) / float64(pm.keyspaceRanges[keyspace]) * 100 // Not weighted percentage progress delta
-	delta *= float64(weight) / float64(totalWeight)                       // Apply weight
+	delta := float64(ranges) / float64(pm.tableRanges[keyspace]) * 100 // Not weighted percentage progress delta
+	delta *= float64(weight) / float64(totalWeight)                    // Apply weight
 
 	// Watch out for rounding over 100% errors
 	if total := pm.total.Add(delta); total <= 100 {
