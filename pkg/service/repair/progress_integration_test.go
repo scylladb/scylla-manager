@@ -7,6 +7,7 @@ package repair
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -47,31 +48,22 @@ func TestProgressManagerIntegration(t *testing.T) {
 				StartToken: 0,
 				EndToken:   10,
 			}
-			token2 = scyllaclient.TokenRange{
-				StartToken: 11,
-				EndToken:   20,
-			}
 			p = &plan{
+				Hosts: []string{"h1", "h2"},
+				Stats: map[scyllaclient.HostKeyspaceTable]tableStats{
+					newHostKsTable("h1", "k1", "t1"): {
+						Size:   5,
+						Ranges: 2,
+					},
+					newHostKsTable("h2", "k1", "t1"): {
+						Size:   7,
+						Ranges: 2,
+					},
+				},
 				Keyspaces: []keyspacePlan{
 					{
 						Keyspace: "k1",
-						Tables: []tablePlan{
-							{
-								Table:           "t1",
-								MarkedRanges:    make(map[scyllaclient.TokenRange]struct{}),
-								MarkedInReplica: make([]int, 1),
-							},
-						},
-						Replicas: []scyllaclient.ReplicaTokenRanges{
-							{
-								ReplicaSet: []string{"h1", "h2"},
-								Ranges:     []scyllaclient.TokenRange{token1, token2},
-							},
-						},
-						TokenRepIdx: map[scyllaclient.TokenRange]int{
-							token1: 0,
-							token2: 0,
-						},
+						Tables:   []tablePlan{{Table: "t1"}},
 					},
 				},
 			}
@@ -97,6 +89,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 				Host:        "h1",
 				Keyspace:    "k1",
 				Table:       "t1",
+				Size:        5,
 				TokenRanges: 2,
 				Success:     0,
 				Error:       0,
@@ -108,6 +101,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 				Host:        "h2",
 				Keyspace:    "k1",
 				Table:       "t1",
+				Size:        7,
 				TokenRanges: 2,
 				Success:     0,
 				Error:       0,
@@ -193,35 +187,23 @@ func TestProgressManagerIntegration(t *testing.T) {
 				StartToken: 5,
 				EndToken:   10,
 			}
-			token2 = scyllaclient.TokenRange{
-				StartToken: 15,
-				EndToken:   30,
-			}
 			token3 = scyllaclient.TokenRange{
 				StartToken: 50,
 				EndToken:   100,
 			}
 			p = &plan{ // Plan containing token1 and token2
+				Stats: map[scyllaclient.HostKeyspaceTable]tableStats{
+					newHostKsTable("h1", "k1", "t1"): {
+						Ranges: 1,
+					},
+					newHostKsTable("h2", "k1", "t1"): {
+						Ranges: 1,
+					},
+				},
 				Keyspaces: []keyspacePlan{
 					{
 						Keyspace: "k1",
-						Tables: []tablePlan{
-							{
-								Table:           "t1",
-								MarkedRanges:    make(map[scyllaclient.TokenRange]struct{}),
-								MarkedInReplica: make([]int, 1),
-							},
-						},
-						Replicas: []scyllaclient.ReplicaTokenRanges{
-							{
-								ReplicaSet: []string{"h1", "h2"},
-								Ranges:     []scyllaclient.TokenRange{token1},
-							},
-						},
-						TokenRepIdx: map[scyllaclient.TokenRange]int{
-							token1: 0,
-							token2: 0,
-						},
+						Tables:   []tablePlan{{Table: "t1"}},
 					},
 				},
 			}
@@ -265,18 +247,10 @@ func TestProgressManagerIntegration(t *testing.T) {
 		if err := pm.Init(p, prevID); err != nil {
 			t.Fatal(err)
 		}
-		pm.UpdatePlan(p)
-
+		done := pm.GetCompletedRanges("k1", "t1")
 		Print("Then: validate marked token1 and not marked token3")
-		tp := p.Keyspaces[0].Tables[0]
-		if len(tp.MarkedRanges) != 1 {
-			t.Fatal("expected 1 marked range")
-		}
-		if _, ok := tp.MarkedRanges[token1]; !ok {
-			t.Fatal("expected token1 to be marked")
-		}
-		if tp.MarkedInReplica[0] != 1 {
-			t.Fatal("expected 1 marked range in the first replica set")
+		if len(done) != 2 || !slices.Contains(done, token1) || !slices.Contains(done, token3) {
+			t.Fatal("expected both token ranges to be done")
 		}
 	})
 }
