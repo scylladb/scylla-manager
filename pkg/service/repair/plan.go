@@ -222,14 +222,14 @@ func (p *plan) FillSize(ctx context.Context, client *scyllaclient.Client, smallT
 	ksSize := make(map[string]int64)
 	tableSize := make(map[string]int64)
 	p.HostTableSize = make(map[scyllaclient.HostKeyspaceTable]int64, len(hkts))
-	for i, size := range report {
-		ksSize[hkts[i].Keyspace] += size
-		tableSize[hkts[i].Keyspace+"."+hkts[i].Table] += size
+	for _, sr := range report {
+		ksSize[sr.Keyspace] += sr.Size
+		tableSize[sr.Keyspace+"."+sr.Table] += sr.Size
 		p.HostTableSize[scyllaclient.HostKeyspaceTable{
-			Host:     hkts[i].Host,
-			Keyspace: hkts[i].Keyspace,
-			Table:    hkts[i].Table,
-		}] = size
+			Host:     sr.Host,
+			Keyspace: sr.Keyspace,
+			Table:    sr.Table,
+		}] = sr.Size
 	}
 
 	for i, kp := range p.Keyspaces {
