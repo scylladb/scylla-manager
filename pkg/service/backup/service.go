@@ -409,8 +409,8 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 	}
 
 	var total int64
-	for _, size := range report {
-		total += size
+	for _, sr := range report {
+		total += sr.Size
 	}
 
 	return total, err

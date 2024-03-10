@@ -875,8 +875,14 @@ func (t HostKeyspaceTables) Hosts() []string {
 	return s.List()
 }
 
+// SizeReport extends HostKeyspaceTable with Size information.
+type SizeReport struct {
+	HostKeyspaceTable
+	Size int64
+}
+
 // TableDiskSizeReport returns total on disk size of tables in bytes.
-func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables HostKeyspaceTables) ([]int64, error) {
+func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables HostKeyspaceTables) ([]SizeReport, error) {
 	// Get shard count of a first node to estimate parallelism limit
 	shards, err := c.ShardCount(ctx, "")
 	if err != nil {
@@ -885,7 +891,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 
 	var (
 		limit  = len(hostKeyspaceTables.Hosts()) * int(shards)
-		report = make([]int64, len(hostKeyspaceTables))
+		report = make([]SizeReport, len(hostKeyspaceTables))
 	)
 
 	f := func(i int) error {
@@ -902,7 +908,10 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 			"size", size,
 		)
 
-		report[i] = size
+		report[i] = SizeReport{
+			HostKeyspaceTable: v,
+			Size:              size,
+		}
 		return nil
 	}
 
