@@ -220,36 +220,44 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		AllTables: true,
 	}
 
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, client)
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
 			return t, errors.Wrapf(err, "keyspace %s: get tables", keyspace)
 		}
 
-		// Get the ring description and skip local data
-		ring, err := client.DescribeVnodeRing(ctx, keyspace)
-		if err != nil {
-			return t, errors.Wrapf(err, "keyspace %s: get ring description", keyspace)
-		}
-		if ring.Replication == scyllaclient.LocalStrategy {
-			if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
-				continue
+		var filteredTables []string
+		for _, tab := range tables {
+			// Get the ring description and skip local data
+			ring, err := ringDescriber.DescribeRing(ctx, keyspace, tab)
+			if err != nil {
+				return t, errors.Wrapf(err, "%s.%s: get ring description", keyspace, tab)
 			}
-		} else {
-			// Check if keyspace has replica in any DC
-			if !targetDCs.HasAny(ring.Datacenters()...) {
-				continue
+			if ring.Replication == scyllaclient.LocalStrategy {
+				if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
+					continue
+				}
+			} else {
+				// Check if keyspace has replica in any DC
+				if !targetDCs.HasAny(ring.Datacenters()...) {
+					continue
+				}
+			}
+
+			// Collect ring information
+			rings[keyspace+"."+tab] = ring
+
+			// Do not filter system_schema
+			if keyspace == systemSchema {
+				systemSchemaUnit.Tables = append(systemSchemaUnit.Tables, tab)
+			} else {
+				filteredTables = append(filteredTables, tab)
 			}
 		}
 
-		// Collect ring information
-		rings[keyspace] = ring
-
-		// Do not filter system_schema
-		if keyspace == systemSchema {
-			systemSchemaUnit.Tables = tables
-		} else {
-			f.Add(keyspace, tables)
+		if len(filteredTables) > 0 {
+			f.Add(keyspace, filteredTables)
 		}
 	}
 
@@ -305,12 +313,14 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 	// Validate that there are enough live nodes to back up all tokens
 	if len(liveNodes) < len(nodes) {
 		hosts := strset.New(liveNodes.Hosts()...)
-		for i := range target.Units {
-			r := rings[target.Units[i].Keyspace]
-			if r.Replication != scyllaclient.LocalStrategy {
-				for _, rt := range r.ReplicaTokens {
-					if !hosts.HasAny(rt.ReplicaSet...) {
-						return nil, errors.Errorf("not enough live nodes to backup keyspace %s", target.Units[i].Keyspace)
+		for _, ks := range target.Units {
+			for _, tab := range ks.Tables {
+				r := rings[ks.Keyspace+"."+tab]
+				if r.Replication != scyllaclient.LocalStrategy {
+					for _, rt := range r.ReplicaTokens {
+						if !hosts.HasAny(rt.ReplicaSet...) {
+							return nil, errors.Errorf("not enough live nodes to backup keyspace %s", ks.Keyspace)
+						}
 					}
 				}
 			}
