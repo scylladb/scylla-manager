@@ -35,13 +35,16 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 	}
 
 	// Collect ring information
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, client)
 	rings := make(map[string]scyllaclient.Ring, len(target.Units))
 	for _, u := range target.Units {
-		ring, err := client.DescribeVnodeRing(ctx, u.Keyspace)
-		if err != nil {
-			return errors.Wrap(err, "initialize: describe keyspace ring")
+		for _, tab := range u.Tables {
+			ring, err := ringDescriber.DescribeRing(ctx, u.Keyspace, tab)
+			if err != nil {
+				return errors.Wrap(err, "initialize: describe keyspace ring")
+			}
+			rings[u.Keyspace+"."+tab] = ring
 		}
-		rings[u.Keyspace] = ring
 	}
 
 	// Get live nodes
