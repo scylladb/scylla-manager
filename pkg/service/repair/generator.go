@@ -107,19 +107,16 @@ func (g *generator) Run(ctx context.Context) error {
 	g.logger.Info(ctx, "Start generator")
 	var genErr error
 
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, g.client)
 	for _, ksp := range g.plan.Keyspaces {
-		if !g.shouldGenerate() {
-			break
-		}
-
-		ring, err := g.client.DescribeVnodeRing(ctx, ksp.Keyspace)
-		if err != nil {
-			return errors.Wrap(err, "describe ring")
-		}
-
 		for _, tp := range ksp.Tables {
 			if !g.shouldGenerate() {
 				break
+			}
+
+			ring, err := ringDescriber.DescribeRing(ctx, ksp.Keyspace, tp.Table)
+			if err != nil {
+				return errors.Wrap(err, "describe ring")
 			}
 
 			tg := g.newTableGenerator(ksp.Keyspace, tp, ring)
