@@ -63,42 +63,40 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		maxP     int
 	)
 
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, client)
 	for _, u := range target.Units {
-		ring, err := client.DescribeVnodeRing(ctx, u.Keyspace)
-		if err != nil {
-			return nil, errors.Wrapf(err, "keyspace %s: get ring description", u.Keyspace)
-		}
-		// Allow repairing single node cluster for better UX.
-		if len(status) > 1 && !ShouldRepairRing(ring, target.DC, target.Host) {
-			continue
-		}
-
-		// Update max parallel
-		maxP = max(maxP, MaxRingParallel(ring, target.DC))
-
-		// Update ranges and hosts
-		rangesCnt := 0
-		replicaSetCnt := 0
-		for _, rep := range ring.ReplicaTokens {
-			filtered := filterReplicaSet(rep.ReplicaSet, ring.HostDC, target)
-			if len(filtered) == 0 {
+		var tables []tablePlan
+		for _, t := range u.Tables {
+			ring, err := ringDescriber.DescribeRing(ctx, u.Keyspace, t)
+			if err != nil {
+				return nil, errors.Wrapf(err, "keyspace %s.%s: get ring description", u.Keyspace, t)
+			}
+			// Allow repairing single node cluster for better UX.
+			if len(status) > 1 && !ShouldRepairRing(ring, target.DC, target.Host) {
 				continue
 			}
 
-			replicaSetCnt++
-			allHosts.Add(filtered...)
+			// Update max parallel
+			maxP = max(maxP, MaxRingParallel(ring, target.DC))
 
-			for _, h := range filtered {
-				for _, t := range u.Tables {
+			// Update ranges and hosts
+			rangesCnt := 0
+			replicaSetCnt := 0
+			for _, rep := range ring.ReplicaTokens {
+				filtered := filterReplicaSet(rep.ReplicaSet, ring.HostDC, target)
+				if len(filtered) == 0 {
+					continue
+				}
+
+				replicaSetCnt++
+				allHosts.Add(filtered...)
+
+				for _, h := range filtered {
 					ranges[newHostKsTable(h, u.Keyspace, t)] += len(rep.Ranges)
 				}
+				rangesCnt += len(rep.Ranges)
 			}
-			rangesCnt += len(rep.Ranges)
-		}
 
-		// Update table plan
-		var tables []tablePlan
-		for _, t := range u.Tables {
 			tables = append(tables, tablePlan{
 				Table:         t,
 				ReplicaSetCnt: replicaSetCnt,
@@ -106,10 +104,12 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 			})
 		}
 
-		ks = append(ks, keyspacePlan{
-			Keyspace: u.Keyspace,
-			Tables:   tables,
-		})
+		if len(tables) > 0 {
+			ks = append(ks, keyspacePlan{
+				Keyspace: u.Keyspace,
+				Tables:   tables,
+			})
+		}
 	}
 
 	if len(ks) == 0 {
