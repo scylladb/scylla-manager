@@ -53,7 +53,7 @@ func (c *rowLevelRepairController) TryBlock(replicaSet []string) Intensity {
 func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
 	// DENY if any node is already participating in repair job
 	for _, r := range replicaSet {
-		if c.nodeJobs[r] > 0 {
+		if c.nodeJobs[r] > 2 {
 			return false
 		}
 	}

@@ -320,7 +320,7 @@ func MaxRingParallel(ring scyllaclient.Ring, dcs []string) int {
 				repaired += cnt
 			}
 		}
-		return repaired / ring.RF
+		return (repaired / ring.RF) * 3
 	case scyllaclient.NetworkTopologyStrategy:
 		minDC := math.MaxInt / 2
 		for dc, rf := range ring.DCrf {
@@ -331,7 +331,7 @@ func MaxRingParallel(ring scyllaclient.Ring, dcs []string) int {
 		if minDC == math.MaxInt/2 {
 			minDC = 1
 		}
-		return minDC
+		return minDC * 3
 	default:
 		return 1
 	}
