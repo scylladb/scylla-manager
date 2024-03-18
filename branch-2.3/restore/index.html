@@ -1,0 +1,877 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Restore | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/restore/"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b76e3c8a" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=ab597678" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            <script src="../_static/documentation_options.js?v=1f29e9d3"></script>
+        
+            <script src="../_static/doctools.js?v=888ff710"></script>
+        
+            <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        
+            <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        
+            <script src="../_static/copybutton.js?v=f281be69"></script>
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+        <!-- Font Awesome -->
+        <script src="https://kit.fontawesome.com/b1870adf6a.js" crossorigin="anonymous"></script>
+        <!-- End Font Awesome -->
+    </head>
+
+    <body>
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        
+        <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+        <a class="promo-banner__button button button--reverse" href="#"
+           target="_blank" rel="noopener noreferrer">Learn more</a>
+        <button class="promo-banner__close">
+            <i class="scylla-icon scylla-icon--close"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/logo-docs.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Server
+                    <i class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://opensource.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--about-us"></i>
+                            ScyllaDB Open Source
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://enterprise.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--enterprise"></i>ScyllaDB Enterprise
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://scylla.docs.scylladb.com/stable/alternator/alternator.html">
+                            <i class="scylla-icon scylla-icon--alternator"></i>
+                            ScyllaDB Alternator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="https://docs.scylladb.com/scylla-cloud/" class="scylla-dropdown__title">Cloud</a>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i
+                    class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i
+                    class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/using-scylla/drivers/cql-drivers/">
+                            <i class="scylla-icon scylla-icon--nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/using-scylla/drivers/dynamo-drivers/">
+                            <i class="scylla-icon scylla-icon--alternator"></i>DynamoDB Drivers
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://www.scylladb.com/download/" class="button">Download</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+    </div>
+    <div class="side-nav-toggle" data-toggle="side-nav">
+    <div class="side-nav-toggle__button">
+        <img src="../_static/img/menu.svg" alt="Menu" />
+    </div>
+</div>
+</header>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for a previous version of Scylla Manager.
+            
+            <a href="../../stable/restore/index.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="fas fa-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+    <span class="bread__item bread__item--last">Restore</span>
+</div>
+                    </div>
+                
+                <section id="restore">
+<h1>Restore<a class="headerlink" href="#restore" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#identify-relevant-snapshot" id="id1">Identify relevant snapshot</a></p></li>
+<li><p><a class="reference internal" href="#restore-schema" id="id2">Restore schema</a></p></li>
+<li><p><a class="reference internal" href="#prepare-to-restore" id="id3">Prepare to restore</a></p></li>
+<li><p><a class="reference internal" href="#upload-data-to-scylla" id="id4">Upload data to Scylla</a></p>
+<ul>
+<li><p><a class="reference internal" href="#to-the-same-cluster" id="id5">To the same cluster</a></p></li>
+<li><p><a class="reference internal" href="#to-a-new-cluster" id="id6">To a new cluster</a></p></li>
+</ul>
+</li>
+</ul>
+</nav>
+<p>Restoring data from Scylla Manager backup is not yet automated.
+This document provides information on how to manually restore data from Scylla Manager backups.
+There are two restore scenarios covered here:</p>
+<ol class="arabic simple">
+<li><p>Backup to the same cluster.</p></li>
+<li><p>Backup to a different cluster using sstableloader</p></li>
+</ol>
+<p><strong>Prerequisites</strong></p>
+<ol class="arabic simple">
+<li><p>Destination Scylla cluster is up and running.</p></li>
+<li><p>Scylla Manager Agent is installed on all nodes of the cluster.</p></li>
+<li><p>Backup location is accessible from all the nodes.</p></li>
+<li><p>The cluster is added to Scylla Manager.</p></li>
+</ol>
+<p>You need a working Scylla Manager setup to list backups.
+If you don’t have it installed please follow official instructions on <a class="reference internal" href="../install-scylla-manager.html#install-manager"><span class="std std-ref">Scylla Manager Installation</span></a> first.</p>
+<section id="identify-relevant-snapshot">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Identify relevant snapshot</a><a class="headerlink" href="#identify-relevant-snapshot" title="Link to this heading">¶</a></h2>
+<p>List all available backups and choose the one you would like to restore.
+Run: <a class="reference external" href="../sctool/#backup-list">sctool backup list</a>, to lists all backups for the cluster.
+This command will list backups only created with provided cluster (<code class="docutils literal notranslate"><span class="pre">-c</span> <span class="pre">new-cluster</span></code>).
+If you don’t have UUID of the old cluster you can use <code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code> flag to list backups from all clusters that are available in the backup location.</p>
+<p>Example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup list -c new-cluster --all-clusters -L s3:backup-bucket
+Cluster: 7313fda0-6ebd-4513-8af0-67ac8e30077b
+
+Snapshots:
+- sm_20200513131519UTC (563.07GiB)
+- sm_20200513080459UTC (563.07GiB)
+- sm_20200513072744UTC (563.07GiB)
+- sm_20200513071719UTC (563.07GiB)
+- sm_20200513070907UTC (563.07GiB)
+- sm_20200513065522UTC (563.07GiB)
+- sm_20200513063046UTC (563.16GiB)
+- sm_20200513060818UTC (534.00GiB)
+Keyspaces:
+- system_auth (4 tables)
+- system_distributed (2 tables)
+- system_schema (12 tables)
+- system_traces (5 tables)
+- user_data (100 tables)
+</pre></div>
+</div>
+<p>In this example we have eight different snapshots to choose from.
+Snapshot tags encode date they were taken in UTC time zone.
+For example, <code class="docutils literal notranslate"><span class="pre">sm_20200513131519UTC</span></code> was taken on 13/05/2020 at 13:15 and 19 seconds UTC.
+The data source for the listing is the cluster backup locations.
+Listing may take some time depending on how big the cluster is and how many backups there are.</p>
+</section>
+<section id="restore-schema">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Restore schema</a><a class="headerlink" href="#restore-schema" title="Link to this heading">¶</a></h2>
+<p>The easiest approach to restoring schema is to restore the <code class="docutils literal notranslate"><span class="pre">system_schema</span></code> keyspace together with the user data.
+In that case there is nothing to do and you can move on to the next section.
+In some rare cases, like restoring only single table, you may want to extract elements of the schema, recreate it manually, and only then restore data.
+To do that there are two options:</p>
+<ul class="simple">
+<li><p>If cluster was <a class="reference internal" href="../add-a-cluster.html#add-cluster"><span class="std std-ref">added with CQL credentials</span></a> Scylla Manager backups the schema in CQL text format and you may <a class="reference internal" href="extract-schema-from-metadata.html"><span class="doc">Extract schema from metadata</span></a>.</p></li>
+<li><p>Otherwise you must <a class="reference internal" href="extract-schema-from-system-schema-keyspace.html"><span class="doc">Extract schema from system_schema keyspace</span></a>.</p></li>
+</ul>
+<p>When you have the schema as a CQL file, recreate the schema from one of the nodes.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cqlsh -e &quot;SOURCE &#39;/path_to_schema/&lt;schema_name.cql&gt;&#39;&quot;
+</pre></div>
+</div>
+</section>
+<section id="prepare-to-restore">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Prepare to restore</a><a class="headerlink" href="#prepare-to-restore" title="Link to this heading">¶</a></h2>
+<p>Repeat the following steps for each node in the cluster.</p>
+<p><strong>Procedure</strong></p>
+<ol class="arabic">
+<li><p>Run the <code class="docutils literal notranslate"><span class="pre">nodetool</span> <span class="pre">drain</span></code> command to ensure the data is flushed to the SSTables.</p></li>
+<li><p>Shut down the node:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo systemctl stop scylla-server
+</pre></div>
+</div>
+</li>
+<li><p>Delete all the files in the commitlog. Deleting the commitlog will prevent the newer insert from overriding the restored data.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo rm -rf /var/lib/scylla/commitlog/*
+</pre></div>
+</div>
+</li>
+<li><p>Delete all the files in the keyspace_name_table. Note that by default the snapshots are created under Scylla data directory.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>/var/lib/scylla/data/keyspace_name/table_name-UUID/
+</pre></div>
+</div>
+<p>Make sure NOT to delete the existing snapshots in the process.</p>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo ll /var/lib/scylla/data/mykeyspace/team_players-6e856600017f11e790f4000000000000
+
+-rw-r--r-- 1 scylla   scylla     66 Mar  5 09:19 nba-team_players-ka-1-CompressionInfo.db
+-rw-r--r-- 1 scylla   scylla    669 Mar  5 09:19 nba-team_players-ka-1-Data.db
+-rw-r--r-- 4 scylla   scylla     10 Mar  5 08:46 nba-team_players-ka-1-Digest.sha1
+-rw-r--r-- 1 scylla   scylla     24 Mar  5 09:19 nba-team_players-ka-1-Filter.db
+-rw-r--r-- 1 scylla   scylla    218 Mar  5 09:19 nba-team_players-ka-1-Index.db
+-rw-r--r-- 1 scylla   scylla     38 Mar  5 09:19 nba-team_players-ka-1-Scylla.db
+-rw-r--r-- 1 scylla   scylla   4446 Mar  5 09:19 nba-team_players-ka-1-Statistics.db
+-rw-r--r-- 1 scylla   scylla     89 Mar  5 09:19 nba-team_players-ka-1-Summary.db
+-rw-r--r-- 4 scylla   scylla    101 Mar  5 08:46 nba-team_players-ka-1-TOC.txt
+drwx------ 5 scylla   scylla     69 Mar  6 08:14 snapshots
+drwx------ 2 scylla   scylla      6 Mar  5 08:40 upload
+
+sudo rm -f  /var/lib/scylla/data/mykeyspace/team_players-6e856600017f11e790f4000000000000/*
+
+rm: cannot remove ‘/var/lib/scylla/data/nba/team_roster-c019f8108fda11e8b16a000000000001/snapshots’: Is a directory
+rm: cannot remove ‘/var/lib/scylla/data/nba/team_roster-c019f8108fda11e8b16a000000000001/upload’: Is a directory
+
+sudo ll /var/lib/scylla/data/mykeyspace/team_players-6e856600017f11e790f4000000000000/
+
+drwx------ 5 scylla   scylla     69 Mar  6 08:14 snapshots
+drwx------ 2 scylla   scylla      6 Mar  5 08:40 upload
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="upload-data-to-scylla">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Upload data to Scylla</a><a class="headerlink" href="#upload-data-to-scylla" title="Link to this heading">¶</a></h2>
+<section id="to-the-same-cluster">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">To the same cluster</a><a class="headerlink" href="#to-the-same-cluster" title="Link to this heading">¶</a></h3>
+<section id="list-the-backup-files">
+<h4>List the backup files<a class="headerlink" href="#list-the-backup-files" title="Link to this heading">¶</a></h4>
+<p>List the backup files needed on each node and save the list to a file.</p>
+<p>If you are listing old backups from the new cluster use <code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code> parameter.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup files -c cluster1 --snapshot-tag sm_20200513131519UTC \
+--with-version \
+--location s3:backup-bucket \
+ &gt; backup_files.out
+</pre></div>
+</div>
+<p>Snapshot information is now stored in <code class="docutils literal notranslate"><span class="pre">backup_files.out</span></code> file.
+Each line of the <code class="docutils literal notranslate"><span class="pre">backup_files.out</span></code> file contains mapping between path to the SSTable file in the backup bucket and it’s mapping to keyspace/table.
+If Scylla Manager is configured to store database schemas with the backups then first line in the file listing is path to the schema archive.</p>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>s3://backup-bucket/backup/sst/cluster/7313fda0-6ebd-4513-8af0-67ac8e30077b/dc/AWS_EU_CENTRAL_1/node/92de78b1-6c77-4788-b513-2fff5a178fe5/keyspace/user_data/table/data_65/a2667040944811eaaf9d000000000000/la-72-big-Index.db         user_data/data_65-a2667040944811eaaf9d000000000000
+</pre></div>
+</div>
+<p>Path contains metadata, for example:</p>
+<ul class="simple">
+<li><p>Cluster ID - 7313fda0-6ebd-4513-8af0-67ac8e30077b</p></li>
+<li><p>Data Center - AWS_EU_CENTRAL_1</p></li>
+<li><p>Directory - /var/lib/scylla/data/user_data/data_65-a2667040944811eaaf9d000000000000/</p></li>
+<li><p>Keyspace - user_data</p></li>
+</ul>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup files -c prod-cluster --snapshot-tag sm_20191210145027UTC \
+--with-version &gt; backup_files.out
+</pre></div>
+</div>
+<p>Each line describes a backed-up file and where it should be downloaded. For example</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>s3://backups/backup/sst/cluster/1d781354-9f9f-47cc-ad45-f8f890569656/dc/dc1/node/ece658c2-e587-49a5-9fea-7b0992e19607/keyspace/auth_service/table/roles/5bc52802de2535edaeab188eecebb090/mc-2-big-CompressionInfo.db      auth_service/roles-5bc52802de2535edaeab188eecebb090
+</pre></div>
+</div>
+<p>This file has to be copied to:</p>
+<ul class="simple">
+<li><p>Cluster - 1d781354-9f9f-47cc-ad45-f8f890569656</p></li>
+<li><p>Data Center - dc1</p></li>
+<li><p>Node - ece658c2-e587-49a5-9fea-7b0992e19607</p></li>
+<li><p>Directory - /var/lib/scylla/data/auth_service/roles-5bc52802de2535edaeab188eecebb090/upload</p></li>
+</ul>
+</section>
+<section id="download-the-backup-files">
+<h4>Download the backup files<a class="headerlink" href="#download-the-backup-files" title="Link to this heading">¶</a></h4>
+<p>This step must be executed on <strong>each node</strong> in the cluster.</p>
+<ol class="arabic">
+<li><p>Copy <code class="docutils literal notranslate"><span class="pre">backup_files.out</span></code> file as <code class="docutils literal notranslate"><span class="pre">/tmp/backup_files.out</span></code> on the node.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">nodetool</span> <span class="pre">status</span></code> to get to know the node ID.</p></li>
+<li><p>Download data into table directories.
+As the file is kept in S3 so we can use S3 CLI to download it (this step may be different with other storage providers).
+Grep can be used to filter specific files to restore.
+With node UUID we can filter files only for a single node.
+With keyspace name we can filter files only for a single keyspace.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cd /var/lib/scylla/data
+
+# Filter only files for a single node.
+grep ece658c2-e587-49a5-9fea-7b0992e19607 /tmp/backup_files.out | xargs -n2 aws s3 cp
+</pre></div>
+</div>
+</li>
+<li><p>Make sure that all files are owned by the scylla user and group.
+We must ensure that permissions are right after copy:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo chown -R scylla:scylla /var/lib/scylla/data/user_data/
+</pre></div>
+</div>
+</li>
+<li><p>Start the Scylla nodes:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo systemctl start scylla-server
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="repair">
+<h4>Repair<a class="headerlink" href="#repair" title="Link to this heading">¶</a></h4>
+<p>After performing the above on all nodes, repair the cluster with Scylla Manager Repair.
+This makes sure that the data is consistent on all nodes and between each node.</p>
+</section>
+</section>
+<section id="to-a-new-cluster">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">To a new cluster</a><a class="headerlink" href="#to-a-new-cluster" title="Link to this heading">¶</a></h3>
+<p>In order to restore backup to cluster which has a different topology, you have to use an external tool called <a class="reference external" href="https://docs.scylladb.com/operating-scylla/procedures/cassandra_to_scylla_migration_process/">sstableloader</a>.
+This procedure is much slower than restoring to the same topology cluster.</p>
+<p><strong>Procedure</strong></p>
+<ol class="arabic">
+<li><p>Start up the nodes if they are not running after schema restore:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo systemctl start scylla-server
+</pre></div>
+</div>
+</li>
+<li><p>List all the backup files and save the list to a file.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code> if you are restoring from the cluster that no longer exists.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup files -c cluster1 --snapshot-tag sm_20200513131519UTC --location s3:backup-bucket &gt; backup_files.out
+</pre></div>
+</div>
+</li>
+<li><p>Copy <code class="docutils literal notranslate"><span class="pre">backup_files.out</span></code> file as <code class="docutils literal notranslate"><span class="pre">/tmp/backup_files.out</span></code> on the host where <code class="docutils literal notranslate"><span class="pre">sstableloader</span></code> is installed.</p></li>
+<li><p>Download all files created during backup into temporary location:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>mkdir snapshot
+cd snapshot
+# Create temporary directory structure.
+cat /tmp/backup_files.out | awk &#39;{print $2}&#39; | xargs mkdir -p
+# Download snapshot files.
+cat /tmp/backup_files.out | xargs -n2 aws s3 cp
+</pre></div>
+</div>
+</li>
+<li><p>Execute following command for each table by providing list of node IP addresses and path to sstable files on node that has sstableloader installed:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># Loads table user_data.data_0 into four node cluster.
+sstableloader -d &#39;35.158.14.221,18.157.98.72,3.122.196.197,3.126.2.205&#39; ./user_data/data_0 --username scylla --password &lt;password&gt;
+</pre></div>
+</div>
+</li>
+</ol>
+<p>After tables are restored verify validity of your data by running queries on your database.</p>
+</section>
+</section>
+</section>
+
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon scylla-icon scylla-icon--thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon scylla-icon scylla-icon--thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue in page Restore&&body=I%20would%20like%20to%20report%20an%20issue%20in%20page%20https://manager.docs.scylladb.com/branch-2.3/restore/index%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="../backup/examples.html">
+                <button class="navigation__button">
+                    <i class="scylla-icon scylla-icon--chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Examples
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="extract-schema-from-metadata.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Extract schema from metadata
+                </div>
+                <button class="navigation__button">
+                    <i class="scylla-icon scylla-icon--chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="scylla-icon scylla-icon--chevron-left"></i>
+    </button>
+    <div class="side-nav-content">
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__title">
+            Scylla Manager
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                2.3
+            
+            <i class="chevron scylla-icon scylla-icon--chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="../../master/restore/index.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/restore/index.html">3.2</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.1/restore/index.html">3.1</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.0/restore/index.html">3.0</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.6/restore/index.html">2.6</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.5/restore/index.html">2.5</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.4/restore/index.html">2.4</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="index.html">2.3</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.2/restore/index.html">2.2</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install Scylla Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install Scylla Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../backup/index.html">Backup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-aws-s3.html">Setup AWS S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">Restore</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="extract-schema-from-metadata.html">Extract schema from metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extract-schema-from-system-schema-keyspace.html">Extract schema from system_schema keyspace</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sctool/index.html">CLI sctool</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/global-flags-and-variables.html">Global flags and variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/backup.html">Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/task.html">Task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">Scylla Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../older-versions.html">Older Versions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+            
+                <div class="sidebar-right large-order-3">
+                    <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue in page Restore&&body=I%20would%20like%20to%20report%20an%20issue%20in%20page%20https://manager.docs.scylladb.com/branch-2.3/restore/index%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon fab fa-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/restore/index.rst"
+                   target="_blank">
+                    <i class="icon fa fa-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Restore</a><ul>
+<li><a class="reference internal" href="#identify-relevant-snapshot">Identify relevant snapshot</a></li>
+<li><a class="reference internal" href="#restore-schema">Restore schema</a></li>
+<li><a class="reference internal" href="#prepare-to-restore">Prepare to restore</a></li>
+<li><a class="reference internal" href="#upload-data-to-scylla">Upload data to Scylla</a><ul>
+<li><a class="reference internal" href="#to-the-same-cluster">To the same cluster</a><ul>
+<li><a class="reference internal" href="#list-the-backup-files">List the backup files</a></li>
+<li><a class="reference internal" href="#download-the-backup-files">Download the backup files</a></li>
+<li><a class="reference internal" href="#repair">Repair</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#to-a-new-cluster">To a new cluster</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                </div>
+            
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com">
+                <img src="../_static/img/logo-scylla-horizontal-RGB.svg" alt="Logo" />
+            </a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/" target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="https://groups.google.com/g/scylladb-users" target="_blank">
+                    <span data-tooltip tabindex="1" title="User mailing list" data-position="bottom">
+                        <img src="../_static/img/icons/icon-mail-list.svg" alt="Mail List Icon" />
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <img src="../_static/img/icons/icon-slack.svg" alt="Slack Icon" />
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <img src="../_static/img/icons/icon-forum.svg" alt="Forum Icon" />
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__copyright">
+                    
+                        
+                            &#169; 2024, ScyllaDB. All rights reserved.
+                        
+                    
+                </div>
+            
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 18 March 2024.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a> &amp;
+                <a href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.6.6</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>

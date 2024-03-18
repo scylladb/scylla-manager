@@ -1,0 +1,1 @@
+.. warning:: Restoring schema into a cluster with ScyllaDB **5.4.X** or **2024.1.X** with ``consistent_cluster_management: true`` isn't supported. Please see the following :ref:`workaround <restore-schema-workaround>`.
