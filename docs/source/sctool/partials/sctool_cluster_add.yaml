@@ -10,6 +10,14 @@ options:
 - name: auth-token
   usage: |
     The authentication `token` you identified in '/etc/scylla-manager-agent/scylla-manager-agent.yaml'.
+- name: force-non-ssl-session-port
+  default_value: "false"
+  usage: |
+    Forces Scylla Manager to always use the non-SSL port for TLS-enabled cluster CQL sessions.
+- name: force-tls-disabled
+  default_value: "false"
+  usage: |
+    Forces Scylla Manager to always disable TLS for the cluster's CQL session, even if TLS is enabled in scylla.yaml.
 - name: help
   shorthand: h
   default_value: "false"

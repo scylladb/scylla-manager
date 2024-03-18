@@ -19,6 +19,14 @@ options:
   default_value: "false"
   usage: |
     Deletes SSL user certificate, added with --ssl-user-cert-file flag.
+- name: force-non-ssl-session-port
+  default_value: "false"
+  usage: |
+    Forces Scylla Manager to always use the non-SSL port for TLS-enabled cluster CQL sessions.
+- name: force-tls-disabled
+  default_value: "false"
+  usage: |
+    Forces Scylla Manager to always disable TLS for the cluster's CQL session, even if TLS is enabled in scylla.yaml.
 - name: help
   shorthand: h
   default_value: "false"

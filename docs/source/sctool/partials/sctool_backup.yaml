@@ -2,7 +2,8 @@ name: sctool backup
 synopsis: Schedule a backup (ad-hoc or scheduled)
 description: |
   This command allows you to schedule or run ad-hoc cluster backup.
-usage: sctool backup --cluster <id|name> --location [<dc>:]<provider>:<bucket> [--keyspace <glob>] [flags]
+usage: sctool backup --cluster <id|name> --location [<dc>:]<provider>:<bucket> [--keyspace
+  <glob>] [flags]
 options:
 - name: cluster
   shorthand: c
