@@ -67,7 +67,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		"table", j.table,
 		"master", j.master,
 		"hosts", j.replicaSet,
-		"ranges", j.tryOptimizeRanges(),
+		"ranges", len(j.tryOptimizeRanges()),
 		"job_id", jobID,
 	)
 

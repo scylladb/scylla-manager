@@ -44,9 +44,10 @@ func (c *rowLevelRepairController) TryBlock(replicaSet []string) Intensity {
 	c.block(replicaSet)
 
 	i := c.intensity.Intensity()
-	if maxI := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || maxI < i {
-		i = maxI
-	}
+	// TODO: tmp change made to experiment with using intensity over max
+	//if maxI := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || maxI < i {
+	//	i = maxI
+	//}
 	return i
 }
 
