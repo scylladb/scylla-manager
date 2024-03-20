@@ -12467,6 +12467,39 @@
         "security": []
       }
     },
+    "/storage_service/tablets/balancing": {
+      "post": {
+        "description": "Controls tablet load-balancing",
+        "summary": "tablet_balancing_enable",
+        "operationId": "StorageServiceTabletsBalancingPost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "enabled",
+            "in": "query",
+            "required": true,
+            "type": "boolean",
+            "description": "When set to false, tablet load balancing is disabled"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/stream_manager/": {
       "get": {
         "description": "Returns the current state of all ongoing streams.",
