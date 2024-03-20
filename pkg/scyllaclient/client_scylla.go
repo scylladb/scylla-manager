@@ -1049,6 +1049,15 @@ func (c *Client) ViewBuildStatus(ctx context.Context, keyspace, view string) (Vi
 	return minStatus, nil
 }
 
+// ControlTabletLoadBalancing disables or enables tablet load balancing in cluster.
+func (c *Client) ControlTabletLoadBalancing(ctx context.Context, enabled bool) error {
+	_, err := c.scyllaOps.StorageServiceTabletsBalancingPost(&operations.StorageServiceTabletsBalancingPostParams{
+		Context: ctx,
+		Enabled: enabled,
+	})
+	return err
+}
+
 // ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
 // ToCanonicalIP("192.168.0.1") -> "192.168.0.1"
 // ToCanonicalIP("100:200:0:0:0:0:0:1") -> "100:200::1".
