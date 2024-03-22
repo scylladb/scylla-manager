@@ -149,13 +149,16 @@ var downloadFilesCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrap(err, "lookup manifest")
 		}
+		if err := m.LoadIndex(); err != nil {
+			return errors.Wrap(err, "load index")
+		}
 
 		// Handle action flags that work with the manifest
 		switch {
 		case a.dumpManifest:
 			enc := json.NewEncoder(w)
 			enc.SetIndent("", "  ")
-			return enc.Encode(m.ManifestContent)
+			return enc.Encode(m.ManifestContentWithIndex)
 		case a.dumpTokens:
 			for i := range m.Tokens {
 				if i > 0 {
