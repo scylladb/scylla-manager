@@ -21,7 +21,7 @@ type schedulerListener struct {
 
 func newSchedulerListener(find func(key Key) (taskInfo, bool), logger log.Logger) schedulerListener {
 	return schedulerListener{
-		Listener: scheduler.NopListener[Key](),
+		Listener: scheduler.ErrorLogListener[Key](logger),
 		find:     find,
 		logger:   logger,
 	}
