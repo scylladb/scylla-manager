@@ -413,9 +413,9 @@ func (s *Scheduler[K]) onRunEnd(ctx *RunContext[K]) {
 	case err == nil:
 		s.listener.OnRunSuccess(ctx)
 	case errors.Is(err, context.Canceled):
-		s.listener.OnRunStop(ctx)
+		s.listener.OnRunStop(ctx, err)
 	case errors.Is(err, context.DeadlineExceeded):
-		s.listener.OnRunWindowEnd(ctx)
+		s.listener.OnRunWindowEnd(ctx, err)
 	default:
 		s.listener.OnRunError(ctx, err)
 	}

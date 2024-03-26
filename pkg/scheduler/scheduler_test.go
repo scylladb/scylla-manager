@@ -196,11 +196,11 @@ func (l logListener) OnRunSuccess(ctx *testRunContext) {
 	l.logger.Info(ctx, "OnRunSuccess", "key", ctx.Key, "retry", ctx.Retry)
 }
 
-func (l logListener) OnRunStop(ctx *testRunContext) {
+func (l logListener) OnRunStop(ctx *testRunContext, err error) {
 	l.logger.Info(ctx, "OnRunStop", "key", ctx.Key, "retry", ctx.Retry)
 }
 
-func (l logListener) OnRunWindowEnd(ctx *testRunContext) {
+func (l logListener) OnRunWindowEnd(ctx *testRunContext, err error) {
 	l.logger.Info(ctx, "OnRunWindowEnd", "key", ctx.Key, "retry", ctx.Retry)
 }
 
