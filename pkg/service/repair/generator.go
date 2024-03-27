@@ -240,6 +240,12 @@ func (tg *tableGenerator) newJob() (job, bool) {
 }
 
 func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, cnt Intensity) []scyllaclient.TokenRange {
+	// TODO: This is an experimental changed requested in https://github.com/scylladb/scylla-enterprise/issues/4006#issuecomment-1999914876
+	// Set intensity to max of:
+	// - 10 * max_ranges_in_parallel
+	// - 10% of replica set ranges
+	cnt = max(10*cnt, NewIntensity(len(allRanges)/10))
+
 	if tg.Optimize || tg.Deleted {
 		cnt = NewIntensity(len(allRanges))
 	}
