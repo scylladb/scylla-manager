@@ -578,6 +578,11 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 	if err != nil {
 		return session, errors.Wrap(err, "get client")
 	}
+	defer func() {
+		if err := client.Close(); err != nil {
+			s.logger.Error(ctx, "Couldn't close scylla client", "error", err)
+		}
+	}()
 
 	ni, err := client.AnyNodeInfo(ctx)
 	if err != nil {
