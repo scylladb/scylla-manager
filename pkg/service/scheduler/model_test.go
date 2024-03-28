@@ -66,12 +66,12 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		data         []byte
-		expectedSpec cronSpecification
+		expectedSpec CronSpecification
 	}{
 		{
 			name: "(3.2.6 backward compatibility) unmarshal spec",
 			data: []byte("@every 15s"),
-			expectedSpec: cronSpecification{
+			expectedSpec: CronSpecification{
 				Spec:      "@every 15s",
 				StartDate: time.Time{},
 			},
@@ -79,7 +79,7 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 		{
 			name: "unmarshal spec full struct zero time",
 			data: []byte(`{"spec": "@every 15s", "start_date": "0001-01-01T00:00:00Z"}`),
-			expectedSpec: cronSpecification{
+			expectedSpec: CronSpecification{
 				Spec:      "@every 15s",
 				StartDate: time.Time{},
 			},
@@ -87,7 +87,7 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 		{
 			name: "unmarshal spec full struct non-zero time",
 			data: []byte(`{"spec": "@every 15s", "start_date": "` + nonZeroTimeString + `"}`),
-			expectedSpec: cronSpecification{
+			expectedSpec: CronSpecification{
 				Spec:      "@every 15s",
 				StartDate: nonZeroTime,
 			},
