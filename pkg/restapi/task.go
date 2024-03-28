@@ -151,6 +151,9 @@ func (h *taskHandler) parseTask(r *http.Request) (*scheduler.Task, error) {
 	if err := render.DecodeJSON(r.Body, &t); err != nil {
 		return nil, err
 	}
+	if !t.Sched.StartDate.IsZero() && t.Sched.Cron.Spec != "" {
+		t.Sched.Cron.StartDate = t.Sched.StartDate
+	}
 	t.ClusterID = mustClusterIDFromCtx(r)
 	return &t, nil
 }

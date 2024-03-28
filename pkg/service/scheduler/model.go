@@ -70,11 +70,11 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 // Cron implements a trigger based on cron expression.
 // It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every <time.Duration>.
 type Cron struct {
-	cronSpecification
+	CronSpecification
 	inner scheduler.Trigger
 }
 
-type cronSpecification struct {
+type CronSpecification struct {
 	Spec      string    `json:"spec"`
 	StartDate time.Time `json:"start_date"`
 }
@@ -86,7 +86,7 @@ func NewCron(spec string, startDate time.Time) (Cron, error) {
 	}
 
 	return Cron{
-		cronSpecification: cronSpecification{
+		CronSpecification: CronSpecification{
 			Spec:      spec,
 			StartDate: startDate,
 		},
@@ -120,9 +120,9 @@ func (c Cron) Next(now time.Time) time.Time {
 }
 
 func (c Cron) MarshalText() (text []byte, err error) {
-	bytes, err := json.Marshal(c.cronSpecification)
+	bytes, err := json.Marshal(c.CronSpecification)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot json marshal {%v}", c.cronSpecification)
+		return nil, errors.Wrapf(err, "cannot json marshal {%v}", c.CronSpecification)
 	}
 	return bytes, nil
 }
@@ -132,11 +132,11 @@ func (c *Cron) UnmarshalText(text []byte) error {
 		return nil
 	}
 
-	var cronSpec cronSpecification
+	var cronSpec CronSpecification
 	err := json.Unmarshal(text, &cronSpec)
 	if err != nil {
 		// fallback to the < 3.2.6 approach where cron was not coupled with start date
-		cronSpec = cronSpecification{
+		cronSpec = CronSpecification{
 			Spec: string(text),
 		}
 	}
