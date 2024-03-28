@@ -9616,6 +9616,13 @@
             "required": true,
             "type": "string",
             "description": "The keyspace to fetch information about"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The name of table to fetch information about"
           }
         ],
         "responses": {
@@ -10929,6 +10936,18 @@
             ],
             "type": "string",
             "description": "Which keyspaces to return"
+          },
+          {
+            "name": "replication",
+            "in": "query",
+            "required": false,
+            "enum": [
+              "all",
+              "vnodes",
+              "tablets"
+            ],
+            "type": "string",
+            "description": "Filter keyspaces for the replication used: vnodes or tablets (default: all)"
           }
         ],
         "responses": {
@@ -12436,6 +12455,39 @@
                 "$ref": "#/definitions/mapper"
               }
             },
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/storage_service/tablets/balancing": {
+      "post": {
+        "description": "Controls tablet load-balancing",
+        "summary": "tablet_balancing_enable",
+        "operationId": "StorageServiceTabletsBalancingPost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "enabled",
+            "in": "query",
+            "required": true,
+            "type": "boolean",
+            "description": "When set to false, tablet load balancing is disabled"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
             "headers": {}
           },
           "default": {

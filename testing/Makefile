@@ -12,7 +12,9 @@ CURRENT_GID  := $(shell id -g)
 
 SCYLLA_VERSION?=scylla:5.4.1
 IP_FAMILY?=IPV4
-RAFT_ENABLED?=true
+RAFT_SCHEMA?=true
+RAFT_TOPOLOGY?=false
+TABLETS?=false
 SKIP_GOSSIP?=false
 
 MINIO_ENDPOINT := https://192.168.200.99:9000
@@ -54,7 +56,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
-	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_ENABLED=$(RAFT_ENABLED)"
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and RAFT_TOPOLOGY=$(RAFT_TOPOLOGY) and TABLETS=$(TABLETS)"
 # Scylla bootstap proceedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
@@ -71,8 +73,17 @@ else
 	@cp scylla/config/scylla-second-cluster.yaml scylla/scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
-ifeq ($(RAFT_ENABLED),false)
+ifeq ($(RAFT_SCHEMA),false)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'consistent_cluster_management' false
+endif
+ifeq ($(RAFT_TOPOLOGY),true)
+	@$(YQ) write -i scylla/scylla.yaml 'experimental_features[+]' consistent-topology-changes
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'experimental_features[+]' consistent-topology-changes
+endif
+ifeq ($(TABLETS),true)
+	@$(YQ) write -i scylla/scylla.yaml 'experimental_features[+]' tablets
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'experimental_features[+]' tablets
 endif
 ifeq ($(SKIP_GOSSIP),true)
 	@$(YQ) write -i scylla/scylla.yaml 'skip_wait_for_gossip_to_settle' 0

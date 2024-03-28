@@ -4,12 +4,31 @@ package backup
 
 import (
 	"context"
+	stdErrors "errors"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
+	snapshotTabletKs := false
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, w.Client)
+	for _, u := range w.Units {
+		snapshotTabletKs = snapshotTabletKs || ringDescriber.IsTabletKeyspace(u.Keyspace)
+	}
+	// Disable tablet migration for the snapshot stage.
+	// Without that it could be possible that some tablet "escapes" being
+	// a part of any snapshot by migrating from not yet snapshot-ed host to already snapshot-ed one.
+	if snapshotTabletKs {
+		defer func() {
+			err = stdErrors.Join(err, w.Client.ControlTabletLoadBalancing(context.Background(), true))
+		}()
+		if err := w.Client.ControlTabletLoadBalancing(ctx, false); err != nil {
+			return errors.Wrapf(err, "disable tablet load balancing")
+		}
+	}
+
 	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Taking snapshots on host", "host", h.IP)
 		err := w.snapshotHost(ctx, h)

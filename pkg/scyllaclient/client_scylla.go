@@ -21,14 +21,13 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
-	"go.uber.org/multierr"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
+	"go.uber.org/multierr"
 )
 
 // ErrHostInvalidResponse is to indicate that one of the root-causes is the invalid response from scylla-server.
@@ -247,13 +246,31 @@ func (c *Client) hosts(ctx context.Context) ([]string, error) {
 	return v, nil
 }
 
-// Keyspaces return a list of all the keyspaces.
-func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
-	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{Context: ctx})
+// KeyspaceReplication describes keyspace replication type.
+type KeyspaceReplication = string
+
+// KeyspaceReplication enum.
+const (
+	ReplicationAll    = "all"
+	ReplicationVnode  = "vnodes"
+	ReplicationTablet = "tablets"
+)
+
+// ReplicationKeyspaces return a list of keyspaces with given replication.
+func (c *Client) ReplicationKeyspaces(ctx context.Context, replication KeyspaceReplication) ([]string, error) {
+	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{
+		Context:     ctx,
+		Replication: &replication,
+	})
 	if err != nil {
 		return nil, err
 	}
 	return resp.Payload, nil
+}
+
+// Keyspaces return a list of all the keyspaces.
+func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
+	return c.ReplicationKeyspaces(ctx, ReplicationAll)
 }
 
 // Tables returns a slice of table names in a given keyspace.
@@ -375,12 +392,25 @@ func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*pr
 	return prom.ParseText(resp.Body)
 }
 
-// DescribeRing returns a description of token range of a given keyspace.
-func (c *Client) DescribeRing(ctx context.Context, keyspace string) (Ring, error) {
-	resp, err := c.scyllaOps.StorageServiceDescribeRingByKeyspaceGet(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
+// DescribeTabletRing returns a description of token range of a given tablet table.
+func (c *Client) DescribeTabletRing(ctx context.Context, keyspace, table string) (Ring, error) {
+	return c.describeRing(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
+		Context:  ctx,
+		Keyspace: keyspace,
+		Table:    &table,
+	})
+}
+
+// DescribeVnodeRing returns a description of token range of a given vnode keyspace.
+func (c *Client) DescribeVnodeRing(ctx context.Context, keyspace string) (Ring, error) {
+	return c.describeRing(&operations.StorageServiceDescribeRingByKeyspaceGetParams{
 		Context:  ctx,
 		Keyspace: keyspace,
 	})
+}
+
+func (c *Client) describeRing(params *operations.StorageServiceDescribeRingByKeyspaceGetParams) (Ring, error) {
+	resp, err := c.scyllaOps.StorageServiceDescribeRingByKeyspaceGet(params)
 	if err != nil {
 		return Ring{}, err
 	}
@@ -1017,6 +1047,15 @@ func (c *Client) ViewBuildStatus(ctx context.Context, keyspace, view string) (Vi
 		}
 	}
 	return minStatus, nil
+}
+
+// ControlTabletLoadBalancing disables or enables tablet load balancing in cluster.
+func (c *Client) ControlTabletLoadBalancing(ctx context.Context, enabled bool) error {
+	_, err := c.scyllaOps.StorageServiceTabletsBalancingPost(&operations.StorageServiceTabletsBalancingPostParams{
+		Context: ctx,
+		Enabled: enabled,
+	})
+	return err
 }
 
 // ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
