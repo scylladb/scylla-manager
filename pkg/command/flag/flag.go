@@ -146,7 +146,6 @@ func (w Wrapper) interval(p *Duration) {
 
 func (w Wrapper) startDate(p *StartDate) {
 	w.fs.VarP(p, "start-date", "s", usage["start-date"])
-	w.MustMarkDeprecated("start-date", "use cron instead")
 }
 
 func (w Wrapper) numRetries(p *int, def int) {
