@@ -69,6 +69,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	if err != nil {
 		return errors.Wrap(err, "create worker")
 	}
+	defer w.clusterSession.Close()
 	w.setRunInfo(taskID, runID)
 
 	if err := w.initTarget(ctx, properties); err != nil {
