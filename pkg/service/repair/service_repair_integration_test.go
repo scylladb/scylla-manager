@@ -76,12 +76,12 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	}
 }
 
-func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session, clusterSession gocqlx.Session,
+func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session,
 	hrt *HackableRoundTripper, c *scyllaclient.Client, config repair.Config) *repairTestHelper {
 	t.Helper()
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
-	s := newTestServiceWithClusterSession(t, session, clusterSession, c, config, logger)
+	s := newTestServiceWithClusterSession(t, session, c, config, logger)
 
 	return &repairTestHelper{
 		CommonTestHelper: &CommonTestHelper{
@@ -405,7 +405,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s
 }
 
-func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clusterSession gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
 	t.Helper()
 
 	s, err := repair.NewService(
@@ -416,7 +416,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clus
 			return client, nil
 		},
 		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
-			return clusterSession, nil
+			return CreateSession(t, client), nil
 		},
 		logger.Named("repair"),
 	)
@@ -653,7 +653,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 	session := CreateScyllaManagerDBSession(t)
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, c)
-	h := newRepairWithClusterSessionTestHelper(t, session, clusterSession, hrt, c, repair.DefaultConfig())
+	h := newRepairWithClusterSessionTestHelper(t, session, hrt, c, repair.DefaultConfig())
 
 	// Add prefixes ruining lexicographic order
 	const (
@@ -867,7 +867,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, c)
 	cfg := repair.DefaultConfig()
 	cfg.GracefulStopTimeout = time.Second
-	h := newRepairWithClusterSessionTestHelper(t, session, clusterSession, hrt, c, cfg)
+	h := newRepairWithClusterSessionTestHelper(t, session, hrt, c, cfg)
 
 	const (
 		ks1 = "test_repair_1"
