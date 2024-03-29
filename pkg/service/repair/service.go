@@ -156,9 +156,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Sort plan
 	p.SizeSort()
 	p.PrioritySort(NewInternalTablePreference())
+
 	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
 		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
 	} else {
+		defer clusterSession.Close()
 		views, err := query.GetAllViews(clusterSession)
 		if err != nil {
 			return t, errors.Wrap(err, "get cluster views")

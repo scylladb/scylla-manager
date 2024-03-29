@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/logutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -141,11 +142,7 @@ func (s *Service) createClient(ctx context.Context, clusterID uuid.UUID) (*scyll
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := client.Close(); err != nil {
-			s.logger.Error(ctx, "Couldn't close scylla client", "error", err)
-		}
-	}()
+	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
 	for _, host := range config.Hosts {
 		knownHosts, err := s.discoverHosts(scyllaclient.ClientContextWithSelectedHost(ctx, host), client)
@@ -458,7 +455,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	if err != nil {
 		return errors.Wrap(err, "create client")
 	}
-	defer client.Close()
+	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
 	status, err := client.Status(ctx)
 	if err != nil {
@@ -544,6 +541,7 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 	if err != nil {
 		return nil, err
 	}
+	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
@@ -578,11 +576,7 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 	if err != nil {
 		return session, errors.Wrap(err, "get client")
 	}
-	defer func() {
-		if err := client.Close(); err != nil {
-			s.logger.Error(ctx, "Couldn't close scylla client", "error", err)
-		}
-	}()
+	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
 	ni, err := client.AnyNodeInfo(ctx)
 	if err != nil {
