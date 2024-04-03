@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	stdErrors "errors"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -39,12 +40,13 @@ type tableGenerator struct {
 
 // Tools shared between generator and tableGenerator.
 type generatorTools struct {
-	target    Target
-	ctl       controller
-	ms        masterSelector
-	submitter submitter[job, jobResult]
-	stop      *atomic.Bool
-	logger    log.Logger
+	target        Target
+	ctl           controller
+	ms            masterSelector
+	submitter     submitter[job, jobResult]
+	ringDescriber scyllaclient.RingDescriber
+	stop          *atomic.Bool
+	logger        log.Logger
 }
 
 type submitter[T, R any] interface {
@@ -89,12 +91,13 @@ func newGenerator(ctx context.Context, target Target, client *scyllaclient.Clien
 
 	return &generator{
 		generatorTools: generatorTools{
-			target:    target,
-			ctl:       newRowLevelRepairController(i),
-			ms:        newMasterSelector(shards, status.HostDC(), closestDC),
-			submitter: s,
-			stop:      &atomic.Bool{},
-			logger:    logger,
+			target:        target,
+			ctl:           newRowLevelRepairController(i),
+			ms:            newMasterSelector(shards, status.HostDC(), closestDC),
+			submitter:     s,
+			ringDescriber: scyllaclient.NewRingDescriber(ctx, client),
+			stop:          &atomic.Bool{},
+			logger:        logger,
 		},
 		target: target,
 		plan:   plan,
@@ -103,18 +106,29 @@ func newGenerator(ctx context.Context, target Target, client *scyllaclient.Clien
 	}, nil
 }
 
-func (g *generator) Run(ctx context.Context) error {
+func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start generator")
 	var genErr error
 
-	ringDescriber := scyllaclient.NewRingDescriber(ctx, g.client)
+	defer func() {
+		// Always leave tablet migration enabled after repair
+		err = stdErrors.Join(err, g.ringDescriber.ControlTabletLoadBalancing(context.Background(), true))
+	}()
+
 	for _, ksp := range g.plan.Keyspaces {
+		// Disable tablet migration when repairing tablet table.
+		// Without that it could be possible that some tablet "escapes" being
+		// a repaired by migrating from not yet repaired token range to already repaired one.
+		if err := g.ringDescriber.ControlTabletLoadBalancing(ctx, g.ringDescriber.IsTabletKeyspace(ksp.Keyspace)); err != nil {
+			return errors.Wrapf(err, "control tablet load balancing")
+		}
+
 		for _, tp := range ksp.Tables {
 			if !g.shouldGenerate() {
 				break
 			}
 
-			ring, err := ringDescriber.DescribeRing(ctx, ksp.Keyspace, tp.Table)
+			ring, err := g.ringDescriber.DescribeRing(ctx, ksp.Keyspace, tp.Table)
 			if err != nil {
 				return errors.Wrap(err, "describe ring")
 			}
@@ -140,9 +154,14 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 			todoRanges[r] = struct{}{}
 		}
 	}
-	done := g.pm.GetCompletedRanges(keyspace, tp.Table)
-	for _, r := range done {
-		delete(todoRanges, r)
+
+	done, allRangesCnt := g.pm.GetCompletedRanges(keyspace, tp.Table)
+	// Always repair unfinished tablet table from scratch as
+	// tablet load balancing is enabled when repair is interrupted.
+	if !g.ringDescriber.IsTabletKeyspace(keyspace) || len(done) == allRangesCnt {
+		for _, r := range done {
+			delete(todoRanges, r)
+		}
 	}
 
 	tg := &tableGenerator{
@@ -163,6 +182,11 @@ func (g *generator) shouldGenerate() bool {
 }
 
 func (tg *tableGenerator) Run(ctx context.Context) error {
+	if len(tg.TodoRanges) == 0 {
+		tg.logger.Info(ctx, "All ranges are already repaired")
+		return nil
+	}
+
 	tg.logger.Info(ctx, "Start table generator")
 	tg.generateJobs()
 	for !tg.shouldExit() {
