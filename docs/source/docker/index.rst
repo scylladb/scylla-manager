@@ -13,7 +13,7 @@ Note that `Scylla Kubernetes Operator <https://github.com/scylladb/scylla-operat
 
 **Prerequisites**
 
-Docker and docker-compose commands installed.
+Docker command installed.
 
 **Procedure**
 
@@ -34,8 +34,8 @@ Docker and docker-compose commands installed.
 
    .. code-block:: none
 
-      docker-compose up --build -d
-      docker-compose logs -f scylla-manager
+      docker compose up --build -d
+      docker compose logs -f scylla-manager
 
 #. Wait until the server is started, you should see something like
 
@@ -52,7 +52,7 @@ Docker and docker-compose commands installed.
 
    .. code-block:: none
 
-      docker-compose exec scylla-manager bash
+      docker compose exec scylla-manager bash
 
 #. Add the cluster to Scylla Manager
 
@@ -84,7 +84,7 @@ container, run the following:
 
    .. code-block:: none
 
-      docker-compose exec minio sh -c "mkdir /data/docker"
+      docker compose exec minio sh -c "mkdir /data/docker"
 
 Afterwards you can schedule backups in Scylla Manager using "s3:docker" as the
 backup location.

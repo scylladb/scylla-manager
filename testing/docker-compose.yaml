@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
   dc1_node_1:
     image: scylladb/agent-${SCYLLA_VERSION}
