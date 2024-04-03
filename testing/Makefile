@@ -1,6 +1,6 @@
 all: help
 
-COMPOSE      := docker-compose
+COMPOSE      := docker compose
 CQLSH        := $(COMPOSE) exec scylla-manager-db cqlsh
 CQLSH_NODE   := $(COMPOSE) exec -T dc1_node_1 cqlsh
 NODETOOL     := $(COMPOSE) exec -T dc1_node_1 nodetool
