@@ -8,7 +8,8 @@ Restore schema
 
 .. include:: _common/restore-raft-schema-warn.rst
 
-In order to restore Scylla cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
+| In order to restore Scylla cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
+| The restore schema procedure works with any cluster size, so the backed-up cluster can have a different number of nodes per data center than the restore destination cluster. However, it is important that the restore destination cluster consists of at least all of the data centers present in the backed-up cluster.
 
 Prerequisites
 =============
