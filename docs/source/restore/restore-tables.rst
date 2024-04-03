@@ -4,9 +4,10 @@ Restore tables
 
 .. note:: Currently, Scylla Manager does not support restoring content of `CDC log tables <https://docs.scylladb.com/stable/using-scylla/cdc/cdc-log-table.html>`_.
 
-To restore the content of the tables (rows), use the :ref:`sctool restore <sctool-restore>` command with the ``--restore-tables`` flag.
+| To restore the content of the tables (rows), use the :ref:`sctool restore <sctool-restore>` command with the ``--restore-tables`` flag.
+| The restore tables procedure works with any cluster topologies, so the backed-up cluster can have a different number of nodes or data centers than the restore destination cluster.
 
-You can add the ``--keyspace`` flag to define the base tables that will be restored. All Materialized Views and Secondary Indexes of those tables will be automatically recreated in order to ensure the correct data state.
+| You can add the ``--keyspace`` flag to define the base tables that will be restored. All Materialized Views and Secondary Indexes of those tables will be automatically recreated in order to ensure the correct data state.
 
 Prerequisites
 =============
