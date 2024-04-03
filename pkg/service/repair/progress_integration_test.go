@@ -203,7 +203,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 				Keyspaces: []keyspacePlan{
 					{
 						Keyspace: "k1",
-						Tables:   []tablePlan{{Table: "t1"}},
+						Tables:   []tablePlan{{Table: "t1", RangesCnt: 2}},
 					},
 				},
 			}
@@ -232,8 +232,20 @@ func TestProgressManagerIntegration(t *testing.T) {
 			Host:        "h1",
 			Keyspace:    "k1",
 			Table:       "t1",
-			TokenRanges: 3,
-			Success:     2,
+			TokenRanges: 1,
+			Success:     1,
+		}).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+		if err := table.RepairRunProgress.InsertQuery(session).BindStruct(&RunProgress{
+			ClusterID:   prevRun.ClusterID,
+			TaskID:      prevRun.TaskID,
+			RunID:       prevRun.ID,
+			Host:        "h2",
+			Keyspace:    "k1",
+			Table:       "t1",
+			TokenRanges: 1,
+			Success:     1,
 		}).ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
@@ -247,9 +259,9 @@ func TestProgressManagerIntegration(t *testing.T) {
 		if err := pm.Init(p, prevID); err != nil {
 			t.Fatal(err)
 		}
-		done := pm.GetCompletedRanges("k1", "t1")
+		done, all := pm.GetCompletedRanges("k1", "t1")
 		Print("Then: validate marked token1 and not marked token3")
-		if len(done) != 2 || !slices.Contains(done, token1) || !slices.Contains(done, token3) {
+		if all != 2 || len(done) != 2 || !slices.Contains(done, token1) || !slices.Contains(done, token3) {
 			t.Fatal("expected both token ranges to be done")
 		}
 	})
