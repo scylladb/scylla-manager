@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
   dc1_node_1:
     command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::11 --alternator-address 2001:0DB9:200::11 --listen-address 2001:0DB9:200::11
