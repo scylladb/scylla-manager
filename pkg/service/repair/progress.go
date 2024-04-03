@@ -31,8 +31,9 @@ type ProgressManager interface {
 	OnJobStart(ctx context.Context, job job)
 	// OnJobEnd must be called when single repair job is finished.
 	OnJobEnd(ctx context.Context, job jobResult)
-	// GetCompletedRanges returns ranges already successfully repaired in the previous runs.
-	GetCompletedRanges(keyspace, table string) []scyllaclient.TokenRange
+	// GetCompletedRanges returns ranges already successfully repaired in the previous runs
+	// and the count of all ranges to repair.
+	GetCompletedRanges(keyspace, table string) (doneRanges []scyllaclient.TokenRange, allRangesCnt int)
 	// AggregateProgress fetches RunProgress from DB and aggregates them into Progress.
 	AggregateProgress() (Progress, error)
 }
@@ -261,12 +262,12 @@ func (pm *dbProgressManager) emptyState() bool {
 	return true
 }
 
-func (pm *dbProgressManager) GetCompletedRanges(keyspace, table string) []scyllaclient.TokenRange {
+func (pm *dbProgressManager) GetCompletedRanges(keyspace, table string) (doneRanges []scyllaclient.TokenRange, allRangesCnt int) {
 	sk := stateKey{
 		keyspace: keyspace,
 		table:    table,
 	}
-	return pm.state[sk].SuccessRanges
+	return pm.state[sk].SuccessRanges, pm.tableRanges[keyspace+"."+table]
 }
 
 func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
