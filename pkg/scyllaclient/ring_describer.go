@@ -18,6 +18,9 @@ type RingDescriber interface {
 	Reset(ctx context.Context)
 	// IsTabletKeyspace returns true if keyspace has tablet replication.
 	IsTabletKeyspace(keyspace string) bool
+	// ControlTabletLoadBalancing enables or disables tablet load balancing
+	// only when there are any tablet tables detected.
+	ControlTabletLoadBalancing(ctx context.Context, enabled bool) error
 }
 
 type ringDescriber struct {
@@ -72,6 +75,13 @@ func (rd *ringDescriber) Reset(ctx context.Context) {
 
 func (rd *ringDescriber) IsTabletKeyspace(keyspace string) bool {
 	return rd.tabletKs.Has(keyspace)
+}
+
+func (rd *ringDescriber) ControlTabletLoadBalancing(ctx context.Context, enabled bool) error {
+	if rd.tabletKs.Size() > 0 {
+		return rd.client.ControlTabletLoadBalancing(ctx, enabled)
+	}
+	return nil
 }
 
 func (rd *ringDescriber) tryGetRing(keyspace, table string) (Ring, bool) {
