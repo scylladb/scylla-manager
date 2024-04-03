@@ -20,8 +20,6 @@ Restore and backups are scheduled in the same manner: you can start, stop, resum
 
 .. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/nodeoperations/restore.html#>`_.
 
-.. note:: Restore procedure works with any cluster topologies, so backed-up cluster can have different number of nodes than restore destination cluster.
-
 .. warning::
     Restore works only when ScyllaDB version of backed-up cluster is the same or older than ScyllaDB version of restore destination cluster.
 
