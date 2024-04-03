@@ -5,7 +5,7 @@
 
 set -eu -o pipefail
 
-LINUX_PKGS="docker-compose jq make moreutils openssl"
+LINUX_PKGS="jq make moreutils openssl"
 
 source ./env
 mkdir -p ${LOCAL_BIN}
