@@ -1,7 +1,7 @@
 use: list
 
 deprecated: |
-  use sctool instead.
+  use `sctool tasks` instead.
 
 short: Show available tasks and their last run status
 
