@@ -104,13 +104,14 @@ func getTabletKs(ctx context.Context, client *Client) *strset.Set {
 	out := strset.New()
 	// Assume that errors indicate that endpoints rejected 'replication' param,
 	// which means that given Scylla version does not support tablet API.
-	// Other errors will be handled on other API calls.
 	tablets, err := client.ReplicationKeyspaces(ctx, ReplicationTablet)
 	if err != nil {
+		client.logger.Info(ctx, "Couldn't list tablet keyspaces", "error", err)
 		return out
 	}
 	vnodes, err := client.ReplicationKeyspaces(ctx, ReplicationVnode)
 	if err != nil {
+		client.logger.Info(ctx, "Couldn't list vnode keyspaces", "error", err)
 		return out
 	}
 	// Even when both API calls succeeded, we need to validate
