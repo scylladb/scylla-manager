@@ -9,6 +9,7 @@ Restore schema
 .. include:: _common/restore-raft-schema-warn.rst
 
 | In order to restore Scylla cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
+| Please note that the term *schema* specifically refers to the data residing in the ``system_schema keyspace``, such as keyspace and table definitions. All other data stored in keyspaces managed by ScyllaDB, such as authentication data in the ``system_auth`` keyspace, is restored as part of the :doc:`restore tables procedure <restore-tables>`.
 | The restore schema procedure works with any cluster size, so the backed-up cluster can have a different number of nodes per data center than the restore destination cluster. However, it is important that the restore destination cluster consists of at least all of the data centers present in the backed-up cluster.
 
 Prerequisites
