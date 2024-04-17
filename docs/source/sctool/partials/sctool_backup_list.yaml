@@ -1,7 +1,8 @@
 name: sctool backup list
 synopsis: List backups
 description: |
-  This commands allow you to list backups.
+  This command allow you to list backups from given locations. The command works per cluster and all the locations listed with the `--location` flag must be accessible from the cluster specified with the `--cluster` flag.
+  This cluster serves as the coordinator for all these checks. If the Scylla Manager Agent's of given cluster is not able to reach the location, the command will fail.
 usage: sctool backup list --cluster <id|name> [flags]
 options:
 - name: all-clusters
