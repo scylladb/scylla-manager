@@ -47,6 +47,20 @@ type Change struct {
 	WithoutRepair bool
 }
 
+// Servicer interface defines the responsibilities of the cluster service.
+// It's a duplicate of the restapi.ClusterService, but I want to avoid doing bigger refactor
+// and removing the interface from restapi package (although nothing prevents us from doing so).
+type Servicer interface {
+	ListClusters(ctx context.Context, f *Filter) ([]*Cluster, error)
+	GetCluster(ctx context.Context, idOrName string) (*Cluster, error)
+	PutCluster(ctx context.Context, c *Cluster) error
+	DeleteCluster(ctx context.Context, id uuid.UUID) error
+	CheckCQLCredentials(id uuid.UUID) (bool, error)
+	DeleteCQLCredentials(ctx context.Context, id uuid.UUID) error
+	DeleteSSLUserCert(ctx context.Context, id uuid.UUID) error
+	ListNodes(ctx context.Context, id uuid.UUID) ([]Node, error)
+}
+
 // Service manages cluster configurations.
 type Service struct {
 	session          gocqlx.Session
