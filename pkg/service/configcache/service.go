@@ -44,6 +44,8 @@ type NodeConfig struct {
 // ConfigCacher is the interface defining the cache behavior.
 type ConfigCacher interface {
 	Read(clusterID uuid.UUID, host string) (NodeConfig, error)
+	ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID) bool
+	Init(ctx context.Context)
 }
 
 // Service is responsible for handling all cluster configuration cache related operations.
@@ -59,6 +61,22 @@ type Service struct {
 
 	configs sync.Map
 	logger  log.Logger
+}
+
+// NewService is the constructor for the cluster config cache service.
+func NewService(clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) *Service {
+	return &Service{
+		clusterSvc:   clusterSvc,
+		scyllaClient: client,
+		secretsStore: secretsStore,
+		configs:      sync.Map{},
+		logger:       logger,
+	}
+}
+
+// Init updates cache with config of all currently managed clusters.
+func (svc *Service) Init(ctx context.Context) {
+	svc.updateAll(ctx)
 }
 
 // Read returns either the host configuration that is currently stored in the cache,
@@ -83,20 +101,6 @@ func (svc *Service) Read(clusterID uuid.UUID, host string) (NodeConfig, error) {
 	return hostConfig, nil
 }
 
-func (svc *Service) readClusterConfig(clusterID uuid.UUID) (*sync.Map, error) {
-	emptyConfig := &sync.Map{}
-
-	rawClusterConfig, ok := svc.configs.Load(clusterID)
-	if !ok {
-		return emptyConfig, ErrNoClusterConfig
-	}
-	clusterConfig, ok := rawClusterConfig.(*sync.Map)
-	if !ok {
-		panic("cluster cache emptyConfig stores unexpected type")
-	}
-	return clusterConfig, nil
-}
-
 // Run starts the infinity loop responsible for updating the clusters configuration periodically.
 func (svc *Service) Run(ctx context.Context) {
 	freq := time.NewTicker(updateFrequency)
@@ -111,57 +115,100 @@ func (svc *Service) Run(ctx context.Context) {
 
 		select {
 		case <-freq.C:
-			svc.update(ctx)
+			svc.updateAll(ctx)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (svc *Service) update(ctx context.Context) {
+// ForceUpdateCluster updates single cluster config in cache and does it outside the background process.
+// There is no synchronization at all. Synchronization as guaranteed by the sync.Map used to back the cache.
+// If the ForceUpdateCluster is executed at the same time when the cluster config is being updated by the
+// background process, then the configuration will be just updated twice.
+func (svc *Service) ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID) bool {
+	logger := svc.logger.Named("Force update cluster").With("cluster", clusterID)
+
+	c, err := svc.clusterSvc.GetCluster(ctx, clusterID.String())
+	if err != nil {
+		logger.Error(ctx, "Update failed", "error", err)
+	}
+
+	return svc.updateSingle(ctx, c)
+}
+
+func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
+	logger := svc.logger.Named("Cluster config update").With("cluster", c.ID)
+
+	currentClusterConfig, err := svc.readClusterConfig(c.ID)
+	if err != nil && errors.Is(err, ErrNoClusterConfig) {
+		logger.Error(ctx, "Couldn't read cluster config from cache.", "error", err)
+		return false
+	}
+
+	client, err := svc.scyllaClient(ctx, c.ID)
+	if err != nil {
+		logger.Error(ctx, "Couldn't create scylla client.", "cluster", c.ID, "error", err)
+		return false
+	}
+
+	// Hosts that are going to be asked about the configuration are exactly the same as
+	// the ones used by the scylla client.
+	hostsWg := sync.WaitGroup{}
+
+	for _, host := range client.Config().Hosts {
+		hostsWg.Add(1)
+
+		host := host
+		perHostLogger := logger.Named("Cluster host config update").With("host", host)
+		go func() {
+			defer hostsWg.Done()
+
+			config, err := svc.retrieveClusterHostConfig(ctx, host, client, c)
+			if err != nil {
+				perHostLogger.Error(ctx, "Couldn't read cluster host config.", "error", err)
+				return
+			}
+			currentClusterConfig.Store(host, config)
+		}()
+	}
+	hostsWg.Wait()
+
+	return true
+}
+
+func (svc *Service) updateAll(ctx context.Context) {
 	clusters, err := svc.clusterSvc.ListClusters(ctx, nil)
 	if err != nil {
 		svc.logger.Error(ctx, "Couldn't list clusters.", "error", err)
 		return
 	}
 
+	clustersWg := sync.WaitGroup{}
 	for _, c := range clusters {
 		c := c
-		perClusterLogger := svc.logger.Named("Cluster config update").With("cluster", c.ID)
-		currentClusterConfig, err := svc.readClusterConfig(c.ID)
-		if err != nil && errors.Is(err, ErrNoClusterConfig) {
-			perClusterLogger.Error(ctx, "Couldn't read cluster config from cache.", "error", err)
-			continue
-		}
-
+		clustersWg.Add(1)
 		go func() {
-			client, err := svc.scyllaClient(ctx, c.ID)
-			if err != nil {
-				perClusterLogger.Error(ctx, "Couldn't create scylla client.", "cluster", c.ID, "error", err)
-				return
-			}
+			defer clustersWg.Done()
 
-			// Hosts that are going to be asked about the configuration are exactly the same as
-			// the ones used by the scylla client.
-			hostsWg := sync.WaitGroup{}
-			for _, host := range client.Config().Hosts {
-				hostsWg.Add(1)
-				host := host
-				perHostLogger := perClusterLogger.Named("Cluster host config update").With("host", host)
-				go func() {
-					defer hostsWg.Done()
-
-					config, err := svc.retrieveClusterHostConfig(ctx, host, client, c)
-					if err != nil {
-						perHostLogger.Error(ctx, "Couldn't read cluster host config.", "error", err)
-						return
-					}
-					currentClusterConfig.Store(host, config)
-				}()
-			}
-			hostsWg.Wait()
+			svc.updateSingle(ctx, c)
 		}()
 	}
+	clustersWg.Wait()
+}
+
+func (svc *Service) readClusterConfig(clusterID uuid.UUID) (*sync.Map, error) {
+	emptyConfig := &sync.Map{}
+
+	rawClusterConfig, ok := svc.configs.Load(clusterID)
+	if !ok {
+		return emptyConfig, ErrNoClusterConfig
+	}
+	clusterConfig, ok := rawClusterConfig.(*sync.Map)
+	if !ok {
+		panic("cluster cache emptyConfig stores unexpected type")
+	}
+	return clusterConfig, nil
 }
 
 func (svc *Service) retrieveClusterHostConfig(ctx context.Context, host string, client *scyllaclient.Client,
