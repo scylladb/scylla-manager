@@ -46,6 +46,7 @@ type ConfigCacher interface {
 	Read(clusterID uuid.UUID, host string) (NodeConfig, error)
 	ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID) bool
 	Init(ctx context.Context)
+	Run(ctx context.Context, skipFirst bool)
 }
 
 // Service is responsible for handling all cluster configuration cache related operations.
@@ -64,7 +65,7 @@ type Service struct {
 }
 
 // NewService is the constructor for the cluster config cache service.
-func NewService(clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) *Service {
+func NewService(clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) ConfigCacher {
 	return &Service{
 		clusterSvc:   clusterSvc,
 		scyllaClient: client,
@@ -102,7 +103,10 @@ func (svc *Service) Read(clusterID uuid.UUID, host string) (NodeConfig, error) {
 }
 
 // Run starts the infinity loop responsible for updating the clusters configuration periodically.
-func (svc *Service) Run(ctx context.Context) {
+func (svc *Service) Run(ctx context.Context, skipFirst bool) {
+	if skipFirst {
+		time.Sleep(updateFrequency)
+	}
 	freq := time.NewTicker(updateFrequency)
 
 	for {

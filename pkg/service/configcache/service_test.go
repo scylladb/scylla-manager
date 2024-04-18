@@ -124,7 +124,7 @@ func TestService_Run(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			svc.Run(ctx)
+			svc.Run(ctx, false)
 		}()
 
 		time.Sleep(3 * time.Second)
