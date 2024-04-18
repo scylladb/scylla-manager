@@ -16,6 +16,9 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+// Servicer.ForceUpdateCluster() and Servicer.Init(ctx context.Context) are expected to be covered with the
+// integration tests.
+
 func TestService_Read(t *testing.T) {
 	emptyConfigHash, err := NodeConfig{}.sha256hash()
 	if err != nil {
