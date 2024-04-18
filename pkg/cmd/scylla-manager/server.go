@@ -156,7 +156,10 @@ func (s *server) makeServices() error {
 
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	switch c.Type {
+	case cluster.Update:
+		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
 	case cluster.Create:
+		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
 		for _, t := range makeAutoHealthCheckTasks(c.ID) {
 			if err := s.schedSvc.PutTask(ctx, t); err != nil {
 				return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
@@ -168,6 +171,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 			}
 		}
 	case cluster.Delete:
+		s.configCacheSvc.RemoveCluster(c.ID)
 		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, scheduler.ListFilter{Disabled: true, Short: true})
 		if err != nil {
 			return errors.Wrapf(err, "find this cluster %s tasks", c.ID)
