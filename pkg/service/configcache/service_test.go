@@ -16,6 +16,9 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+// Servicer.ForceUpdateCluster() and Servicer.Init(ctx context.Context) are expected to be covered with the
+// integration tests.
+
 func TestService_Read(t *testing.T) {
 	emptyConfigHash, err := NodeConfig{}.sha256hash()
 	if err != nil {
@@ -38,7 +41,7 @@ func TestService_Read(t *testing.T) {
 	}
 	initialState := convertMapToSyncMap(
 		map[any]any{
-			cluster1UUID: convertMapToSyncMap(
+			cluster1UUID.String(): convertMapToSyncMap(
 				map[any]any{
 					host1ID: host1NodeConfig,
 				},
@@ -121,7 +124,7 @@ func TestService_Run(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			svc.Run(ctx)
+			svc.Run(ctx, false)
 		}()
 
 		time.Sleep(3 * time.Second)
