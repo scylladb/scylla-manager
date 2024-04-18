@@ -5,11 +5,11 @@ package configcache
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
@@ -58,6 +58,7 @@ type Service struct {
 	secretsStore store.Store
 
 	configs sync.Map
+	logger  log.Logger
 }
 
 // Read returns either the host configuration that is currently stored in the cache,
@@ -120,20 +121,24 @@ func (svc *Service) Run(ctx context.Context) {
 func (svc *Service) update(ctx context.Context) {
 	clusters, err := svc.clusterSvc.ListClusters(ctx, nil)
 	if err != nil {
-		fmt.Println(err)
+		svc.logger.Error(ctx, "Couldn't list clusters.", "error", err)
+		return
 	}
 
 	for _, c := range clusters {
 		c := c
+		perClusterLogger := svc.logger.Named("Cluster config update").With("cluster", c.ID)
 		currentClusterConfig, err := svc.readClusterConfig(c.ID)
 		if err != nil && errors.Is(err, ErrNoClusterConfig) {
-			fmt.Println(err)
+			perClusterLogger.Error(ctx, "Couldn't read cluster config from cache.", "error", err)
+			continue
 		}
 
 		go func() {
 			client, err := svc.scyllaClient(ctx, c.ID)
 			if err != nil {
-				fmt.Println(err)
+				perClusterLogger.Error(ctx, "Couldn't create scylla client.", "cluster", c.ID, "error", err)
+				return
 			}
 
 			// Hosts that are going to be asked about the configuration are exactly the same as
@@ -142,12 +147,14 @@ func (svc *Service) update(ctx context.Context) {
 			for _, host := range client.Config().Hosts {
 				hostsWg.Add(1)
 				host := host
+				perHostLogger := perClusterLogger.Named("Cluster host config update").With("host", host)
 				go func() {
 					defer hostsWg.Done()
 
 					config, err := svc.retrieveClusterHostConfig(ctx, host, client, c)
 					if err != nil {
-						fmt.Println(err)
+						perHostLogger.Error(ctx, "Couldn't read cluster host config.", "error", err)
+						return
 					}
 					currentClusterConfig.Store(host, config)
 				}()
