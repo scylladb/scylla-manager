@@ -66,3 +66,16 @@ Details may differ depending on the storage engine, please consult:
 * :doc:`Setup S3 compatible storage <setup-s3-compatible-storage>`
 * :doc:`Setup Google Cloud Storage <setup-gcs>`
 * :doc:`Setup Azure Blob Storage <setup-azure-blobstorage>`
+
+Removing backups
+================
+
+Backups may require a lot of storage space. They are purged according to the retention defined on the backup task.
+
+`Sctool` can be used to remove snapshots of clusters that are no longer managed by Scylla Manager.
+The removal process is performed through the Scylla Manager Agent installed on Scylla nodes.
+
+However, it's recommended to delete the snapshots from the storage before removing the cluster from Scylla Manager.
+Otherwise, you will need to add the cluster again, list the snapshots in the given location, and remove them using the new cluster as the coordinator.
+Another option is to purge them manually. If you want to remove the snapshots manually, please refer to the :doc:`backup specification <specification>`
+and remove them accordingly.
