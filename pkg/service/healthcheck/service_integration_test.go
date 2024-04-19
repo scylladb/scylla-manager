@@ -33,6 +33,104 @@ import (
 	scyllaModels "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
+// This test creates a contract saying that the status checks of CQL and alternator,
+// must be independent from agent's API responsiveness.
+// CQL and Alternator status checks are expected to simulate user environment, where it
+// creates the session and executes simple query to get the result.
+// It must be independent from any side effects.
+//
+// It's the answer to https://github.com/scylladb/scylla-manager/issues/3796,
+// which is a part of https://github.com/scylladb/scylla-manager/issues/3767.
+func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
+	// Given
+	tryUnblockCQL(t, ManagedClusterHosts())
+	tryUnblockREST(t, ManagedClusterHosts())
+	tryUnblockAlternator(t, ManagedClusterHosts())
+	tryStartAgent(t, ManagedClusterHosts())
+
+	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
+
+	session := CreateScyllaManagerDBSession(t)
+	defer session.Close()
+
+	s := store.NewTableStore(session, table.Secrets)
+	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(),
+		0, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hostWithUnresponsiveREST := ToCanonicalIP(IPFromTestNet("11"))
+	testCluster := &cluster.Cluster{
+		Host:      hostWithUnresponsiveREST,
+		AuthToken: "token",
+	}
+	err = clusterSvc.PutCluster(context.Background(), testCluster)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
+	defaultConfigForHealtchec := DefaultConfig()
+	defaultConfigForHealtchec.NodeInfoTTL = 0
+	healthSvc, err := NewService(
+		defaultConfigForHealtchec,
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			sc := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+			sc.Timeout = time.Second
+			sc.Transport = hrt
+			return scyllaclient.NewClient(sc, logger.Named("scylla"))
+		},
+		s,
+		clusterSvc.GetClusterByID,
+		logger,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// When #1 -> default scenario where everything works fine
+	status, err := healthSvc.Status(context.Background(), testCluster.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Then #1 -> all statuses UP
+	for _, hostStatus := range status {
+		if hostStatus.CQLStatus != "UP" || hostStatus.AlternatorStatus != "UP" || hostStatus.RESTStatus != "UP" {
+			t.Fatalf("Expected CQL, Alternator and REST to be UP, but was {%s %s %s} on {%s}",
+				hostStatus.CQLStatus, hostStatus.AlternatorStatus, hostStatus.RESTStatus, hostStatus.Host)
+		}
+	}
+
+	// When #2 -> one of the hosts has unresponsive REST API
+	defer unblockREST(t, hostWithUnresponsiveREST)
+	blockREST(t, hostWithUnresponsiveREST)
+
+	// Then #2 -> only REST ping fails, CQL and Alternator are fine
+	status, err = healthSvc.Status(context.Background(), testCluster.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testedHostStatusExists := false
+	for _, hostStatus := range status {
+		if hostStatus.Host == hostWithUnresponsiveREST {
+			testedHostStatusExists = true
+			if hostStatus.CQLStatus != "UP" || hostStatus.AlternatorStatus != "UP" || hostStatus.RESTStatus == "UP" {
+				t.Fatalf("Expected CQL = UP, Alternator = UP and REST != UP, but was {%s %s %s} on {%s}",
+					hostStatus.CQLStatus, hostStatus.AlternatorStatus, hostStatus.RESTStatus, hostStatus.Host)
+			}
+		}
+		if hostStatus.CQLStatus != "UP" || hostStatus.AlternatorStatus != "UP" || hostStatus.RESTStatus != "UP" {
+			t.Fatalf("Expected CQL, Alternator and REST to be UP, but was {%s %s %s} on {%s}",
+				hostStatus.CQLStatus, hostStatus.AlternatorStatus, hostStatus.RESTStatus, hostStatus.Host)
+		}
+	}
+	if !testedHostStatusExists {
+		t.Fatalf("Couldn't test status of {%s}", hostWithUnresponsiveREST)
+	}
+}
+
 func TestStatusIntegration(t *testing.T) {
 	if IsIPV6Network() {
 		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
