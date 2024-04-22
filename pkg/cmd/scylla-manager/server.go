@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
@@ -35,12 +36,13 @@ type server struct {
 	session gocqlx.Session
 	logger  log.Logger
 
-	clusterSvc *cluster.Service
-	healthSvc  *healthcheck.Service
-	backupSvc  *backup.Service
-	restoreSvc *restore.Service
-	repairSvc  *repair.Service
-	schedSvc   *scheduler.Service
+	clusterSvc     *cluster.Service
+	healthSvc      *healthcheck.Service
+	backupSvc      *backup.Service
+	restoreSvc     *restore.Service
+	repairSvc      *repair.Service
+	schedSvc       *scheduler.Service
+	configCacheSvc configcache.ConfigCacher
 
 	httpServer       *http.Server
 	httpsServer      *http.Server
@@ -65,7 +67,7 @@ func newServer(c config.Config, logger log.Logger) (*server, error) {
 	}, nil
 }
 
-func (s *server) makeServices() error {
+func (s *server) makeServices(ctx context.Context) error {
 	var err error
 
 	drawerStore := store.NewTableStore(s.session, table.Drawer)
@@ -77,6 +79,9 @@ func (s *server) makeServices() error {
 		return errors.Wrapf(err, "cluster service")
 	}
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
+
+	s.configCacheSvc = configcache.NewService(s.clusterSvc, s.clusterSvc.Client, secretsStore, s.logger)
+	s.initConfigCacheSvc(ctx)
 
 	s.healthSvc, err = healthcheck.NewService(
 		s.config.Healthcheck,
@@ -230,6 +235,37 @@ func (s *server) makeServers(ctx context.Context) error {
 	return nil
 }
 
+func (s *server) initConfigCacheSvc(ctx context.Context) {
+	s.logger.Info(ctx, "Initializing the clusters configuration cache")
+	defer s.logger.Info(ctx, "Clusters config cache initialized")
+
+	s.configCacheSvc.Init(ctx)
+}
+
+func (s *server) startConfigCacheSvcAsync(ctx context.Context) {
+	go func() {
+		logger := s.logger.Named("Config cache goroutine")
+
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info(ctx, "Shutdown")
+				return
+			default:
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							logger.Error(ctx, "Recovered from panic:", "recover", r)
+						}
+					}()
+
+					s.configCacheSvc.Run(ctx, true)
+				}()
+			}
+		}
+	}()
+}
+
 func (s *server) tlsConfig(ctx context.Context) (*tls.Config, error) {
 	var (
 		cert tls.Certificate
@@ -284,6 +320,9 @@ func (s *server) startServices(ctx context.Context) error {
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
 		return errors.Wrapf(err, "schedule service")
 	}
+
+	s.startConfigCacheSvcAsync(ctx)
+
 	return nil
 }
 
