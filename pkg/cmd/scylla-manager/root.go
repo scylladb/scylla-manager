@@ -144,7 +144,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrapf(err, "server init")
 		}
-		if err := s.makeServices(); err != nil {
+		if err := s.makeServices(ctx); err != nil {
 			return errors.Wrapf(err, "server init")
 		}
 		if err := s.makeServers(ctx); err != nil {
