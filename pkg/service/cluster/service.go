@@ -86,7 +86,7 @@ func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsS
 		logger:        l,
 		timeoutConfig: timeoutConfig,
 	}
-	s.clientCache = scyllaclient.NewCachedProvider(s.createClient, cacheInvalidationTimeout, l)
+	s.clientCache = scyllaclient.NewCachedProvider(s.CreateClientNoCache, cacheInvalidationTimeout, l)
 
 	return s, nil
 }
@@ -130,14 +130,14 @@ func (s *Service) createClientNoValidation(c *Cluster) (*scyllaclient.Client, er
 	return scyllaclient.NewClient(config, s.logger.Named("client"))
 }
 
-// createClient creates Scylla API that load balances calls to every node from given cluster.
+// CreateClientNoCache creates Scylla API that load balances calls to every node from given cluster.
 // There may be a situation that cluster keeps outdated information about list of available hosts.
 // To work it around:
 //   - function iterates over all currently known hosts
 //   - calls consecutive client to get list of available hosts known by Scylla server
 //   - updates list of known hosts to Scylla Manager DB
 //   - returns client created on top of list of hosts returned by the Scylla server
-func (s *Service) createClient(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 	s.logger.Info(ctx, "Creating new Scylla HTTP client", "cluster_id", clusterID)
 
 	c, err := s.GetClusterByID(ctx, clusterID)
@@ -551,7 +551,7 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 
 	var nodes []Node
 
-	client, err := s.createClient(ctx, clusterID)
+	client, err := s.CreateClientNoCache(ctx, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +586,7 @@ type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session,
 func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session gocqlx.Session, err error) {
 	s.logger.Debug(ctx, "GetSession", "cluster_id", clusterID)
 
-	client, err := s.createClient(ctx, clusterID)
+	client, err := s.CreateClientNoCache(ctx, clusterID)
 	if err != nil {
 		return session, errors.Wrap(err, "get client")
 	}
