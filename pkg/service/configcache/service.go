@@ -58,7 +58,7 @@ type ConfigCacher interface {
 	Init(ctx context.Context)
 
 	// Run starts the infinity loop responsible for updating the clusters configuration periodically.
-	Run(ctx context.Context, skipFirst bool)
+	Run(ctx context.Context)
 }
 
 // Service is responsible for handling all cluster configuration cache related operations.
@@ -85,6 +85,7 @@ func NewService(clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, s
 }
 
 func (svc *Service) Init(ctx context.Context) {
+	svc.configs = sync.Map{}
 	svc.updateAll(ctx)
 }
 
@@ -108,10 +109,7 @@ func (svc *Service) Read(clusterID uuid.UUID, host string) (NodeConfig, error) {
 }
 
 // Run starts the infinity loop responsible for updating the clusters configuration periodically.
-func (svc *Service) Run(ctx context.Context, skipFirst bool) {
-	if skipFirst {
-		time.Sleep(updateFrequency)
-	}
+func (svc *Service) Run(ctx context.Context) {
 	freq := time.NewTicker(updateFrequency)
 
 	for {
@@ -158,6 +156,11 @@ func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
 		logger.Error(ctx, "Couldn't create scylla client", "cluster", c.ID, "error", err)
 		return false
 	}
+	defer func() {
+		if err := client.Close(); err != nil {
+			logger.Error(ctx, "Couldn't close HTTP client", "error", err)
+		}
+	}()
 
 	// Hosts that are going to be asked about the configuration are exactly the same as
 	// the ones used by the scylla client.
