@@ -4,15 +4,12 @@ package configcache
 
 import (
 	"context"
-	"crypto/tls"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -29,17 +26,6 @@ const (
 
 	updateFrequency = 5 * time.Minute
 )
-
-type tlsConfigWithAddress struct {
-	*tls.Config
-	Address string
-}
-
-// NodeConfig keeps the node current node configuration together with the TLS details per different type of connection.
-type NodeConfig struct {
-	*scyllaclient.NodeInfo
-	TLSConfig map[ConnectionType]*tlsConfigWithAddress
-}
 
 // ConfigCacher is the interface defining the cache behavior.
 type ConfigCacher interface {
@@ -229,63 +215,13 @@ func (svc *Service) retrieveNodeConfig(ctx context.Context, host string, client 
 
 	nodeInfoResp, err := client.NodeInfo(ctx, host)
 	if err != nil {
-		return config, errors.Wrap(err, "fetch node info")
+		return config, errors.Wrap(err, "retrieve cluster host configuration")
 	}
 
-	config.NodeInfo = nodeInfoResp
-	config.TLSConfig = make(map[ConnectionType]*tlsConfigWithAddress, 2)
-	for _, p := range []ConnectionType{CQL, Alternator} {
-		var tlsEnabled, clientCertAuth bool
-		var address string
-		if p == CQL {
-			address = nodeInfoResp.CQLAddr(host)
-			tlsEnabled, clientCertAuth = nodeInfoResp.CQLTLSEnabled()
-			tlsEnabled = tlsEnabled && !c.ForceTLSDisabled
-			if tlsEnabled && !c.ForceNonSSLSessionPort {
-				address = nodeInfoResp.CQLSSLAddr(host)
-			}
-		} else if p == Alternator {
-			tlsEnabled, clientCertAuth = nodeInfoResp.AlternatorTLSEnabled()
-			address = nodeInfoResp.AlternatorAddr(host)
-		}
-		if tlsEnabled {
-			tlsConfig, err := svc.tlsConfig(c.ID, clientCertAuth)
-			if err != nil && !errors.Is(err, service.ErrNotFound) {
-				return config, errors.Wrap(err, "fetch TLS config")
-			}
-			if clientCertAuth && errors.Is(err, service.ErrNotFound) {
-				return config, errors.Wrap(err, "client encryption is enabled, but certificate is missing")
-			}
-			config.TLSConfig[p] = &tlsConfigWithAddress{
-				Config:  tlsConfig,
-				Address: address,
-			}
-		} else {
-			delete(config.TLSConfig, p)
-		}
+	config, err = NewNodeConfig(c, nodeInfoResp, svc.secretsStore, host)
+	if err != nil {
+		return config, errors.Wrap(err, "retrieve cluster host configuration")
 	}
 
 	return config, nil
-}
-
-func (svc *Service) tlsConfig(clusterID uuid.UUID, clientCertAuth bool) (*tls.Config, error) {
-	cfg := tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	if clientCertAuth {
-		id := &secrets.TLSIdentity{
-			ClusterID: clusterID,
-		}
-		if err := svc.secretsStore.Get(id); err != nil {
-			return nil, errors.Wrap(err, "get SSL user cert from secrets store")
-		}
-		keyPair, err := tls.X509KeyPair(id.Cert, id.PrivateKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "invalid SSL user key pair")
-		}
-		cfg.Certificates = []tls.Certificate{keyPair}
-	}
-
-	return &cfg, nil
 }
