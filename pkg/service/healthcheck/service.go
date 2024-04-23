@@ -219,7 +219,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				s.logger.Error(ctx, "Unable to fetch node information", "error", err)
 				o.SSL = false
 			} else {
-				o.SSL = ni.TLSConfig[configcache.CQL] != nil
+				o.SSL = ni.CQLTLSConfig() != nil
 			}
 
 			return nil
@@ -294,7 +294,7 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 		Timeout: timeout,
 	}
 
-	tlsConfig := ni.TLSConfig[configcache.Alternator]
+	tlsConfig := ni.AlternatorTLSConfig()
 	if tlsConfig != nil {
 		config.TLSConfig = tlsConfig.Clone()
 	}
@@ -321,7 +321,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 		Timeout: timeout,
 	}
 
-	tlsConfig := ni.TLSConfig[configcache.CQL]
+	tlsConfig := ni.CQLTLSConfig()
 	if tlsConfig != nil {
 		config.Addr = tlsConfig.Address
 		config.TLSConfig = tlsConfig.Clone()
