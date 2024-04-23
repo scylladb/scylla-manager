@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -77,6 +78,9 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	configCacheSvc := configcache.NewService(clusterSvc, scyllaClientProvider, s, logger.Named("config-cache"))
+	configCacheSvc.Init(context.Background())
+
 	defaultConfigForHealtcheck := DefaultConfig()
 	defaultConfigForHealtcheck.NodeInfoTTL = 0
 	healthSvc, err := NewService(
@@ -84,6 +88,7 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 		scyllaClientProvider,
 		s,
 		clusterSvc.GetClusterByID,
+		configCacheSvc,
 		logger,
 	)
 	if err != nil {
@@ -214,12 +219,15 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		sc.Transport = hrt
 		return scyllaclient.NewClient(sc, logger.Named("scylla"))
 	}
+	configCacheSvc := configcache.NewService(clusterSvc, scyllaClientProvider, secretsStore, logger.Named("config-cache"))
+	configCacheSvc.Init(context.Background())
 
 	s, err := NewService(
 		c,
 		scyllaClientProvider,
 		secretsStore,
 		clusterProvider,
+		configCacheSvc,
 		logger,
 	)
 	if err != nil {
