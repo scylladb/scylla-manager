@@ -69,7 +69,7 @@ type Service struct {
 	scyllaClient scyllaclient.ProviderFunc
 	secretsStore store.Store
 
-	configs sync.Map
+	configs *sync.Map
 	logger  log.Logger
 }
 
@@ -79,13 +79,13 @@ func NewService(clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, s
 		clusterSvc:   clusterSvc,
 		scyllaClient: client,
 		secretsStore: secretsStore,
-		configs:      sync.Map{},
+		configs:      &sync.Map{},
 		logger:       logger,
 	}
 }
 
 func (svc *Service) Init(ctx context.Context) {
-	svc.configs = sync.Map{}
+	svc.configs = &sync.Map{}
 	svc.updateAll(ctx)
 }
 

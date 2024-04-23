@@ -13,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
@@ -23,7 +25,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -69,6 +70,7 @@ type Service struct {
 	scyllaClient    scyllaclient.ProviderFunc
 	secretsStore    store.Store
 	clusterProvider cluster.ProviderFunc
+	configCache     configcache.ConfigCacher
 
 	cacheMu sync.Mutex
 	// fields below are protected by cacheMu
@@ -78,7 +80,7 @@ type Service struct {
 }
 
 func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsStore store.Store,
-	clusterProvider cluster.ProviderFunc, logger log.Logger,
+	clusterProvider cluster.ProviderFunc, configCache configcache.ConfigCacher, logger log.Logger,
 ) (*Service, error) {
 	if scyllaClient == nil {
 		return nil, errors.New("invalid scylla provider")
@@ -89,6 +91,7 @@ func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsSt
 		scyllaClient:    scyllaClient,
 		secretsStore:    secretsStore,
 		clusterProvider: clusterProvider,
+		configCache:     configCache,
 		nodeInfoCache:   make(map[clusterIDHost]nodeInfo),
 		logger:          logger,
 	}, nil
@@ -162,7 +165,7 @@ func (s *Service) parallelNodeInfoFunc(ctx context.Context, clusterID uuid.UUID,
 				return nil
 			}
 
-			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
+			ni, err := s.configCache.Read(clusterID, status[i].Addr)
 			if err != nil {
 				s.logger.Error(ctx, "Node info fetch failed",
 					"cluster_id", clusterID,
@@ -255,12 +258,12 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				o.CQLStatus = statusUp
 			}
 
-			ni, err := s.nodeInfo(ctx, clusterID, status[i].Addr)
+			ni, err := s.configCache.Read(clusterID, status[i].Addr)
 			if err != nil {
 				s.logger.Error(ctx, "Unable to fetch node information", "error", err)
 				o.SSL = false
 			} else {
-				o.SSL = ni.hasTLSConfig(cqlPing)
+				o.SSL = ni.TLSConfig[configcache.CQL] != nil
 			}
 
 			return nil
@@ -315,7 +318,7 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 // pingAlternator sends ping probe and returns RTT.
 // When Alternator frontend is disabled, it returns 0 and nil error.
 func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
-	ni, err := s.nodeInfo(ctx, clusterID, host)
+	ni, err := s.configCache.Read(clusterID, host)
 	// Proceed if we managed to get required information.
 	if err != nil && ni.NodeInfo == nil {
 		return 0, errors.Wrap(err, "get node info")
@@ -335,7 +338,7 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 		Timeout: timeout,
 	}
 
-	tlsConfig := ni.tlsConfig(alternatorPing)
+	tlsConfig := ni.TLSConfig[configcache.Alternator]
 	if tlsConfig != nil {
 		config.TLSConfig = tlsConfig.Clone()
 	}
@@ -343,7 +346,7 @@ func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host 
 	return pingFunc(ctx, config)
 }
 
-func (s *Service) decorateNodeStatus(status *NodeStatus, ni nodeInfo) {
+func (s *Service) decorateNodeStatus(status *NodeStatus, ni configcache.NodeConfig) {
 	status.TotalRAM = ni.MemoryTotal
 	status.Uptime = ni.Uptime
 	status.CPUCount = ni.CPUCount
@@ -352,7 +355,7 @@ func (s *Service) decorateNodeStatus(status *NodeStatus, ni nodeInfo) {
 }
 
 func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
-	ni, err := s.nodeInfo(ctx, clusterID, host)
+	ni, err := s.configCache.Read(clusterID, host)
 	if err != nil {
 		return 0, err
 	}
@@ -362,7 +365,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 		Timeout: timeout,
 	}
 
-	tlsConfig := ni.tlsConfig(cqlPing)
+	tlsConfig := ni.TLSConfig[configcache.CQL]
 	if tlsConfig != nil {
 		config.Addr = tlsConfig.Address
 		config.TLSConfig = tlsConfig.Clone()
