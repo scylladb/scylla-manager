@@ -191,8 +191,6 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 		}
 	}
 
-	s.healthSvc.InvalidateCache(c.ID)
-
 	return nil
 }
 
