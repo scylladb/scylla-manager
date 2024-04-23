@@ -85,7 +85,7 @@ func TestService_Read(t *testing.T) {
 				clusterSvc:   &mockClusterServicer{},
 				scyllaClient: mockProviderFunc,
 				secretsStore: &mockStore{},
-				configs:      *tc.state,
+				configs:      tc.state,
 			}
 
 			// When
@@ -112,7 +112,7 @@ func TestService_Run(t *testing.T) {
 			clusterSvc:   &mockClusterServicer{},
 			scyllaClient: mockProviderFunc,
 			secretsStore: &mockStore{},
-			configs:      sync.Map{},
+			configs:      &sync.Map{},
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())

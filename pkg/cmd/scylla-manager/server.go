@@ -88,6 +88,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.clusterSvc.Client,
 		secretsStore,
 		s.clusterSvc.GetClusterByID,
+		s.configCacheSvc,
 		s.logger.Named("healthcheck"),
 	)
 	if err != nil {
