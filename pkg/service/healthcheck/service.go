@@ -4,17 +4,14 @@ package healthcheck
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
@@ -28,42 +25,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-type clusterIDHost struct {
-	ClusterID uuid.UUID
-	Host      string
-}
-
-type pingType int
-
-const (
-	cqlPing pingType = iota
-	restPing
-	alternatorPing
-)
-
-func (pt pingType) String() string {
-	switch pt {
-	case cqlPing:
-		return "cql"
-	case restPing:
-		return "rest"
-	case alternatorPing:
-		return "alternator"
-	}
-	return "unknown"
-}
-
-type tlsConfigWithAddress struct {
-	*tls.Config
-	Address string
-}
-
-type nodeInfo struct {
-	*scyllaclient.NodeInfo
-	TLSConfig map[pingType]*tlsConfigWithAddress
-	Expires   time.Time
-}
-
 // Service manages health checks.
 type Service struct {
 	config          Config
@@ -71,10 +32,6 @@ type Service struct {
 	secretsStore    store.Store
 	clusterProvider cluster.ProviderFunc
 	configCache     configcache.ConfigCacher
-
-	cacheMu sync.Mutex
-	// fields below are protected by cacheMu
-	nodeInfoCache map[clusterIDHost]nodeInfo
 
 	logger log.Logger
 }
@@ -92,7 +49,6 @@ func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsSt
 		secretsStore:    secretsStore,
 		clusterProvider: clusterProvider,
 		configCache:     configCache,
-		nodeInfoCache:   make(map[clusterIDHost]nodeInfo),
 		logger:          logger,
 	}, nil
 }
@@ -402,90 +358,6 @@ func (s *Service) pingAgent(ctx context.Context, clusterID uuid.UUID, host strin
 	return client.PingAgent(ctx, host, timeout)
 }
 
-func (s *Service) nodeInfo(ctx context.Context, clusterID uuid.UUID, host string) (nodeInfo, error) {
-	s.cacheMu.Lock()
-	defer s.cacheMu.Unlock()
-
-	key := clusterIDHost{clusterID, host}
-	now := timeutc.Now()
-
-	if ni, ok := s.nodeInfoCache[key]; ok && now.Before(ni.Expires) {
-		return ni, nil
-	}
-
-	c, err := s.clusterProvider(ctx, clusterID)
-	if err != nil {
-		return nodeInfo{}, err
-	}
-
-	client, err := s.scyllaClient(ctx, clusterID)
-	if err != nil {
-		return nodeInfo{}, errors.Wrap(err, "create scylla client")
-	}
-
-	ni := nodeInfo{}
-	if ni.NodeInfo, err = client.NodeInfo(ctx, host); err != nil {
-		return nodeInfo{}, errors.Wrap(err, "fetch node info")
-	}
-
-	ni.TLSConfig = make(map[pingType]*tlsConfigWithAddress, 2)
-	for _, p := range []pingType{alternatorPing, cqlPing} {
-		var tlsEnabled, clientCertAuth bool
-		var address string
-		if p == cqlPing {
-			address = ni.CQLAddr(host)
-			tlsEnabled, clientCertAuth = ni.CQLTLSEnabled()
-			tlsEnabled = tlsEnabled && !c.ForceTLSDisabled
-			if tlsEnabled && !c.ForceNonSSLSessionPort {
-				address = ni.CQLSSLAddr(host)
-			}
-		} else if p == alternatorPing {
-			tlsEnabled, clientCertAuth = ni.AlternatorTLSEnabled()
-			address = ni.AlternatorAddr(host)
-		}
-		if tlsEnabled {
-			tlsConfig, err := s.tlsConfig(clusterID, clientCertAuth)
-			if err != nil && !errors.Is(err, service.ErrNotFound) {
-				return ni, errors.Wrap(err, "fetch TLS config")
-			}
-			if clientCertAuth && errors.Is(err, service.ErrNotFound) {
-				return nodeInfo{}, errors.Wrap(err, "client encryption is enabled, but certificate is missing")
-			}
-			ni.TLSConfig[p] = &tlsConfigWithAddress{
-				Config:  tlsConfig,
-				Address: address,
-			}
-		}
-	}
-
-	ni.Expires = now.Add(s.config.NodeInfoTTL)
-	s.nodeInfoCache[key] = ni
-
-	return ni, nil
-}
-
-func (s *Service) tlsConfig(clusterID uuid.UUID, clientCertAuth bool) (*tls.Config, error) {
-	cfg := tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	if clientCertAuth {
-		id := &secrets.TLSIdentity{
-			ClusterID: clusterID,
-		}
-		if err := s.secretsStore.Get(id); err != nil {
-			return nil, errors.Wrap(err, "get SSL user cert from secrets store")
-		}
-		keyPair, err := tls.X509KeyPair(id.Cert, id.PrivateKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "invalid SSL user key pair")
-		}
-		cfg.Certificates = []tls.Certificate{keyPair}
-	}
-
-	return &cfg, nil
-}
-
 func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQLCreds {
 	cqlCreds := &secrets.CQLCreds{
 		ClusterID: clusterID,
@@ -498,24 +370,4 @@ func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQ
 		}
 	}
 	return cqlCreds
-}
-
-// InvalidateCache frees all in-memory NodeInfo and TLS configuration
-// associated with a given cluster forcing reload from Scylla nodes with next usage.
-func (s *Service) InvalidateCache(clusterID uuid.UUID) {
-	s.cacheMu.Lock()
-	for cidHost := range s.nodeInfoCache {
-		if cidHost.ClusterID == clusterID {
-			delete(s.nodeInfoCache, cidHost)
-		}
-	}
-	s.cacheMu.Unlock()
-}
-
-func (ni nodeInfo) tlsConfig(pt pingType) *tlsConfigWithAddress {
-	return ni.TLSConfig[pt]
-}
-
-func (ni nodeInfo) hasTLSConfig(pt pingType) bool {
-	return ni.TLSConfig[pt] != nil
 }
