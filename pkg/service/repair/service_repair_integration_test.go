@@ -909,8 +909,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
 
 	props := map[string]any{
-		"fail_fast": false,
-		"continue":  true,
+		"fail_fast":             false,
+		"continue":              true,
+		"small_table_threshold": repairAllSmallTableThreshold,
 	}
 
 	type TableRange struct {
@@ -1428,7 +1429,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		props := singleUnit(map[string]any{
-			"continue": false,
+			"continue":              false,
+			"small_table_threshold": repairAllSmallTableThreshold,
 		})
 
 		Print("When: run repair")
@@ -1529,7 +1531,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		holdCtx, holdCancel := context.WithCancel(ctx)
 		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
 		h.runRepair(ctx, allUnits(map[string]any{
-			"fail_fast": true,
+			"fail_fast":             true,
+			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
 		Print("Then: repair is running")
@@ -1602,7 +1605,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		holdCtx, holdCancel := context.WithCancel(context.Background())
 		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
 		h.runRepair(ctx, allUnits(map[string]any{
-			"fail_fast": true,
+			"fail_fast":             true,
+			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
 		Print("Then: repair is running")
@@ -1769,7 +1773,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	t.Run("small table optimisation", func(t *testing.T) {
 		const (
-			testKeyspace = "test_repair_small_table"
+			testKeyspace = "test_repair_optimize_table"
 			testTable    = "test_table_0"
 
 			repairPath = "/storage_service/repair_async/"
@@ -1784,9 +1788,36 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		// Check small_table_optimization support
+		ni, err := h.Client.AnyNodeInfo(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		support, err := ni.SupportsRepairSmallTableOptimization()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rd := scyllaclient.NewRingDescriber(ctx, h.Client)
+		if rd.IsTabletKeyspace(testKeyspace) {
+			support = false
+		}
+
+		var (
+			repairCalled int32
+			optUsed      = atomic.Bool{}
+			inner        = countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful))
+		)
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+				opt, ok := req.URL.Query()["small_table_optimization"]
+				if ok && opt[0] == "true" {
+					optUsed.Store(true)
+				}
+			}
+			return inner.RoundTrip(req)
+		}))
+
 		Print("When: run repair")
-		var repairCalled int32
-		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
 		h.runRepair(ctx, map[string]any{
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"dc":                    []string{"dc1", "dc2"},
@@ -1797,6 +1828,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
+
+		// small_table_optimization should be used when supported
+		if support != optUsed.Load() {
+			t.Fatalf("small_table_optimization support: %v, used in API call: %v", support, optUsed.Load())
+		}
 
 		Print("And: one repair task was issued")
 		if repairCalled != 1 {
@@ -1832,9 +1868,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		var (
+			repairCalled int32
+			optUsed      = atomic.Bool{}
+			inner        = countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful))
+		)
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+				opt, ok := req.URL.Query()["small_table_optimization"]
+				if ok && opt[0] == "true" {
+					optUsed.Store(true)
+				}
+			}
+			return inner.RoundTrip(req)
+		}))
+
 		Print("When: run repair")
-		var repairCalled int32
-		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
 		h.runRepair(ctx, map[string]any{
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"small_table_threshold": tableMBSize * 1024 * 1024, // Actual table size is always greater because of replication
@@ -1842,6 +1891,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
+
+		// small_table_optimization shouldn't be used on big tables
+		if optUsed.Load() {
+			t.Fatal("small_table_optimisation was used")
+		}
 
 		Print("And: more than one repair jobs were scheduled")
 		if repairCalled <= 1 {
