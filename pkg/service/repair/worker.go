@@ -58,17 +58,22 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		out = errors.Wrapf(out, "master %s keyspace %s table %s command %d", j.master, j.keyspace, j.table, jobID)
 	}()
 
-	ranges := j.ranges
-	if j.jobType == mergeRangesJobType {
+	var ranges []scyllaclient.TokenRange
+	switch {
+	case j.jobType == optimizeJobType:
+		ranges = nil
+	case j.jobType == mergeRangesJobType:
 		ranges = []scyllaclient.TokenRange{
 			{
 				StartToken: dht.Murmur3MinToken,
 				EndToken:   dht.Murmur3MaxToken,
 			},
 		}
+	default:
+		ranges = j.ranges
 	}
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, ranges)
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, ranges, j.jobType == optimizeJobType)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}
