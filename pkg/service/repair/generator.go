@@ -60,6 +60,7 @@ const (
 	normalJobType jobType = iota
 	skipJobType
 	mergeRangesJobType
+	optimizeJobType
 )
 
 type job struct {
@@ -162,7 +163,8 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 	done, allRangesCnt := g.pm.GetCompletedRanges(keyspace, tp.Table)
 	// Always repair unfinished tablet table from scratch as
 	// tablet load balancing is enabled when repair is interrupted.
-	if !g.ringDescriber.IsTabletKeyspace(keyspace) || len(done) == allRangesCnt {
+	tabletKs := g.ringDescriber.IsTabletKeyspace(keyspace)
+	if !tabletKs || len(done) == allRangesCnt {
 		for _, r := range done {
 			delete(todoRanges, r)
 		}
@@ -170,6 +172,8 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 
 	var jt jobType
 	switch {
+	case g.plan.SmallTableOptSupport && tp.Small && !tabletKs:
+		jt = optimizeJobType
 	case len(ring.ReplicaTokens) == 1 && tp.Small:
 		jt = mergeRangesJobType
 	default:
@@ -256,6 +260,12 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				tg.ctl.Unblock(filtered)
 				continue
 			}
+			jt := tg.JobType
+			// A single optimized job repairs the whole table,
+			// so the remaining job are skipped (and sent only for recording progress).
+			if tg.JobType == optimizeJobType {
+				tg.JobType = skipJobType
+			}
 
 			return job{
 				keyspace:   tg.Keyspace,
@@ -263,7 +273,7 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				master:     tg.ms.Select(filtered),
 				replicaSet: filtered,
 				ranges:     ranges,
-				jobType:    tg.JobType,
+				jobType:    jt,
 			}, true
 		}
 	}

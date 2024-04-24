@@ -6,20 +6,23 @@ import (
 	"context"
 	"math"
 	"sort"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
+	"golang.org/x/sync/errgroup"
 )
 
 // plan describes whole repair schedule and state.
 type plan struct {
 	Keyspaces keyspacePlans
 
-	Hosts            []string
-	MaxParallel      int
-	MaxHostIntensity map[string]Intensity
+	Hosts                []string
+	MaxParallel          int
+	MaxHostIntensity     map[string]Intensity
+	SmallTableOptSupport bool
 	// Used for progress purposes
 	Stats map[scyllaclient.HostKeyspaceTable]tableStats
 }
@@ -121,6 +124,11 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 	ks.fillSmall(target.SmallTableThreshold)
 
+	support, err := isSmallTableOptSupported(ctx, client, hosts)
+	if err != nil {
+		return nil, errors.Wrap(err, "check support of small_table_optimization")
+	}
+
 	// Update max host intensity
 	mhi, err := maxHostIntensity(ctx, client, hosts)
 	if err != nil {
@@ -128,11 +136,12 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 
 	return &plan{
-		Keyspaces:        ks,
-		Hosts:            hosts,
-		MaxParallel:      maxP,
-		MaxHostIntensity: mhi,
-		Stats:            newStats(sizeReport, ranges),
+		Keyspaces:            ks,
+		Hosts:                hosts,
+		MaxParallel:          maxP,
+		MaxHostIntensity:     mhi,
+		SmallTableOptSupport: support,
+		Stats:                newStats(sizeReport, ranges),
 	}, nil
 }
 
@@ -366,4 +375,33 @@ func newHostKsTable(host, ks, table string) scyllaclient.HostKeyspaceTable {
 		Keyspace: ks,
 		Table:    table,
 	}
+}
+
+func isSmallTableOptSupported(ctx context.Context, client *scyllaclient.Client, hosts []string) (bool, error) {
+	out := atomic.Bool{}
+	out.Store(true)
+	eg := errgroup.Group{}
+
+	for _, host := range hosts {
+		h := host
+		eg.Go(func() error {
+			ni, err := client.NodeInfo(ctx, h)
+			if err != nil {
+				return err
+			}
+			res, err := ni.SupportsRepairSmallTableOptimization()
+			if err != nil {
+				return err
+			}
+			if !res {
+				out.Store(false)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return false, err
+	}
+	return out.Load(), nil
 }
