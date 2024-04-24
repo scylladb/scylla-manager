@@ -39,9 +39,7 @@ type tablePlan struct {
 	Size          int64
 	RangesCnt     int
 	ReplicaSetCnt int
-	// Optimized tables (small and fully replicated)
-	// have all ranges for replica set repaired in a single job.
-	Optimize bool
+	Small         bool
 }
 
 type tableStats struct {
@@ -54,7 +52,6 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	if err != nil {
 		return nil, errors.Wrap(err, "get status")
 	}
-	status.HostDC()
 
 	var (
 		ks       keyspacePlans
@@ -122,7 +119,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	if err != nil {
 		return nil, err
 	}
-	ks.fillOptimize(target.SmallTableThreshold)
+	ks.fillSmall(target.SmallTableThreshold)
 
 	// Update max host intensity
 	mhi, err := maxHostIntensity(ctx, client, hosts)
@@ -229,12 +226,11 @@ func (p keyspacePlans) fillSize(ctx context.Context, client *scyllaclient.Client
 	return sizeReport, nil
 }
 
-func (p keyspacePlans) fillOptimize(smallTableThreshold int64) {
+func (p keyspacePlans) fillSmall(smallTableThreshold int64) {
 	for _, ksp := range p {
 		for j, tp := range ksp.Tables {
-			// Return merged ranges for small, fully replicated table (#3128)
-			if tp.Size < smallTableThreshold && tp.ReplicaSetCnt == 1 {
-				ksp.Tables[j].Optimize = true
+			if tp.Size < smallTableThreshold {
+				ksp.Tables[j].Small = true
 			}
 		}
 	}

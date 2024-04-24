@@ -224,7 +224,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				"keyspace", kp.Keyspace,
 				"table", tp.Table,
 				"size", tp.Size,
-				"merge_ranges", tp.Optimize,
+				"small", tp.Small,
 			)
 		}
 	}
