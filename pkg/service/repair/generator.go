@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -33,8 +32,7 @@ type tableGenerator struct {
 	Ring         scyllaclient.Ring
 	TodoRanges   map[scyllaclient.TokenRange]struct{}
 	DoneReplicas map[uint64]struct{}
-	Optimize     bool
-	Deleted      bool
+	JobType      jobType
 	Err          error
 }
 
@@ -55,16 +53,22 @@ type submitter[T, R any] interface {
 	Close()
 }
 
+// jobType describes how worker should handle given repair job.
+type jobType int
+
+const (
+	normalJobType jobType = iota
+	skipJobType
+	mergeRangesJobType
+)
+
 type job struct {
 	keyspace   string
 	table      string
 	master     string
 	replicaSet []string
 	ranges     []scyllaclient.TokenRange
-	// jobs of optimized tables should merge all token ranges into one.
-	optimize bool
-	// jobs of deleted tables are sent only for progress updates.
-	deleted bool
+	jobType    jobType
 }
 
 type jobResult struct {
@@ -164,6 +168,14 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 		}
 	}
 
+	var jt jobType
+	switch {
+	case len(ring.ReplicaTokens) == 1 && tp.Small:
+		jt = mergeRangesJobType
+	default:
+		jt = normalJobType
+	}
+
 	tg := &tableGenerator{
 		generatorTools: g.generatorTools,
 		Keyspace:       keyspace,
@@ -171,7 +183,7 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 		Ring:           ring,
 		TodoRanges:     todoRanges,
 		DoneReplicas:   make(map[uint64]struct{}),
-		Optimize:       tp.Optimize,
+		JobType:        jt,
 	}
 	tg.logger = tg.logger.Named(keyspace + "." + tp.Table)
 	return tg
@@ -251,8 +263,7 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				master:     tg.ms.Select(filtered),
 				replicaSet: filtered,
 				ranges:     ranges,
-				optimize:   tg.Optimize,
-				deleted:    tg.Deleted,
+				jobType:    tg.JobType,
 			}, true
 		}
 	}
@@ -261,7 +272,7 @@ func (tg *tableGenerator) newJob() (job, bool) {
 }
 
 func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, cnt Intensity) []scyllaclient.TokenRange {
-	if tg.Optimize || tg.Deleted {
+	if tg.JobType != normalJobType {
 		cnt = NewIntensity(len(allRanges))
 	}
 
@@ -288,7 +299,9 @@ func (tg *tableGenerator) processResult(ctx context.Context, jr jobResult) {
 
 	if jr.err != nil && errors.Is(jr.err, errTableDeleted) {
 		tg.logger.Info(ctx, "Detected table deletion", "keyspace", jr.keyspace, "table", jr.table)
-		tg.Deleted = true
+		// Remaining jobs from deleted table are skipped
+		// (and sent only for recording progress).
+		tg.JobType = skipJobType
 	}
 
 	if !jr.Success() {
@@ -315,20 +328,6 @@ func (tg *tableGenerator) shouldGenerate() bool {
 
 func (tg *tableGenerator) shouldExit() bool {
 	return !tg.ctl.Busy() && !tg.shouldGenerate()
-}
-
-// tryOptimizeRanges returns either predefined ranges
-// or one full token range for small fully replicated tables.
-func (j job) tryOptimizeRanges() []scyllaclient.TokenRange {
-	if j.optimize {
-		return []scyllaclient.TokenRange{
-			{
-				StartToken: dht.Murmur3MinToken,
-				EndToken:   dht.Murmur3MaxToken,
-			},
-		}
-	}
-	return j.ranges
 }
 
 func (r jobResult) Success() bool {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 )
@@ -39,7 +40,7 @@ func (w *worker) Done(ctx context.Context) {
 var errTableDeleted = errors.New("table deleted during repair")
 
 func (w *worker) runRepair(ctx context.Context, j job) (out error) {
-	if j.deleted {
+	if j.jobType == skipJobType {
 		return nil
 	}
 
@@ -57,7 +58,17 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		out = errors.Wrapf(out, "master %s keyspace %s table %s command %d", j.master, j.keyspace, j.table, jobID)
 	}()
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, j.tryOptimizeRanges())
+	ranges := j.ranges
+	if j.jobType == mergeRangesJobType {
+		ranges = []scyllaclient.TokenRange{
+			{
+				StartToken: dht.Murmur3MinToken,
+				EndToken:   dht.Murmur3MaxToken,
+			},
+		}
+	}
+
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, ranges)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}
@@ -67,7 +78,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		"table", j.table,
 		"master", j.master,
 		"hosts", j.replicaSet,
-		"ranges", j.tryOptimizeRanges(),
+		"ranges", ranges,
 		"job_id", jobID,
 	)
 
