@@ -64,6 +64,7 @@ var (
 		Name: "cluster",
 		Columns: []string{
 			"auth_token",
+			"label",
 			"id",
 			"known_hosts",
 			"name",
@@ -248,6 +249,7 @@ var (
 		Name: "scheduler_task",
 		Columns: []string{
 			"cluster_id",
+			"label",
 			"deleted",
 			"enabled",
 			"error_count",

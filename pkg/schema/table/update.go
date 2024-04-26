@@ -11,6 +11,7 @@ var SchedulerTaskUpdate = table.New(table.Metadata{
 	Name: "scheduler_task",
 	Columns: []string{
 		"cluster_id",
+		"label",
 		"enabled",
 		"id",
 		"name",

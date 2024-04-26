@@ -324,6 +324,7 @@ func (s Schedule) backoff() retry.Backoff {
 // Task specify task type, properties and schedule.
 type Task struct {
 	ClusterID  uuid.UUID       `json:"cluster_id"`
+	Label      string          `json:"label"`
 	Type       TaskType        `json:"type"`
 	ID         uuid.UUID       `json:"id"`
 	Name       string          `json:"name"`
