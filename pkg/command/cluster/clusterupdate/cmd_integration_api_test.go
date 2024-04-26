@@ -20,6 +20,7 @@ const (
 	clusterIntroHost = "192.168.200.11"
 	testUsername     = "cassandra"
 	testPass         = "cassandra"
+	label            = "hello fellow mellow"
 )
 
 func TestSctoolClusterUpdateIntegrationAPITest(t *testing.T) {
@@ -28,6 +29,15 @@ func TestSctoolClusterUpdateIntegrationAPITest(t *testing.T) {
 		args            []string
 		expectedCluster *models.Cluster
 	}{
+		{
+			name: "update cluster, add label",
+			args: []string{"cluster", "update", "--label", label},
+			expectedCluster: &models.Cluster{
+				ForceTLSDisabled:       true,
+				ForceNonSslSessionPort: false,
+				Label:                  label,
+			},
+		},
 		{
 			name: "update cluster, no-changes",
 			args: []string{"cluster", "update", "--auth-token", authToken},
@@ -111,6 +121,10 @@ func TestSctoolClusterUpdateIntegrationAPITest(t *testing.T) {
 			if c.ForceNonSslSessionPort != tc.expectedCluster.ForceNonSslSessionPort {
 				t.Fatalf("ForceNonSslPort mismatch {%v} != {%v}, output={%v}", c.ForceNonSslSessionPort,
 					tc.expectedCluster.ForceNonSslSessionPort, string(output))
+			}
+			if c.Label != tc.expectedCluster.Label {
+				t.Fatalf("Comment mismatch {%v} != {%v}, output={%v}", c.Label,
+					tc.expectedCluster.Label, string(output))
 			}
 		})
 	}

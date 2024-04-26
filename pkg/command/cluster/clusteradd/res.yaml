@@ -28,6 +28,9 @@ name: |
   Use this parameter to identify the cluster by an alias name which is more meaningful.
   This `alias` name can be used with all commands that accept --cluster parameter.
 
+label: |
+  Free form text field to put additional comments.
+
 host: |
   Hostname or `IP` of the node that will be used to discover other nodes belonging to the cluster.
   Note that this will be persisted and used every time Scylla Manager starts.

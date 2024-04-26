@@ -22,6 +22,7 @@ const (
 	clusterIntroHost = "192.168.200.11"
 	testUsername     = "cassandra"
 	testPass         = "cassandra"
+	label            = "hello fellow mellow"
 )
 
 func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
@@ -30,6 +31,18 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 		args            []string
 		expectedCluster *models.Cluster
 	}{
+		{
+			name: "create cluster with label",
+			args: []string{"cluster", "add", "--auth-token", authToken, "--host", clusterIntroHost,
+				"--password", testPass, "--username", testUsername, "--label", label},
+			expectedCluster: &models.Cluster{
+				ForceTLSDisabled:       false,
+				ForceNonSslSessionPort: false,
+				Name:                   "",
+				Port:                   0,
+				Label:                  label,
+			},
+		},
 		{
 			name: "create cluster, default TLS enablement",
 			args: []string{"cluster", "add", "--auth-token", authToken, "--host", clusterIntroHost,
@@ -110,6 +123,10 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 			}
 			if c.Port != tc.expectedCluster.Port {
 				t.Fatalf("Port mismatch {%v} != {%v}, output={%v}", c.Port, tc.expectedCluster.Port, string(output))
+			}
+			if c.Label != tc.expectedCluster.Label {
+				t.Fatalf("Comment mismatch {%v} != {%v}, output={%v}", c.Label, tc.expectedCluster.Label, string(output))
+
 			}
 		})
 	}

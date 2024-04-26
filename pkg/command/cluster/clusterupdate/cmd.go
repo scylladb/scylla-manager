@@ -22,6 +22,7 @@ type command struct {
 
 	cluster                string
 	name                   string
+	label                  string
 	host                   string
 	port                   int64
 	authToken              string
@@ -55,6 +56,7 @@ func (cmd *command) init() {
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().StringVarP(&cmd.name, "name", "n", "", "")
+	w.Unwrap().StringVar(&cmd.label, "label", "", "")
 	w.Unwrap().StringVar(&cmd.host, "host", "", "")
 	w.Unwrap().Int64Var(&cmd.port, "port", 10001, "")
 	w.Unwrap().StringVar(&cmd.authToken, "auth-token", "", "")
@@ -77,6 +79,10 @@ func (cmd *command) run() error {
 	ok := false
 	if cmd.Flags().Changed("name") {
 		cluster.Name = cmd.name
+		ok = true
+	}
+	if cmd.Flags().Changed("label") {
+		cluster.Label = cmd.label
 		ok = true
 	}
 	if cmd.Flags().Changed("host") {

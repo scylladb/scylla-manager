@@ -25,6 +25,7 @@ type command struct {
 
 	id                     string
 	name                   string
+	label                  string
 	host                   string
 	port                   int64
 	authToken              string
@@ -57,6 +58,7 @@ func (cmd *command) init() {
 	w := cmd.Flags()
 	w.StringVarP(&cmd.id, "id", "i", "", "")
 	w.StringVarP(&cmd.name, "name", "n", "", "")
+	w.StringVar(&cmd.label, "label", "", "")
 	w.StringVar(&cmd.host, "host", "", "")
 	w.Int64Var(&cmd.port, "port", 10001, "")
 	w.StringVar(&cmd.authToken, "auth-token", "", "")
@@ -85,6 +87,7 @@ func (cmd *command) run() error {
 	c := &managerclient.Cluster{
 		ID:                     cmd.id,
 		Name:                   cmd.name,
+		Label:                  cmd.label,
 		Host:                   cmd.host,
 		AuthToken:              cmd.authToken,
 		Username:               cmd.username,
