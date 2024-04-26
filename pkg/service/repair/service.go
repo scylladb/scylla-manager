@@ -261,7 +261,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Give intensity handler the ability to set pool size
 	ih, cleanup := s.newIntensityHandler(ctx, clusterID, taskID, runID,
-		p.MaxHostIntensity, p.MaxParallel, workers)
+		p.MaxRepairRangesInParallel, p.MaxParallel, workers)
 	defer cleanup()
 
 	// Set controlled parameters
@@ -320,17 +320,17 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 }
 
 func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, runID uuid.UUID,
-	maxHostIntensity map[string]Intensity, maxParallel int, poolController sizeSetter,
+	maxHostIntensity map[string]int, maxParallel int, poolController sizeSetter,
 ) (ih *intensityHandler, cleanup func()) {
 	ih = &intensityHandler{
-		taskID:           taskID,
-		runID:            runID,
-		logger:           s.logger.Named("control"),
-		maxHostIntensity: maxHostIntensity,
-		intensity:        &atomic.Int64{},
-		maxParallel:      maxParallel,
-		parallel:         &atomic.Int64{},
-		poolController:   poolController,
+		taskID:                    taskID,
+		runID:                     runID,
+		logger:                    s.logger.Named("control"),
+		maxRepairRangesInParallel: maxHostIntensity,
+		intensity:                 &atomic.Int64{},
+		maxParallel:               maxParallel,
+		parallel:                  &atomic.Int64{},
+		poolController:            poolController,
 	}
 
 	s.mu.Lock()
@@ -393,10 +393,8 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	s.mu.Lock()
 	if ih, ok := s.intensityHandlers[clusterID]; ok {
 		maxI := NewIntensity(0)
-		for _, v := range ih.MaxHostIntensity() {
-			if maxI < v {
-				maxI = v
-			}
+		for _, v := range ih.MaxRepairRangesInParallel() {
+			maxI = max(maxI, Intensity(v))
 		}
 		p.MaxIntensity = maxI
 		p.MaxParallel = ih.MaxParallel()
@@ -459,14 +457,14 @@ type sizeSetter interface {
 }
 
 type intensityHandler struct {
-	taskID           uuid.UUID
-	runID            uuid.UUID
-	logger           log.Logger
-	maxHostIntensity map[string]Intensity
-	intensity        *atomic.Int64
-	maxParallel      int
-	parallel         *atomic.Int64
-	poolController   sizeSetter
+	taskID                    uuid.UUID
+	runID                     uuid.UUID
+	logger                    log.Logger
+	maxRepairRangesInParallel map[string]int
+	intensity                 *atomic.Int64
+	maxParallel               int
+	parallel                  *atomic.Int64
+	poolController            sizeSetter
 }
 
 const (
@@ -493,19 +491,17 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) {
 	}
 }
 
-func (i *intensityHandler) ReplicaSetMaxIntensity(replicaSet []string) Intensity {
-	out := NewIntensity(math.MaxInt)
+func (i *intensityHandler) ReplicaSetMaxRepairRangesInParallel(replicaSet []string) int {
+	out := math.MaxInt
 	for _, rep := range replicaSet {
-		if ranges := i.maxHostIntensity[rep]; ranges < out {
-			out = ranges
-		}
+		out = min(i.maxRepairRangesInParallel[rep], out)
 	}
 	return out
 }
 
-// MaxHostIntensity returns max_token_ranges_in_parallel per host.
-func (i *intensityHandler) MaxHostIntensity() map[string]Intensity {
-	return i.maxHostIntensity
+// MaxRepairRangesInParallel returns max_token_ranges_in_parallel per host.
+func (i *intensityHandler) MaxRepairRangesInParallel() map[string]int {
+	return i.maxRepairRangesInParallel
 }
 
 // Intensity returns stored value for intensity.
@@ -521,4 +517,9 @@ func (i *intensityHandler) MaxParallel() int {
 // Parallel returns stored value for parallel.
 func (i *intensityHandler) Parallel() int {
 	return int(i.parallel.Load())
+}
+
+// MaxJobsPerHost returns stored value for maxJobsPerHost.
+func (i *intensityHandler) MaxJobsPerHost() int {
+	return 1
 }

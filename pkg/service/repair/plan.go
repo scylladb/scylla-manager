@@ -17,9 +17,9 @@ import (
 type plan struct {
 	Keyspaces keyspacePlans
 
-	Hosts            []string
-	MaxParallel      int
-	MaxHostIntensity map[string]Intensity
+	Hosts                     []string
+	MaxParallel               int
+	MaxRepairRangesInParallel map[string]int
 	// Used for progress purposes
 	Stats map[scyllaclient.HostKeyspaceTable]tableStats
 }
@@ -131,11 +131,11 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 
 	return &plan{
-		Keyspaces:        ks,
-		Hosts:            hosts,
-		MaxParallel:      maxP,
-		MaxHostIntensity: mhi,
-		Stats:            newStats(sizeReport, ranges),
+		Keyspaces:                 ks,
+		Hosts:                     hosts,
+		MaxParallel:               maxP,
+		MaxRepairRangesInParallel: mhi,
+		Stats:                     newStats(sizeReport, ranges),
 	}, nil
 }
 
@@ -274,7 +274,7 @@ func ShouldRepairRing(ring scyllaclient.Ring, dcs []string, host string) bool {
 }
 
 // maxHostIntensity sets max_ranges_in_parallel for all repaired host.
-func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []string) (map[string]Intensity, error) {
+func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []string) (map[string]int, error) {
 	shards, err := client.HostsShardCount(ctx, hosts)
 	if err != nil {
 		return nil, err
@@ -286,22 +286,22 @@ func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []
 	return hostMaxRanges(shards, memory), nil
 }
 
-func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]Intensity {
-	out := make(map[string]Intensity, len(shards))
+func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]int {
+	out := make(map[string]int, len(shards))
 	for h, sh := range shards {
 		out[h] = maxRepairRangesInParallel(sh, memory[h])
 	}
 	return out
 }
 
-func maxRepairRangesInParallel(shards uint, totalMemory int64) Intensity {
+func maxRepairRangesInParallel(shards uint, totalMemory int64) int {
 	const MiB = 1024 * 1024
 	memoryPerShard := totalMemory / int64(shards)
 	maxI := int(0.1 * float64(memoryPerShard) / (32 * MiB) / 4)
 	if maxI == 0 {
 		maxI = 1
 	}
-	return NewIntensity(maxI)
+	return maxI
 }
 
 // MaxRingParallel calculates max amount of repair jobs on ring limited to dcs.

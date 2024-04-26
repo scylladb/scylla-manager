@@ -5,8 +5,9 @@ package repair
 // controller informs generator about the amount of ranges that can be repaired
 // on a given replica set. Returns 0 ranges when repair shouldn't be scheduled.
 type controller interface {
-	TryBlock(replicaSet []string) (ranges Intensity)
-	Unblock(replicaSet []string)
+	Block(replicaSet []string, todoRangesCnt int)
+	TryBlock(replicaSet []string, todoRangesCnt int) (rangesCnt int, ok bool)
+	Unblock(replicaSet []string, ranges int)
 	Busy() bool
 }
 
@@ -14,75 +15,84 @@ type intensityChecker interface {
 	Intensity() Intensity
 	Parallel() int
 	MaxParallel() int
-	ReplicaSetMaxIntensity(replicaSet []string) Intensity
+	ReplicaSetMaxRepairRangesInParallel(replicaSet []string) int
+	MaxJobsPerHost() int
 }
 
 // rowLevelRepairController is a specialised controller for row-level repair.
 // It allows for at most '--parallel' repair jobs running in the cluster and
-// at most one job running on every node at any time.
-// It always returns either 0 or '--intensity' ranges.
+// at most '--max-jobs-per-host' running on every node at any time.
+// It also ensures that at most '--intensity' ranges are repaired on every node at any time.
 type rowLevelRepairController struct {
 	intensity intensityChecker
 
-	jobsCnt  int            // Total amount of repair jobs in the cluster
-	nodeJobs map[string]int // Amount of repair jobs on a given node
+	jobsCnt    int            // Total amount of repair jobs in the cluster
+	nodeJobs   map[string]int // Amount of repair jobs currently executed on a given node
+	nodeRanges map[string]int // Amount of token ranges currently repaired on a given node
 }
 
 var _ controller = &rowLevelRepairController{}
 
 func newRowLevelRepairController(i intensityChecker) *rowLevelRepairController {
 	return &rowLevelRepairController{
-		intensity: i,
-		nodeJobs:  make(map[string]int),
+		intensity:  i,
+		nodeJobs:   make(map[string]int),
+		nodeRanges: make(map[string]int),
 	}
 }
 
-func (c *rowLevelRepairController) TryBlock(replicaSet []string) Intensity {
-	if !c.shouldBlock(replicaSet) {
-		return 0
+func (c *rowLevelRepairController) TryBlock(replicaSet []string, todoRangesCnt int) (int, bool) {
+	rangesCnt, ok := c.shouldBlock(replicaSet, todoRangesCnt)
+	if !ok {
+		return 0, false
 	}
-	c.block(replicaSet)
-
-	i := c.intensity.Intensity()
-	// TODO: tmp change made to experiment with using intensity over max
-	//if maxI := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || maxI < i {
-	//	i = maxI
-	//}
-	return i
+	c.Block(replicaSet, rangesCnt)
+	return rangesCnt, true
 }
 
-func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
-	// DENY if any node is already participating in repair job
+func (c *rowLevelRepairController) shouldBlock(replicaSet []string, todoRangesCnt int) (int, bool) {
+	// DENY if any node is already participating in --max-jobs-per-host jobs
 	for _, r := range replicaSet {
-		if c.nodeJobs[r] > 0 {
-			return false
+		if c.nodeJobs[r] >= c.intensity.MaxJobsPerHost() {
+			return 0, false
 		}
 	}
 
 	// DENY if there are already '--parallel' repair jobs running
 	parallel := c.intensity.Parallel()
 	if parallel != defaultParallel && c.jobsCnt >= parallel {
-		return false
-	}
-	// DENY if it's trying to exceed maxParallel
-	if parallel == defaultParallel && c.jobsCnt >= c.intensity.MaxParallel() {
-		return false
+		return 0, false
 	}
 
-	return true
+	intensity := int(c.intensity.Intensity())
+	if intensity == int(maxIntensity) {
+		intensity = c.intensity.ReplicaSetMaxRepairRangesInParallel(replicaSet)
+	}
+
+	rangesCnt := todoRangesCnt
+	for _, r := range replicaSet {
+		rangesCnt = min(intensity-c.nodeRanges[r], rangesCnt)
+	}
+	if rangesCnt <= 0 {
+		return 0, false
+	}
+
+	return rangesCnt, true
 }
 
-func (c *rowLevelRepairController) block(replicaSet []string) {
+func (c *rowLevelRepairController) Block(replicaSet []string, rangesCnt int) {
 	c.jobsCnt++
 	for _, r := range replicaSet {
 		c.nodeJobs[r]++
+		c.nodeRanges[r] += rangesCnt
 	}
 }
 
-func (c *rowLevelRepairController) Unblock(replicaSet []string) {
+func (c *rowLevelRepairController) Unblock(replicaSet []string, rangesCnt int) {
 	c.jobsCnt--
 	for _, r := range replicaSet {
 		c.nodeJobs[r]--
+		c.nodeRanges[r] -= rangesCnt
 	}
 }
 
