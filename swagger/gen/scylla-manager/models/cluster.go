@@ -30,6 +30,9 @@ type Cluster struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// label
+	Label string `json:"label,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
 

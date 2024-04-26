@@ -19,6 +19,9 @@ type TaskUpdate struct {
 	// enabled
 	Enabled bool `json:"enabled,omitempty"`
 
+	// label
+	Label string `json:"label,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
 

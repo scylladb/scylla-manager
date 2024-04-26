@@ -29,6 +29,9 @@
         "name": {
           "type": "string"
         },
+        "label": {
+          "type": "string"
+        },
         "host": {
           "type": "string"
         },
@@ -303,6 +306,9 @@
         "cluster_id": {
           "type": "string"
         },
+        "label": {
+          "type": "string"
+        },
         "type": {
           "type": "string"
         },
@@ -334,6 +340,9 @@
       "type": "object",
       "properties": {
         "cluster_id": {
+          "type": "string"
+        },
+        "label": {
           "type": "string"
         },
         "type": {
@@ -397,6 +406,9 @@
       "type": "object",
       "properties": {
         "name": {
+          "type": "string"
+        },
+        "label": {
           "type": "string"
         },
         "type": {

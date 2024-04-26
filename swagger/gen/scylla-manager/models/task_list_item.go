@@ -29,6 +29,9 @@ type TaskListItem struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// label
+	Label string `json:"label,omitempty"`
+
 	// last error
 	// Format: date-time
 	LastError *strfmt.DateTime `json:"last_error,omitempty"`
