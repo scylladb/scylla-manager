@@ -12,6 +12,9 @@ glob: |
 cluster: |
   The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
 
+label: |
+  Free form text field to put additional comments.
+
 dc: |
   A list of datacenter `glob` patterns separated by a comma, e.g. ``dc1,!otherdc*`` used to specify the datacenters to include or exclude.
   ${glob}

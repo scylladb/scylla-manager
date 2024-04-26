@@ -4,6 +4,9 @@ enabled: |
 name: |
   Task name that can be used insead of ID.
 
+label: |
+  
+
 cron: |
   Task schedule as a cron `expression`.
   It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].

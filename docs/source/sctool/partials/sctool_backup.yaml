@@ -9,6 +9,9 @@ options:
   shorthand: c
   usage: |
     The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+- name: label
+  usage: |
+    Free form text field to put additional comments.
 - name: cron
   usage: |
     Task schedule as a cron `expression`.

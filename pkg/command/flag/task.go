@@ -17,6 +17,7 @@ type TaskBase struct {
 
 	enabled  bool
 	name     string
+	label    string
 	cron     Cron
 	window   []string
 	timezone Timezone
@@ -46,6 +47,7 @@ func (cmd *TaskBase) Init() {
 	w := Wrap(cmd.Flags())
 	w.enabled(&cmd.enabled)
 	w.name(&cmd.name)
+	w.label(&cmd.label)
 	w.cron(&cmd.cron)
 	w.window(&cmd.window)
 	w.timezone(&cmd.timezone)
@@ -66,6 +68,7 @@ func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
 		Type:    taskType,
 		Enabled: cmd.enabled,
 		Name:    cmd.name,
+		Label:   cmd.label,
 		Schedule: &managerclient.Schedule{
 			Cron:       cmd.cron.Value(),
 			Window:     cmd.window,
@@ -88,6 +91,10 @@ func (cmd *TaskBase) UpdateTask(task *managerclient.Task) bool {
 	}
 	if cmd.Flag("name").Changed {
 		task.Name = cmd.name
+		ok = true
+	}
+	if cmd.Flag("label").Changed {
+		task.Label = cmd.label
 		ok = true
 	}
 	if cmd.Flag("cron").Changed {

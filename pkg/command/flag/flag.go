@@ -127,6 +127,10 @@ func (w Wrapper) name(p *string) {
 	w.fs.StringVar(p, "name", "", usage["name"])
 }
 
+func (w Wrapper) label(p *string) {
+	w.fs.StringVar(p, "label", "", usage["label"])
+}
+
 func (w Wrapper) cron(p *Cron) {
 	w.fs.VarP(p, "cron", "", usage["cron"])
 }

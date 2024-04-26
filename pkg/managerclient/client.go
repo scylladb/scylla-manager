@@ -332,6 +332,7 @@ func (c *Client) UpdateTask(ctx context.Context, clusterID string, t *Task) erro
 			Schedule:   t.Schedule,
 			Tags:       t.Tags,
 			Properties: t.Properties,
+			Label:      t.Label,
 		},
 	})
 	return err
