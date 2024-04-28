@@ -91,6 +91,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		Continue:            props.Continue,
 		Intensity:           NewIntensityFromDeprecated(props.Intensity),
 		Parallel:            props.Parallel,
+		MaxJobsPerHost:      props.MaxJobsPerHost,
 		SmallTableThreshold: props.SmallTableThreshold,
 	}
 
@@ -126,6 +127,12 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Ensure Host belongs to DCs
 	if t.Host != "" && !hostBelongsToDCs(t.Host, t.DC, dcMap) {
 		return t, service.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
+	}
+	if t.Parallel < 0 || t.Intensity < 0 || t.MaxJobsPerHost < 0 {
+		return t, service.ErrValidate(errors.Errorf("flags --parallel (%v), --intensity (%v), --max-jobs-per-host (%v) cannot be negative", t.Parallel, t.Intensity, t.MaxJobsPerHost))
+	}
+	if t.MaxJobsPerHost > 1 && t.Parallel != 0 {
+		return t, service.ErrValidate(errors.New("flag --max-jobs-per-host can be used only when --parallel is set to 0"))
 	}
 
 	// Get potential units - all tables matched by keyspace flag
@@ -267,6 +274,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Set controlled parameters
 	ih.SetParallel(ctx, run.Parallel)
 	ih.SetIntensity(ctx, run.Intensity)
+	ih.SetMaxJobsPerHost(ctx, target.MaxJobsPerHost)
 
 	// Give generator the ability to read parallel/intensity and
 	// to submit and receive results from worker pool.
@@ -330,6 +338,7 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, ru
 		intensity:                 &atomic.Int64{},
 		maxParallel:               maxParallel,
 		parallel:                  &atomic.Int64{},
+		maxJobsPerHost:            &atomic.Int64{},
 		poolController:            poolController,
 	}
 
@@ -464,6 +473,7 @@ type intensityHandler struct {
 	intensity                 *atomic.Int64
 	maxParallel               int
 	parallel                  *atomic.Int64
+	maxJobsPerHost            *atomic.Int64
 	poolController            sizeSetter
 }
 
@@ -484,14 +494,28 @@ func (i *intensityHandler) SetIntensity(ctx context.Context, intensity Intensity
 func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) {
 	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
 	i.parallel.Store(int64(parallel))
-	if parallel == defaultParallel {
-		i.poolController.SetSize(i.maxParallel)
-	} else {
-		i.poolController.SetSize(parallel)
-	}
+	i.adjustPoolSize()
 }
 
-func (i *intensityHandler) ReplicaSetMaxRepairRangesInParallel(replicaSet []string) int {
+func (i *intensityHandler) SetMaxJobsPerHost(ctx context.Context, maxJobsPerHost int) {
+	i.logger.Info(ctx, "Setting repair maxJobsPerHost", "value", maxJobsPerHost, "previous", i.maxJobsPerHost.Load())
+	i.maxJobsPerHost.Store(int64(maxJobsPerHost))
+	i.adjustPoolSize()
+}
+
+func (i *intensityHandler) adjustPoolSize() {
+	parallel := i.parallel.Load()
+	maxJobsPerHost := i.maxJobsPerHost.Load()
+	var poolSize int
+	if parallel == defaultParallel {
+		poolSize = i.maxParallel * int(maxJobsPerHost)
+	} else {
+		poolSize = int(parallel)
+	}
+	i.poolController.SetSize(poolSize)
+}
+
+func (i *intensityHandler) ReplicaSetMinRepairRangesInParallel(replicaSet []string) int {
 	out := math.MaxInt
 	for _, rep := range replicaSet {
 		out = min(i.maxRepairRangesInParallel[rep], out)
@@ -521,5 +545,5 @@ func (i *intensityHandler) Parallel() int {
 
 // MaxJobsPerHost returns stored value for maxJobsPerHost.
 func (i *intensityHandler) MaxJobsPerHost() int {
-	return 1
+	return int(i.maxJobsPerHost.Load())
 }

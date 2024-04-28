@@ -39,6 +39,7 @@ type Target struct {
 	Continue            bool      `json:"continue"`
 	Intensity           Intensity `json:"intensity"`
 	Parallel            int       `json:"parallel"`
+	MaxJobsPerHost      int       `json:"max_jobs_per_host"`
 	SmallTableThreshold int64     `json:"small_table_threshold"`
 }
 
@@ -52,6 +53,7 @@ type taskProperties struct {
 	Continue            bool     `json:"continue"`
 	Intensity           float64  `json:"intensity"`
 	Parallel            int      `json:"parallel"`
+	MaxJobsPerHost      int      `json:"max_jobs_per_host"`
 	SmallTableThreshold int64    `json:"small_table_threshold"`
 }
 
@@ -60,8 +62,9 @@ func defaultTaskProperties() *taskProperties {
 		// Don't repair system_traces unless it has been deliberately specified.
 		Keyspace: []string{"*", "!system_traces"},
 
-		Continue:  true,
-		Intensity: float64(defaultIntensity),
+		Continue:       true,
+		Intensity:      float64(defaultIntensity),
+		MaxJobsPerHost: 1,
 
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,

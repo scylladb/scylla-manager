@@ -15,7 +15,7 @@ type intensityChecker interface {
 	Intensity() Intensity
 	Parallel() int
 	MaxParallel() int
-	ReplicaSetMaxRepairRangesInParallel(replicaSet []string) int
+	ReplicaSetMinRepairRangesInParallel(replicaSet []string) int
 	MaxJobsPerHost() int
 }
 
@@ -66,7 +66,7 @@ func (c *rowLevelRepairController) shouldBlock(replicaSet []string, todoRangesCn
 
 	intensity := int(c.intensity.Intensity())
 	if intensity == int(maxIntensity) {
-		intensity = c.intensity.ReplicaSetMaxRepairRangesInParallel(replicaSet)
+		intensity = c.intensity.ReplicaSetMinRepairRangesInParallel(replicaSet)
 	}
 
 	rangesCnt := todoRangesCnt
