@@ -543,18 +543,17 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 	}
 }
 
-func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
+func TestServiceRepairMaxJobsPerHostIntegration(t *testing.T) {
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, repair.DefaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
 	const (
-		ks1           = "test_repair_rf_1"
-		ks2           = "test_repair_rf_2"
-		ks3           = "test_repair_rf_3"
-		t1            = "test_table_1"
-		t2            = "test_table_2"
-		maxJobsOnHost = 1
+		ks1 = "test_repair_rf_1"
+		ks2 = "test_repair_rf_2"
+		ks3 = "test_repair_rf_3"
+		t1  = "test_table_1"
+		t2  = "test_table_2"
 	)
 	createKeyspace(t, clusterSession, ks1, 1, 1)
 	createKeyspace(t, clusterSession, ks2, 2, 2)
@@ -563,86 +562,116 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 	WriteData(t, clusterSession, ks2, 5, t1, t2)
 	WriteData(t, clusterSession, ks3, 5, t1, t2)
 
-	t.Run("repair schedules only one job per host at any given time", func(t *testing.T) {
-		ctx := context.Background()
+	testCases := []struct {
+		maxJobsPerHost int
+		intensity      int
+	}{
+		{maxJobsPerHost: 3, intensity: 1},
+		{maxJobsPerHost: 2, intensity: 1},
+		{maxJobsPerHost: 1, intensity: 1},
+		{maxJobsPerHost: 2, intensity: 9999},
+		{maxJobsPerHost: 3, intensity: 10},
+	}
 
-		props := map[string]any{
-			"fail_fast": true,
-		}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("repair respects max-jobs-per-host=%v and intensity=%v", tc.maxJobsPerHost, tc.intensity), func(t *testing.T) {
+			h.TaskID = uuid.MustRandom()
+			h.RunID = uuid.MustRandom()
+			ctx := context.Background()
 
-		// The amount of currently executed repair jobs on host
-		jobsPerHost := make(map[string]int)
-		muJPH := sync.Mutex{}
-
-		// Set of hosts used for given repair job
-		hostsInJob := make(map[string][]string)
-		muHIJ := sync.Mutex{}
-
-		cnt := atomic.Int64{}
-
-		// Repair request
-		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-				hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
-				muJPH.Lock()
-				defer muJPH.Unlock()
-
-				for _, host := range hosts {
-					jobsPerHost[host]++
-					if jobsPerHost[host] > maxJobsOnHost {
-						cnt.Add(1)
-						return nil, nil
-					}
-				}
+			props := map[string]any{
+				"fail_fast":         true,
+				"intensity":         tc.intensity,
+				"parallel":          0,
+				"max_jobs_per_host": tc.maxJobsPerHost,
 			}
 
-			return nil, nil
-		}))
+			// The amount of currently executed repair jobs on host
+			jobsPerHost := make(map[string]int)
+			muJPH := sync.Mutex{}
 
-		h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
-			if resp == nil {
-				return
-			}
+			// Set of hosts used for given repair job
+			hostsInJob := make(map[string][]string)
+			muHIJ := sync.Mutex{}
 
-			var copiedBody bytes.Buffer
-			tee := io.TeeReader(resp.Body, &copiedBody)
-			body, _ := io.ReadAll(tee)
-			resp.Body = io.NopCloser(&copiedBody)
+			cnt := atomic.Int64{}
+			maxCnt := atomic.Int64{}
 
-			// Response to repair schedule
-			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
-				muHIJ.Lock()
-				hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
-				muHIJ.Unlock()
-			}
-
-			// Response to repair status
-			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
-				status := string(body)
-				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
-					muHIJ.Lock()
-					hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
-					muHIJ.Unlock()
-
+			// Repair request
+			h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+					hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
 					muJPH.Lock()
 					defer muJPH.Unlock()
 
 					for _, host := range hosts {
-						jobsPerHost[host]--
+						jobsPerHost[host]++
+						v := jobsPerHost[host]
+						maxCnt.Store(max(maxCnt.Load(), int64(v)))
+
+						if jobsPerHost[host] > tc.maxJobsPerHost {
+							cnt.Add(1)
+							return nil, nil
+						}
 					}
 				}
+
+				return nil, nil
+			}))
+
+			h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+				if resp == nil {
+					return
+				}
+
+				var copiedBody bytes.Buffer
+				tee := io.TeeReader(resp.Body, &copiedBody)
+				body, _ := io.ReadAll(tee)
+				resp.Body = io.NopCloser(&copiedBody)
+
+				// Response to repair schedule
+				if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
+					muHIJ.Lock()
+					hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
+					muHIJ.Unlock()
+				}
+
+				// Response to repair status
+				if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
+					status := string(body)
+					if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
+						muHIJ.Lock()
+						hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
+						muHIJ.Unlock()
+
+						muJPH.Lock()
+						defer muJPH.Unlock()
+
+						for _, host := range hosts {
+							jobsPerHost[host]--
+						}
+					}
+				}
+			})
+
+			Print("When: run repair")
+			if err := h.runRegularRepair(ctx, props); err != nil {
+				t.Errorf("Repair failed: %s", err)
 			}
+
+			if cnt.Load() > 0 {
+				t.Fatal("too many repair jobs are being executed on host")
+			}
+
+			progress, err := h.service.GetProgress(ctx, h.ClusterID, h.TaskID, h.RunID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertFullProgress(t, progress)
+
+			t.Logf("Max encountered number of jobs per node: %v", maxCnt.Load())
 		})
-
-		Print("When: run repair")
-		if err := h.runRegularRepair(ctx, props); err != nil {
-			t.Errorf("Repair failed: %s", err)
-		}
-
-		if cnt.Load() > 0 {
-			t.Fatal("too many repair jobs are being executed on host")
-		}
-	})
+	}
 }
 
 func TestServiceRepairOrderIntegration(t *testing.T) {
@@ -2042,5 +2071,26 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	}
 	if target.Units[0].Keyspace != "test_repair_0" {
 		t.Errorf("Expected only 'test_repair_0' keyspace in target units, got %s", target.Units[0].Keyspace)
+	}
+}
+
+func assertFullProgress(t *testing.T, progress repair.Progress) {
+	if progress.TokenRanges != progress.Success || progress.Error > 0 {
+		t.Fatal()
+	}
+	for _, hpr := range progress.Hosts {
+		if hpr.TokenRanges != progress.Success || progress.Error > 0 {
+			t.Fatal()
+		}
+		for _, tpr := range hpr.Tables {
+			if tpr.TokenRanges != progress.Success || progress.Error > 0 {
+				t.Fatal()
+			}
+		}
+	}
+	for _, tpr := range progress.Tables {
+		if tpr.TokenRanges != progress.Success || progress.Error > 0 {
+			t.Fatal()
+		}
 	}
 }
