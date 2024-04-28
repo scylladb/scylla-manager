@@ -567,7 +567,7 @@ func TestServiceRepairMaxJobsPerHostIntegration(t *testing.T) {
 		intensity      int
 	}{
 		{maxJobsPerHost: 3, intensity: 1},
-		{maxJobsPerHost: 2, intensity: 1},
+		{maxJobsPerHost: 2, intensity: 2},
 		{maxJobsPerHost: 1, intensity: 1},
 		{maxJobsPerHost: 2, intensity: 9999},
 		{maxJobsPerHost: 3, intensity: 10},
@@ -588,29 +588,47 @@ func TestServiceRepairMaxJobsPerHostIntegration(t *testing.T) {
 
 			// The amount of currently executed repair jobs on host
 			jobsPerHost := make(map[string]int)
-			muJPH := sync.Mutex{}
+			// The amount of currently repaired ranges on host
+			rangesPerHost := make(map[string]int)
+			muPH := sync.Mutex{}
 
 			// Set of hosts used for given repair job
 			hostsInJob := make(map[string][]string)
-			muHIJ := sync.Mutex{}
+			// Ranges count used for given repair job
+			rangesInJob := make(map[string]int)
+			muIJ := sync.Mutex{}
 
-			cnt := atomic.Int64{}
-			maxCnt := atomic.Int64{}
+			maxJobsCnt := atomic.Int64{}
+			maxRangesCnt := atomic.Int64{}
 
 			// Repair request
 			h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
 					hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
-					muJPH.Lock()
-					defer muJPH.Unlock()
+					// Watch out for split dumped ranges (see scyllaclient.dumpRanges)
+					raw := req.URL.Query()["ranges"][0]
+					ranges := len(strings.Split(raw, ","))
+					if strings.Contains(raw, fmt.Sprintf("%d,%d", dht.Murmur3MaxToken, dht.Murmur3MinToken)) {
+						ranges--
+					}
+
+					muPH.Lock()
+					defer muPH.Unlock()
 
 					for _, host := range hosts {
 						jobsPerHost[host]++
 						v := jobsPerHost[host]
-						maxCnt.Store(max(maxCnt.Load(), int64(v)))
+						maxJobsCnt.Store(max(maxJobsCnt.Load(), int64(v)))
+						if v > tc.maxJobsPerHost || v < 0 {
+							t.Fatalf("Jobs cnt out of limits: host: %s, jobs: %d", host, v)
+							return nil, nil
+						}
 
-						if jobsPerHost[host] > tc.maxJobsPerHost {
-							cnt.Add(1)
+						rangesPerHost[host] += ranges
+						v = rangesPerHost[host]
+						maxRangesCnt.Store(max(maxRangesCnt.Load(), int64(v)))
+						if v > tc.intensity || v < 0 {
+							t.Fatalf("Ranges cnt out of limits: host: %s, ranges: %d", host, v)
 							return nil, nil
 						}
 					}
@@ -631,24 +649,40 @@ func TestServiceRepairMaxJobsPerHostIntegration(t *testing.T) {
 
 				// Response to repair schedule
 				if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
-					muHIJ.Lock()
+					muIJ.Lock()
 					hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
-					muHIJ.Unlock()
+					// Watch out for split dumped ranges (see scyllaclient.dumpRanges)
+					raw := resp.Request.URL.Query()["ranges"][0]
+					ranges := len(strings.Split(raw, ","))
+					if strings.Contains(raw, fmt.Sprintf("%d,%d", dht.Murmur3MaxToken, dht.Murmur3MinToken)) {
+						ranges--
+					}
+
+					rangesInJob[resp.Request.Host+string(body)] = ranges
+					muIJ.Unlock()
 				}
 
 				// Response to repair status
 				if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
 					status := string(body)
 					if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
-						muHIJ.Lock()
+						muIJ.Lock()
 						hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
-						muHIJ.Unlock()
+						ranges := rangesInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
+						muIJ.Unlock()
 
-						muJPH.Lock()
-						defer muJPH.Unlock()
+						muPH.Lock()
+						defer muPH.Unlock()
 
 						for _, host := range hosts {
 							jobsPerHost[host]--
+							rangesPerHost[host] -= ranges
+							if jobsPerHost[host] < 0 {
+								t.Fatalf("Jobs cnt out of limits: host: %s, jobs: %d", host, jobsPerHost[host])
+							}
+							if rangesPerHost[host] < 0 {
+								t.Fatalf("Ranges cnt out of limits: host: %s, ranges: %d", host, rangesPerHost[host])
+							}
 						}
 					}
 				}
@@ -659,17 +693,14 @@ func TestServiceRepairMaxJobsPerHostIntegration(t *testing.T) {
 				t.Errorf("Repair failed: %s", err)
 			}
 
-			if cnt.Load() > 0 {
-				t.Fatal("too many repair jobs are being executed on host")
-			}
+			t.Logf("Max encountered number of jobs per node: %v", maxJobsCnt.Load())
+			t.Logf("Max encountered number of ranges per node: %v", maxRangesCnt.Load())
 
 			progress, err := h.service.GetProgress(ctx, h.ClusterID, h.TaskID, h.RunID)
 			if err != nil {
 				t.Fatal(err)
 			}
 			assertFullProgress(t, progress)
-
-			t.Logf("Max encountered number of jobs per node: %v", maxCnt.Load())
 		})
 	}
 }
@@ -2076,21 +2107,25 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 
 func assertFullProgress(t *testing.T, progress repair.Progress) {
 	if progress.TokenRanges != progress.Success || progress.Error > 0 {
-		t.Fatal()
+		t.Fatalf("Not full progress: token ranges: %v, success: %v, error: %v",
+			progress.TokenRanges, progress.Success, progress.Error)
 	}
 	for _, hpr := range progress.Hosts {
-		if hpr.TokenRanges != progress.Success || progress.Error > 0 {
-			t.Fatal()
+		if hpr.TokenRanges != hpr.Success || hpr.Error > 0 {
+			t.Fatalf("Not full progress: host: %v, token ranges: %v, success: %v, error: %v",
+				hpr.Host, hpr.TokenRanges, hpr.Success, hpr.Error)
 		}
 		for _, tpr := range hpr.Tables {
-			if tpr.TokenRanges != progress.Success || progress.Error > 0 {
-				t.Fatal()
+			if tpr.TokenRanges != tpr.Success || tpr.Error > 0 {
+				t.Fatalf("Not full progress: host: %v, table: %v, token ranges: %v, success: %v, error: %v",
+					hpr.Host, tpr.Keyspace+"."+tpr.Table, tpr.TokenRanges, tpr.Success, tpr.Error)
 			}
 		}
 	}
 	for _, tpr := range progress.Tables {
-		if tpr.TokenRanges != progress.Success || progress.Error > 0 {
-			t.Fatal()
+		if tpr.TokenRanges != tpr.Success || tpr.Error > 0 {
+			t.Fatalf("Not full progress: table: %v, token ranges: %v, success: %v, error: %v",
+				tpr.Keyspace+"."+tpr.Table, tpr.TokenRanges, tpr.Success, tpr.Error)
 		}
 	}
 }
