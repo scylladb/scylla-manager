@@ -204,6 +204,9 @@
         "max_parallel": {
           "type": "integer"
         },
+        "max_jobs_per_host": {
+          "type": "integer"
+        },
         "hosts": {
           "type": "array",
           "items": {
