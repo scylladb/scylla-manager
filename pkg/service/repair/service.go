@@ -397,6 +397,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	}
 	p.Parallel = run.Parallel
 	p.Intensity = run.Intensity
+	p.MaxJobsPerHost = 1
 
 	// Set max parallel/intensity only for running tasks
 	s.mu.Lock()
@@ -407,6 +408,8 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		}
 		p.MaxIntensity = maxI
 		p.MaxParallel = ih.MaxParallel()
+		// Set max_jobs_per_host only for running tasks
+		p.MaxJobsPerHost = ih.MaxJobsPerHost()
 	}
 	s.mu.Unlock()
 

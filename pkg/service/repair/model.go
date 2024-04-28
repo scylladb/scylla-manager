@@ -189,6 +189,7 @@ type Progress struct {
 	Intensity         Intensity       `json:"intensity"`
 	MaxParallel       int             `json:"max_parallel"`
 	Parallel          int             `json:"parallel"`
+	MaxJobsPerHost    int             `json:"max_jobs_per_host"`
 }
 
 func isTimeSet(t *time.Time) bool {
