@@ -707,9 +707,10 @@ End time:	{{ FormatTime .EndTime }}
 Duration:	{{ FormatDuration .StartTime .EndTime }} 
 {{- end }}
 {{- with .Progress }}
-Progress:	{{ FormatTotalRepairProgress .SuccessPercentage .ErrorPercentage }}
-Intensity:	{{ FormatRepairIntensity .Intensity .MaxIntensity }}
-Parallel:	{{ FormatRepairParallel .Parallel .MaxParallel }}
+Progress:	    {{ FormatTotalRepairProgress .SuccessPercentage .ErrorPercentage }}
+Intensity:	    {{ FormatRepairIntensity .Intensity .MaxIntensity }}
+Parallel:	    {{ FormatRepairParallel .Parallel .MaxParallel }}
+MaxJobsPerHost: {{ .MaxJobsPerHost }}
 {{ if .Host }}Host:	{{ .Host }}
 {{ end -}}
 {{ if .Dcs }}Datacenters:	{{ range .Dcs }}
