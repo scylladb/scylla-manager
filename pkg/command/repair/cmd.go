@@ -31,6 +31,7 @@ type command struct {
 	ignoreDownHosts     bool
 	intensity           *flag.Intensity
 	parallel            int
+	maxJobsPerHost      int
 	smallTableThreshold managerclient.SizeSuffix
 	dryRun              bool
 	showTables          bool
@@ -49,6 +50,7 @@ func newCommand(client *managerclient.Client, update bool) *command {
 		cmd = &command{
 			client:              client,
 			intensity:           flag.NewIntensity(1),
+			maxJobsPerHost:      1,
 			smallTableThreshold: 1073741824, // 1G
 		}
 		r []byte
@@ -83,6 +85,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.ignoreDownHosts, "ignore-down-hosts", false, "")
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
+	w.Unwrap().IntVar(&cmd.maxJobsPerHost, "max-jobs-per-host", 1, "")
 	w.Unwrap().Var(&cmd.smallTableThreshold, "small-table-threshold", "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
@@ -145,6 +148,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
+		ok = true
+	}
+	if cmd.Flag("max-jobs-per-host").Changed {
+		props["max_jobs_per_host"] = cmd.maxJobsPerHost
 		ok = true
 	}
 	if cmd.Flag("small-table-threshold").Changed {
