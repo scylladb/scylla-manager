@@ -450,6 +450,11 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 	if parallel < 0 {
 		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
 	}
+	if parallel != defaultParallel {
+		if maxJobsPerHost := ih.maxJobsPerHost.Load(); maxJobsPerHost > 1 {
+			return service.ErrValidate(errors.Errorf("when setting parallel to non zero value, please set max-jobs-per-host to one first"))
+		}
+	}
 	ih.SetParallel(ctx, parallel)
 
 	err := table.RepairRun.UpdateBuilder("parallel").Query(s.session).BindMap(qb.M{
@@ -459,6 +464,28 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 		"parallel":   ih.Parallel(),
 	}).ExecRelease()
 	return errors.Wrap(err, "update db")
+}
+
+// SetMaxJobsPerHost changes max-hosts-per-job of an ongoing repair.
+func (s *Service) SetMaxJobsPerHost(ctx context.Context, clusterID uuid.UUID, maxJobsPerHost int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ih, ok := s.intensityHandlers[clusterID]
+	if !ok {
+		return errors.Wrap(service.ErrNotFound, "repair task")
+	}
+	if maxJobsPerHost < 0 {
+		return service.ErrValidate(errors.Errorf("setting invalid max-jobs-per-host value %d", maxJobsPerHost))
+	}
+	if maxJobsPerHost > 1 {
+		if parallel := ih.parallel.Load(); parallel != 0 {
+			return service.ErrValidate(errors.Errorf("when setting max-jobs-per-host to a value greater than one, please set parallel to zero first"))
+		}
+	}
+
+	ih.SetMaxJobsPerHost(ctx, maxJobsPerHost)
+	return nil
 }
 
 type sizeSetter interface {

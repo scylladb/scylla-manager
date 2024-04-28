@@ -50,6 +50,7 @@ type RepairService interface {
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (repair.Target, error)
 	SetIntensity(ctx context.Context, runID uuid.UUID, intensity float64) error
 	SetParallel(ctx context.Context, runID uuid.UUID, parallel int) error
+	SetMaxJobsPerHost(ctx context.Context, runID uuid.UUID, maxJobsPerHost int) error
 }
 
 // BackupService service interface for the REST API handlers.
