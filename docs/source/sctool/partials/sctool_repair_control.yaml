@@ -1,49 +1,49 @@
 name: sctool repair control
 synopsis: Change parameters while a repair is running
 description: |
-  This command allows you to modify repair parameters while a repair is running.
-  Note that modified parameters apply only to the currently running task and not to the future task runs.
-  Moreover, this change is applied only to newly created ScyllaDB repair jobs (and to the currently repaired table).
-  This means that all currently running jobs will continue to run with previous parallel/intensity settings,
-  but it shouldn't take much time for them to finish and observe the new behavior.
-  For modifying future repair task runs see 'sctool repair update' command.
+    This command allows you to modify repair parameters while a repair is running.
+    Note that modified parameters apply only to the currently running task and not to the future task runs.
+    Moreover, this change is applied only to newly created ScyllaDB repair jobs (and to the currently repaired table).
+    This means that all currently running jobs will continue to run with previous parallel/intensity settings,
+    but it shouldn't take much time for them to finish and observe the new behavior.
+    For modifying future repair task runs see 'sctool repair update' command.
 usage: sctool repair control --cluster <id|name> [flags]
 options:
-- name: cluster
-  shorthand: c
-  usage: |
-    The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
-- name: help
-  shorthand: h
-  default_value: "false"
-  usage: help for control
-- name: intensity
-  default_value: "1"
-  usage: |
-    How many token ranges to repair in a single Scylla node at the same time.
-    Zero (0) is a special value, the number of token ranges is adjusted to the maximum supported (see repair docs for more information).
-    Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
-    If you set intensity to a value greater than the maximum supported by the node, intensity will be capped at that maximum.
-    See effectively used intensity value in the display of 'sctool progress repair' command.
-- name: parallel
-  default_value: "0"
-  usage: |
-    The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
-    Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
-    The maximal effective parallelism depends on keyspace replication strategy and cluster topology (see repair docs for more information).
-    If you set parallel to a value greater than the maximum supported by the node, parallel will be capped at that maximum.
-    See effectively used parallel value in the display of 'sctool progress repair' command.
+    - name: cluster
+      shorthand: c
+      usage: |
+        The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for control
+    - name: intensity
+      default_value: "1"
+      usage: |
+        How many token ranges to repair in a single Scylla node at the same time.
+        Zero (0) is a special value, the number of token ranges is adjusted to the maximum supported (see repair docs for more information).
+        Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.
+        If you set intensity to a value greater than the maximum supported by the node, intensity will be capped at that maximum.
+        See effectively used intensity value in the display of 'sctool progress repair' command.
+    - name: parallel
+      default_value: "0"
+      usage: |
+        The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
+        Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
+        The maximal effective parallelism depends on keyspace replication strategy and cluster topology (see repair docs for more information).
+        If you set parallel to a value greater than the maximum supported by the node, parallel will be capped at that maximum.
+        See effectively used parallel value in the display of 'sctool progress repair' command.
 inherited_options:
-- name: api-cert-file
-  usage: |
-    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
-- name: api-key-file
-  usage: |
-    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
-- name: api-url
-  default_value: http://127.0.0.1:5080/api/v1
-  usage: |
-    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
-    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+    - name: api-cert-file
+      usage: |
+        File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+    - name: api-key-file
+      usage: |
+        File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+    - name: api-url
+      default_value: http://127.0.0.1:5080/api/v1
+      usage: |
+        Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+        If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-- sctool repair - Schedule a repair (ad-hoc or scheduled)
+    - sctool repair - Schedule a repair (ad-hoc or scheduled)

@@ -23,7 +23,7 @@ Note that this procedure needs to be repeated for each Scylla node.
 
    .. code-block:: none
 
-      sudo systemctl start scylla-manager-agent
+      sudo systemctl restart scylla-manager-agent
 
 #. Verify the Scylla Manager Agent is running.
 
