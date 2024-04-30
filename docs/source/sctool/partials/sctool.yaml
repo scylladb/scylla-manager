@@ -1,37 +1,37 @@
 name: sctool
 synopsis: Scylla Manager Snapshot
 description: |-
-  Scylla Manager Snapshot.
+    Scylla Manager Snapshot.
 
-  Documentation is available online at https://manager.docs.scylladb.com/.
+    Documentation is available online at https://manager.docs.scylladb.com/.
 options:
-- name: api-cert-file
-  usage: |
-    File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
-- name: api-key-file
-  usage: |
-    File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
-- name: api-url
-  default_value: http://127.0.0.1:5080/api/v1
-  usage: |
-    Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
-    If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
-- name: help
-  shorthand: h
-  default_value: "false"
-  usage: help for sctool
+    - name: api-cert-file
+      usage: |
+        File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+    - name: api-key-file
+      usage: |
+        File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+    - name: api-url
+      default_value: http://127.0.0.1:5080/api/v1
+      usage: |
+        Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+        If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for sctool
 see_also:
-- backup - Schedule a backup (ad-hoc or scheduled)
-- cluster - Add or delete clusters
-- completion - Generate shell completion
-- info - Show task parameters and history
-- progress - Show the task progress
-- repair - Schedule a repair (ad-hoc or scheduled)
-- restore - Run an ad-hoc restore of schema or tables
-- resume - Undo suspend
-- start - Start executing a task
-- status - Show status of clusters
-- stop - Stop executing a task
-- suspend - Stop execution of all tasks
-- tasks - Show active tasks and their last run status
-- version - Show version information
+    - sctool backup - Schedule a backup (ad-hoc or scheduled)
+    - sctool cluster - Add or delete clusters
+    - sctool completion - Generate shell completion
+    - sctool info - Show task parameters and history
+    - sctool progress - Show the task progress
+    - sctool repair - Schedule a repair (ad-hoc or scheduled)
+    - sctool restore - Run an ad-hoc restore of schema or tables
+    - sctool resume - Undo suspend
+    - sctool start - Start executing a task
+    - sctool status - Show status of clusters
+    - sctool stop - Stop executing a task
+    - sctool suspend - Stop execution of all tasks
+    - sctool tasks - Show active tasks and their last run status
+    - sctool version - Show version information
