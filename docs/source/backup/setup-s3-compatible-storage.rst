@@ -81,7 +81,7 @@ Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
    .. code-block:: none
 
-      sudo systemctl start scylla-manager-agent
+      sudo systemctl restart scylla-manager-agent
 
 MinIO Example
 .............
