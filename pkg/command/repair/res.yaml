@@ -29,6 +29,11 @@ parallel: |
   If you set parallel to a value greater than the maximum supported by the node, parallel will be capped at that maximum.
   See effectively used parallel value in the display of 'sctool progress repair' command.
 
+max-jobs-per-host: |
+  Currently experimental. Setting this flag allows to break the one ScyllaDB repair job per one host at any given time rule.
+  It specifies how many ScyllaDB repair jobs can run at a single host at any given time.
+  It works only when '--parallel' is set to 0.
+
 small-table-threshold: |
   Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T].
 

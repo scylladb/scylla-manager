@@ -73,6 +73,8 @@ type ClientService interface {
 
 	PutClusterClusterIDRepairsIntensity(params *PutClusterClusterIDRepairsIntensityParams) (*PutClusterClusterIDRepairsIntensityOK, error)
 
+	PutClusterClusterIDRepairsMaxJobsPerHost(params *PutClusterClusterIDRepairsMaxJobsPerHostParams) (*PutClusterClusterIDRepairsMaxJobsPerHostOK, error)
+
 	PutClusterClusterIDRepairsParallel(params *PutClusterClusterIDRepairsParallelParams) (*PutClusterClusterIDRepairsParallelOK, error)
 
 	PutClusterClusterIDSuspended(params *PutClusterClusterIDSuspendedParams) (*PutClusterClusterIDSuspendedOK, error)
@@ -875,6 +877,39 @@ func (a *Client) PutClusterClusterIDRepairsIntensity(params *PutClusterClusterID
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*PutClusterClusterIDRepairsIntensityDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+PutClusterClusterIDRepairsMaxJobsPerHost put cluster cluster ID repairs max jobs per host API
+*/
+func (a *Client) PutClusterClusterIDRepairsMaxJobsPerHost(params *PutClusterClusterIDRepairsMaxJobsPerHostParams) (*PutClusterClusterIDRepairsMaxJobsPerHostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPutClusterClusterIDRepairsMaxJobsPerHostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PutClusterClusterIDRepairsMaxJobsPerHost",
+		Method:             "PUT",
+		PathPattern:        "/cluster/{cluster_id}/repairs/max_jobs_per_host",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PutClusterClusterIDRepairsMaxJobsPerHostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PutClusterClusterIDRepairsMaxJobsPerHostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PutClusterClusterIDRepairsMaxJobsPerHostDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

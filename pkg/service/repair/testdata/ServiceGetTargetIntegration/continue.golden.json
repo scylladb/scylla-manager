@@ -5,17 +5,17 @@
       "Tables": [
         "role_attributes",
         "role_members",
-        "roles",
-        "role_permissions"
+        "role_permissions",
+        "roles"
       ],
       "AllTables": true
     },
     {
       "Keyspace": "system_distributed",
       "Tables": [
-        "cdc_generation_timestamps",
         "view_build_status",
         "service_levels",
+        "cdc_generation_timestamps",
         "cdc_streams_descriptions_v2"
       ],
       "AllTables": true
@@ -30,11 +30,11 @@
     {
       "Keyspace": "system_traces",
       "Tables": [
-        "events",
+        "node_slow_log",
         "sessions_time_idx",
-        "node_slow_log_time_idx",
         "sessions",
-        "node_slow_log"
+        "node_slow_log_time_idx",
+        "events"
       ],
       "AllTables": true
     }
@@ -47,5 +47,6 @@
   "continue": false,
   "intensity": 1,
   "parallel": 0,
+  "max_jobs_per_host": 1,
   "small_table_threshold": 1073741824
 }

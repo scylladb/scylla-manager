@@ -96,6 +96,20 @@ func (mr *MockRepairServiceMockRecorder) SetIntensity(arg0, arg1, arg2 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetIntensity", reflect.TypeOf((*MockRepairService)(nil).SetIntensity), arg0, arg1, arg2)
 }
 
+// SetMaxJobsPerHost mocks base method.
+func (m *MockRepairService) SetMaxJobsPerHost(arg0 context.Context, arg1 uuid.UUID, arg2 int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMaxJobsPerHost", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMaxJobsPerHost indicates an expected call of SetMaxJobsPerHost.
+func (mr *MockRepairServiceMockRecorder) SetMaxJobsPerHost(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMaxJobsPerHost", reflect.TypeOf((*MockRepairService)(nil).SetMaxJobsPerHost), arg0, arg1, arg2)
+}
+
 // SetParallel mocks base method.
 func (m *MockRepairService) SetParallel(arg0 context.Context, arg1 uuid.UUID, arg2 int) error {
 	m.ctrl.T.Helper()

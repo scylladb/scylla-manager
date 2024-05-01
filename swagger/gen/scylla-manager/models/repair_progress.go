@@ -47,6 +47,9 @@ type RepairProgress struct {
 	// max intensity
 	MaxIntensity float64 `json:"max_intensity,omitempty"`
 
+	// max jobs per host
+	MaxJobsPerHost int64 `json:"max_jobs_per_host,omitempty"`
+
 	// max parallel
 	MaxParallel int64 `json:"max_parallel,omitempty"`
 

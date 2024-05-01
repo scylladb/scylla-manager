@@ -28,14 +28,14 @@ type generator struct {
 type tableGenerator struct {
 	generatorTools
 
-	Keyspace     string
-	Table        string
-	Ring         scyllaclient.Ring
-	TodoRanges   map[scyllaclient.TokenRange]struct{}
-	DoneReplicas map[uint64]struct{}
-	Optimize     bool
-	Deleted      bool
-	Err          error
+	Keyspace                  string
+	Table                     string
+	Ring                      scyllaclient.Ring
+	TodoRanges                map[scyllaclient.TokenRange]struct{}
+	TodoRangesCntInReplicaSet map[uint64]int
+	Optimize                  bool
+	Deleted                   bool
+	Err                       error
 }
 
 // Tools shared between generator and tableGenerator.
@@ -148,30 +148,44 @@ func (g *generator) Run(ctx context.Context) (err error) {
 }
 
 func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scyllaclient.Ring) *tableGenerator {
+	done, _ := g.pm.GetCompletedRanges(keyspace, tp.Table)
+	doneM := make(map[scyllaclient.TokenRange]struct{})
+	for _, r := range done {
+		doneM[r] = struct{}{}
+	}
+
 	todoRanges := make(map[scyllaclient.TokenRange]struct{})
+	TodoRangesCntInReplicaSet := make(map[uint64]int)
 	for _, rt := range ring.ReplicaTokens {
+		repHash := scyllaclient.ReplicaHash(rt.ReplicaSet)
 		for _, r := range rt.Ranges {
-			todoRanges[r] = struct{}{}
+			if _, ok := doneM[r]; !ok {
+				todoRanges[r] = struct{}{}
+				TodoRangesCntInReplicaSet[repHash]++
+			}
 		}
 	}
 
-	done, allRangesCnt := g.pm.GetCompletedRanges(keyspace, tp.Table)
-	// Always repair unfinished tablet table from scratch as
-	// tablet load balancing is enabled when repair is interrupted.
-	if !g.ringDescriber.IsTabletKeyspace(keyspace) || len(done) == allRangesCnt {
-		for _, r := range done {
-			delete(todoRanges, r)
+	if g.ringDescriber.IsTabletKeyspace(keyspace) && len(todoRanges) > 0 {
+		todoRanges = make(map[scyllaclient.TokenRange]struct{})
+		TodoRangesCntInReplicaSet = make(map[uint64]int)
+		for _, rt := range ring.ReplicaTokens {
+			repHash := scyllaclient.ReplicaHash(rt.ReplicaSet)
+			for _, r := range rt.Ranges {
+				todoRanges[r] = struct{}{}
+				TodoRangesCntInReplicaSet[repHash]++
+			}
 		}
 	}
 
 	tg := &tableGenerator{
-		generatorTools: g.generatorTools,
-		Keyspace:       keyspace,
-		Table:          tp.Table,
-		Ring:           ring,
-		TodoRanges:     todoRanges,
-		DoneReplicas:   make(map[uint64]struct{}),
-		Optimize:       tp.Optimize,
+		generatorTools:            g.generatorTools,
+		Keyspace:                  keyspace,
+		Table:                     tp.Table,
+		Ring:                      ring,
+		TodoRanges:                todoRanges,
+		TodoRangesCntInReplicaSet: TodoRangesCntInReplicaSet,
+		Optimize:                  tp.Optimize,
 	}
 	tg.logger = tg.logger.Named(keyspace + "." + tp.Table)
 	return tg
@@ -224,33 +238,37 @@ func (tg *tableGenerator) newJob() (job, bool) {
 		// Calculate replica hash on not filtered replica set
 		// because different replica sets might be the same after filtering.
 		repHash := scyllaclient.ReplicaHash(rt.ReplicaSet)
-		if _, ok := tg.DoneReplicas[repHash]; ok {
+		todoRangesCnt := tg.TodoRangesCntInReplicaSet[repHash]
+		if todoRangesCnt == 0 {
 			continue
 		}
 
 		filtered := filterReplicaSet(rt.ReplicaSet, tg.Ring.HostDC, tg.target)
 		if len(filtered) == 0 {
-			tg.DoneReplicas[repHash] = struct{}{}
+			tg.TodoRangesCntInReplicaSet[repHash] = 0
 			for _, r := range rt.Ranges {
 				delete(tg.TodoRanges, r)
 			}
 			continue
 		}
 
-		if cnt := tg.ctl.TryBlock(filtered); cnt > 0 {
-			ranges := tg.getRangesToRepair(rt.Ranges, cnt)
-			if len(ranges) == 0 {
-				tg.DoneReplicas[repHash] = struct{}{}
-				tg.ctl.Unblock(filtered)
-				continue
-			}
+		var rangesCnt int
+		var ok bool
+		if tg.Deleted || tg.Optimize {
+			rangesCnt = todoRangesCnt
+			ok = true
+			tg.ctl.Block(filtered, rangesCnt)
+		} else {
+			rangesCnt, ok = tg.ctl.TryBlock(filtered, todoRangesCnt)
+		}
 
+		if ok {
 			return job{
 				keyspace:   tg.Keyspace,
 				table:      tg.Table,
 				master:     tg.ms.Select(filtered),
 				replicaSet: filtered,
-				ranges:     ranges,
+				ranges:     tg.getRangesToRepair(repHash, rt.Ranges, rangesCnt),
 				optimize:   tg.Optimize,
 				deleted:    tg.Deleted,
 			}, true
@@ -260,23 +278,21 @@ func (tg *tableGenerator) newJob() (job, bool) {
 	return job{}, false
 }
 
-func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, cnt Intensity) []scyllaclient.TokenRange {
-	if tg.Optimize || tg.Deleted {
-		cnt = NewIntensity(len(allRanges))
-	}
-
+func (tg *tableGenerator) getRangesToRepair(repHash uint64, allRanges []scyllaclient.TokenRange, rangesCnt int) []scyllaclient.TokenRange {
 	var ranges []scyllaclient.TokenRange
 	for _, r := range allRanges {
 		if _, ok := tg.TodoRanges[r]; !ok {
 			continue
 		}
 		delete(tg.TodoRanges, r)
+
 		ranges = append(ranges, r)
-		if NewIntensity(len(ranges)) >= cnt {
+		if len(ranges) >= rangesCnt {
 			break
 		}
 	}
 
+	tg.TodoRangesCntInReplicaSet[repHash] -= len(ranges)
 	return ranges
 }
 
@@ -302,7 +318,7 @@ func (tg *tableGenerator) processResult(ctx context.Context, jr jobResult) {
 			tg.stopGenerating()
 		}
 	}
-	tg.ctl.Unblock(jr.replicaSet)
+	tg.ctl.Unblock(jr.replicaSet, len(jr.ranges))
 }
 
 func (gt generatorTools) stopGenerating() {

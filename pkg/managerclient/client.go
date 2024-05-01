@@ -644,6 +644,18 @@ func (c *Client) SetRepairParallel(ctx context.Context, clusterID string, parall
 	return err
 }
 
+// SetRepairMaxJobsPerHost updates ongoing repair max-jobs-per-host.
+func (c *Client) SetRepairMaxJobsPerHost(ctx context.Context, clusterID string, maxJobsPerHost int64) error {
+	p := &operations.PutClusterClusterIDRepairsMaxJobsPerHostParams{
+		Context:        ctx,
+		ClusterID:      clusterID,
+		MaxJobsPerHost: maxJobsPerHost,
+	}
+
+	_, err := c.operations.PutClusterClusterIDRepairsMaxJobsPerHost(p) // nolint: errcheck
+	return err
+}
+
 // IsSuspended returns true iff the current cluster is suspended.
 func (c *Client) IsSuspended(ctx context.Context, clusterID string) (bool, error) {
 	p := &operations.GetClusterClusterIDSuspendedParams{

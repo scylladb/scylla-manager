@@ -22,6 +22,7 @@ func newRepairHandler(services Services) *chi.Mux {
 
 	m.Put("/intensity", h.updateIntensity)
 	m.Put("/parallel", h.updateParallel)
+	m.Put("/max_jobs_per_host", h.updateMaxJobsPerHost)
 
 	return m
 }
@@ -58,6 +59,21 @@ func (h repairHandler) parallel(r *http.Request) (int64, error) {
 	return parallel, err
 }
 
+func (h repairHandler) maxJobsPerHost(r *http.Request) (int64, error) {
+	var (
+		maxJobsPerHost int64
+		err            error
+	)
+
+	if v := r.FormValue("max_jobs_per_host"); v != "" {
+		if maxJobsPerHost, err = strconv.ParseInt(v, 10, 64); err != nil {
+			return maxJobsPerHost, service.ErrValidate(err)
+		}
+	}
+
+	return maxJobsPerHost, err
+}
+
 func (h repairHandler) updateIntensity(w http.ResponseWriter, r *http.Request) {
 	intensity, err := h.intensity(r)
 	if err != nil {
@@ -87,6 +103,25 @@ func (h repairHandler) updateParallel(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		mustClusterIDFromCtx(r),
 		int(parallel),
+	); err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h repairHandler) updateMaxJobsPerHost(w http.ResponseWriter, r *http.Request) {
+	maxJobsPerHost, err := h.maxJobsPerHost(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if err := h.svc.SetMaxJobsPerHost(
+		r.Context(),
+		mustClusterIDFromCtx(r),
+		int(maxJobsPerHost),
 	); err != nil {
 		respondError(w, r, err)
 		return

@@ -204,6 +204,9 @@
         "max_parallel": {
           "type": "integer"
         },
+        "max_jobs_per_host": {
+          "type": "integer"
+        },
         "hosts": {
           "type": "array",
           "items": {
@@ -2074,6 +2077,35 @@
             "schema": {
               "$ref": "#/definitions/Suspended"
             }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/repairs/max_jobs_per_host": {
+      "put": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "name": "max_jobs_per_host",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           },
           "default": {
             "description": "Error",

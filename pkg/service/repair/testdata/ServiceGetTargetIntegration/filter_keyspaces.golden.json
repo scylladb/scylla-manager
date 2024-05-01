@@ -19,5 +19,6 @@
   "continue": true,
   "intensity": 1,
   "parallel": 0,
+  "max_jobs_per_host": 1,
   "small_table_threshold": 1073741824
 }
