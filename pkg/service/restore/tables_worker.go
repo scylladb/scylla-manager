@@ -246,7 +246,9 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 		}
 	}
 	repairProps, err := json.Marshal(map[string]any{
-		"keyspace": keyspace,
+		"keyspace":  keyspace,
+		"intensity": 0,
+		"parallel":  0,
 	})
 	if err != nil {
 		return errors.Wrap(err, "parse repair properties")
