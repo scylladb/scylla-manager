@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/config"
@@ -59,6 +60,7 @@ type Config struct {
 	Database           DBConfig                   `yaml:"database"`
 	SSL                SSLConfig                  `yaml:"ssl"`
 	Healthcheck        healthcheck.Config         `yaml:"healthcheck"`
+	ConfigCache        configcache.Config         `yaml:"config_cache"`
 	Backup             backup.Config              `yaml:"backup"`
 	Restore            restore.Config             `yaml:"restore"`
 	Repair             repair.Config              `yaml:"repair"`
@@ -90,6 +92,7 @@ func DefaultConfig() Config {
 		Restore:            restore.DefaultConfig(),
 		Repair:             repair.DefaultConfig(),
 		TimeoutConfig:      scyllaclient.DefaultTimeoutConfig(),
+		ConfigCache:        configcache.DefaultConfig(),
 	}
 }
 
