@@ -80,7 +80,8 @@ func (s *server) makeServices(ctx context.Context) error {
 	}
 	s.clusterSvc.SetOnChangeListener(s.onClusterChange)
 
-	s.configCacheSvc = configcache.NewService(s.clusterSvc, s.clusterSvc.CreateClientNoCache, secretsStore, s.logger)
+	s.configCacheSvc = configcache.NewService(s.config.ConfigCache, s.clusterSvc, s.clusterSvc.CreateClientNoCache,
+		secretsStore, s.logger)
 	s.initConfigCacheSvc(ctx)
 
 	s.healthSvc, err = healthcheck.NewService(

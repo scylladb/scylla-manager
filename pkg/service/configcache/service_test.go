@@ -82,6 +82,7 @@ func TestService_Read(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Given
 			svc := Service{
+				svcConfig:    DefaultConfig(),
 				clusterSvc:   &mockClusterServicer{},
 				scyllaClient: mockProviderFunc,
 				secretsStore: &mockStore{},
@@ -109,6 +110,7 @@ func TestService_Read(t *testing.T) {
 func TestService_Run(t *testing.T) {
 	t.Run("validate context cancellation handling", func(t *testing.T) {
 		svc := Service{
+			svcConfig:    DefaultConfig(),
 			clusterSvc:   &mockClusterServicer{},
 			scyllaClient: mockProviderFunc,
 			secretsStore: &mockStore{},
