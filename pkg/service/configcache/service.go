@@ -15,18 +15,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// ConnectionType defines an enum for different types of configuration.
-type ConnectionType int
-
-const (
-	// CQL defines cql connection type.
-	CQL ConnectionType = iota
-	// Alternator defines alternator connection type.
-	Alternator
-
-	updateFrequency = 5 * time.Minute
-)
-
 // ConfigCacher is the interface defining the cache behavior.
 type ConfigCacher interface {
 	// Read returns either the host configuration that is currently stored in the cache,
@@ -51,6 +39,8 @@ type ConfigCacher interface {
 // Use svc.Read(clusterID, host) to read the configuration of particular host in given cluster.
 // Use svc.Run() to let the cache update itself periodically with the current configuration.
 type Service struct {
+	svcConfig Config
+
 	clusterSvc   cluster.Servicer
 	scyllaClient scyllaclient.ProviderFunc
 	secretsStore store.Store
@@ -60,8 +50,9 @@ type Service struct {
 }
 
 // NewService is the constructor for the cluster config cache service.
-func NewService(clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) ConfigCacher {
+func NewService(config Config, clusterSvc cluster.Servicer, client scyllaclient.ProviderFunc, secretsStore store.Store, logger log.Logger) ConfigCacher {
 	return &Service{
+		svcConfig:    config,
 		clusterSvc:   clusterSvc,
 		scyllaClient: client,
 		secretsStore: secretsStore,
@@ -96,7 +87,7 @@ func (svc *Service) Read(clusterID uuid.UUID, host string) (NodeConfig, error) {
 
 // Run starts the infinity loop responsible for updating the clusters configuration periodically.
 func (svc *Service) Run(ctx context.Context) {
-	freq := time.NewTicker(updateFrequency)
+	freq := time.NewTicker(svc.svcConfig.UpdateFrequency)
 
 	for {
 		// make sure to shut down when the context is cancelled
