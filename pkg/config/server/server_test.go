@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -109,6 +110,9 @@ func TestConfigModification(t *testing.T) {
 				MaxRetries: 4,
 			},
 			PoolDecayDuration: time.Hour,
+		},
+		ConfigCache: configcache.Config{
+			UpdateFrequency: 5 * time.Minute,
 		},
 	}
 

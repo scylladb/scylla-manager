@@ -82,7 +82,7 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	configCacheSvc := configcache.NewService(clusterSvc, scyllaClientProvider, s, logger.Named("config-cache"))
+	configCacheSvc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider, s, logger.Named("config-cache"))
 	configCacheSvc.Init(context.Background())
 
 	defaultConfigForHealthcheck := DefaultConfig()
@@ -223,7 +223,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		sc.Transport = hrt
 		return scyllaclient.NewClient(sc, logger.Named("scylla"))
 	}
-	configCacheSvc := configcache.NewService(clusterSvc, scyllaClientProvider, secretsStore, logger.Named("config-cache"))
+	configCacheSvc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider,
+		secretsStore, logger.Named("config-cache"))
 	configCacheSvc.Init(context.Background())
 
 	s, err := NewService(
