@@ -110,7 +110,7 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	}
 
 	if t.RestoreSchema {
-		if err := isRestoreSchemaSupported(ctx, w.client); err != nil {
+		if err := IsRestoreSchemaSupported(ctx, w.client); err != nil {
 			return err
 		}
 	}
@@ -164,9 +164,14 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	return nil
 }
 
+// ErrRestoreSchemaUnsupportedScyllaVersion means that restore schema procedure is not safe for used Scylla configuration.
+var ErrRestoreSchemaUnsupportedScyllaVersion = errors.Errorf("restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
+	"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
+
+// IsRestoreSchemaSupported checks if restore schema procedure is supported for used Scylla configuration.
 // Because of #3662, there is no way fo SM to safely restore schema into cluster with consistent_cluster_management
 // and version higher or equal to OSS 5.4 or ENT 2024. There is a documented workaround in SM docs.
-func isRestoreSchemaSupported(ctx context.Context, client *scyllaclient.Client) error {
+func IsRestoreSchemaSupported(ctx context.Context, client *scyllaclient.Client) error {
 	const (
 		DangerousConstraintOSS = ">= 6.0, < 2000"
 		DangerousConstraintENT = ">= 2024.2, > 1000"
@@ -214,8 +219,7 @@ func isRestoreSchemaSupported(ctx context.Context, client *scyllaclient.Client) 
 	}
 
 	if raftSchema && !raftIsSafe {
-		return errors.Errorf("restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
-			"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
+		return ErrRestoreSchemaUnsupportedScyllaVersion
 	}
 	return nil
 }
