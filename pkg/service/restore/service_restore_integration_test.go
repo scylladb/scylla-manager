@@ -224,11 +224,20 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			h := h
+			h.T = t
 			b, err := os.ReadFile(tc.input)
 			if err != nil {
 				t.Fatal(err)
 			}
 			b = jsonutil.Set(b, "snapshot_tag", tag)
+
+			var target Target
+			if err = json.Unmarshal(b, &target); err != nil {
+				t.Fatal(err)
+			}
+			h.shouldSkipTest(target)
+
 			target, units, views, err := h.service.GetTargetUnitsViews(ctx, h.ClusterID, b)
 			if err != nil {
 				t.Fatal(err)
@@ -577,6 +586,8 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
+	dstH.shouldSkipTest(target)
+
 	// Restore should be performed on user with limited permissions
 	if err := createUser(dstSession, user, "pass"); err != nil {
 		t.Fatal(err)
@@ -643,6 +654,8 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx          = context.Background()
 	)
+
+	dstH.shouldSkipTest(target)
 
 	// Restore should be performed on user with limited permissions
 	if err := createUser(dstSession, user, "pass"); err != nil {
@@ -747,6 +760,8 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 		ctx1, cancel1 = context.WithCancel(context.Background())
 		ctx2, cancel2 = context.WithCancel(context.Background())
 	)
+
+	dstH.shouldSkipTest(target)
 
 	// Restore should be performed on user with limited permissions
 	if err := createUser(dstSession, user, "pass"); err != nil {
@@ -913,6 +928,8 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx          = context.Background()
 	)
+
+	dstH.shouldSkipTest(target)
 
 	status, err := srcH.Client.Status(ctx)
 	if err != nil {
@@ -1118,6 +1135,8 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
+	dstH.shouldSkipTest(target)
+
 	Print("When: Create Restore user")
 	if err := createUser(dstSession, user, "pass"); err != nil {
 		t.Fatal(err)
@@ -1205,6 +1224,8 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
+
+	dstH.shouldSkipTest(schemaTarget, tablesTarget)
 
 	Print("When: Create Restore user")
 	if err := createUser(dstSession, user, "pass"); err != nil {
@@ -1302,6 +1323,8 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
+
+	dstH.shouldSkipTest(schemaTarget, tablesTarget)
 
 	// Ensure clean scylla tables
 	if err := cleanScyllaTables(srcSession); err != nil {
@@ -1409,6 +1432,8 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, keyspace
 		dstSession   = CreateSessionAndDropAllKeyspaces(t, dstH.Client)
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
+
+	dstH.shouldSkipTest(schemaTarget, tablesTarget)
 
 	// Restore should be performed on user with limited permissions
 	if err := createUser(dstSession, user, "pass"); err != nil {
@@ -1879,4 +1904,17 @@ func tombstoneGCMode(s gocqlx.Session, keyspace, table string) (string, error) {
 		}
 	}
 	return "", errors.New("unknown mode")
+}
+
+func (h *restoreTestHelper) shouldSkipTest(targets ...Target) {
+	for _, target := range targets {
+		if target.RestoreSchema {
+			if err := IsRestoreSchemaSupported(context.Background(), h.Client); err != nil {
+				if errors.Is(err, ErrRestoreSchemaUnsupportedScyllaVersion) {
+					h.T.Skip(err)
+				}
+				h.T.Fatal(err)
+			}
+		}
+	}
 }
