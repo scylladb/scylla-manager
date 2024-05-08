@@ -1055,6 +1055,45 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		t.Fatal("Repair failed without error")
 	}
 
+	validate := func(tab string, tr []scyllaclient.TokenRange) (redundant int, err error) {
+		sort.Slice(tr, func(i, j int) bool {
+			return tr[i].StartToken < tr[j].StartToken
+		})
+
+		// Check that full token range is repaired
+		if tr[0].StartToken != dht.Murmur3MinToken {
+			return 0, errors.Errorf("expected min token %d, got %d", dht.Murmur3MinToken, tr[0].StartToken)
+		}
+		if tr[len(tr)-1].EndToken != dht.Murmur3MaxToken {
+			return 0, errors.Errorf("expected max token %d, got %d", dht.Murmur3MaxToken, tr[len(tr)-1].EndToken)
+		}
+
+		// Check if repaired token ranges are continuous
+		for i := 1; i < len(tr); i++ {
+			// Redundant ranges might occur due to pausing repair,
+			// but there shouldn't be much of them.
+			if tr[i-1] == tr[i] {
+				redundant++
+				continue
+			}
+			if tr[i-1].EndToken != tr[i].StartToken {
+				return 0, errors.Errorf("non continuous token ranges %v and %v", tr[i-1], tr[i])
+			}
+		}
+
+		return redundant, nil
+	}
+
+	// Tablet tables don't support resuming repair, so in order to check if repair
+	// started from scratch, we need to remove all repaired ranges up to this point.
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, h.Client)
+	for tab, _ := range doneRanges {
+		_, err := validate(tab, doneRanges[tab])
+		if err != nil && ringDescriber.IsTabletKeyspace(strings.Split(tab, ".")[0]) {
+			doneRanges[tab] = nil
+		}
+	}
+
 	Print("When: run fifth repair till it finishes")
 	h.RunID = uuid.NewTime()
 	if err := h.runRegularRepair(ctx, props); err != nil {
@@ -1066,31 +1105,11 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	for tab, tr := range doneRanges {
 		t.Logf("Checking table %s", tab)
 
-		sort.Slice(tr, func(i, j int) bool {
-			return tr[i].StartToken < tr[j].StartToken
-		})
-
-		// Check that full token range is repaired
-		if tr[0].StartToken != dht.Murmur3MinToken {
-			t.Fatalf("Expected min token %d, got %d", dht.Murmur3MinToken, tr[0].StartToken)
+		r, err := validate(tab, tr)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if tr[len(tr)-1].EndToken != dht.Murmur3MaxToken {
-			t.Fatalf("Expected max token %d, got %d", dht.Murmur3MaxToken, tr[len(tr)-1].EndToken)
-		}
-
-		// Check if repaired token ranges are continuous
-		for i := 1; i < len(tr); i++ {
-			// Redundant ranges might occur due to pausing repair,
-			// but there shouldn't be much of them.
-			if tr[i-1] == tr[i] {
-				t.Logf("Redundant range %v", tr[i])
-				redundant++
-				continue
-			}
-			if tr[i-1].EndToken != tr[i].StartToken {
-				t.Fatalf("Non continuous token ranges %v and %v", tr[i-1], tr[i])
-			}
-		}
+		redundant += r
 	}
 
 	t.Logf("Overall redundant ranges %d", redundant)
