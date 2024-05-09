@@ -212,11 +212,11 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 
 	var (
 		ksStmt     = "CREATE KEYSPACE IF NOT EXISTS %q WITH replication = %s"
-		tStmt      = "CREATE TABLE IF NOT EXISTS %q.%q (id int PRIMARY KEY, data blob)"
+		tStmt      = "CREATE TABLE IF NOT EXISTS %q.%q (id int PRIMARY KEY, data blob) WITH tombstone_gc = {'mode':'repair'}"
 		insertStmt = "INSERT INTO %q.%q (id, data) VALUES (?, ?)"
 	)
 	if !compaction {
-		tStmt += " WITH compaction = {'enabled': 'false', 'class': 'NullCompactionStrategy'}"
+		tStmt += " AND compaction = {'enabled': 'false', 'class': 'NullCompactionStrategy'}"
 	}
 
 	ExecStmt(t, session, fmt.Sprintf(ksStmt, keyspace, replication))

@@ -1603,8 +1603,8 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		if baseTable(srcSession, t.Keyspace, t.Table) != "" {
 			continue
 		}
-		if mode, err := tombstoneGCMode(dstSession, t.Keyspace, t.Table); mode != "timeout" || err != nil {
-			h.T.Fatalf("Expected 'timeout' tombstone_gc mode, got: %s, with err: %s", mode, err)
+		if mode, err := tombstoneGCMode(dstSession, t.Keyspace, t.Table); mode != "repair" || err != nil {
+			h.T.Fatalf("Expected 'repair' tombstone_gc mode, got: %s, with err: %s", mode, err)
 		}
 	}
 
