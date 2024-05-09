@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  scylla-version: 'scylla-nightly:5.5.0-dev-0.20240321.900b56b117a1'
+  scylla-version: 'scylla-enterprise-nightly:latest-enterprise'
   ip-family: IPV4
   raft-schema: true
   raft-topology: false
