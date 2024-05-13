@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -43,6 +44,7 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 }
 
 type runner struct {
+	logger       log.Logger
 	scyllaClient scyllaclient.ProviderFunc
 	timeout      time.Duration
 	metrics      *runnerMetrics
@@ -91,13 +93,7 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 
 		rtt, err := r.ping(ctx, clusterID, status[i].Addr, r.timeout)
 		if err != nil {
-			// Set -2 for unavailable agent and -1 for unavailable Scylla
-			_, err := r.pingAgent(ctx, clusterID, status[i].Addr, r.timeout)
-			if err != nil {
-				r.metrics.status.With(hl).Set(-2)
-			} else {
-				r.metrics.status.With(hl).Set(-1)
-			}
+			r.metrics.status.With(hl).Set(-1)
 		} else {
 			r.metrics.status.With(hl).Set(1)
 		}
@@ -106,7 +102,9 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, status []sc
 		return nil
 	}
 
-	_ = parallel.Run(len(status), parallel.NoLimit, f, parallel.NopNotify) // nolint: errcheck
+	_ = parallel.Run(len(status), parallel.NoLimit, f, func(i int, err error) { // nolint: errcheck
+		r.logger.Error(ctx, "Parallel hosts check failed", "", status[i].Addr, "error", err)
+	})
 }
 
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
