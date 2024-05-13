@@ -56,6 +56,7 @@ func NewService(config Config, scyllaClient scyllaclient.ProviderFunc, secretsSt
 func (s *Service) Runner() Runner {
 	return Runner{
 		cql: runner{
+			logger:       s.logger.Named("CQL healthcheck"),
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -66,6 +67,7 @@ func (s *Service) Runner() Runner {
 			pingAgent: s.pingAgent,
 		},
 		rest: runner{
+			logger:       s.logger.Named("REST healthcheck"),
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -76,6 +78,7 @@ func (s *Service) Runner() Runner {
 			pingAgent: s.pingAgent,
 		},
 		alternator: runner{
+			logger:       s.logger.Named("Alternator healthcheck"),
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
