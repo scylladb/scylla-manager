@@ -150,7 +150,11 @@ func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) 
 		config.Port = fmt.Sprint(c.Port)
 	}
 	config.AuthToken = c.AuthToken
-	config.Hosts = append([]string{c.Host}, c.KnownHosts...)
+	config.Hosts = nil
+	if c.Host != "" {
+		config.Hosts = []string{c.Host}
+	}
+	config.Hosts = append(config.Hosts, c.KnownHosts...)
 
 	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
 	if err != nil {
