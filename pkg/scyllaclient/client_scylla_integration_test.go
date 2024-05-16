@@ -7,6 +7,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -75,17 +76,20 @@ func TestClientStatusIntegration(t *testing.T) {
 
 func TestClientDescribeRingIntegration(t *testing.T) {
 	testCases := []struct {
+		name            string
 		replicationStmt string
 		replication     scyllaclient.ReplicationStrategy
 		rf              int
 		dcRF            map[string]int
 	}{
 		{
+			name:            "simple_4",
 			replicationStmt: "{'class': 'SimpleStrategy', 'replication_factor': 4}",
 			replication:     scyllaclient.SimpleStrategy,
 			rf:              4,
 		},
 		{
+			name:            "network_topology_1",
 			replicationStmt: "{'class': 'NetworkTopologyStrategy', 'dc1': 1}",
 			replication:     scyllaclient.NetworkTopologyStrategy,
 			rf:              1,
@@ -94,6 +98,7 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 			},
 		},
 		{
+			name:            "network_topology_2_2",
 			replicationStmt: "{'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2}",
 			replication:     scyllaclient.NetworkTopologyStrategy,
 			rf:              4,
@@ -103,6 +108,7 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 			},
 		},
 		{
+			name:            "network_topology_3_3",
 			replicationStmt: "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}",
 			replication:     scyllaclient.NetworkTopologyStrategy,
 			rf:              6,
@@ -123,29 +129,34 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 	ringDescriber := scyllaclient.NewRingDescriber(context.Background(), client)
 	for i := range testCases {
 		tc := testCases[i]
-		if err := clusterSession.ExecStmt("CREATE KEYSPACE test_ks WITH replication = " + tc.replicationStmt); err != nil {
-			t.Fatal(err)
-		}
-		if err := clusterSession.ExecStmt("CREATE TABLE test_ks.test_tab (a int PRIMARY KEY, b int)"); err != nil {
-			t.Fatal(err)
-		}
-		ringDescriber.Reset(context.Background())
-		ring, err := ringDescriber.DescribeRing(context.Background(), "test_ks", "test_tab")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if tc.replication != ring.Replication {
-			t.Fatalf("Replication: expected %s, got %s", tc.replication, ring.Replication)
-		}
-		if tc.rf != ring.RF {
-			t.Fatalf("RF: expected %d, got %d", tc.rf, ring.RF)
-		}
-		if !maputil.Equal(tc.dcRF, ring.DCrf) {
-			t.Fatalf("DCrf: expected %v, got %v", tc.dcRF, ring.DCrf)
-		}
-		if err := clusterSession.ExecStmt("DROP KEYSPACE test_ks"); err != nil {
-			t.Fatal(err)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			if err := clusterSession.ExecStmt(fmt.Sprintf("CREATE KEYSPACE %s WITH replication = %s", tc.name, tc.replicationStmt)); err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				if err := clusterSession.ExecStmt("DROP KEYSPACE " + tc.name); err != nil {
+					t.Fatal(err)
+				}
+			}()
+			if err := clusterSession.ExecStmt(fmt.Sprintf("CREATE TABLE %s.test_tab (a int PRIMARY KEY, b int)", tc.name)); err != nil {
+				t.Fatal(err)
+			}
+
+			ringDescriber.Reset(context.Background())
+			ring, err := ringDescriber.DescribeRing(context.Background(), tc.name, "test_tab")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.replication != ring.Replication {
+				t.Fatalf("Replication: expected %s, got %s", tc.replication, ring.Replication)
+			}
+			if tc.rf != ring.RF {
+				t.Fatalf("RF: expected %d, got %d", tc.rf, ring.RF)
+			}
+			if !maputil.Equal(tc.dcRF, ring.DCrf) {
+				t.Fatalf("DCrf: expected %v, got %v", tc.dcRF, ring.DCrf)
+			}
+		})
 	}
 }
 
