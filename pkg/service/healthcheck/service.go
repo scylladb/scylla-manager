@@ -57,6 +57,7 @@ func (s *Service) Runner() Runner {
 	return Runner{
 		cql: runner{
 			logger:       s.logger.Named("CQL healthcheck"),
+			configCacher: s.configCache,
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -68,6 +69,7 @@ func (s *Service) Runner() Runner {
 		},
 		rest: runner{
 			logger:       s.logger.Named("REST healthcheck"),
+			configCacher: s.configCache,
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -79,6 +81,7 @@ func (s *Service) Runner() Runner {
 		},
 		alternator: runner{
 			logger:       s.logger.Named("Alternator healthcheck"),
+			configCacher: s.configCache,
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
