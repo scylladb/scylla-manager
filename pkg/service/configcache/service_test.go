@@ -107,6 +107,76 @@ func TestService_Read(t *testing.T) {
 	}
 }
 
+func TestService_AvailableHosts(t *testing.T) {
+	host1NodeConfig := NodeConfig{
+		NodeInfo: &scyllaclient.NodeInfo{
+			AgentVersion: "expectedVersion",
+		},
+	}
+
+	cluster1UUID := uuid.MustRandom()
+	host1ID := "host1"
+	initialState := convertMapToSyncMap(
+		map[any]any{
+			cluster1UUID.String(): convertMapToSyncMap(
+				map[any]any{
+					host1ID: host1NodeConfig,
+				},
+			),
+		},
+	)
+
+	for _, tc := range []struct {
+		name           string
+		cluster        uuid.UUID
+		state          *sync.Map
+		expectedError  error
+		expectedResult []string
+	}{
+		{
+			name:           "get all available hosts",
+			cluster:        cluster1UUID,
+			state:          initialState,
+			expectedError:  nil,
+			expectedResult: []string{host1ID},
+		},
+		{
+			name:           "get all available hosts of non-existing cluster",
+			cluster:        uuid.MustRandom(),
+			state:          initialState,
+			expectedError:  ErrNoClusterConfig,
+			expectedResult: nil,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Given
+			svc := Service{
+				svcConfig:    DefaultConfig(),
+				clusterSvc:   &mockClusterServicer{},
+				scyllaClient: mockProviderFunc,
+				secretsStore: &mockStore{},
+				configs:      tc.state,
+			}
+
+			// When
+			hosts, err := svc.AvailableHosts(context.Background(), tc.cluster)
+			if err != tc.expectedError {
+				t.Fatalf("expected {%v}, but got {%v}", tc.expectedError, err)
+			}
+
+			// Then
+			if len(hosts) != len(tc.expectedResult) {
+				t.Fatalf("expected hosts size = {%v}, but got {%v}", len(tc.expectedResult), len(hosts))
+			}
+			for i := 0; i < len(tc.expectedResult); i++ {
+				if hosts[i] != tc.expectedResult[i] {
+					t.Fatalf("expected host {%v}, but got {%v}", host1ID, hosts[0])
+				}
+			}
+		})
+	}
+}
+
 func TestService_Run(t *testing.T) {
 	t.Run("validate context cancellation handling", func(t *testing.T) {
 		svc := Service{
