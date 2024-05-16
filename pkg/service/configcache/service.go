@@ -22,6 +22,9 @@ type ConfigCacher interface {
 	// or ErrNoHostConfig if config of the particular host doesn't exist.
 	Read(clusterID uuid.UUID, host string) (NodeConfig, error)
 
+	// AvailableHosts returns list of hosts of given cluster that keep their configuration in cache.
+	AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]string, error)
+
 	// ForceUpdateCluster updates single cluster config in cache and does it outside the background process.
 	ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID) bool
 
@@ -121,6 +124,29 @@ func (svc *Service) ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID)
 	}
 
 	return svc.updateSingle(ctx, c)
+}
+
+// AvailableHosts returns list of hosts of given cluster that keep their configuration in cache.
+func (svc *Service) AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]string, error) {
+	logger := svc.logger.Named("Listing available hosts").With("cluster", clusterID)
+
+	clusterConfig, err := svc.readClusterConfig(clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	var availableHosts []string
+	clusterConfig.Range(func(key, value any) bool {
+		host, ok := key.(string)
+		if !ok {
+			logger.Error(ctx, "Cannot cast to string", "host", key, "error", err)
+			return false
+		}
+		availableHosts = append(availableHosts, host)
+		return true
+	})
+
+	return availableHosts, nil
 }
 
 func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
