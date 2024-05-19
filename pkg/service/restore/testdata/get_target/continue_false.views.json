@@ -1,16 +1,16 @@
 [
   {
+    "keyspace": "ks1",
+    "view": "mv1",
+    "type": "MaterializedView",
+    "base_table": "table1",
+    "create_stmt": "CREATE MATERIALIZED VIEW IF NOT EXISTS ks1.mv1 AS\n    SELECT *\n    FROM ks1.table1\n    WHERE data IS NOT null\n    PRIMARY KEY (id, data)\n    WITH CLUSTERING ORDER BY (data ASC)\n    AND bloom_filter_fp_chance = 0.01\n    AND caching = {'keys':'ALL','rows_per_partition':'ALL'}\n    AND comment = ''\n    AND compaction = {'class':'IncrementalCompactionStrategy'}\n    AND compression = {'sstable_compression':'org.apache.cassandra.io.compress.LZ4Compressor'}\n    AND crc_check_chance = 1\n    AND dclocal_read_repair_chance = 0\n    AND default_time_to_live = 0\n    AND gc_grace_seconds = 864000\n    AND max_index_interval = 2048\n    AND memtable_flush_period_in_ms = 0\n    AND min_index_interval = 128\n    AND read_repair_chance = 0\n    AND speculative_retry = '99.0PERCENTILE'"
+  },
+  {
     "keyspace": "ks2",
     "view": "si1",
     "type": "SecondaryIndex",
     "base_table": "table2",
     "create_stmt": "CREATE INDEX IF NOT EXISTS si1 ON ks2.table2 (data)"
-  },
-  {
-    "keyspace": "ks1",
-    "view": "mv1",
-    "type": "MaterializedView",
-    "base_table": "table1",
-    "create_stmt": "CREATE MATERIALIZED VIEW IF NOT EXISTS ks1.mv1 AS\n    SELECT *\n    FROM ks1.table1\n    WHERE data IS NOT null\n    PRIMARY KEY (id, data)\n    WITH CLUSTERING ORDER BY (data ASC)\n    AND bloom_filter_fp_chance = 0.01\n    AND caching = {'keys':'ALL','rows_per_partition':'ALL'}\n    AND comment = ''\n    AND compaction = {'class':'SizeTieredCompactionStrategy'}\n    AND compression = {'sstable_compression':'org.apache.cassandra.io.compress.LZ4Compressor'}\n    AND crc_check_chance = 1\n    AND dclocal_read_repair_chance = 0\n    AND default_time_to_live = 0\n    AND gc_grace_seconds = 864000\n    AND max_index_interval = 2048\n    AND memtable_flush_period_in_ms = 0\n    AND min_index_interval = 128\n    AND read_repair_chance = 0\n    AND speculative_retry = '99.0PERCENTILE'"
   }
 ]

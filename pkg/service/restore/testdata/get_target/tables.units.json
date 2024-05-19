@@ -1,12 +1,12 @@
 [
   {
     "keyspace": "ks1",
-    "size": 7539036,
+    "size": 6471432,
     "tables": [
       {
         "table": "table1",
-        "tombstone_gc": "timeout",
-        "size": 7539036
+        "tombstone_gc": "repair",
+        "size": 6471432
       }
     ]
   }
