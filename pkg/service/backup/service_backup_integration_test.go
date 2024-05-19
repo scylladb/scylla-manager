@@ -147,7 +147,7 @@ func (h *backupTestHelper) setInterceptorBlockEndpointOnFirstHost(method string,
 		if req.Method == method && req.URL.Path == path {
 			mu.Lock()
 			defer mu.Unlock()
-			
+
 			if brokenHost == "" {
 				h.T.Log("Setting broken host", req.Host)
 				brokenHost = req.Host
@@ -430,7 +430,8 @@ func TestGetTargetIntegration(t *testing.T) {
 			if diff := cmp.Diff(golden, v,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.IgnoreUnexported(backup.Target{}),
-				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_replicated_keys" })); diff != "" {
+				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_replicated_keys" }),
+				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" })); diff != "" {
 				t.Fatal(diff)
 			}
 		})

@@ -15,7 +15,7 @@
     "!ks1.mv1",
     "!ks2.si1_index"
   ],
-  "snapshot_tag": "sm_20231109110956UTC",
+  "snapshot_tag": "sm_20240520084025UTC",
   "batch_size": 2,
   "restore_tables": true,
   "continue": true

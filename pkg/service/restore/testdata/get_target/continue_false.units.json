@@ -1,94 +1,15 @@
 [
   {
-    "keyspace": "ks1",
-    "size": 15078072,
-    "tables": [
-      {
-        "table": "table2",
-        "tombstone_gc": "timeout",
-        "size": 7539036
-      },
-      {
-        "table": "table1",
-        "tombstone_gc": "timeout",
-        "size": 7539036
-      }
-    ]
-  },
-  {
-    "keyspace": "ks2",
-    "size": 15078060,
-    "tables": [
-      {
-        "table": "table1",
-        "tombstone_gc": "timeout",
-        "size": 7539030
-      },
-      {
-        "table": "table2",
-        "tombstone_gc": "timeout",
-        "size": 7539030
-      }
-    ]
-  },
-  {
-    "keyspace": "system_auth",
-    "size": 104226,
-    "tables": [
-      {
-        "table": "role_permissions",
-        "tombstone_gc": "timeout",
-        "size": 70848
-      },
-      {
-        "table": "roles",
-        "tombstone_gc": "timeout",
-        "size": 33378
-      },
-      {
-        "table": "role_members",
-        "tombstone_gc": "timeout",
-        "size": 0
-      },
-      {
-        "table": "role_attributes",
-        "tombstone_gc": "timeout",
-        "size": 0
-      }
-    ]
-  },
-  {
-    "keyspace": "system_distributed",
-    "size": 187103,
-    "tables": [
-      {
-        "table": "view_build_status",
-        "tombstone_gc": "timeout",
-        "size": 187103
-      },
-      {
-        "table": "service_levels",
-        "tombstone_gc": "timeout",
-        "size": 0
-      }
-    ]
-  },
-  {
     "keyspace": "system_traces",
     "size": 0,
     "tables": [
-      {
-        "table": "sessions_time_idx",
-        "tombstone_gc": "timeout",
-        "size": 0
-      },
       {
         "table": "sessions",
         "tombstone_gc": "timeout",
         "size": 0
       },
       {
-        "table": "node_slow_log_time_idx",
+        "table": "events",
         "tombstone_gc": "timeout",
         "size": 0
       },
@@ -98,7 +19,102 @@
         "size": 0
       },
       {
-        "table": "events",
+        "table": "node_slow_log_time_idx",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "sessions_time_idx",
+        "tombstone_gc": "timeout",
+        "size": 0
+      }
+    ]
+  },
+  {
+    "keyspace": "ks1",
+    "size": 12942864,
+    "tables": [
+      {
+        "table": "table1",
+        "tombstone_gc": "repair",
+        "size": 6471432
+      },
+      {
+        "table": "table2",
+        "tombstone_gc": "repair",
+        "size": 6471432
+      }
+    ]
+  },
+  {
+    "keyspace": "ks2",
+    "size": 12942858,
+    "tables": [
+      {
+        "table": "table1",
+        "tombstone_gc": "repair",
+        "size": 6471432
+      },
+      {
+        "table": "table2",
+        "tombstone_gc": "repair",
+        "size": 6471426
+      }
+    ]
+  },
+  {
+    "keyspace": "system_distributed",
+    "size": 185891,
+    "tables": [
+      {
+        "table": "view_build_status",
+        "tombstone_gc": "timeout",
+        "size": 185891
+      },
+      {
+        "table": "dicts",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "service_levels",
+        "tombstone_gc": "timeout",
+        "size": 0
+      }
+    ]
+  },
+  {
+    "keyspace": "system_replicated_keys",
+    "size": 0,
+    "tables": [
+      {
+        "table": "encrypted_keys",
+        "tombstone_gc": "timeout",
+        "size": 0
+      }
+    ]
+  },
+  {
+    "keyspace": "system_auth",
+    "size": 0,
+    "tables": [
+      {
+        "table": "role_attributes",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "roles",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "role_permissions",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "role_members",
         "tombstone_gc": "timeout",
         "size": 0
       }
