@@ -1,12 +1,9 @@
 {
   "units": [
     {
-      "keyspace": "system_auth",
+      "keyspace": "system_distributed_everywhere",
       "tables": [
-        "role_attributes",
-        "role_members",
-        "roles",
-        "role_permissions"
+        "cdc_generation_descriptions_v2"
       ],
       "all_tables": true
     },

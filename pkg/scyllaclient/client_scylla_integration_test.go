@@ -199,9 +199,11 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	ctx := context.Background()
 	host := ManagedClusterHost()
 	tag := "sm_" + timeutc.Now().Format("20060102150405") + "UTC"
+	const ks = "system_schema"
+	const tab = "tables"
 
 	Print("When: snapshot is taken")
-	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
+	if err := client.TakeSnapshot(ctx, host, tag, ks); err != nil {
 		t.Fatal(err)
 	}
 
@@ -216,12 +218,12 @@ func TestClientSnapshotIntegration(t *testing.T) {
 
 	Print("When: snapshot is taken again with the same tag")
 	Print("Then: nothing happens")
-	if err := client.TakeSnapshot(ctx, host, tag, "system_auth"); err != nil {
+	if err := client.TakeSnapshot(ctx, host, tag, ks); err != nil {
 		t.Fatal(err)
 	}
 
 	Print("When: table snapshot is removed")
-	if err := client.DeleteTableSnapshot(ctx, host, tag, "system_auth", "roles"); err != nil {
+	if err := client.DeleteTableSnapshot(ctx, host, tag, ks, tab); err != nil {
 		t.Fatal(err)
 	}
 
@@ -232,14 +234,14 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	}
 	var u scyllaclient.Unit
 	for _, u = range units {
-		if u.Keyspace == "system_auth" {
+		if u.Keyspace == ks {
 			break
 		}
 	}
 	if u.Keyspace == "" {
 		t.Fatal("missing snapshot")
 	}
-	if slice.ContainsString(u.Tables, "roles") {
+	if slice.ContainsString(u.Tables, tab) {
 		t.Fatal("table snapshot not deleted")
 	}
 
@@ -259,6 +261,8 @@ func TestClientSnapshotIntegration(t *testing.T) {
 }
 
 func TestClientTableExistsIntegration(t *testing.T) {
+	const ks = "system_schema"
+	const tab = "tables"
 	table := []struct {
 		Name     string
 		Keyspace string
@@ -267,13 +271,13 @@ func TestClientTableExistsIntegration(t *testing.T) {
 	}{
 		{
 			Name:     "Valid",
-			Keyspace: "system_auth",
-			Table:    "roles",
+			Keyspace: ks,
+			Table:    tab,
 			Exists:   true,
 		},
 		{
 			Name:     "No table",
-			Keyspace: "system_auth",
+			Keyspace: ks,
 			Table:    "aaa",
 			Exists:   false,
 		},

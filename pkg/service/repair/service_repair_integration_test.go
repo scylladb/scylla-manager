@@ -536,7 +536,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.SortSlices(func(u1, u2 repair.Unit) bool { return u1.Keyspace < u2.Keyspace }),
 				cmpopts.IgnoreUnexported(repair.Target{}),
-				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool { return u.Keyspace == "system_replicated_keys" }),
+				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool { return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" }),
 				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" })); diff != "" {
 				t.Fatal(diff)
 			}
@@ -706,8 +706,6 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 	FlushTable(t, c, ManagedClusterHosts(), ks3, t1)
 
 	expectedRepairOrder := []string{
-		"system_auth.role_attributes",
-		"system_auth.role_members",
 		"system_auth.*",
 		"system_replicated_keys.*",
 		"system_distributed.*",

@@ -313,7 +313,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b Table) bool { return a.Table < b.Table }),
 				cmpopts.IgnoreFields(Unit{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "Size"),
-				cmpopts.IgnoreSliceElements(func(u Unit) bool { return u.Keyspace == "system_replicated_keys" }),
+				cmpopts.IgnoreSliceElements(func(u Unit) bool { return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" }),
 				cmpopts.IgnoreSliceElements(func(t Table) bool { return t.Table == "dicts" })); diff != "" {
 				t.Fatal(tc.units, diff)
 			}

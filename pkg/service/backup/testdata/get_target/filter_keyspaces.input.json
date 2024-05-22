@@ -1,1 +1,1 @@
-{"keyspace": ["system_auth.*"], "location": ["s3:backuptest-get-target"]}
+{"keyspace": ["system_distributed_everywhere.*"], "location": ["s3:backuptest-get-target"]}
