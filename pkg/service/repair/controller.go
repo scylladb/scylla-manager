@@ -2,11 +2,16 @@
 
 package repair
 
-// controller informs generator about the amount of ranges that can be repaired
-// on a given replica set. Returns 0 ranges when repair shouldn't be scheduled.
+// controller keeps the state of repairs running in the cluster
+// and informs generator about allowed repair intensity on a given replica set.
 type controller interface {
-	TryBlock(replicaSet []string) (ranges Intensity)
+	// TryBlock returns if it's allowed to schedule a repair job on given replica set.
+	// The second returned value is the allowed intensity of such job.
+	TryBlock(replicaSet []string) (ok bool, intensity int)
+	// Unblock informs controller that a repair job running on replica set has finished.
+	// This makes it possible to call TryBlock on nodes from replica set.
 	Unblock(replicaSet []string)
+	// Busy checks if there are any running repair jobs that controller is aware of.
 	Busy() bool
 }
 
@@ -37,9 +42,9 @@ func newRowLevelRepairController(i intensityChecker) *rowLevelRepairController {
 	}
 }
 
-func (c *rowLevelRepairController) TryBlock(replicaSet []string) Intensity {
+func (c *rowLevelRepairController) TryBlock(replicaSet []string) (ok bool, intensity int) {
 	if !c.shouldBlock(replicaSet) {
-		return 0
+		return false, 0
 	}
 	c.block(replicaSet)
 
@@ -47,7 +52,7 @@ func (c *rowLevelRepairController) TryBlock(replicaSet []string) Intensity {
 	if maxI := c.intensity.ReplicaSetMaxIntensity(replicaSet); i == maxIntensity || maxI < i {
 		i = maxI
 	}
-	return i
+	return true, int(i)
 }
 
 func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {

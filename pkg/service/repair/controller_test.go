@@ -46,16 +46,16 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		replicaSet := []string{node1, node2}
 		c := newRowLevelRepairController(defaultIntensityHandler())
 
-		if rangesCount := c.TryBlock(replicaSet); rangesCount == 0 {
-			t.Fatal("expected to return ranges to repair, but got 0")
+		if ok, _ := c.TryBlock(replicaSet); !ok {
+			t.Fatal("expected to return ranges to repair, but got false")
 		}
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != 0 {
-			t.Fatalf("expected to return 0 to repair, but got {%d}", rangesCount)
+		if ok, rangesCount := c.TryBlock(replicaSet); ok {
+			t.Fatalf("expected to return false, but got {%d}", rangesCount)
 		}
 
 		c.Unblock(replicaSet)
-		if rangesCount := c.TryBlock(replicaSet); rangesCount == 0 {
-			t.Fatal("expected to return ranges to repair, but got 0")
+		if ok, _ := c.TryBlock(replicaSet); !ok {
+			t.Fatal("expected to return ranges to repair, but got false")
 		}
 	})
 
@@ -70,7 +70,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		c := newRowLevelRepairController(ih)
 
 		ih.SetIntensity(context.Background(), expectedNrOfRanges)
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != expectedNrOfRanges {
+		if ok, rangesCount := c.TryBlock(replicaSet); !ok || rangesCount != expectedNrOfRanges {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", expectedNrOfRanges, rangesCount)
 		}
 	})
@@ -86,7 +86,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		c := newRowLevelRepairController(ih)
 
 		ih.SetIntensity(context.Background(), expectedNrOfRanges)
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != expectedNrOfRanges {
+		if ok, rangesCount := c.TryBlock(replicaSet); !ok || rangesCount != expectedNrOfRanges {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", expectedNrOfRanges, rangesCount)
 		}
 	})
@@ -103,7 +103,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		c := newRowLevelRepairController(ih)
 
 		ih.SetIntensity(context.Background(), intensity)
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != minRangesInParallel {
+		if ok, rangesCount := c.TryBlock(replicaSet); !ok || rangesCount != minRangesInParallel {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", minRangesInParallel, rangesCount)
 		}
 	})
@@ -117,10 +117,10 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		c := newRowLevelRepairController(ih)
 
 		ih.SetParallel(context.Background(), 1)
-		if rangesCount := c.TryBlock(replicaSet1); rangesCount == 0 {
+		if ok, _ := c.TryBlock(replicaSet1); !ok {
 			t.Fatal("expected to let in, but was denied")
 		}
-		if rangesCount := c.TryBlock(replicaSet2); rangesCount != 0 {
+		if ok, _ := c.TryBlock(replicaSet2); ok {
 			t.Fatal("expected to deny, but was let in")
 		}
 	})
@@ -134,13 +134,13 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
 
-		if rangesCount := c.TryBlock(replicaSet1); rangesCount == 0 {
+		if ok, _ := c.TryBlock(replicaSet1); !ok {
 			t.Fatal("expected to let in, but was denied")
 		}
-		if rangesCount := c.TryBlock(replicaSet2); rangesCount == 0 {
+		if ok, _ := c.TryBlock(replicaSet2); !ok {
 			t.Fatal("expected to let in, but was denied")
 		}
-		if rangesCount := c.TryBlock(replicaSet3); rangesCount != 0 {
+		if ok, _ := c.TryBlock(replicaSet3); ok {
 			t.Fatal("expected to deny, but was let in")
 		}
 	})
