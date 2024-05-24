@@ -253,8 +253,8 @@ func (tg *tableGenerator) newJob() (job, bool) {
 			continue
 		}
 
-		if cnt := tg.ctl.TryBlock(filtered); cnt > 0 {
-			ranges := tg.getRangesToRepair(rt.Ranges, cnt)
+		if ok, intensity := tg.ctl.TryBlock(filtered); ok {
+			ranges := tg.getRangesToRepair(rt.Ranges, intensity)
 			if len(ranges) == 0 {
 				tg.DoneReplicas[repHash] = struct{}{}
 				tg.ctl.Unblock(filtered)
@@ -281,9 +281,9 @@ func (tg *tableGenerator) newJob() (job, bool) {
 	return job{}, false
 }
 
-func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, cnt Intensity) []scyllaclient.TokenRange {
+func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, intensity int) []scyllaclient.TokenRange {
 	if tg.JobType != normalJobType {
-		cnt = NewIntensity(len(allRanges))
+		intensity = len(allRanges)
 	}
 
 	var ranges []scyllaclient.TokenRange
@@ -293,7 +293,7 @@ func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange,
 		}
 		delete(tg.TodoRanges, r)
 		ranges = append(ranges, r)
-		if NewIntensity(len(ranges)) >= cnt {
+		if len(ranges) >= intensity {
 			break
 		}
 	}
