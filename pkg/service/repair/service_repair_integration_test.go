@@ -948,27 +948,33 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	}
 
 	// Tools for performing a repair with 4 pauses
-	cnt := atomic.Int64{}
-	stop3000Ctx, stop3000 := context.WithCancel(ctx)
-	stop5000Ctx, stop5000 := context.WithCancel(ctx)
-	stop8000Ctx, stop8000 := context.WithCancel(ctx)
-	stop10000Ctx, stop10000 := context.WithCancel(ctx)
+	var (
+		cnt             = atomic.Int64{}
+		stop1Ctx, stop1 = context.WithCancel(ctx)
+		stop2Ctx, stop2 = context.WithCancel(ctx)
+		stop3Ctx, stop3 = context.WithCancel(ctx)
+		stop4Ctx, stop4 = context.WithCancel(ctx)
+		stopCnt1        = 150
+		stopCnt2        = 250
+		stopCnt3        = 400
+		stopCnt4        = 500
+	)
 
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-			switch cnt.Add(1) {
-			case 3000:
-				stop3000()
+			switch int(cnt.Add(1)) {
+			case stopCnt1:
+				stop1()
 				t.Log("First repair pause")
-			case 5000:
-				stop5000()
+			case stopCnt2:
+				stop2()
 				t.Log("Second repair pause")
-			case 8000:
-				stop8000()
+			case stopCnt3:
+				stop3()
 				t.Log("Third repair pause")
-			case 10000:
-				stop10000()
+			case stopCnt4:
+				stop4()
 				t.Log("Fourth repair pause")
 			}
 		}
@@ -1006,7 +1012,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
 			// Inject 5% errors on all runs except the last one.
 			// This helps to test repair error resilience.
-			if i := cnt.Load(); i < 10000 && i%20 == 0 {
+			if i := cnt.Load(); i < int64(stopCnt4) && i%20 == 0 {
 				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
 				return
 			}
@@ -1033,25 +1039,25 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	})
 
 	Print("When: run first repair with context cancel")
-	if err := h.runRegularRepair(stop3000Ctx, props); err == nil {
+	if err := h.runRegularRepair(stop1Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run second repair with context cancel")
 	h.RunID = uuid.NewTime()
-	if err := h.runRegularRepair(stop5000Ctx, props); err == nil {
+	if err := h.runRegularRepair(stop2Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run third repair with context cancel")
 	h.RunID = uuid.NewTime()
-	if err := h.runRegularRepair(stop8000Ctx, props); err == nil {
+	if err := h.runRegularRepair(stop3Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run fourth repair with context cancel")
 	h.RunID = uuid.NewTime()
-	if err := h.runRegularRepair(stop10000Ctx, props); err == nil {
+	if err := h.runRegularRepair(stop4Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
