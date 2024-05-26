@@ -24,9 +24,9 @@ func (w *worker) DropView(ctx context.Context, view View) error {
 		dropStmt := ""
 		switch view.Type {
 		case SecondaryIndex:
-			dropStmt = "DROP INDEX IF EXISTS %s.%s"
+			dropStmt = "DROP INDEX IF EXISTS %q.%q"
 		case MaterializedView:
-			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %s.%s"
+			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %q.%q"
 		}
 
 		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, view.View))
