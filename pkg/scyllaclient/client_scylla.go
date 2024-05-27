@@ -553,7 +553,7 @@ func dumpRanges(ranges []TokenRange) string {
 			_ = buf.WriteByte(',')
 		}
 		if ttr.StartToken > ttr.EndToken {
-			_, _ = fmt.Fprintf(&buf, "%d:%d,%d:%d", dht.Murmur3MinToken, ttr.EndToken, ttr.StartToken, dht.Murmur3MaxToken)
+			_, _ = fmt.Fprintf(&buf, "%d:%d,%d:%d", ttr.StartToken, dht.Murmur3MaxToken, dht.Murmur3MinToken, ttr.EndToken)
 		} else {
 			_, _ = fmt.Fprintf(&buf, "%d:%d", ttr.StartToken, ttr.EndToken)
 		}
