@@ -27,8 +27,11 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
+	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"go.uber.org/zap/zapcore"
@@ -2120,6 +2123,150 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if v := cnt.Load(); v != 9 {
 			t.Errorf("Expected 9 jobs to be sent (one per replica set), got %d", v)
 		}
+	})
+
+	t.Run("ranges batching fallback", func(t *testing.T) {
+		cfg := defaultConfig()
+		cfg.GracefulStopTimeout = 1
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		const (
+			ks               = "test_repair_ranges_batching_fallback"
+			desiredIntensity = 1
+		)
+
+		Print("When: prepare keyspace with 9 replica sets")
+		tryCreateTabletKeyspace(t, clusterSession, ks, 2, 2, 256)
+		WriteData(t, clusterSession, ks, 1, "test_table_0")
+		defer dropKeyspace(t, clusterSession, ks)
+
+		batching := atomic.Bool{}
+		fail := atomic.Bool{}
+		stop := atomic.Bool{}
+		pauseCtx, pauseCancel := context.WithCancel(ctx)
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			// Handle job schedule requests
+			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+				intensity, err := strconv.Atoi(req.URL.Query()["ranges_parallelism"][0])
+				if err != nil {
+					t.Error(err)
+				}
+				if intensity != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, intensity)
+				}
+
+				rawRanges := req.URL.Query()["ranges"][0]
+				rangesCnt := len(strings.Split(rawRanges, ","))
+				// Watch out for split range
+				if strings.Contains(rawRanges, fmt.Sprintf("%d,%d", dht.Murmur3MaxToken, dht.Murmur3MinToken)) {
+					rangesCnt--
+				}
+
+				if batching.Load() {
+					if intensity == rangesCnt {
+						t.Error("Ranges should be batched")
+					}
+				} else {
+					if intensity != rangesCnt {
+						t.Error("Ranges shouldn't be batched")
+					}
+				}
+
+				id := atomic.AddInt32(&commandCounter, 1)
+				resp := httpx.MakeResponse(req, 200)
+				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+				return resp, nil
+			}
+			// Handle status requests
+			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodGet {
+				resp := httpx.MakeResponse(req, 200)
+				if stop.CompareAndSwap(true, false) {
+					pauseCancel()
+				}
+				if fail.Load() {
+					resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
+					return resp, nil
+				}
+				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandSuccessful)))
+				return resp, nil
+			}
+
+			return nil, nil
+		}))
+
+		props := map[string]any{
+			"keyspace":              []string{ks},
+			"intensity":             desiredIntensity,
+			"small_table_threshold": repairAllSmallTableThreshold,
+		}
+
+		batching.Store(true)
+		fail.Store(true)
+		stop.Store(false)
+
+		Print("When: run batched/failing repair")
+		h.runRepair(ctx, props)
+
+		Print("Then: batched/failing repair finished with error")
+		h.assertError(longWait)
+
+		// As repair service tests don't populate scheduler_task_run,
+		// it has to be done manually.
+		q := qb.Insert(table.SchedulerTaskRun.Name()).Columns(
+			"cluster_id",
+			"type",
+			"task_id",
+			"id",
+			"status",
+		).Query(session)
+		defer q.Release()
+
+		err := q.Bind(
+			h.ClusterID,
+			"repair",
+			h.TaskID,
+			h.RunID,
+			scheduler.StatusError,
+		).Exec()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		batching.Store(false)
+		fail.Store(false)
+		stop.Store(true)
+
+		h.RunID = uuid.NewTime()
+		Print("When: run not-batched/paused repair")
+		h.runRepair(pauseCtx, props)
+
+		Print("Then: not-batched/paused repair finished with error")
+		h.assertError(longWait)
+		if !errors.Is(h.result, context.Canceled) {
+			t.Fatalf("Expected context cancel error, got %s", h.result)
+		}
+
+		err = q.Bind(
+			h.ClusterID,
+			"repair",
+			h.TaskID,
+			h.RunID,
+			scheduler.StatusStopped,
+		).Exec()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		stop.Store(false)
+
+		h.RunID = uuid.NewTime()
+		Print("When: run non-batched repair")
+		h.runRepair(ctx, props)
+
+		Print("Then: not-batched repair is done")
+		h.assertDone(longWait)
 	})
 
 }
