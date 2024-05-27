@@ -44,6 +44,7 @@ type generatorTools struct {
 	submitter     submitter[job, jobResult]
 	ringDescriber scyllaclient.RingDescriber
 	stop          *atomic.Bool
+	batching      bool
 	logger        log.Logger
 }
 
@@ -284,15 +285,17 @@ func (tg *tableGenerator) newJob() (job, bool) {
 }
 
 func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, intensity int) []scyllaclient.TokenRange {
-	// Sending batched ranges in a single job results in better shard utilization.
-	// With intensity=10, normally SM would just send a job consisting of 10 ranges.
-	// It might happen that repairing 1 range takes more time than repairing the remaining 9.
-	// Then SM would be waiting for a repair job which repairs only 1 range,
-	// when given replica set could be repairing 9 additional ranges at the same time.
-	// Because of that, we send all ranges (limited to 1000 for safety) owned by given replica set per repair job.
-	// Controlling intensity happens by ranges_parallelism repair param.
-	const limit = 1000
-	intensity = min(len(allRanges), limit)
+	if tg.batching {
+		// Sending batched ranges in a single job results in better shard utilization.
+		// With intensity=10, normally SM would just send a job consisting of 10 ranges.
+		// It might happen that repairing 1 range takes more time than repairing the remaining 9.
+		// Then SM would be waiting for a repair job which repairs only 1 range,
+		// when given replica set could be repairing 9 additional ranges at the same time.
+		// Because of that, we send all ranges (limited to 1000 for safety) owned by given replica set per repair job.
+		// Controlling intensity happens by ranges_parallelism repair param.
+		const limit = 1000
+		intensity = min(len(allRanges), limit)
+	}
 	if tg.JobType != normalJobType {
 		intensity = len(allRanges)
 	}
