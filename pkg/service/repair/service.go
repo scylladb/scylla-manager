@@ -274,6 +274,15 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "create generator")
 	}
 
+	batching, err := shouldBatchRanges(s.session, clusterID, taskID, runID)
+	if err != nil {
+		s.logger.Error(ctx, "Couldn't check if batching token ranges is safe", "error", err)
+		batching = false
+	} else {
+		s.logger.Info(ctx, "Checked if batching token ranges is safe", "result", batching)
+	}
+	gen.batching = batching
+
 	done := make(chan struct{}, 1)
 	go func() {
 		select {
@@ -451,4 +460,75 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 		"parallel":   ih.Parallel(),
 	}).ExecRelease()
 	return errors.Wrap(err, "update db")
+}
+
+func shouldBatchRanges(session gocqlx.Session, clusterID, taskID, runID uuid.UUID) (bool, error) {
+	prevIDs, err := getAllPrevRunIDs(session, clusterID, taskID, runID)
+	if err != nil {
+		return false, err
+	}
+	if len(prevIDs) == 0 {
+		return true, nil
+	}
+
+	q := qb.Select(table.SchedulerTaskRun.Name()).Columns(
+		"status",
+	).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("type"),
+		qb.Eq("task_id"),
+		qb.Eq("id"),
+	).Query(session)
+	defer q.Release()
+
+	var status string
+	for _, id := range prevIDs {
+		err := q.BindMap(qb.M{
+			"cluster_id": clusterID,
+			"type":       "repair",
+			"task_id":    taskID,
+			"id":         id,
+		}).Scan(&status)
+		if err != nil {
+			return false, errors.Wrap(err, "get prev run status")
+		}
+		// Fall back to no-batching when some of the previous runs:
+		// - finished with error
+		// - got out of scheduler window
+		if status == "WAITING" || status == "ERROR" {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+func getAllPrevRunIDs(session gocqlx.Session, clusterID, taskID, runID uuid.UUID) ([]uuid.UUID, error) {
+	q := qb.Select(table.RepairRun.Name()).Columns(
+		"prev_id",
+	).Where(
+		qb.Eq("cluster_id"),
+		qb.Eq("task_id"),
+		qb.Eq("id"),
+	).Query(session)
+	defer q.Release()
+
+	var out []uuid.UUID
+	var prevID uuid.UUID
+	for {
+		err := q.BindMap(qb.M{
+			"cluster_id": clusterID,
+			"task_id":    taskID,
+			"id":         runID,
+		}).Scan(&prevID)
+		if err != nil {
+			return nil, errors.Wrap(err, "get prev run id")
+		}
+		if prevID == uuid.Nil {
+			return out, nil
+		}
+
+		out = append(out, prevID)
+		runID = prevID
+	}
 }
