@@ -28,6 +28,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
+	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"go.uber.org/zap/zapcore"
@@ -1186,7 +1187,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		var ignored = IPFromTestNet("12")
-		_, _, err := ExecOnHost(ignored, "sudo supervisorctl stop scylla")
+		ni, err := h.Client.NodeInfo(ctx, ignored)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, _, err = ExecOnHost(ignored, "sudo supervisorctl stop scylla")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1195,7 +1201,24 @@ func TestServiceRepairIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			time.Sleep(5 * time.Second)
+
+			cfg := cqlping.Config{
+				Addr:    ni.CQLAddr(ignored),
+				Timeout: time.Minute,
+			}
+
+			cond := func() bool {
+				if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
+					return false
+				}
+				status, err := h.Client.Status(ctx)
+				if err != nil {
+					return false
+				}
+				return len(status.Live()) == len(ManagedClusterHosts())
+			}
+
+			WaitCond(t, cond, time.Second, shortWait)
 		}()
 
 		Print("When: run repair")
