@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
@@ -44,7 +43,6 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -169,6 +167,14 @@ func s3Location(bucket string) Location {
 	return Location{
 		Provider: S3,
 		Path:     bucket,
+	}
+}
+
+func testLocation(bucket, dc string) Location {
+	return Location{
+		DC:       dc,
+		Provider: S3,
+		Path:     "restoretest-" + bucket,
 	}
 }
 
@@ -524,32 +530,6 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}")
 }
 
-func TestRestoreTablesSmokeNoReplicationIntegration(t *testing.T) {
-	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
-	const (
-		testLoadCnt   = 2
-		testLoadSize  = 2
-		testBatchSize = 1
-		testParallel  = 0
-	)
-
-	target := Target{
-		Location: []Location{
-			{
-				DC:       "dc1",
-				Provider: S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
-	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'SimpleStrategy', 'replication_factor': 1}")
-}
-
 func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
@@ -590,9 +570,8 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	dstH.shouldSkipTest(target)
 
 	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
 	// Recreate schema on destination cluster
@@ -603,8 +582,8 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
-	if err := grantPermissionsToUser(dstSession, target, user); err != nil {
-		t.Fatal(err)
+	if target.RestoreTables {
+		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
 	}
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
@@ -612,10 +591,7 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 		t.Fatal(err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-	}
-	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate)
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
 }
 
 func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
@@ -659,9 +635,8 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 	dstH.shouldSkipTest(target)
 
 	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
 	// Recreate schema on destination cluster
@@ -672,8 +647,8 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
-	if err := grantPermissionsToUser(dstSession, target, user); err != nil {
-		t.Fatal(err)
+	if target.RestoreTables {
+		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
 	}
 
 	a := atomic.NewInt64(0)
@@ -690,10 +665,7 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 		t.Errorf("Expected no error but got %+v", err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-	}
-	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate)
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
 }
 
 func TestRestoreTablesResumeIntegration(t *testing.T) {
@@ -765,9 +737,8 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	dstH.shouldSkipTest(target)
 
 	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
 	// Recreate schema on destination cluster
@@ -778,8 +749,8 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
-	if err := grantPermissionsToUser(dstSession, target, user); err != nil {
-		t.Fatal(err)
+	if target.RestoreTables {
+		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
 	}
 
 	a := atomic.NewInt64(0)
@@ -859,10 +830,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	}
 
 	Print("Then: data is restored")
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-	}
-	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate)
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
 }
 
 func TestRestoreTablesVersionedIntegration(t *testing.T) {
@@ -949,9 +917,8 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	}
 
 	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
 	if target.RestoreTables {
@@ -1077,18 +1044,15 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	Print("Restore 3-rd backup with versioned files")
 	target.SnapshotTag = tag3
 
-	if err = grantPermissionsToUser(dstSession, target, user); err != nil {
-		t.Fatal(err)
+	if target.RestoreTables {
+		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
 	}
 
 	if err = dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
 		t.Fatal(err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-	}
-	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate)
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
 }
 
 const (
@@ -1139,9 +1103,8 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 	dstH.shouldSkipTest(target)
 
 	Print("When: Create Restore user")
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
 	if target.RestoreTables {
@@ -1158,9 +1121,8 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 	Print("When: Make src backup")
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
-	Print("When: Grant minimal user permissions for restore")
-	if err := grantPermissionsToUser(dstSession, target, user); err != nil {
-		t.Fatal(err)
+	if target.RestoreTables {
+		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
 	}
 
 	Print("When: Restore")
@@ -1168,14 +1130,8 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 		t.Fatal(err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-		{Keyspace: keyspace, Table: mvName, Column: "id"},
-		{Keyspace: keyspace, Table: siTableName, Column: "id"},
-	}
-
 	Print("When: Validate restore success")
-	dstH.validateRestoreSuccess(dstSession, srcSession, target, toValidate)
+	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}, {ks: keyspace, tab: mvName}, {ks: keyspace, tab: siTableName}})
 }
 
 func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
@@ -1229,9 +1185,8 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	dstH.shouldSkipTest(schemaTarget, tablesTarget)
 
 	Print("When: Create Restore user")
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
 	Print("When: Create src table with MV and SI")
@@ -1242,23 +1197,13 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	Print("When: Make src backup")
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
-	Print("When: Grant minimal user permissions for restore schema")
-	if err := grantPermissionsToUser(dstSession, schemaTarget, user); err != nil {
-		t.Fatal(err)
-	}
-
 	Print("When: Restore schema")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-		{Keyspace: keyspace, Table: mvName, Column: "id"},
-		{Keyspace: keyspace, Table: siTableName, Column: "id"},
-	}
-
 	Print("When: Validate restore schema success")
+	toValidate := []table{{ks: keyspace, tab: BigTableName}, {ks: keyspace, tab: mvName}, {ks: keyspace, tab: siTableName}}
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
@@ -1266,9 +1211,7 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	dstH.RunID = uuid.MustRandom()
 
 	Print("When: Grant minimal user permissions for restore tables")
-	if err := grantPermissionsToUser(dstSession, tablesTarget, user); err != nil {
-		t.Fatal(err)
-	}
+	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
 
 	Print("When: Restore tables")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(tablesTarget)); err != nil {
@@ -1336,37 +1279,32 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	}
 
 	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
 	srcH.prepareRestoreBackupWithFeatures(srcSession, keyspace, loadCnt, loadSize)
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
-
-	if err := grantPermissionsToUser(dstSession, schemaTarget, user); err != nil {
-		t.Fatal(err)
-	}
 
 	Print("Restore schema on different cluster")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: BigTableName, Column: "id"},
-		{Keyspace: keyspace, Table: mvName, Column: "id"},
-		{Keyspace: keyspace, Table: siTableName, Column: "id"},
-		{Keyspace: "system_auth", Table: "role_attributes", Column: "role"},
-		{Keyspace: "system_auth", Table: "role_members", Column: "role"},
-		{Keyspace: "system_auth", Table: "role_permissions", Column: "role"},
-		{Keyspace: "system_auth", Table: "roles", Column: "role"},
-		{Keyspace: "system_distributed", Table: "service_levels", Column: "service_level"},
-		{Keyspace: "system_traces", Table: "events", Column: "session_id"},
-		{Keyspace: "system_traces", Table: "node_slow_log", Column: "node_ip"},
-		{Keyspace: "system_traces", Table: "node_slow_log_time_idx", Column: "session_id"},
-		{Keyspace: "system_traces", Table: "sessions", Column: "session_id"},
-		{Keyspace: "system_traces", Table: "sessions_time_idx", Column: "session_id"},
+	toValidate := []table{
+		{ks: keyspace, tab: BigTableName},
+		{ks: keyspace, tab: mvName},
+		{ks: keyspace, tab: siTableName},
+		{ks: "system_auth", tab: "role_attributes"},
+		{ks: "system_auth", tab: "role_members"},
+		{ks: "system_auth", tab: "role_permissions"},
+		{ks: "system_auth", tab: "roles"},
+		{ks: "system_distributed", tab: "service_levels"},
+		{ks: "system_traces", tab: "events"},
+		{ks: "system_traces", tab: "node_slow_log"},
+		{ks: "system_traces", tab: "node_slow_log_time_idx"},
+		{ks: "system_traces", tab: "sessions"},
+		{ks: "system_traces", tab: "sessions_time_idx"},
 	}
 
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
@@ -1374,10 +1312,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
 	dstH.ClusterID = uuid.MustRandom()
 	dstH.RunID = uuid.MustRandom()
-
-	if err := grantPermissionsToUser(dstSession, tablesTarget, user); err != nil {
-		t.Fatal(err)
-	}
+	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
 
 	Print("Restore tables on different cluster")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(tablesTarget)); err != nil {
@@ -1422,7 +1357,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	restoreAlternator(t, schemaTarget, tablesTarget, testKeyspace, testTable, testUser, testAlternatorPort)
 }
 
-func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, keyspace, table, user string, alternatorPort int) {
+func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeyspace, testTable, user string, alternatorPort int) {
 	var (
 		ctx          = context.Background()
 		cfg          = DefaultConfig()
@@ -1437,37 +1372,27 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, keyspace
 	dstH.shouldSkipTest(schemaTarget, tablesTarget)
 
 	// Restore should be performed on user with limited permissions
-	if err := createUser(dstSession, user, "pass"); err != nil {
-		t.Fatal(err)
-	}
+	dropNonSuperUsers(t, dstSession)
+	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
-	CreateAlternatorTable(t, ManagedSecondClusterHosts()[0], alternatorPort, table)
-	FillAlternatorTableWithOneRow(t, ManagedSecondClusterHosts()[0], alternatorPort, table)
+	CreateAlternatorTable(t, ManagedSecondClusterHosts()[0], alternatorPort, testTable)
+	FillAlternatorTableWithOneRow(t, ManagedSecondClusterHosts()[0], alternatorPort, testTable)
 
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
-	if err := grantPermissionsToUser(dstSession, schemaTarget, user); err != nil {
-		t.Fatal(err)
-	}
 
 	Print("Restore schema on different cluster")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
 
-	toValidate := []validateTable{
-		{Keyspace: keyspace, Table: table, Column: "key"},
-	}
-
+	toValidate := []table{{ks: testKeyspace, tab: testTable}}
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
 	dstH.ClusterID = uuid.MustRandom()
 	dstH.RunID = uuid.MustRandom()
-
-	if err := grantPermissionsToUser(dstSession, tablesTarget, user); err != nil {
-		t.Fatal(err)
-	}
+	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
 
 	Print("Restore tables on different cluster")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(tablesTarget)); err != nil {
@@ -1485,91 +1410,7 @@ func (h *restoreTestHelper) targetToProperties(target Target) json.RawMessage {
 	return props
 }
 
-func createUser(s gocqlx.Session, user, pass string) error {
-	// Drop all non-superusers
-	var (
-		name  string
-		super bool
-	)
-	iter := s.Query("LIST USERS", nil).Iter()
-	for iter.Scan(&name, &super) {
-		if !super {
-			if err := s.ExecStmt(fmt.Sprintf("DROP USER '%s'", name)); err != nil {
-				return errors.Wrap(err, "drop user")
-			}
-		}
-	}
-	time.Sleep(time.Second)
-
-	if err := s.ExecStmt(fmt.Sprintf("CREATE USER '%s' WITH PASSWORD '%s'", user, pass)); err != nil {
-		return errors.Wrap(err, "create restore test user")
-	}
-	return nil
-}
-
-// createUserWithPermissions creates user that can ALTER every table matched by target's keyspace param.
-func grantPermissionsToUser(s gocqlx.Session, target Target, user string) error {
-	// Restoring schema shouldn't require any permissions
-	if target.RestoreSchema {
-		return nil
-	}
-
-	f, err := ksfilter.NewFilter(target.Keyspace)
-	if err != nil {
-		return errors.Wrap(err, "create filter")
-	}
-
-	var ks, t string
-	iter := s.Query("SELECT keyspace_name, table_name FROM system_schema.tables", nil).Iter()
-	for iter.Scan(&ks, &t) {
-		// Regular tables require ALTER permission.
-		if f.Check(ks, t) {
-			if err = s.ExecStmt(fmt.Sprintf("GRANT ALTER ON %q.%q TO '%s'", ks, t, user)); err != nil {
-				return errors.Wrap(err, "grant alter permission")
-			}
-		}
-		// Views of restored base tables require DROP and CREATE permissions.
-		if bt := baseTable(s, ks, t); bt != "" {
-			if f.Check(ks, bt) {
-				if err = s.ExecStmt(fmt.Sprintf("GRANT DROP ON %q.%q TO '%s'", ks, bt, user)); err != nil {
-					return errors.Wrap(err, "grant drop permission")
-				}
-				if err = s.ExecStmt(fmt.Sprintf("GRANT CREATE ON %q TO '%s'", ks, user)); err != nil {
-					return errors.Wrap(err, "grant create permission")
-				}
-			}
-		}
-	}
-
-	return iter.Close()
-}
-
-type validateTable struct {
-	Keyspace string
-	Table    string
-	Column   string
-}
-
-func (h *restoreTestHelper) getRowCount(s gocqlx.Session, vt validateTable) int {
-	h.T.Helper()
-
-	var (
-		cnt int
-		tmp string
-	)
-
-	it := s.Query(fmt.Sprintf("SELECT %s FROM %q.%q", vt.Column, vt.Keyspace, vt.Table), nil).Iter()
-	for it.Scan(&tmp) {
-		cnt++
-	}
-	if err := it.Close(); err != nil {
-		h.T.Fatalf("Couldn't get tables (%s.%s, col: %s) row count: %s", vt.Keyspace, vt.Table, vt.Column, err)
-	}
-
-	return cnt
-}
-
-func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx.Session, target Target, tables []validateTable) {
+func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx.Session, target Target, tables []table) {
 	h.T.Helper()
 	Print("Then: validate restore result")
 
@@ -1578,7 +1419,6 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 		h.T.Fatalf("Couldn't get progress: %s", err)
 	}
 
-	Printf("And: restore progress: %+#v\n", pr)
 	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
 		h.T.Fatal("Expected complete restore")
 	}
@@ -1601,26 +1441,28 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	Print("And: validate that restore preserves tombstone_gc mode")
 	for _, t := range tables {
 		// Don't validate views tombstone_gc
-		if baseTable(srcSession, t.Keyspace, t.Table) != "" {
+		if baseTable(h.T, srcSession, t.ks, t.tab) != "" {
 			continue
 		}
-		if mode, err := tombstoneGCMode(dstSession, t.Keyspace, t.Table); mode != "repair" || err != nil {
-			h.T.Fatalf("Expected 'repair' tombstone_gc mode, got: %s, with err: %s", mode, err)
+		srcMode := tombstoneGCMode(h.T, srcSession, t.ks, t.tab)
+		dstMode := tombstoneGCMode(h.T, dstSession, t.ks, t.tab)
+		if srcMode != dstMode {
+			h.T.Fatalf("Expected %s tombstone_gc mode, got: %s", srcMode, dstMode)
 		}
 	}
 
 	Print("When: query contents of restored table")
 	for _, t := range tables {
-		dstCnt := h.getRowCount(dstSession, t)
+		dstCnt := rowCount(h.T, dstSession, t.ks, t.tab)
 		srcCnt := 0
 		if target.RestoreTables {
-			srcCnt = h.getRowCount(srcSession, t)
+			srcCnt = rowCount(h.T, srcSession, t.ks, t.tab)
 		}
 
 		h.T.Logf("%s, srcCount = %d, dstCount = %d", t, srcCnt, dstCnt)
 		if dstCnt != srcCnt {
 			// Destination cluster has additional users used for restore
-			if t.Keyspace == "system_auth" {
+			if t.ks == "system_auth" {
 				if target.RestoreTables && dstCnt < srcCnt {
 					h.T.Fatalf("%s: srcCount != dstCount", t)
 				}
@@ -1858,53 +1700,6 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 		userName     = keyspaceName + "_user"
 	)
 	return bucketName, keyspaceName, userName
-}
-
-// baseTable returns view's base table or "" if it's not a view.
-func baseTable(s gocqlx.Session, keyspace, table string) string {
-	q := qb.Select("system_schema.views").
-		Columns("base_table_name").
-		Where(qb.Eq("keyspace_name")).
-		Where(qb.Eq("view_name")).Query(s).BindMap(qb.M{
-		"keyspace_name": keyspace,
-		"view_name":     table,
-	})
-	defer q.Release()
-
-	var baseTable string
-	if err := q.Scan(&baseTable); err != nil {
-		return ""
-	}
-	return baseTable
-}
-
-func tombstoneGCMode(s gocqlx.Session, keyspace, table string) (string, error) {
-	var ext map[string]string
-	q := qb.Select("system_schema.tables").
-		Columns("extensions").
-		Where(qb.Eq("keyspace_name"), qb.Eq("table_name")).
-		Query(s).
-		Bind(keyspace, table)
-
-	defer q.Release()
-	err := q.Scan(&ext)
-	if err != nil {
-		return "", err
-	}
-
-	// Timeout (just using gc_grace_seconds) is the default mode
-	mode, ok := ext["tombstone_gc"]
-	if !ok {
-		return "timeout", nil
-	}
-
-	allModes := []string{"disabled", "timeout", "repair", "immediate"}
-	for _, m := range allModes {
-		if strings.Contains(mode, m) {
-			return m, nil
-		}
-	}
-	return "", errors.New("unknown mode")
 }
 
 func (h *restoreTestHelper) shouldSkipTest(targets ...Target) {
