@@ -90,6 +90,7 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 	}
 
 	cluster := createCluster(sessionHosts...)
+	cluster.Timeout = 5 * time.Minute
 	if user == "" && pass == "" {
 		user = testconfig.TestDBUsername()
 		pass = testconfig.TestDBPassword()
