@@ -393,6 +393,10 @@ func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTable
 	}
 }
 
+func grantRestoreSchemaPermissions(t *testing.T, s gocqlx.Session, user string) {
+	ExecStmt(t, s, "GRANT CREATE ON ALL KEYSPACES TO "+user)
+}
+
 func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {
 	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
 		t.Fatal("Expected complete restore")
