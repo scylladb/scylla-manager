@@ -199,3 +199,70 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		t.Fatalf("Src schema: %v, dst schema from dst backup: %v, are not equal", m1, m3)
 	}
 }
+
+func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	if !checkAnyConstraint(t, h.dstCluster.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+		t.Skip("This test is the reason why SM needs to restore schema by DESCRIBE SCHEMA WITH INTERNALS")
+	}
+
+	ks := randomizedName("drop_add_")
+	tab := randomizedName("tab_")
+
+	Print(fmt.Sprintf("Create %q.%q with disabled compaction", ks, tab))
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int) WITH compaction = {'class': 'NullCompactionStrategy', 'enabled': 'false'}"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill created table")
+	rowCnt := 100
+	stmt := fmt.Sprintf("INSERT INTO %q.%q (id, data) VALUES (?, ?)", ks, tab)
+	q := h.srcCluster.rootSession.Query(stmt, []string{"id", "data"})
+	defer q.Release()
+	for i := 0; i < rowCnt; i++ {
+		if err := q.Bind(i, i).Exec(); err != nil {
+			t.Fatal(errors.Wrap(err, "fill table"))
+		}
+	}
+
+	Print("Drop and add column")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER TABLE %q.%q DROP data", ks, tab))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER TABLE %q.%q ADD data int", ks, tab))
+
+	Print("Fill altered table again")
+	for i := rowCnt; i < 2*rowCnt; i++ {
+		if err := q.Bind(i, i).Exec(); err != nil {
+			t.Fatal(errors.Wrap(err, "fill table"))
+		}
+	}
+
+	Print("Run backup")
+	loc := []Location{testLocation("drop-add", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location": loc,
+		"keyspace": ksFilter,
+	})
+
+	Print("Run restore schema")
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"snapshot_tag":   tag,
+		"restore_schema": true,
+	})
+
+	Print("Run restore tables")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"keyspace":       ksFilter,
+		"snapshot_tag":   tag,
+		"restore_tables": true,
+	})
+
+	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+}
