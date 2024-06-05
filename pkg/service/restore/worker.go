@@ -82,6 +82,13 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 			"system_distributed.cdc_generation_timestamps",
 			"*.*_scylla_cdc_log", // All regular CDC tables have "_scylla_cdc_log" suffix
 		}
+		if err := IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx, w.client); err != nil {
+			w.logger.Info(ctx, "Restore of auth and service levels will be skipped", "error", err)
+			doNotRestore = append(doNotRestore,
+				"system_auth",
+				"system_distributed.service_levels",
+			)
+		}
 
 		for _, ks := range doNotRestore {
 			t.Keyspace = append(t.Keyspace, "!"+ks)
@@ -221,6 +228,45 @@ func IsRestoreSchemaSupported(ctx context.Context, client *scyllaclient.Client) 
 	if raftSchema && !raftIsSafe {
 		return ErrRestoreSchemaUnsupportedScyllaVersion
 	}
+	return nil
+}
+
+// ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion means that restore auth and service levels procedure is not safe for used Scylla configuration.
+var ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion = errors.Errorf("restoring authentication and service levels is not supported for given ScyllaDB version")
+
+// IsRestoreAuthAndServiceLevelsFromSStablesSupported checks if restore auth and service levels procedure is supported for used Scylla configuration.
+// Because of #3869 and #3875, there is no way fo SM to safely restore auth and service levels into cluster with
+// version higher or equal to OSS 6.0 or ENT 2024.2.
+func IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, client *scyllaclient.Client) error {
+	const (
+		ossConstraint = ">= 6.0, < 2000"
+		entConstraint = ">= 2024.2, > 1000"
+	)
+
+	status, err := client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get status")
+	}
+	for _, n := range status {
+		ni, err := client.NodeInfo(ctx, n.Addr)
+		if err != nil {
+			return errors.Wrapf(err, "get node %s info", n.Addr)
+		}
+
+		ossNotSupported, err := version.CheckConstraint(ni.ScyllaVersion, ossConstraint)
+		if err != nil {
+			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
+		}
+		entNotSupported, err := version.CheckConstraint(ni.ScyllaVersion, entConstraint)
+		if err != nil {
+			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
+		}
+
+		if ossNotSupported || entNotSupported {
+			return ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion
+		}
+	}
+
 	return nil
 }
 
