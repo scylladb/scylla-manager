@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -248,6 +248,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			h.shouldSkipTest(target)
 
 			if UpdateGoldenFiles() {
 				var buf bytes.Buffer
@@ -300,12 +301,35 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			var ignoreTarget []string
+			if checkAnyConstraint(t, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+				ignoreTarget = []string{
+					"!system_auth.*",
+					"!system_distributed.service_levels",
+				}
+			}
+
 			if diff := cmp.Diff(goldenTarget, target,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.IgnoreUnexported(Target{}),
 				cmpopts.IgnoreFields(Target{}, "SnapshotTag"),
+				cmpopts.IgnoreSliceElements(func(v string) bool { return slices.Contains(ignoreTarget, v) }),
 			); diff != "" {
 				t.Fatal(tc.target, diff)
+			}
+
+			var ignoreUnits []string
+			if checkAnyConstraint(t, h.Client, "< 1000") {
+				ignoreUnits = append(ignoreUnits, "system_replicated_keys")
+			}
+			if checkAnyConstraint(t, h.Client, "< 2024.2") {
+				ignoreUnits = append(ignoreUnits, "dicts")
+			}
+			if checkAnyConstraint(t, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+				ignoreUnits = append(ignoreUnits,
+					"system_auth",
+					"service_levels",
+				)
 			}
 
 			if diff := cmp.Diff(goldenUnits, units,
@@ -313,8 +337,9 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b Table) bool { return a.Table < b.Table }),
 				cmpopts.IgnoreFields(Unit{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "Size"),
-				cmpopts.IgnoreSliceElements(func(u Unit) bool { return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" }),
-				cmpopts.IgnoreSliceElements(func(t Table) bool { return t.Table == "dicts" })); diff != "" {
+				cmpopts.IgnoreSliceElements(func(v Unit) bool { return slices.Contains(ignoreUnits, v.Keyspace) }),
+				cmpopts.IgnoreSliceElements(func(v Table) bool { return slices.Contains(ignoreUnits, v.Table) }),
+			); diff != "" {
 				t.Fatal(tc.units, diff)
 			}
 
@@ -584,6 +609,8 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+	} else {
+		grantRestoreSchemaPermissions(t, dstSession, user)
 	}
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
@@ -649,6 +676,8 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+	} else {
+		grantRestoreSchemaPermissions(t, dstSession, user)
 	}
 
 	a := atomic.NewInt64(0)
@@ -751,6 +780,8 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+	} else {
+		grantRestoreSchemaPermissions(t, dstSession, user)
 	}
 
 	a := atomic.NewInt64(0)
@@ -1046,6 +1077,8 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+	} else {
+		grantRestoreSchemaPermissions(t, dstSession, user)
 	}
 
 	if err = dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
@@ -1123,6 +1156,8 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+	} else {
+		grantRestoreSchemaPermissions(t, dstSession, user)
 	}
 
 	Print("When: Restore")
@@ -1198,6 +1233,7 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
 	Print("When: Restore schema")
+	grantRestoreSchemaPermissions(t, dstSession, user)
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
@@ -1271,10 +1307,10 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	dstH.shouldSkipTest(schemaTarget, tablesTarget)
 
 	// Ensure clean scylla tables
-	if err := cleanScyllaTables(srcSession); err != nil {
+	if err := cleanScyllaTables(t, srcSession, srcH.Client); err != nil {
 		t.Fatal(err)
 	}
-	if err := cleanScyllaTables(dstSession); err != nil {
+	if err := cleanScyllaTables(t, dstSession, dstH.Client); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1287,6 +1323,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
 	Print("Restore schema on different cluster")
+	grantRestoreSchemaPermissions(t, dstSession, user)
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
@@ -1295,16 +1332,20 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 		{ks: keyspace, tab: BigTableName},
 		{ks: keyspace, tab: mvName},
 		{ks: keyspace, tab: siTableName},
-		{ks: "system_auth", tab: "role_attributes"},
-		{ks: "system_auth", tab: "role_members"},
-		{ks: "system_auth", tab: "role_permissions"},
-		{ks: "system_auth", tab: "roles"},
-		{ks: "system_distributed", tab: "service_levels"},
 		{ks: "system_traces", tab: "events"},
 		{ks: "system_traces", tab: "node_slow_log"},
 		{ks: "system_traces", tab: "node_slow_log_time_idx"},
 		{ks: "system_traces", tab: "sessions"},
 		{ks: "system_traces", tab: "sessions_time_idx"},
+	}
+	if !checkAnyConstraint(t, dstH.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+		toValidate = append(toValidate,
+			table{ks: "system_auth", tab: "role_attributes"},
+			table{ks: "system_auth", tab: "role_members"},
+			table{ks: "system_auth", tab: "role_permissions"},
+			table{ks: "system_auth", tab: "roles"},
+			table{ks: "system_distributed", tab: "service_levels"},
+		)
 	}
 
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
@@ -1370,6 +1411,9 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 	)
 
 	dstH.shouldSkipTest(schemaTarget, tablesTarget)
+	if checkAnyConstraint(t, dstH.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+		t.Skip("See https://github.com/scylladb/scylladb/issues/19112")
+	}
 
 	// Restore should be performed on user with limited permissions
 	dropNonSuperUsers(t, dstSession)
@@ -1382,6 +1426,7 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
 	Print("Restore schema on different cluster")
+	grantRestoreSchemaPermissions(t, dstSession, user)
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
@@ -1434,8 +1479,10 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	}
 
 	if target.RestoreSchema {
-		// Required to load schema changes
-		h.restartScylla()
+		if !checkAnyConstraint(h.T, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+			// Schema restart is required only for older Scylla versions
+			h.restartScylla()
+		}
 	}
 
 	Print("And: validate that restore preserves tombstone_gc mode")
@@ -1474,29 +1521,20 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 }
 
 // cleanScyllaTables truncates scylla tables populated in prepareRestoreBackupWithFeatures.
-func cleanScyllaTables(session gocqlx.Session) error {
+func cleanScyllaTables(t *testing.T, session gocqlx.Session, client *scyllaclient.Client) error {
+	ExecStmt(t, session, "DROP ROLE IF EXISTS role2")
+	ExecStmt(t, session, "DROP ROLE IF EXISTS role1")
+	ExecStmt(t, session, "DROP SERVICE LEVEL IF EXISTS sl")
+
 	toBeTruncated := []string{
-		"system_auth.role_attributes",
-		"system_auth.role_members",
-		"system_auth.role_permissions",
-		"system_distributed.service_levels",
 		"system_traces.events",
 		"system_traces.node_slow_log",
 		"system_traces.node_slow_log_time_idx",
 		"system_traces.sessions",
 		"system_traces.sessions_time_idx",
 	}
-
-	for _, t := range toBeTruncated {
-		if err := session.ExecStmt("TRUNCATE TABLE " + t); err != nil {
-			return errors.Wrap(err, "truncate table")
-		}
-	}
-	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role1' IF EXISTS"); err != nil {
-		return errors.Wrap(err, "delete role1")
-	}
-	if err := session.ExecStmt("DELETE FROM system_auth.roles WHERE role='role2' IF EXISTS"); err != nil {
-		return errors.Wrap(err, "delete role2")
+	for _, tab := range toBeTruncated {
+		ExecStmt(t, session, "TRUNCATE TABLE "+tab)
 	}
 	return nil
 }
@@ -1525,9 +1563,13 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(s gocqlx.Session, k
 	// Create keyspace and table
 	WriteDataSecondClusterSchema(h.T, s, keyspace, 0, 0)
 
-	ExecStmt(h.T, s,
-		fmt.Sprintf("ALTER TABLE %s.%s WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName),
-	)
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
+	if !rd.IsTabletKeyspace(keyspace) {
+		// CDC does not work with tablets
+		ExecStmt(h.T, s,
+			fmt.Sprintf("ALTER TABLE %s.%s WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName),
+		)
+	}
 
 	createBigTableViews(h.T, s, keyspace, BigTableName, mvName, siName)
 
@@ -1705,11 +1747,8 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 func (h *restoreTestHelper) shouldSkipTest(targets ...Target) {
 	for _, target := range targets {
 		if target.RestoreSchema {
-			if err := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client); err != nil {
-				if errors.Is(err, ErrRestoreSchemaUnsupportedScyllaVersion) {
-					h.T.Skip(err)
-				}
-				h.T.Fatal(err)
+			if err := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client); err != nil && !checkAnyConstraint(h.T, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+				h.T.Skip(err)
 			}
 		}
 	}
