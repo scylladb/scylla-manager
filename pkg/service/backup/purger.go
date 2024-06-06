@@ -172,8 +172,13 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 	deletedManifests := 0
 	for _, m := range manifests {
 		if tags.Has(m.SnapshotTag) {
+			// Note that schema files might not be backed up in the first place
+			unsafePath := RemoteUnsafeSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
+			if _, err := p.deleteFile(ctx, m.Location.RemotePath(unsafePath)); err != nil {
+				p.logger.Info(ctx, "Remove unsafe schema file", "path", unsafePath, "error", err)
+			}
 			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
-				p.logger.Info(ctx, "Failed to remove schema file", "path", m.SchemaPath(), "error", err)
+				p.logger.Info(ctx, "Remove schema file", "path", m.SchemaPath(), "error", err)
 			}
 			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
 				p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
