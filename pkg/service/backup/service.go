@@ -813,7 +813,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return nil
 	}
 	stageFunc := map[Stage]func() error{
-		StageAwaitSchema: func() error { // nolint: unparam
+		StageAwaitSchema: func() error {
 			clusterSession, err := s.clusterSession(ctx, clusterID)
 			if err != nil {
 				w.Logger.Info(ctx, "No CQL cluster session, backup of schema as CQL files will be skipped", "error", err)
@@ -822,13 +822,18 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			defer clusterSession.Close()
 
 			if err := w.AwaitSchemaAgreement(ctx, clusterSession); err != nil {
-				w.Logger.Info(ctx, "Couldn't await schema agreement, backup of schema as CQL files will be skipped", "error", err)
-				return nil
+				return errors.Wrap(err, "await schema agreement")
 			}
-			if err = w.DumpSchema(ctx, clusterSession); err != nil {
-				w.Logger.Info(ctx, "Couldn't dump schema, backup of schema as CQL files will be skipped", "error", err)
-				w.Schema = nil
+
+			var hosts []string
+			for _, h := range hi {
+				hosts = append(hosts, h.IP)
 			}
+
+			if err := w.DumpSchema(ctx, clusterSession, hosts); err != nil {
+				return errors.Wrap(err, "dump schema")
+			}
+
 			return nil
 		},
 		StageSnapshot: func() error {
