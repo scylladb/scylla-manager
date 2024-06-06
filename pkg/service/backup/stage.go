@@ -10,8 +10,8 @@ type Stage string
 // Stage enumeration.
 const (
 	StageInit         Stage = "INIT"
-	StageAwaitSchema  Stage = "AWAIT_SCHEMA"
 	StageSnapshot     Stage = "SNAPSHOT"
+	StageAwaitSchema  Stage = "AWAIT_SCHEMA"
 	StageIndex        Stage = "INDEX"
 	StageManifest     Stage = "MANIFEST"
 	StageSchema       Stage = "SCHEMA"
@@ -24,8 +24,8 @@ const (
 
 var stageDescription = map[Stage]string{
 	StageInit:         "initialising",
-	StageAwaitSchema:  "awaiting schema agreement",
 	StageSnapshot:     "taking snapshot",
+	StageAwaitSchema:  "awaiting schema agreement",
 	StageIndex:        "indexing snapshot files",
 	StageManifest:     "uploading manifest files",
 	StageSchema:       "uploading cql schema",
@@ -38,8 +38,8 @@ var stageDescription = map[Stage]string{
 func StageOrder() []Stage {
 	return []Stage{
 		StageInit,
-		StageAwaitSchema,
 		StageSnapshot,
+		StageAwaitSchema,
 		StageIndex,
 		StageManifest,
 		StageSchema,
