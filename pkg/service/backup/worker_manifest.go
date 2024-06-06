@@ -71,8 +71,8 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 		},
 		Index: make([]FilesMeta, len(dirs)),
 	}
-	if w.Schema != nil {
-		c.Schema = RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+	if w.SchemaFilePath != "" {
+		c.Schema = w.SchemaFilePath
 	}
 
 	for i, d := range dirs {
