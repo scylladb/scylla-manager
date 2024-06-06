@@ -5,6 +5,7 @@ package query
 import (
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -45,4 +46,35 @@ func GetTableVersion(s gocqlx.Session, keyspace, table string) (string, error) {
 	version = strings.ReplaceAll(version, "-", "")
 
 	return version, nil
+}
+
+// DescribedSchema describes output of DESCRIBE SCHEMA WITH INTERNALS.
+type DescribedSchema []DescribedSchemaRow
+
+// DescribedSchemaRow describes a single row returned by DESCRIBE SCHEMA WITH INTERNALS.
+type DescribedSchemaRow struct {
+	Keyspace string `json:"keyspace"`
+	Type     string `json:"type"`
+	Name     string `json:"name"`
+	CQLStmt  string `json:"cql_stmt"`
+}
+
+// DescribeSchemaWithInternals returns the output of DESCRIBE SCHEMA WITH INTERNALS query parsed into DescribedSchema.
+func DescribeSchemaWithInternals(session gocqlx.Session) (DescribedSchema, error) {
+	it := session.Query("DESCRIBE SCHEMA WITH INTERNALS", nil).Iter()
+	var ks, t, name, cql string
+	var schema DescribedSchema
+	for it.Scan(&ks, &t, &name, &cql) {
+		schema = append(schema, DescribedSchemaRow{
+			Keyspace: ks,
+			Type:     t,
+			Name:     name,
+			CQLStmt:  cql,
+		})
+	}
+
+	if err := it.Close(); err != nil {
+		return DescribedSchema{}, errors.Wrap(err, "describe schema with internals")
+	}
+	return schema, nil
 }
