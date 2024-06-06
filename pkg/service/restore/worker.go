@@ -29,8 +29,9 @@ import (
 
 // restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
 type worker struct {
-	run    *Run
-	target Target
+	run             *Run
+	target          Target
+	describedSchema *query.DescribedSchema
 
 	config  Config
 	logger  log.Logger
@@ -116,12 +117,6 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		return errors.Wrap(err, "verify all nodes availability")
 	}
 
-	if t.RestoreSchema {
-		if err := IsRestoreSchemaSupported(ctx, w.client); err != nil {
-			return err
-		}
-	}
-
 	allLocations := strset.New()
 	locationHosts := make(map[Location][]string)
 	for _, l := range t.Location {
@@ -166,8 +161,25 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 
 	w.target = t
 	w.run.SnapshotTag = t.SnapshotTag
-	w.logger.Info(ctx, "Initialized target", "target", t)
 
+	if t.RestoreSchema {
+		w.logger.Info(ctx, "Look for schema file")
+		w.describedSchema, err = getDescribedSchema(ctx, w.client, t.SnapshotTag, locationHosts)
+		if err != nil {
+			return errors.Wrap(err, "look for schema file")
+		}
+
+		if w.describedSchema == nil {
+			w.logger.Info(ctx, "Couldn't find schema file. Proceeding with schema restoration using sstables")
+			if err := IsRestoreSchemaFromSSTablesSupported(ctx, w.client); err != nil {
+				return errors.Wrap(err, "check safety of restoring schema from sstables")
+			}
+		} else {
+			w.logger.Info(ctx, "Found schema file")
+		}
+	}
+
+	w.logger.Info(ctx, "Initialized target", "target", t)
 	return nil
 }
 
@@ -175,10 +187,10 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 var ErrRestoreSchemaUnsupportedScyllaVersion = errors.Errorf("restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
 	"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
 
-// IsRestoreSchemaSupported checks if restore schema procedure is supported for used Scylla configuration.
+// IsRestoreSchemaFromSSTablesSupported checks if restore schema procedure is supported for used Scylla configuration.
 // Because of #3662, there is no way fo SM to safely restore schema into cluster with consistent_cluster_management
 // and version higher or equal to OSS 5.4 or ENT 2024. There is a documented workaround in SM docs.
-func IsRestoreSchemaSupported(ctx context.Context, client *scyllaclient.Client) error {
+func IsRestoreSchemaFromSSTablesSupported(ctx context.Context, client *scyllaclient.Client) error {
 	const (
 		DangerousConstraintOSS = ">= 6.0, < 2000"
 		DangerousConstraintENT = ">= 2024.2, > 1000"

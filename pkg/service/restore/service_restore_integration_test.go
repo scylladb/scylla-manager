@@ -1705,7 +1705,7 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 func (h *restoreTestHelper) shouldSkipTest(targets ...Target) {
 	for _, target := range targets {
 		if target.RestoreSchema {
-			if err := IsRestoreSchemaSupported(context.Background(), h.Client); err != nil {
+			if err := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client); err != nil {
 				if errors.Is(err, ErrRestoreSchemaUnsupportedScyllaVersion) {
 					h.T.Skip(err)
 				}
