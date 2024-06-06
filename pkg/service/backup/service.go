@@ -813,6 +813,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return nil
 	}
 	stageFunc := map[Stage]func() error{
+		StageSnapshot: func() error {
+			return w.Snapshot(ctx, hi, target.SnapshotParallel)
+		},
 		StageAwaitSchema: func() error {
 			clusterSession, err := s.clusterSession(ctx, clusterID)
 			if err != nil {
@@ -835,9 +838,6 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			}
 
 			return nil
-		},
-		StageSnapshot: func() error {
-			return w.Snapshot(ctx, hi, target.SnapshotParallel)
 		},
 		StageIndex: func() error {
 			return w.Index(ctx, hi, target.UploadParallel)
