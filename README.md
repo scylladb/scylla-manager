@@ -1,20 +1,20 @@
 ![GitHub release](https://img.shields.io/github/tag/scylladb/scylla-manager.svg?label=release)
-![Sanity check](https://github.com/scylladb/scylla-manager/actions/workflows/sanity-checks.yml/badge.svg?branch=master)
+![Sanity check](https://github.com/scylladb/scylla-manager/actions/workflows/sanity-checks.yml/badge.svg?branch=branch-3.3)
 ![Language](https://img.shields.io/badge/Language-Go-blue.svg)
 
-![Integration tests 5.4.1 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4.yaml/badge.svg?branch=master)
-![Integration tests 5.4.1 IPV4 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4-raftschema.yaml/badge.svg?branch=master)
-![Integration tests 5.4.1 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6.yaml/badge.svg?branch=master)
-![Integration tests 5.4.1 IPV6 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6-raftschema.yaml/badge.svg?branch=master)
+![Integration tests 5.4.1 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4.yaml/badge.svg?branch=branch-3.3)
+![Integration tests 5.4.1 IPV4 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv4-raftschema.yaml/badge.svg?branch=branch-3.3)
+![Integration tests 5.4.1 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6.yaml/badge.svg?branch=branch-3.3)
+![Integration tests 5.4.1 IPV6 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-5.4.1-ipv6-raftschema.yaml/badge.svg?branch=branch-3.3)
 
-![Integration tests 2023.1.3 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4.yaml/badge.svg?branch=master)
-![Integration tests 2023.1.3 IPV4 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4-raftschema.yaml/badge.svg?branch=master)
-![Integration tests 2023.1.3 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6.yaml/badge.svg?branch=master)
-![Integration tests 2023.1.3 IPV6 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6-raftschema.yaml/badge.svg?branch=master)
+![Integration tests 2023.1.3 IPV4](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4.yaml/badge.svg?branch=branch-3.3)
+![Integration tests 2023.1.3 IPV4 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv4-raftschema.yaml/badge.svg?branch=branch-3.3)
+![Integration tests 2023.1.3 IPV6](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6.yaml/badge.svg?branch=branch-3.3)
+![Integration tests 2023.1.3 IPV6 raft-schema](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.3-ipv6-raftschema.yaml/badge.svg?branch=branch-3.3)
 
-![Integration tests nightly IPV4 ](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-nightly-ipv4-raftschema.yaml/badge.svg?branch=master)
-![Integration tests nightly IPV4 raft-topology](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-nightly-ipv4-raftschema-rafttopology.yaml/badge.svg?branch=master)
-![Integration tests nightly IPV4 raft-topology tablets](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-nightly-ipv4-raftschema-rafttopology-tablets.yaml/badge.svg?branch=master)
+![Integration tests nightly IPV4 ](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-nightly-ipv4-raftschema.yaml/badge.svg?branch=branch-3.3)
+![Integration tests nightly IPV4 raft-topology](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-nightly-ipv4-raftschema-rafttopology.yaml/badge.svg?branch=branch-3.3)
+![Integration tests nightly IPV4 raft-topology tablets](https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-nightly-ipv4-raftschema-rafttopology-tablets.yaml/badge.svg?branch=branch-3.3)
 # Scylla Manager
 
 Welcome to Scylla Manager repository!
