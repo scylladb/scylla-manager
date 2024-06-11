@@ -94,11 +94,11 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 		}
 		r.metrics.rtt.With(hl).Set(float64(rtt.Milliseconds()))
 
-		return nil
+		return err
 	}
 
 	_ = parallel.Run(len(addresses), parallel.NoLimit, f, func(i int, err error) { // nolint: errcheck
-		r.logger.Error(ctx, "Parallel hosts check failed", "", addresses[i], "error", err)
+		r.logger.Error(ctx, "Parallel hosts check failed", "host", addresses[i], "error", err)
 	})
 }
 
