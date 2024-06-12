@@ -15,7 +15,7 @@ type sizeSetter interface {
 	SetSize(size int)
 }
 
-type intensityHandler struct {
+type intensityParallelHandler struct {
 	taskID           uuid.UUID
 	runID            uuid.UUID
 	logger           log.Logger
@@ -33,14 +33,17 @@ const (
 	chanSize                   = 10000
 )
 
-// SetIntensity sets the value of '--intensity' flag.
-func (i *intensityHandler) SetIntensity(ctx context.Context, intensity Intensity) {
+// SetIntensity sets the effective '--intensity' value used by newly created repair jobs.
+// It can be used to control currently running repair without stopping it and changing '--intensity' flag.
+// The change is ephemeral, so it does not change the value of '--intensity' flag in SM DB, meaning that without
+// additional actions, it won't be visible in next task runs.
+func (i *intensityParallelHandler) SetIntensity(ctx context.Context, intensity Intensity) {
 	i.logger.Info(ctx, "Setting repair intensity", "value", intensity, "previous", i.intensity.Load())
 	i.intensity.Store(int64(intensity))
 }
 
-// SetParallel sets the value of '--parallel' flag.
-func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) {
+// SetParallel works in the same way as SetIntensity, but for '--parallel' value.
+func (i *intensityParallelHandler) SetParallel(ctx context.Context, parallel int) {
 	i.logger.Info(ctx, "Setting repair parallel", "value", parallel, "previous", i.parallel.Load())
 	i.parallel.Store(int64(parallel))
 	if parallel == defaultParallel {
@@ -50,7 +53,9 @@ func (i *intensityHandler) SetParallel(ctx context.Context, parallel int) {
 	}
 }
 
-func (i *intensityHandler) ReplicaSetMaxIntensity(replicaSet []string) Intensity {
+// ReplicaSetMaxIntensity returns the max amount of ranges that can be repaired in parallel on given replica set.
+// It results in returning min(max_repair_ranges_in_parallel) across nodes from replica set.
+func (i *intensityParallelHandler) ReplicaSetMaxIntensity(replicaSet []string) Intensity {
 	out := NewIntensity(math.MaxInt)
 	for _, rep := range replicaSet {
 		if ranges := i.maxHostIntensity[rep]; ranges < out {
@@ -61,21 +66,21 @@ func (i *intensityHandler) ReplicaSetMaxIntensity(replicaSet []string) Intensity
 }
 
 // MaxHostIntensity returns max_token_ranges_in_parallel per host.
-func (i *intensityHandler) MaxHostIntensity() map[string]Intensity {
+func (i *intensityParallelHandler) MaxHostIntensity() map[string]Intensity {
 	return i.maxHostIntensity
 }
 
 // Intensity returns stored value for intensity.
-func (i *intensityHandler) Intensity() Intensity {
+func (i *intensityParallelHandler) Intensity() Intensity {
 	return NewIntensity(int(i.intensity.Load()))
 }
 
 // MaxParallel returns maximal achievable parallelism.
-func (i *intensityHandler) MaxParallel() int {
+func (i *intensityParallelHandler) MaxParallel() int {
 	return i.maxParallel
 }
 
 // Parallel returns stored value for parallel.
-func (i *intensityHandler) Parallel() int {
+func (i *intensityParallelHandler) Parallel() int {
 	return int(i.parallel.Load())
 }

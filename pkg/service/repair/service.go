@@ -40,7 +40,7 @@ type Service struct {
 	clusterSession cluster.SessionFunc
 	logger         log.Logger
 
-	intensityHandlers map[uuid.UUID]*intensityHandler
+	intensityHandlers map[uuid.UUID]*intensityParallelHandler
 	mu                sync.Mutex
 }
 
@@ -62,7 +62,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 		scyllaClient:      scyllaClient,
 		clusterSession:    clusterSession,
 		logger:            logger,
-		intensityHandlers: make(map[uuid.UUID]*intensityHandler),
+		intensityHandlers: make(map[uuid.UUID]*intensityParallelHandler),
 	}, nil
 }
 
@@ -329,8 +329,8 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 
 func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, runID uuid.UUID,
 	maxHostIntensity map[string]Intensity, maxParallel int, poolController sizeSetter,
-) (ih *intensityHandler, cleanup func()) {
-	ih = &intensityHandler{
+) (ih *intensityParallelHandler, cleanup func()) {
+	ih = &intensityParallelHandler{
 		taskID:           taskID,
 		runID:            runID,
 		logger:           s.logger.Named("control"),
@@ -429,7 +429,7 @@ func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensi
 		return service.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
 	}
 	ih.SetIntensity(ctx, NewIntensityFromDeprecated(intensity))
-
+	// Preserve applied change in SM DB, so that it will be visible in next task runs
 	err := table.RepairRun.UpdateBuilder("intensity").Query(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    ih.taskID,
@@ -452,7 +452,7 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
 	}
 	ih.SetParallel(ctx, parallel)
-
+	// Preserve applied change in SM DB, so that it will be visible in next task runs
 	err := table.RepairRun.UpdateBuilder("parallel").Query(s.session).BindMap(qb.M{
 		"cluster_id": clusterID,
 		"task_id":    ih.taskID,
