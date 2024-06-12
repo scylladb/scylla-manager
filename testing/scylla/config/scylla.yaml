@@ -32,6 +32,8 @@ num_tokens: 256
 data_file_directories:
   - /var/lib/scylla/data
 
+uuid_sstable_identifiers_enabled: true
+
 # commit log.  when running on magnetic HDD, this should be a
 # separate spindle than the data directories.
 commitlog_directory: /var/lib/scylla/commitlog
