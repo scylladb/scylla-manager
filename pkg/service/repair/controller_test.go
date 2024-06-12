@@ -29,8 +29,8 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		node5: 16,
 		node6: 15,
 	}
-	defaultIntensityHandler := func() *intensityHandler {
-		return &intensityHandler{
+	defaultIntensityHandler := func() *intensityParallelHandler {
+		return &intensityParallelHandler{
 			logger:           log.Logger{},
 			maxHostIntensity: maxRangesPerHost,
 			intensity:        atomic.NewInt64(int64(defaultIntensity)),
