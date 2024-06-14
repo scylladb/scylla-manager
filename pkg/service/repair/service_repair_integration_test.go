@@ -895,17 +895,12 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		si1 = "test_si_1"
 		mv1 = "test_mv_1"
 		mv2 = "test_mv_2"
-		// This value has been chosen without much reasoning, but it seems fine.
-		// Each table consists of 6 * 256 token ranges (total number of vnodes in keyspace),
-		// so if stopping repair with short graceful stop timeout 4 times makes us
-		// redo only that many ranges, everything should be fine.
-		redundantLimit = 20
 	)
 
 	// Create keyspaces. Low RF increases repair parallelism.
-	createKeyspace(t, clusterSession, ks1, 2, 1)
-	createKeyspace(t, clusterSession, ks2, 1, 1)
-	createKeyspace(t, clusterSession, ks3, 1, 1)
+	tryCreateTabletKeyspace(t, clusterSession, ks1, 2, 1, 4096)
+	tryCreateTabletKeyspace(t, clusterSession, ks2, 1, 1, 4096)
+	tryCreateTabletKeyspace(t, clusterSession, ks3, 1, 1, 4096)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -976,20 +971,25 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		stopCnt4        = 500
 	)
 
+	running := atomic.Bool{}
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
 			switch int(cnt.Add(1)) {
 			case stopCnt1:
+				running.Store(false)
 				stop1()
 				t.Log("First repair pause")
 			case stopCnt2:
+				running.Store(false)
 				stop2()
 				t.Log("Second repair pause")
 			case stopCnt3:
+				running.Store(false)
 				stop3()
 				t.Log("Third repair pause")
 			case stopCnt4:
+				running.Store(false)
 				stop4()
 				t.Log("Fourth repair pause")
 			}
@@ -1028,7 +1028,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
 			// Inject 5% errors on all runs except the last one.
 			// This helps to test repair error resilience.
-			if i := cnt.Load(); i < int64(stopCnt4) && i%20 == 0 {
+			// Also, return errors for requests after the pause, so that's
+			// easier to look for redundant ranges.
+			if i := cnt.Load(); !running.Load() || i < int64(stopCnt4) && i%20 == 0 {
 				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
 				return
 			}
@@ -1055,24 +1057,28 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	})
 
 	Print("When: run first repair with context cancel")
+	running.Store(true)
 	if err := h.runRegularRepair(stop1Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run second repair with context cancel")
 	h.RunID = uuid.NewTime()
+	running.Store(true)
 	if err := h.runRegularRepair(stop2Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run third repair with context cancel")
 	h.RunID = uuid.NewTime()
+	running.Store(true)
 	if err := h.runRegularRepair(stop3Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
 
 	Print("When: run fourth repair with context cancel")
 	h.RunID = uuid.NewTime()
+	running.Store(true)
 	if err := h.runRegularRepair(stop4Ctx, props); err == nil {
 		t.Fatal("Repair failed without error")
 	}
@@ -1118,12 +1124,12 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 
 	Print("When: run fifth repair till it finishes")
 	h.RunID = uuid.NewTime()
+	running.Store(true)
 	if err := h.runRegularRepair(ctx, props); err != nil {
 		t.Fatalf("Repair failed: %s", err)
 	}
 
 	Print("When: validate all, continuous ranges")
-	redundant := 0
 	for tab, tr := range doneRanges {
 		t.Logf("Checking table %s", tab)
 
@@ -1131,12 +1137,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		redundant += r
-	}
-
-	t.Logf("Overall redundant ranges %d", redundant)
-	if redundant > redundantLimit {
-		t.Fatalf("Expected less redundant token ranges than %d", redundant)
+		if r > len(tr)/20 {
+			t.Fatalf("Expected less than 5 percent (%d) of redundant ranges per table (%d)", r, len(tr))
+		}
 	}
 }
 
