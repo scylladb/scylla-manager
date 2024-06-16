@@ -280,7 +280,7 @@ func TestNodeInfoSupportsRepairSmallTableOptimization(t *testing.T) {
 		},
 		{
 			scyllaVer: "5.5.0",
-			expected:  true,
+			expected:  false,
 		},
 		{
 			scyllaVer: "6.0.0",
