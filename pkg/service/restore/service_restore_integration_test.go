@@ -302,7 +302,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			}
 
 			var ignoreTarget []string
-			if checkAnyConstraint(t, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+			if checkAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 				ignoreTarget = []string{
 					"!system_auth.*",
 					"!system_distributed.service_levels",
@@ -325,7 +325,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			if checkAnyConstraint(t, h.Client, "< 2024.2") {
 				ignoreUnits = append(ignoreUnits, "dicts")
 			}
-			if checkAnyConstraint(t, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+			if checkAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 				ignoreUnits = append(ignoreUnits,
 					"system_auth",
 					"service_levels",
@@ -1338,7 +1338,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 		{ks: "system_traces", tab: "sessions"},
 		{ks: "system_traces", tab: "sessions_time_idx"},
 	}
-	if !checkAnyConstraint(t, dstH.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+	if !checkAnyConstraint(t, dstH.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 		toValidate = append(toValidate,
 			table{ks: "system_auth", tab: "role_attributes"},
 			table{ks: "system_auth", tab: "role_members"},
@@ -1411,7 +1411,7 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 	)
 
 	dstH.shouldSkipTest(schemaTarget, tablesTarget)
-	if checkAnyConstraint(t, dstH.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+	if checkAnyConstraint(t, dstH.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 		t.Skip("See https://github.com/scylladb/scylladb/issues/19112")
 	}
 
@@ -1479,7 +1479,7 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	}
 
 	if target.RestoreSchema {
-		if !checkAnyConstraint(h.T, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+		if !checkAnyConstraint(h.T, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 			// Schema restart is required only for older Scylla versions
 			h.restartScylla()
 		}
@@ -1747,7 +1747,7 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 func (h *restoreTestHelper) shouldSkipTest(targets ...Target) {
 	for _, target := range targets {
 		if target.RestoreSchema {
-			if err := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client); err != nil && !checkAnyConstraint(h.T, h.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+			if err := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client); err != nil && !checkAnyConstraint(h.T, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 				h.T.Skip(err)
 			}
 		}

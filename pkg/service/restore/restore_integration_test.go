@@ -22,7 +22,7 @@ import (
 func TestRestoreTablesUserIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 
-	if checkAnyConstraint(t, h.dstCluster.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+	if checkAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 		t.Skip("Auth restore is not supported in Scylla 6.0. It requires core side support that is aimed at 6.1 release")
 	}
 
@@ -101,7 +101,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 	hRev := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
-	if !checkAnyConstraint(t, h.dstCluster.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+	if !checkAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 		t.Skip("This test assumes that schema is backed up and restored via DESCRIBE SCHEMA WITH INTERNALS")
 	}
 
@@ -203,7 +203,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 
-	if !checkAnyConstraint(t, h.dstCluster.Client, ">= 5.5, < 2000", ">= 2024.2, > 1000") {
+	if !checkAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 		t.Skip("This test is the reason why SM needs to restore schema by DESCRIBE SCHEMA WITH INTERNALS")
 	}
 
