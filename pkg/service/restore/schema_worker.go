@@ -7,11 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	stdErr "errors"
+	"fmt"
 	"io"
 	"path"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"go.uber.org/atomic"
@@ -136,6 +138,8 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 	w.logger.Info(ctx, "Apply schema CQL statements")
 	start := timeutc.Now()
+
+	var createdKs []string
 	for _, row := range *w.describedSchema {
 		if row.Keyspace == "system_replicated_keys" {
 			// See https://github.com/scylladb/scylla-enterprise/issues/4168
@@ -144,7 +148,13 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 		// Sometimes a single object might require multiple CQL statements (e.g. table with dropped and added column)
 		for _, stmt := range parseCQLStatement(row.CQLStmt) {
 			if err := w.clusterSession.ExecStmt(stmt); err != nil {
+				if dropErr := dropKeyspaces(createdKs, w.clusterSession); dropErr != nil {
+					w.logger.Error(ctx, "Couldn't rollback already applied schema changes", "error", dropErr)
+				}
 				return errors.Wrapf(err, "create %s (%s) with %s", row.Name, row.Keyspace, stmt)
+			}
+			if row.Type == "keyspace" {
+				createdKs = append(createdKs, row.Name)
 			}
 		}
 	}
@@ -419,4 +429,14 @@ func parseCQLStatement(cql string) []string {
 		}
 	}
 	return out
+}
+
+func dropKeyspaces(keyspaces []string, session gocqlx.Session) error {
+	const dropKsStmt = "DROP KEYSPACE IF EXISTS %q"
+	for _, ks := range keyspaces {
+		if err := session.ExecStmt(fmt.Sprintf(dropKsStmt, ks)); err != nil {
+			return errors.Wrapf(err, "drop keyspace %q", ks)
+		}
+	}
+	return nil
 }
