@@ -165,7 +165,7 @@ func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
 		return true, nil
 	}
 	// Check OSS
-	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 5.5, < 2000")
+	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.0, < 2000")
 	if err != nil {
 		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
 	}
