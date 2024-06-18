@@ -47,6 +47,33 @@ func pathHasPrefix(prefixes ...string) paramsValidator {
 	}
 }
 
+// pathHasSuffix reads "fs" and "remote" params + checks if the path has
+// required suffix.
+func pathHasSuffix(suffix string) paramsValidator {
+	return func(ctx context.Context, in rc.Params) error {
+		_, p, err := joined(in, "fs", "remote")
+		if err != nil {
+			return err
+		}
+
+		if !strings.HasSuffix(p, suffix) {
+			return fs.ErrorPermissionDenied
+		}
+		return nil
+	}
+}
+
+func or(validators ...paramsValidator) paramsValidator {
+	return func(ctx context.Context, in rc.Params) error {
+		for _, v := range validators {
+			if err := v(ctx, in); err == nil {
+				return nil
+			}
+		}
+		return fs.ErrorPermissionDenied
+	}
+}
+
 func localToRemote() paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
 		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
