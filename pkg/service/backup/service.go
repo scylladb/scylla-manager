@@ -847,6 +847,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		StageSchema: func() error {
 			return w.UploadSchema(ctx, hi)
 		},
+		StageDeduplicate: func() error {
+			return w.Deduplicate(ctx, hi, target.UploadParallel)
+		},
 		StageUpload: func() error {
 			return w.Upload(ctx, hi, target.UploadParallel)
 		},

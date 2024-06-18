@@ -10,6 +10,7 @@ const (
 	BackupStageIndex        string = "INDEX"
 	BackupStageManifest     string = "MANIFEST"
 	BackupStageSchema       string = "SCHEMA"
+	BackupStageDeduplicate  string = "DEDUPLICATE"
 	BackupStageUpload       string = "UPLOAD"
 	BackupStageMoveManifest string = "MOVE_MANIFEST"
 	BackupStageMigrate      string = "MIGRATE"
@@ -24,6 +25,7 @@ var backupStageName = map[string]string{
 	BackupStageIndex:        "indexing files",
 	BackupStageManifest:     "uploading manifests",
 	BackupStageSchema:       "uploading schema",
+	BackupStageDeduplicate:  "deduplicating the snapshot",
 	BackupStageUpload:       "uploading data",
 	BackupStageMoveManifest: "moving manifests",
 	BackupStageMigrate:      "migrating legacy metadata",
