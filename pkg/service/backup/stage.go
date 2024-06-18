@@ -15,6 +15,7 @@ const (
 	StageIndex        Stage = "INDEX"
 	StageManifest     Stage = "MANIFEST"
 	StageSchema       Stage = "SCHEMA"
+	StageDeduplicate  Stage = "DEDUPLICATE"
 	StageUpload       Stage = "UPLOAD"
 	StageMoveManifest Stage = "MOVE_MANIFEST"
 	StageMigrate      Stage = "MIGRATE"
@@ -43,6 +44,7 @@ func StageOrder() []Stage {
 		StageIndex,
 		StageManifest,
 		StageSchema,
+		StageDeduplicate,
 		StageUpload,
 		StageMoveManifest,
 		StageMigrate,
