@@ -190,7 +190,7 @@ func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotD
 		return err
 	}
 
-	w.Logger.Debug(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
+	w.Logger.Info(ctx, "Uploading dir", "host", d.Host, "from", src, "to", dst, "job_id", id)
 	d.Progress.AgentJobID = id
 	w.onRunProgress(ctx, d.Progress)
 
