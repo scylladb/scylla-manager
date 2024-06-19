@@ -646,6 +646,10 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID, opts ...S
 	return gocqlx.WrapSession(cfg.CreateSession())
 }
 
+// ErrNoCQLCredentials is returned when cluster CQL credentials are required to create session,
+// but they weren't added to the SM.
+var ErrNoCQLCredentials = errors.New("cluster requires CQL authentication but username/password was not set")
+
 func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni *scyllaclient.NodeInfo, cfg *gocql.ClusterConfig) error {
 	if ni.CqlPasswordProtected {
 		credentials := secrets.CQLCreds{
@@ -653,7 +657,7 @@ func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni 
 		}
 		err := s.secretsStore.Get(&credentials)
 		if errors.Is(err, service.ErrNotFound) {
-			return errors.New("cluster requires CQL authentication but username/password was not set")
+			return ErrNoCQLCredentials
 		}
 		if err != nil {
 			return errors.Wrap(err, "get credentials")
