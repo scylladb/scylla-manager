@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -17,7 +18,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
+	"golang.org/x/sync/errgroup"
 )
 
 func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) error {
@@ -146,30 +147,30 @@ func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error
 
 // isDescribeSchemaSafe checks if restoring schema from DESCRIBE SCHEMA WITH INTERNALS is safe.
 func isDescribeSchemaSafe(ctx context.Context, client *scyllaclient.Client, hosts []string) (bool, error) {
-	const (
-		ConstraintOSS = ">= 6.0, < 2000"
-		ConstraintENT = ">= 2024.2, > 1000"
-	)
+	out := atomic.Bool{}
+	out.Store(true)
+	eg := errgroup.Group{}
 
-	for _, h := range hosts {
-		ni, err := client.NodeInfo(ctx, h)
-		if err != nil {
-			return false, errors.Wrapf(err, "get node %s info", h)
-		}
-
-		oss, err := version.CheckConstraint(ni.ScyllaVersion, ConstraintOSS)
-		if err != nil {
-			return false, errors.Wrapf(err, "check version constraint for %s", h)
-		}
-		ent, err := version.CheckConstraint(ni.ScyllaVersion, ConstraintENT)
-		if err != nil {
-			return false, errors.Wrapf(err, "check version constraint for %s", h)
-		}
-
-		if !oss && !ent {
-			return false, nil
-		}
+	for _, host := range hosts {
+		h := host
+		eg.Go(func() error {
+			ni, err := client.NodeInfo(ctx, h)
+			if err != nil {
+				return err
+			}
+			res, err := ni.SupportsSafeDescribeSchemaWithInternals()
+			if err != nil {
+				return err
+			}
+			if !res {
+				out.Store(false)
+			}
+			return nil
+		})
 	}
 
-	return true, nil
+	if err := eg.Wait(); err != nil {
+		return false, err
+	}
+	return out.Load(), nil
 }
