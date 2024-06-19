@@ -817,23 +817,22 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.Snapshot(ctx, hi, target.SnapshotParallel)
 		},
 		StageAwaitSchema: func() error {
-			clusterSession, err := s.clusterSession(ctx, clusterID)
+			descSchemaHost := liveNodes[0].Addr
+			session, err := s.clusterSession(ctx, clusterID, cluster.SingleHostSessionConfigOption(descSchemaHost))
 			if err != nil {
-				w.Logger.Info(ctx, "No CQL cluster session, backup of schema as CQL files will be skipped", "error", err)
-				return nil
+				if errors.Is(err, cluster.ErrNoCQLCredentials) {
+					w.Logger.Error(ctx, "No CQL cluster credentials, backup of schema as CQL files will be skipped", "error", err)
+					return nil
+				}
+				return errors.Wrapf(err, "create single host (%s) session to", descSchemaHost)
 			}
-			defer clusterSession.Close()
-
-			if err := w.AwaitSchemaAgreement(ctx, clusterSession); err != nil {
-				return errors.Wrap(err, "await schema agreement")
-			}
+			defer session.Close()
 
 			var hosts []string
 			for _, h := range hi {
 				hosts = append(hosts, h.IP)
 			}
-
-			if err := w.DumpSchema(ctx, clusterSession, hosts); err != nil {
+			if err := w.DumpSchema(ctx, session, hosts); err != nil {
 				return errors.Wrap(err, "dump schema")
 			}
 
