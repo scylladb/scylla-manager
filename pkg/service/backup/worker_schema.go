@@ -8,81 +8,43 @@ import (
 	"context"
 	"encoding/json"
 	"sync/atomic"
-	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"golang.org/x/sync/errgroup"
 )
 
-func (w *workerTools) AwaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) error {
-	const (
-		waitMin        = 15 * time.Second // nolint: revive
-		waitMax        = 1 * time.Minute
-		maxElapsedTime = 15 * time.Minute
-		multiplier     = 2
-		jitter         = 0.2
-	)
-
-	backoff := retry.NewExponentialBackoff(
-		waitMin,
-		maxElapsedTime,
-		waitMax,
-		multiplier,
-		jitter,
-	)
-
-	notify := func(err error, wait time.Duration) {
-		w.Logger.Info(ctx, "Schema agreement not reached, retrying...", "error", err, "wait", wait)
+func (w *worker) DumpSchema(ctx context.Context, clusterSession gocqlx.Session, hosts []string) error {
+	safe, err := isDescribeSchemaSafe(ctx, w.Client, hosts)
+	if err != nil {
+		return errors.Wrap(err, "check describe schema support")
 	}
 
-	const (
-		peerSchemasStmt = "SELECT schema_version FROM system.peers"
-		localSchemaStmt = "SELECT schema_version FROM system.local WHERE key='local'"
-	)
-
-	return retry.WithNotify(ctx, func() error {
-		var v []string
-		if err := clusterSession.Query(peerSchemasStmt, nil).SelectRelease(&v); err != nil {
-			return retry.Permanent(err)
+	if safe {
+		if err := query.RaftReadBarrier(clusterSession); err != nil {
+			w.Logger.Error(ctx, "Couldn't perform raft read barrier, backup of schema as CQL files will be skipped", "error", err)
+			return nil
 		}
-		var lv string
-		if err := clusterSession.Query(localSchemaStmt, nil).GetRelease(&lv); err != nil {
-			return retry.Permanent(err)
+	} else {
+		if err := clusterSession.AwaitSchemaAgreement(ctx); err != nil {
+			w.Logger.Error(ctx, "Couldn't await schema agreement, backup of unsafe schema as CQL files will be skipped", "error", err)
+			return nil
 		}
+	}
 
-		// Join all versions
-		m := strset.New(v...)
-		m.Add(lv)
-		if m.Size() > 1 {
-			return errors.Errorf("cluster schema versions not consistent: %s", m.List())
-		}
-
-		return nil
-	}, backoff, notify)
-}
-
-func (w *worker) DumpSchema(ctx context.Context, clusterSession gocqlx.Session, hosts []string) error {
 	schema, err := query.DescribeSchemaWithInternals(clusterSession)
 	if err != nil {
 		return err
 	}
-
 	b, err := marshalAndCompressSchema(schema)
 	if err != nil {
 		return err
 	}
 
-	safe, err := isDescribeSchemaSafe(ctx, w.Client, hosts)
-	if err != nil {
-		return errors.Wrap(err, "check describe schema support")
-	}
 	if safe {
 		w.SchemaFilePath = backupspec.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	} else {
