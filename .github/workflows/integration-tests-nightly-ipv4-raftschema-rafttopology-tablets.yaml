@@ -3,7 +3,7 @@ name: Integration tests (Scylla Nightly, IPV4, raft schema, raft topology, table
 on:
   push:
     branches:
-      - master
+      - branch-3.3
   pull_request:
     types: [ opened, synchronize, reopened ]
 
