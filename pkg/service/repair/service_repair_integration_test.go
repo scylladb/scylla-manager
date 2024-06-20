@@ -31,6 +31,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
@@ -397,7 +398,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return gocqlx.Session{}, errors.New("not implemented")
 		},
 		logger.Named("repair"),
@@ -419,7 +420,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
 		logger.Named("repair"),
