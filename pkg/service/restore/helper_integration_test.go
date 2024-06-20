@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"go.uber.org/zap/zapcore"
 
@@ -121,7 +122,7 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
@@ -140,7 +141,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
@@ -157,7 +158,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("restore"),

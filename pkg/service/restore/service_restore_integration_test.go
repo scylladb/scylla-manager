@@ -115,7 +115,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
@@ -134,7 +134,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
@@ -151,7 +151,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
 		logger.Named("restore"),

@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -121,7 +122,7 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
-		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
 		logger.Named("backup"),
