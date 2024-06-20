@@ -583,12 +583,30 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 	return nodes, nil
 }
 
+// SessionConfigOption defines function modifying cluster config that can be used when creating session.
+type SessionConfigOption func(ctx context.Context, clusterID uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error
+
+// SingleHostSessionConfigOption ensures that session will be connected only to the single, provided host.
+func SingleHostSessionConfigOption(host string) SessionConfigOption {
+	return func(ctx context.Context, clusterID uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error {
+		ni, err := client.NodeInfo(ctx, host)
+		if err != nil {
+			return errors.Wrapf(err, "fetch node (%s) info", host)
+		}
+		cqlAddr := ni.CQLAddr(host)
+		cfg.Hosts = []string{cqlAddr}
+		cfg.HostFilter = gocql.WhiteListHostFilter(cqlAddr)
+		cfg.DisableInitialHostLookup = true
+		return nil
+	}
+}
+
 // SessionFunc returns CQL session for given cluster ID.
-type SessionFunc func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error)
+type SessionFunc func(ctx context.Context, clusterID uuid.UUID, opts ...SessionConfigOption) (gocqlx.Session, error)
 
 // GetSession returns CQL session to provided cluster.
-func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session gocqlx.Session, err error) {
-	s.logger.Debug(ctx, "GetSession", "cluster_id", clusterID)
+func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID, opts ...SessionConfigOption) (session gocqlx.Session, err error) {
+	s.logger.Info(ctx, "Get session", "cluster_id", clusterID)
 
 	client, err := s.CreateClientNoCache(ctx, clusterID)
 	if err != nil {
@@ -596,50 +614,71 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 	}
 	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
+	cfg := gocql.NewCluster()
+	for _, opt := range opts {
+		if err := opt(ctx, clusterID, client, cfg); err != nil {
+			return session, err
+		}
+	}
+	// Fill hosts if they weren't specified by the options
+	if len(cfg.Hosts) == 0 {
+		sessionHosts, err := GetRPCAddresses(ctx, client, client.Config().Hosts)
+		if err != nil {
+			s.logger.Info(ctx, "Gets session", "err", err)
+			if errors.Is(err, ErrNoRPCAddressesFound) {
+				return session, err
+			}
+		}
+		cfg.Hosts = sessionHosts
+	}
+
 	ni, err := client.AnyNodeInfo(ctx)
 	if err != nil {
 		return session, errors.Wrap(err, "fetch node info")
 	}
-
-	sessionHosts, err := GetRPCAddresses(ctx, client, client.Config().Hosts)
-	if err != nil {
-		s.logger.Info(ctx, "GetSession", "err", err)
-		if errors.Is(err, ErrNoRPCAddressesFound) {
-			return session, err
-		}
+	if err := s.extendClusterConfigWithAuthentication(clusterID, ni, cfg); err != nil {
+		return session, err
+	}
+	if err := s.extendClusterConfigWithTLS(ctx, clusterID, ni, cfg); err != nil {
+		return session, err
 	}
 
-	scyllaCluster := gocql.NewCluster(sessionHosts...)
-	cqlPort := ni.CQLPort()
+	return gocqlx.WrapSession(cfg.CreateSession())
+}
 
+func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni *scyllaclient.NodeInfo, cfg *gocql.ClusterConfig) error {
 	if ni.CqlPasswordProtected {
 		credentials := secrets.CQLCreds{
 			ClusterID: clusterID,
 		}
 		err := s.secretsStore.Get(&credentials)
 		if errors.Is(err, service.ErrNotFound) {
-			return session, errors.New("cluster requires CQL authentication but username/password was not set")
+			return errors.New("cluster requires CQL authentication but username/password was not set")
 		}
 		if err != nil {
-			return session, errors.Wrap(err, "get credentials")
+			return errors.Wrap(err, "get credentials")
 		}
 
-		scyllaCluster.Authenticator = gocql.PasswordAuthenticator{
+		cfg.Authenticator = gocql.PasswordAuthenticator{
 			Username: credentials.Username,
 			Password: credentials.Password,
 		}
 	}
+	return nil
+}
 
+func (s *Service) extendClusterConfigWithTLS(ctx context.Context, clusterID uuid.UUID, ni *scyllaclient.NodeInfo, cfg *gocql.ClusterConfig) error {
 	cluster, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
-		return session, errors.Wrap(err, "get cluster by id")
+		return errors.Wrap(err, "get cluster by id")
 	}
 
+	cqlPort := ni.CQLPort()
 	if ni.ClientEncryptionEnabled && !cluster.ForceTLSDisabled {
 		if !cluster.ForceNonSSLSessionPort {
 			cqlPort = ni.CQLSSLPort()
 		}
-		scyllaCluster.SslOpts = &gocql.SslOptions{
+		cfg.SslOpts = &gocql.SslOptions{
 			Config: &tls.Config{
 				InsecureSkipVerify: true,
 			},
@@ -647,19 +686,18 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID) (session 
 		if ni.ClientEncryptionRequireAuth {
 			keyPair, err := s.loadTLSIdentity(clusterID)
 			if err != nil {
-				return session, err
+				return err
 			}
-			scyllaCluster.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
+			cfg.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
 		}
 	}
 
 	p, err := strconv.Atoi(cqlPort)
 	if err != nil {
-		return session, errors.Wrap(err, "parse cql port")
+		return errors.Wrap(err, "parse cql port")
 	}
-	scyllaCluster.Port = p
-
-	return gocqlx.WrapSession(scyllaCluster.CreateSession())
+	cfg.Port = p
+	return nil
 }
 
 func (s *Service) loadTLSIdentity(clusterID uuid.UUID) (tls.Certificate, error) {
