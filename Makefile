@@ -16,12 +16,10 @@ GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 
-SCYLLA_VERSION?=scylla:5.4.1
+SCYLLA_VERSION?=scylla:6.0.1
 IP_FAMILY?=IPV4
-RAFT_SCHEMA?=true
-RAFT_TOPOLOGY?=false
-TABLETS?=false
-SKIP_GOSSIP?=false
+RAFT_SCHEMA?=none
+TABLETS?=enabled
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
@@ -173,7 +171,7 @@ start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
-	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) RAFT_SCHEMA=$(RAFT_SCHEMA) RAFT_TOPOLOGY=$(RAFT_TOPOLOGY) TABLETS=$(TABLETS) make -C testing build down up
+	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) RAFT_SCHEMA=$(RAFT_SCHEMA) TABLETS=$(TABLETS) make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes

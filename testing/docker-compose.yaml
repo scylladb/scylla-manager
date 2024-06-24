@@ -124,7 +124,7 @@ services:
     privileged: true
     volumes:
       - type: bind
-        source: ./scylla/cassandra-second-cluster.properties
+        source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla-second-cluster.yaml
@@ -144,7 +144,7 @@ services:
     privileged: true
     volumes:
       - type: bind
-        source: ./scylla/cassandra-second-cluster.properties
+        source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla-second-cluster.yaml
@@ -166,7 +166,7 @@ services:
       - "10000:10000"
     volumes:
       - type: bind
-        source: ./scylla/cassandra-second-cluster.properties
+        source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla-sm.yaml
