@@ -10,12 +10,10 @@ YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-SCYLLA_VERSION?=scylla:5.4.1
+SCYLLA_VERSION?=scylla:6.0.1
 IP_FAMILY?=IPV4
-RAFT_SCHEMA?=true
-RAFT_TOPOLOGY?=false
-TABLETS?=false
-SKIP_GOSSIP?=false
+RAFT_SCHEMA?=none
+TABLETS?=enabled
 
 MINIO_ENDPOINT := https://192.168.200.99:9000
 COMPOSE_FILE := docker-compose-ipv4.yaml
@@ -56,7 +54,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
-	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and RAFT_TOPOLOGY=$(RAFT_TOPOLOGY) and TABLETS=$(TABLETS)"
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and TABLETS=$(TABLETS)"
 # Scylla bootstap proceedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
@@ -64,31 +62,23 @@ up:
 	@echo "==> Generating encryption files"
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
-ifeq ($(SM_SSL_ENABLED),yes)
-	@$(YQ) merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
-	@$(YQ) merge -x scylla/config/scylla-second-cluster.yaml scylla/config/scylla-ssl.yaml > scylla/scylla-scylla-second-cluster.yaml
-	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
-else
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
-	@cp scylla/config/scylla-second-cluster.yaml scylla/scylla-second-cluster.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
+ifeq ($(RAFT_SCHEMA),enabled)
+	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' true
 endif
-ifeq ($(RAFT_SCHEMA),false)
+ifeq ($(RAFT_SCHEMA),disabled)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
-	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'consistent_cluster_management' false
 endif
-ifeq ($(RAFT_TOPOLOGY),true)
-	@$(YQ) write -i scylla/scylla.yaml 'experimental_features[+]' consistent-topology-changes
-	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'experimental_features[+]' consistent-topology-changes
+ifeq ($(TABLETS),enabled)
+	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' true
 endif
-ifeq ($(TABLETS),true)
-	@$(YQ) write -i scylla/scylla.yaml 'experimental_features[+]' tablets
-	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'experimental_features[+]' tablets
+ifeq ($(TABLETS),disabled)
+	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' false
 endif
-ifeq ($(SKIP_GOSSIP),true)
-	@$(YQ) write -i scylla/scylla.yaml 'skip_wait_for_gossip_to_settle' 0
-	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'skip_wait_for_gossip_to_settle' 0
-endif
+	@cp scylla/scylla.yaml scylla/scylla-second-cluster.yaml
+	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
+
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
 
@@ -121,7 +111,7 @@ endif
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh || true
 	@echo "==> Initialising cluster"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
+	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
 
 .PHONY: down
 down: ## Stop docker containers
