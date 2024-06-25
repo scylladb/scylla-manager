@@ -295,8 +295,6 @@ type ClientService interface {
 
 	FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizesAtParams) (*FindConfigReduceCacheSizesAtOK, error)
 
-	FindConfigReplaceAddress(params *FindConfigReplaceAddressParams) (*FindConfigReplaceAddressOK, error)
-
 	FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddressFirstBootParams) (*FindConfigReplaceAddressFirstBootOK, error)
 
 	FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*FindConfigReplaceNodeOK, error)
@@ -4972,39 +4970,6 @@ func (a *Client) FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizes
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*FindConfigReduceCacheSizesAtDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-FindConfigReplaceAddress The listen_address or broadcast_address of the dead node to replace. Same as -Dcassandra.replace_address.
-*/
-func (a *Client) FindConfigReplaceAddress(params *FindConfigReplaceAddressParams) (*FindConfigReplaceAddressOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewFindConfigReplaceAddressParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "find_config_replace_address",
-		Method:             "GET",
-		PathPattern:        "/config/replace_address",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &FindConfigReplaceAddressReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*FindConfigReplaceAddressOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*FindConfigReplaceAddressDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
