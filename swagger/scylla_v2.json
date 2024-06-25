@@ -4008,33 +4008,6 @@
         }
       }
     },
-    "/config/replace_address": {
-      "get": {
-        "description": "The listen_address or broadcast_address of the dead node to replace. Same as -Dcassandra.replace_address.",
-        "operationId": "find_config_replace_address",
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "config"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Config value",
-            "schema": {
-              "type": "string"
-            }
-          },
-          "default": {
-            "description": "unexpected error",
-            "schema": {
-              "$ref": "#/definitions/ErrorModel"
-            }
-          }
-        }
-      }
-    },
     "/config/replace_address_first_boot": {
       "get": {
         "description": "Like replace_address option, but if the node has been bootstrapped successfully it will be ignored. Same as -Dcassandra.replace_address_first_boot.",
