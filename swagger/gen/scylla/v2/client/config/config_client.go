@@ -295,8 +295,6 @@ type ClientService interface {
 
 	FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizesAtParams) (*FindConfigReduceCacheSizesAtOK, error)
 
-	FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddressFirstBootParams) (*FindConfigReplaceAddressFirstBootOK, error)
-
 	FindConfigReplaceNode(params *FindConfigReplaceNodeParams) (*FindConfigReplaceNodeOK, error)
 
 	FindConfigReplaceToken(params *FindConfigReplaceTokenParams) (*FindConfigReplaceTokenOK, error)
@@ -4970,39 +4968,6 @@ func (a *Client) FindConfigReduceCacheSizesAt(params *FindConfigReduceCacheSizes
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*FindConfigReduceCacheSizesAtDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-FindConfigReplaceAddressFirstBoot Like replace_address option, but if the node has been bootstrapped successfully it will be ignored. Same as -Dcassandra.replace_address_first_boot.
-*/
-func (a *Client) FindConfigReplaceAddressFirstBoot(params *FindConfigReplaceAddressFirstBootParams) (*FindConfigReplaceAddressFirstBootOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewFindConfigReplaceAddressFirstBootParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "find_config_replace_address_first_boot",
-		Method:             "GET",
-		PathPattern:        "/config/replace_address_first_boot",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &FindConfigReplaceAddressFirstBootReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*FindConfigReplaceAddressFirstBootOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*FindConfigReplaceAddressFirstBootDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
