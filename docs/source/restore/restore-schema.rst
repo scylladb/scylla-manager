@@ -1,69 +1,37 @@
-==============
-Restore schema
-==============
+===============================================
+Restore schema for ScyllaDB 6.0/2024.2 or newer
+===============================================
 
-.. note:: Currently, Scylla Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
+.. note:: Currently, ScyllaDB Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
 
-.. note:: Because of small size of schema files, resuming schema restoration always starts from scratch.
+.. note:: Currently, restoring schema containing `alternator tables <https://opensource.docs.scylladb.com/stable/using-scylla/alternator/>`_ is not supported.
 
-.. include:: _common/restore-raft-schema-warn.rst
-
-| In order to restore Scylla cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
-| Please note that the term *schema* specifically refers to the data residing in the ``system_schema keyspace``, such as keyspace and table definitions. All other data stored in keyspaces managed by ScyllaDB, such as authentication data in the ``system_auth`` keyspace, is restored as part of the :doc:`restore tables procedure <restore-tables>`.
-| The restore schema procedure works with any cluster size, so the backed-up cluster can have a different number of nodes per data center than the restore destination cluster. However, it is important that the restore destination cluster consists of at least all of the data centers present in the backed-up cluster.
+| In order to restore ScyllaDB cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
+| Please note that the term *schema* specifically refers to the data residing in the ``system_schema keyspace``, such as keyspace and table definitions. All other data stored in keyspaces managed by ScyllaDB is restored as part of the :doc:`restore tables procedure <restore-tables>`.
+| The restore schema procedure works with any cluster size, so the backed-up cluster can have a different number of nodes than the restore destination cluster.
 
 Prerequisites
 =============
 
-* Scylla Manager with CQL credentials to restore destination cluster.
+* ScyllaDB Manager requires CQL credentials with
 
-* It is strongly advised to restore schema only into an empty cluster with no schema change history of the keyspace that is going to be restored.
-   Otherwise, the restored schema might be overwritten by the already existing one and cause unexpected errors.
+    * `permission to create <https://opensource.docs.scylladb.com/stable/operating-scylla/security/authorization.html#permissions>`_ restored keyspaces.
 
-* All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
+* No overlapping schema in restore destination cluster (see the procedure below for more details)
 
-Follow-up action
-================
-
-After successful restore it is important to perform necessary follow-up action. In case of restoring schema,
-you should make a `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
-Without the restart, the restored schema might not be visible, and querying it can return various errors.
+* Restore destination cluster must consist of the same DCs as the backed up cluster (see the procedure below for more details)
 
 Procedure
 =========
 
-This section contains a description of the restore-schema procedure performed by ScyllaDB Manager.
+ScyllaDB Manager simply applies the backed up output of ``DESCRIBE SCHEMA WITH INTERNALS`` via CQL.
 
-Because of being unable to alter schema tables ``tombstone_gc`` option, restore procedure "simulates ad-hoc repair"
-by duplicating data from **each backed-up node into each node** in restore destination cluster.
-Fortunately, the small size of schema files makes this overhead negligible.
+For this reason, restoring schema will fail when any restored CQL object (keyspace/table/type/...) is already present in the cluster.
+In such case, you should first drop the overlapping schema and then proceed with restore.
 
-    * Validate that all nodes are in the ``UN`` state
-    * For each backup location:
+Another problem could be that restored keyspace was defined with ``NetworkTopologyStrategy`` containing DCs that are not present in the restore destination cluster.
+This would result in CQL error when trying to create such keyspace.
+In such case, you should manually fetch the backed-up schema file (see :ref:`backup schema specification <backup-schema-spec>`),
+change problematic DC names, and apply all CQL statements.
 
-      * Find all Scylla *nodes* with location access and use them for restoring schema from this location
-      * List backup manifests for specified snapshot tag
-    * For each manifest:
-
-        * Filter relevant tables from the manifest
-        * For each table:
-
-          * For each *node* (in ``--parallel``):
-
-            * Download all SSTables
-    * For all nodes in restore destination cluster:
-
-        * `nodetool refresh <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/refresh.html#nodetool-refresh>`_ on all downloaded schema tables (full parallel)
-
-.. _restore-schema-workaround:
-
-Restoring schema into a cluster with ScyllaDB **5.4.X** or **2024.1.X** with **consistent_cluster_management**
-==============================================================================================================
-
-Restoring schema when using ScyllaDB **5.4.X** or **2024.1.X** with ``consistent_cluster_management: true`` in ``scylla.yaml``
-is not supported. In such case, you should perform the following workaround:
-
-    * Create a fresh cluster with ``consistent_cluster_management: false`` configured in ``scylla.yaml`` and a desired ScyllaDB version.
-    * Restore schema via :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
-    * Perform `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
-    * Follow the steps of the `Enable Raft procedure <https://opensource.docs.scylladb.com/stable/architecture/raft.html#enabling-raft>`_.
+In case of an error, Manager will try to rollback all applied schema changes.
