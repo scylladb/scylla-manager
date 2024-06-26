@@ -20,7 +20,7 @@ const (
 	Schema = "schema_with_internals.json.gz"
 	// UnsafeSchema is the name of the schema file that shouldn't be used for restore
 	// (so for Scylla versions older than 6.0).
-	UnsafeSchema = "schema.json.gz"
+	UnsafeSchema = "schema.tar.gz"
 	// TempFileExt is suffix for the temporary files.
 	TempFileExt = ".tmp"
 
