@@ -492,18 +492,12 @@ type TaskListItems struct {
 
 // Render renders TaskListItems in a tabular format.
 func (li TaskListItems) Render(w io.Writer) error {
-	var doneRestoreTask bool
-
 	columns := []any{"Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next"}
 	if li.ShowProps {
 		columns = append(columns, "Properties")
 	}
 	p := table.New(columns...)
 	for _, t := range li.TaskListItemSlice {
-		if t.Type == RestoreTask && t.Status == TaskStatusDone {
-			doneRestoreTask = true
-		}
-
 		var id string
 		if t.Name != "" && !li.ShowIDs {
 			id = taskJoin(t.Type, t.Name)
@@ -572,10 +566,6 @@ func (li TaskListItems) Render(w io.Writer) error {
 		p.AddRow(row...)
 	}
 	fmt.Fprint(w, p)
-
-	if doneRestoreTask {
-		fmt.Fprint(w, " NOTE: all completed restore tasks require specific follow-up action - see docs for more information\n")
-	}
 
 	return nil
 }
@@ -1041,11 +1031,6 @@ func (rp RestoreProgress) status() string {
 	s := rp.Run.Status
 	if rp.Progress == nil {
 		return s
-	}
-	if s == TaskStatusDone {
-		if len(rp.Progress.Keyspaces) == 1 && rp.Progress.Keyspaces[0].Keyspace == "system_schema" {
-			return "DONE - restart required (see restore docs)"
-		}
 	}
 	stage := RestoreStageName(rp.Progress.Stage)
 	if s != TaskStatusNew && s != TaskStatusDone && stage != "" {
