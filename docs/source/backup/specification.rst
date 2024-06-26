@@ -61,6 +61,8 @@ You may find that the directory contains manifest files with ``.tmp`` suffix.
 Those are manifests files of backups that are being uploaded to the backup location.
 They are are marked as temporary until all the backup files are fully uploaded.
 
+.. _backup-schema-spec:
+
 schema
 ......
 

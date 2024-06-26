@@ -26,7 +26,7 @@ snapshot-tag: |
 
 batch-size: |
   Number of SSTables per shard to process in one request by one node.
-  Increasing batch size increases job granularity.
+  Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
 
 parallel: |
   The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
@@ -34,10 +34,9 @@ parallel: |
 
 restore-schema: |
   Specifies restore type (alternative to '--restore-tables' flag).
-  Restore will recreate schema by targeting 'system_schema.*' tables only ('--keyspace' flag mustn't be set).
+  Restore will recreate schema by applying the backed up output of DESCRIBE SCHEMA WITH INTERNALS via CQL.
   It requires that restored keyspaces aren't present in the cluster.
-  For the schema to be visible, restart of the entire cluster is required after completion.
-  See ScyllaDB cluster restart: https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html for details.
+  For the full list of prerequisites, please see https://manager.docs.scylladb.com/stable/restore/restore-schema.html.
 
 restore-tables: |
   Specifies restore type (alternative to '--restore-schema' flag).
@@ -45,6 +44,7 @@ restore-tables: |
   It requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).
   Moreover, in order to prevent situation in which current tables' contents overlaps restored data,
   tables should be truncated before initializing restore.
+  For the full list of prerequisites, please see https://manager.docs.scylladb.com/stable/restore/restore-tables.html.
 
 dry-run: |
   Validates and displays restore information without actually running the restore.
