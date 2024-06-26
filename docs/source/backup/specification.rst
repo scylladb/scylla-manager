@@ -65,7 +65,15 @@ schema
 ......
 
 The schema directory contains text dumps of database schema.
-They are mainly for information purposes, for restore the backup ``system_schema`` keyspace shall be used.
+
+Starting from ScyllaDB 6.0 and 2024.2 (and compatible ScyllaDB Manager 3.3), they are required for the schema restoration.
+They have ``schema_with_internals.json.gz`` suffix and represent the output of ``DESCRIBE SCHEMA WITH INTERNALS`` CQL query,
+which returns rows in the format ``keyspace|type|name|CQL create statement`` in the correct order.
+
+If you are using an earlier ScyllaDB version, those files are mainly for information purposes.
+To restore the backup, use the ``system_schema`` keyspace.
+They have ``schema.tar.gz`` suffix and represent schema archive divided among keyspaces.
+
 To enable upload of the files make sure that the cluster is added with username and password flags.
 
 .. code-block:: none
@@ -73,15 +81,15 @@ To enable upload of the files make sure that the cluster is added with username 
    schema
    └── cluster
        └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
-           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_schema.tar.gz
-           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_schema.tar.gz
-           └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_schema.tar.gz
+           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_schema_with_internals.json.gz
+           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_schema_with_internals.json.gz
+           └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_schema_with_internals.json.gz
 
 The schema file path is structured as follows.
 
 .. code-block:: none
 
-   meta/cluster/<cluster ID>/task_<task ID>_tag_<snapshot tag>_schema.tar.gz
+   meta/cluster/<cluster ID>/task_<task ID>_tag_<snapshot tag>_schema_with_internals.json.gz
 
 sst
 ...

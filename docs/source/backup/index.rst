@@ -44,9 +44,14 @@ Process
 The backup procedure consists of multiple steps executed sequentially.
 
 #. **Snapshot** - Take a snapshot of data on each node (according to backup configuration settings).
-#. (Optional) **Schema** - Upload the schema in CQL text format to the backup storage destination,
+
+   Note that ScyllaDB Manager halts `tablets <https://opensource.docs.scylladb.com/stable/architecture/tablets.html>`_  migration for the duration of this step.
+#. **Schema** - Upload the schema in CQL text format to the backup storage destination,
    this requires that you added the cluster with CQL username and password.
    If you didn't you can :ref:`update the cluster using sctool <cluster-update>` at any point in time.
+
+   Starting from ScyllaDB 6.0 and 2024.2 (and compatible ScyllaDB Manager 3.3),
+   these CQL files are necessary for schema restoration (:ref:`sctool restore --restore-schema <sctool-restore>`).
 #. **Upload** - Upload the snapshot to the backup storage destination.
 #. **Manifest** - Upload the manifest file containing metadata about the backup.
 #. **Purge** - If the retention threshold has been reached, remove the oldest backup from the storage location.
