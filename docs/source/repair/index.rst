@@ -19,11 +19,13 @@ To learn more about repairs please consult `this Scylla University lesson <https
 
 .. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/manager.html>`_.
 
-Scylla Manager automates the repair process and allows you to configure how and when repair occurs.
-*Scylla Manager repair task* revolves around scheduling many *Scylla repair jobs* with selected ``--intensity`` in ``--parallel``.
+ScyllaDB Manager automates the repair process and allows you to configure how and when repair occurs.
+*ScyllaDB Manager repair task* revolves around scheduling many *ScyllaDB repair jobs* with selected ``--intensity`` in ``--parallel``.
 *Repair task* is responsible for fully repairing all tables selected with ``--keyspace`` parameter, while a single *repair job* repairs
-chosen (by Scylla Manager) token ranges of a given table owned by a specific replica set. All nodes from this replica set take part in
+chosen (by ScyllaDB Manager) token ranges of a given table owned by a specific replica set. All nodes from this replica set take part in
 the repair job and any node can take part only in a single repair job at any given time.
+
+Note that ScyllaDB Manager stops `tablets <https://opensource.docs.scylladb.com/stable/architecture/tablets.html>`_  migration for the duration of repair.
 
 When you create a cluster a repair task is automatically scheduled.
 This task is set to occur each week by default, but you can change it to another time, change its parameters or add additional repair tasks if needed.
@@ -34,6 +36,7 @@ Features
 * Glob patterns to select keyspaces or tables to repair
 * Parallel repairs
 * Control over repair intensity and parallelism even for ongoing repairs
+* Ranges batching
 * Repair order improving performance and stability
 * Resilience to schema changes
 * Retries
@@ -71,10 +74,9 @@ so max effective parallelism might change depending on which keyspace is being r
 Repair intensity
 ================
 
-Intensity specifies how many token ranges can be repaired in a Scylla node at every given time.
+Intensity specifies how many token ranges can be repaired in a ScyllaDB node at every given time.
 The default intensity is one, you can change that using :ref:`sctool repair --intensity flag <sctool-repair>`.
 
-Scylla Manager 2.2 adds support for intensity value zero.
 In that case, the number of token ranges is calculated based on node memory and adjusted to ScyllaDB's maximum number of ranges that can be repaired in parallel.
 If you want to repair faster, try using intensity zero.
 
@@ -92,6 +94,16 @@ As each ScyllaDB repair job targets some subset of all nodes and
 ScyllaDB Manager avoids repairing more than ``max_repair_ranges_in_parallel`` on any node,
 the max effective intensity for a given repair job is equal to the **minimum** ``max_repair_ranges_in_parallel``
 value of nodes taking part in the job.
+
+Ranges batching
+===============
+
+In order to improve cluster utilization, ScyllaDB Manager sends all ranges owned by given replica set in a single repair job.
+The ``--intensity`` constraint is ensured by the ``ranges_parallelism`` repair job parameter.
+
+Even though this improves repair performance (especially for tablet keyspaces), it reduces task granularity.
+In order to ensure task progress, batching is disabled (ScyllaDB Manager sends ``--intensity`` amount of ranges per repair job),
+when task execution is resumed after finishing with error or when it ran out of the maintenance window (``--window`` flag).
 
 Changing repair speed
 =====================
