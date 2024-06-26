@@ -8,6 +8,7 @@ Restore
 
    restore-tables
    restore-schema
+   old-restore-schema
    examples
    compatibility-matrix
 
@@ -34,9 +35,6 @@ Restore task has to be one of two types:
 
   * :doc:`restore schema <restore-schema>` - restores the ScyllaDB cluster schema
 
-Each of those types has required prerequisites and follow-up actions.
-For more information, please read given restore type documentation.
-
 If both the schema and the content of the tables need to be restored, you must start with restoring the schema. Only after the schema is successfully restored can you proceed with restoring the content of the tables.
 
 Features
@@ -58,6 +56,9 @@ Restore speed and granularity
 Restore speed is controlled by two parameters: ``--parallel`` and ``--batch-size``.
 Parallel specifies how many nodes can be used in restore procedure at the same time.
 Batch size specifies how many SSTable bundles can be restored from backup location in a single job.
+Note that increasing the default batch size might significantly increase restore performance,
+as only one shard can work on restoring a single SSTable bundle.
+
 Those parameters can be set when you:
 
 * Schedule a restore with :ref:`sctool restore <sctool-restore>`
