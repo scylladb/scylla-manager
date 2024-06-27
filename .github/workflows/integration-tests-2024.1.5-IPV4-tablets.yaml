@@ -1,0 +1,113 @@
+concurrency:
+    cancel-in-progress: true
+    group: int-${{ github.workflow }}-${{ github.ref }}
+env:
+    scylla-version: scylla-enterprise:2024.1.5
+    ip-family: IPV4
+    raft-schema: none
+    tablets: enabled
+jobs:
+    backup:
+        name: Test backup
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v3
+            - name: Setup testing dependencies
+              uses: ./.github/actions/test-setup
+              with:
+                ip-family: ${{ env.ip-family }}
+                raft-schema: ${{ env.raft-schema }}
+                scylla-version: ${{ env.scylla-version }}
+                tablets: ${{ env.tablets }}
+            - name: Run tests
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/backup
+    repair:
+        name: Test repair
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v3
+            - name: Setup testing dependencies
+              uses: ./.github/actions/test-setup
+              with:
+                ip-family: ${{ env.ip-family }}
+                raft-schema: ${{ env.raft-schema }}
+                scylla-version: ${{ env.scylla-version }}
+                tablets: ${{ env.tablets }}
+            - name: Run tests
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/repair
+    restore-schema:
+        name: Test restore schema
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v3
+            - name: Setup testing dependencies
+              uses: ./.github/actions/test-setup
+              with:
+                ip-family: ${{ env.ip-family }}
+                raft-schema: ${{ env.raft-schema }}
+                scylla-version: ${{ env.scylla-version }}
+                tablets: ${{ env.tablets }}
+            - name: Run tests
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+    restore-tables:
+        name: Test restore tables
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v3
+            - name: Setup testing dependencies
+              uses: ./.github/actions/test-setup
+              with:
+                ip-family: ${{ env.ip-family }}
+                raft-schema: ${{ env.raft-schema }}
+                scylla-version: ${{ env.scylla-version }}
+                tablets: ${{ env.tablets }}
+            - name: Run tests
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
+    small-pkg:
+        name: Test other, smaller packages
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@v3
+            - name: Set IP_FAMILY var for all tests
+              run: |
+                echo "IP_FAMILY=${{ env.ip-family }}" >> $GITHUB_ENV
+            - name: Setup testing dependencies
+              uses: ./.github/actions/test-setup
+              with:
+                ip-family: ${{ env.ip-family }}
+                raft-schema: ${{ env.raft-schema }}
+                scylla-version: ${{ env.scylla-version }}
+                tablets: ${{ env.tablets }}
+            - name: Run cqlping tests
+              run: make pkg-integration-test PKG=./pkg/ping/cqlping
+            - name: Run dynamoping tests
+              run: make pkg-integration-test PKG=./pkg/ping/dynamoping
+            - name: Run scyllaclient tests
+              run: make pkg-integration-test PKG=./pkg/scyllaclient
+            - name: Run cluster tests
+              run: make pkg-integration-test PKG=./pkg/service/cluster
+            - name: Run healthcheck tests
+              run: make pkg-integration-test PKG=./pkg/service/healthcheck
+            - name: Run scheduler tests
+              run: make pkg-integration-test PKG=./pkg/service/scheduler
+            - name: Run store tests
+              run: make pkg-integration-test PKG=./pkg/store
+            - name: Run migrate tests
+              run: make pkg-integration-test PKG=./pkg/schema/migrate
+            - name: Run netwait tests
+              run: make pkg-integration-test PKG=./pkg/util/netwait
+name: integration-tests-2024.1.5-IPV4-tablets
+"on":
+    pull_request:
+        types:
+            - opened
+            - synchronize
+            - reopened
+    push:
+        branches:
+            - master
