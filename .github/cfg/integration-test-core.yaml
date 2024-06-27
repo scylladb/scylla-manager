@@ -1,5 +1,3 @@
-name: Integration tests (Scylla 5.4.1, IPV6)
-
 on:
   push:
     branches:
@@ -10,13 +8,6 @@ on:
 concurrency:
   group: int-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  scylla-version: 'scylla:5.4.1'
-  ip-family: IPV6
-  raft-schema: false
-  raft-topology: false
-  tablets: false
 
 jobs:
   #   Right now both restore-tables and restore-schema tests take way longer than any other pkg tests.
@@ -34,7 +25,6 @@ jobs:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
           raft-schema: ${{ env.raft-schema }}
-          raft-topology: ${{ env.raft-topology }}
           tablets: ${{ env.tablets }}
 
       - name: Run tests
@@ -53,7 +43,6 @@ jobs:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
           raft-schema: ${{ env.raft-schema }}
-          raft-topology: ${{ env.raft-topology }}
           tablets: ${{ env.tablets }}
 
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
@@ -74,7 +63,6 @@ jobs:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
           raft-schema: ${{ env.raft-schema }}
-          raft-topology: ${{ env.raft-topology }}
           tablets: ${{ env.tablets }}
 
       - name: Run tests
@@ -93,7 +81,6 @@ jobs:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
           raft-schema: ${{ env.raft-schema }}
-          raft-topology: ${{ env.raft-topology }}
           tablets: ${{ env.tablets }}
 
       - name: Run tests
@@ -116,7 +103,6 @@ jobs:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
           raft-schema: ${{ env.raft-schema }}
-          raft-topology: ${{ env.raft-topology }}
           tablets: ${{ env.tablets }}
 
       - name: Run cqlping tests
