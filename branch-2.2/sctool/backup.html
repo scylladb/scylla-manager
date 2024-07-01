@@ -1,0 +1,1122 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Backup | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/sctool/backup.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b76e3c8a" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=60de4c37" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            
+                <script src="../_static/documentation_options.js?v=1f29e9d3"></script>
+            
+        
+            
+                <script src="../_static/doctools.js?v=888ff710"></script>
+            
+        
+            
+                <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="../_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+        <!-- Font Awesome -->
+        <script src="https://kit.fontawesome.com/b1870adf6a.js" crossorigin="anonymous"></script>
+        <!-- End Font Awesome -->
+    </head>
+
+    <body>
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        
+        <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+        <a class="promo-banner__button button button--reverse" href="#"
+           target="_blank" rel="noopener noreferrer">Learn more</a>
+        <button class="promo-banner__close">
+            <i class="scylla-icon scylla-icon--close"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/logo-docs.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Server
+                    <i class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://opensource.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--about-us"></i>
+                            ScyllaDB Open Source
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://enterprise.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--enterprise"></i>ScyllaDB Enterprise
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://scylla.docs.scylladb.com/stable/alternator/alternator.html">
+                            <i class="scylla-icon scylla-icon--alternator"></i>
+                            ScyllaDB Alternator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="https://docs.scylladb.com/scylla-cloud/" class="scylla-dropdown__title">Cloud</a>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i
+                    class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i
+                    class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/using-scylla/drivers/cql-drivers/">
+                            <i class="scylla-icon scylla-icon--nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/using-scylla/drivers/dynamo-drivers/">
+                            <i class="scylla-icon scylla-icon--alternator"></i>DynamoDB Drivers
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://www.scylladb.com/download/" class="button">Download</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+    </div>
+    <div class="side-nav-toggle" data-toggle="side-nav">
+    <div class="side-nav-toggle__button">
+        <img src="../_static/img/menu.svg" alt="Menu" />
+    </div>
+</div>
+</header>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for a previous version of Scylla Manager.
+            
+            <a href="../../stable/sctool/backup.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="fas fa-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+        <span class="bread__item">
+            <a href="index.html" class="bread__highlight">
+                CLI sctool
+            </a>
+        </span>
+    
+    <span class="bread__item bread__item--last">Backup</span>
+</div>
+                    </div>
+                
+                <section id="backup">
+<h1>Backup<a class="headerlink" href="#backup" title="Link to this heading">¶</a></h1>
+<p>The backup commands allow you to: create and update a backup (ad-hoc or scheduled), list the contents of a backup, and list the backups of a cluster.
+You cannot initiate a backup without a cluster. Make sure you add a cluster (<a class="reference internal" href="cluster.html#cluster-add"><span class="std std-ref">cluster add</span></a>) before initiating a backup.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup &lt;subcommand&gt; [global flags] [parameters]
+</pre></div>
+</div>
+<p><strong>Subcommands</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Usage</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#sctool-backup"><span class="std std-ref">backup</span></a></p></td>
+<td><p>Schedule a backup (ad-hoc or scheduled).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backup-update">backup update</a></p></td>
+<td><p>Modify properties of the existing backup task.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backup-files">backup files</a></p></td>
+<td><p>List contents of a given backup.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backup-list">backup list</a></p></td>
+<td><p>List backups of a given cluster.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backup-delete">backup delete</a></p></td>
+<td><p>Deletes one of the available snapshots.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="sctool-backup">
+<span id="id1"></span><h2>backup<a class="headerlink" href="#sctool-backup" title="Link to this heading">¶</a></h2>
+<p>The backup command allows you to schedule or run ad-hoc cluster backup.</p>
+<p><strong>Syntax:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup --cluster &lt;id|name&gt; --location &lt;list of locations&gt; [--dc &lt;list&gt;]
+[--dry-run] [--interval &lt;time-unit&gt;]
+[--keyspace &lt;list of glob patterns to find keyspaces&gt;]
+[--num-retries &lt;times to rerun a failed task&gt;]
+[--rate-limit &lt;list of rate limits&gt;] [--retention &lt;number of backups to store&gt;]
+[--show-tables]
+[--snapshot-parallel &lt;list of parallelism limits&gt;] [--start-date &lt;date&gt;]
+[--upload-parallel &lt;list of parallelism limits&gt;] [global flags]
+</pre></div>
+</div>
+<section id="backup-parameters">
+<span id="id2"></span><h3>backup parameters<a class="headerlink" href="#backup-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to the <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, backup takes the following parameters:</p>
+<hr class="docutils" />
+<section id="dc-list-of-glob-patterns">
+<span id="backup-param-dc"></span><h4><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns&gt;</span></code><a class="headerlink" href="#dc-list-of-glob-patterns" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of datacenter glob patterns, e.g. ‘dc1,!otherdc*’ used to specify the DCs to include or exclude from backup, separated by a comma.
+This can also include glob patterns.</p>
+<p>The following syntax is supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> - matches any number of any characters including none</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">?</span></code> - matches any single character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[abc]</span></code> - matches one character given in the bracket</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[a-z]</span></code> - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with <code class="docutils literal notranslate"><span class="pre">!</span></code> it unselects items that were selected by previous patterns
+i.e. <code class="docutils literal notranslate"><span class="pre">a?,!aa</span></code> selects <em>ab</em> but not <em>aa</em>.</p>
+<hr class="docutils" />
+</section>
+<section id="dry-run">
+<span id="backup-param-dry-run"></span><h4><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code><a class="headerlink" href="#dry-run" title="Link to this heading">¶</a></h4>
+<p>Validates and prints backup information without actually scheduling a backup.</p>
+<hr class="docutils" />
+</section>
+<section id="i-interval-time-unit">
+<span id="backup-param-i"></span><h4><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span> <span class="pre">&lt;time-unit&gt;</span></code><a class="headerlink" href="#i-interval-time-unit" title="Link to this heading">¶</a></h4>
+<p>Scheduled Intervals for backups to repeat every X time, where X can be:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">d</span></code> - days</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> - hours</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - minutes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> - seconds</p></li>
+</ul>
+<p>For example: .. _backup-param-i:</p>
+<p><code class="docutils literal notranslate"><span class="pre">-i</span> <span class="pre">3d2h10m</span></code></p>
+<p><strong>Default: 0</strong> - this means the task does not recur.</p>
+<hr class="docutils" />
+</section>
+<section id="k-keyspace-list-of-glob-patterns-to-find-keyspaces">
+<span id="backup-param-k"></span><h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns</span> <span class="pre">to</span> <span class="pre">find</span> <span class="pre">keyspaces&gt;</span></code><a class="headerlink" href="#k-keyspace-list-of-glob-patterns-to-find-keyspaces" title="Link to this heading">¶</a></h4>
+<p>A list of glob patterns separated by a comma used to include or exclude keyspaces from the backup.
+The patterns match keyspaces and tables, when you write the pattern,
+separate the keyspace name from the table name with a dot (<em>KEYSPACE.TABLE</em>).</p>
+<p>The following syntax is supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> - matches any number of any characters including none</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">?</span></code> - matches any single character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[abc]</span></code> - matches one character given in the bracket</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[a-z]</span></code> - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with <code class="docutils literal notranslate"><span class="pre">!</span></code> it unselects items that were selected by previous patterns
+i.e. <code class="docutils literal notranslate"><span class="pre">a?,!aa</span></code> selects <em>ab</em> but not <em>aa</em>.</p>
+<hr class="docutils" />
+</section>
+<section id="l-location-list-of-backup-locations">
+<span id="backup-param-l"></span><h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code><a class="headerlink" href="#l-location-list-of-backup-locations" title="Link to this heading">¶</a></h4>
+<p>Specifies where to place the backup in the format <code class="docutils literal notranslate"><span class="pre">[dc:]&lt;provider&gt;:&lt;name&gt;</span></code> For example: <code class="docutils literal notranslate"><span class="pre">s3:my-bucket</span></code>.
+More than one location can be stated in a comma-separated list.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters are being used to upload data to different locations.
+<code class="docutils literal notranslate"><span class="pre">name</span></code> must be an alphanumeric string and <strong>may contain a dash and or a dot, but other characters are forbidden</strong>.
+The only supported storage <code class="docutils literal notranslate"><span class="pre">provider</span></code> at the moment are <code class="docutils literal notranslate"><span class="pre">s3</span></code> and <code class="docutils literal notranslate"><span class="pre">gcs</span></code>.</p>
+<hr class="docutils" />
+</section>
+<section id="rate-limit-list-of-rate-limits">
+<span id="backup-param-rate-limit"></span><h4><code class="docutils literal notranslate"><span class="pre">--rate-limit</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">rate</span> <span class="pre">limits&gt;</span></code><a class="headerlink" href="#rate-limit-list-of-rate-limits" title="Link to this heading">¶</a></h4>
+<p>Limits the upload rate (as expressed in  megabytes (MB) per second) which a snapshot file can be uploaded from a Scylla node to its backup destination.
+For example, an S3 bucket.
+You can set limits for more than one DC using a comma-separated list expressed in the format <code class="docutils literal notranslate"><span class="pre">[&lt;dc&gt;:]&lt;limit&gt;</span></code>.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters require different upload limits.</p>
+<p><strong>Default: 100</strong></p>
+<hr class="docutils" />
+</section>
+<section id="retention-number-of-backups-to-store">
+<span id="backup-param-retention"></span><h4><code class="docutils literal notranslate"><span class="pre">--retention</span> <span class="pre">&lt;number</span> <span class="pre">of</span> <span class="pre">backups</span> <span class="pre">to</span> <span class="pre">store&gt;</span></code><a class="headerlink" href="#retention-number-of-backups-to-store" title="Link to this heading">¶</a></h4>
+<p>The number of backups to store.
+Once this number is reached, the next backup which comes in from this destination will initiate a purge of the oldest backup.</p>
+<p><strong>Default: 3</strong></p>
+<hr class="docutils" />
+</section>
+<section id="show-tables">
+<span id="backup-param-show-tables"></span><h4><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code><a class="headerlink" href="#show-tables" title="Link to this heading">¶</a></h4>
+<p>Prints table names together with keyspace. Used in combination with .. _backup-param-dry-run:</p>
+<p><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code>.</p>
+<hr class="docutils" />
+</section>
+<section id="snapshot-parallel-list-of-parallelism-limits">
+<span id="backup-param-snapshot-parallel"></span><h4><code class="docutils literal notranslate"><span class="pre">--snapshot-parallel</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">parallelism</span> <span class="pre">limits&gt;</span></code><a class="headerlink" href="#snapshot-parallel-list-of-parallelism-limits" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of snapshot parallelism limits in the format <code class="docutils literal notranslate"><span class="pre">[&lt;dc&gt;:]&lt;limit&gt;</span></code>.
+More than one location can be stated in a comma-separated list.
+The <code class="docutils literal notranslate"><span class="pre">dc</span></code> part is optional and allows for specifying different limits in selected datacenters.
+If the <code class="docutils literal notranslate"><span class="pre">dc</span></code> part is not set, the limit is global and the runs are parallel in <code class="docutils literal notranslate"><span class="pre">n</span></code> nodes. If for example, you were to set ‘dc1:2,5’, then <code class="docutils literal notranslate"><span class="pre">dc1</span></code> would have two parallel nodes and there would be five parallel nodes in the other DCs.</p>
+<hr class="docutils" />
+</section>
+<section id="s-start-date-date">
+<span id="backup-param-s"></span><h4><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span> <span class="pre">&lt;date&gt;</span></code><a class="headerlink" href="#s-start-date-date" title="Link to this heading">¶</a></h4>
+<p>Specifies the task start date expressed in the RFC3339 format or <code class="docutils literal notranslate"><span class="pre">now[+duration]</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">now+3d2h10m</span></code>, valid units are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">d</span></code> - days</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> - hours</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - minutes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> - seconds</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">now</span></code> - happens immediately</p></li>
+</ul>
+<p><strong>Default: now</strong></p>
+<hr class="docutils" />
+</section>
+<section id="upload-parallel-list-of-parallelism-limits">
+<span id="backup-param-upload-parallel"></span><h4><code class="docutils literal notranslate"><span class="pre">--upload-parallel</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">parallelism</span> <span class="pre">limits&gt;</span></code><a class="headerlink" href="#upload-parallel-list-of-parallelism-limits" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of upload parallelism limits in the format <code class="docutils literal notranslate"><span class="pre">[&lt;dc&gt;:]&lt;limit&gt;</span></code>.
+More than one location can be stated in a comma-separated list.
+The <code class="docutils literal notranslate"><span class="pre">dc</span></code> part is optional and allows for specifying different limits in selected datacenters.
+If the <code class="docutils literal notranslate"><span class="pre">dc</span></code> part is not set, the limit is global (e.g. ‘dc1:2,5’) the runs are parallel in <code class="docutils literal notranslate"><span class="pre">n</span></code> nodes. In the example in <code class="docutils literal notranslate"><span class="pre">dc1</span></code> there are 2 parallel nodes in dc1 and 5 parallel nodes in the other DCs.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-backup">
+<h3>Example: backup<a class="headerlink" href="#example-backup" title="Link to this heading">¶</a></h3>
+<p>This example backs up the entire cluster named prod-cluster.
+The backup begins on December 9, 2019 at 15:16:05 UTC and will repeat at this time every 24 hours.
+The backup is stored in s3 in a directory named <code class="docutils literal notranslate"><span class="pre">my-backups</span></code>.
+Additional examples are available in <a class="reference external" href="../backup/">Backup Scylla Clusters</a></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -s &#39;2019-12-09T15:16:05Z&#39; -i 24h -L &#39;s3:my-backups&#39;
+backup/3208ff15-6e8f-48b2-875c-d3c73f545410
+</pre></div>
+</div>
+</section>
+</section>
+<section id="backup-update">
+<h2>backup update<a class="headerlink" href="#backup-update" title="Link to this heading">¶</a></h2>
+<p>The backup update command allows you to modify properties of an already existing backup task.</p>
+<p><strong>Syntax:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup update &lt;type/task-id&gt; --cluster &lt;id|name&gt; --location &lt;list of locations&gt; [--dc &lt;list&gt;]
+[--dry-run] [--interval &lt;time-unit&gt;]
+[--keyspace &lt;list of glob patterns to find keyspaces&gt;]
+[--rate-limit &lt;list of rate limits&gt;] [--retention &lt;number of backups to store&gt;]
+[--show-tables]
+[--snapshot-parallel &lt;list of parallelism limits&gt;] [--start-date &lt;date&gt;]
+[--upload-parallel &lt;list of parallelism limits&gt;] [global flags]
+</pre></div>
+</div>
+<section id="backup-update-parameters">
+<h3>backup update parameters<a class="headerlink" href="#backup-update-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, backup update takes the same parameters as <a class="reference internal" href="#id2">backup parameters</a></p>
+</section>
+<section id="example-backup-update">
+<h3>Example: backup update<a class="headerlink" href="#example-backup-update" title="Link to this heading">¶</a></h3>
+<p>This example updates backup task that was previously created.
+The backup is updated to run every 12 hours.
+The backup storage is updated to <code class="docutils literal notranslate"><span class="pre">prod-backups</span></code>.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup update backup/3208ff15-6e8f-48b2-875c-d3c73f545410 -c prod-cluster -i 12h -L &#39;s3:prod-backups&#39;
+backup/3208ff15-6e8f-48b2-875c-d3c73f545410
+</pre></div>
+</div>
+</section>
+</section>
+<section id="backup-list">
+<h2>backup list<a class="headerlink" href="#backup-list" title="Link to this heading">¶</a></h2>
+<p>This commands allow you to list backups of a given cluster.</p>
+<p><strong>Syntax:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup list [--all clusters] [--keyspace &lt;list of glob patterns to find keyspaces&gt;] [--location &lt;list of backup locations&gt;]
+[--max-date &lt;date&gt;] [--min-date &lt;date&gt;] [--show-tables][global flags]
+</pre></div>
+</div>
+<section id="backup-list-parameters">
+<h3>backup list parameters<a class="headerlink" href="#backup-list-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to the <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, backup list takes the following parameters:</p>
+<hr class="docutils" />
+<section id="all-clusters">
+<span id="backup-list-param-all-clusters"></span><h4><code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code><a class="headerlink" href="#all-clusters" title="Link to this heading">¶</a></h4>
+<p>Shows backups for all clusters. Useful for listing clusters that are no longer available locally but are backed up in the past to remote location.</p>
+<hr class="docutils" />
+</section>
+<section id="backup-list-param-k">
+<span id="id3"></span><h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns</span> <span class="pre">to</span> <span class="pre">find</span> <span class="pre">keyspaces&gt;</span></code><a class="headerlink" href="#backup-list-param-k" title="Link to this heading">¶</a></h4>
+<p>A list of glob patterns separated by a comma.
+The patterns match keyspaces and tables, when you write the pattern,
+separate the keyspace name from the table name with a dot (<em>KEYSPACE.TABLE</em>).</p>
+<p>The following syntax is supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> - matches any number of any characters including none</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">?</span></code> - matches any single character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[abc]</span></code> - matches one character given in the bracket</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[a-z]</span></code> - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with <code class="docutils literal notranslate"><span class="pre">!</span></code> it unselects items that were selected by previous patterns
+i.e. <code class="docutils literal notranslate"><span class="pre">a?,!aa</span></code> selects <em>ab</em> but not <em>aa</em>.</p>
+<hr class="docutils" />
+</section>
+<section id="backup-list-param-l">
+<span id="id4"></span><h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code><a class="headerlink" href="#backup-list-param-l" title="Link to this heading">¶</a></h4>
+<p>Specifies where to place the backup in the format <code class="docutils literal notranslate"><span class="pre">[&lt;dc&gt;:]&lt;provider&gt;:&lt;name&gt;</span></code>.
+More than one location can be stated in a comma-separated list.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters are being used to upload data to different locations.
+<code class="docutils literal notranslate"><span class="pre">name</span></code> must be an alphanumeric string and <strong>may contain a dash and or a dot, but other characters are forbidden</strong>.
+The only supported storage <code class="docutils literal notranslate"><span class="pre">provider</span></code> are <code class="docutils literal notranslate"><span class="pre">s3</span></code> and <code class="docutils literal notranslate"><span class="pre">gcs</span></code>.</p>
+<hr class="docutils" />
+</section>
+<section id="max-date-date">
+<span id="backup-list-param-max-date"></span><h4><code class="docutils literal notranslate"><span class="pre">--max-date</span> <span class="pre">&lt;date&gt;</span></code><a class="headerlink" href="#max-date-date" title="Link to this heading">¶</a></h4>
+<p>Specifies maximal snapshot date expressed in RFC3339 form or <code class="docutils literal notranslate"><span class="pre">now[+duration]</span></code>.
+For example: <code class="docutils literal notranslate"><span class="pre">now+3d2h10m</span></code> Valid units are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">d</span></code> - days</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> - hours</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - minutes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> - seconds</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">now</span></code> - happens immediately</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+<section id="min-date-date">
+<span id="backup-list-param-min-date"></span><h4><code class="docutils literal notranslate"><span class="pre">--min-date</span> <span class="pre">&lt;date&gt;</span></code><a class="headerlink" href="#min-date-date" title="Link to this heading">¶</a></h4>
+<p>Specifies minimal snapshot date expressed in RFC3339 form or <code class="docutils literal notranslate"><span class="pre">now[+duration]</span></code>.
+For example: <code class="docutils literal notranslate"><span class="pre">now+3d2h10m</span></code> Valid units are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">d</span></code> - days</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> - hours</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - minutes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> - seconds</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">now</span></code> - happens immediately</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+<section id="backup-list-param-show-tables">
+<span id="id5"></span><h4><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code><a class="headerlink" href="#backup-list-param-show-tables" title="Link to this heading">¶</a></h4>
+<p>Prints table names together with keyspace.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-backup-list">
+<h3>Example: backup list<a class="headerlink" href="#example-backup-list" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup list -c prod-cluster --show-tables
+Snapshots:
+  - sm_20191210145143UTC
+  - sm_20191210145027UTC
+  - sm_20191210144833UTC
+Keyspaces:
+  - system_auth (role_members, roles)
+  - system_distributed (view_build_status)
+  - system_traces (events, node_slow_log, node_slow_log_time_idx, sessions, sessions_time_idx)
+  - test_keyspace_dc1_rf2 (void1)
+  - test_keyspace_dc1_rf3 (void1)
+  - test_keyspace_dc2_rf2 (void1)
+  - test_keyspace_dc2_rf3 (void1)
+  - test_keyspace_rf2 (void1)
+  - test_keyspace_rf3 (void1)
+</pre></div>
+</div>
+</section>
+</section>
+<section id="backup-files">
+<h2>backup files<a class="headerlink" href="#backup-files" title="Link to this heading">¶</a></h2>
+<p>This command allows you to list content of a given backup.
+This command lists files that were uploaded during backup procedure.
+It outputs the remote paths of files together with keyspace/table information separated by delimiter that you provide.</p>
+<p><strong>Syntax:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup files [--all clusters] [--keyspace &lt;list of glob patterns to find keyspaces&gt;]
+[--location &lt;list of backup locations&gt;] [global flags]
+</pre></div>
+</div>
+<section id="backup-files-parameters">
+<h3>backup files parameters<a class="headerlink" href="#backup-files-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to the <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, backup files add takes the following parameters:</p>
+<hr class="docutils" />
+<section id="backup-files-param-all-clusters">
+<span id="id6"></span><h4><code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code><a class="headerlink" href="#backup-files-param-all-clusters" title="Link to this heading">¶</a></h4>
+<p>Shows backups for all clusters</p>
+<hr class="docutils" />
+</section>
+<section id="d-delimiter-delimiter-character">
+<span id="backup-files-param-d"></span><h4><code class="docutils literal notranslate"><span class="pre">-d,</span> <span class="pre">--delimiter</span> <span class="pre">&lt;delimiter-character&gt;</span></code><a class="headerlink" href="#d-delimiter-delimiter-character" title="Link to this heading">¶</a></h4>
+<p>Dictates which character will be used as a whitespace between remote file path and information about keyspace and table.</p>
+<p><strong>Default: ‘t’</strong></p>
+<hr class="docutils" />
+</section>
+<section id="backup-files-param-k">
+<span id="id7"></span><h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns</span> <span class="pre">to</span> <span class="pre">find</span> <span class="pre">keyspaces&gt;</span></code><a class="headerlink" href="#backup-files-param-k" title="Link to this heading">¶</a></h4>
+<p>A list of glob patterns separated by a comma.
+The patterns match keyspaces and tables, when you write the pattern,
+separate the keyspace name from the table name with a dot (<em>KEYSPACE.TABLE</em>).</p>
+<p>The following syntax is supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> - matches any number of any characters including none</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">?</span></code> - matches any single character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[abc]</span></code> - matches one character given in the bracket</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[a-z]</span></code> - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with <code class="docutils literal notranslate"><span class="pre">!</span></code> it unselects items that were selected by previous patterns
+i.e. <code class="docutils literal notranslate"><span class="pre">a?,!aa</span></code> selects <em>ab</em> but not <em>aa</em>.</p>
+<hr class="docutils" />
+</section>
+<section id="backup-files-param-l">
+<span id="id8"></span><h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code><a class="headerlink" href="#backup-files-param-l" title="Link to this heading">¶</a></h4>
+<p>Specifies where to place the backup in the format <code class="docutils literal notranslate"><span class="pre">[&lt;dc&gt;:]&lt;provider&gt;:&lt;name&gt;</span></code>.
+More than one location can be stated in a comma-separated list.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters are being used to upload data to different locations.
+<code class="docutils literal notranslate"><span class="pre">name</span></code> must be an alphanumeric string and <strong>may contain a dash and or a dot, but other characters are forbidden</strong>.
+The only supported storage <code class="docutils literal notranslate"><span class="pre">provider</span></code> are <code class="docutils literal notranslate"><span class="pre">s3</span></code> and <code class="docutils literal notranslate"><span class="pre">gcs</span></code>.</p>
+<hr class="docutils" />
+</section>
+<section id="t-snapshot-tag-tag">
+<span id="backup-files-param-t"></span><h4><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span> <span class="pre">&lt;tag&gt;</span></code><a class="headerlink" href="#t-snapshot-tag-tag" title="Link to this heading">¶</a></h4>
+<p>Snapshot tag as read from the backup listing</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-backup-files">
+<h3>Example: backup files<a class="headerlink" href="#example-backup-files" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup files --keyspace system_auth
+</pre></div>
+</div>
+<p>The command output has the  following format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;provider&gt;://&lt;bucket-name&gt;/backup/sst/cluster/&lt;cluster-id&gt;/dc/&lt;dc-id&gt;/
+node/&lt;node-id&gt;/keyspace/&lt;keyspace-name&gt;/table/&lt;table-name&gt;/&lt;table-uuid&gt;/
+&lt;filename&gt;&lt;delimiter&gt;&lt;keyspace-name&gt;/&lt;table-name&gt;
+</pre></div>
+</div>
+<p>Example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>s3://backups/backup/sst/cluster/7d8f190f-c98d-4a06-8bb5-ae96633ee69a/dc/dc2/
+node/f3c6386b-6d54-4546-a2e8-627fff62d3af/keyspace/system_sec/table/roles/5bc52802de2535edaeab188eecebb090/
+mc-2-big-TOC.txt system_sec/table
+</pre></div>
+</div>
+<p>From this information we know the following:</p>
+<ul class="simple">
+<li><p>Provider - s3</p></li>
+<li><p>Bucket name - backups</p></li>
+<li><p>Cluster ID - 7d8f190f-c98d-4a06-8bb5-ae96633ee69a</p></li>
+<li><p>DC - dc2</p></li>
+<li><p>Node - f3c6386b-6d54-4546-a2e8-627fff62d3af</p></li>
+<li><p>Keyspace - system_sec</p></li>
+<li><p>Table name  - roles</p></li>
+<li><p>Table UUID - 5bc52802de2535edaeab188eecebb090</p></li>
+<li><p>File name -  mc-2-big-TOC.txt</p></li>
+<li><p>Delimiter - whitespace character <strong>‘  ‘</strong></p></li>
+<li><p>Keyspace / table name - system_sec/table</p></li>
+</ul>
+<p>See <a class="reference external" href="../restore-a-backup/">Restore</a> on information how to use these files to restore a backup.</p>
+</section>
+</section>
+<section id="backup-delete">
+<h2>backup delete<a class="headerlink" href="#backup-delete" title="Link to this heading">¶</a></h2>
+<p>This command allows you to delete files that were uploaded during backup procedure.
+Deduplicated files are persisted unless their reference count drops to zero.</p>
+<p><strong>Syntax:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup delete --snapshot-tag &lt;snapshot tag&gt; [--location &lt;list of backup locations&gt;] [global flags]
+</pre></div>
+</div>
+<section id="backup-delete-parameters">
+<h3>backup delete parameters<a class="headerlink" href="#backup-delete-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to the <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, backup delete takes the following parameters:</p>
+<hr class="docutils" />
+<section id="backup-delete-param-l">
+<span id="id9"></span><h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code><a class="headerlink" href="#backup-delete-param-l" title="Link to this heading">¶</a></h4>
+<p>Specifies where to look for the backup in the format <code class="docutils literal notranslate"><span class="pre">[&lt;dc&gt;:]&lt;provider&gt;:&lt;name&gt;</span></code>.
+More than one location can be stated in a comma-separated list.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters are being used to upload data to different locations.
+<code class="docutils literal notranslate"><span class="pre">name</span></code> must be an alphanumeric string and <strong>may contain a dash and or a dot, but other characters are forbidden</strong>.
+The only supported storage <code class="docutils literal notranslate"><span class="pre">provider</span></code> are <code class="docutils literal notranslate"><span class="pre">s3</span></code> and <code class="docutils literal notranslate"><span class="pre">gcs</span></code>.</p>
+<hr class="docutils" />
+</section>
+<section id="backup-delete-param-t">
+<span id="id10"></span><h4><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span> <span class="pre">&lt;tag&gt;</span></code><a class="headerlink" href="#backup-delete-param-t" title="Link to this heading">¶</a></h4>
+<p>Snapshot tag as read from the backup listing.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-backup-delete">
+<h3>Example: backup delete<a class="headerlink" href="#example-backup-delete" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup delete --snapshot-tag sm_20200526115228UTC
+</pre></div>
+</div>
+<p>The command does not output anything unless an error happens.</p>
+</section>
+</section>
+</section>
+
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon scylla-icon scylla-icon--thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon scylla-icon scylla-icon--thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Backup&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-2.2/sctool/backup%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="cluster.html">
+                <button class="navigation__button">
+                    <i class="scylla-icon scylla-icon--chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Cluster
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="repair.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Repair
+                </div>
+                <button class="navigation__button">
+                    <i class="scylla-icon scylla-icon--chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="scylla-icon scylla-icon--chevron-left"></i>
+    </button>
+    <div class="side-nav-content" style="visibility: hidden;">
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__title">
+            <a href="../index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                2.2
+            
+            <i class="chevron scylla-icon scylla-icon--chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="../../master/sctool/backup.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/sctool/backup.html">3.3</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.2/sctool/backup.html">3.2</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.1/sctool/backup.html">3.1</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.0/sctool/backup.html">3.0</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.6/sctool/backup.html">2.6</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.5/sctool/backup.html">2.5</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.4/sctool/backup.html">2.4</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.3/sctool/backup.html">2.3</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="backup.html">2.2</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install Scylla Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install Scylla Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../backup/index.html">Backup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-aws-s3.html">Setup AWS S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../restore/extract-schema-from-metadata.html">Extract schema from metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/extract-schema-from-system-schema-keyspace.html">Extract schema from system_schema keyspace</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">CLI sctool</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="global-flags-and-variables.html">Global flags and variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cluster.html">Cluster</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task.html">Task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">Scylla Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../older-versions.html">Older Versions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+            
+                <div class="sidebar-right large-order-3">
+                    <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Backup&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-2.2/sctool/backup%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon fab fa-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/sctool/backup.rst"
+                   target="_blank">
+                    <i class="icon fa fa-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Backup</a><ul>
+<li><a class="reference internal" href="#sctool-backup">backup</a><ul>
+<li><a class="reference internal" href="#backup-parameters">backup parameters</a><ul>
+<li><a class="reference internal" href="#dc-list-of-glob-patterns"><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns&gt;</span></code></a></li>
+<li><a class="reference internal" href="#dry-run"><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></a></li>
+<li><a class="reference internal" href="#i-interval-time-unit"><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span> <span class="pre">&lt;time-unit&gt;</span></code></a></li>
+<li><a class="reference internal" href="#k-keyspace-list-of-glob-patterns-to-find-keyspaces"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns</span> <span class="pre">to</span> <span class="pre">find</span> <span class="pre">keyspaces&gt;</span></code></a></li>
+<li><a class="reference internal" href="#l-location-list-of-backup-locations"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code></a></li>
+<li><a class="reference internal" href="#rate-limit-list-of-rate-limits"><code class="docutils literal notranslate"><span class="pre">--rate-limit</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">rate</span> <span class="pre">limits&gt;</span></code></a></li>
+<li><a class="reference internal" href="#retention-number-of-backups-to-store"><code class="docutils literal notranslate"><span class="pre">--retention</span> <span class="pre">&lt;number</span> <span class="pre">of</span> <span class="pre">backups</span> <span class="pre">to</span> <span class="pre">store&gt;</span></code></a></li>
+<li><a class="reference internal" href="#show-tables"><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code></a></li>
+<li><a class="reference internal" href="#snapshot-parallel-list-of-parallelism-limits"><code class="docutils literal notranslate"><span class="pre">--snapshot-parallel</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">parallelism</span> <span class="pre">limits&gt;</span></code></a></li>
+<li><a class="reference internal" href="#s-start-date-date"><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span> <span class="pre">&lt;date&gt;</span></code></a></li>
+<li><a class="reference internal" href="#upload-parallel-list-of-parallelism-limits"><code class="docutils literal notranslate"><span class="pre">--upload-parallel</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">parallelism</span> <span class="pre">limits&gt;</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-backup">Example: backup</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#backup-update">backup update</a><ul>
+<li><a class="reference internal" href="#backup-update-parameters">backup update parameters</a></li>
+<li><a class="reference internal" href="#example-backup-update">Example: backup update</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#backup-list">backup list</a><ul>
+<li><a class="reference internal" href="#backup-list-parameters">backup list parameters</a><ul>
+<li><a class="reference internal" href="#all-clusters"><code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code></a></li>
+<li><a class="reference internal" href="#backup-list-param-k"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns</span> <span class="pre">to</span> <span class="pre">find</span> <span class="pre">keyspaces&gt;</span></code></a></li>
+<li><a class="reference internal" href="#backup-list-param-l"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code></a></li>
+<li><a class="reference internal" href="#max-date-date"><code class="docutils literal notranslate"><span class="pre">--max-date</span> <span class="pre">&lt;date&gt;</span></code></a></li>
+<li><a class="reference internal" href="#min-date-date"><code class="docutils literal notranslate"><span class="pre">--min-date</span> <span class="pre">&lt;date&gt;</span></code></a></li>
+<li><a class="reference internal" href="#backup-list-param-show-tables"><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-backup-list">Example: backup list</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#backup-files">backup files</a><ul>
+<li><a class="reference internal" href="#backup-files-parameters">backup files parameters</a><ul>
+<li><a class="reference internal" href="#backup-files-param-all-clusters"><code class="docutils literal notranslate"><span class="pre">--all-clusters</span></code></a></li>
+<li><a class="reference internal" href="#d-delimiter-delimiter-character"><code class="docutils literal notranslate"><span class="pre">-d,</span> <span class="pre">--delimiter</span> <span class="pre">&lt;delimiter-character&gt;</span></code></a></li>
+<li><a class="reference internal" href="#backup-files-param-k"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns</span> <span class="pre">to</span> <span class="pre">find</span> <span class="pre">keyspaces&gt;</span></code></a></li>
+<li><a class="reference internal" href="#backup-files-param-l"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code></a></li>
+<li><a class="reference internal" href="#t-snapshot-tag-tag"><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span> <span class="pre">&lt;tag&gt;</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-backup-files">Example: backup files</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#backup-delete">backup delete</a><ul>
+<li><a class="reference internal" href="#backup-delete-parameters">backup delete parameters</a><ul>
+<li><a class="reference internal" href="#backup-delete-param-l"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">backup</span> <span class="pre">locations&gt;</span></code></a></li>
+<li><a class="reference internal" href="#backup-delete-param-t"><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span> <span class="pre">&lt;tag&gt;</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-backup-delete">Example: backup delete</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                </div>
+            
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com">
+                <img src="../_static/img/logo-scylla-horizontal-RGB.svg" alt="Logo" />
+            </a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/" target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="https://groups.google.com/g/scylladb-users" target="_blank">
+                    <span data-tooltip tabindex="1" title="User mailing list" data-position="bottom">
+                        <img src="../_static/img/icons/icon-mail-list.svg" alt="Mail List Icon" />
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <img src="../_static/img/icons/icon-slack.svg" alt="Slack Icon" />
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <img src="../_static/img/icons/icon-forum.svg" alt="Forum Icon" />
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__copyright">
+                    
+                        
+                            &#169; 2024, ScyllaDB. All rights reserved.
+                        
+                    
+                </div>
+            
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 01 July 2024.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a> &amp;
+                <a href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.7.2</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>

@@ -1,0 +1,1064 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Repair | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/sctool/repair.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b76e3c8a" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=60de4c37" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            
+                <script src="../_static/documentation_options.js?v=1f29e9d3"></script>
+            
+        
+            
+                <script src="../_static/doctools.js?v=888ff710"></script>
+            
+        
+            
+                <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="../_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+        <!-- Font Awesome -->
+        <script src="https://kit.fontawesome.com/b1870adf6a.js" crossorigin="anonymous"></script>
+        <!-- End Font Awesome -->
+    </head>
+
+    <body>
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        
+        <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+        <a class="promo-banner__button button button--reverse" href="#"
+           target="_blank" rel="noopener noreferrer">Learn more</a>
+        <button class="promo-banner__close">
+            <i class="scylla-icon scylla-icon--close"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/logo-docs.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Server
+                    <i class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://opensource.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--about-us"></i>
+                            ScyllaDB Open Source
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://enterprise.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--enterprise"></i>ScyllaDB Enterprise
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://scylla.docs.scylladb.com/stable/alternator/alternator.html">
+                            <i class="scylla-icon scylla-icon--alternator"></i>
+                            ScyllaDB Alternator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="https://docs.scylladb.com/scylla-cloud/" class="scylla-dropdown__title">Cloud</a>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i
+                    class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="scylla-icon scylla-icon--operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i
+                    class="chevron scylla-icon scylla-icon--triangle-down"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/using-scylla/drivers/cql-drivers/">
+                            <i class="scylla-icon scylla-icon--nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/using-scylla/drivers/dynamo-drivers/">
+                            <i class="scylla-icon scylla-icon--alternator"></i>DynamoDB Drivers
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://www.scylladb.com/download/" class="button">Download</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+    </div>
+    <div class="side-nav-toggle" data-toggle="side-nav">
+    <div class="side-nav-toggle__button">
+        <img src="../_static/img/menu.svg" alt="Menu" />
+    </div>
+</div>
+</header>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for a previous version of Scylla Manager.
+            
+            <a href="../../stable/sctool/repair.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="fas fa-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+        <span class="bread__item">
+            <a href="index.html" class="bread__highlight">
+                CLI sctool
+            </a>
+        </span>
+    
+    <span class="bread__item bread__item--last">Repair</span>
+</div>
+                    </div>
+                
+                <section id="repair">
+<span id="repair-commands"></span><h1>Repair<a class="headerlink" href="#repair" title="Link to this heading">¶</a></h1>
+<p>The repair commands allow you to: create and update a repair (ad-hoc or scheduled), and change selected parameters while a repair is running.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair &lt;subcommand&gt; [global flags] [parameters]
+</pre></div>
+</div>
+<p><strong>Subcommands</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Usage</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#sctool-repair"><span class="std std-ref">repair</span></a></p></td>
+<td><p>Schedule a repair (ad-hoc or scheduled).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#repair-control"><span class="std std-ref">repair control</span></a></p></td>
+<td><p>Change parameters while a repair is running.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#repair-update"><span class="std std-ref">repair update</span></a></p></td>
+<td><p>Modify properties of the existing repair task.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="sctool-repair">
+<span id="id1"></span><h2>repair<a class="headerlink" href="#sctool-repair" title="Link to this heading">¶</a></h2>
+<p>The repair command allows you to schedule or run ad-hoc cluster repair.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair --cluster &lt;id|name&gt; [--dc &lt;list of glob patterns&gt;] [--dry-run]
+[--fail-fast] [--interval &lt;time between task runs&gt;] [--host &lt;node IP&gt;]
+[--intensity &lt;float&gt;] [--keyspace &lt;list of glob patterns&gt;] [--parallel &lt;integer&gt;]
+[--start-date &lt;now+duration|RFC3339&gt;]
+[global flags]
+</pre></div>
+</div>
+<section id="repair-parameters">
+<span id="id2"></span><h3>repair parameters<a class="headerlink" href="#repair-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, repair takes the following parameters:</p>
+<hr class="docutils" />
+<section id="c-cluster">
+<h4><code class="docutils literal notranslate"><span class="pre">-c</span></code> , <code class="docutils literal notranslate"><span class="pre">--cluster</span></code><a class="headerlink" href="#c-cluster" title="Link to this heading">¶</a></h4>
+<p>The cluster name. This is the name you assigned to the cluster when you created it with <a class="reference internal" href="cluster.html#cluster-add"><span class="std std-ref">cluster add</span></a>.
+You can see the cluster name and ID by running the command ref:<cite>cluster-list</cite>.</p>
+<hr class="docutils" />
+</section>
+<section id="dc-list-of-glob-patterns">
+<span id="repair-param-dc"></span><h4><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns&gt;</span></code><a class="headerlink" href="#dc-list-of-glob-patterns" title="Link to this heading">¶</a></h4>
+<p>List of data centers to be repaired, separated by a comma.
+This can also include glob patterns.</p>
+<p>The following syntax is supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> - matches any number of any characters including none</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">?</span></code> - matches any single character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[abc]</span></code> - matches one character given in the bracket</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[a-z]</span></code> - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with <code class="docutils literal notranslate"><span class="pre">!</span></code> it unselects items that were selected by previous patterns
+i.e. <code class="docutils literal notranslate"><span class="pre">a?,!aa</span></code> selects <em>ab</em> but not <em>aa</em>.</p>
+<p><strong>Example</strong></p>
+<p>Given the following data centers: <em>us-east-1</em>, <em>us-east-2</em>, <em>us-west-1</em>, <em>us-west-2</em>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Selects</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">us-east-1,us-west-2</span></code></p></td>
+<td><p><em>us-east-1</em>, <em>us-west-2</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">'us-east-*'</span></code></p></td>
+<td><p><em>us-east-1</em>, <em>us-east-2</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">'*','!us-east-'</span></code></p></td>
+<td><p><em>us-west-1</em>, <em>us-west-2</em></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default:</strong> everything - all data centers</p>
+<hr class="docutils" />
+</section>
+<section id="dry-run">
+<span id="repair-param-dry-run"></span><h4><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code><a class="headerlink" href="#dry-run" title="Link to this heading">¶</a></h4>
+<p>Validates and displays repair information without actually scheduling the repair.
+This allows you to display what will happen should the repair run with the parameters you set.</p>
+<p><strong>Example</strong></p>
+<p>Given the following keyspaces:</p>
+<ul class="simple">
+<li><p>system_auth</p></li>
+<li><p>system_distributed</p></li>
+<li><p>system_traces</p></li>
+<li><p>test_keyspace_dc1_rf2, test_keyspace_dc1_rf3, and test_keyspace_dc2_rf2</p></li>
+<li><p>keyspace_dc2_rf3</p></li>
+<li><p>test_keyspace_rf2 and test_keyspace_rf3</p></li>
+</ul>
+<p>The following command will run a repair on all keyspaces <strong>except</strong> for test_keyspace_dc1_rf2 in dry-run mode.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair --dry-run -K &#39;*,!test_keyspace_dc1_rf2&#39;
+NOTICE: dry run mode, repair is not scheduled
+
+Data Centers:
+  - dc1
+  - dc2
+Keyspace: system_auth
+  (all tables)
+Keyspace: system_distributed
+  (all tables)
+Keyspace: system_traces
+  (all tables)
+Keyspace: test_keyspace_dc1_rf3
+  (all tables)
+Keyspace: test_keyspace_dc2_rf2
+  (all tables)
+Keyspace: test_keyspace_dc2_rf3
+  (all tables)
+Keyspace: test_keyspace_rf2
+  (all tables)
+Keyspace: test_keyspace_rf3
+  (all tables)
+</pre></div>
+</div>
+<p><strong>Example with error</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair -K &#39;system*.bla&#39; --dry-run -c bla
+NOTICE: dry run mode, repair is not scheduled
+
+Error: API error (status 400)
+{
+  &quot;message&quot;: &quot;no matching units found for filters, ks=[system*.*bla*]&quot;,
+  &quot;trace_id&quot;: &quot;b_mSOUoOSyqSnDtk9EANyg&quot;
+}
+</pre></div>
+</div>
+<hr class="docutils" />
+</section>
+<section id="fail-fast">
+<span id="repair-param-fail-fast"></span><h4><code class="docutils literal notranslate"><span class="pre">--fail-fast</span></code><a class="headerlink" href="#fail-fast" title="Link to this heading">¶</a></h4>
+<p>Stops the repair process on the first error.</p>
+<p><strong>Default:</strong> False</p>
+<hr class="docutils" />
+</section>
+<section id="host-node-ip">
+<span id="repair-param-host"></span><h4><code class="docutils literal notranslate"><span class="pre">--host</span> <span class="pre">&lt;node</span> <span class="pre">IP&gt;</span></code><a class="headerlink" href="#host-node-ip" title="Link to this heading">¶</a></h4>
+<p>Address of a node to repair, you can use either an IPv4 or IPv6 address.
+Specifying the host flag limits repair to token ranges replicated by a given node.
+It can be used in conjunction with dc flag, in such a case the node must belong to the specified datacenters.</p>
+<hr class="docutils" />
+</section>
+<section id="intensity-float">
+<span id="repair-param-intensity"></span><h4><code class="docutils literal notranslate"><span class="pre">--intensity</span> <span class="pre">&lt;float&gt;</span></code><a class="headerlink" href="#intensity-float" title="Link to this heading">¶</a></h4>
+<p>How many token ranges per shard to repair in a single Scylla node at the same time. By default this is 1.
+If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+Valid values are 0 and integers &gt;= 1.
+Higher values will result in increased cluster load and slightly faster repairs.
+Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For Scylla clusters that <strong>do not support row-level repair</strong>, intensity can be a decimal between (0,1).
+In that case it specifies percent of shards that can be repaired in parallel on a repair master node.
+For Scylla clusters that are row-level repair enabled, setting intensity below 1 has the same effect as setting intensity 1.</p>
+</div>
+<p><strong>Default:</strong> 1</p>
+<hr class="docutils" />
+</section>
+<section id="parallel-integer">
+<span id="repair-param-parallel"></span><h4><code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">&lt;integer&gt;</span></code><a class="headerlink" href="#parallel-integer" title="Link to this heading">¶</a></h4>
+<p>The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
+Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
+The effective parallelism depends on a keyspace replication factor (RF) and the number of nodes.
+The formula to calculate is is as follows: number of nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.</p>
+<p><strong>Default:</strong> 0</p>
+<hr class="docutils" />
+</section>
+<section id="k-keyspace-list-of-glob-patterns">
+<span id="repair-param-k"></span><h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns&gt;</span></code><a class="headerlink" href="#k-keyspace-list-of-glob-patterns" title="Link to this heading">¶</a></h4>
+<p>A list of glob patterns separated by a comma.
+The patterns match keyspaces and tables, when you write the pattern,
+separate the keyspace name from the table name with a dot (<em>KEYSPACE.TABLE</em>).</p>
+<p>The following syntax is supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> - matches any number of any characters including none</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">?</span></code> - matches any single character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[abc]</span></code> - matches one character given in the bracket</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[a-z]</span></code> - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with <code class="docutils literal notranslate"><span class="pre">!</span></code> it unselects items that were selected by previous patterns
+i.e. <code class="docutils literal notranslate"><span class="pre">a?,!aa</span></code> selects <em>ab</em> but not <em>aa</em>.</p>
+<p><strong>Example</strong></p>
+<p>Given the following tables:</p>
+<ul class="simple">
+<li><p><em>shopping_cart.cart</em></p></li>
+<li><p><em>orders.orders_by_date_2018_11_01</em></p></li>
+<li><p><em>orders.orders_by_date_2018_11_15</em></p></li>
+<li><p><em>orders.orders_by_date_2018_11_29</em></p></li>
+<li><p><em>orders.orders_by_date_2018_12_06</em></p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Selects</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-K</span> <span class="pre">'*'</span></code></p></td>
+<td><p><em>everything - all tables in all keyspaces</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-K</span> <span class="pre">shopping_cart</span></code></p></td>
+<td><p><em>shopping_cart.cart</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-K</span> <span class="pre">'*,!orders'</span></code></p></td>
+<td><p><em>shopping_cart.cart</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-K</span> <span class="pre">orders.'orders.2018_11_'</span></code></p></td>
+<td><p><em>orders.orders_by_date_2018_11_01</em>
+<em>orders.orders_by_date_2018_11_15</em>
+<em>orders.orders_by_date_2018_11_29</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-K</span> <span class="pre">'orders.*2018_1?_2?'</span></code></p></td>
+<td><p><em>orders.orders_by_date_2018_11_29</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-K</span> <span class="pre">'orders.*2018_11?[19]'</span></code></p></td>
+<td><p><em>orders.orders_by_date_2018_11_01</em>
+<em>orders.orders_by_date_2018_11_29</em></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default:</strong> everything - all tables in all keyspaces</p>
+</section>
+<hr class="docutils" />
+<section id="interval-time-between-task-runs">
+<h4><code class="docutils literal notranslate"><span class="pre">--interval</span> <span class="pre">&lt;time</span> <span class="pre">between</span> <span class="pre">task</span> <span class="pre">runs&gt;</span></code><a class="headerlink" href="#interval-time-between-task-runs" title="Link to this heading">¶</a></h4>
+<p>Amount of time after which a successfully completed task would be run again.
+Supported time units include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">d</span></code> - days,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> - hours,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - minutes,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> - seconds.</p></li>
+</ul>
+<p><strong>Default</strong> 0 (no interval)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The task run date is aligned with <code class="docutils literal notranslate"><span class="pre">--start</span> <span class="pre">date</span></code> value. For example, if you select <code class="docutils literal notranslate"><span class="pre">--interval</span> <span class="pre">7d</span></code> task would run weekly at the <code class="docutils literal notranslate"><span class="pre">--start-date</span></code> time.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="s-start-date-now-duration-rfc3339">
+<h4><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span> <span class="pre">&lt;now+duration|RFC3339&gt;</span></code><a class="headerlink" href="#s-start-date-now-duration-rfc3339" title="Link to this heading">¶</a></h4>
+<p>The date can be expressed relatively to now or as a RFC3339 formatted string.
+To run the task in 2 hours use <code class="docutils literal notranslate"><span class="pre">now+2h</span></code>, supported units are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> - hours,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - minutes,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> - seconds,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ms</span></code> - milliseconds.</p></li>
+</ul>
+<p>If you want the task to start at a specified date use RFC3339 formatted string i.e. <code class="docutils literal notranslate"><span class="pre">2018-01-02T15:04:05-07:00</span></code>.
+If you want the repair to start immediately, use the value <code class="docutils literal notranslate"><span class="pre">now</span></code> or skip this flag.</p>
+<p><strong>Default:</strong>  now (start immediately)</p>
+</section>
+<hr class="docutils" />
+<section id="r-num-retries-times-to-rerun-a-failed-task">
+<h4><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span> <span class="pre">&lt;times</span> <span class="pre">to</span> <span class="pre">rerun</span> <span class="pre">a</span> <span class="pre">failed</span> <span class="pre">task&gt;</span></code><a class="headerlink" href="#r-num-retries-times-to-rerun-a-failed-task" title="Link to this heading">¶</a></h4>
+<p>Number of times a task reruns following a failure. The task reruns 10 minutes following a failure.
+If the task fails after the retry times have been used, it will not retry again until its next run which was scheduled according to the <code class="docutils literal notranslate"><span class="pre">--interval</span></code> parameter.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If this is an ad hoc repair, the task will not run again.</p>
+</div>
+<p><strong>Default:</strong> 3</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-schedule-a-repair">
+<h3>Example: Schedule a repair<a class="headerlink" href="#example-schedule-a-repair" title="Link to this heading">¶</a></h3>
+<p>Repairs can be scheduled to run on selected keyspaces/tables, nodes, or datacenters.
+Scheduled repairs run every <em>n</em> days depending on the frequency you set.
+A scheduled repair runs at the time you set it to run at.
+If no time is given, the repair runs immediately.
+Repairs can run once, or can run at a set schedule based on a time interval.</p>
+<section id="repair-cluster-weekly">
+<h4>Repair cluster weekly<a class="headerlink" href="#repair-cluster-weekly" title="Link to this heading">¶</a></h4>
+<p>In this example, you create a repair task for a cluster named <em>prod-cluster</em>.
+The task begins on May 2, 2019 at 3:04 PM.
+It repeats every week at this time.
+As there are no datacenters or keyspaces listed, all datacenters and all data in the specified cluster are repaired.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair -c prod-cluster -s 2019-05-02T15:04:05-07:00 --interval 7d
+</pre></div>
+</div>
+<p>The system replies with a repair task ID.
+You can use this ID to change the start time, stop the repair, or cancel the repair.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>repair/3208ff15-6e8f-48b2-875c-d3c73f545410
+</pre></div>
+</div>
+</section>
+<section id="repair-datacenters-in-a-region-weekly">
+<h4>Repair datacenters in a region weekly<a class="headerlink" href="#repair-datacenters-in-a-region-weekly" title="Link to this heading">¶</a></h4>
+<p>This example repairs all datacenters starting with the name <code class="docutils literal notranslate"><span class="pre">dc-asia-</span></code>, such as <code class="docutils literal notranslate"><span class="pre">dc-asia-1</span></code>.
+The repair begins on September 15, 2018 at 7:00 PM (JST, for example) and runs every week.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair -c prod-cluster --dc &#39;asia-*&#39; -s 2018-09-15T19:00:05-07:00 --interval 7d
+</pre></div>
+</div>
+</section>
+<section id="repair-a-specific-keyspace-or-table-weekly">
+<h4>Repair a specific keyspace or table weekly<a class="headerlink" href="#repair-a-specific-keyspace-or-table-weekly" title="Link to this heading">¶</a></h4>
+<p>Using glob patterns gives you additional flexibility in selecting both keyspaces and tables.
+This example repairs all tables in the <em>orders</em> keyspace starting with <em>2018_12_</em> prefix.
+The repair is scheduled to run on December 4, 2018 at 8:00 AM and will run after that point every week.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair -c prod-cluster -K &#39;orders.2018_12_&#39; -s 2018-12-04T08:00:05-07:00 --interval 7d
+</pre></div>
+</div>
+</section>
+<section id="repair-a-specific-node">
+<h4>Repair a specific node<a class="headerlink" href="#repair-a-specific-node" title="Link to this heading">¶</a></h4>
+<p>You can limit scope of repair to token ranges replicated by a specific node by specifying <code class="docutils literal notranslate"><span class="pre">--host</span></code> flag.
+This is equivalent to running <code class="docutils literal notranslate"><span class="pre">nodetool</span> <span class="pre">repair</span> <span class="pre">-full</span></code> on that node.
+If you want to recreate a node in a multi DC cluster, you can repair with local datacenter only.
+To do that you must specify the <code class="docutils literal notranslate"><span class="pre">--dc</span></code> flag pointing to the datacenter where the node belongs.</p>
+<p>This example, repairs node with IP <code class="docutils literal notranslate"><span class="pre">34.203.122.52</span></code> that belongs to datacenter named <code class="docutils literal notranslate"><span class="pre">eu-west</span></code> within that datacenter.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair -c prod-cluster --host 34.203.122.52 --dc eu-west
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="repair-control">
+<span id="id3"></span><h2>repair control<a class="headerlink" href="#repair-control" title="Link to this heading">¶</a></h2>
+<p>The repair control command allows you to change repair parameters while a repair is running.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair control --cluster &lt;id|name&gt; [--intensity &lt;float&gt;] [--parallel &lt;integer&gt;]
+</pre></div>
+</div>
+<section id="repair-control-parameters">
+<h3>repair control parameters<a class="headerlink" href="#repair-control-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, repair takes the following repair control parameters:</p>
+<hr class="docutils" />
+<section id="repair-control-param-intensity">
+<span id="id4"></span><h4><code class="docutils literal notranslate"><span class="pre">--intensity</span> <span class="pre">&lt;float&gt;</span></code><a class="headerlink" href="#repair-control-param-intensity" title="Link to this heading">¶</a></h4>
+<p>How many token ranges per shard can be repaired in a Scylla node at every given time. By default this is 1.
+If you set it to 0 the number of token ranges is adjusted to the maximum supported by node (see max_repair_ranges_in_parallel in Scylla logs).
+Valid values are integers &gt;= 1 and decimals between (0,1). Higher values will result in increased cluster load and slightly faster repairs.
+Values below 1 will result in repairing the number of token ranges equal to the specified fraction of shards.
+Changing the intensity impacts repair granularity if you need to resume it, the higher the value the more work on resume.</p>
+<p><strong>Default:</strong> 1</p>
+<hr class="docutils" />
+</section>
+<section id="repair-control-param-parallel">
+<span id="id5"></span><h4><code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">&lt;integer&gt;</span></code><a class="headerlink" href="#repair-control-param-parallel" title="Link to this heading">¶</a></h4>
+<p>The maximum number of Scylla repair jobs that can run at the same time (on different token ranges and replicas).
+Each node can take part in at most one repair at any given moment. By default the maximum possible parallelism is used.
+The effective parallelism depends on a keyspace replication factor (RF) and the nr. of nodes.
+The formula to calculate is is as follows: nr. nodes / RF, ex. for 6 node cluster with RF=3 the maximum parallelism is 2.</p>
+<p><strong>Default:</strong> 0</p>
+<hr class="docutils" />
+</section>
+</section>
+</section>
+<section id="reschedule-a-repair">
+<span id="repair-update"></span><span id="id6"></span><h2>repair update<a class="headerlink" href="#reschedule-a-repair" title="Link to this heading">¶</a></h2>
+<p>The repair update command allows you to modify properties of an already existing repair task.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair update &lt;task_type/task_id&gt; --cluster &lt;id|name&gt; [--dc &lt;list of glob patterns&gt;] [--dry-run]
+[--fail-fast] [--interval &lt;time between task runs&gt;]
+[--intensity &lt;float&gt;] [--keyspace &lt;list of glob patterns&gt;] [--parallel &lt;integer&gt;]
+[--start-date &lt;now+duration|RFC3339&gt;]
+[global flags]
+</pre></div>
+</div>
+<section id="repair-update-parameters">
+<h3>repair update parameters<a class="headerlink" href="#repair-update-parameters" title="Link to this heading">¶</a></h3>
+<p>In addition to <a class="reference internal" href="global-flags-and-variables.html#global-flags"><span class="std std-ref">Global flags</span></a>, repair update takes the same parameters as <a class="reference internal" href="#id2">repair parameters</a></p>
+</section>
+<section id="repair-update-example">
+<h3>repair update example<a class="headerlink" href="#repair-update-example" title="Link to this heading">¶</a></h3>
+<p>This example updates the repair task 143d160f-e53c-4890-a9e7-149561376cfd adding an intensity parameter to speed up the repair.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool repair update -c prod-cluster repair/143d160f-e53c-4890-a9e7-149561376cfd --intensity 0
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon scylla-icon scylla-icon--thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon scylla-icon scylla-icon--thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Repair&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-2.3/sctool/repair%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="backup.html">
+                <button class="navigation__button">
+                    <i class="scylla-icon scylla-icon--chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Backup
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="status.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Status
+                </div>
+                <button class="navigation__button">
+                    <i class="scylla-icon scylla-icon--chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="scylla-icon scylla-icon--chevron-left"></i>
+    </button>
+    <div class="side-nav-content" style="visibility: hidden;">
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__title">
+            <a href="../index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                2.3
+            
+            <i class="chevron scylla-icon scylla-icon--chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="../../master/sctool/repair.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/sctool/repair.html">3.3</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.2/sctool/repair.html">3.2</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.1/sctool/repair.html">3.1</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.0/sctool/repair.html">3.0</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.6/sctool/repair.html">2.6</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.5/sctool/repair.html">2.5</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.4/sctool/repair.html">2.4</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="repair.html">2.3</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-2.2/sctool/repair.html">2.2</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install Scylla Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install Scylla Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../backup/index.html">Backup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-aws-s3.html">Setup AWS S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../restore/extract-schema-from-metadata.html">Extract schema from metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/extract-schema-from-system-schema-keyspace.html">Extract schema from system_schema keyspace</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">CLI sctool</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="global-flags-and-variables.html">Global flags and variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">Backup</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task.html">Task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="scylla-icon scylla-icon--expand"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">Scylla Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../older-versions.html">Older Versions</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+            
+                <div class="sidebar-right large-order-3">
+                    <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Repair&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-2.3/sctool/repair%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon fab fa-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/sctool/repair.rst"
+                   target="_blank">
+                    <i class="icon fa fa-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Repair</a><ul>
+<li><a class="reference internal" href="#sctool-repair">repair</a><ul>
+<li><a class="reference internal" href="#repair-parameters">repair parameters</a><ul>
+<li><a class="reference internal" href="#c-cluster"><code class="docutils literal notranslate"><span class="pre">-c</span></code> , <code class="docutils literal notranslate"><span class="pre">--cluster</span></code></a></li>
+<li><a class="reference internal" href="#dc-list-of-glob-patterns"><code class="docutils literal notranslate"><span class="pre">--dc</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns&gt;</span></code></a></li>
+<li><a class="reference internal" href="#dry-run"><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></a></li>
+<li><a class="reference internal" href="#fail-fast"><code class="docutils literal notranslate"><span class="pre">--fail-fast</span></code></a></li>
+<li><a class="reference internal" href="#host-node-ip"><code class="docutils literal notranslate"><span class="pre">--host</span> <span class="pre">&lt;node</span> <span class="pre">IP&gt;</span></code></a></li>
+<li><a class="reference internal" href="#intensity-float"><code class="docutils literal notranslate"><span class="pre">--intensity</span> <span class="pre">&lt;float&gt;</span></code></a></li>
+<li><a class="reference internal" href="#parallel-integer"><code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">&lt;integer&gt;</span></code></a></li>
+<li><a class="reference internal" href="#k-keyspace-list-of-glob-patterns"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">glob</span> <span class="pre">patterns&gt;</span></code></a></li>
+<li><a class="reference internal" href="#interval-time-between-task-runs"><code class="docutils literal notranslate"><span class="pre">--interval</span> <span class="pre">&lt;time</span> <span class="pre">between</span> <span class="pre">task</span> <span class="pre">runs&gt;</span></code></a></li>
+<li><a class="reference internal" href="#s-start-date-now-duration-rfc3339"><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span> <span class="pre">&lt;now+duration|RFC3339&gt;</span></code></a></li>
+<li><a class="reference internal" href="#r-num-retries-times-to-rerun-a-failed-task"><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span> <span class="pre">&lt;times</span> <span class="pre">to</span> <span class="pre">rerun</span> <span class="pre">a</span> <span class="pre">failed</span> <span class="pre">task&gt;</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-schedule-a-repair">Example: Schedule a repair</a><ul>
+<li><a class="reference internal" href="#repair-cluster-weekly">Repair cluster weekly</a></li>
+<li><a class="reference internal" href="#repair-datacenters-in-a-region-weekly">Repair datacenters in a region weekly</a></li>
+<li><a class="reference internal" href="#repair-a-specific-keyspace-or-table-weekly">Repair a specific keyspace or table weekly</a></li>
+<li><a class="reference internal" href="#repair-a-specific-node">Repair a specific node</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#repair-control">repair control</a><ul>
+<li><a class="reference internal" href="#repair-control-parameters">repair control parameters</a><ul>
+<li><a class="reference internal" href="#repair-control-param-intensity"><code class="docutils literal notranslate"><span class="pre">--intensity</span> <span class="pre">&lt;float&gt;</span></code></a></li>
+<li><a class="reference internal" href="#repair-control-param-parallel"><code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">&lt;integer&gt;</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reschedule-a-repair">repair update</a><ul>
+<li><a class="reference internal" href="#repair-update-parameters">repair update parameters</a></li>
+<li><a class="reference internal" href="#repair-update-example">repair update example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                </div>
+            
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com">
+                <img src="../_static/img/logo-scylla-horizontal-RGB.svg" alt="Logo" />
+            </a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/" target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="https://groups.google.com/g/scylladb-users" target="_blank">
+                    <span data-tooltip tabindex="1" title="User mailing list" data-position="bottom">
+                        <img src="../_static/img/icons/icon-mail-list.svg" alt="Mail List Icon" />
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <img src="../_static/img/icons/icon-slack.svg" alt="Slack Icon" />
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <img src="../_static/img/icons/icon-forum.svg" alt="Forum Icon" />
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__copyright">
+                    
+                        
+                            &#169; 2024, ScyllaDB. All rights reserved.
+                        
+                    
+                </div>
+            
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 01 July 2024.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a> &amp;
+                <a href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.7.2</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>
