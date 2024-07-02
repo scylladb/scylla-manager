@@ -1923,8 +1923,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testKeyspace = "test_repair_big_table"
 			testTable    = "test_table_0"
 			tableMBSize  = 5
-
-			repairPath = "/storage_service/repair_async/"
 		)
 
 		Print("Given: big and fully replicated table")
@@ -1938,15 +1936,20 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		var (
-			repairCalled int32
-			optUsed      = atomic.Bool{}
-			inner        = countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful))
+			optUsed         = atomic.Bool{}
+			mergedRangeUsed = atomic.Bool{}
+			mergedRange     = fmt.Sprintf("%d:%d", dht.Murmur3MinToken, dht.Murmur3MaxToken)
+			inner           = repairInterceptor(scyllaclient.CommandSuccessful)
 		)
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
 				opt, ok := req.URL.Query()["small_table_optimization"]
 				if ok && opt[0] == "true" {
 					optUsed.Store(true)
+				}
+				merged, ok := req.URL.Query()["ranges"]
+				if ok && merged[0] == mergedRange {
+					mergedRangeUsed.Store(true)
 				}
 			}
 			return inner.RoundTrip(req)
@@ -1965,10 +1968,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if optUsed.Load() {
 			t.Fatal("small_table_optimisation was used")
 		}
-
-		Print("And: more than one repair jobs were scheduled")
-		if repairCalled <= 1 {
-			t.Fatalf("Expected more than 1 repair jobs, got %d", repairCalled)
+		// merged ranges optimization shouldn't be used on big tables
+		if mergedRangeUsed.Load() {
+			t.Fatal("merged ranges optimization was used")
 		}
 
 		p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
