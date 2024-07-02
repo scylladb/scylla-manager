@@ -11,9 +11,6 @@ inputs:
   raft-schema:
     description: "Specifies if cluster should use consistent_cluster_management option"
     required: false
-  raft-topology:
-    description: "Specifies if cluster should use consistent-topology-changes option"
-    required: false
   tablets:
     description: "Specifies if cluster should use tablets replication"
     required: false
@@ -45,5 +42,5 @@ runs:
 
     - name: Start dev env
       if: inputs.start-dev-env == 'true'
-      run: make start-dev-env SCYLLA_VERSION=${{ inputs.scylla-version }} IP_FAMILY=${{ inputs.ip-family }} RAFT_SCHEMA=${{ inputs.raft-schema }} RAFT_TOPOLOGY=${{ inputs.raft-topology }} TABLETS=${{ inputs.tablets }}
+      run: make start-dev-env SCYLLA_VERSION=${{ inputs.scylla-version }} IP_FAMILY=${{ inputs.ip-family }} RAFT_SCHEMA=${{ inputs.raft-schema }} TABLETS=${{ inputs.tablets }}
       shell: bash

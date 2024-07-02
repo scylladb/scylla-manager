@@ -143,6 +143,10 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 			}
 
 			ringDescriber.Reset(context.Background())
+			if ringDescriber.IsTabletKeyspace(tc.name) {
+				// This log is for checking whether testing setup correctly enabled tablets
+				t.Log("Tablet keyspace exists!")
+			}
 			ring, err := ringDescriber.DescribeRing(context.Background(), tc.name, "test_tab")
 			if err != nil {
 				t.Fatal(err)
