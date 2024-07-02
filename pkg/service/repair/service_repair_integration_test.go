@@ -883,7 +883,10 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	session := CreateScyllaManagerDBSession(t)
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, c)
 	cfg := repair.DefaultConfig()
-	cfg.GracefulStopTimeout = time.Second
+	// Make sure that all repairs finish within the graceful stop timeout,
+	// so that we avoid situations that interceptor marked range as done,
+	// but SM won't save it in its DB.
+	cfg.GracefulStopTimeout = time.Minute
 	h := newRepairWithClusterSessionTestHelper(t, session, hrt, c, cfg)
 
 	const (
@@ -961,36 +964,33 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 
 	// Tools for performing a repair with 4 pauses
 	var (
-		cnt             = atomic.Int64{}
+		reqCnt          = atomic.Int64{}
+		rspCnt          = atomic.Int64{}
+		stopErrInject   = atomic.Bool{}
 		stop1Ctx, stop1 = context.WithCancel(ctx)
 		stop2Ctx, stop2 = context.WithCancel(ctx)
 		stop3Ctx, stop3 = context.WithCancel(ctx)
 		stop4Ctx, stop4 = context.WithCancel(ctx)
-		stopCnt1        = 150
-		stopCnt2        = 250
-		stopCnt3        = 400
-		stopCnt4        = 500
+		stopCnt1        = 50
+		stopCnt2        = 75
+		stopCnt3        = 100
+		stopCnt4        = 125
 	)
 
-	running := atomic.Bool{}
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-			switch int(cnt.Add(1)) {
+			switch int(reqCnt.Add(1)) {
 			case stopCnt1:
-				running.Store(false)
 				stop1()
 				t.Log("First repair pause")
 			case stopCnt2:
-				running.Store(false)
 				stop2()
 				t.Log("Second repair pause")
 			case stopCnt3:
-				running.Store(false)
 				stop3()
 				t.Log("Third repair pause")
 			case stopCnt4:
-				running.Store(false)
 				stop4()
 				t.Log("Fourth repair pause")
 			}
@@ -1027,11 +1027,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 
 		// Response to repair status
 		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
-			// Inject 5% errors on all runs except the last one.
+			// Inject errors on all runs except the last one.
 			// This helps to test repair error resilience.
-			// Also, return errors for requests after the pause, so that's
-			// easier to look for redundant ranges.
-			if i := cnt.Load(); !running.Load() || i < int64(stopCnt4) && i%20 == 0 {
+			if !stopErrInject.Load() && rspCnt.Add(1)%20 == 0 {
 				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
 				return
 			}
@@ -1039,50 +1037,22 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 			status := string(body)
 			if status == "\"SUCCESSFUL\"" {
 				muJS.Lock()
-				tr := jobSpec[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
-				muJS.Unlock()
+				defer muJS.Unlock()
 
-				if tr.FullTable == "" {
-					t.Logf("This is strange %s", resp.Request.Host+resp.Request.URL.Query()["id"][0])
-					return
+				k := resp.Request.Host + resp.Request.URL.Query()["id"][0]
+				if tr, ok := jobSpec[k]; ok {
+					// Make sure that retries don't result in counting redundant ranges
+					delete(jobSpec, k)
+					// Register done ranges
+					muDR.Lock()
+					dr := doneRanges[tr.FullTable]
+					dr = append(dr, tr.Ranges...)
+					doneRanges[tr.FullTable] = dr
+					muDR.Unlock()
 				}
-
-				// Register done ranges
-				muDR.Lock()
-				dr := doneRanges[tr.FullTable]
-				dr = append(dr, tr.Ranges...)
-				doneRanges[tr.FullTable] = dr
-				muDR.Unlock()
 			}
 		}
 	})
-
-	Print("When: run first repair with context cancel")
-	running.Store(true)
-	if err := h.runRegularRepair(stop1Ctx, props); err == nil {
-		t.Fatal("Repair failed without error")
-	}
-
-	Print("When: run second repair with context cancel")
-	h.RunID = uuid.NewTime()
-	running.Store(true)
-	if err := h.runRegularRepair(stop2Ctx, props); err == nil {
-		t.Fatal("Repair failed without error")
-	}
-
-	Print("When: run third repair with context cancel")
-	h.RunID = uuid.NewTime()
-	running.Store(true)
-	if err := h.runRegularRepair(stop3Ctx, props); err == nil {
-		t.Fatal("Repair failed without error")
-	}
-
-	Print("When: run fourth repair with context cancel")
-	h.RunID = uuid.NewTime()
-	running.Store(true)
-	if err := h.runRegularRepair(stop4Ctx, props); err == nil {
-		t.Fatal("Repair failed without error")
-	}
 
 	validate := func(tab string, tr []scyllaclient.TokenRange) (redundant int, err error) {
 		sort.Slice(tr, func(i, j int) bool {
@@ -1113,33 +1083,65 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		return redundant, nil
 	}
 
-	// Tablet tables don't support resuming repair, so in order to check if repair
-	// started from scratch, we need to remove all repaired ranges up to this point.
-	ringDescriber := scyllaclient.NewRingDescriber(ctx, h.Client)
-	for tab, _ := range doneRanges {
-		_, err := validate(tab, doneRanges[tab])
-		if err != nil && ringDescriber.IsTabletKeyspace(strings.Split(tab, ".")[0]) {
-			doneRanges[tab] = nil
+	clearTabletRanges := func(doneRanges map[string][]scyllaclient.TokenRange, ringDescriber scyllaclient.RingDescriber) {
+		var clearKeys []string
+		for tab, dr := range doneRanges {
+			_, err := validate(tab, dr)
+			if err != nil && ringDescriber.IsTabletKeyspace(strings.Split(tab, ".")[0]) {
+				clearKeys = append(clearKeys, tab)
+			}
+		}
+		for _, k := range clearKeys {
+			delete(doneRanges, k)
 		}
 	}
 
-	Print("When: run fifth repair till it finishes")
+	Print("When: run first repair with context cancel")
+	if err := h.runRegularRepair(stop1Ctx, props); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	// Tablet tables don't support resuming repair, so in order to check if repair
+	// started from scratch, we need to remove all repaired ranges up to this point.
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, h.Client)
+
+	Print("When: run second repair with context cancel")
 	h.RunID = uuid.NewTime()
-	running.Store(true)
+	clearTabletRanges(doneRanges, ringDescriber)
+	if err := h.runRegularRepair(stop2Ctx, props); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run third repair with context cancel")
+	clearTabletRanges(doneRanges, ringDescriber)
+	h.RunID = uuid.NewTime()
+	if err := h.runRegularRepair(stop3Ctx, props); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run fourth repair with context cancel")
+	clearTabletRanges(doneRanges, ringDescriber)
+	h.RunID = uuid.NewTime()
+	if err := h.runRegularRepair(stop4Ctx, props); err == nil {
+		t.Fatal("Repair failed without error")
+	}
+
+	Print("When: run fifth repair till it finishes")
+	clearTabletRanges(doneRanges, ringDescriber)
+	h.RunID = uuid.NewTime()
+	stopErrInject.Store(true)
 	if err := h.runRegularRepair(ctx, props); err != nil {
 		t.Fatalf("Repair failed: %s", err)
 	}
 
 	Print("When: validate all, continuous ranges")
 	for tab, tr := range doneRanges {
-		t.Logf("Checking table %s", tab)
-
 		r, err := validate(tab, tr)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if r > len(tr)/20 {
-			t.Fatalf("Expected less than 5 percent (%d) of redundant ranges per table (%d)", r, len(tr))
+		if r > 0 {
+			t.Fatalf("Expected no redundant ranges in %s, got %d (out of total %d)", tab, r, len(tr))
 		}
 	}
 }
