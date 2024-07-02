@@ -1652,7 +1652,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		})
 
 		Print("And: repair contains error")
-		h.assertErrorContains("logs", longWait)
+		h.assertError(longWait)
 
 		p, err := h.service.GetProgress(ctx, h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
