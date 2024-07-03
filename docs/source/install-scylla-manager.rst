@@ -8,7 +8,7 @@ Install ScyllaDB Manager
    :depth: 2
    :local:
 
-.. note:: If you need to upgrade Scylla Manager from a previous version please see the `Upgrade Guide <../upgrade/>`_.
+.. note:: If you need to upgrade Scylla Manager from a previous version please see the :doc:`Upgrade guide <upgrade/index>`.
 
 System requirements
 ===================
@@ -18,7 +18,7 @@ While a minimal server can run on a system with 2 cores and 1GB RAM, the followi
 * **CPU** - 2vCPUs
 * **Memory** - 8GB+ DRAM
 
-.. note::  If you are running `Scylla Monitoring Stack </operating-scylla/monitoring/monitoring_stack/>`_ on the same server as Scylla Manager, your system should also meet the minimal `Monitoring requirements </operating-scylla/monitoring/monitoring_stack/#minimal-production-system-recommendations>`_.
+.. note::  If you are running `Scylla Monitoring Stack <https://monitoring.docs.scylladb.com/stable/index.html>`_ on the same server as Scylla Manager, your system should also meet the minimal `Monitoring requirements <https://monitoring.docs.scylladb.com/stable/install/monitoring-stack.html#minimal-production-system-recommendations>`_.
 
 Install package
 ===============
