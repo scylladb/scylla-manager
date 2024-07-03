@@ -47,7 +47,7 @@ List tasks with set properties
 
   .. code-block:: console
 
-    sctool tasks -c mycluster --show-properties
+    sctool tasks -c prod-cluster --show-properties
     ╭─────────────────────────────────────────────┬──────────────┬────────┬───────────────┬─────────┬───────┬─────────────────────────┬────────────┬─────────┬─────────────────────────┬───────────────────────────╮
     │ Task                                        │ Schedule     │ Window │ Timezone      │ Success │ Error │ Last Success            │ Last Error │ Status  │ Next                    │ Properties                │
     ├─────────────────────────────────────────────┼──────────────┼────────┼───────────────┼─────────┼───────┼─────────────────────────┼────────────┼─────────┼─────────────────────────┼───────────────────────────┤
@@ -63,7 +63,7 @@ Disable repair task
 
   .. code-block:: console
 
-    sctool repair update -c mycluster repair/all-weekly --enabled=false
+    sctool repair update -c prod-cluster repair/all-weekly --enabled=false
 
 List also the disabled tasks
 ............................
@@ -72,7 +72,7 @@ Note that disabled tasks are prefixed with ``*``.
 
   .. code-block:: console
 
-    sctool tasks -c mycluster -a
+    sctool tasks -c prod-cluster -a
     ╭─────────────────────────────────────────────┬──────────────┬────────┬───────────────┬─────────┬───────┬─────────────────────────┬────────────┬────────┬─────────────────────────╮
     │ Task                                        │ Schedule     │ Window │ Timezone      │ Success │ Error │ Last Success            │ Last Error │ Status │ Next                    │
     ├─────────────────────────────────────────────┼──────────────┼────────┼───────────────┼─────────┼───────┼─────────────────────────┼────────────┼────────┼─────────────────────────┤
@@ -88,7 +88,7 @@ Enable repair task
 
   .. code-block:: console
 
-    sctool repair update -c mycluster repair/all-weekly --enabled=true
+    sctool repair update -c prod-cluster repair/all-weekly --enabled=true
 
 Download files from backup location
 ...................................

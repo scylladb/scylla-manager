@@ -58,7 +58,7 @@ Docker command installed.
 
    .. code-block:: none
 
-      sctool cluster add --name test --host=scylla --auth-token=token
+      sctool cluster add --name prod-cluster --host=scylla --auth-token=token
 
    this will print the cluster added message
 
