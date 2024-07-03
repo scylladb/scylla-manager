@@ -24,33 +24,31 @@ Create a scheduled repair
 
 While the most recommended way to run a repair is across an entire cluster, repairs can be scheduled to run on a single/multiple datacenters, keyspaces, or tables.
 The selection mechanism, based on the glob patterns, gives you a lot of flexibility.
-Scheduled repairs run every X days depending on the frequency you set.
+Scheduled repairs run according to the cron expression you set.
 Additional parameters are described in the :ref:`sctool repair <repair-commands>` command reference.
 
 Use the example below to run the sctool repair command.
 
 .. code-block:: none
 
-   sctool repair -c <id|name> [-s <date>] [-i <time-unit>]
+   sctool repair -c <id|name> [--cron <expression>]
 
 where:
 
 * ``-c`` - the :ref:`name <cluster-add>` you used when you created the cluster
-* ``-s`` - the time you want the repair to begin
-* ``-i`` - the time interval you want to use in between consecutive repairs
+* ``--cron`` - defines task schedule as a cron expression
 
 The command returns the task ID. You will need this ID for additional actions.
-If you want to run the repair only once, leave out the interval argument (``-i``).
-In case when you want the repair to start immediately, but you want it to schedule it to repeat at a determined interval, leave out the start flag (``-s``) and set the interval flag (``-i``) to the time you want the repair to reoccur.
+If you want to run the repair only once, leave out the cron argument (``--cron``).
 
 Schedule a weekly repair
 ........................
 
-This command will schedule a repair in 4 hours, repair will be repeated every week.
+This command will schedule a repair running at 20:00, on every Saturday, every month.
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -s now+4h -i 7d
+   sctool repair -c prod-cluster --cron "0 0 20 ? * SAT"
    repair/41014974-f7a7-4d67-b75c-44f59cdc5105
 
 Command returns the task ID (repair/41014974-f7a7-4d67-b75c-44f59cdc5105, in this case).
@@ -66,18 +64,18 @@ For Example, you have the following DCs in your cluster: dc1, dc2, dc3
 Repair one specific DC
 ......................
 
-In this example, only dc1 is repaired. The repair repeats every 5 days.
+In this example, only dc1 is repaired.
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -i 5d --dc 'dc1'
+   sctool repair -c prod-cluster --dc 'dc1'
 
 Repair all DCs except for those specified
 .........................................
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -i 5d --dc '*,!dc2'
+   sctool repair -c prod-cluster --dc '*,!dc2'
 
 Repair a specific keyspace or table
 ...................................
@@ -87,7 +85,7 @@ You can specify more than one keyspace/table or use glob pattern to match multip
 
 .. code-block:: none
 
-   sctool repair -c prod-cluster -K 'auth_service.*,!auth_service.lru_cache' --dc 'dc1'
+   sctool repair -c prod-cluster -K 'system_distributed.*,!system_distributed.view_build_status' --dc 'dc1'
 
 Repair a specific node
 ......................
@@ -140,7 +138,6 @@ If the dry run completes successfully, a summary of the repair is displayed. For
      - AWS_EU_CENTRAL_1
 
    Keyspaces:
-     - system_auth (3 tables)
      - system_distributed (3 tables)
      - system_traces (5 tables)
      - test_keyspace (10 tables)
@@ -170,10 +167,10 @@ Progress of the repair task can be monitored by using the :ref:`sctool progress 
   ╭───────────────────────────────┬────────────────────────────────┬──────────┬──────────╮
   │ Keyspace                      │                          Table │ Progress │ Duration │
   ├───────────────────────────────┼────────────────────────────────┼──────────┼──────────┤
-  │ system_auth                   │                role_attributes │ 100%     │ 0s       │
-  │ system_auth                   │                   role_members │ 100%     │ 0s       │
-  │ system_auth                   │               role_permissions │ 0%       │ 0s       │
-  │ system_auth                   │                          roles │ 0%       │ 0s       │
+  │ test_keyspace                 │                   test_table_1 │ 100%     │ 0s       │
+  │ test_keyspace                 │                   test_table_2 │ 100%     │ 0s       │
+  │ test_keyspace                 │                   test_table_3 │ 0%       │ 0s       │
+  │ test_keyspace                 │                   test_table_4 │ 0%       │ 0s       │
   ╰───────────────────────────────┴────────────────────────────────┴──────────┴──────────╯
 
 Note that:
