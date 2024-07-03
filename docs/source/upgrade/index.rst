@@ -2,7 +2,7 @@
 ScyllaDB Manager Upgrade 
 ==========================
 
-This document describes the upgrade process beween two versions of Scylla Manager.
+This document describes the upgrade process between two versions of Scylla Manager.
 
 Applicable versions
 ===================
