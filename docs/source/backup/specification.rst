@@ -113,51 +113,33 @@ Please find below a part listing of sst directory showing a single table of a si
                        │           └── table
                        │               └── big_table
                        │                   └── f34b6ff0f8f711eb9fcf000000000000
-                       │                       ├── mc-2-big-CompressionInfo.db
-                       │                       ├── mc-2-big-Data.db
-                       │                       ├── mc-2-big-Digest.crc32
-                       │                       ├── mc-2-big-Filter.db
-                       │                       ├── mc-2-big-Index.db
-                       │                       ├── mc-2-big-Scylla.db
-                       │                       ├── mc-2-big-Statistics.db
-                       │                       ├── mc-2-big-Summary.db
-                       │                       ├── mc-2-big-TOC.txt
-                       │                       ├── mc-3-big-CompressionInfo.db
-                       │                       ├── mc-3-big-Data.db
-                       │                       ├── mc-3-big-Digest.crc32
-                       │                       ├── mc-3-big-Filter.db
-                       │                       ├── mc-3-big-Index.db
-                       │                       ├── mc-3-big-Scylla.db
-                       │                       ├── mc-3-big-Statistics.db
-                       │                       ├── mc-3-big-Summary.db
-                       │                       ├── mc-3-big-TOC.txt
-                       │                       ├── mc-4-big-CompressionInfo.db
-                       │                       ├── mc-4-big-Data.db
-                       │                       ├── mc-4-big-Digest.crc32
-                       │                       ├── mc-4-big-Filter.db
-                       │                       ├── mc-4-big-Index.db
-                       │                       ├── mc-4-big-Scylla.db
-                       │                       ├── mc-4-big-Statistics.db
-                       │                       ├── mc-4-big-Summary.db
-                       │                       ├── mc-4-big-TOC.txt
-                       │                       ├── mc-5-big-CompressionInfo.db
-                       │                       ├── mc-5-big-Data.db
-                       │                       ├── mc-5-big-Digest.crc32
-                       │                       ├── mc-5-big-Filter.db
-                       │                       ├── mc-5-big-Index.db
-                       │                       ├── mc-5-big-Scylla.db
-                       │                       ├── mc-5-big-Statistics.db
-                       │                       ├── mc-5-big-Summary.db
-                       │                       ├── mc-5-big-TOC.txt
-                       │                       ├── mc-5-big-CompressionInfo.db.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Data.db.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Digest.crc32.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Filter.db.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Index.db.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Scylla.db.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Statistics.db.sm_20210809095541UTC
-                       │                       ├── mc-5-big-Summary.db.sm_20210809095541UTC
-                       │                       └── mc-5-big-TOC.txt.sm_20210809095541UTC
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-CompressionInfo.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Data.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Digest.crc32
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Filter.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Index.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Scylla.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Statistics.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Summary.db
+                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-TOC.txt
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-CompressionInfo.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Data.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Digest.crc32
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Filter.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Index.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Scylla.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Statistics.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Summary.db
+                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-TOC.txt
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-CompressionInfo.db
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Data.db
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Digest.crc32
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Filter.db
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Index.db
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Scylla.db
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Statistics.db
+                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Summary.db
+                       │                       └── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-TOC.txt
 
 Each node has it's own directory, the path is structured as follows.
 
@@ -175,13 +157,13 @@ The directory contains all the table files.
 Some files may be used in more than one backup.
 
 You may also find that some of those files have the snapshot tag suffix (e.g. ``.sm_20210809095541UTC``).
-Even though sstables (data files) are immutable by nature,
+Even though sstables (data files) are immutable by nature, using non UUID sstable identifiers alongside
 `replacing a running node <https://opensource.docs.scylladb.com/stable/operating-scylla/procedures/cluster-management/replace-running-node.html#replace-a-running-node-by-taking-its-place-in-the-cluster>`_
 makes it possible to have two different sstables originating
 from the same table and with the same node ID. In this case, older versions of sstable are appended with the snapshot tag
 indicating the backup that introduced newer version of given sstable. The most current version of sstable does not have the snapshot tag suffix.
 
-In the example above, we can see that sstable ``mc-5-big-Data.db`` will be used when restoring snapshot ``sm_20210809095541UTC``,
+For example, sstable ``mc-5-big-Data.db`` will be used when restoring snapshot ``sm_20210809095541UTC``,
 while ``mc-5-big-Data.db.sm_20210809095541UTC`` will be used when restoring ``sm_20210809095542UTC`` or ``sm_20210809095748UTC`` snapshots
 (lexicographical order on snapshot tags is also the chronological order).
 
@@ -205,24 +187,24 @@ Please find below the contents of the manifest file of the node shown in the sst
          "table": "big_table",
          "version": "f34b6ff0f8f711eb9fcf000000000000",
          "files": [
-           "mc-2-big-CompressionInfo.db",
-           "mc-2-big-Data.db",
-           "mc-2-big-Digest.crc32",
-           "mc-2-big-Filter.db",
-           "mc-2-big-Index.db",
-           "mc-2-big-Scylla.db",
-           "mc-2-big-Statistics.db",
-           "mc-2-big-Summary.db",
-           "mc-2-big-TOC.txt",
-           "mc-3-big-CompressionInfo.db",
-           "mc-3-big-Data.db",
-           "mc-3-big-Digest.crc32",
-           "mc-3-big-Filter.db",
-           "mc-3-big-Index.db",
-           "mc-3-big-Scylla.db",
-           "mc-3-big-Statistics.db",
-           "mc-3-big-Summary.db",
-           "mc-3-big-TOC.txt"
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-CompressionInfo.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Data.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Digest.crc32",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Filter.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Index.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Scylla.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Statistics.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Summary.db",
+           "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-TOC.txt",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-CompressionInfo.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Data.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Digest.crc32",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Filter.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Index.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Scylla.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Statistics.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Summary.db",
+           "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-TOC.txt"
          ],
          "size": 1256031
        }
