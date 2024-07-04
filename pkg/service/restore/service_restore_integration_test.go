@@ -1001,21 +1001,62 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		t.Fatal(err)
 	}
 
+	crc32FileNameFromGivenSSTableFile := func(sstable string) string {
+		// Split the filename by dashes
+		parts := strings.Split(sstable, "-")
+
+		if len(parts) < 2 {
+			return sstable + "-Digest.crc32"
+		}
+		// Replace the last part with "Digest.crc32"
+		parts[len(parts)-1] = "Digest.crc32"
+		// Join the parts back together with dashes
+		return strings.Join(parts, "-")
+	}
+
+	firstCorruptCrc32 := make(map[string]struct{})
+	for _, f := range firstCorrupt {
+		firstCorruptCrc32[crc32FileNameFromGivenSSTableFile(f)] = struct{}{}
+	}
+	bothCorruptCrc32 := make(map[string]struct{})
+	for _, f := range bothCorrupt {
+		bothCorruptCrc32[crc32FileNameFromGivenSSTableFile(f)] = struct{}{}
+	}
+	secondCorruptCrc32 := make(map[string]struct{})
+	for _, f := range secondCorrupt {
+		secondCorruptCrc32[crc32FileNameFromGivenSSTableFile(f)] = struct{}{}
+	}
+	for f := range bothCorruptCrc32 {
+		firstCorruptCrc32[f] = struct{}{}
+		secondCorruptCrc32[f] = struct{}{}
+	}
+	keys := func(m map[string]struct{}) []string {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		return keys
+	}
+
 	Printf("First group of corrupted SSTables: %v", firstCorrupt)
 	Printf("Common group of corrupted SSTables: %v", bothCorrupt)
 	Printf("Second group of corrupted SSTables: %v", secondCorrupt)
 
 	totalFirstCorrupt := append([]string{}, firstCorrupt...)
 	totalFirstCorrupt = append(totalFirstCorrupt, bothCorrupt...)
+	totalFirstCorrupt = append(totalFirstCorrupt, keys(firstCorruptCrc32)...)
 
 	totalSecondCorrupt := append([]string{}, secondCorrupt...)
 	totalSecondCorrupt = append(totalSecondCorrupt, bothCorrupt...)
+	totalSecondCorrupt = append(totalSecondCorrupt, keys(secondCorruptCrc32)...)
 
 	// corruptFiles corrupts current newest backup and performs a new one
+	// it's necessary to change the .crc32 file of given SSTable as well
 	corruptFiles := func(i int, toCorrupt []string) string {
 		Print("Corrupt backup")
 		for _, tc := range toCorrupt {
 			file := path.Join(remoteDir, tc)
+
 			body := bytes.NewBufferString(fmt.Sprintf("generation: %d", i))
 			if err = srcH.Client.RclonePut(ctx, host.Addr, file, body); err != nil {
 				t.Fatalf("Corrupt remote file %s", file)
@@ -1069,6 +1110,9 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	}
 	// 3-rd backup consists of secondCorrupt files introduced by 5-th backup
 	for _, tc := range secondCorrupt {
+		swapWithNewest(tc, tag5)
+	}
+	for _, tc := range keys(secondCorruptCrc32) {
 		swapWithNewest(tc, tag5)
 	}
 
@@ -1459,25 +1503,6 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	h.T.Helper()
 	Print("Then: validate restore result")
 
-	pr, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
-	if err != nil {
-		h.T.Fatalf("Couldn't get progress: %s", err)
-	}
-
-	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
-		h.T.Fatal("Expected complete restore")
-	}
-	for _, kpr := range pr.Keyspaces {
-		if kpr.Size != kpr.Restored || kpr.Size != kpr.Downloaded {
-			h.T.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
-		}
-		for _, tpr := range kpr.Tables {
-			if tpr.Size != tpr.Restored || tpr.Size != tpr.Downloaded {
-				h.T.Fatalf("Expected complete table restore (%s)", tpr.Table)
-			}
-		}
-	}
-
 	if target.RestoreSchema {
 		if !checkAnyConstraint(h.T, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 			// Schema restart is required only for older Scylla versions
@@ -1518,6 +1543,28 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 			h.T.Fatalf("srcCount != dstCount")
 		}
 	}
+
+	pr, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
+	if err != nil {
+		h.T.Fatalf("Couldn't get progress: %s", err)
+	}
+
+	Printf("TOTAL %v %v %v", pr.Downloaded, pr.Size, pr.Restored)
+	for _, kpr := range pr.Keyspaces {
+		for _, tpr := range kpr.Tables {
+			Printf("name %s %v %v %v", tpr.Table, tpr.Downloaded, tpr.Size, tpr.Restored)
+			if tpr.Size != tpr.Restored || tpr.Size != tpr.Downloaded {
+				h.T.Fatalf("Expected complete table restore (%s)", tpr.Table)
+			}
+		}
+		if kpr.Size != kpr.Restored || kpr.Size != kpr.Downloaded {
+			h.T.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
+		}
+	}
+	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
+		h.T.Fatal("Expected complete restore")
+	}
+
 }
 
 // cleanScyllaTables truncates scylla tables populated in prepareRestoreBackupWithFeatures.
