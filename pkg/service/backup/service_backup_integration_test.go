@@ -2496,3 +2496,88 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		}
 	}
 }
+
+func TestBackupViews(t *testing.T) {
+	const (
+		testBucket   = "backuptest-views"
+		testKeyspace = "backuptest_views"
+		testTable    = "base_table"
+		testMV       = "mv_table"
+		testSI       = "si_table"
+	)
+
+	location := s3Location(testBucket)
+	config := defaultConfig()
+
+	var (
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	Print("Given: table with MV and SI")
+	WriteData(t, clusterSession, testKeyspace, 1, testTable)
+	CreateMaterializedView(t, clusterSession, testKeyspace, testTable, testMV)
+	CreateSecondaryIndex(t, clusterSession, testKeyspace, testTable, testSI)
+
+	props := map[string]any{
+		"location": []Location{location},
+		"keyspace": []string{testKeyspace},
+	}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create raw properties"))
+	}
+
+	Print("When: create backup target")
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create target"))
+	}
+
+	Print("Then: target consists of only base table")
+	expected := []backup.Unit{
+		{
+			Keyspace: testKeyspace,
+			Tables:   []string{testTable},
+		},
+	}
+	if diff := cmp.Diff(target.Units, expected,
+		cmpopts.IgnoreFields(backup.Unit{}, "AllTables"),
+		cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_schema" }),
+	); diff != "" {
+		t.Fatal("target units are not as expected", diff)
+	}
+
+	Print("When: run backup")
+	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Fatal(errors.Wrap(err, "run backup"))
+	}
+
+	Print("And: list backup files")
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "list backup files"))
+	}
+
+	Print("Then: backup files don't contain views")
+	var foundTable int
+	for _, fi := range filesInfo {
+		for _, fm := range fi.Files {
+			if fm.Keyspace == testKeyspace {
+				if fm.Table == testTable {
+					foundTable++
+				}
+				if fm.Table == testSI || fm.Table == testMV {
+					t.Fatal("Found view in backup files")
+				}
+			}
+		}
+	}
+
+	Print("And: backup files contain base table")
+	if foundTable != len(ManagedClusterHosts()) {
+		t.Fatal("Expected all hosts to back up base table")
+	}
+}
