@@ -20,7 +20,7 @@ func (cfg integrationTestCfg) name() string {
 	parts := []string{
 		"integration",
 		"tests",
-		strings.Split(cfg.ScyllaVersion, ":")[1],
+		cfg.scyllaVersion(),
 		cfg.IPFamily,
 	}
 	if cfg.RaftSchema == "enabled" {
@@ -30,6 +30,10 @@ func (cfg integrationTestCfg) name() string {
 		parts = append(parts, "tablets")
 	}
 	return strings.Join(parts, "-")
+}
+
+func (cfg integrationTestCfg) scyllaVersion() string {
+	return strings.Split(cfg.ScyllaVersion, ":")[1]
 }
 
 // This is a simple script used to generate workflow files by applying
@@ -58,8 +62,11 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Println("Reference links to badges")
+	versionBadges := make(map[string][]string)
 	for _, cfg := range configs {
 		name := cfg.name()
+		v := cfg.scyllaVersion()
 		core["name"] = name
 		core["env"] = cfg
 		b, err := yaml.Marshal(&core)
@@ -70,7 +77,15 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf("![%s](https://github.com/scylladb/scylla-manager/actions/workflows/%s.yaml/badge.svg?branch=master)\n",
-			strings.ReplaceAll(name, "-", " "), name)
+		versionBadges[v] = append(versionBadges[v], "!["+name+"]")
+		fmt.Printf("[%s]: https://github.com/scylladb/scylla-manager/actions/workflows/%s.yaml/badge.svg?branch=master\n",
+			name, name)
+	}
+
+	fmt.Println("Badges formatted as table")
+	fmt.Println("| ScyllaDB version | Workflows | Limitations |")
+	fmt.Println("| ---------------- | --------- | ----------- |")
+	for v, badges := range versionBadges {
+		fmt.Printf("| **%s** | %s | |\n", v, strings.Join(badges, "<br/>"))
 	}
 }
