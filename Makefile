@@ -98,6 +98,7 @@ integration-test:
 	@$(MAKE) pkg-integration-test PKG=./pkg/ping/dynamoping
 	@$(MAKE) pkg-integration-test PKG=./pkg/scyllaclient
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/backup
+	@$(MAKE) pkg-integration-test PKG=./pkg/service/restore
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/cluster
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/healthcheck
 	@$(MAKE) pkg-integration-test PKG=./pkg/service/repair
