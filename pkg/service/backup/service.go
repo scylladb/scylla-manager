@@ -117,187 +117,58 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	s.logger.Info(ctx, "Generating backup target", "cluster_id", clusterID)
 
 	p := defaultTaskProperties()
-	t := Target{}
-
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return t, service.ErrValidate(err)
-	}
-
-	if p.Location == nil {
-		return t, errors.Errorf("missing location")
+		return Target{}, service.ErrValidate(err)
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return t, errors.Wrapf(err, "get client")
+		return Target{}, errors.Wrapf(err, "get client")
 	}
 
-	// Get hosts in DCs
 	dcMap, err := client.Datacenters(ctx)
 	if err != nil {
-		return t, errors.Wrap(err, "read datacenters")
+		return Target{}, errors.Wrap(err, "read datacenters")
 	}
-
-	// Validate location DCs
-	if err := checkDCs(func(i int) (string, string) { return p.Location[i].DC, p.Location[i].String() }, len(p.Location), dcMap); err != nil {
-		return t, errors.Wrap(err, "invalid location")
-	}
-
-	// Validate rate limit DCs
-	if err := checkDCs(dcLimitDCAtPos(p.RateLimit), len(p.RateLimit), dcMap); err != nil {
-		return t, errors.Wrap(err, "invalid rate-limit")
-	}
-
-	// Validate upload parallel DCs
-	if err := checkDCs(dcLimitDCAtPos(p.SnapshotParallel), len(p.SnapshotParallel), dcMap); err != nil {
-		return t, errors.Wrap(err, "invalid snapshot-parallel")
-	}
-
-	// Validate snapshot parallel DCs
-	if err := checkDCs(dcLimitDCAtPos(p.UploadParallel), len(p.UploadParallel), dcMap); err != nil {
-		return t, errors.Wrap(err, "invalid upload-parallel")
-	}
-
-	// Copy retention policy
-	policy := p.extractRetention()
-	t.Retention = policy.Retention
-	t.RetentionDays = policy.RetentionDays
-	if policy.Retention < 0 {
-		return t, errors.New("negative retention")
-	}
-	if policy.RetentionDays < 0 {
-		return t, errors.New("negative retention days")
-	}
-
-	// Copy simple properties
-	t.RetentionMap = p.RetentionMap
-	t.Continue = p.Continue
-	t.PurgeOnly = p.PurgeOnly
-
-	// Filter DCs
-	if t.DC, err = dcfilter.Apply(dcMap, p.DC); err != nil {
-		return t, err
-	}
-
-	// Filter out properties of not used DCs
-	t.Location = filterDCLocations(p.Location, t.DC)
-	t.RateLimit = filterDCLimits(p.RateLimit, t.DC)
-	if len(t.RateLimit) == 0 {
-		t.RateLimit = []DCLimit{{Limit: defaultRateLimit}}
-	}
-	t.SnapshotParallel = filterDCLimits(p.SnapshotParallel, t.DC)
-	t.UploadParallel = filterDCLimits(p.UploadParallel, t.DC)
-
-	if err := checkAllDCsCovered(t.Location, t.DC); err != nil {
-		return t, errors.Wrap(err, "invalid location")
-	}
-
-	// Get live nodes
-	t.liveNodes, err = s.getLiveNodes(ctx, client, t.DC)
+	dcs, err := dcfilter.Apply(dcMap, p.DC)
 	if err != nil {
-		return t, err
+		return Target{}, err
 	}
 
-	targetDCs := strset.New(t.DC...)
+	if err := p.validate(dcs, dcMap); err != nil {
+		return Target{}, err
+	}
 
-	// Filter keyspaces
+	liveNodes, err := s.getLiveNodes(ctx, client, dcs)
+	if err != nil {
+		return Target{}, err
+	}
+	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, p.Location); err != nil {
+		if strings.Contains(err.Error(), "NoSuchBucket") {
+			return Target{}, errors.New("specified bucket does not exist")
+		}
+		return Target{}, errors.Wrap(err, "location is not accessible")
+	}
+
 	f, err := ksfilter.NewFilter(p.Keyspace)
 	if err != nil {
-		return t, err
+		return Target{}, err
 	}
 
-	keyspaces, err := client.Keyspaces(ctx)
-	if err != nil {
-		return t, errors.Wrapf(err, "read keyspaces")
+	filters := []tabFilter{
+		patternFilter{pattern: f},
+		dcFilter{dcs: strset.New(dcs...)},
+		localDataFilter{},
 	}
 
-	// Always backup system_schema.
-	//
-	// Some schema changes, like dropping columns, are applied lazily to
-	// sstables during compaction. Information about those schema changes is
-	// recorded in the system schema tables, but not in the output of "desc schema".
-	// Using output of "desc schema" is not enough to restore all schema changes.
-	// As a result, writes in sstables may be incorrectly interpreted.
-	// For example, writes of deleted columns which were later recreated may be
-	// resurrected.
-	systemSchemaUnit := Unit{
-		Keyspace: systemSchema,
-		// Tables are added later
-		AllTables: true,
+	validators := []tabValidator{
+		tokenRangesValidator{
+			liveNodes: strset.New(liveNodes.Hosts()...),
+			dcs:       strset.New(dcs...),
+		},
 	}
 
-	ringDescriber := scyllaclient.NewRingDescriber(ctx, client)
-	liveNodes := strset.New(t.liveNodes.Hosts()...)
-	for _, keyspace := range keyspaces {
-		tables, err := client.Tables(ctx, keyspace)
-		if err != nil {
-			return t, errors.Wrapf(err, "keyspace %s: get tables", keyspace)
-		}
-
-		var filteredTables []string
-		for _, tab := range tables {
-			if !f.Check(keyspace, tab) {
-				continue
-			}
-			// Get the ring description and skip local data
-			ring, err := ringDescriber.DescribeRing(ctx, keyspace, tab)
-			if err != nil {
-				return t, errors.Wrapf(err, "%s.%s: get ring description", keyspace, tab)
-			}
-			if ring.Replication == scyllaclient.LocalStrategy {
-				if strings.HasPrefix(keyspace, "system") && keyspace != "system_schema" {
-					continue
-				}
-			} else {
-				// Check if keyspace has replica in any DC
-				if !targetDCs.HasAny(ring.Datacenters()...) {
-					continue
-				}
-				for _, rt := range ring.ReplicaTokens {
-					if !liveNodes.HasAny(rt.ReplicaSet...) {
-						return t, errors.Errorf("the whole replica set %v of %s.%s is down", rt.ReplicaSet, keyspace, tab)
-					}
-				}
-			}
-
-			// Do not filter system_schema
-			if keyspace == systemSchema {
-				systemSchemaUnit.Tables = append(systemSchemaUnit.Tables, tab)
-			} else {
-				filteredTables = append(filteredTables, tab)
-			}
-		}
-
-		if len(filteredTables) > 0 {
-			f.Add(keyspace, filteredTables)
-		}
-	}
-
-	// Get the filtered units
-	v, err := f.Apply(false)
-	if err != nil {
-		return t, err
-	}
-
-	// Copy units and add system_schema by the end.
-	for _, u := range v {
-		t.Units = append(t.Units, Unit{
-			Keyspace:  u.Keyspace,
-			Tables:    u.Tables,
-			AllTables: u.AllTables,
-		})
-	}
-	t.Units = append(t.Units, systemSchemaUnit)
-
-	// Validate locations access
-	if err := s.checkLocationsAvailableFromNodes(ctx, client, t.liveNodes, t.Location); err != nil {
-		if strings.Contains(err.Error(), "NoSuchBucket") {
-			return t, errors.New("specified bucket does not exist")
-		}
-		return t, errors.Wrap(err, "location is not accessible")
-	}
-
-	return t, nil
+	return p.toTarget(ctx, client, dcs, liveNodes, filters, validators)
 }
 
 // getLiveNodes returns live nodes of specified datacenters.
