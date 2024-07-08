@@ -192,6 +192,12 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(err, "invalid location")
 	}
 
+	// Get live nodes
+	t.liveNodes, err = s.getLiveNodes(ctx, client, t.DC)
+	if err != nil {
+		return t, err
+	}
+
 	targetDCs := strset.New(t.DC...)
 
 	// Filter keyspaces
@@ -199,7 +205,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	if err != nil {
 		return t, err
 	}
-	rings := make(map[string]scyllaclient.Ring)
+
 	keyspaces, err := client.Keyspaces(ctx)
 	if err != nil {
 		return t, errors.Wrapf(err, "read keyspaces")
@@ -221,6 +227,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 
 	ringDescriber := scyllaclient.NewRingDescriber(ctx, client)
+	liveNodes := strset.New(t.liveNodes.Hosts()...)
 	for _, keyspace := range keyspaces {
 		tables, err := client.Tables(ctx, keyspace)
 		if err != nil {
@@ -229,6 +236,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 		var filteredTables []string
 		for _, tab := range tables {
+			if !f.Check(keyspace, tab) {
+				continue
+			}
 			// Get the ring description and skip local data
 			ring, err := ringDescriber.DescribeRing(ctx, keyspace, tab)
 			if err != nil {
@@ -243,10 +253,12 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 				if !targetDCs.HasAny(ring.Datacenters()...) {
 					continue
 				}
+				for _, rt := range ring.ReplicaTokens {
+					if !liveNodes.HasAny(rt.ReplicaSet...) {
+						return t, errors.Errorf("the whole replica set %v of %s.%s is down", rt.ReplicaSet, keyspace, tab)
+					}
+				}
 			}
-
-			// Collect ring information
-			rings[keyspace+"."+tab] = ring
 
 			// Do not filter system_schema
 			if keyspace == systemSchema {
@@ -277,12 +289,6 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 	t.Units = append(t.Units, systemSchemaUnit)
 
-	// Get live nodes
-	t.liveNodes, err = s.getLiveNodes(ctx, client, t, rings)
-	if err != nil {
-		return t, err
-	}
-
 	// Validate locations access
 	if err := s.checkLocationsAvailableFromNodes(ctx, client, t.liveNodes, t.Location); err != nil {
 		if strings.Contains(err.Error(), "NoSuchBucket") {
@@ -294,9 +300,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return t, nil
 }
 
-// getLiveNodes returns live nodes that contain all data specified by the target.
-// Error is returned if there is not enough live nodes to backup the target.
-func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client, target Target, rings map[string]scyllaclient.Ring) (scyllaclient.NodeStatusInfoSlice, error) {
+// getLiveNodes returns live nodes of specified datacenters.
+func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client, dcs []string) (scyllaclient.NodeStatusInfoSlice, error) {
 	// Get hosts in all DCs
 	status, err := client.Status(ctx)
 	if err != nil {
@@ -304,28 +309,13 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 	}
 
 	// Filter live nodes
-	nodes := status.Datacenter(target.DC)
-	liveNodes, err := client.GetLiveNodes(ctx, status.Datacenter(target.DC))
+	nodes := status.Datacenter(dcs)
+	liveNodes, err := client.GetLiveNodes(ctx, status.Datacenter(dcs))
 	if err != nil {
 		return nil, err
 	}
 
-	// Validate that there are enough live nodes to back up all tokens
 	if len(liveNodes) < len(nodes) {
-		hosts := strset.New(liveNodes.Hosts()...)
-		for _, ks := range target.Units {
-			for _, tab := range ks.Tables {
-				r := rings[ks.Keyspace+"."+tab]
-				if r.Replication != scyllaclient.LocalStrategy {
-					for _, rt := range r.ReplicaTokens {
-						if !hosts.HasAny(rt.ReplicaSet...) {
-							return nil, errors.Errorf("not enough live nodes to backup keyspace %s", ks.Keyspace)
-						}
-					}
-				}
-			}
-		}
-
 		dead := strset.New(nodes.Hosts()...)
 		dead.Remove(liveNodes.Hosts()...)
 		s.logger.Info(ctx, "Ignoring down nodes", "hosts", dead)
