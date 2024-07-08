@@ -31,12 +31,25 @@ The following backup storage engines are supported:
 Features
 ========
 
-* Glob patterns to select keyspaces or tables to backup
+* Glob patterns to select keyspaces or tables to back up
 * Deduplication of SSTables
 * Retention of old data
 * Throttling of upload speed
 * Configurable upload destination per datacenter
 * Pause and resume
+
+Selecting tables and nodes to back up
+=====================================
+
+| The ``--keyspace``/``--dc`` flags allow for specifying glob patter for selecting tables/data centers to back up.
+| Even when table should be backed up according to ``--keyspace`` flag, but it is not replicated in specified data centers (``--dc`` flag), the table won't be backed up.
+
+| All currently down nodes are ignored for the backup procedure.
+| In case table should be backed up, but some of its token ranges are not replicated on any currently live node in the cluster, the backup will fail.
+
+| Moreover, `Materialized Views <https://opensource.docs.scylladb.com/stable/using-scylla/materialized-views.html>`_ and `Secondary Indexes <https://opensource.docs.scylladb.com/stable/using-scylla/secondary-indexes.html>`_
+  won't be backed up, as they should be restored by recreating them on the restored base table (see `ScyllaDB docs <https://opensource.docs.scylladb.com/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster>`_).
+| In order to ensure that data residing in View table is preserved, make sure to backup its base table.
 
 Process
 =======
