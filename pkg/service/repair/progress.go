@@ -290,6 +290,8 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 		}
 
 		q.BindStruct(rp)
+		// Inserts of repair run progress don't need to be done under mutex
+		// as long as the 1 job per 1 host rule is respected.
 		pm.mu.Unlock()
 
 		if err := q.Exec(); err != nil {
@@ -311,11 +313,10 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 	defer q.Release()
 
 	for _, h := range result.replicaSet {
-		pk := newHostKsTable(h, result.keyspace, result.table)
-
 		pm.mu.Lock()
-		rp := pm.progress[pk]
 
+		pk := newHostKsTable(h, result.keyspace, result.table)
+		rp := pm.progress[pk]
 		if result.Success() {
 			rp.Success += int64(len(result.ranges))
 		} else {
@@ -331,7 +332,8 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 			rp.CompletedAt = &end
 		}
 		q.BindStruct(rp)
-
+		// Inserts of repair run progress don't need to be done under mutex
+		// as long as the 1 job per 1 host rule is respected.
 		pm.mu.Unlock()
 
 		if err := q.Exec(); err != nil {
@@ -345,23 +347,22 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 }
 
 func (pm *dbProgressManager) onJobEndState(ctx context.Context, result jobResult) {
+	// Repair state preserves only successfully repaired ranges (failures are a part of repair progress)
+	if !result.Success() {
+		return
+	}
+
 	pm.mu.Lock()
+	defer pm.mu.Unlock()
 
 	sk := stateKey{
 		keyspace: result.keyspace,
 		table:    result.table,
 	}
 	rs := pm.state[sk]
+	rs.SuccessRanges = append(rs.SuccessRanges, result.ranges...)
 
-	if result.Success() {
-		rs.SuccessRanges = append(rs.SuccessRanges, result.ranges...)
-	}
-
-	q := table.RepairRunState.InsertQuery(pm.session).BindStruct(rs)
-
-	pm.mu.Unlock()
-
-	if err := q.ExecRelease(); err != nil {
+	if err := table.RepairRunState.InsertQuery(pm.session).BindStruct(rs).ExecRelease(); err != nil {
 		pm.logger.Error(ctx, "Update repair state", "key", sk, "error", err)
 	}
 }
