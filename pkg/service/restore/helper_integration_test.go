@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"testing"
 
@@ -314,6 +315,30 @@ func rowCount(t *testing.T, s gocqlx.Session, ks, tab string) int {
 	}
 	Printf("%s.%s row count: %v", ks, tab, cnt)
 	return cnt
+}
+
+func validateTableContent[K, V comparable](t *testing.T, src, dst gocqlx.Session, keyspace, tab, keyColumn, valueColumn string) {
+	srcM := selectTableAsMap[K, V](t, src, keyspace, tab, keyColumn, valueColumn)
+	dstM := selectTableAsMap[K, V](t, dst, keyspace, tab, keyColumn, valueColumn)
+	if !maps.Equal(srcM, dstM) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
+	}
+}
+
+func selectTableAsMap[K, V comparable](t *testing.T, s gocqlx.Session, keyspace, tab, keyColumn, valueColumn string) map[K]V {
+	var (
+		k   K
+		v   V
+		out = make(map[K]V)
+	)
+	it := s.Session.Query(fmt.Sprintf("SELECT %s, %s FROM %q.%q", keyColumn, valueColumn, keyspace, tab)).Iter()
+	for it.Scan(&k, &v) {
+		out[k] = v
+	}
+	if err := it.Close(); err != nil {
+		t.Fatal(errors.Wrapf(err, "select rows %s, %s from %q.%q", keyColumn, valueColumn, keyspace, tab))
+	}
+	return out
 }
 
 func filteredTables(t *testing.T, s gocqlx.Session, filter []string) []string {
