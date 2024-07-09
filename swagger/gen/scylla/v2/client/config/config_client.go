@@ -167,6 +167,8 @@ type ClientService interface {
 
 	FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstablesMcFormatParams) (*FindConfigEnableSstablesMcFormatOK, error)
 
+	FindConfigEnableTablets(params *FindConfigEnableTabletsParams) (*FindConfigEnableTabletsOK, error)
+
 	FindConfigEndpointSnitch(params *FindConfigEndpointSnitchParams) (*FindConfigEndpointSnitchOK, error)
 
 	FindConfigExperimental(params *FindConfigExperimentalParams) (*FindConfigExperimentalOK, error)
@@ -2788,6 +2790,39 @@ func (a *Client) FindConfigEnableSstablesMcFormat(params *FindConfigEnableSstabl
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*FindConfigEnableSstablesMcFormatDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigEnableTablets Return true if tablets are enabled.
+*/
+func (a *Client) FindConfigEnableTablets(params *FindConfigEnableTabletsParams) (*FindConfigEnableTabletsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigEnableTabletsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_enable_tablets",
+		Method:             "GET",
+		PathPattern:        "/config/enable_tablets",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigEnableTabletsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigEnableTabletsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigEnableTabletsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
