@@ -44,6 +44,12 @@
         "password": {
           "type": "string"
         },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "ssl_user_cert_file": {
           "type": "string",
           "format": "byte"
@@ -312,11 +318,18 @@
         "name": {
           "type": "string"
         },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "tags": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "This field is DEPRECATED. Use labels instead."
         },
         "enabled": {
           "type": "boolean"
@@ -345,11 +358,18 @@
         "name": {
           "type": "string"
         },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "tags": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "This field is DEPRECATED. Use labels instead."
         },
         "enabled": {
           "type": "boolean"
@@ -402,11 +422,18 @@
         "type": {
           "type": "string"
         },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "tags": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "This field is DEPRECATED. Use labels instead."
         },
         "enabled": {
           "type": "boolean"
