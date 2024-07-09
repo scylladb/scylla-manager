@@ -1474,6 +1474,10 @@
         "consistent_cluster_management": {
           "description": "Whether Scylla uses RAFT for cluster management and DDL.",
           "type": "boolean"
+        },
+        "enable_tablets": {
+          "description": "Whether tablets are enabled.",
+          "type": "boolean"
         }
       }
     }
