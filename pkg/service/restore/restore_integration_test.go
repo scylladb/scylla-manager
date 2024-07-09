@@ -6,6 +6,7 @@
 package restore_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -265,4 +266,62 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	})
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+}
+
+func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get any node info"))
+	}
+	if !ni.EnableTablets {
+		t.Skip("This test assumes that tablets are supported")
+	}
+
+	ks := randomizedName("vnode_to_tablet_")
+	tab := randomizedName("tab_")
+	c1 := "id"
+	c2 := "data"
+
+	Print(fmt.Sprintf("Create %q.%q with vnode replication", ks, tab))
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d} AND tablets = {'enabled': '%v'}"
+	tabStmt := "CREATE TABLE %q.%q (%s int PRIMARY KEY, %s int)"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2, false))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab, c1, c2))
+
+	Print("Fill created table")
+	rowCnt := 100
+	stmt := fmt.Sprintf("INSERT INTO %q.%q (id, data) VALUES (?, ?)", ks, tab)
+	q := h.srcCluster.rootSession.Query(stmt, []string{c1, c2})
+	defer q.Release()
+	for i := 0; i < rowCnt; i++ {
+		if err := q.Bind(i, i).Exec(); err != nil {
+			t.Fatal(errors.Wrap(err, "fill table"))
+		}
+	}
+
+	Print("Run backup")
+	loc := []Location{testLocation("vnode-to-tablets", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location": loc,
+		"keyspace": ksFilter,
+	})
+
+	Print("Manually recreate tablet schema")
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 3, true))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab, c1, c2))
+
+	Print("Run restore tables")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"keyspace":       ksFilter,
+		"snapshot_tag":   tag,
+		"restore_tables": true,
+	})
+
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
 }
