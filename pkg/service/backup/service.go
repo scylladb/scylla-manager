@@ -380,9 +380,9 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 
 		if scyllaclient.StatusCodeOf(err) > 0 {
 			tip := fmt.Sprintf("make sure the location is correct and credentials are set, to debug SSH to %s and run \"scylla-manager-agent check-location -L %s --debug\"", h, l)
-			err = errors.Errorf("%s: %s - %s", h, err, tip)
+			err = fmt.Errorf("%s: %w - %s", h, err, tip)
 		} else {
-			err = errors.Errorf("%s: %s", h, err)
+			err = fmt.Errorf("%s: %w", h, err)
 		}
 		return err
 	}
