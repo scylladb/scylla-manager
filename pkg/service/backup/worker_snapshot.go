@@ -22,7 +22,8 @@ func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimi
 	// a part of any snapshot by migrating from not yet snapshot-ed host to already snapshot-ed one.
 	if snapshotTabletKs {
 		defer func() {
-			err = stdErrors.Join(err, w.Client.ControlTabletLoadBalancing(context.Background(), true))
+			tabletBalancingErr := w.Client.ControlTabletLoadBalancing(context.Background(), true)
+			err = stdErrors.Join(err, errors.Wrap(tabletBalancingErr, "enable post snapshot tablet load balancing"))
 		}()
 		if err := w.Client.ControlTabletLoadBalancing(ctx, false); err != nil {
 			return errors.Wrapf(err, "disable tablet load balancing")
