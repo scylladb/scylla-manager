@@ -1156,7 +1156,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	createKeyspace(t, clusterSession, "test_repair", 2, 2)
+	tryCreateTabletKeyspace(t, clusterSession, "test_repair", 2, 2, 256)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -1658,8 +1658,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if err != nil {
 			h.T.Fatal(err)
 		}
-		if p.Success == 0 || p.Error == 0 || p.SuccessPercentage+p.ErrorPercentage < 98 { // Leave some wiggle room for rounding errors
-			h.T.Fatal("Expected to get ~100% progress with some successes and errors")
+		if p.Success == 0 || p.Error == 0 || p.Success+p.Error != p.TokenRanges { // Leave some wiggle room for rounding errors
+			h.T.Fatalf("Expected to get full progress with some successes and errors, got %v", p)
 		}
 	})
 
