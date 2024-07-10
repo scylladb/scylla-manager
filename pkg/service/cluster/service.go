@@ -380,7 +380,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 			tip = "make sure auth_token config option on nodes is set correctly"
 		}
 		if tip != "" {
-			err = errors.Errorf("%s - %s", err, tip)
+			err = fmt.Errorf("%w - %s", err, tip)
 		}
 
 		return err
