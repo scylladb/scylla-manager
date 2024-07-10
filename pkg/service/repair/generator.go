@@ -119,7 +119,8 @@ func (g *generator) Run(ctx context.Context) (err error) {
 
 	defer func() {
 		// Always leave tablet migration enabled after repair
-		err = stdErrors.Join(err, g.ringDescriber.ControlTabletLoadBalancing(context.Background(), true))
+		tabletBalancingErr := g.ringDescriber.ControlTabletLoadBalancing(context.Background(), true)
+		err = stdErrors.Join(err, errors.Wrap(tabletBalancingErr, "control post repair tablet load balancing"))
 	}()
 
 	for _, ksp := range g.plan.Keyspaces {
