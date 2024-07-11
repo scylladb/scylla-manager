@@ -28,6 +28,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -159,6 +160,22 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		patternFilter{pattern: f},
 		dcFilter{dcs: strset.New(dcs...)},
 		localDataFilter{},
+	}
+
+	// Try to add view filter - possible only when credentials are set
+	session, err := s.clusterSession(ctx, clusterID)
+	switch {
+	case err == nil:
+		defer session.Close()
+		views, err := query.GetAllViews(session)
+		if err != nil {
+			return Target{}, errors.Wrap(err, "get cluster views")
+		}
+		filters = append(filters, viewFilter{views: views})
+	case errors.Is(err, cluster.ErrNoCQLCredentials):
+		s.logger.Error(ctx, "No CQL cluster credentials, backup of views won't be skipped", "error", err)
+	default:
+		return Target{}, errors.Wrap(err, "create cluster session")
 	}
 
 	validators := []tabValidator{
