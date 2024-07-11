@@ -497,6 +497,16 @@ func (f localDataFilter) filter(_, _ string, ring scyllaclient.Ring) bool {
 	return ring.Replication != scyllaclient.LocalStrategy
 }
 
+// Filters out views as they are restored by re-creating them on restored base table.
+// There is no use in backing up their sstables.
+type viewFilter struct {
+	views *strset.Set
+}
+
+func (f viewFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
+	return !f.views.Has(ks + "." + tab)
+}
+
 // tableValidator checks if it's safe to back up table.
 type tabValidator interface {
 	validate(ks, tab string, ring scyllaclient.Ring) error
