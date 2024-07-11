@@ -164,14 +164,19 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if job.Transferred[0].Error == "" {
-		t.Fatal("Expected error but got empty")
-	}
+	WaitCond(t, func() bool {
+		job, err := client.RcloneJobInfo(ctx, testHost, id, longPollingTimeoutSeconds)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(job.Transferred) > 0 {
+			if job.Transferred[0].Error == "" {
+				t.Fatal("Expected error but got empty")
+			}
+			return true
+		}
+		return false
+	}, time.Second, 3*time.Second)
 }
 
 func TestRcloneJobProgressIntegration(t *testing.T) {
