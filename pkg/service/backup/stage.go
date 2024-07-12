@@ -56,7 +56,7 @@ func StageOrder() []Stage {
 // Resumable run can be continued.
 func (s Stage) Resumable() bool {
 	switch s {
-	case StageIndex, StageManifest, StageUpload, StageMoveManifest, StageMigrate, StagePurge:
+	case StageIndex, StageManifest, StageUpload, StageDeduplicate, StageMoveManifest, StageMigrate, StagePurge:
 		return true
 	default:
 		return false
