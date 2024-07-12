@@ -29,17 +29,17 @@ const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
 // Supported SSTable format versions are: "mc", "md", "me", "la", "ka".
 // Scylla code validating SSTable format can be found here:
 // https://github.com/scylladb/scylladb/blob/decbc841b749d8dd3e2ddd4be4817c57d905eff2/sstables/sstables.cc#L2115-L2117
-func ExtractID(sstable string) string {
+func ExtractID(sstable string) (string, error) {
 	parts := strings.Split(sstable, "-")
 
 	if regexLaMx.MatchString(sstable) || regexNewLaMx.MatchString(sstable) {
-		return parts[1]
+		return parts[1], nil
 	}
 	if regexKa.MatchString(sstable) {
-		return parts[3]
+		return parts[3], nil
 	}
 
-	panic(unknownSSTableError(sstable))
+	return "", unknownSSTableError(sstable)
 }
 
 func replaceID(sstable, newID string) string {
@@ -86,7 +86,10 @@ func RenameSStables(sstables []string, nameGen func(id string) string) map[strin
 	out := make(map[string]string)
 
 	for _, sst := range sstables {
-		id := ExtractID(sst)
+		id, err := ExtractID(sst)
+		if err != nil {
+			panic(err)
+		}
 		newID, ok := idMapping[id]
 		if !ok {
 			newID = nameGen(id)
