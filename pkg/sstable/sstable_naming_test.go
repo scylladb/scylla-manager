@@ -55,7 +55,10 @@ func TestSExtractID(t *testing.T) {
 		tcase := testCases[id]
 		t.Run(tcase.in, func(t *testing.T) {
 			t.Parallel()
-			val := ExtractID(tcase.in)
+			val, err := ExtractID(tcase.in)
+			if err != nil {
+				t.Fatalf("invalid sstable, error = {%v}", err)
+			}
 			if tcase.expected != val {
 				t.Fatalf("expected %s, received %s", tcase.expected, val)
 			}

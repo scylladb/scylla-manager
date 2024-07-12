@@ -52,7 +52,12 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			Recurse:   true,
 		}
 		if err := w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
-			id := sstable.ExtractID(f.Name)
+			id, err := sstable.ExtractID(f.Name)
+			if err != nil {
+				// just log and continue (should never happen)
+				w.Logger.Error(ctx, "Extracting SSTable generation ID of remote SSTable", "error", err)
+				return
+			}
 			remoteFilesSSTableIDSet[id] = struct{}{}
 		}); err != nil {
 			return errors.Wrapf(err, "host %s: listing all files from %s", h.IP, dataDst)
@@ -61,7 +66,12 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		// Iterate over all SSTable IDs and group files per ID.
 		ssTablesGroupByID := make(map[string][]string)
 		for _, file := range d.Progress.files {
-			id := sstable.ExtractID(file.Name)
+			id, err := sstable.ExtractID(file.Name)
+			if err != nil {
+				// just log and continue
+				w.Logger.Error(ctx, "Extracting SSTable generation ID", "error", err)
+				continue
+			}
 			ssTablesGroupByID[id] = append(ssTablesGroupByID[id], file.Name)
 		}
 
