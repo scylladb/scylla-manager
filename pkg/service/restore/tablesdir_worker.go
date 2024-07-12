@@ -571,7 +571,10 @@ type bundle []string
 func newBundles(fm FilesMeta) map[string]bundle {
 	bundles := make(map[string]bundle)
 	for _, f := range fm.Files {
-		id := sstable.ExtractID(f)
+		id, err := sstable.ExtractID(f)
+		if err != nil {
+			panic(err)
+		}
 		bundles[id] = append(bundles[id], f)
 	}
 	return bundles
