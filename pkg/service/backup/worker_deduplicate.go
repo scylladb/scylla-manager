@@ -5,6 +5,7 @@ package backup
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"path"
 	"slices"
 	"strconv"
@@ -75,13 +76,17 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			ssTablesGroupByID[id] = append(ssTablesGroupByID[id], file.Name)
 		}
 
-		if err := w.basedOnUUIDGenerationAvailability(ctx, d, h, remoteFilesSSTableIDSet, ssTablesGroupByID); err != nil {
+		deduplicatedByUUID, err := w.basedOnUUIDGenerationAvailability(ctx, d, h, remoteFilesSSTableIDSet, ssTablesGroupByID)
+		if err != nil {
 			return errors.Wrap(err, "deduplication based on UUID as generation id content")
 		}
+		d.Progress.Skipped += deduplicatedByUUID
 
-		if err := w.basedOnCrc32Content(ctx, d, h, dataDst, remoteFilesSSTableIDSet, ssTablesGroupByID); err != nil {
+		deduplicatedByCrc32, err := w.basedOnCrc32Content(ctx, d, h, dataDst, remoteFilesSSTableIDSet, ssTablesGroupByID)
+		if err != nil {
 			return errors.Wrap(err, "deduplication based on .crc32 content")
 		}
+		d.Progress.Skipped += deduplicatedByCrc32
 
 		return nil
 	}
@@ -101,7 +106,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 
 func (w *worker) basedOnUUIDGenerationAvailability(ctx context.Context, d snapshotDir, h hostInfo,
 	remoteSSTables map[string]struct{}, ssTablesGroupByID map[string][]string,
-) error {
+) (deduplicated int64, err error) {
 	// Per every SSTable files group, check if the name uses UUID to identify the SSTable generation.
 	// If the above is true, then check if files exists in the remote storage and remove it locally if exists in rmeote.
 	for id, ssTableContent := range ssTablesGroupByID {
@@ -120,17 +125,24 @@ func (w *worker) basedOnUUIDGenerationAvailability(ctx context.Context, d snapsh
 			w.Logger.Debug(ctx, "Removing local snapshot file (deduplication based on generation UUID)",
 				"host", h.IP, "file", localSSTableFileNameWithPath)
 			if err := w.Client.RcloneDeleteFile(ctx, h.IP, localSSTableFileNameWithPath); err != nil {
-				return errors.Wrapf(err, "cannot delete local snapshot's SSTable file %s", localSSTableFileNameWithPath)
+				return deduplicated, errors.Wrapf(err, "cannot delete local snapshot's SSTable file %s", localSSTableFileNameWithPath)
 			}
+			idx := slices.IndexFunc(d.Progress.files, func(info fileInfo) bool {
+				return info.Name == file
+			})
+			if idx == -1 {
+				return deduplicated, fmt.Errorf("no file %s in indexed files", file)
+			}
+			deduplicated += d.Progress.files[idx].Size
 		}
 	}
 
-	return nil
+	return deduplicated, nil
 }
 
 func (w *worker) basedOnCrc32Content(ctx context.Context, d snapshotDir, h hostInfo, dataDst string,
 	remoteSSTables map[string]struct{}, ssTablesGroupByID map[string][]string,
-) error {
+) (deduplicated int64, err error) {
 	// Reference to SSTables 3.0 Data File Format
 	// https://opensource.docs.scylladb.com/stable/architecture/sstable/sstable3/sstables-3-data-file-format.html
 
@@ -151,30 +163,54 @@ func (w *worker) basedOnCrc32Content(ctx context.Context, d snapshotDir, h hostI
 		remoteCRC32FileNameWithPath := path.Join(dataDst, ssTableContent[crc32Idx])
 		remoteCRC32, err := w.Client.RcloneCat(ctx, h.IP, remoteCRC32FileNameWithPath)
 		if err != nil {
-			if strings.Contains(err.Error(), "object not found") {
+			if scyllaclient.StatusCodeOf(err) == 404 {
 				continue
 			}
-			return errors.Wrapf(err, "cannot get content of remote CRC32 %s", remoteCRC32FileNameWithPath)
+			return deduplicated, errors.Wrapf(err, "cannot get content of remote CRC32 %s", remoteCRC32FileNameWithPath)
 		}
 
 		localCRC32FileNameWithPath := path.Join(d.Path, ssTableContent[crc32Idx])
 		localCRC32, err := w.Client.RcloneCat(ctx, h.IP, localCRC32FileNameWithPath)
 		if err != nil {
-			return errors.Wrapf(err, "cannot get content of local CRC32 %s", localCRC32FileNameWithPath)
+			return deduplicated, errors.Wrapf(err, "cannot get content of local CRC32 %s", localCRC32FileNameWithPath)
 		}
 
 		// If checksums are equal, then it means that SSTable can be deduplicated as there is no need in
 		// transferring it again to the remote storage.
 		// Deduplication here means to remove SSTable files from local storage.
 		if bytes.Equal(localCRC32, remoteCRC32) {
+			// validate sizes first
+			for _, file := range ssTableContent {
+				remoteFilePath := path.Join(dataDst, file)
+				remoteInfo, err := w.Client.RcloneFileInfo(ctx, h.IP, remoteFilePath)
+				if err != nil {
+					return deduplicated, errors.Wrapf(err, "get file info %s", remoteFilePath)
+				}
+				idx := slices.IndexFunc(d.Progress.files, func(info fileInfo) bool {
+					return info.Name == file
+				})
+				if idx == -1 {
+					return deduplicated, fmt.Errorf("no file %s in indexed files", file)
+				}
+				if remoteInfo.Size != d.Progress.files[idx].Size {
+					w.Logger.Debug(ctx, "Equal CRC32 hash but different sizes, skipping", "remote", remoteCRC32FileNameWithPath)
+				}
+			}
 			for _, fileToBeRemoved := range ssTableContent {
 				localSSTableFileNameWithPath := path.Join(d.Path, fileToBeRemoved)
 				w.Logger.Debug(ctx, "Removing local snapshot file (deduplication based on .crc32)", "host", h.IP, "file", localSSTableFileNameWithPath)
 				if err := w.Client.RcloneDeleteFile(ctx, h.IP, localSSTableFileNameWithPath); err != nil {
-					return errors.Wrapf(err, "cannot delete local snapshot's SSTable file %s", localSSTableFileNameWithPath)
+					return deduplicated, errors.Wrapf(err, "cannot delete local snapshot's SSTable file %s", localSSTableFileNameWithPath)
 				}
+				idx := slices.IndexFunc(d.Progress.files, func(info fileInfo) bool {
+					return info.Name == fileToBeRemoved
+				})
+				if idx == -1 {
+					return deduplicated, fmt.Errorf("no file %s in indexed files", fileToBeRemoved)
+				}
+				deduplicated += d.Progress.files[idx].Size
 			}
 		}
 	}
-	return nil
+	return deduplicated, nil
 }
