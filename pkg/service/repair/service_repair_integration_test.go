@@ -902,9 +902,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	)
 
 	// Create keyspaces. Low RF increases repair parallelism.
-	tryCreateTabletKeyspace(t, clusterSession, ks1, 2, 1, 4096)
-	tryCreateTabletKeyspace(t, clusterSession, ks2, 1, 1, 4096)
-	tryCreateTabletKeyspace(t, clusterSession, ks3, 1, 1, 4096)
+	tryCreateTabletKeyspace(t, clusterSession, ks1, 2, 1, 256)
+	tryCreateTabletKeyspace(t, clusterSession, ks2, 1, 1, 256)
+	tryCreateTabletKeyspace(t, clusterSession, ks3, 1, 1, 256)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
