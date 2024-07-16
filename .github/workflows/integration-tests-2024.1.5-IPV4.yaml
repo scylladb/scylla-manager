@@ -5,7 +5,7 @@ env:
     scylla-version: scylla-enterprise:2024.1.5
     ip-family: IPV4
     raft-schema: none
-    tablets: disabled
+    tablets: none
 jobs:
     backup:
         name: Test backup
