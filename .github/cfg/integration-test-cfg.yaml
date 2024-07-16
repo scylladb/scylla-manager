@@ -16,17 +16,12 @@
 - scylla-version: scylla-enterprise:2024.1.5
   ip-family: IPV4
   raft-schema: none
-  tablets: disabled
-
-- scylla-version: scylla-enterprise:2024.1.5
-  ip-family: IPV4
-  raft-schema: none
-  tablets: enabled
+  tablets: none
 
 - scylla-version: scylla-enterprise:2024.1.5
   ip-family: IPV6
   raft-schema: none
-  tablets: enabled
+  tablets: none
 
 - scylla-version: scylla:6.0.1
   ip-family: IPV4
