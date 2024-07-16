@@ -38,7 +38,6 @@ func (cfg integrationTestCfg) scyllaVersion() string {
 
 // This is a simple script used to generate workflow files by applying
 // each config from './integration-test-cfg.yaml' onto './integration-test-core.yaml'.
-// Note that this script does not delete any existing workflows.
 // It also prints github badges syntax that can be pasted into the README.md file.
 // It has to be run from the same dir with 'go run main.go' command.
 func main() {
@@ -60,6 +59,19 @@ func main() {
 	core := make(map[any]any)
 	if err := yaml.Unmarshal(f, &core); err != nil {
 		panic(err)
+	}
+
+	// Remove previous integration-test workflows
+	entries, err := os.ReadDir("../workflows")
+	if err != nil {
+		panic(err)
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "integration-test") {
+			if err := os.Remove("../workflows/" + e.Name()); err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	fmt.Println("Reference links to badges")
