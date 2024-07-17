@@ -492,7 +492,7 @@ type TaskListItems struct {
 
 // Render renders TaskListItems in a tabular format.
 func (li TaskListItems) Render(w io.Writer) error {
-	columns := []any{"Task", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next"}
+	columns := []any{"Task", "Labels", "Schedule", "Window", "Timezone", "Success", "Error", "Last Success", "Last Error", "Status", "Next"}
 	if li.ShowProps {
 		columns = append(columns, "Properties")
 	}
@@ -545,7 +545,7 @@ func (li TaskListItems) Render(w io.Writer) error {
 		}
 
 		row := []any{
-			id, schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone,
+			id, formatLabels(t.Labels), schedule, strings.Join(t.Schedule.Window, ","), t.Schedule.Timezone,
 			t.SuccessCount, t.ErrorCount, FormatTimePointer(t.LastSuccess), FormatTimePointer(t.LastError),
 			status, next,
 		}
@@ -1359,4 +1359,12 @@ func (bl BackupListItems) Render(w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+func formatLabels(labels map[string]string) string {
+	var out []string
+	for k, v := range labels {
+		out = append(out, k+"="+v)
+	}
+	return strings.Join(out, ", ")
 }
