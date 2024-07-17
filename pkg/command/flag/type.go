@@ -3,7 +3,9 @@
 package flag
 
 import (
+	"encoding/csv"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +17,105 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	flag "github.com/spf13/pflag"
 )
+
+// Label describes modification applied to object's labels.
+// It takes a form of csv string slice, where values can have the following formats:
+// k=v - format means that label should be added.
+// k-  - format means that label should be removed.
+// Because of that, the '=' is reserved and cannot be a part of the label.
+type Label struct {
+	add    map[string]string
+	remove []string
+}
+
+var _ flag.Value = (*Label)(nil)
+
+func (l *Label) String() string {
+	var parts []string
+	for k, v := range l.add {
+		parts = append(parts, k+"="+v)
+	}
+	for _, k := range l.remove {
+		parts = append(parts, k+"-")
+	}
+	return strings.Join(parts, ",")
+}
+
+// Set implements pflag.Value.
+func (l *Label) Set(s string) error {
+	if s == "" {
+		return nil
+	}
+	stringReader := strings.NewReader(s)
+	csvReader := csv.NewReader(stringReader)
+	spec, err := csvReader.Read()
+	if err != nil {
+		return fmt.Errorf("parse csv label list: %w", err)
+	}
+	// Taken from https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/label/label.go#L411
+	add := map[string]string{}
+	var remove []string
+	for _, labelSpec := range spec {
+		switch {
+		case strings.Contains(labelSpec, "="):
+			parts := strings.Split(labelSpec, "=")
+			if len(parts) != 2 {
+				return fmt.Errorf("%w: %v", errUnknownLabelSpec, labelSpec)
+			}
+			add[parts[0]] = parts[1]
+		case strings.HasSuffix(labelSpec, "-"):
+			remove = append(remove, labelSpec[:len(labelSpec)-1])
+		default:
+			return fmt.Errorf("%w: %v", errUnknownLabelSpec, labelSpec)
+		}
+	}
+	for _, removeLabel := range remove {
+		if _, found := add[removeLabel]; found {
+			return errAddAndRemoveLabel
+		}
+	}
+	l.add = add
+	l.remove = remove
+	return nil
+}
+
+var (
+	errUnknownLabelSpec  = errors.New("unknown label spec, label must be formatted as either key=value, or key-")
+	errAddAndRemoveLabel = errors.New("can not both modify and remove a label in the same command")
+)
+
+// Type implements pflag.Value.
+func (l *Label) Type() string {
+	return "map"
+}
+
+// ApplyDiff adds and removes specified labels.
+func (l *Label) ApplyDiff(labels map[string]string) map[string]string {
+	out := maps.Clone(labels)
+	if l == nil {
+		return out
+	}
+	if out == nil {
+		out = make(map[string]string)
+	}
+
+	for k, v := range l.add {
+		out[k] = v
+	}
+	for _, k := range l.remove {
+		delete(out, k)
+	}
+
+	return out
+}
+
+// NewLabels returns newly added labels.
+func (l *Label) NewLabels() map[string]string {
+	if l.add == nil {
+		return map[string]string{}
+	}
+	return maps.Clone(l.add)
+}
 
 // Cron wraps string for early validation.
 type Cron struct {
