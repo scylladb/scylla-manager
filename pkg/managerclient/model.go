@@ -198,8 +198,8 @@ func makeTaskUpdate(t *Task) *models.TaskUpdate {
 		Type:       t.Type,
 		Enabled:    t.Enabled,
 		Name:       t.Name,
+		Labels:     t.Labels,
 		Schedule:   t.Schedule,
-		Tags:       t.Tags,
 		Properties: t.Properties,
 	}
 }
