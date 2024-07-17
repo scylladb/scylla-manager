@@ -13,12 +13,13 @@ import (
 
 // Cluster specifies a cluster properties.
 type Cluster struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	Host       string    `json:"host"`
-	KnownHosts []string  `json:"-"`
-	Port       int       `json:"port,omitempty"`
-	AuthToken  string    `json:"auth_token"`
+	ID         uuid.UUID         `json:"id"`
+	Name       string            `json:"name"`
+	Labels     map[string]string `json:"labels"`
+	Host       string            `json:"host"`
+	KnownHosts []string          `json:"-"`
+	Port       int               `json:"port,omitempty"`
+	AuthToken  string            `json:"auth_token"`
 
 	ForceTLSDisabled       bool `json:"force_tls_disabled"`
 	ForceNonSSLSessionPort bool `json:"force_non_ssl_session_port"`
