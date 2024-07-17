@@ -218,7 +218,12 @@ Window:	{{ WindowDesc .Schedule.Window }}
 Tz:	{{ .Schedule.Timezone }}
 {{ end -}}
 {{ if .Schedule.NumRetries -}}
-Retry:	{{ .Schedule.NumRetries }} {{ if .Schedule.RetryWait }}(initial backoff {{ .Schedule.RetryWait }}){{ end }}
+Retry:	{{ .Schedule.NumRetries }} {{ if .Schedule.RetryWait }}(initial backoff {{ .Schedule.RetryWait }}){{ end }}{{ end -}}
+{{ if .Labels }}
+Labels:
+{{- range $key, $val := .Labels }}
+- {{ $key }}: {{ $val -}}
+{{ end }}
 {{ end -}}
 
 {{ if .Properties }}
