@@ -15,6 +15,15 @@ name: |
   Use this parameter to identify the cluster by an alias name which is more meaningful.
   This `alias` name can be used with all commands that accept --cluster parameter.
 
+label: |
+  A comma-separated list of label modifications. Labels are represented as a key-value store.
+  Character '=' has a special meaning and cannot be a part of label's key nor value.
+  A single modification takes form of:
+  * '<key>=<value>' - sets the label <key> to <value>
+  * '<key>-'        - removes the label
+  
+  For example, ``--label k1=v1,k2-`` will set the label 'k1' to 'v1' and will also remove label 'k2'.
+
 host: |
   Hostname or `IP` of the node that will be used to discover other nodes belonging to the cluster.
   Note that this will be persisted and used every time Scylla Manager starts.
