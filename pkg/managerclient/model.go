@@ -40,7 +40,7 @@ type ClusterSlice []*models.Cluster
 
 // Render renders ClusterSlice in a tabular format.
 func (cs ClusterSlice) Render(w io.Writer) error {
-	t := table.New("ID", "Name", "Port", "CQL credentials")
+	t := table.New("ID", "Name", "Labels", "Port", "CQL credentials")
 	for _, c := range cs {
 		p := "default"
 		if c.Port != 0 {
@@ -50,7 +50,7 @@ func (cs ClusterSlice) Render(w io.Writer) error {
 		if c.Username != "" && c.Password != "" {
 			creds = "set"
 		}
-		t.AddRow(c.ID, c.Name, p, creds)
+		t.AddRow(c.ID, c.Name, formatLabels(c.Labels), p, creds)
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
