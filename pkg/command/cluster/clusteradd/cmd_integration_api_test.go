@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"os/exec"
 	"strings"
 	"testing"
@@ -65,6 +66,18 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 				Port:                   0,
 			},
 		},
+		{
+			name: "create cluster with label",
+			args: []string{"cluster", "add", "--auth-token", authToken, "--host", clusterIntroHost,
+				"--label", "k1=v1,with space=with-dash_underscore666",
+			},
+			expectedCluster: &models.Cluster{
+				Labels: map[string]string{
+					"k1":         "v1",
+					"with space": "with-dash_underscore666",
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
@@ -86,7 +99,7 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 			clusterID := strings.Split(string(output), "\n")[0]
 
 			defer func() {
-				if err != client.DeleteCluster(context.Background(), clusterID) {
+				if err := client.DeleteCluster(context.Background(), clusterID); err != nil {
 					t.Logf("Failed to delete cluster, err = {%v}", err)
 				}
 			}()
@@ -110,6 +123,9 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 			}
 			if c.Port != tc.expectedCluster.Port {
 				t.Fatalf("Port mismatch {%v} != {%v}, output={%v}", c.Port, tc.expectedCluster.Port, string(output))
+			}
+			if !maps.Equal(c.Labels, tc.expectedCluster.Labels) {
+				t.Fatalf("Labels mismatch {%v} != {%v}", c.Labels, tc.expectedCluster.Labels)
 			}
 		})
 	}
