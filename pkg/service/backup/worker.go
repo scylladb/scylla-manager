@@ -81,6 +81,8 @@ type worker struct {
 	mu           sync.Mutex
 
 	memoryPool *sync.Pool
+
+	dth deduplicateTestHooks
 }
 
 func (w *worker) WithLogger(logger log.Logger) *worker {
