@@ -17,6 +17,11 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
+type deduplicateTestHooks interface {
+	beforeDeduplicateHost()
+	afterDeduplicateHost(skipped, uploaded, size int64)
+}
+
 // Deduplicate handles the deduplicate stage of the backup process.
 // The implementation is expected to follow RFC document
 // https://docs.google.com/document/d/1EtGlF6UGNy34D_7QsnCheaukp3UwVObZU56PBdd0CQ8/edit#heading=h.jl2qbpcarwp9
@@ -38,6 +43,19 @@ func (w *worker) Deduplicate(ctx context.Context, hosts []hostInfo, limits []DCL
 }
 
 func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
+	if w.dth != nil {
+		w.dth.beforeDeduplicateHost()
+		defer func(sd []snapshotDir) {
+			var skipped, uploaded, size int64
+			for _, v := range sd {
+				skipped += v.Progress.Skipped
+				uploaded += v.Progress.Uploaded
+				size += v.Progress.Size
+			}
+			w.dth.afterDeduplicateHost(skipped, uploaded, size)
+		}(w.hostSnapshotDirs(h))
+	}
+
 	if err := w.setRateLimit(ctx, h); err != nil {
 		return errors.Wrap(err, "set rate limit")
 	}
@@ -108,7 +126,7 @@ func (w *worker) basedOnUUIDGenerationAvailability(ctx context.Context, d snapsh
 	remoteSSTables map[string]struct{}, ssTablesGroupByID map[string][]string,
 ) (deduplicated int64, err error) {
 	// Per every SSTable files group, check if the name uses UUID to identify the SSTable generation.
-	// If the above is true, then check if files exists in the remote storage and remove it locally if exists in rmeote.
+	// If the above is true, then c4heck if files exists in the remote storage and remove it locally if exists in rmeote.
 	for id, ssTableContent := range ssTablesGroupByID {
 		// Check if id is an integer (no UUID)
 		if _, err := strconv.Atoi(id); err == nil {
