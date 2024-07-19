@@ -46,6 +46,8 @@ type Service struct {
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
 	logger         log.Logger
+
+	dth deduplicateTestHooks
 }
 
 func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
@@ -687,6 +689,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				return &bytes.Buffer{}
 			},
 		},
+		dth: s.dth,
 	}
 
 	// Map stages to worker functions
