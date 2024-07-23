@@ -112,9 +112,12 @@ func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) RetentionPolicy {
 }
 
 // GetTarget converts runner properties into backup Target.
-// It also ensures configuration for the backup providers is registered on the
-// targeted hosts.
+// It also ensures configuration for the backup providers is registered on the targeted hosts.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
+	return s.targetFromProperties(ctx, clusterID, properties)
+}
+
+func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
 	s.logger.Info(ctx, "Generating backup target", "cluster_id", clusterID)
 
 	p := defaultTaskProperties()
