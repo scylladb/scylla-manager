@@ -537,6 +537,47 @@
         "security": []
       }
     },
+    "/rclone/operations/deletepaths": {
+      "post": {
+        "description": "Delete provided list of paths",
+        "summary": "Delete paths",
+        "operationId": "OperationsDeletepaths",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "Options",
+            "description": "Options",
+            "schema": {
+              "$ref": "#/definitions/DeletePathsOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted files count",
+            "schema": {
+              "properties": {
+                "deletes": {
+                  "type": "integer"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/operations/deletefile": {
       "post": {
         "description": "Remove the single file pointed to",
@@ -1130,6 +1171,27 @@
         },
         "paths": {
           "description": "Paths relative to srcRemote/dstRemote eg. file.txt for both source and destination",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "path"
+          }
+        }
+      }
+    },
+    "DeletePathsOptions": {
+      "type": "object",
+      "properties": {
+        "fs": {
+          "description": "File system e.g. s3: or gcs:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A directory within that remote eg. files/",
+          "type": "string"
+        },
+        "paths": {
+          "description": "Paths relative to remote eg. file.txt",
           "type": "array",
           "items": {
             "type": "string",
