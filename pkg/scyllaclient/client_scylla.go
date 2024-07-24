@@ -205,6 +205,18 @@ func (c *Client) HostDatacenter(ctx context.Context, host string) (dc string, er
 	return
 }
 
+// HostRack looks up the rack that the given host belongs to.
+func (c *Client) HostRack(ctx context.Context, host string) (string, error) {
+	resp, err := c.scyllaOps.SnitchRackGet(&operations.SnitchRackGetParams{
+		Context: ctx,
+		Host:    &host,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.Payload, nil
+}
+
 // HostIDs returns a mapping from host IP to UUID.
 func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 	resp, err := c.scyllaOps.StorageServiceHostIDGet(&operations.StorageServiceHostIDGetParams{Context: ctx})
