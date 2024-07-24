@@ -16,9 +16,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"go.uber.org/zap/zapcore"
 )
 
 var longPollingTimeoutSeconds = 1
@@ -41,6 +43,141 @@ func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
 	}
 	if len(d) > 0 {
 		t.Errorf("Expected bucket to be empty, got: len(files)=%d", len(d))
+	}
+}
+
+func TestRcloneDeletePathsInBatchesAgentIntegration(t *testing.T) {
+	var (
+		ctx      = context.Background()
+		testHost = ManagedClusterHost()
+		dirName  = "tmp/copy"
+	)
+
+	S3InitBucket(t, testBucket)
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopmentWithLevel(zapcore.ErrorLevel))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const bigSize = 3456
+	lotsOfFiles := make([]string, 0, bigSize)
+	for i := 0; i < bigSize; i++ {
+		lotsOfFiles = append(lotsOfFiles, fmt.Sprint(i))
+	}
+
+	testCases := []struct {
+		name      string
+		before    []string
+		delete    []string
+		after     []string
+		batchSize int
+	}{
+		{
+			name:      "delete all",
+			before:    []string{"a", "b", "c"},
+			delete:    []string{"a", "b", "c"},
+			after:     nil,
+			batchSize: 1,
+		},
+		{
+			name:      "delete nothing",
+			before:    []string{"a", "b", "c"},
+			delete:    []string{},
+			after:     []string{"a", "b", "c"},
+			batchSize: 1,
+		},
+		{
+			name:      "delete only non-existing files",
+			before:    []string{"a", "b", "c", "d"},
+			delete:    []string{"e", "f", "g"},
+			after:     []string{"a", "b", "c", "d"},
+			batchSize: 5,
+		},
+		{
+			name:      "delete subset with non-existing file",
+			before:    []string{"a", "b", "c", "d"},
+			delete:    []string{"a", "c", "e"},
+			after:     []string{"b", "d"},
+			batchSize: 2,
+		},
+		{
+			name:      "delete thousands of files",
+			before:    append([]string{"a"}, lotsOfFiles...),
+			delete:    append([]string{}, lotsOfFiles...),
+			after:     []string{"a"},
+			batchSize: 1000,
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := []string{injectDataDir("rm -rf %s/" + dirName), injectDataDir("mkdir -p %s/" + dirName)}
+			for _, name := range tc.before {
+				cmd = append(cmd, injectDataDir("echo 'dummy-file' > %s/"+path.Join(dirName, name)))
+			}
+			for startPos := 0; startPos < len(cmd); startPos += 100 {
+				batch := cmd[startPos : startPos+min(100, len(cmd)-startPos)]
+				stdOut, stdErr, err := ExecOnHost(testHost, strings.Join(batch, " && "))
+				if err != nil {
+					t.Fatalf("Create files on Scylla node, err = {%s}, stdOut={%s}, stdErr={%s}", err, stdOut, stdErr)
+				}
+			}
+			id, err := client.RcloneCopyDir(ctx, testHost, remotePath(dirName), "data:"+dirName, "")
+			if err != nil {
+				t.Fatal(errors.Wrap(err, "copy created files to backup location"))
+			}
+
+			WaitCond(t, func() bool {
+				pr, err := client.RcloneJobProgress(ctx, testHost, id, longPollingTimeoutSeconds)
+				if err != nil {
+					t.Fatal(errors.Wrap(err, "wait for copy to finish"))
+				}
+				switch scyllaclient.RcloneJobStatus(pr.Status) {
+				case scyllaclient.JobSuccess:
+					return true
+				case scyllaclient.JobError:
+					t.Errorf("wait for copy to finish: %s", pr.Error)
+				}
+				return false
+			}, 50*time.Millisecond, 5*time.Minute)
+
+			for _, remote := range []string{"data:" + dirName, remotePath(dirName)} {
+				if len(tc.before) < 1000 {
+					Printf("Given: files %v in remote %s", tc.before, remote)
+				}
+				if err := validateDir(ctx, client, testHost, remote, tc.before); err != nil {
+					t.Error(errors.Wrapf(err, "%s: validate dir conetnts before paths deletion", remote))
+				}
+
+				// Delete paths twice in order to validate the expected amount of deleted files
+				for _, expected := range []int64{int64(len(tc.before) - len(tc.after)), 0} {
+					if len(tc.delete) < 1000 {
+						Printf("When: delete paths %v", tc.delete)
+					}
+					cnt, err := client.RcloneDeletePathsInBatches(ctx, testHost, remote, tc.delete, tc.batchSize)
+					if err != nil {
+						t.Error(errors.Wrapf(err, "%s: delete paths", remote))
+					}
+
+					Printf("Then: validate the amount of deleted files")
+					if cnt != expected {
+						t.Error(errors.Errorf("%s: expected: %d, got: %d", remote, expected, cnt))
+					}
+
+					if len(tc.after) < 1000 {
+						Printf("And: validate that the only files left are %v", tc.after)
+					}
+					if err := validateDir(ctx, client, testHost, remote, tc.after); err != nil {
+						t.Error(errors.Wrapf(err, "%s: validate dir conetnt after paths deletion", remote))
+					}
+				}
+
+				if err := client.RcloneDeleteDir(ctx, testHost, remote); err != nil {
+					t.Error(errors.Wrapf(err, "%s: clean up created dirs", remote))
+				}
+			}
+		})
 	}
 }
 
@@ -498,6 +635,20 @@ func validateDirContents(ctx context.Context, client *scyllaclient.Client, host,
 		return err
 	}
 	return iterErr
+}
+
+func validateDir(ctx context.Context, client *scyllaclient.Client, host, remotePath string, files []string) error {
+	encounteredFiles := strset.New()
+	err := client.RcloneListDirIter(ctx, host, remotePath, nil, func(item *scyllaclient.RcloneListDirItem) {
+		encounteredFiles.Add(item.Path)
+	})
+	if err != nil {
+		return err
+	}
+	if filesS := strset.New(files...); !filesS.IsEqual(encounteredFiles) {
+		return fmt.Errorf("expected dir content: %v, got: %v", files, encounteredFiles.List())
+	}
+	return nil
 }
 
 const scyllaDataDir = "/var/lib/scylla/data"
