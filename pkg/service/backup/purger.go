@@ -174,13 +174,13 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 		if tags.Has(m.SnapshotTag) {
 			// Note that schema files might not be backed up in the first place
 			unsafePath := RemoteUnsafeSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
-			if _, err := p.deleteFile(ctx, m.Location.RemotePath(unsafePath)); err != nil {
+			if err := p.deleteFile(ctx, m.Location.RemotePath(unsafePath)); err != nil {
 				p.logger.Info(ctx, "Remove unsafe schema file", "path", unsafePath, "error", err)
 			}
-			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
+			if err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
 				p.logger.Info(ctx, "Remove schema file", "path", m.SchemaPath(), "error", err)
 			}
-			if _, err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
+			if err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
 				p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
 			} else {
 				deletedManifests++
@@ -379,44 +379,21 @@ func (p purger) deleteFiles(ctx context.Context, location Location, files fileSe
 		missing atomic.Int64
 	)
 
-	defer func() {
-		s, m := int(success.Load()), int(missing.Load())
-		p.onDelete(ctx, total, s, m)
-	}()
-
 	// We cap the nr. of dirs purged in parallel to avoid opening expressive TCP connections in case there is no idle connection to host.
 	// maxParallelDirs is aligned with MaxIdleConnsPerHost in scyllaclient.DefaultTransport.
 	const maxParallelDirs = 100
 
 	f := func(i int) error {
-		var (
-			dir  = dirs[i]
-			rerr error
-		)
-
-		files.DirSet(dir).Each(func(file string) bool {
-			f := path.Join(dir, file)
-			ok, err := p.deleteFile(ctx, location.RemotePath(f))
-			// On error exit iteration and report error
-			if err != nil {
-				rerr = errors.Wrapf(err, "file %s", f)
-				return false
-			}
-			s, m := int(success.Inc()), 0
-			if !ok {
-				m = int(missing.Inc())
-			}
-			if s%p.notifyEach == 0 {
-				if m == 0 {
-					m = int(missing.Load())
-				}
-				p.onDelete(ctx, total, s, m)
-			}
-
-			return true
-		})
-
-		return rerr
+		dir := dirs[i]
+		toDelete := files.DirSet(dir).List()
+		cnt, err := p.deletePaths(ctx, location.RemotePath(dir), toDelete, 1000)
+		if err != nil {
+			return errors.Wrap(err, "delete purged files")
+		}
+		s := success.Add(cnt)
+		m := missing.Add(int64(len(toDelete)) - cnt)
+		p.onDelete(ctx, total, int(s), int(m))
+		return nil
 	}
 
 	notify := func(i int, err error) {
@@ -443,13 +420,18 @@ func (p purger) onDelete(ctx context.Context, total, success, missing int) {
 	}
 }
 
-func (p purger) deleteFile(ctx context.Context, path string) (bool, error) {
+func (p purger) deleteFile(ctx context.Context, path string) error {
 	p.logger.Debug(ctx, "Deleting file", "path", path)
 	err := p.client.RcloneDeleteFile(ctx, p.host, path)
 	if scyllaclient.StatusCodeOf(err) == http.StatusNotFound {
-		return false, nil
+		return nil
 	}
-	return true, err
+	return err
+}
+
+func (p purger) deletePaths(ctx context.Context, remoteDir string, paths []string, batchSize int) (int64, error) {
+	p.logger.Debug(ctx, "Deleting paths", "remote", remoteDir, "paths", paths)
+	return p.client.RcloneDeletePathsInBatches(ctx, p.host, remoteDir, paths, batchSize)
 }
 
 // Host can be called from OnPreDelete and OnDelete callbacks to convert node ID
