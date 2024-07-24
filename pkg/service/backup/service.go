@@ -762,8 +762,15 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 		// Skip completed stages
 		if run.PrevID != uuid.Nil {
-			// Allow reindexing if previous state is manifest creation or upload
-			if stage == StageIndex && (prevStage == StageManifest || prevStage == StageUpload || prevStage == StageDeduplicate) { //nolint: revive
+			// Allow re-indexing when future stages requires access
+			// to indexed worker.snapshotDirs.
+			allowReindexOnPrevStage := map[Stage]struct{}{
+				StageManifest:    {},
+				StageUpload:      {},
+				StageDeduplicate: {},
+				StageSchema:      {},
+			}
+			if _, ok := allowReindexOnPrevStage[prevStage]; ok && stage == StageIndex { //nolint: revive
 				// continue
 			} else if prevStage.Index() > stage.Index() {
 				return nil
