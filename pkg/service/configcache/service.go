@@ -234,8 +234,16 @@ func (svc *Service) retrieveNodeConfig(ctx context.Context, host string, client 
 	if err != nil {
 		return config, errors.Wrap(err, "retrieve cluster host configuration")
 	}
+	dc, err := client.HostDatacenter(ctx, host)
+	if err != nil {
+		return config, errors.Wrap(err, "retrieve host Datacenter info")
+	}
+	rack, err := client.HostRack(ctx, host)
+	if err != nil {
+		return config, errors.Wrap(err, "retrieve host Rack info")
+	}
 
-	config, err = NewNodeConfig(c, nodeInfoResp, svc.secretsStore, host)
+	config, err = NewNodeConfig(c, nodeInfoResp, svc.secretsStore, host, dc, rack)
 	if err != nil {
 		return config, errors.Wrap(err, "retrieve cluster host configuration")
 	}

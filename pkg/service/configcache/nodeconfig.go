@@ -15,10 +15,12 @@ type NodeConfig struct {
 
 	cqlTLSConfig        *TLSConfigWithAddress
 	alternatorTLSConfig *TLSConfigWithAddress
+	Rack                string
+	Datacenter          string
 }
 
 // NewNodeConfig creates and initializes new node configuration struct containing TLS configuration of CQL and Alternator.
-func NewNodeConfig(c *cluster.Cluster, nodeInfo *scyllaclient.NodeInfo, secretsStore store.Store, host string) (config NodeConfig, err error) {
+func NewNodeConfig(c *cluster.Cluster, nodeInfo *scyllaclient.NodeInfo, secretsStore store.Store, host, dc, rack string) (config NodeConfig, err error) {
 	cqlTLS, err := newCQLTLSConfigIfEnabled(c, nodeInfo, secretsStore, host)
 	if err != nil {
 		return NodeConfig{}, errors.Wrap(err, "building node config")
@@ -31,6 +33,8 @@ func NewNodeConfig(c *cluster.Cluster, nodeInfo *scyllaclient.NodeInfo, secretsS
 		NodeInfo:            nodeInfo,
 		cqlTLSConfig:        cqlTLS,
 		alternatorTLSConfig: alternatorTLS,
+		Datacenter:          dc,
+		Rack:                rack,
 	}, nil
 }
 
