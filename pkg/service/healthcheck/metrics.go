@@ -12,6 +12,7 @@ const (
 	hostKey     = "host"
 	dcKey       = "dc"
 	pingTypeKey = "ping_type"
+	rackKey     = "rack"
 
 	metricBufferSize = 100
 )
@@ -22,42 +23,42 @@ var (
 		Subsystem: "healthcheck",
 		Name:      "cql_status",
 		Help:      "Host native port status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, hostKey, dcKey, rackKey})
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_rtt_ms",
 		Help:      "Host native port RTT.",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, hostKey, dcKey, rackKey})
 
 	restStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_status",
 		Help:      "Host REST status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, hostKey, dcKey, rackKey})
 
 	restRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_rtt_ms",
 		Help:      "Host REST RTT.",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, hostKey, dcKey, rackKey})
 
 	alternatorStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_status",
 		Help:      "Host Alternator status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, hostKey, dcKey, rackKey})
 
 	alternatorRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_rtt_ms",
 		Help:      "Host Alternator RTT.",
-	}, []string{clusterKey, hostKey})
+	}, []string{clusterKey, hostKey, dcKey, rackKey})
 )
 
 func init() {
