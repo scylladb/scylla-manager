@@ -57,7 +57,7 @@ func (s *Service) Runner() Runner {
 	return Runner{
 		cql: runner{
 			logger:       s.logger.Named("CQL healthcheck"),
-			configCacher: s.configCache,
+			configCache:  s.configCache,
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -69,7 +69,7 @@ func (s *Service) Runner() Runner {
 		},
 		rest: runner{
 			logger:       s.logger.Named("REST healthcheck"),
-			configCacher: s.configCache,
+			configCache:  s.configCache,
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -81,7 +81,7 @@ func (s *Service) Runner() Runner {
 		},
 		alternator: runner{
 			logger:       s.logger.Named("Alternator healthcheck"),
-			configCacher: s.configCache,
+			configCache:  s.configCache,
 			scyllaClient: s.scyllaClient,
 			timeout:      s.config.MaxTimeout,
 			metrics: &runnerMetrics{
@@ -153,7 +153,12 @@ func (s *Service) parallelRESTPingFunc(ctx context.Context, clusterID uuid.UUID,
 				return nil
 			}
 
-			rtt, err := s.pingREST(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
+			rtt := time.Duration(0)
+			ni, err := s.configCache.Read(clusterID, status[i].Addr)
+			if err == nil {
+				rtt, err = s.pingREST(ctx, clusterID, status[i].Addr, s.config.MaxTimeout, ni)
+			}
+
 			o.RESTRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "REST ping failed",
@@ -194,7 +199,12 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				return nil
 			}
 
-			rtt, err := s.pingCQL(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
+			rtt := time.Duration(0)
+			ni, err := s.configCache.Read(clusterID, status[i].Addr)
+			if err == nil {
+				rtt, err = s.pingCQL(ctx, clusterID, status[i].Addr, s.config.MaxTimeout, ni)
+			}
+
 			o.CQLRtt = float64(rtt.Milliseconds())
 			if err != nil {
 				s.logger.Error(ctx, "CQL ping failed",
@@ -220,9 +230,7 @@ func (s *Service) parallelCQLPingFunc(ctx context.Context, clusterID uuid.UUID, 
 				o.CQLStatus = statusUp
 			}
 
-			ni, err := s.configCache.Read(clusterID, status[i].Addr)
-			if err != nil {
-				s.logger.Error(ctx, "Unable to fetch node information", "error", err)
+			if ni.NodeInfo == nil {
 				o.SSL = false
 			} else {
 				o.SSL = ni.CQLTLSConfig() != nil
@@ -245,7 +253,12 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 				return nil
 			}
 
-			rtt, err := s.pingAlternator(ctx, clusterID, status[i].Addr, s.config.MaxTimeout)
+			rtt := time.Duration(0)
+			ni, err := s.configCache.Read(clusterID, status[i].Addr)
+			if err == nil {
+				rtt, err = s.pingAlternator(ctx, clusterID, status[i].Addr, s.config.MaxTimeout, ni)
+			}
+
 			if err != nil {
 				s.logger.Error(ctx, "Alternator ping failed",
 					"cluster_id", clusterID,
@@ -279,10 +292,8 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 
 // pingAlternator sends ping probe and returns RTT.
 // When Alternator frontend is disabled, it returns 0 and nil error.
-func (s *Service) pingAlternator(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
-	ni, err := s.configCache.Read(clusterID, host)
-	// Proceed if we managed to get required information.
-	if err != nil && ni.NodeInfo == nil {
+func (s *Service) pingAlternator(ctx context.Context, _ uuid.UUID, host string, timeout time.Duration, ni configcache.NodeConfig) (rtt time.Duration, err error) {
+	if ni.NodeInfo == nil {
 		return 0, errors.Wrap(err, "get node info")
 	}
 	if !ni.AlternatorEnabled() {
@@ -316,11 +327,7 @@ func (s *Service) decorateNodeStatus(status *NodeStatus, ni configcache.NodeConf
 	status.AgentVersion = ni.AgentVersion
 }
 
-func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error) {
-	ni, err := s.configCache.Read(clusterID, host)
-	if err != nil {
-		return 0, err
-	}
+func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration, ni configcache.NodeConfig) (rtt time.Duration, err error) {
 	// Try to connect directly to host address.
 	config := cqlping.Config{
 		Addr:    ni.CQLAddr(host),
@@ -346,7 +353,7 @@ func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string,
 	return rtt, err
 }
 
-func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (time.Duration, error) {
+func (s *Service) pingREST(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration, _ configcache.NodeConfig) (time.Duration, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return 0, errors.Wrapf(err, "get client for cluster with id %s", clusterID)
