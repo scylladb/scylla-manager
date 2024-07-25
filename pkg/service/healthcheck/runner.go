@@ -46,11 +46,11 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 
 type runner struct {
 	logger       log.Logger
-	configCacher configcache.ConfigCacher
+	configCache  configcache.ConfigCacher
 	scyllaClient scyllaclient.ProviderFunc
 	timeout      time.Duration
 	metrics      *runnerMetrics
-	ping         func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
+	ping         func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration, nodeConf configcache.NodeConfig) (rtt time.Duration, err error)
 	pingAgent    func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
 }
 
@@ -69,7 +69,7 @@ func (r runner) Run(ctx context.Context, clusterID, _, _ uuid.UUID, _ json.RawMe
 	// Enable interactive mode for fast backoff
 	ctx = scyllaclient.Interactive(ctx)
 
-	nodes, err := r.configCacher.AvailableHosts(ctx, clusterID)
+	nodes, err := r.configCache.AvailableHosts(ctx, clusterID)
 	if err != nil {
 		return err
 	}
@@ -81,12 +81,17 @@ func (r runner) Run(ctx context.Context, clusterID, _, _ uuid.UUID, _ json.RawMe
 
 func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses []string) {
 	f := func(i int) error {
+		rtt := time.Duration(0)
+		ni, err := r.configCache.Read(clusterID, addresses[i])
+		if err == nil {
+			rtt, err = r.ping(ctx, clusterID, addresses[i], r.timeout, ni)
+		}
 		hl := prometheus.Labels{
 			clusterKey: clusterID.String(),
 			hostKey:    addresses[i],
+			rackKey:    ni.Rack,
+			dcKey:      ni.Datacenter,
 		}
-
-		rtt, err := r.ping(ctx, clusterID, addresses[i], r.timeout)
 		if err != nil {
 			r.metrics.status.With(hl).Set(-1)
 		} else {
