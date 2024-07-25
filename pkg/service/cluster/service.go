@@ -33,6 +33,9 @@ type ProviderFunc func(ctx context.Context, id uuid.UUID) (*Cluster, error)
 // ChangeType specifies type on Change.
 type ChangeType int8
 
+// ErrNoValidKnownHost is thrown when it was not possible to connect to any of the currently known hosts of the cluster.
+var ErrNoValidKnownHost = errors.New("unable to connect to any of cluster's known hosts")
+
 // ChangeType enumeration.
 const (
 	Create ChangeType = iota
@@ -119,17 +122,6 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 	return s.clientCache.Client(ctx, clusterID)
 }
 
-func (s *Service) createClientNoValidation(c *Cluster) (*scyllaclient.Client, error) {
-	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
-	config.Hosts = c.KnownHosts
-	if c.Port != 0 {
-		config.Port = fmt.Sprint(c.Port)
-	}
-	config.AuthToken = c.AuthToken
-
-	return scyllaclient.NewClient(config, s.logger.Named("client"))
-}
-
 // CreateClientNoCache creates Scylla API that load balances calls to every node from given cluster.
 // There may be a situation that cluster keeps outdated information about list of available hosts.
 // To work it around:
@@ -145,6 +137,24 @@ func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) 
 		return nil, err
 	}
 
+	knownHosts, err := s.filterKnownHosts(ctx, c)
+	if err != nil {
+		if errors.Is(err, ErrNoValidKnownHost) {
+			s.logger.Error(ctx, "There is no single valid known host for the cluster."+
+				"Please update it with 'sctool cluster update -h <host>'.", "cluster", c.ID, "coordinatorHost", c.Host,
+				"knownHosts", c.KnownHosts)
+		}
+		return nil, err
+	}
+	if err := s.setKnownHosts(c, knownHosts); err != nil {
+		return nil, errors.Wrap(err, "update known_hosts on cluster")
+	}
+
+	config := s.clientConfig(c)
+	return scyllaclient.NewClient(config, s.logger.Named("client"))
+}
+
+func (s *Service) clientConfig(c *Cluster) scyllaclient.Config {
 	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
 	if c.Port != 0 {
 		config.Port = fmt.Sprint(c.Port)
@@ -155,7 +165,11 @@ func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) 
 		config.Hosts = []string{c.Host}
 	}
 	config.Hosts = append(config.Hosts, c.KnownHosts...)
+	return config
+}
 
+func (s *Service) filterKnownHosts(ctx context.Context, c *Cluster) ([]string, error) {
+	config := s.clientConfig(c)
 	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
 	if err != nil {
 		return nil, err
@@ -168,21 +182,9 @@ func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) 
 			s.logger.Error(ctx, "Cannot find known hosts using coordinator host", "host", host, "error", err)
 			continue
 		}
-		if err := s.setKnownHosts(c, knownHosts); err != nil {
-			return nil, errors.Wrap(err, "update known_hosts on cluster")
-		}
-
-		config.Hosts = knownHosts
-		allHostsClient, err := scyllaclient.NewClient(config, s.logger.Named("client"))
-		if err != nil {
-			s.logger.Error(ctx, "Cannot create scylla API client", "error", err)
-			continue
-		}
-
-		return allHostsClient, nil
+		return knownHosts, nil
 	}
-
-	return nil, errors.Errorf("cannot create client for cluster %v not hosts available", c.ID)
+	return nil, ErrNoValidKnownHost
 }
 
 // discoverHosts returns a list of all hosts sorted by DC speed. This is
@@ -462,31 +464,40 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 }
 
 func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
-	// If host changes ignore old known hosts.
-	if c.Host != "" {
-		c.KnownHosts = []string{c.Host}
-	} else if err := s.loadKnownHosts(c); err != nil {
+	if err := s.loadKnownHosts(c); err != nil && !errors.Is(err, gocql.ErrNotFound) {
 		return errors.Wrap(err, "load known hosts")
 	}
+	if c.Host != "" {
+		c.KnownHosts = append([]string{c.Host}, c.KnownHosts...)
+	}
 
-	client, err := s.createClientNoValidation(c)
+	knownHosts, err := s.filterKnownHosts(ctx, c)
 	if err != nil {
-		return errors.Wrap(err, "create client")
+		if errors.Is(err, ErrNoValidKnownHost) {
+			s.logger.Error(ctx, "There is no single valid known host for the cluster."+
+				"Please update it with 'sctool cluster update -h <host>'.", "cluster", c.ID, "coordinatorHost", c.Host,
+				"knownHosts", c.KnownHosts)
+		}
+		return err
+	}
+	c.KnownHosts = knownHosts
+
+	config := s.clientConfig(c)
+	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
+	if err != nil {
+		return err
 	}
 	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
 	status, err := client.Status(ctx)
 	if err != nil {
-		return errors.Wrap(err, "status")
+		return errors.Wrap(err, "cluster status")
 	}
-
-	// Get live hosts
 	live := status.Live().Hosts()
 	if len(live) == 0 {
 		return service.ErrValidate(errors.New("no live nodes"))
 	}
 
-	// For every live host check there are no errors
 	var errs error
 	for i, err := range client.CheckHostsConnectivity(ctx, live) {
 		errs = multierr.Append(errs, errors.Wrap(err, live[i]))
@@ -494,10 +505,6 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	if errs != nil {
 		return service.ErrValidate(errors.Wrap(errs, "connectivity check"))
 	}
-
-	// Update known hosts.
-	c.KnownHosts = live
-
 	return nil
 }
 
