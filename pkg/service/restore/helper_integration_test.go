@@ -12,6 +12,7 @@ import (
 	"maps"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
@@ -44,6 +45,14 @@ func defaultTestConfig() Config {
 	return Config{
 		DiskSpaceFreeMinPercent:   5,
 		LongPollingTimeoutSeconds: 1,
+	}
+}
+
+func defaultBackupTestConfig() backup.Config {
+	return backup.Config{
+		DiskSpaceFreeMinPercent:   5,
+		LongPollingTimeoutSeconds: 1,
+		AgeMax:                    24 * time.Hour,
 	}
 }
 
@@ -115,7 +124,7 @@ func newTestHelper(t *testing.T, srcHosts, dstHosts []string) *testHelper {
 func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client) *backup.Service {
 	svc, err := backup.NewService(
 		mgrSession,
-		backup.DefaultConfig(),
+		defaultBackupTestConfig(),
 		metrics.NewBackupMetrics(),
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
