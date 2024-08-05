@@ -126,7 +126,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 
 	backupSvc, err := backup.NewService(
 		session,
-		backup.DefaultConfig(),
+		defaultBackupTestConfig(),
 		metrics.NewBackupMetrics(),
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
@@ -219,7 +219,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 	testBucket, _, _ := getBucketKeyspaceUser(t)
 	var (
 		ctx            = context.Background()
-		cfg            = DefaultConfig()
+		cfg            = defaultTestConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
 		loc            = s3Location(testBucket)
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
@@ -422,7 +422,7 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 
 	var (
 		ctx            = context.Background()
-		cfg            = DefaultConfig()
+		cfg            = defaultTestConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
 		loc            = s3Location(testBucket)
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
@@ -484,7 +484,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 
 	var (
 		ctx            = context.Background()
-		cfg            = DefaultConfig()
+		cfg            = defaultTestConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
 		loc            = Location{Provider: "s3", Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
@@ -583,7 +583,7 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSize int, user, replication string) {
 	var (
 		ctx          = context.Background()
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, "", "")
@@ -649,7 +649,7 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 
 func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadCnt, loadSize int, user string) {
 	var (
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, "", "")
@@ -752,7 +752,7 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 
 func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, loadSize int, user string) {
 	var (
-		cfg           = DefaultConfig()
+		cfg           = defaultTestConfig()
 		srcClientCfg  = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession    = CreateScyllaManagerDBSession(t)
 		dstH          = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, "", "")
@@ -919,7 +919,7 @@ func TestRestoreSchemaVersionedIntegration(t *testing.T) {
 
 func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, loadSize, corruptCnt int, user string) {
 	var (
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, "", "")
@@ -1168,7 +1168,7 @@ func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
 func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt, loadSize int, user string) {
 	var (
 		ctx          = context.Background()
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, "", "")
@@ -1252,7 +1252,7 @@ func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
 func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, keyspace string, loadCnt, loadSize int, user string) {
 	var (
 		ctx          = context.Background()
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, "", "")
@@ -1339,7 +1339,7 @@ func TestRestoreFullIntegration(t *testing.T) {
 func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace string, loadCnt, loadSize int, user string) {
 	var (
 		ctx          = context.Background()
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, "", "")
@@ -1445,7 +1445,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeyspace, testTable, user string, alternatorPort int) {
 	var (
 		ctx          = context.Background()
-		cfg          = DefaultConfig()
+		cfg          = defaultTestConfig()
 		srcClientCfg = scyllaclient.TestConfig(ManagedSecondClusterHosts(), AgentAuthToken())
 		mgrSession   = CreateScyllaManagerDBSession(t)
 		dstH         = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, "", "")
