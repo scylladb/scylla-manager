@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -58,7 +59,7 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 		// NOTE that defers are executed in LIFO order
 		// Abort on cancel.
 		defer func() {
-			if errors.Is(err, context.Canceled) {
+			if scheduler.IsTaskInterrupted(ctx) {
 				err = parallel.Abort(err)
 			}
 		}()

@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -317,8 +318,8 @@ func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange,
 }
 
 func (tg *tableGenerator) processResult(ctx context.Context, jr jobResult) {
-	// Don't record context errors
-	if errors.Is(jr.err, context.Canceled) {
+	// Don't record scheduler context errors
+	if jr.err != nil && scheduler.IsTaskInterrupted(ctx) {
 		return
 	}
 
