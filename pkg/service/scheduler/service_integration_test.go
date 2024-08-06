@@ -1047,4 +1047,44 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: task stops with the status done")
 		h.assertStatus(task, scheduler.StatusDone)
 	})
+
+	t.Run("task ends with context error", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task is scheduled")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task ends with context.Canceled")
+		h.runner.in <- context.Canceled
+
+		Print("Then: task ends with status error")
+		h.assertStatus(task, scheduler.StatusError)
+
+		Print("When: another task is scheduled")
+		task = h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("When: task ends with context.DeadlineExceeded")
+		h.runner.in <- context.DeadlineExceeded
+
+		Print("Then: task ends with status error")
+		h.assertStatus(task, scheduler.StatusError)
+	})
 }
