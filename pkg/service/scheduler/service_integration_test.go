@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	sched "github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -990,5 +991,60 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		if h.service.IsSuspended(ctx, h.clusterID) {
 			t.Fatal("Expected resumed")
 		}
+	})
+
+	t.Run("task out of maintenance window", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		// Create ad-hoc window.
+		// Watch out for the time near the midnight.
+		stop := now().Add(15 * time.Second)
+		start := stop.Add(15 * time.Second)
+		if start.Hour() < stop.Hour() {
+			time.Sleep(2 * time.Minute)
+			stop = now().Add(15 * time.Second)
+			start = stop.Add(15 * time.Second)
+		}
+
+		timeToDuration := func(t time.Time) time.Duration {
+			return t.Sub(time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()))
+		}
+
+		window := []scheduler.WeekdayTime{
+			{WeekdayTime: sched.WeekdayTime{Weekday: sched.EachDay, Time: 0}},
+			{WeekdayTime: sched.WeekdayTime{Weekday: sched.EachDay, Time: timeToDuration(stop)}},
+			{WeekdayTime: sched.WeekdayTime{Weekday: sched.EachDay, Time: timeToDuration(start)}},
+			{WeekdayTime: sched.WeekdayTime{Weekday: sched.EachDay, Time: 24*time.Hour - time.Second}},
+		}
+
+		Print("When: task is scheduled")
+		task := h.makeTask(scheduler.Schedule{
+			StartDate: now(),
+			Window:    window,
+		})
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task runs")
+		h.assertStatus(task, scheduler.StatusRunning)
+
+		Print("Then: task goes out of window")
+		WaitCond(h.t, func() bool {
+			v := h.getStatus(task)
+			return v == scheduler.StatusWaiting
+		}, _interval, 2*time.Minute)
+
+		Print("Then: task starts in the next window")
+		WaitCond(h.t, func() bool {
+			v := h.getStatus(task)
+			return v == scheduler.StatusRunning
+		}, _interval, 2*time.Minute)
+
+		h.runner.Done()
+		Print("Then: task stops with the status done")
+		h.assertStatus(task, scheduler.StatusDone)
 	})
 }
