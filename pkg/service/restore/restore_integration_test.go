@@ -99,6 +99,14 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 }
 
 func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
+	// Test scenario:
+	// - create schema on src cluster
+	// - back up src cluster
+	// - restore src cluster schema to dst cluster
+	// - drop src cluster schema
+	// - back up dst cluster
+	// - restore dst cluster schema to src cluster
+	// - validates that schema was correct at all stages
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 	hRev := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
@@ -133,7 +141,10 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		"location": loc,
 	})
 
-	Print("Run restore of src backup")
+	Print("Drop backed-up src cluster schema")
+	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+ks)
+
+	Print("Run restore of src backup on dst cluster")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
 	h.runRestore(t, map[string]any{
 		"location":       loc,
@@ -142,7 +153,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	})
 
 	Print("Save dst describe schema output from src backup")
-	dstSchemaSrcBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
+	dstSchemaSrcBackup, err := query.DescribeSchemaWithInternals(h.dstCluster.rootSession)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "describe dst schema from src backup"))
 	}
@@ -152,20 +163,18 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		"location": loc,
 	})
 
-	Print("Drop restored schema")
-	ExecStmt(t, h.dstCluster.rootSession, "DROP KEYSPACE "+ks)
-
-	Print("Run restore of dst backup")
-	h.runRestore(t, map[string]any{
+	Print("Run restore of dst backup on src cluster")
+	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
+	hRev.runRestore(t, map[string]any{
 		"location":       loc,
 		"snapshot_tag":   tag,
 		"restore_schema": true,
 	})
 
-	Print("Save dst describe schema output from dst backup")
-	dstSchemaDstBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
+	Print("Save src describe schema output from dst backup")
+	srcSchemaDstBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
 	if err != nil {
-		t.Fatal(errors.Wrap(err, "describe dst schema from dst backup"))
+		t.Fatal(errors.Wrap(err, "describe src schema from dst backup"))
 	}
 
 	Print("Validate that schema contains objects with options")
@@ -189,7 +198,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	for _, row := range dstSchemaSrcBackup {
 		m2[row] = struct{}{}
 	}
-	for _, row := range dstSchemaDstBackup {
+	for _, row := range srcSchemaDstBackup {
 		m3[row] = struct{}{}
 	}
 	Print("Validate that all schemas are the same")
