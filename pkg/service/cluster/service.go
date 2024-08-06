@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"time"
@@ -131,6 +132,7 @@ func (s *Service) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclien
 //   - returns client created on top of list of hosts returned by the Scylla server
 func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
 	s.logger.Info(ctx, "Creating new Scylla HTTP client", "cluster_id", clusterID)
+	debug.PrintStack()
 
 	c, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
