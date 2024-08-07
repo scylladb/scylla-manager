@@ -9,9 +9,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -82,6 +84,7 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 	if w.alreadyResumed {
 		w.initRestoreMetrics(ctx)
 	}
+	hosts := strset.New(w.client.Config().Hosts...).List()
 
 	stageFunc := map[Stage]func() error{
 		StageDropViews: func() error {
@@ -91,6 +94,20 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 				}
 			}
 			return nil
+		},
+		StageDisableCompaction: func() error {
+			err := parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+				host := hosts[i]
+				for _, u := range w.run.Units {
+					for _, t := range u.Tables {
+						if err := w.client.DisableAutoCompaction(ctx, host, u.Keyspace, t.Table); err != nil {
+							return errors.Wrapf(err, "disable autocompaction on %s", host)
+						}
+					}
+				}
+				return nil
+			}, parallel.NopNotify)
+			return err
 		},
 		StageDisableTGC: func() error {
 			w.AwaitSchemaAgreement(ctx, w.clusterSession)
@@ -119,6 +136,20 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 				}
 			}
 			return nil
+		},
+		StageEnableCompaction: func() error {
+			err := parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+				host := hosts[i]
+				for _, u := range w.run.Units {
+					for _, t := range u.Tables {
+						if err := w.client.EnableAutoCompaction(ctx, host, u.Keyspace, t.Table); err != nil {
+							return errors.Wrapf(err, "enable autocompaction on %s", host)
+						}
+					}
+				}
+				return nil
+			}, parallel.NopNotify)
+			return err
 		},
 		StageRecreateViews: func() error {
 			for _, v := range w.run.Views {
