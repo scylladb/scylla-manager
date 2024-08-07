@@ -42,7 +42,7 @@ func (c *clientTTL) isValid(ctx context.Context) (bool, error) {
 		case err != nil:
 			return false, errors.Wrap(err, "check if client's hosts changed")
 		case changed:
-			return false, nil
+			return false, errors.New("client cache hosts changed")
 		default:
 			c.hostsTTL = timeutc.Now().Add(hostsValidity)
 		}
@@ -75,10 +75,14 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 
 	// Look for client in cache
 	if c, ok := p.clients[clusterID]; ok {
+		p.logger.Info(ctx, "Client cache hit", "cluster", clusterID, "ttl", c.ttl, "hostsTTL", c.hostsTTL)
 		if valid, err := c.isValid(ctx); err != nil {
 			p.logger.Error(ctx, "Cannot check client validity", "error", err)
 		} else if valid {
+			p.logger.Info(ctx, "Client cache valid", "cluster", clusterID, "ttl", c.ttl, "hostsTTL", c.hostsTTL)
 			return c.client, nil
+		} else {
+			p.logger.Info(ctx, "Client cache invalid", "cluster", clusterID, "ttl", c.ttl, "hostsTTL", c.hostsTTL)
 		}
 	}
 
@@ -93,7 +97,7 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 		ttl:      timeutc.Now().Add(p.validity),
 		hostsTTL: timeutc.Now().Add(hostsValidity),
 	}
-
+	p.logger.Info(ctx, "Client cache new", "cluster", clusterID, "ttl", c.ttl, "hostsTTL", c.hostsTTL)
 	p.clients[clusterID] = c
 	return c.client, nil
 }
