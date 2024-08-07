@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
@@ -82,7 +83,7 @@ func TestCachedProvider(t *testing.T) {
 	// Cached but changed
 	m.called = false
 	m.client.Config().Hosts[0] = "" // make hosts change without starting new server
-
+	time.Sleep(15 * time.Second)    // cache checks for changed hosts every 15s
 	c, err = p.Client(context.Background(), id)
 	if !m.called {
 		t.Fatal("not called")
