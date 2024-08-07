@@ -238,10 +238,8 @@ func (c *Client) CheckHostsChanged(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(cur) != len(c.config.Hosts) {
-		return true, err
-	}
-	return !strset.New(c.config.Hosts...).Has(cur...), nil
+	s := strset.New(c.config.Hosts...)
+	return s.Size() != len(cur) || !s.Has(cur...), nil
 }
 
 // hosts returns a list of all hosts in a cluster.
