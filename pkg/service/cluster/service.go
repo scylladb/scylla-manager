@@ -160,11 +160,7 @@ func (s *Service) clientConfig(c *Cluster) scyllaclient.Config {
 		config.Port = fmt.Sprint(c.Port)
 	}
 	config.AuthToken = c.AuthToken
-	config.Hosts = nil
-	if c.Host != "" {
-		config.Hosts = []string{c.Host}
-	}
-	config.Hosts = append(config.Hosts, c.KnownHosts...)
+	config.Hosts = c.AllHosts()
 	return config
 }
 
@@ -467,9 +463,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	if err := s.loadKnownHosts(c); err != nil && !errors.Is(err, gocql.ErrNotFound) {
 		return errors.Wrap(err, "load known hosts")
 	}
-	if c.Host != "" {
-		c.KnownHosts = append([]string{c.Host}, c.KnownHosts...)
-	}
+	c.KnownHosts = c.AllHosts()
 
 	knownHosts, err := s.filterKnownHosts(ctx, c)
 	if err != nil {
