@@ -2,8 +2,8 @@ concurrency:
     cancel-in-progress: true
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
-    scylla-version: scylla:6.0.1
-    ip-family: IPV6
+    scylla-version: scylla:6.1.0
+    ip-family: IPV4
     raft-schema: none
     tablets: enabled
 jobs:
@@ -101,7 +101,7 @@ jobs:
               run: make pkg-integration-test PKG=./pkg/schema/migrate
             - name: Run netwait tests
               run: make pkg-integration-test PKG=./pkg/util/netwait
-name: integration-tests-6.0.1-IPV6-tablets
+name: integration-tests-6.1.0-IPV4-tablets
 "on":
     pull_request:
         types:

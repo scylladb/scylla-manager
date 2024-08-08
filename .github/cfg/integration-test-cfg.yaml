@@ -23,17 +23,17 @@
   raft-schema: none
   tablets: none
 
-- scylla-version: scylla:6.0.1
+- scylla-version: scylla:6.1.0
   ip-family: IPV4
   raft-schema: none
   tablets: disabled
 
-- scylla-version: scylla:6.0.1
+- scylla-version: scylla:6.1.0
   ip-family: IPV4
   raft-schema: none
   tablets: enabled
 
-- scylla-version: scylla:6.0.1
+- scylla-version: scylla:6.1.0
   ip-family: IPV6
   raft-schema: none
   tablets: enabled
