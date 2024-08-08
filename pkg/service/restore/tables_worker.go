@@ -9,9 +9,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -82,26 +84,17 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 	if w.alreadyResumed {
 		w.initRestoreMetrics(ctx)
 	}
+	hosts := strset.New(w.client.Config().Hosts...).List()
 
 	stageFunc := map[Stage]func() error{
 		StageDropViews: func() error {
-			for _, v := range w.run.Views {
-				if err := w.DropView(ctx, v); err != nil {
-					return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
-				}
-			}
-			return nil
+			return w.stageDropViews(ctx)
+		},
+		StageDisableCompaction: func() error {
+			return w.stageDisableCompaction(ctx, hosts)
 		},
 		StageDisableTGC: func() error {
-			w.AwaitSchemaAgreement(ctx, w.clusterSession)
-			for _, u := range w.run.Units {
-				for _, t := range u.Tables {
-					if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, modeDisabled); err != nil {
-						return errors.Wrapf(err, "disable %s.%s tombstone_gc", u.Keyspace, t.Table)
-					}
-				}
-			}
-			return nil
+			return w.stageDisableTGC(ctx)
 		},
 		StageData: func() error {
 			return w.stageRestoreData(ctx)
@@ -110,26 +103,13 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 			return w.stageRepair(ctx)
 		},
 		StageEnableTGC: func() error {
-			w.AwaitSchemaAgreement(ctx, w.clusterSession)
-			for _, u := range w.run.Units {
-				for _, t := range u.Tables {
-					if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, t.TombstoneGC); err != nil {
-						return errors.Wrapf(err, "enable %s.%s tombstone_gc", u.Keyspace, t.Table)
-					}
-				}
-			}
-			return nil
+			return w.stageEnableTGC(ctx)
+		},
+		StageEnableCompaction: func() error {
+			return w.stageEnableCompaction(ctx, hosts)
 		},
 		StageRecreateViews: func() error {
-			for _, v := range w.run.Views {
-				if err := w.CreateView(ctx, v); err != nil {
-					return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
-				}
-				if err := w.WaitForViewBuilding(ctx, v); err != nil {
-					return errors.Wrapf(err, "wait for %s.%s", v.Keyspace, v.View)
-				}
-			}
-			return nil
+			return w.stageRecreateViews(ctx)
 		},
 	}
 
@@ -148,6 +128,79 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 		}
 	}
 
+	return nil
+}
+
+func (w *tablesWorker) stageDropViews(ctx context.Context) error {
+	for _, v := range w.run.Views {
+		if err := w.DropView(ctx, v); err != nil {
+			return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
+		}
+	}
+	return nil
+}
+
+func (w *tablesWorker) stageRecreateViews(ctx context.Context) error {
+	for _, v := range w.run.Views {
+		if err := w.CreateView(ctx, v); err != nil {
+			return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
+		}
+		if err := w.WaitForViewBuilding(ctx, v); err != nil {
+			return errors.Wrapf(err, "wait for %s.%s", v.Keyspace, v.View)
+		}
+	}
+	return nil
+}
+
+func (w *tablesWorker) stageDisableCompaction(ctx context.Context, hosts []string) error {
+	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+		host := hosts[i]
+		for _, u := range w.run.Units {
+			for _, t := range u.Tables {
+				if err := w.client.DisableAutoCompaction(ctx, host, u.Keyspace, t.Table); err != nil {
+					return errors.Wrapf(err, "disable autocompaction on %s", host)
+				}
+			}
+		}
+		return nil
+	}, parallel.NopNotify)
+}
+
+func (w *tablesWorker) stageEnableCompaction(ctx context.Context, hosts []string) error {
+	return parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
+		host := hosts[i]
+		for _, u := range w.run.Units {
+			for _, t := range u.Tables {
+				if err := w.client.EnableAutoCompaction(ctx, host, u.Keyspace, t.Table); err != nil {
+					return errors.Wrapf(err, "enable autocompaction on %s", host)
+				}
+			}
+		}
+		return nil
+	}, parallel.NopNotify)
+}
+
+func (w *tablesWorker) stageDisableTGC(ctx context.Context) error {
+	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	for _, u := range w.run.Units {
+		for _, t := range u.Tables {
+			if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, modeDisabled); err != nil {
+				return errors.Wrapf(err, "disable %s.%s tombstone_gc", u.Keyspace, t.Table)
+			}
+		}
+	}
+	return nil
+}
+
+func (w *tablesWorker) stageEnableTGC(ctx context.Context) error {
+	w.AwaitSchemaAgreement(ctx, w.clusterSession)
+	for _, u := range w.run.Units {
+		for _, t := range u.Tables {
+			if err := w.AlterTableTombstoneGC(ctx, u.Keyspace, t.Table, t.TombstoneGC); err != nil {
+				return errors.Wrapf(err, "enable %s.%s tombstone_gc", u.Keyspace, t.Table)
+			}
+		}
+	}
 	return nil
 }
 
