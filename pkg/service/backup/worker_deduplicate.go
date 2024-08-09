@@ -91,9 +91,11 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		}
 		deduplicated := make([]string, 0, len(deduplicatedUUIDSSTables)+len(deduplicatedIntSSTables))
 
-		for _, fi := range deduplicatedUUIDSSTables {
-			d.Progress.Skipped += fi.Size
-			deduplicated = append(deduplicated, fi.Name)
+		for _, deduplicatedSet := range [][]fileInfo{deduplicatedIntSSTables, deduplicatedUUIDSSTables} {
+			for _, fi := range deduplicatedSet {
+				d.Progress.Skipped += fi.Size
+				deduplicated = append(deduplicated, fi.Name)
+			}
 		}
 		_, err = w.Client.RcloneDeletePathsInBatches(ctx, h.IP, d.Path, deduplicated, 1000)
 		if err != nil {
