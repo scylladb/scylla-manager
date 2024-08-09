@@ -61,8 +61,8 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 
 	dirs := w.hostSnapshotDirs(h)
 	f := func(i int) (err error) {
-		d := dirs[i]
-		dataDst := h.Location.RemotePath(w.remoteSSTableDir(h, d))
+		d := &dirs[i]
+		dataDst := h.Location.RemotePath(w.remoteSSTableDir(h, *d))
 
 		remoteSSTableBundles := newSSTableBundlesByID()
 		listOpts := &scyllaclient.RcloneListDirOpts{
@@ -91,9 +91,10 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		}
 		deduplicated := make([]string, 0, len(deduplicatedUUIDSSTables)+len(deduplicatedIntSSTables))
 
+		var totalSkipped int64
 		for _, deduplicatedSet := range [][]fileInfo{deduplicatedIntSSTables, deduplicatedUUIDSSTables} {
 			for _, fi := range deduplicatedSet {
-				d.Progress.Skipped += fi.Size
+				totalSkipped += fi.Size
 				deduplicated = append(deduplicated, fi.Name)
 			}
 		}
@@ -102,6 +103,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			return errors.Wrap(err, "delete deduplicated files")
 		}
 
+		d.SkippedBytesOffset += totalSkipped
 		return nil
 	}
 
