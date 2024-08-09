@@ -47,7 +47,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		defer func(sd []snapshotDir) {
 			var skipped, uploaded, size int64
 			for _, v := range sd {
-				skipped += v.Progress.Skipped
+				skipped += v.SkippedBytesOffset
 				uploaded += v.Progress.Uploaded
 				size += v.Progress.Size
 			}
@@ -61,8 +61,8 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 
 	dirs := w.hostSnapshotDirs(h)
 	f := func(i int) (err error) {
-		d := dirs[i]
-		dataDst := h.Location.RemotePath(w.remoteSSTableDir(h, d))
+		d := &dirs[i]
+		dataDst := h.Location.RemotePath(w.remoteSSTableDir(h, *d))
 
 		remoteSSTableBundles := newSSTableBundlesByID()
 		listOpts := &scyllaclient.RcloneListDirOpts{
@@ -91,15 +91,19 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		}
 		deduplicated := make([]string, 0, len(deduplicatedUUIDSSTables)+len(deduplicatedIntSSTables))
 
-		for _, fi := range deduplicatedUUIDSSTables {
-			d.Progress.Skipped += fi.Size
-			deduplicated = append(deduplicated, fi.Name)
+		var totalSkipped int64
+		for _, deduplicatedSet := range [][]fileInfo{deduplicatedIntSSTables, deduplicatedUUIDSSTables} {
+			for _, fi := range deduplicatedSet {
+				totalSkipped += fi.Size
+				deduplicated = append(deduplicated, fi.Name)
+			}
 		}
 		_, err = w.Client.RcloneDeletePathsInBatches(ctx, h.IP, d.Path, deduplicated, 1000)
 		if err != nil {
 			return errors.Wrap(err, "delete deduplicated files")
 		}
 
+		d.SkippedBytesOffset += totalSkipped
 		return nil
 	}
 
