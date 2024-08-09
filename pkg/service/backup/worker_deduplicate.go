@@ -47,7 +47,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		defer func(sd []snapshotDir) {
 			var skipped, uploaded, size int64
 			for _, v := range sd {
-				skipped += v.Progress.Skipped
+				skipped += v.SkippedBytesOffset
 				uploaded += v.Progress.Uploaded
 				size += v.Progress.Size
 			}
