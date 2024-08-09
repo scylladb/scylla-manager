@@ -61,6 +61,7 @@ func TestBackupPauseResumeOnDeduplicationStage(t *testing.T) {
 		var deduplicatedOnFreshBackup int64
 		after := func(skipped, uploaded, size int64) {
 			deduplicatedOnFreshBackup += skipped
+			originalTotalSize += size
 		}
 		defer h.service.RemoveDeduplicateTestHooks()
 		h.service.SetDeduplicateTestHooks(func() {}, after)
