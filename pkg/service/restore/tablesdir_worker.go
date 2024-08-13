@@ -56,6 +56,12 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 	)
 
 	hosts := w.target.locationHosts[miwc.Location]
+	for _, h := range hosts {
+		if err := w.client.RcloneSetBandwidthLimit(ctx, h, 0); err != nil {
+			return tablesDirWorker{}, errors.Wrapf(err, "%s: disable bandwidth limit", h)
+		}
+	}
+
 	hostToShardCnt, err := w.client.HostsShardCount(ctx, hosts)
 	if err != nil {
 		return tablesDirWorker{}, err
