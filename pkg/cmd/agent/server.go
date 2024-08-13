@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
@@ -21,7 +20,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/certutil"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/cpuset"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httppprof"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/netwait"
 	"go.uber.org/multierr"
@@ -83,36 +81,9 @@ func (s *server) init(ctx context.Context) error {
 		)
 	}
 
-	// Try to get CPUs to pin to
-	var cpus []int
-	if s.config.CPU != agent.NoCPU {
-		cpus = []int{s.config.CPU}
-	} else if free, err := findFreeCPUs(); err != nil {
-		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
-			// Ignore if there is no cpuset file
-			s.logger.Debug(ctx, "Failed to find CPUs to pin to", "error", err)
-		} else {
-			s.logger.Error(ctx, "Failed to find CPUs to pin to", "error", err)
-		}
-	} else {
-		cpus = free
-	}
-	// Pin to CPUs if possible
-	if len(cpus) == 0 {
-		s.logger.Info(ctx, "Running on all CPUs")
-		runtime.GOMAXPROCS(1)
-	} else {
-		if err := pinToCPUs(cpus); err != nil {
-			s.logger.Error(ctx, "Failed to pin to CPUs", "cpus", cpus, "error", err)
-		} else {
-			s.logger.Info(ctx, "Running on CPUs", "cpus", cpus)
-		}
-		runtime.GOMAXPROCS(len(cpus))
-	}
-
 	// Log memory limit
 	if l, err := cgroupMemoryLimit(); err != nil {
-		s.logger.Debug(ctx, "Failed to get cgroup memory limit", "error", err)
+		s.logger.Info(ctx, "Failed to get cgroup memory limit", "error", err)
 	} else {
 		s.logger.Info(ctx, "Cgroup memory limit", "limit", fs.SizeSuffix(l))
 	}

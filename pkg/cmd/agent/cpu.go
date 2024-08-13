@@ -13,18 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func findFreeCPUs() ([]int, error) {
-	busy, err := cpuset.ParseScyllaConfigFile()
-	if err != nil {
-		return nil, errors.Wrapf(err, "cpuset parse error")
-	}
-	cpus, err := cpuset.AvailableCPUs(busy)
-	if err != nil {
-		return nil, err
-	}
-	return cpus, nil
-}
-
 func pinToCPUs(cpus []int) error {
 	return cpuset.SchedSetAffinity(cpus)
 }
