@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 type tablesWorker struct {
@@ -271,22 +272,8 @@ func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithCont
 		w.alreadyResumed = true
 
 		if err := dw.restore(ctx); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			// In case all SSTables have been restored, restore can proceed even
-			// with errors from some hosts.
-			if len(dw.bundleIDPool) > 0 {
-				return errors.Wrapf(err, "not restored bundles %v", dw.bundleIDPool.drain())
-			}
-
-			w.logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
-				"keyspace", w.run.Keyspace,
-				"table", w.run.Table,
-				"error", err,
-			)
+			return multierr.Append(err, ctx.Err())
 		}
-
 		return nil
 	}
 }

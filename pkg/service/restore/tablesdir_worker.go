@@ -5,6 +5,8 @@ package restore
 import (
 	"context"
 	"path"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,22 +18,19 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/atomic"
 )
 
 // tablesDirWorker is responsible for restoring table files from manifest in parallel.
 type tablesDirWorker struct {
 	worker
 
-	bundles      map[string]bundle // Maps bundle to it's ID
-	bundleIDPool idPool            // SSTable IDs yet to  be restored
+	hostToShardCnt map[string]uint
+	dispatcher     *batchDispatcher
 
 	dstDir string                  // "data:" prefixed path to upload dir (common for every host)
 	srcDir string                  // Full path to remote directory with backed-up files
 	miwc   ManifestInfoWithContent // Manifest containing fm
 	fm     FilesMeta               // Describes table and it's files located in srcDir
-
-	ongoingPr []*RunProgress // Unfinished RunProgress from previous run of each host
 
 	// Maps original SSTable name to its existing older version
 	// (with respect to currently restored snapshot tag)
@@ -42,9 +41,6 @@ type tablesDirWorker struct {
 }
 
 func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithContent, fm FilesMeta, progress *TotalRestoreProgress) (tablesDirWorker, error) {
-	bundles := newBundles(fm)
-	bundleIDPool := newIDPool(bundles)
-
 	version, err := query.GetTableVersion(w.clusterSession, fm.Keyspace, fm.Table)
 	if err != nil {
 		return tablesDirWorker{}, errors.Wrap(err, "get table version")
@@ -60,6 +56,11 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 	)
 
 	hosts := w.target.locationHosts[miwc.Location]
+	hostToShardCnt, err := w.client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return tablesDirWorker{}, err
+	}
+
 	versionedFiles, err := ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
 	if err != nil {
 		return tablesDirWorker{}, errors.Wrap(err, "initialize versioned SSTables")
@@ -78,13 +79,12 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 
 	return tablesDirWorker{
 		worker:         w,
-		bundles:        bundles,
-		bundleIDPool:   bundleIDPool,
+		hostToShardCnt: hostToShardCnt,
+		dispatcher:     newBatchDispatcher(fm, fileSizesCache, w.target.BatchSize, len(hosts)),
 		dstDir:         dstDir,
 		srcDir:         srcDir,
 		miwc:           miwc,
 		fm:             fm,
-		ongoingPr:      make([]*RunProgress, len(hosts)),
 		versionedFiles: versionedFiles,
 		fileSizesCache: fileSizesCache,
 		progress:       progress,
@@ -93,42 +93,40 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 
 // restore SSTables of receivers manifest/table in parallel.
 func (w *tablesDirWorker) restore(ctx context.Context) error {
-	// Count of SSTable IDs yet to be successfully restored
-	ctr := atomic.NewInt64(w.bundleIDPool.size())
-	for _, pr := range w.ongoingPr {
-		if pr != nil {
-			ctr.Add(pr.idCnt())
-		}
-	}
+	if len(w.dispatcher.sstables) > 0 {
+		small := w.dispatcher.sstables[len(w.dispatcher.sstables)-1].size
+		big := w.dispatcher.sstables[0].size
+		distance := big - small
 
-	if ctr.Load() == 0 {
-		w.logger.Info(ctx, "Table does not have any more SSTables to restore",
-			"keyspace", w.fm.Keyspace,
-			"table", w.fm.Table,
+		bigCut := big - distance/10
+		smallCut := small + distance/10
+
+		var bigCutCnt, smallCutCnt, avg int64
+		for _, sst := range w.dispatcher.sstables {
+			avg += sst.size
+			if sst.size > bigCut {
+				bigCutCnt++
+			}
+			if sst.size < smallCut {
+				smallCutCnt++
+			}
+		}
+		avg /= int64(len(w.dispatcher.sstables))
+
+		w.logger.Info(ctx, "BATCHING STATS",
+			"sstable cnt", len(w.dispatcher.sstables),
+			"total size", w.dispatcher.size,
+			"avg size", avg,
+			"max size", big,
+			"min size", small,
+			"top 10 percent biggest sstable cnt", bigCutCnt,
+			"top 10 percent smallest sstable cnt", smallCutCnt,
 		)
-		return nil
 	}
 
 	hosts := w.target.locationHosts[w.miwc.Location]
 	f := func(n int) (err error) {
 		h := hosts[n]
-		ongoingPr := w.ongoingPr[n]
-
-		// First handle ongoing restore
-		if ongoingPr != nil {
-			if err := w.reactivateRunProgress(ctx, ongoingPr); err != nil {
-				return errors.Wrap(err, "reactivate run progress")
-			}
-
-			if err := w.restoreBatch(ctx, ongoingPr); err != nil {
-				return errors.Wrap(err, "restore reactivated batch")
-			}
-
-			if ctr.Sub(ongoingPr.idCnt()) <= 0 {
-				close(w.bundleIDPool)
-			}
-		}
-
 		for {
 			pr, err := w.newRunProgress(ctx, h)
 			if err != nil {
@@ -141,10 +139,6 @@ func (w *tablesDirWorker) restore(ctx context.Context) error {
 
 			if err := w.restoreBatch(ctx, pr); err != nil {
 				return errors.Wrap(err, "restore batch")
-			}
-
-			if ctr.Sub(pr.idCnt()) <= 0 {
-				close(w.bundleIDPool)
 			}
 		}
 	}
@@ -271,14 +265,12 @@ func (w *tablesDirWorker) resumePrevProgress() error {
 	}
 
 	// All bundles IDs started in the previous run
-	startedID := strset.New()
-	// All unfinished RunProgress started in the previous run
-	ongoingPr := make(map[string]*RunProgress)
+	doneIDs := strset.New()
 	err := bind.ForEachTableProgress(w.session, func(pr *RunProgress) {
-		startedID.Add(pr.SSTableID...)
-		if !validateTimeIsSet(pr.RestoreCompletedAt) {
-			cp := *pr
-			ongoingPr[pr.Host] = &cp
+		if validateTimeIsSet(pr.RestoreCompletedAt) {
+			doneIDs.Add(pr.SSTableID...)
+		} else {
+			w.deleteRunProgress(context.Background(), pr)
 		}
 	})
 	if err != nil {
@@ -286,53 +278,7 @@ func (w *tablesDirWorker) resumePrevProgress() error {
 	}
 
 	// Remove already started ID from the pool
-	ids := w.bundleIDPool.drain()
-	for _, id := range ids {
-		if !startedID.Has(id) {
-			w.bundleIDPool <- id
-		}
-	}
-
-	hosts := w.target.locationHosts[w.miwc.Location]
-	// Set ongoing RunProgress so that they can be resumed
-	for i, h := range hosts {
-		w.ongoingPr[i] = ongoingPr[h]
-	}
-	return nil
-}
-
-// reactivateRunProgress preserves batch assembled in the previous run and tries to reuse its unfinished rclone job.
-func (w *tablesDirWorker) reactivateRunProgress(ctx context.Context, pr *RunProgress) error {
-	// Nothing to do if download has already finished
-	if validateTimeIsSet(pr.DownloadCompletedAt) {
-		return nil
-	}
-
-	job, err := w.client.RcloneJobProgress(ctx, pr.Host, pr.AgentJobID, w.config.LongPollingTimeoutSeconds)
-	if err != nil {
-		return errors.Wrapf(err, "get progress of rclone job %d", pr.AgentJobID)
-	}
-	// Nothing to do if rclone job is still running
-	if scyllaclient.WorthWaitingForJob(job.Status) {
-		return nil
-	}
-
-	// Recreate rclone job
-	batch := w.batchFromIDs(pr.SSTableID)
-	if err := w.cleanUploadDir(ctx, pr.Host, w.dstDir, batch); err != nil {
-		return errors.Wrapf(err, "clean upload dir of host %s", pr.Host)
-	}
-
-	jobID, versionedPr, err := w.startDownload(ctx, pr.Host, batch)
-	if err != nil {
-		w.deleteRunProgress(ctx, pr)
-		w.returnBatchToPool(pr.SSTableID, pr.Host)
-		return err
-	}
-
-	pr.AgentJobID = jobID
-	pr.VersionedProgress = versionedPr
-	w.insertRunProgress(ctx, pr)
+	w.dispatcher.dropIDs(doneIDs)
 	return nil
 }
 
@@ -342,28 +288,23 @@ func (w *tablesDirWorker) newRunProgress(ctx context.Context, host string) (*Run
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
-	takenIDs := w.chooseIDsForBatch(ctx, w.target.BatchSize, host)
-	if ctx.Err() != nil {
-		w.returnBatchToPool(takenIDs, host)
-		return nil, ctx.Err()
-	}
-	if takenIDs == nil {
+	batch := w.createBatch(host)
+	if batch == nil {
 		return nil, nil //nolint: nilnil
 	}
 
 	w.logger.Info(ctx, "Created new batch",
 		"host", host,
-		"sstable_id", takenIDs,
+		"batch", batchIDs(batch),
+		"size", batchSize(batch),
 	)
 
-	batch := w.batchFromIDs(takenIDs)
 	if err := w.cleanUploadDir(ctx, host, w.dstDir, nil); err != nil {
 		return nil, errors.Wrapf(err, "clean upload dir of host %s", host)
 	}
 
 	jobID, versionedPr, err := w.startDownload(ctx, host, batch)
 	if err != nil {
-		w.returnBatchToPool(takenIDs, host)
 		return nil, err
 	}
 
@@ -376,7 +317,7 @@ func (w *tablesDirWorker) newRunProgress(ctx context.Context, host string) (*Run
 		Table:             w.fm.Table,
 		Host:              host,
 		AgentJobID:        jobID,
-		SSTableID:         takenIDs,
+		SSTableID:         batchIDs(batch),
 		VersionedProgress: versionedPr,
 	}
 
@@ -388,18 +329,20 @@ func (w *tablesDirWorker) newRunProgress(ctx context.Context, host string) (*Run
 // Downloading of versioned files happens first in a synchronous way.
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
-func (w *tablesDirWorker) startDownload(ctx context.Context, host string, batch []string) (jobID, versionedPr int64, err error) {
+func (w *tablesDirWorker) startDownload(ctx context.Context, host string, batch []bundle) (jobID, versionedPr int64, err error) {
 	var (
 		regularBatch   = make([]string, 0)
 		versionedBatch = make([]VersionedSSTable, 0)
 	)
 	// Decide which files require to be downloaded in their older version
-	for _, file := range batch {
-		if v, ok := w.versionedFiles[file]; ok {
-			versionedBatch = append(versionedBatch, v)
-			versionedPr += v.Size
-		} else {
-			regularBatch = append(regularBatch, file)
+	for _, sst := range batch {
+		for _, f := range sst.files {
+			if v, ok := w.versionedFiles[f]; ok {
+				versionedBatch = append(versionedBatch, v)
+				versionedPr += v.Size
+			} else {
+				regularBatch = append(regularBatch, f)
+			}
 		}
 	}
 	// Downloading versioned files requires us to rename them (strip version extension)
@@ -458,51 +401,10 @@ func (w *tablesDirWorker) startDownload(ctx context.Context, host string, batch 
 	return jobID, versionedPr, nil
 }
 
-// chooseIDsForBatch returns slice of IDs of SSTables that the batch consists of.
-func (w *tablesDirWorker) chooseIDsForBatch(ctx context.Context, size int, host string) (takenIDs []string) {
-	defer func() {
-		w.increaseBatchSizeMetric(w.run.ClusterID, w.batchFromIDs(takenIDs), host)
-	}()
-
-	// All hosts are trying to get IDs for batch from the pool.
-	// Pool is closed after the whole table has been restored.
-
-	// Take at most size IDs
-	for i := 0; i < size; i++ {
-		select {
-		case <-ctx.Done():
-			return takenIDs
-		default:
-		}
-
-		select {
-		case id, ok := <-w.bundleIDPool:
-			if !ok {
-				return takenIDs
-			}
-			takenIDs = append(takenIDs, id)
-		default:
-			// Don't wait for more IDs if the pool is empty
-			// and host already has something to restore.
-			if len(takenIDs) > 0 {
-				return takenIDs
-			}
-			// Here host hasn't taken any IDs and pool is empty,
-			// so it waits for the whole table to be restored or
-			// for IDs that might return to the pool in case of error on the other hosts.
-			select {
-			case id, ok := <-w.bundleIDPool:
-				if !ok {
-					return takenIDs
-				}
-				takenIDs = append(takenIDs, id)
-			case <-ctx.Done():
-				return takenIDs
-			}
-		}
-	}
-
-	return takenIDs
+func (w *tablesDirWorker) createBatch(host string) []bundle {
+	batch := w.dispatcher.createBatch(w.hostToShardCnt[host])
+	w.increaseBatchSizeMetric(w.run.ClusterID, batch, host)
+	return batch
 }
 
 func (w *tablesDirWorker) decreaseRemainingBytesMetric(bytes int64) {
@@ -525,80 +427,135 @@ func (w *tablesDirWorker) decreaseRemainingBytesMetric(bytes int64) {
 	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
 }
 
-func (w *tablesDirWorker) increaseBatchSizeMetric(clusterID uuid.UUID, batch []string, host string) {
-	w.metrics.IncreaseBatchSize(clusterID, host, w.countBatchSize(batch))
-}
-
-func (w *tablesDirWorker) decreaseBatchSizeMetric(clusterID uuid.UUID, batch []string, host string) {
-	w.metrics.DecreaseBatchSize(clusterID, host, w.countBatchSize(batch))
+func (w *tablesDirWorker) increaseBatchSizeMetric(clusterID uuid.UUID, batch []bundle, host string) {
+	w.metrics.IncreaseBatchSize(clusterID, host, batchSize(batch))
 }
 
 func (w *tablesDirWorker) cleanupRunProgress(ctx context.Context, pr *RunProgress) {
 	w.deleteRunProgress(ctx, pr)
-	w.returnBatchToPool(pr.SSTableID, pr.Host)
-
 	if cleanErr := w.cleanUploadDir(ctx, pr.Host, w.dstDir, nil); cleanErr != nil {
 		w.logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", cleanErr)
 	}
 }
 
-func (w *tablesDirWorker) returnBatchToPool(ids []string, host string) {
-	w.decreaseBatchSizeMetric(w.run.ClusterID, w.batchFromIDs(ids), host)
-	for _, id := range ids {
-		w.bundleIDPool <- id
+func batchIDs(sstables []bundle) []string {
+	var out []string
+	for _, sst := range sstables {
+		out = append(out, sst.id)
 	}
+	return out
 }
 
-func (w *tablesDirWorker) batchFromIDs(ids []string) []string {
-	var batch []string
-	for _, id := range ids {
-		batch = append(batch, w.bundles[id]...)
+func batchSize(sstables []bundle) int64 {
+	var out int64
+	for _, sst := range sstables {
+		out += sst.size
 	}
-	return batch
+	return out
 }
 
-func (w *tablesDirWorker) countBatchSize(batch []string) int64 {
-	var batchSize int64
-	for _, file := range batch {
-		batchSize += w.fileSizesCache[file]
-	}
-	return batchSize
+type bundle struct {
+	id    string
+	size  int64
+	files []string
 }
 
-// bundle represents SSTables with the same ID.
-type bundle []string
+type batchDispatcher struct {
+	mu                  sync.Mutex
+	batchSize           int
+	expectedPerNodeWork int64
+	size                int64
+	sstables            []bundle
+}
 
-func newBundles(fm FilesMeta) map[string]bundle {
-	bundles := make(map[string]bundle)
+func newBatchDispatcher(fm FilesMeta, sizes map[string]int64, batchSize, nodeCnt int) *batchDispatcher {
+	m := make(map[string]bundle, len(fm.Files)/9)
 	for _, f := range fm.Files {
 		id, err := sstable.ExtractID(f)
 		if err != nil {
 			panic(err)
 		}
-		bundles[id] = append(bundles[id], f)
+
+		sst := m[id]
+		sst.id = id
+		sst.size += sizes[f]
+		sst.files = append(sst.files, f)
+		m[id] = sst
 	}
-	return bundles
+
+	out := make([]bundle, 0, len(m))
+	var total int64
+	for _, sst := range m {
+		total += sst.size
+		out = append(out, sst)
+	}
+
+	slices.SortFunc(out, func(a, b bundle) int {
+		switch {
+		case a.size > b.size:
+			return -1
+		case a.size < b.size:
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	return &batchDispatcher{
+		mu:                  sync.Mutex{},
+		batchSize:           batchSize,
+		expectedPerNodeWork: total / int64(nodeCnt),
+		size:                total,
+		sstables:            out,
+	}
 }
 
-// idPool represents pool of SSTableIDs yet to be restored.
-type idPool chan string
+func (b *batchDispatcher) dropIDs(ids *strset.Set) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
-func (p idPool) drain() []string {
-	var out []string
-	for len(p) > 0 {
-		out = append(out, <-p)
+	var (
+		sstables []bundle
+		size     int64
+	)
+	for _, sst := range b.sstables {
+		if !ids.Has(sst.id) {
+			sstables = append(sstables, sst)
+			size += sst.size
+		}
 	}
+	b.sstables = sstables
+	b.size = size
+}
+
+func (b *batchDispatcher) createBatch(shardCnt uint) []bundle {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if len(b.sstables) == 0 {
+		return nil
+	}
+
+	var (
+		out  []bundle
+		size int64
+		idx  int
+	)
+	for i := 0; i < b.batchSize; i++ {
+		for j := 0; j < int(shardCnt); j++ {
+			out = append(out, b.sstables[idx])
+			size += b.sstables[idx].size
+			idx++
+			if idx >= len(b.sstables) {
+				break
+			}
+		}
+		if idx >= len(b.sstables) || size > b.expectedPerNodeWork/2 {
+			break
+		}
+	}
+
+	b.size -= size
+	b.sstables = b.sstables[idx:]
 	return out
-}
-
-func (p idPool) size() int64 {
-	return int64(len(p))
-}
-
-func newIDPool(bundles map[string]bundle) chan string {
-	bundleIDPool := make(chan string, len(bundles))
-	for id := range bundles {
-		bundleIDPool <- id
-	}
-	return bundleIDPool
 }
