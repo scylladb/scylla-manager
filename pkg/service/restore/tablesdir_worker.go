@@ -99,6 +99,37 @@ func newTablesDirWorker(ctx context.Context, w worker, miwc ManifestInfoWithCont
 
 // restore SSTables of receivers manifest/table in parallel.
 func (w *tablesDirWorker) restore(ctx context.Context) error {
+	if len(w.dispatcher.sstables) > 0 {
+		small := w.dispatcher.sstables[len(w.dispatcher.sstables)-1].size
+		big := w.dispatcher.sstables[0].size
+		distance := big - small
+
+		bigCut := big - distance/10
+		smallCut := small + distance/10
+
+		var bigCutCnt, smallCutCnt, avg int64
+		for _, sst := range w.dispatcher.sstables {
+			avg += sst.size
+			if sst.size > bigCut {
+				bigCutCnt++
+			}
+			if sst.size < smallCut {
+				smallCutCnt++
+			}
+		}
+		avg /= int64(len(w.dispatcher.sstables))
+
+		w.logger.Info(ctx, "BATCHING STATS",
+			"sstable cnt", len(w.dispatcher.sstables),
+			"total size", w.dispatcher.size,
+			"avg size", avg,
+			"max size", big,
+			"min size", small,
+			"top 10 percent biggest sstable cnt", bigCutCnt,
+			"top 10 percent smallest sstable cnt", smallCutCnt,
+		)
+	}
+
 	hosts := w.target.locationHosts[w.miwc.Location]
 	f := func(n int) (err error) {
 		h := hosts[n]
