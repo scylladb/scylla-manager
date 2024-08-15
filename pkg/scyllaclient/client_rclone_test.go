@@ -376,7 +376,7 @@ func TestRcloneListDirIterCancelContext(t *testing.T) {
 
 	err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:list", nil, f)
 	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("RcloneListDirIter() error %s, expected context cancelation", err)
+		t.Fatalf("RcloneListDirIter() error %s, expected context cancellation", err)
 	}
 	if len(files) != 1 {
 		t.Fatalf("Files = %+v, expected one item", files)

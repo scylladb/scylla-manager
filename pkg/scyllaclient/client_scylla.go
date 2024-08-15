@@ -338,7 +338,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 	}
 
 	if _, ok := metrics[metricName]; !ok {
-		return 0, errors.Errorf("scylla doest not expose %s metric", metricName)
+		return 0, errors.Errorf("scylla does not expose %s metric", metricName)
 	}
 
 	shards := len(metrics[metricName].Metric)
@@ -862,7 +862,7 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 	}
 
 	if _, ok := metrics[metricName]; !ok {
-		return 0, errors.New("scylla doest not expose total memory metric")
+		return 0, errors.New("scylla does not expose total memory metric")
 	}
 
 	var totalMemory int64

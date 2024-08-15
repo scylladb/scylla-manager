@@ -55,7 +55,7 @@ build: ## Build custom docker image
 up: ## Start docker containers
 up:
 	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and TABLETS=$(TABLETS)"
-# Scylla bootstap proceedure have requirements that leads us to follow certain recipe:
+# Scylla bootstrap procedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
 # 3. Spin up rest of the nodes
