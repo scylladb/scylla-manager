@@ -721,7 +721,7 @@ scylla_lsa_zones{instance="aacdf42015e4",shard="0",type="gauge"} 1.000000
 scylla_lsa_zones{instance="aacdf42015e4",shard="1",type="gauge"} 1.000000
 scylla_lsa_zones{instance="aacdf42015e4",shard="2",type="gauge"} 1.000000
 scylla_lsa_zones{instance="aacdf42015e4",shard="3",type="gauge"} 1.000000
-# HELP scylla_memory_allocated_memory Allocated memeory size in bytes
+# HELP scylla_memory_allocated_memory Allocated memory size in bytes
 # TYPE scylla_memory_allocated_memory counter
 scylla_memory_allocated_memory{instance="aacdf42015e4",shard="0",type="bytes"} 142356480
 scylla_memory_allocated_memory{instance="aacdf42015e4",shard="1",type="bytes"} 141131776
@@ -739,7 +739,7 @@ scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="0",type="gauge"} 262144
 scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 524288.000000
 scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1310720.000000
 scylla_memory_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1572864.000000
-# HELP scylla_memory_free_memory Free memeory size in bytes
+# HELP scylla_memory_free_memory Free memory size in bytes
 # TYPE scylla_memory_free_memory counter
 scylla_memory_free_memory{instance="aacdf42015e4",shard="0",type="bytes"} 7642271744
 scylla_memory_free_memory{instance="aacdf42015e4",shard="1",type="bytes"} 7643496448
@@ -805,7 +805,7 @@ scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="0",type=
 scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="1",type="gauge"} 524288.000000
 scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="2",type="gauge"} 1310720.000000
 scylla_memory_system_virtual_dirty_bytes{instance="aacdf42015e4",shard="3",type="gauge"} 1572864.000000
-# HELP scylla_memory_total_memory Total memeory size in bytes
+# HELP scylla_memory_total_memory Total memory size in bytes
 # TYPE scylla_memory_total_memory counter
 scylla_memory_total_memory{instance="aacdf42015e4",shard="0",type="bytes"} 7784628224
 scylla_memory_total_memory{instance="aacdf42015e4",shard="1",type="bytes"} 7784628224
