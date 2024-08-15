@@ -9,4 +9,4 @@ long: |
   If the `--snapshot-tag` does not belong to the `--cluster`, the command will end with an error.
 
 snapshot-tag: |
-  A list of snapshot `tags` sparated by a comma.
+  A list of snapshot `tags` separated by a comma.

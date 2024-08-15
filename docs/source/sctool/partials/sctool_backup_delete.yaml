@@ -27,7 +27,7 @@ options:
       shorthand: T
       default_value: '[]'
       usage: |
-        A list of snapshot `tags` sparated by a comma.
+        A list of snapshot `tags` separated by a comma.
 inherited_options:
     - name: api-cert-file
       usage: |

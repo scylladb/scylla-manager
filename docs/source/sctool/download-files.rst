@@ -2,7 +2,7 @@
 Download files
 ==============
 
-Scylla Manger Agent comes with a download-files subcommand that given a backup location can be used to:
+Scylla Manager Agent comes with a download-files subcommand that given a backup location can be used to:
 
 #. List clusters, datacenters and nodes.
 #. Search for snapshot tags.

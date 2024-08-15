@@ -86,7 +86,7 @@ It should have a status of *“Active: inactive (dead)”*.
 Upgrade the ScyllaDB Manager Server and Client 
 ------------------------------------------------
 
-.. TODO This section must be udpated when the installation instructions are moved to the docs:
+.. TODO This section must be updated when the installation instructions are moved to the docs:
 .. The link should take the user to the relevant page in the docs, not to the Download Center.
 
 #. **On the Manager server**, update the Manager repo file. Go to ScyllaDB Manager in 
