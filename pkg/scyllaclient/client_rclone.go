@@ -381,7 +381,10 @@ func (c *Client) RcloneDeletePaths(ctx context.Context, host, remoteDir string, 
 		},
 	}
 	res, err := c.agentOps.OperationsDeletepaths(&p)
-	return res.Payload.Deletes, err
+	if err != nil {
+		return 0, err
+	}
+	return res.Payload.Deletes, nil
 }
 
 // RcloneDiskUsage get disk space usage.
