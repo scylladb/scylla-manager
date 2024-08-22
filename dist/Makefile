@@ -19,13 +19,13 @@ $(shell echo $(RELEASE) > .release)
 GORELEASER := goreleaser --clean
 .PHONY: release
 release:
-	git tag $(VERSION_NAME) || true
+	git tag -f $(VERSION_NAME)
 	$(GORELEASER) $(publish) --skip=validate --config .goreleaser.yaml
 	$(GORELEASER) --skip=validate --config .goreleaser-docker.yaml
 
 .PHONY: snapshot
 snapshot:
-	GORELEASER_CURRENT_TAG=$(VERSION_NAME)
+	git tag -f $(VERSION_NAME)
 	$(GORELEASER) --snapshot --skip=publish --skip=validate --config .goreleaser.yaml
 	$(GORELEASER) --skip=validate --config .goreleaser-docker.yaml
 
