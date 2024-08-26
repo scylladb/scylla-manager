@@ -9,6 +9,7 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backupdelete"
+	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backupfiles"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backuplist"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backupvalidate"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusteradd"
@@ -16,7 +17,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusterlist"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusterupdate"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/info"
-	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/backupfiles"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskdelete"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskhistory"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/tasklist"
