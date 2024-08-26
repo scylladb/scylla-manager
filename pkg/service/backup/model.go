@@ -491,10 +491,18 @@ func (f dcFilter) filter(_, _ string, ring scyllaclient.Ring) bool {
 }
 
 // Filters out tables containing local data, as they shouldn't be restored.
-type localDataFilter struct{}
+type localDataFilter struct {
+	keyspaces map[scyllaclient.KeyspaceType][]string
+}
 
-func (f localDataFilter) filter(_, _ string, ring scyllaclient.Ring) bool {
-	return ring.Replication != scyllaclient.LocalStrategy
+func (f localDataFilter) filter(ks, _ string, _ scyllaclient.Ring) bool {
+	user, okU := f.keyspaces[scyllaclient.KeyspaceTypeUser]
+	nonLocal, okNL := f.keyspaces[scyllaclient.KeyspaceTypeNonLocal]
+	if !okU || !okNL {
+		panic(fmt.Sprintf("keyspace map %v does not contain expected entries %s and %s",
+			f.keyspaces, scyllaclient.KeyspaceTypeUser, scyllaclient.KeyspaceTypeNonLocal))
+	}
+	return slices.Contains(user, ks) || slices.Contains(nonLocal, ks)
 }
 
 // Filters out views as they are restored by re-creating them on restored base table.
