@@ -43,3 +43,9 @@ backup delete
 
 .. datatemplate:yaml:: partials/sctool_backup_delete.yaml
    :template: command.tmpl
+
+backup files
+=============
+
+.. datatemplate:yaml:: partials/sctool_backup_files.yaml
+   :template: command.tmpl
