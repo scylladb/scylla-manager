@@ -79,7 +79,7 @@
 
 # Backup S3 configuration.
 #
-# Note that when running in AWS Scylla Manger Agent can read hosts IAM role.
+# Note that when running in AWS Scylla Manager Agent can read hosts IAM role.
 # It's recommended to define access rules based on IAM roles.
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
 #
@@ -157,7 +157,7 @@
 
 # Backup GCS configuration.
 #
-# Note that when running in GCP Scylla Manger Agent can use instance
+# Note that when running in GCP Scylla Manager Agent can use instance
 # Service Account. It's recommended to define access rules based on IAM roles
 # attached to Service Account.
 # https://cloud.google.com/docs/authentication/production

@@ -59,7 +59,7 @@ func (c *Client) GetNodesWithLocationAccess(ctx context.Context, nodes NodeStatu
 
 	if len(checked) == 0 {
 		combinedErr := multierr.Combine(nodeErr...)
-		return nil, errors.Wrapf(combinedErr, "no nodes with access to loaction: %s", remotePath)
+		return nil, errors.Wrapf(combinedErr, "no nodes with access to location: %s", remotePath)
 	}
 
 	return checked, nil

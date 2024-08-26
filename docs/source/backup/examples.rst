@@ -127,7 +127,7 @@ replacing the ``-c`` cluster flag with your cluster's cluster name or ID and rep
 Create backup for archiving keyspace
 ------------------------------------
 
-We can archive any particular keyspace, and keep it in our bucket regardless of an already scheduled backups.
+We can archive any particular keyspace, and keep it in our bucket regardless of an already scheduled backup.
 
 **Procedure**
 

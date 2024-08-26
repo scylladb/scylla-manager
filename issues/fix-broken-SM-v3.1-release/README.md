@@ -2,7 +2,7 @@
 
 As described in this [issue](https://github.com/scylladb/scylla-manager/issues/3415), there was a time window
 when instead of releasing Scylla Manager 3.1, we mistakenly released the release candidate. \
-It means that anyone, who upgraded Scylla Manger to version 3.1 shortly after its release,
+It means that anyone, who upgraded Scylla Manager to version 3.1 shortly after its release,
 could experience various bugs (e.g. broken backup retention which could lead to growing storage space consumption).
 
 ## Verifying Scylla Manager version

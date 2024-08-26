@@ -83,7 +83,7 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 			// given
 			client, err := managerclient.NewClient("http://localhost:5080/api/v1")
 			if err != nil {
-				t.Fatalf("Unable to create managerclient to consume managet HTTP API, err = {%v}", err)
+				t.Fatalf("Unable to create managerclient to consume manager HTTP API, err = {%v}", err)
 			}
 			cmd := exec.Command("./sctool.api-tests", tc.args...)
 			var stderr bytes.Buffer

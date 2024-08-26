@@ -112,7 +112,7 @@ Node status check also provides additional columns that show properties of the a
 - Memory - Total OS memory available
 - Uptime - How long the system has been running without restarts
 - Scylla - Version of Scylla server running on the node
-- Agent - Version Scylla Manger Agent running on the node
+- Agent - Version of Scylla Manager Agent running on the node
 - Host - UUID of the node
 - Address - IP address of the node
 

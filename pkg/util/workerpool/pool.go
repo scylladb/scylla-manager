@@ -15,7 +15,7 @@ type JobHandler[T, R any] interface {
 	Done(ctx context.Context)
 }
 
-// Pool allows for executing homogenous JobHandlers with ongoing control over parallelism.
+// Pool allows for executing homogeneous JobHandlers with ongoing control over parallelism.
 // Use Spawn, Kill and SetSize methods to change the current amount of workers.
 // Use Submit to submit new task and Results to wait for the results.
 // Pool can be closed with Close or drained with cancelling workers context.

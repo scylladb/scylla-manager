@@ -20,7 +20,7 @@ Entrypoint on the backup service that starts the process of backing up the data 
 func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID, target Target) error
 ```
 
-`target.Target` defines the backup. It contains information about what to backup, where to backup, what is the retention policy, what paralellism must be used and how to rate limit.<br/>
+`target.Target` defines the backup. It contains information about what to backup, where to backup, what is the retention policy, what parallelism must be used and how to rate limit.<br/>
 
 ```go
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage)

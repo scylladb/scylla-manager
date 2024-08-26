@@ -41,7 +41,7 @@ Features
 Selecting tables and nodes to back up
 =====================================
 
-| The ``--keyspace``/``--dc`` flags allow for specifying glob patter for selecting tables/data centers to back up.
+| The ``--keyspace``/``--dc`` flags allow for specifying glob pattern for selecting tables/data centers to back up.
 | Even when table should be backed up according to ``--keyspace`` flag, but it is not replicated in specified data centers (``--dc`` flag), the table won't be backed up.
 
 | All currently down nodes are ignored for the backup procedure.

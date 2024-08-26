@@ -146,7 +146,7 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 	if usage.Free == nil {
 		d.logger.Info(ctx, "Failed to get free bytes", "usage", usage)
 	} else if *usage.Free < size {
-		return errors.Errorf("not enought disk space free %s required %s", fs.SizeSuffix(*usage.Free), fs.SizeSuffix(size))
+		return errors.Errorf("not enough disk space free %s required %s", fs.SizeSuffix(*usage.Free), fs.SizeSuffix(size))
 	}
 
 	f := func(i int) error {

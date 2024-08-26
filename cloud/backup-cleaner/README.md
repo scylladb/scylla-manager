@@ -62,4 +62,4 @@ sudo systemd-run --slice scylla-helper.slice ./delete.sh scylla-cloud-backup-XXX
 8. Validate the deletes were successful
 
 Look for errors `grep Errors -A 30 ./delete.sh.log`.
-Check the object count matches what we have in summary `grep Key ./delet.sh.log | wc -l`. 
+Check the object count matches what we have in summary `grep -c Key ./delete.sh.log`. 

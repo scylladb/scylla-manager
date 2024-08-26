@@ -56,7 +56,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 	}
 	Print("And: 2 files are transferred")
 	if len(job.Transferred) != 2 {
-		t.Errorf("Expected 2 transfered files got %d", len(job.Transferred))
+		t.Errorf("Expected 2 transferred files got %d", len(job.Transferred))
 	}
 	for _, r := range job.Transferred {
 		if r.Error != "" {

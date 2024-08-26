@@ -22,7 +22,7 @@ status - allowed values are
 
 per-machine-uuid - uuid of the machine that manager is running on
 the-registration-uuid - uuid of the registration unique to registered user
-scylla-manager-version - version of the Scylla Manger
+scylla-manager-version - version of the Scylla Manager
 rtype - linux distribution id (ubuntu, debian, rehl, centos, fedora, unknown)
 */
 package callhome

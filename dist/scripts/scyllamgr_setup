@@ -105,7 +105,7 @@ if [[ ${INTERACTIVE} == 1 ]]; then
     SETUP_SCYLLA=$?
     interactive_ask_service "Do you want the Scylla Manager service to automatically start when the node boots?" "Yes - automatically start Scylla Manager when the node boots. No - skip this step." "yes" &&:
     ENABLE_SERVICE=$?
-    interactive_ask_service "Do you want to enable Scylla Manger to check if there is a newer version of Scylla Manager available?" "Yes - start the Scylla Manager housekeeping service to check for a newer version. This check runs periodically. No - skips this step." "yes" &&:
+    interactive_ask_service "Do you want to enable Scylla Manager to check if there is a newer version of Scylla Manager available?" "Yes - start the Scylla Manager housekeeping service to check for a newer version. This check runs periodically. No - skips this step." "yes" &&:
     CHECK_FOR_UPDATES=$?
 fi
 

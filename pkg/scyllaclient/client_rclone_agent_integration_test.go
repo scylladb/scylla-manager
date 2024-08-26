@@ -169,7 +169,7 @@ func TestRcloneDeletePathsInBatchesAgentIntegration(t *testing.T) {
 						Printf("And: validate that the only files left are %v", tc.after)
 					}
 					if err := validateDir(ctx, client, testHost, remote, tc.after); err != nil {
-						t.Error(errors.Wrapf(err, "%s: validate dir conetnt after paths deletion", remote))
+						t.Error(errors.Wrapf(err, "%s: validate dir content after paths deletion", remote))
 					}
 				}
 
