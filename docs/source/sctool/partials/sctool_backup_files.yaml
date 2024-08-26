@@ -1,0 +1,70 @@
+name: sctool backup files
+synopsis: List contents of a given backup
+description: |
+    This command lists files that were uploaded during backup procedure.
+    It outputs the remote paths of files together with keyspace/table information separated by delimiter that you provide.
+usage: sctool backup files --cluster <id|name> --snapshot-tag <tag> [flags]
+options:
+    - name: all-clusters
+      default_value: "false"
+      usage: |
+        Shows backups for all clusters.
+    - name: cluster
+      shorthand: c
+      usage: |
+        The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+    - name: delimiter
+      shorthand: d
+      default_value: "\t"
+      usage: |
+        Dictates which character will be used as a whitespace between remote file path and information about keyspace and table.
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for files
+    - name: keyspace
+      shorthand: K
+      default_value: '[]'
+      usage: |+
+        A list of `glob` patterns separated by a comma used to include or exclude tables.
+        The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
+        The following syntax for glob patterns is supported:
+
+        * '*' - matches any number of any characters including none
+        * '?' - matches any single character
+        * '[abc]' - matches one character given in the bracket
+        * '[a-z]' - matches one character from the range given in the bracket
+
+        Patterns are evaluated from left to right.
+        If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
+    - name: location
+      shorthand: L
+      default_value: '[]'
+      usage: |
+        A list of backup locations separated by a comma, specifies where to place the backup, the format is `[<dc>:]<provider>:<bucket>`.
+        The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
+        The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
+        The 'bucket' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+    - name: snapshot-tag
+      shorthand: T
+      usage: |
+        Snapshot `tag` as read from the backup listing.
+    - name: with-version
+      default_value: "false"
+      usage: |
+        Renders table names with version UUID.
+inherited_options:
+    - name: api-cert-file
+      usage: |
+        File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+    - name: api-key-file
+      usage: |
+        File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+    - name: api-url
+      default_value: http://127.0.0.1:5080/api/v1
+      usage: |
+        Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+        If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+    - sctool backup - Schedule a backup (ad-hoc or scheduled)
