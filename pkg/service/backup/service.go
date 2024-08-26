@@ -161,10 +161,15 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, err
 	}
 
+	ks, err := client.KeyspacesByType(ctx)
+	if err != nil {
+		return Target{}, errors.Wrap(err, "get keyspaces by type")
+	}
+
 	filters := []tabFilter{
 		patternFilter{pattern: f},
 		dcFilter{dcs: strset.New(dcs...)},
-		localDataFilter{},
+		localDataFilter{keyspaces: ks},
 	}
 
 	// Try to add view filter - possible only when credentials are set
