@@ -256,21 +256,39 @@ func (c *Client) hosts(ctx context.Context) ([]string, error) {
 	return v, nil
 }
 
-// KeyspaceReplication describes keyspace replication type.
-type KeyspaceReplication = string
+// KeyspaceReplication describes keyspace replication.
+type KeyspaceReplication string
 
 // KeyspaceReplication enum.
 const (
-	ReplicationAll    = "all"
-	ReplicationVnode  = "vnodes"
-	ReplicationTablet = "tablets"
+	ReplicationAll    KeyspaceReplication = "all"
+	ReplicationVnode  KeyspaceReplication = "vnodes"
+	ReplicationTablet KeyspaceReplication = "tablets"
 )
 
-// ReplicationKeyspaces return a list of keyspaces with given replication.
-func (c *Client) ReplicationKeyspaces(ctx context.Context, replication KeyspaceReplication) ([]string, error) {
+// KeyspaceType describes keyspace type.
+type KeyspaceType string
+
+// KeyspaceType enum.
+const (
+	KeyspaceTypeAll      KeyspaceType = "all"
+	KeyspaceTypeUser     KeyspaceType = "user"
+	KeyspaceTypeNonLocal KeyspaceType = "non_local_strategy"
+)
+
+// AllKeyspaceTypes contains all possible KeyspaceType.
+var AllKeyspaceTypes = []KeyspaceType{
+	KeyspaceTypeAll,
+	KeyspaceTypeUser,
+	KeyspaceTypeNonLocal,
+}
+
+// FilteredKeyspaces return a list of keyspaces with given replication.
+func (c *Client) FilteredKeyspaces(ctx context.Context, ksType KeyspaceType, replication KeyspaceReplication) ([]string, error) {
 	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{
 		Context:     ctx,
-		Replication: &replication,
+		Type:        pointer.StringPtr(string(ksType)),
+		Replication: pointer.StringPtr(string(replication)),
 	})
 	if err != nil {
 		return nil, err
@@ -280,7 +298,20 @@ func (c *Client) ReplicationKeyspaces(ctx context.Context, replication KeyspaceR
 
 // Keyspaces return a list of all the keyspaces.
 func (c *Client) Keyspaces(ctx context.Context) ([]string, error) {
-	return c.ReplicationKeyspaces(ctx, ReplicationAll)
+	return c.FilteredKeyspaces(ctx, KeyspaceTypeAll, ReplicationAll)
+}
+
+// KeyspacesByType returns a list of keyspaces aggregated by KeyspaceType.
+func (c *Client) KeyspacesByType(ctx context.Context) (map[KeyspaceType][]string, error) {
+	out := make(map[KeyspaceType][]string, len(AllKeyspaceTypes))
+	for _, t := range AllKeyspaceTypes {
+		ks, err := c.FilteredKeyspaces(ctx, t, ReplicationAll)
+		if err != nil {
+			return nil, errors.Wrapf(err, "query keyspaces with type %q", t)
+		}
+		out[t] = ks
+	}
+	return out, nil
 }
 
 // Tables returns a slice of table names in a given keyspace.
