@@ -182,6 +182,7 @@ inherited_options:
 see_also:
     - sctool - Scylla Manager Snapshot
     - sctool backup delete - Delete backup files in remote locations
+    - sctool backup files - List contents of a given backup
     - sctool backup list - List backups
     - sctool backup update - Modify properties of the existing backup task
     - sctool backup validate - Validate backup files in remote locations
