@@ -178,9 +178,11 @@ const (
 type Ring struct {
 	ReplicaTokens []ReplicaTokenRanges
 	HostDC        map[string]string
-	Replication   ReplicationStrategy
-	RF            int
-	DCrf          map[string]int // initialized only for NetworkTopologyStrategy
+	// Replication is not returned by Scylla, but assumed by SM.
+	// Don't use it for correctness.
+	Replication ReplicationStrategy
+	RF          int
+	DCrf        map[string]int // initialized only for NetworkTopologyStrategy
 }
 
 // Datacenters returns a list of datacenters the keyspace is replicated in.
