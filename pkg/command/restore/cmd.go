@@ -32,6 +32,7 @@ type command struct {
 	tableParallel int
 	restoreSchema bool
 	restoreTables bool
+	unpinAgentCPU bool
 	dryRun        bool
 	showTables    bool
 }
@@ -82,6 +83,7 @@ func (cmd *command) init() {
 	w.Unwrap().IntVar(&cmd.tableParallel, "table-parallel", 1, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
+	w.Unwrap().BoolVar(&cmd.unpinAgentCPU, "unpin-agent-cpu", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 }
@@ -162,6 +164,10 @@ func (cmd *command) run(args []string) error {
 			return wrapper("restore-tables")
 		}
 		props["restore_tables"] = cmd.restoreTables
+		ok = true
+	}
+	if cmd.Flag("unpin-agent-cpu").Changed {
+		props["unpin_agent_cpu"] = cmd.unpinAgentCPU
 		ok = true
 	}
 
