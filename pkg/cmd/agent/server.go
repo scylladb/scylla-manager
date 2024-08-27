@@ -83,31 +83,10 @@ func (s *server) init(ctx context.Context) error {
 		)
 	}
 
-	// Try to get CPUs to pin to
-	var cpus []int
-	if s.config.CPU != agent.NoCPU {
-		cpus = []int{s.config.CPU}
-	} else if free, err := findFreeCPUs(); err != nil {
-		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
-			// Ignore if there is no cpuset file
-			s.logger.Debug(ctx, "Failed to find CPUs to pin to", "error", err)
-		} else {
-			s.logger.Error(ctx, "Failed to find CPUs to pin to", "error", err)
-		}
+	if cpus, err := findAndPinToCPUs(s.config); err != nil {
+		s.logger.Error(ctx, "Couldn't pin to cpus", "error", err)
 	} else {
-		cpus = free
-	}
-	// Pin to CPUs if possible
-	if len(cpus) == 0 {
-		s.logger.Info(ctx, "Running on all CPUs")
-		runtime.GOMAXPROCS(1)
-	} else {
-		if err := pinToCPUs(cpus); err != nil {
-			s.logger.Error(ctx, "Failed to pin to CPUs", "cpus", cpus, "error", err)
-		} else {
-			s.logger.Info(ctx, "Running on CPUs", "cpus", cpus)
-		}
-		runtime.GOMAXPROCS(len(cpus))
+		s.logger.Info(ctx, "Running on pinned cpus", "cpus", cpus)
 	}
 
 	// Log memory limit
@@ -117,7 +96,7 @@ func (s *server) init(ctx context.Context) error {
 		s.logger.Info(ctx, "Cgroup memory limit", "limit", fs.SizeSuffix(l))
 	}
 
-	// Redirect rclone logger to the ogger
+	// Redirect rclone logger to the logger
 	rclone.RedirectLogPrint(s.logger.Named("rclone"))
 	// Init rclone config options
 	rclone.InitFsConfigWithOptions(s.config.Rclone)
@@ -157,6 +136,38 @@ func (s *server) makeServers(ctx context.Context) error {
 		}
 	}
 
+	return nil
+}
+
+func findAndPinToCPUs(config agent.Config) ([]int, error) {
+	// Try to get CPUs to pin to
+	var cpus []int
+	if config.CPU != agent.NoCPU {
+		cpus = []int{config.CPU}
+	} else if free, err := findFreeCPUs(); err == nil {
+		cpus = free
+	}
+	// Pin to CPUs if possible
+	if len(cpus) == 0 {
+		runtime.GOMAXPROCS(1)
+	} else {
+		if err := pinToCPUs(cpus); err != nil {
+			return nil, errors.Wrapf(err, "pin to cpus %v", cpus)
+		}
+		runtime.GOMAXPROCS(len(cpus))
+	}
+	return cpus, nil
+}
+
+func unpinFromCPUs() error {
+	cpus, err := cpuset.AvailableCPUs(nil)
+	if err != nil {
+		return errors.Wrap(err, "list cpus")
+	}
+	if err := pinToCPUs(cpus); err != nil {
+		return errors.Wrapf(err, "pin to cpus %v", cpus)
+	}
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	return nil
 }
 
