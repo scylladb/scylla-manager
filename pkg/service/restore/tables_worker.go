@@ -11,10 +11,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 type tablesWorker struct {
@@ -22,9 +22,6 @@ type tablesWorker struct {
 
 	repairSvc *repair.Service
 	progress  *TotalRestoreProgress
-	// When set to false, tablesWorker will skip restoration of location/manifest/table
-	// until it encounters the one present in run.
-	alreadyResumed bool
 }
 
 // TotalRestoreProgress is a struct that holds information about the total progress of the restore job.
@@ -68,22 +65,14 @@ func (p *TotalRestoreProgress) Update(bytesRestored int64) {
 
 func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) *tablesWorker {
 	return &tablesWorker{
-		worker:         w,
-		repairSvc:      repairSvc,
-		alreadyResumed: true,
-		progress:       NewTotalRestoreProgress(totalBytes),
+		worker:    w,
+		repairSvc: repairSvc,
+		progress:  NewTotalRestoreProgress(totalBytes),
 	}
 }
 
 // restore files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context) error {
-	if w.target.Continue && w.run.PrevID != uuid.Nil && w.run.Table != "" {
-		w.alreadyResumed = false
-	}
-	// Init metrics only on fresh start
-	if w.alreadyResumed {
-		w.initRestoreMetrics(ctx)
-	}
 	hosts := strset.New(w.client.Config().Hosts...).List()
 
 	stageFunc := map[Stage]func() error{
@@ -207,88 +196,84 @@ func (w *tablesWorker) stageEnableTGC(ctx context.Context) error {
 func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.logger.Info(ctx, "Started restoring tables")
-	defer w.logger.Info(ctx, "Restoring tables finished")
+	defer func() {
+		w.logger.Info(ctx, "Restoring tables finished")
+		w.LogRestoreStats(context.Background())
+	}()
 
-	// Restore locations in deterministic order
-	for _, l := range w.target.Location {
-		if !w.alreadyResumed && w.run.Location != l.String() {
-			w.logger.Info(ctx, "Skipping location", "location", l)
-			continue
-		}
-		if err := w.restoreLocation(ctx, l); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (w *tablesWorker) restoreLocation(ctx context.Context, location Location) error {
-	w.logger.Info(ctx, "Restoring location", "location", location)
-	defer w.logger.Info(ctx, "Restoring location finished", "location", location)
-
-	restoreManifest := func(miwc ManifestInfoWithContent) error {
-		if !w.alreadyResumed && w.run.ManifestPath != miwc.Path() {
-			w.logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
-			return nil
-		}
-
-		w.logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
-		defer w.logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
-
-		return miwc.ForEachIndexIterWithError(w.target.Keyspace, w.restoreDir(ctx, miwc))
+	workload, err := w.IndexWorkload(ctx)
+	if err != nil {
+		return errors.Wrap(err, "index workload")
 	}
 
-	return w.forEachManifest(ctx, location, restoreManifest)
-}
-
-func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithContent) func(fm FilesMeta) error {
-	return func(fm FilesMeta) error {
-		if !w.alreadyResumed {
-			if w.run.Keyspace != fm.Keyspace || w.run.Table != fm.Table {
-				w.logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
-				return nil
-			}
-		}
-
-		w.logger.Info(ctx, "Restoring table", "keyspace", fm.Keyspace, "table", fm.Table)
-		defer w.logger.Info(ctx, "Restoring table finished", "keyspace", fm.Keyspace, "table", fm.Table)
-
-		w.run.Location = miwc.Location.String()
-		w.run.ManifestPath = miwc.Path()
-		w.run.Table = fm.Table
-		w.run.Keyspace = fm.Keyspace
-		w.insertRun(ctx)
-
-		dw, err := newTablesDirWorker(ctx, w.worker, miwc, fm, w.progress)
-		if err != nil {
-			return errors.Wrap(err, "create dir worker")
-		}
-		if !w.alreadyResumed {
-			if err := dw.resumePrevProgress(); err != nil {
-				return errors.Wrap(err, "resume prev run progress")
-			}
-		}
-		w.alreadyResumed = true
-
-		if err := dw.restore(ctx); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			// In case all SSTables have been restored, restore can proceed even
-			// with errors from some hosts.
-			if len(dw.bundleIDPool) > 0 {
-				return errors.Wrapf(err, "not restored bundles %v", dw.bundleIDPool.drain())
-			}
-
-			w.logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
-				"keyspace", w.run.Keyspace,
-				"table", w.run.Table,
-				"error", err,
-			)
-		}
-
-		return nil
+	hostsS := strset.New()
+	for _, h := range w.target.locationHosts {
+		hostsS.Add(h...)
 	}
+	hosts := hostsS.List()
+	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return errors.Wrap(err, "get hosts shard count")
+	}
+
+	bd := newBatchDispatcher(workload, hostToShard)
+	w.LogFileStats(ctx, bd.workload)
+
+	f := func(n int) (err error) {
+		h := hosts[n]
+		eg := errgroup.Group{}
+
+		for i := 0; i < w.target.TableParallel; i++ {
+			id := uint(i)
+			w.SetBatchSizeMetric(h, id, 0)
+			eg.Go(func() error {
+				for {
+					// Download and stream in parallel.
+					b, ok := bd.DispatchBatch(h, id)
+					if !ok {
+						w.logger.Info(ctx, "No more batches to restore", "host", h, "worker ID", id)
+						return nil
+					}
+					w.IncreaseBatchSizeMetric(h, id, b.Size)
+					w.logger.Info(ctx, "Got batch to restore",
+						"host", h,
+						"worker ID", id,
+						"keyspace", b.Keyspace,
+						"table", b.Table,
+						"size", b.Size,
+						"sstable count", b.SSTables,
+					)
+
+					pr, err := w.newRunProgress(ctx, h, id, b)
+					if err != nil {
+						return errors.Wrap(err, "create new run progress")
+					}
+					if err := w.restoreBatch(ctx, h, id, b, pr); err != nil {
+						return errors.Wrap(err, "restore batch")
+					}
+				}
+			})
+		}
+
+		return eg.Wait()
+	}
+
+	notify := func(n int, err error) {
+		w.logger.Error(ctx, "Failed to restore files on host",
+			"host", hosts[n],
+			"error", err,
+		)
+	}
+
+	err = parallel.Run(len(hosts), w.target.Parallel, f, notify)
+	if err == nil {
+		for _, tw := range bd.workload {
+			if tw.Size != 0 {
+				panic(fmt.Sprintf("expected all data to be restored (%s.%s - %d)", tw.Keyspace, tw.Table, tw.Size))
+			}
+		}
+	}
+	return err
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context) error {
@@ -324,46 +309,55 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 	return w.repairSvc.Repair(ctx, w.run.ClusterID, w.run.RepairTaskID, repairRunID, repairTarget)
 }
 
-func (w *tablesWorker) initRestoreMetrics(ctx context.Context) {
-	for _, location := range w.target.Location {
-		err := w.forEachManifest(
-			ctx,
-			location,
-			func(miwc ManifestInfoWithContent) error {
-				sizePerTableAndKeyspace := make(map[string]map[string]int64)
-				err := miwc.ForEachIndexIterWithError(
-					w.target.Keyspace,
-					func(fm FilesMeta) error {
-						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
-							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
-						}
-						sizePerTableAndKeyspace[fm.Keyspace][fm.Table] += fm.Size
-						return nil
-					})
-				for kspace, sizePerTable := range sizePerTableAndKeyspace {
-					for table, size := range sizePerTable {
-						labels := metrics.RestoreBytesLabels{
-							ClusterID:   w.run.ClusterID.String(),
-							SnapshotTag: w.target.SnapshotTag,
-							Location:    location.String(),
-							DC:          miwc.DC,
-							Node:        miwc.NodeID,
-							Keyspace:    kspace,
-							Table:       table,
-						}
-						w.metrics.SetRemainingBytes(labels, size)
-					}
-				}
-				return err
-			})
-		progressLabels := metrics.RestoreProgressLabels{
-			ClusterID:   w.run.ClusterID.String(),
-			SnapshotTag: w.target.SnapshotTag,
-		}
-		w.metrics.SetProgress(progressLabels, 0)
-		if err != nil {
-			w.logger.Info(ctx, "Couldn't count restore data size")
-			continue
-		}
+func (w *tablesWorker) SetProgressMetric(progress float64) {
+	l := metrics.RestoreProgressLabels{
+		ClusterID:   w.run.ClusterID.String(),
+		SnapshotTag: w.target.SnapshotTag,
 	}
+	w.metrics.SetProgress(l, progress)
+}
+
+func (w *tablesWorker) SetRemainingBytesMetric(workload RemoteDirWorkload) {
+	labels := metrics.RestoreBytesLabels{
+		ClusterID:   workload.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+		Location:    workload.Location.String(),
+		DC:          workload.DC,
+		Node:        workload.NodeID,
+		Keyspace:    workload.Keyspace,
+		Table:       workload.Table,
+	}
+	w.metrics.SetRemainingBytes(labels, workload.Size)
+}
+
+func (w *tablesWorker) DecreaseRemainingBytesMetric(b batch) {
+	labels := metrics.RestoreBytesLabels{
+		ClusterID:   b.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+		Location:    b.Location.String(),
+		DC:          b.DC,
+		Node:        b.NodeID,
+		Keyspace:    b.Keyspace,
+		Table:       b.Table,
+	}
+	w.metrics.DecreaseRemainingBytes(labels, b.Size)
+	w.progress.Update(b.Size)
+
+	progressLabels := metrics.RestoreProgressLabels{
+		ClusterID:   w.run.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+	}
+	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
+}
+
+func (w *tablesWorker) SetRestoreStateMetric(host string, workerID uint, state metrics.RestoreState) {
+	w.metrics.SetRestoreState(w.run.ClusterID, w.target.SnapshotTag, host, workerID, state)
+}
+
+func (w *tablesWorker) SetBatchSizeMetric(host string, workerID uint, size int64) {
+	w.metrics.SetBatchSize(w.run.ClusterID, host, workerID, size)
+}
+
+func (w *tablesWorker) IncreaseBatchSizeMetric(host string, workerID uint, size int64) {
+	w.metrics.IncreaseBatchSize(w.run.ClusterID, host, workerID, size)
 }

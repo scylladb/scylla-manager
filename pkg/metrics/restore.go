@@ -3,9 +3,10 @@
 package metrics
 
 import (
+	"fmt"
+
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -21,10 +22,10 @@ func NewRestoreMetrics() RestoreMetrics {
 	g := gaugeVecCreator("restore")
 
 	return RestoreMetrics{
-		batchSize: g("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
+		batchSize: g("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host", "worker_id"),
 		remainingBytes: g("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-		state:           g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+		state:           g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "snapshot_tag", "host", "worker_id"),
 		progress:        g("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
 		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
 	}
@@ -53,21 +54,34 @@ func (m RestoreMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	}
 }
 
-// IncreaseBatchSize updates restore "batch_size" metrics.
-func (m RestoreMetrics) IncreaseBatchSize(clusterID uuid.UUID, host string, size int64) {
+// SetBatchSize sets restore "batch_size" metrics.
+func (m RestoreMetrics) SetBatchSize(clusterID uuid.UUID, host string, workerID uint, size int64) {
 	l := prometheus.Labels{
-		"cluster": clusterID.String(),
-		"host":    host,
+		"cluster":   clusterID.String(),
+		"host":      host,
+		"worker_id": fmt.Sprint(workerID),
+	}
+
+	m.batchSize.With(l).Set(float64(size))
+}
+
+// IncreaseBatchSize updates restore "batch_size" metrics.
+func (m RestoreMetrics) IncreaseBatchSize(clusterID uuid.UUID, host string, workerID uint, size int64) {
+	l := prometheus.Labels{
+		"cluster":   clusterID.String(),
+		"host":      host,
+		"worker_id": fmt.Sprint(workerID),
 	}
 
 	m.batchSize.With(l).Add(float64(size))
 }
 
 // DecreaseBatchSize updates restore "batch_size" metrics.
-func (m RestoreMetrics) DecreaseBatchSize(clusterID uuid.UUID, host string, size int64) {
+func (m RestoreMetrics) DecreaseBatchSize(clusterID uuid.UUID, host string, workerID uint8, size int64) {
 	l := prometheus.Labels{
-		"cluster": clusterID.String(),
-		"host":    host,
+		"cluster":   clusterID.String(),
+		"host":      host,
+		"worker_id": fmt.Sprint(workerID),
 	}
 
 	m.batchSize.With(l).Sub(float64(size))
@@ -144,12 +158,12 @@ const (
 )
 
 // SetRestoreState sets restore "state" metric.
-func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state RestoreState) {
+func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, snapshotTag, host string, workerID uint, state RestoreState) {
 	l := prometheus.Labels{
 		"cluster":      clusterID.String(),
-		"location":     location.String(),
 		"snapshot_tag": snapshotTag,
 		"host":         host,
+		"worker_id":    fmt.Sprint(workerID),
 	}
 	m.state.With(l).Set(float64(state))
 }

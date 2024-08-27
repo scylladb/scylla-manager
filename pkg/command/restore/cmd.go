@@ -29,6 +29,7 @@ type command struct {
 	snapshotTag   string
 	batchSize     int
 	parallel      int
+	tableParallel int
 	restoreSchema bool
 	restoreTables bool
 	dryRun        bool
@@ -78,6 +79,7 @@ func (cmd *command) init() {
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 1, "")
+	w.Unwrap().IntVar(&cmd.tableParallel, "table-parallel", 1, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -142,6 +144,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
+		ok = true
+	}
+	if cmd.Flag("table-parallel").Changed {
+		props["table_parallel"] = cmd.tableParallel
 		ok = true
 	}
 	if cmd.Flag("restore-schema").Changed {

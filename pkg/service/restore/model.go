@@ -10,8 +10,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 
@@ -27,6 +25,7 @@ type Target struct {
 	SnapshotTag   string     `json:"snapshot_tag"`
 	BatchSize     int        `json:"batch_size,omitempty"`
 	Parallel      int        `json:"parallel,omitempty"`
+	TableParallel int        `json:"table_parallel,omitempty"`
 	RestoreSchema bool       `json:"restore_schema,omitempty"`
 	RestoreTables bool       `json:"restore_tables,omitempty"`
 	Continue      bool       `json:"continue"`
@@ -37,9 +36,10 @@ type Target struct {
 
 func defaultTarget() Target {
 	return Target{
-		BatchSize: 2,
-		Parallel:  0,
-		Continue:  true,
+		BatchSize:     2,
+		Parallel:      0,
+		TableParallel: 1,
+		Continue:      true,
 	}
 }
 
@@ -52,10 +52,13 @@ func (t Target) validateProperties() error {
 	if _, err := SnapshotTagTime(t.SnapshotTag); err != nil {
 		return err
 	}
-	if t.BatchSize <= 0 {
+	if t.BatchSize < 0 {
 		return errors.New("batch size param has to be greater than zero")
 	}
 	if t.Parallel < 0 {
+		return errors.New("parallel param has to be greater or equal to zero")
+	}
+	if t.TableParallel <= 0 {
 		return errors.New("parallel param has to be greater or equal to zero")
 	}
 	if t.RestoreSchema == t.RestoreTables {
@@ -79,16 +82,11 @@ type Run struct {
 	TaskID    uuid.UUID
 	ID        uuid.UUID
 
-	PrevID       uuid.UUID
-	Location     string // marks currently processed location
-	ManifestPath string // marks currently processed manifest
-	Keyspace     string `db:"keyspace_name"` // marks currently processed keyspace
-	Table        string `db:"table_name"`    // marks currently processed table
-	SnapshotTag  string
-	Stage        Stage
+	PrevID      uuid.UUID
+	SnapshotTag string
+	Stage       Stage
 
 	RepairTaskID uuid.UUID // task ID of the automated post-restore repair
-
 	// Cache that's initialized once for entire task
 	Units []Unit
 	Views []View
@@ -156,20 +154,22 @@ func (t *View) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// RunProgress describes restore progress (like in RunProgress) of
-// already started download of SSTables with specified IDs to host.
+// RunProgress describes progress of restoring a single batch.
 type RunProgress struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
 
-	ManifestPath string
-	Keyspace     string `db:"keyspace_name"`
-	Table        string `db:"table_name"`
-	Host         string // IP of the node to which SSTables are downloaded.
-	AgentJobID   int64
+	// Different DB name because of historical reasons and because we can't drop/alter clustering column
+	RemoteSSTableDir string   `db:"manifest_path"`
+	Keyspace         string   `db:"keyspace_name"`
+	Table            string   `db:"table_name"`
+	SSTableID        []string `db:"sstable_id"`
 
-	SSTableID           []string `db:"sstable_id"`
+	Host           string // IP of the node to which SSTables are downloaded.
+	AgentJobID     int64
+	TmpDownloadDir string
+
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
 	RestoreStartedAt    *time.Time
@@ -179,38 +179,6 @@ type RunProgress struct {
 	Skipped             int64
 	Failed              int64
 	VersionedProgress   int64
-}
-
-// ForEachTableProgress iterates over all TableProgress belonging to the same run/manifest/table as the receiver.
-func (pr *RunProgress) ForEachTableProgress(session gocqlx.Session, cb func(*RunProgress)) error {
-	q := qb.Select(table.RestoreRunProgress.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-		qb.Eq("run_id"),
-		qb.Eq("manifest_path"),
-		qb.Eq("keyspace_name"),
-		qb.Eq("table_name"),
-	).Query(session)
-	defer q.Release()
-
-	iter := q.BindMap(qb.M{
-		"cluster_id":    pr.ClusterID,
-		"task_id":       pr.TaskID,
-		"run_id":        pr.RunID,
-		"manifest_path": pr.ManifestPath,
-		"keyspace_name": pr.Keyspace,
-		"table_name":    pr.Table,
-	}).Iter()
-
-	res := new(RunProgress)
-	for iter.StructScan(res) {
-		cb(res)
-	}
-	return iter.Close()
-}
-
-func (pr *RunProgress) idCnt() int64 {
-	return int64(len(pr.SSTableID))
 }
 
 func (pr *RunProgress) setRestoreStartedAt() {

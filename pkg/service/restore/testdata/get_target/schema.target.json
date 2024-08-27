@@ -5,8 +5,9 @@
   "keyspace": [
     "system_schema.*"
   ],
-  "snapshot_tag": "sm_20230921151320UTC",
+  "snapshot_tag": "sm_20240827165619UTC",
   "batch_size": 99,
+  "table_parallel": 1,
   "restore_schema": true,
   "continue": true
 }
