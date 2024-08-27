@@ -42,7 +42,7 @@ func (w *tablesWorker) restoreBatch(ctx context.Context, host string, workerID u
 			w.insertRunProgress(ctx, pr)
 		}
 
-		err := w.worker.restoreSSTables(ctx, host, b.Keyspace, b.Table, true, true)
+		err := w.worker.restoreSSTables(ctx, host, b.Keyspace, b.Table, true, !w.target.StreamToAllReplicas)
 		if err == nil {
 			pr.setRestoreCompletedAt()
 			w.insertRunProgress(ctx, pr)

@@ -292,6 +292,10 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context) error {
+	if w.target.StreamToAllReplicas {
+		return nil
+	}
+
 	var keyspace []string
 	for _, u := range w.run.Units {
 		for _, t := range u.Tables {
