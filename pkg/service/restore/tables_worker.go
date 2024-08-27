@@ -196,6 +196,27 @@ func (w *tablesWorker) stageEnableTGC(ctx context.Context) error {
 func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.logger.Info(ctx, "Started restoring tables")
+	hostsS := strset.New()
+	for _, h := range w.target.locationHosts {
+		hostsS.Add(h...)
+	}
+	hosts := hostsS.List()
+
+	if w.target.UnpinAgentCPU {
+		defer func() {
+			for _, h := range hosts {
+				if err := w.client.PinAgentToCPUs(context.Background(), h); err != nil {
+					w.logger.Error(ctx, "Couldn't pin agent cpu", "host", h, "error", err)
+				}
+			}
+		}()
+		for _, h := range hosts {
+			if err := w.client.UnpinAgentFromCPUs(ctx, h); err != nil {
+				return errors.Wrapf(err, "unping agent cpu on %s", h)
+			}
+		}
+	}
+
 	defer func() {
 		w.logger.Info(ctx, "Restoring tables finished")
 		w.LogRestoreStats(context.Background())
@@ -205,12 +226,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "index workload")
 	}
-
-	hostsS := strset.New()
-	for _, h := range w.target.locationHosts {
-		hostsS.Add(h...)
-	}
-	hosts := hostsS.List()
 	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
 	if err != nil {
 		return errors.Wrap(err, "get hosts shard count")
