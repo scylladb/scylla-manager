@@ -72,11 +72,6 @@
         "size": 185891
       },
       {
-        "table": "dicts",
-        "tombstone_gc": "timeout",
-        "size": 0
-      },
-      {
         "table": "service_levels",
         "tombstone_gc": "timeout",
         "size": 0
