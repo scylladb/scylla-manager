@@ -322,9 +322,6 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			if checkAnyConstraint(t, h.Client, "< 1000") {
 				ignoreUnits = append(ignoreUnits, "system_replicated_keys")
 			}
-			if checkAnyConstraint(t, h.Client, "< 2024.2") {
-				ignoreUnits = append(ignoreUnits, "dicts")
-			}
 			if checkAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 				ignoreUnits = append(ignoreUnits,
 					"system_auth",
