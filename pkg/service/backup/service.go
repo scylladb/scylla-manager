@@ -706,7 +706,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.Snapshot(ctx, hi, target.SnapshotParallel)
 		},
 		StageAwaitSchema: func() error {
-			return w.DumpSchema(ctx, hi, s.clusterSession)
+			if !target.SkipSchema {
+				return w.DumpSchema(ctx, hi, s.clusterSession)
+			}
+			return nil
 		},
 		StageIndex: func() error {
 			return w.Index(ctx, hi, target.UploadParallel)
