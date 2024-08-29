@@ -123,6 +123,9 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 			return client, nil
 		},
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+			if user == "no-credentials" {
+				return gocqlx.Session{}, cluster.ErrNoCQLCredentials
+			}
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
 		logger.Named("backup"),
@@ -2579,5 +2582,84 @@ func TestBackupViews(t *testing.T) {
 	Print("And: backup files contain base table")
 	if foundTable != len(ManagedClusterHosts()) {
 		t.Fatal("Expected all hosts to back up base table")
+	}
+}
+
+func TestBackupSkipSchema(t *testing.T) {
+	const (
+		testBucket   = "backuptest-skip-schema"
+		testKeyspace = "backuptest_skip_schema"
+	)
+
+	Print("Given: backup service without CQL password")
+	var (
+		location       = s3Location(testBucket)
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "no-credentials", "")
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	Print("And: simple table to back up")
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	Print("And: backup target with --skip-schema=false")
+	props := map[string]any{
+		"location": []Location{location},
+		"keyspace": []string{testKeyspace},
+	}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create raw properties"))
+	}
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create target"))
+	}
+
+	Print("When: run backup")
+	err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+
+	Print("Then: backup failed")
+	if err == nil {
+		t.Fatal("Expected backup to fail")
+	} else {
+		t.Log("Backup error", err)
+	}
+
+	Print("Given: backup target with --skip-schema=true")
+	props["skip_schema"] = true
+	rawProps, err = json.Marshal(props)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create raw properties"))
+	}
+	target, err = h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create target"))
+	}
+
+	Print("When: run backup")
+	h.RunID = uuid.NewTime()
+	err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+
+	Print("Then: backup succeeded")
+	if err != nil {
+		t.Fatalf("Expected backup to succeede, got error: %s", err)
+	}
+
+	_, schemas, files := h.listS3Files()
+	Print("And: CQL schema file wasn't backed up")
+	if len(schemas) > 0 {
+		t.Fatalf("Expected no CQL schema files to be backed up, got: %v", schemas)
+	}
+	Print("And: non schema sstables were backed up")
+	if len(files) == 0 {
+		t.Fatal("Expected non schema sstables to be backed up")
+	}
+	Print("And: schema sstables weren't backed up")
+	for _, f := range files {
+		if strings.Contains(f, "system_schema") {
+			t.Fatalf("Expected no system_schema sstables to be backed up, got: %s", f)
+		}
 	}
 }
