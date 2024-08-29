@@ -55,6 +55,7 @@ type Target struct {
 	UploadParallel   []DCLimit    `json:"upload_parallel,omitempty"`
 	Continue         bool         `json:"continue,omitempty"`
 	PurgeOnly        bool         `json:"purge_only,omitempty"`
+	SkipSchema       bool         `json:"skip_schema,omitempty"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -253,6 +254,7 @@ type taskProperties struct {
 	UploadParallel   []DCLimit    `json:"upload_parallel"`
 	Continue         bool         `json:"continue"`
 	PurgeOnly        bool         `json:"purge_only"`
+	SkipSchema       bool         `json:"skip_schema"`
 }
 
 func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error {
@@ -312,6 +314,7 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 		UploadParallel:   filterDCLimits(p.UploadParallel, dcs),
 		Continue:         p.Continue,
 		PurgeOnly:        p.PurgeOnly,
+		SkipSchema:       p.SkipSchema,
 		liveNodes:        liveNodes,
 	}, nil
 }
@@ -331,20 +334,24 @@ func (p taskProperties) createUnits(ctx context.Context, client *scyllaclient.Cl
 		if err != nil {
 			return nil, errors.Wrapf(err, "keyspace %s: get tables", ks)
 		}
+		// Before Scylla 6.0, schema had to be restored from sstables
+		// (output of DESC SCHEMA was missing important information like dropped columns).
+		// Starting from Scylla 6.0, schema has to be restored from output of DESC SCHEMA WITH INTERNALS
+		// (restoring sstables doesn't play well with raft).
+		// system_schema sstables can still be backed up - just in case.
+		if ks == systemSchema {
+			if !p.SkipSchema {
+				units = append(units, Unit{
+					Keyspace:  ks,
+					Tables:    tables,
+					AllTables: true,
+				})
+			}
+			continue
+		}
 
 		var filteredTables []string
 		for _, tab := range tables {
-			// Always backup system_schema.
-			// Before Scylla 6.0, schema had to be restored from sstables
-			// (output of DESC SCHEMA was missing important information like dropped columns).
-			// Starting from Scylla 6.0, schema has to be restored from output of DESC SCHEMA WITH INTERNALS
-			// (restoring sstables doesn't play well with raft).
-			// system_schema sstables are still always backed up - just in case.
-			if ks == systemSchema {
-				filteredTables = append(filteredTables, tab)
-				continue
-			}
-
 			ring, err := rd.DescribeRing(ctx, ks, tab)
 			if err != nil {
 				return nil, errors.Wrap(err, "describe ring")
@@ -381,7 +388,11 @@ func (p taskProperties) createUnits(ctx context.Context, client *scyllaclient.Cl
 	}
 
 	// Validate that any keyspace except for system_schema is going to be backed up
-	if len(units) < 2 {
+	nonSchemaUnitCnt := len(units)
+	if !p.SkipSchema {
+		nonSchemaUnitCnt--
+	}
+	if nonSchemaUnitCnt <= 0 {
 		return nil, errors.New("no keyspace matched criteria")
 	}
 
