@@ -37,7 +37,7 @@ func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc clus
 
 	var session gocqlx.Session
 	if len(descSchemaHosts) > 0 {
-		session, err = sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(descSchemaHosts[0]))
+		session, err = w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
 	} else {
 		session, err = sessionFunc(ctx, w.ClusterID)
 	}
@@ -123,6 +123,20 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 	}
 
 	return hostsInParallel(hostPerLocation, parallel.NoLimit, f, notify)
+}
+
+func (w *worker) createSingleHostSessionToAnyHost(ctx context.Context, hosts []string, sessionFunc cluster.SessionFunc) (gocqlx.Session, error) {
+	var retErr error
+	for _, h := range hosts {
+		session, err := sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(h))
+		if err != nil {
+			w.Logger.Error(ctx, "Couldn't connect to host via CQL", "host", h, "error", err)
+			retErr = err
+		} else {
+			return session, nil
+		}
+	}
+	return gocqlx.Session{}, errors.Wrap(retErr, "no host that can be accessed via CQL (more info in the logs)")
 }
 
 func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error) {
