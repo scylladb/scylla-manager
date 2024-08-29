@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"io"
 	"strings"
-	"sync/atomic"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
@@ -25,28 +25,32 @@ import (
 )
 
 func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc cluster.SessionFunc) error {
-	descSchemaHost := hi[0].IP
-	session, err := sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(descSchemaHost))
-	if err != nil {
-		if errors.Is(err, cluster.ErrNoCQLCredentials) {
-			w.Logger.Error(ctx, "No CQL cluster credentials, backup of schema as CQL files will be skipped", "error", err)
-			return nil
-		}
-		return errors.Wrapf(err, "create single host (%s) session to", descSchemaHost)
-	}
-	defer session.Close()
-
 	var hosts []string
 	for _, h := range hi {
 		hosts = append(hosts, h.IP)
 	}
 
-	safe, err := isDescribeSchemaSafe(ctx, w.Client, hosts)
+	descSchemaHosts, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, hosts)
 	if err != nil {
-		return errors.Wrap(err, "check describe schema support")
+		return errors.Wrap(err, "get hosts supporting backup/restore from desc schema with internals")
 	}
 
-	if safe {
+	var session gocqlx.Session
+	if len(descSchemaHosts) > 0 {
+		session, err = sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(descSchemaHosts[0]))
+	} else {
+		session, err = sessionFunc(ctx, w.ClusterID)
+	}
+	if err != nil {
+		if errors.Is(err, cluster.ErrNoCQLCredentials) {
+			w.Logger.Error(ctx, "No CQL cluster credentials, backup of schema as CQL files will be skipped", "error", err)
+			return nil
+		}
+		return errors.Wrapf(err, "create cql session")
+	}
+	defer session.Close()
+
+	if len(descSchemaHosts) > 0 {
 		return w.safeDumpSchema(ctx, session)
 	}
 	w.unsafeDumpSchema(ctx, session)
@@ -139,12 +143,13 @@ func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error
 	return b, nil
 }
 
-// isDescribeSchemaSafe checks if restoring schema from DESCRIBE SCHEMA WITH INTERNALS is safe.
-func isDescribeSchemaSafe(ctx context.Context, client *scyllaclient.Client, hosts []string) (bool, error) {
-	out := atomic.Bool{}
-	out.Store(true)
-	eg := errgroup.Group{}
-
+// backupAndRestoreFromDescSchemaHosts returns hosts that restore schema from desc schema with internals output.
+func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, error) {
+	var (
+		mu  = sync.Mutex{}
+		eg  = errgroup.Group{}
+		out []string
+	)
 	for _, host := range hosts {
 		h := host
 		eg.Go(func() error {
@@ -156,17 +161,18 @@ func isDescribeSchemaSafe(ctx context.Context, client *scyllaclient.Client, host
 			if err != nil {
 				return err
 			}
-			if !res {
-				out.Store(false)
+			if res {
+				mu.Lock()
+				out = append(out, h)
+				mu.Unlock()
 			}
 			return nil
 		})
 	}
-
 	if err := eg.Wait(); err != nil {
-		return false, err
+		return nil, err
 	}
-	return out.Load(), nil
+	return out, nil
 }
 
 func createUnsafeSchemaArchive(ctx context.Context, units []Unit, clusterSession gocqlx.Session) (b bytes.Buffer, err error) {
