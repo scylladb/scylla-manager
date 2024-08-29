@@ -1,7 +1,6 @@
-ARG BASE_IMAGE
+FROM ubuntu
+ARG ARCH=amd64
 
-FROM $BASE_IMAGE
-ARG ARCH
 RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get install -y --no-install-recommends ca-certificates && \
@@ -14,5 +13,5 @@ RUN dpkg -i scylla-manager-*$ARCH.deb && rm /scylla-manager-*.deb
 COPY docker/scylla-manager.yaml /etc/scylla-manager/
 
 USER scylla-manager
-ENV HOME /var/lib/scylla-manager/
+ENV HOME=/var/lib/scylla-manager/
 ENTRYPOINT ["/usr/bin/scylla-manager"]
