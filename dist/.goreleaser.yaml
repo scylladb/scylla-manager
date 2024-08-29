@@ -1,5 +1,6 @@
 project_name: scylla-manager
 dist: release
+version: 2
 
 changelog:
   sort: asc
@@ -11,7 +12,7 @@ changelog:
       - '^testing:'
 
 snapshot:
-    name_template: '{{ .Version }}-SNAPSHOT'
+    version_template: '{{ .Version }}-SNAPSHOT'
 
 builds:
   - id: server
