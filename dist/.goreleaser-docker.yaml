@@ -1,12 +1,11 @@
 project_name: scylla-manager
 dist: release-docker
+version: 2
 builds:
 - skip: true
 
 dockers:
   - ids:
-    - server
-    - client
     use: docker
     goos: linux
     goarch: amd64
@@ -17,13 +16,8 @@ dockers:
     extra_files:
       - docker/scylla-manager.yaml
       - release
-    build_flag_templates:
-    - "--build-arg=BASE_IMAGE=ubuntu:22.04"
-    - "--build-arg=ARCH=amd64"
 
   - ids:
-    - server
-    - client
     use: docker
     goos: linux
     goarch: arm64
@@ -35,11 +29,10 @@ dockers:
       - docker/scylla-manager.yaml
       - release/
     build_flag_templates:
-    - "--build-arg=BASE_IMAGE=arm64v8/ubuntu:22.04"
-    - "--build-arg=ARCH=arm64"
+      - "--build-arg=ARCH=arm64"
+      - "--platform=linux/arm64"
 
   - ids:
-    - agent
     use: docker
     goos: linux
     goarch: amd64
@@ -50,12 +43,8 @@ dockers:
     extra_files:
       - docker/scylla-manager.yaml
       - release
-    build_flag_templates:
-    - "--build-arg=BASE_IMAGE=ubuntu:22.04"
-    - "--build-arg=ARCH=amd64"
 
   - ids:
-    - agent
     use: docker
     goos: linux
     goarch: arm64
@@ -67,8 +56,8 @@ dockers:
       - docker/scylla-manager.yaml
       - release
     build_flag_templates:
-    - "--build-arg=BASE_IMAGE=arm64v8/ubuntu:22.04"
-    - "--build-arg=ARCH=arm64"
+      - "--build-arg=ARCH=arm64"
+      - "--platform=linux/arm64"
 
 docker_manifests:
   - id: scylla-manager

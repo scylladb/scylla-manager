@@ -1,7 +1,5 @@
-ARG BASE_IMAGE
-
-FROM $BASE_IMAGE
-ARG ARCH
+FROM ubuntu
+ARG ARCH=amd64
 
 RUN apt-get update && \
     apt-get -y upgrade && \
@@ -14,5 +12,5 @@ COPY release/scylla-manager-agent*$ARCH.deb /
 RUN dpkg -i scylla-manager-agent*$ARCH.deb && rm /scylla-manager-agent*.deb
 
 USER scylla-manager
-ENV HOME /var/lib/scylla-manager/
+ENV HOME=/var/lib/scylla-manager/
 ENTRYPOINT ["/usr/bin/scylla-manager-agent"]
