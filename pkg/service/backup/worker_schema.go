@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -23,16 +24,32 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (w *worker) DumpSchema(ctx context.Context, clusterSession gocqlx.Session, hosts []string) error {
+func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc cluster.SessionFunc) error {
+	descSchemaHost := hi[0].IP
+	session, err := sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(descSchemaHost))
+	if err != nil {
+		if errors.Is(err, cluster.ErrNoCQLCredentials) {
+			w.Logger.Error(ctx, "No CQL cluster credentials, backup of schema as CQL files will be skipped", "error", err)
+			return nil
+		}
+		return errors.Wrapf(err, "create single host (%s) session to", descSchemaHost)
+	}
+	defer session.Close()
+
+	var hosts []string
+	for _, h := range hi {
+		hosts = append(hosts, h.IP)
+	}
+
 	safe, err := isDescribeSchemaSafe(ctx, w.Client, hosts)
 	if err != nil {
 		return errors.Wrap(err, "check describe schema support")
 	}
 
 	if safe {
-		return w.safeDumpSchema(ctx, clusterSession)
+		return w.safeDumpSchema(ctx, session)
 	}
-	w.unsafeDumpSchema(ctx, clusterSession)
+	w.unsafeDumpSchema(ctx, session)
 	return nil
 }
 

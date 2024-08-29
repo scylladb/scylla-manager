@@ -706,26 +706,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.Snapshot(ctx, hi, target.SnapshotParallel)
 		},
 		StageAwaitSchema: func() error {
-			descSchemaHost := liveNodes[0].Addr
-			session, err := s.clusterSession(ctx, clusterID, cluster.SingleHostSessionConfigOption(descSchemaHost))
-			if err != nil {
-				if errors.Is(err, cluster.ErrNoCQLCredentials) {
-					w.Logger.Error(ctx, "No CQL cluster credentials, backup of schema as CQL files will be skipped", "error", err)
-					return nil
-				}
-				return errors.Wrapf(err, "create single host (%s) session to", descSchemaHost)
-			}
-			defer session.Close()
-
-			var hosts []string
-			for _, h := range hi {
-				hosts = append(hosts, h.IP)
-			}
-			if err := w.DumpSchema(ctx, session, hosts); err != nil {
-				return errors.Wrap(err, "dump schema")
-			}
-
-			return nil
+			return w.DumpSchema(ctx, hi, s.clusterSession)
 		},
 		StageIndex: func() error {
 			return w.Index(ctx, hi, target.UploadParallel)
