@@ -35,36 +35,29 @@ func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc clus
 		return errors.Wrap(err, "get hosts supporting backup/restore from desc schema with internals")
 	}
 
-	var session gocqlx.Session
 	if len(descSchemaHosts) > 0 {
-		session, err = w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
-	} else {
-		session, err = sessionFunc(ctx, w.ClusterID)
+		return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc)
 	}
-	if err != nil {
-		if errors.Is(err, cluster.ErrNoCQLCredentials) {
-			w.Logger.Error(ctx, "No CQL cluster credentials, backup of schema as CQL files will be skipped", "error", err)
-			return nil
-		}
-		return errors.Wrapf(err, "create cql session")
-	}
-	defer session.Close()
-
-	if len(descSchemaHosts) > 0 {
-		return w.safeDumpSchema(ctx, session)
-	}
-	w.unsafeDumpSchema(ctx, session)
+	w.unsafeBackupAndRestoreSchemaDump(ctx, sessionFunc)
 	return nil
 }
 
-func (w *worker) safeDumpSchema(ctx context.Context, session gocqlx.Session) error {
-	w.Logger.Info(ctx, "Schema backup for used ScyllaDB version is done via DESCRIBE SCHEMA WITH INTERNALS CQL query. "+
-		"ScyllaDB Manager will snapshot system_schema sstables, but they won't be used during schema restoration")
-	if err := query.RaftReadBarrier(session); err != nil {
-		w.Logger.Error(ctx, "Couldn't perform raft read barrier, backup of schema as CQL files will be skipped "+
-			"(restoring schema from this backup won't be possible)", "error", err)
-		return nil
+func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc) error {
+	w.Logger.Info(ctx, "Back up schema from DESCRIBE SCHEMA WITH INTERNALS")
+
+	session, err := w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
+	if err != nil {
+		if errors.Is(err, cluster.ErrNoCQLCredentials) {
+			err = errors.Wrapf(err, "CQL credentials are required to back up schema for this ScyllaDB version")
+		}
+		return errors.Wrap(err, "create single host CQL session")
 	}
+	defer session.Close()
+
+	if err := query.RaftReadBarrier(session); err != nil {
+		return errors.Wrap(err, "perform raft read barrier on desc schema host")
+	}
+
 	schema, err := query.DescribeSchemaWithInternals(session)
 	if err != nil {
 		return err
@@ -73,23 +66,33 @@ func (w *worker) safeDumpSchema(ctx context.Context, session gocqlx.Session) err
 	if err != nil {
 		return errors.Wrap(err, "create safe schema file")
 	}
+
 	w.SchemaFilePath = backupspec.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	w.Schema = b
 	return nil
 }
 
-func (w *worker) unsafeDumpSchema(ctx context.Context, session gocqlx.Session) {
-	w.Logger.Info(ctx, "Schema backup for used ScyllaDB version is done via snapshot of system_schema sstables. "+
-		"ScyllaDB Manager will try to create unsafe schema CQL archive, but it won't be used during schema restoration")
+func (w *worker) unsafeBackupAndRestoreSchemaDump(ctx context.Context, sessionFunc cluster.SessionFunc) {
+	w.Logger.Info(ctx, "Back up schema from sstables")
+	const explanation = ", backup of schema as CQL files will be skipped (for this ScyllaDB version schema is restored directly from sstables)"
+
+	session, err := sessionFunc(ctx, w.ClusterID)
+	if err != nil {
+		w.Logger.Error(ctx, "Couldn't create CQL session"+explanation, "error", err)
+		return
+	}
+	defer session.Close()
+
 	if err := session.AwaitSchemaAgreement(ctx); err != nil {
-		w.Logger.Error(ctx, "Couldn't await schema agreement, backup of unsafe schema as CQL files will be skipped", "error", err)
+		w.Logger.Error(ctx, "Couldn't await schema agreement"+explanation, "error", err)
 		return
 	}
 	b, err := createUnsafeSchemaArchive(ctx, w.Units, session)
 	if err != nil {
-		w.Logger.Error(ctx, "Couldn't create unsafe schema archive, backup of unsafe schema as CQL files will be skipped", "error", err)
+		w.Logger.Error(ctx, "Couldn't create schema archive"+explanation, "error", err)
 		return
 	}
+
 	w.SchemaFilePath = backupspec.RemoteUnsafeSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	w.Schema = b
 }
