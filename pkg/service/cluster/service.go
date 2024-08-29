@@ -649,7 +649,8 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID, opts ...S
 
 // ErrNoCQLCredentials is returned when cluster CQL credentials are required to create session,
 // but they weren't added to the SM.
-var ErrNoCQLCredentials = errors.New("cluster requires CQL authentication but username/password was not set")
+var ErrNoCQLCredentials = errors.New("cluster requires CQL authentication but username/password was not set. " +
+	"Use 'sctool cluster update --username --password' for adding them")
 
 func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni *scyllaclient.NodeInfo, cfg *gocql.ClusterConfig) error {
 	if ni.CqlPasswordProtected {
@@ -705,13 +706,18 @@ func (s *Service) extendClusterConfigWithTLS(ctx context.Context, clusterID uuid
 	return nil
 }
 
+// ErrNoTLSIdentity is returned when cluster TSL/SSL key/cert is required to create session,
+// but they weren't added to the SM.
+var ErrNoTLSIdentity = errors.New("cluster requires encryption authentication but TSL/SSL key/cert were not set. " +
+	"Use 'sctool cluster update --ssl-user-key-file --ssl-user-cert-file' for adding them")
+
 func (s *Service) loadTLSIdentity(clusterID uuid.UUID) (tls.Certificate, error) {
 	tlsIdentity := secrets.TLSIdentity{
 		ClusterID: clusterID,
 	}
 	err := s.secretsStore.Get(&tlsIdentity)
 	if errors.Is(err, util.ErrNotFound) {
-		return tls.Certificate{}, errors.Wrap(err, "TLS/SSL key/cert is not registered")
+		return tls.Certificate{}, ErrNoTLSIdentity
 	}
 	if err != nil {
 		return tls.Certificate{}, errors.Wrap(err, "get TLS/SSL identity")
