@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/auth"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/httphandler"
+	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
 )
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)
@@ -26,8 +26,8 @@ func newRouter(c agent.Config, metrics AgentMetrics, rclone http.Handler, logger
 		RequestLogger(logger, metrics),
 	)
 	// Common endpoints
-	r.Get("/ping", httphandler.Heartbeat())
-	r.Get("/version", httphandler.Version())
+	r.Get("/ping", restapi.Heartbeat())
+	r.Get("/version", restapi.Version())
 
 	// Restricted access endpoints
 	priv := r.With(
