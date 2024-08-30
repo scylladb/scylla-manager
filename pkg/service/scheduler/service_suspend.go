@@ -12,8 +12,8 @@ import (
 	"github.com/scylladb/go-set/b16set"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -72,7 +72,7 @@ func (s *Service) initSuspended() error {
 	for _, c := range clusters {
 		si := &suspendInfo{ClusterID: c}
 		if err := s.drawer.Get(si); err != nil {
-			if !errors.Is(err, service.ErrNotFound) {
+			if !errors.Is(err, util.ErrNotFound) {
 				return err
 			}
 		} else {
@@ -222,7 +222,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	}
 	si := &suspendInfo{ClusterID: clusterID}
 	if err := s.drawer.Get(si); err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, util.ErrNotFound) {
 			s.logger.Error(ctx, "Expected canceled tasks got none")
 		} else {
 			s.mu.Unlock()
@@ -286,7 +286,7 @@ type suspendRunner struct {
 func (s suspendRunner) Run(ctx context.Context, clusterID, _, _ uuid.UUID, properties json.RawMessage) error {
 	p, err := GetSuspendProperties(properties)
 	if err != nil {
-		return service.ErrValidate(err)
+		return util.ErrValidate(err)
 	}
 
 	if p.Resume {

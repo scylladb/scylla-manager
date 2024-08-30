@@ -16,9 +16,9 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
@@ -319,10 +319,10 @@ func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclien
 
 	// Validate locations access
 	if len(liveNodes) == 0 {
-		return nil, service.ErrValidate(errors.Errorf("wrong location"))
+		return nil, util.ErrValidate(errors.Errorf("wrong location"))
 	}
 	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, target.Location); err != nil {
-		return nil, service.ErrValidate(errors.Wrap(err, "location is not accessible"))
+		return nil, util.ErrValidate(errors.Wrap(err, "location is not accessible"))
 	}
 
 	return liveNodes, nil

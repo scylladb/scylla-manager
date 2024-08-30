@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package service
+package util
 
 import (
 	"github.com/gocql/gocql"

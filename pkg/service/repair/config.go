@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"go.uber.org/multierr"
 )
 
@@ -44,7 +44,7 @@ func DefaultConfig() Config {
 
 func (c *Config) Validate() error {
 	if c == nil {
-		return service.ErrNilPtr
+		return util.ErrNilPtr
 	}
 
 	var err error

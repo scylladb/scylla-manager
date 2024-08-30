@@ -20,8 +20,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/logutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
@@ -293,7 +293,7 @@ func (s *Service) GetClusterByName(ctx context.Context, name string) (*Cluster, 
 
 	switch len(clusters) {
 	case 0:
-		return nil, service.ErrNotFound
+		return nil, util.ErrNotFound
 	case 1:
 		return clusters[0], nil
 	default:
@@ -322,7 +322,7 @@ func (s *Service) GetClusterName(ctx context.Context, id uuid.UUID) (string, err
 func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	s.logger.Debug(ctx, "PutCluster", "cluster", c)
 	if c == nil {
-		return service.ErrNilPtr
+		return util.ErrNilPtr
 	}
 
 	t := Update
@@ -337,7 +337,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		// User may set ID on his own
 		_, err := s.GetClusterByID(ctx, c.ID)
 		if err != nil {
-			if !errors.Is(err, service.ErrNotFound) {
+			if !errors.Is(err, util.ErrNotFound) {
 				return err
 			}
 			t = Create
@@ -358,12 +358,12 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	// Check for conflicting cluster names.
 	if c.Name != "" {
 		conflict, err := s.GetClusterByName(ctx, c.Name)
-		if !errors.Is(err, service.ErrNotFound) {
+		if !errors.Is(err, util.ErrNotFound) {
 			if err != nil {
 				return err
 			}
 			if conflict.ID != c.ID {
-				return service.ErrValidate(errors.Errorf("name %q is already taken", c.Name))
+				return util.ErrValidate(errors.Errorf("name %q is already taken", c.Name))
 			}
 		}
 	}
@@ -489,7 +489,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	}
 	live := status.Live().Hosts()
 	if len(live) == 0 {
-		return service.ErrValidate(errors.New("no live nodes"))
+		return util.ErrValidate(errors.New("no live nodes"))
 	}
 
 	var errs error
@@ -497,7 +497,7 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 		errs = multierr.Append(errs, errors.Wrap(err, live[i]))
 	}
 	if errs != nil {
-		return service.ErrValidate(errors.Wrap(errs, "connectivity check"))
+		return util.ErrValidate(errors.Wrap(errs, "connectivity check"))
 	}
 	return nil
 }
@@ -657,7 +657,7 @@ func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni 
 			ClusterID: clusterID,
 		}
 		err := s.secretsStore.Get(&credentials)
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, util.ErrNotFound) {
 			return ErrNoCQLCredentials
 		}
 		if err != nil {
@@ -710,7 +710,7 @@ func (s *Service) loadTLSIdentity(clusterID uuid.UUID) (tls.Certificate, error) 
 		ClusterID: clusterID,
 	}
 	err := s.secretsStore.Get(&tlsIdentity)
-	if errors.Is(err, service.ErrNotFound) {
+	if errors.Is(err, util.ErrNotFound) {
 		return tls.Certificate{}, errors.Wrap(err, "TLS/SSL key/cert is not registered")
 	}
 	if err != nil {

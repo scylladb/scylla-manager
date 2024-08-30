@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -45,7 +45,7 @@ func (c *Cluster) String() string {
 
 func (c *Cluster) Validate() error {
 	if c == nil {
-		return errors.Wrap(service.ErrNilPtr, "invalid filter")
+		return errors.Wrap(util.ErrNilPtr, "invalid filter")
 	}
 
 	var errs error
@@ -69,7 +69,7 @@ func (c *Cluster) Validate() error {
 		errs = multierr.Append(errs, errors.Wrap(err, "invalid SSL user key pair"))
 	}
 
-	return service.ErrValidate(errors.Wrap(errs, "invalid cluster"))
+	return util.ErrValidate(errors.Wrap(errs, "invalid cluster"))
 }
 
 // AllHosts returns KnownHosts with Host at the front and without duplicates.
@@ -89,7 +89,7 @@ type Filter struct {
 
 func (f *Filter) Validate() error {
 	if f == nil {
-		return service.ErrNilPtr
+		return util.ErrNilPtr
 	}
 
 	var err error

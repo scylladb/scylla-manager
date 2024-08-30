@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 )
 
 type repairHandler struct {
@@ -35,7 +35,7 @@ func (h repairHandler) intensity(r *http.Request) (float64, error) {
 	// Read intensity from the request
 	if v := r.FormValue("intensity"); v != "" {
 		if intensity, err = strconv.ParseFloat(v, 64); err != nil {
-			return 0, service.ErrValidate(err)
+			return 0, util.ErrValidate(err)
 		}
 	}
 
@@ -51,7 +51,7 @@ func (h repairHandler) parallel(r *http.Request) (int64, error) {
 	// Read parallel value from the request
 	if v := r.FormValue("parallel"); v != "" {
 		if parallel, err = strconv.ParseInt(v, 10, 64); err != nil {
-			return parallel, service.ErrValidate(err)
+			return parallel, util.ErrValidate(err)
 		}
 	}
 

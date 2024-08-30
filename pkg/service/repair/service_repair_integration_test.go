@@ -35,11 +35,11 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
@@ -161,7 +161,7 @@ func (h *repairTestHelper) assertRunning(wait time.Duration) {
 	WaitCond(h.T, func() bool {
 		p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 		if err != nil {
-			if errors.Is(err, service.ErrNotFound) {
+			if errors.Is(err, util.ErrNotFound) {
 				return false
 			}
 			h.T.Fatal(err)
@@ -1527,7 +1527,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		WaitCond(h.T, func() bool {
 			_, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 			if err != nil {
-				if errors.Is(err, service.ErrNotFound) {
+				if errors.Is(err, util.ErrNotFound) {
 					return false
 				}
 				h.T.Fatal(err)

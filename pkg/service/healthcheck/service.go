@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
@@ -19,7 +20,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/dynamoping"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -378,7 +378,7 @@ func (s *Service) cqlCreds(ctx context.Context, clusterID uuid.UUID) *secrets.CQ
 	err := s.secretsStore.Get(cqlCreds)
 	if err != nil {
 		cqlCreds = nil
-		if !errors.Is(err, service.ErrNotFound) {
+		if !errors.Is(err, util.ErrNotFound) {
 			s.logger.Error(ctx, "Failed to load CQL credentials from secrets store", "cluster_id", clusterID, "error", err)
 		}
 	}

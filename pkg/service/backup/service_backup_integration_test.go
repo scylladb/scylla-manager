@@ -28,13 +28,13 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -567,7 +567,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 		putRun(t, r1)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
-		if !errors.Is(err, service.ErrNotFound) {
+		if !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -597,7 +597,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 		putRun(t, r1)
 
 		_, err := h.service.GetLastResumableRun(ctx, clusterID, taskID)
-		if !errors.Is(err, service.ErrNotFound) {
+		if !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
