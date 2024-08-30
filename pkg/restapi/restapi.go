@@ -12,7 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/httphandler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
 	"github.com/scylladb/scylla-manager/v3/swagger-ui"
 )
@@ -37,9 +36,9 @@ func New(services Services, logger log.Logger) http.Handler {
 	r.Handle("/ui", http.RedirectHandler("/ui/", http.StatusMovedPermanently))
 	r.Mount("/ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(swagger.UI()))))
 
-	r.Get("/ping", httphandler.Heartbeat())
-	r.Get("/version", httphandler.Version())
-	r.Get("/api/v1/version", httphandler.Version()) // For backwards compatibility
+	r.Get("/ping", Heartbeat())
+	r.Get("/version", Version())
+	r.Get("/api/v1/version", Version()) // For backwards compatibility
 
 	r.Mount("/api/v1/", newClusterHandler(services.Cluster))
 	f := clusterFilter{svc: services.Cluster}.clusterCtx

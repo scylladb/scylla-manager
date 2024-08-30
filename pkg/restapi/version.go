@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package httphandler
+package restapi
 
 import (
 	"net/http"
