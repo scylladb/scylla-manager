@@ -4,13 +4,14 @@ package cqlping
 
 import (
 	"context"
-	"github.com/scylladb/go-log"
 	"net"
 	"testing"
 	"time"
 
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestPingTimeout(t *testing.T) {
@@ -47,7 +48,7 @@ func TestPingTimeout(t *testing.T) {
 		if err != ping.ErrTimeout {
 			t.Errorf("NativeCQLPing() error %s, expected timeout", err)
 		}
-		if a, b := testutils.EpsilonRange(config.Timeout); d < a || d > b {
+		if a, b := util.EpsilonRange(config.Timeout); d < a || d > b {
 			t.Errorf("NativeCQLPing() not within expected time margin %v got %v", config.Timeout, d)
 		}
 	})
@@ -57,7 +58,7 @@ func TestPingTimeout(t *testing.T) {
 		if err != ping.ErrTimeout {
 			t.Errorf("QueryPing() error %s, expected timeout", err)
 		}
-		if a, b := testutils.EpsilonRange(config.Timeout); d < a || d > b {
+		if a, b := util.EpsilonRange(config.Timeout); d < a || d > b {
 			t.Errorf("QueryPing() not within expected time margin %v got %v", config.Timeout, d)
 		}
 	})

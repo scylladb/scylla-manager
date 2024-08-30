@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/atomic"
 )
@@ -66,7 +66,7 @@ func TestRun(t *testing.T) {
 				t.Error("Run() error", err)
 			}
 			d := timeutc.Since(start)
-			if a, b := testutils.EpsilonRange(test.Duration); d < a || d > b {
+			if a, b := util.EpsilonRange(test.Duration); d < a || d > b {
 				t.Errorf("Run() not within expected time margin %v got %v", test.Duration, d)
 			}
 		})
