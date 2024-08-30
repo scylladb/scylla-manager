@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package testutils
+package util
 
 import "time"
 

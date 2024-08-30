@@ -3,7 +3,7 @@
 //go:build all || integration
 // +build all integration
 
-package netwait
+package testutils
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/netwait"
 )
 
 func TestWaiterTimeoutIntegration(t *testing.T) {
@@ -28,7 +28,7 @@ func TestWaiterTimeoutIntegration(t *testing.T) {
 	}
 	defer RunIptablesCommand(host, CmdUnblockScyllaCQL)
 
-	w := &Waiter{
+	w := &netwait.Waiter{
 		DialTimeout:  5 * time.Millisecond,
 		RetryBackoff: 10 * time.Millisecond,
 		MaxAttempts:  10,
