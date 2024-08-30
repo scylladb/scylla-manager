@@ -9,7 +9,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 )
 
 func TestRespondError(t *testing.T) {
@@ -30,7 +30,7 @@ func TestRespondError(t *testing.T) {
 	})
 
 	t.Run("validation", func(t *testing.T) {
-		err := service.ErrValidate(errors.New("some problem"))
+		err := util.ErrValidate(errors.New("some problem"))
 		response := httptest.NewRecorder()
 
 		respondError(response, request, errors.Wrap(err, "specific_msg"))
