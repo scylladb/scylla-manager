@@ -18,12 +18,12 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -173,7 +173,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		setup(t)
 
 		c, err := s.GetClusterByID(ctx, uuid.MustRandom())
-		if !errors.Is(err, service.ErrNotFound) {
+		if !errors.Is(err, util.ErrNotFound) {
 			t.Fatal("expected not found")
 		}
 		if c != nil {
@@ -405,13 +405,13 @@ func TestServiceStorageIntegration(t *testing.T) {
 		cqlCreds := &secrets.CQLCreds{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(cqlCreds); !errors.Is(err, service.ErrNotFound) {
+		if err := secretsStore.Get(cqlCreds); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 		tlsIdentity := &secrets.TLSIdentity{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, service.ErrNotFound) {
+		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -432,7 +432,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		cqlCreds := &secrets.CQLCreds{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(cqlCreds); !errors.Is(err, service.ErrNotFound) {
+		if err := secretsStore.Get(cqlCreds); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -453,7 +453,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		tlsIdentity := &secrets.TLSIdentity{
 			ClusterID: c.ID,
 		}
-		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, service.ErrNotFound) {
+		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -521,7 +521,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := s.DeleteCluster(ctx, c.ID); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.GetClusterByID(ctx, c.ID); !errors.Is(err, service.ErrNotFound) {
+		if _, err := s.GetClusterByID(ctx, c.ID); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 		if change.ID != c.ID {

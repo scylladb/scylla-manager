@@ -18,8 +18,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler/trigger"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -153,7 +153,7 @@ func (s *Service) forEachTask(f func(t *Task) error) error {
 func (s *Service) markRunningAsAborted(t *Task, endTime time.Time) (bool, error) {
 	r, err := s.getLastRun(t)
 	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, util.ErrNotFound) {
 			return false, nil
 		}
 		return false, err
@@ -234,7 +234,7 @@ func (s *Service) nthRunID(t *Task, n int) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
-	return uuid.Nil, service.ErrNotFound
+	return uuid.Nil, util.ErrNotFound
 }
 
 // GetRun returns a run based on ID. If nothing was found ErrNotFound is returned.
@@ -311,7 +311,7 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 	defer s.mu.Unlock()
 
 	if create && s.isSuspendedLocked(t.ClusterID) {
-		return service.ErrValidate(errors.New("cluster is suspended, scheduling tasks is not allowed"))
+		return util.ErrValidate(errors.New("cluster is suspended, scheduling tasks is not allowed"))
 	}
 
 	if t.Name != "" {
@@ -407,7 +407,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 	}
 
 	if !ok {
-		return service.ErrNotFound
+		return util.ErrNotFound
 	}
 	if err := s.putRunAndUpdateTask(r); err != nil {
 		return errors.Wrap(err, "put run")
@@ -580,7 +580,7 @@ func (s *Service) startTask(ctx context.Context, t *Task, noContinue bool) error
 	s.mu.Lock()
 	if s.isSuspendedLocked(t.ClusterID) {
 		s.mu.Unlock()
-		return service.ErrValidate(errors.New("cluster is suspended"))
+		return util.ErrValidate(errors.New("cluster is suspended"))
 	}
 	l, lok := s.scheduler[t.ClusterID]
 	if !lok {

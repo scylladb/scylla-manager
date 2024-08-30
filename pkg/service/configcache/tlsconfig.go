@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/secrets"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 )
 
 // TLSConfigWithAddress is a concatenation of tls.Config and Address.
@@ -76,7 +76,7 @@ func prepareCertificates(c *cluster.Cluster, secretsStore store.Store) (cert tls
 		ClusterID: c.ID,
 	}
 	if err := secretsStore.Get(id); err != nil {
-		if !errors.Is(err, service.ErrNotFound) {
+		if !errors.Is(err, util.ErrNotFound) {
 			return tls.Certificate{}, errors.Wrap(err, "fetch TLS config")
 		}
 		return tls.Certificate{}, errors.Wrap(err, "client encryption is enabled, but certificate is missing")

@@ -4,7 +4,7 @@ package store
 
 import (
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 )
 
 type entryHolder struct {
@@ -27,7 +27,7 @@ func PutWithRollback(store Store, e Entry) (func(), error) {
 		Entry: e,
 	}
 
-	if err := store.Get(old); err != nil && !errors.Is(err, service.ErrNotFound) {
+	if err := store.Get(old); err != nil && !errors.Is(err, util.ErrNotFound) {
 		return nil, errors.Wrap(err, "get")
 	}
 	if err := store.Put(e); err != nil {

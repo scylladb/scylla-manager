@@ -21,12 +21,12 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	sched "github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
@@ -177,7 +177,7 @@ func (h *schedulerTestHelper) getStatus(task *scheduler.Task) scheduler.Status {
 	h.t.Helper()
 	r, err := h.service.GetLastRun(task)
 	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, util.ErrNotFound) {
 			return ""
 		}
 		h.t.Fatal(err)
