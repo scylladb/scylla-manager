@@ -12,7 +12,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler/trigger"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -347,7 +347,7 @@ func (t *Task) String() string {
 
 func (t *Task) Validate() error {
 	if t == nil {
-		return service.ErrNilPtr
+		return util.ErrNilPtr
 	}
 
 	var errs error
@@ -368,7 +368,7 @@ func (t *Task) Validate() error {
 		errs = multierr.Append(errs, tp.UnmarshalText([]byte(t.Type)))
 	}
 
-	return service.ErrValidate(errors.Wrap(errs, "invalid task"))
+	return util.ErrValidate(errors.Wrap(errs, "invalid task"))
 }
 
 // Status specifies the status of a Task.

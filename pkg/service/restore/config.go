@@ -4,7 +4,7 @@ package restore
 
 import (
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 )
 
 // Config specifies the backup service configuration.
@@ -22,7 +22,7 @@ func DefaultConfig() Config {
 
 func (c *Config) Validate() error {
 	if c == nil {
-		return service.ErrNilPtr
+		return util.ErrNilPtr
 	}
 
 	if c.DiskSpaceFreeMinPercent < 0 || c.DiskSpaceFreeMinPercent >= 100 {

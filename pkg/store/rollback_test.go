@@ -5,7 +5,7 @@ package store
 import (
 	"testing"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -43,7 +43,7 @@ func (t *testStore) Put(e Entry) error {
 
 func (t *testStore) Get(e Entry) error {
 	if len(*t) == 0 {
-		return service.ErrNotFound
+		return util.ErrNotFound
 	}
 	return e.UnmarshalBinary(*t)
 }

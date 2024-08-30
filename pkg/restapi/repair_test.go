@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -70,7 +70,7 @@ func TestRepairSetIntensity(t *testing.T) {
 
 	t.Run("not found when service returns not found error intensity", func(t *testing.T) {
 		cm.EXPECT().GetCluster(gomock.Any(), cluster.ID.String()).Return(cluster, nil)
-		rm.EXPECT().SetIntensity(gomock.Any(), cluster.ID, intensity).Return(service.ErrNotFound)
+		rm.EXPECT().SetIntensity(gomock.Any(), cluster.ID, intensity).Return(util.ErrNotFound)
 
 		r := updateIntensityRequest(cluster.ID, intensity)
 		w := httptest.NewRecorder()
@@ -95,7 +95,7 @@ func TestRepairSetIntensity(t *testing.T) {
 
 	t.Run("not found when service returns not found error parallel", func(t *testing.T) {
 		cm.EXPECT().GetCluster(gomock.Any(), cluster.ID.String()).Return(cluster, nil)
-		rm.EXPECT().SetParallel(gomock.Any(), cluster.ID, parallel).Return(service.ErrNotFound)
+		rm.EXPECT().SetParallel(gomock.Any(), cluster.ID, parallel).Return(util.ErrNotFound)
 
 		r := updateParallelRequest(cluster.ID, parallel)
 		w := httptest.NewRecorder()

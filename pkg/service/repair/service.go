@@ -17,8 +17,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -80,7 +80,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Parse task properties
 	if err := json.Unmarshal(properties, &props); err != nil {
-		return Target{}, service.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
+		return Target{}, util.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
 	}
 
 	// Copy basic properties
@@ -108,7 +108,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Make it clear that repairing single node cluster does not make any sense (#1257)
 	if len(status) < 1 {
-		return t, service.ErrValidate(errors.New("repairing single node cluster does not have any effect"))
+		return t, util.ErrValidate(errors.New("repairing single node cluster does not have any effect"))
 	}
 	// Filter DCs
 	if t.DC, err = dcfilter.Apply(dcMap, props.DC); err != nil {
@@ -124,7 +124,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 	// Ensure Host belongs to DCs
 	if t.Host != "" && !hostBelongsToDCs(t.Host, t.DC, dcMap) {
-		return t, service.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
+		return t, util.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
 	}
 
 	// Get potential units - all tables matched by keyspace flag
@@ -423,10 +423,10 @@ func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensi
 
 	ih, ok := s.intensityHandlers[clusterID]
 	if !ok {
-		return errors.Wrap(service.ErrNotFound, "repair task")
+		return errors.Wrap(util.ErrNotFound, "repair task")
 	}
 	if intensity < 0 {
-		return service.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
+		return util.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
 	}
 	ih.SetIntensity(ctx, NewIntensityFromDeprecated(intensity))
 	// Preserve applied change in SM DB, so that it will be visible in next task runs
@@ -446,10 +446,10 @@ func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel
 
 	ih, ok := s.intensityHandlers[clusterID]
 	if !ok {
-		return errors.Wrap(service.ErrNotFound, "repair task")
+		return errors.Wrap(util.ErrNotFound, "repair task")
 	}
 	if parallel < 0 {
-		return service.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
+		return util.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
 	}
 	ih.SetParallel(ctx, parallel)
 	// Preserve applied change in SM DB, so that it will be visible in next task runs

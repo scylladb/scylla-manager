@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
 	"go.uber.org/multierr"
 )
@@ -39,7 +39,7 @@ func NewFilter(filters []string) (*Filter, error) {
 		}
 	}
 	if errs != nil {
-		return nil, service.ErrValidate(errors.Wrap(errs, "invalid filters"))
+		return nil, util.ErrValidate(errors.Wrap(errs, "invalid filters"))
 	}
 
 	// Decorate filters and create inexlist
@@ -128,7 +128,7 @@ func (f *Filter) Check(keyspace, table string) bool {
 // The validation error may be disabled by providing the force=true.
 func (f *Filter) Apply(force bool) ([]Unit, error) {
 	if len(f.units) == 0 && !force {
-		return nil, service.ErrValidate(errors.Errorf("no keyspace matched criteria %s - available keyspaces are: %s", f.filters, f.keyspaces))
+		return nil, util.ErrValidate(errors.Errorf("no keyspace matched criteria %s - available keyspaces are: %s", f.filters, f.keyspaces))
 	}
 
 	// Sort units by the presence

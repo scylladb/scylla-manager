@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
 )
 
@@ -28,7 +28,7 @@ func Apply(dcMap map[string][]string, filters []string) ([]string, error) {
 
 	// Report error if there is no match
 	if len(filtered) == 0 {
-		return nil, service.ErrValidate(errors.Errorf("no matching DCs found for filters %s", filters))
+		return nil, util.ErrValidate(errors.Errorf("no matching DCs found for filters %s", filters))
 	}
 
 	// Sort lexicographically

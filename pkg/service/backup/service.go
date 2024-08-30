@@ -20,10 +20,10 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
@@ -124,7 +124,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 
 	p := defaultTaskProperties()
 	if err := json.Unmarshal(properties, &p); err != nil {
-		return Target{}, service.ErrValidate(err)
+		return Target{}, util.ErrValidate(err)
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -253,7 +253,7 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 	}
 
 	// Run checkHostLocation in parallel
-	return service.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
+	return util.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
@@ -461,7 +461,7 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, f func(ManifestInfoWithContent) error) error {
 	// Validate inputs
 	if len(locations) == 0 {
-		return service.ErrValidate(errors.New("empty locations"))
+		return util.ErrValidate(errors.New("empty locations"))
 	}
 
 	// Get the cluster client
@@ -815,7 +815,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // sets PrevID on the given run.
 func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 	prev, err := s.GetLastResumableRun(ctx, run.ClusterID, run.TaskID)
-	if errors.Is(err, service.ErrNotFound) {
+	if errors.Is(err, util.ErrNotFound) {
 		return nil
 	}
 	if err != nil {
@@ -905,7 +905,7 @@ func (s *Service) GetLastResumableRun(ctx context.Context, clusterID, taskID uui
 		}
 	}
 
-	return nil, service.ErrNotFound
+	return nil, util.ErrNotFound
 }
 
 // putRun upserts a backup run.
@@ -1101,7 +1101,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	if deletedManifests.Load() == 0 {
-		return service.ErrNotFound
+		return util.ErrNotFound
 	}
 
 	return nil
