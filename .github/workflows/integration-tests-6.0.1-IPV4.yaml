@@ -100,7 +100,7 @@ jobs:
             - name: Run migrate tests
               run: make pkg-integration-test PKG=./pkg/schema/migrate
             - name: Run netwait tests
-              run: make pkg-integration-test PKG=./pkg/util/netwait
+              run: make pkg-integration-test PKG=./v3/pkg/util/netwait
 name: integration-tests-6.0.1-IPV4
 "on":
     pull_request:
