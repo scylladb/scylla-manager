@@ -31,7 +31,7 @@ require (
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
-	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902085609-d14eed1d24a2
+	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902114746-64513d98fa9a
 	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20240902095357-774019f5533d
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/spf13/cobra v1.8.0
