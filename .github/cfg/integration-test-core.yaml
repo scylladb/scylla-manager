@@ -130,4 +130,4 @@ jobs:
         run: make pkg-integration-test PKG=./pkg/schema/migrate
 
       - name: Run netwait tests
-        run: make pkg-integration-test PKG=./pkg/util/netwait
+        run: make pkg-integration-test PKG=./v3/pkg/util/netwait
