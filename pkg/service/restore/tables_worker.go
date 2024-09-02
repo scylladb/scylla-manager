@@ -80,7 +80,10 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 			return w.stageDropViews(ctx)
 		},
 		StageDisableCompaction: func() error {
-			return w.stageDisableCompaction(ctx, hosts)
+			if w.target.DisableCompaction {
+				return w.stageDisableCompaction(ctx, hosts)
+			}
+			return nil
 		},
 		StageDisableTGC: func() error {
 			return w.stageDisableTGC(ctx)
@@ -95,7 +98,10 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 			return w.stageEnableTGC(ctx)
 		},
 		StageEnableCompaction: func() error {
-			return w.stageEnableCompaction(ctx, hosts)
+			if w.target.DisableCompaction {
+				return w.stageEnableCompaction(ctx, hosts)
+			}
+			return nil
 		},
 		StageRecreateViews: func() error {
 			return w.stageRecreateViews(ctx)

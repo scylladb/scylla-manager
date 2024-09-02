@@ -30,6 +30,7 @@ type Target struct {
 	RestoreTables       bool       `json:"restore_tables,omitempty"`
 	UnpinAgentCPU       bool       `json:"unpin_agent_cpu"`
 	StreamToAllReplicas bool       `json:"stream_to_all_replicas"`
+	DisableCompaction   bool       `json:"disable_compaction"`
 	Continue            bool       `json:"continue"`
 
 	// Cache for host with access to remote location
