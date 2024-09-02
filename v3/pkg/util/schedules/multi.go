@@ -1,17 +1,15 @@
 // Copyright (C) 2017 ScyllaDB
 
-package trigger
+package schedules
 
 import (
 	"time"
-
-	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 )
 
-type multi []scheduler.Trigger
+type multi []Trigger
 
 // NewMulti returns a trigger that joins multiple triggers.
-func NewMulti(t ...scheduler.Trigger) scheduler.Trigger {
+func NewMulti(t ...Trigger) Trigger {
 	return multi(t)
 }
 

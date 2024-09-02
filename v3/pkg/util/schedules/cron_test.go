@@ -1,6 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
-package trigger
+package schedules
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ func TestCronInDifferentLocations(t *testing.T) {
 	cronHour := timeutc.Now().Add(-8 * time.Hour).Hour()
 	cronTime := fmt.Sprintf("0 %d * * *", cronHour)
 
-	c, err := NewCron(cronTime)
+	c, err := NewCronTrigger(cronTime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestCronInDifferentLocations(t *testing.T) {
 }
 
 func TestCronUTC(t *testing.T) {
-	c, err := NewCron("0 4 * * *")
+	c, err := NewCronTrigger("0 4 * * *")
 	if err != nil {
 		t.Fatal(err)
 	}

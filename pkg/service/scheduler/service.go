@@ -16,12 +16,12 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
-	"github.com/scylladb/scylla-manager/v3/pkg/scheduler/trigger"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
+	trigger2 "github.com/scylladb/scylla-manager/v3/pkg/util/schedules/trigger"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -346,7 +346,7 @@ func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	if t.Enabled {
 		d := details(t)
 		if run {
-			d.Trigger = trigger.NewMulti(trigger.NewOnce(), d.Trigger)
+			d.Trigger = trigger2.NewMulti(trigger2.NewOnce(), d.Trigger)
 		}
 		l.Schedule(ctx, t.ID, d)
 	} else {
@@ -596,7 +596,7 @@ func (s *Service) startTask(ctx context.Context, t *Task, noContinue bool) error
 	// tasks we need to reschedule them to run once.
 	if !l.Trigger(ctx, t.ID) {
 		d := details(t)
-		d.Trigger = trigger.NewOnce()
+		d.Trigger = trigger2.NewOnce()
 		l.Schedule(ctx, t.ID, d)
 	}
 	return nil
