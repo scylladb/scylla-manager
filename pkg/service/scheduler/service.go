@@ -21,7 +21,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
-	trigger2 "github.com/scylladb/scylla-manager/v3/pkg/util/schedules/trigger"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -346,7 +346,7 @@ func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	if t.Enabled {
 		d := details(t)
 		if run {
-			d.Trigger = trigger2.NewMulti(trigger2.NewOnce(), d.Trigger)
+			d.Trigger = schedules.NewMulti(schedules.NewOnce(), d.Trigger)
 		}
 		l.Schedule(ctx, t.ID, d)
 	} else {
@@ -596,7 +596,7 @@ func (s *Service) startTask(ctx context.Context, t *Task, noContinue bool) error
 	// tasks we need to reschedule them to run once.
 	if !l.Trigger(ctx, t.ID) {
 		d := details(t)
-		d.Trigger = trigger2.NewOnce()
+		d.Trigger = schedules.NewOnce()
 		l.Schedule(ctx, t.ID, d)
 	}
 	return nil

@@ -392,7 +392,7 @@ github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902085609-d14eed1d24a2
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902114746-64513d98fa9a
 ## explicit; go 1.21.1
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
@@ -418,6 +418,7 @@ github.com/scylladb/scylla-manager/v3/pkg/util/pointer
 github.com/scylladb/scylla-manager/v3/pkg/util/prom
 github.com/scylladb/scylla-manager/v3/pkg/util/query
 github.com/scylladb/scylla-manager/v3/pkg/util/retry
+github.com/scylladb/scylla-manager/v3/pkg/util/schedules
 github.com/scylladb/scylla-manager/v3/pkg/util/slice
 github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid

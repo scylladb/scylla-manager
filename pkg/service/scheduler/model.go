@@ -14,7 +14,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	trigger2 "github.com/scylladb/scylla-manager/v3/pkg/util/schedules/trigger"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
@@ -184,21 +184,21 @@ func (tz Timezone) Location() *time.Location {
 type Schedule struct {
 	gocqlx.UDT `json:"-"`
 
-	Cron      Cron      `json:"cron"`
-	Window    Window    `json:"window"`
-	Timezone  Timezone  `json:"timezone"`
-	StartDate time.Time `json:"start_date"`
+	Cron      schedules.Cron `json:"cron"`
+	Window    Window         `json:"window"`
+	Timezone  Timezone       `json:"timezone"`
+	StartDate time.Time      `json:"start_date"`
 	// Deprecated: use cron instead
 	Interval   duration.Duration `json:"interval" db:"interval_seconds"`
 	NumRetries int               `json:"num_retries"`
 	RetryWait  duration.Duration `json:"retry_wait"`
 }
 
-func (s Schedule) trigger() scheduler.Trigger {
+func (s Schedule) trigger() schedules.Trigger {
 	if !s.Cron.IsZero() {
 		return s.Cron
 	}
-	return trigger2.NewLegacy(s.StartDate, s.Interval.Duration())
+	return schedules.NewLegacy(s.StartDate, s.Interval.Duration())
 }
 
 func (s Schedule) backoff() retry.Backoff {

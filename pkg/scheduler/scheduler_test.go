@@ -11,6 +11,7 @@ import (
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/atomic"
@@ -170,7 +171,7 @@ func (f fakeTrigger) Next(now time.Time) time.Time {
 	return time.Time{}
 }
 
-func details(t Trigger) Details {
+func details(t schedules.Trigger) Details {
 	return Details{
 		Trigger: t,
 	}
