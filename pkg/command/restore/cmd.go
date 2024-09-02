@@ -34,6 +34,7 @@ type command struct {
 	restoreTables       bool
 	unpinAgentCPU       bool
 	streamToAllReplicas bool
+	disableCompaction   bool
 	dryRun              bool
 	showTables          bool
 }
@@ -86,6 +87,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.unpinAgentCPU, "unpin-agent-cpu", false, "")
 	w.Unwrap().BoolVar(&cmd.streamToAllReplicas, "stream-to-all-replicas", false, "")
+	w.Unwrap().BoolVar(&cmd.disableCompaction, "disable-compaction", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 }
@@ -177,6 +179,10 @@ func (cmd *command) run(args []string) error {
 			return wrapper("stream-to-all-replicas")
 		}
 		props["stream_to_all_replicas"] = cmd.streamToAllReplicas
+		ok = true
+	}
+	if cmd.Flag("disable-compaction").Changed {
+		props["disable_compaction"] = cmd.disableCompaction
 		ok = true
 	}
 	if cmd.dryRun {
