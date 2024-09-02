@@ -16,9 +16,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.7.0
-	github.com/hbollon/go-edlib v1.5.0
 	github.com/json-iterator/go v1.1.12
-	github.com/lnquy/cron v1.1.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.0
@@ -31,9 +29,9 @@ require (
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
-	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902114746-64513d98fa9a
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20240902095357-774019f5533d
-	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
+	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20240902123022-df2d6812cdb0
+	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902115944-7914bb0d3b80
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20240902115944-7914bb0d3b80
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stoewer/go-strcase v1.3.0
@@ -79,16 +77,18 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.1 // indirect
+	github.com/hbollon/go-edlib v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/lnquy/cron v1.1.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -97,7 +97,9 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/rfjakob/eme v1.1.1 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect

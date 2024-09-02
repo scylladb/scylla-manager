@@ -8,6 +8,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -66,12 +67,12 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		data         []byte
-		expectedSpec CronSpecification
+		expectedSpec schedules.CronSpecification
 	}{
 		{
 			name: "(3.2.6 backward compatibility) unmarshal spec",
 			data: []byte("@every 15s"),
-			expectedSpec: CronSpecification{
+			expectedSpec: schedules.CronSpecification{
 				Spec:      "@every 15s",
 				StartDate: time.Time{},
 			},
@@ -79,7 +80,7 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 		{
 			name: "unmarshal spec full struct zero time",
 			data: []byte(`{"spec": "@every 15s", "start_date": "0001-01-01T00:00:00Z"}`),
-			expectedSpec: CronSpecification{
+			expectedSpec: schedules.CronSpecification{
 				Spec:      "@every 15s",
 				StartDate: time.Time{},
 			},
@@ -87,14 +88,14 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 		{
 			name: "unmarshal spec full struct non-zero time",
 			data: []byte(`{"spec": "@every 15s", "start_date": "` + nonZeroTimeString + `"}`),
-			expectedSpec: CronSpecification{
+			expectedSpec: schedules.CronSpecification{
 				Spec:      "@every 15s",
 				StartDate: nonZeroTime,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var cron, finalCron Cron
+			var cron, finalCron schedules.Cron
 			if err := cron.UnmarshalText(tc.data); err != nil {
 				t.Fatal(err)
 			}
@@ -118,7 +119,7 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 }
 
 func TestNewCronEvery(t *testing.T) {
-	c := NewCronEvery(15*time.Second, time.Time{})
+	c := schedules.NewCronEvery(15*time.Second, time.Time{})
 	if c.IsZero() {
 		t.Fatal()
 	}
@@ -159,7 +160,7 @@ func TestNewCronWithNonZeroStartDate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		c, err := NewCron(tc.cronExpression, parsedStart)
+		c, err := schedules.NewCron(tc.cronExpression, parsedStart)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -171,7 +172,7 @@ func TestNewCronWithNonZeroStartDate(t *testing.T) {
 }
 
 func TestEmptyCron(t *testing.T) {
-	var cron Cron
+	var cron schedules.Cron
 	if err := cron.UnmarshalText(nil); err != nil {
 		t.Fatal(err)
 	}

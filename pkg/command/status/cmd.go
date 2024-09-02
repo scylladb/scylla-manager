@@ -6,7 +6,7 @@ import (
 	_ "embed"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -16,12 +16,12 @@ var res []byte
 
 type command struct {
 	cobra.Command
-	client *managerclient2.Client
+	client *managerclient.Client
 
 	cluster string
 }
 
-func NewCommand(client *managerclient2.Client) *cobra.Command {
+func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := &command{
 		client: client,
 	}
@@ -43,14 +43,14 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run() error {
-	var clusters []*managerclient2.Cluster
+	var clusters []*managerclient.Cluster
 	if cmd.cluster == "" {
 		var err error
 		if clusters, err = cmd.client.ListClusters(cmd.Context()); err != nil {
 			return err
 		}
 	} else {
-		clusters = []*managerclient2.Cluster{{ID: cmd.cluster}}
+		clusters = []*managerclient.Cluster{{ID: cmd.cluster}}
 	}
 
 	w := cmd.OutOrStdout()
@@ -63,10 +63,10 @@ func (cmd *command) run() error {
 	}
 	for _, c := range clusters {
 		if cmd.cluster == "" {
-			managerclient2.FormatClusterName(w, c)
+			managerclient.FormatClusterName(w, c)
 		}
 		if err := h(c.ID); err != nil {
-			managerclient2.PrintError(w, err)
+			managerclient.PrintError(w, err)
 		}
 	}
 
