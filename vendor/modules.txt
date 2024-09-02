@@ -215,7 +215,7 @@ github.com/hailocab/go-hostpool
 # github.com/hashicorp/go-version v1.7.0
 ## explicit
 github.com/hashicorp/go-version
-# github.com/hbollon/go-edlib v1.5.0
+# github.com/hbollon/go-edlib v1.6.0
 ## explicit; go 1.13
 github.com/hbollon/go-edlib
 github.com/hbollon/go-edlib/internal/orderedmap
@@ -262,7 +262,7 @@ github.com/mattn/go-ieproxy
 # github.com/mattn/go-isatty v0.0.16
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.9
+# github.com/mattn/go-runewidth v0.0.16
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
 # github.com/mitchellh/go-homedir v1.1.0
@@ -365,6 +365,9 @@ github.com/rclone/rclone/lib/terminal
 # github.com/rfjakob/eme v1.1.1
 ## explicit
 github.com/rfjakob/eme
+# github.com/rivo/uniseg v0.2.0
+## explicit; go 1.12
+github.com/rivo/uniseg
 # github.com/robfig/cron/v3 v3.0.1
 ## explicit; go 1.12
 github.com/robfig/cron/v3
@@ -392,7 +395,11 @@ github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902114746-64513d98fa9a
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20240902123022-df2d6812cdb0
+## explicit; go 1.21.1
+github.com/scylladb/scylla-manager/v3/pkg/managerclient
+github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20240902115944-7914bb0d3b80
 ## explicit; go 1.21.1
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
@@ -424,7 +431,7 @@ github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid
 github.com/scylladb/scylla-manager/v3/pkg/util/version
 github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
-# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20240902095357-774019f5533d
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20240902115944-7914bb0d3b80
 ## explicit; go 1.21.1
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
