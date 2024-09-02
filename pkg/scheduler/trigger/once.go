@@ -22,7 +22,7 @@ func NewOnce() scheduler.Trigger {
 }
 
 func (o once) Next(now time.Time) time.Time {
-	if o.v.CAS(false, true) {
+	if o.v.CompareAndSwap(false, true) {
 		return now
 	}
 	return time.Time{}
