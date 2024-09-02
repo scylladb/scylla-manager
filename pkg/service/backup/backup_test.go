@@ -140,3 +140,13 @@ func TestFilterDCLimit(t *testing.T) {
 		})
 	}
 }
+
+//func TestBackupStageName(t *testing.T) {
+//	t.Parallel()
+//
+//	for _, s := range backup.StageOrder() {
+//		if s != backup.StageDone && managerclient.BackupStageName(string(s)) == "" {
+//			t.Errorf("%s.Name() is empty", s)
+//		}
+//	}
+//}
