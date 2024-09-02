@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -21,7 +21,7 @@ var updateRes []byte
 
 type command struct {
 	flag.TaskBase
-	client *managerclient.Client
+	client *managerclient2.Client
 
 	cluster             string
 	dc                  []string
@@ -31,12 +31,12 @@ type command struct {
 	ignoreDownHosts     bool
 	intensity           *flag.Intensity
 	parallel            int
-	smallTableThreshold managerclient.SizeSuffix
+	smallTableThreshold managerclient2.SizeSuffix
 	dryRun              bool
 	showTables          bool
 }
 
-func NewCommand(client *managerclient.Client) *cobra.Command {
+func NewCommand(client *managerclient2.Client) *cobra.Command {
 	cmd := newCommand(client, false)
 	updateCmd := newCommand(client, true)
 	cmd.AddCommand(&updateCmd.Command)
@@ -44,7 +44,7 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 	return &cmd.Command
 }
 
-func newCommand(client *managerclient.Client, update bool) *command {
+func newCommand(client *managerclient2.Client, update bool) *command {
 	var (
 		cmd = &command{
 			client:              client,
@@ -90,12 +90,12 @@ func (cmd *command) init() {
 
 func (cmd *command) run(args []string) error {
 	var (
-		task *managerclient.Task
+		task *managerclient2.Task
 		ok   bool
 	)
 
 	if cmd.Update() {
-		a := managerclient.RepairTask
+		a := managerclient2.RepairTask
 		if len(args) > 0 {
 			a = args[0]
 		}
@@ -103,7 +103,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if taskType != managerclient.RepairTask {
+		if taskType != managerclient2.RepairTask {
 			return fmt.Errorf("can't handle %s task", taskType)
 		}
 
@@ -113,7 +113,7 @@ func (cmd *command) run(args []string) error {
 		}
 		ok = cmd.UpdateTask(task)
 	} else {
-		task = cmd.CreateTask(managerclient.RepairTask)
+		task = cmd.CreateTask(managerclient2.RepairTask)
 	}
 
 	props := task.Properties.(map[string]interface{})
@@ -181,6 +181,6 @@ func (cmd *command) run(args []string) error {
 		return errors.New("nothing to do")
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskID(task))
+	fmt.Fprintln(cmd.OutOrStdout(), managerclient2.TaskID(task))
 	return nil
 }
