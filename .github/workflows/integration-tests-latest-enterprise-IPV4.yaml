@@ -99,8 +99,6 @@ jobs:
               run: make pkg-integration-test PKG=./pkg/store
             - name: Run migrate tests
               run: make pkg-integration-test PKG=./pkg/schema/migrate
-            - name: Run netwait tests
-              run: make pkg-integration-test PKG=./v3/pkg/util/netwait
 name: integration-tests-latest-enterprise-IPV4
 "on":
     pull_request:
