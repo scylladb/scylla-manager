@@ -28,6 +28,9 @@ type VersionedSSTable struct {
 
 // FullName returns versioned file name.
 func (vt VersionedSSTable) FullName() string {
+	if vt.Version == "" {
+		return vt.Name
+	}
 	return vt.Name + "." + vt.Version
 }
 
@@ -66,6 +69,9 @@ func IsVersionedFileRemovable(oldest time.Time, versioned string) (bool, error) 
 // SplitNameAndVersion splits versioned file name into its original name and its version.
 func SplitNameAndVersion(versioned string) (name, version string) {
 	versionExt := path.Ext(versioned)
+	if versionExt == "" || !IsSnapshotTag(versionExt[1:]) {
+		return versioned, ""
+	}
 	baseName := strings.TrimSuffix(versioned, versionExt)
 	return baseName, versionExt[1:]
 }
@@ -74,11 +80,7 @@ func SplitNameAndVersion(versioned string) (name, version string) {
 func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapshotTag, host, dir string) (VersionedMap, error) {
 	versionedFiles := make(VersionedMap)
 	allVersions := make(map[string][]VersionedSSTable)
-
-	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly:     true,
-		VersionedOnly: true,
-	}
+	opts := &scyllaclient.RcloneListDirOpts{FilesOnly: true}
 	f := func(item *scyllaclient.RcloneListDirItem) {
 		name, version := SplitNameAndVersion(item.Name)
 		allVersions[name] = append(allVersions[name], VersionedSSTable{
@@ -87,7 +89,6 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 			Size:    item.Size,
 		})
 	}
-
 	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
 		return nil, errors.Wrapf(err, "host %s: listing versioned files", host)
 	}
@@ -97,9 +98,17 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 		return nil, err
 	}
 	// Chose correct version with respect to currently restored snapshot tag
-	for _, versions := range allVersions {
-		var candidate VersionedSSTable
+	for name, versions := range allVersions {
+		var (
+			candidate VersionedSSTable
+			newest    VersionedSSTable
+		)
 		for _, v := range versions {
+			if v.Version == "" {
+				newest = v
+				continue
+			}
+
 			tagT, err := SnapshotTagTime(v.Version)
 			if err != nil {
 				return nil, err
@@ -111,8 +120,10 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 			}
 		}
 
-		if candidate.Version != "" {
-			versionedFiles[candidate.Name] = candidate
+		if candidate.Version == "" {
+			versionedFiles[name] = newest
+		} else {
+			versionedFiles[name] = candidate
 		}
 	}
 

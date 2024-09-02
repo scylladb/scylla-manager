@@ -17,6 +17,18 @@ func newAgentHandler(c agent.Config, rclone http.Handler) *chi.Mux {
 	m := chi.NewMux()
 
 	m.Get("/node_info", newNodeInfoHandler(c).getNodeInfo)
+	m.Post("/pin_cpu", func(writer http.ResponseWriter, request *http.Request) {
+		if _, err := findAndPinToCPUs(c); err != nil {
+			render.Status(request, http.StatusInternalServerError)
+			render.Respond(writer, request, err)
+		}
+	})
+	m.Delete("/pin_cpu", func(writer http.ResponseWriter, request *http.Request) {
+		if err := unpinFromCPUs(); err != nil {
+			render.Status(request, http.StatusInternalServerError)
+			render.Respond(writer, request, err)
+		}
+	})
 	m.Post("/terminate", selfSigterm())
 	m.Post("/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
 		debug.FreeOSMemory()

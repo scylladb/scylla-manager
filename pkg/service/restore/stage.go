@@ -9,14 +9,16 @@ type Stage string
 
 // Stage enumeration.
 const (
-	StageInit          Stage = "INIT"
-	StageDropViews     Stage = "DROP_VIEWS"
-	StageDisableTGC    Stage = "DISABLE_TGC"
-	StageData          Stage = "DATA"
-	StageRepair        Stage = "REPAIR"
-	StageEnableTGC     Stage = "ENABLE_TGC"
-	StageRecreateViews Stage = "RECREATE_VIEWS"
-	StageDone          Stage = "DONE"
+	StageInit              Stage = "INIT"
+	StageDropViews         Stage = "DROP_VIEWS"
+	StageDisableCompaction Stage = "DISABLE_COMPACTION"
+	StageDisableTGC        Stage = "DISABLE_TGC"
+	StageData              Stage = "DATA"
+	StageRepair            Stage = "REPAIR"
+	StageEnableTGC         Stage = "ENABLE_TGC"
+	StageEnableCompaction  Stage = "ENABLE_COMPACTION"
+	StageRecreateViews     Stage = "RECREATE_VIEWS"
+	StageDone              Stage = "DONE"
 )
 
 // StageOrder lists all restore stages in the order of their execution.
@@ -25,8 +27,10 @@ func StageOrder() []Stage {
 		StageInit,
 		StageDropViews,
 		StageDisableTGC,
+		StageDisableCompaction,
 		StageData,
 		StageRepair,
+		StageEnableCompaction,
 		StageEnableTGC,
 		StageRecreateViews,
 		StageDone,

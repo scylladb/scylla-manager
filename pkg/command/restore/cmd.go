@@ -23,16 +23,20 @@ type command struct {
 	flag.TaskBase
 	client *managerclient.Client
 
-	cluster       string
-	location      []string
-	keyspace      []string
-	snapshotTag   string
-	batchSize     int
-	parallel      int
-	restoreSchema bool
-	restoreTables bool
-	dryRun        bool
-	showTables    bool
+	cluster             string
+	location            []string
+	keyspace            []string
+	snapshotTag         string
+	batchSize           int
+	parallel            int
+	tableParallel       int
+	restoreSchema       bool
+	restoreTables       bool
+	unpinAgentCPU       bool
+	streamToAllReplicas bool
+	disableCompaction   bool
+	dryRun              bool
+	showTables          bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -78,8 +82,12 @@ func (cmd *command) init() {
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 1, "")
+	w.Unwrap().IntVar(&cmd.tableParallel, "table-parallel", 1, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
+	w.Unwrap().BoolVar(&cmd.unpinAgentCPU, "unpin-agent-cpu", false, "")
+	w.Unwrap().BoolVar(&cmd.streamToAllReplicas, "stream-to-all-replicas", false, "")
+	w.Unwrap().BoolVar(&cmd.disableCompaction, "disable-compaction", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 }
@@ -144,6 +152,10 @@ func (cmd *command) run(args []string) error {
 		props["parallel"] = cmd.parallel
 		ok = true
 	}
+	if cmd.Flag("table-parallel").Changed {
+		props["table_parallel"] = cmd.tableParallel
+		ok = true
+	}
 	if cmd.Flag("restore-schema").Changed {
 		if cmd.Update() {
 			return wrapper("restore-schema")
@@ -158,7 +170,21 @@ func (cmd *command) run(args []string) error {
 		props["restore_tables"] = cmd.restoreTables
 		ok = true
 	}
-
+	if cmd.Flag("unpin-agent-cpu").Changed {
+		props["unpin_agent_cpu"] = cmd.unpinAgentCPU
+		ok = true
+	}
+	if cmd.Flag("stream-to-all-replicas").Changed {
+		if cmd.Update() {
+			return wrapper("stream-to-all-replicas")
+		}
+		props["stream_to_all_replicas"] = cmd.streamToAllReplicas
+		ok = true
+	}
+	if cmd.Flag("disable-compaction").Changed {
+		props["disable_compaction"] = cmd.disableCompaction
+		ok = true
+	}
 	if cmd.dryRun {
 		res, err := cmd.client.GetRestoreTarget(cmd.Context(), cmd.cluster, task)
 		if err != nil {

@@ -543,10 +543,13 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 				Path:     testBucket,
 			},
 		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
+		Keyspace:            []string{testKeyspace},
+		BatchSize:           testBatchSize,
+		Parallel:            testParallel,
+		RestoreTables:       true,
+		StreamToAllReplicas: true,
+		UnpinAgentCPU:       true,
+		TableParallel:       2,
 	}
 
 	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}")
@@ -715,6 +718,8 @@ func TestRestoreTablesResumeIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		UnpinAgentCPU: true,
+		TableParallel: 2,
 		Continue:      true,
 	}
 
@@ -1324,10 +1329,13 @@ func TestRestoreFullIntegration(t *testing.T) {
 	}
 
 	tablesTarget := Target{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
+		Location:            locs,
+		BatchSize:           testBatchSize,
+		Parallel:            testParallel,
+		RestoreTables:       true,
+		StreamToAllReplicas: true,
+		UnpinAgentCPU:       true,
+		TableParallel:       2,
 	}
 
 	restoreAllTables(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize, testUser)

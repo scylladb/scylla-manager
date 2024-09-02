@@ -8,7 +8,10 @@ package restore_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -16,6 +19,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 )
@@ -333,4 +337,104 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	})
 
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
+}
+
+func TestRestoreTablesPreparationIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	ks := randomizedName("prep_")
+	tab := randomizedName("tab_")
+	Printf("Create test keyspace %s.%s in both clusters", ks, tab)
+	ksStmt := fmt.Sprintf("CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}", ks, 2)
+	tabStmt := fmt.Sprintf("CREATE TABLE %q.%q (id int PRIMARY KEY, data int) WITH tombstone_gc = {'mode': 'repair'}", ks, tab)
+	ExecStmt(t, h.srcCluster.rootSession, ksStmt)
+	ExecStmt(t, h.srcCluster.rootSession, tabStmt)
+	ExecStmt(t, h.dstCluster.rootSession, ksStmt)
+	ExecStmt(t, h.dstCluster.rootSession, tabStmt)
+
+	Print("Fill created table")
+	stmt := fmt.Sprintf("INSERT INTO %q.%q (id, data) VALUES (?, ?)", ks, tab)
+	q := h.srcCluster.rootSession.Query(stmt, []string{"id", "data"})
+	defer q.Release()
+	for i := 0; i < 100; i++ {
+		if err := q.Bind(i, i).Exec(); err != nil {
+			t.Fatal(errors.Wrap(err, "fill table"))
+		}
+	}
+
+	Print("Run backup")
+	loc := []Location{testLocation("preparation", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location": loc,
+		"keyspace": ksFilter,
+	})
+
+	Print("Make copy paths hang")
+	var (
+		reachedDataStage     = atomic.Bool{}
+		reachedDataStageChan = make(chan struct{}, 1)
+		waitCopyPaths        = make(chan struct{}, 1)
+	)
+	h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+			if reachedDataStage.CompareAndSwap(false, true) {
+				Print("Reached data stage")
+				close(reachedDataStageChan)
+			}
+			<-waitCopyPaths
+		}
+		return nil, nil
+	}))
+
+	Print("Run restore")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.runRestore(t, map[string]any{
+			"location":       loc,
+			"keyspace":       ksFilter,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+		})
+		wg.Done()
+	}()
+
+	<-reachedDataStageChan
+	Print("Validate restored table properties during data stage")
+	if "disabled" != tombstoneGCMode(t, h.dstCluster.rootSession, ks, tab) {
+		t.Error("tombstone_gc enabled")
+	}
+	for _, host := range ManagedClusterHosts() {
+		ok, err := h.dstCluster.Client.IsAutoCompactionEnabled(context.Background(), host, ks, tab)
+		if err != nil {
+			t.Fatal(errors.Wrapf(err, "check compaction on host %s", host))
+		}
+		if ok {
+			t.Errorf("compaction enabled on host %s", host)
+		}
+	}
+
+	Print("Release copy paths")
+	close(waitCopyPaths)
+	wg.Wait()
+
+	Print("Validate restore success")
+	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+
+	Print("Validate restored table properties after restore ended")
+	if "repair" != tombstoneGCMode(t, h.dstCluster.rootSession, ks, tab) {
+		t.Error("tombstone_gc disabled")
+	}
+	for _, host := range ManagedClusterHosts() {
+		ok, err := h.dstCluster.Client.IsAutoCompactionEnabled(context.Background(), host, ks, tab)
+		if err != nil {
+			t.Fatal(errors.Wrapf(err, "check compaction on host %s", host))
+		}
+		if !ok {
+			t.Errorf("compaction disabled on host %s", host)
+		}
+	}
 }

@@ -806,6 +806,62 @@
         "security": []
       }
     },
+    "/pin_cpu": {
+      "post": {
+        "description": "Pin agent to free cpus",
+        "summary": "Pin agent to free cpus",
+        "operationId": "PinCpu",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "description": "Unpin agent from cpus",
+        "summary": "Unpin agent from cpus",
+        "operationId": "UnpinCpu",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/terminate": {
       "post": {
         "description": "Reload agent config",

@@ -13,12 +13,13 @@
     "!system_distributed.cdc_streams_descriptions_v2",
     "!system_distributed.cdc_generation_timestamps",
     "!*.*_scylla_cdc_log",
-    "!ks1.mv1",
-    "!ks2.si1_index"
+    "!ks2.si1_index",
+    "!ks1.mv1"
   ],
-  "snapshot_tag": "sm_20240520084025UTC",
+  "snapshot_tag": "sm_20240827165619UTC",
   "batch_size": 99,
   "parallel": 98,
+  "table_parallel": 1,
   "restore_tables": true,
   "continue": true
 }

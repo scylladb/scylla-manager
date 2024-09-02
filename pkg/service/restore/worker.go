@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"path"
 	"regexp"
 	"strings"
@@ -40,6 +41,14 @@ type worker struct {
 	client         *scyllaclient.Client
 	session        gocqlx.Session
 	clusterSession gocqlx.Session
+}
+
+func (w *worker) randomHostFromLocation(loc Location) string {
+	hosts, ok := w.target.locationHosts[loc]
+	if !ok {
+		panic("no hosts for location: " + loc.String())
+	}
+	return hosts[rand.Intn(len(hosts))]
 }
 
 func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
@@ -615,10 +624,6 @@ func (w *worker) decorateWithPrevRun(ctx context.Context) error {
 
 	if w.target.Continue {
 		w.run.PrevID = prev.ID
-		w.run.Location = prev.Location
-		w.run.ManifestPath = prev.ManifestPath
-		w.run.Keyspace = prev.Keyspace
-		w.run.Table = prev.Table
 		w.run.Stage = prev.Stage
 		w.run.RepairTaskID = prev.RepairTaskID
 	}
@@ -744,19 +749,31 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 	}
 }
 
-func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {
-	filesSizesCache := make(map[string]int64)
-	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly: true,
+func (w *worker) LogRestoreStats(ctx context.Context) {
+	workload := make(map[string]int64)
+	download := make(map[string]time.Duration)
+	stream := make(map[string]time.Duration)
+	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
+		if validateTimeIsSet(pr.RestoreCompletedAt) {
+			workload[pr.Host] += pr.Downloaded + pr.VersionedProgress
+			download[pr.Host] += pr.DownloadCompletedAt.Sub(*pr.DownloadStartedAt)
+			stream[pr.Host] += pr.RestoreCompletedAt.Sub(*pr.RestoreStartedAt)
+		}
+	})
+	if err != nil {
+		w.logger.Error(ctx, "Couldn't query run progress", "error", err)
+		return
 	}
-	f := func(item *scyllaclient.RcloneListDirItem) {
-		filesSizesCache[item.Name] = item.Size
+	toBandwidth := func(s int64, d time.Duration) string {
+		return fmt.Sprintf("%.2fMB/s", float64(s)/1024/1024/d.Seconds())
 	}
-	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		return nil, errors.Wrapf(err, "host %s: listing all files from %s", host, dir)
+	for h := range workload {
+		w.logger.Info(ctx, "Total host restore statistics",
+			"host", h,
+			"workload", workload[h],
+			"download duration", download[h],
+			"download bandwidth", toBandwidth(workload[h], download[h]),
+			"stream duration", stream[h],
+			"stream bandwidth", toBandwidth(workload[h], stream[h]))
 	}
-	for k, v := range versioned {
-		filesSizesCache[k] = v.Size
-	}
-	return filesSizesCache, nil
 }

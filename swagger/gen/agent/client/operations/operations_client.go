@@ -59,6 +59,8 @@ type ClientService interface {
 
 	OperationsPurge(params *OperationsPurgeParams) (*OperationsPurgeOK, error)
 
+	PinCPU(params *PinCPUParams) (*PinCPUOK, error)
+
 	Reload(params *ReloadParams) (*ReloadOK, error)
 
 	SyncCopyDir(params *SyncCopyDirParams) (*SyncCopyDirOK, error)
@@ -66,6 +68,8 @@ type ClientService interface {
 	SyncCopyPaths(params *SyncCopyPathsParams) (*SyncCopyPathsOK, error)
 
 	SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error)
+
+	UnpinCPU(params *UnpinCPUParams) (*UnpinCPUOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -666,6 +670,41 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 }
 
 /*
+PinCPU pins agent to free cpus
+
+Pin agent to free cpus
+*/
+func (a *Client) PinCPU(params *PinCPUParams) (*PinCPUOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewPinCPUParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PinCpu",
+		Method:             "POST",
+		PathPattern:        "/pin_cpu",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PinCPUReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*PinCPUOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PinCPUDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 Reload reloads agent config
 
 Reload agent config
@@ -802,6 +841,41 @@ func (a *Client) SyncMoveDir(params *SyncMoveDirParams) (*SyncMoveDirOK, error) 
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*SyncMoveDirDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+UnpinCPU unpins agent from cpus
+
+Unpin agent from cpus
+*/
+func (a *Client) UnpinCPU(params *UnpinCPUParams) (*UnpinCPUOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUnpinCPUParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UnpinCpu",
+		Method:             "DELETE",
+		PathPattern:        "/pin_cpu",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &UnpinCPUReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*UnpinCPUOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*UnpinCPUDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
