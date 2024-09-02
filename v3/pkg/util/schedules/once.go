@@ -1,11 +1,10 @@
 // Copyright (C) 2017 ScyllaDB
 
-package trigger
+package schedules
 
 import (
 	"time"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"go.uber.org/atomic"
 )
 
@@ -15,7 +14,7 @@ type once struct {
 
 // NewOnce creates a trigger that fires once at a specified time.
 // There is a sub second threshold to enable starting once now.
-func NewOnce() scheduler.Trigger {
+func NewOnce() Trigger {
 	return once{
 		v: atomic.NewBool(false),
 	}
