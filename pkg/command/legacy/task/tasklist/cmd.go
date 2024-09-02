@@ -10,7 +10,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +20,7 @@ var res []byte
 
 type command struct {
 	cobra.Command
-	client *managerclient2.Client
+	client *managerclient.Client
 
 	cluster  string
 	all      bool
@@ -29,7 +29,7 @@ type command struct {
 	sortKey  string
 }
 
-func NewCommand(client *managerclient2.Client) *cobra.Command {
+func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := &command{
 		client: client,
 	}
@@ -59,7 +59,7 @@ func (cmd *command) run() error {
 		return err
 	}
 
-	var clusters []*managerclient2.Cluster
+	var clusters []*managerclient.Cluster
 	if cmd.cluster == "" {
 		var err error
 		clusters, err = cmd.client.ListClusters(cmd.Context())
@@ -67,7 +67,7 @@ func (cmd *command) run() error {
 			return err
 		}
 	} else {
-		clusters = []*managerclient2.Cluster{{ID: cmd.cluster}}
+		clusters = []*managerclient.Cluster{{ID: cmd.cluster}}
 	}
 
 	w := cmd.OutOrStdout()
@@ -81,10 +81,10 @@ func (cmd *command) run() error {
 	}
 	for _, c := range clusters {
 		if cmd.cluster == "" {
-			managerclient2.FormatClusterName(w, c)
+			managerclient.FormatClusterName(w, c)
 		}
 		if err := h(c.ID); err != nil {
-			managerclient2.PrintError(w, err)
+			managerclient.PrintError(w, err)
 		}
 	}
 
@@ -100,7 +100,7 @@ const (
 
 var allTaskSortKeys = []taskListSortKey{taskListSortNextActivation, taskListSortStatus}
 
-var tasksSortFunctions = map[taskListSortKey]func(tasks managerclient2.TaskListItemSlice){
+var tasksSortFunctions = map[taskListSortKey]func(tasks managerclient.TaskListItemSlice){
 	taskListSortNextActivation: sortTasksByNextActivation,
 	taskListSortStatus:         sortTasksByStatus,
 }
@@ -118,7 +118,7 @@ func validateSortKey(sortKey string) error {
 	return errors.Errorf("%s sort key not supported", sortKey)
 }
 
-func sortTasks(tasks managerclient2.TaskListItems, key taskListSortKey) {
+func sortTasks(tasks managerclient.TaskListItems, key taskListSortKey) {
 	if key == "" {
 		return
 	}
@@ -136,7 +136,7 @@ func timeLessFunc(a, b *strfmt.DateTime) bool {
 	return at.Before(bt)
 }
 
-func sortTasksByNextActivation(tasks managerclient2.TaskListItemSlice) {
+func sortTasksByNextActivation(tasks managerclient.TaskListItemSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return timeLessFunc(tasks[i].NextActivation, tasks[j].NextActivation)
 	})
@@ -153,7 +153,7 @@ var taskStatusSortOrder = map[string]int{
 	"ABORTED":  8,
 }
 
-func sortTasksByStatus(tasks managerclient2.TaskListItemSlice) {
+func sortTasksByStatus(tasks managerclient.TaskListItemSlice) {
 	sort.Slice(tasks, func(i, j int) bool {
 		return taskStatusSortOrder[tasks[i].Status] < taskStatusSortOrder[tasks[j].Status]
 	})

@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -17,14 +17,14 @@ var res []byte
 
 type command struct {
 	cobra.Command
-	client *managerclient2.Client
+	client *managerclient.Client
 
 	cluster string
 	limit   int
 	cause   bool
 }
 
-func NewCommand(client *managerclient2.Client) *cobra.Command {
+func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := &command{
 		client: client,
 		Command: cobra.Command{
@@ -66,7 +66,7 @@ func (cmd *command) run(args []string) error {
 		return fmt.Errorf("expected exactly 1 task, got %d", len(tasks.TaskListItemSlice))
 	}
 
-	ti := managerclient2.TaskInfo{
+	ti := managerclient.TaskInfo{
 		TaskListItem: tasks.TaskListItemSlice[0],
 	}
 	if err := ti.Render(w); err != nil {

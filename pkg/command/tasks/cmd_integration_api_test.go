@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"testing"
 
-	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 )
 
@@ -23,7 +23,7 @@ const (
 )
 
 func TestSctoolTasksLabelsIntegrationAPITest(t *testing.T) {
-	client, err := managerclient2.NewClient("http://localhost:5080/api/v1")
+	client, err := managerclient.NewClient("http://localhost:5080/api/v1")
 	if err != nil {
 		t.Fatalf("Unable to create managerclient to consume managet HTTP API, err = {%v}", err)
 	}
@@ -42,7 +42,7 @@ func TestSctoolTasksLabelsIntegrationAPITest(t *testing.T) {
 		}
 	}()
 
-	taskID, err := client.CreateTask(context.Background(), clusterID, &managerclient2.Task{
+	taskID, err := client.CreateTask(context.Background(), clusterID, &managerclient.Task{
 		Type:    "repair",
 		Enabled: true,
 		Labels: map[string]string{
@@ -54,7 +54,7 @@ func TestSctoolTasksLabelsIntegrationAPITest(t *testing.T) {
 		t.Logf("Failed to create task, err = {%v}", err)
 	}
 
-	if err := client.UpdateTask(context.Background(), clusterID, &managerclient2.Task{
+	if err := client.UpdateTask(context.Background(), clusterID, &managerclient.Task{
 		ID:      taskID.String(),
 		Type:    "repair",
 		Enabled: true,
