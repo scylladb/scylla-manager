@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/clipper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/fsutil"
 	"github.com/spf13/cobra"
@@ -21,7 +21,7 @@ var res []byte
 
 type command struct {
 	cobra.Command
-	client *managerclient.Client
+	client *managerclient2.Client
 
 	id                     string
 	name                   string
@@ -38,7 +38,7 @@ type command struct {
 	forceNonSSLSessionPort bool
 }
 
-func NewCommand(client *managerclient.Client) *cobra.Command {
+func NewCommand(client *managerclient2.Client) *cobra.Command {
 	cmd := &command{
 		client: client,
 	}
@@ -84,7 +84,7 @@ func (cmd *command) run() error {
 		}
 	}
 
-	c := &managerclient.Cluster{
+	c := &managerclient2.Cluster{
 		ID:                     cmd.id,
 		Name:                   cmd.name,
 		Labels:                 cmd.label.NewLabels(),
