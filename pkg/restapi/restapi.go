@@ -13,7 +13,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
-	"github.com/scylladb/scylla-manager/v3/swagger-ui"
 )
 
 func init() {
@@ -31,10 +30,6 @@ func New(services Services, logger log.Logger) http.Handler {
 		render.SetContentType(render.ContentTypeJSON),
 		middleware.Recoverer,
 	)
-
-	// Swagger UI
-	r.Handle("/ui", http.RedirectHandler("/ui/", http.StatusMovedPermanently))
-	r.Mount("/ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(swagger.UI()))))
 
 	r.Get("/ping", Heartbeat())
 	r.Get("/version", Version())
