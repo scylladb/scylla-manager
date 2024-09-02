@@ -63,4 +63,3 @@ func TestFormatError(t *testing.T) {
 		})
 	}
 }
-

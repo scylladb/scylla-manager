@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/spf13/cobra"
@@ -21,7 +21,7 @@ var res []byte
 
 type command struct {
 	cobra.Command
-	client *managerclient.Client
+	client *managerclient2.Client
 
 	cluster  string
 	keyspace []string
@@ -30,7 +30,7 @@ type command struct {
 	runID    string
 }
 
-func NewCommand(client *managerclient.Client) *cobra.Command {
+func NewCommand(client *managerclient2.Client) *cobra.Command {
 	cmd := &command{
 		client: client,
 		Command: cobra.Command{
@@ -64,10 +64,10 @@ func (cmd *command) init() {
 }
 
 var supportedTaskTypes = strset.New(
-	managerclient.BackupTask,
-	managerclient.RestoreTask,
-	managerclient.RepairTask,
-	managerclient.ValidateBackupTask,
+	managerclient2.BackupTask,
+	managerclient2.RestoreTask,
+	managerclient2.RepairTask,
+	managerclient2.ValidateBackupTask,
 )
 
 func (cmd *command) run(args []string) error {
@@ -91,20 +91,20 @@ func (cmd *command) run(args []string) error {
 	}
 
 	switch taskType {
-	case managerclient.RepairTask:
+	case managerclient2.RepairTask:
 		return cmd.renderRepairProgress(task)
-	case managerclient.BackupTask:
+	case managerclient2.BackupTask:
 		return cmd.renderBackupProgress(task)
-	case managerclient.RestoreTask:
+	case managerclient2.RestoreTask:
 		return cmd.renderRestoreProgress(task)
-	case managerclient.ValidateBackupTask:
+	case managerclient2.ValidateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
 	}
 
 	return nil
 }
 
-func (cmd *command) renderRepairProgress(t *managerclient.Task) error {
+func (cmd *command) renderRepairProgress(t *managerclient2.Task) error {
 	p, err := cmd.client.RepairProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (cmd *command) renderRepairProgress(t *managerclient.Task) error {
 	return p.Render(cmd.OutOrStdout())
 }
 
-func (cmd *command) renderBackupProgress(t *managerclient.Task) error {
+func (cmd *command) renderBackupProgress(t *managerclient2.Task) error {
 	p, err := cmd.client.BackupProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func (cmd *command) renderBackupProgress(t *managerclient.Task) error {
 	return p.Render(cmd.OutOrStdout())
 }
 
-func (cmd *command) renderRestoreProgress(t *managerclient.Task) error {
+func (cmd *command) renderRestoreProgress(t *managerclient2.Task) error {
 	p, err := cmd.client.RestoreProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (cmd *command) renderRestoreProgress(t *managerclient.Task) error {
 	return p.Render(cmd.OutOrStdout())
 }
 
-func (cmd *command) renderValidateBackupProgress(t *managerclient.Task) error {
+func (cmd *command) renderValidateBackupProgress(t *managerclient2.Task) error {
 	p, err := cmd.client.ValidateBackupProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
 	if err != nil {
 		return err

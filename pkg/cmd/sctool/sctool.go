@@ -35,7 +35,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/suspend"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/tasks"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/version"
-	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +44,7 @@ func main() {
 
 	cmd := buildCommand()
 	if err := cmd.Execute(); err != nil {
-		managerclient.PrintError(cmd.OutOrStderr(), err)
+		managerclient2.PrintError(cmd.OutOrStderr(), err)
 		os.Exit(1)
 	}
 
@@ -52,7 +52,7 @@ func main() {
 }
 
 func buildCommand() *cobra.Command {
-	var client managerclient.Client
+	var client managerclient2.Client
 
 	backupCmd := backup.NewCommand(&client)
 	backupCmd.AddCommand(
