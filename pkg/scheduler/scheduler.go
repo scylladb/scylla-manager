@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 )
 
 // Properties are externally defined task parameters.
@@ -55,7 +56,7 @@ type RunFunc[K comparable] func(ctx RunContext[K]) error
 // Details holds Properties, Trigger and auxiliary Key configuration.
 type Details struct {
 	Properties Properties
-	Trigger    Trigger
+	Trigger    schedules.Trigger
 	Backoff    retry.Backoff
 	Window     Window
 	Location   *time.Location
