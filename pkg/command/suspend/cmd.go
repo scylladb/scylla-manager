@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -21,14 +21,14 @@ var updateRes []byte
 
 type command struct {
 	flag.TaskBase
-	client *managerclient2.Client
+	client *managerclient.Client
 
 	cluster    string
 	duration   flag.Duration
 	startTasks bool
 }
 
-func NewCommand(client *managerclient2.Client) *cobra.Command {
+func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := newCommand(client, false)
 	updateCmd := newCommand(client, true)
 	cmd.AddCommand(&updateCmd.Command)
@@ -36,7 +36,7 @@ func NewCommand(client *managerclient2.Client) *cobra.Command {
 	return &cmd.Command
 }
 
-func newCommand(client *managerclient2.Client, update bool) *command {
+func newCommand(client *managerclient.Client, update bool) *command {
 	var (
 		cmd = &command{
 			client: client,
@@ -76,19 +76,19 @@ func (cmd *command) run(args []string) error {
 		if cmd.startTasks {
 			return errors.New("can't use --on-resume-start-tasks without --duration")
 		}
-		t := cmd.CreateTask(managerclient2.SuspendTask)
+		t := cmd.CreateTask(managerclient.SuspendTask)
 		if t.Schedule.Cron == "" && t.Schedule.StartDate == nil {
 			return cmd.client.Suspend(cmd.Context(), cmd.cluster)
 		}
 	}
 
 	var (
-		task *managerclient2.Task
+		task *managerclient.Task
 		ok   bool
 	)
 
 	if cmd.Update() {
-		a := managerclient2.SuspendTask
+		a := managerclient.SuspendTask
 		if len(args) > 0 {
 			a = args[0]
 		}
@@ -96,7 +96,7 @@ func (cmd *command) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if taskType != managerclient2.SuspendTask {
+		if taskType != managerclient.SuspendTask {
 			return fmt.Errorf("can't handle %s task", taskType)
 		}
 
@@ -106,7 +106,7 @@ func (cmd *command) run(args []string) error {
 		}
 		ok = cmd.UpdateTask(task)
 	} else {
-		task = cmd.CreateTask(managerclient2.SuspendTask)
+		task = cmd.CreateTask(managerclient.SuspendTask)
 	}
 
 	props := task.Properties.(map[string]interface{})
@@ -135,6 +135,6 @@ func (cmd *command) run(args []string) error {
 		return errors.New("nothing to do")
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), managerclient2.TaskID(task))
+	fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskID(task))
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
-	managerclient2 "github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -17,12 +17,12 @@ var res []byte
 
 type command struct {
 	flag.TaskBase
-	client *managerclient2.Client
+	client *managerclient.Client
 
 	cluster string
 }
 
-func NewCommand(client *managerclient2.Client) *cobra.Command {
+func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd := &command{
 		TaskBase: flag.NewUpdateTaskBase(),
 		client:   client,
@@ -45,7 +45,7 @@ func (cmd *command) init() {
 }
 
 func (cmd *command) run(args []string) error {
-	taskType, taskID, _, err := managerclient2.TaskSplit(args[0])
+	taskType, taskID, _, err := managerclient.TaskSplit(args[0])
 	if err != nil {
 		return err
 	}
