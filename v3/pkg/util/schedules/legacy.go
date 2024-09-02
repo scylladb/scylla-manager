@@ -1,11 +1,9 @@
 // Copyright (C) 2017 ScyllaDB
 
-package trigger
+package schedules
 
 import (
 	"time"
-
-	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 )
 
 type legacy struct {
@@ -15,7 +13,7 @@ type legacy struct {
 
 // NewLegacy returns Trigger based on interval duration that was used in
 // Scylla Manager 2.x and before.
-func NewLegacy(startDate time.Time, interval time.Duration) scheduler.Trigger {
+func NewLegacy(startDate time.Time, interval time.Duration) Trigger {
 	return legacy{startDate: startDate, interval: interval}
 }
 

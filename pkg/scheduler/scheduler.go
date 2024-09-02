@@ -52,13 +52,6 @@ func newRunContext[K comparable](key K, properties Properties, stop time.Time) (
 // Compatible functions can be passed to Scheduler constructor.
 type RunFunc[K comparable] func(ctx RunContext[K]) error
 
-// Trigger provides the next activation date.
-// Implementations must return the same values for the same now parameter.
-// A zero time can be returned to indicate no more executions.
-type Trigger interface {
-	Next(now time.Time) time.Time
-}
-
 // Details holds Properties, Trigger and auxiliary Key configuration.
 type Details struct {
 	Properties Properties

@@ -26,6 +26,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/scylladb/go-reflectx v1.0.1 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
