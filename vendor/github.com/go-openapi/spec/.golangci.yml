@@ -11,7 +11,7 @@ linters-settings:
     threshold: 200
   goconst:
     min-len: 2
-    min-occurrences: 2
+    min-occurrences: 3
 
 linters:
   enable-all: true
@@ -26,3 +26,36 @@ linters:
     - gocognit
     - whitespace
     - wsl
+    - wrapcheck
+    - testpackage
+    - nlreturn
+    - gomnd
+    - exhaustivestruct
+    - goerr113
+    - errorlint
+    - nestif
+    - godot
+    - gofumpt
+    - paralleltest
+    - tparallel
+    - thelper
+    - ifshort
+    - exhaustruct
+    - varnamelen
+    - gci
+    - depguard
+    - errchkjson
+    - inamedparam
+    - nonamedreturns
+    - musttag
+    - ireturn
+    - forcetypeassert
+    - cyclop
+    # deprecated linters
+    - deadcode
+    - interfacer
+    - scopelint
+    - varcheck
+    - structcheck
+    - golint
+    - nosnakecase
