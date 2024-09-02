@@ -6,10 +6,11 @@ package restapi
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	scheduler "github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	reflect "reflect"
 )
 
 // MockSchedService is a mock of SchedService interface
