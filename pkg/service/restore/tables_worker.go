@@ -208,6 +208,12 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	}
 	hosts := hostsS.List()
 
+	for _, h := range hosts {
+		if err := w.client.RcloneSetBandwidthLimit(ctx, h, 0); err != nil {
+			return errors.Wrapf(err, "reset bandwidth limit on %s", h)
+		}
+	}
+
 	if w.target.UnpinAgentCPU {
 		defer func() {
 			for _, h := range hosts {
