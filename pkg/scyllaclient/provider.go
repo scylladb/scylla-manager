@@ -18,6 +18,7 @@ import (
 type ProviderFunc func(ctx context.Context, clusterID uuid.UUID) (*Client, error)
 
 type clientTTL struct {
+	mu       sync.Mutex
 	client   *Client
 	ttl      time.Time // time after which client is invalid
 	hostsTTL time.Time // time after which client hosts needs to be validated
@@ -31,8 +32,8 @@ const hostsValidity = 15 * time.Second
 // (e.g. when healthcheck svc runs pingREST for every node),
 // checking for changed hosts is done only every hostsValidity.
 func (c *clientTTL) isValid(ctx context.Context) (bool, error) {
-	// Check client TTL
-	if c.ttl.Before(timeutc.Now()) {
+	// Check client TTL (if set)
+	if c.ttl.IsZero() || c.ttl.Before(timeutc.Now()) {
 		return false, nil
 	}
 	// Check hosts TTL and refresh if they didn't change
@@ -54,7 +55,7 @@ func (c *clientTTL) isValid(ctx context.Context) (bool, error) {
 type CachedProvider struct {
 	inner    ProviderFunc
 	validity time.Duration
-	clients  map[uuid.UUID]clientTTL
+	clients  map[uuid.UUID]*clientTTL
 	mu       sync.Mutex
 	logger   log.Logger
 }
@@ -63,23 +64,21 @@ func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout time.Duration, l
 	return &CachedProvider{
 		inner:    f,
 		validity: cacheInvalidationTimeout,
-		clients:  make(map[uuid.UUID]clientTTL),
+		clients:  make(map[uuid.UUID]*clientTTL),
 		logger:   logger.Named("cache-provider"),
 	}
 }
 
 // Client is the cached ProviderFunc.
 func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Client, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	c := p.getClientTTL(clusterID)
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	// Look for client in cache
-	if c, ok := p.clients[clusterID]; ok {
-		if valid, err := c.isValid(ctx); err != nil {
-			p.logger.Error(ctx, "Cannot check client validity", "error", err)
-		} else if valid {
-			return c.client, nil
-		}
+	if valid, err := c.isValid(ctx); err != nil {
+		p.logger.Error(ctx, "Cannot check client validity", "error", err)
+	} else if valid {
+		return c.client, nil
 	}
 
 	// If not found or invalid, create a new one
@@ -88,14 +87,22 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 		return nil, err
 	}
 
-	c := clientTTL{
-		client:   client,
-		ttl:      timeutc.Now().Add(p.validity),
-		hostsTTL: timeutc.Now().Add(hostsValidity),
-	}
-
-	p.clients[clusterID] = c
+	c.client = client
+	c.ttl = timeutc.Now().Add(p.validity)
+	c.hostsTTL = timeutc.Now().Add(hostsValidity)
 	return c.client, nil
+}
+
+// Ensures that clientTTL with given clusterID is present in the cache.
+func (p *CachedProvider) getClientTTL(clusterID uuid.UUID) *clientTTL {
+	p.mu.Lock()
+	c, ok := p.clients[clusterID]
+	if !ok {
+		c = new(clientTTL)
+		p.clients[clusterID] = c
+	}
+	p.mu.Unlock()
+	return c
 }
 
 // Invalidate removes client for clusterID from cache.
