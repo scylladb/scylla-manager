@@ -314,6 +314,25 @@ func (c *Client) KeyspacesByType(ctx context.Context) (map[KeyspaceType][]string
 	return out, nil
 }
 
+// AllTables returns all tables grouped by keyspace.
+func (c *Client) AllTables(ctx context.Context) (map[string][]string, error) {
+	resp, err := c.scyllaOps.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]string)
+	for _, kst := range resp.Payload {
+		parts := strings.Split(kst, ":")
+		if len(parts) != 2 {
+			return nil, errors.Errorf("GET /column_family/name: expected exactly 1 colon in '<keyspace>:<table>', got %d", len(parts)-1)
+		}
+		ks := parts[0]
+		t := parts[1]
+		out[ks] = append(out[ks], t)
+	}
+	return out, nil
+}
+
 // Tables returns a slice of table names in a given keyspace.
 func (c *Client) Tables(ctx context.Context, keyspace string) ([]string, error) {
 	resp, err := c.scyllaOps.ColumnFamilyNameGet(&operations.ColumnFamilyNameGetParams{Context: ctx})

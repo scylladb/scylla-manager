@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -68,43 +69,12 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		t.Keyspace = []string{"system_schema"}
 	}
 	if t.RestoreTables {
-		// Skip restoration of those tables regardless of the '--keyspace' param
-		doNotRestore := []string{
-			"system",        // system.* tables are recreated on every cluster and shouldn't even be backed-up
-			"system_schema", // Schema restoration is only possible with '--restore-schema' flag
-			// Don't restore tables related to CDC.
-			// Currently, it is forbidden to alter those tables, so SM wouldn't be able to ensure their data consistency.
-			// Moreover, those tables usually contain data with small TTL value,
-			// so their contents would probably expire right after restore has ended.
-			"system_distributed_everywhere.cdc_generation_descriptions",
-			"system_distributed_everywhere.cdc_generation_descriptions_v2",
-			"system_distributed.cdc_streams_descriptions",
-			"system_distributed.cdc_streams_descriptions_v2",
-			"system_distributed.cdc_generation_timestamps",
-			"*.*_scylla_cdc_log", // All regular CDC tables have "_scylla_cdc_log" suffix
-		}
-		if err := IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx, w.client); err != nil {
-			w.logger.Info(ctx, "Restore of auth and service levels will be skipped", "error", err)
-			doNotRestore = append(doNotRestore,
-				"system_auth",
-				"system_distributed.service_levels",
-			)
-		}
-
-		for _, ks := range doNotRestore {
-			t.Keyspace = append(t.Keyspace, "!"+ks)
-		}
-
-		// Filter out all materialized views and secondary indexes. They are not a part of restore procedure at the moment.
-		// See https://docs.scylladb.com/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster.
-		views, err := query.GetAllViews(w.clusterSession)
+		notRestored, err := skipRestorePatterns(ctx, w.client, w.clusterSession)
 		if err != nil {
-			return errors.Wrap(err, "get cluster views")
+			return errors.Wrap(err, "find not restored tables")
 		}
-
-		for _, viewName := range views.List() {
-			t.Keyspace = append(t.Keyspace, "!"+viewName)
-		}
+		w.logger.Info(ctx, "Extended excluded tables pattern", "pattern", notRestored)
+		t.Keyspace = append(t.Keyspace, notRestored...)
 	}
 
 	status, err := w.client.Status(ctx)
@@ -181,6 +151,74 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 
 	w.logger.Info(ctx, "Initialized target", "target", t)
 	return nil
+}
+
+func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, session gocqlx.Session) ([]string, error) {
+	keyspaces, err := client.KeyspacesByType(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get keyspaces by type")
+	}
+	tables, err := client.AllTables(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get all tables")
+	}
+
+	var skip []string
+	// Skip local data.
+	// Note that this also covers the raft based tables (e.g. system and system_schema).
+	for _, ks := range keyspaces[scyllaclient.KeyspaceTypeAll] {
+		if !slices.Contains(keyspaces[scyllaclient.KeyspaceTypeNonLocal], ks) {
+			skip = append(skip, ks)
+		}
+	}
+
+	// Skip outdated tables.
+	// Note that even though system_auth is not used in Scylla 6.0,
+	// it might still be present there (leftover after upgrade).
+	// That's why SM should always skip known outdated tables so that backups
+	// from older Scylla versions don't cause unexpected problems.
+	if err := IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx, client); err != nil {
+		if errors.Is(err, ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion) {
+			skip = append(skip, "system_auth", "system_distributed.service_levels")
+		} else {
+			return nil, errors.Wrap(err, "check auth and service levels restore support")
+		}
+	}
+
+	// Skip system cdc tables
+	systemCDCTableRegex := regexp.MustCompile(`(^|_)cdc(_|$)`)
+	for ks, tabs := range tables {
+		// Local keyspaces were already excluded
+		if !slices.Contains(keyspaces[scyllaclient.KeyspaceTypeNonLocal], ks) {
+			continue
+		}
+		// Here we only skip system cdc tables
+		if slices.Contains(keyspaces[scyllaclient.KeyspaceTypeUser], ks) {
+			continue
+		}
+		for _, t := range tabs {
+			if systemCDCTableRegex.MatchString(t) {
+				skip = append(skip, ks+"."+t)
+			}
+		}
+	}
+
+	// Skip user cdc tables
+	skip = append(skip, "*.*_scylla_cdc_log")
+
+	// Skip views
+	views, err := query.GetAllViews(session)
+	if err != nil {
+		return nil, errors.Wrap(err, "get cluster views")
+	}
+	skip = append(skip, views.List()...)
+
+	// Exclude collected patterns
+	out := make([]string, 0, len(skip))
+	for _, p := range skip {
+		out = append(out, "!"+p)
+	}
+	return out, nil
 }
 
 // ErrRestoreSchemaUnsupportedScyllaVersion means that restore schema procedure is not safe for used Scylla configuration.
