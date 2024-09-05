@@ -373,8 +373,21 @@ func (w *worker) initUnits(ctx context.Context) error {
 		return errors.New("no data in backup locations match given keyspace pattern")
 	}
 
+	tables, err := w.client.AllTables(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get all tables")
+	}
 	for _, u := range units {
 		for i, t := range u.Tables {
+			// Verify that table exists
+			if !slices.Contains(tables[u.Keyspace], t.Table) {
+				return errors.Errorf(
+					"table %s.%s, which is a part of restored backup, is missing in the restored cluster. "+
+						"Please either exclude it from the restore (--keyspace '*,!%s.%s'), or first restore its schema (--restore-schema)",
+					u.Keyspace, t.Table, u.Keyspace, t.Table,
+				)
+			}
+			// Collect table tombstone_gc
 			mode, err := w.GetTableTombstoneGCMode(u.Keyspace, t.Table)
 			if err != nil {
 				return errors.Wrapf(err, "get tombstone_gc of %s.%s", u.Keyspace, t.Table)
