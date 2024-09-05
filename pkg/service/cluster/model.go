@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
@@ -17,8 +16,8 @@ type Cluster struct {
 	ID         uuid.UUID         `json:"id"`
 	Name       string            `json:"name"`
 	Labels     map[string]string `json:"labels"`
-	Host       string            `json:"host"`
-	KnownHosts []string          `json:"-"`
+	Host       string            `json:"host"` // The initial contact point for SM (DNS or IP)
+	KnownHosts []string          `json:"-"`    // Hosts discovered by connecting to Host (IPs)
 	Port       int               `json:"port,omitempty"`
 	AuthToken  string            `json:"auth_token"`
 
@@ -70,16 +69,6 @@ func (c *Cluster) Validate() error {
 	}
 
 	return util.ErrValidate(errors.Wrap(errs, "invalid cluster"))
-}
-
-// AllHosts returns KnownHosts with Host at the front and without duplicates.
-func (c *Cluster) AllHosts() []string {
-	hostSet := strset.New(c.KnownHosts...)
-	if c.Host == "" {
-		return hostSet.List()
-	}
-	hostSet.Remove(c.Host)
-	return append([]string{c.Host}, hostSet.List()...)
 }
 
 // Filter filters Clusters.

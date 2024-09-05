@@ -137,17 +137,8 @@ func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) 
 		return nil, err
 	}
 
-	knownHosts, err := s.filterKnownHosts(ctx, c)
-	if err != nil {
-		if errors.Is(err, ErrNoValidKnownHost) {
-			s.logger.Error(ctx, "There is no single valid known host for the cluster."+
-				"Please update it with 'sctool cluster update -h <host>'.", "cluster", c.ID, "coordinatorHost", c.Host,
-				"knownHosts", c.KnownHosts)
-		}
-		return nil, err
-	}
-	if err := s.setKnownHosts(c, knownHosts); err != nil {
-		return nil, errors.Wrap(err, "update known_hosts on cluster")
+	if err := s.discoverAndSetClusterHosts(ctx, c); err != nil {
+		return nil, errors.Wrap(err, "discover and set cluster hosts")
 	}
 
 	config := s.clientConfig(c)
@@ -160,26 +151,54 @@ func (s *Service) clientConfig(c *Cluster) scyllaclient.Config {
 		config.Port = fmt.Sprint(c.Port)
 	}
 	config.AuthToken = c.AuthToken
-	config.Hosts = c.AllHosts()
+	config.Hosts = c.KnownHosts
 	return config
 }
 
-func (s *Service) filterKnownHosts(ctx context.Context, c *Cluster) ([]string, error) {
-	config := s.clientConfig(c)
-	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
+func (s *Service) discoverAndSetClusterHosts(ctx context.Context, c *Cluster) error {
+	knownHosts, err := s.discoverClusterHosts(ctx, c)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, ErrNoValidKnownHost) {
+			s.logger.Error(ctx, "There is no single valid known host for the cluster. "+
+				"Please update it with 'sctool cluster update -h <host>'",
+				"cluster", c.ID,
+				"contact point", c.Host,
+				"discovered hosts", c.KnownHosts,
+			)
+		}
+		return err
 	}
-	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
+	return errors.Wrap(s.setKnownHosts(c, knownHosts), "update known_hosts in SM DB")
+}
 
-	for _, host := range config.Hosts {
-		knownHosts, err := s.discoverHosts(scyllaclient.ClientContextWithSelectedHost(ctx, host), client)
+func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) ([]string, error) {
+	var contactPoints []string
+	contactPoints = append(contactPoints, c.Host)          // Go with the designated contact point first
+	contactPoints = append(contactPoints, c.KnownHosts...) // In case it failed, try to contact previously discovered hosts
+
+	for _, cp := range contactPoints {
+		config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
+		if c.Port != 0 {
+			config.Port = fmt.Sprint(c.Port)
+		}
+		config.AuthToken = c.AuthToken
+		config.Hosts = []string{cp}
+
+		client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
 		if err != nil {
-			s.logger.Error(ctx, "Cannot find known hosts using coordinator host", "host", host, "error", err)
+			s.logger.Error(ctx, "Couldn't connect to contact point", "contact point", cp, "error", err)
+			continue
+		}
+
+		knownHosts, err := s.discoverHosts(ctx, client)
+		logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
+		if err != nil {
+			s.logger.Error(ctx, "Couldn't discover hosts", "host", cp, "error", err)
 			continue
 		}
 		return knownHosts, nil
 	}
+
 	return nil, ErrNoValidKnownHost
 }
 
@@ -463,18 +482,10 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 	if err := s.loadKnownHosts(c); err != nil && !errors.Is(err, gocql.ErrNotFound) {
 		return errors.Wrap(err, "load known hosts")
 	}
-	c.KnownHosts = c.AllHosts()
 
-	knownHosts, err := s.filterKnownHosts(ctx, c)
-	if err != nil {
-		if errors.Is(err, ErrNoValidKnownHost) {
-			s.logger.Error(ctx, "There is no single valid known host for the cluster."+
-				"Please update it with 'sctool cluster update -h <host>'.", "cluster", c.ID, "coordinatorHost", c.Host,
-				"knownHosts", c.KnownHosts)
-		}
-		return err
+	if err := s.discoverAndSetClusterHosts(ctx, c); err != nil {
+		return errors.Wrap(err, "discover and set cluster hosts")
 	}
-	c.KnownHosts = knownHosts
 
 	config := s.clientConfig(c)
 	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
