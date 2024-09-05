@@ -11,30 +11,9 @@
       "all_tables": true
     },
     {
-      "keyspace": "system_distributed",
-      "tables": [
-        "cdc_generation_timestamps",
-        "cdc_streams_descriptions_v2",
-        "service_levels",
-        "view_build_status"
-      ],
-      "all_tables": true
-    },
-    {
       "keyspace": "system_distributed_everywhere",
       "tables": [
         "cdc_generation_descriptions_v2"
-      ],
-      "all_tables": true
-    },
-    {
-      "keyspace": "system_traces",
-      "tables": [
-        "node_slow_log_time_idx",
-        "node_slow_log",
-        "events",
-        "sessions_time_idx",
-        "sessions"
       ],
       "all_tables": true
     },

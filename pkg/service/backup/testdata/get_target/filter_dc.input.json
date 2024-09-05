@@ -1,1 +1,1 @@
-{"dc": ["dc1"], "location": ["s3:backuptest-get-target"]}
+{"dc": ["dc1"], "location": ["s3:backuptest-get-target"], "keyspace":  ["*", "!system_traces", "!system_distributed"]}
