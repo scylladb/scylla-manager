@@ -539,21 +539,6 @@ type tokenRangesValidator struct {
 }
 
 func (v tokenRangesValidator) validate(ks, tab string, ring scyllaclient.Ring) error {
-	// Skip validation for SimpleStrategy when all hosts from backed up dcs are live
-	// in order to preserve backward compatibility (#3922).
-	if ring.Replication == scyllaclient.SimpleStrategy {
-		missingHost := false
-		for h, dc := range ring.HostDC {
-			if v.dcs.Has(dc) && !v.liveNodes.Has(h) {
-				missingHost = true
-				break
-			}
-		}
-		if !missingHost {
-			return nil
-		}
-	}
-
 	for _, rt := range ring.ReplicaTokens {
 		if !v.liveNodes.HasAny(rt.ReplicaSet...) {
 			return errors.Errorf("%s.%s: the whole replica set %v is filtered out, so the data owned by it can't be backed up", ks, tab, rt.ReplicaSet)
