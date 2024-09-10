@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -105,7 +106,11 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 	secretsStore := store.NewTableStore(session, table.Secrets)
 
-	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
+	cfg := scyllaclient.DefaultTimeoutConfig()
+	cfg.Timeout = 2 * time.Second
+	cfg.Backoff.WaitMax = 2 * time.Second
+	cfg.Backoff.MaxRetries = 1
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, cfg,
 		server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
 	if err != nil {
 		t.Fatal(err)
@@ -529,6 +534,49 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 		if change.Type != cluster.Delete {
 			t.Fatal("invalid type", change)
+		}
+	})
+
+	t.Run("failed connectivity check", func(t *testing.T) {
+		if IsIPV6Network() {
+			t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+		}
+
+		setup(t)
+		hosts := ManagedClusterHosts()
+		if len(hosts) < 2 {
+			t.Skip("not enough nodes in the cluster")
+		}
+		h1 := hosts[0]
+		h2 := hosts[1]
+
+		c := validCluster()
+		c.Host = h1
+		if err := RunIptablesCommand(h2, CmdBlockScyllaREST); err != nil {
+			t.Fatal(err)
+		}
+		defer RunIptablesCommand(h2, CmdUnblockScyllaREST)
+
+		if err := s.PutCluster(ctx, c); err == nil {
+			t.Fatal("expected put cluster to fail because of connectivity issues")
+		} else {
+			t.Logf("put cluster ended with expected error: %s", err)
+		}
+
+		clusters, err := s.ListClusters(ctx, &cluster.Filter{})
+		if err != nil {
+			t.Fatalf("list clusters: %s", err)
+		}
+		if len(clusters) != 0 {
+			t.Fatalf("expected no clusters to be listed, got: %v", clusters)
+		}
+
+		var cnt int
+		if err := session.Query("SELECT COUNT(*) FROM cluster", nil).GetRelease(&cnt); err != nil {
+			t.Fatalf("check SM DB cluster table entries: %s", err)
+		}
+		if cnt != 0 {
+			t.Fatalf("expected no entries in SM DB cluster table, got: %d", cnt)
 		}
 	})
 
