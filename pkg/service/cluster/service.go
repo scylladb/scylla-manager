@@ -483,9 +483,11 @@ func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) err
 		return errors.Wrap(err, "load known hosts")
 	}
 
-	if err := s.discoverAndSetClusterHosts(ctx, c); err != nil {
-		return errors.Wrap(err, "discover and set cluster hosts")
+	knownHosts, err := s.discoverClusterHosts(ctx, c)
+	if err != nil {
+		return errors.Wrap(err, "discover cluster hosts")
 	}
+	c.KnownHosts = knownHosts
 
 	config := s.clientConfig(c)
 	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
