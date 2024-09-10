@@ -173,10 +173,19 @@ func (s *Service) discoverAndSetClusterHosts(ctx context.Context, c *Cluster) er
 
 func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) ([]string, error) {
 	var contactPoints []string
-	contactPoints = append(contactPoints, c.Host)          // Go with the designated contact point first
+	if c.Host != "" {
+		contactPoints = append(contactPoints, c.Host) // Go with the designated contact point first
+	} else {
+		s.logger.Error(ctx, "Missing --host flag. Using only previously discovered hosts instead", "cluster ID", c.ID)
+	}
 	contactPoints = append(contactPoints, c.KnownHosts...) // In case it failed, try to contact previously discovered hosts
 
 	for _, cp := range contactPoints {
+		if cp == "" {
+			s.logger.Error(ctx, "Empty contact point", "cluster ID", c.ID, "contact points", contactPoints)
+			continue
+		}
+
 		config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
 		if c.Port != 0 {
 			config.Port = fmt.Sprint(c.Port)
