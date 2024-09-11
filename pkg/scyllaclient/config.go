@@ -4,6 +4,7 @@ package scyllaclient
 
 import (
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -110,6 +111,9 @@ func (c Config) Validate() error {
 	var err error
 	if len(c.Hosts) == 0 {
 		err = multierr.Append(err, errors.New("missing hosts"))
+	}
+	if slices.Contains(c.Hosts, "") {
+		err = multierr.Append(err, errors.New("empty host"))
 	}
 	if c.Port == "" {
 		err = multierr.Append(err, errors.New("missing port"))

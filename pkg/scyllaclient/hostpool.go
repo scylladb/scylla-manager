@@ -29,6 +29,9 @@ func hostPool(next http.RoundTripper, pool hostpool.HostPool, port string) http.
 		// Get host from pool
 		if !ok {
 			hpr = pool.Get()
+			if hpr == nil {
+				return nil, errors.New("empty host pool response")
+			}
 			h = hpr.Host()
 		}
 
