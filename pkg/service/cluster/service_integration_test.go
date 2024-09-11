@@ -7,6 +7,7 @@ package cluster_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -577,6 +578,28 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 		if cnt != 0 {
 			t.Fatalf("expected no entries in SM DB cluster table, got: %d", cnt)
+		}
+	})
+
+	t.Run("no --host in SM DB", func(t *testing.T) {
+		setup(t)
+		c := validCluster()
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := session.Query(fmt.Sprintf("UPDATE cluster SET host = '' WHERE id = %s", c.ID), nil).ExecRelease(); err != nil {
+			t.Fatalf("remove --host from SM DB: %s", err)
+		}
+
+		client, err := s.CreateClientNoCache(context.Background(), c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, h := range ManagedClusterHosts() {
+			if _, err := client.HostRack(ctx, h); err != nil {
+				t.Fatalf("test client by getting rack of host %s: %s", h, err)
+			}
 		}
 	})
 
