@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"go.uber.org/multierr"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -316,11 +317,39 @@ func WaitForViews(t *testing.T, session gocqlx.Session) {
 	}
 }
 
-// CreateAlternatorTable creates "alternator_{table}.{table}" table via alternator API.
-func CreateAlternatorTable(t *testing.T, host string, alternatorPort int, table string) {
+// CreateAlternatorUser creates a regular role via CQL and
+// returns its credentials used for authenticating alternator queries.
+// Empty username results in returning credentials for "cassandra" superuser.
+// See https://opensource.docs.scylladb.com/stable/alternator/compatibility.html#authorization for more details.
+func CreateAlternatorUser(t *testing.T, s gocqlx.Session, role string) (accessKeyID, secretAccessKey string) {
 	t.Helper()
 
-	svc := CreateDynamoDBService(t, host, alternatorPort)
+	if role != "" {
+		ExecStmt(t, s, fmt.Sprintf("CREATE ROLE %q WITH PASSWORD = '%s' AND SUPERUSER = false AND LOGIN = true", role, role))
+	} else {
+		role = "cassandra"
+	}
+	accessKeyID = role
+
+	// Roles table is kept in different keyspaces depending on Scylla version
+	rolesKeyspaces := []string{"system", "system_auth"}
+	var retErr error
+	for _, ks := range rolesKeyspaces {
+		q := s.Query(fmt.Sprintf("SELECT salted_hash FROM %s.roles WHERE role = '%s'", ks, role), nil)
+		if err := q.Scan(&secretAccessKey); err != nil {
+			retErr = multierr.Append(retErr, err)
+		} else {
+			return
+		}
+	}
+	t.Fatal("Couldn't get salted_hash from roles table", retErr)
+	return
+}
+
+// CreateAlternatorTable creates "alternator_{table}.{table}" table via alternator API.
+func CreateAlternatorTable(t *testing.T, svc *dynamodb.DynamoDB, table string) {
+	t.Helper()
+
 	createTable := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -345,10 +374,9 @@ func CreateAlternatorTable(t *testing.T, host string, alternatorPort int, table 
 }
 
 // FillAlternatorTableWithOneRow inserts 1 row into "alternator_{table}.{table}" table via alternator API.
-func FillAlternatorTableWithOneRow(t *testing.T, host string, alternatorPort int, table string) {
+func FillAlternatorTableWithOneRow(t *testing.T, svc *dynamodb.DynamoDB, table string) {
 	t.Helper()
 
-	svc := CreateDynamoDBService(t, host, alternatorPort)
 	insertData := &dynamodb.BatchWriteItemInput{
 		RequestItems: map[string][]*dynamodb.WriteRequest{
 			table: {
@@ -372,14 +400,14 @@ func FillAlternatorTableWithOneRow(t *testing.T, host string, alternatorPort int
 }
 
 // CreateDynamoDBService returns DynamoDB service.
-func CreateDynamoDBService(t *testing.T, host string, alternatorPort int) *dynamodb.DynamoDB {
+func CreateDynamoDBService(t *testing.T, host string, alternatorPort int, accessKeyID, secretAccessKey string) *dynamodb.DynamoDB {
 	t.Helper()
 
 	awsCfg := &aws.Config{
 		Endpoint: aws.String("http://" + net.JoinHostPort(host, fmt.Sprint(alternatorPort))),
 		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
-			AccessKeyID:     "None",
-			SecretAccessKey: "None",
+			AccessKeyID:     accessKeyID,
+			SecretAccessKey: secretAccessKey,
 		}),
 		Region: aws.String("None"),
 	}
