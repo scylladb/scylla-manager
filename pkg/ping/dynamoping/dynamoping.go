@@ -24,8 +24,6 @@ import (
 type Config struct {
 	Addr                   string
 	RequiresAuthentication bool
-	Username               string
-	Password               string
 	Timeout                time.Duration
 	TLSConfig              *tls.Config
 }
@@ -71,10 +69,19 @@ var unauthorisedMessage = []string{
 	"The security token included in the request is invalid.",
 }
 
+// ErrAlternatorQueryPingNotSupported is returned when alternator query ping is executed,
+// but managed cluster enforces alternator authentication.
+// See #4036 for more details.
+var ErrAlternatorQueryPingNotSupported = errors.New("ScyllaDB Manager does not support alternator query ping when authentication is enforced")
+
 // QueryPing checks if host is available, it returns RTT and error. Special errors
 // are ErrTimeout and ErrUnauthorised. Ping is based on executing
 // a real query.
 func QueryPing(ctx context.Context, config Config) (rtt time.Duration, err error) {
+	if config.RequiresAuthentication {
+		return 0, ErrAlternatorQueryPingNotSupported
+	}
+
 	t := timeutc.Now()
 	defer func() {
 		rtt = timeutc.Since(t)
@@ -92,17 +99,12 @@ func QueryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			Endpoint:   aws.String(config.Addr),
-			Region:     aws.String("scylla"),
-			HTTPClient: httpClient(config),
+			Endpoint:    aws.String(config.Addr),
+			Region:      aws.String("scylla"),
+			HTTPClient:  httpClient(config),
+			Credentials: credentials.AnonymousCredentials,
 		},
 	}))
-
-	if config.RequiresAuthentication && config.Username != "" && config.Password != "" {
-		sess.Config.Credentials = credentials.NewStaticCredentials(config.Username, config.Password, "")
-	} else {
-		sess.Config.Credentials = credentials.AnonymousCredentials
-	}
 
 	svc := dynamodb.New(sess)
 
