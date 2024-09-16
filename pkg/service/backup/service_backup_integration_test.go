@@ -2402,8 +2402,10 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	CreateAlternatorTable(t, ManagedClusterHost(), alternatorPort, testTable)
-	FillAlternatorTableWithOneRow(t, ManagedClusterHost(), alternatorPort, testTable)
+	accessKeyID, secretAccessKey := CreateAlternatorUser(t, clusterSession, "")
+	svc := CreateDynamoDBService(t, ManagedClusterHost(), alternatorPort, accessKeyID, secretAccessKey)
+	CreateAlternatorTable(t, svc, testTable)
+	FillAlternatorTableWithOneRow(t, svc, testTable)
 
 	Print("When: validate data insertion")
 	selectStmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q WHERE key='test'", testKeyspace, testTable)
