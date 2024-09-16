@@ -1,39 +1,39 @@
-- scylla-version: scylla-enterprise:2023.1.9
+- scylla-version: scylla-enterprise:2023.1.11
   ip-family: IPV4
   raft-schema: disabled
   tablets: none
 
-- scylla-version: scylla-enterprise:2023.1.9
+- scylla-version: scylla-enterprise:2023.1.11
   ip-family: IPV4
   raft-schema: enabled
   tablets: none
 
-- scylla-version: scylla-enterprise:2023.1.9
+- scylla-version: scylla-enterprise:2023.1.11
   ip-family: IPV6
   raft-schema: enabled
   tablets: none
 
-- scylla-version: scylla-enterprise:2024.1.5
+- scylla-version: scylla-enterprise:2024.1.9
   ip-family: IPV4
   raft-schema: none
   tablets: none
 
-- scylla-version: scylla-enterprise:2024.1.5
+- scylla-version: scylla-enterprise:2024.1.9
   ip-family: IPV6
   raft-schema: none
   tablets: none
 
-- scylla-version: scylla:6.0.1
+- scylla-version: scylla:6.1.1
   ip-family: IPV4
   raft-schema: none
   tablets: disabled
 
-- scylla-version: scylla:6.0.1
+- scylla-version: scylla:6.1.1
   ip-family: IPV4
   raft-schema: none
   tablets: enabled
 
-- scylla-version: scylla:6.0.1
+- scylla-version: scylla:6.1.1
   ip-family: IPV6
   raft-schema: none
   tablets: enabled

@@ -2,10 +2,10 @@ concurrency:
     cancel-in-progress: true
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
-    scylla-version: scylla-enterprise:2024.1.5
-    ip-family: IPV6
+    scylla-version: scylla:6.1.1
+    ip-family: IPV4
     raft-schema: none
-    tablets: none
+    tablets: disabled
 jobs:
     backup:
         name: Test backup
@@ -99,7 +99,7 @@ jobs:
               run: make pkg-integration-test PKG=./pkg/store
             - name: Run migrate tests
               run: make pkg-integration-test PKG=./pkg/schema/migrate
-name: integration-tests-2024.1.5-IPV6
+name: integration-tests-6.1.1-IPV4
 "on":
     pull_request:
         types:
