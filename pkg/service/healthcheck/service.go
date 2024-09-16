@@ -300,15 +300,18 @@ func (s *Service) pingAlternator(ctx context.Context, _ uuid.UUID, host string, 
 		return 0, nil
 	}
 
-	pingFunc := dynamoping.SimplePing
-	if queryPing, err := ni.SupportsAlternatorQuery(); err == nil && queryPing {
-		pingFunc = dynamoping.QueryPing
-	}
-
 	addr := ni.AlternatorAddr(host)
 	config := dynamoping.Config{
-		Addr:    addr,
-		Timeout: timeout,
+		Addr:                   addr,
+		Timeout:                timeout,
+		RequiresAuthentication: ni.AlternatorEnforceAuthorization,
+	}
+
+	pingFunc := dynamoping.SimplePing
+	if !config.RequiresAuthentication {
+		if queryPing, err := ni.SupportsAlternatorQuery(); err == nil && queryPing {
+			pingFunc = dynamoping.QueryPing
+		}
 	}
 
 	tlsConfig := ni.AlternatorTLSConfig()
