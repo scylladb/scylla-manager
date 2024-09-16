@@ -7,17 +7,20 @@ package dynamoping
 
 import (
 	"context"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	_ "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestPingIntegration(t *testing.T) {
 	config := Config{
-		Addr:    "http://" + testconfig.ManagedClusterHost() + ":8000",
-		Timeout: 250 * time.Millisecond,
+		Addr:                   "http://" + testconfig.ManagedClusterHost() + ":8000",
+		Timeout:                250 * time.Millisecond,
+		RequiresAuthentication: true,
 	}
 
 	t.Run("simple", func(t *testing.T) {
@@ -31,6 +34,9 @@ func TestPingIntegration(t *testing.T) {
 	t.Run("query", func(t *testing.T) {
 		d, err := QueryPing(context.Background(), config)
 		if err != nil {
+			if errors.Is(err, ErrAlternatorQueryPingNotSupported) {
+				t.Skip(ErrAlternatorQueryPingNotSupported)
+			}
 			t.Error(err)
 		}
 		t.Logf("QueryPing() = %s", d)
