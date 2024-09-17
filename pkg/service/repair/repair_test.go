@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 )
@@ -124,156 +125,177 @@ func TestShouldRepairRing(t *testing.T) {
 		"h9": "dc4",
 	}
 
+	rs := func(reps ...string) scyllaclient.ReplicaTokenRanges {
+		return scyllaclient.ReplicaTokenRanges{
+			ReplicaSet: reps,
+			Ranges: []scyllaclient.TokenRange{
+				{
+					StartToken: dht.Murmur3MinToken,
+					EndToken:   dht.Murmur3MaxToken,
+				},
+			},
+		}
+	}
+
+	allDCs := []string{"dc1", "dc2", "dc3", "dc4"}
+
 	testCases := []struct {
+		Name     string
 		Ring     scyllaclient.Ring
 		DCs      []string
 		Host     string
 		Expected bool
 	}{
 		{
+			Name: "LocalStrategy",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.LocalStrategy,
-				RF:          1,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{rs("h1")},
+				HostDC:        hostDC,
 			},
-			DCs:      []string{"dc1", "dc2", "dc3", "dc4"},
-			Expected: false,
+			DCs:      allDCs,
+			Expected: false, // can't repair local keyspace
 		},
 		{
+			Name: "SimpleStrategy{rf=1}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.SimpleStrategy,
-				RF:          1,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1"), rs("h2"), rs("h3"),
+					rs("h4"), rs("h5"), rs("h6"),
+					rs("h7"), rs("h8"), rs("h9"),
+				},
+				HostDC: hostDC,
 			},
-			DCs:      []string{"dc1", "dc2", "dc3", "dc4"},
-			Expected: false,
+			DCs:      allDCs,
+			Expected: false, // can't repair rf=1
 		},
 		{
+			Name: "SimpleStrategy{rf=2}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.SimpleStrategy,
-				RF:          2,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2"), rs("h2", "h3"), rs("h3", "h4"),
+					rs("h4", "h5"), rs("h5", "h6"), rs("h6", "h7"),
+					rs("h7", "h8"), rs("h8", "h9"), rs("h9", "h1"),
+				},
+				HostDC: hostDC,
 			},
-			DCs:      []string{"dc1", "dc2", "dc3", "dc4"},
+			DCs:      allDCs,
 			Expected: true,
 		},
 		{
+			Name: "--dc 'dc3,dc4', SimpleStrategy{rf=3}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.SimpleStrategy,
-				RF:          3,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3"), rs("h2", "h3", "h4"), rs("h3", "h4", "h5"),
+					rs("h4", "h5", "h6"), rs("h5", "h6", "h7"), rs("h6", "h7", "h8"),
+					rs("h7", "h8", "h9"), rs("h8", "h9", "h1"), rs("h9", "h1", "h2"),
+				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc3", "dc4"},
-			Expected: false,
+			Expected: false, // rs("h1", "h2", "h3") has 1 replica in dc3 and dc4
 		},
 		{
+			Name: "--dc 'dc3,dc4', SimpleStrategy{rf=4}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.SimpleStrategy,
-				RF:          4,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h4"), rs("h2", "h3", "h4", "h5"), rs("h3", "h4", "h5", "h6"),
+					rs("h4", "h5", "h6", "h7"), rs("h5", "h6", "h7", "h8"), rs("h6", "h7", "h8", "h9"),
+					rs("h7", "h8", "h9", "h1"), rs("h8", "h9", "h1", "h2"), rs("h9", "h1", "h2", "h3"),
+				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc3", "dc4"},
 			Expected: true,
 		},
 		{
+			Name: "--dc 'dc4', SimpleStrategy{rf=4}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.SimpleStrategy,
-				RF:          4,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h4"), rs("h2", "h3", "h4", "h5"), rs("h3", "h4", "h5", "h6"),
+					rs("h4", "h5", "h6", "h7"), rs("h5", "h6", "h7", "h8"), rs("h6", "h7", "h8", "h9"),
+					rs("h7", "h8", "h9", "h1"), rs("h8", "h9", "h1", "h2"), rs("h9", "h1", "h2", "h3"),
+				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc4"},
-			Expected: false,
+			Expected: false, // rs("h1", "h2", "h3", "h4") has 0 replicas in dc4
 		},
 		{
+			Name: "NetworkTopologyStrategy{'dc1'=1, 'dc2'=1, 'dc3'=1, 'dc4'=1}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.NetworkTopologyStrategy,
-				RF:          4,
-				DCrf: map[string]int{
-					"dc1": 1,
-					"dc2": 1,
-					"dc3": 1,
-					"dc4": 1,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h6"), rs("h1", "h2", "h4", "h6"), rs("h1", "h2", "h5", "h6"),
+					rs("h1", "h2", "h3", "h7"), rs("h1", "h2", "h4", "h7"), rs("h1", "h2", "h5", "h7"),
+					rs("h1", "h2", "h3", "h8"), rs("h1", "h2", "h4", "h8"), rs("h1", "h2", "h5", "h8"),
+					rs("h1", "h2", "h3", "h9"), rs("h1", "h2", "h4", "h9"), rs("h1", "h2", "h5", "h9"),
 				},
+				HostDC: hostDC,
 			},
-			DCs:      []string{"dc1", "dc2", "dc3", "dc4"},
+			DCs:      allDCs,
 			Expected: true,
 		},
 		{
+			Name: "--dc 'dc1', NetworkTopologyStrategy{'dc1'=1, 'dc2'=1, 'dc3'=1, 'dc4'=1}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.NetworkTopologyStrategy,
-				RF:          4,
-				DCrf: map[string]int{
-					"dc1": 1,
-					"dc2": 1,
-					"dc3": 1,
-					"dc4": 1,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h6"), rs("h1", "h2", "h4", "h6"), rs("h1", "h2", "h5", "h6"),
+					rs("h1", "h2", "h3", "h7"), rs("h1", "h2", "h4", "h7"), rs("h1", "h2", "h5", "h7"),
+					rs("h1", "h2", "h3", "h8"), rs("h1", "h2", "h4", "h8"), rs("h1", "h2", "h5", "h8"),
+					rs("h1", "h2", "h3", "h9"), rs("h1", "h2", "h4", "h9"), rs("h1", "h2", "h5", "h9"),
 				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc1"},
-			Expected: false,
+			Expected: false, // rs("h1", "h2", "h3", "h4") has 1 replica in dc1
 		},
 		{
+			Name: "--dc 'dc3', NetworkTopologyStrategy{'dc1'=1, 'dc2'=1, 'dc3'=2, 'dc4'=2}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.NetworkTopologyStrategy,
-				RF:          8,
-				DCrf: map[string]int{
-					"dc1": 1,
-					"dc2": 1,
-					"dc3": 2,
-					"dc4": 2,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h4", "h6", "h7"), rs("h1", "h2", "h5", "h4", "h6", "h7"), rs("h1", "h2", "h3", "h5", "h6", "h7"),
+					rs("h1", "h2", "h3", "h4", "h6", "h8"), rs("h1", "h2", "h5", "h4", "h6", "h8"), rs("h1", "h2", "h3", "h5", "h6", "h8"),
+					rs("h1", "h2", "h3", "h4", "h6", "h9"), rs("h1", "h2", "h5", "h4", "h6", "h9"), rs("h1", "h2", "h3", "h5", "h6", "h9"),
+					rs("h1", "h2", "h3", "h4", "h7", "h8"), rs("h1", "h2", "h5", "h4", "h7", "h8"), rs("h1", "h2", "h3", "h5", "h7", "h8"),
+					rs("h1", "h2", "h3", "h4", "h8", "h9"), rs("h1", "h2", "h5", "h4", "h8", "h9"), rs("h1", "h2", "h3", "h5", "h8", "h9"),
 				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc3"},
 			Expected: true,
 		},
 		{
+			Name: "--dc 'dc4', --host h6, NetworkTopologyStrategy{'dc1'=1, 'dc2'=1, 'dc3'=3, 'dc4'=4}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.NetworkTopologyStrategy,
-				RF:          8,
-				DCrf: map[string]int{
-					"dc1": 1,
-					"dc2": 1,
-					"dc3": 3,
-					"dc4": 4,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"),
 				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc4"},
 			Host:     "h6",
 			Expected: true,
 		},
 		{
+			Name: "--dc 'dc4', --host h2, NetworkTopologyStrategy{'dc1'=1, 'dc2'=1, 'dc3'=3, 'dc4'=4}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.NetworkTopologyStrategy,
-				RF:          8,
-				DCrf: map[string]int{
-					"dc1": 1,
-					"dc2": 1,
-					"dc3": 3,
-					"dc4": 4,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"),
 				},
+				HostDC: hostDC,
 			},
 			DCs:      []string{"dc4"},
 			Host:     "h2",
-			Expected: false,
+			Expected: false, // h2 is not in dc4
 		},
 		{
+			Name: "--host h1, NetworkTopologyStrategy{'dc1'=1, 'dc2'=1, 'dc3'=3, 'dc4'=4}",
 			Ring: scyllaclient.Ring{
-				HostDC:      hostDC,
-				Replication: scyllaclient.NetworkTopologyStrategy,
-				RF:          8,
-				DCrf: map[string]int{
-					"dc1": 1,
-					"dc2": 1,
-					"dc3": 3,
-					"dc4": 4,
+				ReplicaTokens: []scyllaclient.ReplicaTokenRanges{
+					rs("h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"),
 				},
+				HostDC: hostDC,
 			},
-			DCs:      []string{"dc1", "dc2", "dc3", "dc4"},
+			DCs:      allDCs,
 			Host:     "h1",
 			Expected: true,
 		},
@@ -281,7 +303,7 @@ func TestShouldRepairRing(t *testing.T) {
 
 	for i := range testCases {
 		tc := testCases[i]
-		t.Run("test "+fmt.Sprint(i), func(t *testing.T) {
+		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 			if out := repair.ShouldRepairRing(tc.Ring, tc.DCs, tc.Host); out != tc.Expected {
 				t.Fatalf("Expected %v, got %v", tc.Expected, out)

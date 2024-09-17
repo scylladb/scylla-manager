@@ -255,27 +255,18 @@ func ShouldRepairRing(ring scyllaclient.Ring, dcs []string, host string) bool {
 		}
 	}
 
-	switch ring.Replication {
-	case scyllaclient.SimpleStrategy:
-		// Check range consisting of excluded hosts
-		excluded := 0
-		for _, dc := range ring.HostDC {
-			if !repairedDCs.Has(dc) {
-				excluded++
-			}
-		}
-		return ring.RF > excluded+1
-	case scyllaclient.NetworkTopologyStrategy:
+	for _, rt := range ring.ReplicaTokens {
 		rep := 0
-		for dc, rf := range ring.DCrf {
-			if repairedDCs.Has(dc) {
-				rep += rf
+		for _, r := range rt.ReplicaSet {
+			if repairedDCs.Has(ring.HostDC[r]) {
+				rep++
 			}
 		}
-		return rep > 1
-	default:
-		return false
+		if rep <= 1 {
+			return false
+		}
 	}
+	return true
 }
 
 // maxHostIntensity sets max_ranges_in_parallel for all repaired host.
