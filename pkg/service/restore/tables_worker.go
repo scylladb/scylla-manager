@@ -182,7 +182,7 @@ func (w *tablesWorker) restoreLocation(ctx context.Context, location Location) e
 		w.logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
 		defer w.logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
 
-		return miwc.ForEachIndexIterWithError(w.target.Keyspace, w.restoreDir(ctx, miwc))
+		return miwc.ForEachIndexIterWithError(nil, w.restoreDir(ctx, miwc))
 	}
 
 	return w.forEachManifest(ctx, location, restoreManifest)
@@ -190,6 +190,10 @@ func (w *tablesWorker) restoreLocation(ctx context.Context, location Location) e
 
 func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithContent) func(fm FilesMeta) error {
 	return func(fm FilesMeta) error {
+		if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
+			return nil
+		}
+
 		if !w.alreadyResumed {
 			if w.run.Keyspace != fm.Keyspace || w.run.Table != fm.Table {
 				w.logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
@@ -279,8 +283,12 @@ func (w *tablesWorker) initRestoreMetrics(ctx context.Context) {
 			func(miwc ManifestInfoWithContent) error {
 				sizePerTableAndKeyspace := make(map[string]map[string]int64)
 				err := miwc.ForEachIndexIterWithError(
-					w.target.Keyspace,
+					nil,
 					func(fm FilesMeta) error {
+						if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
+							return nil
+						}
+
 						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
 							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
 						}

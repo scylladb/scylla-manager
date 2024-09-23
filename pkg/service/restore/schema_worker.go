@@ -191,6 +191,10 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 	w.run.Location = location.String()
 
 	tableDownloadHandler := func(fm FilesMeta) error {
+		if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
+			return nil
+		}
+
 		w.logger.Info(ctx, "Downloading schema table", "keyspace", fm.Keyspace, "table", fm.Table)
 		defer w.logger.Info(ctx, "Downloading schema table finished", "keyspace", fm.Keyspace, "table", fm.Table)
 
@@ -208,7 +212,7 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 		w.run.ManifestPath = miwc.Path()
 		w.insertRun(ctx)
 
-		return miwc.ForEachIndexIterWithError(w.target.Keyspace, tableDownloadHandler)
+		return miwc.ForEachIndexIterWithError(nil, tableDownloadHandler)
 	}
 
 	return w.forEachManifest(ctx, location, manifestDownloadHandler)

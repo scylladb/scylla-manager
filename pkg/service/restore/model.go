@@ -4,6 +4,7 @@ package restore
 
 import (
 	"reflect"
+	"slices"
 	"sort"
 	"time"
 
@@ -109,6 +110,14 @@ func (u Unit) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(u), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
+}
+
+func unitsContainTable(units []Unit, ks, tab string) bool {
+	idx := slices.IndexFunc(units, func(u Unit) bool { return u.Keyspace == ks })
+	if idx < 0 {
+		return false
+	}
+	return slices.ContainsFunc(units[idx].Tables, func(t Table) bool { return t.Table == tab })
 }
 
 // Table represents restored table, its size and original tombstone_gc mode.
