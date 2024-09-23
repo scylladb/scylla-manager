@@ -476,3 +476,64 @@ func checkAnyConstraint(t *testing.T, client *scyllaclient.Client, constraints .
 	}
 	return false
 }
+
+func createTable(t *testing.T, session gocqlx.Session, keyspace string, tables ...string) {
+	for _, tab := range tables {
+		ExecStmt(t, session, fmt.Sprintf("CREATE TABLE %q.%q (id int PRIMARY KEY, data int)", keyspace, tab))
+	}
+}
+
+func fillTable(t *testing.T, session gocqlx.Session, rowCnt int, keyspace string, tables ...string) {
+	for _, tab := range tables {
+		stmt := fmt.Sprintf("INSERT INTO %q.%q (id, data) VALUES (?, ?)", keyspace, tab)
+		q := session.Query(stmt, []string{"id", "data"})
+
+		for i := 0; i < rowCnt; i++ {
+			if err := q.Bind(i, i).Exec(); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		q.Release()
+	}
+}
+
+func runPausedRestore(t *testing.T, restore func(ctx context.Context) error, intervals ...time.Duration) (err error) {
+	t.Helper()
+
+	getInterval := func() time.Duration {
+		if len(intervals) == 0 {
+			return 24 * time.Hour // Return a huge value when no more ticks are expected
+		}
+		i := intervals[0]
+		intervals = intervals[1:]
+		return i
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	res := make(chan error)
+	ticker := time.NewTicker(getInterval())
+	go func() {
+		res <- restore(ctx)
+	}()
+	for {
+		select {
+		case err := <-res:
+			cancel()
+			return err
+		case <-ticker.C:
+			t.Log("Pause restore")
+			cancel()
+			err := <-res
+			if err == nil || !errors.Is(err, context.Canceled) {
+				return err
+			}
+
+			ctx, cancel = context.WithCancel(context.Background())
+			ticker.Reset(getInterval())
+			go func() {
+				res <- restore(ctx)
+			}()
+		}
+	}
+}

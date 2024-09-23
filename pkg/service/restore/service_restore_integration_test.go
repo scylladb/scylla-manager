@@ -758,6 +758,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 		srcSession    = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx1, cancel1 = context.WithCancel(context.Background())
 		ctx2, cancel2 = context.WithCancel(context.Background())
+		mv            = "mv_resume"
 	)
 
 	dstH.shouldSkipTest(target)
@@ -770,10 +771,40 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
 		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
+		CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
 	}
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	CreateMaterializedView(t, srcSession, keyspace, BigTableName, mv)
+
+	// Starting from SM 3.3.1, SM does not allow to back up views,
+	// but backed up views should still be tested as older backups might
+	// contain them. That's why here we manually force backup target
+	// to contain the views.
+	backupProps, err := json.Marshal(map[string]any{"location": target.Location})
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupTarget, err := srcH.backupSvc.GetTarget(context.Background(), srcH.ClusterID, backupProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupTarget.Units = []backup.Unit{
+		{
+			Keyspace:  keyspace,
+			Tables:    []string{BigTableName, mv},
+			AllTables: true,
+		},
+	}
+	err = srcH.backupSvc.Backup(context.Background(), srcH.ClusterID, srcH.TaskID, srcH.RunID, backupTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupPr, err := srcH.backupSvc.GetProgress(context.Background(), srcH.ClusterID, srcH.TaskID, srcH.RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target.SnapshotTag = backupPr.SnapshotTag
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
@@ -812,7 +843,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	})
 
 	Print("When: run restore and stop it during load and stream")
-	err := dstH.service.Restore(ctx1, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target))
+	err = dstH.service.Restore(ctx1, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target))
 	if err == nil {
 		t.Fatal("Expected error on run but got nil")
 		return
