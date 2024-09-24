@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 )
@@ -160,6 +161,43 @@ func (w *tablesWorker) filterPreviouslyRestoredSStables(rawWorkload []RemoteDirW
 	}
 
 	return filtered, nil
+}
+
+func (w *tablesWorker) initMetrics(workload []LocationWorkload) {
+	// For now, the only persistent across task runs metrics are progress and remaining_bytes.
+	// The rest: state, view_build_status, batch_size are calculated from scratch.
+	w.metrics.ResetClusterMetrics(w.run.ClusterID)
+
+	// Init remaining bytes
+	for _, wl := range workload {
+		for _, twl := range wl.Tables {
+			for _, rdwl := range twl.RemoteDirs {
+				w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
+					ClusterID:   rdwl.ClusterID.String(),
+					SnapshotTag: rdwl.SnapshotTag,
+					Location:    rdwl.Location.String(),
+					DC:          rdwl.DC,
+					Node:        rdwl.NodeID,
+					Keyspace:    rdwl.Keyspace,
+					Table:       rdwl.Table,
+				}, rdwl.Size)
+			}
+		}
+	}
+
+	// Init progress
+	var totalSize int64
+	for _, u := range w.run.Units {
+		totalSize += u.Size
+	}
+	var workloadSize int64
+	for _, wl := range workload {
+		workloadSize += wl.Size
+	}
+	w.metrics.SetProgress(metrics.RestoreProgressLabels{
+		ClusterID:   w.run.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+	}, float64(totalSize-workloadSize)/float64(totalSize)*100)
 }
 
 func aggregateLocationWorkload(rawWorkload []RemoteDirWorkload) LocationWorkload {
