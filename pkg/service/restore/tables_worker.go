@@ -20,9 +20,6 @@ type tablesWorker struct {
 
 	repairSvc *repair.Service
 	progress  *TotalRestoreProgress
-	// When set to false, tablesWorker will skip restoration of location/manifest/table
-	// until it encounters the one present in run.
-	alreadyResumed bool
 }
 
 // TotalRestoreProgress is a struct that holds information about the total progress of the restore job.
@@ -66,20 +63,16 @@ func (p *TotalRestoreProgress) Update(bytesRestored int64) {
 
 func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) *tablesWorker {
 	return &tablesWorker{
-		worker:         w,
-		repairSvc:      repairSvc,
-		alreadyResumed: true,
-		progress:       NewTotalRestoreProgress(totalBytes),
+		worker:    w,
+		repairSvc: repairSvc,
+		progress:  NewTotalRestoreProgress(totalBytes),
 	}
 }
 
 // restore files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context) error {
-	if w.target.Continue && w.run.PrevID != uuid.Nil && w.run.Table != "" {
-		w.alreadyResumed = false
-	}
 	// Init metrics only on fresh start
-	if w.alreadyResumed {
+	if w.run.PrevID == uuid.Nil {
 		w.initRestoreMetrics(ctx)
 	}
 
@@ -158,10 +151,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	// Restore locations in deterministic order
 	for _, l := range w.target.Location {
-		if !w.alreadyResumed && w.run.Location != l.String() {
-			w.logger.Info(ctx, "Skipping location", "location", l)
-			continue
-		}
 		if err := w.restoreLocation(ctx, l); err != nil {
 			return err
 		}
@@ -174,11 +163,6 @@ func (w *tablesWorker) restoreLocation(ctx context.Context, location Location) e
 	defer w.logger.Info(ctx, "Restoring location finished", "location", location)
 
 	restoreManifest := func(miwc ManifestInfoWithContent) error {
-		if !w.alreadyResumed && w.run.ManifestPath != miwc.Path() {
-			w.logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
-			return nil
-		}
-
 		w.logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
 		defer w.logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
 
@@ -194,32 +178,17 @@ func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithCont
 			return nil
 		}
 
-		if !w.alreadyResumed {
-			if w.run.Keyspace != fm.Keyspace || w.run.Table != fm.Table {
-				w.logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
-				return nil
-			}
-		}
-
 		w.logger.Info(ctx, "Restoring table", "keyspace", fm.Keyspace, "table", fm.Table)
 		defer w.logger.Info(ctx, "Restoring table finished", "keyspace", fm.Keyspace, "table", fm.Table)
-
-		w.run.Location = miwc.Location.String()
-		w.run.ManifestPath = miwc.Path()
-		w.run.Table = fm.Table
-		w.run.Keyspace = fm.Keyspace
 		w.insertRun(ctx)
 
 		dw, err := newTablesDirWorker(ctx, w.worker, miwc, fm, w.progress)
 		if err != nil {
 			return errors.Wrap(err, "create dir worker")
 		}
-		if !w.alreadyResumed {
-			if err := dw.resumePrevProgress(); err != nil {
-				return errors.Wrap(err, "resume prev run progress")
-			}
+		if err := dw.resumePrevProgress(); err != nil {
+			return errors.Wrap(err, "resume prev run progress")
 		}
-		w.alreadyResumed = true
 
 		if err := dw.restore(ctx); err != nil {
 			if ctx.Err() != nil {
@@ -232,8 +201,8 @@ func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithCont
 			}
 
 			w.logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
-				"keyspace", w.run.Keyspace,
-				"table", w.run.Table,
+				"keyspace", fm.Keyspace,
+				"table", fm.Table,
 				"error", err,
 			)
 		}

@@ -262,12 +262,11 @@ func (w *tablesDirWorker) restoreSSTables(ctx context.Context, pr *RunProgress) 
 
 func (w *tablesDirWorker) resumePrevProgress() error {
 	bind := &RunProgress{
-		ClusterID:    w.run.ClusterID,
-		TaskID:       w.run.TaskID,
-		RunID:        w.run.ID,
-		ManifestPath: w.miwc.Path(),
-		Keyspace:     w.fm.Keyspace,
-		Table:        w.fm.Table,
+		ClusterID: w.run.ClusterID,
+		TaskID:    w.run.TaskID,
+		RunID:     w.run.ID,
+		Keyspace:  w.fm.Keyspace,
+		Table:     w.fm.Table,
 	}
 
 	// All bundles IDs started in the previous run
@@ -371,7 +370,6 @@ func (w *tablesDirWorker) newRunProgress(ctx context.Context, host string) (*Run
 		ClusterID:         w.run.ClusterID,
 		TaskID:            w.run.TaskID,
 		RunID:             w.run.ID,
-		ManifestPath:      w.miwc.Path(),
 		Keyspace:          w.fm.Keyspace,
 		Table:             w.fm.Table,
 		Host:              host,

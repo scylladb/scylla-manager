@@ -666,10 +666,6 @@ func (w *worker) decorateWithPrevRun(ctx context.Context) error {
 
 	if w.target.Continue {
 		w.run.PrevID = prev.ID
-		w.run.Location = prev.Location
-		w.run.ManifestPath = prev.ManifestPath
-		w.run.Keyspace = prev.Keyspace
-		w.run.Table = prev.Table
 		w.run.Stage = prev.Stage
 		w.run.RepairTaskID = prev.RepairTaskID
 	}
