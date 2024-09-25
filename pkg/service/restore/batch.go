@@ -14,14 +14,16 @@ type batchDispatcher struct {
 	mu            sync.Mutex
 	workload      []LocationWorkload
 	batchSize     int
+	hostShardCnt  map[string]uint
 	locationHosts map[Location][]string
 }
 
-func newBatchDispatcher(workload []LocationWorkload, batchSize int, locationHosts map[Location][]string) *batchDispatcher {
+func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
 	return &batchDispatcher{
 		mu:            sync.Mutex{},
 		workload:      workload,
 		batchSize:     batchSize,
+		hostShardCnt:  hostShardCnt,
 		locationHosts: locationHosts,
 	}
 }
@@ -113,7 +115,7 @@ func (b *batchDispatcher) DispatchBatch(host string) (batch, bool) {
 	if dir == nil {
 		return batch{}, false
 	}
-	out := b.createBatch(l, t, dir)
+	out := b.createBatch(l, t, dir, host)
 	return out, true
 }
 
@@ -153,8 +155,13 @@ func (b *batchDispatcher) chooseRemoteDir(table *TableWorkload) *RemoteDirWorklo
 }
 
 // Returns batch and updates RemoteDirWorkload and its parents.
-func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload) batch {
-	i := min(b.batchSize, len(dir.SSTables))
+func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload, host string) batch {
+	batchSize := b.batchSize * int(b.hostShardCnt[host])
+	if batchSize <= 0 {
+		panic("invalid batch size")
+	}
+
+	i := min(batchSize, len(dir.SSTables))
 	sstables := dir.SSTables[:i]
 	dir.SSTables = dir.SSTables[i:]
 

@@ -174,12 +174,18 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	}
 	w.initMetrics(workload)
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, w.target.locationHosts)
 	hostsS := strset.New()
 	for _, h := range w.target.locationHosts {
 		hostsS.Add(h...)
 	}
 	hosts := hostsS.List()
+
+	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return errors.Wrap(err, "get hosts shard count")
+	}
+
+	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
 	f := func(n int) (err error) {
 		h := hosts[n]
