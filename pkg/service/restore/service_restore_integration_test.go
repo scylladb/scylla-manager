@@ -394,7 +394,7 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 		{
 			name:  "non-positive batch size",
 			input: "testdata/get_target/non_positive_batch_size.input.json",
-			error: "batch size param has to be greater than zero",
+			error: "batch size param has to be greater or equal to zero",
 		},
 		{
 			name:  "no data matching keyspace pattern",

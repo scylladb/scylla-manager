@@ -11,20 +11,30 @@ import (
 )
 
 type batchDispatcher struct {
-	mu            sync.Mutex
-	workload      []LocationWorkload
-	batchSize     int
-	hostShardCnt  map[string]uint
-	locationHosts map[Location][]string
+	mu                    sync.Mutex
+	workload              []LocationWorkload
+	batchSize             int
+	expectedShardWorkload int64
+	hostShardCnt          map[string]uint
+	locationHosts         map[Location][]string
 }
 
 func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
+	var size int64
+	for _, t := range workload {
+		size += t.Size
+	}
+	var shards uint
+	for _, sh := range hostShardCnt {
+		shards += sh
+	}
 	return &batchDispatcher{
-		mu:            sync.Mutex{},
-		workload:      workload,
-		batchSize:     batchSize,
-		hostShardCnt:  hostShardCnt,
-		locationHosts: locationHosts,
+		mu:                    sync.Mutex{},
+		workload:              workload,
+		batchSize:             batchSize,
+		expectedShardWorkload: size / int64(shards),
+		hostShardCnt:          hostShardCnt,
+		locationHosts:         locationHosts,
 	}
 }
 
@@ -156,19 +166,48 @@ func (b *batchDispatcher) chooseRemoteDir(table *TableWorkload) *RemoteDirWorklo
 
 // Returns batch and updates RemoteDirWorkload and its parents.
 func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload, host string) batch {
-	batchSize := b.batchSize * int(b.hostShardCnt[host])
-	if batchSize <= 0 {
-		panic("invalid batch size")
+	shardCnt, ok := b.hostShardCnt[host]
+	if !ok {
+		panic("no shard cnt for host: " + host)
 	}
 
-	i := min(batchSize, len(dir.SSTables))
+	var i int
+	var size int64
+	if b.batchSize == maxBatchSize {
+		// Create batch containing multiple of node shard count sstables
+		// and size up to 5% of expected node workload.
+		expectedNodeWorkload := b.expectedShardWorkload * int64(shardCnt)
+		sizeLimit := expectedNodeWorkload / 20
+		for {
+			for j := 0; j < int(shardCnt); j++ {
+				if i >= len(dir.SSTables) {
+					break
+				}
+				size += dir.SSTables[i].Size
+				i++
+			}
+			if i >= len(dir.SSTables) {
+				break
+			}
+			if size > sizeLimit {
+				break
+			}
+		}
+	} else {
+		// Create batch containing node_shard_count*batch_size sstables.
+		i = min(b.batchSize*int(shardCnt), len(dir.SSTables))
+		for j := 0; j < i; j++ {
+			size += dir.SSTables[j].Size
+		}
+	}
+
+	if i == 0 {
+		panic("no sstables for batch")
+	}
+
 	sstables := dir.SSTables[:i]
 	dir.SSTables = dir.SSTables[i:]
 
-	var size int64
-	for _, sst := range sstables {
-		size += sst.Size
-	}
 	dir.Size -= size
 	t.Size -= size
 	l.Size -= size
