@@ -214,10 +214,6 @@ func (pr *RunProgress) ForEachTableProgress(session gocqlx.Session, cb func(*Run
 	return iter.Close()
 }
 
-func (pr *RunProgress) idCnt() int64 {
-	return int64(len(pr.SSTableID))
-}
-
 func (pr *RunProgress) setRestoreStartedAt() {
 	t := timeutc.Now()
 	pr.RestoreStartedAt = &t

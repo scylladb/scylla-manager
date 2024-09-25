@@ -689,6 +689,11 @@ func (w *worker) clonePrevProgress(ctx context.Context) {
 	defer q.Release()
 
 	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.PrevID, func(pr *RunProgress) {
+		// We don't support interrupted run progresses resume,
+		// so only finished run progresses should be copied.
+		if !validateTimeIsSet(pr.RestoreCompletedAt) {
+			return
+		}
 		pr.RunID = w.run.ID
 		if err := q.BindStruct(pr).Exec(); err != nil {
 			w.logger.Error(ctx, "Couldn't clone run progress",
