@@ -275,3 +275,9 @@ type ViewProgress struct {
 
 	Status scyllaclient.ViewBuildStatus `json:"status"`
 }
+
+// TableName represents full table name.
+type TableName struct {
+	Keyspace string
+	Table    string
+}

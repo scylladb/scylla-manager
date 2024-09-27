@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"path"
 	"regexp"
 	"slices"
@@ -41,6 +42,14 @@ type worker struct {
 	client         *scyllaclient.Client
 	session        gocqlx.Session
 	clusterSession gocqlx.Session
+}
+
+func (w *worker) randomHostFromLocation(loc Location) string {
+	hosts, ok := w.target.locationHosts[loc]
+	if !ok {
+		panic("no hosts for location: " + loc.String())
+	}
+	return hosts[rand.Intn(len(hosts))]
 }
 
 func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
