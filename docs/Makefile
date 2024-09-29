@@ -25,8 +25,10 @@ setupenv:
 .PHONY: setup
 setup:
 	$(POETRY) install
-	$(POETRY) update
 	./_utils/pre-build.sh
+
+update:
+	$(POETRY) update
 
 # Clean commands
 .PHONY: pristine
