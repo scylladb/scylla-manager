@@ -33,6 +33,31 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 	return err
 }
 
+// RcloneSetTransfers sets the default amount of transfers on rclone server.
+// This change is not persisted after server restart.
+// Transfers correspond to the number of file transfers to run in parallel.
+func (c *Client) RcloneSetTransfers(ctx context.Context, host string, transfers int) error {
+	p := operations.CoreTransfersParams{
+		Context:   forceHost(ctx, host),
+		Transfers: &models.Transfers{Transfers: int64(transfers)},
+	}
+	_, err := c.agentOps.CoreTransfers(&p) // nolint: errcheck
+	return err
+}
+
+// RcloneGetTransfers gets the default amount of transfers on rclone server.
+// Transfers correspond to the number of file transfers to run in parallel.
+func (c *Client) RcloneGetTransfers(ctx context.Context, host string) (int, error) {
+	p := operations.CoreTransfersParams{
+		Context: forceHost(ctx, host),
+	}
+	resp, err := c.agentOps.CoreTransfers(&p)
+	if err != nil {
+		return 0, err
+	}
+	return int(resp.Payload.Transfers), nil
+}
+
 // RcloneJobStop stops running job.
 func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) error {
 	p := operations.JobStopParams{
