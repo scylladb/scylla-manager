@@ -125,6 +125,14 @@ options:
       default_value: "false"
       usage: |
         Prints table names together with keyspace, used in combination with --dry-run.
+    - name: skip-schema
+      default_value: "false"
+      usage: |
+        Don't backup schema.
+        For ScyllaDB versions starting at 6.0 and 2024.2, SM requires CQL credentials to back up the schema.
+        CQL Credentials can be added with 'sctool cluster update --username --password' command.
+        This flag can be used to skip this step and allow for backing up user data without providing SM with CQL credentials.
+        Note that it's impossible to restore schema from such backups.
     - name: snapshot-parallel
       default_value: '[]'
       usage: |
