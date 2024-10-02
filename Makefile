@@ -226,7 +226,7 @@ build: build-cli build-agent build-server ## Build all project binaries
 docs: export TZ = UTC ## set UTC as the default timezone in generated docs
 docs: build ## Update docs/source with generated code
 	@rm -rf docs/source/sctool/partials
-	@SCYLLA_MANAGER_CLUSTER="" ./sctool doc -o docs/source/sctool/partials
+	@SCYLLA_MANAGER_CLUSTER="" ./sctool.dev doc -o docs/source/sctool/partials
 
 .PHONY: filler-tool
 filler-tool: ## Build "filler" tool
