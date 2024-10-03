@@ -28,6 +28,9 @@ func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt
 	for _, sh := range hostShardCnt {
 		shards += sh
 	}
+	if shards == 0 {
+		shards = 1
+	}
 	return &batchDispatcher{
 		mu:                    sync.Mutex{},
 		workload:              workload,
@@ -125,8 +128,7 @@ func (b *batchDispatcher) DispatchBatch(host string) (batch, bool) {
 	if dir == nil {
 		return batch{}, false
 	}
-	out := b.createBatch(l, t, dir, host)
-	return out, true
+	return b.createBatch(l, t, dir, host)
 }
 
 // Returns location for which batch should be created.
@@ -165,10 +167,10 @@ func (b *batchDispatcher) chooseRemoteDir(table *TableWorkload) *RemoteDirWorklo
 }
 
 // Returns batch and updates RemoteDirWorkload and its parents.
-func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload, host string) batch {
-	shardCnt, ok := b.hostShardCnt[host]
-	if !ok {
-		panic("no shard cnt for host: " + host)
+func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload, host string) (batch, bool) {
+	shardCnt := b.hostShardCnt[host]
+	if shardCnt == 0 {
+		shardCnt = 1
 	}
 
 	var i int
@@ -202,7 +204,7 @@ func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir
 	}
 
 	if i == 0 {
-		panic("no sstables for batch")
+		return batch{}, false
 	}
 
 	sstables := dir.SSTables[:i]
@@ -217,5 +219,5 @@ func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir
 		RemoteSSTableDir: dir.RemoteSSTableDir,
 		Size:             size,
 		SSTables:         sstables,
-	}
+	}, true
 }
