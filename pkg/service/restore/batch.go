@@ -20,6 +20,7 @@ type batchDispatcher struct {
 }
 
 func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
+	sortWorkloadBySizeDesc(workload)
 	var size int64
 	for _, t := range workload {
 		size += t.Size
@@ -220,4 +221,25 @@ func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir
 		Size:             size,
 		SSTables:         sstables,
 	}, true
+}
+
+func sortWorkloadBySizeDesc(workload []LocationWorkload) {
+	slices.SortFunc(workload, func(a, b LocationWorkload) int {
+		return int(b.Size - a.Size)
+	})
+	for _, loc := range workload {
+		slices.SortFunc(loc.Tables, func(a, b TableWorkload) int {
+			return int(b.Size - a.Size)
+		})
+		for _, tab := range loc.Tables {
+			slices.SortFunc(tab.RemoteDirs, func(a, b RemoteDirWorkload) int {
+				return int(b.Size - a.Size)
+			})
+			for _, dir := range tab.RemoteDirs {
+				slices.SortFunc(dir.SSTables, func(a, b RemoteSSTable) int {
+					return int(b.Size - a.Size)
+				})
+			}
+		}
+	}
 }
