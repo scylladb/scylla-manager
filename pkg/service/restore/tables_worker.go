@@ -184,6 +184,9 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "get hosts shard count")
 	}
+	for h, sh := range hostToShard {
+		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
+	}
 
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
