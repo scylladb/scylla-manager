@@ -33,6 +33,10 @@ parallel: |
   The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
   Each node can take part in at most one restore at any given moment.
 
+allow-compaction: |
+  Defines if auto compactions should be running on Scylla nodes during restore.
+  Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
+
 restore-schema: |
   Specifies restore type (alternative to '--restore-tables' flag).
   Restore will recreate schema by applying the backed up output of DESCRIBE SCHEMA WITH INTERNALS via CQL.
