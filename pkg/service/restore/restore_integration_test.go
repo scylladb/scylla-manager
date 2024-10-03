@@ -188,6 +188,13 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		m3 = map[query.DescribedSchemaRow]struct{}{}
 	)
 	for _, row := range srcSchema {
+		// Scylla 6.3 added roles and service levels to the output of
+		// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
+		// Those entities do not live in any particular keyspace, so that's how we identify them.
+		// We are skipping them until we properly support their restoration.
+		if row.Keyspace == "" {
+			continue
+		}
 		m1[row] = struct{}{}
 		if opt, ok := objWithOpt[row.Name]; ok {
 			if !strings.Contains(row.CQLStmt, opt) {
@@ -200,10 +207,14 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		t.Fatalf("Src schema: %v, is missing created objects: %v", m1, objWithOpt)
 	}
 	for _, row := range dstSchemaSrcBackup {
-		m2[row] = struct{}{}
+		if row.Keyspace != "" {
+			m2[row] = struct{}{}
+		}
 	}
 	for _, row := range srcSchemaDstBackup {
-		m3[row] = struct{}{}
+		if row.Keyspace != "" {
+			m3[row] = struct{}{}
+		}
 	}
 	Print("Validate that all schemas are the same")
 	if !maputil.Equal(m1, m2) {
