@@ -167,7 +167,6 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 				ClusterID:           w.run.ClusterID,
 				TaskID:              w.run.TaskID,
 				RunID:               w.run.ID,
-				ManifestPath:        "DESCRIBE SCHEMA WITH INTERNALS",
 				Keyspace:            u.Keyspace,
 				Table:               t.Table,
 				DownloadStartedAt:   &start,
@@ -188,8 +187,6 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 	w.logger.Info(ctx, "Downloading schema from location", "location", location)
 	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location)
 
-	w.run.Location = location.String()
-
 	tableDownloadHandler := func(fm FilesMeta) error {
 		if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
 			return nil
@@ -197,9 +194,6 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 
 		w.logger.Info(ctx, "Downloading schema table", "keyspace", fm.Keyspace, "table", fm.Table)
 		defer w.logger.Info(ctx, "Downloading schema table finished", "keyspace", fm.Keyspace, "table", fm.Table)
-
-		w.run.Table = fm.Table
-		w.run.Keyspace = fm.Keyspace
 
 		return w.workFunc(ctx, fm)
 	}
@@ -209,7 +203,6 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 		defer w.logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
 
 		w.miwc = miwc
-		w.run.ManifestPath = miwc.Path()
 		w.insertRun(ctx)
 
 		return miwc.ForEachIndexIterWithError(nil, tableDownloadHandler)
@@ -242,12 +235,6 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
-	if len(w.versionedFiles) > 0 {
-		w.logger.Info(ctx, "Chosen versioned SSTables",
-			"dir", srcDir,
-			"versioned_files", w.versionedFiles,
-		)
-	}
 
 	idMapping := w.getFileNamesMapping(fm.Files, false)
 	uuidMapping := w.getFileNamesMapping(fm.Files, true)
@@ -275,10 +262,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 			// Rename SSTable in the destination in order to avoid name conflicts
 			dstFile := renamedSSTables[file]
 			// Take the correct version of restored file
-			srcFile := file
-			if v, ok := w.versionedFiles[file]; ok {
-				srcFile = v.FullName()
-			}
+			srcFile := w.versionedFiles[file].FullName()
 
 			srcPath := path.Join(srcDir, srcFile)
 			dstPath := path.Join(dstDir, dstFile)
@@ -308,9 +292,9 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 			ClusterID:           w.run.ClusterID,
 			TaskID:              w.run.TaskID,
 			RunID:               w.run.ID,
-			ManifestPath:        w.run.ManifestPath,
-			Keyspace:            w.run.Keyspace,
-			Table:               w.run.Table,
+			RemoteSSTableDir:    srcDir,
+			Keyspace:            fm.Keyspace,
+			Table:               fm.Table,
 			Host:                host,
 			DownloadStartedAt:   &start,
 			DownloadCompletedAt: &end,

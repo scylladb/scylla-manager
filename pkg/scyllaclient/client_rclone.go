@@ -280,6 +280,9 @@ func (c *Client) RcloneCopyPaths(ctx context.Context, host, dstRemoteDir, srcRem
 	if err != nil {
 		return 0, err
 	}
+	if paths == nil {
+		paths = make([]string, 0)
+	}
 
 	p := operations.SyncCopyPathsParams{
 		Context: forceHost(ctx, host),

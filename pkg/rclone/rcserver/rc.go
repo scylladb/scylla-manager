@@ -554,7 +554,9 @@ func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		if len(paths) == 0 {
+			return nil, nil
+		}
 		return nil, sync.CopyPaths(ctx, dstFs, dstRemote, srcFs, srcRemote, paths, false)
 	}
 }

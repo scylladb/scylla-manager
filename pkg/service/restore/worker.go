@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"path"
 	"regexp"
 	"slices"
@@ -41,6 +42,14 @@ type worker struct {
 	client         *scyllaclient.Client
 	session        gocqlx.Session
 	clusterSession gocqlx.Session
+}
+
+func (w *worker) randomHostFromLocation(loc Location) string {
+	hosts, ok := w.target.locationHosts[loc]
+	if !ok {
+		panic("no hosts for location: " + loc.String())
+	}
+	return hosts[rand.Intn(len(hosts))]
 }
 
 func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
@@ -666,10 +675,6 @@ func (w *worker) decorateWithPrevRun(ctx context.Context) error {
 
 	if w.target.Continue {
 		w.run.PrevID = prev.ID
-		w.run.Location = prev.Location
-		w.run.ManifestPath = prev.ManifestPath
-		w.run.Keyspace = prev.Keyspace
-		w.run.Table = prev.Table
 		w.run.Stage = prev.Stage
 		w.run.RepairTaskID = prev.RepairTaskID
 	}
@@ -684,6 +689,11 @@ func (w *worker) clonePrevProgress(ctx context.Context) {
 	defer q.Release()
 
 	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.PrevID, func(pr *RunProgress) {
+		// We don't support interrupted run progresses resume,
+		// so only finished run progresses should be copied.
+		if !validateTimeIsSet(pr.RestoreCompletedAt) {
+			return
+		}
 		pr.RunID = w.run.ID
 		if err := q.BindStruct(pr).Exec(); err != nil {
 			w.logger.Error(ctx, "Couldn't clone run progress",
@@ -793,21 +803,4 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
-}
-
-func buildFilesSizesCache(ctx context.Context, client *scyllaclient.Client, host, dir string, versioned VersionedMap) (map[string]int64, error) {
-	filesSizesCache := make(map[string]int64)
-	opts := &scyllaclient.RcloneListDirOpts{
-		FilesOnly: true,
-	}
-	f := func(item *scyllaclient.RcloneListDirItem) {
-		filesSizesCache[item.Name] = item.Size
-	}
-	if err := client.RcloneListDirIter(ctx, host, dir, opts, f); err != nil {
-		return nil, errors.Wrapf(err, "host %s: listing all files from %s", host, dir)
-	}
-	for k, v := range versioned {
-		filesSizesCache[k] = v.Size
-	}
-	return filesSizesCache, nil
 }

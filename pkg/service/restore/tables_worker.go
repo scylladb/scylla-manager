@@ -9,20 +9,21 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 type tablesWorker struct {
 	worker
 
-	repairSvc *repair.Service
-	progress  *TotalRestoreProgress
-	// When set to false, tablesWorker will skip restoration of location/manifest/table
-	// until it encounters the one present in run.
-	alreadyResumed bool
+	tableVersion map[TableName]string
+	repairSvc    *repair.Service
+	progress     *TotalRestoreProgress
 }
 
 // TotalRestoreProgress is a struct that holds information about the total progress of the restore job.
@@ -64,22 +65,33 @@ func (p *TotalRestoreProgress) Update(bytesRestored int64) {
 	p.restoredBytes += bytesRestored
 }
 
-func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) *tablesWorker {
-	return &tablesWorker{
-		worker:         w,
-		repairSvc:      repairSvc,
-		alreadyResumed: true,
-		progress:       NewTotalRestoreProgress(totalBytes),
+func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) (*tablesWorker, error) {
+	versions := make(map[TableName]string)
+	for _, u := range w.run.Units {
+		for _, t := range u.Tables {
+			v, err := query.GetTableVersion(w.clusterSession, u.Keyspace, t.Table)
+			if err != nil {
+				return nil, errors.Wrapf(err, "get %s.%s version", u.Keyspace, t.Table)
+			}
+			versions[TableName{
+				Keyspace: u.Keyspace,
+				Table:    t.Table,
+			}] = v
+		}
 	}
+
+	return &tablesWorker{
+		worker:       w,
+		tableVersion: versions,
+		repairSvc:    repairSvc,
+		progress:     NewTotalRestoreProgress(totalBytes),
+	}, nil
 }
 
 // restore files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context) error {
-	if w.target.Continue && w.run.PrevID != uuid.Nil && w.run.Table != "" {
-		w.alreadyResumed = false
-	}
 	// Init metrics only on fresh start
-	if w.alreadyResumed {
+	if w.run.PrevID == uuid.Nil {
 		w.initRestoreMetrics(ctx)
 	}
 
@@ -156,90 +168,60 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
 
-	// Restore locations in deterministic order
-	for _, l := range w.target.Location {
-		if !w.alreadyResumed && w.run.Location != l.String() {
-			w.logger.Info(ctx, "Skipping location", "location", l)
-			continue
-		}
-		if err := w.restoreLocation(ctx, l); err != nil {
-			return err
-		}
+	workload, err := w.IndexWorkload(ctx, w.target.Location)
+	if err != nil {
+		return err
 	}
-	return nil
-}
+	w.initMetrics(workload)
 
-func (w *tablesWorker) restoreLocation(ctx context.Context, location Location) error {
-	w.logger.Info(ctx, "Restoring location", "location", location)
-	defer w.logger.Info(ctx, "Restoring location finished", "location", location)
-
-	restoreManifest := func(miwc ManifestInfoWithContent) error {
-		if !w.alreadyResumed && w.run.ManifestPath != miwc.Path() {
-			w.logger.Info(ctx, "Skipping manifest", "manifest", miwc.ManifestInfo)
-			return nil
-		}
-
-		w.logger.Info(ctx, "Restoring manifest", "manifest", miwc.ManifestInfo)
-		defer w.logger.Info(ctx, "Restoring manifest finished", "manifest", miwc.ManifestInfo)
-
-		return miwc.ForEachIndexIterWithError(nil, w.restoreDir(ctx, miwc))
+	bd := newBatchDispatcher(workload, w.target.BatchSize, w.target.locationHosts)
+	hostsS := strset.New()
+	for _, h := range w.target.locationHosts {
+		hostsS.Add(h...)
 	}
+	hosts := hostsS.List()
 
-	return w.forEachManifest(ctx, location, restoreManifest)
-}
-
-func (w *tablesWorker) restoreDir(ctx context.Context, miwc ManifestInfoWithContent) func(fm FilesMeta) error {
-	return func(fm FilesMeta) error {
-		if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
-			return nil
-		}
-
-		if !w.alreadyResumed {
-			if w.run.Keyspace != fm.Keyspace || w.run.Table != fm.Table {
-				w.logger.Info(ctx, "Skipping table", "keyspace", fm.Keyspace, "table", fm.Table)
+	f := func(n int) (err error) {
+		h := hosts[n]
+		for {
+			// Download and stream in parallel
+			b, ok := bd.DispatchBatch(h)
+			if !ok {
+				w.logger.Info(ctx, "No more batches to restore", "host", h)
 				return nil
 			}
-		}
-
-		w.logger.Info(ctx, "Restoring table", "keyspace", fm.Keyspace, "table", fm.Table)
-		defer w.logger.Info(ctx, "Restoring table finished", "keyspace", fm.Keyspace, "table", fm.Table)
-
-		w.run.Location = miwc.Location.String()
-		w.run.ManifestPath = miwc.Path()
-		w.run.Table = fm.Table
-		w.run.Keyspace = fm.Keyspace
-		w.insertRun(ctx)
-
-		dw, err := newTablesDirWorker(ctx, w.worker, miwc, fm, w.progress)
-		if err != nil {
-			return errors.Wrap(err, "create dir worker")
-		}
-		if !w.alreadyResumed {
-			if err := dw.resumePrevProgress(); err != nil {
-				return errors.Wrap(err, "resume prev run progress")
-			}
-		}
-		w.alreadyResumed = true
-
-		if err := dw.restore(ctx); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			// In case all SSTables have been restored, restore can proceed even
-			// with errors from some hosts.
-			if len(dw.bundleIDPool) > 0 {
-				return errors.Wrapf(err, "not restored bundles %v", dw.bundleIDPool.drain())
-			}
-
-			w.logger.Error(ctx, "Restore table failed on some hosts but restore will proceed",
-				"keyspace", w.run.Keyspace,
-				"table", w.run.Table,
-				"error", err,
+			w.metrics.IncreaseBatchSize(w.run.ClusterID, h, b.Size)
+			w.logger.Info(ctx, "Got batch to restore",
+				"host", h,
+				"keyspace", b.Keyspace,
+				"table", b.Table,
+				"size", b.Size,
+				"sstable count", len(b.SSTables),
 			)
-		}
 
-		return nil
+			pr, err := w.newRunProgress(ctx, h, b)
+			if err != nil {
+				return errors.Wrap(err, "create new run progress")
+			}
+			if err := w.restoreBatch(ctx, b, pr); err != nil {
+				return errors.Wrap(err, "restore batch")
+			}
+			w.decreaseRemainingBytesMetric(b)
+		}
 	}
+
+	notify := func(n int, err error) {
+		w.logger.Error(ctx, "Failed to restore files on host",
+			"host", hosts[n],
+			"error", err,
+		)
+	}
+
+	err = parallel.Run(len(hosts), w.target.Parallel, f, notify)
+	if err == nil {
+		return bd.ValidateAllDispatched()
+	}
+	return err
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context) error {

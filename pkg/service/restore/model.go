@@ -80,16 +80,11 @@ type Run struct {
 	TaskID    uuid.UUID
 	ID        uuid.UUID
 
-	PrevID       uuid.UUID
-	Location     string // marks currently processed location
-	ManifestPath string // marks currently processed manifest
-	Keyspace     string `db:"keyspace_name"` // marks currently processed keyspace
-	Table        string `db:"table_name"`    // marks currently processed table
-	SnapshotTag  string
-	Stage        Stage
+	PrevID      uuid.UUID
+	SnapshotTag string
+	Stage       Stage
 
 	RepairTaskID uuid.UUID // task ID of the automated post-restore repair
-
 	// Cache that's initialized once for entire task
 	Units []Unit
 	Views []View
@@ -165,20 +160,21 @@ func (t *View) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-// RunProgress describes restore progress (like in RunProgress) of
-// already started download of SSTables with specified IDs to host.
+// RunProgress describes progress of restoring a single batch.
 type RunProgress struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
 
-	ManifestPath string
-	Keyspace     string `db:"keyspace_name"`
-	Table        string `db:"table_name"`
-	Host         string // IP of the node to which SSTables are downloaded.
-	AgentJobID   int64
+	// Different DB name because of historical reasons and because we can't drop/alter clustering column
+	RemoteSSTableDir string   `db:"manifest_path"`
+	Keyspace         string   `db:"keyspace_name"`
+	Table            string   `db:"table_name"`
+	SSTableID        []string `db:"sstable_id"`
 
-	SSTableID           []string `db:"sstable_id"`
+	Host       string // IP of the node to which SSTables are downloaded.
+	AgentJobID int64
+
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
 	RestoreStartedAt    *time.Time
@@ -206,7 +202,7 @@ func (pr *RunProgress) ForEachTableProgress(session gocqlx.Session, cb func(*Run
 		"cluster_id":    pr.ClusterID,
 		"task_id":       pr.TaskID,
 		"run_id":        pr.RunID,
-		"manifest_path": pr.ManifestPath,
+		"manifest_path": pr.RemoteSSTableDir,
 		"keyspace_name": pr.Keyspace,
 		"table_name":    pr.Table,
 	}).Iter()
@@ -216,10 +212,6 @@ func (pr *RunProgress) ForEachTableProgress(session gocqlx.Session, cb func(*Run
 		cb(res)
 	}
 	return iter.Close()
-}
-
-func (pr *RunProgress) idCnt() int64 {
-	return int64(len(pr.SSTableID))
 }
 
 func (pr *RunProgress) setRestoreStartedAt() {
@@ -278,4 +270,10 @@ type ViewProgress struct {
 	View
 
 	Status scyllaclient.ViewBuildStatus `json:"status"`
+}
+
+// TableName represents full table name.
+type TableName struct {
+	Keyspace string
+	Table    string
 }
