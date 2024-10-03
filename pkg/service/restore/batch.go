@@ -207,6 +207,13 @@ func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir
 	if i == 0 {
 		return batch{}, false
 	}
+	// Extend batch if it was to leave less than
+	// 1 sstable per shard for the next one.
+	if len(dir.SSTables)-i < int(shardCnt) {
+		for ; i < len(dir.SSTables); i++ {
+			size += dir.SSTables[i].Size
+		}
+	}
 
 	sstables := dir.SSTables[:i]
 	dir.SSTables = dir.SSTables[i:]
