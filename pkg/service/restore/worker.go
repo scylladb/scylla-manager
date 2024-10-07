@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -336,9 +337,18 @@ func (w *worker) initUnits(ctx context.Context) error {
 		unitMap = make(map[string]Unit)
 	)
 
+	dcs, err := dcfilter.NewFilter(w.target.Datacenter)
+	if err != nil {
+		return errors.Wrapf(err, "create dc filter")
+	}
+
 	var foundManifest bool
 	for _, l := range w.target.Location {
 		manifestHandler := func(miwc ManifestInfoWithContent) error {
+			if !dcs.Check(miwc.DC) {
+				return nil
+			}
+
 			foundManifest = true
 
 			filesHandler := func(fm FilesMeta) {

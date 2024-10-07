@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"go.uber.org/atomic"
 
@@ -205,7 +206,16 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 		return w.workFunc(ctx, fm)
 	}
 
+	dcs, err := dcfilter.NewFilter(w.target.Datacenter)
+	if err != nil {
+		return errors.Wrapf(err, "create dc filter")
+	}
+
 	manifestDownloadHandler := func(miwc ManifestInfoWithContent) error {
+		if !dcs.Check(miwc.DC) {
+			return nil
+		}
+
 		w.logger.Info(ctx, "Downloading schema from manifest", "manifest", miwc.ManifestInfo)
 		defer w.logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
 

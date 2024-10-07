@@ -25,6 +25,7 @@ import (
 type Target struct {
 	Location      []Location `json:"location"`
 	Keyspace      []string   `json:"keyspace,omitempty"`
+	Datacenter    []string   `json:"datacenter,omitempty"`
 	SnapshotTag   string     `json:"snapshot_tag"`
 	BatchSize     int        `json:"batch_size,omitempty"`
 	Parallel      int        `json:"parallel,omitempty"`

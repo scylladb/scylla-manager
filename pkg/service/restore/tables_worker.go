@@ -161,7 +161,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
 
-	workload, err := w.IndexWorkload(ctx, w.target.Location)
+	workload, err := w.IndexWorkload(ctx, w.target.Location, w.target.Datacenter)
 	if err != nil {
 		return err
 	}

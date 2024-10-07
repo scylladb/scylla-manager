@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 )
 
 // LocationWorkload represents aggregated restore workload
@@ -56,10 +57,10 @@ type SSTable struct {
 }
 
 // IndexWorkload returns sstables to be restored aggregated by location, table and remote sstable dir.
-func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location) ([]LocationWorkload, error) {
+func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location, dcFilters []string) ([]LocationWorkload, error) {
 	var workload []LocationWorkload
 	for _, l := range locations {
-		lw, err := w.indexLocationWorkload(ctx, l)
+		lw, err := w.indexLocationWorkload(ctx, l, dcFilters)
 		if err != nil {
 			return nil, errors.Wrapf(err, "index workload in %s", l)
 		}
@@ -68,8 +69,8 @@ func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location) 
 	return workload, nil
 }
 
-func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Location) (LocationWorkload, error) {
-	rawWorkload, err := w.createRemoteDirWorkloads(ctx, location)
+func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Location, dcFilters []string) (LocationWorkload, error) {
+	rawWorkload, err := w.createRemoteDirWorkloads(ctx, location, dcFilters)
 	if err != nil {
 		return LocationWorkload{}, errors.Wrap(err, "create remote dir workloads")
 	}
@@ -84,9 +85,17 @@ func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Locat
 	return workload, nil
 }
 
-func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Location) ([]RemoteDirWorkload, error) {
+func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Location, dcFilters []string) ([]RemoteDirWorkload, error) {
+	dcs, err := dcfilter.NewFilter(dcFilters)
+	if err != nil {
+		return nil, errors.Wrapf(err, "create dc filter")
+	}
+
 	var rawWorkload []RemoteDirWorkload
-	err := w.forEachManifest(ctx, location, func(m ManifestInfoWithContent) error {
+	err = w.forEachManifest(ctx, location, func(m ManifestInfoWithContent) error {
+		if !dcs.Check(m.DC) {
+			return nil
+		}
 		return m.ForEachIndexIterWithError(nil, func(fm FilesMeta) error {
 			if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
 				return nil
