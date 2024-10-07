@@ -17,7 +17,7 @@ options:
     - name: disable
       default_value: "false"
       usage: |
-        Do not run in future, can be later enabled.
+        Prevents the task from running in the future until the task has been re-enabled with the `sctool (backup|repair) update --enabled=true` command.
     - name: help
       shorthand: h
       default_value: "false"
