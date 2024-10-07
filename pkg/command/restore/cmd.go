@@ -26,6 +26,7 @@ type command struct {
 	cluster       string
 	location      []string
 	keyspace      []string
+	datacenter    []string
 	snapshotTag   string
 	batchSize     int
 	parallel      int
@@ -75,6 +76,7 @@ func (cmd *command) init() {
 	w.Cluster(&cmd.cluster)
 	w.Location(&cmd.location)
 	w.Keyspace(&cmd.keyspace)
+	w.Datacenter(&cmd.datacenter)
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 1, "")
@@ -127,6 +129,10 @@ func (cmd *command) run(args []string) error {
 			return wrapper("keyspace")
 		}
 		props["keyspace"] = cmd.keyspace
+		ok = true
+	}
+	if cmd.Flag("datacenter").Changed {
+		props["datacenter"] = cmd.datacenter
 		ok = true
 	}
 	if cmd.Flag("snapshot-tag").Changed {

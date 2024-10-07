@@ -20,6 +20,21 @@ location: |
   The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
   The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
 
+dc: |
+  Specifies datacenters that will be restored from the backup.
+  Using this flag will result in an incomplete restore.
+
+  It accepts `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' (see `--keyspace` flag for `glob` syntax details).
+  The following syntax for glob patterns is supported:
+  
+  * '*' - matches any number of any characters including none
+  * '?' - matches any single character
+  * '[abc]' - matches one character given in the bracket
+  * '[a-z]' - matches one character from the range given in the bracket
+  
+  Patterns are evaluated from left to right.
+  If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
 snapshot-tag: |
   Scylla Manager snapshot tag identifying restored backup.
   Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).

@@ -19,6 +19,22 @@ options:
       usage: |
         Task schedule as a cron `expression`.
         It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
+    - name: dc
+      default_value: '[]'
+      usage: |
+        Specifies datacenters that will be restored from the backup.
+        Using this flag will result in an incomplete restore.
+
+        It accepts `glob` patterns separated by a comma, e.g. 'dc1,!otherdc*' (see `--keyspace` flag for `glob` syntax details).
+        The following syntax for glob patterns is supported:
+
+        * '*' - matches any number of any characters including none
+        * '?' - matches any single character
+        * '[abc]' - matches one character given in the bracket
+        * '[a-z]' - matches one character from the range given in the bracket
+
+        Patterns are evaluated from left to right.
+        If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
     - name: dry-run
       default_value: "false"
       usage: |
