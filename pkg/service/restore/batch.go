@@ -11,18 +11,34 @@ import (
 )
 
 type batchDispatcher struct {
-	mu            sync.Mutex
-	workload      []LocationWorkload
-	batchSize     int
-	locationHosts map[Location][]string
+	mu                    sync.Mutex
+	workload              []LocationWorkload
+	batchSize             int
+	expectedShardWorkload int64
+	hostShardCnt          map[string]uint
+	locationHosts         map[Location][]string
 }
 
-func newBatchDispatcher(workload []LocationWorkload, batchSize int, locationHosts map[Location][]string) *batchDispatcher {
+func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
+	sortWorkloadBySizeDesc(workload)
+	var size int64
+	for _, t := range workload {
+		size += t.Size
+	}
+	var shards uint
+	for _, sh := range hostShardCnt {
+		shards += sh
+	}
+	if shards == 0 {
+		shards = 1
+	}
 	return &batchDispatcher{
-		mu:            sync.Mutex{},
-		workload:      workload,
-		batchSize:     batchSize,
-		locationHosts: locationHosts,
+		mu:                    sync.Mutex{},
+		workload:              workload,
+		batchSize:             batchSize,
+		expectedShardWorkload: size / int64(shards),
+		hostShardCnt:          hostShardCnt,
+		locationHosts:         locationHosts,
 	}
 }
 
@@ -113,8 +129,7 @@ func (b *batchDispatcher) DispatchBatch(host string) (batch, bool) {
 	if dir == nil {
 		return batch{}, false
 	}
-	out := b.createBatch(l, t, dir)
-	return out, true
+	return b.createBatch(l, t, dir, host)
 }
 
 // Returns location for which batch should be created.
@@ -153,15 +168,56 @@ func (b *batchDispatcher) chooseRemoteDir(table *TableWorkload) *RemoteDirWorklo
 }
 
 // Returns batch and updates RemoteDirWorkload and its parents.
-func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload) batch {
-	i := min(b.batchSize, len(dir.SSTables))
+func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload, host string) (batch, bool) {
+	shardCnt := b.hostShardCnt[host]
+	if shardCnt == 0 {
+		shardCnt = 1
+	}
+
+	var i int
+	var size int64
+	if b.batchSize == maxBatchSize {
+		// Create batch containing multiple of node shard count sstables
+		// and size up to 5% of expected node workload.
+		expectedNodeWorkload := b.expectedShardWorkload * int64(shardCnt)
+		sizeLimit := expectedNodeWorkload / 20
+		for {
+			for j := 0; j < int(shardCnt); j++ {
+				if i >= len(dir.SSTables) {
+					break
+				}
+				size += dir.SSTables[i].Size
+				i++
+			}
+			if i >= len(dir.SSTables) {
+				break
+			}
+			if size > sizeLimit {
+				break
+			}
+		}
+	} else {
+		// Create batch containing node_shard_count*batch_size sstables.
+		i = min(b.batchSize*int(shardCnt), len(dir.SSTables))
+		for j := 0; j < i; j++ {
+			size += dir.SSTables[j].Size
+		}
+	}
+
+	if i == 0 {
+		return batch{}, false
+	}
+	// Extend batch if it was to leave less than
+	// 1 sstable per shard for the next one.
+	if len(dir.SSTables)-i < int(shardCnt) {
+		for ; i < len(dir.SSTables); i++ {
+			size += dir.SSTables[i].Size
+		}
+	}
+
 	sstables := dir.SSTables[:i]
 	dir.SSTables = dir.SSTables[i:]
 
-	var size int64
-	for _, sst := range sstables {
-		size += sst.Size
-	}
 	dir.Size -= size
 	t.Size -= size
 	l.Size -= size
@@ -171,5 +227,26 @@ func (b *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir
 		RemoteSSTableDir: dir.RemoteSSTableDir,
 		Size:             size,
 		SSTables:         sstables,
+	}, true
+}
+
+func sortWorkloadBySizeDesc(workload []LocationWorkload) {
+	slices.SortFunc(workload, func(a, b LocationWorkload) int {
+		return int(b.Size - a.Size)
+	})
+	for _, loc := range workload {
+		slices.SortFunc(loc.Tables, func(a, b TableWorkload) int {
+			return int(b.Size - a.Size)
+		})
+		for _, tab := range loc.Tables {
+			slices.SortFunc(tab.RemoteDirs, func(a, b RemoteDirWorkload) int {
+				return int(b.Size - a.Size)
+			})
+			for _, dir := range tab.RemoteDirs {
+				slices.SortFunc(dir.SSTables, func(a, b RemoteSSTable) int {
+					return int(b.Size - a.Size)
+				})
+			}
+		}
 	}
 }

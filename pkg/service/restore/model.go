@@ -36,6 +36,8 @@ type Target struct {
 	locationHosts map[Location][]string `json:"-"`
 }
 
+const maxBatchSize = 0
+
 func defaultTarget() Target {
 	return Target{
 		BatchSize: 2,
@@ -53,8 +55,8 @@ func (t Target) validateProperties() error {
 	if _, err := SnapshotTagTime(t.SnapshotTag); err != nil {
 		return err
 	}
-	if t.BatchSize <= 0 {
-		return errors.New("batch size param has to be greater than zero")
+	if t.BatchSize < 0 {
+		return errors.New("batch size param has to be greater or equal to zero")
 	}
 	if t.Parallel < 0 {
 		return errors.New("parallel param has to be greater or equal to zero")

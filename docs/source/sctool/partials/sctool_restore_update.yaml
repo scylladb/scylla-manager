@@ -10,6 +10,7 @@ options:
       usage: |
         Number of SSTables per shard to process in one request by one node.
         Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
+        Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).
     - name: cluster
       shorthand: c
       usage: |

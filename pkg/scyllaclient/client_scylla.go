@@ -417,6 +417,9 @@ func (c *Client) HostsShardCount(ctx context.Context, hosts []string) (map[strin
 
 	out := make(map[string]uint)
 	for i, h := range hosts {
+		if shards[i] == 0 {
+			return nil, errors.Errorf("host %s reported 0 shard count", h)
+		}
 		out[h] = shards[i]
 	}
 	return out, nil
