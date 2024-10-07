@@ -465,3 +465,69 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 		}
 	}
 }
+
+func TestRestoreDatacenterIntegration(t *testing.T) {
+	// Fot this test purposes we need 2 dc backup, so we swap src and dst clusters
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
+
+	Print("Keyspace setup")
+	ks1 := randomizedName("dc1_")
+	ksStmt1 := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt1, ks1))
+	ks2 := randomizedName("dc2_")
+	ksStmt2 := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc2': 1}"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt2, ks2))
+	ks3 := randomizedName("dc1_dc2_")
+	ksStmt3 := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1}"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt3, ks3))
+
+	Print("Table setup")
+	tab1 := randomizedName("tab_1_")
+	createTable(t, h.srcCluster.rootSession, ks1, tab1)
+	tab2 := randomizedName("tab_2_")
+	createTable(t, h.srcCluster.rootSession, ks2, tab2)
+	tab3 := randomizedName("tab_3_")
+	createTable(t, h.srcCluster.rootSession, ks3, tab3)
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks1, tab1)
+	fillTable(t, h.srcCluster.rootSession, 100, ks2, tab2)
+	fillTable(t, h.srcCluster.rootSession, 100, ks3, tab3)
+
+	Print("Run backup")
+	loc := []Location{testLocation("datacenter", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks1, ks2, ks3}
+	tag := h.runBackup(t, map[string]any{
+		"location": loc,
+		"keyspace": ksFilter,
+	})
+
+	Print("Manually recreate tablet schema")
+	// Always use ksStmt1 as dc2 is not present in dst cluster
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt1, ks1))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt1, ks2))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt1, ks3))
+	createTable(t, h.dstCluster.rootSession, ks1, tab1)
+	createTable(t, h.dstCluster.rootSession, ks2, tab2)
+	createTable(t, h.dstCluster.rootSession, ks3, tab3)
+
+	Print("Run restore tables")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"keyspace":       ksFilter,
+		"datacenter":     []string{"dc1"}, // Restore only single dc
+		"snapshot_tag":   tag,
+		"restore_tables": true,
+	})
+
+	Print("Validate that keyspaces replicated in dc1 were restored")
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks1, tab1, "id", "data")
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks3, tab3, "id", "data")
+
+	Print("Validate that keyspace replicated only in dc2 wasn't restored")
+	if cnt := rowCount(t, h.dstCluster.rootSession, ks2, tab2); cnt != 0 {
+		t.Fatalf("Expected keyspace replicated only in dc2 not to be restored, but it contains %d rows", cnt)
+	}
+}
