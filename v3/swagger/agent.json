@@ -19,7 +19,7 @@
   "paths": {
     "/rclone/core/bwlimit": {
       "post": {
-        "description": "This sets the bandwidth limit to that passed in",
+        "description": "This sets the bandwidth limit to that passed in. If the rate parameter is not supplied then the bandwidth is queried",
         "summary": "Set the bandwidth limit",
         "operationId": "CoreBwlimit",
         "produces": [
@@ -40,6 +40,43 @@
             "description": "bandwidth rate",
             "schema": {
               "$ref": "#/definitions/Bandwidth"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/rclone/core/transfers": {
+      "post": {
+        "description": "This sets the default amount of transfers to that passed in. If the transfers parameter is not supplied then the transfers are queried",
+        "summary": "Set transfers",
+        "operationId": "CoreTransfers",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "transfers",
+            "description": "transfers",
+            "schema": {
+              "$ref": "#/definitions/Transfers"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "transfers",
+            "schema": {
+              "$ref": "#/definitions/Transfers"
             },
             "headers": {}
           },
@@ -872,6 +909,16 @@
         "rate": {
           "description": "String representation of the bandwidth rate limit (eg. 100k, 1M, ...).",
           "type": "string"
+        }
+      }
+    },
+    "Transfers": {
+      "title": "transfers",
+      "type": "object",
+      "properties": {
+        "transfers": {
+          "description": "The number of file transfers to run in parallel",
+          "type": "integer"
         }
       }
     },
