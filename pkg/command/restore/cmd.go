@@ -23,16 +23,17 @@ type command struct {
 	flag.TaskBase
 	client *managerclient.Client
 
-	cluster       string
-	location      []string
-	keyspace      []string
-	snapshotTag   string
-	batchSize     int
-	parallel      int
-	restoreSchema bool
-	restoreTables bool
-	dryRun        bool
-	showTables    bool
+	cluster         string
+	location        []string
+	keyspace        []string
+	snapshotTag     string
+	batchSize       int
+	parallel        int
+	allowCompaction bool
+	restoreSchema   bool
+	restoreTables   bool
+	dryRun          bool
+	showTables      bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -78,6 +79,7 @@ func (cmd *command) init() {
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 1, "")
+	w.Unwrap().BoolVar(&cmd.allowCompaction, "allow-compaction", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -142,6 +144,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
+		ok = true
+	}
+	if cmd.Flag("allow-compaction").Changed {
+		props["allow_compaction"] = cmd.allowCompaction
 		ok = true
 	}
 	if cmd.Flag("restore-schema").Changed {

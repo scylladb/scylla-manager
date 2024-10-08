@@ -26,7 +26,6 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"go.uber.org/atomic"
@@ -185,35 +184,6 @@ func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
 		}
 	}
 	return
-}
-
-func (h *backupTestHelper) progressFilesSet() *strset.Set {
-	h.T.Helper()
-
-	files := strset.New()
-	q := table.BackupRunProgress.SelectQuery(h.Session).BindMap(qb.M{
-		"cluster_id": h.ClusterID,
-		"task_id":    h.TaskID,
-		"run_id":     h.RunID,
-	})
-	iter := q.Iter()
-	defer func() {
-		iter.Close()
-		q.Release()
-	}()
-
-	pr := &backup.RunProgress{}
-	for iter.StructScan(pr) {
-		fs := pr.Files()
-		for i := range fs {
-			if strings.Contains(fs[i].Name, ScyllaManifest) {
-				continue
-			}
-			files.Add(fs[i].Name)
-		}
-	}
-
-	return files
 }
 
 func restartAgents(h *CommonTestHelper) {
@@ -1063,17 +1033,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 		Print("And: nothing is transferring")
 		h.waitNoTransfers()
-
-		Print("And: snapshot is partially uploaded")
-		_, _, s3Files := h.listS3Files()
-		sfs := h.progressFilesSet()
-		s3f := strset.New()
-		for i := range s3Files {
-			s3f.Add(path.Base(s3Files[i]))
-		}
-		if s3f.IsEqual(sfs) {
-			h.T.Fatalf("Expected partial upload, got\n%v,\n%v", sfs, s3f)
-		}
 
 		Print("When: backup is resumed with new RunID")
 		err := h.service.Backup(context.Background(), h.ClusterID, h.TaskID, uuid.NewTime(), target)

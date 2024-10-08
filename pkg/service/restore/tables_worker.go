@@ -188,6 +188,17 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
 	}
 
+	if !w.target.AllowCompaction {
+		defer func() {
+			if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
+				w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
+			}
+		}()
+		if err := w.setAutoCompaction(ctx, hosts, false); err != nil {
+			return errors.Wrapf(err, "disable auto compaction")
+		}
+	}
+
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
 	f := func(n int) (err error) {
@@ -312,4 +323,22 @@ func (w *tablesWorker) initRestoreMetrics(ctx context.Context) {
 			continue
 		}
 	}
+}
+
+// Disables auto compaction on all provided hosts and units.
+func (w *tablesWorker) setAutoCompaction(ctx context.Context, hosts []string, enabled bool) error {
+	f := w.client.EnableAutoCompaction
+	if !enabled {
+		f = w.client.DisableAutoCompaction
+	}
+	for _, h := range hosts {
+		for _, u := range w.run.Units {
+			for _, t := range u.Tables {
+				if err := f(ctx, h, u.Keyspace, t.Table); err != nil {
+					return errors.Wrapf(err, "set autocompaction on %s to %v", h, enabled)
+				}
+			}
+		}
+	}
+	return nil
 }

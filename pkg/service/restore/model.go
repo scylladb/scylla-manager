@@ -23,14 +23,15 @@ import (
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location      []Location `json:"location"`
-	Keyspace      []string   `json:"keyspace,omitempty"`
-	SnapshotTag   string     `json:"snapshot_tag"`
-	BatchSize     int        `json:"batch_size,omitempty"`
-	Parallel      int        `json:"parallel,omitempty"`
-	RestoreSchema bool       `json:"restore_schema,omitempty"`
-	RestoreTables bool       `json:"restore_tables,omitempty"`
-	Continue      bool       `json:"continue"`
+	Location        []Location `json:"location"`
+	Keyspace        []string   `json:"keyspace,omitempty"`
+	SnapshotTag     string     `json:"snapshot_tag"`
+	BatchSize       int        `json:"batch_size,omitempty"`
+	Parallel        int        `json:"parallel,omitempty"`
+	AllowCompaction bool       `json:"allow_compaction,omitempty"`
+	RestoreSchema   bool       `json:"restore_schema,omitempty"`
+	RestoreTables   bool       `json:"restore_tables,omitempty"`
+	Continue        bool       `json:"continue"`
 
 	// Cache for host with access to remote location
 	locationHosts map[Location][]string `json:"-"`

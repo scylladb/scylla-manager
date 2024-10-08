@@ -7,6 +7,11 @@ description: |
     a specific follow-up action described by selected type.
 usage: sctool restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags]
 options:
+    - name: allow-compaction
+      default_value: "false"
+      usage: |
+        Defines if auto compactions should be running on Scylla nodes during restore.
+        Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
     - name: batch-size
       default_value: "2"
       usage: |

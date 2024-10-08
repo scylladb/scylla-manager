@@ -5,6 +5,11 @@ description: |
     If there is one restore task the 'restore/task-id' argument is not needed.
 usage: sctool restore update --cluster <id|name> [flags] [<restore/task-id>]
 options:
+    - name: allow-compaction
+      default_value: "false"
+      usage: |
+        Defines if auto compactions should be running on Scylla nodes during restore.
+        Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
     - name: batch-size
       default_value: "2"
       usage: |
