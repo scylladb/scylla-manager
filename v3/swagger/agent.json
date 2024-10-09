@@ -66,7 +66,7 @@
           {
             "in": "body",
             "name": "transfers",
-            "description": "transfers",
+            "description": "The number of file transfers to run in parallel. Accepts a special value '-1' describing that transfers from rclone config file should be used",
             "schema": {
               "$ref": "#/definitions/Transfers"
             }
@@ -1194,6 +1194,14 @@
         "suffix": {
           "description": "A suffix which will be added to otherwise overwritten or deleted files",
           "type": "string"
+        },
+        "bandwidth_rate": {
+          "description": "String representation of the bandwidth rate limit (eg. 100k, 1M, ...)",
+          "type": "string"
+        },
+        "transfers": {
+          "description": "The number of file transfers to run in parallel. Accepts a special value '-1' describing that transfers from rclone config file should be used",
+          "type": "integer"
         }
       }
     },
@@ -1223,6 +1231,14 @@
             "type": "string",
             "description": "path"
           }
+        },
+        "bandwidth_rate": {
+          "description": "String representation of the bandwidth rate limit (eg. 100k, 1M, ...)",
+          "type": "string"
+        },
+        "transfers": {
+          "description": "The number of file transfers to run in parallel. Accepts a special value '-1' describing that transfers from rclone config file should be used",
+          "type": "integer"
         }
       }
     },
