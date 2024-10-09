@@ -436,17 +436,17 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "invalid location dc",
 			JSON:  `{"location": ["foobar:s3:backuptest-get-target"]}`,
-			Error: `invalid location: "foobar:s3:backuptest-get-target" no such datacenter foobar`,
+			Error: `invalid location: no such datacenter foobar`,
 		},
 		{
 			Name:  "no location for dc",
 			JSON:  `{"location": ["dc1:s3:backuptest-get-target"]}`,
-			Error: "invalid location: missing location for datacenter",
+			Error: "invalid location: missing object for datacenter",
 		},
 		{
 			Name:  "no location dc filtered out",
 			JSON:  `{"dc": ["dc2"], "location": ["dc1:s3:backuptest-get-target"]}`,
-			Error: "invalid location: missing location for datacenter",
+			Error: "invalid location: missing object for datacenter",
 		},
 		{
 			Name:  "inaccessible location",
@@ -456,17 +456,17 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "invalid rate limit dc",
 			JSON:  `{"rate_limit": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
-			Error: `invalid rate-limit: "foobar:100" no such datacenter foobar`,
+			Error: `invalid rate-limit: no such datacenter foobar`,
 		},
 		{
 			Name:  "invalid snapshot parallel dc",
 			JSON:  `{"snapshot_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
-			Error: `invalid snapshot-parallel: "foobar:100" no such datacenter foobar`,
+			Error: `invalid snapshot-parallel: no such datacenter foobar`,
 		},
 		{
 			Name:  "invalid upload parallel dc",
 			JSON:  `{"upload_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
-			Error: `invalid upload-parallel: "foobar:100" no such datacenter foobar`,
+			Error: `invalid upload-parallel: no such datacenter foobar`,
 		},
 	}
 
@@ -949,7 +949,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		DC:        []string{"dc1"},
 		Location:  []Location{location},
 		Retention: 2,
-		RateLimit: []backup.DCLimit{
+		RateLimit: []DCLimit{
 			{"dc1", 1},
 		},
 		Continue: true,
