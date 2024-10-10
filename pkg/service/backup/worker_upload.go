@@ -172,7 +172,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		retries      = 10
 	)
 	for i := 0; i < retries; i++ {
-		if err := w.uploadDataDir(ctx, dataDst, dataSrc, d); err != nil {
+		if err := w.uploadDataDir(ctx, h, dataDst, dataSrc, d); err != nil {
 			if errors.Is(err, errJobNotFound) {
 				continue
 			}
@@ -184,9 +184,9 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 	return nil
 }
 
-func (w *worker) uploadDataDir(ctx context.Context, dst, src string, d snapshotDir) error {
+func (w *worker) uploadDataDir(ctx context.Context, hi hostInfo, dst, src string, d snapshotDir) error {
 	// Ensure file versioning during upload
-	id, err := w.Client.RcloneMoveDir(ctx, d.Host, dst, src, VersionedFileExt(w.SnapshotTag))
+	id, err := w.Client.RcloneMoveDir(ctx, d.Host, hi.Transfers, dst, src, VersionedFileExt(w.SnapshotTag))
 	if err != nil {
 		return err
 	}
