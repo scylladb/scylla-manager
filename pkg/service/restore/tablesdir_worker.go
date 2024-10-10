@@ -114,17 +114,17 @@ func (w *tablesWorker) restoreSSTables(ctx context.Context, b batch, pr *RunProg
 }
 
 // newRunProgress creates RunProgress by starting download to host's upload dir.
-func (w *tablesWorker) newRunProgress(ctx context.Context, host string, b batch) (*RunProgress, error) {
-	if err := w.checkAvailableDiskSpace(ctx, host); err != nil {
+func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch) (*RunProgress, error) {
+	if err := w.checkAvailableDiskSpace(ctx, hi.Host); err != nil {
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
 	uploadDir := UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
-	if err := w.cleanUploadDir(ctx, host, uploadDir, nil); err != nil {
-		return nil, errors.Wrapf(err, "clean upload dir of host %s", host)
+	if err := w.cleanUploadDir(ctx, hi.Host, uploadDir, nil); err != nil {
+		return nil, errors.Wrapf(err, "clean upload dir of host %s", hi.Host)
 	}
 
-	jobID, versionedPr, err := w.startDownload(ctx, host, b)
+	jobID, versionedPr, err := w.startDownload(ctx, hi, b)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, host string, b batch)
 		RemoteSSTableDir:  b.RemoteSSTableDir,
 		Keyspace:          b.Keyspace,
 		Table:             b.Table,
-		Host:              host,
+		Host:              hi.Host,
 		AgentJobID:        jobID,
 		SSTableID:         b.IDs(),
 		VersionedProgress: versionedPr,
@@ -150,14 +150,14 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, host string, b batch)
 // Downloading of versioned files happens first in a synchronous way.
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
-func (w *tablesWorker) startDownload(ctx context.Context, host string, b batch) (jobID, versionedPr int64, err error) {
+func (w *tablesWorker) startDownload(ctx context.Context, hi HostInfo, b batch) (jobID, versionedPr int64, err error) {
 	uploadDir := UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
 	sstables := b.NotVersionedSSTables()
 	versioned := b.VersionedSSTables()
 	versionedSize := b.VersionedSize()
 	if len(versioned) > 0 {
-		if err := w.downloadVersioned(ctx, host, b.RemoteSSTableDir, uploadDir, versioned); err != nil {
-			return 0, 0, errors.Wrapf(err, "download versioned sstabled on host %s", host)
+		if err := w.downloadVersioned(ctx, hi.Host, b.RemoteSSTableDir, uploadDir, versioned); err != nil {
+			return 0, 0, errors.Wrapf(err, "download versioned sstabled on host %s", hi.Host)
 		}
 	}
 
@@ -166,12 +166,12 @@ func (w *tablesWorker) startDownload(ctx context.Context, host string, b batch) 
 	for _, sst := range sstables {
 		files = append(files, sst.Files...)
 	}
-	jobID, err = w.client.RcloneCopyPaths(ctx, host, uploadDir, b.RemoteSSTableDir, files)
+	jobID, err = w.client.RcloneCopyPaths(ctx, hi.Host, hi.Transfers, uploadDir, b.RemoteSSTableDir, files)
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}
 	w.logger.Info(ctx, "Started downloading files",
-		"host", host,
+		"host", hi.Host,
 		"job_id", jobID,
 	)
 	return jobID, versionedSize, nil

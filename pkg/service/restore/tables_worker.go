@@ -202,24 +202,28 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
 	f := func(n int) (err error) {
-		h := hosts[n]
+		hi := HostInfo{
+			Host:      hosts[n],
+			Transfers: w.target.Transfers,
+		}
+		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers)
 		for {
 			// Download and stream in parallel
-			b, ok := bd.DispatchBatch(h)
+			b, ok := bd.DispatchBatch(hi.Host)
 			if !ok {
-				w.logger.Info(ctx, "No more batches to restore", "host", h)
+				w.logger.Info(ctx, "No more batches to restore", "host", hi.Host)
 				return nil
 			}
-			w.metrics.IncreaseBatchSize(w.run.ClusterID, h, b.Size)
+			w.metrics.IncreaseBatchSize(w.run.ClusterID, hi.Host, b.Size)
 			w.logger.Info(ctx, "Got batch to restore",
-				"host", h,
+				"host", hi.Host,
 				"keyspace", b.Keyspace,
 				"table", b.Table,
 				"size", b.Size,
 				"sstable count", len(b.SSTables),
 			)
 
-			pr, err := w.newRunProgress(ctx, h, b)
+			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
 				return errors.Wrap(err, "create new run progress")
 			}
