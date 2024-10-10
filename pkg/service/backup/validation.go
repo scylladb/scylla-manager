@@ -147,7 +147,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 		}
 	}
 
-	hosts, err := makeHostInfo(target.liveNodes, target.Location, nil)
+	hosts, err := makeHostInfo(target.liveNodes, target.Location, nil, 0)
 	if err != nil {
 		return err
 	}
@@ -176,9 +176,9 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 		p := newPurger(client, h.IP, log.NopLogger)
 
 		hostForNodeID := func() string {
-			for _, h := range hosts {
-				if h.ID == nodeID {
-					return h.IP
+			for i := range hosts {
+				if hosts[i].ID == nodeID {
+					return hosts[i].IP
 				}
 			}
 			if host := p.Host(nodeID); host != "" {

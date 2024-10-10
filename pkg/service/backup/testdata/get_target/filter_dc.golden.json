@@ -47,5 +47,6 @@
   "rate_limit": [
     "100"
   ],
-  "continue": true
+  "continue": true,
+  "transfers": -1
 }

@@ -23,6 +23,7 @@ type hostInfo struct {
 	ID        string
 	Location  Location
 	RateLimit DCLimit
+	Transfers int
 }
 
 func (h hostInfo) String() string {
