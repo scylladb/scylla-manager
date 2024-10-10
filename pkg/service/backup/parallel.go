@@ -32,8 +32,8 @@ func makeHostsLimit(hosts []hostInfo, limits []DCLimit) map[string]hostsLimit {
 	}
 
 	m := make(map[string]hostsLimit, len(dcLimit)+1)
-	for _, h := range hosts {
-		dc := h.DC
+	for i := range hosts {
+		dc := hosts[i].DC
 		// If DC has no limit put host under an empty DC
 		if _, ok := dcLimit[dc]; !ok {
 			dc = ""
@@ -42,14 +42,14 @@ func makeHostsLimit(hosts []hostInfo, limits []DCLimit) map[string]hostsLimit {
 		v, ok := m[dc]
 		if !ok {
 			v = hostsLimit{}
-			v.hosts = []hostInfo{h}
+			v.hosts = []hostInfo{hosts[i]}
 			if dc == "" {
 				v.limit = globalLimit
 			} else {
 				v.limit = dcLimit[dc]
 			}
 		} else {
-			v.hosts = append(v.hosts, h)
+			v.hosts = append(v.hosts, hosts[i])
 		}
 		m[dc] = v
 	}

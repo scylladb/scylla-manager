@@ -26,8 +26,8 @@ import (
 
 func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc cluster.SessionFunc) error {
 	var hosts []string
-	for _, h := range hi {
-		hosts = append(hosts, h.IP)
+	for i := range hi {
+		hosts = append(hosts, hi[i].IP)
 	}
 
 	descSchemaHosts, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, hosts)
@@ -105,12 +105,12 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 
 	// Select single host per location
 	locations := map[string]hostInfo{}
-	for _, hi := range hosts {
-		locations[hi.Location.String()] = hi
+	for i := range hosts {
+		locations[hosts[i].Location.String()] = hosts[i]
 	}
 	hostPerLocation := make([]hostInfo, 0, len(locations))
-	for _, hi := range locations {
-		hostPerLocation = append(hostPerLocation, hi)
+	for l := range locations {
+		hostPerLocation = append(hostPerLocation, locations[l])
 	}
 
 	f := func(h hostInfo) error {
