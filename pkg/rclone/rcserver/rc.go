@@ -534,6 +534,9 @@ func rcMoveOrCopyDir(doMove bool) func(ctx context.Context, in rc.Params) (rc.Pa
 		if err != nil && !rc.IsErrParamNotFound(err) {
 			return nil, err
 		}
+		if err := setGuardedConfig(in); err != nil {
+			return nil, err
+		}
 
 		return nil, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, doMove)
 	}
@@ -558,8 +561,38 @@ func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		if len(paths) == 0 {
 			return nil, nil
 		}
+		if err := setGuardedConfig(in); err != nil {
+			return nil, err
+		}
 		return nil, sync.CopyPaths(ctx, dstFs, dstRemote, srcFs, srcRemote, paths, false)
 	}
+}
+
+// setGuardedConfig sets transfers and bandwidth limit if present.
+func setGuardedConfig(in rc.Params) error {
+	// Set transfers
+	if in["transfers"] != nil {
+		transfers, err := in.GetInt64("transfers")
+		if err != nil {
+			return err
+		}
+		if err := globalConfigGuard.SetTransfers(int(transfers)); err != nil {
+			return err
+		}
+	}
+
+	// Set bandwidth rate
+	if in["bandwidth_rate"] != nil {
+		limit, err := in.GetString("bandwidth_rate")
+		if err != nil {
+			return err
+		}
+		if err := globalConfigGuard.SetBandwidthLimit(limit); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // rcDeletePaths returns rc function that deletes paths from remote.
