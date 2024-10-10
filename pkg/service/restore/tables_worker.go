@@ -202,9 +202,13 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
 	f := func(n int) (err error) {
+		transfers := w.target.Transfers
+		if transfers == maxTransfers {
+			transfers = 2 * int(hostToShard[hosts[n]])
+		}
 		hi := HostInfo{
 			Host:      hosts[n],
-			Transfers: w.target.Transfers,
+			Transfers: transfers,
 		}
 		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers)
 		for {
