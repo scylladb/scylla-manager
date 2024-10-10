@@ -33,6 +33,11 @@ parallel: |
   The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
   Each node can take part in at most one restore at any given moment.
 
+transfers: |
+  Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
+  Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
+  Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
+
 allow-compaction: |
   Defines if auto compactions should be running on Scylla nodes during restore.
   Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.

@@ -29,6 +29,7 @@ type command struct {
 	snapshotTag     string
 	batchSize       int
 	parallel        int
+	transfers       int
 	allowCompaction bool
 	restoreSchema   bool
 	restoreTables   bool
@@ -78,7 +79,8 @@ func (cmd *command) init() {
 	w.Keyspace(&cmd.keyspace)
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
-	w.Unwrap().IntVar(&cmd.parallel, "parallel", 1, "")
+	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
+	w.Unwrap().IntVar(&cmd.transfers, "transfers", 0, "")
 	w.Unwrap().BoolVar(&cmd.allowCompaction, "allow-compaction", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
@@ -144,6 +146,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("parallel").Changed {
 		props["parallel"] = cmd.parallel
+		ok = true
+	}
+	if cmd.Flag("transfers").Changed {
+		props["transfers"] = cmd.transfers
 		ok = true
 	}
 	if cmd.Flag("allow-compaction").Changed {
