@@ -292,11 +292,15 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, s
 	return jobID, nil
 }
 
+// TransfersFromConfig describes transfers value which results in setting transfers
+// to the value from host's scylla-manager-agent.yaml config.
+const TransfersFromConfig = -1
+
 // RcloneCopyPaths copies paths from srcRemoteDir/path to dstRemoteDir/path.
 // Remotes need to be registered with the server first.
 // Remote path format is "name:bucket/path".
 // Both dstRemoteDir and srRemoteDir must point to a directory.
-func (c *Client) RcloneCopyPaths(ctx context.Context, host, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
+func (c *Client) RcloneCopyPaths(ctx context.Context, host string, transfers int, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemoteDir)
 	if err != nil {
 		return 0, err
@@ -317,6 +321,7 @@ func (c *Client) RcloneCopyPaths(ctx context.Context, host, dstRemoteDir, srcRem
 			SrcFs:     srcFs,
 			SrcRemote: srcRemote,
 			Paths:     paths,
+			Transfers: int64(transfers),
 		},
 		Async: true,
 	}
