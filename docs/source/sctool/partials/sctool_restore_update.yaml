@@ -101,7 +101,7 @@ options:
       usage: |
         Number of times a task reruns following a failure.
     - name: parallel
-      default_value: "1"
+      default_value: "0"
       usage: |
         The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
         Each node can take part in at most one restore at any given moment.
@@ -154,6 +154,12 @@ options:
       usage: |
         Timezone of --cron and --window flag values.
         The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
+    - name: transfers
+      default_value: "0"
+      usage: |
+        Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
+        Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
+        Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
     - name: window
       default_value: '[]'
       usage: |
