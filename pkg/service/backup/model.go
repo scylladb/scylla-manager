@@ -51,6 +51,7 @@ type Target struct {
 	RetentionDays    int          `json:"retention_days"`
 	RetentionMap     RetentionMap `json:"-"` // policy for all tasks, injected in runtime
 	RateLimit        []DCLimit    `json:"rate_limit,omitempty"`
+	Transfers        int          `json:"transfers"`
 	SnapshotParallel []DCLimit    `json:"snapshot_parallel,omitempty"`
 	UploadParallel   []DCLimit    `json:"upload_parallel,omitempty"`
 	Continue         bool         `json:"continue,omitempty"`
@@ -250,6 +251,7 @@ type taskProperties struct {
 	RetentionDays    *int         `json:"retention_days"`
 	RetentionMap     RetentionMap `json:"retention_map"`
 	RateLimit        []DCLimit    `json:"rate_limit"`
+	Transfers        int          `json:"transfers"`
 	SnapshotParallel []DCLimit    `json:"snapshot_parallel"`
 	UploadParallel   []DCLimit    `json:"upload_parallel"`
 	Continue         bool         `json:"continue"`
@@ -263,6 +265,10 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 	}
 	if policy := p.extractRetention(); policy.Retention < 0 || policy.RetentionDays < 0 {
 		return errors.New("negative retention")
+	}
+	if p.Transfers != scyllaclient.TransfersFromConfig && p.Transfers < 1 {
+		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
+			"or greater than zero")
 	}
 
 	// Validate location DCs
@@ -310,6 +316,7 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 		RetentionDays:    policy.RetentionDays,
 		RetentionMap:     p.RetentionMap,
 		RateLimit:        rateLimit,
+		Transfers:        p.Transfers,
 		SnapshotParallel: filterDCLimits(p.SnapshotParallel, dcs),
 		UploadParallel:   filterDCLimits(p.UploadParallel, dcs),
 		Continue:         p.Continue,
@@ -417,7 +424,8 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
-		Continue: true,
+		Transfers: scyllaclient.TransfersFromConfig,
+		Continue:  true,
 	}
 }
 

@@ -68,5 +68,6 @@
   "retention": 3,
   "rate_limit": [
     "100"
-  ]
+  ],
+  "transfers": -1
 }

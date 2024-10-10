@@ -31,6 +31,8 @@ type ClientService interface {
 
 	CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK, error)
 
+	CoreTransfers(params *CoreTransfersParams) (*CoreTransfersOK, error)
+
 	FreeOSMemory(params *FreeOSMemoryParams) (*FreeOSMemoryOK, error)
 
 	JobInfo(params *JobInfoParams) (*JobInfoOK, error)
@@ -73,7 +75,7 @@ type ClientService interface {
 /*
 CoreBwlimit sets the bandwidth limit
 
-This sets the bandwidth limit to that passed in
+This sets the bandwidth limit to that passed in. If the rate parameter is not supplied then the bandwidth is queried
 */
 func (a *Client) CoreBwlimit(params *CoreBwlimitParams) (*CoreBwlimitOK, error) {
 	// TODO: Validate the params before sending
@@ -172,6 +174,41 @@ func (a *Client) CoreStatsReset(params *CoreStatsResetParams) (*CoreStatsResetOK
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*CoreStatsResetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+CoreTransfers sets transfers
+
+This sets the default amount of transfers to that passed in. If the transfers parameter is not supplied then the transfers are queried
+*/
+func (a *Client) CoreTransfers(params *CoreTransfersParams) (*CoreTransfersOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCoreTransfersParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CoreTransfers",
+		Method:             "POST",
+		PathPattern:        "/rclone/core/transfers",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CoreTransfersReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*CoreTransfersOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CoreTransfersDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

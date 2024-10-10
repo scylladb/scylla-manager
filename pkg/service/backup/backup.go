@@ -56,7 +56,7 @@ func checkAllDCsCovered(locations []Location, dcs []string) error {
 	return nil
 }
 
-func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rateLimits []DCLimit) ([]hostInfo, error) {
+func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rateLimits []DCLimit, transfers int) ([]hostInfo, error) {
 	// DC location index
 	dcl := map[string]Location{}
 	for _, l := range locations {
@@ -90,6 +90,7 @@ func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rat
 		if !ok {
 			hi[i].RateLimit = dcr[""] // no rate limit is ok, fallback to 0 - no limit
 		}
+		hi[i].Transfers = transfers
 	}
 
 	return hi, errs

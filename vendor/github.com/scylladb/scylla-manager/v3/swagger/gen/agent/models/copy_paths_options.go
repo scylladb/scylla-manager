@@ -15,6 +15,9 @@ import (
 // swagger:model CopyPathsOptions
 type CopyPathsOptions struct {
 
+	// String representation of the bandwidth rate limit (eg. 100k, 1M, ...)
+	BandwidthRate string `json:"bandwidth_rate,omitempty"`
+
 	// Destination file system e.g. s3: or gcs:
 	DstFs string `json:"dstFs,omitempty"`
 
@@ -29,6 +32,9 @@ type CopyPathsOptions struct {
 
 	// A directory within that remote eg. files/ for the source
 	SrcRemote string `json:"srcRemote,omitempty"`
+
+	// The number of file transfers to run in parallel. Accepts a special value '-1' describing that transfers from rclone config file should be used
+	Transfers int64 `json:"transfers,omitempty"`
 }
 
 // Validate validates this copy paths options

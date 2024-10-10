@@ -1680,8 +1680,8 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 	time.Sleep(time.Second)
 	ctx := context.Background()
 
-	props, err := json.Marshal(backup.Target{
-		Location: []Location{location},
+	props, err := json.Marshal(map[string]any{
+		"location": []Location{location},
 	})
 	if err != nil {
 		h.T.Fatal(err)

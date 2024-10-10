@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
+	"github.com/rclone/rclone/fs/cache"
 	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/object"
 	rcops "github.com/rclone/rclone/fs/operations"
@@ -533,6 +534,9 @@ func rcMoveOrCopyDir(doMove bool) func(ctx context.Context, in rc.Params) (rc.Pa
 		if err != nil && !rc.IsErrParamNotFound(err) {
 			return nil, err
 		}
+		if err := setGuardedConfig(in); err != nil {
+			return nil, err
+		}
 
 		return nil, sync.CopyDir2(ctx, dstFs, dstRemote, srcFs, srcRemote, doMove)
 	}
@@ -557,8 +561,38 @@ func rcCopyPaths() func(ctx context.Context, in rc.Params) (rc.Params, error) {
 		if len(paths) == 0 {
 			return nil, nil
 		}
+		if err := setGuardedConfig(in); err != nil {
+			return nil, err
+		}
 		return nil, sync.CopyPaths(ctx, dstFs, dstRemote, srcFs, srcRemote, paths, false)
 	}
+}
+
+// setGuardedConfig sets transfers and bandwidth limit if present.
+func setGuardedConfig(in rc.Params) error {
+	// Set transfers
+	if in["transfers"] != nil {
+		transfers, err := in.GetInt64("transfers")
+		if err != nil {
+			return err
+		}
+		if err := globalConfigGuard.SetTransfers(int(transfers)); err != nil {
+			return err
+		}
+	}
+
+	// Set bandwidth rate
+	if in["bandwidth_rate"] != nil {
+		limit, err := in.GetString("bandwidth_rate")
+		if err != nil {
+			return err
+		}
+		if err := globalConfigGuard.SetBandwidthLimit(limit); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // rcDeletePaths returns rc function that deletes paths from remote.
@@ -598,6 +632,46 @@ func rcDeletePaths(ctx context.Context, in rc.Params) (out rc.Params, err error)
 	_, statsDeleteErr := rc.Calls.Get("core/stats-delete").Fn(ctx, statsDeleteIn)
 
 	return out, multierr.Combine(err, statsDeleteErr)
+}
+
+// rcTransfers sets the default amount of transfers.
+// This change is not persisted after server restart.
+// Transfers correspond to the number of file transfers to run in parallel.
+// If the transfers parameter is not supplied then the transfers are queried.
+func rcTransfers(_ context.Context, in rc.Params) (out rc.Params, err error) {
+	if in["transfers"] != nil {
+		transfers, err := in.GetInt64("transfers")
+		if err != nil {
+			return out, err
+		}
+		if transfers < 1 {
+			return out, errors.Errorf("transfers count must be greater than 0, got %d", transfers)
+		}
+		// returns globalConfig
+		ci := fs.GetConfig(context.Background())
+		if ci.Transfers != int(transfers) {
+			ci.Transfers = int(transfers)
+			// The amount of transfers impacts fs.Fs initialization (e.g. pool.Pool and fs.Pacer),
+			// so fs.Fs cache should be cleared on transfers count change.
+			cache.Clear()
+		}
+	}
+	out = rc.Params{
+		"transfers": fs.GetConfig(context.Background()).Transfers,
+	}
+	return out, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:         "core/transfers",
+		AuthRequired: true,
+		Fn:           rcTransfers,
+		Title:        "Set the default amount of transfers",
+		Help: `This takes the following parameters:
+
+- transfers - the number of file transfers to run in parallel`,
+	})
 }
 
 // getFsAndRemoteNamed gets fs and remote path from the params, but it doesn't

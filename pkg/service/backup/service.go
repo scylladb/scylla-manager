@@ -484,8 +484,8 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 		return errors.Wrap(err, "resolve hosts")
 	}
 	locationHost := map[Location]string{}
-	for _, h := range hosts {
-		locationHost[h.Location] = h.IP
+	for i := range hosts {
+		locationHost[hosts[i].Location] = hosts[i].IP
 	}
 
 	manifests, err := listManifestsInAllLocations(ctx, client, hosts, filter.ClusterID)
@@ -657,7 +657,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	// Create hostInfo for run hosts
-	hi, err := makeHostInfo(liveNodes, target.Location, target.RateLimit)
+	hi, err := makeHostInfo(liveNodes, target.Location, target.RateLimit, target.Transfers)
 	if err != nil {
 		return err
 	}

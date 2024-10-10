@@ -73,5 +73,6 @@
     "10",
     "dc1:20"
   ],
-  "continue": true
+  "continue": true,
+  "transfers": -1
 }

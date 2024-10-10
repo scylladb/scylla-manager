@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -35,6 +36,9 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 
 	// Get live nodes
 	target.liveNodes, err = s.getLiveNodes(ctx, client, target.DC)
+	if target.Transfers == 0 {
+		target.Transfers = scyllaclient.TransfersFromConfig
+	}
 	return err
 }
 

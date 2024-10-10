@@ -123,7 +123,7 @@ func TestRcloneDeletePathsInBatchesAgentIntegration(t *testing.T) {
 					t.Fatalf("Create files on Scylla node, err = {%s}, stdOut={%s}, stdErr={%s}", err, stdOut, stdErr)
 				}
 			}
-			id, err := client.RcloneCopyDir(ctx, testHost, remotePath(dirName), "data:"+dirName, "")
+			id, err := client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(dirName), "data:"+dirName, "")
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "copy created files to backup location"))
 			}
@@ -200,7 +200,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy", "")
+	id, err := client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(""), "data:tmp/copy", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 		}
 	}
 
-	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp/copy", "")
+	id, err = client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(""), "data:tmp/copy", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 		}
 	}()
 
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	id, err := client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(""), "data:tmp", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +351,7 @@ func TestRcloneJobProgressIntegration(t *testing.T) {
 	}()
 
 	Print("When: first batch upload")
-	id, err := client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	id, err := client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(""), "data:tmp", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -383,7 +383,7 @@ func TestRcloneJobProgressIntegration(t *testing.T) {
 	}
 
 	Print("When: second batch upload")
-	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	id, err = client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(""), "data:tmp", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,7 +408,7 @@ func TestRcloneJobProgressIntegration(t *testing.T) {
 	}
 
 	Print("When: third batch upload")
-	id, err = client.RcloneCopyDir(ctx, testHost, remotePath(""), "data:tmp", "")
+	id, err = client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, remotePath(""), "data:tmp", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,7 +487,7 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 
 	Print("Copy src into dst")
 
-	id, err := client.RcloneCopyDir(ctx, testHost, dstPath, srcPath, "")
+	id, err := client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, dstPath, srcPath, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +534,7 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 
 	Print("Copy src into dst after file modification")
 
-	id, err = client.RcloneCopyDir(ctx, testHost, dstPath, srcPath, firstSuffix)
+	id, err = client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, dstPath, srcPath, firstSuffix)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -583,7 +583,7 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 
 	Print("Copy src into dst after another file modification")
 
-	id, err = client.RcloneCopyDir(ctx, testHost, dstPath, srcPath, secondSuffix)
+	id, err = client.RcloneCopyDir(ctx, testHost, scyllaclient.TransfersFromConfig, dstPath, srcPath, secondSuffix)
 	if err != nil {
 		t.Fatal(err)
 	}

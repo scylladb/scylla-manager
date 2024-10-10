@@ -28,6 +28,7 @@ type Target struct {
 	SnapshotTag     string     `json:"snapshot_tag"`
 	BatchSize       int        `json:"batch_size,omitempty"`
 	Parallel        int        `json:"parallel,omitempty"`
+	Transfers       int        `json:"transfers"`
 	AllowCompaction bool       `json:"allow_compaction,omitempty"`
 	RestoreSchema   bool       `json:"restore_schema,omitempty"`
 	RestoreTables   bool       `json:"restore_tables,omitempty"`
@@ -37,12 +38,17 @@ type Target struct {
 	locationHosts map[Location][]string `json:"-"`
 }
 
-const maxBatchSize = 0
+const (
+	maxBatchSize = 0
+	// maxTransfers are experimentally defined to 2*node_shard_cnt.
+	maxTransfers = 0
+)
 
 func defaultTarget() Target {
 	return Target{
 		BatchSize: 2,
 		Parallel:  0,
+		Transfers: maxTransfers,
 		Continue:  true,
 	}
 }
@@ -61,6 +67,10 @@ func (t Target) validateProperties() error {
 	}
 	if t.Parallel < 0 {
 		return errors.New("parallel param has to be greater or equal to zero")
+	}
+	if t.Transfers != scyllaclient.TransfersFromConfig && t.Transfers != maxTransfers && t.Transfers < 1 {
+		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
+			"or 0 (set transfers for fastest download) or greater than zero")
 	}
 	if t.RestoreSchema == t.RestoreTables {
 		return errors.New("choose EXACTLY ONE restore type ('--restore-schema' or '--restore-tables' flag)")
@@ -279,4 +289,10 @@ type ViewProgress struct {
 type TableName struct {
 	Keyspace string
 	Table    string
+}
+
+// HostInfo represents host with rclone download config.
+type HostInfo struct {
+	Host      string
+	Transfers int
 }
