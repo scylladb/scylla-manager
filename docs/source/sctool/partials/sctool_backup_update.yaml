@@ -160,6 +160,11 @@ options:
       usage: |
         Timezone of --cron and --window flag values.
         The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
+    - name: transfers
+      default_value: "-1"
+      usage: |
+        Sets the amount of file transfers to run in parallel when uploading files from a Scylla node to its backup location.
+        Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
     - name: upload-parallel
       default_value: '[]'
       usage: |
