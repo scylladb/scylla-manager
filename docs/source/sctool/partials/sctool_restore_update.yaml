@@ -105,6 +105,13 @@ options:
       usage: |
         The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
         Each node can take part in at most one restore at any given moment.
+    - name: rate-limit
+      default_value: '[]'
+      usage: |
+        Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
+        You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
+        The <dc>: part is optional and is only needed when different datacenters require different download limits.
+        Set to 0 for no limit (default 0).
     - name: restore-schema
       default_value: "false"
       usage: |

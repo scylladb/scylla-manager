@@ -38,6 +38,12 @@ transfers: |
   Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
   Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
 
+rate-limit: |
+  Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
+  You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
+  The <dc>: part is optional and is only needed when different datacenters require different download limits.
+  Set to 0 for no limit (default 0).
+
 allow-compaction: |
   Defines if auto compactions should be running on Scylla nodes during restore.
   Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.

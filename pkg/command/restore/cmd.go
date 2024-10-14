@@ -30,6 +30,7 @@ type command struct {
 	batchSize       int
 	parallel        int
 	transfers       int
+	rateLimit       []string
 	allowCompaction bool
 	restoreSchema   bool
 	restoreTables   bool
@@ -81,6 +82,7 @@ func (cmd *command) init() {
 	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 	w.Unwrap().IntVar(&cmd.transfers, "transfers", 0, "")
+	w.Unwrap().StringSliceVar(&cmd.rateLimit, "rate-limit", nil, "")
 	w.Unwrap().BoolVar(&cmd.allowCompaction, "allow-compaction", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
@@ -150,6 +152,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("transfers").Changed {
 		props["transfers"] = cmd.transfers
+		ok = true
+	}
+	if cmd.Flag("rate-limit").Changed {
+		props["rate_limit"] = cmd.rateLimit
 		ok = true
 	}
 	if cmd.Flag("allow-compaction").Changed {
