@@ -27,10 +27,23 @@ import (
 func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit int) error {
 	p := operations.CoreBwlimitParams{
 		Context:       forceHost(ctx, host),
-		BandwidthRate: &models.Bandwidth{Rate: fmt.Sprintf("%dM", limit)},
+		BandwidthRate: &models.Bandwidth{Rate: marshallRateLimit(limit)},
 	}
 	_, err := c.agentOps.CoreBwlimit(&p) // nolint: errcheck
 	return err
+}
+
+// RcloneGetBandwidthLimit gets bandwidth limit of all the current and future
+// transfers performed under current client session.
+func (c *Client) RcloneGetBandwidthLimit(ctx context.Context, host string) (string, error) {
+	p := operations.CoreBwlimitParams{
+		Context: forceHost(ctx, host),
+	}
+	resp, err := c.agentOps.CoreBwlimit(&p)
+	if err != nil {
+		return "", err
+	}
+	return resp.Payload.Rate, nil
 }
 
 // RcloneSetTransfers sets the default amount of transfers on rclone server.
@@ -737,4 +750,8 @@ func rcloneSplitRemotePath(remotePath string) (fs, path string, err error) {
 		path = dirParts[1]
 	}
 	return
+}
+
+func marshallRateLimit(limit int) string {
+	return fmt.Sprintf("%dM", limit)
 }
