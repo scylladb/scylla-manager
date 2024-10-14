@@ -202,15 +202,13 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
 	f := func(n int) (err error) {
-		transfers := w.target.Transfers
-		if transfers == maxTransfers {
-			transfers = 2 * int(hostToShard[hosts[n]])
+		host := hosts[n]
+		dc, err := w.client.HostDatacenter(ctx, host)
+		if err != nil {
+			return errors.Wrapf(err, "get host %s data center", host)
 		}
-		hi := HostInfo{
-			Host:      hosts[n],
-			Transfers: transfers,
-		}
-		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers)
+		hi := w.hostInfo(host, dc, hostToShard[host])
+		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers, "rate limit", hi.RateLimit)
 		for {
 			// Download and stream in parallel
 			b, ok := bd.DispatchBatch(hi.Host)
@@ -349,4 +347,32 @@ func (w *tablesWorker) setAutoCompaction(ctx context.Context, hosts []string, en
 		}
 	}
 	return nil
+}
+
+func (w *tablesWorker) hostInfo(host, dc string, shards uint) HostInfo {
+	return HostInfo{
+		Host:      host,
+		Transfers: hostTransfers(w.target.Transfers, shards),
+		RateLimit: dcRateLimit(w.target.RateLimit, dc),
+	}
+}
+
+func hostTransfers(transfers int, shards uint) int {
+	if transfers == maxTransfers {
+		transfers = 2 * int(shards)
+	}
+	return transfers
+}
+
+func dcRateLimit(limits []DCLimit, dc string) int {
+	defaultLimit := maxRateLimit
+	for _, limit := range limits {
+		if limit.DC == dc {
+			return limit.Limit
+		}
+		if limit.DC == "" {
+			defaultLimit = limit.Limit
+		}
+	}
+	return defaultLimit
 }
