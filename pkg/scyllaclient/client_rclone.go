@@ -314,7 +314,7 @@ const TransfersFromConfig = -1
 // Remotes need to be registered with the server first.
 // Remote path format is "name:bucket/path".
 // Both dstRemoteDir and srRemoteDir must point to a directory.
-func (c *Client) RcloneCopyPaths(ctx context.Context, host string, transfers int, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
+func (c *Client) RcloneCopyPaths(ctx context.Context, host string, transfers, rateLimit int, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemoteDir)
 	if err != nil {
 		return 0, err
@@ -330,12 +330,13 @@ func (c *Client) RcloneCopyPaths(ctx context.Context, host string, transfers int
 	p := operations.SyncCopyPathsParams{
 		Context: forceHost(ctx, host),
 		Options: &models.CopyPathsOptions{
-			DstFs:     dstFs,
-			DstRemote: dstRemote,
-			SrcFs:     srcFs,
-			SrcRemote: srcRemote,
-			Paths:     paths,
-			Transfers: int64(transfers),
+			DstFs:         dstFs,
+			DstRemote:     dstRemote,
+			SrcFs:         srcFs,
+			SrcRemote:     srcRemote,
+			Paths:         paths,
+			Transfers:     int64(transfers),
+			BandwidthRate: marshallRateLimit(rateLimit),
 		},
 		Async: true,
 	}
