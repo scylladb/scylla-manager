@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 type tablesWorker struct {
@@ -227,11 +228,12 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
-				return errors.Wrap(err, "create new run progress")
+				return multierr.Append(errors.Wrap(err, "create new run progress"), bd.ReportFailure(b))
 			}
 			if err := w.restoreBatch(ctx, b, pr); err != nil {
-				return errors.Wrap(err, "restore batch")
+				return multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(b))
 			}
+			bd.ReportSuccess(b)
 			w.decreaseRemainingBytesMetric(b)
 		}
 	}

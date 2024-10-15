@@ -118,7 +118,7 @@ func TestBatchDispatcher(t *testing.T) {
 	}
 
 	for _, step := range scenario {
-		b, ok := bd.DispatchBatch(step.host)
+		b, ok := bd.dispatchBatch(step.host)
 		if ok != step.ok {
 			t.Fatalf("Step: %+v, expected ok=%v, got ok=%v", step, step.ok, ok)
 		}
@@ -134,6 +134,7 @@ func TestBatchDispatcher(t *testing.T) {
 		if len(b.SSTables) != step.count {
 			t.Fatalf("Step: %+v, expected count=%v, got count=%v", step, step.count, len(b.SSTables))
 		}
+		bd.ReportSuccess(b)
 	}
 
 	if err := bd.ValidateAllDispatched(); err != nil {
