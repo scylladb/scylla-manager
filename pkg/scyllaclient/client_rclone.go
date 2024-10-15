@@ -240,14 +240,22 @@ func (c *Client) rcloneMoveOrCopyFile(ctx context.Context, host, dstRemotePath, 
 	return err
 }
 
+const (
+	// TransfersFromConfig describes transfers value which results in setting transfers
+	// to the value from host's scylla-manager-agent.yaml config.
+	TransfersFromConfig = -1
+	// NoRateLimit describes unlimited rate limit.
+	NoRateLimit = 0
+)
+
 // RcloneMoveDir moves contents of the directory pointed by srcRemotePath to
 // the directory pointed by dstRemotePath.
 // Remotes need to be registered with the server first.
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 // If specified, a suffix will be added to otherwise overwritten or deleted files.
-func (c *Client) RcloneMoveDir(ctx context.Context, host string, transfers int, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
-	return c.rcloneMoveOrCopyDir(ctx, host, transfers, dstRemotePath, srcRemotePath, true, suffix)
+func (c *Client) RcloneMoveDir(ctx context.Context, host string, transfers, rateLimit int, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, transfers, rateLimit, dstRemotePath, srcRemotePath, true, suffix)
 }
 
 // RcloneCopyDir copies contents of the directory pointed by srcRemotePath to
@@ -256,11 +264,11 @@ func (c *Client) RcloneMoveDir(ctx context.Context, host string, transfers int, 
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 // If specified, a suffix will be added to otherwise overwritten or deleted files.
-func (c *Client) RcloneCopyDir(ctx context.Context, host string, transfers int, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
-	return c.rcloneMoveOrCopyDir(ctx, host, transfers, dstRemotePath, srcRemotePath, false, suffix)
+func (c *Client) RcloneCopyDir(ctx context.Context, host string, transfers, rateLimit int, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, transfers, rateLimit, dstRemotePath, srcRemotePath, false, suffix)
 }
 
-func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host string, transfers int, dstRemotePath, srcRemotePath string, doMove bool, suffix string) (int64, error) {
+func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host string, transfers, rateLimit int, dstRemotePath, srcRemotePath string, doMove bool, suffix string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return 0, err
@@ -270,12 +278,13 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host string, transfers
 		return 0, err
 	}
 	m := models.MoveOrCopyFileOptions{
-		DstFs:     dstFs,
-		DstRemote: dstRemote,
-		SrcFs:     srcFs,
-		SrcRemote: srcRemote,
-		Suffix:    suffix,
-		Transfers: int64(transfers),
+		DstFs:         dstFs,
+		DstRemote:     dstRemote,
+		SrcFs:         srcFs,
+		SrcRemote:     srcRemote,
+		Suffix:        suffix,
+		Transfers:     int64(transfers),
+		BandwidthRate: marshallRateLimit(rateLimit),
 	}
 
 	var jobID int64
@@ -305,10 +314,6 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host string, transfers
 
 	return jobID, nil
 }
-
-// TransfersFromConfig describes transfers value which results in setting transfers
-// to the value from host's scylla-manager-agent.yaml config.
-const TransfersFromConfig = -1
 
 // RcloneCopyPaths copies paths from srcRemoteDir/path to dstRemoteDir/path.
 // Remotes need to be registered with the server first.

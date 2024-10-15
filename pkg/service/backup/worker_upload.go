@@ -186,7 +186,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 
 func (w *worker) uploadDataDir(ctx context.Context, hi hostInfo, dst, src string, d snapshotDir) error {
 	// Ensure file versioning during upload
-	id, err := w.Client.RcloneMoveDir(ctx, d.Host, hi.Transfers, dst, src, VersionedFileExt(w.SnapshotTag))
+	id, err := w.Client.RcloneMoveDir(ctx, d.Host, hi.Transfers, hi.RateLimit.Limit, dst, src, VersionedFileExt(w.SnapshotTag))
 	if err != nil {
 		return err
 	}
