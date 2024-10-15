@@ -166,7 +166,7 @@ func (w *tablesWorker) startDownload(ctx context.Context, hi HostInfo, b batch) 
 	for _, sst := range sstables {
 		files = append(files, sst.Files...)
 	}
-	jobID, err = w.client.RcloneCopyPaths(ctx, hi.Host, hi.Transfers, uploadDir, b.RemoteSSTableDir, files)
+	jobID, err = w.client.RcloneCopyPaths(ctx, hi.Host, hi.Transfers, hi.RateLimit, uploadDir, b.RemoteSSTableDir, files)
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}

@@ -7,9 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -199,49 +197,6 @@ type TableProgress struct {
 	Error string `json:"error,omitempty"`
 }
 
-// DCLimit specifies a rate limit for a DC.
-type DCLimit struct {
-	DC    string `json:"dc"`
-	Limit int    `json:"limit"`
-}
-
-func (l DCLimit) String() string {
-	p := fmt.Sprint(l.Limit)
-	if l.DC != "" {
-		p = l.DC + ":" + p
-	}
-	return p
-}
-
-func (l DCLimit) MarshalText() (text []byte, err error) {
-	return []byte(l.String()), nil
-}
-
-func (l *DCLimit) UnmarshalText(text []byte) error {
-	pattern := regexp.MustCompile(`^(([a-zA-Z0-9\-\_\.]+):)?([0-9]+)$`)
-
-	m := pattern.FindSubmatch(text)
-	if m == nil {
-		return errors.Errorf("invalid limit %q, the format is [dc:]<number>", string(text))
-	}
-
-	limit, err := strconv.ParseInt(string(m[3]), 10, 64)
-	if err != nil {
-		return errors.Wrap(err, "invalid limit value")
-	}
-
-	l.DC = string(m[2])
-	l.Limit = int(limit)
-
-	return nil
-}
-
-func dcLimitDCAtPos(s []DCLimit) func(int) (string, string) {
-	return func(i int) (string, string) {
-		return s[i].DC, s[i].String()
-	}
-}
-
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
 	Keyspace         []string     `json:"keyspace"`
@@ -272,23 +227,23 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 	}
 
 	// Validate location DCs
-	if err := checkDCs(func(i int) (string, string) { return p.Location[i].DC, p.Location[i].String() }, len(p.Location), dcMap); err != nil {
+	if err := CheckDCs(p.Location, dcMap); err != nil {
 		return errors.Wrap(err, "invalid location")
 	}
 	// Validate rate limit DCs
-	if err := checkDCs(dcLimitDCAtPos(p.RateLimit), len(p.RateLimit), dcMap); err != nil {
+	if err := CheckDCs(p.RateLimit, dcMap); err != nil {
 		return errors.Wrap(err, "invalid rate-limit")
 	}
 	// Validate upload parallel DCs
-	if err := checkDCs(dcLimitDCAtPos(p.SnapshotParallel), len(p.SnapshotParallel), dcMap); err != nil {
+	if err := CheckDCs(p.SnapshotParallel, dcMap); err != nil {
 		return errors.Wrap(err, "invalid snapshot-parallel")
 	}
 	// Validate snapshot parallel DCs
-	if err := checkDCs(dcLimitDCAtPos(p.UploadParallel), len(p.UploadParallel), dcMap); err != nil {
+	if err := CheckDCs(p.UploadParallel, dcMap); err != nil {
 		return errors.Wrap(err, "invalid upload-parallel")
 	}
 	// Validate all DCs have backup location
-	if err := checkAllDCsCovered(filterDCLocations(p.Location, dcs), dcs); err != nil {
+	if err := CheckAllDCsCovered(FilterDCs(p.Location, dcs), dcs); err != nil {
 		return errors.Wrap(err, "invalid location")
 	}
 	return nil
@@ -298,7 +253,7 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 	liveNodes scyllaclient.NodeStatusInfoSlice, filters []tabFilter, validators []tabValidator,
 ) (Target, error) {
 	policy := p.extractRetention()
-	rateLimit := filterDCLimits(p.RateLimit, dcs)
+	rateLimit := FilterDCs(p.RateLimit, dcs)
 	if len(rateLimit) == 0 {
 		rateLimit = []DCLimit{{Limit: defaultRateLimit}}
 	}
@@ -311,14 +266,14 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 	return Target{
 		Units:            units,
 		DC:               dcs,
-		Location:         filterDCLocations(p.Location, dcs),
+		Location:         FilterDCs(p.Location, dcs),
 		Retention:        policy.Retention,
 		RetentionDays:    policy.RetentionDays,
 		RetentionMap:     p.RetentionMap,
 		RateLimit:        rateLimit,
 		Transfers:        p.Transfers,
-		SnapshotParallel: filterDCLimits(p.SnapshotParallel, dcs),
-		UploadParallel:   filterDCLimits(p.UploadParallel, dcs),
+		SnapshotParallel: FilterDCs(p.SnapshotParallel, dcs),
+		UploadParallel:   FilterDCs(p.UploadParallel, dcs),
 		Continue:         p.Continue,
 		PurgeOnly:        p.PurgeOnly,
 		SkipSchema:       p.SkipSchema,

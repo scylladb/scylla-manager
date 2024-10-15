@@ -109,6 +109,11 @@ func (l Location) String() string {
 	return p
 }
 
+// Datacenter returns location's datacenter.
+func (l Location) Datacenter() string {
+	return l.DC
+}
+
 func (l Location) MarshalText() (text []byte, err error) {
 	return []byte(l.String()), nil
 }

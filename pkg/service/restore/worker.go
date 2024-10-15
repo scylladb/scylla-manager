@@ -67,7 +67,12 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	if err := json.Unmarshal(properties, &t); err != nil {
 		return err
 	}
-	if err := t.validateProperties(); err != nil {
+
+	dcMap, err := w.client.Datacenters(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get data centers")
+	}
+	if err := t.validateProperties(dcMap); err != nil {
 		return err
 	}
 

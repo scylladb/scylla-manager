@@ -29,6 +29,7 @@ type Target struct {
 	BatchSize       int        `json:"batch_size,omitempty"`
 	Parallel        int        `json:"parallel,omitempty"`
 	Transfers       int        `json:"transfers"`
+	RateLimit       []DCLimit  `json:"rate_limit,omitempty"`
 	AllowCompaction bool       `json:"allow_compaction,omitempty"`
 	RestoreSchema   bool       `json:"restore_schema,omitempty"`
 	RestoreTables   bool       `json:"restore_tables,omitempty"`
@@ -42,6 +43,7 @@ const (
 	maxBatchSize = 0
 	// maxTransfers are experimentally defined to 2*node_shard_cnt.
 	maxTransfers = 0
+	maxRateLimit = 0
 )
 
 func defaultTarget() Target {
@@ -55,7 +57,7 @@ func defaultTarget() Target {
 
 // validateProperties makes a simple validation of params set by user.
 // It does not perform validations that require access to the service.
-func (t Target) validateProperties() error {
+func (t Target) validateProperties(dcMap map[string][]string) error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
@@ -71,6 +73,9 @@ func (t Target) validateProperties() error {
 	if t.Transfers != scyllaclient.TransfersFromConfig && t.Transfers != maxTransfers && t.Transfers < 1 {
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or 0 (set transfers for fastest download) or greater than zero")
+	}
+	if err := CheckDCs(t.RateLimit, dcMap); err != nil {
+		return errors.Wrap(err, "invalid rate limit")
 	}
 	if t.RestoreSchema == t.RestoreTables {
 		return errors.New("choose EXACTLY ONE restore type ('--restore-schema' or '--restore-tables' flag)")
@@ -295,4 +300,5 @@ type TableName struct {
 type HostInfo struct {
 	Host      string
 	Transfers int
+	RateLimit int
 }

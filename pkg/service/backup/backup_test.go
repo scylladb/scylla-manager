@@ -68,7 +68,7 @@ func TestFilterDCLocations(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			if diff := cmp.Diff(test.Expect, filterDCLocations(test.Locations, test.DCs)); diff != "" {
+			if diff := cmp.Diff(test.Expect, FilterDCs(test.Locations, test.DCs)); diff != "" {
 				t.Error(diff)
 			}
 		})
@@ -134,7 +134,7 @@ func TestFilterDCLimit(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			if diff := cmp.Diff(test.Expect, filterDCLimits(test.DCLimits, test.DCs)); diff != "" {
+			if diff := cmp.Diff(test.Expect, FilterDCs(test.DCLimits, test.DCs)); diff != "" {
 				t.Error(diff)
 			}
 		})

@@ -46,7 +46,7 @@ func TestBackupPauseResumeOnDeduplicationStage(t *testing.T) {
 		DC:        []string{"dc1"},
 		Location:  []backupspec.Location{location},
 		Retention: 2,
-		RateLimit: []backup.DCLimit{
+		RateLimit: []backupspec.DCLimit{
 			{"dc1", 1},
 		},
 		Continue: true,
