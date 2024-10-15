@@ -64,7 +64,7 @@ for the core transfers operation typically these are written to a http.Request
 type CoreTransfersParams struct {
 
 	/*Transfers
-	  transfers
+	  The number of file transfers to run in parallel. Accepts a special value '-1' describing that transfers from rclone config file should be used
 
 	*/
 	Transfers *models.Transfers
