@@ -32,6 +32,7 @@ type command struct {
 	retention        int
 	retentionDays    int
 	rateLimit        []string
+	transfers        int
 	snapshotParallel []string
 	uploadParallel   []string
 	dryRun           bool
@@ -84,6 +85,7 @@ func (cmd *command) init() {
 	w.Unwrap().IntVar(&cmd.retention, "retention", 7, "")
 	w.Unwrap().IntVar(&cmd.retentionDays, "retention-days", 0, "")
 	w.Unwrap().StringSliceVar(&cmd.rateLimit, "rate-limit", nil, "")
+	w.Unwrap().IntVar(&cmd.transfers, "transfers", -1, "")
 	w.Unwrap().StringSliceVar(&cmd.snapshotParallel, "snapshot-parallel", nil, "")
 	w.Unwrap().StringSliceVar(&cmd.uploadParallel, "upload-parallel", nil, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -142,6 +144,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("rate-limit").Changed {
 		props["rate_limit"] = cmd.rateLimit
+		ok = true
+	}
+	if cmd.Flag("transfers").Changed {
+		props["transfers"] = cmd.transfers
 		ok = true
 	}
 	if cmd.Flag("snapshot-parallel").Changed {

@@ -11,6 +11,7 @@ var RcloneSupportedCalls = strset.New(
 	"core/bwlimit",
 	"core/stats-delete",
 	"core/stats-reset",
+	"core/transfers",
 	"job/info",
 	"job/progress",
 	"job/stop",

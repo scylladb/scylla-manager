@@ -15,6 +15,9 @@ import (
 // swagger:model MoveOrCopyFileOptions
 type MoveOrCopyFileOptions struct {
 
+	// String representation of the bandwidth rate limit (eg. 100k, 1M, ...)
+	BandwidthRate string `json:"bandwidth_rate,omitempty"`
+
 	// Destination file system e.g. s3: or gcs:
 	DstFs string `json:"dstFs,omitempty"`
 
@@ -29,6 +32,9 @@ type MoveOrCopyFileOptions struct {
 
 	// A suffix which will be added to otherwise overwritten or deleted files
 	Suffix string `json:"suffix,omitempty"`
+
+	// The number of file transfers to run in parallel. Accepts a special value '-1' describing that transfers from rclone config file should be used
+	Transfers int64 `json:"transfers,omitempty"`
 }
 
 // Validate validates this move or copy file options

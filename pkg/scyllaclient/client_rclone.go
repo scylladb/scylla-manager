@@ -33,6 +33,31 @@ func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit
 	return err
 }
 
+// RcloneSetTransfers sets the default amount of transfers on rclone server.
+// This change is not persisted after server restart.
+// Transfers correspond to the number of file transfers to run in parallel.
+func (c *Client) RcloneSetTransfers(ctx context.Context, host string, transfers int) error {
+	p := operations.CoreTransfersParams{
+		Context:   forceHost(ctx, host),
+		Transfers: &models.Transfers{Transfers: int64(transfers)},
+	}
+	_, err := c.agentOps.CoreTransfers(&p) // nolint: errcheck
+	return err
+}
+
+// RcloneGetTransfers gets the default amount of transfers on rclone server.
+// Transfers correspond to the number of file transfers to run in parallel.
+func (c *Client) RcloneGetTransfers(ctx context.Context, host string) (int, error) {
+	p := operations.CoreTransfersParams{
+		Context: forceHost(ctx, host),
+	}
+	resp, err := c.agentOps.CoreTransfers(&p)
+	if err != nil {
+		return 0, err
+	}
+	return int(resp.Payload.Transfers), nil
+}
+
 // RcloneJobStop stops running job.
 func (c *Client) RcloneJobStop(ctx context.Context, host string, jobID int64) error {
 	p := operations.JobStopParams{
@@ -208,8 +233,8 @@ func (c *Client) rcloneMoveOrCopyFile(ctx context.Context, host, dstRemotePath, 
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 // If specified, a suffix will be added to otherwise overwritten or deleted files.
-func (c *Client) RcloneMoveDir(ctx context.Context, host, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
-	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, true, suffix)
+func (c *Client) RcloneMoveDir(ctx context.Context, host string, transfers int, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, transfers, dstRemotePath, srcRemotePath, true, suffix)
 }
 
 // RcloneCopyDir copies contents of the directory pointed by srcRemotePath to
@@ -218,11 +243,11 @@ func (c *Client) RcloneMoveDir(ctx context.Context, host, dstRemotePath, srcRemo
 // Returns ID of the asynchronous job.
 // Remote path format is "name:bucket/path".
 // If specified, a suffix will be added to otherwise overwritten or deleted files.
-func (c *Client) RcloneCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
-	return c.rcloneMoveOrCopyDir(ctx, host, dstRemotePath, srcRemotePath, false, suffix)
+func (c *Client) RcloneCopyDir(ctx context.Context, host string, transfers int, dstRemotePath, srcRemotePath, suffix string) (int64, error) {
+	return c.rcloneMoveOrCopyDir(ctx, host, transfers, dstRemotePath, srcRemotePath, false, suffix)
 }
 
-func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, srcRemotePath string, doMove bool, suffix string) (int64, error) {
+func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host string, transfers int, dstRemotePath, srcRemotePath string, doMove bool, suffix string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemotePath)
 	if err != nil {
 		return 0, err
@@ -237,6 +262,7 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, s
 		SrcFs:     srcFs,
 		SrcRemote: srcRemote,
 		Suffix:    suffix,
+		Transfers: int64(transfers),
 	}
 
 	var jobID int64
@@ -267,11 +293,15 @@ func (c *Client) rcloneMoveOrCopyDir(ctx context.Context, host, dstRemotePath, s
 	return jobID, nil
 }
 
+// TransfersFromConfig describes transfers value which results in setting transfers
+// to the value from host's scylla-manager-agent.yaml config.
+const TransfersFromConfig = -1
+
 // RcloneCopyPaths copies paths from srcRemoteDir/path to dstRemoteDir/path.
 // Remotes need to be registered with the server first.
 // Remote path format is "name:bucket/path".
 // Both dstRemoteDir and srRemoteDir must point to a directory.
-func (c *Client) RcloneCopyPaths(ctx context.Context, host, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
+func (c *Client) RcloneCopyPaths(ctx context.Context, host string, transfers int, dstRemoteDir, srcRemoteDir string, paths []string) (int64, error) {
 	dstFs, dstRemote, err := rcloneSplitRemotePath(dstRemoteDir)
 	if err != nil {
 		return 0, err
@@ -292,6 +322,7 @@ func (c *Client) RcloneCopyPaths(ctx context.Context, host, dstRemoteDir, srcRem
 			SrcFs:     srcFs,
 			SrcRemote: srcRemote,
 			Paths:     paths,
+			Transfers: int64(transfers),
 		},
 		Async: true,
 	}

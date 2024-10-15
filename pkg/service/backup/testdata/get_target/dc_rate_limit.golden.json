@@ -70,5 +70,6 @@
     "1000",
     "dc1:100"
   ],
-  "continue": true
+  "continue": true,
+  "transfers": -1
 }

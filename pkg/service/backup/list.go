@@ -22,13 +22,13 @@ func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Clien
 		manifests []*ManifestInfo
 	)
 
-	for _, hi := range hosts {
-		if _, ok := locations[hi.Location]; ok {
+	for i := range hosts {
+		if _, ok := locations[hosts[i].Location]; ok {
 			continue
 		}
-		locations[hi.Location] = struct{}{}
+		locations[hosts[i].Location] = struct{}{}
 
-		lm, err := listManifests(ctx, client, hi.IP, hi.Location, clusterID)
+		lm, err := listManifests(ctx, client, hosts[i].IP, hosts[i].Location, clusterID)
 		if err != nil {
 			return nil, err
 		}
