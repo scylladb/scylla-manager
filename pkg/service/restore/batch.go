@@ -15,19 +15,15 @@ type batchDispatcher struct {
 	wait chan struct{}
 
 	remainingBytes        int64
-	workload              []LocationWorkload
+	workload              Workload
 	batchSize             int
 	expectedShardWorkload int64
 	hostShardCnt          map[string]uint
 	locationHosts         map[Location][]string
 }
 
-func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
-	sortWorkloadBySizeDesc(workload)
-	var size int64
-	for _, t := range workload {
-		size += t.Size
-	}
+func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
+	sortWorkload(workload)
 	var shards uint
 	for _, sh := range hostShardCnt {
 		shards += sh
@@ -38,10 +34,10 @@ func newBatchDispatcher(workload []LocationWorkload, batchSize int, hostShardCnt
 	return &batchDispatcher{
 		mu:                    sync.Mutex{},
 		wait:                  make(chan struct{}),
-		remainingBytes:        size,
+		remainingBytes:        workload.TotalSize,
 		workload:              workload,
 		batchSize:             batchSize,
-		expectedShardWorkload: size / int64(shards),
+		expectedShardWorkload: workload.TotalSize / int64(shards),
 		hostShardCnt:          hostShardCnt,
 		locationHosts:         locationHosts,
 	}
@@ -99,22 +95,10 @@ func (bd *batchDispatcher) ValidateAllDispatched() error {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
 
-	for _, lw := range bd.workload {
-		if lw.Size != 0 {
-			for _, tw := range lw.Tables {
-				if tw.Size != 0 {
-					for _, dw := range tw.RemoteDirs {
-						if dw.Size != 0 || len(dw.SSTables) != 0 {
-							return errors.Errorf("expected all data to be restored, missing sstable ids from location %s table %s.%s: %v (%d bytes)",
-								dw.Location, dw.Keyspace, dw.Table, dw.SSTables, dw.Size)
-						}
-					}
-					return errors.Errorf("expected all data to be restored, missinng table from location %s: %s.%s (%d bytes)",
-						tw.Location, tw.Keyspace, tw.Table, tw.Size)
-				}
-			}
-			return errors.Errorf("expected all data to be restored, missinng location: %s (%d bytes)",
-				lw.Location, lw.Size)
+	for _, rdw := range bd.workload.RemoteDir {
+		if rdw.Size != 0 || len(rdw.SSTables) != 0 {
+			return errors.Errorf("expected all data to be restored, missing sstables from location %s table %s.%s: %v (%d bytes)",
+				rdw.Location, rdw.Keyspace, rdw.Table, rdw.SSTables, rdw.Size)
 		}
 	}
 	if !bd.done() {
@@ -152,58 +136,27 @@ func (bd *batchDispatcher) done() bool {
 }
 
 func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
-	l := bd.chooseLocation(host)
-	if l == nil {
-		return batch{}, false
-	}
-	t := bd.chooseTable(l)
-	if t == nil {
-		return batch{}, false
-	}
-	dir := bd.chooseRemoteDir(t)
-	if dir == nil {
-		return batch{}, false
-	}
-	return bd.createBatch(l, t, dir, host)
-}
-
-// Returns location for which batch should be created.
-func (bd *batchDispatcher) chooseLocation(host string) *LocationWorkload {
-	for i := range bd.workload {
-		if bd.workload[i].Size == 0 {
+	var rdw *RemoteDirWorkload
+	for i, w := range bd.workload.RemoteDir {
+		// Skip empty dir
+		if w.Size == 0 {
 			continue
 		}
-		if slices.Contains(bd.locationHosts[bd.workload[i].Location], host) {
-			return &bd.workload[i]
-		}
-	}
-	return nil
-}
-
-// Returns table for which batch should be created.
-func (bd *batchDispatcher) chooseTable(location *LocationWorkload) *TableWorkload {
-	for i := range location.Tables {
-		if location.Tables[i].Size == 0 {
+		// Sip dir from location without access
+		if !slices.Contains(bd.locationHosts[w.Location], host) {
 			continue
 		}
-		return &location.Tables[i]
+		rdw = &bd.workload.RemoteDir[i]
+		break
 	}
-	return nil
-}
-
-// Return remote dir for which batch should be created.
-func (bd *batchDispatcher) chooseRemoteDir(table *TableWorkload) *RemoteDirWorkload {
-	for i := range table.RemoteDirs {
-		if table.RemoteDirs[i].Size == 0 {
-			continue
-		}
-		return &table.RemoteDirs[i]
+	if rdw == nil {
+		return batch{}, false
 	}
-	return nil
+	return bd.createBatch(rdw, host)
 }
 
 // Returns batch and updates RemoteDirWorkload and its parents.
-func (bd *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, dir *RemoteDirWorkload, host string) (batch, bool) {
+func (bd *batchDispatcher) createBatch(rdw *RemoteDirWorkload, host string) (batch, bool) {
 	shardCnt := bd.hostShardCnt[host]
 	if shardCnt == 0 {
 		shardCnt = 1
@@ -218,13 +171,13 @@ func (bd *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, di
 		sizeLimit := expectedNodeWorkload / 20
 		for {
 			for j := 0; j < int(shardCnt); j++ {
-				if i >= len(dir.SSTables) {
+				if i >= len(rdw.SSTables) {
 					break
 				}
-				size += dir.SSTables[i].Size
+				size += rdw.SSTables[i].Size
 				i++
 			}
-			if i >= len(dir.SSTables) {
+			if i >= len(rdw.SSTables) {
 				break
 			}
 			if size > sizeLimit {
@@ -233,9 +186,9 @@ func (bd *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, di
 		}
 	} else {
 		// Create batch containing node_shard_count*batch_size sstables.
-		i = min(bd.batchSize*int(shardCnt), len(dir.SSTables))
+		i = min(bd.batchSize*int(shardCnt), len(rdw.SSTables))
 		for j := 0; j < i; j++ {
-			size += dir.SSTables[j].Size
+			size += rdw.SSTables[j].Size
 		}
 	}
 
@@ -244,22 +197,23 @@ func (bd *batchDispatcher) createBatch(l *LocationWorkload, t *TableWorkload, di
 	}
 	// Extend batch if it was to leave less than
 	// 1 sstable per shard for the next one.
-	if len(dir.SSTables)-i < int(shardCnt) {
-		for ; i < len(dir.SSTables); i++ {
-			size += dir.SSTables[i].Size
+	if len(rdw.SSTables)-i < int(shardCnt) {
+		for ; i < len(rdw.SSTables); i++ {
+			size += rdw.SSTables[i].Size
 		}
 	}
 
-	sstables := dir.SSTables[:i]
-	dir.SSTables = dir.SSTables[i:]
+	sstables := rdw.SSTables[:i]
+	rdw.SSTables = rdw.SSTables[i:]
 
-	dir.Size -= size
-	t.Size -= size
-	l.Size -= size
+	rdw.Size -= size
+	bd.workload.TableSize[rdw.TableName] -= size
+	bd.workload.LocationSize[rdw.Location] -= size
+	bd.workload.TotalSize -= size
 	return batch{
-		TableName:        dir.TableName,
-		ManifestInfo:     dir.ManifestInfo,
-		RemoteSSTableDir: dir.RemoteSSTableDir,
+		TableName:        rdw.TableName,
+		ManifestInfo:     rdw.ManifestInfo,
+		RemoteSSTableDir: rdw.RemoteSSTableDir,
 		Size:             size,
 		SSTables:         sstables,
 	}, true
@@ -281,44 +235,24 @@ func (bd *batchDispatcher) ReportFailure(b batch) error {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
 
-	var (
-		lw *LocationWorkload
-		tw *TableWorkload
-		rw *RemoteDirWorkload
-	)
-	for i := range bd.workload {
-		if bd.workload[i].Location == b.Location {
-			lw = &bd.workload[i]
+	var rdw *RemoteDirWorkload
+	for i := range bd.workload.RemoteDir {
+		if bd.workload.RemoteDir[i].RemoteSSTableDir == b.RemoteSSTableDir {
+			rdw = &bd.workload.RemoteDir[i]
 		}
 	}
-	if lw == nil {
-		return errors.Errorf("unknown location %s", b.Location)
-	}
-	for i := range lw.Tables {
-		if lw.Tables[i].TableName == b.TableName {
-			tw = &lw.Tables[i]
-		}
-	}
-	if tw == nil {
-		return errors.Errorf("unknown table %s", b.TableName)
-	}
-	for i := range tw.RemoteDirs {
-		if tw.RemoteDirs[i].RemoteSSTableDir == b.RemoteSSTableDir {
-			rw = &tw.RemoteDirs[i]
-		}
-	}
-	if rw == nil {
+	if rdw == nil {
 		return errors.Errorf("unknown remote sstable dir %s", b.RemoteSSTableDir)
 	}
 
 	var newSST []RemoteSSTable
 	newSST = append(newSST, b.SSTables...)
-	newSST = append(newSST, rw.SSTables...)
+	newSST = append(newSST, rdw.SSTables...)
 
-	rw.SSTables = newSST
-	rw.Size += b.Size
-	tw.Size += b.Size
-	lw.Size += b.Size
+	rdw.SSTables = newSST
+	rdw.Size += b.Size
+	bd.workload.TableSize[b.TableName] += b.Size
+	bd.workload.LocationSize[b.Location] += b.Size
 
 	bd.wakeUpWaiting()
 	return nil
@@ -329,23 +263,20 @@ func (bd *batchDispatcher) wakeUpWaiting() {
 	bd.wait = make(chan struct{})
 }
 
-func sortWorkloadBySizeDesc(workload []LocationWorkload) {
-	slices.SortFunc(workload, func(a, b LocationWorkload) int {
+func sortWorkload(workload Workload) {
+	// Order remote sstable dirs by table size, then by their size (decreasing).
+	slices.SortFunc(workload.RemoteDir, func(a, b RemoteDirWorkload) int {
+		ats := workload.TableSize[a.TableName]
+		bts := workload.TableSize[b.TableName]
+		if ats != bts {
+			return int(bts - ats)
+		}
 		return int(b.Size - a.Size)
 	})
-	for _, loc := range workload {
-		slices.SortFunc(loc.Tables, func(a, b TableWorkload) int {
+	// Order sstables by their size (decreasing)
+	for _, rdw := range workload.RemoteDir {
+		slices.SortFunc(rdw.SSTables, func(a, b RemoteSSTable) int {
 			return int(b.Size - a.Size)
 		})
-		for _, tab := range loc.Tables {
-			slices.SortFunc(tab.RemoteDirs, func(a, b RemoteDirWorkload) int {
-				return int(b.Size - a.Size)
-			})
-			for _, dir := range tab.RemoteDirs {
-				slices.SortFunc(dir.SSTables, func(a, b RemoteSSTable) int {
-					return int(b.Size - a.Size)
-				})
-			}
-		}
 	}
 }

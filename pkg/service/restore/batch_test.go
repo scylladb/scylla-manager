@@ -17,76 +17,88 @@ func TestBatchDispatcher(t *testing.T) {
 		Provider: "s3",
 		Path:     "l2",
 	}
-	workload := []LocationWorkload{
+
+	rawWorkload := []RemoteDirWorkload{
 		{
-			Location: l1,
-			Size:     170,
-			Tables: []TableWorkload{
-				{
-					Size: 60,
-					RemoteDirs: []RemoteDirWorkload{
-						{
-							RemoteSSTableDir: "a",
-							Size:             20,
-							SSTables: []RemoteSSTable{
-								{Size: 5},
-								{Size: 15},
-							},
-						},
-						{
-							RemoteSSTableDir: "e",
-							Size:             10,
-							SSTables: []RemoteSSTable{
-								{Size: 2},
-								{Size: 4},
-								{Size: 4},
-							},
-						},
-						{
-							RemoteSSTableDir: "b",
-							Size:             30,
-							SSTables: []RemoteSSTable{
-								{Size: 10},
-								{Size: 20},
-							},
-						},
-					},
-				},
-				{
-					Size: 110,
-					RemoteDirs: []RemoteDirWorkload{
-						{
-							RemoteSSTableDir: "c",
-							Size:             110,
-							SSTables: []RemoteSSTable{
-								{Size: 50},
-								{Size: 60},
-							},
-						},
-					},
-				},
+			ManifestInfo: &backupspec.ManifestInfo{
+				Location: l1,
+			},
+			TableName: TableName{
+				Keyspace: "ks1",
+				Table:    "t1",
+			},
+			RemoteSSTableDir: "a",
+			Size:             20,
+			SSTables: []RemoteSSTable{
+				{Size: 5},
+				{Size: 15},
 			},
 		},
 		{
-			Location: l2,
-			Size:     200,
-			Tables: []TableWorkload{
-				{
-					Size: 200,
-					RemoteDirs: []RemoteDirWorkload{
-						{
-							RemoteSSTableDir: "d",
-							Size:             200,
-							SSTables: []RemoteSSTable{
-								{Size: 110},
-								{Size: 90},
-							},
-						},
-					},
-				},
+			ManifestInfo: &backupspec.ManifestInfo{
+				Location: l1,
+			},
+			TableName: TableName{
+				Keyspace: "ks1",
+				Table:    "t1",
+			},
+			RemoteSSTableDir: "e",
+			Size:             10,
+			SSTables: []RemoteSSTable{
+				{Size: 2},
+				{Size: 4},
+				{Size: 4},
+			},
+		},
+		{
+			ManifestInfo: &backupspec.ManifestInfo{
+				Location: l1,
+			},
+			TableName: TableName{
+				Keyspace: "ks1",
+				Table:    "t1",
+			},
+			RemoteSSTableDir: "b",
+			Size:             30,
+			SSTables: []RemoteSSTable{
+				{Size: 10},
+				{Size: 20},
+			},
+		},
+		{
+			ManifestInfo: &backupspec.ManifestInfo{
+				Location: l1,
+			},
+			TableName: TableName{
+				Keyspace: "ks1",
+				Table:    "t2",
+			},
+			RemoteSSTableDir: "c",
+			Size:             110,
+			SSTables: []RemoteSSTable{
+				{Size: 50},
+				{Size: 60},
+			},
+		},
+		{
+			ManifestInfo: &backupspec.ManifestInfo{
+				Location: l2,
+			},
+			TableName: TableName{
+				Keyspace: "ks1",
+				Table:    "t2",
+			},
+			RemoteSSTableDir: "d",
+			Size:             200,
+			SSTables: []RemoteSSTable{
+				{Size: 110},
+				{Size: 90},
 			},
 		},
 	}
+
+	workload := aggregateWorkload(rawWorkload)
+
 	locationHosts := map[backupspec.Location][]string{
 		l1: {"h1", "h2"},
 		l2: {"h3"},
@@ -120,19 +132,13 @@ func TestBatchDispatcher(t *testing.T) {
 	for _, step := range scenario {
 		b, ok := bd.dispatchBatch(step.host)
 		if ok != step.ok {
-			t.Fatalf("Step: %+v, expected ok=%v, got ok=%v", step, step.ok, ok)
+			t.Errorf("Expected %v, got %#v", step, b)
 		}
 		if ok == false {
-			continue
+			return
 		}
-		if b.RemoteSSTableDir != step.dir {
-			t.Fatalf("Step: %+v, expected dir=%v, got dir=%v", step, step.dir, b.RemoteSSTableDir)
-		}
-		if b.Size != step.size {
-			t.Fatalf("Step: %+v, expected size=%v, got size=%v", step, step.size, b.Size)
-		}
-		if len(b.SSTables) != step.count {
-			t.Fatalf("Step: %+v, expected count=%v, got count=%v", step, step.count, len(b.SSTables))
+		if b.RemoteSSTableDir != step.dir || b.Size != step.size || len(b.SSTables) != step.count {
+			t.Errorf("Expected %v, got %#v", step, b)
 		}
 		bd.ReportSuccess(b)
 	}
