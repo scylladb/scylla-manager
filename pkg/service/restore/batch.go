@@ -20,6 +20,7 @@ type batchDispatcher struct {
 	expectedShardWorkload int64
 	hostShardCnt          map[string]uint
 	locationHosts         map[Location][]string
+	hostToFailedDC        map[string][]string
 }
 
 func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
@@ -40,6 +41,7 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 		expectedShardWorkload: workload.TotalSize / int64(shards),
 		hostShardCnt:          hostShardCnt,
 		locationHosts:         locationHosts,
+		hostToFailedDC:        make(map[string][]string),
 	}
 }
 
@@ -142,6 +144,10 @@ func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 		if w.Size == 0 {
 			continue
 		}
+		// Skip dir from already failed dc
+		if slices.Contains(bd.hostToFailedDC[host], w.DC) {
+			continue
+		}
 		// Sip dir from location without access
 		if !slices.Contains(bd.locationHosts[w.Location], host) {
 			continue
@@ -231,9 +237,12 @@ func (bd *batchDispatcher) ReportSuccess(b batch) {
 }
 
 // ReportFailure notifies batchDispatcher that given batch failed to be restored.
-func (bd *batchDispatcher) ReportFailure(b batch) error {
+func (bd *batchDispatcher) ReportFailure(host string, b batch) error {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
+
+	// Mark failed DC for host
+	bd.hostToFailedDC[host] = append(bd.hostToFailedDC[host], b.DC)
 
 	var rdw *RemoteDirWorkload
 	for i := range bd.workload.RemoteDir {
