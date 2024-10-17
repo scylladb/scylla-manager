@@ -199,6 +199,19 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 
+	// This defer is outside of target field check for improved safety.
+	// We always want to pin agent to CPUs outside the restore.
+	defer func() {
+		if err := w.pinAgentCPU(context.Background(), hosts, true); err != nil {
+			w.logger.Error(ctx, "Couldn't re-pin agent to CPUs", "error", err)
+		}
+	}()
+	if w.target.UnpinAgentCPU {
+		if err := w.pinAgentCPU(ctx, hosts, false); err != nil {
+			return errors.Wrapf(err, "unpin agent from CPUs")
+		}
+	}
+
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
 	f := func(n int) (err error) {
@@ -347,6 +360,23 @@ func (w *tablesWorker) setAutoCompaction(ctx context.Context, hosts []string, en
 		}
 	}
 	return nil
+}
+
+// Pins/unpins all provided hosts to/from CPUs.
+func (w *tablesWorker) pinAgentCPU(ctx context.Context, hosts []string, pin bool) error {
+	err := parallel.Run(len(hosts), parallel.NoLimit,
+		func(i int) error {
+			if pin {
+				return w.client.PinCPU(ctx, hosts[i])
+			}
+			return w.client.UnpinFromCPU(ctx, hosts[i])
+		}, func(i int, err error) {
+			w.logger.Error(ctx, "Failed to change agent CPU pinning",
+				"host", hosts[i],
+				"pinned", pin,
+				"error", err)
+		})
+	return errors.Wrapf(err, "set agent CPU pinning")
 }
 
 func (w *tablesWorker) hostInfo(host, dc string, shards uint) HostInfo {

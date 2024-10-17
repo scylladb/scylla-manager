@@ -31,6 +31,7 @@ type Target struct {
 	Transfers       int        `json:"transfers"`
 	RateLimit       []DCLimit  `json:"rate_limit,omitempty"`
 	AllowCompaction bool       `json:"allow_compaction,omitempty"`
+	UnpinAgentCPU   bool       `json:"unpin_agent_cpu"`
 	RestoreSchema   bool       `json:"restore_schema,omitempty"`
 	RestoreTables   bool       `json:"restore_tables,omitempty"`
 	Continue        bool       `json:"continue"`
