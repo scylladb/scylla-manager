@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -85,8 +86,8 @@ func (s *server) init(ctx context.Context) error {
 
 	// Try to get CPUs to pin to
 	var cpus []int
-	if s.config.CPU != agent.NoCPU {
-		cpus = []int{s.config.CPU}
+	if !slices.Contains(s.config.CPU, agent.NoCPU) {
+		cpus = s.config.CPU
 	} else if free, err := findFreeCPUs(); err != nil {
 		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
 			// Ignore if there is no cpuset file
