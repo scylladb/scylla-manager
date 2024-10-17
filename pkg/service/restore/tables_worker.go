@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 type tablesWorker struct {
@@ -201,7 +202,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
-	f := func(n int) (err error) {
+	f := func(n int) error {
 		host := hosts[n]
 		dc, err := w.client.HostDatacenter(ctx, host)
 		if err != nil {
@@ -227,11 +228,26 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
-				return errors.Wrap(err, "create new run progress")
+				err = multierr.Append(errors.Wrap(err, "create new run progress"), bd.ReportFailure(hi.Host, b))
+				w.logger.Error(ctx, "Failed to create new run progress",
+					"host", hi.Host,
+					"error", err)
+				if ctx.Err() != nil {
+					return err
+				}
+				continue
 			}
 			if err := w.restoreBatch(ctx, b, pr); err != nil {
-				return errors.Wrap(err, "restore batch")
+				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
+				w.logger.Error(ctx, "Failed to restore batch",
+					"host", hi.Host,
+					"error", err)
+				if ctx.Err() != nil {
+					return err
+				}
+				continue
 			}
+			bd.ReportSuccess(b)
 			w.decreaseRemainingBytesMetric(b)
 		}
 	}

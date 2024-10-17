@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -25,6 +27,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestRestoreTablesUserIntegration(t *testing.T) {
@@ -690,4 +693,89 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	Print("Validate table contents")
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+}
+
+func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+	// Ensure no built-in retries
+	clientCfg := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	clientCfg.Backoff.MaxRetries = 0
+	h.dstCluster.Client = newTestClient(t, h.dstCluster.Hrt, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), &clientCfg)
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	ks := randomizedName("batch_retry_1_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 1))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 1))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab1 := randomizedName("tab_1_")
+	tab2 := randomizedName("tab_2_")
+	tab3 := randomizedName("tab_3_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab1))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab2))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab3))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab1))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab2))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab3))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab1, tab2, tab3)
+
+	Print("Run backup")
+	loc := []Location{testLocation("batch-retry", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Inject errors")
+	downloadCnt := atomic.Int64{}
+	lasCnt := atomic.Int64{}
+	h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		// For this setup, we have 6 remote sstable dirs and 6 workers.
+		// We inject 2 errors during download and 3 errors during LAS.
+		// This means that only a single node will be restoring at the end.
+		// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
+		// The last failed call to LAS (cnt=8) waits a bit so that we test
+		// that batch dispatcher correctly reuses and releases nodes waiting
+		// for failed sstables to come back to the batch dispatcher.
+		if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+			if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
+				t.Log("Fake download error ", cnt)
+				return nil, errors.New("fake download error")
+			}
+		}
+		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+			cnt := lasCnt.Add(1)
+			if cnt == 8 {
+				time.Sleep(15 * time.Second)
+			}
+			if cnt == 1 || cnt == 5 || cnt == 8 {
+				t.Log("Fake LAS error ", cnt)
+				return nil, errors.New("fake las error")
+			}
+		}
+		return nil, nil
+	}))
+
+	Print("Run restore tables")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"keyspace":       ksFilter,
+		"snapshot_tag":   tag,
+		"restore_tables": true,
+	})
+
+	if cnt := lasCnt.Add(0); cnt < 9 {
+		t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
+	}
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab2, "id", "data")
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab3, "id", "data")
 }
