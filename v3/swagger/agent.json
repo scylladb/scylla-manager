@@ -843,6 +843,74 @@
         "security": []
       }
     },
+    "/pin_cpu": {
+      "get": {
+        "description": "Get CPUs to which agent is pinned",
+        "summary": "Get CPUs to which agent is pinned",
+        "operationId": "GetCpu",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "CPUs to which agent is pinned",
+            "schema": {
+              "$ref": "#/definitions/Cpus"
+            }
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Pin agent to CPUs according to start-up logic",
+        "summary": "Pin agent to CPUs according to start-up logic",
+        "operationId": "PinCpu",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Unpin agent from CPUs",
+        "summary": "Unpin agent from CPUs",
+        "operationId": "UnpinCpu",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty object",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/terminate": {
       "post": {
         "description": "Reload agent config",
@@ -901,6 +969,18 @@
     }
   },
   "definitions": {
+    "Cpus": {
+      "type": "object",
+      "properties": {
+        "cpu": {
+          "description": "List of cpus",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      }
+    },
     "Bandwidth": {
       "title": "bandwidth rate",
       "description": "Rate at witch to rate limit bandwidth",
