@@ -40,6 +40,36 @@ func (c *Client) AnyNodeInfo(ctx context.Context) (*NodeInfo, error) {
 	return (*NodeInfo)(resp.Payload), nil
 }
 
+// GetPinnedCPU returns CPUs to which agent is pinned.
+func (c *Client) GetPinnedCPU(ctx context.Context, host string) ([]int64, error) {
+	p := operations.GetCPUParams{
+		Context: forceHost(ctx, host),
+	}
+	resp, err := c.agentOps.GetCPU(&p)
+	if err != nil {
+		return nil, errors.Wrap(err, "get CPUs")
+	}
+	return resp.Payload.CPU, nil
+}
+
+// UnpinFromCPU allows agent to use all CPUs.
+func (c *Client) UnpinFromCPU(ctx context.Context, host string) error {
+	p := operations.UnpinCPUParams{
+		Context: forceHost(ctx, host),
+	}
+	_, err := c.agentOps.UnpinCPU(&p)
+	return err
+}
+
+// PinCPU pins agent to CPUs according to the start-up logic.
+func (c *Client) PinCPU(ctx context.Context, host string) error {
+	p := operations.PinCPUParams{
+		Context: forceHost(ctx, host),
+	}
+	_, err := c.agentOps.PinCPU(&p)
+	return err
+}
+
 // CQLAddr returns CQL address from NodeInfo.
 // Scylla can have separate rpc_address (CQL), listen_address and respectfully
 // broadcast_rpc_address and broadcast_address if some 3rd party routing

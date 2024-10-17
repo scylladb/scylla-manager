@@ -53,6 +53,31 @@ func schedSetAffinityToMany(pids []int, set *unix.CPUSet) (err error) {
 	return
 }
 
+// SchedGetAffinity gets a union of CPUs used by this process threads.
+func SchedGetAffinity() ([]int, error) {
+	pids, err := osTasks(os.Getpid())
+	if err != nil {
+		return nil, errors.Wrap(err, "get tasks")
+	}
+
+	union := make(map[int]struct{})
+	for _, pid := range pids {
+		var cpus unix.CPUSet
+		if err := unix.SchedGetaffinity(pid, &cpus); err != nil {
+			return nil, errors.Wrap(err, "get affinity")
+		}
+		for _, cpu := range cpulist(&cpus) {
+			union[cpu] = struct{}{}
+		}
+	}
+
+	var out []int
+	for cpu := range union {
+		out = append(out, cpu)
+	}
+	return out, nil
+}
+
 func cpuset(cpus []int) *unix.CPUSet {
 	set := &unix.CPUSet{}
 	set.Zero()

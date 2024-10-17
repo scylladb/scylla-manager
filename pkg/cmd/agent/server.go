@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -83,32 +84,7 @@ func (s *server) init(ctx context.Context) error {
 		)
 	}
 
-	// Try to get CPUs to pin to
-	var cpus []int
-	if s.config.CPU != agent.NoCPU {
-		cpus = []int{s.config.CPU}
-	} else if free, err := findFreeCPUs(); err != nil {
-		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
-			// Ignore if there is no cpuset file
-			s.logger.Debug(ctx, "Failed to find CPUs to pin to", "error", err)
-		} else {
-			s.logger.Error(ctx, "Failed to find CPUs to pin to", "error", err)
-		}
-	} else {
-		cpus = free
-	}
-	// Pin to CPUs if possible
-	if len(cpus) == 0 {
-		s.logger.Info(ctx, "Running on all CPUs")
-		runtime.GOMAXPROCS(1)
-	} else {
-		if err := pinToCPUs(cpus); err != nil {
-			s.logger.Error(ctx, "Failed to pin to CPUs", "cpus", cpus, "error", err)
-		} else {
-			s.logger.Info(ctx, "Running on CPUs", "cpus", cpus)
-		}
-		runtime.GOMAXPROCS(len(cpus))
-	}
+	_ = findAndPinCPUs(ctx, s.config, s.logger) // nolint: errcheck
 
 	// Log memory limit
 	if l, err := cgroupMemoryLimit(); err != nil {
@@ -132,6 +108,51 @@ func (s *server) init(ctx context.Context) error {
 		rclone.RegisterGCSProvider(s.config.GCS),
 		rclone.RegisterAzureProvider(s.config.Azure),
 	)
+}
+
+func findAndPinCPUs(ctx context.Context, cfg agent.Config, logger log.Logger) error {
+	var aggregatedErr error
+	// Try to get CPUs to pin to
+	var cpus []int
+	if !slices.Contains(cfg.CPU, agent.NoCPU) {
+		cpus = cfg.CPU
+	} else if free, err := findFreeCPUs(); err != nil {
+		if os.IsNotExist(errors.Cause(err)) || errors.Is(err, cpuset.ErrNoCPUSetConfig) {
+			// Ignore if there is no cpuset file
+			logger.Info(ctx, "Failed to find CPUs to pin to", "error", err)
+		} else {
+			logger.Error(ctx, "Failed to find CPUs to pin to", "error", err)
+			aggregatedErr = multierr.Append(aggregatedErr, err)
+		}
+	} else {
+		cpus = free
+	}
+	// Pin to CPUs if possible
+	if len(cpus) == 0 {
+		logger.Info(ctx, "Running on all CPUs")
+		runtime.GOMAXPROCS(1)
+	} else {
+		if err := pinToCPUs(cpus); err != nil {
+			logger.Error(ctx, "Failed to pin to CPUs", "cpus", cpus, "error", err)
+			aggregatedErr = multierr.Append(aggregatedErr, err)
+		} else {
+			logger.Info(ctx, "Running on CPUs", "cpus", cpus)
+		}
+		runtime.GOMAXPROCS(len(cpus))
+	}
+	return aggregatedErr
+}
+
+func unpinFromCPUs() error {
+	cpus := make([]int, runtime.NumCPU())
+	for i := range cpus {
+		cpus[i] = i
+	}
+	if err := pinToCPUs(cpus); err != nil {
+		return errors.Wrapf(err, "pin to cpus %v", cpus)
+	}
+	runtime.GOMAXPROCS(len(cpus))
+	return nil
 }
 
 func (s *server) makeServers(ctx context.Context) error {

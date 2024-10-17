@@ -51,7 +51,7 @@ type Config struct {
 	TLSKeyFile  string               `yaml:"tls_key_file"`
 	Prometheus  string               `yaml:"prometheus"`
 	Debug       string               `yaml:"debug"`
-	CPU         int                  `yaml:"cpu"`
+	CPU         CPUs                 `yaml:"cpu"`
 	Logger      config.LogConfig     `yaml:"logger"`
 	Scylla      ScyllaConfig         `yaml:"scylla"`
 	Rclone      rclone.GlobalOptions `yaml:"rclone"`
@@ -66,7 +66,7 @@ func DefaultConfig() Config {
 		TLSVersion: config.TLSv12,
 		Prometheus: ":5090",
 		Debug:      "127.0.0.1:5112",
-		CPU:        NoCPU,
+		CPU:        []int{NoCPU},
 		Logger:     DefaultLogConfig(),
 		Scylla: ScyllaConfig{
 			APIAddress:    "0.0.0.0",
@@ -120,4 +120,37 @@ func Obfuscate(c Config) Config {
 		*s = strings.Repeat("*", len(*s))
 	}
 	return c
+}
+
+// CPUs represents a list of CPUs.
+// It supports custom marshalling methods which allow
+// for specifying 'cpu' in 'scylla-manager-agent.yaml' config
+// as both a single int or an array of ints.
+type CPUs []int
+
+// UnmarshalYAML is a custom unmarshaller accepting both
+// single ints and int array.
+func (c *CPUs) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var v int
+	errV := unmarshal(&v)
+	if errV == nil {
+		*c = []int{v}
+		return nil
+	}
+	var arr []int
+	errArr := unmarshal(&arr)
+	if errArr == nil {
+		*c = arr
+		return nil
+	}
+	return errors.Wrap(multierr.Append(errV, errArr), "parse CPU as an int or int array")
+}
+
+// MarshalYAML is a custom marshaller returning
+// single int is possible, and int array otherwise.
+func (c CPUs) MarshalYAML() (interface{}, error) {
+	if len(c) == 1 {
+		return (c)[0], nil
+	}
+	return c, nil
 }

@@ -40,6 +40,7 @@
 # CPU to run Scylla Manager Agent on. By default the agent would read Scylla
 # configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
 # Scylla. If that's not possible user can specify a core to run agent on.
+# It's possible to specify a list of CPUs instead of a single value.
 #cpu: 0
 
 # Logging configuration.
