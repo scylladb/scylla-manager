@@ -188,18 +188,20 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
 	}
 
+	// This defer is outside of target field check for improved safety.
+	// We always want to enable auto compaction outside the restore.
+	defer func() {
+		if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
+			w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
+		}
+	}()
 	if !w.target.AllowCompaction {
-		defer func() {
-			if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
-				w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
-			}
-		}()
 		if err := w.setAutoCompaction(ctx, hosts, false); err != nil {
 			return errors.Wrapf(err, "disable auto compaction")
 		}
 	}
 
-	// This defer is outside of target field check for improved safety.
+	// Same as above.
 	// We always want to pin agent to CPUs outside the restore.
 	defer func() {
 		if err := w.pinAgentCPU(context.Background(), hosts, true); err != nil {
