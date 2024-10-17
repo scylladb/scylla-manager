@@ -143,6 +143,18 @@ func findAndPinCPUs(ctx context.Context, cfg agent.Config, logger log.Logger) er
 	return aggregatedErr
 }
 
+func unpinFromCPUs() error {
+	cpus := make([]int, runtime.NumCPU())
+	for i := range cpus {
+		cpus[i] = i
+	}
+	if err := pinToCPUs(cpus); err != nil {
+		return errors.Wrapf(err, "pin to cpus %v", cpus)
+	}
+	runtime.GOMAXPROCS(len(cpus))
+	return nil
+}
+
 func (s *server) makeServers(ctx context.Context) error {
 	tlsConfig, err := s.tlsConfig(ctx)
 	if err != nil {

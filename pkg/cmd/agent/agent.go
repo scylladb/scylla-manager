@@ -10,13 +10,40 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/cpuset"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
-func newAgentHandler(c agent.Config, rclone http.Handler) *chi.Mux {
+func newAgentHandler(c agent.Config, rclone http.Handler, logger log.Logger) *chi.Mux {
 	m := chi.NewMux()
 
 	m.Get("/node_info", newNodeInfoHandler(c).getNodeInfo)
+	m.Get("/pin_cpu", func(writer http.ResponseWriter, request *http.Request) {
+		cpus, err := cpuset.SchedGetAffinity()
+		if err != nil {
+			render.Status(request, http.StatusInternalServerError)
+			render.Respond(writer, request, err)
+		}
+		casted := make([]int64, len(cpus))
+		for i := range cpus {
+			casted[i] = int64(cpus[i])
+		}
+		render.Respond(writer, request, &models.Cpus{CPU: casted})
+	})
+	m.Post("/pin_cpu", func(writer http.ResponseWriter, request *http.Request) {
+		if err := findAndPinCPUs(request.Context(), c, logger); err != nil {
+			render.Status(request, http.StatusInternalServerError)
+			render.Respond(writer, request, err)
+		}
+	})
+	m.Delete("/pin_cpu", func(writer http.ResponseWriter, request *http.Request) {
+		if err := unpinFromCPUs(); err != nil {
+			render.Status(request, http.StatusInternalServerError)
+			render.Respond(writer, request, err)
+		}
+	})
 	m.Post("/terminate", selfSigterm())
 	m.Post("/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
 		debug.FreeOSMemory()
