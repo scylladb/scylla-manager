@@ -32,6 +32,7 @@ type command struct {
 	transfers       int
 	rateLimit       []string
 	allowCompaction bool
+	unpinAgentCPU   bool
 	restoreSchema   bool
 	restoreTables   bool
 	dryRun          bool
@@ -84,6 +85,7 @@ func (cmd *command) init() {
 	w.Unwrap().IntVar(&cmd.transfers, "transfers", 0, "")
 	w.Unwrap().StringSliceVar(&cmd.rateLimit, "rate-limit", nil, "")
 	w.Unwrap().BoolVar(&cmd.allowCompaction, "allow-compaction", false, "")
+	w.Unwrap().BoolVar(&cmd.unpinAgentCPU, "unpin-agent-cpu", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreSchema, "restore-schema", false, "")
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -160,6 +162,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("allow-compaction").Changed {
 		props["allow_compaction"] = cmd.allowCompaction
+		ok = true
+	}
+	if cmd.Flag("unpin-agent-cpu").Changed {
+		props["unpin_agent_cpu"] = cmd.unpinAgentCPU
 		ok = true
 	}
 	if cmd.Flag("restore-schema").Changed {
