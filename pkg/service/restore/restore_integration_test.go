@@ -834,6 +834,55 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 			t.Fatal("Restore hanged")
 		}
 	})
+
+	t.Run("paused restore with slow calls to download and las", func(t *testing.T) {
+		Print("Make download and las calls slow")
+		reachedDataStage := atomic.Bool{}
+		reachedDataStageChan := make(chan struct{})
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") ||
+				strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+				if reachedDataStage.CompareAndSwap(false, true) {
+					close(reachedDataStageChan)
+				}
+				time.Sleep(time.Second)
+				return nil, nil
+			}
+			return nil, nil
+		}))
+
+		Print("Run restore")
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.dstCluster.TaskID = uuid.NewTime()
+		h.dstCluster.RunID = uuid.NewTime()
+		rawProps, err := json.Marshal(props)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "marshal properties"))
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		res := make(chan error)
+		go func() {
+			res <- h.dstRestoreSvc.Restore(ctx, h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+		}()
+
+		Print("Wait for data stage")
+		select {
+		case <-reachedDataStageChan:
+			cancel()
+		case err := <-res:
+			t.Fatalf("Restore finished before reaching data stage with: %s", err)
+		}
+
+		Print("Validate restore was paused in time")
+		select {
+		case err := <-res:
+			if !errors.Is(err, context.Canceled) {
+				t.Fatalf("Expected restore to end with context cancelled, got %q", err)
+			}
+		case <-time.NewTimer(2 * time.Second).C:
+			t.Fatal("Restore wasn't paused in time")
+		}
+	})
 }
 
 func TestRestoreTablesMultiLocationIntegration(t *testing.T) {

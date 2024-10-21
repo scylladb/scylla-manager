@@ -3,6 +3,7 @@
 package restore
 
 import (
+	"context"
 	"slices"
 	"sync"
 
@@ -218,8 +219,11 @@ func (bd *batchDispatcher) ValidateAllDispatched() error {
 // failed to be restored (see batchDispatcher.wait description for more information).
 // Because of that, it's important to call ReportSuccess or ReportFailure after
 // each dispatched batch was attempted to be restored.
-func (bd *batchDispatcher) DispatchBatch(host string) (batch, bool) {
+func (bd *batchDispatcher) DispatchBatch(ctx context.Context, host string) (batch, bool) {
 	for {
+		if ctx.Err() != nil {
+			return batch{}, false
+		}
 		bd.mu.Lock()
 		// Check if there is anything to do for this host
 		if bd.workloadProgress.isDone(host) {
@@ -234,7 +238,10 @@ func (bd *batchDispatcher) DispatchBatch(host string) (batch, bool) {
 			return b, true
 		}
 		// Wait for SSTables that might return after failure
-		<-wait
+		select {
+		case <-ctx.Done():
+		case <-wait:
+		}
 	}
 }
 

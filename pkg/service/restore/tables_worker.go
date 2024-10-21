@@ -211,8 +211,11 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		hi := w.hostInfo(host, dc, hostToShard[host])
 		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers, "rate limit", hi.RateLimit)
 		for {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			// Download and stream in parallel
-			b, ok := bd.DispatchBatch(hi.Host)
+			b, ok := bd.DispatchBatch(ctx, hi.Host)
 			if !ok {
 				w.logger.Info(ctx, "No more batches to restore", "host", hi.Host)
 				return nil
@@ -232,9 +235,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				w.logger.Error(ctx, "Failed to create new run progress",
 					"host", hi.Host,
 					"error", err)
-				if ctx.Err() != nil {
-					return err
-				}
 				continue
 			}
 			if err := w.restoreBatch(ctx, b, pr); err != nil {
@@ -242,9 +242,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				w.logger.Error(ctx, "Failed to restore batch",
 					"host", hi.Host,
 					"error", err)
-				if ctx.Err() != nil {
-					return err
-				}
 				continue
 			}
 			bd.ReportSuccess(b)
@@ -261,6 +258,9 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	err = parallel.Run(len(hosts), w.target.Parallel, f, notify)
 	if err == nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return bd.ValidateAllDispatched()
 	}
 	return err
