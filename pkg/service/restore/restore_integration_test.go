@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -733,49 +734,178 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		"batch_size": 100,
 	})
 
-	Print("Inject errors")
-	downloadCnt := atomic.Int64{}
-	lasCnt := atomic.Int64{}
-	h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		// For this setup, we have 6 remote sstable dirs and 6 workers.
-		// We inject 2 errors during download and 3 errors during LAS.
-		// This means that only a single node will be restoring at the end.
-		// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
-		// The last failed call to LAS (cnt=8) waits a bit so that we test
-		// that batch dispatcher correctly reuses and releases nodes waiting
-		// for failed sstables to come back to the batch dispatcher.
-		if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
-			if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
-				t.Log("Fake download error ", cnt)
-				return nil, errors.New("fake download error")
-			}
-		}
-		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
-			cnt := lasCnt.Add(1)
-			if cnt == 8 {
-				time.Sleep(15 * time.Second)
-			}
-			if cnt == 1 || cnt == 5 || cnt == 8 {
-				t.Log("Fake LAS error ", cnt)
-				return nil, errors.New("fake las error")
-			}
-		}
-		return nil, nil
-	}))
-
-	Print("Run restore tables")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
+	downloadErr := errors.New("fake download error")
+	lasErr := errors.New("fake las error")
+	props := map[string]any{
 		"location":       loc,
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+	}
+
+	t.Run("batch retry finished with success", func(t *testing.T) {
+		Print("Inject errors to some download and las calls")
+		downloadCnt := atomic.Int64{}
+		lasCnt := atomic.Int64{}
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			// For this setup, we have 6 remote sstable dirs and 6 workers.
+			// We inject 2 errors during download and 3 errors during LAS.
+			// This means that only a single node will be restoring at the end.
+			// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
+			// The last failed call to LAS (cnt=8) waits a bit so that we test
+			// that batch dispatcher correctly reuses and releases nodes waiting
+			// for failed sstables to come back to the batch dispatcher.
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+				if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
+					t.Log("Fake download error ", cnt)
+					return nil, downloadErr
+				}
+			}
+			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+				cnt := lasCnt.Add(1)
+				if cnt == 8 {
+					time.Sleep(15 * time.Second)
+				}
+				if cnt == 1 || cnt == 5 || cnt == 8 {
+					t.Log("Fake LAS error ", cnt)
+					return nil, lasErr
+				}
+			}
+			return nil, nil
+		}))
+
+		Print("Run restore")
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.runRestore(t, props)
+
+		Print("Validate success")
+		if cnt := lasCnt.Add(0); cnt < 9 {
+			t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
+		}
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab2, "id", "data")
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab3, "id", "data")
 	})
 
-	if cnt := lasCnt.Add(0); cnt < 9 {
-		t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
+	t.Run("restore with injected failures only", func(t *testing.T) {
+		Print("Inject errors to all download and las calls")
+		reachedDataStage := atomic.Bool{}
+		reachedDataStageChan := make(chan struct{})
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+				if reachedDataStage.CompareAndSwap(false, true) {
+					close(reachedDataStageChan)
+				}
+				return nil, downloadErr
+			}
+			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+				return nil, lasErr
+			}
+			return nil, nil
+		}))
+
+		Print("Run restore")
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.dstCluster.TaskID = uuid.NewTime()
+		h.dstCluster.RunID = uuid.NewTime()
+		rawProps, err := json.Marshal(props)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "marshal properties"))
+		}
+		res := make(chan error)
+		go func() {
+			res <- h.dstRestoreSvc.Restore(context.Background(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+		}()
+
+		Print("Wait for data stage")
+		select {
+		case <-reachedDataStageChan:
+		case err := <-res:
+			t.Fatalf("Restore finished before reaching data stage with: %s", err)
+		}
+
+		Print("Validate restore failure and that it does not hang")
+		select {
+		case err := <-res:
+			if err == nil {
+				t.Fatalf("Expected restore to end with error")
+			}
+		case <-time.NewTimer(time.Minute).C:
+			t.Fatal("Restore hanged")
+		}
+	})
+}
+
+func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
+	// Since we need multi-dc clusters for multi-dc backup/restore
+	// we will use the same cluster as both src and dst.
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedClusterHosts())
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1}"
+	ks := randomizedName("multi_location_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	Print("Save filled table into map")
+	srcM := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Run backup")
+	loc := []Location{
+		testLocation("multi-location-1", "dc1"),
+		testLocation("multi-location-2", "dc2"),
 	}
-	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
-	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab2, "id", "data")
-	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab3, "id", "data")
+	S3InitBucket(t, loc[0].Path)
+	S3InitBucket(t, loc[1].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Truncate backed up table")
+	truncateStmt := "TRUNCATE TABLE %q.%q"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(truncateStmt, ks, tab))
+
+	// Reverse dcs - just for fun
+	loc[0].DC = "dc2"
+	loc[1].DC = "dc1"
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	res := make(chan struct{})
+	go func() {
+		h.runRestore(t, map[string]any{
+			"location": loc,
+			"keyspace": ksFilter,
+			// Test if batching does not hang with
+			// limited parallel and location access.
+			"parallel":       1,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+		})
+		close(res)
+	}()
+
+	select {
+	case <-res:
+	case <-time.NewTimer(2 * time.Minute).C:
+		t.Fatal("Restore hanged")
+	}
+
+	Print("Save restored table into map")
+	dstM := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Validate success")
+	if !maps.Equal(srcM, dstM) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
+	}
 }

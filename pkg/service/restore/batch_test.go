@@ -87,7 +87,7 @@ func TestBatchDispatcher(t *testing.T) {
 		{
 			ManifestInfo: &backupspec.ManifestInfo{
 				Location: l2,
-				DC:       "dc1",
+				DC:       "dc3",
 			},
 			TableName: TableName{
 				Keyspace: "ks1",
