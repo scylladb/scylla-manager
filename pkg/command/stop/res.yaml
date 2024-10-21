@@ -11,5 +11,5 @@ delete: |
   Permanently remove the task.
 
 disable: |
-  Do not run in future, can be later enabled.
+  Prevents the task from running in the future until the task has been re-enabled with the `sctool (backup|repair) update --enabled=true` command.
 
