@@ -36,14 +36,13 @@ import (
 func TestValidateHostConnectivityIntegration(t *testing.T) {
 	// given
 	var (
-		ctx             = context.Background()
-		session         = CreateScyllaManagerDBSession(t)
-		secretsStore    = store.NewTableStore(session, table.Secrets)
-		coordinatorHost = ManagedClusterHost()
-		timeout         = 5 * time.Second
-		c               = &cluster.Cluster{
+		ctx          = context.Background()
+		session      = CreateScyllaManagerDBSession(t)
+		secretsStore = store.NewTableStore(session, table.Secrets)
+		timeout      = 5 * time.Second
+		c            = &cluster.Cluster{
 			AuthToken: "token",
-			Host:      coordinatorHost,
+			Host:      ManagedClusterHost(),
 		}
 	)
 	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
@@ -56,33 +55,69 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err = s.GetClusterByID(context.Background(), c.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// then: validate that call takes less than 5 seconds
-	if err := callValidateHostConnectivityWithTimeout(ctx, s, timeout, c); err != nil {
-		t.Fatal(err)
-	}
-	// when: the scylla service is stopped and the scylla API is timing out on coordinator host
-	if err := StopService(coordinatorHost, "scylla"); err != nil {
-		t.Fatal(err)
-	}
-	if err := RunIptablesCommand(coordinatorHost, CmdBlockScyllaREST); err != nil {
-		t.Error(err)
-	}
-	defer func() {
-		if err := StartService(coordinatorHost, "scylla"); err != nil {
-			t.Logf("error on starting stopped scylla service on host={%s}, err={%s}", coordinatorHost, err)
-		}
-		if err := RunIptablesCommand(coordinatorHost, CmdUnblockScyllaREST); err != nil {
-			t.Logf("error trying to unblock REST API on host = {%s}, err={%s}", coordinatorHost, err)
-		}
-	}()
 
-	// then: validate that call still takes less than 5 seconds
-	if err := callValidateHostConnectivityWithTimeout(ctx, s, timeout, c); err != nil {
-		t.Fatal(err)
+	allHosts := ManagedClusterHosts()
+	for _, tc := range []struct {
+		name      string
+		hostsDown []string
+		result    error
+	}{
+		{
+			name:      "coordinator host is DOWN",
+			hostsDown: []string{ManagedClusterHost()},
+			result:    nil,
+		},
+		{
+			name:      "only one is UP",
+			hostsDown: allHosts[:len(allHosts)-1],
+			result:    nil,
+		},
+		{
+			name:      "all hosts are DOWN",
+			hostsDown: allHosts,
+			result:    cluster.ErrNoValidKnownHost,
+		},
+		{
+			name:      "all hosts are UP",
+			hostsDown: nil,
+			result:    nil,
+		},
+	} {
+		t.Run(tc.name, func(innerT *testing.T) {
+			defer func() {
+				for _, host := range tc.hostsDown {
+					if err := StartService(host, "scylla"); err != nil {
+						innerT.Logf("error on starting stopped scylla service on host={%s}, err={%s}", host, err)
+					}
+					if err := RunIptablesCommand(host, CmdUnblockScyllaREST); err != nil {
+						innerT.Logf("error trying to unblock REST API on host = {%s}, err={%s}", host, err)
+					}
+				}
+			}()
+
+			// then: validate that call takes less than 5 seconds
+			testCluster, err := s.GetClusterByID(context.Background(), c.ID)
+			if err != nil {
+				innerT.Fatal(err)
+			}
+			if err := callValidateHostConnectivityWithTimeout(ctx, s, timeout, testCluster); err != nil {
+				innerT.Fatal(err)
+			}
+			// when: the scylla service is stopped and the scylla API is timing out some hosts
+			for _, host := range tc.hostsDown {
+				if err := StopService(host, "scylla"); err != nil {
+					innerT.Fatal(err)
+				}
+				if err := RunIptablesCommand(host, CmdBlockScyllaREST); err != nil {
+					innerT.Error(err)
+				}
+			}
+
+			// then: validate that call still takes less than 5 seconds
+			if err := callValidateHostConnectivityWithTimeout(ctx, s, 30*time.Second, testCluster); !errors.Is(err, tc.result) {
+				innerT.Fatal(err)
+			}
+		})
 	}
 }
 
@@ -92,23 +127,18 @@ func callValidateHostConnectivityWithTimeout(ctx context.Context, s *cluster.Ser
 	callCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	done := make(chan bool)
+	done := make(chan error)
 	go func() {
-		err := s.ValidateHostsConnectivity(callCtx, c)
-		if err != nil {
-			done <- false
-			return
-		}
-		done <- true
+		done <- s.ValidateHostsConnectivity(callCtx, c)
 	}()
 
 	select {
-	case <-time.After(5 * time.Second):
+	case <-time.After(timeout):
 		cancel()
 		return fmt.Errorf("expected s.ValidateHostsConnectivity to complete in less than %v seconds, time exceeded", timeout.Seconds())
-	case <-done:
+	case err := <-done:
+		return err
 	}
-	return nil
 }
 
 func TestClientIntegration(t *testing.T) {
