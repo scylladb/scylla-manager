@@ -397,7 +397,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}
 
 	// Check hosts connectivity.
-	if err := s.validateHostsConnectivity(ctx, c); err != nil {
+	if err := s.ValidateHostsConnectivity(ctx, c); err != nil {
 		var tip string
 		switch scyllaclient.StatusCodeOf(err) {
 		case 0:
@@ -487,7 +487,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	return s.notifyChangeListener(ctx, changeEvent)
 }
 
-func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
+func (s *Service) ValidateHostsConnectivity(ctx context.Context, c *Cluster) error {
 	if err := s.loadKnownHosts(c); err != nil && !errors.Is(err, gocql.ErrNotFound) {
 		return errors.Wrap(err, "load known hosts")
 	}
