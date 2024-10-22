@@ -26,7 +26,7 @@ func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgres
 	// Download has already been started on RunProgress creation.
 	// Skip steps already done in the previous run.
 	if !validateTimeIsSet(pr.DownloadCompletedAt) {
-		if err := w.waitJob(ctx, pr); err != nil {
+		if err := w.waitJob(ctx, b, pr); err != nil {
 			return errors.Wrap(err, "wait for job")
 		}
 	}
@@ -40,7 +40,7 @@ func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgres
 }
 
 // waitJob waits for rclone job to finish while updating its progress.
-func (w *tablesWorker) waitJob(ctx context.Context, pr *RunProgress) (err error) {
+func (w *tablesWorker) waitJob(ctx context.Context, b batch, pr *RunProgress) (err error) {
 	w.logger.Info(ctx, "Waiting for job", "host", pr.Host, "job_id", pr.AgentJobID)
 
 	defer func() {
@@ -67,10 +67,10 @@ func (w *tablesWorker) waitJob(ctx context.Context, pr *RunProgress) (err error)
 		case scyllaclient.JobError:
 			return errors.Errorf("job error (%d): %s", pr.AgentJobID, job.Error)
 		case scyllaclient.JobSuccess:
-			w.onDownloadUpdate(ctx, pr, job)
+			w.onDownloadUpdate(ctx, b, pr, job)
 			return nil
 		case scyllaclient.JobRunning:
-			w.onDownloadUpdate(ctx, pr, job)
+			w.onDownloadUpdate(ctx, b, pr, job)
 		case scyllaclient.JobNotFound:
 			return errors.New("job not found")
 		}
@@ -214,13 +214,20 @@ func (w *tablesWorker) onDownloadStart(ctx context.Context, b batch, pr *RunProg
 	w.insertRunProgress(ctx, pr)
 }
 
-func (w *tablesWorker) onDownloadUpdate(ctx context.Context, pr *RunProgress, job *scyllaclient.RcloneJobProgress) {
+func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunProgress, job *scyllaclient.RcloneJobProgress) {
+	// As we update metrics on download update,
+	// we need to remember to update just the delta.
+	w.metrics.IncreaseRestoreDownloadedBytes(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, job.Uploaded-pr.Downloaded)
+	prevD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
 	if t := time.Time(job.StartedAt); !t.IsZero() {
 		pr.DownloadStartedAt = &t
 	}
 	if t := time.Time(job.CompletedAt); !t.IsZero() {
 		pr.DownloadCompletedAt = &t
 	}
+	currD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
+	w.metrics.IncreaseRestoreDownloadDuration(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, currD-prevD)
+
 	pr.Error = job.Error
 	pr.Downloaded = job.Uploaded
 	pr.Skipped = job.Skipped
@@ -241,6 +248,9 @@ func (w *tablesWorker) onLasStart(ctx context.Context, b batch, pr *RunProgress)
 
 func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.target.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
+	pr.setRestoreCompletedAt()
+	w.metrics.IncreaseRestoreStreamedBytes(w.run.ClusterID, pr.Host, b.Size)
+	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt))
 
 	labels := metrics.RestoreBytesLabels{
 		ClusterID:   w.run.ClusterID.String(),
@@ -261,6 +271,5 @@ func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
 
 	w.logger.Info(ctx, "Restored batch", "host", pr.Host)
-	pr.setRestoreCompletedAt()
 	w.insertRunProgress(ctx, pr)
 }
