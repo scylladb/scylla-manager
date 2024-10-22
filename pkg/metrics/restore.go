@@ -10,11 +10,13 @@ import (
 )
 
 type RestoreMetrics struct {
-	batchSize       *prometheus.GaugeVec
-	remainingBytes  *prometheus.GaugeVec
-	state           *prometheus.GaugeVec
-	progress        *prometheus.GaugeVec
-	viewBuildStatus *prometheus.GaugeVec
+	batchSize              *prometheus.GaugeVec
+	remainingBytes         *prometheus.GaugeVec
+	state                  *prometheus.GaugeVec
+	downloadShardBandwidth *prometheus.GaugeVec
+	lasShardBandwidth      *prometheus.GaugeVec
+	progress               *prometheus.GaugeVec
+	viewBuildStatus        *prometheus.GaugeVec
 }
 
 func NewRestoreMetrics() RestoreMetrics {
@@ -24,9 +26,11 @@ func NewRestoreMetrics() RestoreMetrics {
 		batchSize: g("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 		remainingBytes: g("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-		state:           g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
-		progress:        g("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
-		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
+		state:                  g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+		downloadShardBandwidth: g("Per shard download bandwidth in bytes/second.", "download_shard_bandwidth", "cluster", "location", "host"),
+		lasShardBandwidth:      g("Per shard load&stream bandwidth in bytes/second.", "las_shard_bandwidth", "cluster", "host"),
+		progress:               g("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
+		viewBuildStatus:        g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
 	}
 }
 
@@ -41,6 +45,8 @@ func (m RestoreMetrics) all() []prometheus.Collector {
 		m.batchSize,
 		m.remainingBytes,
 		m.state,
+		m.downloadShardBandwidth,
+		m.lasShardBandwidth,
 		m.progress,
 		m.viewBuildStatus,
 	}
@@ -152,6 +158,25 @@ func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupspec
 		"host":         host,
 	}
 	m.state.With(l).Set(float64(state))
+}
+
+// SetRestoreDownloadShardBandwidth sets restore "download_shard_bandwidth" metric.
+func (m RestoreMetrics) SetRestoreDownloadShardBandwidth(clusterID uuid.UUID, location backupspec.Location, host string, bw int64) {
+	l := prometheus.Labels{
+		"cluster":  clusterID.String(),
+		"location": location.String(),
+		"host":     host,
+	}
+	m.downloadShardBandwidth.With(l).Set(float64(bw))
+}
+
+// SetRestoreLasShardBandwidth sets restore "las_shard_bandwidth" metric.
+func (m RestoreMetrics) SetRestoreLasShardBandwidth(clusterID uuid.UUID, host string, bw int64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+	m.lasShardBandwidth.With(l).Set(float64(bw))
 }
 
 // ViewBuildStatus defines build status of a view.
