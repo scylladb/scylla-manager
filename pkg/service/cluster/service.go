@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -34,7 +35,10 @@ type ProviderFunc func(ctx context.Context, id uuid.UUID) (*Cluster, error)
 type ChangeType int8
 
 // ErrNoValidKnownHost is thrown when it was not possible to connect to any of the currently known hosts of the cluster.
-var ErrNoValidKnownHost = errors.New("unable to connect to any of cluster's known hosts")
+var (
+	ErrNoValidKnownHost    = errors.New("unable to connect to any of cluster's known hosts")
+	ErrNoLiveHostAvailable = errors.New("no single live host available")
+)
 
 // ChangeType enumeration.
 const (
@@ -156,7 +160,7 @@ func (s *Service) clientConfig(c *Cluster) scyllaclient.Config {
 }
 
 func (s *Service) discoverAndSetClusterHosts(ctx context.Context, c *Cluster) error {
-	knownHosts, err := s.discoverClusterHosts(ctx, c)
+	knownHosts, _, err := s.discoverClusterHosts(ctx, c)
 	if err != nil {
 		if errors.Is(err, ErrNoValidKnownHost) {
 			s.logger.Error(ctx, "There is no single valid known host for the cluster. "+
@@ -171,55 +175,124 @@ func (s *Service) discoverAndSetClusterHosts(ctx context.Context, c *Cluster) er
 	return errors.Wrap(s.setKnownHosts(c, knownHosts), "update known_hosts in SM DB")
 }
 
-func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) ([]string, error) {
-	var contactPoints []string
+const (
+	discoverClusterHostsTimeout = 5 * time.Second
+)
+
+func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) (knownHosts, liveHosts []string, err error) {
 	if c.Host != "" {
-		contactPoints = append(contactPoints, c.Host) // Go with the designated contact point first
+		knownHosts, liveHosts, err := s.discoverClusterHostUsingCoordinator(ctx, c, discoverClusterHostsTimeout, c.Host)
+		if err != nil {
+			s.logger.Error(ctx, "Couldn't discover hosts using stored coordinator host, proceeding with other known ones",
+				"coordinator-host", c.Host, "error", err)
+		} else {
+			return knownHosts, liveHosts, nil
+		}
 	} else {
 		s.logger.Error(ctx, "Missing --host flag. Using only previously discovered hosts instead", "cluster ID", c.ID)
 	}
-	contactPoints = append(contactPoints, c.KnownHosts...) // In case it failed, try to contact previously discovered hosts
-
-	for _, cp := range contactPoints {
-		if cp == "" {
-			s.logger.Error(ctx, "Empty contact point", "cluster ID", c.ID, "contact points", contactPoints)
-			continue
-		}
-
-		config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
-		if c.Port != 0 {
-			config.Port = strconv.Itoa(c.Port)
-		}
-		config.AuthToken = c.AuthToken
-		config.Hosts = []string{cp}
-
-		client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
-		if err != nil {
-			s.logger.Error(ctx, "Couldn't connect to contact point", "contact point", cp, "error", err)
-			continue
-		}
-
-		knownHosts, err := s.discoverHosts(ctx, client)
-		logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
-		if err != nil {
-			s.logger.Error(ctx, "Couldn't discover hosts", "host", cp, "error", err)
-			continue
-		}
-		return knownHosts, nil
+	if len(c.KnownHosts) < 1 {
+		return nil, nil, ErrNoValidKnownHost
 	}
 
-	return nil, ErrNoValidKnownHost
+	wg := sync.WaitGroup{}
+	type hostsTuple struct {
+		live, known []string
+	}
+	result := make(chan hostsTuple, len(c.KnownHosts))
+	discoverContext, discoverCancel := context.WithCancel(ctx)
+	defer discoverCancel()
+
+	for _, cp := range c.KnownHosts {
+		wg.Add(1)
+
+		go func(host string) {
+			defer wg.Done()
+
+			knownHosts, liveHosts, err := s.discoverClusterHostUsingCoordinator(discoverContext, c, discoverClusterHostsTimeout, host)
+			if err != nil {
+				// Only log if the context hasn't been canceled
+				if !errors.Is(discoverContext.Err(), context.Canceled) {
+					s.logger.Error(ctx, "Couldn't discover hosts", "host", host, "error", err)
+				}
+				return
+			}
+			result <- hostsTuple{
+				live:  liveHosts,
+				known: knownHosts,
+			}
+		}(cp)
+	}
+
+	go func() {
+		wg.Wait()
+		close(result)
+	}()
+
+	// Read results until the channel is closed
+	for hosts := range result {
+		return hosts.known, hosts.live, nil
+	}
+
+	// If no valid results, return error<
+	return nil, nil, ErrNoValidKnownHost
+}
+
+func (s *Service) discoverClusterHostUsingCoordinator(ctx context.Context, c *Cluster, apiCallTimeout time.Duration,
+	host string,
+) (knownHosts, liveHosts []string, err error) {
+	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
+	if c.Port != 0 {
+		config.Port = strconv.Itoa(c.Port)
+	}
+	config.Timeout = apiCallTimeout
+	config.AuthToken = c.AuthToken
+	config.Hosts = []string{host}
+
+	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
+
+	liveHosts, err = client.GossiperEndpointLiveGet(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	knownHosts, err = s.discoverHosts(ctx, client, liveHosts)
+	if err != nil {
+		return nil, nil, err
+	}
+	return knownHosts, liveHosts, nil
 }
 
 // discoverHosts returns a list of all hosts sorted by DC speed. This is
 // an optimisation for Epsilon-Greedy host pool used internally by
 // scyllaclient.Client that makes it use supposedly faster hosts first.
-func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client) (hosts []string, err error) {
+func (s *Service) discoverHosts(ctx context.Context, client *scyllaclient.Client, liveHosts []string) (hosts []string, err error) {
+	if len(liveHosts) == 0 {
+		return nil, ErrNoLiveHostAvailable
+	}
+
 	dcs, err := client.Datacenters(ctx)
 	if err != nil {
 		return nil, err
 	}
-	closest, err := client.ClosestDC(ctx, dcs)
+	// remove dead nodes from the map
+	liveSet := make(map[string]struct{})
+	for _, host := range liveHosts {
+		liveSet[host] = struct{}{}
+	}
+	filteredDCs := make(map[string][]string)
+	for dc, hosts := range dcs {
+		for _, host := range hosts {
+			if _, isLive := liveSet[host]; isLive {
+				filteredDCs[dc] = append(filteredDCs[dc], host)
+			}
+		}
+	}
+
+	closest, err := client.ClosestDC(ctx, filteredDCs)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +470,7 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}
 
 	// Check hosts connectivity.
-	if err := s.validateHostsConnectivity(ctx, c); err != nil {
+	if err := s.ValidateHostsConnectivity(ctx, c); err != nil {
 		var tip string
 		switch scyllaclient.StatusCodeOf(err) {
 		case 0:
@@ -487,36 +560,34 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	return s.notifyChangeListener(ctx, changeEvent)
 }
 
-func (s *Service) validateHostsConnectivity(ctx context.Context, c *Cluster) error {
+// ValidateHostsConnectivity validates that scylla manager agent API is available and responding on all live hosts.
+// Hosts are discovered using cluster.host + cluster.knownHosts saved to the manager's database.
+func (s *Service) ValidateHostsConnectivity(ctx context.Context, c *Cluster) error {
 	if err := s.loadKnownHosts(c); err != nil && !errors.Is(err, gocql.ErrNotFound) {
 		return errors.Wrap(err, "load known hosts")
 	}
 
-	knownHosts, err := s.discoverClusterHosts(ctx, c)
+	knownHosts, liveHosts, err := s.discoverClusterHosts(ctx, c)
 	if err != nil {
 		return errors.Wrap(err, "discover cluster hosts")
 	}
 	c.KnownHosts = knownHosts
 
+	if len(liveHosts) == 0 {
+		return util.ErrValidate(errors.New("no live nodes"))
+	}
+
 	config := s.clientConfig(c)
+	config.Hosts = liveHosts
 	client, err := scyllaclient.NewClient(config, s.logger.Named("client"))
 	if err != nil {
 		return err
 	}
 	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
-	status, err := client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "cluster status")
-	}
-	live := status.Live().Hosts()
-	if len(live) == 0 {
-		return util.ErrValidate(errors.New("no live nodes"))
-	}
-
 	var errs error
-	for i, err := range client.CheckHostsConnectivity(ctx, live) {
-		errs = multierr.Append(errs, errors.Wrap(err, live[i]))
+	for i, err := range client.CheckHostsConnectivity(ctx, liveHosts) {
+		errs = multierr.Append(errs, errors.Wrap(err, liveHosts[i]))
 	}
 	if errs != nil {
 		return util.ErrValidate(errors.Wrap(errs, "connectivity check"))

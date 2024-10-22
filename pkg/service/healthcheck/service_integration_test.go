@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -53,6 +55,9 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	tryUnblockREST(t, ManagedClusterHosts())
 	tryUnblockAlternator(t, ManagedClusterHosts())
 	tryStartAgent(t, ManagedClusterHosts())
+	if err := ensureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
+		t.Fatalf("not all nodes are UP, err = {%v}", err)
+	}
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
@@ -560,6 +565,33 @@ func tryStartAgent(t *testing.T, hosts []string) {
 	for _, host := range hosts {
 		_ = StartService(host, agentService)
 	}
+}
+
+func ensureNodesAreUP(t *testing.T, hosts []string, timeout time.Duration) error {
+	t.Helper()
+
+	var (
+		allErrors error
+		mu        sync.Mutex
+	)
+
+	wg := sync.WaitGroup{}
+	for _, host := range hosts {
+		wg.Add(1)
+
+		go func(h string) {
+			defer wg.Done()
+
+			if err := WaitForNodeUPOrTimeout(h, timeout); err != nil {
+				mu.Lock()
+				allErrors = multierr.Combine(allErrors, err)
+				mu.Unlock()
+			}
+		}(host)
+	}
+	wg.Wait()
+
+	return allErrors
 }
 
 const pingPath = "/storage_service/scylla_release_version"

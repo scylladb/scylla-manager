@@ -4,8 +4,10 @@ package testutils
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -106,4 +108,41 @@ func StartService(h, service string) error {
 		return errors.Wrapf(err, "start agent host: %s, stdout %s, stderr %s", h, stdout, stderr)
 	}
 	return nil
+}
+
+// WaitForNodeUPOrTimeout waits until nodetool status report UN status for the given node.
+// The nodetool status CLI is executed on the same node.
+func WaitForNodeUPOrTimeout(h string, timeout time.Duration) error {
+	nodeIsReady := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(nodeIsReady)
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				stdout, _, err := ExecOnHost(h, "nodetool status | grep "+h)
+				if err != nil {
+					continue
+				}
+				if strings.HasPrefix(stdout, "UN") {
+					return
+				}
+				select {
+				case <-done:
+					return
+				case <-time.After(time.Second):
+				}
+			}
+		}
+	}()
+
+	select {
+	case <-nodeIsReady:
+		return nil
+	case <-time.After(timeout):
+		close(done)
+		return fmt.Errorf("node %s haven't reach UP status", h)
+	}
 }
