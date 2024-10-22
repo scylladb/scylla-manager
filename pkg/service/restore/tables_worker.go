@@ -235,14 +235,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				w.logger.Info(ctx, "No more batches to restore", "host", hi.Host)
 				return nil
 			}
-			w.metrics.IncreaseBatchSize(w.run.ClusterID, hi.Host, b.Size)
-			w.logger.Info(ctx, "Got batch to restore",
-				"host", hi.Host,
-				"keyspace", b.Keyspace,
-				"table", b.Table,
-				"size", b.Size,
-				"sstable count", len(b.SSTables),
-			)
+			w.onBatchDispatch(ctx, b, host)
 
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
@@ -260,7 +253,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				continue
 			}
 			bd.ReportSuccess(b)
-			w.decreaseRemainingBytesMetric(b)
 		}
 	}
 
