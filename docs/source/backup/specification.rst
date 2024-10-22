@@ -26,30 +26,31 @@ Please find below a listing of meta directory with three nodes and three runs of
 
 .. code-block:: none
 
-   meta
-   └── cluster
-       └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
-           └── dc
-               └── dc1
-                   └── node
-                       ├── 01c9349e-89e6-4ceb-a727-4f27f9f2acce
-                       │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_manifest.json.gz
-                       │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_manifest.json.gz
-                       │   └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_manifest.json.gz
-                       ├── 427be6b6-0773-465c-b1a6-4ed2265500fe
-                       │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_manifest.json.gz
-                       │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_manifest.json.gz
-                       │   └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_manifest.json.gz
-                       └── ae6a5cf3-cb53-4954-8c16-866003727111
-                           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_manifest.json.gz
-                           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_manifest.json.gz
-                           └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_manifest.json.gz
+   /backup
+   └── meta
+       └── cluster
+           └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
+               └── dc
+                   └── dc1
+                       └── node
+                           ├── 01c9349e-89e6-4ceb-a727-4f27f9f2acce
+                           │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_manifest.json.gz
+                           │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_manifest.json.gz
+                           │   └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_manifest.json.gz
+                           ├── 427be6b6-0773-465c-b1a6-4ed2265500fe
+                           │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_manifest.json.gz
+                           │   ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_manifest.json.gz
+                           │   └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_manifest.json.gz
+                           └── ae6a5cf3-cb53-4954-8c16-866003727111
+                               ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_manifest.json.gz
+                               ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_manifest.json.gz
+                               └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_manifest.json.gz
 
 Each node has it's own directory, the path is structured as follows.
 
 .. code-block:: none
 
-   meta/cluster/<cluster ID>/dc/<data center name>/node/<node ID>
+   /backup/meta/cluster/<cluster ID>/dc/<data center name>/node/<node ID>
 
 The directory is flat and contains all the manifests, the file name is structured as follows.
 
@@ -80,18 +81,19 @@ To enable upload of the files make sure that the cluster is added with username 
 
 .. code-block:: none
 
-   schema
-   └── cluster
-       └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
-           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_schema_with_internals.json.gz
-           ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_schema_with_internals.json.gz
-           └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_schema_with_internals.json.gz
+   /backup
+   └── schema
+       └── cluster
+           └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
+               ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_schema_with_internals.json.gz
+               ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_schema_with_internals.json.gz
+               └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_schema_with_internals.json.gz
 
 The schema file path is structured as follows.
 
 .. code-block:: none
 
-   meta/cluster/<cluster ID>/task_<task ID>_tag_<snapshot tag>_schema_with_internals.json.gz
+   /backup/schema/cluster/<cluster ID>/task_<task ID>_tag_<snapshot tag>_schema_with_internals.json.gz
 
 sst
 ...
@@ -101,51 +103,52 @@ Please find below a part listing of sst directory showing a single table of a si
 
 .. code-block:: none
 
-   sst/
-   └── cluster
-       └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
-           └── dc
-               └── dc1
-                   └── node
-                       ├── 01c9349e-89e6-4ceb-a727-4f27f9f2acce
-                       │   └── keyspace
-                       │       └── backuptest_data
-                       │           └── table
-                       │               └── big_table
-                       │                   └── f34b6ff0f8f711eb9fcf000000000000
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-CompressionInfo.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Data.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Digest.crc32
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Filter.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Index.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Scylla.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Statistics.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Summary.db
-                       │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-TOC.txt
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-CompressionInfo.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Data.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Digest.crc32
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Filter.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Index.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Scylla.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Statistics.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Summary.db
-                       │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-TOC.txt
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-CompressionInfo.db
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Data.db
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Digest.crc32
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Filter.db
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Index.db
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Scylla.db
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Statistics.db
-                       │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Summary.db
-                       │                       └── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-TOC.txt
+   /backup
+   └── sst/
+       └── cluster
+           └── 3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc
+               └── dc
+                   └── dc1
+                       └── node
+                           ├── 01c9349e-89e6-4ceb-a727-4f27f9f2acce
+                           │   └── keyspace
+                           │       └── backuptest_data
+                           │           └── table
+                           │               └── big_table
+                           │                   └── f34b6ff0f8f711eb9fcf000000000000
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-CompressionInfo.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Data.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Digest.crc32
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Filter.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Index.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Scylla.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Statistics.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-Summary.db
+                           │                       ├── mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-TOC.txt
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-CompressionInfo.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Data.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Digest.crc32
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Filter.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Index.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Scylla.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Statistics.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Summary.db
+                           │                       ├── mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-TOC.txt
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-CompressionInfo.db
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Data.db
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Digest.crc32
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Filter.db
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Index.db
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Scylla.db
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Statistics.db
+                           │                       ├── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-Summary.db
+                           │                       └── mc-3ggs_0xlz_1u89d24aeuqnqzxgxr-big-TOC.txt
 
 Each node has it's own directory, the path is structured as follows.
 
 .. code-block:: none
 
-   sst/cluster/<cluster ID>/dc/<data center name>/node/<node ID>
+   /backup/sst/cluster/<cluster ID>/dc/<data center name>/node/<node ID>
 
 Under the node directory each table version has it's directory, the path is structured as follows.
 
