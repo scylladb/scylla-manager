@@ -190,8 +190,8 @@ type RunProgress struct {
 	SSTableID        []string `db:"sstable_id"`
 
 	Host       string // IP of the node to which SSTables are downloaded.
+	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
 	AgentJobID int64
-	ShardCnt   int64 // Host shard count used for bandwidth per shard calculation.
 
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
