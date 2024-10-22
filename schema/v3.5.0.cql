@@ -1,0 +1,1 @@
+ALTER TABLE restore_run_progress ADD shard_cnt bigint;
