@@ -21,6 +21,8 @@ import (
 type tablesWorker struct {
 	worker
 
+	hosts        []string
+	hostShardCnt map[string]uint
 	tableVersion map[TableName]string
 	repairSvc    *repair.Service
 	progress     *TotalRestoreProgress
@@ -65,7 +67,7 @@ func (p *TotalRestoreProgress) Update(bytesRestored int64) {
 	p.restoredBytes += bytesRestored
 }
 
-func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) (*tablesWorker, error) {
+func newTablesWorker(ctx context.Context, w worker, repairSvc *repair.Service, totalBytes int64) (*tablesWorker, error) {
 	versions := make(map[TableName]string)
 	for _, u := range w.run.Units {
 		for _, t := range u.Tables {
@@ -80,8 +82,24 @@ func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) (*ta
 		}
 	}
 
+	hostsS := strset.New()
+	for _, h := range w.target.locationHosts {
+		hostsS.Add(h...)
+	}
+	hosts := hostsS.List()
+
+	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
+	if err != nil {
+		return nil, errors.Wrap(err, "get hosts shard count")
+	}
+	for h, sh := range hostToShard {
+		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
+	}
+
 	return &tablesWorker{
 		worker:       w,
+		hosts:        hosts,
+		hostShardCnt: hostToShard,
 		tableVersion: versions,
 		repairSvc:    repairSvc,
 		progress:     NewTotalRestoreProgress(totalBytes),
@@ -169,29 +187,15 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	}
 	w.initMetrics(workload)
 
-	hostsS := strset.New()
-	for _, h := range w.target.locationHosts {
-		hostsS.Add(h...)
-	}
-	hosts := hostsS.List()
-
-	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
-	if err != nil {
-		return errors.Wrap(err, "get hosts shard count")
-	}
-	for h, sh := range hostToShard {
-		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
-	}
-
 	// This defer is outside of target field check for improved safety.
 	// We always want to enable auto compaction outside the restore.
 	defer func() {
-		if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
+		if err := w.setAutoCompaction(context.Background(), w.hosts, true); err != nil {
 			w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
 		}
 	}()
 	if !w.target.AllowCompaction {
-		if err := w.setAutoCompaction(ctx, hosts, false); err != nil {
+		if err := w.setAutoCompaction(ctx, w.hosts, false); err != nil {
 			return errors.Wrapf(err, "disable auto compaction")
 		}
 	}
@@ -199,25 +203,25 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	// Same as above.
 	// We always want to pin agent to CPUs outside the restore.
 	defer func() {
-		if err := w.pinAgentCPU(context.Background(), hosts, true); err != nil {
+		if err := w.pinAgentCPU(context.Background(), w.hosts, true); err != nil {
 			w.logger.Error(ctx, "Couldn't re-pin agent to CPUs", "error", err)
 		}
 	}()
 	if w.target.UnpinAgentCPU {
-		if err := w.pinAgentCPU(ctx, hosts, false); err != nil {
+		if err := w.pinAgentCPU(ctx, w.hosts, false); err != nil {
 			return errors.Wrapf(err, "unpin agent from CPUs")
 		}
 	}
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
+	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationHosts)
 
 	f := func(n int) error {
-		host := hosts[n]
+		host := w.hosts[n]
 		dc, err := w.client.HostDatacenter(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "get host %s data center", host)
 		}
-		hi := w.hostInfo(host, dc, hostToShard[host])
+		hi := w.hostInfo(host, dc, w.hostShardCnt[host])
 		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers, "rate limit", hi.RateLimit)
 		for {
 			if ctx.Err() != nil {
@@ -252,12 +256,12 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	notify := func(n int, err error) {
 		w.logger.Error(ctx, "Failed to restore files on host",
-			"host", hosts[n],
+			"host", w.hosts[n],
 			"error", err,
 		)
 	}
 
-	err = parallel.Run(len(hosts), w.target.Parallel, f, notify)
+	err = parallel.Run(len(w.hosts), w.target.Parallel, f, notify)
 	if err == nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
