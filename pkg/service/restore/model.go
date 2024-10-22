@@ -234,6 +234,7 @@ type Progress struct {
 
 	SnapshotTag string             `json:"snapshot_tag"`
 	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
+	Hosts       []HostProgress     `json:"hosts,omitempty"`
 	Views       []ViewProgress     `json:"views,omitempty"`
 	Stage       Stage              `json:"stage"`
 }
@@ -244,6 +245,16 @@ type KeyspaceProgress struct {
 
 	Keyspace string          `json:"keyspace"`
 	Tables   []TableProgress `json:"tables,omitempty"`
+}
+
+// HostProgress groups restore progress for the host.
+type HostProgress struct {
+	Host             string `json:"host"`
+	ShardCnt         int64  `json:"shard_cnt"`
+	DownloadedBytes  int64  `json:"downloaded_bytes"`
+	DownloadDuration int64  `json:"download_duration"`
+	StreamedBytes    int64  `json:"streamed_bytes"`
+	StreamDuration   int64  `json:"stream_duration"`
 }
 
 // TableProgress defines restore progress for the table.
