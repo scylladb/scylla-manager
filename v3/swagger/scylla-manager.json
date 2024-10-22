@@ -851,6 +851,12 @@
             "$ref": "#/definitions/RestoreKeyspaceProgress"
           }
         },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RestoreHostProgress"
+          }
+        },
         "views": {
           "type": "array",
           "items": {
@@ -1084,6 +1090,29 @@
           "type": "string",
           "format": "date-time",
           "x-nullable": true
+        }
+      }
+    },
+    "RestoreHostProgress": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "shard_cnt": {
+          "type": "integer"
+        },
+        "downloaded_bytes": {
+          "type": "integer"
+        },
+        "download_duration": {
+          "type": "integer"
+        },
+        "streamed_bytes": {
+          "type": "integer"
+        },
+        "stream_duration": {
+          "type": "integer"
         }
       }
     },
