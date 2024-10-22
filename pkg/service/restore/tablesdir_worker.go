@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgress) (err error) {
@@ -218,9 +219,17 @@ func (w *tablesWorker) onDownloadUpdate(ctx context.Context, pr *RunProgress, jo
 	if t := time.Time(job.StartedAt); !t.IsZero() {
 		pr.DownloadStartedAt = &t
 	}
+	end := timeutc.Now()
 	if t := time.Time(job.CompletedAt); !t.IsZero() {
 		pr.DownloadCompletedAt = &t
+		end = t
 	}
+
+	w.metrics.IncreaseRestoreDownloadedBytes(w.run.ClusterID, pr.Host, job.Uploaded+job.Skipped-pr.Downloaded-pr.Skipped)
+	if pr.DownloadStartedAt != nil {
+		w.metrics.IncreaseRestoreDownloadDuration(w.run.ClusterID, pr.Host, end.Sub(*pr.DownloadStartedAt))
+	}
+
 	pr.Error = job.Error
 	pr.Downloaded = job.Uploaded
 	pr.Skipped = job.Skipped
@@ -241,6 +250,11 @@ func (w *tablesWorker) onLasStart(ctx context.Context, b batch, pr *RunProgress)
 
 func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.target.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
+	pr.setRestoreCompletedAt()
+	w.metrics.IncreaseRestoreDownloadedBytes(w.run.ClusterID, pr.Host, b.Size)
+	if pr.RestoreStartedAt != nil && pr.RestoreCompletedAt != nil {
+		w.metrics.IncreaseRestoreDownloadDuration(w.run.ClusterID, pr.Host, pr.RestoreCompletedAt.Sub(*pr.RestoreStartedAt))
+	}
 
 	labels := metrics.RestoreBytesLabels{
 		ClusterID:   w.run.ClusterID.String(),
@@ -261,6 +275,5 @@ func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
 
 	w.logger.Info(ctx, "Restored batch", "host", pr.Host)
-	pr.setRestoreCompletedAt()
 	w.insertRunProgress(ctx, pr)
 }
