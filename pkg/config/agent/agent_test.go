@@ -66,6 +66,11 @@ func TestParseConfig(t *testing.T) {
 			Input:  []string{"./testdata/structs_empty.input.yaml"},
 			Golden: "./testdata/structs_empty.golden.yaml",
 		},
+		{
+			Name:   "multiple cpus",
+			Input:  []string{"./testdata/multiple_cpus.input.yaml"},
+			Golden: "./testdata/multiple_cpus.golden.yaml",
+		},
 	}
 
 	s := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

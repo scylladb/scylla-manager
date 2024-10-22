@@ -34,7 +34,7 @@ func newRouter(c agent.Config, metrics AgentMetrics, rclone http.Handler, logger
 		auth.ValidateToken(c.AuthToken, time.Second, unauthorizedErrorBody),
 	)
 	// Agent specific endpoints
-	priv.Mount("/agent", newAgentHandler(c, rclone))
+	priv.Mount("/agent", newAgentHandler(c, rclone, logger.Named("agent")))
 	// Scylla prometheus proxy
 	priv.Mount("/metrics", promProxy(c))
 	// Fallback to Scylla API proxy

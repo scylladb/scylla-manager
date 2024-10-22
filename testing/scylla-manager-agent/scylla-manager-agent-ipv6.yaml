@@ -1,5 +1,7 @@
 auth_token: token
 
+cpu: 0
+
 debug: :5112
 
 logger:

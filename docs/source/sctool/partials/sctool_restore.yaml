@@ -169,6 +169,9 @@ options:
         Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
         Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
         Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
+    - name: unpin-agent-cpu
+      default_value: "false"
+      usage: "Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.\nThis might significantly improve download speed at the cost of decreasing streaming speed. \n"
     - name: window
       default_value: '[]'
       usage: |

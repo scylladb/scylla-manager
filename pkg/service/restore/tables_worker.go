@@ -188,14 +188,29 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
 	}
 
+	// This defer is outside of target field check for improved safety.
+	// We always want to enable auto compaction outside the restore.
+	defer func() {
+		if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
+			w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
+		}
+	}()
 	if !w.target.AllowCompaction {
-		defer func() {
-			if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
-				w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
-			}
-		}()
 		if err := w.setAutoCompaction(ctx, hosts, false); err != nil {
 			return errors.Wrapf(err, "disable auto compaction")
+		}
+	}
+
+	// Same as above.
+	// We always want to pin agent to CPUs outside the restore.
+	defer func() {
+		if err := w.pinAgentCPU(context.Background(), hosts, true); err != nil {
+			w.logger.Error(ctx, "Couldn't re-pin agent to CPUs", "error", err)
+		}
+	}()
+	if w.target.UnpinAgentCPU {
+		if err := w.pinAgentCPU(ctx, hosts, false); err != nil {
+			return errors.Wrapf(err, "unpin agent from CPUs")
 		}
 	}
 
@@ -347,6 +362,23 @@ func (w *tablesWorker) setAutoCompaction(ctx context.Context, hosts []string, en
 		}
 	}
 	return nil
+}
+
+// Pins/unpins all provided hosts to/from CPUs.
+func (w *tablesWorker) pinAgentCPU(ctx context.Context, hosts []string, pin bool) error {
+	err := parallel.Run(len(hosts), parallel.NoLimit,
+		func(i int) error {
+			if pin {
+				return w.client.PinCPU(ctx, hosts[i])
+			}
+			return w.client.UnpinFromCPU(ctx, hosts[i])
+		}, func(i int, err error) {
+			w.logger.Error(ctx, "Failed to change agent CPU pinning",
+				"host", hosts[i],
+				"pinned", pin,
+				"error", err)
+		})
+	return errors.Wrapf(err, "set agent CPU pinning")
 }
 
 func (w *tablesWorker) hostInfo(host, dc string, shards uint) HostInfo {
