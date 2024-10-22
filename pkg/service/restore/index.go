@@ -12,23 +12,12 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 )
 
-// LocationWorkload represents aggregated restore workload
-// in given backup location.
-type LocationWorkload struct {
-	Location
-
-	Size   int64
-	Tables []TableWorkload
-}
-
-// TableWorkload represents restore workload
-// from many manifests for given table in given backup location.
-type TableWorkload struct {
-	Location
-	TableName
-
-	Size       int64
-	RemoteDirs []RemoteDirWorkload
+// Workload represents total restore workload.
+type Workload struct {
+	TotalSize    int64
+	LocationSize map[Location]int64
+	TableSize    map[TableName]int64
+	RemoteDir    []RemoteDirWorkload
 }
 
 // RemoteDirWorkload represents restore workload
@@ -56,32 +45,32 @@ type SSTable struct {
 }
 
 // IndexWorkload returns sstables to be restored aggregated by location, table and remote sstable dir.
-func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location) ([]LocationWorkload, error) {
-	var workload []LocationWorkload
+func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location) (Workload, error) {
+	var rawWorkload []RemoteDirWorkload
 	for _, l := range locations {
 		lw, err := w.indexLocationWorkload(ctx, l)
 		if err != nil {
-			return nil, errors.Wrapf(err, "index workload in %s", l)
+			return Workload{}, errors.Wrapf(err, "index workload in %s", l)
 		}
-		workload = append(workload, lw)
+		rawWorkload = append(rawWorkload, lw...)
 	}
+	workload := aggregateWorkload(rawWorkload)
+	w.logWorkloadInfo(ctx, workload)
 	return workload, nil
 }
 
-func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Location) (LocationWorkload, error) {
+func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Location) ([]RemoteDirWorkload, error) {
 	rawWorkload, err := w.createRemoteDirWorkloads(ctx, location)
 	if err != nil {
-		return LocationWorkload{}, errors.Wrap(err, "create remote dir workloads")
+		return nil, errors.Wrap(err, "create remote dir workloads")
 	}
 	if w.target.Continue {
 		rawWorkload, err = w.filterPreviouslyRestoredSStables(ctx, rawWorkload)
 		if err != nil {
-			return LocationWorkload{}, errors.Wrap(err, "filter already restored sstables")
+			return nil, errors.Wrap(err, "filter already restored sstables")
 		}
 	}
-	workload := aggregateLocationWorkload(rawWorkload)
-	w.logWorkloadInfo(ctx, workload)
-	return workload, nil
+	return rawWorkload, nil
 }
 
 func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Location) ([]RemoteDirWorkload, error) {
@@ -179,26 +168,22 @@ func (w *tablesWorker) filterPreviouslyRestoredSStables(ctx context.Context, raw
 	return filtered, nil
 }
 
-func (w *tablesWorker) initMetrics(workload []LocationWorkload) {
+func (w *tablesWorker) initMetrics(workload Workload) {
 	// For now, the only persistent across task runs metrics are progress and remaining_bytes.
 	// The rest: state, view_build_status, batch_size are calculated from scratch.
 	w.metrics.ResetClusterMetrics(w.run.ClusterID)
 
 	// Init remaining bytes
-	for _, wl := range workload {
-		for _, twl := range wl.Tables {
-			for _, rdwl := range twl.RemoteDirs {
-				w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
-					ClusterID:   rdwl.ClusterID.String(),
-					SnapshotTag: rdwl.SnapshotTag,
-					Location:    rdwl.Location.String(),
-					DC:          rdwl.DC,
-					Node:        rdwl.NodeID,
-					Keyspace:    rdwl.Keyspace,
-					Table:       rdwl.Table,
-				}, rdwl.Size)
-			}
-		}
+	for _, rdw := range workload.RemoteDir {
+		w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
+			ClusterID:   rdw.ClusterID.String(),
+			SnapshotTag: rdw.SnapshotTag,
+			Location:    rdw.Location.String(),
+			DC:          rdw.DC,
+			Node:        rdw.NodeID,
+			Keyspace:    rdw.Keyspace,
+			Table:       rdw.Table,
+		}, rdw.Size)
 	}
 
 	// Init progress
@@ -206,87 +191,59 @@ func (w *tablesWorker) initMetrics(workload []LocationWorkload) {
 	for _, u := range w.run.Units {
 		totalSize += u.Size
 	}
-	var workloadSize int64
-	for _, wl := range workload {
-		workloadSize += wl.Size
-	}
 	w.metrics.SetProgress(metrics.RestoreProgressLabels{
 		ClusterID:   w.run.ClusterID.String(),
 		SnapshotTag: w.run.SnapshotTag,
-	}, float64(totalSize-workloadSize)/float64(totalSize)*100)
+	}, float64(totalSize-workload.TotalSize)/float64(totalSize)*100)
 }
 
-func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload LocationWorkload) {
-	if workload.Size == 0 {
-		return
+func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
+	for loc, size := range workload.LocationSize {
+		w.logger.Info(ctx, "Location workload",
+			"location", loc,
+			"size", size)
 	}
-	var locMax, locCnt int64
-	for _, twl := range workload.Tables {
-		if twl.Size == 0 {
+	for tab, size := range workload.TableSize {
+		w.logger.Info(ctx, "Table workload",
+			"table", tab,
+			"size", size)
+	}
+	for _, rdw := range workload.RemoteDir {
+		cnt := int64(len(rdw.SSTables))
+		if cnt == 0 {
+			w.logger.Info(ctx, "Empty remote dir workload", "path", rdw.RemoteSSTableDir)
 			continue
 		}
-		var tabMax, tabCnt int64
-		for _, rdwl := range twl.RemoteDirs {
-			if rdwl.Size == 0 {
-				continue
-			}
-			var dirMax int64
-			for _, sst := range rdwl.SSTables {
-				dirMax = max(dirMax, sst.Size)
-			}
-			dirCnt := int64(len(rdwl.SSTables))
-			w.logger.Info(ctx, "Remote sstable dir workload info",
-				"path", rdwl.RemoteSSTableDir,
-				"max size", dirMax,
-				"average size", rdwl.Size/dirCnt,
-				"count", dirCnt)
-			tabCnt += dirCnt
-			tabMax = max(tabMax, dirMax)
+
+		var maxSST int64
+		for _, sst := range rdw.SSTables {
+			maxSST = max(maxSST, sst.Size)
 		}
-		w.logger.Info(ctx, "Table workload info",
-			"keyspace", twl.Keyspace,
-			"table", twl.Table,
-			"max size", tabMax,
-			"average size", twl.Size/tabCnt,
-			"count", tabCnt)
-		locCnt += tabCnt
-		locMax = max(locMax, tabMax)
+		w.logger.Info(ctx, "Remote sstable dir workload info",
+			"path", rdw.RemoteSSTableDir,
+			"total size", rdw.Size,
+			"max size", maxSST,
+			"average size", rdw.Size/cnt,
+			"count", cnt)
 	}
-	w.logger.Info(ctx, "Location workload info",
-		"location", workload.Location.String(),
-		"max size", locMax,
-		"average size", workload.Size/locCnt,
-		"count", locCnt)
 }
 
-func aggregateLocationWorkload(rawWorkload []RemoteDirWorkload) LocationWorkload {
-	remoteDirWorkloads := make(map[TableName][]RemoteDirWorkload)
-	for _, rw := range rawWorkload {
-		remoteDirWorkloads[rw.TableName] = append(remoteDirWorkloads[rw.TableName], rw)
+func aggregateWorkload(rawWorkload []RemoteDirWorkload) Workload {
+	var (
+		totalSize    int64
+		locationSize = make(map[Location]int64)
+		tableSize    = make(map[TableName]int64)
+	)
+	for _, rdw := range rawWorkload {
+		totalSize += rdw.Size
+		locationSize[rdw.Location] += rdw.Size
+		tableSize[rdw.TableName] += rdw.Size
 	}
-
-	var tableWorkloads []TableWorkload
-	for _, tw := range remoteDirWorkloads {
-		var size int64
-		for _, rdw := range tw {
-			size += rdw.Size
-		}
-		tableWorkloads = append(tableWorkloads, TableWorkload{
-			Location:   tw[0].Location,
-			TableName:  tw[0].TableName,
-			Size:       size,
-			RemoteDirs: tw,
-		})
-	}
-
-	var size int64
-	for _, tw := range tableWorkloads {
-		size += tw.Size
-	}
-	return LocationWorkload{
-		Location: tableWorkloads[0].Location,
-		Size:     size,
-		Tables:   tableWorkloads,
+	return Workload{
+		TotalSize:    totalSize,
+		LocationSize: locationSize,
+		TableSize:    tableSize,
+		RemoteDir:    rawWorkload,
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"runtime"
 	"slices"
@@ -18,6 +19,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -27,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestRestoreTablesUserIntegration(t *testing.T) {
@@ -721,4 +725,267 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	Print("Validate table contents")
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+}
+
+func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+	// Ensure no built-in retries
+	clientCfg := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	clientCfg.Backoff.MaxRetries = 0
+	h.dstCluster.Client = newTestClient(t, h.dstCluster.Hrt, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), &clientCfg)
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	ks := randomizedName("batch_retry_1_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 1))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 1))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab1 := randomizedName("tab_1_")
+	tab2 := randomizedName("tab_2_")
+	tab3 := randomizedName("tab_3_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab1))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab2))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab3))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab1))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab2))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab3))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab1, tab2, tab3)
+
+	Print("Run backup")
+	loc := []Location{testLocation("batch-retry", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	downloadErr := errors.New("fake download error")
+	lasErr := errors.New("fake las error")
+	props := map[string]any{
+		"location":       loc,
+		"keyspace":       ksFilter,
+		"snapshot_tag":   tag,
+		"restore_tables": true,
+	}
+
+	t.Run("batch retry finished with success", func(t *testing.T) {
+		Print("Inject errors to some download and las calls")
+		downloadCnt := atomic.Int64{}
+		lasCnt := atomic.Int64{}
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			// For this setup, we have 6 remote sstable dirs and 6 workers.
+			// We inject 2 errors during download and 3 errors during LAS.
+			// This means that only a single node will be restoring at the end.
+			// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
+			// The last failed call to LAS (cnt=8) waits a bit so that we test
+			// that batch dispatcher correctly reuses and releases nodes waiting
+			// for failed sstables to come back to the batch dispatcher.
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+				if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
+					t.Log("Fake download error ", cnt)
+					return nil, downloadErr
+				}
+			}
+			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+				cnt := lasCnt.Add(1)
+				if cnt == 8 {
+					time.Sleep(15 * time.Second)
+				}
+				if cnt == 1 || cnt == 5 || cnt == 8 {
+					t.Log("Fake LAS error ", cnt)
+					return nil, lasErr
+				}
+			}
+			return nil, nil
+		}))
+
+		Print("Run restore")
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.runRestore(t, props)
+
+		Print("Validate success")
+		if cnt := lasCnt.Add(0); cnt < 9 {
+			t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
+		}
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab2, "id", "data")
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab3, "id", "data")
+	})
+
+	t.Run("restore with injected failures only", func(t *testing.T) {
+		Print("Inject errors to all download and las calls")
+		reachedDataStage := atomic.Bool{}
+		reachedDataStageChan := make(chan struct{})
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+				if reachedDataStage.CompareAndSwap(false, true) {
+					close(reachedDataStageChan)
+				}
+				return nil, downloadErr
+			}
+			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+				return nil, lasErr
+			}
+			return nil, nil
+		}))
+
+		Print("Run restore")
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.dstCluster.TaskID = uuid.NewTime()
+		h.dstCluster.RunID = uuid.NewTime()
+		rawProps, err := json.Marshal(props)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "marshal properties"))
+		}
+		res := make(chan error)
+		go func() {
+			res <- h.dstRestoreSvc.Restore(context.Background(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+		}()
+
+		Print("Wait for data stage")
+		select {
+		case <-reachedDataStageChan:
+		case err := <-res:
+			t.Fatalf("Restore finished before reaching data stage with: %s", err)
+		}
+
+		Print("Validate restore failure and that it does not hang")
+		select {
+		case err := <-res:
+			if err == nil {
+				t.Fatalf("Expected restore to end with error")
+			}
+		case <-time.NewTimer(time.Minute).C:
+			t.Fatal("Restore hanged")
+		}
+	})
+
+	t.Run("paused restore with slow calls to download and las", func(t *testing.T) {
+		Print("Make download and las calls slow")
+		reachedDataStage := atomic.Bool{}
+		reachedDataStageChan := make(chan struct{})
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") ||
+				strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+				if reachedDataStage.CompareAndSwap(false, true) {
+					close(reachedDataStageChan)
+				}
+				time.Sleep(time.Second)
+				return nil, nil
+			}
+			return nil, nil
+		}))
+
+		Print("Run restore")
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		h.dstCluster.TaskID = uuid.NewTime()
+		h.dstCluster.RunID = uuid.NewTime()
+		rawProps, err := json.Marshal(props)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "marshal properties"))
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		res := make(chan error)
+		go func() {
+			res <- h.dstRestoreSvc.Restore(ctx, h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+		}()
+
+		Print("Wait for data stage")
+		select {
+		case <-reachedDataStageChan:
+			cancel()
+		case err := <-res:
+			t.Fatalf("Restore finished before reaching data stage with: %s", err)
+		}
+
+		Print("Validate restore was paused in time")
+		select {
+		case err := <-res:
+			if !errors.Is(err, context.Canceled) {
+				t.Fatalf("Expected restore to end with context cancelled, got %q", err)
+			}
+		case <-time.NewTimer(2 * time.Second).C:
+			t.Fatal("Restore wasn't paused in time")
+		}
+	})
+}
+
+func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
+	// Since we need multi-dc clusters for multi-dc backup/restore
+	// we will use the same cluster as both src and dst.
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedClusterHosts())
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1}"
+	ks := randomizedName("multi_location_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	Print("Save filled table into map")
+	srcM := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Run backup")
+	loc := []Location{
+		testLocation("multi-location-1", "dc1"),
+		testLocation("multi-location-2", "dc2"),
+	}
+	S3InitBucket(t, loc[0].Path)
+	S3InitBucket(t, loc[1].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Truncate backed up table")
+	truncateStmt := "TRUNCATE TABLE %q.%q"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(truncateStmt, ks, tab))
+
+	// Reverse dcs - just for fun
+	loc[0].DC = "dc2"
+	loc[1].DC = "dc1"
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	res := make(chan struct{})
+	go func() {
+		h.runRestore(t, map[string]any{
+			"location": loc,
+			"keyspace": ksFilter,
+			// Test if batching does not hang with
+			// limited parallel and location access.
+			"parallel":       1,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+		})
+		close(res)
+	}()
+
+	select {
+	case <-res:
+	case <-time.NewTimer(2 * time.Minute).C:
+		t.Fatal("Restore hanged")
+	}
+
+	Print("Save restored table into map")
+	dstM := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Validate success")
+	if !maps.Equal(srcM, dstM) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
+	}
 }

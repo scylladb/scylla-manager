@@ -297,6 +297,10 @@ type TableName struct {
 	Table    string
 }
 
+func (t TableName) String() string {
+	return t.Keyspace + "." + t.Table
+}
+
 // HostInfo represents host with rclone download config.
 type HostInfo struct {
 	Host      string

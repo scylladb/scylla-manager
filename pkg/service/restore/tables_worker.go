@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 type tablesWorker struct {
@@ -216,7 +217,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	bd := newBatchDispatcher(workload, w.target.BatchSize, hostToShard, w.target.locationHosts)
 
-	f := func(n int) (err error) {
+	f := func(n int) error {
 		host := hosts[n]
 		dc, err := w.client.HostDatacenter(ctx, host)
 		if err != nil {
@@ -225,8 +226,11 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		hi := w.hostInfo(host, dc, hostToShard[host])
 		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers, "rate limit", hi.RateLimit)
 		for {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			// Download and stream in parallel
-			b, ok := bd.DispatchBatch(hi.Host)
+			b, ok := bd.DispatchBatch(ctx, hi.Host)
 			if !ok {
 				w.logger.Info(ctx, "No more batches to restore", "host", hi.Host)
 				return nil
@@ -242,11 +246,20 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
-				return errors.Wrap(err, "create new run progress")
+				err = multierr.Append(errors.Wrap(err, "create new run progress"), bd.ReportFailure(hi.Host, b))
+				w.logger.Error(ctx, "Failed to create new run progress",
+					"host", hi.Host,
+					"error", err)
+				continue
 			}
 			if err := w.restoreBatch(ctx, b, pr); err != nil {
-				return errors.Wrap(err, "restore batch")
+				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
+				w.logger.Error(ctx, "Failed to restore batch",
+					"host", hi.Host,
+					"error", err)
+				continue
 			}
+			bd.ReportSuccess(b)
 			w.decreaseRemainingBytesMetric(b)
 		}
 	}
@@ -260,6 +273,9 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	err = parallel.Run(len(hosts), w.target.Parallel, f, notify)
 	if err == nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return bd.ValidateAllDispatched()
 	}
 	return err

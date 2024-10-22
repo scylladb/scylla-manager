@@ -102,11 +102,17 @@ func NewLocation(location string) (l Location, err error) {
 }
 
 func (l Location) String() string {
-	p := l.Provider.String() + ":" + l.Path
+	p := l.StringWithoutDC()
 	if l.DC != "" {
 		p = l.DC + ":" + p
 	}
 	return p
+}
+
+// StringWithoutDC returns Location string representation
+// that lacks DC information.
+func (l Location) StringWithoutDC() string {
+	return l.Provider.String() + ":" + l.Path
 }
 
 // Datacenter returns location's datacenter.
