@@ -1009,9 +1009,9 @@ End time:	{{ FormatTime .EndTime }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
 {{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
-Average per shard download bandwidth:    {{ avgDownload .Hosts }}
-Average per shard load&stream bandwidth: {{ avgStream .Hosts }}
 Snapshot Tag:	{{ .SnapshotTag }}
+Download    bandwidth: {{ avgDownload .Hosts }}
+Load&stream bandwidth: {{ avgStream .Hosts }}
 {{ else }}Progress:	0%
 {{ end }}
 {{- if .Errors -}}
@@ -1247,7 +1247,7 @@ func (rp RestoreProgress) addHostProgress(w io.Writer) error {
 			hp.Host,
 			hp.ShardCnt,
 			formatBandwidth(hp.DownloadedBytes, hp.DownloadDuration, hp.ShardCnt),
-			formatBandwidth(hp.DownloadDuration, hp.StreamDuration, hp.ShardCnt),
+			formatBandwidth(hp.StreamedBytes, hp.StreamDuration, hp.ShardCnt),
 		)
 	}
 	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4)
