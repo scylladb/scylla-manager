@@ -31,8 +31,9 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 			SnapshotTag: w.run.SnapshotTag,
 			Stage:       w.run.Stage,
 		}
-		tableMap = make(map[tableKey]*TableProgress)
-		key      tableKey
+		tableMap     = make(map[tableKey]*TableProgress)
+		key          tableKey
+		hostProgress = make(map[string]HostProgress)
 	)
 
 	// Initialize tables and their size
@@ -53,7 +54,18 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 	}
 
 	// Initialize tables' progress
-	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, aggregateRestoreTableProgress(tableMap))
+	atp := aggregateRestoreTableProgress(tableMap)
+	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(runProgress *RunProgress) {
+		atp(runProgress)
+		hp := hostProgress[runProgress.Host]
+		hp.Host = runProgress.Host
+		hp.ShardCnt = runProgress.ShardCnt
+		hp.DownloadedBytes += runProgress.Downloaded
+		hp.StreamedBytes += runProgress.Downloaded
+		hp.DownloadDuration += timeSub(runProgress.DownloadStartedAt, runProgress.DownloadCompletedAt).Milliseconds()
+		hp.StreamDuration += timeSub(runProgress.RestoreStartedAt, runProgress.RestoreCompletedAt).Milliseconds()
+		hostProgress[runProgress.Host] = hp
+	})
 	if err != nil {
 		return p, errors.Wrap(err, "iterate over restore progress")
 	}
@@ -105,6 +117,9 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 		})
 	}
 
+	for _, hp := range hostProgress {
+		p.Hosts = append(p.Hosts, hp)
+	}
 	return p, nil
 }
 
