@@ -1012,7 +1012,6 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 Average per shard download bandwidth:    {{ avgDownload .Hosts }}
 Average per shard load&stream bandwidth: {{ avgStream .Hosts }}
 {{ end }}
-{{ FormatBandwidth }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{ else }}Progress:	0%
 {{ end }}
