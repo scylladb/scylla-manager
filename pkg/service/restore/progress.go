@@ -62,9 +62,11 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 		hp.Host = runProgress.Host
 		hp.ShardCnt = runProgress.ShardCnt
 		hp.DownloadedBytes += runProgress.Downloaded
-		hp.StreamedBytes += runProgress.Downloaded
 		hp.DownloadDuration += timeSub(runProgress.DownloadStartedAt, runProgress.DownloadCompletedAt).Milliseconds()
-		hp.StreamDuration += timeSub(runProgress.RestoreStartedAt, runProgress.RestoreCompletedAt).Milliseconds()
+		if runProgress.RestoreCompletedAt != nil {
+			hp.StreamedBytes += runProgress.Downloaded
+			hp.StreamDuration += timeSub(runProgress.RestoreStartedAt, runProgress.RestoreCompletedAt).Milliseconds()
+		}
 		hostProgress[runProgress.Host] = hp
 	})
 	if err != nil {
