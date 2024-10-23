@@ -1008,7 +1008,11 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
+{{ with .Progress }}Progress:	         {{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-
+Average per shard download bandwidth:    {{ avgDownload .Hosts }}
+Average per shard load&stream bandwidth: {{ avgStream .Hosts }}
+{{ end }}
+{{ FormatBandwidth }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{ else }}Progress:	0%
 {{ end }}
@@ -1027,6 +1031,8 @@ func (rp RestoreProgress) addHeader(w io.Writer) error {
 		"FormatError":           FormatError,
 		"FormatRestoreProgress": FormatRestoreProgress,
 		"status":                rp.status,
+		"avgDownload":           avgDownload,
+		"avgStream":             avgStream,
 	}).Parse(restoreProgressTemplate))
 	return temp.Execute(w, rp)
 }
@@ -1042,6 +1048,33 @@ func (rp RestoreProgress) status() string {
 		s += " (" + stage + ")"
 	}
 	return s
+}
+
+func avgDownload(hosts []*models.RestoreHostProgress) string {
+	var bytes, milliseconds, shards int64
+	for _, hp := range hosts {
+		bytes += hp.DownloadedBytes
+		milliseconds += hp.DownloadDuration
+		shards += shards
+	}
+	return formatBandwidth(bytes, milliseconds, shards)
+}
+
+func avgStream(hosts []*models.RestoreHostProgress) string {
+	var bytes, milliseconds, shards int64
+	for _, hp := range hosts {
+		bytes += hp.StreamedBytes
+		milliseconds += hp.StreamDuration
+		shards += shards
+	}
+	return formatBandwidth(bytes, milliseconds, shards)
+}
+
+func formatBandwidth(bytes, milliseconds, shards int64) string {
+	milliseconds = max(milliseconds, 1)
+	shards = max(shards, 1)
+	bs := bytes * 1000 / milliseconds / shards
+	return FormatSizeSuffix(bs) + "/s"
 }
 
 func (rp RestoreProgress) hideKeyspace(keyspace string) bool {
@@ -1071,9 +1104,14 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 		}
 	}
 
-	if rp.Detailed && rp.Progress.Size > 0 {
-		if err := rp.addTableProgress(w); err != nil {
+	if rp.Detailed {
+		if err := rp.addHostProgress(w); err != nil {
 			return err
+		}
+		if rp.Progress.Size > 0 {
+			if err := rp.addTableProgress(w); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1196,6 +1234,27 @@ func (rp RestoreProgress) addTableProgress(w io.Writer) error {
 		if _, err := w.Write([]byte(t.String())); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (rp RestoreProgress) addHostProgress(w io.Writer) error {
+	_, _ = fmt.Fprintf(w, "\nHosts info\n")
+	t := table.New("Host", "Shards", "Per shard download bandwidth", "Per shard load&stream bandwidth")
+	for i, hp := range rp.Progress.Hosts {
+		if i > 0 {
+			t.AddSeparator()
+		}
+		t.AddRow(
+			hp.Host,
+			hp.ShardCnt,
+			formatBandwidth(hp.DownloadedBytes, hp.DownloadDuration, hp.ShardCnt),
+			formatBandwidth(hp.DownloadDuration, hp.StreamDuration, hp.ShardCnt),
+		)
+	}
+	t.SetColumnAlignment(termtables.AlignRight, 1, 2, 3, 4)
+	if _, err := w.Write([]byte(t.String())); err != nil {
+		return err
 	}
 	return nil
 }
