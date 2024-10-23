@@ -1008,10 +1008,9 @@ End time:	{{ FormatTime .EndTime }}
 {{- end }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
-{{ with .Progress }}Progress:	         {{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-
+{{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
 Average per shard download bandwidth:    {{ avgDownload .Hosts }}
 Average per shard load&stream bandwidth: {{ avgStream .Hosts }}
-{{ end }}
 Snapshot Tag:	{{ .SnapshotTag }}
 {{ else }}Progress:	0%
 {{ end }}
