@@ -8,10 +8,12 @@ package healthcheck
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -52,6 +54,9 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	tryUnblockREST(t, ManagedClusterHosts())
 	tryUnblockAlternator(t, ManagedClusterHosts())
 	tryStartAgent(t, ManagedClusterHosts())
+	if err := ensureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
+		t.Fatalf("not all nodes are UP, err = {%v}", err)
+	}
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
@@ -100,6 +105,7 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	}
 
 	// When #1 -> default scenario where everything works fine
+	// Retry 5 times, as the service could be stopped by other
 	status, err := healthSvc.Status(context.Background(), testCluster.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -544,6 +550,36 @@ func tryStartAgent(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
 		_ = StartService(host, agentService)
+	}
+}
+
+func ensureNodesAreUP(t *testing.T, hosts []string, timeout time.Duration) error {
+	t.Helper()
+
+	done := make(chan struct{})
+	wg := sync.WaitGroup{}
+	for _, host := range hosts {
+		wg.Add(1)
+		go func(h string) {
+			defer wg.Done()
+
+			err := WaitForNodeUP(h, timeout)
+			if err != nil {
+				t.Log(err)
+			}
+		}(host)
+	}
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		return fmt.Errorf("cannot reach UP status for all nodes %v", hosts)
 	}
 }
 
