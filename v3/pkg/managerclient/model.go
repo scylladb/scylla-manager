@@ -1010,8 +1010,8 @@ Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{ end -}}
 {{ with .Progress }}Progress:	{{ if ne .Size 0 }}{{ FormatRestoreProgress .Size .Restored .Downloaded .Failed }}{{else}}-{{ end }}
 Snapshot Tag:	{{ .SnapshotTag }}
-Download    bandwidth: {{ avgDownload .Hosts }}
-Load&stream bandwidth: {{ avgStream .Hosts }}
+Download    bandwidth: {{ avgDownload .Hosts }}/shard
+Load&stream bandwidth: {{ avgStream .Hosts }}/shard
 {{ else }}Progress:	0%
 {{ end }}
 {{- if .Errors -}}
@@ -1051,6 +1051,7 @@ func (rp RestoreProgress) status() string {
 func avgDownload(hosts []*models.RestoreHostProgress) string {
 	var bytes, milliseconds, shards int64
 	for _, hp := range hosts {
+		fmt.Println("AAA: ", hp.Host, " ", hp.DownloadedBytes, " ", hp.DownloadDuration)
 		bytes += hp.DownloadedBytes
 		milliseconds += hp.DownloadDuration
 		shards += shards
@@ -1061,6 +1062,7 @@ func avgDownload(hosts []*models.RestoreHostProgress) string {
 func avgStream(hosts []*models.RestoreHostProgress) string {
 	var bytes, milliseconds, shards int64
 	for _, hp := range hosts {
+		fmt.Println("BBB: ", hp.Host, " ", hp.StreamedBytes, " ", hp.StreamDuration)
 		bytes += hp.StreamedBytes
 		milliseconds += hp.StreamDuration
 		shards += shards
