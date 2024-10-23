@@ -250,7 +250,7 @@ type KeyspaceProgress struct {
 // HostProgress groups restore progress for the host.
 type HostProgress struct {
 	Host             string `json:"host"`
-	ShardCnt         int    `json:"shard_cnt"`
+	ShardCnt         int64  `json:"shard_cnt"`
 	DownloadedBytes  int64  `json:"downloaded_bytes"`
 	DownloadDuration int64  `json:"download_duration"`
 	StreamedBytes    int64  `json:"streamed_bytes"`
