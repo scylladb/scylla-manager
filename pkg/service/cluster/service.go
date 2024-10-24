@@ -216,11 +216,9 @@ func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) (knownHo
 				}
 				return
 			}
-			select {
-			case result <- hostsTuple{
+			result <- hostsTuple{
 				live:  liveHosts,
 				known: knownHosts,
-			}:
 			}
 		}(cp)
 	}
