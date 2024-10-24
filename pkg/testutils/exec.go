@@ -115,13 +115,18 @@ func WaitForNodeUP(h string, timeout time.Duration) error {
 			select {
 			case <-done:
 				return
-			case <-time.After(time.Second):
+			default:
 				stdout, _, err := ExecOnHost(h, "nodetool status | grep "+h)
 				if err != nil {
 					continue
 				}
 				if strings.HasPrefix(stdout, "UN") {
 					return
+				}
+				select {
+				case <-done:
+					return
+				case <-time.After(time.Second):
 				}
 			}
 		}

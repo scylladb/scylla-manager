@@ -105,7 +105,6 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	}
 
 	// When #1 -> default scenario where everything works fine
-	// Retry 5 times, as the service could be stopped by other
 	status, err := healthSvc.Status(context.Background(), testCluster.ID)
 	if err != nil {
 		t.Fatal(err)

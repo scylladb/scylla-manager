@@ -174,9 +174,13 @@ func (s *Service) discoverAndSetClusterHosts(ctx context.Context, c *Cluster) er
 	return errors.Wrap(s.setKnownHosts(c, knownHosts), "update known_hosts in SM DB")
 }
 
+const (
+	discoverClusterHostsTimeout = 5 * time.Second
+)
+
 func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) (knownHosts, liveHosts []string, err error) {
 	if c.Host != "" {
-		knownHosts, liveHosts, err := s.discoverClusterHostUsingCoordinator(ctx, c, 5*time.Second, c.Host)
+		knownHosts, liveHosts, err := s.discoverClusterHostUsingCoordinator(ctx, c, discoverClusterHostsTimeout, c.Host)
 		if err != nil {
 			s.logger.Error(ctx, "Couldn't discover hosts using stored coordinator host, proceeding with other known ones",
 				"coordinator-host", c.Host, "error", err)
@@ -205,9 +209,11 @@ func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) (knownHo
 		go func(host string) {
 			defer wg.Done()
 
-			knownHosts, liveHosts, err := s.discoverClusterHostUsingCoordinator(discoverContext, c, 5*time.Second, host)
-			if err != nil && !errors.Is(err, context.Canceled) {
-				s.logger.Error(ctx, "Couldn't discover hosts", "host", host, "error", err)
+			knownHosts, liveHosts, err := s.discoverClusterHostUsingCoordinator(discoverContext, c, discoverClusterHostsTimeout, host)
+			if err != nil {
+				if !errors.Is(err, context.Canceled) {
+					s.logger.Error(ctx, "Couldn't discover hosts", "host", host, "error", err)
+				}
 				return
 			}
 			select {
@@ -215,8 +221,6 @@ func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) (knownHo
 				live:  liveHosts,
 				known: knownHosts,
 			}:
-			case <-discoverContext.Done():
-				return
 			}
 		}(cp)
 	}
@@ -254,8 +258,9 @@ func (s *Service) discoverClusterHostUsingCoordinator(ctx context.Context, c *Cl
 	if err != nil {
 		return nil, nil, err
 	}
+	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
+
 	knownHosts, err = s.discoverHosts(ctx, client)
-	logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 	if err != nil {
 		return nil, nil, err
 	}

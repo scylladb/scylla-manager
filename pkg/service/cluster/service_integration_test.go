@@ -34,12 +34,12 @@ import (
 )
 
 func TestValidateHostConnectivityIntegration(t *testing.T) {
-	// given
+	Print("given: the fresh cluster")
 	var (
 		ctx          = context.Background()
 		session      = CreateScyllaManagerDBSession(t)
 		secretsStore = store.NewTableStore(session, table.Secrets)
-		timeout      = 5 * time.Second
+		timeout      = 15 * time.Second
 		c            = &cluster.Cluster{
 			AuthToken: "token",
 			Host:      ManagedClusterHost(),
@@ -83,39 +83,42 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 			result:    nil,
 		},
 	} {
-		t.Run(tc.name, func(innerT *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			defer func() {
 				for _, host := range tc.hostsDown {
 					if err := StartService(host, "scylla"); err != nil {
-						innerT.Logf("error on starting stopped scylla service on host={%s}, err={%s}", host, err)
+						t.Logf("error on starting stopped scylla service on host={%s}, err={%s}", host, err)
 					}
 					if err := RunIptablesCommand(host, CmdUnblockScyllaREST); err != nil {
-						innerT.Logf("error trying to unblock REST API on host = {%s}, err={%s}", host, err)
+						t.Logf("error trying to unblock REST API on host = {%s}, err={%s}", host, err)
 					}
 				}
 			}()
 
-			// then: validate that call takes less than 5 seconds
+			Printf("then: validate that call to validate host connectivity takes less than %v seconds", timeout.Seconds())
 			testCluster, err := s.GetClusterByID(context.Background(), c.ID)
 			if err != nil {
-				innerT.Fatal(err)
+				t.Fatal(err)
 			}
 			if err := callValidateHostConnectivityWithTimeout(ctx, s, timeout, testCluster); err != nil {
-				innerT.Fatal(err)
+				t.Fatal(err)
 			}
-			// when: the scylla service is stopped and the scylla API is timing out some hosts
+			Printf("when: the scylla service is stopped and the scylla API is timing out on some hosts")
+			// It's needed to block Scylla REST API, so that the clients are just hanging when they call the API.
+			// Scylla service must be stopped to make the node to report DOWN status. Blocking REST API is not
+			// enough.
 			for _, host := range tc.hostsDown {
 				if err := StopService(host, "scylla"); err != nil {
-					innerT.Fatal(err)
+					t.Fatal(err)
 				}
 				if err := RunIptablesCommand(host, CmdBlockScyllaREST); err != nil {
-					innerT.Error(err)
+					t.Error(err)
 				}
 			}
 
-			// then: validate that call still takes less than 5 seconds
-			if err := callValidateHostConnectivityWithTimeout(ctx, s, 30*time.Second, testCluster); !errors.Is(err, tc.result) {
-				innerT.Fatal(err)
+			Printf("then: validate that call still takes less than %v seconds", timeout.Seconds())
+			if err := callValidateHostConnectivityWithTimeout(ctx, s, timeout, testCluster); !errors.Is(err, tc.result) {
+				t.Fatal(err)
 			}
 		})
 	}
