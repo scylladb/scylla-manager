@@ -253,8 +253,8 @@ func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt))
 
 	labels := metrics.RestoreBytesLabels{
-		ClusterID:   w.run.ClusterID.String(),
-		SnapshotTag: w.run.SnapshotTag,
+		ClusterID:   b.ClusterID.String(),
+		SnapshotTag: b.SnapshotTag,
 		Location:    b.Location.String(),
 		DC:          b.DC,
 		Node:        b.NodeID,
