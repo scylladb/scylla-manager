@@ -704,6 +704,21 @@
         },
         "parallel": {
           "type": "integer"
+        },
+        "transfers": {
+          "type": "integer"
+        },
+        "rate_limit": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allow_compaction": {
+          "type": "boolean"
+        },
+        "unpin_agent_cpu": {
+          "type": "boolean"
         }
       }
     },
