@@ -461,6 +461,17 @@ Locations:
 Snapshot Tag:	{{ .SnapshotTag }}
 Batch Size:     {{ .BatchSize }}
 Parallel:       {{ .Parallel }}
+Transfers:      {{ .Transfers }}
+Compaction:     {{ if .AllowCompaction -}} allowed {{ else -}} not allowed {{ end }}
+Agent CPU:      {{ if .UnpinAgentCPU -}} unpinned {{ else -}} pinned {{ end }}
+Download Rate Limits:
+{{- if .RateLimit -}}
+{{ range .RateLimit }}
+  - {{ . }} MiB/s
+{{- end }}
+{{- else }}
+  - Unlimited
+{{- end }}
 `
 
 // Render implements Renderer interface.
@@ -1080,25 +1091,59 @@ func (rp RestoreProgress) Render(w io.Writer) error {
 	// Check if there is repair progress to display
 	if rp.Progress.RepairProgress != nil {
 		fmt.Fprintf(w, "\nPost-restore repair progress\n")
-
-		repairRunPr := &models.TaskRunRepairProgress{
-			Progress: rp.Progress.RepairProgress,
-			Run:      rp.Run,
-		}
-		repairPr := RepairProgress{
-			TaskRunRepairProgress: repairRunPr,
-			Task:                  rp.Task,
-			Detailed:              rp.Detailed,
-			keyspaceFilter:        rp.KeyspaceFilter,
-		}
-
-		if err := repairPr.Render(w); err != nil {
+		if err := rp.postRestoreRepairProgress().Render(w); err != nil {
 			return err
 		}
 	}
 
 	rp.addViewProgress(w)
 	return nil
+}
+
+func (rp RestoreProgress) postRestoreRepairProgress() RepairProgress {
+	repair := rp.Progress.RepairProgress
+
+	repairRun := &models.TaskRun{
+		ClusterID: rp.Task.ClusterID,
+		Type:      RepairTask,
+	}
+	if repair.StartedAt != nil {
+		repairRun.StartTime = *repair.StartedAt
+	}
+	if repair.CompletedAt != nil {
+		repairRun.EndTime = *repair.CompletedAt
+	}
+	if rp.Progress.Stage == RestoreStageRepair {
+		repairRun.Cause = rp.Run.Cause
+		repairRun.Status = rp.Run.Status
+	} else {
+		switch {
+		case repair.Success == repair.TokenRanges:
+			repairRun.Status = TaskStatusDone
+		case repair.Error > 0:
+			repairRun.Status = TaskStatusError
+		}
+	}
+
+	repairTask := &models.Task{
+		ClusterID: rp.Task.ClusterID,
+		Enabled:   true,
+		Properties: map[string]any{
+			"intensity": repair.Intensity,
+			"parallel":  repair.Parallel,
+		},
+		Type: RepairTask,
+	}
+
+	return RepairProgress{
+		TaskRunRepairProgress: &models.TaskRunRepairProgress{
+			Progress: repair,
+			Run:      repairRun,
+		},
+		Task:           repairTask,
+		Detailed:       rp.Detailed,
+		keyspaceFilter: rp.KeyspaceFilter,
+	}
 }
 
 func (rp RestoreProgress) addKeyspaceProgress(t *table.Table) {
