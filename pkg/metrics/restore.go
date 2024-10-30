@@ -3,6 +3,8 @@
 package metrics
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -10,11 +12,15 @@ import (
 )
 
 type RestoreMetrics struct {
-	batchSize       *prometheus.GaugeVec
-	remainingBytes  *prometheus.GaugeVec
-	state           *prometheus.GaugeVec
-	progress        *prometheus.GaugeVec
-	viewBuildStatus *prometheus.GaugeVec
+	batchSize        *prometheus.GaugeVec
+	remainingBytes   *prometheus.GaugeVec
+	state            *prometheus.GaugeVec
+	downloadedBytes  *prometheus.GaugeVec
+	downloadDuration *prometheus.GaugeVec
+	streamedBytes    *prometheus.GaugeVec
+	streamDuration   *prometheus.GaugeVec
+	progress         *prometheus.GaugeVec
+	viewBuildStatus  *prometheus.GaugeVec
 }
 
 func NewRestoreMetrics() RestoreMetrics {
@@ -24,9 +30,13 @@ func NewRestoreMetrics() RestoreMetrics {
 		batchSize: g("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
 		remainingBytes: g("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-		state:           g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
-		progress:        g("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
-		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
+		state:            g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+		downloadedBytes:  g("Downloaded bytes", "downloaded_bytes", "cluster", "location", "host"),
+		downloadDuration: g("Download duration in ms", "download_duration", "cluster", "location", "host"),
+		streamedBytes:    g("Load&Streamed bytes", "streamed_bytes", "cluster", "host"),
+		streamDuration:   g("Load&Stream duration in ms", "stream_duration", "cluster", "host"),
+		progress:         g("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
+		viewBuildStatus:  g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
 	}
 }
 
@@ -41,6 +51,10 @@ func (m RestoreMetrics) all() []prometheus.Collector {
 		m.batchSize,
 		m.remainingBytes,
 		m.state,
+		m.downloadedBytes,
+		m.downloadDuration,
+		m.streamedBytes,
+		m.streamDuration,
 		m.progress,
 		m.viewBuildStatus,
 	}
@@ -152,6 +166,44 @@ func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupspec
 		"host":         host,
 	}
 	m.state.With(l).Set(float64(state))
+}
+
+// IncreaseRestoreDownloadedBytes increases restore "downloaded_bytes" metric.
+func (m RestoreMetrics) IncreaseRestoreDownloadedBytes(clusterID uuid.UUID, location, host string, bytes int64) {
+	l := prometheus.Labels{
+		"cluster":  clusterID.String(),
+		"location": location,
+		"host":     host,
+	}
+	m.downloadedBytes.With(l).Add(float64(bytes))
+}
+
+// IncreaseRestoreDownloadDuration increases restore "download_duration" metric.
+func (m RestoreMetrics) IncreaseRestoreDownloadDuration(clusterID uuid.UUID, location, host string, d time.Duration) {
+	l := prometheus.Labels{
+		"cluster":  clusterID.String(),
+		"location": location,
+		"host":     host,
+	}
+	m.downloadDuration.With(l).Add(float64(d.Milliseconds()))
+}
+
+// IncreaseRestoreStreamedBytes increases restore "streamed_bytes" metric.
+func (m RestoreMetrics) IncreaseRestoreStreamedBytes(clusterID uuid.UUID, host string, bytes int64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+	m.streamedBytes.With(l).Add(float64(bytes))
+}
+
+// IncreaseRestoreStreamDuration increases restore "stream_duration" metric.
+func (m RestoreMetrics) IncreaseRestoreStreamDuration(clusterID uuid.UUID, host string, d time.Duration) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+	m.streamDuration.With(l).Add(float64(d.Milliseconds()))
 }
 
 // ViewBuildStatus defines build status of a view.

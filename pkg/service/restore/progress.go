@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -202,4 +203,18 @@ func forEachProgress(s gocqlx.Session, clusterID, taskID, runID uuid.UUID, cb fu
 	err := iter.Close()
 	q.Release()
 	return err
+}
+
+// Returns duration between end and start.
+// If start is nil, returns 0.
+// If end is nil, returns duration between now and start.
+func timeSub(start, end *time.Time) time.Duration {
+	if start != nil {
+		endV := timeutc.Now()
+		if end != nil {
+			endV = *end
+		}
+		return endV.Sub(*start)
+	}
+	return 0
 }

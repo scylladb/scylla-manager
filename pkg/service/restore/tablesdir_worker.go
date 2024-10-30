@@ -20,8 +20,6 @@ func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgres
 		if err != nil {
 			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateError)
 			w.cleanupRunProgress(context.Background(), pr)
-		} else {
-			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
 		}
 	}()
 
@@ -38,13 +36,11 @@ func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgres
 			return errors.Wrap(err, "call load and stream")
 		}
 	}
-	w.logger.Info(ctx, "Restored batch", "host", pr.Host, "sstable_id", pr.SSTableID)
 	return nil
 }
 
 // waitJob waits for rclone job to finish while updating its progress.
 func (w *tablesWorker) waitJob(ctx context.Context, b batch, pr *RunProgress) (err error) {
-	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateDownloading)
 	w.logger.Info(ctx, "Waiting for job", "host", pr.Host, "job_id", pr.AgentJobID)
 
 	defer func() {
@@ -71,44 +67,21 @@ func (w *tablesWorker) waitJob(ctx context.Context, b batch, pr *RunProgress) (e
 		case scyllaclient.JobError:
 			return errors.Errorf("job error (%d): %s", pr.AgentJobID, job.Error)
 		case scyllaclient.JobSuccess:
-			w.updateDownloadProgress(ctx, pr, job)
-			w.logger.Info(ctx, "Batch download completed", "host", pr.Host, "job_id", pr.AgentJobID)
+			w.onDownloadUpdate(ctx, b, pr, job)
 			return nil
 		case scyllaclient.JobRunning:
-			w.updateDownloadProgress(ctx, pr, job)
+			w.onDownloadUpdate(ctx, b, pr, job)
 		case scyllaclient.JobNotFound:
 			return errors.New("job not found")
 		}
 	}
 }
 
-func (w *tablesWorker) updateDownloadProgress(ctx context.Context, pr *RunProgress, job *scyllaclient.RcloneJobProgress) {
-	// Set StartedAt and CompletedAt based on Job
-	if t := time.Time(job.StartedAt); !t.IsZero() {
-		pr.DownloadStartedAt = &t
-	}
-	if t := time.Time(job.CompletedAt); !t.IsZero() {
-		pr.DownloadCompletedAt = &t
-	}
-
-	pr.Error = job.Error
-	pr.Downloaded = job.Uploaded
-	pr.Skipped = job.Skipped
-	pr.Failed = job.Failed
-	w.insertRunProgress(ctx, pr)
-}
-
 func (w *tablesWorker) restoreSSTables(ctx context.Context, b batch, pr *RunProgress) error {
-	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateLoading)
-	if !validateTimeIsSet(pr.RestoreStartedAt) {
-		pr.setRestoreStartedAt()
-		w.insertRunProgress(ctx, pr)
-	}
-
+	w.onLasStart(ctx, b, pr)
 	err := w.worker.restoreSSTables(ctx, pr.Host, pr.Keyspace, pr.Table, true, true)
 	if err == nil {
-		pr.setRestoreCompletedAt()
-		w.insertRunProgress(ctx, pr)
+		w.onLasEnd(ctx, b, pr)
 	}
 	return err
 }
@@ -141,8 +114,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch)
 		SSTableID:         b.IDs(),
 		VersionedProgress: versionedPr,
 	}
-
-	w.insertRunProgress(ctx, pr)
+	w.onDownloadStart(ctx, b, pr)
 	return pr, nil
 }
 
@@ -170,10 +142,6 @@ func (w *tablesWorker) startDownload(ctx context.Context, hi HostInfo, b batch) 
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "download batch to upload dir")
 	}
-	w.logger.Info(ctx, "Started downloading files",
-		"host", hi.Host,
-		"job_id", jobID,
-	)
 	return jobID, versionedSize, nil
 }
 
@@ -218,26 +186,6 @@ func (w *tablesWorker) downloadVersioned(ctx context.Context, host, srcDir, dstD
 	return parallel.Run(len(versioned), parallel.NoLimit, f, notify)
 }
 
-func (w *tablesWorker) decreaseRemainingBytesMetric(b batch) {
-	labels := metrics.RestoreBytesLabels{
-		ClusterID:   w.run.ClusterID.String(),
-		SnapshotTag: w.run.SnapshotTag,
-		Location:    b.Location.String(),
-		DC:          b.DC,
-		Node:        b.NodeID,
-		Keyspace:    b.Keyspace,
-		Table:       b.Table,
-	}
-	w.metrics.DecreaseRemainingBytes(labels, b.Size)
-	w.progress.Update(b.Size)
-
-	progressLabels := metrics.RestoreProgressLabels{
-		ClusterID:   w.run.ClusterID.String(),
-		SnapshotTag: w.run.SnapshotTag,
-	}
-	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
-}
-
 func (w *tablesWorker) cleanupRunProgress(ctx context.Context, pr *RunProgress) {
 	w.deleteRunProgress(ctx, pr)
 	tn := TableName{
@@ -247,4 +195,81 @@ func (w *tablesWorker) cleanupRunProgress(ctx context.Context, pr *RunProgress) 
 	if cleanErr := w.cleanUploadDir(ctx, pr.Host, UploadTableDir(pr.Keyspace, pr.Table, w.tableVersion[tn]), nil); cleanErr != nil {
 		w.logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", cleanErr)
 	}
+}
+
+func (w *tablesWorker) onBatchDispatch(ctx context.Context, b batch, host string) {
+	w.metrics.IncreaseBatchSize(w.run.ClusterID, host, b.Size)
+	w.logger.Info(ctx, "Got batch to restore",
+		"host", host,
+		"keyspace", b.Keyspace,
+		"table", b.Table,
+		"size", b.Size,
+		"sstable count", len(b.SSTables),
+	)
+}
+
+func (w *tablesWorker) onDownloadStart(ctx context.Context, b batch, pr *RunProgress) {
+	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateDownloading)
+	w.logger.Info(ctx, "Started downloading batch", "host", pr.Host, "job_id", pr.AgentJobID)
+	w.insertRunProgress(ctx, pr)
+}
+
+func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunProgress, job *scyllaclient.RcloneJobProgress) {
+	// As we update metrics on download update,
+	// we need to remember to update just the delta.
+	w.metrics.IncreaseRestoreDownloadedBytes(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, job.Uploaded-pr.Downloaded)
+	prevD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
+	if t := time.Time(job.StartedAt); !t.IsZero() {
+		pr.DownloadStartedAt = &t
+	}
+	if t := time.Time(job.CompletedAt); !t.IsZero() {
+		pr.DownloadCompletedAt = &t
+	}
+	currD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
+	w.metrics.IncreaseRestoreDownloadDuration(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, currD-prevD)
+
+	pr.Error = job.Error
+	pr.Downloaded = job.Uploaded
+	pr.Skipped = job.Skipped
+	pr.Failed = job.Failed
+	w.insertRunProgress(ctx, pr)
+
+	if scyllaclient.RcloneJobStatus(job.Status) == scyllaclient.JobSuccess {
+		w.logger.Info(ctx, "Downloaded batch", "host", pr.Host, "job id", pr.AgentJobID)
+	}
+}
+
+func (w *tablesWorker) onLasStart(ctx context.Context, b batch, pr *RunProgress) {
+	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateLoading)
+	w.logger.Info(ctx, "Started restoring batch", "host", pr.Host)
+	pr.setRestoreStartedAt()
+	w.insertRunProgress(ctx, pr)
+}
+
+func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
+	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.target.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
+	pr.setRestoreCompletedAt()
+	w.metrics.IncreaseRestoreStreamedBytes(w.run.ClusterID, pr.Host, b.Size)
+	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt))
+
+	labels := metrics.RestoreBytesLabels{
+		ClusterID:   b.ClusterID.String(),
+		SnapshotTag: b.SnapshotTag,
+		Location:    b.Location.String(),
+		DC:          b.DC,
+		Node:        b.NodeID,
+		Keyspace:    b.Keyspace,
+		Table:       b.Table,
+	}
+	w.metrics.DecreaseRemainingBytes(labels, b.Size)
+
+	progressLabels := metrics.RestoreProgressLabels{
+		ClusterID:   w.run.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+	}
+	w.progress.Update(b.Size)
+	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
+
+	w.logger.Info(ctx, "Restored batch", "host", pr.Host)
+	w.insertRunProgress(ctx, pr)
 }
