@@ -461,17 +461,6 @@ Locations:
 Snapshot Tag:	{{ .SnapshotTag }}
 Batch Size:     {{ .BatchSize }}
 Parallel:       {{ .Parallel }}
-Transfers:      {{ .Transfers }}
-Download Rate Limits:
-{{- if .RateLimit -}}
-{{ range .RateLimit }}
-  - {{ . }} MiB/s
-{{- end }}
-{{- else }}
-  - Unlimited
-{{- end }}
-Compaction Allowed: {{ .AllowCompaction }}
-Agent CPU Unpinned: {{ .UnpinAgentCPU }}
 `
 
 // Render implements Renderer interface.
