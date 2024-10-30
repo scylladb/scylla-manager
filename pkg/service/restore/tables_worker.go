@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -91,11 +90,6 @@ func newTablesWorker(w worker, repairSvc *repair.Service, totalBytes int64) (*ta
 
 // restore files from every location specified in restore target.
 func (w *tablesWorker) restore(ctx context.Context) error {
-	// Init metrics only on fresh start
-	if w.run.PrevID == uuid.Nil {
-		w.initRestoreMetrics(ctx)
-	}
-
 	stageFunc := map[Stage]func() error{
 		StageDropViews: func() error {
 			for _, v := range w.run.Views {
@@ -235,14 +229,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				w.logger.Info(ctx, "No more batches to restore", "host", hi.Host)
 				return nil
 			}
-			w.metrics.IncreaseBatchSize(w.run.ClusterID, hi.Host, b.Size)
-			w.logger.Info(ctx, "Got batch to restore",
-				"host", hi.Host,
-				"keyspace", b.Keyspace,
-				"table", b.Table,
-				"size", b.Size,
-				"sstable count", len(b.SSTables),
-			)
+			w.onBatchDispatch(ctx, b, host)
 
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
@@ -260,7 +247,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				continue
 			}
 			bd.ReportSuccess(b)
-			w.decreaseRemainingBytesMetric(b)
 		}
 	}
 
@@ -312,54 +298,6 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 	repairRunID := uuid.NewTime()
 
 	return w.repairSvc.Repair(ctx, w.run.ClusterID, w.run.RepairTaskID, repairRunID, repairTarget)
-}
-
-func (w *tablesWorker) initRestoreMetrics(ctx context.Context) {
-	for _, location := range w.target.Location {
-		err := w.forEachManifest(
-			ctx,
-			location,
-			func(miwc ManifestInfoWithContent) error {
-				sizePerTableAndKeyspace := make(map[string]map[string]int64)
-				err := miwc.ForEachIndexIterWithError(
-					nil,
-					func(fm FilesMeta) error {
-						if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
-							return nil
-						}
-
-						if sizePerTableAndKeyspace[fm.Keyspace] == nil {
-							sizePerTableAndKeyspace[fm.Keyspace] = make(map[string]int64)
-						}
-						sizePerTableAndKeyspace[fm.Keyspace][fm.Table] += fm.Size
-						return nil
-					})
-				for kspace, sizePerTable := range sizePerTableAndKeyspace {
-					for table, size := range sizePerTable {
-						labels := metrics.RestoreBytesLabels{
-							ClusterID:   w.run.ClusterID.String(),
-							SnapshotTag: w.target.SnapshotTag,
-							Location:    location.String(),
-							DC:          miwc.DC,
-							Node:        miwc.NodeID,
-							Keyspace:    kspace,
-							Table:       table,
-						}
-						w.metrics.SetRemainingBytes(labels, size)
-					}
-				}
-				return err
-			})
-		progressLabels := metrics.RestoreProgressLabels{
-			ClusterID:   w.run.ClusterID.String(),
-			SnapshotTag: w.target.SnapshotTag,
-		}
-		w.metrics.SetProgress(progressLabels, 0)
-		if err != nil {
-			w.logger.Info(ctx, "Couldn't count restore data size")
-			continue
-		}
-	}
 }
 
 // Disables auto compaction on all provided hosts and units.
