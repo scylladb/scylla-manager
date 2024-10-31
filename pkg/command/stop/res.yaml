@@ -11,5 +11,5 @@ delete: |
   Permanently remove the task.
 
 disable: |
-  Do not run in future, can be later enabled.
+  Prevents the task from running until it has been re-enabled with the 'sctool <task_type> update --enabled' command.
 
