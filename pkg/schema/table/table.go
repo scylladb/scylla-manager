@@ -221,6 +221,7 @@ var (
 			"restore_completed_at",
 			"restore_started_at",
 			"run_id",
+			"shard_cnt",
 			"skipped",
 			"sstable_id",
 			"table_name",

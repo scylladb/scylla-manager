@@ -11,8 +11,6 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 
@@ -192,6 +190,7 @@ type RunProgress struct {
 	SSTableID        []string `db:"sstable_id"`
 
 	Host       string // IP of the node to which SSTables are downloaded.
+	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
 	AgentJobID int64
 
 	DownloadStartedAt   *time.Time
@@ -203,34 +202,6 @@ type RunProgress struct {
 	Skipped             int64
 	Failed              int64
 	VersionedProgress   int64
-}
-
-// ForEachTableProgress iterates over all TableProgress belonging to the same run/manifest/table as the receiver.
-func (pr *RunProgress) ForEachTableProgress(session gocqlx.Session, cb func(*RunProgress)) error {
-	q := qb.Select(table.RestoreRunProgress.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-		qb.Eq("run_id"),
-		qb.Eq("manifest_path"),
-		qb.Eq("keyspace_name"),
-		qb.Eq("table_name"),
-	).Query(session)
-	defer q.Release()
-
-	iter := q.BindMap(qb.M{
-		"cluster_id":    pr.ClusterID,
-		"task_id":       pr.TaskID,
-		"run_id":        pr.RunID,
-		"manifest_path": pr.RemoteSSTableDir,
-		"keyspace_name": pr.Keyspace,
-		"table_name":    pr.Table,
-	}).Iter()
-
-	res := new(RunProgress)
-	for iter.StructScan(res) {
-		cb(res)
-	}
-	return iter.Close()
 }
 
 func (pr *RunProgress) setRestoreStartedAt() {
@@ -263,6 +234,7 @@ type Progress struct {
 
 	SnapshotTag string             `json:"snapshot_tag"`
 	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
+	Hosts       []HostProgress     `json:"hosts,omitempty"`
 	Views       []ViewProgress     `json:"views,omitempty"`
 	Stage       Stage              `json:"stage"`
 }
@@ -273,6 +245,16 @@ type KeyspaceProgress struct {
 
 	Keyspace string          `json:"keyspace"`
 	Tables   []TableProgress `json:"tables,omitempty"`
+}
+
+// HostProgress groups restore progress for the host.
+type HostProgress struct {
+	Host             string `json:"host"`
+	ShardCnt         int64  `json:"shard_cnt"`
+	DownloadedBytes  int64  `json:"downloaded_bytes"`
+	DownloadDuration int64  `json:"download_duration"`
+	StreamedBytes    int64  `json:"streamed_bytes"`
+	StreamDuration   int64  `json:"stream_duration"`
 }
 
 // TableProgress defines restore progress for the table.

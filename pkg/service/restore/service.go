@@ -115,7 +115,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 		for _, unit := range w.run.Units {
 			totalBytesToRestore += unit.Size
 		}
-		tw, workerErr := newTablesWorker(w, s.repairSvc, totalBytesToRestore)
+		tw, workerErr := newTablesWorker(ctx, w, s.repairSvc, totalBytesToRestore)
 		if workerErr != nil {
 			err = workerErr
 		} else {
