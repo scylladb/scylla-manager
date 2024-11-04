@@ -108,4 +108,4 @@ name: integration-tests-6.1.1-IPV4-tablets
             - reopened
     push:
         branches:
-            - master
+            - branch-3.4

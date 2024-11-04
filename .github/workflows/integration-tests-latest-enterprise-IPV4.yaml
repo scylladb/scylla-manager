@@ -108,4 +108,4 @@ name: integration-tests-latest-enterprise-IPV4
             - reopened
     push:
         branches:
-            - master
+            - branch-3.4
