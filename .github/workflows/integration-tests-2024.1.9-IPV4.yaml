@@ -108,4 +108,4 @@ name: integration-tests-2024.1.9-IPV4
             - reopened
     push:
         branches:
-            - master
+            - branch-3.4
