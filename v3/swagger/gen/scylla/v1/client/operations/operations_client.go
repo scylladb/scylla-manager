@@ -821,6 +821,22 @@ type ClientService interface {
 
 	SystemLoggerPost(params *SystemLoggerPostParams) (*SystemLoggerPostOK, error)
 
+	TaskManagerAbortTaskTaskIDPost(params *TaskManagerAbortTaskTaskIDPostParams) (*TaskManagerAbortTaskTaskIDPostOK, error)
+
+	TaskManagerListModuleTasksModuleGet(params *TaskManagerListModuleTasksModuleGetParams) (*TaskManagerListModuleTasksModuleGetOK, error)
+
+	TaskManagerListModulesGet(params *TaskManagerListModulesGetParams) (*TaskManagerListModulesGetOK, error)
+
+	TaskManagerTaskStatusRecursiveTaskIDGet(params *TaskManagerTaskStatusRecursiveTaskIDGetParams) (*TaskManagerTaskStatusRecursiveTaskIDGetOK, error)
+
+	TaskManagerTaskStatusTaskIDGet(params *TaskManagerTaskStatusTaskIDGetParams) (*TaskManagerTaskStatusTaskIDGetOK, error)
+
+	TaskManagerTTLGet(params *TaskManagerTTLGetParams) (*TaskManagerTTLGetOK, error)
+
+	TaskManagerTTLPost(params *TaskManagerTTLPostParams) (*TaskManagerTTLPostOK, error)
+
+	TaskManagerWaitTaskTaskIDGet(params *TaskManagerWaitTaskTaskIDGetParams) (*TaskManagerWaitTaskTaskIDGetOK, error)
+
 	SetTransport(transport runtime.ClientTransport)
 }
 
@@ -14741,6 +14757,286 @@ func (a *Client) SystemLoggerPost(params *SystemLoggerPostParams) (*SystemLogger
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*SystemLoggerPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerAbortTaskTaskIDPost aborts task
+
+Abort running task and its descendants
+*/
+func (a *Client) TaskManagerAbortTaskTaskIDPost(params *TaskManagerAbortTaskTaskIDPostParams) (*TaskManagerAbortTaskTaskIDPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerAbortTaskTaskIDPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerAbortTaskTaskIdPost",
+		Method:             "POST",
+		PathPattern:        "/task_manager/abort_task/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerAbortTaskTaskIDPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerAbortTaskTaskIDPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerAbortTaskTaskIDPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerListModuleTasksModuleGet gets tasks
+
+Get a list of tasks
+*/
+func (a *Client) TaskManagerListModuleTasksModuleGet(params *TaskManagerListModuleTasksModuleGetParams) (*TaskManagerListModuleTasksModuleGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerListModuleTasksModuleGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerListModuleTasksModuleGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/list_module_tasks/{module}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerListModuleTasksModuleGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerListModuleTasksModuleGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerListModuleTasksModuleGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerListModulesGet gets modules
+
+Get all modules names
+*/
+func (a *Client) TaskManagerListModulesGet(params *TaskManagerListModulesGetParams) (*TaskManagerListModulesGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerListModulesGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerListModulesGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/list_modules",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerListModulesGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerListModulesGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerListModulesGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerTaskStatusRecursiveTaskIDGet gets task status recursively
+
+Get statuses of the task and all its descendants
+*/
+func (a *Client) TaskManagerTaskStatusRecursiveTaskIDGet(params *TaskManagerTaskStatusRecursiveTaskIDGetParams) (*TaskManagerTaskStatusRecursiveTaskIDGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerTaskStatusRecursiveTaskIDGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerTaskStatusRecursiveTaskIdGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/task_status_recursive/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerTaskStatusRecursiveTaskIDGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerTaskStatusRecursiveTaskIDGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerTaskStatusRecursiveTaskIDGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerTaskStatusTaskIDGet gets task status
+
+Get task status
+*/
+func (a *Client) TaskManagerTaskStatusTaskIDGet(params *TaskManagerTaskStatusTaskIDGetParams) (*TaskManagerTaskStatusTaskIDGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerTaskStatusTaskIDGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerTaskStatusTaskIdGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/task_status/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerTaskStatusTaskIDGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerTaskStatusTaskIDGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerTaskStatusTaskIDGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerTTLGet gets ttl
+
+Get current ttl value
+*/
+func (a *Client) TaskManagerTTLGet(params *TaskManagerTTLGetParams) (*TaskManagerTTLGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerTTLGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerTtlGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/ttl",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerTTLGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerTTLGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerTTLGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerTTLPost gets and update ttl
+
+Set ttl in seconds and get last value
+*/
+func (a *Client) TaskManagerTTLPost(params *TaskManagerTTLPostParams) (*TaskManagerTTLPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerTTLPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerTtlPost",
+		Method:             "POST",
+		PathPattern:        "/task_manager/ttl",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerTTLPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerTTLPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerTTLPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerWaitTaskTaskIDGet waits task
+
+Wait for a task to complete
+*/
+func (a *Client) TaskManagerWaitTaskTaskIDGet(params *TaskManagerWaitTaskTaskIDGetParams) (*TaskManagerWaitTaskTaskIDGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerWaitTaskTaskIDGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerWaitTaskTaskIdGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/wait_task/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerWaitTaskTaskIDGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerWaitTaskTaskIDGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerWaitTaskTaskIDGetDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
