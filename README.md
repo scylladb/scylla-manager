@@ -1,5 +1,5 @@
 ![GitHub release](https://img.shields.io/github/tag/scylladb/scylla-manager.svg?label=release)
-![Sanity check](https://github.com/scylladb/scylla-manager/actions/workflows/sanity-checks.yml/badge.svg?branch=master)
+![Sanity check](https://github.com/scylladb/scylla-manager/actions/workflows/sanity-checks.yml/badge.svg?branch=branch-3.4)
 ![Language](https://img.shields.io/badge/Language-Go-blue.svg)
 
 # Scylla Manager
