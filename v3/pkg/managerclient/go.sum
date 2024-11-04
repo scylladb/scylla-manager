@@ -84,10 +84,10 @@ github.com/rogpeppe/go-internal v1.11.0 h1:cWPaGQEPrBb5/AsnsZesgZZ9yb1OQ+GOISoDN
 github.com/rogpeppe/go-internal v1.11.0/go.mod h1:ddIwULY96R17DhadqLgMfk9H9tvdUzkipdSkR5nkCZA=
 github.com/scylladb/go-set v1.0.2 h1:SkvlMCKhP0wyyct6j+0IHJkBkSZL+TDzZ4E7f7BCcRE=
 github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
-github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241028110806-78e39cceec83 h1:yy3k0OEYbsmgDenYuJd7B/nftAUI7VMB/WUoX1Iv/6I=
-github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241028110806-78e39cceec83/go.mod h1:+sPCx2oaOXmMpy/ODNNEDGJ7vCghBeKP4S7xEfMI+eA=
-github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241028110806-78e39cceec83 h1:cCbhUYGzQ/xbjSN+w3g/H2ZcIoEn6OGRu3l5a+et/vs=
-github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241028110806-78e39cceec83/go.mod h1:Oxfuz1XcXi9iV4ggSGfQdn+p6gPz6djPOegRMMe/6/s=
+github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241031135907-8450182ad4bf h1:reyaD5Gsq9eYad0ABYBc5RZy8Jurd93u6DQZr43Ms+U=
+github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241031135907-8450182ad4bf/go.mod h1:+sPCx2oaOXmMpy/ODNNEDGJ7vCghBeKP4S7xEfMI+eA=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241031135907-8450182ad4bf h1:Ia5MdfHidG16H39UomNiPGoejAAtt65NzrmhFdZXODY=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241031135907-8450182ad4bf/go.mod h1:Oxfuz1XcXi9iV4ggSGfQdn+p6gPz6djPOegRMMe/6/s=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
