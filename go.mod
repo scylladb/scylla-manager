@@ -29,9 +29,9 @@ require (
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
-	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241028110806-78e39cceec83
-	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241028110806-78e39cceec83
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241028110806-78e39cceec83
+	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241030073626-e409ae491c83
+	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241030073626-e409ae491c83
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241030073626-e409ae491c83
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stoewer/go-strcase v1.3.0
@@ -128,8 +128,5 @@ require (
 replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.12.0
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e
-	github.com/scylladb/scylla-manager/v3/pkg/managerclient => ./v3/pkg/managerclient
-	github.com/scylladb/scylla-manager/v3/pkg/util => ./v3/pkg/util
-	github.com/scylladb/scylla-manager/v3/swagger => ./v3/swagger
 	google.golang.org/api v0.114.0 => github.com/scylladb/google-api-go-client v0.34.1-patched
 )

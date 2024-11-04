@@ -1053,6 +1053,12 @@ github.com/scylladb/google-api-go-client v0.34.1-patched h1:DW+T0HA+74o6FDr3TFzV
 github.com/scylladb/google-api-go-client v0.34.1-patched/go.mod h1:RriRmS2wJXH+2yd9PRTEcR380U9AXmurWwznqVhzsSc=
 github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e h1:lJRphCtu+nKd+mfo8whOTeFkgjMWvk8iCSlqgibKSa8=
 github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e/go.mod h1:JGZp4EvCUK+6AM1Fe1dye5xvihTc/Bk0WnHHSCJOePM=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241030073626-e409ae491c83 h1:1E64zMOGQ1N3FFIpkAKKF/XVBo6WZEL3tuXHgluqDCk=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241030073626-e409ae491c83/go.mod h1:CkiJ7/3IfAZekjx7dFltltVI7HS1e7k8QKsofX6uitM=
+github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241030073626-e409ae491c83 h1:6kyuL5XXRTPbBSUessmfz6TxhYgOiIHCwC63wvDExgQ=
+github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241030073626-e409ae491c83/go.mod h1:+sPCx2oaOXmMpy/ODNNEDGJ7vCghBeKP4S7xEfMI+eA=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241030073626-e409ae491c83 h1:+2wvERSjYAhGushwWpqw8EemmntHOIcCjHCWzEdpXcM=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241030073626-e409ae491c83/go.mod h1:Oxfuz1XcXi9iV4ggSGfQdn+p6gPz6djPOegRMMe/6/s=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/sirupsen/logrus v1.7.0 h1:ShrD1U9pZB12TX0cVy0DtePoCH97K8EtX+mg7ZARUtM=
