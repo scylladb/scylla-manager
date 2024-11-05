@@ -607,6 +607,8 @@ type ClientService interface {
 
 	StorageServiceAutoCompactionByKeyspacePost(params *StorageServiceAutoCompactionByKeyspacePostParams) (*StorageServiceAutoCompactionByKeyspacePostOK, error)
 
+	StorageServiceBackupPost(params *StorageServiceBackupPostParams) (*StorageServiceBackupPostOK, error)
+
 	StorageServiceBatchSizeFailureThresholdGet(params *StorageServiceBatchSizeFailureThresholdGetParams) (*StorageServiceBatchSizeFailureThresholdGetOK, error)
 
 	StorageServiceBatchSizeFailureThresholdPost(params *StorageServiceBatchSizeFailureThresholdPostParams) (*StorageServiceBatchSizeFailureThresholdPostOK, error)
@@ -740,6 +742,8 @@ type ClientService interface {
 	StorageServiceRepairStatus(params *StorageServiceRepairStatusParams) (*StorageServiceRepairStatusOK, error)
 
 	StorageServiceRescheduleFailedDeletionsPost(params *StorageServiceRescheduleFailedDeletionsPostParams) (*StorageServiceRescheduleFailedDeletionsPostOK, error)
+
+	StorageServiceRestorePost(params *StorageServiceRestorePostParams) (*StorageServiceRestorePostOK, error)
 
 	StorageServiceRPCServerDelete(params *StorageServiceRPCServerDeleteParams) (*StorageServiceRPCServerDeleteOK, error)
 
@@ -11026,6 +11030,41 @@ func (a *Client) StorageServiceAutoCompactionByKeyspacePost(params *StorageServi
 }
 
 /*
+StorageServiceBackupPost starts backup
+
+Starts copying SSTables from a specified keyspace to a designated bucket in object storage
+*/
+func (a *Client) StorageServiceBackupPost(params *StorageServiceBackupPostParams) (*StorageServiceBackupPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceBackupPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceBackupPost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/backup",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceBackupPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*StorageServiceBackupPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*StorageServiceBackupPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
 StorageServiceBatchSizeFailureThresholdGet gets batch size failure threshold
 
 Returns the threshold for rejecting queries due to a large batch size
@@ -13361,6 +13400,41 @@ func (a *Client) StorageServiceRescheduleFailedDeletionsPost(params *StorageServ
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*StorageServiceRescheduleFailedDeletionsPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+StorageServiceRestorePost starts restore
+
+Starts copying SSTables from a designated bucket in object storage to a specified keyspace
+*/
+func (a *Client) StorageServiceRestorePost(params *StorageServiceRestorePostParams) (*StorageServiceRestorePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceRestorePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceRestorePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/restore",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceRestorePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*StorageServiceRestorePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*StorageServiceRestorePostDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

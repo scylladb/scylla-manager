@@ -10037,6 +10037,149 @@
         "security": []
       }
     },
+    "/storage_service/backup": {
+      "post": {
+        "description": "Starts copying SSTables from a specified keyspace to a designated bucket in object storage",
+        "summary": "start_backup",
+        "operationId": "StorageServiceBackupPost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "endpoint",
+            "in": "query",
+            "type": "string",
+            "required": true,
+            "description": "ID of the configured object storage endpoint to copy sstables to"
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of the bucket to backup sstables to"
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "The prefix of the objects for the backuped sstables"
+          },
+          {
+            "name": "keyspace",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of a keyspace to copy sstables from"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of a table to copy sstables from"
+          },
+          {
+            "name": "snapshot",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Name of a snapshot to copy sstables from"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task ID that can be used with Task Manager service",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
+    "/storage_service/restore": {
+      "post": {
+        "description": "Starts copying SSTables from a designated bucket in object storage to a specified keyspace",
+        "summary": "start_restore",
+        "operationId": "StorageServiceRestorePost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "endpoint",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "ID of the configured object storage endpoint to copy SSTables from"
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of the bucket to read SSTables from"
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "The prefix of the object keys for the backuped SSTables"
+          },
+          {
+            "name": "sstables",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "The list of the object keys of the TOC component of the SSTables to be restored"
+          },
+          {
+            "name": "keyspace",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of a keyspace to copy SSTables to"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of a table to copy SSTables to"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task ID that can be used with Task Manager service",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
     "/storage_service/keyspace_compaction/{keyspace}": {
       "post": {
         "description": "Forces major compaction of a single keyspace",
