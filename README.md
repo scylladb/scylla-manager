@@ -17,19 +17,19 @@ Scylla Manager consists of tree components:
 
 | ScyllaDB version      | Workflows                                                                                                                                 | Limitations                                                                                                                                           |
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **2024.1.9**          | ![integration-tests-2024.1.9-IPV4]<br/>![integration-tests-2024.1.9-IPV6]                                                                 | Restoration of schema into cluster with `consistant_cluster_management: true` is not supported                                                        |
+| **2024.1.12**         | ![integration-tests-2024.1.12-IPV4]<br/>![integration-tests-2024.1.12-IPV6]                                                               | Restoration of schema into cluster with `consistant_cluster_management: true` is not supported                                                        |
 | **2023.1.11**         | ![integration-tests-2023.1.11-IPV4]<br/>![integration-tests-2023.1.11-IPV4-raftschema]<br/>![integration-tests-2023.1.11-IPV6-raftschema] | Restoration of schema into cluster with `consistant_cluster_management: true` is not supported                                                        |
-| **6.1.1**             | ![integration-tests-6.1.1-IPV4]<br/>![integration-tests-6.1.1-IPV4-tablets]<br/>![integration-tests-6.1.1-IPV6-tablets]                   | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
+| **6.2.0**             | ![integration-tests-6.2.0-IPV4]<br/>![integration-tests-6.2.0-IPV4-tablets]<br/>![integration-tests-6.2.0-IPV6-tablets]                   | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 | **latest-enterprise** | ![integration-tests-latest-enterprise-IPV4]<br/>![integration-tests-latest-enterprise-IPV4-tablets]                                       | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 
+[integration-tests-2024.1.12-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.12-IPV4.yaml/badge.svg?branch=branch-3.4
+[integration-tests-2024.1.12-IPV6]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.12-IPV6.yaml/badge.svg?branch=branch-3.4
 [integration-tests-2023.1.11-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.11-IPV4.yaml/badge.svg?branch=branch-3.4
 [integration-tests-2023.1.11-IPV4-raftschema]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.11-IPV4-raftschema.yaml/badge.svg?branch=branch-3.4
 [integration-tests-2023.1.11-IPV6-raftschema]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2023.1.11-IPV6-raftschema.yaml/badge.svg?branch=branch-3.4
-[integration-tests-2024.1.9-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.9-IPV4.yaml/badge.svg?branch=branch-3.4
-[integration-tests-2024.1.9-IPV6]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.9-IPV6.yaml/badge.svg?branch=branch-3.4
-[integration-tests-6.1.1-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-6.1.1-IPV4.yaml/badge.svg?branch=branch-3.4
-[integration-tests-6.1.1-IPV4-tablets]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-6.1.1-IPV4-tablets.yaml/badge.svg?branch=branch-3.4
-[integration-tests-6.1.1-IPV6-tablets]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-6.1.1-IPV6-tablets.yaml/badge.svg?branch=branch-3.4
+[integration-tests-6.2.0-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-6.2.0-IPV4.yaml/badge.svg?branch=branch-3.4
+[integration-tests-6.2.0-IPV4-tablets]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-6.2.0-IPV4-tablets.yaml/badge.svg?branch=branch-3.4
+[integration-tests-6.2.0-IPV6-tablets]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-6.2.0-IPV6-tablets.yaml/badge.svg?branch=branch-3.4
 [integration-tests-latest-enterprise-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-enterprise-IPV4.yaml/badge.svg?branch=branch-3.4
 [integration-tests-latest-enterprise-IPV4-tablets]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-enterprise-IPV4-tablets.yaml/badge.svg?branch=branch-3.4
 
