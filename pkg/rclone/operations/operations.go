@@ -104,7 +104,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 			Recurse:   false,
 			NoModTime: true,
 		}
-		if err := operations.ListJSON(ctx, l, testDirName, &opts, func(item *operations.ListJSONItem) error {
+		if err := operations.ListJSON(ctx, l, testDirName, &opts, func(_ *operations.ListJSONItem) error {
 			return nil
 		}); err != nil {
 			return asOperationError("list", l, err)

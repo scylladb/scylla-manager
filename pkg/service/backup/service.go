@@ -87,7 +87,7 @@ func (s *Service) Runner() Runner {
 
 // TaskDecorator generates "retention_map" for backup task.
 func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
-	return func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+	return func(ctx context.Context, clusterID, _ uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
 		tasks, err := schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
 		if err != nil {
 			return nil, err

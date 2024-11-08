@@ -249,7 +249,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	defer cancel()
 
 	// Create worker pool
-	workers := workerpool.New[*worker, job, jobResult](gracefulCtx, func(ctx context.Context, i int) *worker {
+	workers := workerpool.New[*worker, job, jobResult](gracefulCtx, func(_ context.Context, i int) *worker {
 		return &worker{
 			client:     client,
 			stopTrying: make(map[string]struct{}),

@@ -505,7 +505,7 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 	var weight func(key tableKey) int64
 	var totalWeight int64
 	if totalSize == 0 {
-		weight = func(key tableKey) int64 {
+		weight = func(_ tableKey) int64 {
 			return 1
 		}
 		totalWeight = int64(len(perTable))

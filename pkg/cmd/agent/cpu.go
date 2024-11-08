@@ -44,7 +44,7 @@ var cpuTestCmd = &cobra.Command{
 	SilenceErrors: true,
 	Hidden:        true,
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		cpus := cpuTestArgs.cpus
 		if len(cpus) == 0 {
 			fmt.Println("Running on all CPUs", "pid", os.Getpid())

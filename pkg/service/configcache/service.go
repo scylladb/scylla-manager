@@ -136,7 +136,7 @@ func (svc *Service) AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]
 	}
 
 	var availableHosts []string
-	clusterConfig.Range(func(key, value any) bool {
+	clusterConfig.Range(func(key, _ any) bool {
 		host, ok := key.(string)
 		if !ok {
 			logger.Error(ctx, "Cannot cast to string", "host", key, "error", err)

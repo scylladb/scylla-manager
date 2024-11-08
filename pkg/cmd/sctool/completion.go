@@ -45,7 +45,7 @@ func addCompletionCommand(rootCmd *cobra.Command) {
 		cmd.AddCommand(&cobra.Command{
 			Use:   string(s),
 			Short: "Generate " + string(s) + "completion",
-			RunE: func(cmd *cobra.Command, args []string) error {
+			RunE: func(_ *cobra.Command, _ []string) error {
 				return completion(rootCmd, s)
 			},
 		})

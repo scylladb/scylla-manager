@@ -27,7 +27,7 @@ func wrap(fn rc.Func, v paramsValidator) rc.Func {
 // pathHasPrefix reads "fs" and "remote" params, evaluates absolute path and
 // ensures it has the required prefix.
 func pathHasPrefix(prefixes ...string) paramsValidator {
-	return func(ctx context.Context, in rc.Params) error {
+	return func(_ context.Context, in rc.Params) error {
 		_, p, err := joined(in, "fs", "remote")
 		if err != nil {
 			return err
@@ -50,7 +50,7 @@ func pathHasPrefix(prefixes ...string) paramsValidator {
 // pathHasSuffix reads "fs" and "remote" params + checks if the path has
 // required suffix.
 func pathHasSuffix(suffix string) paramsValidator {
-	return func(ctx context.Context, in rc.Params) error {
+	return func(_ context.Context, in rc.Params) error {
 		_, p, err := joined(in, "fs", "remote")
 		if err != nil {
 			return err
@@ -115,7 +115,7 @@ func remoteToLocal() paramsValidator {
 }
 
 func sameDir() paramsValidator {
-	return func(ctx context.Context, in rc.Params) error {
+	return func(_ context.Context, in rc.Params) error {
 		srcName, srcPath, err := joined(in, "srcFs", "srcRemote")
 		if err != nil {
 			return err

@@ -12,7 +12,7 @@ type Matcher func(req *http.Request) string
 
 // FileMatcher is a simple matcher created for backwards compatibility.
 func FileMatcher(file string) Matcher {
-	return func(req *http.Request) string {
+	return func(_ *http.Request) string {
 		return file
 	}
 }
