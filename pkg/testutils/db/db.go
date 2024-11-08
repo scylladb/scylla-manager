@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -404,7 +405,7 @@ func CreateDynamoDBService(t *testing.T, host string, alternatorPort int, access
 	t.Helper()
 
 	awsCfg := &aws.Config{
-		Endpoint: aws.String("http://" + net.JoinHostPort(host, fmt.Sprint(alternatorPort))),
+		Endpoint: aws.String("http://" + net.JoinHostPort(host, strconv.Itoa(alternatorPort))),
 		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
 			AccessKeyID:     accessKeyID,
 			SecretAccessKey: secretAccessKey,

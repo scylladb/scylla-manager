@@ -594,7 +594,7 @@ func (c *Client) Repair(ctx context.Context, keyspace, table, master string, rep
 	if smallTableOpt {
 		p.SmallTableOptimization = pointer.StringPtr("true")
 	} else {
-		p.RangesParallelism = pointer.StringPtr(fmt.Sprint(intensity))
+		p.RangesParallelism = pointer.StringPtr(strconv.Itoa(intensity))
 	}
 	// Single node cluster repair fails with hosts param
 	if len(replicaSet) > 1 {

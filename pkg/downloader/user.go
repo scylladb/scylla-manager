@@ -3,9 +3,9 @@
 package downloader
 
 import (
-	"fmt"
 	"os"
 	"os/user"
+	"strconv"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -21,5 +21,5 @@ func dirOwner(dir string) (*user.User, error) {
 		return nil, errors.Errorf("unexpected OS stat typ %T", s.Sys())
 	}
 
-	return user.LookupId(fmt.Sprint(sys.Uid))
+	return user.LookupId(strconv.FormatUint(uint64(sys.Uid), 10))
 }

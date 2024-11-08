@@ -5,7 +5,6 @@ package backup
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -285,7 +284,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	if !brokenSnapshots.IsEmpty() {
 		bs := brokenSnapshots.List()
 		sort.Strings(bs)
-		msg = append(msg, fmt.Sprintf("broken snapshots: %s", strings.Join(bs, ", ")))
+		msg = append(msg, "broken snapshots: "+strings.Join(bs, ", "))
 	}
 	if !target.DeleteOrphanedFiles && orphanedFiles > 0 {
 		msg = append(msg, "orphaned files")
