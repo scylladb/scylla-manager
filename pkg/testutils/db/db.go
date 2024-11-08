@@ -240,7 +240,7 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 			t.Fatal(err)
 		}
 
-		for i := 0; i < rowsCnt; i++ {
+		for i := range rowsCnt {
 			if err := q.Bind(i+startingID, data).Exec(); err != nil {
 				t.Fatal(err)
 			}

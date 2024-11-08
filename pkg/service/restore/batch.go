@@ -285,7 +285,7 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		expectedNodeWorkload := bd.expectedShardWorkload * int64(shardCnt)
 		sizeLimit := expectedNodeWorkload / 20
 		for {
-			for j := 0; j < int(shardCnt); j++ {
+			for range shardCnt {
 				if i >= len(rdp.RemainingSSTables) {
 					break
 				}
@@ -302,7 +302,7 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 	} else {
 		// Create batch containing node_shard_count*batch_size sstables.
 		i = min(bd.batchSize*int(shardCnt), len(rdp.RemainingSSTables))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			size += rdp.RemainingSSTables[j].Size
 		}
 	}

@@ -225,7 +225,7 @@ func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 	}
 
 	v := make(map[string]string, len(resp.Payload))
-	for i := 0; i < len(resp.Payload); i++ {
+	for i := range len(resp.Payload) {
 		v[resp.Payload[i].Key] = resp.Payload[i].Value
 	}
 	return v, nil
@@ -250,7 +250,7 @@ func (c *Client) hosts(ctx context.Context) ([]string, error) {
 	}
 
 	v := make([]string, len(resp.Payload))
-	for i := 0; i < len(resp.Payload); i++ {
+	for i := range len(resp.Payload) {
 		v[i] = resp.Payload[i].Key
 	}
 	return v, nil
@@ -674,7 +674,6 @@ func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, e
 	out := make(chan hostError, runtime.NumCPU()+1)
 
 	for _, h := range hosts {
-		h := h
 		go func() {
 			a, err := c.hasActiveRepair(ctx, h)
 			out <- hostError{
@@ -703,7 +702,7 @@ func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, e
 
 func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error) {
 	const wait = 50 * time.Millisecond
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		resp, err := c.scyllaOps.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
 			Context: forceHost(ctx, host),
 		})
