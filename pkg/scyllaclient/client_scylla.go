@@ -31,7 +31,7 @@ import (
 )
 
 // ErrHostInvalidResponse is to indicate that one of the root-causes is the invalid response from scylla-server.
-var ErrHostInvalidResponse = fmt.Errorf("invalid response from host")
+var ErrHostInvalidResponse = errors.New("invalid response from host")
 
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
@@ -996,7 +996,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 
 		size, err := c.TableDiskSize(ctx, v.Host, v.Keyspace, v.Table)
 		if err != nil {
-			return parallel.Abort(errors.Wrapf(stdErrors.Join(err, ErrHostInvalidResponse), v.Host))
+			return parallel.Abort(fmt.Errorf("%s: %w", v.Host, stdErrors.Join(err, ErrHostInvalidResponse)))
 		}
 		c.logger.Debug(ctx, "Table disk size",
 			"host", v.Host,
