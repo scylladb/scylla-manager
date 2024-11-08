@@ -391,7 +391,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 		return 0, errors.Errorf("scylla does not expose %s metric", metricName)
 	}
 
-	shards := len(metrics[metricName].Metric)
+	shards := len(metrics[metricName].GetMetric())
 	if shards == 0 {
 		return 0, errors.New("missing shard count")
 	}
@@ -918,12 +918,12 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 	}
 
 	var totalMemory int64
-	for _, m := range metrics[metricName].Metric {
+	for _, m := range metrics[metricName].GetMetric() {
 		switch {
-		case m.Counter != nil && m.Counter.Value != nil:
-			totalMemory += int64(*m.Counter.Value)
-		case m.Gauge != nil && m.Gauge.Value != nil:
-			totalMemory += int64(*m.Gauge.Value)
+		case m.GetCounter() != nil:
+			totalMemory += int64(m.GetCounter().GetValue())
+		case m.GetGauge() != nil:
+			totalMemory += int64(m.GetGauge().GetValue())
 		}
 	}
 
