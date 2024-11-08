@@ -35,7 +35,7 @@ func awsRegionFromMetadataAPI() string {
 		return ""
 	}
 	if token != "" {
-		reqMetadata.Header.Set("X-aws-ec2-metadata-token", token)
+		reqMetadata.Header.Set("X-Aws-Ec2-Metadata-Token", token)
 	}
 
 	metadataClient := http.Client{
@@ -66,7 +66,7 @@ func awsAPIToken() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "create token request")
 	}
-	reqToken.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "21600")
+	reqToken.Header.Set("X-Aws-Ec2-Metadata-Token-Ttl-Seconds", "21600")
 	tokenClient := http.Client{
 		Timeout: 2 * time.Second,
 	}
