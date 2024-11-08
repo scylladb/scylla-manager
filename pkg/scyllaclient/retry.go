@@ -149,7 +149,7 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 		logger:        t.logger,
 	}
 	o.do = func() (interface{}, error) {
-		operation.Context = o.ctx
+		operation.Context = o.ctx //nolint: fatcontext
 		return t.transport.Submit(operation)
 	}
 	return o.submit()
