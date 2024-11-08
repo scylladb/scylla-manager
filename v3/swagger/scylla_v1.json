@@ -12862,6 +12862,47 @@
         },
         "security": []
       }
+    },
+    "/raft/read_barrier": {
+      "post": {
+        "description": "Triggers read barrier for the given Raft group to wait for previously committed commands in this group to be applied locally. For example, can be used on group 0 to wait for the node to obtain latest schema changes.",
+        "summary": "read_barrier",
+        "operationId": "RaftReadBarrierPost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The ID of the group. When absent, group0 is used."
+          },
+          {
+            "name": "timeout",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64",
+            "description": "Timeout in seconds after which the endpoint returns a failure. If not provided, 60s is used."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
     }
   },
   "definitions": {
