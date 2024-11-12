@@ -469,6 +469,8 @@ type ClientService interface {
 
 	MessagingServiceVersionGet(params *MessagingServiceVersionGetParams) (*MessagingServiceVersionGetOK, error)
 
+	RaftReadBarrierPost(params *RaftReadBarrierPostParams) (*RaftReadBarrierPostOK, error)
+
 	SnitchDatacenterGet(params *SnitchDatacenterGetParams) (*SnitchDatacenterGetOK, error)
 
 	SnitchNameGet(params *SnitchNameGetParams) (*SnitchNameGetOK, error)
@@ -8591,6 +8593,41 @@ func (a *Client) MessagingServiceVersionGet(params *MessagingServiceVersionGetPa
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*MessagingServiceVersionGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+RaftReadBarrierPost reads barrier
+
+Triggers read barrier for the given Raft group to wait for previously committed commands in this group to be applied locally. For example, can be used on group 0 to wait for the node to obtain latest schema changes.
+*/
+func (a *Client) RaftReadBarrierPost(params *RaftReadBarrierPostParams) (*RaftReadBarrierPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRaftReadBarrierPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RaftReadBarrierPost",
+		Method:             "POST",
+		PathPattern:        "/raft/read_barrier",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &RaftReadBarrierPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*RaftReadBarrierPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*RaftReadBarrierPostDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
