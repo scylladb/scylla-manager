@@ -30,19 +30,19 @@ func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc clus
 		hosts = append(hosts, hi[i].IP)
 	}
 
-	descSchemaHosts, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, hosts)
+	descSchemaHosts, method, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, hosts)
 	if err != nil {
 		return errors.Wrap(err, "get hosts supporting backup/restore from desc schema with internals")
 	}
 
 	if len(descSchemaHosts) > 0 {
-		return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc)
+		return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc, method == scyllaclient.SafeDescribeMethodReadBarierAPI)
 	}
 	w.unsafeBackupAndRestoreSchemaDump(ctx, sessionFunc)
 	return nil
 }
 
-func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc) error {
+func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc, useReadBarierAPI bool) error {
 	w.Logger.Info(ctx, "Back up schema from DESCRIBE SCHEMA WITH INTERNALS")
 
 	session, err := w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
@@ -54,7 +54,7 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	}
 	defer session.Close()
 
-	if err := query.RaftReadBarrier(session); err != nil {
+	if err := w.raftReadBarier(ctx, session, useReadBarierAPI); err != nil {
 		return errors.Wrap(err, "perform raft read barrier on desc schema host")
 	}
 
@@ -70,6 +70,13 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	w.SchemaFilePath = backupspec.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	w.Schema = b
 	return nil
+}
+
+func (w *worker) raftReadBarier(ctx context.Context, session gocqlx.Session, useReadBarierAPI bool) error {
+	if useReadBarierAPI {
+		return w.Client.RaftReadBarier(ctx, "", 0)
+	}
+	return query.RaftReadBarrier(session)
 }
 
 func (w *worker) unsafeBackupAndRestoreSchemaDump(ctx context.Context, sessionFunc cluster.SessionFunc) {
@@ -161,11 +168,11 @@ func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error
 }
 
 // backupAndRestoreFromDescSchemaHosts returns hosts that restore schema from desc schema with internals output.
-func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, error) {
+func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, scyllaclient.SafeDescribeMethod, error) {
 	var (
-		mu  = sync.Mutex{}
-		eg  = errgroup.Group{}
-		out []string
+		mu            = sync.Mutex{}
+		eg            = errgroup.Group{}
+		hostsByMethod = map[scyllaclient.SafeDescribeMethod][]string{}
 	)
 	for _, host := range hosts {
 		h := host
@@ -174,22 +181,40 @@ func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclie
 			if err != nil {
 				return err
 			}
-			res, err := ni.SupportsSafeDescribeSchemaWithInternals()
+			method, err := ni.SupportsSafeDescribeSchemaWithInternals()
 			if err != nil {
 				return err
 			}
-			if res {
-				mu.Lock()
-				out = append(out, h)
-				mu.Unlock()
+			if method == "" {
+				return nil
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if _, ok := hostsByMethod[method]; !ok {
+				hostsByMethod[method] = []string{h}
+			} else {
+				hostsByMethod[method] = append(hostsByMethod[method], h)
 			}
 			return nil
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return out, nil
+
+	// Supported methods in priority order - from high to low
+	methods := []scyllaclient.SafeDescribeMethod{
+		scyllaclient.SafeDescribeMethodReadBarierAPI,
+		scyllaclient.SafeDescribeMethodReadBarierCQL,
+	}
+	for _, m := range methods {
+		outHosts, ok := hostsByMethod[m]
+		if !ok {
+			continue
+		}
+		return outHosts, m, nil
+	}
+	return nil, "", nil
 }
 
 func createUnsafeSchemaArchive(ctx context.Context, units []Unit, clusterSession gocqlx.Session) (b bytes.Buffer, err error) {

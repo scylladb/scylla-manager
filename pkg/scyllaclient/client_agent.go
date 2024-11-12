@@ -210,27 +210,44 @@ func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
 	return supports, nil
 }
 
-// SupportsSafeDescribeSchemaWithInternals returns true if the output of DESCRIBE SCHEMA WITH INTERNALS
-// is safe to use with backup/restore procedure.
-func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (bool, error) {
+// SafeDescribeMethod describes supported methods to ensure that scylla schema is consistent.
+type SafeDescribeMethod string
+
+var (
+	// SafeDescribeMethodReadBarierAPI shows when scylla read barier api can be used.
+	SafeDescribeMethodReadBarierAPI SafeDescribeMethod = "read_barier_api"
+	// SafeDescribeMethodReadBarierCQL shows when scylla csq read barier can be used.
+	SafeDescribeMethodReadBarierCQL SafeDescribeMethod = "read_barier_cql"
+)
+
+// SupportsSafeDescribeSchemaWithInternals returns not empty SafeDescribeMethod if the output of DESCRIBE SCHEMA WITH INTERNALS
+// is safe to use with backup/restore procedure and which method should be used to make sure that schema is consistent.
+func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMethod, error) {
 	// Detect master builds
 	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
+		return SafeDescribeMethodReadBarierAPI, nil
 	}
-	// Check OSS
-	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.0, < 2000")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
+
+	type featureByVersion struct {
+		Constraint string
+		Method     SafeDescribeMethod
 	}
-	if supports {
-		return true, nil
+
+	for _, fv := range []featureByVersion{
+		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarierAPI},
+		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarierAPI},
+		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarierCQL},
+	} {
+		supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, fv.Constraint)
+		if err != nil {
+			return "", errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
+		}
+		if supports {
+			return fv.Method, nil
+		}
 	}
-	// Check ENT
-	supports, err = scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2024.2, > 1000")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	return supports, nil
+
+	return "", nil
 }
 
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
