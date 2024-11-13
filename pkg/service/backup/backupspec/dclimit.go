@@ -3,7 +3,6 @@
 package backupspec
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,7 +20,7 @@ type DCLimit struct {
 }
 
 func (l DCLimit) String() string {
-	p := fmt.Sprint(l.Limit)
+	p := strconv.Itoa(l.Limit)
 	if l.DC != "" {
 		p = l.DC + ":" + p
 	}

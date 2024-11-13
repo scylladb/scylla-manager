@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -316,7 +317,7 @@ func rcCat(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 
 	h := w.Header()
 	h.Set("Content-Type", "application/octet-stream")
-	h.Set("Content-Length", fmt.Sprint(o.Size()))
+	h.Set("Content-Length", strconv.FormatInt(o.Size(), 10))
 
 	n, err := io.Copy(w, r)
 	if err != nil {
@@ -367,7 +368,7 @@ func rcPut(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	dst, err := f.NewObject(ctx, remote)
 	if err == nil {
 		if rcops.Equal(ctx, info, dst) {
-			return nil, nil
+			return nil, nil //nolint: nilnil
 		} else if rclone.GetConfig().Immutable {
 			fs.Errorf(dst, "Source and destination exist but do not match: immutable file modified")
 			return nil, fs.ErrorImmutableModified
@@ -417,7 +418,7 @@ func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err e
 	}
 
 	fs.Infof(nil, "Location check done")
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 func init() {

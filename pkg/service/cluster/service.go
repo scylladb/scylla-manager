@@ -148,7 +148,7 @@ func (s *Service) CreateClientNoCache(ctx context.Context, clusterID uuid.UUID) 
 func (s *Service) clientConfig(c *Cluster) scyllaclient.Config {
 	config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
 	if c.Port != 0 {
-		config.Port = fmt.Sprint(c.Port)
+		config.Port = strconv.Itoa(c.Port)
 	}
 	config.AuthToken = c.AuthToken
 	config.Hosts = c.KnownHosts
@@ -188,7 +188,7 @@ func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) ([]strin
 
 		config := scyllaclient.DefaultConfigWithTimeout(s.timeoutConfig)
 		if c.Port != 0 {
-			config.Port = fmt.Sprint(c.Port)
+			config.Port = strconv.Itoa(c.Port)
 		}
 		config.AuthToken = c.AuthToken
 		config.Hosts = []string{cp}
@@ -611,7 +611,7 @@ type SessionConfigOption func(ctx context.Context, clusterID uuid.UUID, client *
 
 // SingleHostSessionConfigOption ensures that session will be connected only to the single, provided host.
 func SingleHostSessionConfigOption(host string) SessionConfigOption {
-	return func(ctx context.Context, clusterID uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error {
+	return func(ctx context.Context, _ uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error {
 		ni, err := client.NodeInfo(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "fetch node (%s) info", host)

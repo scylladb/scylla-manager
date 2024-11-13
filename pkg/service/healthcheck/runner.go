@@ -108,7 +108,7 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 }
 
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
-	apply(collect(r.metrics.status), func(cluster, dc, host, pt string, v float64) {
+	apply(collect(r.metrics.status), func(cluster, _, host, _ string, _ float64) {
 		if clusterID.String() != cluster {
 			return
 		}
@@ -123,7 +123,7 @@ func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
 }
 
 func (r runner) removeMetricsForMissingHosts(clusterID uuid.UUID, addresses []string) {
-	apply(collect(r.metrics.status), func(cluster, dc, host, pt string, v float64) {
+	apply(collect(r.metrics.status), func(cluster, _, host, _ string, _ float64) {
 		if clusterID.String() != cluster {
 			return
 		}

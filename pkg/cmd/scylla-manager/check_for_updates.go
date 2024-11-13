@@ -16,7 +16,7 @@ var checkForUpdatesCmd = &cobra.Command{
 	Short: "Check for updates",
 	Args:  cobra.NoArgs,
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		install, err := cmd.Flags().GetBool("install")
 		if err != nil {
 			return err

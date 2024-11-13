@@ -4,9 +4,9 @@ package scyllaclient
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -60,7 +60,7 @@ func (c *ConfigClient) NativeTransportPort(ctx context.Context) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return strconv.FormatInt(resp.Payload, 10), err
 }
 
 // NativeTransportPortSSL returns node listen SSL port.
@@ -69,7 +69,7 @@ func (c *ConfigClient) NativeTransportPortSSL(ctx context.Context) (string, erro
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return strconv.FormatInt(resp.Payload, 10), err
 }
 
 // RPCAddress returns node rpc address.
@@ -87,7 +87,7 @@ func (c *ConfigClient) RPCPort(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return strconv.FormatInt(resp.Payload, 10), err
 }
 
 // BroadcastAddress returns node broadcast address.
@@ -123,7 +123,7 @@ func (c *ConfigClient) PrometheusPort(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return strconv.FormatInt(resp.Payload, 10), err
 }
 
 // DataDirectory returns node data directory.
@@ -170,7 +170,7 @@ func (c *ConfigClient) AlternatorPort(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return strconv.FormatInt(resp.Payload, 10), err
 }
 
 // AlternatorAddress returns node alternator address.
@@ -194,7 +194,7 @@ func (c *ConfigClient) AlternatorHTTPSPort(ctx context.Context) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprint(resp.Payload), err
+	return strconv.FormatInt(resp.Payload, 10), err
 }
 
 // UUIDSStableIdentifiers returns if node is using uuid-like sstable naming.

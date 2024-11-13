@@ -5,7 +5,6 @@ package backup
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -57,7 +56,7 @@ func (s *Service) ValidationRunner() ValidationRunner {
 // ValidateBackupTaskDecorator gets locations if not specified for validate backup task.
 func (s *Service) ValidateBackupTaskDecorator(schedSvc *scheduler.Service) func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage,
 ) (json.RawMessage, error) {
-	return func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
+	return func(ctx context.Context, clusterID, _ uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
 		// If tasks contains locations return
 		if l := s.ExtractLocations(ctx, []json.RawMessage{properties}); len(l) > 0 {
 			return properties, nil
@@ -202,7 +201,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 			progress.OrphanedBytes = orphanedBytes
 			putProgress()
 		}
-		p.OnDelete = func(total, success int) {
+		p.OnDelete = func(_, success int) {
 			progress.DeletedFiles = success
 			putProgress()
 		}
@@ -285,7 +284,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	if !brokenSnapshots.IsEmpty() {
 		bs := brokenSnapshots.List()
 		sort.Strings(bs)
-		msg = append(msg, fmt.Sprintf("broken snapshots: %s", strings.Join(bs, ", ")))
+		msg = append(msg, "broken snapshots: "+strings.Join(bs, ", "))
 	}
 	if !target.DeleteOrphanedFiles && orphanedFiles > 0 {
 		msg = append(msg, "orphaned files")

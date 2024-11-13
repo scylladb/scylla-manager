@@ -206,7 +206,7 @@ func (m *ManifestContentWithIndex) IndexLength() (n int, err error) {
 		return
 	}
 
-	err = m.ForEachIndexIter(nil, func(fm FilesMeta) {
+	err = m.ForEachIndexIter(nil, func(_ FilesMeta) {
 		n++
 	})
 	return
