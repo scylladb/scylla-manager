@@ -48,7 +48,7 @@ var downloadFilesArgs = struct {
 var downloadFilesCmd = &cobra.Command{
 	Use:   "download-files",
 	Short: "Downloads files from backup location",
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
+	RunE: func(cmd *cobra.Command, _ []string) (err error) {
 		a := downloadFilesArgs
 
 		// Validate action flags

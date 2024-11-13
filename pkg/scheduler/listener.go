@@ -12,8 +12,8 @@ import (
 // Listener specifies pluggable hooks for scheduler events.
 // Parametrized by scheduler key type.
 type Listener[K comparable] interface {
-	OnSchedulerStart(context.Context)
-	OnSchedulerStop(context.Context)
+	OnSchedulerStart(ctx context.Context)
+	OnSchedulerStop(ctx context.Context)
 	OnRunStart(ctx *RunContext[K])
 	OnRunSuccess(ctx *RunContext[K])
 	OnRunStop(ctx *RunContext[K], err error)

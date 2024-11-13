@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager/v3
 
-go 1.21.1
+go 1.23.2
 
 require (
 	github.com/aws/aws-sdk-go v1.35.17

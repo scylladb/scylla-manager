@@ -31,7 +31,7 @@ import (
 )
 
 // ErrHostInvalidResponse is to indicate that one of the root-causes is the invalid response from scylla-server.
-var ErrHostInvalidResponse = fmt.Errorf("invalid response from host")
+var ErrHostInvalidResponse = errors.New("invalid response from host")
 
 // ClusterName returns cluster name.
 func (c *Client) ClusterName(ctx context.Context) (string, error) {
@@ -225,7 +225,7 @@ func (c *Client) HostIDs(ctx context.Context) (map[string]string, error) {
 	}
 
 	v := make(map[string]string, len(resp.Payload))
-	for i := 0; i < len(resp.Payload); i++ {
+	for i := range len(resp.Payload) {
 		v[resp.Payload[i].Key] = resp.Payload[i].Value
 	}
 	return v, nil
@@ -250,7 +250,7 @@ func (c *Client) hosts(ctx context.Context) ([]string, error) {
 	}
 
 	v := make([]string, len(resp.Payload))
-	for i := 0; i < len(resp.Payload); i++ {
+	for i := range len(resp.Payload) {
 		v[i] = resp.Payload[i].Key
 	}
 	return v, nil
@@ -391,7 +391,7 @@ func (c *Client) ShardCount(ctx context.Context, host string) (uint, error) {
 		return 0, errors.Errorf("scylla does not expose %s metric", metricName)
 	}
 
-	shards := len(metrics[metricName].Metric)
+	shards := len(metrics[metricName].GetMetric())
 	if shards == 0 {
 		return 0, errors.New("missing shard count")
 	}
@@ -594,7 +594,7 @@ func (c *Client) Repair(ctx context.Context, keyspace, table, master string, rep
 	if smallTableOpt {
 		p.SmallTableOptimization = pointer.StringPtr("true")
 	} else {
-		p.RangesParallelism = pointer.StringPtr(fmt.Sprint(intensity))
+		p.RangesParallelism = pointer.StringPtr(strconv.Itoa(intensity))
 	}
 	// Single node cluster repair fails with hosts param
 	if len(replicaSet) > 1 {
@@ -674,7 +674,6 @@ func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, e
 	out := make(chan hostError, runtime.NumCPU()+1)
 
 	for _, h := range hosts {
-		h := h
 		go func() {
 			a, err := c.hasActiveRepair(ctx, h)
 			out <- hostError{
@@ -703,7 +702,7 @@ func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, e
 
 func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error) {
 	const wait = 50 * time.Millisecond
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		resp, err := c.scyllaOps.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
 			Context: forceHost(ctx, host),
 		})
@@ -919,12 +918,12 @@ func (c *Client) TotalMemory(ctx context.Context, host string) (int64, error) {
 	}
 
 	var totalMemory int64
-	for _, m := range metrics[metricName].Metric {
+	for _, m := range metrics[metricName].GetMetric() {
 		switch {
-		case m.Counter != nil && m.Counter.Value != nil:
-			totalMemory += int64(*m.Counter.Value)
-		case m.Gauge != nil && m.Gauge.Value != nil:
-			totalMemory += int64(*m.Gauge.Value)
+		case m.GetCounter() != nil:
+			totalMemory += int64(m.GetCounter().GetValue())
+		case m.GetGauge() != nil:
+			totalMemory += int64(m.GetGauge().GetValue())
 		}
 	}
 
@@ -997,7 +996,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 
 		size, err := c.TableDiskSize(ctx, v.Host, v.Keyspace, v.Table)
 		if err != nil {
-			return parallel.Abort(errors.Wrapf(stdErrors.Join(err, ErrHostInvalidResponse), v.Host))
+			return parallel.Abort(fmt.Errorf("%s: %w", v.Host, stdErrors.Join(err, ErrHostInvalidResponse)))
 		}
 		c.logger.Debug(ctx, "Table disk size",
 			"host", v.Host,

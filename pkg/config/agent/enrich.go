@@ -4,8 +4,8 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
@@ -19,7 +19,7 @@ func EnrichConfigFromAPI(ctx context.Context, addr string, c *Config) error {
 	c.Scylla = scyllaConfig
 
 	if c.HTTPS == "" {
-		c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, fmt.Sprint(c.HTTPSPort))
+		c.HTTPS = net.JoinHostPort(c.Scylla.ListenAddress, strconv.Itoa(c.HTTPSPort))
 	}
 
 	return nil

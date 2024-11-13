@@ -3,7 +3,6 @@
 package rclone
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/rclone/rclone/fs"
@@ -81,5 +80,5 @@ func (c *inMemoryConf) Set(section, key, value string) (err error) {
 // UserAgent returns string value that can be used as identifier in client
 // calls to the service providers.
 func UserAgent() string {
-	return fmt.Sprintf("Scylla Manager Agent %s", pkg.Version())
+	return "Scylla Manager Agent " + pkg.Version()
 }

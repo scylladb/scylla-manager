@@ -204,7 +204,7 @@ func (p *progress) AvgUploadBandwidth() float64 {
 
 // ProgressVisitor knows how to iterate over list of RunProgress results.
 type ProgressVisitor interface {
-	ForEach(func(*RunProgress) error) error
+	ForEach(cb func(*RunProgress) error) error
 }
 
 type progressVisitor struct {

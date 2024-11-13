@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -240,7 +241,7 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 			t.Fatal(err)
 		}
 
-		for i := 0; i < rowsCnt; i++ {
+		for i := range rowsCnt {
 			if err := q.Bind(i+startingID, data).Exec(); err != nil {
 				t.Fatal(err)
 			}
@@ -404,7 +405,7 @@ func CreateDynamoDBService(t *testing.T, host string, alternatorPort int, access
 	t.Helper()
 
 	awsCfg := &aws.Config{
-		Endpoint: aws.String("http://" + net.JoinHostPort(host, fmt.Sprint(alternatorPort))),
+		Endpoint: aws.String("http://" + net.JoinHostPort(host, strconv.Itoa(alternatorPort))),
 		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
 			AccessKeyID:     accessKeyID,
 			SecretAccessKey: secretAccessKey,

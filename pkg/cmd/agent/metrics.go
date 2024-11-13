@@ -3,7 +3,7 @@
 package main
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -31,5 +31,5 @@ func (m AgentMetrics) MustRegister() AgentMetrics {
 
 // RecordStatusCode increases counter of "status_code" metric.
 func (m AgentMetrics) RecordStatusCode(method, path string, status int) {
-	m.StatusCode.WithLabelValues(method, path, fmt.Sprint(status)).Inc()
+	m.StatusCode.WithLabelValues(method, path, strconv.Itoa(status)).Inc()
 }

@@ -141,7 +141,6 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 
 	// Test latency of 3 random hosts from each DC.
 	for dc, hosts := range dcs {
-		dc := dc
 		hosts := pickNRandomHosts(3, hosts)
 		size += len(hosts)
 
@@ -165,11 +164,11 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 	}
 
 	// Select the lowest latency for each DC.
-	min := make(map[string]time.Duration, len(dcs))
-	for i := 0; i < size; i++ {
+	minDC := make(map[string]time.Duration, len(dcs))
+	for range size {
 		v := <-out
-		if m, ok := min[v.dc]; !ok || m > v.rtt {
-			min[v.dc] = v.rtt
+		if m, ok := minDC[v.dc]; !ok || m > v.rtt {
+			minDC[v.dc] = v.rtt
 		}
 	}
 
@@ -179,11 +178,11 @@ func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]stri
 		sorted = append(sorted, dc)
 	}
 	sort.Slice(sorted, func(i, j int) bool {
-		return min[sorted[i]] < min[sorted[j]]
+		return minDC[sorted[i]] < minDC[sorted[j]]
 	})
 
 	// All hosts failed...
-	if min[sorted[0]] == math.MaxInt64 {
+	if minDC[sorted[0]] == math.MaxInt64 {
 		return nil, errors.New("could not connect to any node")
 	}
 

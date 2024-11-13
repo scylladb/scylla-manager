@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 
-	RunE: func(cmd *cobra.Command, args []string) (runError error) {
+	RunE: func(cmd *cobra.Command, _ []string) (runError error) {
 		// Print version and return
 		if rootArgs.version {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", pkg.Version())

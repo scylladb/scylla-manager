@@ -25,7 +25,7 @@ var checkLocationArgs = struct {
 var checkLocationCmd = &cobra.Command{
 	Use:   "check-location",
 	Short: "Checks if backup location is accessible",
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
+	RunE: func(cmd *cobra.Command, _ []string) (err error) {
 		defer func() {
 			if err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "FAILED: %v\n", err)
