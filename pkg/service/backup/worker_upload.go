@@ -171,7 +171,7 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		dataSrc      = d.Path
 		retries      = 10
 	)
-	for i := 0; i < retries; i++ {
+	for range retries {
 		if err := w.uploadDataDir(ctx, h, dataDst, dataSrc, d); err != nil {
 			if errors.Is(err, errJobNotFound) {
 				continue

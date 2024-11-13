@@ -23,7 +23,7 @@ func DeleteMatching(c CollectorDeleter, matcher func(*dto.Metric) bool) {
 			continue
 		}
 		if matcher(&data) {
-			toDelete = append(toDelete, makeLabels(data.Label))
+			toDelete = append(toDelete, makeLabels(data.GetLabel()))
 		}
 	}
 
@@ -47,7 +47,7 @@ func setGaugeVecMatching(c *prometheus.GaugeVec, value float64, matcher func(*dt
 			continue
 		}
 		if matcher(&data) {
-			labels = append(labels, makeLabels(data.Label))
+			labels = append(labels, makeLabels(data.GetLabel()))
 		}
 	}
 

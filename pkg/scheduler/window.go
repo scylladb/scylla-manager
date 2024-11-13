@@ -132,7 +132,7 @@ func (s slot) expand() []slot {
 		return []slot{s}
 	}
 	w := make([]slot, 7)
-	for i := 0; i < 7; i++ {
+	for i := range 7 {
 		w[i].Begin.Weekday = time.Weekday(i)
 		w[i].Begin.Time = s.Begin.Time
 		w[i].End.Weekday = time.Weekday(i)
@@ -159,7 +159,7 @@ func NewWindow(wdt ...WeekdayTime) (Window, error) {
 
 	l := len(wdt) / 2
 	w := make(Window, 0, l)
-	for i := 0; i < l; i++ {
+	for i := range l {
 		j := 2 * i
 		s := slot{
 			Begin: wdt[j],

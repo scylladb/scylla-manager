@@ -8,11 +8,11 @@ package rcserver
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -119,7 +119,7 @@ func (s Server) writeJSON(w http.ResponseWriter, out rc.Params) error {
 	if err := json.NewEncoder(buf).Encode(out); err != nil {
 		return err
 	}
-	w.Header().Set("Content-Length", fmt.Sprint(buf.Len()))
+	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
 	_, err := io.Copy(w, buf)
 	return err
 }
@@ -272,7 +272,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fs.Debugf(nil, "rc: %q: reply %+v: %v", path, out, err)
-	w.Header().Add("x-rclone-jobid", fmt.Sprintf("%d", jobID))
+	w.Header().Add("X-Rclone-Jobid", strconv.FormatInt(jobID, 10))
 
 	if err := s.writeJSON(w, out); err != nil {
 		s.writeError(path, in, w, err, http.StatusInternalServerError)

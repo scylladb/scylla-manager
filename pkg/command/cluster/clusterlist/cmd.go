@@ -25,7 +25,7 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 	if err := yaml.Unmarshal(res, &cmd.Command); err != nil {
 		panic(err)
 	}
-	cmd.RunE = func(_ *cobra.Command, args []string) error {
+	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		return cmd.run()
 	}
 	return &cmd.Command

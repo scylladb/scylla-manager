@@ -34,7 +34,7 @@ func newRootCommand(client *managerclient.Client) *cobra.Command {
 		client: client,
 	}
 	cmd.init()
-	cmd.PersistentPreRunE = func(_ *cobra.Command, args []string) error {
+	cmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
 		return cmd.preRun()
 	}
 	return &cmd.Command

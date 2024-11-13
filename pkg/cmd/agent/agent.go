@@ -45,7 +45,7 @@ func newAgentHandler(c agent.Config, rclone http.Handler, logger log.Logger) *ch
 		}
 	})
 	m.Post("/terminate", selfSigterm())
-	m.Post("/free_os_memory", func(writer http.ResponseWriter, request *http.Request) {
+	m.Post("/free_os_memory", func(_ http.ResponseWriter, _ *http.Request) {
 		debug.FreeOSMemory()
 	})
 

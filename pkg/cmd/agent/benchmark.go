@@ -37,7 +37,7 @@ var benchmarkArgs = struct {
 var benchmarkCmd = &cobra.Command{
 	Use:   "benchmark",
 	Short: "Executes benchmark scenarios, copies all files in each scenario directory to the location",
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
+	RunE: func(cmd *cobra.Command, _ []string) (err error) {
 		ctx := context.Background()
 		defer func() {
 			if err != nil {
@@ -172,7 +172,7 @@ var defaultScenario = []struct {
 var createScenarioCmd = &cobra.Command{
 	Use:   "create-scenario",
 	Short: "Adds files of specified size to a scenario directory",
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
+	RunE: func(cmd *cobra.Command, _ []string) (err error) {
 		defer func() {
 			if err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "FAILED: %v\n", err)

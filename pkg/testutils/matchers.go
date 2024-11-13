@@ -3,8 +3,6 @@
 package testutils
 
 import (
-	"fmt"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -29,5 +27,5 @@ func (m UUIDMatcher) Matches(v interface{}) bool {
 }
 
 func (m *UUIDMatcher) String() string {
-	return fmt.Sprintf("is equal to: %s", m.expected.String())
+	return "is equal to: " + m.expected.String()
 }

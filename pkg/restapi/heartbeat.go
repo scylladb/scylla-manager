@@ -6,7 +6,7 @@ import "net/http"
 
 // Heartbeat responds with status 204.
 func Heartbeat() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

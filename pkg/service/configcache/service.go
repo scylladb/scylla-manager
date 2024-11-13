@@ -136,7 +136,7 @@ func (svc *Service) AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]
 	}
 
 	var availableHosts []string
-	clusterConfig.Range(func(key, value any) bool {
+	clusterConfig.Range(func(key, _ any) bool {
 		host, ok := key.(string)
 		if !ok {
 			logger.Error(ctx, "Cannot cast to string", "host", key, "error", err)
@@ -172,7 +172,6 @@ func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
 	for _, host := range client.Config().Hosts {
 		hostsWg.Add(1)
 
-		host := host
 		perHostLogger := logger.Named("Cluster host config update").With("host", host)
 		go func() {
 			defer hostsWg.Done()
@@ -200,7 +199,6 @@ func (svc *Service) updateAll(ctx context.Context) {
 
 	clustersWg := sync.WaitGroup{}
 	for _, c := range clusters {
-		c := c
 		clustersWg.Add(1)
 		go func() {
 			defer clustersWg.Done()

@@ -1,12 +1,6 @@
 run:
-  deadline: 5m
+  timeout: 5m
   tests: false
-  skip-files:
-    - _gen\.go$
-    - _string\.go$
-    - mock_.*\.go$
-    - pkg/managerclient/sizesuffix.go
-  silent: true
 
 linters-settings:
   errcheck:
@@ -28,7 +22,6 @@ linters-settings:
       - regexpSimplify
       - yodaStyleExpr
       - whyNoLint
-      - timeCmpSimplify
   lll:
     line-length: 180
   nestif:
@@ -39,44 +32,42 @@ linters:
   disable:
     - depguard
     - tagalign
-    - deadcode
-    - varcheck
-    - structcheck
     - interfacebloat
-    - nosnakecase
     - gci
     - contextcheck
     - cyclop
     - durationcheck
     - exhaustive
-    - exhaustivestruct
     - exhaustruct
     - forbidigo
     - forcetypeassert
     - funlen
-    - gas
+    - gosec
     - gochecknoglobals
     - gochecknoinits
-    - goerr113
-    - golint
+    - err113
     - gomnd
-    - ifshort
-    - interfacer
     - ireturn
-    - maligned
     - nilerr
     - nlreturn
     - nolintlint
     - nonamedreturns
     - prealloc
     - promlinter
-    - scopelint
     - tagliatelle
     - varnamelen
     - wrapcheck
     - wsl
+    - exportloopref
+    - execinquery
+    - mnd
 
 issues:
+  exclude-files:
+    - _gen\.go$
+    - _string\.go$
+    - mock_.*\.go$
+    - pkg/managerclient/sizesuffix.go
   exclude-use-default: false
   exclude:
     - a blank import should be only in a main or test package, or have a comment justifying it
@@ -125,5 +116,7 @@ issues:
     - string `string` has [\d]+ occurrences, make it a constant
     - Function name[:] .+, Cyclomatic Complexity
   exclude-rules:
+    - path: v3/pkg/managerclient|pkg/command|pkg/cmd
+      text: Error return value of `fmt.Fprintf?(ln)?` is not checked
     - path: pkg/scheduler/activation\.go
       text: receiver-naming[:] receiver name .+ should be consistent with previous receiver name .+ for invalid-type

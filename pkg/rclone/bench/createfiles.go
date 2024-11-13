@@ -19,7 +19,7 @@ func CreateFiles(dir string, sizeMB, fileCount int) error {
 		return err
 	}
 
-	for i := 0; i < fileCount; i++ {
+	for i := range fileCount {
 		if err := createFileIfNotExist(size, path.Join(dir, fmt.Sprintf("%s_%d", filePrefix, i))); err != nil {
 			return err
 		}

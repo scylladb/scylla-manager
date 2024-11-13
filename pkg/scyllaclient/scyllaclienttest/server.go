@@ -97,7 +97,7 @@ func statusCodeFromFile(file string) (statusCode int) {
 func RespondStatus(t *testing.T, statusCodes ...int) http.Handler {
 	t.Helper()
 	calls := atomic.NewInt32(-1)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		idx := int(calls.Inc())
 		if idx >= len(statusCodes) {
 			t.Fatal("Too many requests statusCodes out of range")
