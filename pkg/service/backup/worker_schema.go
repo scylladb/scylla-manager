@@ -36,16 +36,16 @@ func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc clus
 	}
 
 	if len(descSchemaHosts) > 0 {
-		return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc, method == scyllaclient.SafeDescribeMethodReadBarierAPI)
+		return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc, method)
 	}
 	w.unsafeBackupAndRestoreSchemaDump(ctx, sessionFunc)
 	return nil
 }
 
-func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc, useReadBarierAPI bool) error {
+func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc, method scyllaclient.SafeDescribeMethod) error {
 	w.Logger.Info(ctx, "Back up schema from DESCRIBE SCHEMA WITH INTERNALS")
 
-	session, err := w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
+	session, host, err := w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
 	if err != nil {
 		if errors.Is(err, cluster.ErrNoCQLCredentials) {
 			err = errors.Wrapf(err, "CQL credentials are required to back up schema for this ScyllaDB version")
@@ -54,7 +54,7 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	}
 	defer session.Close()
 
-	if err := w.raftReadBarier(ctx, session, useReadBarierAPI); err != nil {
+	if err := w.raftReadBarrier(ctx, session, host, method); err != nil {
 		return errors.Wrap(err, "perform raft read barrier on desc schema host")
 	}
 
@@ -72,11 +72,14 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	return nil
 }
 
-func (w *worker) raftReadBarier(ctx context.Context, session gocqlx.Session, useReadBarierAPI bool) error {
-	if useReadBarierAPI {
-		return w.Client.RaftReadBarier(ctx, "", 0)
+func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, host string, method scyllaclient.SafeDescribeMethod) error {
+	switch method {
+	case scyllaclient.SafeDescribeMethodReadBarrierAPI:
+		return w.Client.RaftReadBarrier(ctx, host, "")
+	case scyllaclient.SafeDescribeMethodReadBarrierCQL:
+		return query.RaftReadBarrier(session)
 	}
-	return query.RaftReadBarrier(session)
+	return errors.Errorf("unsupported method: %s", string(method))
 }
 
 func (w *worker) unsafeBackupAndRestoreSchemaDump(ctx context.Context, sessionFunc cluster.SessionFunc) {
@@ -135,7 +138,7 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 	return hostsInParallel(hostPerLocation, parallel.NoLimit, f, notify)
 }
 
-func (w *worker) createSingleHostSessionToAnyHost(ctx context.Context, hosts []string, sessionFunc cluster.SessionFunc) (gocqlx.Session, error) {
+func (w *worker) createSingleHostSessionToAnyHost(ctx context.Context, hosts []string, sessionFunc cluster.SessionFunc) (session gocqlx.Session, host string, err error) {
 	var retErr error
 	for _, h := range hosts {
 		session, err := sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(h))
@@ -143,10 +146,10 @@ func (w *worker) createSingleHostSessionToAnyHost(ctx context.Context, hosts []s
 			w.Logger.Error(ctx, "Couldn't connect to host via CQL", "host", h, "error", err)
 			retErr = err
 		} else {
-			return session, nil
+			return session, h, nil
 		}
 	}
-	return gocqlx.Session{}, errors.Wrap(retErr, "no host that can be accessed via CQL (more info in the logs)")
+	return gocqlx.Session{}, "", errors.Wrap(retErr, "no host that can be accessed via CQL (more info in the logs)")
 }
 
 func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error) {
@@ -190,11 +193,7 @@ func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclie
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if _, ok := hostsByMethod[method]; !ok {
-				hostsByMethod[method] = []string{h}
-			} else {
-				hostsByMethod[method] = append(hostsByMethod[method], h)
-			}
+			hostsByMethod[method] = append(hostsByMethod[method], h)
 			return nil
 		})
 	}
@@ -204,8 +203,8 @@ func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclie
 
 	// Supported methods in priority order - from high to low
 	methods := []scyllaclient.SafeDescribeMethod{
-		scyllaclient.SafeDescribeMethodReadBarierAPI,
-		scyllaclient.SafeDescribeMethodReadBarierCQL,
+		scyllaclient.SafeDescribeMethodReadBarrierAPI,
+		scyllaclient.SafeDescribeMethodReadBarrierCQL,
 	}
 	for _, m := range methods {
 		outHosts, ok := hostsByMethod[m]

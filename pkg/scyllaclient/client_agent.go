@@ -214,10 +214,10 @@ func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
 type SafeDescribeMethod string
 
 var (
-	// SafeDescribeMethodReadBarierAPI shows when scylla read barier api can be used.
-	SafeDescribeMethodReadBarierAPI SafeDescribeMethod = "read_barier_api"
-	// SafeDescribeMethodReadBarierCQL shows when scylla csq read barier can be used.
-	SafeDescribeMethodReadBarierCQL SafeDescribeMethod = "read_barier_cql"
+	// SafeDescribeMethodReadBarrierAPI shows when scylla read barrier api can be used.
+	SafeDescribeMethodReadBarrierAPI SafeDescribeMethod = "read_barrier_api"
+	// SafeDescribeMethodReadBarrierCQL shows when scylla csq read barrier can be used.
+	SafeDescribeMethodReadBarrierCQL SafeDescribeMethod = "read_barrier_cql"
 )
 
 // SupportsSafeDescribeSchemaWithInternals returns not empty SafeDescribeMethod if the output of DESCRIBE SCHEMA WITH INTERNALS
@@ -225,7 +225,7 @@ var (
 func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMethod, error) {
 	// Detect master builds
 	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return SafeDescribeMethodReadBarierAPI, nil
+		return SafeDescribeMethodReadBarrierAPI, nil
 	}
 
 	type featureByVersion struct {
@@ -234,9 +234,9 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	}
 
 	for _, fv := range []featureByVersion{
-		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarierAPI},
-		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarierAPI},
-		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarierCQL},
+		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarrierAPI},
+		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierAPI},
+		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarrierCQL},
 	} {
 		supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, fv.Constraint)
 		if err != nil {
