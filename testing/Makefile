@@ -62,8 +62,15 @@ up:
 	@echo "==> Generating encryption files"
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
+
+ifeq ($(SSL_ENABLED),true)
+	@cp scylla/config/scylla-ssl.yaml scylla/scylla.yaml
+	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
+else 
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
+endif
+
 ifeq ($(RAFT_SCHEMA),enabled)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' true
 endif
@@ -108,6 +115,9 @@ endif
 	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 
 	@./nodes_exec "rm /root/.cqlshrc || true"
+	@./nodes_exec "mkdir -p /root/.cassandra" 
+	@./nodes_cp "scylla/cqlshrc" "/root/.cassandra/cqlshrc"
+
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh || true
 	@echo "==> Initialising cluster"

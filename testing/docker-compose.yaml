@@ -12,9 +12,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -32,9 +29,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -52,9 +46,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs/
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -72,9 +63,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -92,9 +80,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -112,9 +97,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -132,9 +114,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:
@@ -152,9 +131,6 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
-      - type: bind
-        source: ./scylla/cqlshrc
-        target: /root/.cassandra/cqlshrc
     networks:
       public:
       second:

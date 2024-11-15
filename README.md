@@ -81,6 +81,11 @@ for IPv6 environment:
 IPV6=true make start-dev-env
 ```
 
+for SSL scylla cluster:
+```bash
+SSL_ENABLED=true make start-dev-env
+```
+
 This command will:
 1. Build custom Scylla Docker image (testing/scylla)
 2. Compile server, agent and sctool binaries
