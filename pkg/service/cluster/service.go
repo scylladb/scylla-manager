@@ -617,9 +617,12 @@ func SingleHostSessionConfigOption(host string) SessionConfigOption {
 			return errors.Wrapf(err, "fetch node (%s) info", host)
 		}
 		cqlAddr := ni.CQLAddr(host)
+		if ni.ClientEncryptionEnabled {
+			cqlAddr = ni.CQLSSLAddr(host)
+		}
 		cfg.Hosts = []string{cqlAddr}
-		cfg.HostFilter = gocql.WhiteListHostFilter(cqlAddr)
 		cfg.DisableInitialHostLookup = true
+		cfg.HostFilter = gocql.WhiteListHostFilter(cqlAddr)
 		return nil
 	}
 }
@@ -643,9 +646,14 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID, opts ...S
 			return session, err
 		}
 	}
-	// Fill hosts if they weren't specified by the options
+
+	clusterInfo, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return session, errors.Wrap(err, "cluster by id")
+	}
+	// Fill hosts if they weren't specified by the options or make sure that they use correct rpc address.
 	if len(cfg.Hosts) == 0 {
-		sessionHosts, err := GetRPCAddresses(ctx, client, client.Config().Hosts)
+		sessionHosts, err := GetRPCAddresses(ctx, client, client.Config().Hosts, clusterInfo.ForceTLSDisabled || clusterInfo.ForceNonSSLSessionPort)
 		if err != nil {
 			s.logger.Info(ctx, "Gets session", "err", err)
 			if errors.Is(err, ErrNoRPCAddressesFound) {
@@ -662,7 +670,7 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID, opts ...S
 	if err := s.extendClusterConfigWithAuthentication(clusterID, ni, cfg); err != nil {
 		return session, err
 	}
-	if err := s.extendClusterConfigWithTLS(ctx, clusterID, ni, cfg); err != nil {
+	if err := s.extendClusterConfigWithTLS(clusterInfo, ni, cfg); err != nil {
 		return session, err
 	}
 
@@ -695,24 +703,15 @@ func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni 
 	return nil
 }
 
-func (s *Service) extendClusterConfigWithTLS(ctx context.Context, clusterID uuid.UUID, ni *scyllaclient.NodeInfo, cfg *gocql.ClusterConfig) error {
-	cluster, err := s.GetClusterByID(ctx, clusterID)
-	if err != nil {
-		return errors.Wrap(err, "get cluster by id")
-	}
-
-	cqlPort := ni.CQLPort()
+func (s *Service) extendClusterConfigWithTLS(cluster *Cluster, ni *scyllaclient.NodeInfo, cfg *gocql.ClusterConfig) error {
 	if ni.ClientEncryptionEnabled && !cluster.ForceTLSDisabled {
-		if !cluster.ForceNonSSLSessionPort {
-			cqlPort = ni.CQLSSLPort()
-		}
 		cfg.SslOpts = &gocql.SslOptions{
 			Config: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 		}
 		if ni.ClientEncryptionRequireAuth {
-			keyPair, err := s.loadTLSIdentity(clusterID)
+			keyPair, err := s.loadTLSIdentity(cluster.ID)
 			if err != nil {
 				return err
 			}
@@ -720,11 +719,6 @@ func (s *Service) extendClusterConfigWithTLS(ctx context.Context, clusterID uuid
 		}
 	}
 
-	p, err := strconv.Atoi(cqlPort)
-	if err != nil {
-		return errors.Wrap(err, "parse cql port")
-	}
-	cfg.Port = p
 	return nil
 }
 
@@ -770,7 +764,7 @@ var ErrNoRPCAddressesFound = errors.New("no RPC addresses found")
 // GetRPCAddresses accepts client and hosts parameters that are used later on to query client.NodeInfo endpoint
 // returning RPC addresses for given hosts.
 // RPC addresses are the ones that scylla uses to accept CQL connections.
-func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, error) {
+func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []string, clusterSSLDisabled bool) ([]string, error) {
 	var sessionHosts []string
 	var combinedError error
 	for _, h := range hosts {
@@ -779,7 +773,11 @@ func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []s
 			combinedError = multierr.Append(combinedError, err)
 			continue
 		}
-		sessionHosts = append(sessionHosts, ni.CQLAddr(h))
+		addr := ni.CQLAddr(h)
+		if ni.ClientEncryptionEnabled && !clusterSSLDisabled {
+			addr = ni.CQLSSLAddr(h)
+		}
+		sessionHosts = append(sessionHosts, addr)
 	}
 
 	if len(sessionHosts) == 0 {

@@ -1737,7 +1737,7 @@ func (h *restoreTestHelper) restartScylla() {
 		b := backoff.WithContext(backoff.WithMaxRetries(
 			backoff.NewConstantBackOff(500*time.Millisecond), 10), ctx)
 		if err := backoff.Retry(func() error {
-			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host})
+			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host}, false)
 			return err
 		}, b); err != nil {
 			h.T.Fatal(err)

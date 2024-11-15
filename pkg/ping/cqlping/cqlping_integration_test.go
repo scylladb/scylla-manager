@@ -8,9 +8,10 @@ package cqlping
 import (
 	"context"
 	"crypto/tls"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"testing"
 	"time"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
@@ -24,7 +25,7 @@ func TestPingIntegration(t *testing.T) {
 	client := newTestClient(t, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), nil)
 	defer client.Close()
 
-	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{testconfig.ManagedClusterHost()})
+	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{testconfig.ManagedClusterHost()}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
