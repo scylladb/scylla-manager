@@ -130,3 +130,9 @@ replace (
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e
 	google.golang.org/api v0.114.0 => github.com/scylladb/google-api-go-client v0.34.1-patched
 )
+
+replace (
+	github.com/scylladb/scylla-manager/v3/pkg/managerclient => ./v3/pkg/managerclient
+	github.com/scylladb/scylla-manager/v3/pkg/util => ./v3/pkg/util
+	github.com/scylladb/scylla-manager/v3/swagger => ./v3/swagger
+)

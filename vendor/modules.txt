@@ -395,12 +395,12 @@ github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
-# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241104134613-aba35605c28b => ./v3/pkg/managerclient
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/managerclient
 github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241104134613-aba35605c28b => ./v3/pkg/util
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
 github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil
@@ -431,8 +431,8 @@ github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid
 github.com/scylladb/scylla-manager/v3/pkg/util/version
 github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
-# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241112131737-4fc93b5355fd
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241112131737-4fc93b5355fd => ./v3/swagger
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models
@@ -759,3 +759,6 @@ gopkg.in/yaml.v2
 gopkg.in/yaml.v3
 # github.com/gocql/gocql => github.com/scylladb/gocql v1.12.0
 # github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient => ./v3/pkg/managerclient
+# github.com/scylladb/scylla-manager/v3/pkg/util => ./v3/pkg/util
+# github.com/scylladb/scylla-manager/v3/swagger => ./v3/swagger

@@ -51,3 +51,8 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace (
+	github.com/scylladb/scylla-manager/v3/pkg/util => ../util
+	github.com/scylladb/scylla-manager/v3/swagger => ../../swagger
+)
