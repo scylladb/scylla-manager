@@ -1134,6 +1134,31 @@ func (c *Client) ControlTabletLoadBalancing(ctx context.Context, enabled bool) e
 	return err
 }
 
+// raftReadBarrierTimeout reflects a default timeout defined on the scylla side
+// so we can align scyllclient timeout with it.
+const raftReadBarrierTimeout = 60 * time.Second
+
+// RaftReadBarrier triggers read barrier for the given Raft group to wait for previously committed commands in this group to be applied locally.
+// For example, can be used on group 0 (default, when group is not provided) to wait for the node to obtain latest schema changes.
+func (c *Client) RaftReadBarrier(ctx context.Context, host, groupID string) error {
+	ctx = forceHost(ctx, host)
+	ctx = customTimeout(ctx, raftReadBarrierTimeout)
+
+	params := operations.RaftReadBarrierPostParams{
+		Context: ctx,
+	}
+
+	if groupID != "" {
+		params.SetGroupID(&groupID)
+	}
+
+	_, err := c.scyllaOps.RaftReadBarrierPost(&params)
+	if err != nil {
+		return fmt.Errorf("RaftReadBarrierPost: %w", err)
+	}
+	return nil
+}
+
 // ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
 // ToCanonicalIP("192.168.0.1") -> "192.168.0.1"
 // ToCanonicalIP("100:200:0:0:0:0:0:1") -> "100:200::1".

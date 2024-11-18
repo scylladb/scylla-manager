@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -352,5 +353,70 @@ func TestNodeInfoSupportsRepairSmallTableOptimization(t *testing.T) {
 		if result != tc.expected {
 			t.Fatalf("expected {%v}, but got {%v}, version = {%s}", tc.expected, result, tc.scyllaVer)
 		}
+	}
+}
+
+func TestSupportsSafeDescribeSchemaWithInternals(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		scyllaVersion  string
+		expectedMethod scyllaclient.SafeDescribeMethod
+		expectedError  error
+	}{
+		{
+			name:           "when scylla >= 6.1, then it is expected to support read barrier api",
+			scyllaVersion:  "6.2.1-candidate-20241106103631",
+			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierAPI,
+			expectedError:  nil,
+		},
+		{
+			name:           "when scylla >= 2024.2, then it is expected to support read barrier api",
+			scyllaVersion:  "2024.2",
+			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierAPI,
+			expectedError:  nil,
+		},
+		{
+			name:           "when scylla >= 6.0, then it is expected to support read barrier cql",
+			scyllaVersion:  "6.0.1",
+			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierCQL,
+			expectedError:  nil,
+		},
+		{
+			name:           "when scylla < 6.0, then it is expected to not support any safe method",
+			scyllaVersion:  "5.9.9",
+			expectedMethod: "",
+			expectedError:  nil,
+		},
+		{
+			name:           "when scylla < 2024.2, then it is expected to not support any safe method",
+			scyllaVersion:  "2024.1",
+			expectedMethod: "",
+			expectedError:  nil,
+		},
+		{
+			name:           "when scylla version is not a semver, then it is expected to return an error",
+			scyllaVersion:  "main",
+			expectedMethod: "",
+			expectedError:  errors.New("Unsupported Scylla version: main"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ni := scyllaclient.NodeInfo{ScyllaVersion: tc.scyllaVersion}
+			method, err := ni.SupportsSafeDescribeSchemaWithInternals()
+			if err != nil && tc.expectedError == nil {
+				t.Fatalf("unexpected err - %v", err)
+			}
+			if tc.expectedError != nil && err.Error() != tc.expectedError.Error() {
+				t.Fatalf("actual err != expected err, '%s' != '%s'", err.Error(), tc.expectedError.Error())
+			}
+
+			if method != tc.expectedMethod {
+				t.Fatalf("actual method != expected method, %s != %s", method, tc.expectedMethod)
+			}
+		})
 	}
 }
