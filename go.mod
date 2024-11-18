@@ -31,7 +31,7 @@ require (
 	github.com/scylladb/gocqlx/v2 v2.8.0
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241104134613-aba35605c28b
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241104134613-aba35605c28b
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241104134613-aba35605c28b
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241112131737-4fc93b5355fd
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stoewer/go-strcase v1.3.0
@@ -39,10 +39,10 @@ require (
 	go.uber.org/goleak v1.1.11
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.26.0
-	golang.org/x/mod v0.20.0
-	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.24.0
+	golang.org/x/crypto v0.29.0
+	golang.org/x/mod v0.22.0
+	golang.org/x/sync v0.9.0
+	golang.org/x/sys v0.27.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -110,12 +110,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/config v1.4.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/term v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/term v0.26.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.24.0 // indirect
+	golang.org/x/tools v0.27.0 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
