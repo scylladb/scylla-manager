@@ -62,12 +62,15 @@ up:
 	@echo "==> Generating encryption files"
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
+	@cp scylla/config/scylla.yaml scylla/scylla.yaml
 
 ifeq ($(SSL_ENABLED),true)
-	@cp scylla/config/scylla-ssl.yaml scylla/scylla.yaml
+	# disable non-ssl port
+	@$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
+	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
+	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
 else 
-	@cp scylla/config/scylla.yaml scylla/scylla.yaml
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 
