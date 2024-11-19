@@ -189,9 +189,12 @@ type RunProgress struct {
 	Table            string   `db:"table_name"`
 	SSTableID        []string `db:"sstable_id"`
 
-	Host       string // IP of the node to which SSTables are downloaded.
-	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
-	AgentJobID int64
+	Host     string // IP of the node to which SSTables are downloaded.
+	ShardCnt int64  // Host shard count used for bandwidth per shard calculation.
+	// Downloading SSTables could be done via either Rclone API or Scylla API.
+	// In case of Scylla API, it also streams the sstables into the cluster.
+	AgentJobID   int64
+	ScyllaTaskID string
 
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time

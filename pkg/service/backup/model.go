@@ -129,13 +129,15 @@ type RunProgress struct {
 	Unit      int64
 	TableName string
 
-	AgentJobID  int64
-	StartedAt   *time.Time
-	CompletedAt *time.Time
-	Error       string
-	Size        int64 // Total file size in bytes.
-	Uploaded    int64 // Amount of total uploaded bytes.
-	Skipped     int64 // Amount of skipped bytes because file was present.
+	// Uploading SSTables could be done via either Rclone API or Scylla API.
+	AgentJobID   int64
+	ScyllaTaskID string
+	StartedAt    *time.Time
+	CompletedAt  *time.Time
+	Error        string
+	Size         int64 // Total file size in bytes.
+	Uploaded     int64 // Amount of total uploaded bytes.
+	Skipped      int64 // Amount of skipped bytes because file was present.
 	// Amount of bytes that have been uploaded but due to error have to be
 	// uploaded again.
 	Failed int64
