@@ -40,7 +40,7 @@ fmt: ## Format source code
 
 .PHONY: check
 check: ## Perform static code analysis
-check: .check-go-version .check-copyright .check-comments \
+check: build .check-go-version .check-copyright .check-comments \
 .check-log-capital-letter .check-timeutc .check-lint .check-vendor
 
 .PHONY: .check-go-version
