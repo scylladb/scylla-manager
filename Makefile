@@ -16,6 +16,10 @@ GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
 GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .TestGoFiles}}{{ $$.Dir }}/{{ . }} {{end}}' $(PKG)
 
+# DO NOT CHANGE IT
+# ENV=prod means that go.work is not taken into the account when building the project.
+ENV ?= prod
+
 SCYLLA_VERSION?=scylla:6.0.1
 IP_FAMILY?=IPV4
 RAFT_SCHEMA?=none
@@ -166,7 +170,7 @@ pkg-stress-test:
 	@cd $(PKG); $(GOBIN)/stress $(PWD)/stress.test -test.run $(RUN)
 
 .PHONY: start-dev-env
-start-dev-env: ## Start testing containers
+start-dev-env: GOWORK=off## Start testing containers
 start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
@@ -179,8 +183,12 @@ dev-env-status:  ## Checks status of docker containers and cluster nodes
 
 .PHONY: build-agent
 build-agent: ## Build development agent binary
-	@echo "==> Building agent"
-	@CGO_ENABLED=0 GOOS=linux go build -trimpath -mod=vendor -o ./scylla-manager-agent.dev ./pkg/cmd/agent
+	@echo "==> Building agent with ENV=$(ENV)"
+	@if [ "$(ENV)" = "prod" ]; then \
+	    CGO_ENABLED=0 GOOS=linux GOWORK=off go build -trimpath -mod=vendor -o ./scylla-manager-agent.dev ./pkg/cmd/agent  || { echo "Build failed"; exit 1; }; \
+	else \
+	    CGO_ENABLED=0 GOOS=linux go build -trimpath -o ./scylla-manager-agent.dev ./pkg/cmd/agent  || { echo "Build failed"; exit 1; }; \
+	fi
 
 .PHONY: deploy-agent
 deploy-agent: build-agent ## Deploy it to testing containers
@@ -191,13 +199,21 @@ deploy-agent: build-agent ## Deploy it to testing containers
 build-cli: ## Build development cli binary
 build-cli: OUTPUT=./sctool.dev
 build-cli:
-	@echo "==> Building sctool"
-	@go build -trimpath -mod=vendor -o $(OUTPUT) ./pkg/cmd/sctool
+	@echo "==> Building sctool with ENV=$(ENV)"
+	@if [ "$(ENV)" = "prod" ]; then \
+	    GOWORK=off go build -trimpath -mod=vendor -o $(OUTPUT) ./pkg/cmd/sctool || { echo "Build failed"; exit 1; }; \
+	else \
+	    go build -trimpath -o $(OUTPUT) ./pkg/cmd/sctool  || { echo "Build failed"; exit 1; }; \
+	fi
 
 .PHONY: build-server
 build-server: ## Build development server
-	@echo "==> Building scylla-manager"
-	@CGO_ENABLED=0 GOOS=linux go build -trimpath -mod=vendor -o ./scylla-manager.dev ./pkg/cmd/scylla-manager
+	@echo "==> Building scylla-manager with ENV=$(ENV)"
+	@if [ "$(ENV)" = "prod" ]; then \
+	    CGO_ENABLED=0 GOOS=linux GOWORK=off go build -trimpath -mod=vendor -o ./scylla-manager.dev ./pkg/cmd/scylla-manager || { echo "Build failed"; exit 1; }; \
+	else \
+	    CGO_ENABLED=0 GOOS=linux go build -trimpath -o ./scylla-manager.dev ./pkg/cmd/scylla-manager || { echo "Build failed"; exit 1; }; \
+	fi
 
 .PHONY: clean-server
 clean-server: ## Remove development server container

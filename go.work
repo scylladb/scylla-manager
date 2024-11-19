@@ -1,0 +1,8 @@
+go 1.21.1
+
+use (
+	.
+	./v3/pkg/managerclient
+	./v3/pkg/util
+	./v3/swagger
+)

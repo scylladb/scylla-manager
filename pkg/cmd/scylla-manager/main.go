@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"syscall"
 	"time"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 )
 
 func main() {
+	util.Panic()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(rootCmd.OutOrStderr(), "\nSTARTUP ERROR: %s\n\n", err)
 
