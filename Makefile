@@ -170,7 +170,7 @@ pkg-stress-test:
 	@cd $(PKG); $(GOBIN)/stress $(PWD)/stress.test -test.run $(RUN)
 
 .PHONY: start-dev-env
-start-dev-env: GOWORK=off## Start testing containers
+start-dev-env: ## Start testing containers
 start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
