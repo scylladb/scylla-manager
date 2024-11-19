@@ -1231,7 +1231,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			}
 
 			cfg := cqlping.Config{
-				Addr:    ni.CQLAddr(ignored),
+				Addr:    ni.CQLAddr(ignored, false),
 				Timeout: time.Minute,
 			}
 

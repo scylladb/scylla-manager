@@ -17,9 +17,10 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
-		Name          string
-		NodeInfo      *scyllaclient.NodeInfo
-		GoldenAddress string
+		Name              string
+		NodeInfo          *scyllaclient.NodeInfo
+		ClusterDisableSSL bool
+		GoldenAddress     string
 	}{
 		{
 			Name: "Broadcast RPC address is set",
@@ -29,7 +30,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				ListenAddress:       "1.2.3.6",
 				NativeTransportPort: "1234",
 			},
-			GoldenAddress: "1.2.3.4:1234",
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.4:1234",
 		},
 		{
 			Name: "RPC address is set",
@@ -38,7 +40,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				RPCAddress:          "1.2.3.5",
 				ListenAddress:       "1.2.3.6",
 			},
-			GoldenAddress: "1.2.3.5:1234",
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.5:1234",
 		},
 		{
 			Name: "Listen Address is set",
@@ -46,7 +49,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				NativeTransportPort: "1234",
 				ListenAddress:       "1.2.3.6",
 			},
-			GoldenAddress: "1.2.3.6:1234",
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.6:1234",
 		},
 		{
 			Name: "Fallback is returned when RPC Address is IPv4 zero",
@@ -54,7 +58,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				NativeTransportPort: "1234",
 				RPCAddress:          "0.0.0.0",
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 		{
 			Name: "Fallback is returned when RPC Address is IPv6 zero",
@@ -62,7 +67,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				NativeTransportPort: "1234",
 				RPCAddress:          "::0",
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 		{
 			Name: "Fallback is returned when Listen Address is IPv4 zero",
@@ -70,7 +76,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				NativeTransportPort: "1234",
 				ListenAddress:       "0.0.0.0",
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 		{
 			Name: "Fallback is returned when Listen Address is IPv6 zero",
@@ -78,7 +85,8 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 				NativeTransportPort: "1234",
 				ListenAddress:       "::0",
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 	}
 
@@ -87,7 +95,7 @@ func TestNodeInfoCQLAddr(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			addr := test.NodeInfo.CQLAddr(fallback)
+			addr := test.NodeInfo.CQLAddr(fallback, test.ClusterDisableSSL)
 			if addr != test.GoldenAddress {
 				t.Errorf("expected %s address, got %s", test.GoldenAddress, addr)
 			}
@@ -99,68 +107,105 @@ func TestNodeInfoCQLSSLAddr(t *testing.T) {
 	t.Parallel()
 
 	table := []struct {
-		Name          string
-		NodeInfo      *scyllaclient.NodeInfo
-		GoldenAddress string
+		Name              string
+		NodeInfo          *scyllaclient.NodeInfo
+		ClusterDisableSSL bool
+		GoldenAddress     string
 	}{
 		{
 			Name: "Broadcast RPC address is set",
 			NodeInfo: &scyllaclient.NodeInfo{
-				BroadcastRPCAddress:    "1.2.3.4",
-				RPCAddress:             "1.2.3.5",
-				ListenAddress:          "1.2.3.6",
-				NativeTransportPortSsl: "1234",
+				BroadcastRPCAddress:     "1.2.3.4",
+				RPCAddress:              "1.2.3.5",
+				ListenAddress:           "1.2.3.6",
+				NativeTransportPortSsl:  "1234",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: "1.2.3.4:1234",
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.4:1234",
 		},
 		{
 			Name: "RPC address is set",
 			NodeInfo: &scyllaclient.NodeInfo{
-				NativeTransportPortSsl: "1234",
-				RPCAddress:             "1.2.3.5",
-				ListenAddress:          "1.2.3.6",
+				NativeTransportPortSsl:  "1234",
+				RPCAddress:              "1.2.3.5",
+				ListenAddress:           "1.2.3.6",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: "1.2.3.5:1234",
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.5:1234",
 		},
 		{
 			Name: "Listen Address is set",
 			NodeInfo: &scyllaclient.NodeInfo{
-				NativeTransportPortSsl: "1234",
-				ListenAddress:          "1.2.3.6",
+				NativeTransportPortSsl:  "1234",
+				ListenAddress:           "1.2.3.6",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: "1.2.3.6:1234",
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.6:1234",
 		},
 		{
 			Name: "Fallback is returned when RPC Address is IPv4 zero",
 			NodeInfo: &scyllaclient.NodeInfo{
-				NativeTransportPortSsl: "1234",
-				RPCAddress:             "0.0.0.0",
+				NativeTransportPortSsl:  "1234",
+				RPCAddress:              "0.0.0.0",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 		{
 			Name: "Fallback is returned when RPC Address is IPv6 zero",
 			NodeInfo: &scyllaclient.NodeInfo{
-				NativeTransportPortSsl: "1234",
-				RPCAddress:             "::0",
+				NativeTransportPortSsl:  "1234",
+				RPCAddress:              "::0",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 		{
 			Name: "Fallback is returned when Listen Address is IPv4 zero",
 			NodeInfo: &scyllaclient.NodeInfo{
-				NativeTransportPortSsl: "1234",
-				ListenAddress:          "0.0.0.0",
+				NativeTransportPortSsl:  "1234",
+				ListenAddress:           "0.0.0.0",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
 		},
 		{
 			Name: "Fallback is returned when Listen Address is IPv6 zero",
 			NodeInfo: &scyllaclient.NodeInfo{
-				NativeTransportPortSsl: "1234",
-				ListenAddress:          "::0",
+				NativeTransportPortSsl:  "1234",
+				ListenAddress:           "::0",
+				ClientEncryptionEnabled: true,
 			},
-			GoldenAddress: net.JoinHostPort(fallback, "1234"),
+			ClusterDisableSSL: false,
+			GoldenAddress:     net.JoinHostPort(fallback, "1234"),
+		},
+		{
+			Name: "NativeTransportPort is returned when ssl is disabled on cluster level",
+			NodeInfo: &scyllaclient.NodeInfo{
+				NativeTransportPort:     "4321",
+				NativeTransportPortSsl:  "1234",
+				ListenAddress:           "1.2.3.4",
+				ClientEncryptionEnabled: true,
+			},
+			ClusterDisableSSL: true,
+			GoldenAddress:     "1.2.3.4:4321",
+		},
+		{
+			Name: "NativeTransportPort is returned when Node Client Encryption is not enabled",
+			NodeInfo: &scyllaclient.NodeInfo{
+				NativeTransportPort:     "4321",
+				NativeTransportPortSsl:  "1234",
+				ListenAddress:           "1.2.3.4",
+				ClientEncryptionEnabled: false,
+			},
+			ClusterDisableSSL: false,
+			GoldenAddress:     "1.2.3.4:4321",
 		},
 	}
 
@@ -169,7 +214,7 @@ func TestNodeInfoCQLSSLAddr(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			addr := test.NodeInfo.CQLSSLAddr(fallback)
+			addr := test.NodeInfo.CQLAddr(fallback, test.ClusterDisableSSL)
 			if addr != test.GoldenAddress {
 				t.Errorf("expected %s address, got %s", test.GoldenAddress, addr)
 			}

@@ -141,7 +141,7 @@ func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError 
 func (w *worker) createSingleHostSessionToAnyHost(ctx context.Context, hosts []string, sessionFunc cluster.SessionFunc) (session gocqlx.Session, host string, err error) {
 	var retErr error
 	for _, h := range hosts {
-		session, err := sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(h))
+		session, err := sessionFunc(ctx, w.ClusterID, cluster.SingleHostSessionConfigOption(h, w.ClusterTLSAddrDisabled))
 		if err != nil {
 			w.Logger.Error(ctx, "Couldn't connect to host via CQL", "host", h, "error", err)
 			retErr = err

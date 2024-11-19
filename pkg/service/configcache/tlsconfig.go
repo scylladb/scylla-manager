@@ -26,10 +26,7 @@ func newCQLTLSConfigIfEnabled(c *cluster.Cluster, nodeInfo *scyllaclient.NodeInf
 	if !cqlTLSEnabled || c.ForceTLSDisabled {
 		return nil, nil // nolint: nilnil
 	}
-	cqlAddress := nodeInfo.CQLAddr(host)
-	if !c.ForceNonSSLSessionPort {
-		cqlAddress = nodeInfo.CQLSSLAddr(host)
-	}
+	cqlAddress := nodeInfo.CQLAddr(host, c.ForceTLSDisabled || c.ForceNonSSLSessionPort)
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 	}

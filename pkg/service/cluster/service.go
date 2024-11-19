@@ -610,16 +610,13 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 type SessionConfigOption func(ctx context.Context, clusterID uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error
 
 // SingleHostSessionConfigOption ensures that session will be connected only to the single, provided host.
-func SingleHostSessionConfigOption(host string) SessionConfigOption {
+func SingleHostSessionConfigOption(host string, clusterTLSAddrDisabled bool) SessionConfigOption {
 	return func(ctx context.Context, _ uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error {
 		ni, err := client.NodeInfo(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "fetch node (%s) info", host)
 		}
-		cqlAddr := ni.CQLAddr(host)
-		if ni.ClientEncryptionEnabled {
-			cqlAddr = ni.CQLSSLAddr(host)
-		}
+		cqlAddr := ni.CQLAddr(host, clusterTLSAddrDisabled)
 		cfg.Hosts = []string{cqlAddr}
 		cfg.DisableInitialHostLookup = true
 		cfg.HostFilter = gocql.WhiteListHostFilter(cqlAddr)
@@ -764,7 +761,7 @@ var ErrNoRPCAddressesFound = errors.New("no RPC addresses found")
 // GetRPCAddresses accepts client and hosts parameters that are used later on to query client.NodeInfo endpoint
 // returning RPC addresses for given hosts.
 // RPC addresses are the ones that scylla uses to accept CQL connections.
-func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []string, clusterSSLDisabled bool) ([]string, error) {
+func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []string, clusterTLSAddrDisabled bool) ([]string, error) {
 	var sessionHosts []string
 	var combinedError error
 	for _, h := range hosts {
@@ -773,10 +770,7 @@ func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []s
 			combinedError = multierr.Append(combinedError, err)
 			continue
 		}
-		addr := ni.CQLAddr(h)
-		if ni.ClientEncryptionEnabled && !clusterSSLDisabled {
-			addr = ni.CQLSSLAddr(h)
-		}
+		addr := ni.CQLAddr(h, clusterTLSAddrDisabled)
 		sessionHosts = append(sessionHosts, addr)
 	}
 

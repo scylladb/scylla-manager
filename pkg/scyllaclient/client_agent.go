@@ -70,27 +70,31 @@ func (c *Client) PinCPU(ctx context.Context, host string) error {
 	return err
 }
 
-// CQLAddr returns CQL address from NodeInfo.
-// Scylla can have separate rpc_address (CQL), listen_address and respectfully
-// broadcast_rpc_address and broadcast_address if some 3rd party routing
-// is added.
-// `fallback` argument is used in case any of above addresses is zero address.
-func (ni *NodeInfo) CQLAddr(fallback string) string {
-	addr, port := ni.cqlAddr(fallback), ni.CQLPort()
-	return net.JoinHostPort(addr, port)
-}
-
-// CQLSSLAddr returns CQL SSL address from NodeInfo.
-// Scylla can have separate rpc_address (CQL), listen_address and respectfully
-// broadcast_rpc_address and broadcast_address if some 3rd party routing
-// is added.
-// `fallback` argument is used in case any of above addresses is zero address.
-func (ni *NodeInfo) CQLSSLAddr(fallback string) string {
-	addr, port := ni.cqlAddr(fallback), ni.CQLSSLPort()
-	return net.JoinHostPort(addr, port)
-}
-
+// cqlAddr returns CQL address from NodeInfo.
 func (ni *NodeInfo) cqlAddr(fallback string) string {
+	addr, port := ni.cqlListenAddr(fallback), ni.cqlPort()
+	return net.JoinHostPort(addr, port)
+}
+
+// cqlSSLAddr returns CQL SSL address from NodeInfo.
+func (ni *NodeInfo) cqlSSLAddr(fallback string) string {
+	addr, port := ni.cqlListenAddr(fallback), ni.cqlSSLPort()
+	return net.JoinHostPort(addr, port)
+}
+
+// CQLAddr returns either CQL or CQL SSL address from Node Info depending on the cluster configuration.
+// Scylla can have separate rpc_address (CQL), listen_address and respectfully
+// broadcast_rpc_address and broadcast_address if some 3rd party routing
+// is added.
+// `fallback` argument is used in case any of above addresses is zero address.
+func (ni *NodeInfo) CQLAddr(fallback string, clusterTLSAddrDisabled bool) string {
+	if ni.ClientEncryptionEnabled && !clusterTLSAddrDisabled {
+		return ni.cqlSSLAddr(fallback)
+	}
+	return ni.cqlAddr(fallback)
+}
+
+func (ni *NodeInfo) cqlListenAddr(fallback string) string {
 	const ipv4Zero, ipv6Zero = "0.0.0.0", "::0"
 
 	if ni.BroadcastRPCAddress != "" {
@@ -109,13 +113,13 @@ func (ni *NodeInfo) cqlAddr(fallback string) string {
 	return ni.ListenAddress
 }
 
-// CQLPort returns CQL port from NodeInfo.
-func (ni *NodeInfo) CQLPort() string {
+// cqlPort returns CQL port from NodeInfo.
+func (ni *NodeInfo) cqlPort() string {
 	return ni.NativeTransportPort
 }
 
-// CQLSSLPort returns CQL SSL port from NodeInfo.
-func (ni *NodeInfo) CQLSSLPort() string {
+// cqlSSLPort returns CQL SSL port from NodeInfo.
+func (ni *NodeInfo) cqlSSLPort() string {
 	return ni.NativeTransportPortSsl
 }
 

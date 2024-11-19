@@ -51,14 +51,15 @@ func (sd snapshotDir) String() string {
 // workerTools is an intersection of fields and methods
 // useful for both worker and restoreWorker.
 type workerTools struct {
-	ClusterID   uuid.UUID
-	ClusterName string
-	TaskID      uuid.UUID
-	RunID       uuid.UUID
-	SnapshotTag string
-	Config      Config
-	Client      *scyllaclient.Client
-	Logger      log.Logger
+	ClusterID              uuid.UUID
+	ClusterName            string
+	ClusterTLSAddrDisabled bool
+	TaskID                 uuid.UUID
+	RunID                  uuid.UUID
+	SnapshotTag            string
+	Config                 Config
+	Client                 *scyllaclient.Client
+	Logger                 log.Logger
 }
 
 // worker is responsible for coordinating backup procedure.

@@ -112,7 +112,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.session,
 		s.config.Backup,
 		metrics.NewBackupMetrics().MustRegister(),
-		s.clusterSvc.GetClusterName,
+		s.clusterSvc.GetClusterByID,
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.logger.Named("backup"),

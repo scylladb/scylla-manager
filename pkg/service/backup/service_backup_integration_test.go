@@ -115,8 +115,13 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 		session,
 		c,
 		metrics.NewBackupMetrics(),
-		func(_ context.Context, id uuid.UUID) (string, error) {
-			return "test_cluster", nil
+		func(_ context.Context, id uuid.UUID) (*cluster.Cluster, error) {
+			return &cluster.Cluster{
+				ID:                     id,
+				Name:                   "test_cluster",
+				ForceTLSDisabled:       false,
+				ForceNonSSLSessionPort: false,
+			}, nil
 		},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
