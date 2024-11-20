@@ -42,16 +42,16 @@ type Service struct {
 	config  Config
 	metrics metrics.BackupMetrics
 
-	clusterProvider cluster.ProviderFunc
-	scyllaClient    scyllaclient.ProviderFunc
-	clusterSession  cluster.SessionFunc
-	logger          log.Logger
+	clusterName    cluster.NameFunc
+	scyllaClient   scyllaclient.ProviderFunc
+	clusterSession cluster.SessionFunc
+	logger         log.Logger
 
 	dth deduplicateTestHooks
 }
 
 func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
-	clusterProvider cluster.ProviderFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
+	clusterName cluster.NameFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -61,7 +61,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 		return nil, errors.Wrap(err, "invalid config")
 	}
 
-	if clusterProvider == nil {
+	if clusterName == nil {
 		return nil, errors.New("invalid cluster name provider")
 	}
 
@@ -70,13 +70,13 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 	}
 
 	return &Service{
-		session:         session,
-		config:          config,
-		metrics:         metrics,
-		clusterProvider: clusterProvider,
-		scyllaClient:    scyllaClient,
-		clusterSession:  clusterSession,
-		logger:          logger,
+		session:        session,
+		config:         config,
+		metrics:        metrics,
+		clusterName:    clusterName,
+		scyllaClient:   scyllaClient,
+		clusterSession: clusterSession,
+		logger:         logger,
 	}, nil
 }
 
@@ -667,23 +667,22 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "initialize: register the run")
 	}
 
-	// Get cluster info by id
-	cluster, err := s.clusterProvider(ctx, run.ClusterID)
+	// Get cluster name
+	clusterName, err := s.clusterName(ctx, run.ClusterID)
 	if err != nil {
-		return errors.Wrap(err, "cluster provider")
+		return errors.Wrap(err, "invalid cluster")
 	}
 
 	// Create a worker
 	w := &worker{
 		workerTools: workerTools{
-			ClusterID:              clusterID,
-			ClusterName:            cluster.Name,
-			ClusterTLSAddrDisabled: cluster.ForceTLSDisabled || cluster.ForceNonSSLSessionPort,
-			TaskID:                 taskID,
-			RunID:                  runID,
-			SnapshotTag:            run.SnapshotTag,
-			Config:                 s.config,
-			Client:                 client,
+			ClusterID:   clusterID,
+			ClusterName: clusterName,
+			TaskID:      taskID,
+			RunID:       runID,
+			SnapshotTag: run.SnapshotTag,
+			Config:      s.config,
+			Client:      client,
 		},
 		PrevStage:            run.Stage,
 		Metrics:              s.metrics,

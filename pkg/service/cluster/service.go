@@ -607,16 +607,16 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 }
 
 // SessionConfigOption defines function modifying cluster config that can be used when creating session.
-type SessionConfigOption func(ctx context.Context, clusterID uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error
+type SessionConfigOption func(ctx context.Context, cluster *Cluster, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error
 
 // SingleHostSessionConfigOption ensures that session will be connected only to the single, provided host.
-func SingleHostSessionConfigOption(host string, clusterTLSAddrDisabled bool) SessionConfigOption {
-	return func(ctx context.Context, _ uuid.UUID, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error {
+func SingleHostSessionConfigOption(host string) SessionConfigOption {
+	return func(ctx context.Context, cluster *Cluster, client *scyllaclient.Client, cfg *gocql.ClusterConfig) error {
 		ni, err := client.NodeInfo(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "fetch node (%s) info", host)
 		}
-		cqlAddr := ni.CQLAddr(host, clusterTLSAddrDisabled)
+		cqlAddr := ni.CQLAddr(host, cluster.ForceTLSDisabled || cluster.ForceNonSSLSessionPort)
 		cfg.Hosts = []string{cqlAddr}
 		cfg.DisableInitialHostLookup = true
 		cfg.HostFilter = gocql.WhiteListHostFilter(cqlAddr)
@@ -637,17 +637,18 @@ func (s *Service) GetSession(ctx context.Context, clusterID uuid.UUID, opts ...S
 	}
 	defer logutil.LogOnError(ctx, s.logger, client.Close, "Couldn't close scylla client")
 
-	cfg := gocql.NewCluster()
-	for _, opt := range opts {
-		if err := opt(ctx, clusterID, client, cfg); err != nil {
-			return session, err
-		}
-	}
-
 	clusterInfo, err := s.GetClusterByID(ctx, clusterID)
 	if err != nil {
 		return session, errors.Wrap(err, "cluster by id")
 	}
+
+	cfg := gocql.NewCluster()
+	for _, opt := range opts {
+		if err := opt(ctx, clusterInfo, client, cfg); err != nil {
+			return session, err
+		}
+	}
+
 	// Fill hosts if they weren't specified by the options or make sure that they use correct rpc address.
 	if len(cfg.Hosts) == 0 {
 		sessionHosts, err := GetRPCAddresses(ctx, client, client.Config().Hosts, clusterInfo.ForceTLSDisabled || clusterInfo.ForceNonSSLSessionPort)
