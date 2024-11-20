@@ -139,6 +139,7 @@ pkg-integration-test:
 		-v "$(PWD)/testing:/integration-test/testing" \
 		-v "$(PWD)/$(PKG)/testdata:/integration-test/testdata" \
 		-w "/integration-test" \
+		-e "SSL_ENABLED=$(SSL_ENABLED)" \
 		-u $(CURRENT_UID):$(CURRENT_GID) \
 		-i --read-only --rm ubuntu integration-test -test.v -test.run $(RUN) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
 
