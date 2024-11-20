@@ -1,5 +1,5 @@
 # Scylla SSL enabled configuration.
-# This file merged with testing/config/scylla.yaml during start-dev-env process when SSL_ENABLED=true.
+# This file is merged with testing/config/scylla.yaml during start-dev-env process when SSL_ENABLED=true.
 
 native_transport_port_ssl: 9142
 client_encryption_options:
