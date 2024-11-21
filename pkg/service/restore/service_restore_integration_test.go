@@ -30,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"go.uber.org/atomic"
@@ -1744,6 +1745,13 @@ func (h *restoreTestHelper) restartScylla() {
 		}
 
 		cfg.Addr = sessionHosts[0]
+		if testconfig.IsSSLEnabled() {
+			sslOpts := testconfig.CQLSSLOptions()
+			cfg.TLSConfig, err = testconfig.TLSConfig(sslOpts)
+			if err != nil {
+				h.T.Fatalf("tls config: %v", err)
+			}
+		}
 		cond := func() bool {
 			if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
 				return false
