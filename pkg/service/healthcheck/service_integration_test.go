@@ -11,6 +11,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -76,6 +78,17 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	testCluster := &cluster.Cluster{
 		Host:      hostWithUnresponsiveREST,
 		AuthToken: "token",
+	}
+	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
+	if err != nil {
+		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
+	}
+	if sslEnabled {
+		sslOpts := CQLSSLOptions()
+		userKey, _ := os.ReadFile(sslOpts.KeyPath)
+		userCrt, _ := os.ReadFile(sslOpts.CertPath)
+		testCluster.SSLUserKeyFile = userKey
+		testCluster.SSLUserCertFile = userCrt
 	}
 	err = clusterSvc.PutCluster(context.Background(), testCluster)
 	if err != nil {
@@ -161,12 +174,25 @@ func TestStatusIntegration(t *testing.T) {
 		Host:      "192.168.200.11",
 		AuthToken: "token",
 	}
+
+	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
+	if err != nil {
+		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
+	}
+	if sslEnabled {
+		sslOpts := CQLSSLOptions()
+		userKey, _ := os.ReadFile(sslOpts.KeyPath)
+		userCrt, _ := os.ReadFile(sslOpts.CertPath)
+		c.SSLUserKeyFile = userKey
+		c.SSLUserCertFile = userCrt
+	}
+
 	err = clusterSvc.PutCluster(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s)
+	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, sslEnabled)
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
@@ -190,15 +216,26 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 		Username:  username,
 		Password:  password,
 	}
+	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
+	if err != nil {
+		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
+	}
+	if sslEnabled {
+		sslOpts := CQLSSLOptions()
+		userKey, _ := os.ReadFile(sslOpts.KeyPath)
+		userCrt, _ := os.ReadFile(sslOpts.CertPath)
+		c.SSLUserKeyFile = userKey
+		c.SSLUserCertFile = userCrt
+	}
 	err = clusterSvc.PutCluster(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s)
+	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, sslEnabled)
 }
 
-func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster.Servicer, clusterProvider cluster.ProviderFunc, secretsStore store.Store) {
+func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster.Servicer, clusterProvider cluster.ProviderFunc, secretsStore store.Store, sslEnabled bool) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	// Tests here do not test the dynamic t/o functionality
@@ -264,12 +301,12 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -290,20 +327,20 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "TIMEOUT", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "TIMEOUT", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
 
 	t.Run("node CQL TIMEOUT", func(t *testing.T) {
 		host := IPFromTestNet("12")
-		blockCQL(t, host)
-		defer unblockCQL(t, host)
+		blockCQL(t, host, sslEnabled)
+		defer unblockCQL(t, host, sslEnabled)
 
 		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
@@ -316,12 +353,12 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "TIMEOUT", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "TIMEOUT", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -342,12 +379,12 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "TIMEOUT"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "TIMEOUT", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -368,12 +405,12 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "DOWN", RESTCause: "dial tcp " + URLEncodeIP(ToCanonicalIP(IPFromTestNet("12"))) + ":10001: connect: connection refused", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "DOWN", RESTCause: "dial tcp " + URLEncodeIP(ToCanonicalIP(IPFromTestNet("12"))) + ":10001: connect: connection refused", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -393,12 +430,12 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UNAUTHORIZED", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "UNAUTHORIZED", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -418,12 +455,12 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 
 		golden := []NodeStatus{
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "HTTP 502", AlternatorStatus: "UP"},
-			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
-			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP"},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("11")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("12")), CQLStatus: "UP", RESTStatus: "HTTP 502", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc1", Host: ToCanonicalIP(IPFromTestNet("13")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("21")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("22")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
+			{Datacenter: "dc2", Host: ToCanonicalIP(IPFromTestNet("23")), CQLStatus: "UP", RESTStatus: "UP", AlternatorStatus: "UP", SSL: sslEnabled},
 		}
 		assertEqual(t, golden, status)
 	})
@@ -482,16 +519,24 @@ func tryUnblockREST(t *testing.T, hosts []string) {
 	}
 }
 
-func blockCQL(t *testing.T, h string) {
+func blockCQL(t *testing.T, h string, sslEnabled bool) {
 	t.Helper()
-	if err := RunIptablesCommand(h, CmdBlockScyllaCQL); err != nil {
+	cmd := CmdBlockScyllaCQL
+	if sslEnabled {
+		cmd = CmdBlockScyllaCQLSSL
+	}
+	if err := RunIptablesCommand(h, cmd); err != nil {
 		t.Error(err)
 	}
 }
 
-func unblockCQL(t *testing.T, h string) {
+func unblockCQL(t *testing.T, h string, sslEnabled bool) {
 	t.Helper()
-	if err := RunIptablesCommand(h, CmdUnblockScyllaCQL); err != nil {
+	cmd := CmdUnblockScyllaCQL
+	if sslEnabled {
+		cmd = CmdUnblockScyllaCQLSSL
+	}
+	if err := RunIptablesCommand(h, cmd); err != nil {
 		t.Error(err)
 	}
 }
