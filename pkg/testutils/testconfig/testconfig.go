@@ -3,7 +3,12 @@
 package testconfig
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"flag"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -122,4 +127,54 @@ func ScyllaManagerDBCluster() string {
 		flag.Parse()
 	}
 	return *flagCluster
+}
+
+// TLSConfig returns tls.Config to work ssl enabled scylla cluster.
+// this function is almost an exact copy of setupTLSConfig from github.com/gocql/gocql/connectionpool.go.
+func TLSConfig(sslOpts *gocql.SslOptions) (*tls.Config, error) {
+	//  Config.InsecureSkipVerify | EnableHostVerification | Result
+	//  Config is nil             | true                   | verify host
+	//  Config is nil             | false                  | do not verify host
+	//  false                     | false                  | verify host
+	//  true                      | false                  | do not verify host
+	//  false                     | true                   | verify host
+	//  true                      | true                   | verify host
+	var tlsConfig *tls.Config
+	if sslOpts.Config == nil {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: !sslOpts.EnableHostVerification,
+		}
+	} else {
+		// use clone to avoid race.
+		tlsConfig = sslOpts.Config.Clone()
+	}
+
+	if tlsConfig.InsecureSkipVerify && sslOpts.EnableHostVerification {
+		tlsConfig.InsecureSkipVerify = false
+	}
+	// ca cert is optional.
+	if sslOpts.CaPath != "" {
+		if tlsConfig.RootCAs == nil {
+			tlsConfig.RootCAs = x509.NewCertPool()
+		}
+
+		pem, err := os.ReadFile(sslOpts.CaPath)
+		if err != nil {
+			return nil, fmt.Errorf("connectionpool: unable to open CA certs: %w", err)
+		}
+
+		if !tlsConfig.RootCAs.AppendCertsFromPEM(pem) {
+			return nil, errors.New("connectionpool: failed parsing or CA certs")
+		}
+	}
+
+	if sslOpts.CertPath != "" || sslOpts.KeyPath != "" {
+		mycert, err := tls.LoadX509KeyPair(sslOpts.CertPath, sslOpts.KeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("connectionpool: unable to load X509 key pair: %w", err)
+		}
+		tlsConfig.Certificates = append(tlsConfig.Certificates, mycert)
+	}
+
+	return tlsConfig, nil
 }
