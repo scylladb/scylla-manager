@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -79,17 +78,8 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 		Host:      hostWithUnresponsiveREST,
 		AuthToken: "token",
 	}
-	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
-	if err != nil {
-		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
-	}
-	if sslEnabled {
-		sslOpts := CQLSSLOptions()
-		userKey, _ := os.ReadFile(sslOpts.KeyPath)
-		userCrt, _ := os.ReadFile(sslOpts.CertPath)
-		testCluster.SSLUserKeyFile = userKey
-		testCluster.SSLUserCertFile = userCrt
-	}
+	clusterWithSSL(t, testCluster, IsSSLEnabled())
+
 	err = clusterSvc.PutCluster(context.Background(), testCluster)
 	if err != nil {
 		t.Fatal(err)
@@ -174,25 +164,14 @@ func TestStatusIntegration(t *testing.T) {
 		Host:      "192.168.200.11",
 		AuthToken: "token",
 	}
-
-	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
-	if err != nil {
-		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
-	}
-	if sslEnabled {
-		sslOpts := CQLSSLOptions()
-		userKey, _ := os.ReadFile(sslOpts.KeyPath)
-		userCrt, _ := os.ReadFile(sslOpts.CertPath)
-		c.SSLUserKeyFile = userKey
-		c.SSLUserCertFile = userCrt
-	}
+	clusterWithSSL(t, c, IsSSLEnabled())
 
 	err = clusterSvc.PutCluster(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, sslEnabled)
+	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, IsSSLEnabled())
 }
 
 func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
@@ -216,23 +195,14 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 		Username:  username,
 		Password:  password,
 	}
-	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
-	if err != nil {
-		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
-	}
-	if sslEnabled {
-		sslOpts := CQLSSLOptions()
-		userKey, _ := os.ReadFile(sslOpts.KeyPath)
-		userCrt, _ := os.ReadFile(sslOpts.CertPath)
-		c.SSLUserKeyFile = userKey
-		c.SSLUserCertFile = userCrt
-	}
+	clusterWithSSL(t, c, IsSSLEnabled())
+
 	err = clusterSvc.PutCluster(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, sslEnabled)
+	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, IsSSLEnabled())
 }
 
 func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster.Servicer, clusterProvider cluster.ProviderFunc, secretsStore store.Store, sslEnabled bool) {
@@ -621,4 +591,22 @@ func fakeHealthCheckStatus(host string, code int) http.RoundTripper {
 		}
 		return nil, nil
 	})
+}
+
+func clusterWithSSL(t *testing.T, cluster *cluster.Cluster, sslEnabled bool) {
+	t.Helper()
+	if !sslEnabled {
+		return
+	}
+	sslOpts := CQLSSLOptions()
+	userKey, err := os.ReadFile(sslOpts.KeyPath)
+	if err != nil {
+		t.Fatalf("read file (%s) err: %v", sslOpts.KeyPath, err)
+	}
+	userCrt, err := os.ReadFile(sslOpts.CertPath)
+	if err != nil {
+		t.Fatalf("read file (%s) err: %v", sslOpts.CertPath, err)
+	}
+	cluster.SSLUserKeyFile = userKey
+	cluster.SSLUserCertFile = userCrt
 }

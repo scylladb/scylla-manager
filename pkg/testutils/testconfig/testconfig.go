@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,6 +128,16 @@ func ScyllaManagerDBCluster() string {
 		flag.Parse()
 	}
 	return *flagCluster
+}
+
+// IsSSLEnabled is a helper function to parse SSL_ENABLED env var.
+// SSL_ENABLED env var indicates if scylla cluster is configured to use ssl or not.
+func IsSSLEnabled() bool {
+	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
+	if err != nil {
+		panic("parse SSL_ENABLED env var:" + err.Error())
+	}
+	return sslEnabled
 }
 
 // TLSConfig returns tls.Config to work ssl enabled scylla cluster.

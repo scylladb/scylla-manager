@@ -8,8 +8,6 @@ package cqlping
 import (
 	"context"
 	"crypto/tls"
-	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -27,12 +25,7 @@ func TestPingIntegration(t *testing.T) {
 	client := newTestClient(t, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), nil)
 	defer client.Close()
 
-	sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
-	if err != nil {
-		t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
-	}
-
-	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{testconfig.ManagedClusterHost()}, !sslEnabled)
+	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{testconfig.ManagedClusterHost()}, !testconfig.IsSSLEnabled())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +35,7 @@ func TestPingIntegration(t *testing.T) {
 		Timeout: 250 * time.Millisecond,
 	}
 
-	if sslEnabled {
+	if testconfig.IsSSLEnabled() {
 		sslOpts := testconfig.CQLSSLOptions()
 		tlsConfig, err := testconfig.TLSConfig(sslOpts)
 		if err != nil {

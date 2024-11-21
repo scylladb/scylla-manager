@@ -101,7 +101,7 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 		Username: user,
 		Password: pass,
 	}
-	if os.Getenv("SSL_ENABLED") != "false" {
+	if os.Getenv("SSL_ENABLED") == "true" {
 		cluster.SslOpts = testconfig.CQLSSLOptions()
 		cluster.Port = testconfig.CQLPort()
 	}

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1212,10 +1211,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair ignore hosts", func(t *testing.T) {
-		sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
-		if err != nil {
-			t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
-		}
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -1240,7 +1235,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 				Addr:    ni.CQLAddr(ignored, false),
 				Timeout: time.Minute,
 			}
-			if sslEnabled {
+			if testconfig.IsSSLEnabled() {
 				sslOpts := testconfig.CQLSSLOptions()
 				tlsConfig, err := testconfig.TLSConfig(sslOpts)
 				if err != nil {
