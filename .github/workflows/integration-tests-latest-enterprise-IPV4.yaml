@@ -6,6 +6,7 @@ env:
     ip-family: IPV4
     raft-schema: none
     tablets: disabled
+    ssl-enabled: "true"
 jobs:
     backup:
         name: Test backup
