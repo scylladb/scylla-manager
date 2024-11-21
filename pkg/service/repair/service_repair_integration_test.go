@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -33,6 +34,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
@@ -1210,6 +1212,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair ignore hosts", func(t *testing.T) {
+		sslEnabled, err := strconv.ParseBool(os.Getenv("SSL_ENABLED"))
+		if err != nil {
+			t.Fatalf("parse SSL_ENABLED env var: %v\n", err)
+		}
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -1233,6 +1239,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 			cfg := cqlping.Config{
 				Addr:    ni.CQLAddr(ignored, false),
 				Timeout: time.Minute,
+			}
+			if sslEnabled {
+				sslOpts := testconfig.CQLSSLOptions()
+				tlsConfig, err := testconfig.TLSConfig(sslOpts)
+				if err != nil {
+					t.Fatalf("setup tls config: %v", err)
+				}
+				cfg.TLSConfig = tlsConfig
 			}
 
 			cond := func() bool {
