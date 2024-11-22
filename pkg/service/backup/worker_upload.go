@@ -32,10 +32,6 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit)
 }
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
-	if err := w.setRateLimit(ctx, h); err != nil {
-		return errors.Wrap(err, "set rate limit")
-	}
-
 	dirs := w.hostSnapshotDirs(h)
 
 	f := func(i int) (err error) {
@@ -149,11 +145,6 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 	}
 
 	return 0
-}
-
-func (w *worker) setRateLimit(ctx context.Context, h hostInfo) error {
-	w.Logger.Info(ctx, "Setting rate limit", "host", h.IP, "limit", h.RateLimit.Limit)
-	return w.Client.RcloneSetBandwidthLimit(ctx, h.IP, h.RateLimit.Limit)
 }
 
 func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir) error {
