@@ -20,6 +20,8 @@ SCYLLA_VERSION?=scylla:6.0.1
 IP_FAMILY?=IPV4
 RAFT_SCHEMA?=none
 TABLETS?=enabled
+# if true starts the scylla cluster with ssl only config
+SSL_ENABLED?=false
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
@@ -137,6 +139,7 @@ pkg-integration-test:
 		-v "$(PWD)/testing:/integration-test/testing" \
 		-v "$(PWD)/$(PKG)/testdata:/integration-test/testdata" \
 		-w "/integration-test" \
+		-e "SSL_ENABLED=$(SSL_ENABLED)" \
 		-u $(CURRENT_UID):$(CURRENT_GID) \
 		-i --read-only --rm ubuntu integration-test -test.v -test.run $(RUN) $(INTEGRATION_TEST_ARGS) $(SSL_FLAGS) $(ARGS)
 
@@ -171,7 +174,7 @@ start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
-	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) RAFT_SCHEMA=$(RAFT_SCHEMA) TABLETS=$(TABLETS) make -C testing build down up
+	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) RAFT_SCHEMA=$(RAFT_SCHEMA) TABLETS=$(TABLETS) SSL_ENABLED=$(SSL_ENABLED) make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes

@@ -14,6 +14,7 @@ type integrationTestCfg struct {
 	IPFamily      string `yaml:"ip-family"`
 	RaftSchema    string `yaml:"raft-schema"`
 	Tablets       string `yaml:"tablets"`
+	SSLEnabled    string `yaml:"ssl-enabled,omitempty"`
 }
 
 func (cfg integrationTestCfg) name() string {
@@ -28,6 +29,10 @@ func (cfg integrationTestCfg) name() string {
 	}
 	if cfg.Tablets == "enabled" {
 		parts = append(parts, "tablets")
+	}
+	if cfg.SSLEnabled == "false" {
+		parts = append(parts, "nossl")
+
 	}
 	return strings.Join(parts, "-")
 }
