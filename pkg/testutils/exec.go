@@ -24,6 +24,12 @@ const (
 	// CmdUnblockScyllaCQL defines the command used for unblocking the Scylla CQL access.
 	CmdUnblockScyllaCQL = "iptables -D INPUT -p tcp --destination-port 9042 -j DROP"
 
+	// CmdBlockScyllaCQLSSL defines the command used for blocking the Scylla CQL access.
+	CmdBlockScyllaCQLSSL = "iptables -A INPUT -p tcp --destination-port 9142 -j DROP"
+
+	// CmdUnblockScyllaCQLSSL defines the command used for unblocking the Scylla CQL access.
+	CmdUnblockScyllaCQLSSL = "iptables -D INPUT -p tcp --destination-port 9142 -j DROP"
+
 	// CmdBlockScyllaAlternator defines the command used for blocking the Scylla Alternator access.
 	CmdBlockScyllaAlternator = "iptables -A INPUT -p tcp --destination-port 8000 -j DROP"
 

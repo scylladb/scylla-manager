@@ -30,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"go.uber.org/atomic"
@@ -1737,13 +1738,20 @@ func (h *restoreTestHelper) restartScylla() {
 		b := backoff.WithContext(backoff.WithMaxRetries(
 			backoff.NewConstantBackOff(500*time.Millisecond), 10), ctx)
 		if err := backoff.Retry(func() error {
-			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host})
+			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host}, false)
 			return err
 		}, b); err != nil {
 			h.T.Fatal(err)
 		}
 
 		cfg.Addr = sessionHosts[0]
+		if testconfig.IsSSLEnabled() {
+			sslOpts := testconfig.CQLSSLOptions()
+			cfg.TLSConfig, err = testconfig.TLSConfig(sslOpts)
+			if err != nil {
+				h.T.Fatalf("tls config: %v", err)
+			}
+		}
 		cond := func() bool {
 			if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
 				return false
