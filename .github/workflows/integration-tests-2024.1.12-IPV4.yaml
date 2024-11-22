@@ -116,3 +116,4 @@ name: integration-tests-2024.1.12-IPV4
     push:
         branches:
             - master
+            - branch-**

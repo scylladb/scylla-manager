@@ -116,3 +116,4 @@ name: integration-tests-2023.1.11-IPV6-raftschema
     push:
         branches:
             - master
+            - branch-**
