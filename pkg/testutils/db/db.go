@@ -83,7 +83,7 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 	tb.Helper()
 	ctx := context.Background()
 
-	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, client.Config().Hosts)
+	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, client.Config().Hosts, false)
 	if err != nil {
 		tb.Log(err)
 		if errors.Is(err, cluster.ErrNoRPCAddressesFound) {
@@ -101,7 +101,7 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 		Username: user,
 		Password: pass,
 	}
-	if os.Getenv("SSL_ENABLED") != "" {
+	if os.Getenv("SSL_ENABLED") == "true" {
 		cluster.SslOpts = testconfig.CQLSSLOptions()
 		cluster.Port = testconfig.CQLPort()
 	}

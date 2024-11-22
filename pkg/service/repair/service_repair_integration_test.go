@@ -33,6 +33,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
@@ -1231,8 +1232,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 			}
 
 			cfg := cqlping.Config{
-				Addr:    ni.CQLAddr(ignored),
+				Addr:    ni.CQLAddr(ignored, false),
 				Timeout: time.Minute,
+			}
+			if testconfig.IsSSLEnabled() {
+				sslOpts := testconfig.CQLSSLOptions()
+				tlsConfig, err := testconfig.TLSConfig(sslOpts)
+				if err != nil {
+					t.Fatalf("setup tls config: %v", err)
+				}
+				cfg.TLSConfig = tlsConfig
 			}
 
 			cond := func() bool {

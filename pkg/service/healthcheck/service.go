@@ -331,9 +331,13 @@ func (s *Service) decorateNodeStatus(status *NodeStatus, ni configcache.NodeConf
 }
 
 func (s *Service) pingCQL(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration, ni configcache.NodeConfig) (rtt time.Duration, err error) {
+	cluster, err := s.clusterProvider(ctx, clusterID)
+	if err != nil {
+		return rtt, errors.Wrap(err, "cluster provider")
+	}
 	// Try to connect directly to host address.
 	config := cqlping.Config{
-		Addr:    ni.CQLAddr(host),
+		Addr:    ni.CQLAddr(host, cluster.ForceTLSDisabled || cluster.ForceNonSSLSessionPort),
 		Timeout: timeout,
 	}
 
