@@ -144,11 +144,13 @@ func (s *server) makeServices(ctx context.Context) error {
 		return errors.Wrapf(err, "scheduler service")
 	}
 
+	restoreExclusiveLock := scheduler.NewTaskExclusiveLockPolicy(scheduler.RestoreTask)
+
 	// Register the runners
-	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.backupSvc.Runner()})
-	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.restoreSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.backupSvc.Runner(), TaskType: scheduler.BackupTask})
+	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.restoreSvc.Runner(), TaskType: scheduler.RestoreTask})
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
-	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.repairSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.Runner(), TaskType: scheduler.RepairTask})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
 
 	// Add additional properties on task run.

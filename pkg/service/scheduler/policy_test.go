@@ -22,15 +22,17 @@ func TestPolicyRunner(t *testing.T) {
 		c := uuid.MustRandom()
 		k := uuid.MustRandom()
 		r := uuid.MustRandom()
+		tt := TaskType("")
 		e := errors.New("test")
 
 		mp := NewmockPolicy(ctrl)
-		mp.EXPECT().PreRun(c, k, r).Return(e)
+		mp.EXPECT().PreRun(c, k, r, tt).Return(e)
 		mr := NewmockRunner(ctrl)
 
 		p := PolicyRunner{
-			Policy: mp,
-			Runner: mr,
+			Policy:   mp,
+			Runner:   mr,
+			TaskType: tt,
 		}
 		if err := p.Run(context.Background(), c, k, r, nil); err != e {
 			t.Fatal("expected", e, "got", err)
@@ -44,19 +46,21 @@ func TestPolicyRunner(t *testing.T) {
 		c := uuid.MustRandom()
 		k := uuid.MustRandom()
 		r := uuid.MustRandom()
+		tt := TaskType("")
 		e := errors.New("test")
 
 		mp := NewmockPolicy(ctrl)
 		gomock.InOrder(
-			mp.EXPECT().PreRun(c, k, r).Return(nil),
-			mp.EXPECT().PostRun(c, k, r),
+			mp.EXPECT().PreRun(c, k, r, tt).Return(nil),
+			mp.EXPECT().PostRun(c, k, r, tt),
 		)
 		mr := NewmockRunner(ctrl)
 		mr.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(e)
 
 		p := PolicyRunner{
-			Policy: mp,
-			Runner: mr,
+			Policy:   mp,
+			Runner:   mr,
+			TaskType: tt,
 		}
 		if err := p.Run(context.Background(), c, k, r, nil); err != e {
 			t.Fatal("expected", e, "got", err)
@@ -64,27 +68,104 @@ func TestPolicyRunner(t *testing.T) {
 	})
 }
 
-func TestNewLockClusterPolicy(t *testing.T) {
-	c := uuid.MustRandom()
-	k := uuid.MustRandom()
-	r := uuid.MustRandom()
-	p := NewLockClusterPolicy()
+func TestExclusiveTaskLockPolicy(t *testing.T) {
+	clusterID := uuid.MustRandom()
+	runID := uuid.MustRandom()
+	taskID := uuid.MustRandom()
 
-	if err := p.PreRun(c, k, r); err != nil {
-		t.Fatal(err)
-	}
+	t.Run("when no other task is running, preRun should return nil", func(t *testing.T) {
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-	if err := p.PreRun(c, uuid.MustRandom(), uuid.MustRandom()); err == nil {
-		t.Fatal("expected error")
-	}
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
 
-	if err := p.PreRun(uuid.MustRandom(), uuid.MustRandom(), uuid.MustRandom()); err != nil {
-		t.Fatal(err)
-	}
+	})
 
-	p.PostRun(c, uuid.MustRandom(), uuid.MustRandom())
+	t.Run("when exclusive task is running, other tasks are not allowed", func(t *testing.T) {
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-	if err := p.PreRun(c, uuid.MustRandom(), uuid.MustRandom()); err != nil {
-		t.Fatal(errClusterBusy)
-	}
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
+		}
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RepairTask)
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
+		}
+	})
+
+	t.Run("when non exclusive task is running, exclusive task is not allowed", func(t *testing.T) {
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
+
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RepairTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
+		}
+	})
+
+	t.Run("only one instance of a task type is allowed to run at a time", func(t *testing.T) {
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
+
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
+		}
+
+		restoreExclusiveTask = NewTaskExclusiveLockPolicy(RestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
+		}
+	})
+
+	t.Run("PostRun on a empty cluster", func(t *testing.T) {
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
+
+		restoreExclusiveTask.PostRun(clusterID, taskID, runID, RestoreTask)
+	})
+
+	t.Run("PostRun should release lock for a given task type", func(t *testing.T) {
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
+
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
+		}
+
+		// Release a lock.
+		restoreExclusiveTask.PostRun(clusterID, taskID, runID, RestoreTask)
+
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		if err != nil {
+			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+	})
 }
