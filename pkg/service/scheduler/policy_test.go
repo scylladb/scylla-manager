@@ -80,7 +80,6 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-
 	})
 
 	t.Run("when exclusive task is running, other tasks are not allowed", func(t *testing.T) {
@@ -160,9 +159,14 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
 
-		// Release a lock.
+		// Release a lock and clean up the underlying map.
 		restoreExclusiveTask.PostRun(clusterID, taskID, runID, RestoreTask)
 
+		if _, ok := restoreExclusiveTask.running[clusterID]; ok {
+			t.Fatalf("t.running[clusterID] should be deleted")
+		}
+
+		// Lock can be acquried again.
 		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
