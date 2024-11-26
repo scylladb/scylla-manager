@@ -230,11 +230,12 @@ func (s *Service) discoverClusterHosts(ctx context.Context, c *Cluster) (knownHo
 	}()
 
 	// Read results until the channel is closed
-	for hosts := range result {
+	hosts, ok := <-result
+	if ok {
 		return hosts.known, hosts.live, nil
 	}
 
-	// If no valid results, return error<
+	// If no valid results, return error
 	return nil, nil, ErrNoValidKnownHost
 }
 
