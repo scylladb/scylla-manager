@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
+	"testing"
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -145,4 +148,152 @@ func WaitForNodeUPOrTimeout(h string, timeout time.Duration) error {
 		close(done)
 		return fmt.Errorf("node %s haven't reach UP status", h)
 	}
+}
+
+// BlockREST blocks the Scylla API ports on h machine by dropping TCP packets.
+func BlockREST(t *testing.T, h string) {
+	t.Helper()
+	if err := RunIptablesCommand(h, CmdBlockScyllaREST); err != nil {
+		t.Error(err)
+	}
+}
+
+// UnblockREST unblocks the Scylla API ports on []hosts machines.
+func UnblockREST(t *testing.T, h string) {
+	t.Helper()
+	if err := RunIptablesCommand(h, CmdUnblockScyllaREST); err != nil {
+		t.Error(err)
+	}
+}
+
+// TryUnblockREST tries to unblock the Scylla API ports on []hosts machines.
+// Logs an error if the execution failed, but doesn't return it.
+func TryUnblockREST(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		if err := RunIptablesCommand(host, CmdUnblockScyllaREST); err != nil {
+			t.Log(err)
+		}
+	}
+}
+
+// BlockCQL blocks the CQL ports on h machine by dropping TCP packets.
+func BlockCQL(t *testing.T, h string, sslEnabled bool) {
+	t.Helper()
+	cmd := CmdBlockScyllaCQL
+	if sslEnabled {
+		cmd = CmdBlockScyllaCQLSSL
+	}
+	if err := RunIptablesCommand(h, cmd); err != nil {
+		t.Error(err)
+	}
+}
+
+// UnblockCQL unblocks the CQL ports on []hosts machines.
+func UnblockCQL(t *testing.T, h string, sslEnabled bool) {
+	t.Helper()
+	cmd := CmdUnblockScyllaCQL
+	if sslEnabled {
+		cmd = CmdUnblockScyllaCQLSSL
+	}
+	if err := RunIptablesCommand(h, cmd); err != nil {
+		t.Error(err)
+	}
+}
+
+// TryUnblockCQL tries to unblock the CQL ports on []hosts machines.
+// Logs an error if the execution failed, but doesn't return it.
+func TryUnblockCQL(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		if err := RunIptablesCommand(host, CmdUnblockScyllaCQL); err != nil {
+			t.Log(err)
+		}
+	}
+}
+
+// BlockAlternator blocks the Scylla Alternator ports on h machine by dropping TCP packets.
+func BlockAlternator(t *testing.T, h string) {
+	t.Helper()
+	if err := RunIptablesCommand(h, CmdBlockScyllaAlternator); err != nil {
+		t.Error(err)
+	}
+}
+
+// UnblockAlternator unblocks the Alternator ports on []hosts machines.
+func UnblockAlternator(t *testing.T, h string) {
+	t.Helper()
+	if err := RunIptablesCommand(h, CmdUnblockScyllaAlternator); err != nil {
+		t.Error(err)
+	}
+}
+
+// TryUnblockAlternator tries to unblock the Alternator API ports on []hosts machines.
+// Logs an error if the execution failed, but doesn't return it.
+func TryUnblockAlternator(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		if err := RunIptablesCommand(host, CmdUnblockScyllaAlternator); err != nil {
+			t.Log(err)
+		}
+	}
+}
+
+const agentService = "scylla-manager-agent"
+
+// StopAgent stops scylla-manager-agent service on the h machine.
+func StopAgent(t *testing.T, h string) {
+	t.Helper()
+	if err := StopService(h, agentService); err != nil {
+		t.Error(err)
+	}
+}
+
+// StartAgent starts scylla-manager-agent service on the h machine.
+func StartAgent(t *testing.T, h string) {
+	t.Helper()
+	if err := StartService(h, agentService); err != nil {
+		t.Error(err)
+	}
+}
+
+// TryStartAgent tries to start scylla-manager-agent service on the []hosts machines.
+// It logs an error on failures, but doesn't return it.
+func TryStartAgent(t *testing.T, hosts []string) {
+	t.Helper()
+	for _, host := range hosts {
+		if err := StartService(host, agentService); err != nil {
+			t.Log(err)
+		}
+	}
+}
+
+// EnsureNodesAreUP validates if scylla-service is up and running on every []hosts and nodes are reporting their status
+// correctly via `nodetool status` command.
+// It waits for each node to report UN status for the duration specified in timeout parameter.
+func EnsureNodesAreUP(t *testing.T, hosts []string, timeout time.Duration) error {
+	t.Helper()
+
+	var (
+		allErrors error
+		mu        sync.Mutex
+	)
+
+	wg := sync.WaitGroup{}
+	for _, host := range hosts {
+		wg.Add(1)
+
+		go func(h string) {
+			defer wg.Done()
+
+			if err := WaitForNodeUPOrTimeout(h, timeout); err != nil {
+				mu.Lock()
+				allErrors = multierr.Combine(allErrors, err)
+				mu.Unlock()
+			}
+		}(host)
+	}
+	wg.Wait()
+
+	return allErrors
 }

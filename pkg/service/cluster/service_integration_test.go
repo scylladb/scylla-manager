@@ -98,6 +98,13 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 					}
 				}
 			}()
+			TryUnblockCQL(t, ManagedClusterHosts())
+			TryUnblockREST(t, ManagedClusterHosts())
+			TryUnblockAlternator(t, ManagedClusterHosts())
+			TryStartAgent(t, ManagedClusterHosts())
+			if err := EnsureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
+				t.Fatalf("not all nodes are UP, err = {%v}", err)
+			}
 
 			Printf("then: validate that call to validate host connectivity takes less than %v seconds", tc.timeout.Seconds())
 			testCluster, err := s.GetClusterByID(context.Background(), c.ID)

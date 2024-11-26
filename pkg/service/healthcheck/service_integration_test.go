@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -23,7 +22,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
-	"go.uber.org/multierr"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -51,11 +49,11 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	}
 
 	// Given
-	tryUnblockCQL(t, ManagedClusterHosts())
-	tryUnblockREST(t, ManagedClusterHosts())
-	tryUnblockAlternator(t, ManagedClusterHosts())
-	tryStartAgent(t, ManagedClusterHosts())
-	if err := ensureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
+	TryUnblockCQL(t, ManagedClusterHosts())
+	TryUnblockREST(t, ManagedClusterHosts())
+	TryUnblockAlternator(t, ManagedClusterHosts())
+	TryStartAgent(t, ManagedClusterHosts())
+	if err := EnsureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
 		t.Fatalf("not all nodes are UP, err = {%v}", err)
 	}
 
@@ -122,8 +120,8 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	}
 
 	// When #2 -> one of the hosts has unresponsive REST API
-	defer unblockREST(t, hostWithUnresponsiveREST)
-	blockREST(t, hostWithUnresponsiveREST)
+	defer UnblockREST(t, hostWithUnresponsiveREST)
+	BlockREST(t, hostWithUnresponsiveREST)
 
 	// Then #2 -> only REST ping fails, CQL and Alternator are fine
 	status, err = healthSvc.Status(context.Background(), testCluster.ID)
@@ -216,16 +214,16 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 	// Tests here do not test the dynamic t/o functionality
 	c := DefaultConfig()
 
-	tryUnblockCQL(t, ManagedClusterHosts())
-	tryUnblockREST(t, ManagedClusterHosts())
-	tryUnblockAlternator(t, ManagedClusterHosts())
-	tryStartAgent(t, ManagedClusterHosts())
+	TryUnblockCQL(t, ManagedClusterHosts())
+	TryUnblockREST(t, ManagedClusterHosts())
+	TryUnblockAlternator(t, ManagedClusterHosts())
+	TryStartAgent(t, ManagedClusterHosts())
 
 	defer func() {
-		tryUnblockCQL(t, ManagedClusterHosts())
-		tryUnblockREST(t, ManagedClusterHosts())
-		tryUnblockAlternator(t, ManagedClusterHosts())
-		tryStartAgent(t, ManagedClusterHosts())
+		TryUnblockCQL(t, ManagedClusterHosts())
+		TryUnblockREST(t, ManagedClusterHosts())
+		TryUnblockAlternator(t, ManagedClusterHosts())
+		TryStartAgent(t, ManagedClusterHosts())
 	}()
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
@@ -288,8 +286,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 
 	t.Run("node REST TIMEOUT", func(t *testing.T) {
 		host := IPFromTestNet("12")
-		blockREST(t, host)
-		defer unblockREST(t, host)
+		BlockREST(t, host)
+		defer UnblockREST(t, host)
 
 		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
@@ -314,8 +312,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 
 	t.Run("node CQL TIMEOUT", func(t *testing.T) {
 		host := IPFromTestNet("12")
-		blockCQL(t, host, sslEnabled)
-		defer unblockCQL(t, host, sslEnabled)
+		BlockCQL(t, host, sslEnabled)
+		defer UnblockCQL(t, host, sslEnabled)
 
 		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
@@ -340,8 +338,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 
 	t.Run("node Alternator TIMEOUT", func(t *testing.T) {
 		host := IPFromTestNet("12")
-		blockAlternator(t, host)
-		defer unblockAlternator(t, host)
+		BlockAlternator(t, host)
+		defer UnblockAlternator(t, host)
 
 		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
@@ -366,8 +364,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 
 	t.Run("node REST DOWN", func(t *testing.T) {
 		host := IPFromTestNet("12")
-		stopAgent(t, host)
-		defer startAgent(t, host)
+		StopAgent(t, host)
+		defer StartAgent(t, host)
 
 		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {
@@ -445,11 +443,11 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		defer cancel()
 
 		for _, h := range ManagedClusterHosts() {
-			blockREST(t, h)
+			BlockREST(t, h)
 		}
 		defer func() {
 			for _, h := range ManagedClusterHosts() {
-				unblockREST(t, h)
+				UnblockREST(t, h)
 			}
 		}()
 
@@ -471,127 +469,6 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 			t.Error("Expected error got nil")
 		}
 	})
-}
-
-func blockREST(t *testing.T, h string) {
-	t.Helper()
-	if err := RunIptablesCommand(h, CmdBlockScyllaREST); err != nil {
-		t.Error(err)
-	}
-}
-
-func unblockREST(t *testing.T, h string) {
-	t.Helper()
-	if err := RunIptablesCommand(h, CmdUnblockScyllaREST); err != nil {
-		t.Error(err)
-	}
-}
-
-func tryUnblockREST(t *testing.T, hosts []string) {
-	t.Helper()
-	for _, host := range hosts {
-		_ = RunIptablesCommand(host, CmdUnblockScyllaREST)
-	}
-}
-
-func blockCQL(t *testing.T, h string, sslEnabled bool) {
-	t.Helper()
-	cmd := CmdBlockScyllaCQL
-	if sslEnabled {
-		cmd = CmdBlockScyllaCQLSSL
-	}
-	if err := RunIptablesCommand(h, cmd); err != nil {
-		t.Error(err)
-	}
-}
-
-func unblockCQL(t *testing.T, h string, sslEnabled bool) {
-	t.Helper()
-	cmd := CmdUnblockScyllaCQL
-	if sslEnabled {
-		cmd = CmdUnblockScyllaCQLSSL
-	}
-	if err := RunIptablesCommand(h, cmd); err != nil {
-		t.Error(err)
-	}
-}
-
-func tryUnblockCQL(t *testing.T, hosts []string) {
-	t.Helper()
-	for _, host := range hosts {
-		_ = RunIptablesCommand(host, CmdUnblockScyllaCQL)
-	}
-}
-
-func blockAlternator(t *testing.T, h string) {
-	t.Helper()
-	if err := RunIptablesCommand(h, CmdBlockScyllaAlternator); err != nil {
-		t.Error(err)
-	}
-}
-
-func unblockAlternator(t *testing.T, h string) {
-	t.Helper()
-	if err := RunIptablesCommand(h, CmdUnblockScyllaAlternator); err != nil {
-		t.Error(err)
-	}
-}
-
-func tryUnblockAlternator(t *testing.T, hosts []string) {
-	t.Helper()
-	for _, host := range hosts {
-		_ = RunIptablesCommand(host, CmdUnblockScyllaAlternator)
-	}
-}
-
-const agentService = "scylla-manager-agent"
-
-func stopAgent(t *testing.T, h string) {
-	t.Helper()
-	if err := StopService(h, agentService); err != nil {
-		t.Error(err)
-	}
-}
-
-func startAgent(t *testing.T, h string) {
-	t.Helper()
-	if err := StartService(h, agentService); err != nil {
-		t.Error(err)
-	}
-}
-
-func tryStartAgent(t *testing.T, hosts []string) {
-	t.Helper()
-	for _, host := range hosts {
-		_ = StartService(host, agentService)
-	}
-}
-
-func ensureNodesAreUP(t *testing.T, hosts []string, timeout time.Duration) error {
-	t.Helper()
-
-	var (
-		allErrors error
-		mu        sync.Mutex
-	)
-
-	wg := sync.WaitGroup{}
-	for _, host := range hosts {
-		wg.Add(1)
-
-		go func(h string) {
-			defer wg.Done()
-
-			if err := WaitForNodeUPOrTimeout(h, timeout); err != nil {
-				mu.Lock()
-				allErrors = multierr.Combine(allErrors, err)
-				mu.Unlock()
-			}
-		}(host)
-	}
-	wg.Wait()
-
-	return allErrors
 }
 
 const pingPath = "/storage_service/scylla_release_version"
