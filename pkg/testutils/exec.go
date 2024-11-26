@@ -40,6 +40,9 @@ const (
 
 	// CmdUnblockScyllaAlternator defines the command used for unblocking the Scylla Alternator access.
 	CmdUnblockScyllaAlternator = "iptables -D INPUT -p tcp --destination-port 8000 -j DROP"
+
+	// CmdOrTrueAppend let to accept shell command failure and proceed
+	CmdOrTrueAppend = " || true"
 )
 
 func makeIPV6Rule(rule string) string {
@@ -176,7 +179,7 @@ func UnblockREST(t *testing.T, h string) {
 func TryUnblockREST(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := RunIptablesCommand(t, host, CmdUnblockScyllaREST); err != nil {
+		if err := RunIptablesCommand(t, host, CmdUnblockScyllaREST+CmdOrTrueAppend); err != nil {
 			t.Log(err)
 		}
 	}
@@ -211,7 +214,7 @@ func UnblockCQL(t *testing.T, h string, sslEnabled bool) {
 func TryUnblockCQL(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := RunIptablesCommand(t, host, CmdUnblockScyllaCQL); err != nil {
+		if err := RunIptablesCommand(t, host, CmdUnblockScyllaCQL+CmdOrTrueAppend); err != nil {
 			t.Log(err)
 		}
 	}
@@ -238,7 +241,7 @@ func UnblockAlternator(t *testing.T, h string) {
 func TryUnblockAlternator(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := RunIptablesCommand(t, host, CmdUnblockScyllaAlternator); err != nil {
+		if err := RunIptablesCommand(t, host, CmdUnblockScyllaAlternator+CmdOrTrueAppend); err != nil {
 			t.Log(err)
 		}
 	}
@@ -267,7 +270,7 @@ func StartAgent(t *testing.T, h string) {
 func TryStartAgent(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := StartService(host, agentService); err != nil {
+		if err := StartService(host, agentService+CmdOrTrueAppend); err != nil {
 			t.Log(err)
 		}
 	}
