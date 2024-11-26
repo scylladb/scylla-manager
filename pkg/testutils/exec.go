@@ -57,6 +57,7 @@ func RunIptablesCommand(t *testing.T, host, cmd string) error {
 
 // ExecOnHostStatus executes the given command on the given host and returns on error.
 func ExecOnHostStatus(t *testing.T, host, cmd string) error {
+	t.Helper()
 	stdOut, stdErr, err := ExecOnHost(host, cmd)
 	if err != nil {
 		t.Logf("cnd: {%s}, stdout: {%s}, stderr: {%s}", cmd, stdOut, stdErr)
