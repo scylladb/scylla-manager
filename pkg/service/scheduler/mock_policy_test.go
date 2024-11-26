@@ -35,27 +35,27 @@ func (m *mockPolicy) EXPECT() *mockPolicyMockRecorder {
 }
 
 // PostRun mocks base method.
-func (m *mockPolicy) PostRun(arg0, arg1, arg2 uuid.UUID) {
+func (m *mockPolicy) PostRun(arg0, arg1, arg2 uuid.UUID, arg3 TaskType) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "PostRun", arg0, arg1, arg2)
+	m.ctrl.Call(m, "PostRun", arg0, arg1, arg2, arg3)
 }
 
 // PostRun indicates an expected call of PostRun.
-func (mr *mockPolicyMockRecorder) PostRun(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *mockPolicyMockRecorder) PostRun(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRun", reflect.TypeOf((*mockPolicy)(nil).PostRun), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRun", reflect.TypeOf((*mockPolicy)(nil).PostRun), arg0, arg1, arg2, arg3)
 }
 
 // PreRun mocks base method.
-func (m *mockPolicy) PreRun(arg0, arg1, arg2 uuid.UUID) error {
+func (m *mockPolicy) PreRun(arg0, arg1, arg2 uuid.UUID, arg3 TaskType) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PreRun", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "PreRun", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PreRun indicates an expected call of PreRun.
-func (mr *mockPolicyMockRecorder) PreRun(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *mockPolicyMockRecorder) PreRun(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreRun", reflect.TypeOf((*mockPolicy)(nil).PreRun), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreRun", reflect.TypeOf((*mockPolicy)(nil).PreRun), arg0, arg1, arg2, arg3)
 }
