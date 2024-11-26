@@ -93,7 +93,7 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 					if err := StartService(host, "scylla"); err != nil {
 						t.Logf("error on starting stopped scylla service on host={%s}, err={%s}", host, err)
 					}
-					if err := RunIptablesCommand(host, CmdUnblockScyllaREST); err != nil {
+					if err := RunIptablesCommand(t, host, CmdUnblockScyllaREST); err != nil {
 						t.Logf("error trying to unblock REST API on host = {%s}, err={%s}", host, err)
 					}
 				}
@@ -122,7 +122,7 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 				if err := StopService(host, "scylla"); err != nil {
 					t.Fatal(err)
 				}
-				if err := RunIptablesCommand(host, CmdBlockScyllaREST); err != nil {
+				if err := RunIptablesCommand(t, host, CmdBlockScyllaREST); err != nil {
 					t.Error(err)
 				}
 			}
@@ -675,10 +675,10 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		c := validCluster()
 		c.Host = h1
-		if err := RunIptablesCommand(h2, CmdBlockScyllaREST); err != nil {
+		if err := RunIptablesCommand(t, h2, CmdBlockScyllaREST); err != nil {
 			t.Fatal(err)
 		}
-		defer RunIptablesCommand(h2, CmdUnblockScyllaREST)
+		defer RunIptablesCommand(t, h2, CmdUnblockScyllaREST)
 
 		if err := s.PutCluster(ctx, c); err == nil {
 			t.Fatal("expected put cluster to fail because of connectivity issues")

@@ -47,16 +47,20 @@ func makeIPV6Rule(rule string) string {
 }
 
 // RunIptablesCommand executes iptables command, repeats same command for IPV6 iptables rule.
-func RunIptablesCommand(host, cmd string) error {
+func RunIptablesCommand(t *testing.T, host, cmd string) error {
+	t.Helper()
 	if IsIPV6Network() {
-		return ExecOnHostStatus(host, makeIPV6Rule(cmd))
+		return ExecOnHostStatus(t, host, makeIPV6Rule(cmd))
 	}
-	return ExecOnHostStatus(host, cmd)
+	return ExecOnHostStatus(t, host, cmd)
 }
 
 // ExecOnHostStatus executes the given command on the given host and returns on error.
-func ExecOnHostStatus(host, cmd string) error {
-	_, _, err := ExecOnHost(host, cmd)
+func ExecOnHostStatus(t *testing.T, host, cmd string) error {
+	stdOut, stdErr, err := ExecOnHost(host, cmd)
+	if err != nil {
+		t.Logf("cnd: {%s}, stdout: {%s}, stderr: {%s}", cmd, stdOut, stdErr)
+	}
 	return errors.Wrapf(err, "run command %s", cmd)
 }
 
@@ -153,7 +157,7 @@ func WaitForNodeUPOrTimeout(h string, timeout time.Duration) error {
 // BlockREST blocks the Scylla API ports on h machine by dropping TCP packets.
 func BlockREST(t *testing.T, h string) {
 	t.Helper()
-	if err := RunIptablesCommand(h, CmdBlockScyllaREST); err != nil {
+	if err := RunIptablesCommand(t, h, CmdBlockScyllaREST); err != nil {
 		t.Error(err)
 	}
 }
@@ -161,7 +165,7 @@ func BlockREST(t *testing.T, h string) {
 // UnblockREST unblocks the Scylla API ports on []hosts machines.
 func UnblockREST(t *testing.T, h string) {
 	t.Helper()
-	if err := RunIptablesCommand(h, CmdUnblockScyllaREST); err != nil {
+	if err := RunIptablesCommand(t, h, CmdUnblockScyllaREST); err != nil {
 		t.Error(err)
 	}
 }
@@ -171,7 +175,7 @@ func UnblockREST(t *testing.T, h string) {
 func TryUnblockREST(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := RunIptablesCommand(host, CmdUnblockScyllaREST); err != nil {
+		if err := RunIptablesCommand(t, host, CmdUnblockScyllaREST); err != nil {
 			t.Log(err)
 		}
 	}
@@ -184,7 +188,7 @@ func BlockCQL(t *testing.T, h string, sslEnabled bool) {
 	if sslEnabled {
 		cmd = CmdBlockScyllaCQLSSL
 	}
-	if err := RunIptablesCommand(h, cmd); err != nil {
+	if err := RunIptablesCommand(t, h, cmd); err != nil {
 		t.Error(err)
 	}
 }
@@ -196,7 +200,7 @@ func UnblockCQL(t *testing.T, h string, sslEnabled bool) {
 	if sslEnabled {
 		cmd = CmdUnblockScyllaCQLSSL
 	}
-	if err := RunIptablesCommand(h, cmd); err != nil {
+	if err := RunIptablesCommand(t, h, cmd); err != nil {
 		t.Error(err)
 	}
 }
@@ -206,7 +210,7 @@ func UnblockCQL(t *testing.T, h string, sslEnabled bool) {
 func TryUnblockCQL(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := RunIptablesCommand(host, CmdUnblockScyllaCQL); err != nil {
+		if err := RunIptablesCommand(t, host, CmdUnblockScyllaCQL); err != nil {
 			t.Log(err)
 		}
 	}
@@ -215,7 +219,7 @@ func TryUnblockCQL(t *testing.T, hosts []string) {
 // BlockAlternator blocks the Scylla Alternator ports on h machine by dropping TCP packets.
 func BlockAlternator(t *testing.T, h string) {
 	t.Helper()
-	if err := RunIptablesCommand(h, CmdBlockScyllaAlternator); err != nil {
+	if err := RunIptablesCommand(t, h, CmdBlockScyllaAlternator); err != nil {
 		t.Error(err)
 	}
 }
@@ -223,7 +227,7 @@ func BlockAlternator(t *testing.T, h string) {
 // UnblockAlternator unblocks the Alternator ports on []hosts machines.
 func UnblockAlternator(t *testing.T, h string) {
 	t.Helper()
-	if err := RunIptablesCommand(h, CmdUnblockScyllaAlternator); err != nil {
+	if err := RunIptablesCommand(t, h, CmdUnblockScyllaAlternator); err != nil {
 		t.Error(err)
 	}
 }
@@ -233,7 +237,7 @@ func UnblockAlternator(t *testing.T, h string) {
 func TryUnblockAlternator(t *testing.T, hosts []string) {
 	t.Helper()
 	for _, host := range hosts {
-		if err := RunIptablesCommand(host, CmdUnblockScyllaAlternator); err != nil {
+		if err := RunIptablesCommand(t, host, CmdUnblockScyllaAlternator); err != nil {
 			t.Log(err)
 		}
 	}
