@@ -34,6 +34,10 @@ import (
 )
 
 func TestValidateHostConnectivityIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
+
 	Print("given: the fresh cluster")
 	var (
 		ctx          = context.Background()
