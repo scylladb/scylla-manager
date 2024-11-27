@@ -41,7 +41,7 @@ const (
 	// CmdUnblockScyllaAlternator defines the command used for unblocking the Scylla Alternator access.
 	CmdUnblockScyllaAlternator = "iptables -D INPUT -p tcp --destination-port 8000 -j DROP"
 
-	// CmdOrTrueAppend let to accept shell command failure and proceed
+	// CmdOrTrueAppend let to accept shell command failure and proceed.
 	CmdOrTrueAppend = " || true"
 )
 
