@@ -24,6 +24,11 @@ import (
 // transfers performed under current client session.
 // Limit is expressed in MiB per second.
 // To turn off limitation set it to 0.
+//
+// Note that it's safer to set bandwidth limit as a parameter of given Rclone call
+// (e.g. RcloneMoveDir or RcloneCopyPaths) as it's resistant to agent restarts
+// or some other process modifying Rclone bandwidth limit in the meantime.
+// Because of that, this method should be used in tests only.
 func (c *Client) RcloneSetBandwidthLimit(ctx context.Context, host string, limit int) error {
 	p := operations.CoreBwlimitParams{
 		Context:       forceHost(ctx, host),

@@ -56,10 +56,6 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		}(w.hostSnapshotDirs(h))
 	}
 
-	if err := w.setRateLimit(ctx, h); err != nil {
-		return errors.Wrap(err, "set rate limit")
-	}
-
 	dirs := w.hostSnapshotDirs(h)
 	f := func(i int) (err error) {
 		d := &dirs[i]
