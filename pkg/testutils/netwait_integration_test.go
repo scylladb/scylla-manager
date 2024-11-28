@@ -22,11 +22,11 @@ func TestWaiterTimeoutIntegration(t *testing.T) {
 	}
 	host := ManagedClusterHost()
 
-	err := RunIptablesCommand(host, CmdBlockScyllaCQL)
+	err := RunIptablesCommand(t, host, CmdBlockScyllaCQL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer RunIptablesCommand(host, CmdUnblockScyllaCQL)
+	defer RunIptablesCommand(t, host, CmdUnblockScyllaCQL)
 
 	w := &netwait.Waiter{
 		DialTimeout:  5 * time.Millisecond,

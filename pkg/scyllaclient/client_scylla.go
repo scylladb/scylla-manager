@@ -178,6 +178,15 @@ func (c *Client) Datacenters(ctx context.Context) (map[string][]string, error) {
 	return res, errs
 }
 
+// GossiperEndpointLiveGet finds live nodes (according to gossiper).
+func (c *Client) GossiperEndpointLiveGet(ctx context.Context) ([]string, error) {
+	live, err := c.scyllaOps.GossiperEndpointLiveGet(&operations.GossiperEndpointLiveGetParams{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+	return live.GetPayload(), nil
+}
+
 // HostDatacenter looks up the datacenter that the given host belongs to.
 func (c *Client) HostDatacenter(ctx context.Context, host string) (dc string, err error) {
 	// Try reading from cache

@@ -33,6 +33,132 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+func TestValidateHostConnectivityIntegration(t *testing.T) {
+	if IsIPV6Network() {
+		t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+	}
+
+	Print("given: the fresh cluster")
+	var (
+		ctx          = context.Background()
+		session      = CreateScyllaManagerDBSession(t)
+		secretsStore = store.NewTableStore(session, table.Secrets)
+		c            = &cluster.Cluster{
+			AuthToken: "token",
+			Host:      ManagedClusterHost(),
+		}
+	)
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
+		server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = s.PutCluster(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	allHosts := ManagedClusterHosts()
+	for _, tc := range []struct {
+		name      string
+		hostsDown []string
+		result    error
+		timeout   time.Duration
+	}{
+		{
+			name:      "coordinator host is DOWN",
+			hostsDown: []string{ManagedClusterHost()},
+			result:    nil,
+			timeout:   6 * time.Second,
+		},
+		{
+			name:      "only one is UP",
+			hostsDown: allHosts[:len(allHosts)-1],
+			result:    nil,
+			timeout:   6 * time.Second,
+		},
+		{
+			name:      "all hosts are DOWN",
+			hostsDown: allHosts,
+			result:    cluster.ErrNoValidKnownHost,
+			timeout:   11 * time.Second, // the 5 seconds calls will timeout twice
+		},
+		{
+			name:      "all hosts are UP",
+			hostsDown: nil,
+			result:    nil,
+			timeout:   6 * time.Second,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				for _, host := range tc.hostsDown {
+					if err := StartService(host, "scylla"); err != nil {
+						t.Logf("error on starting stopped scylla service on host={%s}, err={%s}", host, err)
+					}
+					if err := RunIptablesCommand(t, host, CmdUnblockScyllaREST); err != nil {
+						t.Logf("error trying to unblock REST API on host = {%s}, err={%s}", host, err)
+					}
+				}
+			}()
+			TryUnblockCQL(t, ManagedClusterHosts())
+			TryUnblockREST(t, ManagedClusterHosts())
+			TryUnblockAlternator(t, ManagedClusterHosts())
+			TryStartAgent(t, ManagedClusterHosts())
+			if err := EnsureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
+				t.Fatalf("not all nodes are UP, err = {%v}", err)
+			}
+
+			Printf("then: validate that call to validate host connectivity takes less than %v seconds", tc.timeout.Seconds())
+			testCluster, err := s.GetClusterByID(context.Background(), c.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := callValidateHostConnectivityWithTimeout(ctx, s, tc.timeout, testCluster); err != nil {
+				t.Fatal(err)
+			}
+			Printf("when: the scylla service is stopped and the scylla API is timing out on some hosts")
+			// It's needed to block Scylla REST API, so that the clients are just hanging when they call the API.
+			// Scylla service must be stopped to make the node to report DOWN status. Blocking REST API is not
+			// enough.
+			for _, host := range tc.hostsDown {
+				if err := StopService(host, "scylla"); err != nil {
+					t.Fatal(err)
+				}
+				if err := RunIptablesCommand(t, host, CmdBlockScyllaREST); err != nil {
+					t.Error(err)
+				}
+			}
+
+			Printf("then: validate that call still takes less than %v seconds", tc.timeout.Seconds())
+			if err := callValidateHostConnectivityWithTimeout(ctx, s, tc.timeout, testCluster); !errors.Is(err, tc.result) {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func callValidateHostConnectivityWithTimeout(ctx context.Context, s *cluster.Service, timeout time.Duration,
+	c *cluster.Cluster) error {
+
+	callCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	done := make(chan error)
+	go func() {
+		done <- s.ValidateHostsConnectivity(callCtx, c)
+	}()
+
+	select {
+	case <-time.After(timeout):
+		cancel()
+		return fmt.Errorf("expected s.ValidateHostsConnectivity to complete in less than %v seconds, time exceeded", timeout.Seconds())
+	case err := <-done:
+		return err
+	}
+}
+
 func TestClientIntegration(t *testing.T) {
 	expectedHosts := ManagedClusterHosts()
 
@@ -553,10 +679,10 @@ func TestServiceStorageIntegration(t *testing.T) {
 
 		c := validCluster()
 		c.Host = h1
-		if err := RunIptablesCommand(h2, CmdBlockScyllaREST); err != nil {
+		if err := RunIptablesCommand(t, h2, CmdBlockScyllaREST); err != nil {
 			t.Fatal(err)
 		}
-		defer RunIptablesCommand(h2, CmdUnblockScyllaREST)
+		defer RunIptablesCommand(t, h2, CmdUnblockScyllaREST)
 
 		if err := s.PutCluster(ctx, c); err == nil {
 			t.Fatal("expected put cluster to fail because of connectivity issues")

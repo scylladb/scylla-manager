@@ -166,7 +166,7 @@ func (s *server) makeServices(ctx context.Context) error {
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	switch c.Type {
 	case cluster.Update:
-		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
+		go s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
 	case cluster.Create:
 		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
 		for _, t := range makeAutoHealthCheckTasks(c.ID) {
