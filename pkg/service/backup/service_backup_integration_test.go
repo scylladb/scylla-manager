@@ -859,10 +859,10 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("Given: downed node")
-	if err := RunIptablesCommand(IPFromTestNet("11"), CmdBlockScyllaREST); err != nil {
+	if err := RunIptablesCommand(t, IPFromTestNet("11"), CmdBlockScyllaREST); err != nil {
 		t.Fatal(err)
 	}
-	defer RunIptablesCommand(IPFromTestNet("11"), CmdUnblockScyllaREST)
+	defer RunIptablesCommand(t, IPFromTestNet("11"), CmdUnblockScyllaREST)
 
 	Print("When: get target")
 	target := backup.Target{
