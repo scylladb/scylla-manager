@@ -57,7 +57,7 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 		test := table[i]
 
 		t.Run(fmt.Sprintf("block %d nodes", test.block), func(t *testing.T) {
-			if err := testRetry(hosts, test.block, test.timeout); err != nil {
+			if err := testRetry(t, hosts, test.block, test.timeout); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -72,12 +72,12 @@ func allHosts() ([]string, error) {
 	return client.Hosts(context.Background())
 }
 
-func testRetry(hosts []string, n int, shouldTimeout bool) error {
+func testRetry(t *testing.T, hosts []string, n int, shouldTimeout bool) error {
 	blockedHosts := make([]string, 0, len(hosts))
 
 	block := func(ctx context.Context, hosts []string) error {
 		for _, h := range hosts {
-			err := RunIptablesCommand(h, CmdBlockScyllaREST)
+			err := RunIptablesCommand(t, h, CmdBlockScyllaREST)
 			if err != nil {
 				return err
 			}
@@ -88,7 +88,7 @@ func testRetry(hosts []string, n int, shouldTimeout bool) error {
 
 	unblock := func(ctx context.Context) error {
 		for _, h := range blockedHosts {
-			err := RunIptablesCommand(h, CmdUnblockScyllaREST)
+			err := RunIptablesCommand(t, h, CmdUnblockScyllaREST)
 			if err != nil {
 				return err
 			}
