@@ -82,6 +82,7 @@ type ConfigInfo struct {
 	Suffix                 string        `yaml:"suffix"`
 	SuffixKeepExtension    bool          `yaml:"suffix_keep_extension"`
 	UseListR               bool          `yaml:"use_list_r"`
+	UseListCB              bool          `yaml:"use_list_cb"`
 	BufferSize             SizeSuffix    `yaml:"buffer_size"`
 	BwLimit                BwTimetable   `yaml:"bw_limit"`
 	BwLimitFile            BwTimetable   `yaml:"bw_limit_file"`

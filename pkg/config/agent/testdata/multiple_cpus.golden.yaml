@@ -69,6 +69,7 @@ rclone:
   suffix: ""
   suffix_keep_extension: false
   use_list_r: false
+  use_list_cb: false
   buffer_size: 16777216
   bw_limit: []
   bw_limit_file: []

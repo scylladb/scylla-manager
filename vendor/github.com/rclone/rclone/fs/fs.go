@@ -1045,6 +1045,23 @@ type ListRer interface {
 	ListR(ctx context.Context, dir string, callback ListRCallback) error
 }
 
+// ListCBer extends Fs with ListCB.
+type ListCBer interface {
+	Fs
+	// ListCB calls callback on directory entries as they are being listed.
+	//
+	// dir should be "" to start from the root, and should not
+	// have trailing slashes.
+	//
+	// This should return ErrDirNotFound if the directory isn't found.
+	//
+	// It should call callback for each tranche of entries read.
+	// These need not be returned in any particular order. If
+	// callback returns an error then the listing will stop
+	// immediately.
+	ListCB(ctx context.Context, dir string, callback ListRCallback) error
+}
+
 // RangeSeeker is the interface that wraps the RangeSeek method.
 //
 // Some of the returns from Object.Open() may optionally implement
@@ -1187,7 +1204,7 @@ func Find(name string) (*RegInfo, error) {
 
 // MustFind looks for an Info object for the type name passed in
 //
-// Services are looked up in the config file
+// # Services are looked up in the config file
 //
 // Exits with a fatal error if not found
 func MustFind(name string) *RegInfo {

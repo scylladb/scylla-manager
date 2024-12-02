@@ -36,6 +36,37 @@ func DirSorted(ctx context.Context, f fs.Fs, includeAll bool, dir string) (entri
 	return filterAndSortDir(ctx, entries, includeAll, dir, fi.IncludeObject, fi.IncludeDirectory(ctx, f))
 }
 
+// Func is copied from imports github.com/rclone/rclone/fs/walk
+// in order to avoid import cycle.
+type Func func(path string, entries fs.DirEntries, err error) error
+
+// DirCBFunc is the type of DirCB function.
+type DirCBFunc func(ctx context.Context, fs fs.ListCBer, includeAll bool, dir string, cb Func) error
+
+// DirCB works like DirSorted but uses ListCB instead of List for file listing.
+func DirCB(ctx context.Context, f fs.ListCBer, includeAll bool, dir string, cb Func) error {
+	fi := filter.GetConfig(ctx)
+	// Get unfiltered entries from the fs
+	return f.ListCB(ctx, dir, func(entries fs.DirEntries) error {
+		// This should happen only if exclude files lives in the
+		// starting directory, otherwise ListDirSorted should not be
+		// called.
+		if !includeAll && fi.ListContainsExcludeFile(entries) {
+			fs.Debugf(dir, "Excluded")
+			return nil
+		}
+		var err error
+		entries, err = filterAndSortDir(ctx, entries, includeAll, dir, fi.IncludeObject, fi.IncludeDirectory(ctx, f))
+		if err != nil {
+			return err
+		}
+		if len(entries) > 0 {
+			return cb(dir, entries, nil)
+		}
+		return nil
+	})
+}
+
 // filter (if required) and check the entries, then sort them
 func filterAndSortDir(ctx context.Context, entries fs.DirEntries, includeAll bool, dir string,
 	IncludeObject func(ctx context.Context, o fs.Object) bool,
