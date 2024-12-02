@@ -7,11 +7,14 @@ services:
         source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
-        source: ./scylla/scylla.yaml
+        source: ./scylla/scylla-PoC-restore-dc1-n1.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/data/dc1n1/
+        target: /var/lib/scylla/data
     networks:
       public:
       second:
@@ -24,11 +27,14 @@ services:
         source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
-        source: ./scylla/scylla.yaml
+        source: ./scylla/scylla-PoC-restore-dc1-n2.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/data/dc1n2/
+        target: /var/lib/scylla/data
     networks:
       public:
       second:
@@ -41,11 +47,14 @@ services:
         source: ./scylla/cassandra-rackdc.1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
-        source: ./scylla/scylla.yaml
+        source: ./scylla/scylla-PoC-restore-dc1-n3.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs/
+      - type: bind
+        source: ./scylla/data/dc1n3/
+        target: /var/lib/scylla/data
     networks:
       public:
       second:
@@ -58,11 +67,14 @@ services:
         source: ./scylla/cassandra-rackdc.2.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
-        source: ./scylla/scylla.yaml
+        source: ./scylla/scylla-PoC-restore-dc2-n1.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/data/dc2n1/
+        target: /var/lib/scylla/data
     networks:
       public:
       second:
@@ -75,11 +87,14 @@ services:
         source: ./scylla/cassandra-rackdc.2.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
-        source: ./scylla/scylla.yaml
+        source: ./scylla/scylla-PoC-restore-dc2-n2.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/data/dc2n2/
+        target: /var/lib/scylla/data
     networks:
       public:
       second:
@@ -92,11 +107,14 @@ services:
         source: ./scylla/cassandra-rackdc.2.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
-        source: ./scylla/scylla.yaml
+        source: ./scylla/scylla-PoC-restore-dc2-n3.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/data/dc2n3/
+        target: /var/lib/scylla/data
     networks:
       public:
       second:

@@ -257,3 +257,232 @@ vendor: ## Fix dependencies and make vendored copies
 .PHONY: help
 help:
 	@awk -F ':|##' '/^[^\t].+?:.*?##/ {printf "\033[36m%-25s\033[0m %s\n", $$1, $$NF}' $(MAKEFILE_LIST)
+
+.PHONY: extract_tokens_and_schema
+extract_tokens_and_schema:
+	@echo "Extracting tokens from .1-1-restore-poc/backup.tar.gz..."
+	@mkdir -p extracted_data
+	@tar -xzvf .1-1-restore-poc/backup.tar.gz -C extracted_data
+
+	# Extract tokens from meta/cluster/<cluster_id>/dc/<dc_id>/node/<node_id>
+	@echo "Finding archives in extracted_data/meta/cluster/*/dc/*/node/*..."
+	@find extracted_data/meta/cluster/*/dc/*/node/* -type f -name "*.gz" | while read inner_archive; do \
+		echo "Processing archive: $$inner_archive"; \
+		dc=$$(echo "$$inner_archive" | awk -F'/' '{for (i=1; i<=NF; i++) if ($$i == "dc") print $$(i+1)}'); \
+		node=$$(echo "$$inner_archive" | awk -F'/' '{for (i=1; i<=NF; i++) if ($$i == "node") print $$(i+1)}'); \
+		echo "  Found DC: $$dc"; \
+		echo "  Found Node: $$node"; \
+		tmp_dir=$$(mktemp -d); \
+		gunzip -c "$$inner_archive" > "$$tmp_dir/extracted.json"; \
+		if [ -s "$$tmp_dir/extracted.json" ]; then \
+			echo "    Extracted JSON file: $$tmp_dir/extracted.json"; \
+			tokens=$$(jq -r '.tokens | join(",")' "$$tmp_dir/extracted.json"); \
+			echo "    Extracted Tokens: $$tokens"; \
+			output_file=".1-1-restore-poc/$$dc-$$node.tokens"; \
+			echo "$$tokens" > "$$output_file"; \
+			echo "    Tokens saved to $$output_file"; \
+		else \
+			echo "    No valid JSON file found in $$inner_archive"; \
+		fi; \
+		rm -rf "$$tmp_dir"; \
+	done
+
+	# Extract schema CQL from schema/cluster/<cluster_id>/<file>.gz
+	@echo "Processing schema files in extracted_data/schema/cluster/..."
+	@find extracted_data/schema/cluster/* -type f -name "*.gz" | while read schema_archive; do \
+		echo "Processing schema archive: $$schema_archive"; \
+		tmp_dir=$$(mktemp -d); \
+		gunzip -c "$$schema_archive" > "$$tmp_dir/schema.json"; \
+		if [ -s "$$tmp_dir/schema.json" ]; then \
+			echo "    Extracted schema JSON file: $$tmp_dir/schema.json"; \
+			cql_stmts=$$(jq -r '.[].cql_stmt' "$$tmp_dir/schema.json"); \
+			output_schema=".1-1-restore-poc/schema.CQL"; \
+			echo "$$cql_stmts" > "$$output_schema"; \
+			echo "    CQL statements saved to $$output_schema"; \
+		else \
+			echo "    No valid JSON schema file found in $$schema_archive"; \
+		fi; \
+		rm -rf "$$tmp_dir"; \
+	done
+
+	@rm -rf extracted_data
+	@echo "All extracted data has been removed."
+
+tokens_dir := ./.1-1-restore-poc
+restore_dir := ./testing/scylla
+
+.PHONY: set_initial_tokens
+set_initial_tokens:
+	@echo "Creating mapping and setting initial tokens..."
+	@echo "Tokens directory: $(tokens_dir)"
+	@echo "Restore directory: $(restore_dir)"
+	@if [ ! -d "$(tokens_dir)" ]; then echo "Tokens directory does not exist: $(tokens_dir)"; exit 1; fi
+	@if [ ! -d "$(restore_dir)" ]; then echo "Restore directory does not exist: $(restore_dir)"; exit 1; fi
+	@tokens_files=$$(ls $(tokens_dir)/*.tokens 2>/dev/null | sort); \
+	restore_files=$$(ls $(restore_dir)/scylla-PoC-restore-*.yaml 2>/dev/null | sort); \
+	if [ -z "$$tokens_files" ]; then echo "No tokens files found in $(tokens_dir)"; exit 1; fi; \
+	if [ -z "$$restore_files" ]; then echo "No restore YAML files found in $(restore_dir)"; exit 1; fi; \
+	echo "Found tokens files: $$tokens_files"; \
+	echo "Found scylla.yaml config files: $$restore_files"; \
+	for tokens_file in $$tokens_files; do \
+		tokens_dc=$$(basename $$tokens_file | awk -F'-' '{print $$1}'); \
+		tokens_node=$$(basename $$tokens_file | awk -F'-' '{print $$2}' | sed 's/.tokens//'); \
+		restore_file=$$(echo "$$restore_files" | grep "scylla-PoC-restore-$$tokens_dc" | head -1); \
+		restore_files=$$(echo "$$restore_files" | sed "s|$$restore_file||"); \
+		tokens=$$(cat $$tokens_file); \
+		if [ -n "$$restore_file" ]; then \
+			echo "Mapping $$tokens_file -> $$restore_file"; \
+			awk -v tokens="initial_token: '$$tokens'" '/^initial_token:/ {sub(/^initial_token:.*/, tokens); found=1} {print} END {if (!found) print tokens}' $$restore_file > $$restore_file.tmp && mv $$restore_file.tmp $$restore_file; \
+		else \
+			echo "No matching restore file found for $$tokens_file"; \
+		fi; \
+	done
+	@echo "Mapping and token updates complete."
+
+cql_file := .1-1-restore-poc/schema.CQL
+docker_container := scylla_manager-dc1_node_1-1
+
+.PHONY: recreate_schema
+recreate_schema:
+	@echo "Executing CQL statements from $(cql_file) on Docker container $(docker_container)..."
+	@if [ ! -f "$(cql_file)" ]; then echo "CQL file not found: $(cql_file)"; exit 1; fi
+	@docker exec -i $(docker_container) cqlsh 192.168.100.11 -u cassandra -p cassandra --request-timeout=60 < $(cql_file)
+	@echo "CQL execution completed."
+
+data_file := .1-1-restore-poc/backuptest_data.big_table.sorted.restored.csv
+extract_data_to_csv:
+	@echo "Extracting data from Scylla table..."
+	cqlsh 192.168.100.11 -u cassandra -p cassandra -e "COPY backuptest_data.big_table TO 'backuptest_data.big_table.restored.csv' WITH HEADER = TRUE;"
+	@echo "Sorting the extracted data..."
+	sort -t, -k1 backuptest_data.big_table.restored.csv > .1-1-restore-poc/backuptest_data.big_table.restored.sorted.csv
+	@echo "Removing unsorted CSV file..."
+	rm backuptest_data.big_table.restored.csv
+	@echo "Data extraction and sorting complete!"
+
+compare_restored:
+	@echo "Comparing the content of restored ks with the expected content"
+	@if diff .1-1-restore-poc/backuptest_data.big_table.restored.sorted.csv .1-1-restore-poc/backuptest_data.big_table.sorted.csv > /dev/null; then \
+		echo "Contents are the same"; \
+	else \
+		echo "Contents differ"; \
+	fi
+
+extract_sstables:
+	@echo "Extracting archive .1-1-restore-poc/backup.tar.gz..."
+	@mkdir -p extracted_data
+	@tar -xzvf .1-1-restore-poc/backup.tar.gz -C extracted_data
+
+	@echo "Copying keyspaces for all nodes, excluding system keyspaces..."
+	@find extracted_data/sst/cluster/*/dc/*/node/*/keyspace/* -maxdepth 0 -type d | while read keyspace_dir; do \
+		keyspace_name=$$(basename "$$keyspace_dir"); \
+		if [[ "$$keyspace_name" != system* ]]; then \
+			split1=$$(dirname "$$keyspace_dir"); \
+			node_dir=$$(dirname "$$split1"); \
+			node_name=$$(basename "$$node_dir"); \
+			split2=$$(dirname "$$node_dir"); \
+			dc_dir=$$(dirname "$$split2"); \
+			dc_name=$$(basename "$$dc_dir"); \
+			output_dir=".1-1-restore-poc/$$dc_name-$$node_name/keyspace/$$keyspace_name"; \
+			echo "DEBUG: Processing keyspace $$keyspace_name"; \
+			echo "DEBUG: Node directory: $$node_dir"; \
+			echo "DEBUG: Node name: $$node_name"; \
+			echo "DEBUG: Data center name: $$dc_name"; \
+			echo "DEBUG: Output directory: $$output_dir"; \
+			echo "Copying keyspace $$keyspace_name to $$output_dir..."; \
+			mkdir -p "$$output_dir"; \
+			cp -r "$$keyspace_dir/"* "$$output_dir/"; \
+		else \
+			echo "Skipping system keyspace: $$keyspace_name"; \
+		fi; \
+	done
+
+	@rm -rf extracted_data
+	@echo "Keyspace copying complete, and extracted data removed."
+
+# Define variables
+SRC_DIR := .1-1-restore-poc
+DEST_DIR := testing/scylla/data
+
+# Target to generate the mapping from dc-host-id to dcXnY
+generate_mapping:
+	@echo "Generating mapping..."
+	@rm -f .mapping
+	@dc_list=$$(for dc_host_dir in $(SRC_DIR)/*; do \
+		if [ -d "$$dc_host_dir" ]; then \
+			dc_host_name=$$(basename "$$dc_host_dir"); \
+			dc=$$(echo "$$dc_host_name" | cut -d'-' -f1); \
+			echo "$$dc"; \
+		fi; \
+	done | sort -u); \
+	for dc in $$dc_list; do \
+		echo "Processing DC $$dc"; \
+		host_dirs=$$(find $(SRC_DIR) -mindepth 1 -maxdepth 1 -type d -name "$$dc-*" | sort); \
+		seq=1; \
+		for host_dir in $$host_dirs; do \
+			dc_host_name=$$(basename "$$host_dir"); \
+			host_id=$$(echo "$$dc_host_name" | cut -d'-' -f2-); \
+			dc_host_id="$$dc-$$host_id"; \
+			dest_dc_n="$$dc""n""$$seq"; \
+			echo "$$dc_host_id=$$dest_dc_n" >> .mapping; \
+			seq=$$((seq+1)); \
+		done; \
+	done
+
+# Target to copy files from source to destination
+.PHONY: copy_sstables
+copy_sstables: generate_mapping
+	@echo "Copying files..."
+	@while IFS='=' read -r dc_host_id dest_dc_n; do \
+		echo "Processing $$dc_host_id => $$dest_dc_n"; \
+		for src_path in $(SRC_DIR)/$$dc_host_id/keyspace/*/table/*/*; do \
+			if [ ! -d "$$src_path" ]; then \
+				continue; \
+			fi; \
+			keyspace=$$(echo "$$src_path" | sed -E 's|.*/keyspace/([^/]+)/table/.*|\1|'); \
+			table=$$(echo "$$src_path" | sed -E 's|.*/table/([^/]+)/.*|\1|'); \
+			dest_path="$(DEST_DIR)/$$dest_dc_n/$$keyspace/$$table-*"; \
+			dest_upload_dir=$$(find $$dest_path -type d -name upload 2>/dev/null); \
+			if [ -z "$$dest_upload_dir" ]; then \
+				echo "Warning: No destination upload directory found for $$dest_path"; \
+				continue; \
+			fi; \
+			echo "Setting permissions on $$(dirname "$$dest_upload_dir")"; \
+			sudo chmod -R 777 "$$(dirname "$$dest_upload_dir")"; \
+			echo "Copying from $$src_path to $$dest_upload_dir"; \
+			cp -r "$$src_path"/* "$$dest_upload_dir"/; \
+		done; \
+	done < .mapping
+
+# Define the list of Docker containers
+CONTAINERS := \
+    scylla_manager-dc1_node_1-1 \
+    scylla_manager-dc1_node_2-1 \
+    scylla_manager-dc1_node_3-1 \
+    scylla_manager-dc2_node_1-1 \
+    scylla_manager-dc2_node_2-1 \
+    scylla_manager-dc2_node_3-1
+
+.PHONY: refresh_nodes
+refresh_nodes:
+	@echo "Refreshing nodes..."
+	@for container in $(CONTAINERS); do \
+		echo "Refreshing $$container"; \
+		docker exec $$container nodetool refresh backuptest_data big_table; \
+	done
+
+.PHONY: query_data
+query_data:
+	@echo "Executing CQL query on 192.168.100.11..."
+	@cqlsh 192.168.100.11 -u cassandra -p cassandra -e "SELECT count(*) FROM backuptest_data.big_table;"
+
+.PHONY: clean_restore
+clean_restore:
+	@echo "Cleaning nodes scylla data folder"
+	sudo rm -rf ./testing/scylla/data/dc1n1/*
+	sudo rm -rf ./testing/scylla/data/dc1n2/*
+	sudo rm -rf ./testing/scylla/data/dc1n3/*
+	sudo rm -rf ./testing/scylla/data/dc2n1/*
+	sudo rm -rf ./testing/scylla/data/dc2n2/*
+	sudo rm -rf ./testing/scylla/data/dc2n3/*
+	@echo "Cleaning up .1-1-restore-poc, keeping only backup.tar.gz and backuptest_data.big_table.sorted.csv"
+	find .1-1-restore-poc -mindepth 1 ! -name "backup.tar.gz" ! -name "backuptest_data.big_table.sorted.csv" -exec rm -rf {} +
