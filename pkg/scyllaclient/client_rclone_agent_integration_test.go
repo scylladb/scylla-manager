@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -603,6 +605,80 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 	if err := validateDirContents(ctx, client, testHost, dstPath, dstM); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func BenchmarkRcloneListDirIterIntegration(b *testing.B) {
+	bucket := S3BucketPath(testBucket)
+	if err := os.RemoveAll(bucket); err != nil {
+		b.Fatal(err)
+	}
+	if err := os.Mkdir(bucket, 0o700); err != nil {
+		b.Fatal(err)
+	}
+
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopmentWithLevel(zapcore.ErrorLevel))
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	const fileCnt = 5555
+	Printf("Given: dir with %d files", fileCnt)
+	for i := 0; i < fileCnt; i++ {
+		f, err := os.Create(path.Join(bucket, fmt.Sprint(i)))
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = f.Close()
+	}
+
+	Print("When: check list iter latency")
+	// ListCB is implemented only for the non-recursive listings (take a look at rcChunkedList)
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse: false,
+	}
+	// 1000 is the default chunk size for s3
+	const rcloneChunkSize = 1000
+	const sampleSize = 1000
+	var avgTotal, avgFirst, avgCross, avgWithin time.Duration
+	for sample := range sampleSize {
+		var firstDiff, maxCrossChunkDiff, maxWithinChunkDiff time.Duration
+		idx := 0
+		lastCB := timeutc.Now()
+		start := timeutc.Now()
+		err = client.RcloneListDirIter(context.Background(), ManagedClusterHost(), remotePath(""), opts, func(item *scyllaclient.RcloneListDirItem) {
+			idx++
+			now := timeutc.Now()
+			if idx == 1 {
+				firstDiff = now.Sub(lastCB)
+				lastCB = now
+				return
+			}
+			diff := now.Sub(lastCB)
+			lastCB = now
+			if idx%rcloneChunkSize == 1 {
+				maxCrossChunkDiff = max(maxCrossChunkDiff, diff)
+			} else {
+				maxWithinChunkDiff = max(maxWithinChunkDiff, diff)
+			}
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		total := timeutc.Now().Sub(start)
+
+		b.Log("sample: ", sample, "total: ", total, "first: ", firstDiff, "maxCross: ", maxCrossChunkDiff, "maxWithin: ", maxWithinChunkDiff)
+		avgTotal += total
+		avgFirst += firstDiff
+		avgCross += maxCrossChunkDiff
+		avgWithin += maxWithinChunkDiff
+	}
+
+	avgTotal /= sampleSize
+	avgFirst /= sampleSize
+	avgCross /= sampleSize
+	avgWithin /= sampleSize
+
+	b.Log("Avg total time: ", avgTotal, "Avg first latency: ", avgFirst, "Avg max cross chunk latency: ", avgCross, "Avg max within chunk latency: ", avgWithin)
 }
 
 func validateDirContents(ctx context.Context, client *scyllaclient.Client, host, remotePath string, files map[string]string) error {

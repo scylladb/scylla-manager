@@ -45,3 +45,11 @@ func S3Credentials() (provider, endpoint, accessKeyID, secretAccessKey string) {
 	}
 	return *flagS3Provider, *flagS3Endpoint, *flagS3AccessKeyID, *flagS3SecretAccessKey
 }
+
+// S3BucketPath returns the os path to the bucket.
+func S3BucketPath(bucket string) string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return filepath.Join(*flagS3DataDir, bucket)
+}
