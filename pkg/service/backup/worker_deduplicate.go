@@ -68,7 +68,6 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		remoteSSTableBundles := newSSTableBundlesByID()
 		listOpts := &scyllaclient.RcloneListDirOpts{
 			FilesOnly: true,
-			Recurse:   true,
 		}
 		if err := w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
 			if err := remoteSSTableBundles.add(f.Name, f.Size); err != nil {

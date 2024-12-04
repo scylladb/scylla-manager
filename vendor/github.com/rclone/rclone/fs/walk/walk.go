@@ -49,7 +49,7 @@ type Func func(path string, entries fs.DirEntries, err error) error
 // Note that fn will not be called concurrently whereas the directory
 // listing will proceed concurrently.
 //
-// Parent directories are always listed before their children
+// # Parent directories are always listed before their children
 //
 // This is implemented by WalkR if Config.UseListR is true
 // and f supports it and level > 1, or WalkN otherwise.
@@ -62,12 +62,19 @@ func Walk(ctx context.Context, f fs.Fs, path string, includeAll bool, maxLevel i
 	ci := fs.GetConfig(ctx)
 	fi := filter.GetConfig(ctx)
 	if ci.NoTraverse && fi.HaveFilesFrom() {
+		fs.Logf(nil, "Walk: used walkR for listing")
 		return walkR(ctx, f, path, includeAll, maxLevel, fn, fi.MakeListR(ctx, f.NewObject))
 	}
 	// FIXME should this just be maxLevel < 0 - why the maxLevel > 1
 	if (maxLevel < 0 || maxLevel > 1) && ci.UseListR && f.Features().ListR != nil {
+		fs.Logf(nil, "Walk: used walkListR for listing")
 		return walkListR(ctx, f, path, includeAll, maxLevel, fn)
 	}
+	if fcb, ok := f.(fs.ListCBer); ci.UseListCB && ok {
+		fs.Logf(nil, "Walk: used walkCB for listing")
+		return walkCB(ctx, fcb, path, includeAll, maxLevel, fn, list.DirCB)
+	}
+	fs.Logf(nil, "Walk: used walkListDirSorted for listing")
 	return walkListDirSorted(ctx, f, path, includeAll, maxLevel, fn)
 }
 
@@ -353,9 +360,54 @@ func walkListR(ctx context.Context, f fs.Fs, path string, includeAll bool, maxLe
 	return walkR(ctx, f, path, includeAll, maxLevel, fn, listR)
 }
 
+// listJob describe a directory listing that needs to be done.
+type listJob struct {
+	remote string
+	depth  int
+}
+
 type listDirFunc func(ctx context.Context, fs fs.Fs, includeAll bool, dir string) (entries fs.DirEntries, err error)
 
 func walk(ctx context.Context, f fs.Fs, path string, includeAll bool, maxLevel int, fn Func, listDir listDirFunc) error {
+	return walkCore(ctx, path, maxLevel, func(ctx context.Context, job listJob) ([]listJob, error) {
+		entries, err := listDir(ctx, f, includeAll, job.remote)
+		var jobs []listJob
+		if err == nil && job.depth != 0 {
+			entries.ForDir(func(dir fs.Directory) {
+				// Recurse for the directory
+				jobs = append(jobs, listJob{
+					remote: dir.Remote(),
+					depth:  job.depth - 1,
+				})
+			})
+		}
+		err = fn(job.remote, entries, err)
+		return jobs, err
+	})
+}
+
+func walkCB(ctx context.Context, f fs.ListCBer, path string, includeAll bool, maxLevel int, fn Func, listDir list.DirCBFunc) error {
+	return walkCore(ctx, path, maxLevel, func(ctx context.Context, job listJob) ([]listJob, error) {
+		var jobs []listJob
+		err := listDir(ctx, f, includeAll, job.remote, func(path string, entries fs.DirEntries, err error) error {
+			if err == nil && job.depth != 0 {
+				entries.ForDir(func(dir fs.Directory) {
+					// Recurse for the directory
+					jobs = append(jobs, listJob{
+						remote: dir.Remote(),
+						depth:  job.depth - 1,
+					})
+				})
+			}
+			return fn(path, entries, err)
+		})
+		return jobs, err
+	})
+}
+
+type walkCoreFunc func(ctx context.Context, job listJob) ([]listJob, error)
+
+func walkCore(ctx context.Context, path string, maxLevel int, core walkCoreFunc) error {
 	var (
 		wg         sync.WaitGroup      // sync closing of go routines
 		traversing sync.WaitGroup      // running directory traversals
@@ -363,11 +415,6 @@ func walk(ctx context.Context, f fs.Fs, path string, includeAll bool, maxLevel i
 		mu         sync.Mutex          // stop fn being called concurrently
 		ci         = fs.GetConfig(ctx) // current config
 	)
-	// listJob describe a directory listing that needs to be done
-	type listJob struct {
-		remote string
-		depth  int
-	}
 
 	in := make(chan listJob, ci.Checkers)
 	errs := make(chan error, 1)
@@ -392,19 +439,8 @@ func walk(ctx context.Context, f fs.Fs, path string, includeAll bool, maxLevel i
 					if !ok {
 						return
 					}
-					entries, err := listDir(ctx, f, includeAll, job.remote)
-					var jobs []listJob
-					if err == nil && job.depth != 0 {
-						entries.ForDir(func(dir fs.Directory) {
-							// Recurse for the directory
-							jobs = append(jobs, listJob{
-								remote: dir.Remote(),
-								depth:  job.depth - 1,
-							})
-						})
-					}
 					mu.Lock()
-					err = fn(job.remote, entries, err)
+					jobs, err := core(ctx, job)
 					mu.Unlock()
 					// NB once we have passed entries to fn we mustn't touch it again
 					if err != nil && err != ErrorSkipDir {

@@ -486,6 +486,11 @@ func rcChunkedList(ctx context.Context, in rc.Params) (out rc.Params, err error)
 		}
 	}
 
+	ctx, ci := fs.AddConfig(ctx)
+	// Allow for calling callback as the dir is listed (#4132)
+	// Note that ListCB is implemented only for a non-recursive listings.
+	ci.UseListCB = true
+
 	w, err := in.GetHTTPResponseWriter()
 	if err != nil {
 		return nil, err

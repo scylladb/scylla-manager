@@ -556,7 +556,7 @@ type listFn func(remote string, object *storage.Object, isDirectory bool) error
 //
 // dir is the starting directory, "" for root
 //
-// Set recurse to read sub directories
+// # Set recurse to read sub directories
 //
 // The remote has prefix removed from it and if addBucket is set
 // then it adds the bucket to the start.
@@ -634,6 +634,27 @@ func (f *Fs) list(ctx context.Context, bucket, directory, prefix string, addBuck
 	return nil
 }
 
+// listCB calls list with cb wrapped in walk.NewListRHelper.
+func (f *Fs) listCB(ctx context.Context, bucket, directory, prefix string, addBucket, recourse bool, cb fs.ListRCallback) error {
+	list := walk.NewListRHelper(cb)
+	err := f.list(ctx, bucket, directory, prefix, addBucket, recourse, func(remote string, object *storage.Object, isDirectory bool) error {
+		entry, err := f.itemToDirEntry(ctx, remote, object, isDirectory)
+		if err != nil {
+			return err
+		}
+		if entry != nil {
+			return list.Add(entry)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// bucket must be present if listing succeeded
+	f.cache.MarkOK(bucket)
+	return list.Flush()
+}
+
 // Convert a list item into a DirEntry
 func (f *Fs) itemToDirEntry(ctx context.Context, remote string, object *storage.Object, isDirectory bool) (fs.DirEntry, error) {
 	if isDirectory {
@@ -645,27 +666,6 @@ func (f *Fs) itemToDirEntry(ctx context.Context, remote string, object *storage.
 		return nil, err
 	}
 	return o, nil
-}
-
-// listDir lists a single directory
-func (f *Fs) listDir(ctx context.Context, bucket, directory, prefix string, addBucket bool) (entries fs.DirEntries, err error) {
-	// List the objects
-	err = f.list(ctx, bucket, directory, prefix, addBucket, false, func(remote string, object *storage.Object, isDirectory bool) error {
-		entry, err := f.itemToDirEntry(ctx, remote, object, isDirectory)
-		if err != nil {
-			return err
-		}
-		if entry != nil {
-			entries = append(entries, entry)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	// bucket must be present if listing succeeded
-	f.cache.MarkOK(bucket)
-	return entries, err
 }
 
 // listBuckets lists the buckets
@@ -704,7 +704,7 @@ func (f *Fs) listBuckets(ctx context.Context) (entries fs.DirEntries, err error)
 //
 // This should return ErrDirNotFound if the directory isn't
 // found.
-func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err error) {
+func (f *Fs) List(ctx context.Context, dir string) (fs.DirEntries, error) {
 	bucket, directory := f.split(dir)
 	if bucket == "" {
 		if directory != "" {
@@ -712,7 +712,37 @@ func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err e
 		}
 		return f.listBuckets(ctx)
 	}
-	return f.listDir(ctx, bucket, directory, f.rootDirectory, f.rootBucket == "")
+
+	// Use callback for regular listing
+	var entries fs.DirEntries
+	err := f.listCB(ctx, bucket, directory, f.rootDirectory, f.rootBucket == "", false, func(e fs.DirEntries) error {
+		entries = append(entries, e...)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+// ListCB calls callback to the objects and directories in dir as they are being listed.
+// The callback might be called for just a subset of directory entries.
+// When listing buckets, the callback is called just once for all of them.
+//
+// dir should be "" to list the root, and should not have
+// trailing slashes.
+//
+// This should return ErrDirNotFound if the directory isn't found.
+func (f *Fs) ListCB(ctx context.Context, dir string, cb fs.ListRCallback) error {
+	bucket, directory := f.split(dir)
+	if bucket == "" {
+		entries, err := f.listBuckets(ctx)
+		if err != nil {
+			return err
+		}
+		return cb(entries)
+	}
+	return f.listCB(ctx, bucket, directory, f.rootDirectory, f.rootBucket == "", false, cb)
 }
 
 // ListR lists the objects and directories of the Fs starting
@@ -731,50 +761,33 @@ func (f *Fs) List(ctx context.Context, dir string) (entries fs.DirEntries, err e
 //
 // Don't implement this unless you have a more efficient way
 // of listing recursively that doing a directory traversal.
-func (f *Fs) ListR(ctx context.Context, dir string, callback fs.ListRCallback) (err error) {
+func (f *Fs) ListR(ctx context.Context, dir string, cb fs.ListRCallback) error {
 	bucket, directory := f.split(dir)
-	list := walk.NewListRHelper(callback)
-	listR := func(bucket, directory, prefix string, addBucket bool) error {
-		return f.list(ctx, bucket, directory, prefix, addBucket, true, func(remote string, object *storage.Object, isDirectory bool) error {
-			entry, err := f.itemToDirEntry(ctx, remote, object, isDirectory)
-			if err != nil {
-				return err
-			}
-			return list.Add(entry)
-		})
-	}
 	if bucket == "" {
 		entries, err := f.listBuckets(ctx)
 		if err != nil {
 			return err
 		}
 		for _, entry := range entries {
-			err = list.Add(entry)
+			// Call callback on bucket right before listing its files
+			err = cb(fs.DirEntries{entry})
 			if err != nil {
 				return err
 			}
 			bucket := entry.Remote()
-			err = listR(bucket, "", f.rootDirectory, true)
+			err = f.listCB(ctx, bucket, "", f.rootDirectory, true, true, cb)
 			if err != nil {
 				return err
 			}
-			// bucket must be present if listing succeeded
-			f.cache.MarkOK(bucket)
 		}
-	} else {
-		err = listR(bucket, directory, f.rootDirectory, f.rootBucket == "")
-		if err != nil {
-			return err
-		}
-		// bucket must be present if listing succeeded
-		f.cache.MarkOK(bucket)
+		return nil
 	}
-	return list.Flush()
+	return f.listCB(ctx, bucket, directory, f.rootDirectory, f.rootBucket == "", true, cb)
 }
 
 // Put the object into the bucket
 //
-// Copy the reader in to the new object which is returned
+// # Copy the reader in to the new object which is returned
 //
 // The new object may have been created if an error is returned
 func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
@@ -871,9 +884,9 @@ func (f *Fs) Precision() time.Duration {
 
 // Copy src to this remote using server-side copy operations.
 //
-// This is stored with the remote path given
+// # This is stored with the remote path given
 //
-// It returns the destination Object and a possible error
+// # It returns the destination Object and a possible error
 //
 // Will only be called if src.Fs().Name() == f.Name()
 //
