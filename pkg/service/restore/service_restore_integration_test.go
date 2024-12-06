@@ -81,6 +81,7 @@ func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, l
 		}
 	}
 
+	SetTaskTTL(t, client, 60*60)
 	return &restoreTestHelper{
 		CommonTestHelper: cHelper,
 

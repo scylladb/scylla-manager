@@ -84,6 +84,7 @@ func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config ba
 		}
 	}
 
+	SetTaskTTL(t, client, 60*60)
 	return &backupTestHelper{
 		CommonTestHelper: cHelper,
 
@@ -138,6 +139,7 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 func defaultConfig() backup.Config {
 	c := backup.DefaultConfig()
 	c.DiskSpaceFreeMinPercent = 5
+	c.LongPollingTimeoutSeconds = 1
 	return c
 }
 
