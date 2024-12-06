@@ -12,6 +12,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
@@ -147,6 +148,9 @@ func (w *worker) snapshotJobID(ctx context.Context, d snapshotDir) int64 {
 	return 0
 }
 
+// TODO: change it to something nicer - need to check Scylla version + check for config/flag.
+const useScyllaAPI = true
+
 func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDir) error {
 	w.Logger.Info(ctx, "Uploading table snapshot",
 		"host", h.IP,
@@ -163,11 +167,17 @@ func (w *worker) uploadSnapshotDir(ctx context.Context, h hostInfo, d snapshotDi
 		retries      = 10
 	)
 	for range retries {
-		if err := w.uploadDataDir(ctx, h, dataDst, dataSrc, d); err != nil {
-			if errors.Is(err, errJobNotFound) {
-				continue
+		if useScyllaAPI {
+			if err := w.scyllaBackup(ctx, h, d); err != nil {
+				return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
 			}
-			return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
+		} else {
+			if err := w.uploadDataDir(ctx, h, dataDst, dataSrc, d); err != nil {
+				if errors.Is(err, errJobNotFound) {
+					continue
+				}
+				return errors.Wrapf(err, "copy %q to %q", dataSrc, dataDst)
+			}
 		}
 		break
 	}
@@ -296,4 +306,96 @@ func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
 	return RemoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
+}
+
+func (w *worker) scyllaBackup(ctx context.Context, hi hostInfo, d snapshotDir) error {
+	if d.Progress.ScyllaTaskID == "" || !w.scyllaCanAttachToTask(ctx, hi.IP, d.Progress.ScyllaTaskID) {
+		// TODO: resolve endpoint by either:
+		// - making agent return endpoint information to SM <- preferred
+		// - allowing for specifying endpoint instead of backed in --location flag
+		prefix := w.remoteSSTableDir(hi, d)
+		id, err := w.Client.ScyllaBackup(ctx, hi.IP, "192.168.200.99", hi.Location.Path, prefix, d.Keyspace, d.Table, w.SnapshotTag)
+		if err != nil {
+			return errors.Wrap(err, "backup")
+		}
+
+		w.Logger.Info(ctx, "Backing up dir", "host", d.Host, "keyspace", d.Keyspace, "table", d.Table, "prefix", prefix, "task id", id)
+		d.Progress.ScyllaTaskID = id
+		w.onRunProgress(ctx, d.Progress)
+	}
+
+	if err := w.scyllaWaitTask(ctx, d.Progress.ScyllaTaskID, d); err != nil {
+		w.Logger.Error(ctx, "Backing up dir failed", "host", d.Host, "task id", d.Progress.TaskID, "error", err)
+		return err
+	}
+	return nil
+}
+
+func (w *worker) scyllaCanAttachToTask(ctx context.Context, host, taskID string) bool {
+	task, err := w.Client.ScyllaTaskProgress(ctx, host, taskID)
+	if err != nil {
+		w.Logger.Error(ctx, "Failed to fetch task info",
+			"host", host,
+			"task id", taskID,
+			"error", err,
+		)
+		return false
+	}
+
+	state := scyllaclient.ScyllaTaskState(task.State)
+	return state == scyllaclient.ScyllaTaskStateDone ||
+		state == scyllaclient.ScyllaTaskStateRunning ||
+		state == scyllaclient.ScyllaTaskStateCreated
+}
+
+func (w *worker) scyllaWaitTask(ctx context.Context, id string, d snapshotDir) (err error) {
+	defer func() {
+		// On error abort task
+		if err != nil {
+			w.Logger.Info(ctx, "Stop task", "host", d.Host, "id", id)
+			// Watch out for already cancelled context
+			if e := w.Client.ScyllaAbortTask(context.Background(), d.Host, id); e != nil {
+				w.Logger.Error(ctx, "Failed to abort task",
+					"host", d.Host,
+					"id", id,
+					"error", e,
+				)
+			}
+		}
+	}()
+
+	for {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		task, err := w.Client.ScyllaWaitTask(ctx, d.Host, id, int64(w.Config.LongPollingTimeoutSeconds))
+		if err != nil {
+			return errors.Wrap(err, "wait for scylla task")
+		}
+		w.scyllaUpdateProgress(ctx, d, task)
+		switch scyllaclient.ScyllaTaskState(task.State) {
+		case scyllaclient.ScyllaTaskStateFailed:
+			return errors.Errorf("task error (%s): %s", id, task.Error)
+		case scyllaclient.ScyllaTaskStateDone:
+			return nil
+		}
+	}
+}
+
+func (w *worker) scyllaUpdateProgress(ctx context.Context, d snapshotDir, task *models.TaskStatus) {
+	// If so, we shouldn't display them in on the sctool side. TODO: what?
+	p := d.Progress
+	p.StartedAt = nil
+	if t := time.Time(task.StartTime); !t.IsZero() {
+		p.StartedAt = &t
+	}
+	p.CompletedAt = nil
+	if t := time.Time(task.EndTime); !t.IsZero() {
+		p.CompletedAt = &t
+	}
+	p.Error = task.Error
+	p.Uploaded = int64(task.ProgressCompleted)
+	p.Skipped = d.SkippedBytesOffset
+	w.onRunProgress(ctx, p)
 }
