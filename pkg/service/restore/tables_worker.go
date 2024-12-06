@@ -238,6 +238,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
+			// TODO: std::runtime_error ('S3' STORAGE only works with uuid_sstable_identifier enabled)
 			if len(b.VersionedSSTables()) == 0 && useScyllaAPI {
 				if err := w.scyllaRestore(ctx, host, b); err != nil {
 					err = multierr.Append(errors.Wrap(err, "restore batch with Scylla API"), bd.ReportFailure(host, b))

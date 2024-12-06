@@ -286,9 +286,9 @@ func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch) 
 	// TODO: resolve endpoint by either:
 	// - making agent return endpoint information to SM <- preferred
 	// - allowing for specifying endpoint instead of backed in --location flag
-	prefix, ok := strings.CutPrefix(b.RemoteSSTableDir, b.Location.Path)
+	prefix, ok := strings.CutPrefix(b.RemoteSSTableDir, b.Location.StringWithoutDC())
 	if !ok {
-		return errors.Errorf("")
+		return errors.Errorf("asdasd")
 	}
 	id, err := w.client.ScyllaRestore(ctx, host, "192.168.200.99", b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC())
 	if err != nil {
@@ -313,18 +313,19 @@ func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch) 
 }
 
 func (w *tablesWorker) scyllaWaitTask(ctx context.Context, pr *RunProgress, b batch) (err error) {
-	defer func() {
-		// On error abort task
-		if err != nil {
-			if e := w.client.ScyllaAbortTask(context.Background(), pr.Host, pr.ScyllaTaskID); e != nil {
-				w.logger.Error(ctx, "Failed to abort task",
-					"host", pr.Host,
-					"id", pr.ScyllaTaskID,
-					"error", e,
-				)
-			}
-		}
-	}()
+	// TODO: restore task cannot be aborted.
+	//defer func() {
+	//	// On error abort task
+	//	if err != nil {
+	//		if e := w.client.ScyllaAbortTask(context.Background(), pr.Host, pr.ScyllaTaskID); e != nil {
+	//			w.logger.Error(ctx, "Failed to abort task",
+	//				"host", pr.Host,
+	//				"id", pr.ScyllaTaskID,
+	//				"error", e,
+	//			)
+	//		}
+	//	}
+	//}()
 
 	for {
 		if ctx.Err() != nil {
