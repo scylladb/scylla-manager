@@ -5,6 +5,7 @@ package restore
 import (
 	"context"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgress) (err error) {
@@ -272,5 +274,93 @@ func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetProgress(progressLabels, w.progress.CurrentProgress())
 
 	w.logger.Info(ctx, "Restored batch", "host", pr.Host)
+	w.insertRunProgress(ctx, pr)
+}
+
+func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch) error {
+	if err := w.checkAvailableDiskSpace(ctx, host); err != nil {
+		return errors.Wrap(err, "validate free disk space")
+	}
+	// TODO: we probably should attach to job, but we don't do it for a regular restore anyway
+
+	// TODO: resolve endpoint by either:
+	// - making agent return endpoint information to SM <- preferred
+	// - allowing for specifying endpoint instead of backed in --location flag
+	prefix, ok := strings.CutPrefix(b.RemoteSSTableDir, b.Location.Path)
+	if !ok {
+		return errors.Errorf("")
+	}
+	id, err := w.client.ScyllaRestore(ctx, host, "192.168.200.99", b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC())
+	if err != nil {
+		return errors.Wrap(err, "restore")
+	}
+
+	pr := &RunProgress{
+		ClusterID:        w.run.ClusterID,
+		TaskID:           w.run.TaskID,
+		RunID:            w.run.ID,
+		RemoteSSTableDir: b.RemoteSSTableDir,
+		Keyspace:         b.Keyspace,
+		Table:            b.Table,
+		Host:             host,
+		ShardCnt:         int64(w.hostShardCnt[host]),
+		ScyllaTaskID:     id,
+		SSTableID:        b.IDs(),
+	}
+	w.insertRunProgress(ctx, pr)
+
+	return w.scyllaWaitTask(ctx, pr, b)
+}
+
+func (w *tablesWorker) scyllaWaitTask(ctx context.Context, pr *RunProgress, b batch) (err error) {
+	defer func() {
+		// On error abort task
+		if err != nil {
+			if e := w.client.ScyllaAbortTask(context.Background(), pr.Host, pr.ScyllaTaskID); e != nil {
+				w.logger.Error(ctx, "Failed to abort task",
+					"host", pr.Host,
+					"id", pr.ScyllaTaskID,
+					"error", e,
+				)
+			}
+		}
+	}()
+
+	for {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(w.config.LongPollingTimeoutSeconds))
+		if err != nil {
+			return errors.Wrap(err, "wait for scylla task")
+		}
+		w.scyllaUpdateProgress(ctx, pr, b, task)
+		switch scyllaclient.ScyllaTaskState(task.State) {
+		case scyllaclient.ScyllaTaskStateFailed:
+			return errors.Errorf("task error (%s): %s", pr.ScyllaTaskID, task.Error)
+		case scyllaclient.ScyllaTaskStateDone:
+			return nil
+		}
+	}
+}
+
+func (w *worker) scyllaUpdateProgress(ctx context.Context, pr *RunProgress, b batch, task *models.TaskStatus) {
+	// If so, we shouldn't display them in on the sctool side.
+	pr.DownloadStartedAt = nil
+	pr.RestoreStartedAt = nil
+	if t := time.Time(task.StartTime); !t.IsZero() {
+		pr.DownloadStartedAt = &t
+		pr.RestoreStartedAt = &t
+	}
+	pr.DownloadCompletedAt = nil
+	pr.RestoreCompletedAt = nil
+	if t := time.Time(task.StartTime); !t.IsZero() {
+		pr.DownloadCompletedAt = &t
+		pr.RestoreCompletedAt = &t
+	}
+	pr.Error = task.Error
+	// TODO: another arg for another struct
+	pr.Downloaded = b.Size * int64(task.ProgressCompleted/task.ProgressTotal)
 	w.insertRunProgress(ctx, pr)
 }
