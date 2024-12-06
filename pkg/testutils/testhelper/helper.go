@@ -65,3 +65,15 @@ func execOnAllHosts(h *CommonTestHelper, cmd string) {
 		}
 	}
 }
+
+// SetTaskTTL sets Scylla tasks TTL.
+func SetTaskTTL(t *testing.T, client *scyllaclient.Client, ttl int64) {
+	t.Helper()
+
+	// TODO: remember about task TTL - we should be able to set it per task in the future
+	for _, host := range client.Config().Hosts {
+		if err := client.ScyllaSetTaskTTL(context.Background(), host, ttl); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
