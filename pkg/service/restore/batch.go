@@ -5,10 +5,12 @@ package restore
 import (
 	"context"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 )
 
 // batchDispatcher is a tool for batching SSTables from
@@ -191,6 +193,20 @@ func (b batch) IDs() []string {
 		ids = append(ids, sst.ID)
 	}
 	return ids
+}
+
+// TODO: should we handle situation where TOC does not exist?
+// TOC returns a list of batch's sstable.ComponentTOC.
+func (b batch) TOC() []string {
+	out := make([]string, 0, len(b.SSTables))
+	for _, sst := range b.SSTables {
+		for _, f := range sst.Files {
+			if strings.HasSuffix(f, string(sstable.ComponentTOC)) {
+				out = append(out, f)
+			}
+		}
+	}
+	return out
 }
 
 // ValidateAllDispatched returns error if not all SSTables were dispatched.

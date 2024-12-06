@@ -176,6 +176,9 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 	return nil
 }
 
+// TODO: change it to something nicer - need to check Scylla version + check for config/flag.
+const useScyllaAPI = true
+
 func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.logger.Info(ctx, "Started restoring tables")
@@ -234,6 +237,18 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				return nil
 			}
 			w.onBatchDispatch(ctx, b, host)
+
+			if len(b.VersionedSSTables()) == 0 && useScyllaAPI {
+				if err := w.scyllaRestore(ctx, host, b); err != nil {
+					err = multierr.Append(errors.Wrap(err, "restore batch with Scylla API"), bd.ReportFailure(host, b))
+					w.logger.Error(ctx, "Failed to restore batch with Scylla API",
+						"host", host,
+						"error", err)
+				} else {
+					bd.ReportSuccess(b)
+				}
+				continue
+			}
 
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
