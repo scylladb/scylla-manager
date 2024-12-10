@@ -3,7 +3,8 @@ name: Sanity check
 on:
   push:
     branches:
-      - branch-3.4
+      - master
+      - 'branch-**'
   pull_request:
     types: [ opened, synchronize, reopened ]
 

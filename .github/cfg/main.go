@@ -39,7 +39,8 @@ func (cfg integrationTestCfg) scyllaVersion() string {
 // This is a simple script used to generate workflow files by applying
 // each config from './integration-test-cfg.yaml' onto './integration-test-core.yaml'.
 // It also prints github badges syntax that can be pasted into the README.md file.
-// It has to be run from the same dir with 'go run main.go' command.
+// It has to be run from the same dir with 'go run main.go <badge-branch>' command.
+// The <badge-branch> ('master' by default) arg specifies the branch from which the badges are generated.
 func main() {
 	f, err := os.ReadFile("./integration-test-cfg.yaml")
 	if err != nil {
@@ -74,6 +75,12 @@ func main() {
 		}
 	}
 
+	// Select badge branch
+	branch := "master"
+	if len(os.Args) == 2 {
+		branch = os.Args[1]
+	}
+
 	fmt.Println("Reference links to badges")
 	versionBadges := make(map[string][]string)
 	for _, cfg := range configs {
@@ -90,8 +97,8 @@ func main() {
 		}
 
 		versionBadges[v] = append(versionBadges[v], "!["+name+"]")
-		fmt.Printf("[%s]: https://github.com/scylladb/scylla-manager/actions/workflows/%s.yaml/badge.svg?branch=master\n",
-			name, name)
+		fmt.Printf("[%s]: https://github.com/scylladb/scylla-manager/actions/workflows/%s.yaml/badge.svg?branch=%s\n",
+			name, name, branch)
 	}
 
 	fmt.Println("Badges formatted as table")

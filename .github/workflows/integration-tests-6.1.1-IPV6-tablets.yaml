@@ -108,4 +108,5 @@ name: integration-tests-6.1.1-IPV6-tablets
             - reopened
     push:
         branches:
-            - branch-3.4
+            - master
+            - branch-**
