@@ -890,6 +890,8 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 }
 
 func TestRestoreTablesVersionedIntegration(t *testing.T) {
+	t.Skip("This test requires disabled UUID identifiers")
+
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
 		testLoadCnt   = 2
