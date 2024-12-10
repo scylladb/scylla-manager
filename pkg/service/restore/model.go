@@ -177,6 +177,8 @@ func (t *View) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
+// TODO - new table and struct for scylla api progress?
+
 // RunProgress describes progress of restoring a single batch.
 type RunProgress struct {
 	ClusterID uuid.UUID

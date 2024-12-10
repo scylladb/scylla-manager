@@ -143,6 +143,8 @@ func (m RestoreMetrics) SetProgress(labels RestoreProgressLabels, progress float
 	m.progress.With(l).Set(progress)
 }
 
+// TODO: add new states for Scylla restore.
+
 // RestoreState is the enum that defines how node is used during the restore.
 type RestoreState int
 
