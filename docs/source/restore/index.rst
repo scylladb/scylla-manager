@@ -85,3 +85,18 @@ Restore speed is controlled by many parameters (see :ref:`sctool restore <sctool
 The ``--unpin-agent-cpu`` is disabled by default, but in case you observe small download
 bandwidth, you could try to :ref:`pause <task-stop>` restore task, :ref:`update <restore-update>` it with ``--unpin-agent-cpu``,
 and :ref:`resume <task-start>` it.
+
+Interference with backup and repair tasks
+=========================================
+
+It is advisable to manually make sure that the restore task does not interfere with backup or repair tasks.
+
+#. Do not start backup or repair tasks when restore task is running.
+#. If scheduled runs of backup or repair tasks can interfier with restore task, then disable them until restore is complete::
+
+    # check Next column to determine when next run of a task is scheduled 
+    $ sctool tasks -a
+
+    # disable repair/backup tasks if needed
+    $ sctool repair update -c CLUSTER-ID SCHEDULED-REPAIR-TASK-ID --enabled=false
+    $ sctool backup update -c CLUSTER-ID SCHEDULED-BACKUP-TASK-ID --enabled=false
