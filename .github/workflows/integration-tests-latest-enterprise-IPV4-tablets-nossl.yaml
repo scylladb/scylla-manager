@@ -116,3 +116,4 @@ name: integration-tests-latest-enterprise-IPV4-tablets-nossl
     push:
         branches:
             - master
+            - branch-**

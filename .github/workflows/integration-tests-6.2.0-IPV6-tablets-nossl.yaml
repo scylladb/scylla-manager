@@ -116,3 +116,4 @@ name: integration-tests-6.2.0-IPV6-tablets-nossl
     push:
         branches:
             - master
+            - branch-**

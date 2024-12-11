@@ -116,3 +116,4 @@ name: integration-tests-latest-enterprise-IPV4
     push:
         branches:
             - master
+            - branch-**
