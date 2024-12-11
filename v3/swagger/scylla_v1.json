@@ -12934,7 +12934,67 @@
             "required": true,
             "type": "integer",
             "format": "int64",
-            "description": "The number of seconds for which the tasks will be kept in memory after it finishes"
+            "description": "The number of seconds for which the task started internally will be kept in memory after it finishes"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
+    },
+    "/task_manager/user_ttl": {
+      "get": {
+        "description": "Get current user task ttl value",
+        "summary": "get_user_ttl",
+        "operationId": "TaskManagerUserTtlGet",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      },
+      "post": {
+        "description":"Set user task ttl in seconds and get last value",
+        "summary":"get_and_update_user_ttl",
+        "operationId": "TaskManagerUserTtlPost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "user_ttl",
+            "in": "query",
+            "required": true,
+            "type": "integer",
+            "format": "int64",
+            "description": "The number of seconds for which the task started by user will be kept in memory after it finishes"
           }
         ],
         "responses": {
