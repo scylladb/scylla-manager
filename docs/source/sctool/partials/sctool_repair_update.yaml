@@ -130,7 +130,7 @@ options:
       usage: |
         Prints table names together with keyspace, used in combination with --dry-run.
     - name: small-table-threshold
-      default_value: 1G
+      default_value: 1GiB
       usage: |
         Enables small table optimization for tables of size lower than given threshold, supported units [B, M, G, T].
     - name: start-date
