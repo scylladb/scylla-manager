@@ -19,8 +19,12 @@ type InstanceMetadata struct {
 // CloudProvider is enum of supported cloud providers.
 type CloudProvider string
 
-// CloudProviderAWS represents aws provider.
-var CloudProviderAWS CloudProvider = "aws"
+var (
+	// CloudProviderAWS represents aws provider.
+	CloudProviderAWS CloudProvider = "aws"
+	// CloudProviderAzure represents azure provider.
+	CloudProviderAzure CloudProvider = "azure"
+)
 
 // CloudMetadataProvider interface that each metadata provider should implement.
 type CloudMetadataProvider interface {
@@ -43,9 +47,12 @@ func NewCloudMeta() (*CloudMeta, error) {
 		return nil, err
 	}
 
+	azureMeta := NewAzureMetadata()
+
 	return &CloudMeta{
 		providers: []CloudMetadataProvider{
 			awsMeta,
+			azureMeta,
 		},
 		providerTimeout: defaultTimeout,
 	}, nil
