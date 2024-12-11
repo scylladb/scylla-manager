@@ -1,0 +1,1 @@
+ALTER TABLE backup_run_progress ADD scylla_task_id text;
