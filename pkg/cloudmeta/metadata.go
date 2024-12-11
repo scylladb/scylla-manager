@@ -34,12 +34,17 @@ type CloudMeta struct {
 
 // NewCloudMeta creates new CloudMeta provider.
 func NewCloudMeta() (*CloudMeta, error) {
-	// providers will initialized here and added to CloudMeta.providers.
-
 	const defaultTimeout = 5 * time.Second
 
+	awsMeta, err := NewAWSMetadata("")
+	if err != nil {
+		return nil, err
+	}
+
 	return &CloudMeta{
-		providers:       []CloudMetadataProvider{},
+		providers: []CloudMetadataProvider{
+			awsMeta,
+		},
 		providerTimeout: defaultTimeout,
 	}, nil
 }
