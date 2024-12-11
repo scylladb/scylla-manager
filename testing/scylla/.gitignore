@@ -1,3 +1,4 @@
 /cqlshrc
 /scylla.yaml
 /scylla-second-cluster.yaml
+/object_storage.yaml
