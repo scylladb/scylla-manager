@@ -129,7 +129,11 @@ type RunProgress struct {
 	Unit      int64
 	TableName string
 
-	AgentJobID  int64
+	// Uploading SSTables could be done by either Rclone or Scylla API.
+	// Only one of those IDs should be set.
+	AgentJobID   int64
+	ScyllaTaskID string
+
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string
