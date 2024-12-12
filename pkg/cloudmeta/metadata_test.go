@@ -5,122 +5,109 @@ package cloudmeta
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
+	"time"
 )
 
 func TestGetInstanceMetadata(t *testing.T) {
-	t.Run("when there is no active providers", func(t *testing.T) {
-		cloudmeta := &CloudMeta{}
+	testCases := []struct {
+		name      string
+		providers []CloudMetadataProvider
 
-		meta, err := cloudmeta.GetInstanceMetadata(context.Background())
-		if !errors.Is(err, ErrNoProviders) {
-			t.Fatalf("expected err, got: %v", err)
-		}
+		expectedErr  bool
+		expectedMeta InstanceMetadata
+	}{
+		{
+			name:      "when there is no active providers",
+			providers: nil,
 
-		if meta.InstanceType != "" {
-			t.Fatalf("meta.InstanceType should be empty, got %v", meta.InstanceType)
-		}
-
-		if meta.CloudProvider != "" {
-			t.Fatalf("meta.CloudProvider should be empty, got %v", meta.CloudProvider)
-		}
-	})
-
-	t.Run("when there is only one active provider", func(t *testing.T) {
-		cloudmeta := &CloudMeta{
-			providers: []CloudMetadataProvider{newTestProvider(t, "test_provider_1", "x-test-1", nil)},
-		}
-
-		meta, err := cloudmeta.GetInstanceMetadata(context.Background())
-		if err != nil {
-			t.Fatalf("unexpected err: %v", err)
-		}
-
-		if meta.InstanceType != "x-test-1" {
-			t.Fatalf("meta.InstanceType should be 'x-test-1', got %v", meta.InstanceType)
-		}
-
-		if meta.CloudProvider != "test_provider_1" {
-			t.Fatalf("meta.CloudProvider should be 'test_provider_1', got %v", meta.CloudProvider)
-		}
-	})
-
-	t.Run("when there is more than one active provider", func(t *testing.T) {
-		cloudmeta := &CloudMeta{
+			expectedErr:  true,
+			expectedMeta: InstanceMetadata{},
+		},
+		{
+			name: "when there is one active providers",
 			providers: []CloudMetadataProvider{
-				newTestProvider(t, "test_provider_1", "x-test-1", nil),
-				newTestProvider(t, "test_provider_2", "x-test-2", nil),
+				newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Millisecond, nil),
 			},
-		}
 
-		// Only first one should be returned.
-		meta, err := cloudmeta.GetInstanceMetadata(context.Background())
-		if err != nil {
-			t.Fatalf("unexpected err: %v", err)
-		}
-
-		if meta.InstanceType != "x-test-1" {
-			t.Fatalf("meta.InstanceType should be 'x-test-1', got %v", meta.InstanceType)
-		}
-
-		if meta.CloudProvider != "test_provider_1" {
-			t.Fatalf("meta.CloudProvider should be 'test_provider_1', got %v", meta.CloudProvider)
-		}
-	})
-	t.Run("when there is more than one active provider, but first returns err", func(t *testing.T) {
-		cloudmeta := &CloudMeta{
+			expectedErr: false,
+			expectedMeta: InstanceMetadata{
+				CloudProvider: "test_provider_1",
+				InstanceType:  "x-test-1",
+			},
+		},
+		{
+			name: "when there is more than one active provider, fastest should be returned",
 			providers: []CloudMetadataProvider{
-				newTestProvider(t, "test_provider_1", "x-test-1", fmt.Errorf("'test_provider_1' err")),
-				newTestProvider(t, "test_provider_2", "x-test-2", nil),
+				newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Millisecond, nil),
+				newTestProvider(t, "test_provider_2", "x-test-2", 2*time.Millisecond, nil),
 			},
-		}
 
-		// Only first succesfull one should be returned.
-		meta, err := cloudmeta.GetInstanceMetadata(context.Background())
-		if err != nil {
-			t.Fatalf("unexpected err: %v", err)
-		}
-
-		if meta.InstanceType != "x-test-2" {
-			t.Fatalf("meta.InstanceType should be 'x-test-2', got %v", meta.InstanceType)
-		}
-
-		if meta.CloudProvider != "test_provider_2" {
-			t.Fatalf("meta.CloudProvider should be 'test_provider_2', got %v", meta.CloudProvider)
-		}
-	})
-
-	t.Run("when there is more than one active provider, but all returns err", func(t *testing.T) {
-		cloudmeta := &CloudMeta{
+			expectedErr: false,
+			expectedMeta: InstanceMetadata{
+				CloudProvider: "test_provider_1",
+				InstanceType:  "x-test-1",
+			},
+		},
+		{
+			name: "when there is more than one active provider, but fastest returns err",
 			providers: []CloudMetadataProvider{
-				newTestProvider(t, "test_provider_1", "x-test-1", fmt.Errorf("'test_provider_1' err")),
-				newTestProvider(t, "test_provider_2", "x-test-2", fmt.Errorf("'test_provider_2' err")),
+				newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Millisecond, errors.New("something went wront")),
+				newTestProvider(t, "test_provider_2", "x-test-2", 2*time.Millisecond, nil),
 			},
-		}
 
-		// Only first succesfull one should be returned.
-		meta, err := cloudmeta.GetInstanceMetadata(context.Background())
-		if err == nil {
-			t.Fatalf("expected err, but got: %v", err)
-		}
+			expectedErr: false,
+			expectedMeta: InstanceMetadata{
+				CloudProvider: "test_provider_2",
+				InstanceType:  "x-test-2",
+			},
+		},
+		{
+			name: "when there is more than one active provider, but all returns err",
+			providers: []CloudMetadataProvider{
+				newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Millisecond, errors.New("err provider1")),
+				newTestProvider(t, "test_provider_2", "x-test-2", 1*time.Millisecond, errors.New("err provider2")),
+			},
 
-		if meta.InstanceType != "" {
-			t.Fatalf("meta.InstanceType should be empty, got %v", meta.InstanceType)
-		}
+			expectedErr:  true,
+			expectedMeta: InstanceMetadata{},
+		},
+	}
 
-		if meta.CloudProvider != "" {
-			t.Fatalf("meta.CloudProvider should be empty, got %v", meta.CloudProvider)
-		}
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cloudmeta := &CloudMeta{
+				providers: tc.providers,
+			}
+
+			meta, err := cloudmeta.GetInstanceMetadata(context.Background())
+
+			if tc.expectedErr && err == nil {
+				t.Fatalf("expected error, got: %v", err)
+			}
+
+			if !tc.expectedErr && err != nil {
+				t.Fatalf("unexpected error, got: %v", err)
+			}
+
+			if tc.expectedMeta.InstanceType != meta.InstanceType {
+				t.Fatalf("unexpected meta.InstanceType: %s != %s", tc.expectedMeta.InstanceType, meta.InstanceType)
+			}
+
+			if tc.expectedMeta.CloudProvider != meta.CloudProvider {
+				t.Fatalf("unexpected meta.CloudProvider: %s != %s", tc.expectedMeta.CloudProvider, meta.CloudProvider)
+			}
+		})
+	}
 }
 
-func newTestProvider(t *testing.T, providerName, instanceType string, err error) *testProvider {
+func newTestProvider(t *testing.T, providerName, instanceType string, latency time.Duration, err error) *testProvider {
 	t.Helper()
 
 	return &testProvider{
 		name:         CloudProvider(providerName),
 		instanceType: instanceType,
+		latency:      latency,
 		err:          err,
 	}
 }
@@ -128,10 +115,13 @@ func newTestProvider(t *testing.T, providerName, instanceType string, err error)
 type testProvider struct {
 	name         CloudProvider
 	instanceType string
+	latency      time.Duration
 	err          error
 }
 
 func (tp testProvider) Metadata(ctx context.Context) (InstanceMetadata, error) {
+	time.Sleep(tp.latency)
+
 	if tp.err != nil {
 		return InstanceMetadata{}, tp.err
 	}

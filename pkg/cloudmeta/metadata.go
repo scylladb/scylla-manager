@@ -4,8 +4,10 @@ package cloudmeta
 
 import (
 	"context"
-	"errors"
 	"time"
+
+	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 )
 
 // InstanceMetadata represents metadata returned by cloud provider.
@@ -36,7 +38,7 @@ type CloudMeta struct {
 func NewCloudMeta() (*CloudMeta, error) {
 	const defaultTimeout = 5 * time.Second
 
-	awsMeta, err := NewAWSMetadata()
+	awsMeta, err := newAWSMetadata()
 	if err != nil {
 		return nil, err
 	}
@@ -52,21 +54,45 @@ func NewCloudMeta() (*CloudMeta, error) {
 // ErrNoProviders will be returned by CloudMeta service, when it hasn't been initialized with any metadata provider.
 var ErrNoProviders = errors.New("no metadata providers found")
 
-// GetInstanceMetadata tries to fetch instance metadata from AWS, GCP, Azure providers in order.
+// GetInstanceMetadata tries to fetch instance metadata from AWS, GCP, Azure concurrently and returns first result.
 func (cloud *CloudMeta) GetInstanceMetadata(ctx context.Context) (InstanceMetadata, error) {
 	if len(cloud.providers) == 0 {
-		return InstanceMetadata{}, ErrNoProviders
-	}
-	var mErr error
-	for _, provider := range cloud.providers {
-		meta, err := cloud.runWithTimeout(ctx, provider)
-		if err != nil {
-			mErr = errors.Join(mErr, err)
-			continue
-		}
-		return meta, nil
+		return InstanceMetadata{}, errors.WithStack(ErrNoProviders)
 	}
 
+	type msg struct {
+		meta InstanceMetadata
+		err  error
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	results := make(chan msg, len(cloud.providers))
+	for _, provider := range cloud.providers {
+		go func(provider CloudMetadataProvider) {
+			meta, err := cloud.runWithTimeout(ctx, provider)
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			results <- msg{meta: meta, err: err}
+		}(provider)
+	}
+
+	// Return the first non error result or wait until all providers return err.
+	var mErr error
+	for range len(cloud.providers) {
+		res := <-results
+		if res.err != nil {
+			mErr = multierr.Append(mErr, res.err)
+			continue
+		}
+		return res.meta, nil
+	}
 	return InstanceMetadata{}, mErr
 }
 
