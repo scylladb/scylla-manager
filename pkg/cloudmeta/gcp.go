@@ -10,20 +10,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GCPMetadata is a wrapper around gcp metadata client.
-type GCPMetadata struct {
+// gcpMetadata is a wrapper around gcp metadata client.
+type gcpMetadata struct {
 	meta *metadata.Client
 }
 
-// NewGCPMetadata returns gcp metadata provider.
-func NewGCPMetadata() *GCPMetadata {
-	return &GCPMetadata{
+// newGCPMetadata returns gcp metadata provider.
+func newGCPMetadata() *gcpMetadata {
+	return &gcpMetadata{
 		meta: metadata.NewClient(nil),
 	}
 }
 
 // Metadata returns InstanceMetadata from gcp if available.
-func (gcp *GCPMetadata) Metadata(ctx context.Context) (InstanceMetadata, error) {
+func (gcp *gcpMetadata) Metadata(ctx context.Context) (InstanceMetadata, error) {
 	machineType, err := gcp.getMachineType(ctx)
 	if err != nil {
 		return InstanceMetadata{}, errors.Wrap(err, "gcp.meta.GetWithContext")
@@ -34,7 +34,7 @@ func (gcp *GCPMetadata) Metadata(ctx context.Context) (InstanceMetadata, error) 
 	}, nil
 }
 
-func (gcp *GCPMetadata) getMachineType(ctx context.Context) (string, error) {
+func (gcp *gcpMetadata) getMachineType(ctx context.Context) (string, error) {
 	// The machine type for this VM. This value has the following format: projects/PROJECT_NUM/machineTypes/MACHINE_TYPE.
 	machineType, err := gcp.meta.GetWithContext(ctx, "instance/machine-type")
 	if err != nil {

@@ -47,7 +47,7 @@ func NewCloudMeta() (*CloudMeta, error) {
 		return nil, err
 	}
 
-	gcpMeta := NewGCPMetadata()
+	gcpMeta := newGCPMetadata()
 
 	return &CloudMeta{
 		providers: []CloudMetadataProvider{
