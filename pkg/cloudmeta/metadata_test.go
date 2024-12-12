@@ -17,6 +17,7 @@ func TestGetInstanceMetadata(t *testing.T) {
 		if !errors.Is(err, ErrNoProviders) {
 			t.Fatalf("expected err, got: %v", err)
 		}
+
 		if meta.InstanceType != "" {
 			t.Fatalf("meta.InstanceType should be empty, got %v", meta.InstanceType)
 		}
