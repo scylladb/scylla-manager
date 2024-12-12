@@ -36,7 +36,7 @@ type CloudMeta struct {
 func NewCloudMeta() (*CloudMeta, error) {
 	const defaultTimeout = 5 * time.Second
 
-	awsMeta, err := NewAWSMetadata("")
+	awsMeta, err := NewAWSMetadata()
 	if err != nil {
 		return nil, err
 	}

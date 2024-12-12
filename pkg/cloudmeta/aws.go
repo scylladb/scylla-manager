@@ -17,15 +17,26 @@ type AWSMetadata struct {
 }
 
 // NewAWSMetadata is a constructor for  AWSMetadata service.
-// testEndpoint can be provided if you want to overwrite the default metadata endpoint, otherwise leave it empty.
-func NewAWSMetadata(testEndpoint string) (*AWSMetadata, error) {
+func NewAWSMetadata() (*AWSMetadata, error) {
+	session, err := session.NewSession()
+	if err != nil {
+		return nil, errors.Wrap(err, "session.NewSession")
+	}
+	return &AWSMetadata{
+		ec2meta: ec2metadata.New(session),
+	}, nil
+}
+
+// NewAWSMetadataWithEndpoint is a constructor for  AWSMetadata service that allows your to overwrite default metadata endpoint.
+// Might be useful for tests.
+func NewAWSMetadataWithEndpoint(endpoint string) (*AWSMetadata, error) {
 	session, err := session.NewSession()
 	if err != nil {
 		return nil, errors.Wrap(err, "session.NewSession")
 	}
 	cfg := aws.NewConfig()
-	if testEndpoint != "" {
-		cfg = cfg.WithEndpoint(testEndpoint)
+	if endpoint != "" {
+		cfg = cfg.WithEndpoint(endpoint)
 	}
 	return &AWSMetadata{
 		ec2meta: ec2metadata.New(session, cfg),
