@@ -486,3 +486,9 @@ clean_restore:
 	sudo rm -rf ./testing/scylla/data/dc2n3/*
 	@echo "Cleaning up .1-1-restore-poc, keeping only backup.tar.gz and backuptest_data.big_table.sorted.csv"
 	find .1-1-restore-poc -mindepth 1 ! -name "backup.tar.gz" ! -name "backuptest_data.big_table.sorted.csv" -exec rm -rf {} +
+	git checkout -- testing/scylla/scylla-PoC-restore-dc1-n1.yaml
+	git checkout -- testing/scylla/scylla-PoC-restore-dc1-n2.yaml
+	git checkout -- testing/scylla/scylla-PoC-restore-dc1-n3.yaml
+	git checkout -- testing/scylla/scylla-PoC-restore-dc2-n1.yaml
+	git checkout -- testing/scylla/scylla-PoC-restore-dc2-n2.yaml
+	git checkout -- testing/scylla/scylla-PoC-restore-dc2-n3.yaml
