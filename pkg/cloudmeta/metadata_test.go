@@ -4,6 +4,7 @@ package cloudmeta
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -13,8 +14,8 @@ func TestGetInstanceMetadata(t *testing.T) {
 		cloudmeta := &CloudMeta{}
 
 		meta, err := cloudmeta.GetInstanceMetadata(context.Background())
-		if err != nil {
-			t.Fatalf("unexpected err: %v", err)
+		if !errors.Is(err, ErrNoProviders) {
+			t.Fatalf("expected err, got: %v", err)
 		}
 		if meta.InstanceType != "" {
 			t.Fatalf("meta.InstanceType should be empty, got %v", meta.InstanceType)

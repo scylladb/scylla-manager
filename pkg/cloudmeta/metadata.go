@@ -49,8 +49,14 @@ func NewCloudMeta() (*CloudMeta, error) {
 	}, nil
 }
 
+// ErrNoProviders will be returned by CloudMeta service, when it hasn't been initialized with any metadata provider.
+var ErrNoProviders = errors.New("no metadata providers found")
+
 // GetInstanceMetadata tries to fetch instance metadata from AWS, GCP, Azure providers in order.
 func (cloud *CloudMeta) GetInstanceMetadata(ctx context.Context) (InstanceMetadata, error) {
+	if len(cloud.providers) == 0 {
+		return InstanceMetadata{}, ErrNoProviders
+	}
 	var mErr error
 	for _, provider := range cloud.providers {
 		meta, err := cloud.runWithTimeout(ctx, provider)
