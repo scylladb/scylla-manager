@@ -50,7 +50,7 @@ func (azure *AzureMetadata) Metadata(ctx context.Context) (InstanceMetadata, err
 		return InstanceMetadata{}, errors.New("azure vmSize is empty")
 	}
 	return InstanceMetadata{
-		CloudProvider: "azure",
+		CloudProvider: CloudProviderAzure,
 		InstanceType:  vmSize,
 	}, nil
 }
