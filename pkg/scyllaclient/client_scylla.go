@@ -1159,6 +1159,92 @@ func (c *Client) RaftReadBarrier(ctx context.Context, host, groupID string) erro
 	return nil
 }
 
+// ScyllaBackup schedules Scylla backup task and returns its ID.
+func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table, snapshotTag string) (string, error) {
+	resp, err := c.scyllaOps.StorageServiceBackupPost(&operations.StorageServiceBackupPostParams{
+		Context:  forceHost(ctx, host),
+		Endpoint: endpoint,
+		Bucket:   bucket,
+		Prefix:   prefix,
+		Keyspace: keyspace,
+		Table:    table,
+		Snapshot: &snapshotTag,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaTaskState describes Scylla task state.
+type ScyllaTaskState string
+
+// Possible ScyllaTaskState.
+const (
+	ScyllaTaskStateCreated ScyllaTaskState = "created"
+	ScyllaTaskStateRunning ScyllaTaskState = "running"
+	ScyllaTaskStateDone    ScyllaTaskState = "done"
+	ScyllaTaskStateFailed  ScyllaTaskState = "failed"
+)
+
+func isScyllaTaskRunning(err error) bool {
+	// Scylla API call might return earlier due to timeout (see swagger definition)
+	status, _ := StatusCodeAndMessageOf(err)
+	return status == http.StatusRequestTimeout
+}
+
+func scyllaWaitTaskShouldRetryHandler(err error) *bool {
+	if isScyllaTaskRunning(err) {
+		return pointer.BoolPtr(false)
+	}
+	return nil
+}
+
+// ScyllaWaitTask long polls Scylla task status.
+func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
+	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
+	ctx = forceHost(ctx, host)
+	ctx = noTimeout(ctx)
+	p := &operations.TaskManagerWaitTaskTaskIDGetParams{
+		Context: ctx,
+		TaskID:  id,
+	}
+	if longPollingSeconds > 0 {
+		p.SetTimeout(&longPollingSeconds)
+	}
+
+	resp, err := c.scyllaOps.TaskManagerWaitTaskTaskIDGet(p)
+	if err != nil {
+		if isScyllaTaskRunning(err) {
+			return c.ScyllaTaskProgress(ctx, host, id)
+		}
+		return nil, err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaTaskProgress returns provided Scylla task status.
+func (c *Client) ScyllaTaskProgress(ctx context.Context, host, id string) (*models.TaskStatus, error) {
+	resp, err := c.scyllaOps.TaskManagerTaskStatusTaskIDGet(&operations.TaskManagerTaskStatusTaskIDGetParams{
+		Context: forceHost(ctx, host),
+		TaskID:  id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaAbortTask aborts provided Scylla task.
+// Note that not all Scylla tasks can be aborted - see models.TaskStatus to check that.
+func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
+	_, err := c.scyllaOps.TaskManagerAbortTaskTaskIDPost(&operations.TaskManagerAbortTaskTaskIDPostParams{
+		Context: forceHost(ctx, host),
+		TaskID:  id,
+	})
+	return err
+}
+
 // ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
 // ToCanonicalIP("192.168.0.1") -> "192.168.0.1"
 // ToCanonicalIP("100:200:0:0:0:0:0:1") -> "100:200::1".
