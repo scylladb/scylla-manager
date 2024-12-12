@@ -626,7 +626,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	WriteData(t, clusterSession, testKeyspace, 1)
+	WriteData(t, clusterSession, testKeyspace, 1000)
 
 	target := backup.Target{
 		Units: []backup.Unit{
