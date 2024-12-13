@@ -63,6 +63,7 @@ up:
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
+	@cp scylla/config/object_storage.yaml scylla/object_storage.yaml
 
 ifeq ($(SSL_ENABLED),true)
 	# disable non-ssl port
@@ -70,7 +71,7 @@ ifeq ($(SSL_ENABLED),true)
 	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
 	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
-else 
+else
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 
@@ -118,7 +119,7 @@ endif
 	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 
 	@./nodes_exec "rm /root/.cqlshrc || true"
-	@./nodes_exec "mkdir -p /root/.cassandra" 
+	@./nodes_exec "mkdir -p /root/.cassandra"
 	@./nodes_cp "scylla/cqlshrc" "/root/.cassandra/cqlshrc"
 
 	@echo "==> Adding Minio user"

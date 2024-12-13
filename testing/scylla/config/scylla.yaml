@@ -647,4 +647,4 @@ alternator_write_isolation: only_rmw_uses_lwt
 alternator_enforce_authorization: true
 enable_ipv6_dns_lookup: true
 
-uuid_sstable_identifiers_enabled: false
+uuid_sstable_identifiers_enabled: true
