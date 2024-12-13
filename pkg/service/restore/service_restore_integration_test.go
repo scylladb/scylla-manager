@@ -109,6 +109,8 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c Config, logger log.Logger, user, pass string) (*Service, *backup.Service) {
 	t.Helper()
 
+	configCacheSvc := NewTestConfigCacheSvc(t, client.Config().Hosts)
+
 	repairSvc, err := repair.NewService(
 		session,
 		repair.DefaultConfig(),
@@ -119,6 +121,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
 	)
 	if err != nil {
@@ -138,6 +141,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
 	)
 	if err != nil {
@@ -155,6 +159,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		logger.Named("restore"),
 	)
 	if err != nil {

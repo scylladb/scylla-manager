@@ -402,6 +402,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return gocqlx.Session{}, errors.New("not implemented")
 		},
+		NewTestConfigCacheSvc(t, client.Config().Hosts),
 		logger.Named("repair"),
 	)
 	if err != nil {
@@ -424,6 +425,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
+		NewTestConfigCacheSvc(t, client.Config().Hosts),
 		logger.Named("repair"),
 	)
 	if err != nil {

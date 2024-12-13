@@ -127,6 +127,7 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 			}
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		NewTestConfigCacheSvc(t, client.Config().Hosts),
 		logger.Named("backup"),
 	)
 	if err != nil {

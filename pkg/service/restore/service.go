@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -29,11 +30,13 @@ type Service struct {
 
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
+	configCache    configcache.ConfigCacher
 	logger         log.Logger
 }
 
 func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config, metrics metrics.RestoreMetrics,
-	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
+	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
+	logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -53,6 +56,7 @@ func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config
 		metrics:        metrics,
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
+		configCache:    configCache,
 		logger:         logger,
 	}, nil
 }

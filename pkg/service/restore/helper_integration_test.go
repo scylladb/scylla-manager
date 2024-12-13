@@ -135,6 +135,7 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
+		NewTestConfigCacheSvc(t, client.Config().Hosts),
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
 	)
 	if err != nil {
@@ -144,6 +145,8 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 }
 
 func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, user, pass string) *Service {
+	configCacheSvc := NewTestConfigCacheSvc(t, client.Config().Hosts)
+
 	repairSvc, err := repair.NewService(
 		mgrSession,
 		repair.DefaultConfig(),
@@ -154,6 +157,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
+		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
 	)
 	if err != nil {
@@ -171,6 +175,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("restore"),
 	)
 	if err != nil {
