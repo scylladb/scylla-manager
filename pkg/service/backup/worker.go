@@ -6,12 +6,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"sync"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -42,6 +44,9 @@ type snapshotDir struct {
 
 	SkippedBytesOffset int64
 	NewFilesSize       int64
+	// willCreateVersioned is set to true when uploading the snapshot directory after
+	// the deduplication results in creating versioned SSTables.
+	willCreateVersioned bool
 }
 
 func (sd snapshotDir) String() string {
@@ -58,6 +63,7 @@ type workerTools struct {
 	SnapshotTag string
 	Config      Config
 	Client      *scyllaclient.Client
+	NodeConfig  map[string]configcache.NodeConfig
 	Logger      log.Logger
 }
 
@@ -122,4 +128,22 @@ func (w *worker) cleanup(ctx context.Context, hi []hostInfo) {
 	}
 
 	_ = hostsInParallel(hi, parallel.NoLimit, f, notify) // nolint: errcheck
+}
+
+// nodeInfo is a getter for workerTools.NodeConfig which is a workaround for #4181.
+func (w *worker) nodeInfo(ctx context.Context, host string) (*scyllaclient.NodeInfo, error) {
+	// Try to get direct entry in config cache
+	if nc, ok := w.NodeConfig[host]; ok {
+		return nc.NodeInfo, nil
+	}
+	// Try to get resolved entry in config cache
+	if hostIP := net.ParseIP(host); hostIP != nil {
+		for h, nc := range w.NodeConfig {
+			if ip := net.ParseIP(h); ip != nil && hostIP.Equal(ip) {
+				return nc.NodeInfo, nil
+			}
+		}
+	}
+	// Last resort - query node info from the scratch
+	return w.Client.NodeInfo(ctx, host)
 }
