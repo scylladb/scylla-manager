@@ -78,7 +78,6 @@ func (cloud *CloudMeta) GetInstanceMetadata(ctx context.Context) (InstanceMetada
 				return
 			case results <- msg{meta: meta, err: err}:
 			}
-
 		}(provider)
 	}
 
