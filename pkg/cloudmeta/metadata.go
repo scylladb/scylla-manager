@@ -76,10 +76,9 @@ func (cloud *CloudMeta) GetInstanceMetadata(ctx context.Context) (InstanceMetada
 			select {
 			case <-ctx.Done():
 				return
-			default:
+			case results <- msg{meta: meta, err: err}:
 			}
 
-			results <- msg{meta: meta, err: err}
 		}(provider)
 	}
 
