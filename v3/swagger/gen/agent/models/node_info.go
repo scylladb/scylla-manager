@@ -95,6 +95,9 @@ type NodeInfo struct {
 	// Whether Scylla supports uuid-like sstable naming.
 	SstableUUIDFormat bool `json:"sstable_uuid_format,omitempty"`
 
+	// Disk size of the first entry from `data_file_directories` list from scylla config file. In bytes.
+	StorageSize int64 `json:"storage_size,omitempty"`
+
 	// Uptime in seconds.
 	Uptime int64 `json:"uptime,omitempty"`
 }
