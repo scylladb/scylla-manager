@@ -63,11 +63,11 @@ func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config ba
 	S3InitBucket(t, location.Path)
 
 	clusterID := uuid.MustRandom()
-
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service := newTestServiceWithUser(t, session, client, config, logger, user, pass)
+	service := newTestServiceWithUser(t, session, client, config, logger, clusterID, user, pass)
 	cHelper := &CommonTestHelper{
 		Session:   session,
 		Hrt:       hrt,
@@ -108,7 +108,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger, user, pass string) *backup.Service {
+func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger, clusterID uuid.UUID, user, pass string) *backup.Service {
 	t.Helper()
 
 	s, err := backup.NewService(
@@ -127,7 +127,7 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 			}
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
-		NewTestConfigCacheSvc(t, client.Config().Hosts),
+		NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
 		logger.Named("backup"),
 	)
 	if err != nil {

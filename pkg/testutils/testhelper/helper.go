@@ -4,6 +4,7 @@ package testhelper
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -12,13 +13,13 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
-
-	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -76,7 +77,7 @@ func execOnAllHosts(h *CommonTestHelper, cmd string) {
 
 // NewTestConfigCacheSvc creates default config cache service which can be used
 // for testing other services relaying on it.
-func NewTestConfigCacheSvc(t *testing.T, hosts []string) configcache.ConfigCacher {
+func NewTestConfigCacheSvc(t *testing.T, clusterID uuid.UUID, hosts []string) configcache.ConfigCacher {
 	t.Helper()
 
 	session := CreateScyllaManagerDBSession(t)
@@ -84,6 +85,10 @@ func NewTestConfigCacheSvc(t *testing.T, hosts []string) configcache.ConfigCache
 
 	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore,
 		scyllaclient.DefaultTimeoutConfig(), server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = clusterSvc.PutCluster(context.Background(), ValidCluster(t, clusterID, hosts[0]))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,5 +100,38 @@ func NewTestConfigCacheSvc(t *testing.T, hosts []string) configcache.ConfigCache
 		return scyllaclient.NewClient(sc, log.NewDevelopment())
 	}
 
-	return configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider, secretsStore, log.NewDevelopment())
+	svc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider, secretsStore, log.NewDevelopment())
+	svc.Init(context.Background())
+	return svc
+}
+
+// ValidCluster return Cluster initialized according to test configuration.
+func ValidCluster(t *testing.T, id uuid.UUID, host string) *cluster.Cluster {
+	t.Helper()
+
+	c := &cluster.Cluster{
+		ID:        id,
+		Name:      "name_" + id.String(),
+		Host:      host,
+		Port:      10001,
+		AuthToken: AgentAuthToken(),
+		Username:  testconfig.TestDBUsername(),
+		Password:  testconfig.TestDBPassword(),
+	}
+
+	if testconfig.IsSSLEnabled() {
+		sslOpts := testconfig.CQLSSLOptions()
+		userKey, err := os.ReadFile(sslOpts.KeyPath)
+		if err != nil {
+			t.Fatalf("read file (%s) err: %v", sslOpts.KeyPath, err)
+		}
+		userCrt, err := os.ReadFile(sslOpts.CertPath)
+		if err != nil {
+			t.Fatalf("read file (%s) err: %v", sslOpts.CertPath, err)
+		}
+		c.SSLUserKeyFile = userKey
+		c.SSLUserCertFile = userCrt
+	}
+
+	return c
 }

@@ -113,15 +113,15 @@ func newTestHelper(t *testing.T, srcHosts, dstHosts []string) *testHelper {
 
 	return &testHelper{
 		srcCluster:    srcCluster,
-		srcBackupSvc:  newBackupSvc(t, srcCluster.Session, srcCluster.Client),
+		srcBackupSvc:  newBackupSvc(t, srcCluster.Session, srcCluster.Client, srcCluster.ClusterID),
 		dstCluster:    dstCluster,
-		dstRestoreSvc: newRestoreSvc(t, dstCluster.Session, dstCluster.Client, user, pass),
+		dstRestoreSvc: newRestoreSvc(t, dstCluster.Session, dstCluster.Client, dstCluster.ClusterID, user, pass),
 		dstUser:       user,
 		dstPass:       pass,
 	}
 }
 
-func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client) *backup.Service {
+func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID) *backup.Service {
 	svc, err := backup.NewService(
 		mgrSession,
 		defaultBackupTestConfig(),
@@ -135,7 +135,7 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
-		NewTestConfigCacheSvc(t, client.Config().Hosts),
+		NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
 	)
 	if err != nil {
@@ -144,8 +144,8 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 	return svc
 }
 
-func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, user, pass string) *Service {
-	configCacheSvc := NewTestConfigCacheSvc(t, client.Config().Hosts)
+func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID, user, pass string) *Service {
+	configCacheSvc := NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts)
 
 	repairSvc, err := repair.NewService(
 		mgrSession,
