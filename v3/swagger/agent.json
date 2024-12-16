@@ -1683,6 +1683,10 @@
         "enable_tablets": {
           "description": "Whether tablets are enabled.",
           "type": "boolean"
+        },
+        "data_directory": {
+          "description": "First entry from `data_file_directories` list from scylla config file.",
+          "type": "string"
         }
       }
     }
