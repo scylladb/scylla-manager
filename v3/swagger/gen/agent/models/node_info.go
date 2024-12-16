@@ -59,6 +59,9 @@ type NodeInfo struct {
 	// Whether CQL requires password authentication.
 	CqlPasswordProtected bool `json:"cql_password_protected,omitempty"`
 
+	// First entry from `data_file_directories` list from scylla config file.
+	DataDirectory string `json:"data_directory,omitempty"`
+
 	// Whether tablets are enabled.
 	EnableTablets bool `json:"enable_tablets,omitempty"`
 
