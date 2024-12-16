@@ -19,7 +19,7 @@ type InstanceMetadata struct {
 // CloudProvider is enum of supported cloud providers.
 type CloudProvider string
 
-var (
+const (
 	// CloudProviderAWS represents aws provider.
 	CloudProviderAWS CloudProvider = "aws"
 	// CloudProviderGCP represents gcp provider.
