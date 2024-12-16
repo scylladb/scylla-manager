@@ -35,16 +35,32 @@ func (gcp *gcpMetadata) Metadata(ctx context.Context) (InstanceMetadata, error) 
 }
 
 func (gcp *gcpMetadata) getMachineType(ctx context.Context) (string, error) {
-	// The machine type for this VM. This value has the following format: projects/PROJECT_NUM/machineTypes/MACHINE_TYPE.
-	machineType, err := gcp.meta.GetWithContext(ctx, "instance/machine-type")
+	machineTypeResp, err := gcp.meta.GetWithContext(ctx, "instance/machine-type")
 	if err != nil {
 		return "", errors.Wrap(err, "gcp.meta.GetWithContext")
 	}
 
-	parts := strings.Split(machineType, "/")
-	if len(parts) < 2 {
-		return "", errors.Errorf("unexpected machine-type format: %s", machineType)
+	machineType, err := parseMachineTypeResponse(machineTypeResp)
+	if err != nil {
+		return "", err
 	}
 
-	return parts[len(parts)-1], nil
+	return machineType, nil
+}
+
+// The machine type for this VM. This value has the following format: projects/PROJECT_NUM/machineTypes/MACHINE_TYPE.
+// See https://cloud.google.com/compute/docs/metadata/predefined-metadata-keys#instance-metadata.
+func parseMachineTypeResponse(resp string) (string, error) {
+	errUnexpectedFormat := errors.Errorf("unexpected machineType response format: %s", resp)
+
+	parts := strings.SplitN(resp, "/", 4)
+	if len(parts) != 4 {
+		return "", errUnexpectedFormat
+	}
+
+	if parts[2] != "machineType" {
+		return "", errUnexpectedFormat
+	}
+
+	return parts[3], nil
 }
