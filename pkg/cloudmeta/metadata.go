@@ -6,6 +6,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/scylladb/go-log"
+
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 )
@@ -24,6 +26,8 @@ const (
 	CloudProviderAWS CloudProvider = "aws"
 	// CloudProviderGCP represents gcp provider.
 	CloudProviderGCP CloudProvider = "gcp"
+	// CloudProviderAzure represents azure provider.
+	CloudProviderAzure CloudProvider = "azure"
 )
 
 // CloudMetadataProvider interface that each metadata provider should implement.
@@ -39,7 +43,7 @@ type CloudMeta struct {
 }
 
 // NewCloudMeta creates new CloudMeta provider.
-func NewCloudMeta() (*CloudMeta, error) {
+func NewCloudMeta(logger log.Logger) (*CloudMeta, error) {
 	const defaultTimeout = 5 * time.Second
 
 	awsMeta, err := newAWSMetadata()
@@ -49,10 +53,13 @@ func NewCloudMeta() (*CloudMeta, error) {
 
 	gcpMeta := newGCPMetadata()
 
+	azureMeta := newAzureMetadata(logger)
+
 	return &CloudMeta{
 		providers: []CloudMetadataProvider{
 			awsMeta,
 			gcpMeta,
+			azureMeta,
 		},
 		providerTimeout: defaultTimeout,
 	}, nil
