@@ -841,6 +841,10 @@ type ClientService interface {
 
 	TaskManagerTTLPost(params *TaskManagerTTLPostParams) (*TaskManagerTTLPostOK, error)
 
+	TaskManagerUserTTLGet(params *TaskManagerUserTTLGetParams) (*TaskManagerUserTTLGetOK, error)
+
+	TaskManagerUserTTLPost(params *TaskManagerUserTTLPostParams) (*TaskManagerUserTTLPostOK, error)
+
 	TaskManagerWaitTaskTaskIDGet(params *TaskManagerWaitTaskTaskIDGetParams) (*TaskManagerWaitTaskTaskIDGetOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
@@ -15113,6 +15117,76 @@ func (a *Client) TaskManagerTTLPost(params *TaskManagerTTLPostParams) (*TaskMana
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*TaskManagerTTLPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerUserTTLGet gets user ttl
+
+Get current user task ttl value
+*/
+func (a *Client) TaskManagerUserTTLGet(params *TaskManagerUserTTLGetParams) (*TaskManagerUserTTLGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerUserTTLGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerUserTtlGet",
+		Method:             "GET",
+		PathPattern:        "/task_manager/user_ttl",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerUserTTLGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerUserTTLGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerUserTTLGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+TaskManagerUserTTLPost gets and update user ttl
+
+Set user task ttl in seconds and get last value
+*/
+func (a *Client) TaskManagerUserTTLPost(params *TaskManagerUserTTLPostParams) (*TaskManagerUserTTLPostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTaskManagerUserTTLPostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TaskManagerUserTtlPost",
+		Method:             "POST",
+		PathPattern:        "/task_manager/user_ttl",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &TaskManagerUserTTLPostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*TaskManagerUserTTLPostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*TaskManagerUserTTLPostDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
