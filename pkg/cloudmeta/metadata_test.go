@@ -40,7 +40,7 @@ func TestGetInstanceMetadata(t *testing.T) {
 			name: "when there is more than one active provider, fastest should be returned",
 			providers: []CloudMetadataProvider{
 				newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Millisecond, nil),
-				newTestProvider(t, "test_provider_2", "x-test-2", 2*time.Millisecond, nil),
+				newTestProvider(t, "test_provider_2", "x-test-2", 100*time.Millisecond, nil),
 			},
 
 			expectedErr: false,
@@ -53,7 +53,7 @@ func TestGetInstanceMetadata(t *testing.T) {
 			name: "when there is more than one active provider, but fastest returns err",
 			providers: []CloudMetadataProvider{
 				newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Millisecond, errors.New("something went wront")),
-				newTestProvider(t, "test_provider_2", "x-test-2", 2*time.Millisecond, nil),
+				newTestProvider(t, "test_provider_2", "x-test-2", 100*time.Millisecond, nil),
 			},
 
 			expectedErr: false,
