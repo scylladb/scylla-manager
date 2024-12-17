@@ -71,6 +71,14 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
 		}()
 
+		if ok, err := w.useScyllaBackupAPI(ctx, d, h); err != nil {
+			return errors.Wrap(err, "check Scylla backup API support")
+		} else if ok {
+			w.Logger.Info(ctx, "Use Scylla backup API", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
+			return w.scyllaBackup(ctx, h, d)
+		}
+
+		w.Logger.Info(ctx, "Use Rclone movedir API", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
 		// Check if we should attach to a previous job and wait for it to complete.
 		if attached, err := w.attachToJob(ctx, h, d); err != nil {
 			return errors.Wrap(err, "attach to the agent job")
