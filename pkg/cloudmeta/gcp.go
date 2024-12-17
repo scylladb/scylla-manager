@@ -53,7 +53,7 @@ func (gcp *gcpMetadata) getMachineType(ctx context.Context) (string, error) {
 func parseMachineTypeResponse(resp string) (string, error) {
 	errUnexpectedFormat := errors.Errorf("unexpected machineType response format: %s", resp)
 
-	parts := strings.SplitN(resp, "/", 4)
+	parts := strings.Split(resp, "/")
 	if len(parts) != 4 {
 		return "", errUnexpectedFormat
 	}

@@ -27,6 +27,13 @@ func TestParseMachineTypeResponse(t *testing.T) {
 			expected:    "",
 		},
 		{
+			name:                "new response part is added after machineTypes part",
+			machineTypeResponse: "projects/project1/machineTypes/machineType1/zones/zone1",
+
+			expectedErr: true,
+			expected:    "",
+		},
+		{
 			name:                "parts are mixed up",
 			machineTypeResponse: "machineTypes/machineType1/projects/project1",
 
