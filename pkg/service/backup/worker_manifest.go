@@ -45,11 +45,14 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 		return err
 	}
 
-	m := w.createTemporaryManifest(h, tokens)
+	m, err := w.createTemporaryManifest(ctx, h, tokens)
+	if err != nil {
+		return errors.Wrap(err, "create temp manifest")
+	}
 	return w.uploadHostManifest(ctx, h, m)
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInfoWithContent {
+func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens []int64) (ManifestInfoWithContent, error) {
 	m := &ManifestInfo{
 		Location:    h.Location,
 		DC:          h.DC,
@@ -66,6 +69,11 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 		ManifestContent: ManifestContent{
 			Version:     "v2",
 			ClusterName: w.ClusterName,
+			ClusterID:   w.ClusterID,
+			NodeID:      h.ID,
+			DC:          h.DC,
+			SnapshotTag: w.SnapshotTag,
+			TaskID:      w.TaskID,
 			IP:          h.IP,
 			Tokens:      tokens,
 		},
@@ -88,10 +96,48 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 		c.Size += d.Progress.Size
 	}
 
+	rack, err := w.Client.HostRack(ctx, h.IP)
+	if err != nil {
+		return ManifestInfoWithContent{}, errors.Wrap(err, "client.HostRack")
+	}
+	c.Rack = rack
+
+	instanceDetails, err := w.manifestInstanceDetails(ctx, h)
+	if err != nil {
+		return ManifestInfoWithContent{}, errors.Wrap(err, "manifest instance details")
+	}
+	c.InstanceDetails = instanceDetails
+
 	return ManifestInfoWithContent{
 		ManifestInfo:             m,
 		ManifestContentWithIndex: c,
+	}, nil
+}
+
+// manifestInstanceDetails collects node/instance specific information that's needed for 1-to-1 restore.
+func (w *worker) manifestInstanceDetails(ctx context.Context, host hostInfo) (InstanceDetails, error) {
+	var result InstanceDetails
+
+	shardCound, err := w.Client.ShardCount(ctx, host.IP)
+	if err != nil {
+		return InstanceDetails{}, errors.Wrap(err, "client.ShardCount")
 	}
+	result.ShardCount = int(shardCound)
+
+	nodeInfo, err := w.Client.NodeInfo(ctx, host.IP)
+	if err != nil {
+		return InstanceDetails{}, errors.Wrap(err, "client.NodeInfo")
+	}
+	result.StorageSize = nodeInfo.StorageSize
+
+	instanceMeta, err := w.Client.CloudMetadata(ctx, host.IP)
+	if err != nil {
+		return InstanceDetails{}, errors.Wrap(err, "client.CloudMetadata")
+	}
+	result.CloudProvider = instanceMeta.CloudProvider
+	result.InstanceType = instanceMeta.InstanceType
+
+	return result, nil
 }
 
 func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m ManifestInfoWithContent) error {
