@@ -2644,3 +2644,74 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 		}
 	}
 }
+
+func TestBackupCorrectAPIIntegration(t *testing.T) {
+	// This test validates that the correct API is used
+	// for uploading snapshot dirs (Rclone or Scylla).
+	const (
+		testBucket   = "backuptest-api"
+		testKeyspace = "backuptest_api"
+	)
+
+	var (
+		location       = s3Location(testBucket)
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	ni, err := h.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Choose expected API - Rclone or Scylla depending on node version
+	ensuredPath := "/agent/rclone/sync/movedir"
+	blockedPath := "/storage_service/backup"
+	if ok, err := ni.SupportsScyllaBackupRestoreAPI(); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		ensuredPath, blockedPath = blockedPath, ensuredPath
+	}
+
+	Printf("Expect that %q API will be used for backup, while %q API won't be used at all", ensuredPath, blockedPath)
+	encounteredEnsured := atomic.NewBool(false)
+	encounteredBlocked := atomic.NewBool(false)
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, ensuredPath) {
+			encounteredEnsured.Store(true)
+		}
+		if strings.HasPrefix(req.URL.Path, blockedPath) {
+			encounteredBlocked.Store(true)
+		}
+		return nil, nil
+	}))
+
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	props := map[string]any{
+		"location": []Location{location},
+		"keyspace": []string{testKeyspace},
+	}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create raw properties"))
+	}
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create target"))
+	}
+
+	err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !encounteredEnsured.Load() {
+		t.Fatalf("Expected SM to use %q API", ensuredPath)
+	}
+	if encounteredBlocked.Load() {
+		t.Fatalf("Expected SM not to use %q API", blockedPath)
+	}
+}
