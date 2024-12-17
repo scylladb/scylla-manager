@@ -60,12 +60,13 @@ type repairTestHelper struct {
 func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config) *repairTestHelper {
 	t.Helper()
 
+	clusterID := uuid.MustRandom()
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
 	c := newTestClient(t, hrt, log.NopLogger)
-	s := newTestService(t, session, c, config, logger)
+	s := newTestService(t, session, c, config, logger, clusterID)
 
 	return &repairTestHelper{
 		CommonTestHelper: &CommonTestHelper{
@@ -73,7 +74,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 			Session:   session,
 			Hrt:       hrt,
 			Client:    c,
-			ClusterID: uuid.MustRandom(),
+			ClusterID: clusterID,
 			TaskID:    uuid.MustRandom(),
 			RunID:     uuid.NewTime(),
 			T:         t,
@@ -86,8 +87,9 @@ func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session,
 	hrt *HackableRoundTripper, c *scyllaclient.Client, config repair.Config) *repairTestHelper {
 	t.Helper()
 
+	clusterID := uuid.MustRandom()
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
-	s := newTestServiceWithClusterSession(t, session, c, config, logger)
+	s := newTestServiceWithClusterSession(t, session, c, config, logger, clusterID)
 
 	return &repairTestHelper{
 		CommonTestHelper: &CommonTestHelper{
@@ -95,7 +97,7 @@ func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session,
 			Session:   session,
 			Hrt:       hrt,
 			Client:    c,
-			ClusterID: uuid.MustRandom(),
+			ClusterID: clusterID,
 			TaskID:    uuid.MustRandom(),
 			RunID:     uuid.NewTime(),
 			T:         t,
@@ -389,7 +391,7 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *
 	return c
 }
 
-func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger, clusterID uuid.UUID) *repair.Service {
 	t.Helper()
 
 	s, err := repair.NewService(
@@ -402,6 +404,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return gocqlx.Session{}, errors.New("not implemented")
 		},
+		NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
 		logger.Named("repair"),
 	)
 	if err != nil {
@@ -411,7 +414,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s
 }
 
-func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger) *repair.Service {
+func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c repair.Config, logger log.Logger, clusterID uuid.UUID) *repair.Service {
 	t.Helper()
 
 	s, err := repair.NewService(
@@ -424,6 +427,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateSession(t, client), nil
 		},
+		NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
 		logger.Named("repair"),
 	)
 	if err != nil {
