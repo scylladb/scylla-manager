@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -28,6 +29,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -643,6 +645,27 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Mocking /cloud/metadata endpoint as it's not expected to work reliably on ci.
+	// But with mock we can at least check that response is used correctly and saved to manifest file.
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Path != "/agent/cloud/metadata" {
+			return nil, nil
+		}
+
+		metaMock := models.InstanceMetadata{
+			CloudProvider: "test_provider",
+			InstanceType:  "test_instance_type",
+		}
+
+		metaMockBytes, err := json.Marshal(metaMock)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp := httpx.MakeResponse(req, http.StatusOK)
+		resp.Body = io.NopCloser(bytes.NewReader(metaMockBytes))
+		return resp, nil
+	}))
+
 	Print("When: run backup")
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
@@ -835,6 +858,55 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	}
 	if !strset.New(schemas...).Has(mc.Schema) {
 		t.Errorf("Schema=%s, not found in schemas %s", mc.Schema, schemas)
+	}
+
+	var infoFromPath ManifestInfo
+	if err := infoFromPath.ParsePath(manifestPath); err != nil {
+		t.Fatal("manifest file in wrong path", manifestPath)
+	}
+
+	if mc.DC != infoFromPath.DC {
+		t.Errorf("DC=%s, expected %s", mc.DC, infoFromPath.DC)
+	}
+
+	if mc.ClusterID.String() != infoFromPath.ClusterID.String() {
+		t.Errorf("ClustedID=%s, expected %s", mc.ClusterID, infoFromPath.ClusterID)
+	}
+
+	if mc.NodeID != infoFromPath.NodeID {
+		t.Errorf("NodeID=%s, expected %s", mc.NodeID, infoFromPath.NodeID)
+	}
+
+	if mc.TaskID.String() != infoFromPath.TaskID.String() {
+		t.Errorf("TaskID=%s, expected %s", mc.TaskID, infoFromPath.TaskID)
+	}
+
+	if mc.SnapshotTag != infoFromPath.SnapshotTag {
+		t.Errorf("SnapshotTag=%s, expected %s", mc.SnapshotTag, infoFromPath.SnapshotTag)
+	}
+
+	if mc.Rack != "rack1" {
+		t.Errorf("Rack=%s, expected rack1", mc.Rack)
+	}
+
+	if mc.ShardCount == 0 {
+		t.Errorf("ShardCount=0, expected > 0")
+	}
+
+	if mc.CPUCount == 0 {
+		t.Errorf("CPUCount=0, expected > 0")
+	}
+
+	if mc.StorageSize == 0 {
+		t.Errorf("StorageSize=0, expected > 0")
+	}
+
+	if mc.InstanceDetails.InstanceType != "test_instance_type" {
+		t.Errorf("InstanceDetails.InstanceType=%s, expected test_instance_type", mc.InstanceDetails.InstanceType)
+	}
+
+	if mc.InstanceDetails.CloudProvider != "test_provider" {
+		t.Errorf("InstanceDetails.CloudProvider=%s, expected aws", mc.InstanceDetails.CloudProvider)
 	}
 }
 
