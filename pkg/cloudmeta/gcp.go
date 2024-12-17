@@ -58,7 +58,7 @@ func parseMachineTypeResponse(resp string) (string, error) {
 		return "", errUnexpectedFormat
 	}
 
-	if parts[2] != "machineType" {
+	if parts[2] != "machineTypes" {
 		return "", errUnexpectedFormat
 	}
 

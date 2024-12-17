@@ -14,21 +14,21 @@ func TestParseMachineTypeResponse(t *testing.T) {
 	}{
 		{
 			name:                "everything is fine",
-			machineTypeResponse: "projects/project1/machineType/machineType1",
+			machineTypeResponse: "projects/project1/machineTypes/machineType1",
 
 			expectedErr: false,
 			expected:    "machineType1",
 		},
 		{
 			name:                "new response part is added",
-			machineTypeResponse: "projects/project1/zone/zone1/machineType/machineType1",
+			machineTypeResponse: "projects/project1/zone/zone1/machineTypes/machineType1",
 
 			expectedErr: true,
 			expected:    "",
 		},
 		{
 			name:                "parts are mixed up",
-			machineTypeResponse: "machineType/machineType1/projects/project1",
+			machineTypeResponse: "machineTypes/machineType1/projects/project1",
 
 			expectedErr: true,
 			expected:    "",
