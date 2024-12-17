@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
@@ -45,13 +46,15 @@ type Service struct {
 	clusterName    cluster.NameFunc
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
+	configCache    configcache.ConfigCacher
 	logger         log.Logger
 
 	dth deduplicateTestHooks
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics,
-	clusterName cluster.NameFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
+func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName cluster.NameFunc,
+	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
+	logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -76,6 +79,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 		clusterName:    clusterName,
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
+		configCache:    configCache,
 		logger:         logger,
 	}, nil
 }

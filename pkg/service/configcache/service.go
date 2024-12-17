@@ -22,6 +22,9 @@ type ConfigCacher interface {
 	// or ErrNoHostConfig if config of the particular host doesn't exist.
 	Read(clusterID uuid.UUID, host string) (NodeConfig, error)
 
+	// ReadAll calls Read on all AvailableHosts.
+	ReadAll(clusterID uuid.UUID) (map[string]NodeConfig, error)
+
 	// AvailableHosts returns list of hosts of given cluster that keep their configuration in cache.
 	AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]string, error)
 
@@ -86,6 +89,23 @@ func (svc *Service) Read(clusterID uuid.UUID, host string) (NodeConfig, error) {
 		panic("cluster host emptyConfig cache stores unexpected type")
 	}
 	return hostConfig, nil
+}
+
+// ReadAll calls Read on AvailableHosts.
+func (svc *Service) ReadAll(clusterID uuid.UUID) (map[string]NodeConfig, error) {
+	clusterConfig, err := svc.readClusterConfig(clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]NodeConfig)
+	clusterConfig.Range(func(key, value any) bool {
+		host := key.(string)
+		cfg := value.(NodeConfig)
+		out[host] = cfg
+		return true
+	})
+	return out, nil
 }
 
 // Run starts the infinity loop responsible for updating the clusters configuration periodically.

@@ -64,7 +64,7 @@ func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, l
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service, backupSvc := newTestService(t, session, client, config, logger, user, pass)
+	service, backupSvc := newTestService(t, session, client, config, logger, clusterID, user, pass)
 	cHelper := &CommonTestHelper{
 		Session:   session,
 		Hrt:       hrt,
@@ -106,8 +106,10 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c Config, logger log.Logger, user, pass string) (*Service, *backup.Service) {
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c Config, logger log.Logger, clusterID uuid.UUID, user, pass string) (*Service, *backup.Service) {
 	t.Helper()
+
+	configCacheSvc := NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts)
 
 	repairSvc, err := repair.NewService(
 		session,
@@ -119,6 +121,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
 	)
 	if err != nil {
@@ -138,6 +141,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
 	)
 	if err != nil {
@@ -155,6 +159,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		configCacheSvc,
 		logger.Named("restore"),
 	)
 	if err != nil {

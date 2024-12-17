@@ -102,6 +102,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		metrics.NewRepairMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.configCacheSvc,
 		s.logger.Named("repair"),
 	)
 	if err != nil {
@@ -115,6 +116,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.configCacheSvc,
 		s.logger.Named("backup"),
 	)
 	if err != nil {
@@ -128,6 +130,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		metrics.NewRestoreMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.configCacheSvc,
 		s.logger.Named("restore"),
 	)
 	if err != nil {
