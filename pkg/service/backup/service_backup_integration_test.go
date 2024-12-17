@@ -2562,6 +2562,11 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
+	if CheckAnyConstraint(h.T, h.Client, "< 6.0", "< 2024.2, > 1000") {
+		t.Skip("CQL credentials are not needed for the backup with this Scylla version, " +
+			"so the --skip-schema flag is not needed there")
+	}
+
 	Print("And: simple table to back up")
 	WriteData(t, clusterSession, testKeyspace, 1)
 
