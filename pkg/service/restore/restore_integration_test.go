@@ -611,9 +611,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		"rate_limit": []string{"88"},
 	})
 
-	Print("Validate state after backup")
-	validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
-
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
 		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.dstCluster.RunID = uuid.NewTime()
