@@ -24,6 +24,8 @@ const (
 	CloudProviderAWS CloudProvider = "aws"
 	// CloudProviderGCP represents gcp provider.
 	CloudProviderGCP CloudProvider = "gcp"
+	// CloudProviderAzure represents azure provider.
+	CloudProviderAzure CloudProvider = "azure"
 )
 
 // CloudMetadataProvider interface that each metadata provider should implement.
@@ -49,10 +51,13 @@ func NewCloudMeta() (*CloudMeta, error) {
 
 	gcpMeta := newGCPMetadata()
 
+	azureMeta := NewAzureMetadata()
+
 	return &CloudMeta{
 		providers: []CloudMetadataProvider{
 			awsMeta,
 			gcpMeta,
+			azureMeta,
 		},
 		providerTimeout: defaultTimeout,
 	}, nil
