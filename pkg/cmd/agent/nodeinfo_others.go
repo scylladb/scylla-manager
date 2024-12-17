@@ -15,5 +15,6 @@ func (h *nodeInfoHandler) sysInfo(info *scyllaclient.NodeInfo) error {
 	info.MemoryTotal = 0
 	info.CPUCount = 0
 	info.Uptime = 0
+	info.StorageSize = 0
 	return nil
 }
