@@ -2462,7 +2462,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 	}
 }
 
-func TestBackupViews(t *testing.T) {
+func TestBackupViewsIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-views"
 		testKeyspace = "backuptest_views"
@@ -2547,7 +2547,7 @@ func TestBackupViews(t *testing.T) {
 	}
 }
 
-func TestBackupSkipSchema(t *testing.T) {
+func TestBackupSkipSchemaIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-skip-schema"
 		testKeyspace = "backuptest_skip_schema"
