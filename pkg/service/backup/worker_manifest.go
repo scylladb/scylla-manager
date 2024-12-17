@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/cloudmeta"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -45,11 +46,14 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 		return err
 	}
 
-	m := w.createTemporaryManifest(h, tokens)
+	m, err := w.createTemporaryManifest(ctx, h, tokens)
+	if err != nil {
+		return errors.Wrap(err, "create temp manifest")
+	}
 	return w.uploadHostManifest(ctx, h, m)
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInfoWithContent {
+func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens []int64) (ManifestInfoWithContent, error) {
 	m := &ManifestInfo{
 		Location:    h.Location,
 		DC:          h.DC,
@@ -88,10 +92,60 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 		c.Size += d.Progress.Size
 	}
 
+	c.ClusterID = w.ClusterID
+	c.NodeID = h.ID
+	c.DC = h.DC
+
+	rack, err := w.Client.HostRack(ctx, h.IP)
+	if err != nil {
+		return ManifestInfoWithContent{}, errors.Wrap(err, "client.HostRack")
+	}
+	c.Rack = rack
+
+	instanceDetails, err := w.manifestInstanceDetails(ctx, h)
+	if err != nil {
+		return ManifestInfoWithContent{}, errors.Wrap(err, "manifest instance details")
+	}
+	c.InstanceDetails = instanceDetails
+
 	return ManifestInfoWithContent{
 		ManifestInfo:             m,
 		ManifestContentWithIndex: c,
+	}, nil
+}
+
+// manifestInstanceDetails collects node/instance specific information that's needed for 1-to-1 restore.
+func (w *worker) manifestInstanceDetails(ctx context.Context, host hostInfo) (InstanceDetails, error) {
+	var result InstanceDetails
+
+	shardCound, err := w.Client.ShardCount(ctx, host.IP)
+	if err != nil {
+		return InstanceDetails{}, errors.Wrap(err, "client.ShardCount")
 	}
+	result.ShardCount = int(shardCound)
+
+	nodeInfo, err := w.Client.NodeInfo(ctx, host.IP)
+	if err != nil {
+		return InstanceDetails{}, errors.Wrap(err, "client.NodeInfo")
+	}
+	result.StorageSize = nodeInfo.StorageSize
+
+	metaSvc, err := cloudmeta.NewCloudMeta(w.Logger)
+	if err != nil {
+		return InstanceDetails{}, errors.Wrap(err, "new cloud meta svc")
+	}
+
+	instanceMeta, err := metaSvc.GetInstanceMetadata(ctx)
+	if err != nil {
+		// Metadata may not be available for several reasons:
+		// 1. running on-premise 2. disabled 3. smth went wrong with metadata server.
+		// As we cannot distiguish between this cases we can only log err and continue with backup.
+		w.Logger.Error(ctx, "Get instance metadata", "err", err)
+	}
+	result.CloudProvider = string(instanceMeta.CloudProvider)
+	result.InstanceType = instanceMeta.InstanceType
+
+	return result, nil
 }
 
 func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m ManifestInfoWithContent) error {
