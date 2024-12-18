@@ -222,6 +222,7 @@ var (
 			"restore_completed_at",
 			"restore_started_at",
 			"run_id",
+			"scylla_task_id",
 			"shard_cnt",
 			"skipped",
 			"sstable_id",
