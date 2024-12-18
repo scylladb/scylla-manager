@@ -8,14 +8,42 @@ import (
 )
 
 const (
-	clusterKey  = "cluster"
-	hostKey     = "host"
-	dcKey       = "dc"
-	pingTypeKey = "ping_type"
-	rackKey     = "rack"
+	clusterKey = "cluster"
+	dcKey      = "dc"
+	rackKey    = "rack"
+	hostKey    = "host"
 
 	metricBufferSize = 100
 )
+
+func labelNames() []string {
+	return []string{clusterKey, dcKey, rackKey, hostKey}
+}
+
+type labels struct {
+	cluster string
+	dc      string
+	rack    string
+	host    string
+}
+
+func newLabels(cluster, dc, rack, host string) labels {
+	return labels{
+		cluster: cluster,
+		dc:      dc,
+		rack:    rack,
+		host:    host,
+	}
+}
+
+func (ls labels) promLabels() prometheus.Labels {
+	return prometheus.Labels{
+		clusterKey: ls.cluster,
+		dcKey:      ls.dc,
+		rackKey:    ls.rack,
+		hostKey:    ls.host,
+	}
+}
 
 var (
 	cqlStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -23,42 +51,42 @@ var (
 		Subsystem: "healthcheck",
 		Name:      "cql_status",
 		Help:      "Host native port status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
-	}, []string{clusterKey, hostKey, dcKey, rackKey})
+	}, labelNames())
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_rtt_ms",
 		Help:      "Host native port RTT.",
-	}, []string{clusterKey, hostKey, dcKey, rackKey})
+	}, labelNames())
 
 	restStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_status",
 		Help:      "Host REST status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
-	}, []string{clusterKey, hostKey, dcKey, rackKey})
+	}, labelNames())
 
 	restRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_rtt_ms",
 		Help:      "Host REST RTT.",
-	}, []string{clusterKey, hostKey, dcKey, rackKey})
+	}, labelNames())
 
 	alternatorStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_status",
 		Help:      "Host Alternator status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
-	}, []string{clusterKey, hostKey, dcKey, rackKey})
+	}, labelNames())
 
 	alternatorRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_rtt_ms",
 		Help:      "Host Alternator RTT.",
-	}, []string{clusterKey, hostKey, dcKey, rackKey})
+	}, labelNames())
 )
 
 func init() {
@@ -72,29 +100,29 @@ func init() {
 	)
 }
 
-func apply(metrics []prometheus.Metric, f func(cluster, dc, host, pt string, v float64)) {
+func apply(metrics []prometheus.Metric, f func(ls labels, v float64)) {
 	for _, m := range metrics {
 		metric := &dto.Metric{}
 		if err := m.Write(metric); err != nil {
 			continue
 		}
-		var c, dc, h, pt string
 
+		var c, dc, r, h string
 		for _, l := range metric.GetLabel() {
 			if l.GetName() == clusterKey {
 				c = l.GetValue()
 			}
-			if l.GetName() == hostKey {
-				h = l.GetValue()
-			}
 			if l.GetName() == dcKey {
 				dc = l.GetValue()
 			}
-			if l.GetName() == pingTypeKey {
-				pt = l.GetValue()
+			if l.GetName() == rackKey {
+				r = l.GetValue()
+			}
+			if l.GetName() == hostKey {
+				h = l.GetValue()
 			}
 		}
-		f(c, dc, h, pt, metric.GetGauge().GetValue())
+		f(newLabels(c, dc, r, h), metric.GetGauge().GetValue())
 	}
 }
 

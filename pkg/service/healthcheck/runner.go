@@ -86,18 +86,13 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 		if err == nil {
 			rtt, err = r.ping(ctx, clusterID, addresses[i], r.timeout, ni)
 		}
-		hl := prometheus.Labels{
-			clusterKey: clusterID.String(),
-			hostKey:    addresses[i],
-			rackKey:    ni.Rack,
-			dcKey:      ni.Datacenter,
-		}
+		promLs := newLabels(clusterID.String(), ni.Datacenter, ni.Rack, addresses[i]).promLabels()
 		if err != nil {
-			r.metrics.status.With(hl).Set(-1)
+			r.metrics.status.With(promLs).Set(-1)
 		} else {
-			r.metrics.status.With(hl).Set(1)
+			r.metrics.status.With(promLs).Set(1)
 		}
-		r.metrics.rtt.With(hl).Set(float64(rtt.Milliseconds()))
+		r.metrics.rtt.With(promLs).Set(float64(rtt.Milliseconds()))
 
 		return err
 	}
@@ -108,34 +103,28 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 }
 
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
-	apply(collect(r.metrics.status), func(cluster, _, host, _ string, _ float64) {
-		if clusterID.String() != cluster {
+	apply(collect(r.metrics.status), func(ls labels, _ float64) {
+		if clusterID.String() != ls.cluster {
 			return
 		}
 
-		hl := prometheus.Labels{
-			clusterKey: clusterID.String(),
-			hostKey:    host,
-		}
-		r.metrics.status.Delete(hl)
-		r.metrics.rtt.Delete(hl)
+		promLs := ls.promLabels()
+		r.metrics.status.Delete(promLs)
+		r.metrics.rtt.Delete(promLs)
 	})
 }
 
 func (r runner) removeMetricsForMissingHosts(clusterID uuid.UUID, addresses []string) {
-	apply(collect(r.metrics.status), func(cluster, _, host, _ string, _ float64) {
-		if clusterID.String() != cluster {
+	apply(collect(r.metrics.status), func(ls labels, _ float64) {
+		if clusterID.String() != ls.cluster {
 			return
 		}
-		if slice.ContainsString(addresses, host) {
+		if slice.ContainsString(addresses, ls.host) {
 			return
 		}
 
-		l := prometheus.Labels{
-			clusterKey: clusterID.String(),
-			hostKey:    host,
-		}
-		r.metrics.status.Delete(l)
-		r.metrics.rtt.Delete(l)
+		promLs := ls.promLabels()
+		r.metrics.status.Delete(promLs)
+		r.metrics.rtt.Delete(promLs)
 	})
 }
