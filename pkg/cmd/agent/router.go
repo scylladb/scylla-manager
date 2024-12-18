@@ -114,7 +114,7 @@ const (
 // In order to ensure correctness, "endpoint" should be specified directly by SM user
 // so that no resolving is needed.
 func objectStorageEndpointDirector(cfg agent.Config, logger log.Logger) func(r *http.Request) {
-	regex := regexp.MustCompile(`^/storage_service/backup$`)
+	regex := regexp.MustCompile(`^/storage_service/(backup|restore)$`)
 	resolver := endpointResolver(cfg)
 
 	return func(r *http.Request) {
