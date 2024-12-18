@@ -87,23 +87,31 @@ func (cloud *CloudMeta) GetInstanceMetadata(ctx context.Context) (InstanceMetada
 		go func(provider CloudMetadataProvider) {
 			meta, err := cloud.runWithTimeout(ctx, provider)
 
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil {
 				return
-			case results <- msg{meta: meta, err: err}:
 			}
+
+			results <- msg{meta: meta, err: err}
 		}(provider)
 	}
 
 	// Return the first non error result or wait until all providers return err.
 	var mErr error
 	for range len(cloud.providers) {
-		res := <-results
-		if res.err != nil {
-			mErr = multierr.Append(mErr, res.err)
-			continue
+		select {
+		case <-ctx.Done():
+			return InstanceMetadata{}, ctx.Err()
+		case res := <-results:
+			// Additional context check just in case messages in results and in ctx.Done channels were available at the same time.
+			if err := ctx.Err(); err != nil {
+				return InstanceMetadata{}, err
+			}
+			if res.err != nil {
+				mErr = multierr.Append(mErr, res.err)
+				continue
+			}
+			return res.meta, nil
 		}
-		return res.meta, nil
 	}
 	return InstanceMetadata{}, mErr
 }
