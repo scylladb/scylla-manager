@@ -10,6 +10,9 @@ services:
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
+      - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
     networks:
@@ -26,6 +29,9 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
@@ -44,6 +50,9 @@ services:
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
+      - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs/
     networks:
@@ -60,6 +69,9 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
@@ -78,6 +90,9 @@ services:
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
+      - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
     networks:
@@ -94,6 +109,9 @@ services:
       - type: bind
         source: ./scylla/scylla.yaml
         target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
@@ -112,6 +130,9 @@ services:
         source: ./scylla/scylla-second-cluster.yaml
         target: /etc/scylla/scylla.yaml
       - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
+      - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
     networks:
@@ -128,6 +149,9 @@ services:
       - type: bind
         source: ./scylla/scylla-second-cluster.yaml
         target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/object_storage.yaml
+        target: /etc/scylla/object_storage.yaml
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs

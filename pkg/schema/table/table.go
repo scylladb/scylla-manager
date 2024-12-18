@@ -40,6 +40,7 @@ var (
 			"failed",
 			"host",
 			"run_id",
+			"scylla_task_id",
 			"size",
 			"skipped",
 			"started_at",
