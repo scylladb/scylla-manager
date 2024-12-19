@@ -677,6 +677,11 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "invalid cluster")
 	}
 
+	nodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return errors.Wrap(err, "read all nodes config")
+	}
+
 	// Create a worker
 	w := &worker{
 		workerTools: workerTools{
@@ -687,6 +692,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			SnapshotTag: run.SnapshotTag,
 			Config:      s.config,
 			Client:      client,
+			NodeConfig:  nodeConfig,
 		},
 		PrevStage:            run.Stage,
 		Metrics:              s.metrics,

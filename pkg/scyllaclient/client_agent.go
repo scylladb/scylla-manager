@@ -239,7 +239,7 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 
 	for _, fv := range []featureByVersion{
 		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarrierAPI},
-		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierAPI},
+		// {Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierAPI},
 		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarrierCQL},
 	} {
 		supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, fv.Constraint)
@@ -252,6 +252,30 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	}
 
 	return "", nil
+}
+
+// SupportsScyllaBackupRestoreAPI returns whether node exposes backup/restore API
+// that can be used instead of the Rclone API for backup/restore tasks.
+func (ni *NodeInfo) SupportsScyllaBackupRestoreAPI() (bool, error) {
+	return true, nil
+	//// Check master builds
+	//if scyllaversion.MasterVersion(ni.ScyllaVersion) {
+	//	return true, nil
+	//}
+	//// Check OSS
+	//supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.3, < 2000")
+	//if err != nil {
+	//	return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
+	//}
+	//if supports {
+	//	return true, nil
+	//}
+	//// Check ENT
+	//supports, err = scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2024.3")
+	//if err != nil {
+	//	return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
+	//}
+	//return supports, nil
 }
 
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
