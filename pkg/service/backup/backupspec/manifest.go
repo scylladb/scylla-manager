@@ -120,6 +120,8 @@ type ManifestContent struct {
 	ClusterName     string          `json:"cluster_name"`
 	NodeID          string          `json:"node_id"`
 	DC              string          `json:"dc"`
+	TaskID          uuid.UUID       `json:"task_id"`
+	SnapshotTag     string          `json:"snapshot_tag"`
 	IP              string          `json:"ip"`
 	Size            int64           `json:"size"`
 	Tokens          []int64         `json:"tokens"`

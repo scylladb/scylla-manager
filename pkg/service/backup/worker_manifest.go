@@ -70,6 +70,11 @@ func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens
 		ManifestContent: ManifestContent{
 			Version:     "v2",
 			ClusterName: w.ClusterName,
+			ClusterID:   w.ClusterID,
+			NodeID:      h.ID,
+			DC:          h.DC,
+			SnapshotTag: w.SnapshotTag,
+			TaskID:      w.TaskID,
 			IP:          h.IP,
 			Tokens:      tokens,
 		},
@@ -91,10 +96,6 @@ func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens
 		}
 		c.Size += d.Progress.Size
 	}
-
-	c.ClusterID = w.ClusterID
-	c.NodeID = h.ID
-	c.DC = h.DC
 
 	rack, err := w.Client.HostRack(ctx, h.IP)
 	if err != nil {
@@ -139,7 +140,7 @@ func (w *worker) manifestInstanceDetails(ctx context.Context, host hostInfo) (In
 	if err != nil {
 		// Metadata may not be available for several reasons:
 		// 1. running on-premise 2. disabled 3. smth went wrong with metadata server.
-		// As we cannot distiguish between this cases we can only log err and continue with backup.
+		// As we cannot distinguish between these cases, we can only log err and continue with the backup.
 		w.Logger.Error(ctx, "Get instance metadata", "err", err)
 	}
 	result.CloudProvider = string(instanceMeta.CloudProvider)
