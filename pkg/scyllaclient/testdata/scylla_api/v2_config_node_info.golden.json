@@ -18,5 +18,6 @@
   "rpc_port":"9160",
   "sstable_uuid_format":true,
   "consistent_cluster_management":true,
-  "enable_tablets":true
+  "enable_tablets":true,
+  "data_directory": "/var/lib/scylla/data"
 }

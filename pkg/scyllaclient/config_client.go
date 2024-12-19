@@ -286,6 +286,7 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		{Field: &ni.AlternatorAddress, Fetcher: c.AlternatorAddress},
 		{Field: &ni.AlternatorPort, Fetcher: c.AlternatorPort},
 		{Field: &ni.AlternatorHTTPSPort, Fetcher: c.AlternatorHTTPSPort},
+		{Field: &ni.DataDirectory, Fetcher: c.DataDirectory},
 	}
 
 	for i, ff := range ffs {

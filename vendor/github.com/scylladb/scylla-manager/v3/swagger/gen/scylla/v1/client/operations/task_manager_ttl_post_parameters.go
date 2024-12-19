@@ -63,7 +63,7 @@ for the task manager Ttl post operation typically these are written to a http.Re
 type TaskManagerTTLPostParams struct {
 
 	/*TTL
-	  The number of seconds for which the tasks will be kept in memory after it finishes
+	  The number of seconds for which the task started internally will be kept in memory after it finishes
 
 	*/
 	TTL int64

@@ -98,12 +98,16 @@ func (cloud *CloudMeta) GetInstanceMetadata(ctx context.Context) (InstanceMetada
 	// Return the first non error result or wait until all providers return err.
 	var mErr error
 	for range len(cloud.providers) {
-		res := <-results
-		if res.err != nil {
-			mErr = multierr.Append(mErr, res.err)
-			continue
+		select {
+		case <-ctx.Done():
+			return InstanceMetadata{}, ctx.Err()
+		case res := <-results:
+			if res.err != nil {
+				mErr = multierr.Append(mErr, res.err)
+				continue
+			}
+			return res.meta, nil
 		}
-		return res.meta, nil
 	}
 	return InstanceMetadata{}, mErr
 }
