@@ -966,6 +966,34 @@
         },
         "security": []
       }
+    },
+    "/cloud/metadata": {
+      "get": {
+        "description": "Collect instance metadata on a node",
+        "summary": "Return instance metadata",
+        "operationId": "Metadata",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Instance metadata",
+            "schema": {
+              "$ref": "#/definitions/InstanceMetadata"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
     }
   },
   "definitions": {
@@ -1692,6 +1720,27 @@
           "description": "Total disk size of the first entry from `data_file_directories` list from scylla config file. In bytes.",
           "type": "integer",
           "format": "uint64"
+        }
+      }
+    },
+    "InstanceMetadata": {
+      "title": "instance metadata",
+      "description": "Information about instance on which agent is running",
+      "type": "object",
+      "properties": {
+        "instance_type": {
+          "description": "Cloud machine type, e.g. Standard-A3",
+          "type": "string"
+        },
+        "cloud_provider": {
+          "description": "Cloud provider",
+          "type": "string",
+          "enum": [
+            "aws",
+            "gcp",
+            "azure",
+            ""
+          ]
         }
       }
     }
