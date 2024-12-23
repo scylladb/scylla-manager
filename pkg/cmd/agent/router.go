@@ -18,7 +18,7 @@ import (
 
 var unauthorizedErrorBody = json.RawMessage(`{"message":"unauthorized","code":401}`)
 
-func newRouter(c agent.Config, metrics AgentMetrics, rclone http.Handler, logger log.Logger) http.Handler {
+func newRouter(c agent.Config, metrics AgentMetrics, rclone http.Handler, cloudMeta http.HandlerFunc, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	// Common middleware
@@ -34,7 +34,7 @@ func newRouter(c agent.Config, metrics AgentMetrics, rclone http.Handler, logger
 		auth.ValidateToken(c.AuthToken, time.Second, unauthorizedErrorBody),
 	)
 	// Agent specific endpoints
-	priv.Mount("/agent", newAgentHandler(c, rclone, logger.Named("agent")))
+	priv.Mount("/agent", newAgentHandler(c, rclone, cloudMeta, logger.Named("agent")))
 	// Scylla prometheus proxy
 	priv.Mount("/metrics", promProxy(c))
 	// Fallback to Scylla API proxy

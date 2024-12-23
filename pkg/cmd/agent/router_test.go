@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +26,7 @@ func TestRcloneRouting(t *testing.T) {
 	c := agent.Config{}
 	rclone := assertURLPath(t, "/foo")
 
-	h := newRouter(c, NewAgentMetrics(), rclone, log.NewDevelopment())
+	h := newRouter(c, NewAgentMetrics(), rclone, nil, log.NewDevelopment())
 	r := httptest.NewRequest(http.MethodGet, "/agent/rclone/foo", nil)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -52,7 +53,7 @@ func TestProxyRouting(t *testing.T) {
 		},
 	}
 
-	h := newRouter(c, NewAgentMetrics(), nil, log.NewDevelopment())
+	h := newRouter(c, NewAgentMetrics(), nil, nil, log.NewDevelopment())
 
 	r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
@@ -68,5 +69,43 @@ func TestProxyRouting(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Response Code=%d expected %d", w.Code, http.StatusOK)
+	}
+}
+
+func TestCloudMetadataRouting(t *testing.T) {
+	c := agent.Config{}
+	rclone := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	cloudMeta := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"cloud_provider":"","instance_type":""}`))
+	})
+
+	h := newRouter(c, NewAgentMetrics(), rclone, cloudMeta, log.NewDevelopment())
+	r := httptest.NewRequest(http.MethodGet, "/agent/cloud/metadata", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Response Code=%d expected %d", w.Code, http.StatusOK)
+	}
+
+	responseBody := map[string]string{}
+	if err := json.NewDecoder(w.Result().Body).Decode(&responseBody); err != nil {
+		t.Fatalf("decode body, unexpected err: %v", err)
+	}
+
+	cloudProvider, ok := responseBody["cloud_provider"]
+	if !ok {
+		t.Fatalf("`cloud_provider` field is expected")
+	}
+	if cloudProvider != "" {
+		t.Fatalf("expects `cloud_provider` to be empty, got %s", cloudProvider)
+	}
+
+	instanceType, ok := responseBody["instance_type"]
+	if !ok {
+		t.Fatalf("`instance_type` field is expected")
+	}
+	if instanceType != "" {
+		t.Fatalf("expects `instance_type` to be empty, got %s", instanceType)
 	}
 }

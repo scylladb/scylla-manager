@@ -160,10 +160,14 @@ func (s *server) makeServers(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "tls")
 	}
+	cloudMeta, err := newMetadataHandler(s.logger.Named("metadata"))
+	if err != nil {
+		return errors.Wrap(err, "newMetadataHandler")
+	}
 	s.httpsServer = &http.Server{
 		Addr:      s.config.HTTPS,
 		TLSConfig: tlsConfig,
-		Handler:   newRouter(s.config, s.metrics, rcserver.New(), s.logger.Named("http")),
+		Handler:   newRouter(s.config, s.metrics, rcserver.New(), cloudMeta, s.logger.Named("http")),
 	}
 	if s.config.Prometheus != "" {
 		s.prometheusServer = &http.Server{
