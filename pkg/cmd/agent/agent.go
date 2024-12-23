@@ -16,7 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
-func newAgentHandler(c agent.Config, rclone http.Handler, logger log.Logger) *chi.Mux {
+func newAgentHandler(c agent.Config, rclone http.Handler, cloudMeta http.HandlerFunc, logger log.Logger) *chi.Mux {
 	m := chi.NewMux()
 
 	m.Get("/node_info", newNodeInfoHandler(c).getNodeInfo)
@@ -48,6 +48,8 @@ func newAgentHandler(c agent.Config, rclone http.Handler, logger log.Logger) *ch
 	m.Post("/free_os_memory", func(_ http.ResponseWriter, _ *http.Request) {
 		debug.FreeOSMemory()
 	})
+
+	m.Get("/cloud/metadata", cloudMeta)
 
 	// Rclone server
 	m.Mount("/rclone", http.StripPrefix("/agent/rclone", rclone))
