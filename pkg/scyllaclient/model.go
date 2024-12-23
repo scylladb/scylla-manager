@@ -245,3 +245,9 @@ func ViewBuildStatusOrder() []ViewBuildStatus {
 func (s ViewBuildStatus) Index() int {
 	return slice.Index(ViewBuildStatusOrder(), s)
 }
+
+// InstanceMetadata defines node metadata needed for 1-to-1 restore.
+type InstanceMetadata struct {
+	CloudProvider string
+	InstanceType  string
+}
