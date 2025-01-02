@@ -19,7 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-func TestBackupPauseResumeOnDeduplicationStage(t *testing.T) {
+func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-deduplication"
 		testKeyspace = "backuptest_deduplication"
@@ -160,5 +160,4 @@ func TestBackupPauseResumeOnDeduplicationStage(t *testing.T) {
 			t.Fatalf("Expected uploaded 0 bytes on delta 0 backup, but was %v", totalUploaded)
 		}
 	}()
-
 }

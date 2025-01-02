@@ -20,7 +20,6 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -463,23 +462,6 @@ func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {
 	if len(encountered) > 0 {
 		t.Fatalf("Restored more tables than expected: %v", encountered)
 	}
-}
-
-func checkAnyConstraint(t *testing.T, client *scyllaclient.Client, constraints ...string) bool {
-	ni, err := client.AnyNodeInfo(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, c := range constraints {
-		ok, err := version.CheckConstraint(ni.ScyllaVersion, c)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if ok {
-			return true
-		}
-	}
-	return false
 }
 
 func createTable(t *testing.T, session gocqlx.Session, keyspace string, tables ...string) {
