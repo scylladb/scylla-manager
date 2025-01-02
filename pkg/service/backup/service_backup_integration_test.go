@@ -2462,7 +2462,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 	}
 }
 
-func TestBackupViews(t *testing.T) {
+func TestBackupViewsIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-views"
 		testKeyspace = "backuptest_views"
@@ -2547,7 +2547,7 @@ func TestBackupViews(t *testing.T) {
 	}
 }
 
-func TestBackupSkipSchema(t *testing.T) {
+func TestBackupSkipSchemaIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-skip-schema"
 		testKeyspace = "backuptest_skip_schema"
@@ -2561,6 +2561,11 @@ func TestBackupSkipSchema(t *testing.T) {
 		ctx            = context.Background()
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
+
+	if CheckAnyConstraint(h.T, h.Client, "< 6.0", "< 2024.2, > 1000") {
+		t.Skip("CQL credentials are not needed for the backup with this Scylla version, " +
+			"so the --skip-schema flag is not needed there")
+	}
 
 	Print("And: simple table to back up")
 	WriteData(t, clusterSession, testKeyspace, 1)
