@@ -59,6 +59,9 @@ type NodeInfo struct {
 	// Whether CQL requires password authentication.
 	CqlPasswordProtected bool `json:"cql_password_protected,omitempty"`
 
+	// First entry from `data_file_directories` list from scylla config file.
+	DataDirectory string `json:"data_directory,omitempty"`
+
 	// Whether tablets are enabled.
 	EnableTablets bool `json:"enable_tablets,omitempty"`
 
@@ -91,6 +94,9 @@ type NodeInfo struct {
 
 	// Whether Scylla supports uuid-like sstable naming.
 	SstableUUIDFormat bool `json:"sstable_uuid_format,omitempty"`
+
+	// Total disk size of the first entry from `data_file_directories` list from scylla config file. In bytes.
+	StorageSize uint64 `json:"storage_size,omitempty"`
 
 	// Uptime in seconds.
 	Uptime int64 `json:"uptime,omitempty"`

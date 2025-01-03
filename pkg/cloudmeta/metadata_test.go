@@ -77,7 +77,8 @@ func TestGetInstanceMetadata(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			cloudmeta := &CloudMeta{
-				providers: tc.providers,
+				providers:       tc.providers,
+				providerTimeout: 1 * time.Second,
 			}
 
 			meta, err := cloudmeta.GetInstanceMetadata(context.Background())
@@ -98,6 +99,31 @@ func TestGetInstanceMetadata(t *testing.T) {
 				t.Fatalf("unexpected meta.CloudProvider: %s != %s", tc.expectedMeta.CloudProvider, meta.CloudProvider)
 			}
 		})
+	}
+}
+
+func TestGetInstanceMetadataWithCancelledContext(t *testing.T) {
+	cloudmeta := &CloudMeta{
+		providers: []CloudMetadataProvider{
+			newTestProvider(t, "test_provider_1", "x-test-1", 1*time.Second, nil),
+		},
+		providerTimeout: 100 * time.Millisecond,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	meta, err := cloudmeta.GetInstanceMetadata(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+
+	if meta.CloudProvider != "" {
+		t.Fatalf("meta.CloudProvider should be empty, got %s", meta.CloudProvider)
+	}
+
+	if meta.InstanceType != "" {
+		t.Fatalf("meta.InstanceType should be empty, got %s", meta.InstanceType)
 	}
 }
 
@@ -128,5 +154,5 @@ func (tp testProvider) Metadata(ctx context.Context) (InstanceMetadata, error) {
 	return InstanceMetadata{
 		CloudProvider: tp.name,
 		InstanceType:  tp.instanceType,
-	}, nil
+	}, ctx.Err()
 }

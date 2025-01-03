@@ -17,5 +17,6 @@
   "rpc_address":"192.168.100.101",
   "rpc_port":"9160",
   "sstable_uuid_format":false,
-  "consistent_cluster_management":false
+  "consistent_cluster_management":false,
+  "data_directory": "/var/lib/scylla/data"
 }

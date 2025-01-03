@@ -262,3 +262,25 @@ func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 	_, err := c.agentOps.FreeOSMemory(&p)
 	return errors.Wrap(err, "free OS memory")
 }
+
+// CloudMetadata returns instance metadata from agent node.
+func (c *Client) CloudMetadata(ctx context.Context, host string) (InstanceMetadata, error) {
+	p := operations.MetadataParams{
+		Context: forceHost(ctx, host),
+	}
+
+	meta, err := c.agentOps.Metadata(&p)
+	if err != nil {
+		return InstanceMetadata{}, errors.Wrap(err, "cloud metadata")
+	}
+
+	payload := meta.GetPayload()
+	if payload == nil {
+		return InstanceMetadata{}, errors.New("payload is nil")
+	}
+
+	return InstanceMetadata{
+		CloudProvider: payload.CloudProvider,
+		InstanceType:  payload.InstanceType,
+	}, nil
+}
