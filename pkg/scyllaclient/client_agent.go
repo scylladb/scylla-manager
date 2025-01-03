@@ -276,7 +276,7 @@ func (c *Client) CloudMetadata(ctx context.Context, host string) (InstanceMetada
 
 	payload := meta.GetPayload()
 	if payload == nil {
-		return InstanceMetadata{}, nil
+		return InstanceMetadata{}, errors.New("payload is nil")
 	}
 
 	return InstanceMetadata{
