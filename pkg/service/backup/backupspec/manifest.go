@@ -116,18 +116,22 @@ func (m *ManifestInfo) fileNameParser(v string) error {
 // ManifestContent is structure containing information about the backup.
 type ManifestContent struct {
 	Version         string          `json:"version"`
-	ClusterID       uuid.UUID       `json:"cluster_id"`
 	ClusterName     string          `json:"cluster_name"`
-	NodeID          string          `json:"node_id"`
-	DC              string          `json:"dc"`
-	TaskID          uuid.UUID       `json:"task_id"`
-	SnapshotTag     string          `json:"snapshot_tag"`
 	IP              string          `json:"ip"`
 	Size            int64           `json:"size"`
 	Tokens          []int64         `json:"tokens"`
 	Schema          string          `json:"schema"`
 	Rack            string          `json:"rack"`
+	ShardCount      int             `json:"shard_count"`
+	StorageSize     uint64          `json:"storage_size"`
 	InstanceDetails InstanceDetails `json:"instance_details"`
+
+	// Fields below are also persent in the manifest file path.
+	DC          string    `json:"dc"`
+	ClusterID   uuid.UUID `json:"cluster_id"`
+	NodeID      string    `json:"node_id"`
+	TaskID      uuid.UUID `json:"task_id"`
+	SnapshotTag string    `json:"snapshot_tag"`
 }
 
 // InstanceDetails extends backup manifest with additional instance details.
@@ -135,9 +139,6 @@ type ManifestContent struct {
 type InstanceDetails struct {
 	CloudProvider string `json:"cloud_provider,omitempty"`
 	InstanceType  string `json:"instance_type,omitempty"`
-
-	ShardCount  int    `json:"shard_count"`
-	StorageSize uint64 `json:"storage_size"`
 }
 
 // ManifestContentWithIndex is structure containing information about the backup
