@@ -10,12 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/cloudmeta"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
-
-type metadataResponse struct {
-	CloudProvider string `json:"cloud_provider"`
-	InstanceType  string `json:"instance_type"`
-}
 
 func newMetadataHandler(logger log.Logger) (http.HandlerFunc, error) {
 	ctx := context.Background()
@@ -33,7 +29,7 @@ func newMetadataHandler(logger log.Logger) (http.HandlerFunc, error) {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		render.Respond(w, r, metadataResponse{
+		render.Respond(w, r, models.InstanceMetadata{
 			CloudProvider: string(instanceMeta.CloudProvider),
 			InstanceType:  instanceMeta.InstanceType,
 		})
