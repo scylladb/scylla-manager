@@ -43,6 +43,8 @@ type ClientService interface {
 
 	JobStop(params *JobStopParams) (*JobStopOK, error)
 
+	Metadata(params *MetadataParams) (*MetadataOK, error)
+
 	NodeInfo(params *NodeInfoParams) (*NodeInfoOK, error)
 
 	OperationsAbout(params *OperationsAboutParams) (*OperationsAboutOK, error)
@@ -390,6 +392,41 @@ func (a *Client) JobStop(params *JobStopParams) (*JobStopOK, error) {
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*JobStopDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+Metadata returns instance metadata
+
+Collect instance metadata on a node
+*/
+func (a *Client) Metadata(params *MetadataParams) (*MetadataOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewMetadataParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "Metadata",
+		Method:             "GET",
+		PathPattern:        "/cloud/metadata",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &MetadataReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*MetadataOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*MetadataDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
