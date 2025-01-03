@@ -5,6 +5,7 @@ package restore
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -33,14 +34,15 @@ type RemoteDirWorkload struct {
 
 // RemoteSSTable represents SSTable updated with size and version info from remote.
 type RemoteSSTable struct {
-	SSTable   // File names might contain versioned snapshot tag extension
+	SSTable   // SSTable.Files and SSTable.TOC might contain versioned snapshot tag extension
 	Size      int64
 	Versioned bool
 }
 
 // SSTable represents files creating a single sstable.
 type SSTable struct {
-	ID    string
+	ID    sstable.ID
+	TOC   string
 	Files []string
 }
 
@@ -144,7 +146,7 @@ func (w *tablesWorker) filterPreviouslyRestoredSStables(ctx context.Context, raw
 		var filteredSSTables []RemoteSSTable
 		var size int64
 		for _, sst := range rw.SSTables {
-			if !slices.Contains(remoteSSTableDirToRestoredIDs[rw.RemoteSSTableDir], sst.ID) {
+			if !slices.Contains(remoteSSTableDirToRestoredIDs[rw.RemoteSSTableDir], sst.ID.ID) {
 				filteredSSTables = append(filteredSSTables, sst)
 				size += sst.Size
 			} else {
@@ -248,7 +250,7 @@ func aggregateWorkload(rawWorkload []RemoteDirWorkload) Workload {
 	}
 }
 
-func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remoteDir string, sstables map[string]SSTable) ([]RemoteSSTable, error) {
+func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remoteDir string, sstables map[sstable.ID]SSTable) ([]RemoteSSTable, error) {
 	versioned, err := ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, host, remoteDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "list versioned files")
@@ -263,9 +265,13 @@ func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remot
 				return nil, errors.Errorf("file %s is not present in listed versioned files", f)
 			}
 
-			rsst.Files = append(rsst.Files, v.FullName())
+			fullName := v.FullName()
+			rsst.Files = append(rsst.Files, fullName)
 			rsst.Size += v.Size
 			rsst.Versioned = rsst.Versioned || v.Version != ""
+			if f == sst.TOC {
+				rsst.TOC = fullName
+			}
 		}
 		remoteSSTables = append(remoteSSTables, rsst)
 	}
@@ -273,25 +279,23 @@ func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remot
 	return remoteSSTables, nil
 }
 
-func filesMetaToSSTables(fm FilesMeta) (map[string]SSTable, error) {
+func filesMetaToSSTables(fm FilesMeta) (map[sstable.ID]SSTable, error) {
 	const expectedSSTableFileCnt = 9
-	sstables := make(map[string]SSTable, len(fm.Files)/expectedSSTableFileCnt)
+	sstables := make(map[sstable.ID]SSTable, len(fm.Files)/expectedSSTableFileCnt)
 
 	for _, f := range fm.Files {
-		id, err := sstable.ExtractID(f)
+		id, err := sstable.ParseID(f)
 		if err != nil {
-			return nil, errors.Wrapf(err, "extract sstable component %s generation ID", f)
+			return nil, errors.Wrapf(err, "parse SSTable component %q ID", f)
 		}
 
-		if sst, ok := sstables[id]; ok {
-			sst.Files = append(sst.Files, f)
-			sstables[id] = sst
-		} else {
-			sstables[id] = SSTable{
-				ID:    id,
-				Files: []string{f},
-			}
+		sst := sstables[id]
+		sst.ID = id
+		sst.Files = append(sst.Files, f)
+		if strings.HasSuffix(f, string(sstable.ComponentTOC)) {
+			sst.TOC = f
 		}
+		sstables[id] = sst
 	}
 	return sstables, nil
 }
