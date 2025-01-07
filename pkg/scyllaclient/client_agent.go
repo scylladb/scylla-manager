@@ -239,7 +239,7 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 
 	for _, fv := range []featureByVersion{
 		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarrierAPI},
-		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierAPI},
+		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierCQL},
 		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarrierCQL},
 	} {
 		supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, fv.Constraint)
