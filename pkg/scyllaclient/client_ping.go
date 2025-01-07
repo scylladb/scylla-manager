@@ -119,7 +119,7 @@ func (c *Client) CheckHostsConnectivity(ctx context.Context, hosts []string) []e
 // the lowest latency over 3 Ping() invocations across random selection of
 // hosts for each DC.
 func (c *Client) ClosestDC(ctx context.Context, dcs map[string][]string) ([]string, error) {
-	c.logger.Info(ctx, "Measuring datacenter latencies", "dcs", extractKeys(dcs))
+	c.logger.Debug(ctx, "Measuring datacenter latencies", "dcs", extractKeys(dcs))
 
 	if len(dcs) == 0 {
 		return nil, errors.Errorf("no dcs to choose from")
