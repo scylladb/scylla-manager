@@ -524,3 +524,13 @@ func runPausedRestore(t *testing.T, restore func(ctx context.Context) error, int
 		}
 	}
 }
+
+func isDownloadOrRestoreEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/agent/rclone/sync/copypaths") ||
+		strings.HasPrefix(path, "/storage_service/restore")
+}
+
+func isLasOrRestoreEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/storage_service/sstables") ||
+		strings.HasPrefix(path, "/storage_service/restore")
+}

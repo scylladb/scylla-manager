@@ -820,9 +820,11 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 
 	a := atomic.NewInt64(0)
 	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") && a.Inc() == 1 {
-			Print("And: context1 is canceled")
-			cancel1()
+		if isLasOrRestoreEndpoint(req.URL.Path) {
+			if a.Inc() == 1 {
+				Print("And: context1 is canceled")
+				cancel1()
+			}
 		}
 		return nil, nil
 	}))
