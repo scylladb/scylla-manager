@@ -15,7 +15,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -142,27 +141,37 @@ func defaultConfig() backup.Config {
 	return c
 }
 
-func (h *backupTestHelper) setInterceptorBlockEndpointOnFirstHost(method string, path string) {
-	var (
-		brokenHost string
-		mu         sync.Mutex
-	)
+func (h *backupTestHelper) setInterceptorBlockPathOnFirstHost(paths ...string) {
+	brokenHost := atomic.NewString("")
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if req.Method == method && req.URL.Path == path {
-			mu.Lock()
-			defer mu.Unlock()
-
-			if brokenHost == "" {
-				h.T.Log("Setting broken host", req.Host)
-				brokenHost = req.Host
-			}
-
-			if brokenHost == req.Host {
-				return nil, errors.New("dial error")
+		for _, p := range paths {
+			if strings.HasPrefix(req.URL.Path, p) {
+				if brokenHost.CompareAndSwap("", req.Host) {
+					h.T.Log("Setting broken host", req.Host)
+				}
+				if brokenHost.Load() == req.Host {
+					return nil, errors.New("dial error")
+				}
 			}
 		}
 		return nil, nil
 	}))
+}
+
+func (h *backupTestHelper) setInterceptorWaitPath(paths ...string) chan struct{} {
+	guard := atomic.NewBool(false)
+	wait := make(chan struct{})
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		for _, p := range paths {
+			if strings.HasPrefix(req.URL.Path, p) {
+				if guard.CompareAndSwap(false, true) {
+					close(wait)
+				}
+			}
+		}
+		return nil, nil
+	}))
+	return wait
 }
 
 func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
@@ -1002,6 +1011,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 			done        = make(chan struct{})
 		)
 
+		upload := h.setInterceptorWaitPath("/storage_service/backup", "/agent/rclone/sync/movedir")
+
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(err)
 		}
@@ -1010,20 +1021,19 @@ func TestBackupResumeIntegration(t *testing.T) {
 			defer close(done)
 			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
-			if err == nil {
-				t.Error("Expected error on run but got nil")
-			} else {
-				if !strings.Contains(err.Error(), "context") {
-					t.Errorf("Expected context error but got: %+v", err)
-				}
+			if !errors.Is(err, context.Canceled) {
+				t.Errorf("Expected %q error but got: %q", context.Canceled, err)
 			}
 		}()
 
-		h.waitTransfersStarted()
-
-		Print("And: context is canceled")
-		cancel()
-		<-ctx.Done()
+		select {
+		case <-time.After(backupTimeout):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout)
+		case <-upload:
+			Print("And: context is canceled")
+			cancel()
+			<-ctx.Done()
+		}
 
 		select {
 		case <-time.After(backupTimeout):
@@ -1059,6 +1069,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 		)
 		defer cancel()
 
+		upload := h.setInterceptorWaitPath("/storage_service/backup", "/agent/rclone/sync/movedir")
+
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(err)
 		}
@@ -1072,16 +1084,18 @@ func TestBackupResumeIntegration(t *testing.T) {
 			close(done)
 		}()
 
-		h.waitTransfersStarted()
-
-		Print("And: we restart the agents")
-		restartAgents(h.CommonTestHelper)
+		select {
+		case <-time.After(backupTimeout * 3):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout*3)
+		case <-upload:
+			Print("And: we restart the agents")
+			restartAgents(h.CommonTestHelper)
+		}
 
 		select {
 		case <-time.After(backupTimeout * 3):
 			t.Fatalf("Backup failed to complete in under %s", backupTimeout*3)
 		case <-done:
-			Print("Then: backup completed execution")
 		}
 
 		Print("And: nothing is transferring")
@@ -1094,7 +1108,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after snapshot failed", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location, nil)
 		Print("Given: snapshot fails on a host")
-		h.setInterceptorBlockEndpointOnFirstHost(http.MethodPost, "/storage_service/snapshots")
+		h.setInterceptorBlockPathOnFirstHost("/storage_service/snapshots")
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -1132,7 +1146,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after upload failed", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location, nil)
 		Print("Given: upload fails on a host")
-		h.setInterceptorBlockEndpointOnFirstHost(http.MethodPost, "/agent/rclone/job/progress")
+		h.setInterceptorBlockPathOnFirstHost("/agent/rclone/job/progress", "/task_manager/wait_task")
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -2462,7 +2476,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 	}
 }
 
-func TestBackupViews(t *testing.T) {
+func TestBackupViewsIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-views"
 		testKeyspace = "backuptest_views"
@@ -2547,7 +2561,7 @@ func TestBackupViews(t *testing.T) {
 	}
 }
 
-func TestBackupSkipSchema(t *testing.T) {
+func TestBackupSkipSchemaIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-skip-schema"
 		testKeyspace = "backuptest_skip_schema"
@@ -2561,6 +2575,11 @@ func TestBackupSkipSchema(t *testing.T) {
 		ctx            = context.Background()
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
+
+	if CheckAnyConstraint(h.T, h.Client, "< 6.0", "< 2024.2, > 1000") {
+		t.Skip("CQL credentials are not needed for the backup with this Scylla version, " +
+			"so the --skip-schema flag is not needed there")
+	}
 
 	Print("And: simple table to back up")
 	WriteData(t, clusterSession, testKeyspace, 1)
@@ -2623,5 +2642,76 @@ func TestBackupSkipSchema(t *testing.T) {
 		if strings.Contains(f, "system_schema") {
 			t.Fatalf("Expected no system_schema sstables to be backed up, got: %s", f)
 		}
+	}
+}
+
+func TestBackupCorrectAPIIntegration(t *testing.T) {
+	// This test validates that the correct API is used
+	// for uploading snapshot dirs (Rclone or Scylla).
+	const (
+		testBucket   = "backuptest-api"
+		testKeyspace = "backuptest_api"
+	)
+
+	var (
+		location       = s3Location(testBucket)
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	ni, err := h.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Choose expected API - Rclone or Scylla depending on node version
+	ensuredPath := "/agent/rclone/sync/movedir"
+	blockedPath := "/storage_service/backup"
+	if ok, err := ni.SupportsScyllaBackupRestoreAPI(); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		ensuredPath, blockedPath = blockedPath, ensuredPath
+	}
+
+	Printf("Expect that %q API will be used for backup, while %q API won't be used at all", ensuredPath, blockedPath)
+	encounteredEnsured := atomic.NewBool(false)
+	encounteredBlocked := atomic.NewBool(false)
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, ensuredPath) {
+			encounteredEnsured.Store(true)
+		}
+		if strings.HasPrefix(req.URL.Path, blockedPath) {
+			encounteredBlocked.Store(true)
+		}
+		return nil, nil
+	}))
+
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	props := map[string]any{
+		"location": []Location{location},
+		"keyspace": []string{testKeyspace},
+	}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create raw properties"))
+	}
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "create target"))
+	}
+
+	err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !encounteredEnsured.Load() {
+		t.Fatalf("Expected SM to use %q API", ensuredPath)
+	}
+	if encounteredBlocked.Load() {
+		t.Fatalf("Expected SM not to use %q API", blockedPath)
 	}
 }

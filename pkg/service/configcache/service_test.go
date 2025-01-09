@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
@@ -203,6 +205,23 @@ func TestService_Run(t *testing.T) {
 	})
 }
 
+func TestServiceForceUpdateCluster(t *testing.T) {
+	t.Run("validate no panic when updating non-existing cluster", func(t *testing.T) {
+		svc := Service{
+			svcConfig:    DefaultConfig(),
+			clusterSvc:   &mockErrorClusterSvc{},
+			scyllaClient: mockProviderFunc,
+			secretsStore: &mockStore{},
+			configs:      &sync.Map{},
+			logger:       log.NewDevelopment(),
+		}
+
+		if svc.ForceUpdateCluster(context.Background(), uuid.MustRandom()) {
+			t.Fatalf("Expected updating non-existing cluster config to fail")
+		}
+	})
+}
+
 func (nc NodeConfig) sha256hash() (hash [32]byte, err error) {
 	data, err := json.Marshal(nc)
 	if err != nil {
@@ -299,3 +318,13 @@ var (
 		return nil, nil
 	}
 )
+
+// mockErrorClusterSvc works like mockClusterServicer with custom overrides for error responses.
+type mockErrorClusterSvc struct {
+	mockClusterServicer
+}
+
+// GetCluster mocks the GetCluster method of Servicer with error response.
+func (s *mockErrorClusterSvc) GetCluster(_ context.Context, _ string) (*cluster.Cluster, error) {
+	return nil, errors.New("not found")
+}

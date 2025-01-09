@@ -1,0 +1,8 @@
+# Scylla dev docs: https://github.com/scylladb/scylladb/blob/92db2eca0b8ab0a4fa2571666a7fe2d2b07c697b/docs/dev/object_storage.md?plain=1#L29-L39
+endpoints:
+  - name: 192.168.200.99
+    port: 9000
+    https: true
+    aws_region: us-east-1
+    aws_access_key_id: miniouser
+    aws_secret_access_key: minio1234
