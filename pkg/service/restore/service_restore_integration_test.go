@@ -1312,7 +1312,7 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
-	dstH.ClusterID = uuid.MustRandom()
+	dstH.TaskID = uuid.MustRandom()
 	dstH.RunID = uuid.MustRandom()
 
 	Print("When: Grant minimal user permissions for restore tables")
@@ -1420,7 +1420,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
-	dstH.ClusterID = uuid.MustRandom()
+	dstH.TaskID = uuid.MustRandom()
 	dstH.RunID = uuid.MustRandom()
 	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
 
@@ -1506,7 +1506,7 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 	dstH.validateRestoreSuccess(dstSession, srcSession, schemaTarget, toValidate)
 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
-	dstH.ClusterID = uuid.MustRandom()
+	dstH.TaskID = uuid.MustRandom()
 	dstH.RunID = uuid.MustRandom()
 	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
 
