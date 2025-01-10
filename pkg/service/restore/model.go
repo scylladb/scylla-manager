@@ -160,11 +160,12 @@ const (
 
 // View represents statement used for recreating restored (dropped) views.
 type View struct {
-	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
-	View       string   `json:"view" db:"view_name"`
-	Type       ViewType `json:"type" db:"view_type"`
-	BaseTable  string   `json:"base_table"`
-	CreateStmt string   `json:"create_stmt"`
+	Keyspace    string                       `json:"keyspace" db:"keyspace_name"`
+	View        string                       `json:"view" db:"view_name"`
+	Type        ViewType                     `json:"type" db:"view_type"`
+	BaseTable   string                       `json:"base_table"`
+	CreateStmt  string                       `json:"create_stmt"`
+	BuildStatus scyllaclient.ViewBuildStatus `json:"status"`
 }
 
 func (t View) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
@@ -235,7 +236,7 @@ type Progress struct {
 	SnapshotTag string             `json:"snapshot_tag"`
 	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
 	Hosts       []HostProgress     `json:"hosts,omitempty"`
-	Views       []ViewProgress     `json:"views,omitempty"`
+	Views       []View             `json:"views,omitempty"`
 	Stage       Stage              `json:"stage"`
 }
 
@@ -264,13 +265,6 @@ type TableProgress struct {
 	Table       string          `json:"table"`
 	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
 	Error       string          `json:"error,omitempty"`
-}
-
-// ViewProgress defines restore progress for the view.
-type ViewProgress struct {
-	View
-
-	Status scyllaclient.ViewBuildStatus `json:"status"`
 }
 
 // TableName represents full table name.

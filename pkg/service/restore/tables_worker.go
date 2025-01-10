@@ -146,11 +146,11 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 			return nil
 		},
 		StageRecreateViews: func() error {
-			for _, v := range w.run.Views {
+			for i, v := range w.run.Views {
 				if err := w.CreateView(ctx, v); err != nil {
 					return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
 				}
-				if err := w.WaitForViewBuilding(ctx, v); err != nil {
+				if err := w.WaitForViewBuilding(ctx, &w.run.Views[i]); err != nil {
 					return errors.Wrapf(err, "wait for %s.%s", v.Keyspace, v.View)
 				}
 			}

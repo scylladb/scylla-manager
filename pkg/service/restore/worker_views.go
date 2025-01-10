@@ -71,7 +71,7 @@ func (w *worker) CreateView(ctx context.Context, view View) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) WaitForViewBuilding(ctx context.Context, view View) error {
+func (w *worker) WaitForViewBuilding(ctx context.Context, view *View) error {
 	labels := metrics.RestoreViewBuildStatusLabels{
 		ClusterID: w.run.ClusterID.String(),
 		Keyspace:  view.Keyspace,
@@ -90,6 +90,8 @@ func (w *worker) WaitForViewBuilding(ctx context.Context, view View) error {
 			return retry.Permanent(err)
 		}
 
+		view.BuildStatus = status
+		w.insertRun(ctx)
 		switch status {
 		case scyllaclient.StatusUnknown:
 			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusUnknown)

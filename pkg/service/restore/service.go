@@ -158,12 +158,8 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, errors.Wrap(err, "get run")
 	}
 
-	w, err := s.newProgressWorker(ctx, run)
-	if err != nil {
-		return Progress{}, errors.Wrap(err, "create progress worker")
-	}
-
-	pr, err := w.aggregateProgress(ctx)
+	w := s.newProgressWorker(run)
+	pr, err := w.aggregateProgress()
 	if err != nil {
 		return Progress{}, err
 	}
@@ -221,20 +217,14 @@ func (w *worker) setRunInfo(taskID, runID uuid.UUID) {
 	w.run.ID = runID
 }
 
-func (s *Service) newProgressWorker(ctx context.Context, run *Run) (worker, error) {
-	client, err := s.scyllaClient(ctx, run.ClusterID)
-	if err != nil {
-		return worker{}, errors.Wrap(err, "get client")
-	}
-
+func (s *Service) newProgressWorker(run *Run) worker {
 	return worker{
 		run:     run,
 		config:  s.config,
 		logger:  s.logger,
 		metrics: s.metrics,
-		client:  client,
 		session: s.session,
-	}, nil
+	}
 }
 
 // GetRun returns run with specified cluster, task and run ID.
