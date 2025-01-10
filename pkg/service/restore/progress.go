@@ -114,10 +114,8 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 			)
 			status = scyllaclient.StatusUnknown
 		}
-		p.Views = append(p.Views, ViewProgress{
-			View:   v,
-			Status: status,
-		})
+		v.BuildStatus = status
+		p.Views = append(p.Views, v)
 	}
 
 	for _, hp := range hostProgress {
