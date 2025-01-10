@@ -121,6 +121,7 @@ func (svc *Service) ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID)
 	c, err := svc.clusterSvc.GetCluster(ctx, clusterID.String())
 	if err != nil {
 		logger.Error(ctx, "Update failed", "error", err)
+		return false
 	}
 
 	return svc.updateSingle(ctx, c)
