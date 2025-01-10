@@ -3,14 +3,13 @@
 package restore
 
 import (
-	"context"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
-	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -26,7 +25,7 @@ type tableKey struct {
 }
 
 // aggregateProgress returns restore progress information classified by keyspace and tables.
-func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
+func (w *worker) aggregateProgress() (Progress, error) {
 	var (
 		p = Progress{
 			SnapshotTag: w.run.SnapshotTag,
@@ -99,25 +98,7 @@ func (w *worker) aggregateProgress(ctx context.Context) (Progress, error) {
 
 	p.extremeToNil()
 
-	for _, v := range w.run.Views {
-		viewTableName := v.View
-		if v.Type == SecondaryIndex {
-			viewTableName += "_index"
-		}
-
-		status, err := w.client.ViewBuildStatus(ctx, v.Keyspace, viewTableName)
-		if err != nil {
-			w.logger.Error(ctx, "Couldn't get view build status",
-				"keyspace", v.Keyspace,
-				"view", v.View,
-				"error", err,
-			)
-			status = scyllaclient.StatusUnknown
-		}
-		v.BuildStatus = status
-		p.Views = append(p.Views, v)
-	}
-
+	p.Views = slices.Clone(w.run.Views)
 	for _, hp := range hostProgress {
 		p.Hosts = append(p.Hosts, hp)
 	}
