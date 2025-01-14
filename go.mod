@@ -16,7 +16,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-version v1.7.0
-	github.com/json-iterator/go v1.1.12
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.0
@@ -30,7 +29,7 @@ require (
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241104134613-aba35605c28b
-	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241104134613-aba35605c28b
+	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250114153456-4d7b90975b29
 	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241112131737-4fc93b5355fd
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
@@ -81,6 +80,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/lnquy/cron v1.1.1 // indirect
@@ -129,5 +129,4 @@ replace (
 	github.com/gocql/gocql => github.com/scylladb/gocql v1.12.0
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e
 	google.golang.org/api v0.114.0 => github.com/scylladb/google-api-go-client v0.34.1-patched
-	github.com/scylladb/scylla-manager/v3/pkg/util => ./v3/pkg/util
 )
