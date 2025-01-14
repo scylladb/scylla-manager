@@ -32,13 +32,13 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
@@ -52,10 +52,10 @@ type restoreTestHelper struct {
 
 	service   *Service
 	backupSvc *backup.Service
-	location  Location
+	location  backupmanifest.Location
 }
 
-func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, location Location, clientConf *scyllaclient.Config, user, pass string) *restoreTestHelper {
+func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, location backupmanifest.Location, clientConf *scyllaclient.Config, user, pass string) *restoreTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
@@ -164,17 +164,17 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s, backupSvc
 }
 
-func s3Location(bucket string) Location {
-	return Location{
-		Provider: S3,
+func s3Location(bucket string) backupmanifest.Location {
+	return backupmanifest.Location{
+		Provider: backupmanifest.S3,
 		Path:     bucket,
 	}
 }
 
-func testLocation(bucket, dc string) Location {
-	return Location{
+func testLocation(bucket, dc string) backupmanifest.Location {
+	return backupmanifest.Location{
 		DC:       dc,
-		Provider: S3,
+		Provider: backupmanifest.S3,
 		Path:     "restoretest-" + bucket,
 	}
 }
@@ -484,7 +484,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		ctx            = context.Background()
 		cfg            = defaultTestConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
-		loc            = Location{Provider: "s3", Path: testBucket}
+		loc            = backupmanifest.Location{Provider: "s3", Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
@@ -492,10 +492,10 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, testBackupSize)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -537,10 +537,10 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -563,10 +563,10 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -629,10 +629,10 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -705,10 +705,10 @@ func TestRestoreTablesResumeIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -732,10 +732,10 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -895,10 +895,10 @@ func TestRestoreTablesVersionedIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -922,10 +922,10 @@ func TestRestoreSchemaVersionedIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -990,7 +990,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 
 	// Corrupting SSTables allows us to force the creation of versioned files
 	Print("Choose SSTables to corrupt")
-	remoteDir := target.Location[0].RemotePath(RemoteSSTableDir(srcH.ClusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
+	remoteDir := target.Location[0].RemotePath(backupmanifest.RemoteSSTableDir(srcH.ClusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
 		FilesOnly: true,
@@ -1003,7 +1003,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	)
 
 	err = srcH.Client.RcloneListDirIter(ctx, host.Addr, remoteDir, opts, func(item *scyllaclient.RcloneListDirItem) {
-		if _, err = VersionedFileCreationTime(item.Name); err == nil {
+		if _, err = backup.VersionedFileCreationTime(item.Name); err == nil {
 			t.Fatalf("Versioned file %s present after first backup", path.Join(remoteDir, item.Path))
 		}
 		if strings.HasSuffix(item.Name, ".db") {
@@ -1088,7 +1088,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 
 		Print("Validate creation of versioned files in remote location")
 		for _, tc := range toCorrupt {
-			corruptedPath := path.Join(remoteDir, tc) + VersionedFileExt(tag)
+			corruptedPath := path.Join(remoteDir, tc) + backup.VersionedFileExt(tag)
 			if _, err = srcH.Client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
 				t.Fatalf("Validate file %s: %s", corruptedPath, err)
 			}
@@ -1111,7 +1111,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	Print("Swap versioned files so that 3-rd backup can be restored")
 	swapWithNewest := func(file, version string) {
 		newest := path.Join(remoteDir, file)
-		versioned := newest + VersionedFileExt(version)
+		versioned := newest + backup.VersionedFileExt(version)
 		tmp := path.Join(path.Dir(newest), "tmp")
 
 		if err = srcH.Client.RcloneMoveFile(ctx, host.Addr, tmp, newest); err != nil {
@@ -1168,10 +1168,10 @@ func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
 	)
 
 	target := Target{
-		Location: []Location{
+		Location: []backupmanifest.Location{
 			{
 				DC:       "dc1",
-				Provider: S3,
+				Provider: backupmanifest.S3,
 				Path:     testBucket,
 			},
 		},
@@ -1242,10 +1242,10 @@ func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
 		testParallel  = 0
 	)
 
-	locs := []Location{
+	locs := []backupmanifest.Location{
 		{
 			DC:       "dc1",
-			Provider: S3,
+			Provider: backupmanifest.S3,
 			Path:     testBucket,
 		},
 	}
@@ -1331,10 +1331,10 @@ func TestRestoreFullIntegration(t *testing.T) {
 		testParallel  = 3
 	)
 
-	locs := []Location{
+	locs := []backupmanifest.Location{
 		{
 			DC:       "dc1",
-			Provider: S3,
+			Provider: backupmanifest.S3,
 			Path:     testBucket,
 		},
 	}
@@ -1437,10 +1437,10 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 		testAlternatorPort = 8000
 	)
 
-	locs := []Location{
+	locs := []backupmanifest.Location{
 		{
 			DC:       "dc1",
-			Provider: S3,
+			Provider: backupmanifest.S3,
 			Path:     testBucket,
 		},
 	}
@@ -1674,7 +1674,7 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 	}
 }
 
-func (h *restoreTestHelper) simpleBackup(location Location) string {
+func (h *restoreTestHelper) simpleBackup(location backupmanifest.Location) string {
 	h.T.Helper()
 
 	// Make sure that next backup will have different snapshot tag
@@ -1682,7 +1682,7 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 	ctx := context.Background()
 
 	props, err := json.Marshal(map[string]any{
-		"location": []Location{location},
+		"location": []backupmanifest.Location{location},
 	})
 	if err != nil {
 		h.T.Fatal(err)
@@ -1701,7 +1701,7 @@ func (h *restoreTestHelper) simpleBackup(location Location) string {
 	}
 
 	Print("When: list newly created backup")
-	items, err := h.backupSvc.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{
+	items, err := h.backupSvc.List(ctx, h.ClusterID, []backupmanifest.Location{location}, backup.ListFilter{
 		ClusterID: h.ClusterID,
 		TaskID:    backupID,
 	})

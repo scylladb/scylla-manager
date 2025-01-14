@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
@@ -41,7 +41,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 
 		var (
 			nodeID    string
-			manifests []*ManifestInfo
+			manifests []*backupmanifest.ManifestInfo
 		)
 
 		p := newPurger(w.Client, h.IP, w.Logger)
@@ -54,7 +54,7 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			w.Metrics.SetPurgeFiles(w.ClusterID, host, total, success)
 		}
 
-		fHost := func(nodeID string, manifests []*ManifestInfo) error {
+		fHost := func(nodeID string, manifests []*backupmanifest.ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
 				logger := w.Logger.With("host", h.IP)

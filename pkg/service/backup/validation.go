@@ -15,9 +15,9 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
@@ -27,9 +27,9 @@ import (
 
 // ValidationTarget specifies parameters of location validation process.
 type ValidationTarget struct {
-	Location            []Location `json:"location"`
-	DeleteOrphanedFiles bool       `json:"delete_orphaned_files"`
-	Parallel            int        `json:"parallel"`
+	Location            []backupmanifest.Location `json:"location"`
+	DeleteOrphanedFiles bool                      `json:"delete_orphaned_files"`
+	Parallel            int                       `json:"parallel"`
 
 	liveNodes scyllaclient.NodeStatusInfoSlice
 }
@@ -112,7 +112,7 @@ type validationRunProgress struct {
 	RunID       uuid.UUID
 	DC          string
 	Host        string
-	Location    Location
+	Location    backupmanifest.Location
 	Manifests   int
 	StartedAt   *time.Time
 	CompletedAt *time.Time
@@ -168,7 +168,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	f := func(h hostInfo) error {
 		var (
 			nodeID    string
-			manifests []*ManifestInfo
+			manifests []*backupmanifest.ManifestInfo
 			progress  validationRunProgress
 		)
 
@@ -206,7 +206,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 			putProgress()
 		}
 
-		fHost := func(nodeID string, manifests []*ManifestInfo) error {
+		fHost := func(nodeID string, manifests []*backupmanifest.ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
 				logger = s.logger.Named("validate").With("host", h.IP)
@@ -333,12 +333,12 @@ func (s *Service) putValidationRunProgress(p validationRunProgress) error {
 
 // ValidationHostProgress represents validation results per host.
 type ValidationHostProgress struct {
-	DC          string     `json:"dc"`
-	Host        string     `json:"host"`
-	Location    Location   `json:"location"`
-	Manifests   int        `json:"manifests"`
-	StartedAt   *time.Time `json:"started_at"`
-	CompletedAt *time.Time `json:"completed_at"`
+	DC          string                  `json:"dc"`
+	Host        string                  `json:"host"`
+	Location    backupmanifest.Location `json:"location"`
+	Manifests   int                     `json:"manifests"`
+	StartedAt   *time.Time              `json:"started_at"`
+	CompletedAt *time.Time              `json:"completed_at"`
 	ValidationResult
 }
 

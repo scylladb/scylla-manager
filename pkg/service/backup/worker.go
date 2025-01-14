@@ -11,7 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -21,7 +21,7 @@ type hostInfo struct {
 	DC        string
 	IP        string
 	ID        string
-	Location  Location
+	Location  backupmanifest.Location
 	RateLimit DCLimit
 	Transfers int
 }

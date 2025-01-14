@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 func (w *worker) Snapshot(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
@@ -69,7 +69,7 @@ func (w *workerTools) checkAvailableDiskSpace(ctx context.Context, h hostInfo) e
 }
 
 func (w *workerTools) diskFreePercent(ctx context.Context, h hostInfo) (int, error) {
-	du, err := w.Client.RcloneDiskUsage(ctx, h.IP, DataDir)
+	du, err := w.Client.RcloneDiskUsage(ctx, h.IP, backupmanifest.DataDir)
 	if err != nil {
 		return 0, err
 	}
@@ -119,7 +119,7 @@ func (w *worker) deleteOldSnapshots(ctx context.Context, h hostInfo) error {
 	}()
 
 	for _, t := range tags {
-		if IsSnapshotTag(t) && t != w.SnapshotTag {
+		if backupmanifest.IsSnapshotTag(t) && t != w.SnapshotTag {
 			if err := w.Client.DeleteSnapshot(ctx, h.IP, t); err != nil {
 				return err
 			}

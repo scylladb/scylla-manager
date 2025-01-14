@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 func TestDCLimitMarshalUnmarshalText(t *testing.T) {
@@ -60,7 +60,7 @@ func TestExtractLocations(t *testing.T) {
 	table := []struct {
 		Name     string
 		Json     string
-		Location []Location
+		Location []backupmanifest.Location
 	}{
 		{
 			Name: "Empty",
@@ -73,9 +73,9 @@ func TestExtractLocations(t *testing.T) {
 		{
 			Name: "Duplicates",
 			Json: `{"location": ["dc:s3:foo", "s3:foo", "s3:bar"]}`,
-			Location: []Location{
-				{DC: "dc", Provider: S3, Path: "foo"},
-				{Provider: S3, Path: "bar"},
+			Location: []backupmanifest.Location{
+				{DC: "dc", Provider: backupmanifest.S3, Path: "foo"},
+				{Provider: backupmanifest.S3, Path: "bar"},
 			},
 		},
 	}

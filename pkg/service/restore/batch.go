@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 // batchDispatcher is a tool for batching SSTables from
@@ -57,7 +57,7 @@ type batchDispatcher struct {
 	hostShardCnt map[string]uint
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[Location][]string) *batchDispatcher {
+func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[backupmanifest.Location][]string) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, sh := range hostShardCnt {
@@ -106,7 +106,7 @@ type remoteSSTableDirProgress struct {
 	RemainingSSTables []RemoteSSTable
 }
 
-func newWorkloadProgress(workload Workload, locationHosts map[Location][]string) workloadProgress {
+func newWorkloadProgress(workload Workload, locationHosts map[backupmanifest.Location][]string) workloadProgress {
 	dcBytes := make(map[string]int64)
 	locationDC := make(map[string][]string)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
@@ -148,7 +148,7 @@ func (wp workloadProgress) isDone(host string) bool {
 
 type batch struct {
 	TableName
-	*ManifestInfo
+	*backupmanifest.ManifestInfo
 
 	RemoteSSTableDir string
 	Size             int64

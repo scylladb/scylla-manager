@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -28,7 +28,7 @@ func listBackupFilesRequest(clusterID uuid.UUID) *http.Request {
 	return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/cluster/%s/backups/files", clusterID.String()), nil)
 }
 
-func withForm(r *http.Request, locations []backupspec.Location, filter backup.ListFilter, query string) *http.Request {
+func withForm(r *http.Request, locations []backupmanifest.Location, filter backup.ListFilter, query string) *http.Request {
 	r.Form = url.Values{}
 	for _, l := range locations {
 		r.Form.Add("locations", l.String())
@@ -63,9 +63,9 @@ func TestBackupList(t *testing.T) {
 	var (
 		cluster = givenCluster()
 
-		locations = []backupspec.Location{
-			{Provider: backupspec.S3, Path: "foo"},
-			{Provider: backupspec.S3, Path: "bar"},
+		locations = []backupmanifest.Location{
+			{Provider: backupmanifest.S3, Path: "foo"},
+			{Provider: backupmanifest.S3, Path: "bar"},
 		}
 		filter = backup.ListFilter{
 			ClusterID: cluster.ID,
@@ -115,9 +115,9 @@ func TestBackupListAllClusters(t *testing.T) {
 	var (
 		cluster = givenCluster()
 
-		locations = []backupspec.Location{
-			{Provider: backupspec.S3, Path: "foo"},
-			{Provider: backupspec.S3, Path: "bar"},
+		locations = []backupmanifest.Location{
+			{Provider: backupmanifest.S3, Path: "foo"},
+			{Provider: backupmanifest.S3, Path: "bar"},
 		}
 		filter = backup.ListFilter{
 			Keyspace: []string{"keyspace1", "keyspace2"},
@@ -166,9 +166,9 @@ func TestBackupListFiles(t *testing.T) {
 	var (
 		cluster = givenCluster()
 
-		locations = []backupspec.Location{
-			{Provider: backupspec.S3, Path: "foo"},
-			{Provider: backupspec.S3, Path: "bar"},
+		locations = []backupmanifest.Location{
+			{Provider: backupmanifest.S3, Path: "foo"},
+			{Provider: backupmanifest.S3, Path: "bar"},
 		}
 		filter = backup.ListFilter{
 			ClusterID:   cluster.ID,
@@ -176,7 +176,7 @@ func TestBackupListFiles(t *testing.T) {
 			SnapshotTag: "tag",
 		}
 
-		golden = []backupspec.FilesInfo{
+		golden = []backupmanifest.FilesInfo{
 			{
 				Location: locations[0],
 				Schema:   "schema",

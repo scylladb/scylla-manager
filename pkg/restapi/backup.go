@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 type backupHandler struct {
@@ -41,14 +41,14 @@ func newBackupHandler(services Services) *chi.Mux {
 func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			locations []backupspec.Location
+			locations []backupmanifest.Location
 			err       error
 		)
 
 		// Read locations from the request
 		if v := r.FormValue("locations"); v != "" {
 			for _, v := range r.Form["locations"] {
-				var l backupspec.Location
+				var l backupmanifest.Location
 				if err := l.UnmarshalText([]byte(v)); err != nil {
 					respondBadRequest(w, r, err)
 					return
@@ -78,7 +78,7 @@ func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (h backupHandler) extractLocations(r *http.Request) ([]backupspec.Location, error) {
+func (h backupHandler) extractLocations(r *http.Request) ([]backupmanifest.Location, error) {
 	tasks, err := h.schedSvc.ListTasks(r.Context(), mustClusterIDFromCtx(r), scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
 	if err != nil {
 		return nil, err
@@ -92,8 +92,8 @@ func (h backupHandler) extractLocations(r *http.Request) ([]backupspec.Location,
 	return h.svc.ExtractLocations(r.Context(), properties), nil
 }
 
-func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backupspec.Location {
-	v, ok := r.Context().Value(ctxBackupLocations).([]backupspec.Location)
+func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backupmanifest.Location {
+	v, ok := r.Context().Value(ctxBackupLocations).([]backupmanifest.Location)
 	if !ok {
 		panic("missing locations in context")
 	}

@@ -22,10 +22,10 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -47,7 +47,7 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, "GRANT CREATE ON ALL KEYSPACES TO "+user)
 
 	Print("Run backup")
-	loc := []Location{testLocation("user", "")}
+	loc := []backupmanifest.Location{testLocation("user", "")}
 	S3InitBucket(t, loc[0].Path)
 	tag := h.runBackup(t, map[string]any{
 		"location": loc,
@@ -91,7 +91,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []Location{testLocation("no-replication", "")}
+	loc := []backupmanifest.Location{testLocation("no-replication", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, map[string]any{
@@ -148,7 +148,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run src backup")
-	loc := []Location{testLocation("schema-roundtrip", "")}
+	loc := []backupmanifest.Location{testLocation("schema-roundtrip", "")}
 	S3InitBucket(t, loc[0].Path)
 	tag := h.runBackup(t, map[string]any{
 		"location": loc,
@@ -273,7 +273,7 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []Location{testLocation("drop-add", "")}
+	loc := []backupmanifest.Location{testLocation("drop-add", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, map[string]any{
@@ -335,7 +335,7 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []Location{testLocation("vnode-to-tablets", "")}
+	loc := []backupmanifest.Location{testLocation("vnode-to-tablets", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, map[string]any{
@@ -415,7 +415,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []Location{testLocation("paused", "")}
+	loc := []backupmanifest.Location{testLocation("paused", "")}
 	S3InitBucket(t, loc[0].Path)
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
@@ -601,7 +601,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
 
 	Print("Run backup")
-	loc := []Location{testLocation("preparation", "")}
+	loc := []backupmanifest.Location{testLocation("preparation", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, map[string]any{
@@ -756,7 +756,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab1, tab2, tab3)
 
 	Print("Run backup")
-	loc := []Location{testLocation("batch-retry", "")}
+	loc := []backupmanifest.Location{testLocation("batch-retry", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, map[string]any{
@@ -938,7 +938,7 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	srcM := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ks, tab, "id", "data")
 
 	Print("Run backup")
-	loc := []Location{
+	loc := []backupmanifest.Location{
 		testLocation("multi-location-1", "dc1"),
 		testLocation("multi-location-2", "dc2"),
 	}

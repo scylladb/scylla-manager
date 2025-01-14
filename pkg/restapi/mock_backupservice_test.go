@@ -11,7 +11,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	backupspec "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -39,7 +39,7 @@ func (m *MockBackupService) EXPECT() *MockBackupServiceMockRecorder {
 }
 
 // DeleteSnapshot mocks base method.
-func (m *MockBackupService) DeleteSnapshot(arg0 context.Context, arg1 uuid.UUID, arg2 []backupspec.Location, arg3 []string) error {
+func (m *MockBackupService) DeleteSnapshot(arg0 context.Context, arg1 uuid.UUID, arg2 []backupmanifest.Location, arg3 []string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSnapshot", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
@@ -53,10 +53,10 @@ func (mr *MockBackupServiceMockRecorder) DeleteSnapshot(arg0, arg1, arg2, arg3 i
 }
 
 // ExtractLocations mocks base method.
-func (m *MockBackupService) ExtractLocations(arg0 context.Context, arg1 []json.RawMessage) []backupspec.Location {
+func (m *MockBackupService) ExtractLocations(arg0 context.Context, arg1 []json.RawMessage) []backupmanifest.Location {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ExtractLocations", arg0, arg1)
-	ret0, _ := ret[0].([]backupspec.Location)
+	ret0, _ := ret[0].([]backupmanifest.Location)
 	return ret0
 }
 
@@ -142,7 +142,7 @@ func (mr *MockBackupServiceMockRecorder) GetValidationTarget(arg0, arg1, arg2 in
 }
 
 // List mocks base method.
-func (m *MockBackupService) List(arg0 context.Context, arg1 uuid.UUID, arg2 []backupspec.Location, arg3 backup.ListFilter) ([]backup.ListItem, error) {
+func (m *MockBackupService) List(arg0 context.Context, arg1 uuid.UUID, arg2 []backupmanifest.Location, arg3 backup.ListFilter) ([]backup.ListItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].([]backup.ListItem)
@@ -157,10 +157,10 @@ func (mr *MockBackupServiceMockRecorder) List(arg0, arg1, arg2, arg3 interface{}
 }
 
 // ListFiles mocks base method.
-func (m *MockBackupService) ListFiles(arg0 context.Context, arg1 uuid.UUID, arg2 []backupspec.Location, arg3 backup.ListFilter) ([]backupspec.FilesInfo, error) {
+func (m *MockBackupService) ListFiles(arg0 context.Context, arg1 uuid.UUID, arg2 []backupmanifest.Location, arg3 backup.ListFilter) ([]backupmanifest.FilesInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListFiles", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]backupspec.FilesInfo)
+	ret0, _ := ret[0].([]backupmanifest.FilesInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

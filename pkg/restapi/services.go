@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -56,11 +56,11 @@ type RepairService interface {
 type BackupService interface {
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.Target, error)
 	GetTargetSize(ctx context.Context, clusterID uuid.UUID, target backup.Target) (int64, error)
-	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupspec.Location
-	List(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backup.ListItem, error)
-	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backupspec.FilesInfo, error)
+	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupmanifest.Location
+	List(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, filter backup.ListFilter) ([]backup.ListItem, error)
+	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, filter backup.ListFilter) ([]backupmanifest.FilesInfo, error)
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
-	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, snapshotTags []string) error
+	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, snapshotTags []string) error
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)
 }

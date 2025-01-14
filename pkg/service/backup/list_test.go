@@ -10,8 +10,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -25,16 +25,16 @@ func TestListManifests(t *testing.T) {
 
 	t.Run("one cluster", func(t *testing.T) {
 		manifests, error := listManifests(ctx, client, scyllaclienttest.TestHost,
-			Location{Provider: "testdata", Path: "list"},
+			backupmanifest.Location{Provider: "testdata", Path: "list"},
 			uuid.MustParse("2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21"),
 		)
 		if error != nil {
 			t.Fatal("listManifests() error", error)
 		}
 		testutils.SaveGoldenJSONFileIfNeeded(t, manifests)
-		var golden []*ManifestInfo
+		var golden []*backupmanifest.ManifestInfo
 		testutils.LoadGoldenJSONFile(t, &golden)
-		if diff := cmp.Diff(manifests, golden, testutils.UUIDComparer(), cmpopts.SortSlices(func(a, b *ManifestInfo) bool {
+		if diff := cmp.Diff(manifests, golden, testutils.UUIDComparer(), cmpopts.SortSlices(func(a, b *backupmanifest.ManifestInfo) bool {
 			if v := strings.Compare(a.NodeID, b.NodeID); v != 0 {
 				return v < 0
 			}

@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -67,7 +67,7 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 		return errors.Wrap(err, "create safe schema file")
 	}
 
-	w.SchemaFilePath = backupspec.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+	w.SchemaFilePath = backupmanifest.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	w.Schema = b
 	return nil
 }
@@ -103,7 +103,7 @@ func (w *worker) unsafeBackupAndRestoreSchemaDump(ctx context.Context, sessionFu
 		return
 	}
 
-	w.SchemaFilePath = backupspec.RemoteUnsafeSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+	w.SchemaFilePath = backupmanifest.RemoteUnsafeSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	w.Schema = b
 }
 

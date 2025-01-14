@@ -11,14 +11,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 )
 
 var checkLocationArgs = struct {
 	configFiles []string
-	location    backupspec.LocationValue
+	location    backupmanifest.LocationValue
 	debug       bool
 }{}
 
@@ -56,7 +56,7 @@ func init() {
 
 	f := cmd.Flags()
 	f.StringSliceVarP(&checkLocationArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
-	f.VarP(&checkLocationArgs.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
+	f.VarP(&checkLocationArgs.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backupmanifest.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&checkLocationArgs.debug, "debug", false, "enable debug logs")
 
 	requireFlags(cmd, "location")

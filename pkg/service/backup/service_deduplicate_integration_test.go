@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -44,9 +44,9 @@ func TestBackupPauseResumeOnDeduplicationStage(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
+		Location:  []backupmanifest.Location{location},
 		Retention: 2,
-		RateLimit: []backupspec.DCLimit{
+		RateLimit: []backup.DCLimit{
 			{"dc1", 1},
 		},
 		Continue: true,

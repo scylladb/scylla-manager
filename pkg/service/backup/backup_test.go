@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 func TestFilterDCLocations(t *testing.T) {
@@ -14,49 +14,49 @@ func TestFilterDCLocations(t *testing.T) {
 
 	table := []struct {
 		Name      string
-		Locations []Location
+		Locations []backupmanifest.Location
 		DCs       []string
-		Expect    []Location
+		Expect    []backupmanifest.Location
 	}{
 		{
 			Name:      "empty locations",
-			Locations: []Location{},
+			Locations: []backupmanifest.Location{},
 			DCs:       []string{"dc1"},
 			Expect:    nil,
 		},
 		{
 			Name:      "empty dcs",
-			Locations: []Location{{DC: "dc1"}},
+			Locations: []backupmanifest.Location{{DC: "dc1"}},
 			DCs:       []string{},
 			Expect:    nil,
 		},
 		{
 			Name:      "one location with matching dc",
-			Locations: []Location{{DC: "dc1"}},
+			Locations: []backupmanifest.Location{{DC: "dc1"}},
 			DCs:       []string{"dc1"},
-			Expect:    []Location{{DC: "dc1"}},
+			Expect:    []backupmanifest.Location{{DC: "dc1"}},
 		},
 		{
 			Name:      "one location with no matching dcs",
-			Locations: []Location{{DC: "dc1"}},
+			Locations: []backupmanifest.Location{{DC: "dc1"}},
 			DCs:       []string{"dc2"},
 			Expect:    nil,
 		},
 		{
 			Name:      "multiple locations with matching dcs",
-			Locations: []Location{{DC: "dc1"}, {DC: "dc2"}},
+			Locations: []backupmanifest.Location{{DC: "dc1"}, {DC: "dc2"}},
 			DCs:       []string{"dc1", "dc2"},
-			Expect:    []Location{{DC: "dc1"}, {DC: "dc2"}},
+			Expect:    []backupmanifest.Location{{DC: "dc1"}, {DC: "dc2"}},
 		},
 		{
 			Name:      "multiple locations with matching and non-matching dcs",
-			Locations: []Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
+			Locations: []backupmanifest.Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
 			DCs:       []string{"dc1", "dc2"},
-			Expect:    []Location{{DC: "dc1"}, {DC: "dc2"}},
+			Expect:    []backupmanifest.Location{{DC: "dc1"}, {DC: "dc2"}},
 		},
 		{
 			Name:      "multiple locations with non-matching dcs",
-			Locations: []Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
+			Locations: []backupmanifest.Location{{DC: "dc1"}, {DC: "dc2"}, {DC: "dc3"}},
 			DCs:       []string{"dc4", "dc5"},
 			Expect:    nil,
 		},

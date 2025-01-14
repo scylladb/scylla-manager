@@ -12,14 +12,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/downloader"
-	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	backup "github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
 
 func TestListNodeSnapshots(t *testing.T) {
-	location := backup.Location{Provider: "testdata"}
+	location := backupmanifest.Location{Provider: "testdata"}
 
 	table := []struct {
 		Name   string
@@ -79,7 +79,7 @@ func TestListNodeSnapshots(t *testing.T) {
 }
 
 func TestListNodes(t *testing.T) {
-	location := backup.Location{Provider: "testdata"}
+	location := backupmanifest.Location{Provider: "testdata"}
 
 	dir, err := ioutil.TempDir("", "scylla-manager-downloader-lookup")
 	if err != nil {

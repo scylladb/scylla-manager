@@ -12,30 +12,30 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
-
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location        []Location `json:"location"`
-	Keyspace        []string   `json:"keyspace,omitempty"`
-	SnapshotTag     string     `json:"snapshot_tag"`
-	BatchSize       int        `json:"batch_size,omitempty"`
-	Parallel        int        `json:"parallel,omitempty"`
-	Transfers       int        `json:"transfers"`
-	RateLimit       []DCLimit  `json:"rate_limit,omitempty"`
-	AllowCompaction bool       `json:"allow_compaction,omitempty"`
-	UnpinAgentCPU   bool       `json:"unpin_agent_cpu"`
-	RestoreSchema   bool       `json:"restore_schema,omitempty"`
-	RestoreTables   bool       `json:"restore_tables,omitempty"`
-	Continue        bool       `json:"continue"`
+	Location        []backupmanifest.Location `json:"location"`
+	Keyspace        []string                  `json:"keyspace,omitempty"`
+	SnapshotTag     string                    `json:"snapshot_tag"`
+	BatchSize       int                       `json:"batch_size,omitempty"`
+	Parallel        int                       `json:"parallel,omitempty"`
+	Transfers       int                       `json:"transfers"`
+	RateLimit       []backup.DCLimit          `json:"rate_limit,omitempty"`
+	AllowCompaction bool                      `json:"allow_compaction,omitempty"`
+	UnpinAgentCPU   bool                      `json:"unpin_agent_cpu"`
+	RestoreSchema   bool                      `json:"restore_schema,omitempty"`
+	RestoreTables   bool                      `json:"restore_tables,omitempty"`
+	Continue        bool                      `json:"continue"`
 
 	// Cache for host with access to remote location
-	locationHosts map[Location][]string `json:"-"`
+	locationHosts map[backupmanifest.Location][]string `json:"-"`
 }
 
 const (
@@ -60,7 +60,7 @@ func (t Target) validateProperties(dcMap map[string][]string) error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
-	if _, err := SnapshotTagTime(t.SnapshotTag); err != nil {
+	if _, err := backupmanifest.SnapshotTagTime(t.SnapshotTag); err != nil {
 		return err
 	}
 	if t.BatchSize < 0 {
@@ -73,7 +73,7 @@ func (t Target) validateProperties(dcMap map[string][]string) error {
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or 0 (set transfers for fastest download) or greater than zero")
 	}
-	if err := CheckDCs(t.RateLimit, dcMap); err != nil {
+	if err := backup.CheckDCs(t.RateLimit, dcMap); err != nil {
 		return errors.Wrap(err, "invalid rate limit")
 	}
 	if t.RestoreSchema == t.RestoreTables {

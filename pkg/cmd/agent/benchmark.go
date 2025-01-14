@@ -17,7 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/bench"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
@@ -25,7 +25,7 @@ import (
 
 var benchmarkArgs = struct {
 	dirGlob  []string
-	location backupspec.LocationValue
+	location backupmanifest.LocationValue
 
 	configFiles   []string
 	debug         bool
@@ -140,7 +140,7 @@ func init() {
 	f := cmd.Flags()
 	f.StringSliceVarP(&benchmarkArgs.dirGlob, "dir", "d", []string{},
 		"comma-separated `list of glob patterns` pointing to schema directories generated with create-scenario subcommand")
-	f.VarP(&benchmarkArgs.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backupspec.Providers(), ", ")) // nolint: lll
+	f.VarP(&benchmarkArgs.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backupmanifest.Providers(), ", ")) // nolint: lll
 	f.BoolVar(&benchmarkArgs.debug, "debug", false, "enable debug logs")
 	f.StringSliceVarP(&benchmarkArgs.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
 	f.StringVarP(&benchmarkArgs.memProfileDir, "mem-profile-dir", "m", "", "`path` to a directory where memory profiles will be saved, if not set profiles will not be captured")

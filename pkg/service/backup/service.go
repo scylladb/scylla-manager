@@ -20,10 +20,10 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
@@ -224,13 +224,13 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 
 // checkLocationsAvailableFromNodes checks if each node has access location for its datacenter.
 func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
-	nodes scyllaclient.NodeStatusInfoSlice, locations []Location,
+	nodes scyllaclient.NodeStatusInfoSlice, locations []backupmanifest.Location,
 ) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
 
 	// DC location index
-	dcl := map[string]Location{}
+	dcl := map[string]backupmanifest.Location{}
 	for _, l := range locations {
 		dcl[l.DC] = l
 	}
@@ -261,7 +261,7 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 	return util.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
 }
 
-func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l Location) error {
+func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l backupmanifest.Location) error {
 	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(""))
 	if err != nil {
 		s.logger.Info(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
@@ -317,7 +317,7 @@ func (s *Service) GetTargetSize(ctx context.Context, clusterID uuid.UUID, target
 // ExtractLocations parses task properties and returns list of locations.
 // Each location is returned once. Same locations with different DCs are
 // assumed equal.
-func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMessage) []Location {
+func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupmanifest.Location {
 	l, err := extractLocations(properties)
 	if err != nil {
 		s.logger.Debug(ctx, "Failed to extract some locations", "error", err)
@@ -326,7 +326,7 @@ func (s *Service) ExtractLocations(ctx context.Context, properties []json.RawMes
 }
 
 // List returns available snapshots in remote locations.
-func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]ListItem, error) {
+func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, filter ListFilter) ([]ListItem, error) {
 	s.logger.Info(ctx, "Listing backups",
 		"cluster_id", clusterID,
 		"locations", locations,
@@ -335,13 +335,13 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 
 	var items []ListItem
 
-	handler := func(mc ManifestInfoWithContent) error {
+	handler := func(mc backupmanifest.ManifestInfoWithContent) error {
 		// Calculate size on filtered units
 		var (
 			size    int64
 			visited bool
 		)
-		if err := mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
+		if err := mc.ForEachIndexIter(filter.Keyspace, func(u backupmanifest.FilesMeta) {
 			size += u.Size
 			visited = true
 		}); err != nil {
@@ -389,7 +389,7 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 		}
 
 		// Add unit information from index
-		return mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
+		return mc.ForEachIndexIter(filter.Keyspace, func(u backupmanifest.FilesMeta) {
 			s, ok := ptr.unitCache[u.Keyspace]
 			if !ok {
 				ptr.unitCache[u.Keyspace] = strset.New(u.Table)
@@ -425,25 +425,25 @@ func (s *Service) List(ctx context.Context, clusterID uuid.UUID, locations []Loc
 }
 
 // ListFiles returns info on available backup files based on filtering criteria.
-func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter) ([]FilesInfo, error) {
+func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, filter ListFilter) ([]backupmanifest.FilesInfo, error) {
 	s.logger.Info(ctx, "Listing backup files",
 		"cluster_id", clusterID,
 		"locations", locations,
 		"filter", filter,
 	)
 
-	var files []FilesInfo
+	var files []backupmanifest.FilesInfo
 
-	handler := func(mc ManifestInfoWithContent) error {
+	handler := func(mc backupmanifest.ManifestInfoWithContent) error {
 		l := mc.Location
 		l.DC = ""
 
-		fi := FilesInfo{
+		fi := backupmanifest.FilesInfo{
 			Location: l,
 			Schema:   mc.Schema,
 		}
 
-		if err := mc.ForEachIndexIter(filter.Keyspace, func(u FilesMeta) {
+		if err := mc.ForEachIndexIter(filter.Keyspace, func(u backupmanifest.FilesMeta) {
 			u.Path = mc.SSTableVersionDir(u.Keyspace, u.Table, u.Version)
 			fi.Files = append(fi.Files, u)
 		}); err != nil {
@@ -463,7 +463,7 @@ func (s *Service) ListFiles(ctx context.Context, clusterID uuid.UUID, locations 
 //
 // NOTE: It does not load Index into memory. In case callback requires access to Index,
 // it should use ForEachIndexIter or ForEachIndexIterFiles.
-func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []Location, filter ListFilter, f func(ManifestInfoWithContent) error) error {
+func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, filter ListFilter, f func(backupmanifest.ManifestInfoWithContent) error) error {
 	// Validate inputs
 	if len(locations) == 0 {
 		return util.ErrValidate(errors.New("empty locations"))
@@ -483,7 +483,7 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	if err := s.resolveHosts(ctx, client, hosts); err != nil {
 		return errors.Wrap(err, "resolve hosts")
 	}
-	locationHost := map[Location]string{}
+	locationHost := map[backupmanifest.Location]string{}
 	for i := range hosts {
 		locationHost[hosts[i].Location] = hosts[i].IP
 	}
@@ -495,7 +495,7 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	manifests = filterManifests(manifests, filter)
 
 	// Load manifest content
-	load := func(c *ManifestContentWithIndex, m *ManifestInfo) error {
+	load := func(c *backupmanifest.ManifestContentWithIndex, m *backupmanifest.ManifestInfo) error {
 		r, err := client.RcloneOpen(ctx, locationHost[m.Location], m.Location.RemotePath(m.Path()))
 		if err != nil {
 			return err
@@ -506,12 +506,12 @@ func (s *Service) forEachManifest(ctx context.Context, clusterID uuid.UUID, loca
 	}
 
 	for _, m := range manifests {
-		c := new(ManifestContentWithIndex)
+		c := new(backupmanifest.ManifestContentWithIndex)
 		if err := load(c, m); err != nil {
 			return err
 		}
 
-		if err := f(ManifestInfoWithContent{
+		if err := f(backupmanifest.ManifestInfoWithContent{
 			ManifestInfo:             m,
 			ManifestContentWithIndex: c,
 		}); err != nil {
@@ -629,7 +629,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 	// Generate snapshot tag
 	if run.SnapshotTag == "" {
-		run.SnapshotTag = NewSnapshotTag()
+		run.SnapshotTag = backupmanifest.NewSnapshotTag()
 	}
 
 	// Get the cluster client
@@ -813,7 +813,7 @@ func (s *Service) decorateWithPrevRun(ctx context.Context, run *Run) error {
 
 	// Check if can continue from prev
 	if s.config.AgeMax > 0 {
-		t, err := SnapshotTagTime(prev.SnapshotTag)
+		t, err := backupmanifest.SnapshotTagTime(prev.SnapshotTag)
 		if err != nil {
 			s.logger.Info(ctx, "Starting from scratch: cannot parse snapshot tag form previous run",
 				"snapshot_tag", prev.SnapshotTag,
@@ -1021,7 +1021,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 }
 
 // DeleteSnapshot deletes backup data and meta files associated with provided snapshotTag.
-func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []Location, snapshotTags []string) error {
+func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupmanifest.Location, snapshotTags []string) error {
 	s.logger.Debug(ctx, "DeleteSnapshot",
 		"cluster_id", clusterID,
 		"snapshot_tags", snapshotTags,
@@ -1060,7 +1060,7 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 				continue
 			}
 
-			t, err := SnapshotTagTime(m.SnapshotTag)
+			t, err := backupmanifest.SnapshotTagTime(m.SnapshotTag)
 			if err != nil {
 				return err
 			}

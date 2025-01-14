@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -128,12 +128,12 @@ func loadManifestInto(dir, fileName string, files *strset.Set) {
 	}
 	defer f.Close()
 
-	var m backupspec.ManifestInfo
+	var m backupmanifest.ManifestInfo
 	if err := m.ParsePath(fileName); err != nil {
 		log.Fatal(err)
 	}
 
-	c := backupspec.ManifestContentWithIndex{}
+	c := backupmanifest.ManifestContentWithIndex{}
 	if err := c.Read(f); err != nil {
 		log.Fatal("Read()", err)
 	}

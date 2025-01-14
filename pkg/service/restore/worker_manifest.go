@@ -10,12 +10,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"go.uber.org/multierr"
 )
 
-func (w *worker) forEachManifest(ctx context.Context, location Location, f func(ManifestInfoWithContent) error) error {
+func (w *worker) forEachManifest(ctx context.Context, location backupmanifest.Location, f func(backupmanifest.ManifestInfoWithContent) error) error {
 	closest := w.client.Config().Hosts
 	hosts, ok := w.target.locationHosts[location]
 	if !ok {
@@ -39,7 +39,7 @@ func (w *worker) forEachManifest(ctx context.Context, location Location, f func(
 	}
 
 	// Load manifest content
-	load := func(c *ManifestContentWithIndex, m *ManifestInfo) error {
+	load := func(c *backupmanifest.ManifestContentWithIndex, m *backupmanifest.ManifestInfo) error {
 		r, err := w.client.RcloneOpen(ctx, host, m.Location.RemotePath(m.Path()))
 		if err != nil {
 			return err
@@ -48,12 +48,12 @@ func (w *worker) forEachManifest(ctx context.Context, location Location, f func(
 	}
 
 	for _, m := range manifests {
-		c := new(ManifestContentWithIndex)
+		c := new(backupmanifest.ManifestContentWithIndex)
 		if err := load(c, m); err != nil {
 			return err
 		}
 
-		err := f(ManifestInfoWithContent{
+		err := f(backupmanifest.ManifestInfoWithContent{
 			ManifestInfo:             m,
 			ManifestContentWithIndex: c,
 		})
@@ -65,16 +65,16 @@ func (w *worker) forEachManifest(ctx context.Context, location Location, f func(
 }
 
 // getManifestInfo returns manifests with receiver's snapshot tag for all nodes in the location.
-func (w *worker) getManifestInfo(ctx context.Context, host string, location Location) ([]*ManifestInfo, error) {
-	baseDir := path.Join("backup", string(MetaDirKind))
+func (w *worker) getManifestInfo(ctx context.Context, host string, location backupmanifest.Location) ([]*backupmanifest.ManifestInfo, error) {
+	baseDir := path.Join("backup", string(backupmanifest.MetaDirKind))
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
 		Recurse:   true,
 	}
 
-	var manifests []*ManifestInfo
+	var manifests []*backupmanifest.ManifestInfo
 	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
-		m := new(ManifestInfo)
+		m := new(backupmanifest.ManifestInfo)
 		if err := m.ParsePath(path.Join(baseDir, f.Path)); err != nil {
 			return
 		}

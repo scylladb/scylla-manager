@@ -5,22 +5,22 @@ package restore
 import (
 	"testing"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 func TestBatchDispatcher(t *testing.T) {
-	l1 := backupspec.Location{
+	l1 := backupmanifest.Location{
 		Provider: "s3",
 		Path:     "l1",
 	}
-	l2 := backupspec.Location{
+	l2 := backupmanifest.Location{
 		Provider: "s3",
 		Path:     "l2",
 	}
 
 	rawWorkload := []RemoteDirWorkload{
 		{
-			ManifestInfo: &backupspec.ManifestInfo{
+			ManifestInfo: &backupmanifest.ManifestInfo{
 				Location: l1,
 				DC:       "dc1",
 			},
@@ -36,7 +36,7 @@ func TestBatchDispatcher(t *testing.T) {
 			},
 		},
 		{
-			ManifestInfo: &backupspec.ManifestInfo{
+			ManifestInfo: &backupmanifest.ManifestInfo{
 				Location: l1,
 				DC:       "dc1",
 			},
@@ -53,7 +53,7 @@ func TestBatchDispatcher(t *testing.T) {
 			},
 		},
 		{
-			ManifestInfo: &backupspec.ManifestInfo{
+			ManifestInfo: &backupmanifest.ManifestInfo{
 				Location: l1,
 				DC:       "dc2",
 			},
@@ -69,7 +69,7 @@ func TestBatchDispatcher(t *testing.T) {
 			},
 		},
 		{
-			ManifestInfo: &backupspec.ManifestInfo{
+			ManifestInfo: &backupmanifest.ManifestInfo{
 				Location: l1,
 				DC:       "dc1",
 			},
@@ -85,7 +85,7 @@ func TestBatchDispatcher(t *testing.T) {
 			},
 		},
 		{
-			ManifestInfo: &backupspec.ManifestInfo{
+			ManifestInfo: &backupmanifest.ManifestInfo{
 				Location: l2,
 				DC:       "dc3",
 			},
@@ -104,7 +104,7 @@ func TestBatchDispatcher(t *testing.T) {
 
 	workload := aggregateWorkload(rawWorkload)
 
-	locationHosts := map[backupspec.Location][]string{
+	locationHosts := map[backupmanifest.Location][]string{
 		l1: {"h1", "h2"},
 		l2: {"h3"},
 	}

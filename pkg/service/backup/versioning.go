@@ -1,6 +1,6 @@
 // Copyright (C) 2023 ScyllaDB
 
-package backupspec
+package backup
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 )
 
 // Issue #3288 showed that we need to be able to store multiple different SSTables
@@ -50,7 +51,7 @@ func VersionedFileExt(snapshotTag string) string {
 // (the time when the newer version of the file has been uploaded to the backup location).
 func VersionedFileCreationTime(versioned string) (time.Time, error) {
 	snapshotExt := path.Ext(versioned)[1:]
-	return SnapshotTagTime(snapshotExt)
+	return backupmanifest.SnapshotTagTime(snapshotExt)
 }
 
 // IsVersionedFileRemovable checks if versioned file can be safely purged.
@@ -71,7 +72,7 @@ func IsVersionedFileRemovable(oldest time.Time, versioned string) (bool, error) 
 // SplitNameAndVersion splits versioned file name into its original name and its version.
 func SplitNameAndVersion(versioned string) (name, version string) {
 	versionExt := path.Ext(versioned)
-	if versionExt == "" || !IsSnapshotTag(versionExt[1:]) {
+	if versionExt == "" || !backupmanifest.IsSnapshotTag(versionExt[1:]) {
 		return versioned, ""
 	}
 	baseName := strings.TrimSuffix(versioned, versionExt)
@@ -95,7 +96,7 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 		return nil, errors.Wrapf(err, "host %s: listing versioned files", host)
 	}
 
-	restoreT, err := SnapshotTagTime(snapshotTag)
+	restoreT, err := backupmanifest.SnapshotTagTime(snapshotTag)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +112,7 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 				continue
 			}
 
-			tagT, err := SnapshotTagTime(v.Version)
+			tagT, err := backupmanifest.SnapshotTagTime(v.Version)
 			if err != nil {
 				return nil, err
 			}

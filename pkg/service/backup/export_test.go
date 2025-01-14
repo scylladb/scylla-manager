@@ -8,12 +8,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func SnapshotTagFromManifestPath(t *testing.T, s string) string {
-	var m ManifestInfo
+	var m backupmanifest.ManifestInfo
 	if err := m.ParsePath(s); err != nil {
 		t.Fatal(t)
 	}

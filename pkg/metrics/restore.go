@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -158,7 +158,7 @@ const (
 )
 
 // SetRestoreState sets restore "state" metric.
-func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state RestoreState) {
+func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupmanifest.Location, snapshotTag, host string, state RestoreState) {
 	l := prometheus.Labels{
 		"cluster":      clusterID.String(),
 		"location":     location.String(),

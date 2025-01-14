@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/backupmanifest"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/atomic"
@@ -26,7 +26,7 @@ import (
 // - manifests over task retention policy,
 // - manifests older than threshold if retention policy is unknown.
 // Moreover, it returns the oldest snapshot tag time that remains undeleted by retention policy.
-func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) (*strset.Set, time.Time, error) {
+func staleTags(manifests []*backupmanifest.ManifestInfo, retentionMap RetentionMap) (*strset.Set, time.Time, error) {
 	tags := strset.New()
 	var oldest time.Time
 
@@ -34,7 +34,7 @@ func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) (*strset.Se
 		taskPolicy := GetRetention(taskID, retentionMap)
 		taskTags := strset.New()
 		for _, m := range taskManifests {
-			t, err := SnapshotTagTime(m.SnapshotTag)
+			t, err := backupmanifest.SnapshotTagTime(m.SnapshotTag)
 			if err != nil {
 				return nil, time.Time{}, errors.Wrapf(err, "parse manifest snapshot tag time")
 			}
@@ -58,7 +58,7 @@ func staleTags(manifests []*ManifestInfo, retentionMap RetentionMap) (*strset.Se
 			cut := len(l) - taskPolicy.Retention
 			tags.Add(l[:cut]...)
 
-			t, err := SnapshotTagTime(l[cut])
+			t, err := backupmanifest.SnapshotTagTime(l[cut])
 			if err != nil {
 				return nil, time.Time{}, err
 			}
@@ -96,7 +96,7 @@ func newPurger(client *scyllaclient.Client, host string, logger log.Logger) purg
 
 // PurgeSnapshotTags removes files that are no longer needed as given snapshot tags are purged.
 // Oldest represents the time of the oldest backup that we intend to keep - it is used to purge versioned files.
-func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo, tags *strset.Set, oldest time.Time) (int, error) {
+func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*backupmanifest.ManifestInfo, tags *strset.Set, oldest time.Time) (int, error) {
 	if len(manifests) == 0 {
 		return 0, nil
 	}
@@ -134,7 +134,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 	}
 	// Purge versioned SSTables
 	if !oldest.IsZero() {
-		nodeDir := RemoteSSTableBaseDir(anyM.ClusterID, anyM.DC, anyM.NodeID)
+		nodeDir := backupmanifest.RemoteSSTableBaseDir(anyM.ClusterID, anyM.DC, anyM.NodeID)
 		opts := &scyllaclient.RcloneListDirOpts{
 			FilesOnly:     true,
 			Recurse:       true,
@@ -173,7 +173,7 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*ManifestInfo
 	for _, m := range manifests {
 		if tags.Has(m.SnapshotTag) {
 			// Note that schema files might not be backed up in the first place
-			unsafePath := RemoteUnsafeSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
+			unsafePath := backupmanifest.RemoteUnsafeSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
 			if err := p.deleteFile(ctx, m.Location.RemotePath(unsafePath)); err != nil {
 				p.logger.Info(ctx, "Remove unsafe schema file", "path", unsafePath, "error", err)
 			}
@@ -201,7 +201,7 @@ type ValidationResult struct {
 	DeletedFiles    int      `json:"deleted_files"`
 }
 
-func (p purger) Validate(ctx context.Context, manifests []*ManifestInfo, deleteOrphanedFiles bool) (ValidationResult, error) {
+func (p purger) Validate(ctx context.Context, manifests []*backupmanifest.ManifestInfo, deleteOrphanedFiles bool) (ValidationResult, error) {
 	var result ValidationResult
 
 	if len(manifests) == 0 {
@@ -296,7 +296,7 @@ func (p purger) onScan(ctx context.Context, result ValidationResult) {
 	}
 }
 
-func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*ManifestInfo, missingFiles fileSet) ([]string, error) {
+func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*backupmanifest.ManifestInfo, missingFiles fileSet) ([]string, error) {
 	if missingFiles.Size() == 0 {
 		return nil, nil
 	}
@@ -325,13 +325,13 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*ManifestIn
 	return v, nil
 }
 
-func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callback func(dir string, files []string)) error {
+func (p purger) forEachDirInManifest(ctx context.Context, m *backupmanifest.ManifestInfo, callback func(dir string, files []string)) error {
 	p.logger.Info(ctx, "Reading manifest",
 		"task", m.TaskID,
 		"snapshot_tag", m.SnapshotTag,
 	)
 
-	var c ManifestContentWithIndex
+	var c backupmanifest.ManifestContentWithIndex
 
 	r, err := p.client.RcloneOpen(ctx, p.host, m.Location.RemotePath(m.Path()))
 	if err != nil {
@@ -352,8 +352,8 @@ func (p purger) forEachDirInManifest(ctx context.Context, m *ManifestInfo, callb
 	return c.ForEachIndexIterFiles(nil, m, callback)
 }
 
-func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {
-	baseDir := RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
+func (p purger) forEachRemoteFile(ctx context.Context, m *backupmanifest.ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {
+	baseDir := backupmanifest.RemoteSSTableBaseDir(m.ClusterID, m.DC, m.NodeID)
 	wrapper := func(item *scyllaclient.RcloneListDirItem) {
 		item.Path = path.Join(baseDir, item.Path)
 		f(item)
@@ -367,7 +367,7 @@ func (p purger) forEachRemoteFile(ctx context.Context, m *ManifestInfo, f func(*
 	return p.client.RcloneListDirIter(ctx, p.host, m.Location.RemotePath(baseDir), &opts, wrapper)
 }
 
-func (p purger) deleteFiles(ctx context.Context, location Location, files fileSet) (int, error) {
+func (p purger) deleteFiles(ctx context.Context, location backupmanifest.Location, files fileSet) (int, error) {
 	if files.Size() == 0 {
 		return 0, nil
 	}
