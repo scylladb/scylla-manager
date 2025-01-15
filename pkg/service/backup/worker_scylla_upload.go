@@ -17,6 +17,7 @@ import (
 func (w *worker) useScyllaBackupAPI(ctx context.Context, d snapshotDir, hi hostInfo) (bool, error) {
 	// Scylla backup API does not handle creation of versioned files.
 	if d.willCreateVersioned {
+		w.Logger.Info(ctx, "Can't use Scylla backup API", "reason", "backup needs to create versioned files")
 		return false, nil
 	}
 	// List of object storage providers supported by Scylla backup API.
@@ -24,13 +25,22 @@ func (w *worker) useScyllaBackupAPI(ctx context.Context, d snapshotDir, hi hostI
 		S3,
 	}
 	if !slices.Contains(scyllaSupportedProviders, hi.Location.Provider) {
+		w.Logger.Info(ctx, "Can't use Scylla backup API", "reason", "unsupported cloud provider")
 		return false, nil
 	}
 	nc, err := w.nodeInfo(ctx, hi.IP)
 	if err != nil {
 		return false, errors.Wrapf(err, "get node %s info", hi.IP)
 	}
-	return nc.SupportsScyllaBackupRestoreAPI()
+
+	ok, err := nc.SupportsScyllaBackupRestoreAPI()
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		w.Logger.Info(ctx, "Can't use Scylla backup API", "reason", "no native Scylla backup API exposed")
+	}
+	return ok, nil
 }
 
 func (w *worker) scyllaBackup(ctx context.Context, hi hostInfo, d snapshotDir) error {
