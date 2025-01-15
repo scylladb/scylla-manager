@@ -623,9 +623,9 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 			return nil, nil
 		}))
 
-		h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+		h.Hrt.SetRespInterceptor(func(resp *http.Response, err error) (*http.Response, error) {
 			if resp == nil {
-				return
+				return nil, nil
 			}
 
 			var copiedBody bytes.Buffer
@@ -656,6 +656,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 					}
 				}
 			}
+			return nil, nil
 		})
 
 		Print("When: run repair")
@@ -779,9 +780,9 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		return nil, nil
 	}))
 
-	h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+	h.Hrt.SetRespInterceptor(func(resp *http.Response, err error) (*http.Response, error) {
 		if resp == nil {
-			return
+			return nil, nil
 		}
 
 		var copiedBody bytes.Buffer
@@ -814,7 +815,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 				if fullTable == "" {
 					t.Logf("This is strange %s", jobID)
-					return
+					return nil, nil
 				}
 
 				// Update actual repair order on both repair start and end
@@ -825,6 +826,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 				muARO.Unlock()
 			}
 		}
+		return nil, nil
 	})
 
 	Print("When: run repair")
@@ -1004,9 +1006,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		return nil, nil
 	}))
 
-	h.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+	h.Hrt.SetRespInterceptor(func(resp *http.Response, err error) (*http.Response, error) {
 		if resp == nil {
-			return
+			return nil, nil
 		}
 
 		var copiedBody bytes.Buffer
@@ -1036,7 +1038,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 			// This helps to test repair error resilience.
 			if !stopErrInject.Load() && rspCnt.Add(1)%20 == 0 {
 				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
-				return
+				return nil, nil
 			}
 
 			status := string(body)
@@ -1057,6 +1059,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 				}
 			}
 		}
+		return nil, nil
 	})
 
 	validate := func(tab string, tr []scyllaclient.TokenRange) (redundant int, err error) {

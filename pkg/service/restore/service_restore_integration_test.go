@@ -828,9 +828,9 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	}))
 
 	b := atomic.NewInt64(0)
-	dstH.Hrt.SetRespNotifier(func(resp *http.Response, err error) {
+	dstH.Hrt.SetRespInterceptor(func(resp *http.Response, err error) (*http.Response, error) {
 		if resp == nil {
-			return
+			return nil, nil
 		}
 
 		var copiedBody bytes.Buffer
@@ -846,6 +846,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 				cancel2()
 			}
 		}
+		return nil, nil
 	})
 
 	Print("When: run restore and stop it during load and stream")
