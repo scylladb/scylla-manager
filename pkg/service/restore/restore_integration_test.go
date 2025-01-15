@@ -489,6 +489,15 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
+	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nativeAPISupport, err := ni.SupportsScyllaBackupRestoreAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	Print("Keyspace setup")
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
 	ks := randomizedName("prep_")
@@ -610,6 +619,13 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		"transfers":  3,
 		"rate_limit": []string{"88"},
 	})
+
+	Print("Validate state after backup")
+	if nativeAPISupport {
+		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
+	} else {
+		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
+	}
 
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
 		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
