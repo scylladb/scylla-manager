@@ -132,6 +132,7 @@ func (w *worker) cleanup(ctx context.Context, hi []hostInfo) {
 
 // nodeInfo is a getter for workerTools.NodeConfig which is a workaround for #4181.
 func (w *worker) nodeInfo(ctx context.Context, host string) (*scyllaclient.NodeInfo, error) {
+	// ML_TODO: this is tmp solution (#4181) - verify before merging to master.
 	// Try to get direct entry in config cache
 	if nc, ok := w.NodeConfig[host]; ok {
 		return nc.NodeInfo, nil
