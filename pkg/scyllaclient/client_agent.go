@@ -257,6 +257,7 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 // SupportsScyllaBackupRestoreAPI returns whether node exposes backup/restore API
 // that can be used instead of the Rclone API for backup/restore tasks.
 func (ni *NodeInfo) SupportsScyllaBackupRestoreAPI() (bool, error) {
+	// ML_TODO: this is tmp solution - verify versions before merging to master.
 	// Check master builds
 	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
 		return true, nil
