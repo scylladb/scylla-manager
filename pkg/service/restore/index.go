@@ -76,6 +76,10 @@ func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Locat
 func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Location) ([]RemoteDirWorkload, error) {
 	var rawWorkload []RemoteDirWorkload
 	err := w.forEachManifest(ctx, location, func(m ManifestInfoWithContent) error {
+		if slices.Contains(w.target.ignoredSourceDC, m.DC) {
+			w.logger.Info(ctx, "Ignoring DC", "dc", m.DC, "location", location)
+			return nil
+		}
 		return m.ForEachIndexIterWithError(nil, func(fm FilesMeta) error {
 			if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
 				return nil
