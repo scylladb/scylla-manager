@@ -68,7 +68,7 @@ services:
     networks:
       public:
         ipv6_address: 2001:0DB9:100::41
-      third:
+      second:
         ipv6_address: 2001:0DB9:200::41
 
   third_cluster_dc3_node_2:
@@ -76,7 +76,7 @@ services:
     networks:
       public:
         ipv6_address: 2001:0DB9:100::42
-      third:
+      second:
         ipv6_address: 2001:0DB9:200::42
 
   scylla-manager-db:
