@@ -1,3 +1,5 @@
+// Copyright (C) 2025 ScyllaDB
+
 package restore
 
 import (
@@ -81,7 +83,7 @@ func addIgnorePrefix(ignore []string) []string {
 	return result
 }
 
-// Type implements pflag.Value interface
+// Type implements pflag.Value interface.
 func (dcm *dcMappings) Type() string {
 	return "dc-mapping"
 }
