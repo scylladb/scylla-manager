@@ -553,6 +553,9 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}")
@@ -618,7 +621,7 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
-		t.Fatal(err)
+		t.Fatal("Restore:", err)
 	}
 
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
@@ -645,6 +648,9 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreWithAgentRestart(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
@@ -722,6 +728,9 @@ func TestRestoreTablesResumeIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		Continue:      true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreWithResume(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
@@ -748,6 +757,9 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreWithResume(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
@@ -911,6 +923,9 @@ func TestRestoreTablesVersionedIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt, testUser)
@@ -1185,6 +1200,9 @@ func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreViewCQLSchema(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
@@ -1269,6 +1287,9 @@ func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreViewSSTableSchema(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize, testUser)
@@ -1356,6 +1377,9 @@ func TestRestoreFullIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreAllTables(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize, testUser)
@@ -1462,6 +1486,9 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 		BatchSize:     testBatchSize,
 		Parallel:      testParallel,
 		RestoreTables: true,
+		DCMappings: DCMappings{
+			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+		},
 	}
 
 	restoreAlternator(t, schemaTarget, tablesTarget, testKeyspace, testTable, testUser, testAlternatorPort)

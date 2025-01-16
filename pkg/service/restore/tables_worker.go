@@ -213,7 +213,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationHosts)
+	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationHosts, w.target.hostDCs)
 
 	f := func(n int) error {
 		host := w.hosts[n]

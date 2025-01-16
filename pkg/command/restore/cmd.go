@@ -37,6 +37,7 @@ type command struct {
 	restoreTables   bool
 	dryRun          bool
 	showTables      bool
+	dcMapping       dcMappings
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -90,6 +91,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
+	w.Unwrap().Var(&cmd.dcMapping, "dc-mapping", "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -180,6 +182,13 @@ func (cmd *command) run(args []string) error {
 			return wrapper("restore-tables")
 		}
 		props["restore_tables"] = cmd.restoreTables
+		ok = true
+	}
+	if cmd.Flag("dc-mapping").Changed {
+		if cmd.Update() {
+			return wrapper("dc-mapping")
+		}
+		props["dc-mapping"] = cmd.dcMapping
 		ok = true
 	}
 
