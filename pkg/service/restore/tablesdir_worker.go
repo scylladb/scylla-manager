@@ -222,6 +222,7 @@ func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunPro
 	prevD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
 	if t := time.Time(job.StartedAt); !t.IsZero() {
 		pr.DownloadStartedAt = &t
+		pr.RestoreStartedAt = &t
 	}
 	if t := time.Time(job.CompletedAt); !t.IsZero() {
 		pr.DownloadCompletedAt = &t
@@ -244,13 +245,12 @@ func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunPro
 func (w *tablesWorker) onLasStart(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateLoading)
 	w.logger.Info(ctx, "Started restoring batch", "host", pr.Host)
-	pr.setRestoreStartedAt()
-	w.insertRunProgress(ctx, pr)
 }
 
 func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.target.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
 	pr.setRestoreCompletedAt()
+	pr.Restored = pr.Downloaded + pr.VersionedProgress
 	w.metrics.IncreaseRestoreStreamedBytes(w.run.ClusterID, pr.Host, b.Size)
 	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt))
 
