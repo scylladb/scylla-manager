@@ -194,12 +194,15 @@ type RunProgress struct {
 	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
 	AgentJobID int64
 
+	// DownloadStartedAt and DownloadCompletedAt are within the
+	// RestoreStartedAt and RestoreCompletedAt time frame.
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
 	RestoreStartedAt    *time.Time
 	RestoreCompletedAt  *time.Time
 	Error               string
 	Downloaded          int64
+	Restored            int64
 	Failed              int64
 	VersionedProgress   int64
 }
