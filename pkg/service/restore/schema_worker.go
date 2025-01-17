@@ -126,6 +126,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 	// Set restore completed in all run progresses
 	err = forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
 		pr.setRestoreCompletedAt()
+		pr.Restored = pr.Downloaded + pr.VersionedProgress
 		w.insertRunProgress(ctx, pr)
 	})
 	if err != nil {
@@ -181,6 +182,7 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 				RestoreStartedAt:    &start,
 				RestoreCompletedAt:  &end,
 				Downloaded:          t.Size,
+				Restored:            t.Size,
 			}
 			w.insertRunProgress(ctx, &pr)
 		}
