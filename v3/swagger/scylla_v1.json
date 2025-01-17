@@ -12920,8 +12920,8 @@
         }
       },
       "post": {
-        "description":"Set ttl in seconds and get last value",
-        "summary":"get_and_update_ttl",
+        "description": "Set ttl in seconds and get last value",
+        "summary": "get_and_update_ttl",
         "operationId": "TaskManagerTtlPost",
         "deprecated": false,
         "produces": [
@@ -12980,8 +12980,8 @@
         }
       },
       "post": {
-        "description":"Set user task ttl in seconds and get last value",
-        "summary":"get_and_update_user_ttl",
+        "description": "Set user task ttl in seconds and get last value",
+        "summary": "get_and_update_user_ttl",
         "operationId": "TaskManagerUserTtlPost",
         "deprecated": false,
         "produces": [
