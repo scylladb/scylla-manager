@@ -117,7 +117,7 @@ func aggregateRestoreTableProgress(tableMap map[tableKey]*TableProgress) func(*R
 			tab = tableMap[key]
 		)
 
-		totalDownloaded := pr.Downloaded + pr.Skipped + pr.VersionedProgress
+		totalDownloaded := pr.Downloaded + pr.VersionedProgress
 		if validateTimeIsSet(pr.RestoreCompletedAt) {
 			tab.Restored += totalDownloaded
 		}

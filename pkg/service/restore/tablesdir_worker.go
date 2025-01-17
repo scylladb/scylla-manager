@@ -230,8 +230,9 @@ func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunPro
 	w.metrics.IncreaseRestoreDownloadDuration(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, currD-prevD)
 
 	pr.Error = job.Error
-	pr.Downloaded = job.Uploaded
-	pr.Skipped = job.Skipped
+	// Skipped should be equal to 0,
+	// as we don't perform any deduplication.
+	pr.Downloaded = job.Uploaded + job.Skipped
 	pr.Failed = job.Failed
 	w.insertRunProgress(ctx, pr)
 

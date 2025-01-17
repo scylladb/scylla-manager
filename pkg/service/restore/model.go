@@ -200,7 +200,6 @@ type RunProgress struct {
 	RestoreCompletedAt  *time.Time
 	Error               string
 	Downloaded          int64
-	Skipped             int64
 	Failed              int64
 	VersionedProgress   int64
 }
