@@ -12664,6 +12664,53 @@
         "security": []
       }
     },
+    "/storage_service/tablets/repair": {
+      "post": {
+        "description": "Repair a tablet",
+        "summary": "tablets_repair",
+        "operationId": "StorageServiceTabletsRepairPost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "ks",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Keyspace name to repair"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Table name to repair"
+          },
+          {
+            "name": "tokens",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Tokens owned by the tablets to repair. Multiple tokens can be provided using a comma-separated list. When set to the special word 'all', all tablets will be repaired"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/task_manager/list_modules": {
       "get": {
         "description": "Get all modules names",
