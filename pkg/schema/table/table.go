@@ -220,6 +220,7 @@ var (
 			"manifest_path",
 			"restore_completed_at",
 			"restore_started_at",
+			"restored",
 			"run_id",
 			"shard_cnt",
 			"sstable_id",
