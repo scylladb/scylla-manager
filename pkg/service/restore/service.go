@@ -158,8 +158,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, errors.Wrap(err, "get run")
 	}
 
-	w := s.newProgressWorker(run)
-	pr, err := w.aggregateProgress()
+	pr, err := getProgress(run, s.session)
 	if err != nil {
 		return Progress{}, err
 	}
@@ -169,7 +168,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return pr, nil
 	}
 
-	q := table.RepairRun.SelectQuery(w.session).BindMap(qb.M{
+	q := table.RepairRun.SelectQuery(s.session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.RepairTaskID,
 	})
@@ -215,16 +214,6 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 func (w *worker) setRunInfo(taskID, runID uuid.UUID) {
 	w.run.TaskID = taskID
 	w.run.ID = runID
-}
-
-func (s *Service) newProgressWorker(run *Run) worker {
-	return worker{
-		run:     run,
-		config:  s.config,
-		logger:  s.logger,
-		metrics: s.metrics,
-		session: s.session,
-	}
 }
 
 // GetRun returns run with specified cluster, task and run ID.
