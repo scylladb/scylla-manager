@@ -122,13 +122,14 @@ func (w *tablesWorker) filterPreviouslyRestoredSStables(ctx context.Context, raw
 	w.logger.Info(ctx, "Filter out previously restored sstables")
 
 	remoteSSTableDirToRestoredIDs := make(map[string][]string)
-	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
+	seq := newRunProgressSeq()
+	for pr := range seq.All(w.run.ClusterID, w.run.TaskID, w.run.ID, w.session) {
 		if validateTimeIsSet(pr.RestoreCompletedAt) {
 			remoteSSTableDirToRestoredIDs[pr.RemoteSSTableDir] = append(remoteSSTableDirToRestoredIDs[pr.RemoteSSTableDir], pr.SSTableID...)
 		}
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "iterate over prev run progress")
+	}
+	if seq.err != nil {
+		return nil, errors.Wrap(seq.err, "iterate over prev run progress")
 	}
 	if len(remoteSSTableDirToRestoredIDs) == 0 {
 		return rawWorkload, nil

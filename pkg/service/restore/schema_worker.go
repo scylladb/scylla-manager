@@ -92,12 +92,13 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 	// Set restore start in all run progresses
-	err = forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
+	seq := newRunProgressSeq()
+	for pr := range seq.All(w.run.ClusterID, w.run.TaskID, w.run.ID, w.session) {
 		pr.setRestoreStartedAt()
 		w.insertRunProgress(ctx, pr)
-	})
-	if err != nil {
-		w.logger.Error(ctx, "Couldn't set restore start", "error", err)
+	}
+	if seq.err != nil {
+		w.logger.Error(ctx, "Couldn't set restore start", "error", seq.err)
 	}
 
 	// Load schema SSTables on all nodes
@@ -124,13 +125,13 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 		return err
 	}
 	// Set restore completed in all run progresses
-	err = forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(pr *RunProgress) {
+	for pr := range seq.All(w.run.ClusterID, w.run.TaskID, w.run.ID, w.session) {
 		pr.setRestoreCompletedAt()
 		pr.Restored = pr.Downloaded + pr.VersionedProgress
 		w.insertRunProgress(ctx, pr)
-	})
-	if err != nil {
-		w.logger.Error(ctx, "Couldn't set restore end", "error", err)
+	}
+	if seq.err != nil {
+		w.logger.Error(ctx, "Couldn't set restore end", "error", seq.err)
 	}
 
 	return nil

@@ -3,10 +3,10 @@
 package restore
 
 import (
+	"iter"
 	"slices"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -14,191 +14,169 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-var (
-	zeroTime time.Time
-	bigTime  = time.Unix(1<<62-1, 0).UTC()
-)
-
-type tableKey struct {
-	keyspace string
-	table    string
+func getProgress(run *Run, s gocqlx.Session) (Progress, error) {
+	seq := newRunProgressSeq()
+	pr := aggregateProgress(run, seq.All(run.ClusterID, run.TaskID, run.ID, s))
+	if seq.err != nil {
+		return Progress{}, seq.err
+	}
+	return pr, nil
 }
 
-// aggregateProgress returns restore progress information classified by keyspace and tables.
-func (w *worker) aggregateProgress() (Progress, error) {
-	var (
-		p = Progress{
-			SnapshotTag: w.run.SnapshotTag,
-			Stage:       w.run.Stage,
-		}
-		tableMap     = make(map[tableKey]*TableProgress)
-		key          tableKey
-		hostProgress = make(map[string]HostProgress)
-	)
+// runProgressSeq serves as a body for iter.Seq[*RunProgress].
+// Since we can't return error on iteration, it stores it
+// inside the err field.
+// Users should validate err after using the iterator.
+type runProgressSeq struct {
+	err error
+}
 
-	// Initialize tables and their size
-	for _, u := range w.run.Units {
-		key.keyspace = u.Keyspace
-		for _, t := range u.Tables {
-			key.table = t.Table
-			tableMap[key] = &TableProgress{
-				Table:       t.Table,
-				TombstoneGC: t.TombstoneGC,
-				progress: progress{
-					Size:        t.Size,
-					StartedAt:   &bigTime,
-					CompletedAt: &zeroTime,
-				},
+func newRunProgressSeq() *runProgressSeq {
+	return &runProgressSeq{}
+}
+
+func (seq *runProgressSeq) All(clusterID, taskID, runID uuid.UUID, s gocqlx.Session) iter.Seq[*RunProgress] {
+	return func(yield func(rp *RunProgress) bool) {
+		q := table.RestoreRunProgress.SelectQuery(s)
+		it := q.BindMap(qb.M{
+			"cluster_id": clusterID,
+			"task_id":    taskID,
+			"run_id":     runID,
+		}).Iter()
+		defer func() {
+			seq.err = it.Close()
+			q.Release()
+		}()
+
+		pr := new(RunProgress)
+		for it.StructScan(pr) {
+			if !yield(pr) {
+				break
 			}
 		}
 	}
+}
 
-	// Initialize tables' progress
-	atp := aggregateRestoreTableProgress(tableMap)
-	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.ID, func(runProgress *RunProgress) {
-		atp(runProgress)
-		hp := hostProgress[runProgress.Host]
-		hp.Host = runProgress.Host
-		hp.ShardCnt = runProgress.ShardCnt
-		hp.DownloadedBytes += runProgress.Downloaded
-		hp.DownloadDuration += timeSub(runProgress.DownloadStartedAt, runProgress.DownloadCompletedAt).Milliseconds()
-		if runProgress.RestoreCompletedAt != nil {
-			hp.StreamedBytes += runProgress.Downloaded
-			hp.StreamDuration += timeSub(runProgress.RestoreStartedAt, runProgress.RestoreCompletedAt).Milliseconds()
-		}
-		hostProgress[runProgress.Host] = hp
-	})
-	if err != nil {
-		return p, errors.Wrap(err, "iterate over restore progress")
+func aggregateProgress(run *Run, seq iter.Seq[*RunProgress]) Progress {
+	p := Progress{
+		SnapshotTag: run.SnapshotTag,
+		Stage:       run.Stage,
+	}
+	tableProgress := make(map[TableName]TableProgress)
+	hostProgress := make(map[string]HostProgress)
+	for rp := range seq {
+		progressCB(tableProgress, hostProgress, rp)
 	}
 
-	// Aggregate progress
-	for _, u := range w.run.Units {
+	// Aggregate keyspace progress
+	for _, u := range run.Units {
+		p.progress.Size += u.Size
 		kp := KeyspaceProgress{
 			Keyspace: u.Keyspace,
 			progress: progress{
-				StartedAt:   &bigTime,
-				CompletedAt: &zeroTime,
+				Size: u.Size,
 			},
 		}
 
 		for _, t := range u.Tables {
-			tp := tableMap[tableKey{keyspace: u.Keyspace, table: t.Table}]
-			tp.progress.extremeToNil()
+			tp := tableProgress[TableName{Keyspace: u.Keyspace, Table: t.Table}]
+			tp.Table = t.Table
+			tp.TombstoneGC = t.TombstoneGC
+			tp.Size = t.Size
+			if tp.Restored < tp.Size {
+				tp.CompletedAt = nil
+			}
 
-			kp.Tables = append(kp.Tables, *tp)
-			kp.calcParentProgress(tp.progress)
+			kp.Tables = append(kp.Tables, tp)
+			kp.updateParentProgress(tp.progress)
 		}
 
-		kp.extremeToNil()
-
+		if kp.Restored < kp.Size {
+			kp.CompletedAt = nil
+		}
 		p.Keyspaces = append(p.Keyspaces, kp)
-		p.calcParentProgress(kp.progress)
+		p.updateParentProgress(kp.progress)
+	}
+	if p.Restored < p.Size {
+		p.CompletedAt = nil
 	}
 
-	p.extremeToNil()
-
-	p.Views = slices.Clone(w.run.Views)
-	for _, hp := range hostProgress {
+	p.Views = slices.Clone(run.Views)
+	for h, hp := range hostProgress {
+		hp.Host = h
 		p.Hosts = append(p.Hosts, hp)
 	}
-	return p, nil
+	return p
 }
 
-// aggregateRestoreTableProgress returns function that can be used to aggregate
-// restore progress per table.
-func aggregateRestoreTableProgress(tableMap map[tableKey]*TableProgress) func(*RunProgress) {
-	return func(pr *RunProgress) {
-		var (
-			key = tableKey{
-				keyspace: pr.Keyspace,
-				table:    pr.Table,
-			}
-			tab = tableMap[key]
-		)
+func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[string]HostProgress, pr *RunProgress) {
+	// Update table progress
+	tn := TableName{Keyspace: pr.Keyspace, Table: pr.Table}
+	tp := tableProgress[tn]
 
-		totalDownloaded := pr.Downloaded + pr.VersionedProgress
-		if validateTimeIsSet(pr.RestoreCompletedAt) {
-			tab.Restored += totalDownloaded
-		}
-		tab.Downloaded += totalDownloaded
-		tab.Failed += pr.Failed
-
-		tab.StartedAt = calcParentStartedAt(tab.StartedAt, pr.DownloadStartedAt)
-		tab.CompletedAt = calcParentCompletedAt(tab.CompletedAt, pr.RestoreCompletedAt)
-
-		if tab.Error == "" {
-			tab.Error = pr.Error
-		} else if pr.Error != "" {
-			tab.Error = tab.Error + "\n" + pr.Error
-		}
-
-		tableMap[key] = tab
+	tp.Downloaded += pr.Downloaded + pr.VersionedProgress
+	tp.Restored += pr.Restored
+	tp.Failed += pr.Failed
+	tp.StartedAt = minTime(tp.StartedAt, pr.RestoreStartedAt)
+	// We need to later validate that the table
+	// indeed been completely restored.
+	tp.CompletedAt = maxTime(tp.CompletedAt, pr.RestoreCompletedAt)
+	if tp.Error == "" {
+		tp.Error = pr.Error
+	} else if pr.Error != "" {
+		tp.Error = tp.Error + "\n" + pr.Error
 	}
+	tableProgress[tn] = tp
+
+	// Update host progress
+	hp := hostProgress[pr.Host]
+	hp.ShardCnt = pr.ShardCnt
+	hp.DownloadedBytes += pr.Downloaded + pr.VersionedProgress
+	// We can update download duration on the fly,
+	// but it's not possible with sync load&stream API.
+	hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt).Milliseconds()
+	if validateTimeIsSet(pr.RestoreCompletedAt) {
+		hp.StreamedBytes += pr.Restored
+		hp.StreamDuration += timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt).Milliseconds()
+	}
+	hostProgress[pr.Host] = hp
 }
 
-// extremeToNil converts from temporary extreme time values to nil.
-func (rp *progress) extremeToNil() {
-	if rp.StartedAt == &bigTime {
-		rp.StartedAt = nil
+// minTime chooses the smaller set time.
+func minTime(a, b *time.Time) *time.Time {
+	if !validateTimeIsSet(a) {
+		return b
 	}
-	if rp.CompletedAt == &zeroTime {
-		rp.CompletedAt = nil
+	if !validateTimeIsSet(b) {
+		return a
 	}
+	if a.Before(*b) {
+		return a
+	}
+	return b
 }
 
-// calcParentProgress returns updated progress for the parent that will include
-// child progress.
-func (rp *progress) calcParentProgress(child progress) {
-	rp.Size += child.Size
+// maxTime chooses the bigger set time.
+func maxTime(a, b *time.Time) *time.Time {
+	if !validateTimeIsSet(a) {
+		return b
+	}
+	if !validateTimeIsSet(b) {
+		return a
+	}
+	if a.After(*b) {
+		return a
+	}
+	return b
+}
+
+// updateParentProgress updates parents progress with child.
+func (rp *progress) updateParentProgress(child progress) {
 	rp.Restored += child.Restored
 	rp.Downloaded += child.Downloaded
 	rp.Failed += child.Failed
-
-	rp.StartedAt = calcParentStartedAt(rp.StartedAt, child.StartedAt)
-	rp.CompletedAt = calcParentCompletedAt(rp.CompletedAt, child.CompletedAt)
-}
-
-func calcParentStartedAt(parent, child *time.Time) *time.Time {
-	if child != nil {
-		// Use child start time as parent start time only if it started before
-		// parent.
-		if parent == nil || child.Before(*parent) {
-			return child
-		}
-	}
-	return parent
-}
-
-func calcParentCompletedAt(parent, child *time.Time) *time.Time {
-	if child != nil {
-		// Use child end time as parent end time only if it ended after parent.
-		if parent != nil && child.After(*parent) {
-			return child
-		}
-	} else {
-		// Set parent end time to nil if any of its children are ending in nil.
-		return nil
-	}
-	return parent
-}
-
-func forEachProgress(s gocqlx.Session, clusterID, taskID, runID uuid.UUID, cb func(*RunProgress)) error {
-	q := table.RestoreRunProgress.SelectQuery(s)
-	iter := q.BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-		"run_id":     runID,
-	}).Iter()
-
-	pr := new(RunProgress)
-	for iter.StructScan(pr) {
-		cb(pr)
-	}
-
-	err := iter.Close()
-	q.Release()
-	return err
+	rp.StartedAt = minTime(rp.StartedAt, child.StartedAt)
+	rp.CompletedAt = maxTime(rp.CompletedAt, child.CompletedAt)
 }
 
 // Returns duration between end and start.

@@ -693,7 +693,8 @@ func (w *worker) clonePrevProgress(ctx context.Context) {
 	q := table.RestoreRunProgress.InsertQuery(w.session)
 	defer q.Release()
 
-	err := forEachProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.PrevID, func(pr *RunProgress) {
+	seq := newRunProgressSeq()
+	for pr := range seq.All(w.run.ClusterID, w.run.TaskID, w.run.PrevID, w.session) {
 		// We don't support interrupted run progresses resume,
 		// so only finished run progresses should be copied.
 		if !validateTimeIsSet(pr.RestoreCompletedAt) {
@@ -706,9 +707,9 @@ func (w *worker) clonePrevProgress(ctx context.Context) {
 				"error", err,
 			)
 		}
-	})
-	if err != nil {
-		w.logger.Error(ctx, "Couldn't clone run progress", "error", err)
+	}
+	if seq.err != nil {
+		w.logger.Error(ctx, "Couldn't clone run progress", "error", seq.err)
 	}
 }
 
