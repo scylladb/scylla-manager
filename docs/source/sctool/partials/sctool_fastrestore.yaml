@@ -1,0 +1,185 @@
+name: sctool fastrestore
+synopsis: |
+    Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
+description: "This command allows you to run ad-hoc restore of tables to the cluster of the same topology as a backup.\n**Note:** This command only restores the data within the tables. \nYou must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.\n"
+usage: sctool fastrestore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
+options:
+    - name: allow-compaction
+      default_value: "false"
+      usage: |
+        Defines if auto compactions should be running on Scylla nodes during restore.
+        Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
+    - name: batch-size
+      default_value: "2"
+      usage: |
+        Number of SSTables per shard to process in one request by one node.
+        Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
+        Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).
+    - name: cluster
+      shorthand: c
+      usage: |
+        The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+    - name: cron
+      usage: |
+        Task schedule as a cron `expression`.
+        It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
+    - name: dry-run
+      default_value: "false"
+      usage: |
+        Validates and displays restore information without actually running the restore.
+        This allows you to display what will happen should the restore run with the parameters you set.
+    - name: enabled
+      default_value: "true"
+      usage: |
+        Not enabled tasks are not executed and are hidden from the task list.
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for fastrestore
+    - name: interval
+      shorthand: i
+      usage: |
+        --interval is deprecated, please use `--cron` instead
+
+
+        Time after which a successfully completed task would be run again. The supported units are:
+
+        * 'd' - days
+        * 'h' - hours
+        * 'm' - minutes
+        * 's' - seconds
+        * 'ms' - milliseconds
+
+        The task run date is aligned with '--start date' value.
+        For example, if you select '--interval 7d' task would run weekly at the '--start-date' time.
+    - name: keyspace
+      shorthand: K
+      default_value: '[]'
+      usage: |+
+        A list of `glob` patterns separated by a comma used to include or exclude tables.
+        The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. 'keyspace,!keyspace.table_prefix_*'.
+        The following syntax for glob patterns is supported:
+
+        * '*' - matches any number of any characters including none
+        * '?' - matches any single character
+        * '[abc]' - matches one character given in the bracket
+        * '[a-z]' - matches one character from the range given in the bracket
+
+        Patterns are evaluated from left to right.
+        If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
+
+    - name: label
+      usage: |
+        A comma-separated list of label modifications. Labels are represented as a key-value store.
+        Character '=' has a special meaning and cannot be a part of label's key nor value.
+        A single modification takes form of:
+        * '<key>=<value>' - sets the label <key> to <value>
+        * '<key>-'        - removes the label
+
+        For example, '--label k1=v1,k2-' will set the label 'k1' to 'v1' and will also remove label 'k2'.
+    - name: location
+      shorthand: L
+      default_value: '[]'
+      usage: |
+        A list of backup locations separated by a comma, specifies places where restored backup is stored.
+
+        The format is `[<dc>:]<provider>:<bucket>`.
+        The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
+        from this location in a multi-dc setting, it must match Scylla nodes datacenter.
+        By default, all live nodes are used to restore data from specified locations.
+
+        Note that specifying datacenters closest to backup locations might reduce download time of restored data.
+        The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
+        The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+    - name: name
+      usage: |
+        Task name that can be used instead of ID.
+    - name: nodes-mapping
+      usage: |
+        Path to a file with source cluster and target cluster nodes mapping. Each line should contain node mapping in the following format <source_dc>:<source_rack>:<source_host_id>=<destination_dc>:<destination_rack>:<destination_host_id>
+    - name: num-retries
+      shorthand: r
+      default_value: "3"
+      usage: |
+        Number of times a task reruns following a failure.
+    - name: parallel
+      default_value: "0"
+      usage: |
+        The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
+        Each node can take part in at most one restore at any given moment.
+    - name: rate-limit
+      default_value: '[]'
+      usage: |
+        Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
+        You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
+        The <dc>: part is optional and is only needed when different datacenters require different download limits.
+        Set to 0 for no limit (default 0).
+    - name: retry-wait
+      default_value: 10m
+      usage: |
+        Initial exponential backoff `duration` X[h|m|s].
+        With --retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.
+    - name: show-tables
+      default_value: "false"
+      usage: |
+        Prints table names together with keyspace, used in combination with --dry-run.
+    - name: snapshot-tag
+      shorthand: T
+      usage: |
+        Scylla Manager snapshot tag identifying restored backup.
+        Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
+    - name: source-cluster-id
+      usage: |
+        Cluster id of the backup cluster.
+    - name: start-date
+      shorthand: s
+      usage: |
+        The date can be expressed relatively to now or as a RFC3339 formatted string.
+        To run the task in 2 hours use 'now+2h'. The supported units are:
+
+        * 'd' - days
+        * 'h' - hours
+        * 'm' - minutes
+        * 's' - seconds
+        * 'ms' - milliseconds
+
+        If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
+        If you want the repair to start immediately, use the value 'now' or skip this flag.
+    - name: timezone
+      default_value: UTC
+      usage: |
+        Timezone of --cron and --window flag values.
+        The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
+    - name: transfers
+      default_value: "0"
+      usage: |
+        Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
+        Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
+        Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
+    - name: unpin-agent-cpu
+      default_value: "false"
+      usage: "Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.\nThis might significantly improve download speed at the cost of decreasing streaming speed. \n"
+    - name: window
+      default_value: '[]'
+      usage: |
+        A comma-separated list of time markers in a form `[WEEKDAY-]HH:MM`.
+        WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.
+
+        * 'MON-00:00,FRI-15:00' - can be executed from Monday to Friday 3PM
+        * '23:00,06:00' - can be executed every night from 11PM to 6AM
+        * '23:00,06:00,SAT-00:00,SUN-23:59' - can be executed every night from 11PM to 6AM and all day during the weekend
+inherited_options:
+    - name: api-cert-file
+      usage: |
+        File `path` to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).
+    - name: api-key-file
+      usage: |
+        File `path` to HTTPS client key associated with --api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).
+    - name: api-url
+      default_value: http://127.0.0.1:5080/api/v1
+      usage: |
+        Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
+        If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
+see_also:
+    - sctool - Scylla Manager Snapshot
+    - sctool fastrestore update - Modify properties of the existing fastrestore task
