@@ -27,6 +27,7 @@ const (
 	UnknownTask        TaskType = "unknown"
 	BackupTask         TaskType = "backup"
 	RestoreTask        TaskType = "restore"
+	FastRestoreTask    TaskType = "fastrestore"
 	HealthCheckTask    TaskType = "healthcheck"
 	RepairTask         TaskType = "repair"
 	SuspendTask        TaskType = "suspend"
@@ -51,6 +52,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = BackupTask
 	case RestoreTask:
 		*t = RestoreTask
+	case FastRestoreTask:
+		*t = FastRestoreTask
 	case HealthCheckTask:
 		*t = HealthCheckTask
 	case RepairTask:
