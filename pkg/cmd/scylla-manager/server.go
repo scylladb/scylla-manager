@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/fastrestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
@@ -40,6 +41,7 @@ type server struct {
 	healthSvc      *healthcheck.Service
 	backupSvc      *backup.Service
 	restoreSvc     *restore.Service
+	fastrestoreSvc *fastrestore.Service
 	repairSvc      *repair.Service
 	schedSvc       *scheduler.Service
 	configCacheSvc configcache.ConfigCacher
@@ -137,6 +139,17 @@ func (s *server) makeServices(ctx context.Context) error {
 		return errors.Wrapf(err, "restore service")
 	}
 
+	s.fastrestoreSvc, err = fastrestore.NewService(
+		s.session,
+		s.clusterSvc.Client,
+		s.clusterSvc.GetSession,
+		s.configCacheSvc,
+		s.logger.Named("fastrestore"),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "fastrestore service")
+	}
+
 	s.schedSvc, err = scheduler.NewService(
 		s.session,
 		metrics.NewSchedulerMetrics().MustRegister(),
@@ -147,11 +160,12 @@ func (s *server) makeServices(ctx context.Context) error {
 		return errors.Wrapf(err, "scheduler service")
 	}
 
-	restoreExclusiveLock := scheduler.NewTaskExclusiveLockPolicy(scheduler.RestoreTask)
+	restoreExclusiveLock := scheduler.NewTaskExclusiveLockPolicy(scheduler.RestoreTask, scheduler.FastRestoreTask)
 
 	// Register the runners
 	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.backupSvc.Runner(), TaskType: scheduler.BackupTask})
 	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.restoreSvc.Runner(), TaskType: scheduler.RestoreTask})
+	s.schedSvc.SetRunner(scheduler.FastRestoreTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.fastrestoreSvc.Runner(), TaskType: scheduler.FastRestoreTask})
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.Runner(), TaskType: scheduler.RepairTask})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
