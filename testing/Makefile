@@ -76,15 +76,27 @@ endif
 
 ifeq ($(RAFT_SCHEMA),enabled)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' true
+	for file in $(wildcard scylla_PoC*); do \
+    	$(YQ) write -i $$file 'consistent_cluster_management' true; \
+    done
 endif
 ifeq ($(RAFT_SCHEMA),disabled)
 	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
+	for file in $(wildcard scylla_PoC*); do \
+    	$(YQ) write -i $$file 'consistent_cluster_management' false; \
+    done
 endif
 ifeq ($(TABLETS),enabled)
 	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' true
+	for file in $(wildcard scylla_PoC*); do \
+       	$(YQ) write -i $$file 'enable_tablets' true; \
+    done
 endif
 ifeq ($(TABLETS),disabled)
 	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' false
+	for file in $(wildcard scylla_PoC*); do \
+       	$(YQ) write -i $$file 'enable_tablets' false; \
+    done
 endif
 	@cp scylla/scylla.yaml scylla/scylla-second-cluster.yaml
 	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
