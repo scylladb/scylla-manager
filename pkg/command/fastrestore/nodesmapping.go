@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// implements pflag.Value interface.
 type nodesMapping []nodeMapping
 
 type nodeMapping struct {
@@ -57,7 +58,7 @@ func (m *nodesMapping) Set(filePath string) error {
 func parseNode(rawNode []byte) (node, error) {
 	nodeParts := bytes.Split(rawNode, []byte(":"))
 	if len(nodeParts) != 3 {
-		return node{}, errors.New("Invalid node format, must be <dc>:<rack>:<host_id>")
+		return node{}, errors.New("invalid node format, must be <dc>:<rack>:<host_id>")
 	}
 	return node{
 		DC:     string(bytes.TrimSpace(nodeParts[0])),
