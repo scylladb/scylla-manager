@@ -989,3 +989,85 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
 	}
 }
+
+func TestRestoreTablesProgressIntegration(t *testing.T) {
+	// It verifies that:
+	// - view status progress is correct
+	// - progress is available even when cluster is not
+
+	if IsIPV6Network() {
+		t.Skip("nodes don't have ip6tables and related modules to properly simulate unavailable cluster")
+	}
+
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	Print("Keyspace setup")
+	ks := randomizedName("progress_")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 1))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 1))
+
+	Print("Table setup")
+	tab := randomizedName("tab_")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("View setup")
+	mv := randomizedName("mv_")
+	CreateMaterializedView(t, h.srcCluster.rootSession, ks, tab, mv)
+	CreateMaterializedView(t, h.dstCluster.rootSession, ks, tab, mv)
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 1, ks, tab)
+
+	Print("Run backup")
+	loc := []Location{testLocation("progress", "")}
+	S3InitBucket(t, loc[0].Path)
+	tag := h.runBackup(t, map[string]any{
+		"location": loc,
+	})
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"snapshot_tag":   tag,
+		"restore_tables": true,
+	})
+
+	Print("Validate success")
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, "id", "data")
+	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, mv, "id", "data")
+
+	Print("Validate view progress")
+	pr, err := h.dstRestoreSvc.GetProgress(context.Background(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get progress"))
+	}
+	for _, v := range pr.Views {
+		if v.BuildStatus != scyllaclient.StatusSuccess {
+			t.Fatalf("Expected status: %s, got: %s", scyllaclient.StatusSuccess, v.BuildStatus)
+		}
+	}
+
+	BlockREST(t, ManagedClusterHosts()...)
+	defer func() {
+		TryUnblockREST(t, ManagedClusterHosts())
+		if err := EnsureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	time.Sleep(100 * time.Millisecond)
+
+	Print("Validate view progress when cluster is unavailable")
+	pr, err = h.dstRestoreSvc.GetProgress(context.Background(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get progress"))
+	}
+	for _, v := range pr.Views {
+		if v.BuildStatus != scyllaclient.StatusSuccess {
+			t.Fatalf("Expected status: %s, got: %s", scyllaclient.StatusSuccess, v.BuildStatus)
+		}
+	}
+}

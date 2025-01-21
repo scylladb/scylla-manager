@@ -1,0 +1,1 @@
+ALTER TYPE restore_view ADD build_status text;
