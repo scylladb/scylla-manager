@@ -111,6 +111,7 @@ func (cmd *command) run(args []string) error {
 			return err
 		}
 	}
+
 	task, taskUpdated, err := createOrUpdateTask(cmd, args)
 	if err != nil {
 		return err
@@ -279,6 +280,5 @@ func saveTask(cmd *command, task *models.Task, taskUpdated bool) (string, error)
 	default:
 		return "", errors.New("nothing to do")
 	}
-
 	return managerclient.TaskID(task), nil
 }
