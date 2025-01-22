@@ -136,6 +136,8 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	// but it's not possible with sync load&stream API.
 	hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt).Milliseconds()
 	if validateTimeIsSet(pr.RestoreCompletedAt) {
+		hp.RestoredBytes += pr.Restored
+		hp.RestoreDuration += timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt).Milliseconds()
 		hp.StreamedBytes += pr.Restored
 		hp.StreamDuration += timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt).Milliseconds()
 	}
