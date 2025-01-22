@@ -401,12 +401,12 @@ github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
-# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250122142320-e1127475cc4c
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/managerclient
 github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250122142320-e1127475cc4c
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
 github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil
@@ -437,7 +437,7 @@ github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid
 github.com/scylladb/scylla-manager/v3/pkg/util/version
 github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
-# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250103082619-ef3b968167d0
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250122142320-e1127475cc4c
 ## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
