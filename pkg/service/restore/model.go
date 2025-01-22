@@ -254,6 +254,8 @@ type KeyspaceProgress struct {
 type HostProgress struct {
 	Host             string `json:"host"`
 	ShardCnt         int64  `json:"shard_cnt"`
+	RestoredBytes    int64  `json:"restored_bytes"`
+	RestoreDuration  int64  `json:"restore_duration"`
 	DownloadedBytes  int64  `json:"downloaded_bytes"`
 	DownloadDuration int64  `json:"download_duration"`
 	StreamedBytes    int64  `json:"streamed_bytes"`
