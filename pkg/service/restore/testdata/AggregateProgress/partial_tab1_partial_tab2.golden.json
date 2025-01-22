@@ -1,0 +1,66 @@
+{
+  "size": 180,
+  "restored": 40,
+  "downloaded": 140,
+  "failed": 0,
+  "started_at": "2024-02-23T01:12:00Z",
+  "completed_at": null,
+  "repair_progress": null,
+  "snapshot_tag": "sm_20240223011159UTC",
+  "keyspaces": [
+    {
+      "size": 180,
+      "restored": 40,
+      "downloaded": 140,
+      "failed": 0,
+      "started_at": "2024-02-23T01:12:00Z",
+      "completed_at": null,
+      "keyspace": "ks",
+      "tables": [
+        {
+          "size": 60,
+          "restored": 0,
+          "downloaded": 60,
+          "failed": 0,
+          "started_at": "2024-02-23T01:12:00Z",
+          "completed_at": null,
+          "table": "tab1",
+          "tombstone_gc": "repair"
+        },
+        {
+          "size": 120,
+          "restored": 40,
+          "downloaded": 80,
+          "failed": 0,
+          "started_at": "2024-02-23T01:12:00Z",
+          "completed_at": null,
+          "table": "tab2",
+          "tombstone_gc": "timeout"
+        }
+      ]
+    }
+  ],
+  "hosts": [
+    {
+      "host": "h",
+      "shard_cnt": 1,
+      "restored_bytes": 40,
+      "restore_duration": 7000,
+      "downloaded_bytes": 140,
+      "download_duration": 16000,
+      "streamed_bytes": 40,
+      "stream_duration": 4000
+    }
+  ],
+  "views": [
+    {
+      "keyspace": "ks",
+      "view": "mv",
+      "type": "MaterializedView",
+      "base_table": "tab1",
+      "create_stmt": "CREATE",
+      "status": ""
+    }
+  ],
+  "stage": "DATA"
+}
