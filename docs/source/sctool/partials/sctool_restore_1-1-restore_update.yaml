@@ -1,9 +1,9 @@
-name: sctool fastrestore update
-synopsis: Modify properties of the existing fastrestore task
+name: sctool restore 1-1-restore update
+synopsis: Modify properties of the existing 1_1_restore task
 description: |
-    This command allows you to modify properties of an already existing fastrestore task.
-    If there is one fastrestore task the 'fastrestore/task-id' argument is not needed.
-usage: sctool fastrestore update --cluster <id|name> [flags] [<fastrestore/task-id>]
+    This command allows you to modify properties of an already existing 1_1_restore task.
+    If there is one 1_1_restore task the '1_1_restore/task-id' argument is not needed.
+usage: sctool restore 1-1-restore update --cluster <id|name> [flags] [<1_1_restore/task-id>]
 options:
     - name: allow-compaction
       default_value: "false"
@@ -182,4 +182,4 @@ inherited_options:
         Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-    - sctool fastrestore - Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
+    - sctool restore 1-1-restore - Run an ad-hoc restore of tables to the cluster of the same topology as a backup.

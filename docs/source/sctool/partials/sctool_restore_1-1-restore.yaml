@@ -1,8 +1,8 @@
-name: sctool fastrestore
+name: sctool restore 1-1-restore
 synopsis: |
     Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
 description: "This command allows you to run ad-hoc restore of tables to the cluster of the same topology as a backup.\n**Note:** This command only restores the data within the tables. \nYou must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.\n"
-usage: sctool fastrestore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
+usage: sctool restore 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
 options:
     - name: allow-compaction
       default_value: "false"
@@ -35,7 +35,7 @@ options:
     - name: help
       shorthand: h
       default_value: "false"
-      usage: help for fastrestore
+      usage: help for 1-1-restore
     - name: interval
       shorthand: i
       usage: |
@@ -181,5 +181,5 @@ inherited_options:
         Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-    - sctool - Scylla Manager Snapshot
-    - sctool fastrestore update - Modify properties of the existing fastrestore task
+    - sctool restore - Run an ad-hoc restore of schema or tables
+    - sctool restore 1-1-restore update - Modify properties of the existing 1_1_restore task

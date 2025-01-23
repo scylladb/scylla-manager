@@ -24,7 +24,6 @@ see_also:
     - sctool backup - Schedule a backup (ad-hoc or scheduled)
     - sctool cluster - Add or delete clusters
     - sctool completion - Generate shell completion
-    - sctool fastrestore - Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
     - sctool info - Show task parameters and history
     - sctool progress - Show the task progress
     - sctool repair - Schedule a repair (ad-hoc or scheduled)

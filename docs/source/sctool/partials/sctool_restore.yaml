@@ -195,4 +195,5 @@ inherited_options:
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
     - sctool - Scylla Manager Snapshot
+    - sctool restore 1-1-restore - Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
     - sctool restore update - Modify properties of the existing restore task
