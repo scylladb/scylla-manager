@@ -8,7 +8,7 @@ import "github.com/scylladb/go-set/strset"
 const (
 	BackupTask         string = "backup"
 	RestoreTask        string = "restore"
-	FastRestoreTask    string = "fastrestore"
+	One2OneRestoreTask string = "1_1_restore"
 	HealthCheckTask    string = "healthcheck"
 	RepairTask         string = "repair"
 	SuspendTask        string = "suspend"
@@ -19,7 +19,7 @@ const (
 var TasksTypes = strset.New(
 	BackupTask,
 	RestoreTask,
-	FastRestoreTask,
+	One2OneRestoreTask,
 	HealthCheckTask,
 	RepairTask,
 	SuspendTask,
