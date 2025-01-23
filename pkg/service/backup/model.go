@@ -15,15 +15,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+
 	"go.uber.org/multierr"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// SnapshotInfo contains detailed information about snapshot.
+// SnapshotInfo contains detailed information about backupspec.
 type SnapshotInfo struct {
 	SnapshotTag string `json:"snapshot_tag"`
 	Nodes       int    `json:"nodes"`
@@ -42,19 +43,19 @@ type ListItem struct {
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units            []Unit       `json:"units,omitempty"`
-	DC               []string     `json:"dc,omitempty"`
-	Location         []Location   `json:"location"`
-	Retention        int          `json:"retention"`
-	RetentionDays    int          `json:"retention_days"`
-	RetentionMap     RetentionMap `json:"-"` // policy for all tasks, injected in runtime
-	RateLimit        []DCLimit    `json:"rate_limit,omitempty"`
-	Transfers        int          `json:"transfers"`
-	SnapshotParallel []DCLimit    `json:"snapshot_parallel,omitempty"`
-	UploadParallel   []DCLimit    `json:"upload_parallel,omitempty"`
-	Continue         bool         `json:"continue,omitempty"`
-	PurgeOnly        bool         `json:"purge_only,omitempty"`
-	SkipSchema       bool         `json:"skip_schema,omitempty"`
+	Units            []Unit                `json:"units,omitempty"`
+	DC               []string              `json:"dc,omitempty"`
+	Location         []backupspec.Location `json:"location"`
+	Retention        int                   `json:"retention"`
+	RetentionDays    int                   `json:"retention_days"`
+	RetentionMap     RetentionMap          `json:"-"` // policy for all tasks, injected in runtime
+	RateLimit        []DCLimit             `json:"rate_limit,omitempty"`
+	Transfers        int                   `json:"transfers"`
+	SnapshotParallel []DCLimit             `json:"snapshot_parallel,omitempty"`
+	UploadParallel   []DCLimit             `json:"upload_parallel,omitempty"`
+	Continue         bool                  `json:"continue,omitempty"`
+	PurgeOnly        bool                  `json:"purge_only,omitempty"`
+	SkipSchema       bool                  `json:"skip_schema,omitempty"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -102,7 +103,7 @@ type Run struct {
 	Units       []Unit
 	DC          []string
 	Nodes       []string
-	Location    []Location
+	Location    []backupspec.Location
 	StartTime   time.Time
 	Stage       Stage
 }
@@ -199,19 +200,19 @@ type TableProgress struct {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace         []string     `json:"keyspace"`
-	DC               []string     `json:"dc"`
-	Location         []Location   `json:"location"`
-	Retention        *int         `json:"retention"`
-	RetentionDays    *int         `json:"retention_days"`
-	RetentionMap     RetentionMap `json:"retention_map"`
-	RateLimit        []DCLimit    `json:"rate_limit"`
-	Transfers        int          `json:"transfers"`
-	SnapshotParallel []DCLimit    `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit    `json:"upload_parallel"`
-	Continue         bool         `json:"continue"`
-	PurgeOnly        bool         `json:"purge_only"`
-	SkipSchema       bool         `json:"skip_schema"`
+	Keyspace         []string              `json:"keyspace"`
+	DC               []string              `json:"dc"`
+	Location         []backupspec.Location `json:"location"`
+	Retention        *int                  `json:"retention"`
+	RetentionDays    *int                  `json:"retention_days"`
+	RetentionMap     RetentionMap          `json:"retention_map"`
+	RateLimit        []DCLimit             `json:"rate_limit"`
+	Transfers        int                   `json:"transfers"`
+	SnapshotParallel []DCLimit             `json:"snapshot_parallel"`
+	UploadParallel   []DCLimit             `json:"upload_parallel"`
+	Continue         bool                  `json:"continue"`
+	PurgeOnly        bool                  `json:"purge_only"`
+	SkipSchema       bool                  `json:"skip_schema"`
 }
 
 func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error {
@@ -384,10 +385,10 @@ func defaultTaskProperties() taskProperties {
 	}
 }
 
-func extractLocations(properties []json.RawMessage) ([]Location, error) {
+func extractLocations(properties []json.RawMessage) ([]backupspec.Location, error) {
 	var (
 		m         = strset.New()
-		locations []Location
+		locations []backupspec.Location
 		errs      error
 	)
 

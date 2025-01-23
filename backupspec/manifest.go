@@ -1,5 +1,3 @@
-// Copyright (C) 2017 ScyllaDB
-
 package backupspec
 
 import (

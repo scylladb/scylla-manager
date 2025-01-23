@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	tagDateFormat         = "20060102150405"
-	tagRegexp             = regexp.MustCompile("^sm_([0-9]{14})UTC$")
-	errInvalidSnapshotTag = errors.New("not a Scylla Manager snapshot tag, expected format is sm_20060102150405UTC")
+	ErrInvalidSnapshotTag = errors.New("not a Scylla Manager snapshot tag, expected format is sm_20060102150405UTC")
+
+	tagDateFormat = "20060102150405"
+	tagRegexp     = regexp.MustCompile("^sm_([0-9]{14})UTC$")
 )
 
 // NewSnapshotTag creates new snapshot tag for the current time.
@@ -35,7 +36,7 @@ func IsSnapshotTag(tag string) bool {
 func SnapshotTagTime(tag string) (time.Time, error) {
 	m := tagRegexp.FindStringSubmatch(tag)
 	if m == nil {
-		return time.Time{}, errInvalidSnapshotTag
+		return time.Time{}, ErrInvalidSnapshotTag
 	}
 	return timeutc.Parse(tagDateFormat, m[1])
 }

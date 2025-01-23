@@ -4,14 +4,15 @@ package backup
 
 import (
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+
 	"go.uber.org/multierr"
 )
 
-func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []Location, rateLimits []DCLimit, transfers int) ([]hostInfo, error) {
+func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []backupspec.Location, rateLimits []DCLimit, transfers int) ([]hostInfo, error) {
 	// DC location index
-	dcl := map[string]Location{}
+	dcl := map[string]backupspec.Location{}
 	for _, l := range locations {
 		dcl[l.DC] = l
 	}

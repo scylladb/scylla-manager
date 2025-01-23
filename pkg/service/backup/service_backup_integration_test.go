@@ -27,8 +27,10 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -37,7 +39,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
@@ -52,14 +53,14 @@ type backupTestHelper struct {
 	*CommonTestHelper
 
 	service  *backup.Service
-	location Location
+	location backupspec.Location
 }
 
-func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Config, location Location, clientConf *scyllaclient.Config) *backupTestHelper {
+func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Config, location backupspec.Location, clientConf *scyllaclient.Config) *backupTestHelper {
 	return newBackupTestHelperWithUser(t, session, config, location, clientConf, "", "")
 }
 
-func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config backup.Config, location Location, clientConf *scyllaclient.Config, user, pass string) *backupTestHelper {
+func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config backup.Config, location backupspec.Location, clientConf *scyllaclient.Config, user, pass string) *backupTestHelper {
 	t.Helper()
 
 	S3InitBucket(t, location.Path)
@@ -258,11 +259,11 @@ func (h *backupTestHelper) waitNoTransfers() {
 	})
 }
 
-func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath string, f func(ManifestInfoWithContent) bool) {
+func (h *backupTestHelper) tamperWithManifest(ctx context.Context, manifestsPath string, f func(backupspec.ManifestInfoWithContent) bool) {
 	h.T.Helper()
 
 	// Parse manifest path
-	m := NewManifestInfoWithContent()
+	m := backupspec.NewManifestInfoWithContent()
 	if err := m.ParsePath(manifestsPath); err != nil {
 		h.T.Fatal(err)
 	}
@@ -303,9 +304,9 @@ func (h *backupTestHelper) touchFile(ctx context.Context, dir, file, content str
 	}
 }
 
-func s3Location(bucket string) Location {
-	return Location{
-		Provider: S3,
+func s3Location(bucket string) backupspec.Location {
+	return backupspec.Location{
+		Provider: backupspec.S3,
 		Path:     bucket,
 	}
 }
@@ -638,7 +639,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -678,7 +679,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there are two backups")
-	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -716,7 +717,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("expected %d schemas, got %d", schemasCount, len(schemas))
 	}
 
-	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
@@ -737,7 +738,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 			Print("And: Scylla manifests are not uploaded")
 			for _, rfn := range remoteFileNames {
-				if strings.Contains(rfn, ScyllaManifest) {
+				if strings.Contains(rfn, backupspec.ScyllaManifest) {
 					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
 				}
 			}
@@ -756,7 +757,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	Print("And: manifests are in metadata directory")
 	for _, s := range manifests {
-		var m ManifestInfo
+		var m backupspec.ManifestInfo
 		if err := m.ParsePath(s); err != nil {
 			t.Fatal("manifest file in wrong path", s)
 		}
@@ -772,7 +773,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there are three backups")
-	items, err = h.service.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	items, err = h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -802,7 +803,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: user is able to list backup files using filters")
-	filesInfo, err = h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	filesInfo, err = h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal("ListFiles() error", err)
 	}
@@ -812,7 +813,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), 3*3)
 	}
 
-	filesInfo, err = h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{
+	filesInfo, err = h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{
 		ClusterID: h.ClusterID,
 		Keyspace:  []string{testKeyspace},
 	})
@@ -833,7 +834,7 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	if err != nil {
 		t.Fatal(err)
 	}
-	var mc ManifestContentWithIndex
+	var mc backupspec.ManifestContentWithIndex
 	if err := mc.Read(r); err != nil {
 		t.Fatalf("Cannot read manifest created by backup: %s", err)
 	}
@@ -860,7 +861,7 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 		t.Errorf("Schema=%s, not found in schemas %s", mc.Schema, schemas)
 	}
 
-	var infoFromPath ManifestInfo
+	var infoFromPath backupspec.ManifestInfo
 	if err := infoFromPath.ParsePath(manifestPath); err != nil {
 		t.Fatal("manifest file in wrong path", manifestPath)
 	}
@@ -945,7 +946,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 
@@ -1020,9 +1021,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 2,
-		RateLimit: []DCLimit{
+		RateLimit: []backup.DCLimit{
 			{"dc1", 1},
 		},
 		Continue: true,
@@ -1059,7 +1060,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	}
 
 	getTagAndWait := func() string {
-		tag := NewSnapshotTag()
+		tag := backupspec.NewSnapshotTag()
 
 		// Wait for new tag as they have a second resolution
 		time.Sleep(time.Second)
@@ -1331,7 +1332,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 			},
 		},
 		DC:           []string{"dc1"},
-		Location:     []Location{location},
+		Location:     []backupspec.Location{location},
 		Retention:    1,
 		RetentionMap: backup.RetentionMap{h.TaskID: {0, 1}},
 	}
@@ -1350,22 +1351,22 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 
 	// Sleep to avoid tag collision.
 	time.Sleep(time.Second)
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		// Mark manifest as temporary, change snapshot tag
 		m.Temporary = true
-		m.SnapshotTag = NewSnapshotTag()
+		m.SnapshotTag = backupspec.NewSnapshotTag()
 		// Add "xxx" file to a table
 		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xxx")
 
 		// Create the "xxx" file
-		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
 
 		return true
 	})
 
 	Print("Then: there is one backup in listing")
-	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1422,7 +1423,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -1459,7 +1460,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 		tempManifestCount int
 	)
 	for _, m := range manifests {
-		if strings.HasSuffix(m, TempFileExt) {
+		if strings.HasSuffix(m, backupspec.TempFileExt) {
 			tempManifestCount++
 		} else {
 			manifestCount++
@@ -1497,7 +1498,7 @@ func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 1,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -1555,7 +1556,7 @@ func TestPurgeIntegration(t *testing.T) {
 			},
 		},
 		DC:           []string{"dc1"},
-		Location:     []Location{location},
+		Location:     []backupspec.Location{location},
 		Retention:    1,
 		RetentionMap: map[uuid.UUID]backup.RetentionPolicy{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
 	}
@@ -1577,50 +1578,50 @@ func TestPurgeIntegration(t *testing.T) {
 	now := timeutc.Now()
 
 	Print("And: add manifest for removed node - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.NodeID = uuid.MustRandom().String()
 		return true
 	})
 	Print("And: add manifest for task2 - should NOT be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = task2
-		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -1))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -1))
 		return true
 	})
 	Print("And: add another manifest for task2 - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = task2
-		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -2))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -2))
 		return true
 	})
 	Print("And: add 2 hour old manifest for task 3 - should NOT be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = task3
-		m.SnapshotTag = SnapshotTagAt(now.Add(time.Hour * -2))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.Add(time.Hour * -2))
 		return true
 	})
 	Print("And: add 1 day old manifest for task 3 - should NOT be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = task3
-		m.SnapshotTag = SnapshotTagAt(now.Add(time.Hour * -26))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.Add(time.Hour * -26))
 		return true
 	})
 	Print("And: add 3 day old manifest for task 3 - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = task3
-		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, -3))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -3))
 		return true
 	})
 	Print("And: add manifest for removed old task - should be removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = uuid.MustRandom()
-		m.SnapshotTag = SnapshotTagAt(now.AddDate(-1, 0, 0))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(-1, 0, 0))
 		return true
 	})
 	Print("And: add manifest for removed task - should NOT removed")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = uuid.MustRandom()
-		m.SnapshotTag = SnapshotTagAt(now.AddDate(0, 0, 3))
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, 3))
 		return true
 	})
 
@@ -1644,7 +1645,7 @@ func TestPurgeIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var c ManifestContentWithIndex
+		var c backupspec.ManifestContentWithIndex
 		if err := c.Read(r); err != nil {
 			t.Fatal(err)
 		}
@@ -1664,7 +1665,7 @@ func TestPurgeIntegration(t *testing.T) {
 	for _, f := range files {
 		ok := false
 		for _, pfx := range sstPfx {
-			if strings.HasPrefix(path.Base(f), pfx) || strings.HasSuffix(f, MetadataVersion) {
+			if strings.HasPrefix(path.Base(f), pfx) || strings.HasSuffix(f, backupspec.MetadataVersion) {
 				ok = true
 				break
 			}
@@ -1701,7 +1702,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 2,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -1718,7 +1719,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	if len(manifests) != 3 {
 		t.Fatalf("Expected manifest per node, got %d", len(manifests))
 	}
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.NodeID = uuid.MustRandom().String()
 		m.Temporary = true
 		return true
@@ -1763,7 +1764,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 1,
 	}
 
@@ -1810,7 +1811,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
 	}
 
-	if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []Location{h.location}, []string{firstTaskTags.Pop()}); err != nil {
+	if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []backupspec.Location{h.location}, []string{firstTaskTags.Pop()}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1832,7 +1833,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatalf("Expected have single snapshot in second task, got %d", secondTaskTags.Size())
 	}
 
-	if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []Location{h.location}, []string{secondTaskTags.Pop()}); err != nil {
+	if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []backupspec.Location{h.location}, []string{secondTaskTags.Pop()}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1845,7 +1846,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 }
 
 func taskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) *strset.Set {
-	backups, err := h.service.List(ctx, h.ClusterID, []Location{h.location},
+	backups, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{h.location},
 		backup.ListFilter{ClusterID: h.ClusterID, TaskID: taskID})
 	if err != nil {
 		t.Fatal(err)
@@ -1865,7 +1866,7 @@ func taskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uu
 	t.Helper()
 
 	filesFilter := backup.ListFilter{ClusterID: h.ClusterID, TaskID: taskID}
-	taskFiles, err := h.service.ListFiles(ctx, h.ClusterID, []Location{h.location}, filesFilter)
+	taskFiles, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{h.location}, filesFilter)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1883,7 +1884,7 @@ func taskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uu
 func filterOutVersionFiles(files []string) []string {
 	filtered := files[:0]
 	for _, f := range files {
-		if !strings.HasSuffix(f, MetadataVersion) {
+		if !strings.HasSuffix(f, backupspec.MetadataVersion) {
 			filtered = append(filtered, f)
 		}
 	}
@@ -1960,7 +1961,7 @@ func TestValidateIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -1990,7 +1991,7 @@ func TestValidateIntegration(t *testing.T) {
 	manifests, _, files := h.listS3Files()
 
 	genTag := func() string {
-		return SnapshotTagAt(time.Unix(int64(rand.Uint32()), 0))
+		return backupspec.SnapshotTagAt(time.Unix(int64(rand.Uint32()), 0))
 	}
 
 	var (
@@ -2000,14 +2001,14 @@ func TestValidateIntegration(t *testing.T) {
 	)
 
 	Print("And: add orphaned file - should be reported and deleted")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.SnapshotTag = orphanedSnapshotTag
-		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, "foo", "bar", "f0e76f40662e11ebbe97000000000001")), "xx0", "xxx")
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, "foo", "bar", "f0e76f40662e11ebbe97000000000001")), "xx0", "xxx")
 		return false
 	})
 
 	Print("And: copy manifest to a different nodeID - should be reported as broken")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.SnapshotTag = alienSnapshotTag
 		m.NodeID = uuid.MustRandom().String()
 		m.IP = "1.2.3.4"
@@ -2015,17 +2016,17 @@ func TestValidateIntegration(t *testing.T) {
 	})
 
 	Print("And: add file referenced by temporary manifest - should NOT be reported nor deleted")
-	h.tamperWithManifest(ctx, manifests[0], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.SnapshotTag = genTag()
 		m.Temporary = true
 		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xx1")
-		h.touchFile(ctx, path.Join(RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xx1", "xxx")
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xx1", "xxx")
 		return true
 	})
 
 	Print("And: add tampered manifest - should be reported as broken snapshot")
-	h.tamperWithManifest(ctx, manifests[1], func(m ManifestInfoWithContent) bool {
+	h.tamperWithManifest(ctx, manifests[1], func(m backupspec.ManifestInfoWithContent) bool {
 		m.SnapshotTag = tamperedSnapshotTag
 		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xx2")
@@ -2156,7 +2157,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1", "dc2"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -2169,7 +2170,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	}
 
 	Print("Then: there is one backup")
-	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2284,7 +2285,7 @@ func TestBackupListIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -2307,7 +2308,7 @@ func TestBackupListIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc2"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -2393,7 +2394,7 @@ func TestBackupListIntegration(t *testing.T) {
 		tc := testCases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			items, err := h.service.List(ctx, h.ClusterID, []Location{location}, tc.filter)
+			items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, tc.filter)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2456,7 +2457,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 			},
 		},
 		DC:        []string{"dc1", "dc2"},
-		Location:  []Location{location},
+		Location:  []backupspec.Location{location},
 		Retention: 3,
 	}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -2469,7 +2470,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 	}
 
 	Print("And: validate snapshot creation")
-	items, err := h.service.List(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2486,14 +2487,14 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		t.Fatalf("expected manifest for each node, got %d", len(manifests))
 	}
 	for _, s := range manifests {
-		var m ManifestInfo
+		var m backupspec.ManifestInfo
 		if err := m.ParsePath(s); err != nil {
 			t.Fatal("manifest file with wrong path", s)
 		}
 	}
 
 	Print("And: validate files creation")
-	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2516,7 +2517,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 			}
 
 			for _, rfn := range remoteFileNames {
-				if strings.Contains(rfn, ScyllaManifest) {
+				if strings.Contains(rfn, backupspec.ScyllaManifest) {
 					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
 				}
 			}
@@ -2559,7 +2560,7 @@ func TestBackupViewsIntegration(t *testing.T) {
 	CreateSecondaryIndex(t, clusterSession, testKeyspace, testTable, testSI)
 
 	props := map[string]any{
-		"location": []Location{location},
+		"location": []backupspec.Location{location},
 		"keyspace": []string{testKeyspace},
 	}
 	rawProps, err := json.Marshal(props)
@@ -2593,7 +2594,7 @@ func TestBackupViewsIntegration(t *testing.T) {
 	}
 
 	Print("And: list backup files")
-	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "list backup files"))
 	}
@@ -2644,7 +2645,7 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 
 	Print("And: backup target with --skip-schema=false")
 	props := map[string]any{
-		"location": []Location{location},
+		"location": []backupspec.Location{location},
 		"keyspace": []string{testKeyspace},
 	}
 	rawProps, err := json.Marshal(props)

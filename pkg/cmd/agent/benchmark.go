@@ -15,9 +15,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/bench"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
@@ -25,7 +27,7 @@ import (
 
 var benchmarkArgs = struct {
 	dirGlob  []string
-	location backupspec.LocationValue
+	location backup.LocationValue
 
 	configFiles   []string
 	debug         bool

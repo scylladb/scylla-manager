@@ -5,7 +5,7 @@ package restore
 import (
 	"testing"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
 )
 
 func TestBatchDispatcher(t *testing.T) {

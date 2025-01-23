@@ -16,16 +16,17 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/downloader"
-	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
 )
 
 func TestDownload(t *testing.T) {
 	var (
-		location = backup.Location{Provider: "testdata"}
+		location = backupspec.Location{Provider: "testdata"}
 		criteria = downloader.ManifestLookupCriteria{
 			NodeID:      uuid.MustParse("942ba1b6-30a3-441e-ac3c-158864d8b861"),
 			SnapshotTag: "sm_20210215151954UTC",
@@ -184,7 +185,7 @@ func TestDownload(t *testing.T) {
 }
 
 func TestDownloadOwnerCheck(t *testing.T) {
-	location := backup.Location{Provider: "testdata"}
+	location := backupspec.Location{Provider: "testdata"}
 	d, err := downloader.New(location, "/", log.NewDevelopment())
 
 	err = d.Download(context.Background(), dummyManifest())
@@ -194,7 +195,7 @@ func TestDownloadOwnerCheck(t *testing.T) {
 }
 
 func TestDownloadFilterCheck(t *testing.T) {
-	location := backup.Location{Provider: "testdata"}
+	location := backupspec.Location{Provider: "testdata"}
 	d, err := downloader.New(location, ".", log.NewDevelopment(), downloader.WithKeyspace([]string{"bla"}))
 
 	err = d.Download(context.Background(), dummyManifest())
@@ -203,11 +204,11 @@ func TestDownloadFilterCheck(t *testing.T) {
 	}
 }
 
-func dummyManifest() backup.ManifestInfoWithContent {
-	return backup.ManifestInfoWithContent{
-		ManifestInfo: &backup.ManifestInfo{},
-		ManifestContentWithIndex: &backup.ManifestContentWithIndex{
-			Index: []backup.FilesMeta{
+func dummyManifest() backupspec.ManifestInfoWithContent {
+	return backupspec.ManifestInfoWithContent{
+		ManifestInfo: &backupspec.ManifestInfo{},
+		ManifestContentWithIndex: &backupspec.ManifestContentWithIndex{
+			Index: []backupspec.FilesMeta{
 				{
 					Keyspace: "foo",
 					Table:    "bar",
