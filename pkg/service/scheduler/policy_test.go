@@ -142,23 +142,23 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	})
 
 	t.Run("when there are two exclusive task types", func(t *testing.T) {
-		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask, FastRestoreTask)
+		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask, One2OneRestoreTask)
 
 		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, FastRestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, One2OneRestoreTask)
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
 
-		restoreExclusiveTask = NewTaskExclusiveLockPolicy(RestoreTask, FastRestoreTask)
+		restoreExclusiveTask = NewTaskExclusiveLockPolicy(RestoreTask, One2OneRestoreTask)
 		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, FastRestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, One2OneRestoreTask)
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}

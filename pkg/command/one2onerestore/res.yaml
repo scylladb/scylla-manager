@@ -1,4 +1,4 @@
-use: fastrestore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
+use: 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
 
 short: Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
 

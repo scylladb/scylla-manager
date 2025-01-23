@@ -1,6 +1,6 @@
 // Copyright (C) 2025 ScyllaDB
 
-package fastrestore
+package one2onerestore
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type Runner struct {
 
 // Run implementation for Runner.
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	return r.service.FastRestore(ctx, clusterID, taskID, runID, properties)
+	return r.service.One2OneRestore(ctx, clusterID, taskID, runID, properties)
 }
 
 // Runner creates a Runner that handles restores.

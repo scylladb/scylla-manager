@@ -1,6 +1,6 @@
 // Copyright (C) 2025 ScyllaDB
 
-package fastrestore
+package one2onerestore
 
 import (
 	_ "embed"
@@ -153,7 +153,7 @@ func checkRequiredFlags(cmd *command, requiredFlags []string) error {
 
 func createOrUpdateTask(cmd *command, args []string) (task *models.Task, taskUpdated bool, err error) {
 	if cmd.Update() {
-		a := managerclient.FastRestoreTask
+		a := managerclient.One2OneRestoreTask
 		if len(args) > 0 {
 			a = args[0]
 		}
@@ -161,7 +161,7 @@ func createOrUpdateTask(cmd *command, args []string) (task *models.Task, taskUpd
 		if err != nil {
 			return nil, false, err
 		}
-		if taskType != managerclient.FastRestoreTask {
+		if taskType != managerclient.One2OneRestoreTask {
 			return nil, false, fmt.Errorf("can't handle %s task", taskType)
 		}
 		task, err := cmd.client.GetTask(cmd.Context(), cmd.cluster, taskType, taskID)
@@ -170,18 +170,18 @@ func createOrUpdateTask(cmd *command, args []string) (task *models.Task, taskUpd
 		}
 		return task, cmd.UpdateTask(task), nil
 	}
-	return cmd.CreateTask(managerclient.FastRestoreTask), false, nil
+	return cmd.CreateTask(managerclient.One2OneRestoreTask), false, nil
 }
 
 func dryRun(cmd *command, _ *models.Task) error {
-	fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, fastrestore is not yet implemented\n\n")
+	fmt.Fprintf(cmd.OutOrStderr(), "NOTICE: dry run mode, one2onerestore is not yet implemented\n\n")
 	return nil
 }
 
 func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err error) {
-	// Disallow updating fastrestore task's core flags, since fastrestore procedure cannot adjust itself to this change.
+	// Disallow updating one2onerestore task's core flags, since one2onerestore procedure cannot adjust itself to this change.
 	forbiddenUpdate := func(flagName string) error {
-		return errors.Errorf("updating fastrestore task's '--%s' flag is forbidden. For this purpose, please create a new task with given properties", flagName)
+		return errors.Errorf("updating one2onerestore task's '--%s' flag is forbidden. For this purpose, please create a new task with given properties", flagName)
 	}
 
 	type taskProperty struct {

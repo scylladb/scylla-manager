@@ -1,6 +1,6 @@
 // Copyright (C) 2025 ScyllaDB
 
-package fastrestore
+package one2onerestore
 
 import (
 	"slices"
