@@ -16,7 +16,7 @@ import (
 
 func getProgress(run *Run, s gocqlx.Session) (Progress, error) {
 	seq := newRunProgressSeq()
-	pr := aggregateProgress(run, seq.All(run.ClusterID, run.TaskID, run.ID, s))
+	pr := aggregateProgress(run, seq.All(run.ClusterID, run.TaskID, run.ID, s), timeutc.Now())
 	if seq.err != nil {
 		return Progress{}, seq.err
 	}
@@ -57,7 +57,7 @@ func (seq *runProgressSeq) All(clusterID, taskID, runID uuid.UUID, s gocqlx.Sess
 	}
 }
 
-func aggregateProgress(run *Run, seq iter.Seq[*RunProgress]) Progress {
+func aggregateProgress(run *Run, seq iter.Seq[*RunProgress], now time.Time) Progress {
 	p := Progress{
 		SnapshotTag: run.SnapshotTag,
 		Stage:       run.Stage,
@@ -65,7 +65,7 @@ func aggregateProgress(run *Run, seq iter.Seq[*RunProgress]) Progress {
 	tableProgress := make(map[TableName]TableProgress)
 	hostProgress := make(map[string]HostProgress)
 	for rp := range seq {
-		progressCB(tableProgress, hostProgress, rp)
+		progressCB(tableProgress, hostProgress, rp, now)
 	}
 
 	// Aggregate keyspace progress
@@ -109,7 +109,7 @@ func aggregateProgress(run *Run, seq iter.Seq[*RunProgress]) Progress {
 	return p
 }
 
-func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[string]HostProgress, pr *RunProgress) {
+func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[string]HostProgress, pr *RunProgress, now time.Time) {
 	// Update table progress
 	tn := TableName{Keyspace: pr.Keyspace, Table: pr.Table}
 	tp := tableProgress[tn]
@@ -134,12 +134,12 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	hp.DownloadedBytes += pr.Downloaded + pr.VersionedProgress
 	// We can update download duration on the fly,
 	// but it's not possible with sync load&stream API.
-	hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt).Milliseconds()
+	hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt, now).Milliseconds()
 	if validateTimeIsSet(pr.RestoreCompletedAt) {
 		hp.RestoredBytes += pr.Restored
-		hp.RestoreDuration += timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt).Milliseconds()
+		hp.RestoreDuration += timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt, now).Milliseconds()
 		hp.StreamedBytes += pr.Restored
-		hp.StreamDuration += timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt).Milliseconds()
+		hp.StreamDuration += timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt, now).Milliseconds()
 	}
 	hostProgress[pr.Host] = hp
 }
@@ -184,13 +184,12 @@ func (rp *progress) updateParentProgress(child progress) {
 // Returns duration between end and start.
 // If start is nil, returns 0.
 // If end is nil, returns duration between now and start.
-func timeSub(start, end *time.Time) time.Duration {
+func timeSub(start, end *time.Time, now time.Time) time.Duration {
 	if start != nil {
-		endV := timeutc.Now()
 		if end != nil {
-			endV = *end
+			return end.Sub(*start)
 		}
-		return endV.Sub(*start)
+		return now.Sub(*start)
 	}
 	return time.Duration(0)
 }
