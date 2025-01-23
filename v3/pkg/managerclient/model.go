@@ -1433,7 +1433,7 @@ func (p ValidateBackupProgress) addHostProgress(w io.Writer) error {
 
 // BackupListItems is a []backup.ListItem representation.
 type BackupListItems struct {
-	items       []*models.BackupListItem
+	Items       []*models.BackupListItem
 	AllClusters bool
 	ShowTables  int
 }
@@ -1460,7 +1460,7 @@ func (bl BackupListItems) Render(w io.Writer) error {
 	}).Parse(backupListItemTemplate))
 
 	prev := ""
-	for _, i := range bl.items {
+	for _, i := range bl.Items {
 		if bl.AllClusters {
 			if prev != i.ClusterID {
 				prev = i.ClusterID
