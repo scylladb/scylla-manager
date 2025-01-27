@@ -1,9 +1,10 @@
 use: 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
 
-short: Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
+short: Run an ad-hoc restore of tables to a cluster that mirrors the topology (DCs, racks, nodes structure and tokens) of a backup cluster.
 
 long: |
-  This command allows you to run ad-hoc restore of tables to the cluster of the same topology as a backup.
+  This command allows you to run ad-hoc restore of tables to a cluster that mirrors the topology of a backup cluster. This means that the target cluster must have 
+  the same number of nodes in each datacenter and rack, as well as the same token assignment for each node.  
   **Note:** This command only restores the data within the tables. 
   You must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.
 
@@ -20,7 +21,7 @@ location: |
   The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
 
 source-cluster-id: |
-  Cluster id of the backup cluster.
+  Cluster ID of the backup cluster.
 
 snapshot-tag: |
   Scylla Manager snapshot tag identifying restored backup.

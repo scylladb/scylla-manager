@@ -1,7 +1,7 @@
 name: sctool restore 1-1-restore
 synopsis: |
-    Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
-description: "This command allows you to run ad-hoc restore of tables to the cluster of the same topology as a backup.\n**Note:** This command only restores the data within the tables. \nYou must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.\n"
+    Run an ad-hoc restore of tables to a cluster that mirrors the topology (DCs, racks, nodes structure and tokens) of a backup cluster.
+description: "This command allows you to run ad-hoc restore of tables to a cluster that mirrors the topology of a backup cluster. This means that the target cluster must have \nthe same number of nodes in each datacenter and rack, as well as the same token assignment for each node.  \n**Note:** This command only restores the data within the tables. \nYou must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.\n"
 usage: sctool restore 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
 options:
     - name: allow-compaction
@@ -130,7 +130,7 @@ options:
         Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
     - name: source-cluster-id
       usage: |
-        Cluster id of the backup cluster.
+        Cluster ID of the backup cluster.
     - name: start-date
       shorthand: s
       usage: |

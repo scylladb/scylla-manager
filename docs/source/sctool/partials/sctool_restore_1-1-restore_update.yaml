@@ -131,7 +131,7 @@ options:
         Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
     - name: source-cluster-id
       usage: |
-        Cluster id of the backup cluster.
+        Cluster ID of the backup cluster.
     - name: start-date
       shorthand: s
       usage: |
@@ -182,4 +182,4 @@ inherited_options:
         Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-    - sctool restore 1-1-restore - Run an ad-hoc restore of tables to the cluster of the same topology as a backup.
+    - sctool restore 1-1-restore - Run an ad-hoc restore of tables to a cluster that mirrors the topology (DCs, racks, nodes structure and tokens) of a backup cluster.
