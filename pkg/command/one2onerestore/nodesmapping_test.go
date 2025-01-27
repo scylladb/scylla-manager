@@ -3,8 +3,10 @@
 package one2onerestore
 
 import (
-	"slices"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
 func TestNodesMappingSet(t *testing.T) {
@@ -13,68 +15,37 @@ func TestNodesMappingSet(t *testing.T) {
 		nodesMapping string
 
 		expectedErr bool
-		expected    nodesMapping
 	}{
 		{
 			name:         "one line",
 			nodesMapping: "./testdata/nodesmapping_oneline.txt",
-			expected: nodesMapping{
-				{
-					Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"},
-					Target: node{DC: "dc2", Rack: "rack2", HostID: "host2"},
-				},
-			},
 		},
 		{
 			name:         "multi line",
 			nodesMapping: "./testdata/nodesmapping_multiline.txt",
-			expected: nodesMapping{
-				{
-					Source: node{DC: "cd1", Rack: "ack1", HostID: "hwost1"},
-					Target: node{DC: "dc1", Rack: "rack1", HostID: "host1"},
-				},
-				{
-					Source: node{DC: "cd1", Rack: "ack1", HostID: "hwost2"},
-					Target: node{DC: "dc1", Rack: "rack1", HostID: "host2"},
-				},
-				{
-					Source: node{DC: "cd2", Rack: "ack2", HostID: "hwost3"},
-					Target: node{DC: "dc2", Rack: "rack2", HostID: "host3"},
-				},
-			},
 		},
 		{
 			name:         "whitespace",
 			nodesMapping: "./testdata/nodesmapping_whitespace.txt",
-			expected: nodesMapping{
-				{
-					Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"},
-					Target: node{DC: "dc2", Rack: "rack2", HostID: "host2"},
-				},
-			},
 		},
 		{
 			name:         "without =",
 			nodesMapping: "./testdata/nodesmapping_no=.txt",
-			expected:     nodesMapping{},
 			expectedErr:  true,
 		},
 		{
 			name:         "without dc in source",
 			nodesMapping: "./testdata/nodesmapping_no_dc.txt",
-			expected:     nodesMapping{},
 			expectedErr:  true,
 		},
 		{
 			name:         "without dc in target",
 			nodesMapping: "./testdata/nodesmapping_no_dc2.txt",
-			expected:     nodesMapping{},
 			expectedErr:  true,
 		},
 		{
 			name:         "file not exists",
 			nodesMapping: "./testdata/not_found.404",
-			expected:     nodesMapping{},
 			expectedErr:  true,
 		},
 	}
@@ -89,8 +60,12 @@ func TestNodesMappingSet(t *testing.T) {
 			if !tc.expectedErr && err != nil {
 				t.Fatalf("Unexpected err, got %v", err)
 			}
-			if !slices.Equal(tc.expected, mapping) {
-				t.Fatalf("Expected \n\t%v\n got \n\t%v", tc.expected, mapping)
+
+			testutils.SaveGoldenJSONFileIfNeeded(t, &mapping)
+			var expectedMapping nodesMapping
+			testutils.LoadGoldenJSONFile(t, &expectedMapping)
+			if diff := cmp.Diff(expectedMapping, mapping); diff != "" {
+				t.Fatalf("Unexpected mappings: \n%s", diff)
 			}
 		})
 	}
