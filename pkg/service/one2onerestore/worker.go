@@ -4,7 +4,6 @@ package one2onerestore
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -66,7 +65,7 @@ func (w *worker) getNodesWithAccess(ctx context.Context, nodesInfo scyllaclient.
 		return nil, errors.Wrapf(err, "location %s is not accessible", remotePath)
 	}
 	if len(nodesWithAccess) == 0 {
-		return nil, fmt.Errorf("no nodes with location %s access", remotePath)
+		return nil, errors.Errorf("no nodes with location %s access", remotePath)
 	}
 	return nodesWithAccess, nil
 }
