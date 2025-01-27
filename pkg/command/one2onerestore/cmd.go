@@ -82,7 +82,7 @@ func (cmd *command) init() {
 	w.Location(&cmd.location)
 	w.Keyspace(&cmd.keyspace)
 
-	// Flags specific to fast restore
+	// Flags specific to 1-1-restore
 	w.Unwrap().StringVarP(&cmd.sourceCluster, "source-cluster-id", "", "", "")
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().Var(&cmd.nodesMapping, "nodes-mapping", "")
@@ -107,6 +107,9 @@ func (cmd *command) run(args []string) error {
 	}
 
 	if !cmd.Update() {
+		// Since we have different required flags for create vs update commands,
+		// cmd.MarkFlagRequired can't be used for both because it checks flags before knowing
+		// whether the command is a create or update operation.
 		if err := checkRequiredFlags(cmd, requiredFlags); err != nil {
 			return err
 		}
