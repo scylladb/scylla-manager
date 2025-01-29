@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"path"
 	"regexp"
 	"slices"
@@ -22,6 +23,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -29,7 +31,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 )
 
-// restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
+// worker consists of utils common for both schemaWorker and tablesWorker.
 type worker struct {
 	run             *Run
 	target          Target
@@ -42,6 +44,7 @@ type worker struct {
 	client         *scyllaclient.Client
 	session        gocqlx.Session
 	clusterSession gocqlx.Session
+	nodeConfig     map[string]configcache.NodeConfig
 }
 
 func (w *worker) randomHostFromLocation(loc Location) string {
@@ -809,4 +812,22 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
+}
+
+// nodeInfo is a getter for worker.nodeConfig which is a workaround for #4181.
+func (w *worker) nodeInfo(ctx context.Context, host string) (*scyllaclient.NodeInfo, error) {
+	// Try to get direct entry in config cache
+	if nc, ok := w.nodeConfig[host]; ok {
+		return nc.NodeInfo, nil
+	}
+	// Try to get resolved entry in config cache
+	if hostIP := net.ParseIP(host); hostIP != nil {
+		for h, nc := range w.nodeConfig {
+			if ip := net.ParseIP(h); ip != nil && hostIP.Equal(ip) {
+				return nc.NodeInfo, nil
+			}
+		}
+	}
+	// Last resort - query node info from the scratch
+	return w.client.NodeInfo(ctx, host)
 }
