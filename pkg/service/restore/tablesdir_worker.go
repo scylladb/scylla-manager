@@ -89,10 +89,6 @@ func (w *tablesWorker) restoreSSTables(ctx context.Context, b batch, pr *RunProg
 
 // newRunProgress creates RunProgress by starting download to host's upload dir.
 func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch) (*RunProgress, error) {
-	if err := w.checkAvailableDiskSpace(ctx, hi.Host); err != nil {
-		return nil, errors.Wrap(err, "validate free disk space")
-	}
-
 	uploadDir := UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
 	if err := w.cleanUploadDir(ctx, hi.Host, uploadDir, nil); err != nil {
 		return nil, errors.Wrapf(err, "clean upload dir of host %s", hi.Host)
