@@ -31,37 +31,6 @@ nodes-mapping:
   Path to a file with source cluster and target cluster nodes mapping. Each line should contain node mapping in the following format
   <source_dc>:<source_rack>:<source_host_id>=<destination_dc>:<destination_rack>:<destination_host_id>
 
-batch-size: |
-  Number of SSTables per shard to process in one request by one node.
-  Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
-  Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).
-
-parallel: |
-  The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
-  Each node can take part in at most one restore at any given moment.
-
-transfers: |
-  Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
-  Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
-  Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
-
-rate-limit: |
-  Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
-  You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
-  The <dc>: part is optional and is only needed when different datacenters require different download limits.
-  Set to 0 for no limit (default 0).
-
-allow-compaction: |
-  Defines if auto compactions should be running on Scylla nodes during restore.
-  Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
-
-unpin-agent-cpu: |
-  Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
-  This might significantly improve download speed at the cost of decreasing streaming speed. 
-
 dry-run: |
   Validates and displays restore information without actually running the restore.
   This allows you to display what will happen should the restore run with the parameters you set.
-
-show-tables: |
-  Prints table names together with keyspace, used in combination with --dry-run.

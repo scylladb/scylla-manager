@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -25,20 +26,13 @@ type command struct {
 	flag.TaskBase
 	client *managerclient.Client
 
-	cluster         string
-	sourceCluster   string
-	location        []string
-	keyspace        []string
-	snapshotTag     string
-	nodesMapping    nodesMapping
-	batchSize       int
-	parallel        int
-	transfers       int
-	rateLimit       []string
-	allowCompaction bool
-	unpinAgentCPU   bool
-	dryRun          bool
-	showTables      bool
+	cluster       string
+	sourceCluster uuid.Value
+	location      []string
+	keyspace      []string
+	snapshotTag   string
+	nodesMapping  nodesMapping
+	dryRun        bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -83,19 +77,12 @@ func (cmd *command) init() {
 	w.Keyspace(&cmd.keyspace)
 
 	// Flags specific to 1-1-restore
-	w.Unwrap().StringVarP(&cmd.sourceCluster, "source-cluster-id", "", "", "")
+	w.Unwrap().Var(&cmd.sourceCluster, "source-cluster-id", "")
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().Var(&cmd.nodesMapping, "nodes-mapping", "")
 
 	// Common configuration for restore procedures
-	w.Unwrap().IntVar(&cmd.batchSize, "batch-size", 2, "")
-	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
-	w.Unwrap().IntVar(&cmd.transfers, "transfers", 0, "")
-	w.Unwrap().StringSliceVar(&cmd.rateLimit, "rate-limit", nil, "")
-	w.Unwrap().BoolVar(&cmd.allowCompaction, "allow-compaction", false, "")
-	w.Unwrap().BoolVar(&cmd.unpinAgentCPU, "unpin-agent-cpu", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
-	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -208,7 +195,7 @@ func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err e
 		},
 		{
 			flagName: "source-cluster-id",
-			value:    cmd.sourceCluster,
+			value:    cmd.sourceCluster.String(),
 		},
 		{
 			flagName: "snapshot-tag",
@@ -217,36 +204,6 @@ func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err e
 		{
 			flagName: "nodes-mapping",
 			value:    cmd.nodesMapping,
-		},
-		{
-			flagName:     "batch-size",
-			value:        cmd.batchSize,
-			canBeUpdated: true,
-		},
-		{
-			flagName:     "parallel",
-			value:        cmd.parallel,
-			canBeUpdated: true,
-		},
-		{
-			flagName:     "transfers",
-			value:        cmd.transfers,
-			canBeUpdated: true,
-		},
-		{
-			flagName:     "rate-limit",
-			value:        cmd.rateLimit,
-			canBeUpdated: true,
-		},
-		{
-			flagName:     "allow-compaction",
-			value:        cmd.allowCompaction,
-			canBeUpdated: true,
-		},
-		{
-			flagName:     "unpin-agent-cpu",
-			value:        cmd.unpinAgentCPU,
-			canBeUpdated: true,
 		},
 	}
 
