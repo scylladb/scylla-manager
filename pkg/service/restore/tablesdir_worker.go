@@ -250,7 +250,9 @@ func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	pr.setRestoreCompletedAt()
 	pr.Restored = pr.Downloaded + pr.VersionedDownloaded
 	w.metrics.IncreaseRestoreStreamedBytes(w.run.ClusterID, pr.Host, b.Size)
-	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt, timeutc.Now()))
+	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt, timeutc.Now()))
+	w.metrics.IncreaseRestoredBytes(w.run.ClusterID, pr.Host, b.Size)
+	w.metrics.IncreaseRestoreDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt, timeutc.Now()))
 
 	labels := metrics.RestoreBytesLabels{
 		ClusterID:   b.ClusterID.String(),
