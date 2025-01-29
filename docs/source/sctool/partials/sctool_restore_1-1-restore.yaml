@@ -4,17 +4,6 @@ synopsis: |
 description: "This command allows you to run ad-hoc restore of tables to a cluster that mirrors the topology of a backup cluster. This means that the target cluster must have \nthe same number of nodes in each datacenter and rack, as well as the same token assignment for each node.  \n**Note:** This command only restores the data within the tables. \nYou must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.\n"
 usage: sctool restore 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
 options:
-    - name: allow-compaction
-      default_value: "false"
-      usage: |
-        Defines if auto compactions should be running on Scylla nodes during restore.
-        Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
-    - name: batch-size
-      default_value: "2"
-      usage: |
-        Number of SSTables per shard to process in one request by one node.
-        Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
-        Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).
     - name: cluster
       shorthand: c
       usage: |
@@ -102,27 +91,11 @@ options:
       default_value: "3"
       usage: |
         Number of times a task reruns following a failure.
-    - name: parallel
-      default_value: "0"
-      usage: |
-        The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
-        Each node can take part in at most one restore at any given moment.
-    - name: rate-limit
-      default_value: '[]'
-      usage: |
-        Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
-        You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
-        The <dc>: part is optional and is only needed when different datacenters require different download limits.
-        Set to 0 for no limit (default 0).
     - name: retry-wait
       default_value: 10m
       usage: |
         Initial exponential backoff `duration` X[h|m|s].
         With --retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.
-    - name: show-tables
-      default_value: "false"
-      usage: |
-        Prints table names together with keyspace, used in combination with --dry-run.
     - name: snapshot-tag
       shorthand: T
       usage: |
@@ -150,15 +123,6 @@ options:
       usage: |
         Timezone of --cron and --window flag values.
         The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
-    - name: transfers
-      default_value: "0"
-      usage: |
-        Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
-        Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
-        Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
-    - name: unpin-agent-cpu
-      default_value: "false"
-      usage: "Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.\nThis might significantly improve download speed at the cost of decreasing streaming speed. \n"
     - name: window
       default_value: '[]'
       usage: |
