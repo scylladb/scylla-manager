@@ -225,6 +225,9 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
+			if err := w.checkAvailableDiskSpace(ctx, hi.Host); err != nil {
+				return errors.Wrap(err, "validate free disk space")
+			}
 			// Download and stream in parallel
 			b, ok := bd.DispatchBatch(ctx, hi.Host)
 			if !ok {
