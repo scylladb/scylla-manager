@@ -4,12 +4,15 @@ package one2onerestore
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 type worker struct {
@@ -21,39 +24,42 @@ type worker struct {
 	logger log.Logger
 }
 
-func getSourceMappings(mappings []nodeMapping) map[node]node {
-	sourceMappings := map[node]node{}
-	for _, m := range mappings {
-		sourceMappings[m.Source] = m.Target
-	}
-	return sourceMappings
-}
-
-func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]LocationInfo, error) {
-	var result []LocationInfo
-
+// getManifestsAndHosts checks that each host in target cluster should have an access to at least one target location and fetches manifest info.
+func (w *worker) getManifestsAndHosts(ctx context.Context, target Target) ([]*backupspec.ManifestInfo, []Host, error) {
 	nodeStatus, err := w.client.Status(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "nodes status")
+		return nil, nil, errors.Wrap(err, "nodes status")
 	}
+	var (
+		allManifests  []*backupspec.ManifestInfo
+		nodesCountSet = strset.New()
+	)
 	for _, location := range target.Location {
 		// Ignore location.DC because all mappings should be specified via nodes-mapping file
 		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, location.RemotePath(""))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		manifests, err := w.getManifestInfo(ctx, nodes[0].Addr, target.SnapshotTag, location)
+		manifests, err := w.getManifestInfo(ctx, nodes[0].Addr, target.SnapshotTag, target.SourceClusterID, location)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		result = append(result, LocationInfo{
-			Manifest: manifests,
-			Location: location,
-			Hosts:    nodesToHosts(nodes),
-		})
+
+		allManifests = append(allManifests, manifests...)
+
+		for _, n := range nodes {
+			nodesCountSet.Add(n.HostID)
+		}
 	}
 
-	return result, nil
+	nodesWithAccessCount := len(nodesCountSet.List())
+
+	// If manifest count != nodes with access count means that 1-1 restore is not possible.
+	if len(allManifests) != nodesWithAccessCount || len(allManifests) != len(nodeStatus) {
+		return nil, nil, fmt.Errorf("manifest count (%d) != target nodes (%d)", len(allManifests), len(nodesCountSet.List()))
+	}
+
+	return allManifests, nodesToHosts(nodeStatus), nil
 }
 
 func (w *worker) getNodesWithAccess(ctx context.Context, nodesInfo scyllaclient.NodeStatusInfoSlice, remotePath string) (scyllaclient.NodeStatusInfoSlice, error) {

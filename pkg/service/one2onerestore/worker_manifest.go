@@ -5,40 +5,47 @@ package one2onerestore
 import (
 	"context"
 	"path"
-	"slices"
-	"strings"
 
+	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
 // getManifestInfo returns manifests with receiver's snapshot tag for all nodes in the location.
-func (w *worker) getManifestInfo(ctx context.Context, host, snapshotTag string, location Location) ([]*ManifestInfo, error) {
-	baseDir := path.Join("backup", string(MetaDirKind))
+func (w *worker) getManifestInfo(ctx context.Context, host, snapshotTag string, clusterID uuid.UUID, location Location) ([]*ManifestInfo, error) {
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
 		Recurse:   true,
 	}
 
 	var manifests []*ManifestInfo
-	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
+	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(MetaBaseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
 		m := new(ManifestInfo)
-		if err := m.ParsePath(path.Join(baseDir, f.Path)); err != nil {
+		if err := m.ParsePath(path.Join(MetaBaseDir, f.Path)); err != nil {
 			return
 		}
 		m.Location = location
-		if m.SnapshotTag == snapshotTag {
+		if m.ClusterID == clusterID && m.SnapshotTag == snapshotTag {
 			manifests = append(manifests, m)
 		}
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	// Ensure deterministic order
-	slices.SortFunc(manifests, func(a, b *ManifestInfo) int {
-		return strings.Compare(a.NodeID, b.NodeID)
-	})
 	return manifests, nil
+}
+
+func (w *worker) getManifestContent(ctx context.Context, host string, manifest *ManifestInfo) (*ManifestContentWithIndex, error) {
+	mc := &ManifestContentWithIndex{}
+	r, err := w.client.RcloneOpen(ctx, host, manifest.Location.RemotePath(manifest.Path()))
+	if err != nil {
+		return nil, errors.Wrap(err, "open manifest")
+	}
+	defer r.Close()
+	if err := mc.Read(r); err != nil {
+		return nil, errors.Wrap(err, "read manifest")
+	}
+	return mc, nil
 }

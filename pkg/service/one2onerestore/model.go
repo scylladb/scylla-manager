@@ -32,16 +32,6 @@ type node struct {
 	HostID string `json:"host_id"`
 }
 
-// LocationInfo contains some basic information about Location
-// Intended to be used for simplifying access to the Location.
-type LocationInfo struct {
-	Location Location
-	// Hosts that have an access to the Location
-	Hosts []Host
-	// Manifests from the Location
-	Manifest []*ManifestInfo
-}
-
 // Host contains basic information about Scylla node.
 type Host struct {
 	ID   string

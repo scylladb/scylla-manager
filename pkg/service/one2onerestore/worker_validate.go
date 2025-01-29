@@ -3,9 +3,7 @@
 package one2onerestore
 
 import (
-	"cmp"
 	"context"
-	"math/rand/v2"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -15,72 +13,41 @@ import (
 )
 
 // validateClusters checks if 1-1-restore can be performed on provided clusters.
-func (w *worker) validateClusters(ctx context.Context, locations []LocationInfo, nodeMappings []nodeMapping) error {
+func (w *worker) validateClusters(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, nodeMappings []nodeMapping) error {
 	if err := w.client.VerifyNodesAvailability(ctx); err != nil {
 		return errors.Wrap(err, "all nodes must be available")
 	}
 
-	sourceNodeInfo, targetNodeInfo, err := w.collectNodeInfo(ctx, locations)
+	if len(nodeMappings) != len(hosts) {
+		return errors.Errorf("nodes count (%d) != node count in mappings (%d)", len(hosts), len(nodeMappings))
+	}
+
+	sourceNodeInfo, targetNodeInfo, err := w.collectNodeValidationInfo(ctx, manifests, hosts, nodeMappings)
 	if err != nil {
 		return errors.Wrap(err, "collect nodes info")
 	}
 
-	sourceNodeInfo, err = applyNodeMapping(sourceNodeInfo, getSourceMappings(nodeMappings))
-	if err != nil {
-		return errors.Wrap(err, "apply node mappings")
-	}
-
-	slices.SortFunc(sourceNodeInfo, compareNodesInfo)
-	slices.SortFunc(targetNodeInfo, compareNodesInfo)
-
-	if err := clustersAreEqual(sourceNodeInfo, targetNodeInfo); err != nil {
+	if err := checkOne2OneRestoreCompatiblity(sourceNodeInfo, targetNodeInfo, nodeMappings); err != nil {
 		return errors.Wrap(err, "clusters not equal")
 	}
 
 	return nil
 }
 
-func applyNodeMapping(sourceNodeInfo []nodeInfo, sourceMappings map[node]node) ([]nodeInfo, error) {
-	var result []nodeInfo
-	if len(sourceNodeInfo) != len(sourceMappings) {
-		return nil, errors.Errorf("nodes count (%d) != node count in mappings (%d)", len(sourceNodeInfo), len(sourceMappings))
-	}
-	for _, source := range sourceNodeInfo {
-		target, ok := sourceMappings[node{DC: source.DC, Rack: source.Rack, HostID: source.HostID}]
-		if !ok {
-			return nil, errors.Errorf("mapping for source node (%v) is not found", source)
-		}
-		source.DC, source.Rack, source.HostID = target.DC, target.Rack, target.HostID
-		result = append(result, source)
-	}
-	return result, nil
-}
-
-func compareNodesInfo(a, b nodeInfo) int {
-	return cmp.Or(
-		cmp.Compare(a.DC, b.DC),
-		cmp.Compare(a.Rack, b.Rack),
-		cmp.Compare(a.HostID, b.HostID),
-		cmp.Compare(a.CPUCount, b.CPUCount),
-		cmp.Compare(a.StorageSize, b.StorageSize),
-		slices.Compare(a.Tokens, b.Tokens),
-	)
-}
-
-func clustersAreEqual(sourceNodeInfo, targetNodeInfo []nodeInfo) error {
+func checkOne2OneRestoreCompatiblity(sourceNodeInfo, targetNodeInfo []nodeValidationInfo, nodeMappings []nodeMapping) error {
 	if len(sourceNodeInfo) != len(targetNodeInfo) {
 		return errors.Errorf("clusters have different nodes count: source %d != target %d", len(sourceNodeInfo), len(targetNodeInfo))
 	}
-	for i, source := range sourceNodeInfo {
-		target := targetNodeInfo[i]
-		if source.DC != target.DC {
-			return errors.Errorf("source DC doesn't match target DC")
-		}
-		if source.Rack != target.Rack {
-			return errors.Errorf("source Rack doesn't match target Rack")
-		}
-		if source.HostID != target.HostID {
-			return errors.Errorf("source HostID doesn't match target HostID")
+
+	mappedSourceNodeInfo, err := mapSourceNodesToTarget(sourceNodeInfo, nodeMappings)
+	if err != nil {
+		return errors.Wrap(err, "invalid node mappings")
+	}
+
+	for _, target := range targetNodeInfo {
+		source, ok := mappedSourceNodeInfo[node{DC: target.DC, Rack: target.Rack, HostID: target.HostID}]
+		if !ok {
+			return errors.Errorf("target node has no match in source cluster:%s %s %s", target.DC, target.Rack, target.HostID)
 		}
 		if source.CPUCount != target.CPUCount {
 			return errors.Errorf("source CPUCount doesn't match target CPUCount")
@@ -95,11 +62,55 @@ func clustersAreEqual(sourceNodeInfo, targetNodeInfo []nodeInfo) error {
 	return nil
 }
 
-func (w *worker) collectNodeInfo(ctx context.Context, locations []LocationInfo) (sourceCluster, targetCluster []nodeInfo, err error) {
+func mapTargetHostToSource(targetHosts []Host, nodeMappings []nodeMapping) (map[string]Host, error) {
+	sourceByTargetHostID := map[string]string{}
+	for _, mapping := range nodeMappings {
+		sourceByTargetHostID[mapping.Target.HostID] = mapping.Source.HostID
+	}
+
+	result := map[string]Host{}
+	for _, host := range targetHosts {
+		sourceHostID, ok := sourceByTargetHostID[host.ID]
+		if !ok {
+			return nil, errors.Errorf("mapping for target node (%s) is not found", host.ID)
+		}
+		result[sourceHostID] = host
+	}
+	return result, nil
+}
+
+func mapSourceNodesToTarget(sourceNodeInfo []nodeValidationInfo, nodeMappings []nodeMapping) (map[node]nodeValidationInfo, error) {
+	sourceMappings := map[node]node{}
+	for _, m := range nodeMappings {
+		sourceMappings[m.Source] = m.Target
+	}
+
+	sourceByTarget := map[node]nodeValidationInfo{}
+	for _, source := range sourceNodeInfo {
+		target, ok := sourceMappings[node{DC: source.DC, Rack: source.Rack, HostID: source.HostID}]
+		if !ok {
+			return nil, errors.Errorf("mapping for source node (%v) is not found", source)
+		}
+		sourceByTarget[target] = source
+	}
+	return sourceByTarget, nil
+}
+
+func (w *worker) collectNodeValidationInfo(
+	ctx context.Context,
+	manifests []*backupspec.ManifestInfo,
+	hosts []Host,
+	nodeMappings []nodeMapping,
+) (sourceCluster, targetCluster []nodeValidationInfo, err error) {
+	targetHostBySourceID, err := mapTargetHostToSource(hosts, nodeMappings)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "invalid node mappings")
+	}
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		sourceInfo, err := w.getSourceClusterNodeInfo(ctx, locations)
+		sourceInfo, err := w.getSourceClusterNodeInfo(ctx, manifests, targetHostBySourceID)
 		if err != nil {
 			return errors.Wrap(err, "source cluster node info")
 		}
@@ -108,7 +119,7 @@ func (w *worker) collectNodeInfo(ctx context.Context, locations []LocationInfo) 
 		return nil
 	})
 	g.Go(func() error {
-		targetInfo, err := w.getTargetClusterNodeInfo(ctx, locations)
+		targetInfo, err := w.getTargetClusterNodeInfo(ctx, hosts)
 		if err != nil {
 			return errors.Wrap(err, "target cluster node info")
 		}
@@ -124,7 +135,7 @@ func (w *worker) collectNodeInfo(ctx context.Context, locations []LocationInfo) 
 	return sourceCluster, targetCluster, nil
 }
 
-type nodeInfo struct {
+type nodeValidationInfo struct {
 	DC          string
 	Rack        string
 	HostID      string
@@ -133,9 +144,8 @@ type nodeInfo struct {
 	Tokens      []int64
 }
 
-func (w *worker) getTargetClusterNodeInfo(ctx context.Context, locations []LocationInfo) ([]nodeInfo, error) {
-	hosts := uniqHosts(locations)
-	result := make([]nodeInfo, len(hosts))
+func (w *worker) getTargetClusterNodeInfo(ctx context.Context, hosts []Host) ([]nodeValidationInfo, error) {
+	result := make([]nodeValidationInfo, len(hosts))
 	err := parallel.Run(len(hosts), parallel.NoLimit, func(i int) error {
 		h := hosts[i]
 
@@ -152,7 +162,11 @@ func (w *worker) getTargetClusterNodeInfo(ctx context.Context, locations []Locat
 			return errors.Wrap(err, "get node tokens")
 		}
 
-		result[i] = nodeInfo{
+		// Make sure tokens are sorted,
+		// so we can compare them later.
+		slices.Sort(tokens)
+
+		result[i] = nodeValidationInfo{
 			HostID:      h.ID,
 			DC:          h.DC,
 			Rack:        rack,
@@ -169,37 +183,20 @@ func (w *worker) getTargetClusterNodeInfo(ctx context.Context, locations []Locat
 	return result, nil
 }
 
-func uniqHosts(locations []LocationInfo) []Host {
-	var result []Host
-	seen := map[Host]struct{}{}
-	for _, l := range locations {
-		for _, h := range l.Hosts {
-			_, ok := seen[h]
-			if ok {
-				continue
-			}
-			seen[h] = struct{}{}
-			result = append(result, h)
-		}
-	}
-	return result
-}
-
-func (w *worker) getSourceClusterNodeInfo(ctx context.Context, locations []LocationInfo) ([]nodeInfo, error) {
-	hostsManifests := assignHostToManifest(locations)
-	result := make([]nodeInfo, len(hostsManifests))
-	err := parallel.Run(len(hostsManifests), parallel.NoLimit, func(i int) error {
-		h, m := hostsManifests[i].Host, hostsManifests[i].Manifest
-		mc := &backupspec.ManifestContentWithIndex{}
-		r, err := w.client.RcloneOpen(ctx, h.Addr, m.Location.RemotePath(m.Path()))
+func (w *worker) getSourceClusterNodeInfo(ctx context.Context, manifests []*backupspec.ManifestInfo, targetHostBySourceID map[string]Host) ([]nodeValidationInfo, error) {
+	result := make([]nodeValidationInfo, len(manifests))
+	err := parallel.Run(len(manifests), parallel.NoLimit, func(i int) error {
+		m := manifests[i]
+		h := targetHostBySourceID[m.NodeID]
+		mc, err := w.getManifestContent(ctx, h.Addr, m)
 		if err != nil {
-			return errors.Wrap(err, "open manifest")
+			return err
 		}
-		defer r.Close()
-		if err := mc.Read(r); err != nil {
-			return errors.Wrap(err, "read manifest")
-		}
-		result[i] = nodeInfo{
+		// Make sure tokens are sorted,
+		// so we can compare them later.
+		slices.Sort(mc.Tokens)
+
+		result[i] = nodeValidationInfo{
 			DC:          mc.DC,
 			Rack:        mc.Rack,
 			HostID:      mc.NodeID,
@@ -213,35 +210,4 @@ func (w *worker) getSourceClusterNodeInfo(ctx context.Context, locations []Locat
 		return nil, err
 	}
 	return result, nil
-}
-
-type hostManifest struct {
-	Host     Host
-	Manifest *backupspec.ManifestInfo
-}
-
-func assignHostToManifest(locations []LocationInfo) []hostManifest {
-	var result []hostManifest
-	usedHosts := map[Host]struct{}{}
-	for _, l := range locations {
-		for _, m := range l.Manifest {
-			result = append(result, hostManifest{
-				Host:     unusedHostOrRandom(l.Hosts, usedHosts),
-				Manifest: m,
-			})
-		}
-	}
-	return result
-}
-
-func unusedHostOrRandom(hosts []Host, usedHosts map[Host]struct{}) Host {
-	for _, n := range hosts {
-		_, ok := usedHosts[n]
-		if ok {
-			continue
-		}
-		usedHosts[n] = struct{}{}
-		return n
-	}
-	return hosts[rand.IntN(len(hosts))]
 }

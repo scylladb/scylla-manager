@@ -75,13 +75,13 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		return errors.Wrap(err, "new worker")
 	}
 
-	locations, err := w.getLocationInfo(ctx, target)
+	manifests, hosts, err := w.getManifestsAndHosts(ctx, target)
 	if err != nil {
-		return errors.Wrap(err, "get location info")
+		return errors.Wrap(err, "get manifests and hosts info")
 	}
 
-	if err := w.validateClusters(ctx, locations, target.NodesMapping); err != nil {
-		return errors.Wrap(err, "validate cluster")
+	if err := w.validateClusters(ctx, manifests, hosts, target.NodesMapping); err != nil {
+		return errors.Wrap(err, "validate clusters")
 	}
 	s.logger.Info(ctx, "Can proceed with 1-1-restore")
 
