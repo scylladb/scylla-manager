@@ -238,6 +238,21 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
+			if ok, err := w.useScyllaRestoreAPI(ctx, b, host); err != nil {
+				return errors.Wrap(err, "check native Scylla restore API support")
+			} else if ok {
+				if err := w.scyllaRestore(ctx, host, b); err != nil {
+					err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
+					w.logger.Error(ctx, "Failed to restore batch",
+						"host", hi.Host,
+						"error", err)
+				} else {
+					bd.ReportSuccess(b)
+				}
+				continue
+			}
+
+			w.logger.Info(ctx, "Use Rclone copypaths API", "host", host, "keyspace", b.Keyspace, "table", b.Table)
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
 				err = multierr.Append(errors.Wrap(err, "create new run progress"), bd.ReportFailure(hi.Host, b))
@@ -247,8 +262,8 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				continue
 			}
 			if err := w.restoreBatch(ctx, b, pr); err != nil {
-				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
-				w.logger.Error(ctx, "Failed to restore batch",
+				err = multierr.Append(errors.Wrap(err, "load and stream batch"), bd.ReportFailure(hi.Host, b))
+				w.logger.Error(ctx, "Failed to load and stream batch",
 					"host", hi.Host,
 					"error", err)
 				continue
