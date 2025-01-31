@@ -28,7 +28,7 @@ type nodeMapping struct {
 
 type node struct {
 	DC     string `json:"dc"`
-	Rack   string `json:"rack"`
+	Rack   string `json:"rack_id"`
 	HostID string `json:"host_id"`
 }
 
