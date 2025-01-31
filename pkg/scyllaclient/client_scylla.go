@@ -1176,6 +1176,24 @@ func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefi
 	return resp.GetPayload(), nil
 }
 
+// ScyllaRestore schedules Scylla restore task and returns its ID.
+// tocComponents are a list of sstable.ComponentTOC of SSTables that should be restored.
+func (c *Client) ScyllaRestore(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table string, tocComponents []string) (string, error) {
+	resp, err := c.scyllaOps.StorageServiceRestorePost(&operations.StorageServiceRestorePostParams{
+		Context:  forceHost(ctx, host),
+		Endpoint: endpoint,
+		Bucket:   bucket,
+		Prefix:   prefix,
+		Keyspace: keyspace,
+		Table:    table,
+		Sstables: tocComponents,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.GetPayload(), nil
+}
+
 // ScyllaTaskState describes Scylla task state.
 type ScyllaTaskState string
 

@@ -184,27 +184,30 @@ type RunProgress struct {
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
 
-	// Different DB name because of historical reasons and because we can't drop/alter clustering column
-	RemoteSSTableDir string   `db:"manifest_path"`
-	Keyspace         string   `db:"keyspace_name"`
-	Table            string   `db:"table_name"`
-	SSTableID        []string `db:"sstable_id"`
+	RemoteSSTableDir string `db:"remote_sstable_dir"`
+	Keyspace         string `db:"keyspace_name"`
+	Table            string `db:"table_name"`
+	Host             string // IP of the node which restores the SSTables.
+	// Downloading SSTables could be done via either Rclone API or Scylla API.
+	// In case of Scylla API, it also streams the sstables into the cluster.
+	AgentJobID   int64  `db:"agent_job_id"`
+	ScyllaTaskID string `db:"scylla_task_id"`
 
-	Host       string // IP of the node to which SSTables are downloaded.
-	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
-	AgentJobID int64
-
+	SSTableID          []string `db:"sstable_id"`
+	RestoreStartedAt   *time.Time
+	RestoreCompletedAt *time.Time
 	// DownloadStartedAt and DownloadCompletedAt are within the
 	// RestoreStartedAt and RestoreCompletedAt time frame.
+	// They are set only when Rclone API is used, because
+	// Scylla API downloads and restores SSTables as a single call.
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
-	RestoreStartedAt    *time.Time
-	RestoreCompletedAt  *time.Time
-	Error               string
-	Downloaded          int64
 	Restored            int64
+	Downloaded          int64
+	VersionedDownloaded int64
 	Failed              int64
-	VersionedProgress   int64
+	Error               string
+	ShardCnt            int64 // Host shard count used for bandwidth per shard calculation.
 }
 
 func (pr *RunProgress) setRestoreStartedAt() {

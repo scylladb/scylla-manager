@@ -196,6 +196,10 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 	if err != nil {
 		return worker{}, errors.Wrap(err, "get CQL cluster session")
 	}
+	nodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return worker{}, errors.Wrap(err, "read all nodes config")
+	}
 
 	return worker{
 		run: &Run{
@@ -208,6 +212,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 		client:         client,
 		session:        s.session,
 		clusterSession: clusterSession,
+		nodeConfig:     nodeConfig,
 	}, nil
 }
 
