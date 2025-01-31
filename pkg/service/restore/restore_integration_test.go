@@ -522,6 +522,38 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Choose expected API - load&stream or native restore depending on node version
+	ensuredPath := "/storage_service/sstables"
+	blockedPath := "/storage_service/restore"
+	if ok, err := ni.SupportsScyllaBackupRestoreAPI(); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		ensuredPath, blockedPath = blockedPath, ensuredPath
+	}
+
+	Printf("Expect that %q API will be used for restore, while %q API won't be used at all", ensuredPath, blockedPath)
+	encounteredEnsured := atomic.Bool{}
+	encounteredBlocked := atomic.Bool{}
+	// Should always be set (also as a part of other interceptors)
+	apiInterceptor := func(req *http.Request) {
+		if strings.HasPrefix(req.URL.Path, ensuredPath) {
+			encounteredEnsured.Store(true)
+		}
+		if strings.HasPrefix(req.URL.Path, blockedPath) {
+			encounteredBlocked.Store(true)
+		}
+	}
+	setDstInterceptor := func(interceptor httpx.RoundTripperFunc) {
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			apiInterceptor(req)
+			if interceptor != nil {
+				return interceptor.RoundTrip(req)
+			}
+			return nil, nil
+		}))
+	}
+	setDstInterceptor(nil)
+
 	validateState := func(ch clusterHelper, tombstone string, compaction bool, transfers int, rateLimit int, cpus []int64) {
 		// Validate tombstone_gc mode
 		if got := tombstoneGCMode(t, ch.rootSession, ks, tab); tombstone != got {
@@ -663,7 +695,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	makeLASHang := func(reachedDataStageChan, hangLAS chan struct{}) {
 		cnt := atomic.Int64{}
 		cnt.Add(int64(len(h.dstCluster.Client.Config().Hosts)))
-		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		setDstInterceptor(func(req *http.Request) (*http.Response, error) {
 			if isLasOrRestoreEndpoint(req.URL.Path) {
 				if curr := cnt.Add(-1); curr == 0 {
 					Print("Reached data stage")
@@ -673,7 +705,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 				<-hangLAS
 			}
 			return nil, nil
-		}))
+		})
 	}
 
 	var (
