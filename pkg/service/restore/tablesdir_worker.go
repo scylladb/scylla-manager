@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgress) (err error) {
@@ -219,19 +220,22 @@ func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunPro
 	// As we update metrics on download update,
 	// we need to remember to update just the delta.
 	w.metrics.IncreaseRestoreDownloadedBytes(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, job.Uploaded-pr.Downloaded)
-	prevD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
+	now := timeutc.Now()
+	prevD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt, now)
 	if t := time.Time(job.StartedAt); !t.IsZero() {
 		pr.DownloadStartedAt = &t
+		pr.RestoreStartedAt = &t
 	}
 	if t := time.Time(job.CompletedAt); !t.IsZero() {
 		pr.DownloadCompletedAt = &t
 	}
-	currD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt)
+	currD := timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt, now)
 	w.metrics.IncreaseRestoreDownloadDuration(w.run.ClusterID, b.Location.StringWithoutDC(), pr.Host, currD-prevD)
 
 	pr.Error = job.Error
-	pr.Downloaded = job.Uploaded
-	pr.Skipped = job.Skipped
+	// Skipped should be equal to 0,
+	// as we don't perform any deduplication.
+	pr.Downloaded = job.Uploaded + job.Skipped
 	pr.Failed = job.Failed
 	w.insertRunProgress(ctx, pr)
 
@@ -243,15 +247,14 @@ func (w *tablesWorker) onDownloadUpdate(ctx context.Context, b batch, pr *RunPro
 func (w *tablesWorker) onLasStart(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, pr.Host, metrics.RestoreStateLoading)
 	w.logger.Info(ctx, "Started restoring batch", "host", pr.Host)
-	pr.setRestoreStartedAt()
-	w.insertRunProgress(ctx, pr)
 }
 
 func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.target.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
 	pr.setRestoreCompletedAt()
+	pr.Restored = pr.Downloaded + pr.VersionedProgress
 	w.metrics.IncreaseRestoreStreamedBytes(w.run.ClusterID, pr.Host, b.Size)
-	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt))
+	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt, timeutc.Now()))
 
 	labels := metrics.RestoreBytesLabels{
 		ClusterID:   b.ClusterID.String(),
