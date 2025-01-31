@@ -194,13 +194,15 @@ type RunProgress struct {
 	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
 	AgentJobID int64
 
+	// DownloadStartedAt and DownloadCompletedAt are within the
+	// RestoreStartedAt and RestoreCompletedAt time frame.
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
 	RestoreStartedAt    *time.Time
 	RestoreCompletedAt  *time.Time
 	Error               string
 	Downloaded          int64
-	Skipped             int64
+	Restored            int64
 	Failed              int64
 	VersionedProgress   int64
 }
@@ -252,6 +254,8 @@ type KeyspaceProgress struct {
 type HostProgress struct {
 	Host             string `json:"host"`
 	ShardCnt         int64  `json:"shard_cnt"`
+	RestoredBytes    int64  `json:"restored_bytes"`
+	RestoreDuration  int64  `json:"restore_duration"`
 	DownloadedBytes  int64  `json:"downloaded_bytes"`
 	DownloadDuration int64  `json:"download_duration"`
 	StreamedBytes    int64  `json:"streamed_bytes"`
