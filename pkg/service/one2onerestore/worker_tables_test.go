@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -116,8 +117,8 @@ func TestWorkerRefreshNode(t *testing.T) {
 				requireError(t, err)
 			}
 			requireTrue(t,
-				tc.expectedCalls == handler.calls,
-				fmt.Sprintf("Expected %d calls, but got %d", tc.expectedCalls, handler.calls))
+				int32(tc.expectedCalls) == handler.calls.Load(),
+				fmt.Sprintf("Expected %d calls, but got %d", tc.expectedCalls, handler.calls.Load()))
 		})
 	}
 }
@@ -147,11 +148,10 @@ type testHandler struct {
 	http.Handler
 	// Keep track of how many times handler func has been called
 	// so we can test retries policy.
-	calls int
+	calls atomic.Int32
 }
 
 func (th *testHandler) ServeHTTP(w http.ResponseWriter, t *http.Request) {
-	th.calls++
-	t.Header.Add("test-call-i", fmt.Sprint(th.calls))
+	t.Header.Add("test-call-i", fmt.Sprint(th.calls.Add(1)))
 	th.Handler.ServeHTTP(w, t)
 }

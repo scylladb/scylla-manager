@@ -43,7 +43,7 @@ func TestOne2OneRestoreService(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []Location{testLocation("basic", "")}
+	loc := []Location{testLocation("1-1-restore", "")}
 	S3InitBucket(t, loc[0].Path)
 	tag := h.runBackup(t, map[string]any{
 		"location": loc,
@@ -93,7 +93,7 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 			return CreateSession(t, client), nil
 		},
 		NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
-		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),
+		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("backup"),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -132,7 +132,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 
 func newTestHelper(t *testing.T, hosts []string) *testHelper {
 	clientCfg := scyllaclient.TestConfig(hosts, AgentAuthToken())
-	sc, err := scyllaclient.NewClient(clientCfg, log.NewDevelopment())
+	sc, err := scyllaclient.NewClient(clientCfg, log.NopLogger)
 	requireNoError(t, err)
 	session := CreateScyllaManagerDBSession(t)
 
