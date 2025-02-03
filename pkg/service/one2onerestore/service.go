@@ -16,7 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// Service for the 1-2-1 restore.
+// Service for the 1-1-restore.
 type Service struct {
 	session gocqlx.Session
 
@@ -48,9 +48,9 @@ func NewService(session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, 
 	}, nil
 }
 
-// One2OneRestore creates and initializes worker performing 1-2-1 vnode restore with given properties.
+// One2OneRestore creates and initializes worker performing 1-1-restore with given properties.
 func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	s.logger.Info(ctx, "1-1 restore",
+	s.logger.Info(ctx, "1-1-restore",
 		"cluster_id", clusterID,
 		"task_id", taskID,
 		"run_id", runID,

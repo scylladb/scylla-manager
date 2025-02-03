@@ -36,10 +36,10 @@ func (t *Target) validateProperties() error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
-	if _, err := SnapshotTagTime(t.SnapshotTag); err != nil {
-		return err
+	if !IsSnapshotTag(t.SnapshotTag) {
+		return errors.Errorf("unexpected snapshot-tag format: %s", t.SnapshotTag)
 	}
-	if t.SourceClusterID.String() == "" {
+	if t.SourceClusterID == uuid.Nil {
 		return errors.New("source cluster id is empty")
 	}
 	if len(t.NodesMapping) == 0 {
