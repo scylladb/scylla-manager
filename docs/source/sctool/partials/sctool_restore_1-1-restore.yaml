@@ -73,13 +73,7 @@ options:
         A list of backup locations separated by a comma, specifies places where restored backup is stored.
 
         The format is `[<dc>:]<provider>:<bucket>`.
-        The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
-        from this location in a multi-dc setting, it must match Scylla nodes datacenter.
-        By default, all live nodes are used to restore data from specified locations.
-
-        Note that specifying datacenters closest to backup locations might reduce download time of restored data.
-        The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
-        The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+        The `<dc>` parameter will be ignored and nodes-mapping will be used instead.
     - name: name
       usage: |
         Task name that can be used instead of ID.
@@ -146,4 +140,4 @@ inherited_options:
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
     - sctool restore - Run an ad-hoc restore of schema or tables
-    - sctool restore 1-1-restore update - Modify properties of the existing 1_1_restore task
+    - sctool restore 1-1-restore update - Modify properties of the existing 1-1-restore task
