@@ -135,41 +135,6 @@ services:
       public:
       second:
 
-  second_cluster_dc3_node_1:
-    image: scylladb/agent-${SCYLLA_VERSION}
-    privileged: true
-    volumes:
-      - type: bind
-        source: ./scylla/cassandra-rackdc.3.properties
-        target: /etc/scylla/cassandra-rackdc.properties
-      - type: bind
-        source: ./scylla/scylla-second-cluster.yaml
-        target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla/certs/
-        target: /etc/scylla/certs
-    networks:
-      public:
-      second:
-
-  second_cluster_dc3_node_2:
-    image: scylladb/agent-${SCYLLA_VERSION}
-    privileged: true
-    volumes:
-      - type: bind
-        source: ./scylla/cassandra-rackdc.3.properties
-        target: /etc/scylla/cassandra-rackdc.properties
-      - type: bind
-        source: ./scylla/scylla-second-cluster.yaml
-        target: /etc/scylla/scylla.yaml
-      - type: bind
-        source: ./scylla/certs/
-        target: /etc/scylla/certs
-    networks:
-      public:
-      second:
-
-
   scylla-manager-db:
     image: scylladb/${SCYLLA_VERSION}
     ports:
@@ -220,10 +185,6 @@ networks:
     ipam:
       driver: default
   second:
-    driver: bridge
-    ipam:
-      driver: default
-  third:
     driver: bridge
     ipam:
       driver: default

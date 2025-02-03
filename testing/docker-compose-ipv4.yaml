@@ -63,22 +63,6 @@ services:
       second:
         ipv4_address: 192.168.200.32
 
-  second_cluster_dc3_node_1:
-    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 192.168.100.41 --alternator-address 192.168.200.41 --listen-address 192.168.200.41
-    networks:
-      public:
-        ipv4_address: 192.168.100.41
-      second:
-        ipv4_address: 192.168.200.41
-
-  second_cluster_dc3_node_2:
-    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 192.168.100.42 --alternator-address 192.168.200.42 --listen-address 192.168.200.42
-    networks:
-      public:
-        ipv4_address: 192.168.100.42
-      second:
-        ipv4_address: 192.168.200.42
-
   scylla-manager-db:
     command: --smp 1 --memory 500M --api-address 0.0.0.0 --seeds 192.168.200.100 --rpc-address 192.168.200.100 --alternator-address 192.168.200.100 --listen-address 192.168.200.100
     networks:

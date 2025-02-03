@@ -66,7 +66,7 @@ up:
 
 ifeq ($(SSL_ENABLED),true)
 	# disable non-ssl port
-	# @$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
+	@$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
 	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
 	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
@@ -102,7 +102,7 @@ endif
 		echo -n "."; sleep 2; done; echo ""
 
 	@until [ 1 -le $$($(SECOND_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d second_cluster_dc1_node_2 second_cluster_dc3_node_1 second_cluster_dc3_node_2
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d second_cluster_dc1_node_2
 
 	@cnt=1; for node in dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3; do \
   		. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d $$node; \
@@ -110,7 +110,7 @@ endif
 		echo "==> Waiting node $$node number $$cnt"; \
 		until [ $$cnt -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
 
-	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2 second_cluster_dc3_node_1 second_cluster_dc3_node_2; do \
+	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2; do \
 		$(COMPOSE) exec -T --privileged $$node sudo bash -c 'service ssh start'; done
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
