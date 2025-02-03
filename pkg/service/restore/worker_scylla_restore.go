@@ -1,0 +1,183 @@
+// Copyright (C) 2024 ScyllaDB
+
+package restore
+
+import (
+	"context"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
+	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
+)
+
+// supportsScyllaRestoreAPI checks if native restore API
+// is supported by node's Scylla version.
+func (w *worker) supportsScyllaRestoreAPI(ctx context.Context, host string) (bool, error) {
+	nc, err := w.nodeInfo(ctx, host)
+	if err != nil {
+		return false, errors.Wrapf(err, "get node %s info", host)
+	}
+
+	ok, err := nc.SupportsScyllaBackupRestoreAPI()
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		w.logger.Info(ctx, "Can't use Scylla restore API",
+			"reason", "no native Scylla restore API exposed")
+	}
+	return ok, nil
+}
+
+// useScyllaRestoreAPI checks if we should use native restore API
+// for restoring batch.
+// It assumes that supportsScyllaRestoreAPI was already checked and passed.
+func (w *worker) useScyllaRestoreAPI(ctx context.Context, b batch) bool {
+	// List of object storage providers supported by Scylla restore API
+	scyllaSupportedProviders := []Provider{
+		S3,
+	}
+	if !slices.Contains(scyllaSupportedProviders, b.Location.Provider) {
+		// Logging it here would create uninteresting logs per every batch.
+		// We can't check provider support only once in supportsScyllaRestoreAPI,
+		// because it's possible to use the same node for restoring from different providers.
+		return false
+	}
+	if b.batchType.Versioned {
+		w.logger.Info(ctx, "Can't use Scylla restore API",
+			"keyspace", b.Keyspace,
+			"table", b.Table,
+			"reason", "batch with versioned files")
+		return false
+	}
+	if b.batchType.IDType == sstable.IntegerID {
+		w.logger.Info(ctx, "Can't use Scylla restore API",
+			"keyspace", b.Keyspace,
+			"table", b.Table,
+			"reason", "batch with integer SSTable IDs")
+		return false
+	}
+	return true
+}
+
+func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch) (err error) {
+	w.logger.Info(ctx, "Use native Scylla restore API", "host", host, "keyspace", b.Keyspace, "table", b.Table)
+	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateNativeRestore)
+	defer func() {
+		if err != nil && scheduler.IsTaskInterrupted(ctx) {
+			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateError)
+		} else {
+			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateIdle)
+		}
+	}()
+
+	// RemoteSSTableDir has "<provider>:<bucket>/<path>" format
+	prefix, ok := strings.CutPrefix(b.RemoteSSTableDir, b.Location.StringWithoutDC())
+	if !ok {
+		return errors.Errorf("remote sstable dir (%s) should contain location path prefix (%s)", b.RemoteSSTableDir, b.Location.Path)
+	}
+	id, err := w.client.ScyllaRestore(ctx, host, string(b.Location.Provider), b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC())
+	if err != nil {
+		return errors.Wrap(err, "restore")
+	}
+
+	pr := &RunProgress{
+		ClusterID:        w.run.ClusterID,
+		TaskID:           w.run.TaskID,
+		RunID:            w.run.ID,
+		RemoteSSTableDir: b.RemoteSSTableDir,
+		Keyspace:         b.Keyspace,
+		Table:            b.Table,
+		Host:             host,
+		ShardCnt:         int64(w.hostShardCnt[host]),
+		ScyllaTaskID:     id,
+		SSTableID:        b.IDs(),
+	}
+	w.insertRunProgress(ctx, pr)
+
+	w.logger.Info(ctx, "Wait for restore task to finish", "host", host, "task id", id)
+	err = w.scyllaWaitTask(ctx, pr, b)
+	if err != nil {
+		w.cleanupRunProgress(context.Background(), pr)
+	}
+	return err
+}
+
+func (w *tablesWorker) scyllaWaitTask(ctx context.Context, pr *RunProgress, b batch) (err error) {
+	defer func() {
+		// On error abort task
+		if err != nil {
+			if e := w.client.ScyllaAbortTask(context.Background(), pr.Host, pr.ScyllaTaskID); e != nil {
+				w.logger.Error(ctx, "Failed to abort task",
+					"host", pr.Host,
+					"id", pr.ScyllaTaskID,
+					"error", e,
+				)
+			}
+		}
+	}()
+
+	for {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(w.config.LongPollingTimeoutSeconds))
+		if err != nil {
+			return errors.Wrap(err, "wait for task")
+		}
+		w.scyllaUpdateProgress(ctx, pr, b, task)
+		switch scyllaclient.ScyllaTaskState(task.State) {
+		case scyllaclient.ScyllaTaskStateFailed:
+			return errors.Errorf("task error (%s): %s", pr.ScyllaTaskID, task.Error)
+		case scyllaclient.ScyllaTaskStateDone:
+			return nil
+		}
+	}
+}
+
+func (w *tablesWorker) scyllaUpdateProgress(ctx context.Context, pr *RunProgress, b batch, task *models.TaskStatus) {
+	now := timeutc.Now()
+	restored := b.Size * int64(task.ProgressCompleted/task.ProgressTotal)
+	restoredDiff := restored - pr.Restored
+	var startedAt, completedAt *time.Time
+	if t := time.Time(task.StartTime); !t.IsZero() {
+		startedAt = &t
+	}
+	if t := time.Time(task.EndTime); !t.IsZero() {
+		completedAt = &t
+	}
+
+	// Update metrics boilerplate
+	w.metrics.IncreaseRestoredBytes(w.run.ClusterID, pr.Host, restoredDiff)
+	w.metrics.IncreaseRestoreDuration(w.run.ClusterID, pr.Host, timeSub(startedAt, completedAt, now))
+	w.metrics.DecreaseRemainingBytes(metrics.RestoreBytesLabels{
+		ClusterID:   b.ClusterID.String(),
+		SnapshotTag: b.SnapshotTag,
+		Location:    b.Location.String(),
+		DC:          b.DC,
+		Node:        b.NodeID,
+		Keyspace:    b.Keyspace,
+		Table:       b.Table,
+	}, restoredDiff)
+	w.progress.Update(restoredDiff)
+	w.metrics.SetProgress(metrics.RestoreProgressLabels{
+		ClusterID:   w.run.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+	}, w.progress.CurrentProgress())
+
+	// Update run progress
+	pr.RestoreStartedAt = startedAt
+	pr.RestoreCompletedAt = completedAt
+	pr.Error = task.Error
+	pr.Restored = restored
+	w.insertRunProgress(ctx, pr)
+}

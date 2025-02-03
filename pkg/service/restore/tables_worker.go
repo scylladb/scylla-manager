@@ -217,6 +217,19 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	f := func(n int) error {
 		host := w.hosts[n]
+
+		scyllaRestoreAPISupport, err := w.supportsScyllaRestoreAPI(ctx, host)
+		if err != nil {
+			return errors.Wrap(err, "check native restore API support")
+		}
+		if scyllaRestoreAPISupport {
+			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
+			if err != nil {
+				return err
+			}
+			defer reset()
+		}
+
 		dc, err := w.client.HostDatacenter(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "get host %s data center", host)
@@ -227,6 +240,9 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
+			if err := w.checkAvailableDiskSpace(ctx, hi.Host); err != nil {
+				return errors.Wrap(err, "validate free disk space")
+			}
 			// Download and stream in parallel
 			b, ok := bd.DispatchBatch(ctx, hi.Host)
 			if !ok {
@@ -235,6 +251,21 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
+			if ok := w.useScyllaRestoreAPI(ctx, b); scyllaRestoreAPISupport && ok {
+				w.logger.Info(ctx, "Use Scylla restore API",
+					"host", host, "keyspace", b.Keyspace, "table", b.Table)
+				if err := w.scyllaRestore(ctx, host, b); err != nil {
+					err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
+					w.logger.Error(ctx, "Failed to restore batch",
+						"host", hi.Host,
+						"error", err)
+				} else {
+					bd.ReportSuccess(b)
+				}
+				continue
+			}
+
+			w.logger.Info(ctx, "Use Rclone copypaths API", "host", host, "keyspace", b.Keyspace, "table", b.Table)
 			pr, err := w.newRunProgress(ctx, hi, b)
 			if err != nil {
 				err = multierr.Append(errors.Wrap(err, "create new run progress"), bd.ReportFailure(hi.Host, b))
@@ -244,8 +275,8 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 				continue
 			}
 			if err := w.restoreBatch(ctx, b, pr); err != nil {
-				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
-				w.logger.Error(ctx, "Failed to restore batch",
+				err = multierr.Append(errors.Wrap(err, "load and stream batch"), bd.ReportFailure(hi.Host, b))
+				w.logger.Error(ctx, "Failed to load and stream batch",
 					"host", hi.Host,
 					"error", err)
 				continue
