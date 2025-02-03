@@ -134,3 +134,6 @@ jobs:
 
       - name: Run migrate tests
         run: make pkg-integration-test PKG=./pkg/schema/migrate
+
+      - name: Run 1-1-restore tests
+        run: make pkg-integration-test PKG=./pkg/service/one2onerestore
