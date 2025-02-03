@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -29,7 +30,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func TestOne2OneRestoreService(t *testing.T) {
+func TestOne2OneRestoreServiceIntegration(t *testing.T) {
+	if tablets := os.Getenv("TABLETS"); tablets == "enabled" {
+		t.Skip("1-1-restore is available only for v-nodes")
+	}
 	h := newTestHelper(t, ManagedClusterHosts())
 
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
