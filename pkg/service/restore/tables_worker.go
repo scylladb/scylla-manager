@@ -217,6 +217,19 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	f := func(n int) error {
 		host := w.hosts[n]
+
+		scyllaRestoreAPISupport, err := w.supportsScyllaRestoreAPI(ctx, host)
+		if err != nil {
+			return errors.Wrap(err, "check native restore API support")
+		}
+		if scyllaRestoreAPISupport {
+			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
+			if err != nil {
+				return err
+			}
+			defer reset()
+		}
+
 		dc, err := w.client.HostDatacenter(ctx, host)
 		if err != nil {
 			return errors.Wrapf(err, "get host %s data center", host)
@@ -238,9 +251,9 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
-			if ok, err := w.useScyllaRestoreAPI(ctx, b, host); err != nil {
-				return errors.Wrap(err, "check native Scylla restore API support")
-			} else if ok {
+			if ok := w.useScyllaRestoreAPI(ctx, b); scyllaRestoreAPISupport && ok {
+				w.logger.Info(ctx, "Use Scylla restore API",
+					"host", host, "keyspace", b.Keyspace, "table", b.Table)
 				if err := w.scyllaRestore(ctx, host, b); err != nil {
 					err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
 					w.logger.Error(ctx, "Failed to restore batch",

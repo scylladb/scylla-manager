@@ -18,29 +18,54 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
-// Decides whether we should use Scylla restore API for restoring the batch.
-func (w *worker) useScyllaRestoreAPI(ctx context.Context, b batch, host string) (bool, error) {
-	// Scylla restore API does not handle restoration of versioned files
-	if b.batchType.Versioned {
-		return false, nil
+// supportsScyllaRestoreAPI checks if native restore API
+// is supported by node's Scylla version.
+func (w *worker) supportsScyllaRestoreAPI(ctx context.Context, host string) (bool, error) {
+	nc, err := w.nodeInfo(ctx, host)
+	if err != nil {
+		return false, errors.Wrapf(err, "get node %s info", host)
 	}
-	// Scylla restore API does not handle SSTables with sstable.IntegerID
-	if b.batchType.IDType == sstable.IntegerID {
-		return false, nil
+
+	ok, err := nc.SupportsScyllaBackupRestoreAPI()
+	if err != nil {
+		return false, err
 	}
+	if !ok {
+		w.logger.Info(ctx, "Can't use Scylla restore API",
+			"reason", "no native Scylla restore API exposed")
+	}
+	return ok, nil
+}
+
+// useScyllaRestoreAPI checks if we should use native restore API
+// for restoring batch.
+// It assumes that supportsScyllaRestoreAPI was already checked and passed.
+func (w *worker) useScyllaRestoreAPI(ctx context.Context, b batch) bool {
 	// List of object storage providers supported by Scylla restore API
 	scyllaSupportedProviders := []Provider{
 		S3,
 	}
 	if !slices.Contains(scyllaSupportedProviders, b.Location.Provider) {
-		return false, nil
+		// Logging it here would create uninteresting logs per every batch.
+		// We can't check provider support only once in supportsScyllaRestoreAPI,
+		// because it's possible to use the same node for restoring from different providers.
+		return false
 	}
-	// Check if node exposes Scylla restore API
-	nc, err := w.nodeInfo(ctx, host)
-	if err != nil {
-		return false, errors.Wrapf(err, "get node %s info", host)
+	if b.batchType.Versioned {
+		w.logger.Info(ctx, "Can't use Scylla restore API",
+			"keyspace", b.Keyspace,
+			"table", b.Table,
+			"reason", "batch with versioned files")
+		return false
 	}
-	return nc.SupportsScyllaBackupRestoreAPI()
+	if b.batchType.IDType == sstable.IntegerID {
+		w.logger.Info(ctx, "Can't use Scylla restore API",
+			"keyspace", b.Keyspace,
+			"table", b.Table,
+			"reason", "batch with integer SSTable IDs")
+		return false
+	}
+	return true
 }
 
 func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch) (err error) {
