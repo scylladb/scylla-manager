@@ -437,28 +437,6 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 	return s
 }
 
-func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2 int) {
-	createKeyspaceStmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"
-	ExecStmt(t, session, fmt.Sprintf(createKeyspaceStmt, keyspace, rf1, rf2))
-}
-
-func tryCreateTabletKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2, tablets int) {
-	createKeyspaceStmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"
-	tabletStmt := " AND tablets = {'enabled': true, 'initial': %d}"
-	if tablets > 0 {
-		err := session.ExecStmt(fmt.Sprintf(createKeyspaceStmt+tabletStmt, keyspace, rf1, rf2, tablets))
-		if err == nil {
-			return
-		}
-		// Fallback as we don't know if tablets are enabled
-	}
-	ExecStmt(t, session, fmt.Sprintf(createKeyspaceStmt, keyspace, rf1, rf2))
-}
-
-func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
-	ExecStmt(t, session, fmt.Sprintf("DROP KEYSPACE IF EXISTS %q", keyspace))
-}
-
 // We must use -1 here to support working with empty tables or not flushed data.
 const repairAllSmallTableThreshold = -1
 
@@ -580,9 +558,9 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		t2            = "test_table_2"
 		maxJobsOnHost = 1
 	)
-	createKeyspace(t, clusterSession, ks1, 1, 1)
-	createKeyspace(t, clusterSession, ks2, 2, 2)
-	createKeyspace(t, clusterSession, ks3, 3, 3)
+	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks2, 2, 2, 256)
+	createDefaultKeyspace(t, clusterSession, ks3, 3, 3, 256)
 	WriteData(t, clusterSession, ks1, 5, t1, t2)
 	WriteData(t, clusterSession, ks2, 5, t1, t2)
 	WriteData(t, clusterSession, ks3, 5, t1, t2)
@@ -694,9 +672,9 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 	)
 
 	// Create keyspaces. Low RF improves repair parallelism.
-	createKeyspace(t, clusterSession, ks1, 1, 1)
-	createKeyspace(t, clusterSession, ks2, 1, 1)
-	createKeyspace(t, clusterSession, ks3, 2, 1)
+	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks2, 1, 1, 256)
+	createDefaultKeyspace(t, clusterSession, ks3, 2, 1, 256)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -909,9 +887,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	)
 
 	// Create keyspaces. Low RF increases repair parallelism.
-	tryCreateTabletKeyspace(t, clusterSession, ks1, 2, 1, 256)
-	tryCreateTabletKeyspace(t, clusterSession, ks2, 1, 1, 256)
-	tryCreateTabletKeyspace(t, clusterSession, ks3, 1, 1, 256)
+	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
+	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks3, 1, 1, 256)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -1164,7 +1142,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	tryCreateTabletKeyspace(t, clusterSession, "test_repair", 2, 2, 256)
+	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2, 256)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -1728,7 +1706,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3, 256)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1764,7 +1742,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3, 256)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -2113,7 +2091,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		tryCreateTabletKeyspace(t, clusterSession, ks, 2, 2, 256)
+		createDefaultKeyspace(t, clusterSession, ks, 2, 2, 256)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -2165,7 +2143,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		tryCreateTabletKeyspace(t, clusterSession, ks, 2, 2, 256)
+		createDefaultKeyspace(t, clusterSession, ks, 2, 2, 256)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -2308,7 +2286,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 	const ks = "test_repair"
 
-	createKeyspace(t, clusterSession, ks, 3, 3)
+	createDefaultKeyspace(t, clusterSession, ks, 3, 3, 256)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, ks)
