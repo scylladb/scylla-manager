@@ -76,10 +76,11 @@ show-tables: |
 
 dc-mapping: |
   Specifies mapping between DCs from the backup and DCs in the restored(target) cluster.
-  Only works with tables restoration (--restore-tables=true).
-  Syntax:
-    "source_dc1=>target_dc1;source_dc2=>target_dc2"
-  Multiple mappings are separated by semicolons (;)
-  Examples:
-    "dc1=>dc3;dc2=>dc4"      - data from dc1 should be restored to dc3 and data from dc2 should be restored to dc4.
+
+  The Syntax is "source_dc1=>target_dc1;source_dc2=>target_dc2" where multiple mappings are separated by semicolons (;)
+  and source and target DCs are separated by arrow (=>).
+
+  Example: "dc1=>dc3;dc2=>dc4" - data from dc1 should be restored to dc3 and data from dc2 should be restored to dc4.
+
+  Only works with tables restoration (--restore-tables=true). 
   Note: Only DCs that are provided in mappings will be restored.
