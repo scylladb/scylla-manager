@@ -41,7 +41,7 @@ type server struct {
 	healthSvc         *healthcheck.Service
 	backupSvc         *backup.Service
 	restoreSvc        *restore.Service
-	one2OneRestoreSvc *one2onerestore.Service
+	one2OneRestoreSvc one2onerestore.Servicer
 	repairSvc         *repair.Service
 	schedSvc          *scheduler.Service
 	configCacheSvc    configcache.ConfigCacher

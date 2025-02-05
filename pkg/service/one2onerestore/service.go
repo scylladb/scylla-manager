@@ -16,6 +16,15 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+// Servicer is an interface that defines one2onerestore service API contract.
+type Servicer interface {
+	// One2OneRestore restores data (tables) from the source cluster backup to the target cluster if they have equal topolgy:
+	// nodes count, shards count, token ownership should be exactly the same.
+	One2OneRestore(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error
+	// Runner creates a Runner that handels 1-1-restore operations.
+	Runner() Runner
+}
+
 // Service for the 1-1-restore.
 type Service struct {
 	session gocqlx.Session
@@ -28,7 +37,7 @@ type Service struct {
 
 func NewService(session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
 	logger log.Logger,
-) (*Service, error) {
+) (Servicer, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
 	}
