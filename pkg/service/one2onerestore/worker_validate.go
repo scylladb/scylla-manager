@@ -27,14 +27,14 @@ func (w *worker) validateClusters(ctx context.Context, manifests []*backupspec.M
 		return errors.Wrap(err, "collect nodes info")
 	}
 
-	if err := checkOne2OneRestoreCompatiblity(sourceNodeInfo, targetNodeInfo, nodeMappings); err != nil {
+	if err := checkOne2OneRestoreCompatibility(sourceNodeInfo, targetNodeInfo, nodeMappings); err != nil {
 		return errors.Wrap(err, "clusters not equal")
 	}
 
 	return nil
 }
 
-func checkOne2OneRestoreCompatiblity(sourceNodeInfo, targetNodeInfo []nodeValidationInfo, nodeMappings []nodeMapping) error {
+func checkOne2OneRestoreCompatibility(sourceNodeInfo, targetNodeInfo []nodeValidationInfo, nodeMappings []nodeMapping) error {
 	if len(sourceNodeInfo) != len(targetNodeInfo) {
 		return errors.Errorf("clusters have different nodes count: source %d != target %d", len(sourceNodeInfo), len(targetNodeInfo))
 	}
@@ -49,8 +49,8 @@ func checkOne2OneRestoreCompatiblity(sourceNodeInfo, targetNodeInfo []nodeValida
 		if !ok {
 			return errors.Errorf("target node has no match in source cluster:%s %s %s", target.DC, target.Rack, target.HostID)
 		}
-		if source.CPUCount != target.CPUCount {
-			return errors.Errorf("source CPUCount doesn't match target CPUCount")
+		if source.ShardCount != target.ShardCount {
+			return errors.Errorf("source ShardCount doesn't match target ShardCount")
 		}
 		if source.StorageSize > target.StorageSize {
 			return errors.Errorf("source StorageSize greater than target StorageSize")
@@ -139,7 +139,7 @@ type nodeValidationInfo struct {
 	DC          string
 	Rack        string
 	HostID      string
-	CPUCount    int64
+	ShardCount  int
 	StorageSize uint64
 	Tokens      []int64
 }
@@ -161,6 +161,10 @@ func (w *worker) getTargetClusterNodeInfo(ctx context.Context, hosts []Host) ([]
 		if err != nil {
 			return errors.Wrap(err, "get node tokens")
 		}
+		shardCount, err := w.client.ShardCount(ctx, h.Addr)
+		if err != nil {
+			return errors.Wrap(err, "get shard count")
+		}
 
 		// Make sure tokens are sorted,
 		// so we can compare them later.
@@ -170,7 +174,7 @@ func (w *worker) getTargetClusterNodeInfo(ctx context.Context, hosts []Host) ([]
 			HostID:      h.ID,
 			DC:          h.DC,
 			Rack:        rack,
-			CPUCount:    ni.CPUCount,
+			ShardCount:  int(shardCount),
 			StorageSize: ni.StorageSize,
 			Tokens:      tokens,
 		}
@@ -200,7 +204,7 @@ func (w *worker) getSourceClusterNodeInfo(ctx context.Context, manifests []*back
 			DC:          mc.DC,
 			Rack:        mc.Rack,
 			HostID:      mc.NodeID,
-			CPUCount:    int64(mc.CPUCount),
+			ShardCount:  mc.ShardCount,
 			StorageSize: mc.StorageSize,
 			Tokens:      mc.Tokens,
 		}

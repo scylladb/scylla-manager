@@ -132,7 +132,7 @@ func TestMapSourceNodeToTarget(t *testing.T) {
 
 }
 
-func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
+func TestCheckOne2OneRestoreCompatibility(t *testing.T) {
 	testCases := []struct {
 		name string
 
@@ -143,12 +143,12 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 		{
 			name: "Compatible clusters",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
@@ -159,11 +159,11 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 		{
 			name: "Different nodes count",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
@@ -172,30 +172,30 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 			expectedErr: "clusters have different nodes count: source 1 != target 2",
 		},
 		{
-			name: "Different CPUCount",
+			name: "Different ShardCount",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 8, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 8, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
 				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
 			},
-			expectedErr: "source CPUCount doesn't match target CPUCount",
+			expectedErr: "source ShardCount doesn't match target ShardCount",
 		},
 		{
 			name: "StorageSize greater in source",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 200, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 200, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
@@ -206,12 +206,12 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 		{
 			name: "Different Tokens",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{4, 5, 6}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{7, 8, 9}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{4, 5, 6}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{7, 8, 9}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
@@ -222,12 +222,12 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 		{
 			name: "Wrong HostID in node mappings",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "hello"}},
@@ -238,12 +238,12 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 		{
 			name: "Wrong Rack in node mappings",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "hello", HostID: "host4"}},
@@ -254,12 +254,12 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 		{
 			name: "Wrong DC in node mappings",
 			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", CPUCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", CPUCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
+				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
 			},
 			nodeMappings: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
@@ -271,7 +271,7 @@ func TestCheckOne2OneRestoreCompatiblity(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := checkOne2OneRestoreCompatiblity(tc.sourceCluster, tc.targetCluster, tc.nodeMappings)
+			actual := checkOne2OneRestoreCompatibility(tc.sourceCluster, tc.targetCluster, tc.nodeMappings)
 			if tc.expectedErr != "" && actual == nil {
 				t.Fatalf("Expected err %q, but got nil", tc.expectedErr)
 			}

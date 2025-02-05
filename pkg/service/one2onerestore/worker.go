@@ -52,11 +52,9 @@ func (w *worker) getManifestsAndHosts(ctx context.Context, target Target) ([]*ba
 		}
 	}
 
-	nodesWithAccessCount := len(nodesCountSet.List())
-
 	// If manifest count != nodes with access count means that 1-1 restore is not possible.
-	if len(allManifests) != nodesWithAccessCount || len(allManifests) != len(nodeStatus) {
-		return nil, nil, fmt.Errorf("manifest count (%d) != target nodes (%d)", len(allManifests), len(nodesCountSet.List()))
+	if len(allManifests) != nodesCountSet.Size() || len(allManifests) != len(nodeStatus) {
+		return nil, nil, fmt.Errorf("manifest count (%d) != target nodes (%d)", len(allManifests), nodesCountSet.Size())
 	}
 
 	return allManifests, nodesToHosts(nodeStatus), nil
