@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"math/rand"
 	"path"
 	"regexp"
 	"slices"
@@ -46,36 +45,130 @@ type worker struct {
 	clusterSession gocqlx.Session
 }
 
-func (w *worker) randomHostFromLocation(loc backupspec.Location) string {
-	hosts, ok := w.target.locationHosts[loc]
-	if !ok {
-		panic("no hosts for location: " + loc.String())
-	}
-	return hosts[rand.Intn(len(hosts))]
-}
-
 func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
-	if err := w.initTarget(ctx, properties); err != nil {
+	target, err := parseTarget(properties)
+	if err != nil {
+		return err
+	}
+	locationInfo, err := w.getLocationInfo(ctx, target)
+	if err != nil {
+		return err
+	}
+	if err := w.initTarget(ctx, target, locationInfo); err != nil {
 		return errors.Wrap(err, "init target")
 	}
-	if err := w.initUnits(ctx); err != nil {
+	if err := w.decorateWithPrevRun(ctx); err != nil {
+		return errors.Wrap(err, "get prev run")
+	}
+	if w.run.Units != nil {
+		return nil
+	}
+	// Cache must be initialised only once (even with continue=false), as it contains information already lost
+	// in the cluster (e.g. tombstone_gc mode, views definition, etc).
+	if err := w.initUnits(ctx, w.target.locationInfo); err != nil {
 		return errors.Wrap(err, "init units")
 	}
 	return errors.Wrap(w.initViews(ctx), "init views")
 }
 
-func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) error {
-	t := defaultTarget()
-	if err := json.Unmarshal(properties, &t); err != nil {
-		return err
+func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]LocationInfo, error) {
+	var result []LocationInfo
+
+	nodeStatus, err := w.client.Status(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get status")
 	}
 
+	sourceMap, targetMap := target.DCMappings.calculateMappings()
+
+	for _, l := range target.Location {
+		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, l)
+		if err != nil {
+			return nil, errors.Wrap(err, "getNodesWithAccess")
+		}
+
+		manifests, err := w.getManifestInfo(ctx, nodes[0].Addr, l, target.SnapshotTag)
+		if err != nil {
+			return nil, errors.Wrap(err, "getManifestInfo")
+		}
+		if len(manifests) == 0 {
+			return nil, errors.Errorf("no snapshot with tag %s", target.SnapshotTag)
+		}
+
+		dcHosts := hostsByDC(nodes, targetMap)
+
+		allLocationDCs := collectAllDCs(manifests)
+		if target.SkipDCMappingsValidation {
+			manifests = filterManifests(manifests, sourceMap)
+		}
+
+		result = append(result, LocationInfo{
+			DC:       allLocationDCs,
+			DCHosts:  dcHosts,
+			Manifest: manifests,
+			Location: l,
+		})
+	}
+
+	return result, nil
+}
+
+func (w *worker) getNodesWithAccess(ctx context.Context, nodeStatus scyllaclient.NodeStatusInfoSlice, loc backupspec.Location) (scyllaclient.NodeStatusInfoSlice, error) {
+	nodes, err := w.client.GetNodesWithLocationAccess(ctx, nodeStatus, loc.RemotePath(""))
+	if err != nil {
+		if strings.Contains(err.Error(), "NoSuchBucket") {
+			return nil, errors.Errorf("specified bucket does not exist: %s", loc)
+		}
+		return nil, errors.Wrapf(err, "location %s is not accessible", loc)
+	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no nodes with location %s access", loc)
+	}
+	return nodes, nil
+}
+
+// hostsByDC creates map of which hosts are responsible for which DCs, also applies DCMappings.
+func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetMap map[string][]string) map[string][]string {
+	dcHosts := map[string][]string{}
+
+	for _, n := range nodes {
+		sourceDC, ok := targetMap[n.Datacenter]
+		if !ok {
+			sourceDC = []string{n.Datacenter}
+		}
+		for _, dc := range sourceDC {
+			dcHosts[dc] = append(dcHosts[dc], n.Addr)
+		}
+	}
+
+	return dcHosts
+}
+
+func collectAllDCs(manifests []*backupspec.ManifestInfo) []string {
+	dcs := strset.New()
+	for _, m := range manifests {
+		dcs.Add(m.DC)
+	}
+	return dcs.List()
+}
+
+// keep only manifests that have dc mapping.
+func filterManifests(manifests []*backupspec.ManifestInfo, sourceMap map[string][]string) []*backupspec.ManifestInfo {
+	var result []*backupspec.ManifestInfo
+	for _, m := range manifests {
+		_, ok := sourceMap[m.DC]
+		if !ok {
+			continue
+		}
+		result = append(result, m)
+	}
+	return result
+}
+
+func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []LocationInfo) error {
 	dcMap, err := w.client.Datacenters(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get data centers")
-	}
-	if err := t.validateProperties(dcMap); err != nil {
-		return err
 	}
 
 	if t.Keyspace == nil {
@@ -93,61 +186,18 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		t.Keyspace = append(t.Keyspace, notRestored...)
 	}
 
-	status, err := w.client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get status")
-	}
-
-	_, targetMap := t.DCMappings.calculateMappings()
-	t.hostDCs = w.applyDCMapping(status, targetMap)
-	w.logger.Info(ctx, "Applied dc mappings", "mappings", targetMap, "host_dcs", t.hostDCs)
-
 	// All nodes should be up during restore
 	if err := w.client.VerifyNodesAvailability(ctx); err != nil {
 		return errors.Wrap(err, "verify all nodes availability")
 	}
 
-	locationHosts := make(map[backupspec.Location][]string)
-	for _, l := range t.Location {
-		var (
-			remotePath     = l.RemotePath("")
-			locationStatus = status
-		)
-
-		if l.DC == "" {
-			w.logger.Info(ctx, "No datacenter specified for location - using all nodes for this location", "location", l)
-		} else {
-			locationStatus = status.Datacenter([]string{l.DC})
-		}
-
-		nodes, err := w.client.GetNodesWithLocationAccess(ctx, locationStatus, remotePath)
-		if err != nil {
-			if strings.Contains(err.Error(), "NoSuchBucket") {
-				return errors.Errorf("specified bucket does not exist: %s", l)
-			}
-			return errors.Wrapf(err, "location %s is not accessible", l)
-		}
-		if len(nodes) == 0 {
-			return fmt.Errorf("no nodes with location %s access", l)
-		}
-
-		var hosts []string
-		for _, n := range nodes {
-			hosts = append(hosts, n.Addr)
-		}
-
-		w.logger.Info(ctx, "Found hosts with location access", "location", l, "hosts", hosts)
-		locationHosts[l] = hosts
-	}
-	t.locationHosts = locationHosts
-	t.sortLocations()
-
+	t.locationInfo = locationInfo
 	w.target = t
 	w.run.SnapshotTag = t.SnapshotTag
 
 	if t.RestoreSchema {
 		w.logger.Info(ctx, "Look for schema file")
-		w.describedSchema, err = getDescribedSchema(ctx, w.client, t.SnapshotTag, locationHosts)
+		w.describedSchema, err = getDescribedSchema(ctx, w.client, t.SnapshotTag, t.locationInfo)
 		if err != nil {
 			return errors.Wrap(err, "look for schema file")
 		}
@@ -164,14 +214,12 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	}
 
 	if !t.SkipDCMappingsValidation {
-		// The only way to have a list of dcs from the source cluster is to
-		// get them from backup locations.
-		sourceDC, err := w.collectDCFromLocation(ctx, t.locationHosts)
-		if err != nil {
-			return err
+		sourceDC := strset.New()
+		for _, locInfo := range locationInfo {
+			sourceDC.Add(locInfo.DC...)
 		}
 		targetDC := slices.Collect(maps.Keys(dcMap))
-		if err := w.validateDCMappings(t.DCMappings, sourceDC, targetDC); err != nil {
+		if err := w.validateDCMappings(t.DCMappings, sourceDC.List(), targetDC); err != nil {
 			w.logger.Debug(ctx,
 				"Validate dc mapping",
 				"source_dc", sourceDC,
@@ -186,33 +234,6 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	return nil
 }
 
-// applyDCMapping applices given mappings to each node, mapping each host's datacenter in the target cluster to its corresponding
-// datacenter(s) in the source cluster.
-func (w *worker) applyDCMapping(status scyllaclient.NodeStatusInfoSlice, targetMap map[string][]string) map[string][]string {
-	hostDCs := map[string][]string{}
-	for _, n := range status {
-		hostDCs[n.Addr] = append(hostDCs[n.Addr], targetMap[n.Datacenter]...)
-	}
-	return hostDCs
-}
-
-func (w *worker) collectDCFromLocation(ctx context.Context, locationHosts map[Location][]string) ([]string, error) {
-	sourceDCs := strset.New()
-	for loc, hosts := range locationHosts {
-		manifests, err := w.getManifestInfo(ctx, hosts[0], loc)
-		if err != nil {
-			return nil, errors.Wrap(err, "getManifestInfo")
-		}
-		if len(manifests) == 0 {
-			return nil, errors.Errorf("no snapshot with tag %s", w.run.SnapshotTag)
-		}
-		for _, m := range manifests {
-			sourceDCs.Add(m.DC)
-		}
-	}
-	return sourceDCs.List(), nil
-}
-
 // validateDCMappings validates that every dc in source cluster has corresponding dc in target cluster
 // taking into account dc mappings.
 func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []string) error {
@@ -225,25 +246,22 @@ func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []st
 		}
 		return errors.Errorf("Source DC(%s) != Target DC(%s)", sourceDC, targetDC)
 	}
-	_, targetMap := mappings.calculateMappings()
-	mappedTargetDCs := strset.New()
+	sourceMap, targetMap := mappings.calculateMappings()
 	// Make sure that each dc from target cluster has corresponding dc (or mapping) in source cluster
 	for _, dc := range targetDC {
-		if dcs, ok := targetMap[dc]; ok {
-			mappedTargetDCs.Add(dcs...)
+		if _, ok := targetMap[dc]; ok {
 			continue
 		}
 		return errors.Errorf("Target DC(%s) doesn't have a match in the source cluster: %v", dc, sourceDC)
 	}
 
-	sourceDCSet := strset.New(sourceDC...)
-
-	// Check that every dc from source has been mapped to the target dc
-	if !sourceDCSet.IsEqual(mappedTargetDCs) {
-		return errors.Errorf(
-			"Source DCs(%v) doesn't have a match in the target cluster: %v",
-			strset.Difference(sourceDCSet, mappedTargetDCs), targetDC)
+	for _, dc := range sourceDC {
+		if _, ok := sourceMap[dc]; ok {
+			continue
+		}
+		return errors.Errorf("Source DC(%s) doesn't have a match in the target cluster: %v", dc, targetDC)
 	}
+
 	return nil
 }
 
@@ -414,32 +432,16 @@ func IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, cli
 	return nil
 }
 
-func (w *worker) skipDC(dc string) bool {
-	if !w.target.RestoreTables {
-		return false
-	}
-	if !w.target.SkipDCMappingsValidation {
-		return false
-	}
-	sourceMap, _ := w.target.DCMappings.calculateMappings()
-	_, ok := sourceMap[dc]
-	return !ok
-}
-
 // initUnits should be called with already initialized target.
-func (w *worker) initUnits(ctx context.Context) error {
+func (w *worker) initUnits(ctx context.Context, locationInfo []LocationInfo) error {
 	var (
 		units   []Unit
 		unitMap = make(map[string]Unit)
 	)
 
 	var foundManifest bool
-	for _, l := range w.target.Location {
+	for _, l := range locationInfo {
 		manifestHandler := func(miwc backupspec.ManifestInfoWithContent) error {
-			if w.skipDC(miwc.DC) {
-				w.logger.Info(ctx, "Ignoring dc", "dc", miwc.DC, "location", l)
-				return nil
-			}
 			foundManifest = true
 
 			filesHandler := func(fm backupspec.FilesMeta) {

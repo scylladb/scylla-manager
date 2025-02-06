@@ -57,7 +57,7 @@ type batchDispatcher struct {
 	hostShardCnt map[string]uint
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, hostDCs map[string][]string) *batchDispatcher {
+func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationInfo []LocationInfo) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, sh := range hostShardCnt {
@@ -70,7 +70,7 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 		mu:                    sync.Mutex{},
 		wait:                  make(chan struct{}),
 		workload:              workload,
-		workloadProgress:      newWorkloadProgress(workload, hostDCs),
+		workloadProgress:      newWorkloadProgress(workload, locationInfo),
 		batchSize:             batchSize,
 		expectedShardWorkload: workload.TotalSize / int64(shards),
 		hostShardCnt:          hostShardCnt,
@@ -106,7 +106,7 @@ type remoteSSTableDirProgress struct {
 	RemainingSSTables []RemoteSSTable
 }
 
-func newWorkloadProgress(workload Workload, hostDCs map[string][]string) workloadProgress {
+func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloadProgress {
 	dcBytes := make(map[string]int64)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
 	for i, rdw := range workload.RemoteDir {
@@ -116,10 +116,18 @@ func newWorkloadProgress(workload Workload, hostDCs map[string][]string) workloa
 			RemainingSSTables: rdw.SSTables,
 		}
 	}
+	hostDCAccess := map[string][]string{}
+	for _, l := range locationInfo {
+		for dc, hosts := range l.DCHosts {
+			for _, h := range hosts {
+				hostDCAccess[h] = append(hostDCAccess[h], dc)
+			}
+		}
+	}
 	return workloadProgress{
 		dcBytesToBeRestored: dcBytes,
 		hostFailedDC:        make(map[string][]string),
-		hostDCAccess:        hostDCs,
+		hostDCAccess:        hostDCAccess,
 		remoteDir:           p,
 	}
 }

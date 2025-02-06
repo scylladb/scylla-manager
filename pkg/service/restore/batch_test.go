@@ -111,13 +111,23 @@ func TestBatchDispatcher(t *testing.T) {
 		"h3": 3,
 	}
 
-	hostDCs := map[string][]string{
-		"h1": {"dc1", "dc2"},
-		"h2": {"dc1", "dc2"},
-		"h3": {"dc3"},
+	locationInfo := []LocationInfo{
+		{
+			Location: l1,
+			DCHosts: map[string][]string{
+				"dc1": {"h1", "h2"},
+				"dc2": {"h1", "h2"},
+			},
+		},
+		{
+			Location: l2,
+			DCHosts: map[string][]string{
+				"dc3": {"h3"},
+			},
+		},
 	}
 
-	bd := newBatchDispatcher(workload, 1, hostToShard, hostDCs)
+	bd := newBatchDispatcher(workload, 1, hostToShard, locationInfo)
 
 	scenario := []struct {
 		host  string
@@ -174,19 +184,21 @@ func TestNewWorkloadProgress(t *testing.T) {
 	testCases := []struct {
 		name string
 
-		workload Workload
-		hostDCs  map[string][]string
+		workload     Workload
+		locationInfo []LocationInfo
 
 		expected map[string][]string
 	}{
 		{
 			name:     "one location with one DC",
 			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1"}}),
-			hostDCs: map[string][]string{
-				"host1": {"dc1"},
-				"host2": {"dc1"},
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1", "host2"},
+					},
+				},
 			},
-
 			expected: map[string][]string{
 				"host1": {"dc1"},
 				"host2": {"dc1"},
@@ -195,11 +207,14 @@ func TestNewWorkloadProgress(t *testing.T) {
 		{
 			name:     "one location with two DC's",
 			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1", "dc2"}}),
-			hostDCs: map[string][]string{
-				"host1": {"dc1"},
-				"host2": {"dc2"},
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1"},
+						"dc2": {"host2"},
+					},
+				},
 			},
-
 			expected: map[string][]string{
 				"host1": {"dc1"},
 				"host2": {"dc2"},
@@ -208,13 +223,14 @@ func TestNewWorkloadProgress(t *testing.T) {
 		{
 			name:     "one location with two DC's, more nodes",
 			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1", "dc2"}}),
-			hostDCs: map[string][]string{
-				"host1": {"dc1"},
-				"host2": {"dc1"},
-				"host3": {"dc2"},
-				"host4": {"dc2"},
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1", "host2"},
+						"dc2": {"host3", "host4"},
+					},
+				},
 			},
-
 			expected: map[string][]string{
 				"host1": {"dc1"},
 				"host2": {"dc1"},
@@ -228,11 +244,18 @@ func TestNewWorkloadProgress(t *testing.T) {
 				[]string{"location1", "location2"},
 				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
 			),
-			hostDCs: map[string][]string{
-				"host1": {"dc1"},
-				"host2": {"dc2"},
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1"},
+					},
+				},
+				{
+					DCHosts: map[string][]string{
+						"dc2": {"host2"},
+					},
+				},
 			},
-
 			expected: map[string][]string{
 				"host1": {"dc1"},
 				"host2": {"dc2"},
@@ -244,11 +267,18 @@ func TestNewWorkloadProgress(t *testing.T) {
 				[]string{"location1", "location2"},
 				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
 			),
-			hostDCs: map[string][]string{
-				"host1": {"dc1", "dc2"},
-				"host2": {"dc1", "dc2"},
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1", "host2"},
+					},
+				},
+				{
+					DCHosts: map[string][]string{
+						"dc2": {"host1", "host2"},
+					},
+				},
 			},
-
 			expected: map[string][]string{
 				"host1": {"dc1", "dc2"},
 				"host2": {"dc1", "dc2"},
@@ -258,7 +288,7 @@ func TestNewWorkloadProgress(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			wp := newWorkloadProgress(tc.workload, tc.hostDCs)
+			wp := newWorkloadProgress(tc.workload, tc.locationInfo)
 			if diff := cmp.Diff(wp.hostDCAccess, tc.expected); diff != "" {
 				t.Fatalf("Actual != Expected: %s", diff)
 			}

@@ -30,6 +30,7 @@ type schemaWorker struct {
 	worker
 
 	generationCnt atomic.Int64
+	locationInfo  LocationInfo                       // Currently restored Location
 	miwc          backupspec.ManifestInfoWithContent // Currently restored manifest
 	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
 	// that should be used during the restore procedure. It should be initialized per each restored table.
@@ -88,7 +89,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 	// Download files
-	for _, l := range w.target.Location {
+	for _, l := range w.target.locationInfo {
 		if err := w.locationDownloadHandler(ctx, l); err != nil {
 			return err
 		}
@@ -195,9 +196,11 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 	return nil
 }
 
-func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location backupspec.Location) error {
-	w.logger.Info(ctx, "Downloading schema from location", "location", location)
-	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location)
+func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location LocationInfo) error {
+	w.logger.Info(ctx, "Downloading schema from location", "location", location.Location)
+	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location.Location)
+
+	w.locationInfo = location
 
 	tableDownloadHandler := func(fm backupspec.FilesMeta) error {
 		if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
@@ -242,7 +245,10 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm backupspec.FilesMeta) er
 		"files", fm.Files,
 	)
 
-	hosts := w.target.locationHosts[w.miwc.Location]
+	hosts, ok := w.locationInfo.DCHosts[w.miwc.DC]
+	if !ok {
+		return errors.Errorf("hosts for the DC %s are not found", w.miwc.DC)
+	}
 	w.versionedFiles, err = backup.ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
@@ -335,7 +341,7 @@ func (w *schemaWorker) getFileNamesMapping(sstables []string, sstableUUIDFormat 
 	return sstable.RenameToIDs(sstables, &w.generationCnt)
 }
 
-func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapshotTag string, locHost map[backupspec.Location][]string) (schema *query.DescribedSchema, err error) {
+func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapshotTag string, locationInfo []LocationInfo) (schema *query.DescribedSchema, err error) {
 	baseDir := path.Join("backup", string(backupspec.SchemaDirKind))
 	// It's enough to get a single schema file, but it's important to validate
 	// that each location contains exactly one or none of them.
@@ -344,11 +350,11 @@ func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapsh
 		schemaPath *string
 		foundCnt   int
 	)
-	for l, hosts := range locHost {
-		host = hosts[0]
-		schemaPath, err = getRemoteSchemaFilePath(ctx, client, snapshotTag, host, l.RemotePath(baseDir))
+	for _, l := range locationInfo {
+		host = l.AnyHost()
+		schemaPath, err = getRemoteSchemaFilePath(ctx, client, snapshotTag, host, l.Location.RemotePath(baseDir))
 		if err != nil {
-			return nil, errors.Wrapf(err, "get schema file from %s", l.RemotePath(baseDir))
+			return nil, errors.Wrapf(err, "get schema file from %s", l.Location.RemotePath(baseDir))
 		}
 		if schemaPath != nil {
 			foundCnt++
@@ -357,7 +363,7 @@ func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapsh
 
 	if foundCnt == 0 {
 		return nil, nil // nolint: nilnil
-	} else if foundCnt < len(locHost) {
+	} else if foundCnt < len(locationInfo) {
 		return nil, errors.New("only a subset of provided locations has schema files")
 	}
 

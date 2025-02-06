@@ -3,9 +3,9 @@
 package restore
 
 import (
+	"encoding/json"
 	"reflect"
 	"slices"
-	"sort"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -37,10 +37,41 @@ type Target struct {
 	DCMappings               DCMappings            `json:"dc_mapping"`
 	SkipDCMappingsValidation bool                  `json:"skip_dc_mapping_validation"`
 
-	// Cache for host with access to remote location
-	locationHosts map[backupspec.Location][]string `json:"-"`
-	// Cache for host and their DC after applying DCMappings
-	hostDCs map[string][]string
+	locationInfo []LocationInfo
+}
+
+// LocationInfo contains information about Location, such as what DCs it has,
+// what hosts can access what dcs, and the list of manifests from this location.
+type LocationInfo struct {
+	// DC contains all data centers that can be found in this location
+	DC []string
+	// Contains hosts that should handle DCs from this location
+	// after DCMappings are applied
+	DCHosts  map[string][]string
+	Location backupspec.Location
+
+	// Manifest in this Location. Shouldn't contain manifests from DCs
+	// that are not in the DCMappings
+	Manifest []*backupspec.ManifestInfo
+}
+
+// AnyHost returns random host with access to this Location.
+func (l LocationInfo) AnyHost() string {
+	for _, hosts := range l.DCHosts {
+		if len(hosts) != 0 {
+			return hosts[0]
+		}
+	}
+	return ""
+}
+
+// AllHosts returns all hosts with the access to this Location.
+func (l LocationInfo) AllHosts() []string {
+	var hosts []string
+	for _, h := range l.DCHosts {
+		hosts = append(hosts, h...)
+	}
+	return hosts
 }
 
 const (
@@ -59,9 +90,18 @@ func defaultTarget() Target {
 	}
 }
 
+// parseTarget parse Target from properties and applies defaults.
+func parseTarget(properties json.RawMessage) (Target, error) {
+	t := defaultTarget()
+	if err := json.Unmarshal(properties, &t); err != nil {
+		return Target{}, err
+	}
+	return t, t.validateProperties()
+}
+
 // validateProperties makes a simple validation of params set by user.
 // It does not perform validations that require access to the service.
-func (t Target) validateProperties(dcMap map[string][]string) error {
+func (t Target) validateProperties() error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
@@ -78,9 +118,6 @@ func (t Target) validateProperties(dcMap map[string][]string) error {
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or 0 (set transfers for fastest download) or greater than zero")
 	}
-	if err := backup.CheckDCs(t.RateLimit, dcMap); err != nil {
-		return errors.Wrap(err, "invalid rate limit")
-	}
 	if t.RestoreSchema == t.RestoreTables {
 		return errors.New("choose EXACTLY ONE restore type ('--restore-schema' or '--restore-tables' flag)")
 	}
@@ -96,14 +133,7 @@ func (t Target) validateProperties(dcMap map[string][]string) error {
 		}
 		allLocations.Add(p)
 	}
-
 	return nil
-}
-
-func (t Target) sortLocations() {
-	sort.SliceStable(t.Location, func(i, j int) bool {
-		return t.Location[i].String() < t.Location[j].String()
-	})
 }
 
 // Run tracks restore progress, shares ID with scheduler.Run that initiated it.
@@ -313,6 +343,8 @@ type DCMapping struct {
 	Target []string `json:"target"`
 }
 
+// calculateMappings creates two maps from DCMappings where each contains mapping between
+// source and target data centers.
 func (mappings DCMappings) calculateMappings() (sourceMap, targetMap map[string][]string) {
 	sourceMap, targetMap = map[string][]string{}, map[string][]string{}
 	for _, mapping := range mappings {
