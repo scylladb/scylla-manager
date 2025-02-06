@@ -60,10 +60,6 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 		"location":       loc,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
-		// DC Mapping is required
-		"dc_mapping": []map[string][]string{
-			{"source": {"dc1", "dc3"}, "target": {"dc1", "dc2"}},
-		},
 	})
 
 	Print("Log in via restored user and check permissions")
@@ -111,10 +107,6 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
-		// DC Mapping is required
-		"dc_mapping": []map[string][]string{
-			{"source": {"dc1", "dc3"}, "target": {"dc1", "dc2"}},
-		},
 	})
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -305,10 +297,6 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
-		// DC Mapping is required
-		"dc_mapping": []map[string][]string{
-			{"source": {"dc1", "dc3"}, "target": {"dc1", "dc2"}},
-		},
 	})
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -367,10 +355,6 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
-		// DC Mapping is required
-		"dc_mapping": []map[string][]string{
-			{"source": {"dc1", "dc3"}, "target": {"dc1", "dc2"}},
-		},
 	})
 
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
@@ -472,10 +456,6 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 		"keyspace":       []string{ks1, ks2},
 		"snapshot_tag":   tag,
 		"restore_tables": true,
-		// DC Mapping is required
-		"dc_mapping": []map[string][]string{
-			{"source": {"dc1", "dc3"}, "target": {"dc1", "dc2"}},
-		},
 	}
 	err = runPausedRestore(t, func(ctx context.Context) error {
 		h.dstCluster.RunID = uuid.NewTime()
@@ -511,10 +491,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
 	Print("Keyspace setup")
-	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', '%s': 2, '%s': 2}"
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
 	ks := randomizedName("prep_")
-	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, "dc1", "dc2"))
-	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, "dc1", "dc3"))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
 
 	Print("Table setup")
 	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int) WITH tombstone_gc = {'mode': 'repair'}"
@@ -646,10 +626,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 			"rate_limit":      []string{"0"},
 			"unpin_agent_cpu": true,
 			"restore_tables":  true,
-			// DC Mapping is required
-			"dc_mapping": []map[string][]string{
-				{"source": {"dc1", "dc2"}, "target": {"dc1", "dc3"}},
-			},
 		})
 		if err != nil {
 			finishedRestore <- err
@@ -797,10 +773,6 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
-		// DC Mapping is required
-		"dc_mapping": []map[string][]string{
-			{"source": {"dc1", "dc3"}, "target": {"dc1", "dc2"}},
-		},
 	}
 
 	t.Run("batch retry finished with success", func(t *testing.T) {
@@ -1000,10 +972,6 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 			"parallel":       1,
 			"snapshot_tag":   tag,
 			"restore_tables": true,
-			// DC Mapping is required, because dcs are reversed :D
-			"dc_mapping": []map[string][]string{
-				{"source": {"dc1", "dc2"}, "target": {"dc2", "dc1"}},
-			},
 		})
 		close(res)
 	}()
@@ -1105,7 +1073,7 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	}
 }
 
-func TestRestoreOnlyOneDCFromLocation(t *testing.T) {
+func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
 	Print("Keyspace setup")
@@ -1120,7 +1088,7 @@ func TestRestoreOnlyOneDCFromLocation(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmtOneDC, ksOneDC))
 
 	// Target cluster
-	ksStmtDst := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc3': 1}"
+	ksStmtDst := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}"
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ksTwoDC))
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ksOneDC))
 
@@ -1165,10 +1133,9 @@ func TestRestoreOnlyOneDCFromLocation(t *testing.T) {
 			"snapshot_tag":   tag,
 			"restore_tables": true,
 			// DC Mapping is required
-			"dc_mapping": []map[string][]string{
-				{"source": {"dc1"}, "target": {"dc3"}},
+			"dc_mapping": []map[string]string{
+				{"source": "dc1", "target": "dc1"},
 			},
-			"skip_dc_mapping_validation": true,
 		})
 		close(res)
 	}()
