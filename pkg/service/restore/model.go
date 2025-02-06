@@ -22,20 +22,19 @@ import (
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location                 []backupspec.Location `json:"location"`
-	Keyspace                 []string              `json:"keyspace,omitempty"`
-	SnapshotTag              string                `json:"snapshot_tag"`
-	BatchSize                int                   `json:"batch_size,omitempty"`
-	Parallel                 int                   `json:"parallel,omitempty"`
-	Transfers                int                   `json:"transfers"`
-	RateLimit                []backup.DCLimit      `json:"rate_limit,omitempty"`
-	AllowCompaction          bool                  `json:"allow_compaction,omitempty"`
-	UnpinAgentCPU            bool                  `json:"unpin_agent_cpu"`
-	RestoreSchema            bool                  `json:"restore_schema,omitempty"`
-	RestoreTables            bool                  `json:"restore_tables,omitempty"`
-	Continue                 bool                  `json:"continue"`
-	DCMappings               DCMappings            `json:"dc_mapping"`
-	SkipDCMappingsValidation bool                  `json:"skip_dc_mapping_validation"`
+	Location        []backupspec.Location `json:"location"`
+	Keyspace        []string              `json:"keyspace,omitempty"`
+	SnapshotTag     string                `json:"snapshot_tag"`
+	BatchSize       int                   `json:"batch_size,omitempty"`
+	Parallel        int                   `json:"parallel,omitempty"`
+	Transfers       int                   `json:"transfers"`
+	RateLimit       []backup.DCLimit      `json:"rate_limit,omitempty"`
+	AllowCompaction bool                  `json:"allow_compaction,omitempty"`
+	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
+	RestoreSchema   bool                  `json:"restore_schema,omitempty"`
+	RestoreTables   bool                  `json:"restore_tables,omitempty"`
+	Continue        bool                  `json:"continue"`
+	DCMappings      DCMappings            `json:"dc_mapping"`
 
 	locationInfo []LocationInfo
 }
@@ -339,33 +338,17 @@ type DCMappings []DCMapping
 
 // DCMapping represent single instance of datacenter mappings. See DCMappings for details.
 type DCMapping struct {
-	Source []string `json:"source"`
-	Target []string `json:"target"`
+	Source string `json:"source"`
+	Target string `json:"target"`
 }
 
 // calculateMappings creates two maps from DCMappings where each contains mapping between
 // source and target data centers.
-func (mappings DCMappings) calculateMappings() (sourceMap, targetMap map[string][]string) {
-	sourceMap, targetMap = map[string][]string{}, map[string][]string{}
+func (mappings DCMappings) calculateMappings() (sourceDC2TargetDCMap, targetDC2SourceDCMap map[string]string) {
+	sourceDC2TargetDCMap, targetDC2SourceDCMap = map[string]string{}, map[string]string{}
 	for _, mapping := range mappings {
-		if len(mapping.Source) == 0 || len(mapping.Target) == 0 {
-			continue
-		}
-		tIdx, sIdx := 0, 0
-		for {
-			target, source := mapping.Target[tIdx], mapping.Source[sIdx]
-			sourceMap[source] = append(sourceMap[source], target)
-			targetMap[target] = append(targetMap[target], source)
-			if tIdx == len(mapping.Target)-1 && sIdx == len(mapping.Source)-1 {
-				break
-			}
-			if tIdx < len(mapping.Target)-1 {
-				tIdx++
-			}
-			if sIdx < len(mapping.Source)-1 {
-				sIdx++
-			}
-		}
+		sourceDC2TargetDCMap[mapping.Source] = mapping.Target
+		targetDC2SourceDCMap[mapping.Target] = mapping.Source
 	}
-	return sourceMap, targetMap
+	return sourceDC2TargetDCMap, targetDC2SourceDCMap
 }

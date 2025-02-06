@@ -16,26 +16,20 @@ func TestSetDCMapping(t *testing.T) {
 		{
 			input: "dc1=>dc2",
 			expectedMappings: dcMappings{
-				{Source: []string{"dc1"}, Target: []string{"dc2"}},
+				{Source: "dc1", Target: "dc2"},
 			},
 		},
 		{
-			input: " dc1, dc2 => dc1, dc2",
+			input: " dc1 => dc1 ",
 			expectedMappings: dcMappings{
-				{Source: []string{"dc1", "dc2"}, Target: []string{"dc1", "dc2"}},
+				{Source: "dc1", Target: "dc1"},
 			},
 		},
 		{
 			input: "dc1=>dc3;dc2=>dc4",
 			expectedMappings: dcMappings{
-				{Source: []string{"dc1"}, Target: []string{"dc3"}},
-				{Source: []string{"dc2"}, Target: []string{"dc4"}},
-			},
-		},
-		{
-			input: "dc1,dc2=>dc3",
-			expectedMappings: dcMappings{
-				{Source: []string{"dc1", "dc2"}, Target: []string{"dc3"}},
+				{Source: "dc1", Target: "dc3"},
+				{Source: "dc2", Target: "dc4"},
 			},
 		},
 		{
@@ -76,11 +70,7 @@ func TestSetDCMapping(t *testing.T) {
 			if !tc.expectedErr && err != nil {
 				t.Fatalf("Unexpected err: %v", err)
 			}
-			equal := slices.EqualFunc(tc.expectedMappings, mappings, func(a, b dcMapping) bool {
-				return slices.Equal(a.Source, b.Source) &&
-					slices.Equal(a.Target, b.Target)
-			})
-			if !equal {
+			if !slices.Equal(mappings, tc.expectedMappings) {
 				t.Fatalf("Expected %v, but got %v", tc.expectedMappings, mappings)
 			}
 		})
@@ -95,14 +85,14 @@ func TestDCMappingString(t *testing.T) {
 	}{
 		{
 			mappings: dcMappings{
-				{Source: []string{"dc1"}, Target: []string{"dc2"}},
+				{Source: "dc1", Target: "dc2"},
 			},
 			expected: "dc1=>dc2",
 		},
 		{
 			mappings: dcMappings{
-				{Source: []string{"dc1"}, Target: []string{"dc2"}},
-				{Source: []string{"dc3"}, Target: []string{"dc4"}},
+				{Source: "dc1", Target: "dc2"},
+				{Source: "dc3", Target: "dc4"},
 			},
 			expected: "dc1=>dc2;dc3=>dc4",
 		},

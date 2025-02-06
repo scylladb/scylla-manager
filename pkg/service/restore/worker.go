@@ -79,10 +79,10 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 		return nil, errors.Wrap(err, "get status")
 	}
 
-	sourceMap, targetMap := target.DCMappings.calculateMappings()
+	sourceDC2TargetDCMap, targetDC2SourceDCMap := target.DCMappings.calculateMappings()
 
 	for _, l := range target.Location {
-		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, l)
+		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, l, len(target.DCMappings) > 0)
 		if err != nil {
 			return nil, errors.Wrap(err, "getNodesWithAccess")
 		}
@@ -95,17 +95,10 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 			return nil, errors.Errorf("no snapshot with tag %s", target.SnapshotTag)
 		}
 
-		dcHosts := hostsByDC(nodes, targetMap)
-
-		allLocationDCs := collectAllDCs(manifests)
-		if target.SkipDCMappingsValidation {
-			manifests = filterManifests(manifests, sourceMap)
-		}
-
 		result = append(result, LocationInfo{
-			DC:       allLocationDCs,
-			DCHosts:  dcHosts,
-			Manifest: manifests,
+			DC:       collectAllDCs(manifests),
+			DCHosts:  hostsByDC(nodes, targetDC2SourceDCMap),
+			Manifest: filterManifests(manifests, sourceDC2TargetDCMap),
 			Location: l,
 		})
 	}
@@ -113,7 +106,11 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 	return result, nil
 }
 
-func (w *worker) getNodesWithAccess(ctx context.Context, nodeStatus scyllaclient.NodeStatusInfoSlice, loc backupspec.Location) (scyllaclient.NodeStatusInfoSlice, error) {
+func (w *worker) getNodesWithAccess(ctx context.Context, nodeStatus scyllaclient.NodeStatusInfoSlice, loc backupspec.Location, useLocationDC bool) (scyllaclient.NodeStatusInfoSlice, error) {
+	if useLocationDC && loc.Datacenter() != "" {
+		nodeStatus = nodeStatus.Datacenter([]string{loc.Datacenter()})
+	}
+
 	nodes, err := w.client.GetNodesWithLocationAccess(ctx, nodeStatus, loc.RemotePath(""))
 	if err != nil {
 		if strings.Contains(err.Error(), "NoSuchBucket") {
@@ -127,20 +124,16 @@ func (w *worker) getNodesWithAccess(ctx context.Context, nodeStatus scyllaclient
 	return nodes, nil
 }
 
-// hostsByDC creates map of which hosts are responsible for which DCs, also applies DCMappings.
-func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetMap map[string][]string) map[string][]string {
+// hostsByDC creates map of which hosts are responsible for which DC, also applies DCMappings if available.
+func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetDC2sourceDCMap map[string]string) map[string][]string {
 	dcHosts := map[string][]string{}
-
 	for _, n := range nodes {
-		sourceDC, ok := targetMap[n.Datacenter]
+		sourceDC, ok := targetDC2sourceDCMap[n.Datacenter]
 		if !ok {
-			sourceDC = []string{n.Datacenter}
+			sourceDC = n.Datacenter
 		}
-		for _, dc := range sourceDC {
-			dcHosts[dc] = append(dcHosts[dc], n.Addr)
-		}
+		dcHosts[sourceDC] = append(dcHosts[sourceDC], n.Addr)
 	}
-
 	return dcHosts
 }
 
@@ -153,10 +146,13 @@ func collectAllDCs(manifests []*backupspec.ManifestInfo) []string {
 }
 
 // keep only manifests that have dc mapping.
-func filterManifests(manifests []*backupspec.ManifestInfo, sourceMap map[string][]string) []*backupspec.ManifestInfo {
+func filterManifests(manifests []*backupspec.ManifestInfo, sourceDC2TargetDCMap map[string]string) []*backupspec.ManifestInfo {
+	if len(sourceDC2TargetDCMap) == 0 {
+		return manifests
+	}
 	var result []*backupspec.ManifestInfo
 	for _, m := range manifests {
-		_, ok := sourceMap[m.DC]
+		_, ok := sourceDC2TargetDCMap[m.DC]
 		if !ok {
 			continue
 		}
@@ -213,7 +209,7 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 		return nil
 	}
 
-	if !t.SkipDCMappingsValidation {
+	if len(t.DCMappings) > 0 {
 		sourceDC := strset.New()
 		for _, locInfo := range locationInfo {
 			sourceDC.Add(locInfo.DC...)
@@ -234,34 +230,29 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 	return nil
 }
 
-// validateDCMappings validates that every dc in source cluster has corresponding dc in target cluster
-// taking into account dc mappings.
+// validateDCMappings that every dc from mappings exists in source or target cluster respectevely.
 func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []string) error {
-	slices.Sort(sourceDC)
-	slices.Sort(targetDC)
-
-	if len(mappings) == 0 {
-		if slices.Equal(sourceDC, targetDC) {
-			return nil
+	sourceDCSet := strset.New(sourceDC...)
+	targetDCSet := strset.New(targetDC...)
+	sourceDCMappingSet, targetDCMappingSet := strset.New(), strset.New()
+	for _, m := range mappings {
+		if !sourceDCSet.Has(m.Source) {
+			return errors.Errorf("No such dc in source cluster: %s", m.Source)
 		}
-		return errors.Errorf("Source DC(%s) != Target DC(%s)", sourceDC, targetDC)
-	}
-	sourceMap, targetMap := mappings.calculateMappings()
-	// Make sure that each dc from target cluster has corresponding dc (or mapping) in source cluster
-	for _, dc := range targetDC {
-		if _, ok := targetMap[dc]; ok {
-			continue
+		if !targetDCSet.Has(m.Target) {
+			return errors.Errorf("No such dc in target cluster: %s", m.Target)
 		}
-		return errors.Errorf("Target DC(%s) doesn't have a match in the source cluster: %v", dc, sourceDC)
-	}
 
-	for _, dc := range sourceDC {
-		if _, ok := sourceMap[dc]; ok {
-			continue
+		if sourceDCMappingSet.Has(m.Source) {
+			return errors.Errorf("DC mapping contain duplicates in source DCs: %s", m.Source)
 		}
-		return errors.Errorf("Source DC(%s) doesn't have a match in the target cluster: %v", dc, targetDC)
-	}
+		sourceDCMappingSet.Add(m.Source)
 
+		if targetDCMappingSet.Has(m.Target) {
+			return errors.Errorf("DC mapping contain duplicates in target DCs: %s", m.Target)
+		}
+		targetDCMappingSet.Add(m.Target)
+	}
 	return nil
 }
 

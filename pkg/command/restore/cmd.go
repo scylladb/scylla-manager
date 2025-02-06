@@ -23,22 +23,21 @@ type command struct {
 	flag.TaskBase
 	client *managerclient.Client
 
-	cluster                 string
-	location                []string
-	keyspace                []string
-	snapshotTag             string
-	batchSize               int
-	parallel                int
-	transfers               int
-	rateLimit               []string
-	allowCompaction         bool
-	unpinAgentCPU           bool
-	restoreSchema           bool
-	restoreTables           bool
-	dryRun                  bool
-	showTables              bool
-	dcMapping               dcMappings
-	skipDCMappingValidation bool
+	cluster         string
+	location        []string
+	keyspace        []string
+	snapshotTag     string
+	batchSize       int
+	parallel        int
+	transfers       int
+	rateLimit       []string
+	allowCompaction bool
+	unpinAgentCPU   bool
+	restoreSchema   bool
+	restoreTables   bool
+	dryRun          bool
+	showTables      bool
+	dcMapping       dcMappings
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -93,7 +92,6 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 	w.Unwrap().Var(&cmd.dcMapping, "dc-mapping", "")
-	w.Unwrap().BoolVar(&cmd.skipDCMappingValidation, "skip-dc-mapping-validation", false, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -191,13 +189,6 @@ func (cmd *command) run(args []string) error {
 			return wrapper("dc-mapping")
 		}
 		props["dc_mapping"] = cmd.dcMapping
-		ok = true
-	}
-	if cmd.Flag("skip-dc-mapping-validation").Changed {
-		if cmd.Update() {
-			return wrapper("skip-dc-mapping-validation")
-		}
-		props["skip_dc_mapping_validation"] = cmd.skipDCMappingValidation
 		ok = true
 	}
 

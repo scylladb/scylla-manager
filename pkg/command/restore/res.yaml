@@ -15,6 +15,7 @@ location: |
   The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
   from this location in a multi-dc setting, it must match Scylla nodes datacenter.
   By default, all live nodes are used to restore data from specified locations.
+  If `--dc-mapping` is used, then `<dc>` parameter will be ignored.
   
   Note that specifying datacenters closest to backup locations might reduce download time of restored data.
   The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
@@ -75,16 +76,10 @@ show-tables: |
 
 dc-mapping: |
   Specifies mapping between DCs from the backup and DCs in the restored(target) cluster.
-  All DCs from source cluster should be explicitly mapped to all DCs in the target cluster. The only exception is when
-  source and target cluster has exact match: source dcs == target dcs.
-  If only some DCs are needed to be restored, partial dc mappings can be used with --skip-dc-mapping-validation flag.
   Only works with tables restoration (--restore-tables=true).
   Syntax:
-    "source_dc1,source_dc2=>target_dc1,target_dc2"
+    "source_dc1=>target_dc1;source_dc2=>target_dc2"
   Multiple mappings are separated by semicolons (;)
   Examples:
-    "dc1,dc2=>dc3"      - data from dc1 and dc2 DCs should be restored to dc3 DC.
-
-skip-dc-mapping-validation: |
-  Allows to proceed with restore command when dc mapping doesn't describe all DCs from source and target clusters.
-  DCs that are not in --dc-mapping will be ignored and won't be restored.
+    "dc1=>dc3;dc2=>dc4"      - data from dc1 should be restored to dc3 and data from dc2 should be restored to dc4.
+  Note: Only DCs that are provided in mappings will be restored.

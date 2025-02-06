@@ -11,14 +11,13 @@ import (
 type dcMappings []dcMapping
 
 type dcMapping struct {
-	Source []string `json:"source"`
-	Target []string `json:"target"`
+	Source string `json:"source"`
+	Target string `json:"target"`
 }
 
 // Set parses --dc-mapping flag, where the syntax is following:
 // ; - used to split different mappings
-// => - used to split source => target DCs
-// , - used to seprate DCs.
+// => - used to split source => target DCs.
 func (dcm *dcMappings) Set(v string) error {
 	mappingParts := strings.Split(v, ";")
 	for _, dcMapPart := range mappingParts {
@@ -31,20 +30,12 @@ func (dcm *dcMappings) Set(v string) error {
 		}
 
 		var mapping dcMapping
-		mapping.Source = parseDCList(sourceTargetParts[0])
-		mapping.Target = parseDCList(sourceTargetParts[1])
+		mapping.Source = strings.TrimSpace(sourceTargetParts[0])
+		mapping.Target = strings.TrimSpace(sourceTargetParts[1])
 
 		*dcm = append(*dcm, mapping)
 	}
 	return nil
-}
-
-func parseDCList(raw string) []string {
-	dcs := strings.Split(raw, ",")
-	for i, dc := range dcs {
-		dcs[i] = strings.TrimSpace(dc)
-	}
-	return dcs
 }
 
 // String builds --dc-mapping flag back from struct.
@@ -54,9 +45,7 @@ func (dcm *dcMappings) String() string {
 	}
 	var res strings.Builder
 	for i, mapping := range *dcm {
-		res.WriteString(
-			strings.Join(mapping.Source, ",") + "=>" + strings.Join(mapping.Target, ","),
-		)
+		res.WriteString(mapping.Source + "=>" + mapping.Target)
 		if i != len(*dcm)-1 {
 			res.WriteString(";")
 		}

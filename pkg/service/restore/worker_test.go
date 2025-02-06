@@ -17,7 +17,7 @@ func TestValidateDCMappings(t *testing.T) {
 			sourceDC: []string{"dc1"},
 			targetDC: []string{"dc2"},
 			dcMappings: []DCMapping{
-				{Source: []string{"dc1"}, Target: []string{"dc2"}},
+				{Source: "dc1", Target: "dc2"},
 			},
 			expectedErr: false,
 		},
@@ -26,36 +26,50 @@ func TestValidateDCMappings(t *testing.T) {
 			sourceDC: []string{"dc1", "dc2"},
 			targetDC: []string{"dc3", "dc4"},
 			dcMappings: []DCMapping{
-				{Source: []string{"dc1", "dc2"}, Target: []string{"dc3", "dc4"}},
+				{Source: "dc1", Target: "dc3"},
+				{Source: "dc2", Target: "dc4"},
 			},
 			expectedErr: false,
 		},
 		{
-			name:        "sourceDCs == targetDCs, no mapping",
-			sourceDC:    []string{"dc1"},
-			targetDC:    []string{"dc1"},
-			expectedErr: false,
-		},
-		{
-			name:        "sourceDCs == targetDCs, no mapping, two dcs per cluster",
-			sourceDC:    []string{"dc1", "dc2"},
-			targetDC:    []string{"dc1", "dc2"},
-			expectedErr: false,
-		},
-		{
-			name:        "sourceDCs != targetDCs, no mapping",
-			sourceDC:    []string{"dc1"},
-			targetDC:    []string{"dc2"},
+			name:     "DC mappings has unknown source dc",
+			sourceDC: []string{"dc1", "dc2"},
+			targetDC: []string{"dc3", "dc4"},
+			dcMappings: []DCMapping{
+				{Source: "dc1", Target: "dc3"},
+				{Source: "dc0", Target: "dc4"},
+			},
 			expectedErr: true,
 		},
 		{
-			name:     "sourceDCs != targetDCs, but with full mapping",
+			name:     "DC mappings has unknown target dc",
 			sourceDC: []string{"dc1", "dc2"},
-			targetDC: []string{"dc2"},
+			targetDC: []string{"dc3", "dc4"},
 			dcMappings: []DCMapping{
-				{Source: []string{"dc1", "dc2"}, Target: []string{"dc2"}},
+				{Source: "dc1", Target: "dc3"},
+				{Source: "dc2", Target: "dc5"},
 			},
-			expectedErr: false,
+			expectedErr: true,
+		},
+		{
+			name:     "Squeezing DCs is not supported",
+			sourceDC: []string{"dc1", "dc2"},
+			targetDC: []string{"dc1"},
+			dcMappings: []DCMapping{
+				{Source: "dc1", Target: "dc1"},
+				{Source: "dc2", Target: "dc1"},
+			},
+			expectedErr: true,
+		},
+		{
+			name:     "Expanding DCs is not supported",
+			sourceDC: []string{"dc1"},
+			targetDC: []string{"dc1", "dc2"},
+			dcMappings: []DCMapping{
+				{Source: "dc1", Target: "dc1"},
+				{Source: "dc1", Target: "dc2"},
+			},
+			expectedErr: true,
 		},
 	}
 
