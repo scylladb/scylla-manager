@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
 )
 
@@ -57,7 +58,7 @@ type batchDispatcher struct {
 	hostShardCnt map[string]uint
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[backupspec.Location][]string) *batchDispatcher {
+func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[backupspec.Location][]string, hostDCs map[string][]string) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, sh := range hostShardCnt {
@@ -70,7 +71,7 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 		mu:                    sync.Mutex{},
 		wait:                  make(chan struct{}),
 		workload:              workload,
-		workloadProgress:      newWorkloadProgress(workload, locationHosts),
+		workloadProgress:      newWorkloadProgress(workload, locationHosts, hostDCs),
 		batchSize:             batchSize,
 		expectedShardWorkload: workload.TotalSize / int64(shards),
 		hostShardCnt:          hostShardCnt,
@@ -106,7 +107,7 @@ type remoteSSTableDirProgress struct {
 	RemainingSSTables []RemoteSSTable
 }
 
-func newWorkloadProgress(workload Workload, locationHosts map[backupspec.Location][]string) workloadProgress {
+func newWorkloadProgress(workload Workload, locationHosts map[backupspec.Location][]string, hostDCs map[string][]string) workloadProgress {
 	dcBytes := make(map[string]int64)
 	locationDC := make(map[string][]string)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
@@ -121,7 +122,9 @@ func newWorkloadProgress(workload Workload, locationHosts map[backupspec.Locatio
 	hostDCAccess := make(map[string][]string)
 	for loc, hosts := range locationHosts {
 		for _, h := range hosts {
-			hostDCAccess[h] = append(hostDCAccess[h], locationDC[loc.StringWithoutDC()]...)
+			dcsInLoc := locationDC[loc.StringWithoutDC()]
+			hostAllDCs := hostDCs[h]
+			hostDCAccess[h] = append(hostDCAccess[h], strset.Intersection(strset.New(dcsInLoc...), strset.New(hostAllDCs...)).List()...)
 		}
 	}
 	return workloadProgress{
@@ -201,8 +204,8 @@ func (bd *batchDispatcher) ValidateAllDispatched() error {
 	for i, rdp := range bd.workloadProgress.remoteDir {
 		if rdp.RemainingSize != 0 || len(rdp.RemainingSSTables) != 0 {
 			rdw := bd.workload.RemoteDir[i]
-			return errors.Errorf("failed to restore sstables from location %s table %s.%s (%d bytes). See logs for more info",
-				rdw.Location, rdw.Keyspace, rdw.Table, rdw.Size)
+			return errors.Errorf("failed to restore sstables from location %s dc %s table %s.%s (%d bytes). See logs for more info",
+				rdw.Location, rdw.DC, rdw.Keyspace, rdw.Table, rdw.Size)
 		}
 	}
 	for dc, bytes := range bd.workloadProgress.dcBytesToBeRestored {

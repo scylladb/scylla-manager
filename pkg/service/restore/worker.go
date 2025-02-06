@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math/rand"
 	"path"
 	"regexp"
@@ -97,20 +98,19 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		return errors.Wrap(err, "get status")
 	}
 
+	targetMap, ignoreSource, _ := t.DCMappings.calculateMappings()
+	t.hostDCs = w.applyDCMapping(status, targetMap)
+	w.logger.Info(ctx, "Applied dc mappings", "mappings", targetMap, "host_dcs", t.hostDCs)
+
+	t.ignoredSourceDC = ignoreSource
+
 	// All nodes should be up during restore
 	if err := w.client.VerifyNodesAvailability(ctx); err != nil {
 		return errors.Wrap(err, "verify all nodes availability")
 	}
 
-	allLocations := strset.New()
 	locationHosts := make(map[backupspec.Location][]string)
 	for _, l := range t.Location {
-		p := l.RemotePath("")
-		if allLocations.Has(p) {
-			return errors.Errorf("location %s is specified multiple times", l)
-		}
-		allLocations.Add(p)
-
 		var (
 			remotePath     = l.RemotePath("")
 			locationStatus = status
@@ -162,9 +162,93 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		} else {
 			w.logger.Info(ctx, "Found schema file")
 		}
+		return nil
+	}
+
+	// The only way to have a list of dcs from the source cluster is to
+	// get them from backup locations.
+	sourceDC, err := w.collectDCFromLocation(ctx, t.locationHosts)
+	if err != nil {
+		return err
+	}
+	targetDC := slices.Collect(maps.Keys(dcMap))
+	if err := w.validateDCMappings(t.DCMappings, sourceDC, targetDC); err != nil {
+		w.logger.Debug(ctx,
+			"Validate dc mapping",
+			"source_dc", sourceDC,
+			"target_dc", targetDC,
+			"mappings", t.DCMappings,
+		)
+		return err
 	}
 
 	w.logger.Info(ctx, "Initialized target", "target", t)
+	return nil
+}
+
+// applyDCMapping applices given mappings to each node, mapping each host's datacenter in the target cluster to its corresponding
+// datacenter(s) in the source cluster.
+func (w *worker) applyDCMapping(status scyllaclient.NodeStatusInfoSlice, targetMap map[string][]string) map[string][]string {
+	hostDCs := map[string][]string{}
+	for _, n := range status {
+		hostDCs[n.Addr] = append(hostDCs[n.Addr], targetMap[n.Datacenter]...)
+	}
+	return hostDCs
+}
+
+func (w *worker) collectDCFromLocation(ctx context.Context, locationHosts map[Location][]string) ([]string, error) {
+	sourceDCs := strset.New()
+	for loc, hosts := range locationHosts {
+		manifests, err := w.getManifestInfo(ctx, hosts[0], loc)
+		if err != nil {
+			return nil, errors.Wrap(err, "getManifestInfo")
+		}
+		if len(manifests) == 0 {
+			return nil, errors.Errorf("no snapshot with tag %s", w.run.SnapshotTag)
+		}
+		for _, m := range manifests {
+			sourceDCs.Add(m.DC)
+		}
+	}
+	return sourceDCs.List(), nil
+}
+
+// validateDCMappings validates that every dc in source cluster has corresponding dc in target cluster
+// taking into account dc mappings.
+func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []string) error {
+	slices.Sort(sourceDC)
+	slices.Sort(targetDC)
+
+	if len(mappings) == 0 {
+		if slices.Equal(sourceDC, targetDC) {
+			return nil
+		}
+		return errors.Errorf("Source DC(%s) != Target DC(%s)", sourceDC, targetDC)
+	}
+	targetMap, ignoreSource, ignoreTarget := mappings.calculateMappings()
+	mappedTargetDCs := strset.New()
+	// Make sure that each dc from target cluster has corresponding dc (or mapping) in source cluster
+	for _, dc := range targetDC {
+		if slices.Contains(ignoreTarget, dc) {
+			continue
+		}
+		if dcs, ok := targetMap[dc]; ok {
+			mappedTargetDCs.Add(dcs...)
+			continue
+		}
+		return errors.Errorf("Target DC(%s) doesn't have a match in the source cluster: %v", dc, sourceDC)
+	}
+
+	sourceDCSet := strset.New(sourceDC...)
+	ignoreSourceSet := strset.New(ignoreSource...)
+	sourceDCSet = strset.Difference(sourceDCSet, ignoreSourceSet)
+
+	// Check that every dc from source has been mapped to the target dc
+	if !sourceDCSet.IsEqual(mappedTargetDCs) {
+		return errors.Errorf(
+			"Source DCs(%v) doesn't have a match in the target cluster: %v",
+			strset.Difference(sourceDCSet, mappedTargetDCs), targetDC)
+	}
 	return nil
 }
 
@@ -345,6 +429,10 @@ func (w *worker) initUnits(ctx context.Context) error {
 	var foundManifest bool
 	for _, l := range w.target.Location {
 		manifestHandler := func(miwc backupspec.ManifestInfoWithContent) error {
+			// For now dc mapping is applied only to restore tables
+			if w.target.RestoreTables && slices.Contains(w.target.ignoredSourceDC, miwc.DC) {
+				return nil
+			}
 			foundManifest = true
 
 			filesHandler := func(fm backupspec.FilesMeta) {

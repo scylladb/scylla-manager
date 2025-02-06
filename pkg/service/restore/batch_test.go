@@ -5,6 +5,7 @@ package restore
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/backupspec"
 )
 
@@ -114,7 +115,13 @@ func TestBatchDispatcher(t *testing.T) {
 		"h3": 3,
 	}
 
-	bd := newBatchDispatcher(workload, 1, hostToShard, locationHosts)
+	hostDCs := map[string][]string{
+		"h1": {"dc1", "dc2"},
+		"h2": {"dc1", "dc2"},
+		"h3": {"dc3"},
+	}
+
+	bd := newBatchDispatcher(workload, 1, hostToShard, locationHosts, hostDCs)
 
 	scenario := []struct {
 		host  string
@@ -165,4 +172,163 @@ func TestBatchDispatcher(t *testing.T) {
 	if err := bd.ValidateAllDispatched(); err != nil {
 		t.Fatalf("Expected sstables to be batched: %s", err)
 	}
+}
+
+func TestNewWorkloadProgress(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		workload      Workload
+		locationHosts map[backupspec.Location][]string
+		hostDCs       map[string][]string
+
+		expected map[string][]string
+	}{
+		{
+			name:     "one location with one DC",
+			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1"}}),
+			locationHosts: map[backupspec.Location][]string{
+				{}: {"host1", "host2"},
+			},
+			hostDCs: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+			},
+
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+			},
+		},
+		{
+			name:     "one location with two DC's",
+			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1", "dc2"}}),
+			locationHosts: map[backupspec.Location][]string{
+				{}: {"host1", "host2"},
+			},
+			hostDCs: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc2"},
+			},
+
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc2"},
+			},
+		},
+		{
+			name:     "one location with two DC's, more nodes",
+			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1", "dc2"}}),
+			locationHosts: map[backupspec.Location][]string{
+				{}: {"host1", "host2", "host3", "host4"},
+			},
+			hostDCs: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+				"host3": {"dc2"},
+				"host4": {"dc2"},
+			},
+
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+				"host3": {"dc2"},
+				"host4": {"dc2"},
+			},
+		},
+		{
+			name: "two locations with one DC each",
+			workload: generateWorkload(t,
+				[]string{"location1", "location2"},
+				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
+			),
+			locationHosts: map[backupspec.Location][]string{
+				{Path: "location1"}: {"host1", "host2"},
+				{Path: "location2"}: {"host1", "host2"},
+			},
+			hostDCs: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc2"},
+			},
+
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc2"},
+			},
+		},
+		{
+			name: "two locations with one DC each, but some hosts doesn't have access",
+			workload: generateWorkload(t,
+				[]string{"location1", "location2"},
+				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
+			),
+			locationHosts: map[backupspec.Location][]string{
+				{Path: "location1"}: {"host1", "host3", "host4"},
+				{Path: "location2"}: {"host1", "host2", "host4"},
+			},
+			hostDCs: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+				"host3": {"dc2"},
+				"host4": {"dc2"},
+			},
+
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": nil,
+				"host3": nil,
+				"host4": {"dc2"},
+			},
+		},
+		{
+			name: "two locations with one DC each, but hosts maps to all dcs",
+			workload: generateWorkload(t,
+				[]string{"location1", "location2"},
+				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
+			),
+			locationHosts: map[backupspec.Location][]string{
+				{Path: "location1"}: {"host1", "host2"},
+				{Path: "location2"}: {"host1", "host2"},
+			},
+			hostDCs: map[string][]string{
+				"host1": {"dc1", "dc2"},
+				"host2": {"dc1", "dc2"},
+			},
+
+			expected: map[string][]string{
+				"host1": {"dc1", "dc2"},
+				"host2": {"dc1", "dc2"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			wp := newWorkloadProgress(tc.workload, tc.locationHosts, tc.hostDCs)
+			if diff := cmp.Diff(wp.hostDCAccess, tc.expected); diff != "" {
+				t.Fatalf("Actual != Expected: %s", diff)
+			}
+		})
+	}
+}
+
+func generateWorkload(t *testing.T, locationPaths []string, dcsInLocation map[string][]string) Workload {
+	t.Helper()
+
+	var remoteDirs []RemoteDirWorkload
+	for _, path := range locationPaths {
+		dcs, ok := dcsInLocation[path]
+		if !ok {
+			t.Fatalf("each location should have corresponding entry in dcsInLocation map")
+		}
+		for _, dc := range dcs {
+			remoteDirs = append(remoteDirs, RemoteDirWorkload{
+				ManifestInfo: &backupspec.ManifestInfo{
+					DC:       dc,
+					Location: backupspec.Location{Path: path},
+				},
+			})
+		}
+	}
+	return Workload{RemoteDir: remoteDirs}
 }

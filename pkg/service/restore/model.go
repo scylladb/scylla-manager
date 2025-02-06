@@ -10,6 +10,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -33,9 +34,14 @@ type Target struct {
 	RestoreSchema   bool                  `json:"restore_schema,omitempty"`
 	RestoreTables   bool                  `json:"restore_tables,omitempty"`
 	Continue        bool                  `json:"continue"`
+	DCMappings      DCMappings            `json:"dc-mapping"`
 
 	// Cache for host with access to remote location
 	locationHosts map[backupspec.Location][]string `json:"-"`
+	// Cache for host and their DC after applying DCMappings
+	hostDCs map[string][]string
+	// Cache for dcs that shouldn't be restored from location
+	ignoredSourceDC []string
 }
 
 const (
@@ -82,6 +88,16 @@ func (t Target) validateProperties(dcMap map[string][]string) error {
 	if t.RestoreSchema && t.Keyspace != nil {
 		return errors.New("restore schema always restores 'system_schema.*' tables only, no need to specify '--keyspace' flag")
 	}
+	// Check for duplicates in Location
+	allLocations := strset.New()
+	for _, l := range t.Location {
+		p := l.RemotePath("")
+		if allLocations.Has(p) {
+			return errors.Errorf("location %s is specified multiple times", l)
+		}
+		allLocations.Add(p)
+	}
+
 	return nil
 }
 
@@ -286,4 +302,43 @@ type HostInfo struct {
 	Host      string
 	Transfers int
 	RateLimit int
+}
+
+// DCMappings represents how DCs from the backup cluster are mapped to DCs in the restore cluster.
+// For details about how DCs can be mapped refer to --dc-mapping documentation.
+type DCMappings []DCMapping
+
+// DCMapping represent single instance of datacenter mappings. See DCMappings for details.
+type DCMapping struct {
+	Source       []string `json:"source"`
+	IgnoreSource []string `json:"ignore_source"`
+	Target       []string `json:"target"`
+	IgnoreTarget []string `json:"ignore_target"`
+}
+
+func (mappings DCMappings) calculateMappings() (targetMap map[string][]string, ignoreSource, ignoreTarget []string) {
+	targetMap = map[string][]string{}
+	for _, mapping := range mappings {
+		ignoreSource = append(ignoreSource, mapping.IgnoreSource...)
+		ignoreTarget = append(ignoreTarget, mapping.IgnoreTarget...)
+
+		if len(mapping.Source) == 0 || len(mapping.Target) == 0 {
+			continue
+		}
+		tIdx, sIdx := 0, 0
+		for {
+			target, source := mapping.Target[tIdx], mapping.Source[sIdx]
+			targetMap[target] = append(targetMap[target], source)
+			if tIdx == len(mapping.Target)-1 && sIdx == len(mapping.Source)-1 {
+				break
+			}
+			if tIdx < len(mapping.Target)-1 {
+				tIdx++
+			}
+			if sIdx < len(mapping.Source)-1 {
+				sIdx++
+			}
+		}
+	}
+	return targetMap, ignoreSource, ignoreTarget
 }
