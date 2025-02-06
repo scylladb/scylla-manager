@@ -1,7 +1,12 @@
 // Copyright (C) 2025 ScyllaDB
 package restore
 
-import "testing"
+import (
+	"testing"
+
+	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+)
 
 func TestValidateDCMappings(t *testing.T) {
 	testCases := []struct {
@@ -82,6 +87,94 @@ func TestValidateDCMappings(t *testing.T) {
 			}
 			if !tc.expectedErr && err != nil {
 				t.Fatalf("Unexpected err: %v", err)
+			}
+		})
+	}
+}
+
+func TestHostsByDC(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		nodes                scyllaclient.NodeStatusInfoSlice
+		targetDC2SourceDCMap map[string]string
+		locationDCs          []string
+
+		expected map[string][]string
+	}{
+		{
+			name: "When --dc-mapping is provided will all DCs",
+			nodes: scyllaclient.NodeStatusInfoSlice{
+				{Addr: "n1", Datacenter: "target_dc1"},
+				{Addr: "n2", Datacenter: "target_dc1"},
+				{Addr: "n3", Datacenter: "target_dc2"},
+				{Addr: "n4", Datacenter: "target_dc2"},
+			},
+			targetDC2SourceDCMap: map[string]string{
+				"target_dc1": "source_dc1",
+				"target_dc2": "source_dc2",
+			},
+			locationDCs: []string{"source_dc1", "source_dc2"},
+
+			expected: map[string][]string{
+				"source_dc1": {"n1", "n2"},
+				"source_dc2": {"n3", "n4"},
+			},
+		},
+		{
+			name: "When --dc-mapping is provided will some DCs",
+			nodes: scyllaclient.NodeStatusInfoSlice{
+				{Addr: "n1", Datacenter: "target_dc1"},
+				{Addr: "n2", Datacenter: "target_dc1"},
+				{Addr: "n3", Datacenter: "target_dc2"},
+				{Addr: "n4", Datacenter: "target_dc2"},
+			},
+			targetDC2SourceDCMap: map[string]string{
+				"target_dc1": "source_dc1",
+			},
+			locationDCs: []string{"source_dc1", "source_dc2"},
+
+			expected: map[string][]string{
+				"source_dc1": {"n1", "n2"},
+			},
+		},
+		{
+			name: "When --dc-mapping is empty and location contains one DC",
+			nodes: scyllaclient.NodeStatusInfoSlice{
+				{Addr: "n1", Datacenter: "target_dc1"},
+				{Addr: "n2", Datacenter: "target_dc1"},
+				{Addr: "n3", Datacenter: "target_dc2"},
+				{Addr: "n4", Datacenter: "target_dc2"},
+			},
+			targetDC2SourceDCMap: map[string]string{},
+			locationDCs:          []string{"source_dc1"},
+
+			expected: map[string][]string{
+				"source_dc1": {"n1", "n2", "n3", "n4"},
+			},
+		},
+		{
+			name: "When --dc-mapping is empty and location contains multiple DCs",
+			nodes: scyllaclient.NodeStatusInfoSlice{
+				{Addr: "n1", Datacenter: "target_dc1"},
+				{Addr: "n2", Datacenter: "target_dc1"},
+				{Addr: "n3", Datacenter: "target_dc2"},
+				{Addr: "n4", Datacenter: "target_dc2"},
+			},
+			targetDC2SourceDCMap: map[string]string{},
+			locationDCs:          []string{"source_dc1", "source_dc2"},
+
+			expected: map[string][]string{
+				"source_dc1": {"n1", "n2", "n3", "n4"},
+				"source_dc2": {"n1", "n2", "n3", "n4"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := hostsByDC(tc.nodes, tc.targetDC2SourceDCMap, tc.locationDCs)
+			if diff := gocmp.Diff(actual, tc.expected); diff != "" {
+				t.Fatalf("Unexpected result: %v", diff)
 			}
 		})
 	}

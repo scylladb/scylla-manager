@@ -95,10 +95,14 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 			return nil, errors.Errorf("no snapshot with tag %s", target.SnapshotTag)
 		}
 
+		manifests = filterManifests(manifests, sourceDC2TargetDCMap)
+		locationDCs := collectDCsFromManifests(manifests)
+		dcHosts := hostsByDC(nodes, targetDC2SourceDCMap, locationDCs)
+
 		result = append(result, LocationInfo{
-			DC:       collectAllDCs(manifests),
-			DCHosts:  hostsByDC(nodes, targetDC2SourceDCMap),
-			Manifest: filterManifests(manifests, sourceDC2TargetDCMap),
+			DC:       locationDCs,
+			DCHosts:  dcHosts,
+			Manifest: manifests,
 			Location: l,
 		})
 	}
@@ -106,7 +110,12 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 	return result, nil
 }
 
-func (w *worker) getNodesWithAccess(ctx context.Context, nodeStatus scyllaclient.NodeStatusInfoSlice, loc backupspec.Location, useLocationDC bool) (scyllaclient.NodeStatusInfoSlice, error) {
+func (w *worker) getNodesWithAccess(
+	ctx context.Context,
+	nodeStatus scyllaclient.NodeStatusInfoSlice,
+	loc backupspec.Location,
+	useLocationDC bool,
+) (scyllaclient.NodeStatusInfoSlice, error) {
 	if useLocationDC && loc.Datacenter() != "" {
 		nodeStatus = nodeStatus.Datacenter([]string{loc.Datacenter()})
 	}
@@ -125,19 +134,34 @@ func (w *worker) getNodesWithAccess(ctx context.Context, nodeStatus scyllaclient
 }
 
 // hostsByDC creates map of which hosts are responsible for which DC, also applies DCMappings if available.
-func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetDC2sourceDCMap map[string]string) map[string][]string {
-	dcHosts := map[string][]string{}
-	for _, n := range nodes {
-		sourceDC, ok := targetDC2sourceDCMap[n.Datacenter]
-		if !ok {
-			sourceDC = n.Datacenter
+func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetDC2SourceDCMap map[string]string, locationDCs []string) map[string][]string {
+	dc2HostsMap := map[string][]string{}
+	// when --dc-mapping is not set all nodes with access to the location can handle all DCs from it
+	if len(targetDC2SourceDCMap) == 0 {
+		var hosts []string
+		for _, node := range nodes {
+			hosts = append(hosts, node.Addr)
 		}
-		dcHosts[sourceDC] = append(dcHosts[sourceDC], n.Addr)
+		for _, dc := range locationDCs {
+			dc2HostsMap[dc] = hosts
+		}
+		return dc2HostsMap
 	}
-	return dcHosts
+	// when --dc-mapping is set, nodes can handle DCs only accordingly to mappings
+	for _, n := range nodes {
+		sourceDC, ok := targetDC2SourceDCMap[n.Datacenter]
+		if !ok {
+			continue
+		}
+		if !slices.Contains(locationDCs, sourceDC) {
+			continue
+		}
+		dc2HostsMap[sourceDC] = append(dc2HostsMap[sourceDC], n.Addr)
+	}
+	return dc2HostsMap
 }
 
-func collectAllDCs(manifests []*backupspec.ManifestInfo) []string {
+func collectDCsFromManifests(manifests []*backupspec.ManifestInfo) []string {
 	dcs := strset.New()
 	for _, m := range manifests {
 		dcs.Add(m.DC)
@@ -145,7 +169,7 @@ func collectAllDCs(manifests []*backupspec.ManifestInfo) []string {
 	return dcs.List()
 }
 
-// keep only manifests that have dc mapping.
+// keep only manifests that have dc mapping. if --dc-mapping is not set it will return all manifests.
 func filterManifests(manifests []*backupspec.ManifestInfo, sourceDC2TargetDCMap map[string]string) []*backupspec.ManifestInfo {
 	if len(sourceDC2TargetDCMap) == 0 {
 		return manifests
