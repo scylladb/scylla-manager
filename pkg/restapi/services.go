@@ -6,13 +6,14 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 

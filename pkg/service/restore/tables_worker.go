@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -354,7 +354,7 @@ func hostTransfers(transfers int, shards uint) int {
 	return transfers
 }
 
-func dcRateLimit(limits []DCLimit, dc string) int {
+func dcRateLimit(limits []backup.DCLimit, dc string) int {
 	defaultLimit := maxRateLimit
 	for _, limit := range limits {
 		if limit.DC == dc {

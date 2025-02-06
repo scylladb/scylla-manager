@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -93,7 +94,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch)
 		return nil, errors.Wrap(err, "validate free disk space")
 	}
 
-	uploadDir := UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
+	uploadDir := backupspec.UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
 	if err := w.cleanUploadDir(ctx, hi.Host, uploadDir, nil); err != nil {
 		return nil, errors.Wrapf(err, "clean upload dir of host %s", hi.Host)
 	}
@@ -125,7 +126,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch)
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
 func (w *tablesWorker) startDownload(ctx context.Context, hi HostInfo, b batch) (jobID, versionedPr int64, err error) {
-	uploadDir := UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
+	uploadDir := backupspec.UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
 	sstables := b.NotVersionedSSTables()
 	versioned := b.VersionedSSTables()
 	versionedSize := b.VersionedSize()
@@ -157,7 +158,7 @@ func (w *tablesWorker) downloadVersioned(ctx context.Context, host, srcDir, dstD
 	f := func(i int) error {
 		sst := versioned[i]
 		for _, file := range sst.Files {
-			name, _ := SplitNameAndVersion(file)
+			name, _ := backup.SplitNameAndVersion(file)
 			// Restore file without its version extension
 			dst := path.Join(dstDir, name)
 			src := path.Join(srcDir, file)
@@ -194,7 +195,7 @@ func (w *tablesWorker) cleanupRunProgress(ctx context.Context, pr *RunProgress) 
 		Keyspace: pr.Keyspace,
 		Table:    pr.Table,
 	}
-	if cleanErr := w.cleanUploadDir(ctx, pr.Host, UploadTableDir(pr.Keyspace, pr.Table, w.tableVersion[tn]), nil); cleanErr != nil {
+	if cleanErr := w.cleanUploadDir(ctx, pr.Host, backupspec.UploadTableDir(pr.Keyspace, pr.Table, w.tableVersion[tn]), nil); cleanErr != nil {
 		w.logger.Error(ctx, "Couldn't clear destination directory", "host", pr.Host, "error", cleanErr)
 	}
 }

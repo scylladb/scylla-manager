@@ -12,10 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -46,7 +47,7 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 		DC:        []string{"dc1"},
 		Location:  []backupspec.Location{location},
 		Retention: 2,
-		RateLimit: []backupspec.DCLimit{
+		RateLimit: []backup.DCLimit{
 			{"dc1", 1},
 		},
 		Continue: true,

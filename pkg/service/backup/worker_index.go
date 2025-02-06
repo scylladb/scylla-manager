@@ -12,8 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) (err error) {
@@ -51,7 +51,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			"new_files_time_threshold", nftt,
 		)
 
-		baseDir := KeyspaceDir(u.Keyspace)
+		baseDir := backupspec.KeyspaceDir(u.Keyspace)
 
 		tables, err := w.Client.RcloneListDir(ctx, h.IP, baseDir, nil)
 		if err != nil {
@@ -87,13 +87,13 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				"dir", d.Path,
 			)
 
-			mp := path.Join(d.Path, ScyllaManifest)
+			mp := path.Join(d.Path, backupspec.ScyllaManifest)
 			if err := w.Client.RcloneDeleteFile(ctx, h.IP, mp); err != nil {
 				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
-					w.Logger.Error(ctx, "Failed to delete local manifest file", "error", err)
+					w.Logger.Error(ctx, "Failed to delete local backupspec.file", "error", err)
 				}
 			}
-			sp := path.Join(d.Path, ScyllaSchema)
+			sp := path.Join(d.Path, backupspec.ScyllaSchema)
 			if err := w.Client.RcloneDeleteFile(ctx, h.IP, sp); err != nil {
 				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 					w.Logger.Error(ctx, "Failed to delete local schema file", "error", err)
@@ -110,7 +110,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			}
 			err := w.Client.RcloneListDirIter(ctx, h.IP, d.Path, opts, func(f *scyllaclient.RcloneListDirItem) {
 				// Filter out Scylla manifest and Schema files, they are not needed.
-				if f.Name == ScyllaManifest || f.Name == ScyllaSchema {
+				if f.Name == backupspec.ScyllaManifest || f.Name == backupspec.ScyllaSchema {
 					return
 				}
 				files = append(files, fileInfo{
@@ -165,7 +165,7 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 }
 
 func (w *worker) newFilesTimeThreshold() time.Time {
-	t, err := SnapshotTagTime(w.SnapshotTag)
+	t, err := backupspec.SnapshotTagTime(w.SnapshotTag)
 	if err != nil {
 		return time.Time{}
 	}

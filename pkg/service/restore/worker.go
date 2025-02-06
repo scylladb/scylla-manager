@@ -18,12 +18,13 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
@@ -44,7 +45,7 @@ type worker struct {
 	clusterSession gocqlx.Session
 }
 
-func (w *worker) randomHostFromLocation(loc Location) string {
+func (w *worker) randomHostFromLocation(loc backupspec.Location) string {
 	hosts, ok := w.target.locationHosts[loc]
 	if !ok {
 		panic("no hosts for location: " + loc.String())
@@ -102,7 +103,7 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 	}
 
 	allLocations := strset.New()
-	locationHosts := make(map[Location][]string)
+	locationHosts := make(map[backupspec.Location][]string)
 	for _, l := range t.Location {
 		p := l.RemotePath("")
 		if allLocations.Has(p) {
@@ -343,10 +344,10 @@ func (w *worker) initUnits(ctx context.Context) error {
 
 	var foundManifest bool
 	for _, l := range w.target.Location {
-		manifestHandler := func(miwc ManifestInfoWithContent) error {
+		manifestHandler := func(miwc backupspec.ManifestInfoWithContent) error {
 			foundManifest = true
 
-			filesHandler := func(fm FilesMeta) {
+			filesHandler := func(fm backupspec.FilesMeta) {
 				ru := unitMap[fm.Keyspace]
 				ru.Keyspace = fm.Keyspace
 				ru.Size += fm.Size
@@ -784,7 +785,7 @@ func (w *worker) checkAvailableDiskSpace(ctx context.Context, host string) error
 }
 
 func (w *worker) diskFreePercent(ctx context.Context, host string) (int, error) {
-	du, err := w.client.RcloneDiskUsage(ctx, host, DataDir)
+	du, err := w.client.RcloneDiskUsage(ctx, host, backupspec.DataDir)
 	if err != nil {
 		return 0, err
 	}
