@@ -719,7 +719,7 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
-		t.Fatal("Restore:", err)
+		t.Fatal(err)
 	}
 
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
@@ -1459,6 +1459,7 @@ func TestRestoreFullIntegration(t *testing.T) {
 
 	locs := []backupspec.Location{
 		{
+			DC:       "dc1",
 			Provider: backupspec.S3,
 			Path:     testBucket,
 		},

@@ -66,11 +66,11 @@ func (l LocationInfo) AnyHost() string {
 
 // AllHosts returns all hosts with the access to this Location.
 func (l LocationInfo) AllHosts() []string {
-	var hosts []string
+	hosts := strset.New()
 	for _, h := range l.DCHosts {
-		hosts = append(hosts, h...)
+		hosts.Add(h...)
 	}
-	return hosts
+	return hosts.List()
 }
 
 const (

@@ -244,12 +244,12 @@ func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []st
 		}
 
 		if sourceDCMappingSet.Has(m.Source) {
-			return errors.Errorf("DC mapping contain duplicates in source DCs: %s", m.Source)
+			return errors.Errorf("DC mapping contains duplicates in source DCs: %s", m.Source)
 		}
 		sourceDCMappingSet.Add(m.Source)
 
 		if targetDCMappingSet.Has(m.Target) {
-			return errors.Errorf("DC mapping contain duplicates in target DCs: %s", m.Target)
+			return errors.Errorf("DC mapping contains duplicates in target DCs: %s", m.Target)
 		}
 		targetDCMappingSet.Add(m.Target)
 	}
