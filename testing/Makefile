@@ -5,6 +5,7 @@ CQLSH        := $(COMPOSE) exec scylla-manager-db cqlsh
 CQLSH_NODE   := $(COMPOSE) exec -T dc1_node_1 cqlsh
 NODETOOL     := $(COMPOSE) exec -T dc1_node_1 nodetool
 SECOND_NODETOOL := $(COMPOSE) exec -T second_cluster_dc1_node_1 nodetool
+THIRD_NODETOOL := $(COMPOSE) exec -T third_cluster_dc3_node_1 nodetool
 SM_NODETOOL  := $(COMPOSE) exec -T scylla-manager-db nodetool
 YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
@@ -33,9 +34,11 @@ endif
 
 SCYLLA_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)11
 SCYLLA_SECOND_CLUSTER_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)31
+SCYLLA_THIRD_CLUSTER_ARGS := --smp 1 --memory 2G --seeds $(SECOND_NET)41
 
 export SCYLLA_ARGS
 export SCYLLA_SECOND_CLUSTER_ARGS
+export SCYLLA_THIRD_CLUSTER_ARGS
 export MINIO_ENDPOINT
 export MINIO_CERT_DIR
 
@@ -66,7 +69,7 @@ up:
 
 ifeq ($(SSL_ENABLED),true)
 	# disable non-ssl port
-	@$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
+	# @$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
 	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
 	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
@@ -89,10 +92,13 @@ endif
 	@cp scylla/scylla.yaml scylla/scylla-second-cluster.yaml
 	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
 
+	@cp scylla/scylla.yaml scylla/scylla-third-cluster.yaml
+	@$(YQ) write -i scylla/scylla-third-cluster.yaml 'cluster_name' 'Managed Third Cluster'
+
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
 
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 second_cluster_dc1_node_1
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 second_cluster_dc1_node_1 third_cluster_dc3_node_1
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
 	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
 	@echo "==> Waiting for dc1 node1"
@@ -104,13 +110,16 @@ endif
 	@until [ 1 -le $$($(SECOND_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d second_cluster_dc1_node_2
 
+	@until [ 1 -le $$($(THIRD_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d third_cluster_dc3_node_2
+
 	@cnt=1; for node in dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3; do \
   		. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d $$node; \
 		cnt=$$(expr $$cnt + 1); \
 		echo "==> Waiting node $$node number $$cnt"; \
 		until [ $$cnt -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
 
-	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2; do \
+	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2 third_cluster_dc3_node_1 third_cluster_dc3_node_2; do \
 		$(COMPOSE) exec -T --privileged $$node sudo bash -c 'service ssh start'; done
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d

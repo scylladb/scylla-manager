@@ -14,14 +14,12 @@
 # one logical cluster from joining another.
 # It is recommended to change the default value when creating a new cluster.
 # You can NOT modify this value for an existing cluster
-cluster_name: 'Managed Cluster'
-
+cluster_name: Managed Third Cluster
 # This defines the number of tokens randomly assigned to this node on the ring
 # The more tokens, relative to other nodes, the larger the proportion of data
 # that this node will store. You probably want all nodes to have the same number
 # of tokens assuming they have equal hardware capability.
 num_tokens: 256
-
 # Directory where Scylla should store all its files, which are commitlog,
 # data, hints, view_hints and saved_caches subdirectories. All of these
 # subs can be overridden by the respective options below.
@@ -31,11 +29,9 @@ num_tokens: 256
 # Directory where Scylla should store data on disk.
 data_file_directories:
   - /var/lib/scylla/data
-
 # commit log.  when running on magnetic HDD, this should be a
 # separate spindle than the data directories.
 commitlog_directory: /var/lib/scylla/commitlog
-
 # schema commit log. A special commitlog instance
 # used for schema and system tables.
 # When running on magnetic HDD, this should be a
@@ -59,7 +55,6 @@ commitlog_directory: /var/lib/scylla/commitlog
 # milliseconds.
 commitlog_sync: periodic
 commitlog_sync_period_in_ms: 10000
-
 # The size of the individual commitlog file segments.  A commitlog
 # segment may be archived, deleted, or recycled once all the data
 # in it (potentially from each columnfamily in the system) has been
@@ -70,7 +65,6 @@ commitlog_sync_period_in_ms: 10000
 # then you probably want a finer granularity of archiving; 8 or 16 MB
 # is reasonable.
 commitlog_segment_size_in_mb: 32
-
 # The size of the individual schema commitlog file segments.
 #
 # The default size is 128, which is 4 times larger than the default
@@ -78,7 +72,6 @@ commitlog_segment_size_in_mb: 32
 # a limit on the mutation size that can be written at once, and some
 # schema mutation writes are much larger than average.
 schema_commitlog_segment_size_in_mb: 128
-
 # seed_provider class_name is saved for future use.
 # A seed address is mandatory.
 seed_provider:
@@ -93,7 +86,6 @@ seed_provider:
       # If you specify addresses of more than one node, use a comma to separate them.
       # For example: "<IP1>,<IP2>,<IP3>"
       - seeds: "127.0.0.1"
-
 # Address to bind to and tell other Scylla nodes to connect to.
 # You _must_ change this if you want multiple nodes to be able to communicate!
 #
@@ -101,11 +93,9 @@ seed_provider:
 # to 0.0.0.0 is wrong as other nodes will not know how to reach this node.
 # If you set broadcast_address, then you can set listen_address to 0.0.0.0.
 listen_address: localhost
-
 # Address to broadcast to other Scylla nodes
 # Leaving this blank will set it to the same value as listen_address
 # broadcast_address: 1.2.3.4
-
 
 # When using multiple physical network interfaces, set this to true to listen on broadcast_address
 # in addition to the listen_address, allowing nodes to communicate in both interfaces.
@@ -117,11 +107,9 @@ listen_address: localhost
 # For security reasons, you should not expose this port to the internet. Firewall it if needed.
 # To disable the CQL native transport, remove this option and configure native_transport_port_ssl.
 native_transport_port: 9042
-
 # Like native_transport_port, but clients are forwarded to specific shards, based on the
 # client-side port numbers.
 native_shard_aware_transport_port: 19042
-
 # Enabling native transport encryption in client_encryption_options allows you to either use
 # encryption for the standard port or to use a dedicated, additional port along with the unencrypted
 # standard native_transport_port.
@@ -137,13 +125,11 @@ native_shard_aware_transport_port: 19042
 
 # How long the coordinator should wait for read operations to complete
 read_request_timeout_in_ms: 5000
-
 # How long the coordinator should wait for writes to complete
 write_request_timeout_in_ms: 2000
 # how long a coordinator should continue to retry a CAS operation
 # that contends with other proposals for the same row
 cas_contention_timeout_in_ms: 1000
-
 # phi value that must be reached for a host to be marked down.
 # most users should never need to adjust this.
 # phi_convict_threshold: 8
@@ -198,7 +184,6 @@ cas_contention_timeout_in_ms: 1000
 # You can use a custom Snitch by setting this to the full class name
 # of the snitch, which will be assumed to be on your classpath.
 endpoint_snitch: GossipingPropertyFileSnitch
-
 # The address or interface to bind the native transport server to.
 #
 # Set rpc_address OR rpc_interface, not both. Interfaces must correspond
@@ -222,66 +207,59 @@ rpc_address: localhost
 
 # port for Thrift to listen for clients on
 rpc_port: 9160
-
 # port for REST API server
 api_port: 10000
-
 # IP for the REST API server
 api_address: 127.0.0.1
-
 # Log WARN on any batch size exceeding this value. 128 kiB per batch by default.
 # Caution should be taken on increasing the size of this threshold as it can lead to node instability.
 batch_size_warn_threshold_in_kb: 128
-
 # Fail any multiple-partition batch exceeding this value. 1 MiB (8x warn threshold) by default.
 batch_size_fail_threshold_in_kb: 1024
-
-  # Authentication backend, identifying users
-  # Out of the box, Scylla provides org.apache.cassandra.auth.{AllowAllAuthenticator,
-  # PasswordAuthenticator}.
-  #
-  # - AllowAllAuthenticator performs no checks - set it to disable authentication.
-  # - PasswordAuthenticator relies on username/password pairs to authenticate
-  #   users. It keeps usernames and hashed passwords in system_auth.credentials table.
-  #   Please increase system_auth keyspace replication factor if you use this authenticator.
-  # - com.scylladb.auth.TransitionalAuthenticator requires username/password pair
-  #   to authenticate in the same manner as PasswordAuthenticator, but improper credentials
-  #   result in being logged in as an anonymous user. Use for upgrading clusters' auth.
+# Authentication backend, identifying users
+# Out of the box, Scylla provides org.apache.cassandra.auth.{AllowAllAuthenticator,
+# PasswordAuthenticator}.
+#
+# - AllowAllAuthenticator performs no checks - set it to disable authentication.
+# - PasswordAuthenticator relies on username/password pairs to authenticate
+#   users. It keeps usernames and hashed passwords in system_auth.credentials table.
+#   Please increase system_auth keyspace replication factor if you use this authenticator.
+# - com.scylladb.auth.TransitionalAuthenticator requires username/password pair
+#   to authenticate in the same manner as PasswordAuthenticator, but improper credentials
+#   result in being logged in as an anonymous user. Use for upgrading clusters' auth.
 authenticator: PasswordAuthenticator
-
-  # Authorization backend, implementing IAuthorizer; used to limit access/provide permissions
-  # Out of the box, Scylla provides org.apache.cassandra.auth.{AllowAllAuthorizer,
-  # CassandraAuthorizer}.
-  #
-  # - AllowAllAuthorizer allows any action to any user - set it to disable authorization.
-  # - CassandraAuthorizer stores permissions in system_auth.permissions table. Please
-  #   increase system_auth keyspace replication factor if you use this authorizer.
-  # - com.scylladb.auth.TransitionalAuthorizer wraps around the CassandraAuthorizer, using it for
-  #   authorizing permission management. Otherwise, it allows all. Use for upgrading
-  #   clusters' auth.
+# Authorization backend, implementing IAuthorizer; used to limit access/provide permissions
+# Out of the box, Scylla provides org.apache.cassandra.auth.{AllowAllAuthorizer,
+# CassandraAuthorizer}.
+#
+# - AllowAllAuthorizer allows any action to any user - set it to disable authorization.
+# - CassandraAuthorizer stores permissions in system_auth.permissions table. Please
+#   increase system_auth keyspace replication factor if you use this authorizer.
+# - com.scylladb.auth.TransitionalAuthorizer wraps around the CassandraAuthorizer, using it for
+#   authorizing permission management. Otherwise, it allows all. Use for upgrading
+#   clusters' auth.
 authorizer: CassandraAuthorizer
+# initial_token allows you to specify tokens manually.  While you can use # it with
+# vnodes (num_tokens > 1, above) -- in which case you should provide a
+# comma-separated list -- it's primarily used when adding nodes # to legacy clusters
+# that do not have vnodes enabled.
+# initial_token:
 
-  # initial_token allows you to specify tokens manually.  While you can use # it with
-  # vnodes (num_tokens > 1, above) -- in which case you should provide a
-  # comma-separated list -- it's primarily used when adding nodes # to legacy clusters
-  # that do not have vnodes enabled.
-  # initial_token:
+# RPC address to broadcast to drivers and other Scylla nodes. This cannot
+# be set to 0.0.0.0. If left blank, this will be set to the value of
+# rpc_address. If rpc_address is set to 0.0.0.0, broadcast_rpc_address must
+# be set.
+# broadcast_rpc_address: 1.2.3.4
 
-  # RPC address to broadcast to drivers and other Scylla nodes. This cannot
-  # be set to 0.0.0.0. If left blank, this will be set to the value of
-  # rpc_address. If rpc_address is set to 0.0.0.0, broadcast_rpc_address must
-  # be set.
-  # broadcast_rpc_address: 1.2.3.4
+# Uncomment to enable experimental features
+# experimental_features:
+#     - udf
+#     - alternator-streams
+#     - broadcast-tables
+#     - keyspace-storage-options
 
-  # Uncomment to enable experimental features
-  # experimental_features:
-  #     - udf
-  #     - alternator-streams
-  #     - broadcast-tables
-  #     - keyspace-storage-options
-
-  # The directory where hints files are stored if hinted handoff is enabled.
-  # hints_directory: /var/lib/scylla/hints
+# The directory where hints files are stored if hinted handoff is enabled.
+# hints_directory: /var/lib/scylla/hints
 
 # The directory where hints files are stored for materialized-view updates
 # view_hints_directory: /var/lib/scylla/view_hints
@@ -296,7 +274,6 @@ authorizer: CassandraAuthorizer
 # generated.  After it has been dead this long, new hints for it will not be
 # created until it has been seen alive and gone down again.
 # max_hint_window_in_ms: 10800000 # 3 hours
-
 
 # Validity period for permissions cache (fetching permissions can be an
 # expensive operation depending on the authorizer, CassandraAuthorizer is
@@ -321,7 +298,6 @@ authorizer: CassandraAuthorizer
 # Murmur3Partitioner is currently the only supported partitioner,
 #
 partitioner: org.apache.cassandra.dht.Murmur3Partitioner
-
 # Total space to use for commitlogs.
 #
 # If space gets above this value (it will round up to the next nearest
@@ -332,7 +308,6 @@ partitioner: org.apache.cassandra.dht.Murmur3Partitioner
 # A value of -1 (default) will automatically equate it to the total amount of memory
 # available for Scylla.
 commitlog_total_space_in_mb: -1
-
 # TCP port, for commands and data
 # For security reasons, you should not expose this port to the internet.  Firewall it if needed.
 # storage_port: 7000
@@ -377,7 +352,6 @@ commitlog_total_space_in_mb: -1
 # should be used to provide data safety. If you set this flag to false, you will
 # lose data on truncation or drop.
 auto_snapshot: false
-
 # When executing a scan, within or across a partition, we need to keep the
 # tombstones seen in memory so we can return them to the coordinator, which
 # will use them to make sure other replicas also know about the deleted rows.
@@ -468,9 +442,11 @@ auto_snapshot: false
 
 # enable or disable client/server encryption.
 client_encryption_options:
-  enabled: false
+  enabled: true
   certificate: /etc/scylla/db.crt
   keyfile: /etc/scylla/db.key
+  truststore: /etc/scylla/ca.crt
+  require_client_auth: true
 #    truststore: <none, use system trust>
 #    require_client_auth: False
 #    priority_string: <not set, use default>
@@ -501,7 +477,6 @@ client_encryption_options:
 # true: relaxed environment checks; performance and reliability may degraade.
 #
 # developer_mode: false
-
 
 # Idle-time background processing
 #
@@ -543,7 +518,6 @@ client_encryption_options:
 #
 # Keep at 12 for new clusters.
 murmur3_partitioner_ignore_msb_bits: 12
-
 # Bypass in-memory data cache (the row cache) when performing reversed queries.
 # reversed_reads_auto_bypass_cache: false
 
@@ -566,10 +540,8 @@ murmur3_partitioner_ignore_msb_bits: 12
 # with the schema commit log enabled. In such case, some schema changes
 # may be lost if the node was not cleanly stopped.
 force_schema_commit_log: true
-
 # Time for which task manager task is kept in memory after it completes.
 task_ttl_in_seconds: 10
-
 # Use Raft to consistently manage schema information in the cluster.
 # Refer to https://docs.scylladb.com/master/architecture/raft.html for more details.
 # The 'Handling Failures' section is especially important.
@@ -581,7 +553,6 @@ task_ttl_in_seconds: 10
 # A cluster not using Raft can be 'upgraded' to use Raft. Refer to the aforementioned
 # documentation, section 'Enabling Raft in ScyllaDB 5.2 and further', for the procedure.
 consistent_cluster_management: true
-
 # In materialized views, restrictions are allowed only on the view's primary key columns.
 # In old versions Scylla mistakenly allowed IS NOT NULL restrictions on columns which were not part
 # of the view's primary key. These invalid restrictions were ignored.
@@ -598,7 +569,6 @@ consistent_cluster_management: true
 # New clusters have this option set to `true` by scylla.yaml (which overrides the default `warn`)
 # to make sure that trying to create an invalid view causes an error.
 strict_is_not_null_in_views: true
-
 # The Unix Domain Socket the node uses for maintenance socket.
 # The possible options are:
 # * ignore: the node will not open the maintenance socket,
@@ -606,7 +576,6 @@ strict_is_not_null_in_views: true
 #            where <scylla's workdir> is a path defined by the workdir configuration option,
 # * <socket path>: the node will open the maintenance socket on the path <socket path>.
 maintenance_socket: ignore
-
 # If set to true, configuration parameters defined with LiveUpdate option can be updated in runtime with CQL
 # by updating system.config virtual table. If we don't want any configuration parameter to be changed in runtime
 # via CQL, this option should be set to false. This parameter doesn't impose any limits on other mechanisms updating
@@ -639,10 +608,12 @@ maintenance_socket: ignore
 # replication_strategy_warn_list:
 #  - SimpleStrategy
 # replication_strategy_fail_list:
-
 api_ui_dir: /usr/lib/scylla/swagger-ui/dist/
 api_doc_dir: /usr/lib/scylla/api/api-doc/
 alternator_port: 8000
 alternator_write_isolation: only_rmw_uses_lwt
 alternator_enforce_authorization: true
 enable_ipv6_dns_lookup: true
+uuid_sstable_identifiers_enabled: false
+native_transport_port_ssl: 9142
+enable_tablets: true

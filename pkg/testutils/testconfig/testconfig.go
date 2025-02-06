@@ -30,6 +30,7 @@ var (
 
 	flagManagedCluster       = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
 	flagManagedSecondCluster = flag.String("managed-second-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data second cluster hosts")
+	flagManagedThirdCluster  = flag.String("managed-third-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data third cluster hosts")
 	flagTestNet              = flag.String("test-network", "192.168.200.", "a network where test nodes are residing")
 )
 
@@ -67,6 +68,14 @@ func ManagedSecondClusterHosts() []string {
 		flag.Parse()
 	}
 	return strings.Split(*flagManagedSecondCluster, ",")
+}
+
+// ManagedThirdClusterHosts specifies addresses of nodes in a test second cluster.
+func ManagedThirdClusterHosts() []string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return strings.Split(*flagManagedThirdCluster, ",")
 }
 
 // ManagedClusterCredentials returns CQL username and password.
