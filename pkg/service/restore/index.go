@@ -77,7 +77,7 @@ func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location backu
 func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location backupspec.Location) ([]RemoteDirWorkload, error) {
 	var rawWorkload []RemoteDirWorkload
 	err := w.forEachManifest(ctx, location, func(m backupspec.ManifestInfoWithContent) error {
-		if slices.Contains(w.target.ignoredSourceDC, m.DC) {
+		if w.skipDC(m.DC) {
 			w.logger.Info(ctx, "Ignoring DC", "dc", m.DC, "location", location)
 			return nil
 		}

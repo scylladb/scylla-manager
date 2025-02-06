@@ -3,7 +3,6 @@
 package restore
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -12,19 +11,14 @@ import (
 type dcMappings []dcMapping
 
 type dcMapping struct {
-	Source       []string `json:"source"`
-	IgnoreSource []string `json:"ignore_source"`
-	Target       []string `json:"target"`
-	IgnoreTarget []string `json:"ignore_target"`
+	Source []string `json:"source"`
+	Target []string `json:"target"`
 }
-
-const ignoreDCPrefix = "!"
 
 // Set parses --dc-mapping flag, where the syntax is following:
 // ; - used to split different mappings
 // => - used to split source => target DCs
-// , - used to seprate DCs
-// ! - used to ignore DC.
+// , - used to seprate DCs.
 func (dcm *dcMappings) Set(v string) error {
 	mappingParts := strings.Split(v, ";")
 	for _, dcMapPart := range mappingParts {
@@ -37,23 +31,20 @@ func (dcm *dcMappings) Set(v string) error {
 		}
 
 		var mapping dcMapping
-		mapping.Source, mapping.IgnoreSource = parseDCList(strings.Split(sourceTargetParts[0], ","))
-		mapping.Target, mapping.IgnoreTarget = parseDCList(strings.Split(sourceTargetParts[1], ","))
+		mapping.Source = parseDCList(sourceTargetParts[0])
+		mapping.Target = parseDCList(sourceTargetParts[1])
 
 		*dcm = append(*dcm, mapping)
 	}
 	return nil
 }
 
-func parseDCList(list []string) (dcs, ignore []string) {
-	for _, dc := range list {
-		if strings.HasPrefix(dc, ignoreDCPrefix) {
-			ignore = append(ignore, strings.TrimPrefix(dc, ignoreDCPrefix))
-			continue
-		}
-		dcs = append(dcs, dc)
+func parseDCList(raw string) []string {
+	dcs := strings.Split(raw, ",")
+	for i, dc := range dcs {
+		dcs[i] = strings.TrimSpace(dc)
 	}
-	return dcs, ignore
+	return dcs
 }
 
 // String builds --dc-mapping flag back from struct.
@@ -63,24 +54,14 @@ func (dcm *dcMappings) String() string {
 	}
 	var res strings.Builder
 	for i, mapping := range *dcm {
-		source := slices.Concat(mapping.Source, addIgnorePrefix(mapping.IgnoreSource))
-		target := slices.Concat(mapping.Target, addIgnorePrefix(mapping.IgnoreTarget))
 		res.WriteString(
-			strings.Join(source, ",") + "=>" + strings.Join(target, ","),
+			strings.Join(mapping.Source, ",") + "=>" + strings.Join(mapping.Target, ","),
 		)
 		if i != len(*dcm)-1 {
 			res.WriteString(";")
 		}
 	}
 	return res.String()
-}
-
-func addIgnorePrefix(ignore []string) []string {
-	var result []string
-	for _, v := range ignore {
-		result = append(result, ignoreDCPrefix+v)
-	}
-	return result
 }
 
 // Type implements pflag.Value interface.

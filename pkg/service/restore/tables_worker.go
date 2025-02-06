@@ -83,8 +83,8 @@ func newTablesWorker(ctx context.Context, w worker, repairSvc *repair.Service, t
 	}
 
 	hostsS := strset.New()
-	for _, h := range w.target.locationHosts {
-		hostsS.Add(h...)
+	for h := range w.target.hostDCs {
+		hostsS.Add(h)
 	}
 	hosts := hostsS.List()
 
@@ -213,7 +213,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationHosts, w.target.hostDCs)
+	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.hostDCs)
 
 	f := func(n int) error {
 		host := w.hosts[n]

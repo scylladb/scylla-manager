@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
 )
 
@@ -58,7 +57,7 @@ type batchDispatcher struct {
 	hostShardCnt map[string]uint
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[backupspec.Location][]string, hostDCs map[string][]string) *batchDispatcher {
+func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, hostDCs map[string][]string) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, sh := range hostShardCnt {
@@ -71,7 +70,7 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 		mu:                    sync.Mutex{},
 		wait:                  make(chan struct{}),
 		workload:              workload,
-		workloadProgress:      newWorkloadProgress(workload, locationHosts, hostDCs),
+		workloadProgress:      newWorkloadProgress(workload, hostDCs),
 		batchSize:             batchSize,
 		expectedShardWorkload: workload.TotalSize / int64(shards),
 		hostShardCnt:          hostShardCnt,
@@ -107,30 +106,20 @@ type remoteSSTableDirProgress struct {
 	RemainingSSTables []RemoteSSTable
 }
 
-func newWorkloadProgress(workload Workload, locationHosts map[backupspec.Location][]string, hostDCs map[string][]string) workloadProgress {
+func newWorkloadProgress(workload Workload, hostDCs map[string][]string) workloadProgress {
 	dcBytes := make(map[string]int64)
-	locationDC := make(map[string][]string)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
 	for i, rdw := range workload.RemoteDir {
 		dcBytes[rdw.DC] += rdw.Size
-		locationDC[rdw.Location.StringWithoutDC()] = append(locationDC[rdw.Location.StringWithoutDC()], rdw.DC)
 		p[i] = remoteSSTableDirProgress{
 			RemainingSize:     rdw.Size,
 			RemainingSSTables: rdw.SSTables,
 		}
 	}
-	hostDCAccess := make(map[string][]string)
-	for loc, hosts := range locationHosts {
-		for _, h := range hosts {
-			dcsInLoc := locationDC[loc.StringWithoutDC()]
-			hostAllDCs := hostDCs[h]
-			hostDCAccess[h] = append(hostDCAccess[h], strset.Intersection(strset.New(dcsInLoc...), strset.New(hostAllDCs...)).List()...)
-		}
-	}
 	return workloadProgress{
 		dcBytesToBeRestored: dcBytes,
 		hostFailedDC:        make(map[string][]string),
-		hostDCAccess:        hostDCAccess,
+		hostDCAccess:        hostDCs,
 		remoteDir:           p,
 	}
 }
@@ -260,7 +249,7 @@ func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 		if slices.Contains(bd.workloadProgress.hostFailedDC[host], rdw.DC) {
 			continue
 		}
-		// Sip dir from location without access
+		// Skip dir from location without access
 		if !slices.Contains(bd.workloadProgress.hostDCAccess[host], rdw.DC) {
 			continue
 		}

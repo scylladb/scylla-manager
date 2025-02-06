@@ -98,11 +98,9 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		return errors.Wrap(err, "get status")
 	}
 
-	targetMap, ignoreSource, _ := t.DCMappings.calculateMappings()
+	_, targetMap := t.DCMappings.calculateMappings()
 	t.hostDCs = w.applyDCMapping(status, targetMap)
 	w.logger.Info(ctx, "Applied dc mappings", "mappings", targetMap, "host_dcs", t.hostDCs)
-
-	t.ignoredSourceDC = ignoreSource
 
 	// All nodes should be up during restore
 	if err := w.client.VerifyNodesAvailability(ctx); err != nil {
@@ -165,21 +163,23 @@ func (w *worker) initTarget(ctx context.Context, properties json.RawMessage) err
 		return nil
 	}
 
-	// The only way to have a list of dcs from the source cluster is to
-	// get them from backup locations.
-	sourceDC, err := w.collectDCFromLocation(ctx, t.locationHosts)
-	if err != nil {
-		return err
-	}
-	targetDC := slices.Collect(maps.Keys(dcMap))
-	if err := w.validateDCMappings(t.DCMappings, sourceDC, targetDC); err != nil {
-		w.logger.Debug(ctx,
-			"Validate dc mapping",
-			"source_dc", sourceDC,
-			"target_dc", targetDC,
-			"mappings", t.DCMappings,
-		)
-		return err
+	if !t.SkipDCMappingsValidation {
+		// The only way to have a list of dcs from the source cluster is to
+		// get them from backup locations.
+		sourceDC, err := w.collectDCFromLocation(ctx, t.locationHosts)
+		if err != nil {
+			return err
+		}
+		targetDC := slices.Collect(maps.Keys(dcMap))
+		if err := w.validateDCMappings(t.DCMappings, sourceDC, targetDC); err != nil {
+			w.logger.Debug(ctx,
+				"Validate dc mapping",
+				"source_dc", sourceDC,
+				"target_dc", targetDC,
+				"mappings", t.DCMappings,
+			)
+			return err
+		}
 	}
 
 	w.logger.Info(ctx, "Initialized target", "target", t)
@@ -225,13 +225,10 @@ func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []st
 		}
 		return errors.Errorf("Source DC(%s) != Target DC(%s)", sourceDC, targetDC)
 	}
-	targetMap, ignoreSource, ignoreTarget := mappings.calculateMappings()
+	_, targetMap := mappings.calculateMappings()
 	mappedTargetDCs := strset.New()
 	// Make sure that each dc from target cluster has corresponding dc (or mapping) in source cluster
 	for _, dc := range targetDC {
-		if slices.Contains(ignoreTarget, dc) {
-			continue
-		}
 		if dcs, ok := targetMap[dc]; ok {
 			mappedTargetDCs.Add(dcs...)
 			continue
@@ -240,8 +237,6 @@ func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []st
 	}
 
 	sourceDCSet := strset.New(sourceDC...)
-	ignoreSourceSet := strset.New(ignoreSource...)
-	sourceDCSet = strset.Difference(sourceDCSet, ignoreSourceSet)
 
 	// Check that every dc from source has been mapped to the target dc
 	if !sourceDCSet.IsEqual(mappedTargetDCs) {
@@ -419,6 +414,18 @@ func IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, cli
 	return nil
 }
 
+func (w *worker) skipDC(dc string) bool {
+	if !w.target.RestoreTables {
+		return false
+	}
+	if !w.target.SkipDCMappingsValidation {
+		return false
+	}
+	sourceMap, _ := w.target.DCMappings.calculateMappings()
+	_, ok := sourceMap[dc]
+	return !ok
+}
+
 // initUnits should be called with already initialized target.
 func (w *worker) initUnits(ctx context.Context) error {
 	var (
@@ -429,8 +436,8 @@ func (w *worker) initUnits(ctx context.Context) error {
 	var foundManifest bool
 	for _, l := range w.target.Location {
 		manifestHandler := func(miwc backupspec.ManifestInfoWithContent) error {
-			// For now dc mapping is applied only to restore tables
-			if w.target.RestoreTables && slices.Contains(w.target.ignoredSourceDC, miwc.DC) {
+			if w.skipDC(miwc.DC) {
+				w.logger.Info(ctx, "Ignoring dc", "dc", miwc.DC, "location", l)
 				return nil
 			}
 			foundManifest = true

@@ -61,7 +61,7 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 		"snapshot_tag":   tag,
 		"restore_tables": true,
 		// DC Mapping is required
-		"dc-mapping": []map[string][]string{
+		"dc_mapping": []map[string][]string{
 			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
 		},
 	})
@@ -112,7 +112,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 		"snapshot_tag":   tag,
 		"restore_tables": true,
 		// DC Mapping is required
-		"dc-mapping": []map[string][]string{
+		"dc_mapping": []map[string][]string{
 			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
 		},
 	})
@@ -306,7 +306,7 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 		"snapshot_tag":   tag,
 		"restore_tables": true,
 		// DC Mapping is required
-		"dc-mapping": []map[string][]string{
+		"dc_mapping": []map[string][]string{
 			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
 		},
 	})
@@ -368,7 +368,7 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 		"snapshot_tag":   tag,
 		"restore_tables": true,
 		// DC Mapping is required
-		"dc-mapping": []map[string][]string{
+		"dc_mapping": []map[string][]string{
 			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
 		},
 	})
@@ -473,7 +473,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 		"snapshot_tag":   tag,
 		"restore_tables": true,
 		// DC Mapping is required
-		"dc-mapping": []map[string][]string{
+		"dc_mapping": []map[string][]string{
 			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
 		},
 	}
@@ -647,7 +647,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 			"unpin_agent_cpu": true,
 			"restore_tables":  true,
 			// DC Mapping is required
-			"dc-mapping": []map[string][]string{
+			"dc_mapping": []map[string][]string{
 				{"source": {"dc1", "dc2"}, "target": {"dc1"}},
 			},
 		})
@@ -798,7 +798,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		"snapshot_tag":   tag,
 		"restore_tables": true,
 		// DC Mapping is required
-		"dc-mapping": []map[string][]string{
+		"dc_mapping": []map[string][]string{
 			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
 		},
 	}
@@ -1001,7 +1001,7 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 			"snapshot_tag":   tag,
 			"restore_tables": true,
 			// DC Mapping is required, because dcs are reversed :D
-			"dc-mapping": []map[string][]string{
+			"dc_mapping": []map[string][]string{
 				{"source": {"dc1", "dc2"}, "target": {"dc2", "dc1"}},
 			},
 		})
@@ -1155,7 +1155,7 @@ func TestRestoreTablesIntoClusterWithAnotherDCNameIntegration(t *testing.T) {
 			"snapshot_tag":   tag,
 			"restore_tables": true,
 			// DC Mapping is required
-			"dc-mapping": []map[string][]string{
+			"dc_mapping": []map[string][]string{
 				{"source": {"dc1"}, "target": {"dc3"}},
 			},
 		})
@@ -1237,9 +1237,10 @@ func TestRestoreOnlyOneDCFromLocation(t *testing.T) {
 			"snapshot_tag":   tag,
 			"restore_tables": true,
 			// DC Mapping is required
-			"dc-mapping": []map[string][]string{
-				{"source": {"dc1", "!dc2"}, "target": {"dc3"}},
+			"dc_mapping": []map[string][]string{
+				{"source": {"dc1"}, "target": {"dc3"}},
 			},
+			"skip_dc_mapping_validation": true,
 		})
 		close(res)
 	}()

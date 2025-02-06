@@ -22,26 +22,25 @@ import (
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location        []backupspec.Location `json:"location"`
-	Keyspace        []string              `json:"keyspace,omitempty"`
-	SnapshotTag     string                `json:"snapshot_tag"`
-	BatchSize       int                   `json:"batch_size,omitempty"`
-	Parallel        int                   `json:"parallel,omitempty"`
-	Transfers       int                   `json:"transfers"`
-	RateLimit       []backup.DCLimit      `json:"rate_limit,omitempty"`
-	AllowCompaction bool                  `json:"allow_compaction,omitempty"`
-	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
-	RestoreSchema   bool                  `json:"restore_schema,omitempty"`
-	RestoreTables   bool                  `json:"restore_tables,omitempty"`
-	Continue        bool                  `json:"continue"`
-	DCMappings      DCMappings            `json:"dc-mapping"`
+	Location                 []backupspec.Location `json:"location"`
+	Keyspace                 []string              `json:"keyspace,omitempty"`
+	SnapshotTag              string                `json:"snapshot_tag"`
+	BatchSize                int                   `json:"batch_size,omitempty"`
+	Parallel                 int                   `json:"parallel,omitempty"`
+	Transfers                int                   `json:"transfers"`
+	RateLimit                []backup.DCLimit      `json:"rate_limit,omitempty"`
+	AllowCompaction          bool                  `json:"allow_compaction,omitempty"`
+	UnpinAgentCPU            bool                  `json:"unpin_agent_cpu"`
+	RestoreSchema            bool                  `json:"restore_schema,omitempty"`
+	RestoreTables            bool                  `json:"restore_tables,omitempty"`
+	Continue                 bool                  `json:"continue"`
+	DCMappings               DCMappings            `json:"dc_mapping"`
+	SkipDCMappingsValidation bool                  `json:"skip_dc_mapping_validation"`
 
 	// Cache for host with access to remote location
 	locationHosts map[backupspec.Location][]string `json:"-"`
 	// Cache for host and their DC after applying DCMappings
 	hostDCs map[string][]string
-	// Cache for dcs that shouldn't be restored from location
-	ignoredSourceDC []string
 }
 
 const (
@@ -310,24 +309,20 @@ type DCMappings []DCMapping
 
 // DCMapping represent single instance of datacenter mappings. See DCMappings for details.
 type DCMapping struct {
-	Source       []string `json:"source"`
-	IgnoreSource []string `json:"ignore_source"`
-	Target       []string `json:"target"`
-	IgnoreTarget []string `json:"ignore_target"`
+	Source []string `json:"source"`
+	Target []string `json:"target"`
 }
 
-func (mappings DCMappings) calculateMappings() (targetMap map[string][]string, ignoreSource, ignoreTarget []string) {
-	targetMap = map[string][]string{}
+func (mappings DCMappings) calculateMappings() (sourceMap, targetMap map[string][]string) {
+	sourceMap, targetMap = map[string][]string{}, map[string][]string{}
 	for _, mapping := range mappings {
-		ignoreSource = append(ignoreSource, mapping.IgnoreSource...)
-		ignoreTarget = append(ignoreTarget, mapping.IgnoreTarget...)
-
 		if len(mapping.Source) == 0 || len(mapping.Target) == 0 {
 			continue
 		}
 		tIdx, sIdx := 0, 0
 		for {
 			target, source := mapping.Target[tIdx], mapping.Source[sIdx]
+			sourceMap[source] = append(sourceMap[source], target)
 			targetMap[target] = append(targetMap[target], source)
 			if tIdx == len(mapping.Target)-1 && sIdx == len(mapping.Source)-1 {
 				break
@@ -340,5 +335,5 @@ func (mappings DCMappings) calculateMappings() (targetMap map[string][]string, i
 			}
 		}
 	}
-	return targetMap, ignoreSource, ignoreTarget
+	return sourceMap, targetMap
 }

@@ -77,11 +77,14 @@ dc-mapping: |
   Specifies mapping between DCs from the backup and DCs in the restored(target) cluster.
   All DCs from source cluster should be explicitly mapped to all DCs in the target cluster. The only exception is when
   source and target cluster has exact match: source dcs == target dcs.
+  If only some DCs are needed to be restored, partial dc mappings can be used with --skip-dc-mapping-validation flag.
   Only works with tables restoration (--restore-tables=true).
   Syntax:
     "source_dc1,source_dc2=>target_dc1,target_dc2"
-  Multiple mappings are separated by semicolons (;). Exclamation mark (!) before a DC indicates that it should be ignored during restore.
+  Multiple mappings are separated by semicolons (;)
   Examples:
     "dc1,dc2=>dc3"      - data from dc1 and dc2 DCs should be restored to dc3 DC.
-    "dc1,dc2=>dc3,!dc4" - data from dc1 and dc2 DCs should be restored to dc3 DC. Ignoring dc4 DC from target cluster.
-    "dc1,!dc2=>dc2"     - data from dc1 should be restored to dc2 DC. Ignoring dc2 from source cluster.
+
+skip-dc-mapping-validation: |
+  Allows to proceed with restore command when dc mapping doesn't describe all DCs from source and target clusters.
+  DCs that are not in --dc-mapping will be ignored and won't be restored.

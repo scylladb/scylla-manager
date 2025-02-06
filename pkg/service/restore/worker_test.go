@@ -57,41 +57,6 @@ func TestValidateDCMappings(t *testing.T) {
 			},
 			expectedErr: false,
 		},
-		{
-			name:     "sourceDCs != targetDCs, but with partial mapping",
-			sourceDC: []string{"dc1", "dc2"},
-			targetDC: []string{"dc2"},
-			dcMappings: []DCMapping{
-				{Source: []string{"dc1"}, Target: []string{"dc2"}},
-			},
-			expectedErr: true,
-		},
-		{
-			name:     "sourceDCs != targetDCs, with deletion in mapping",
-			sourceDC: []string{"dc1", "dc2"},
-			targetDC: []string{"dc2"},
-			dcMappings: []DCMapping{
-				{
-					Source:       []string{"dc1"},
-					Target:       []string{"dc2"},
-					IgnoreSource: []string{"dc2"},
-				},
-			},
-			expectedErr: false,
-		},
-		{
-			name:     "sourceDCs != targetDCs, with deletion in mapping",
-			sourceDC: []string{"dc1"},
-			targetDC: []string{"dc1", "dc2"},
-			dcMappings: []DCMapping{
-				{
-					Source:       []string{"dc1"},
-					Target:       []string{"dc1"},
-					IgnoreTarget: []string{"dc2"},
-				},
-			},
-			expectedErr: false,
-		},
 	}
 
 	for _, tc := range testCases {
