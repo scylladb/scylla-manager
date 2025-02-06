@@ -8,18 +8,19 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func TestStaleTags(t *testing.T) {
-	gen := func(nodeID string, taskID uuid.UUID, a, b int) (manifests []*ManifestInfo) {
+	gen := func(nodeID string, taskID uuid.UUID, a, b int) (manifests []*backupspec.ManifestInfo) {
 		for i := a; i < b; i++ {
-			manifests = append(manifests, &ManifestInfo{
+			manifests = append(manifests, &backupspec.ManifestInfo{
 				NodeID:      nodeID,
 				TaskID:      taskID,
-				SnapshotTag: SnapshotTagAt(time.Unix(int64(i), 0)),
+				SnapshotTag: backupspec.SnapshotTagAt(time.Unix(int64(i), 0)),
 			})
 		}
 		return
@@ -31,7 +32,7 @@ func TestStaleTags(t *testing.T) {
 		task2     = uuid.MustRandom()
 		task3     = uuid.MustRandom()
 		task4     = uuid.MustRandom()
-		manifests []*ManifestInfo
+		manifests []*backupspec.ManifestInfo
 	)
 	// Mixed snapshot tags across nodes
 	manifests = append(manifests, gen("a", task0, 0, 7)...)
@@ -41,30 +42,30 @@ func TestStaleTags(t *testing.T) {
 	manifests = append(manifests, gen("b", task1, 10, 12)...)
 	// Not found in policy delete older than 30 days
 	manifests = append(manifests, gen("c", task2, 20, 22)...)
-	manifests = append(manifests, &ManifestInfo{
+	manifests = append(manifests, &backupspec.ManifestInfo{
 		NodeID:      "c",
 		TaskID:      task2,
-		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -15)),
+		SnapshotTag: backupspec.SnapshotTagAt(timeutc.Now().AddDate(0, 0, -15)),
 	})
 	// Mixed policy 1 - retention days deletes 2, retention days deletes 1
 	manifests = append(manifests, gen("c", task3, 30, 32)...)
-	manifests = append(manifests, &ManifestInfo{
+	manifests = append(manifests, &backupspec.ManifestInfo{
 		NodeID:      "c",
 		TaskID:      task3,
-		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -7)),
+		SnapshotTag: backupspec.SnapshotTagAt(timeutc.Now().AddDate(0, 0, -7)),
 	})
 	// Mixed policy 2 - retention days deletes 1, retention days deletes 2
-	deletedByRetentionTag := SnapshotTagAt(timeutc.Now().AddDate(0, 0, -7))
+	deletedByRetentionTag := backupspec.SnapshotTagAt(timeutc.Now().AddDate(0, 0, -7))
 	manifests = append(manifests, gen("c", task4, 40, 41)...)
-	manifests = append(manifests, &ManifestInfo{
+	manifests = append(manifests, &backupspec.ManifestInfo{
 		NodeID:      "c",
 		TaskID:      task4,
 		SnapshotTag: deletedByRetentionTag,
 	})
-	manifests = append(manifests, &ManifestInfo{
+	manifests = append(manifests, &backupspec.ManifestInfo{
 		NodeID:      "c",
 		TaskID:      task4,
-		SnapshotTag: SnapshotTagAt(timeutc.Now().AddDate(0, 0, -3)),
+		SnapshotTag: backupspec.SnapshotTagAt(timeutc.Now().AddDate(0, 0, -3)),
 	})
 	// Temporary manifest
 	x := gen("c", task0, 6, 7)[0]

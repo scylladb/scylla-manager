@@ -1,28 +1,30 @@
 // Copyright (C) 2017 ScyllaDB
 
-package backupspec
+package backup
 
-type LocationValue Location
+import "github.com/scylladb/scylla-manager/backupspec"
 
-var nilLocation = Location{}
+type LocationValue backupspec.Location
+
+var nilLocation = backupspec.Location{}
 
 func (v *LocationValue) String() string {
 	if v.Value() == nilLocation {
 		return ""
 	}
-	return Location(*v).String()
+	return backupspec.Location(*v).String()
 }
 
 func (v *LocationValue) Set(s string) error {
-	return (*Location)(v).UnmarshalText([]byte(s))
+	return (*backupspec.Location)(v).UnmarshalText([]byte(s))
 }
 
 func (v *LocationValue) Type() string {
 	return "string"
 }
 
-func (v *LocationValue) Value() Location {
-	return Location(*v)
+func (v *LocationValue) Value() backupspec.Location {
+	return backupspec.Location(*v)
 }
 
 type SnapshotTagValue string
@@ -32,8 +34,8 @@ func (v *SnapshotTagValue) String() string {
 }
 
 func (v *SnapshotTagValue) Set(s string) error {
-	if !IsSnapshotTag(s) {
-		return errInvalidSnapshotTag
+	if !backupspec.IsSnapshotTag(s) {
+		return backupspec.ErrInvalidSnapshotTag
 	}
 	*v = SnapshotTagValue(s)
 	return nil

@@ -14,7 +14,8 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/walk"
 	"github.com/scylladb/go-set/strset"
-	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -25,7 +26,7 @@ type ManifestLookupCriteria struct {
 	SnapshotTag string    `json:"snapshot_tag"`
 }
 
-func (c ManifestLookupCriteria) matches(m backup.ManifestInfoWithContent) bool {
+func (c ManifestLookupCriteria) matches(m backupspec.ManifestInfoWithContent) bool {
 	if c.NodeID != uuid.Nil && c.NodeID.String() != m.NodeID {
 		return false
 	}
@@ -36,18 +37,18 @@ func (c ManifestLookupCriteria) matches(m backup.ManifestInfoWithContent) bool {
 }
 
 // LookupManifest finds and loads manifest base on the lookup criteria.
-func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (backup.ManifestInfoWithContent, error) {
+func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteria) (backupspec.ManifestInfoWithContent, error) {
 	d.logger.Info(ctx, "Searching for manifest", "criteria", c)
 
 	if c.NodeID == uuid.Nil {
-		return backup.ManifestInfoWithContent{}, errors.New("invalid criteria: missing node ID")
+		return backupspec.ManifestInfoWithContent{}, errors.New("invalid criteria: missing node ID")
 	}
 	if c.SnapshotTag == "" {
-		return backup.ManifestInfoWithContent{}, errors.New("invalid criteria: missing snapshot tag")
+		return backupspec.ManifestInfoWithContent{}, errors.New("invalid criteria: missing snapshot tag")
 	}
 
 	var (
-		m  = backup.NewManifestInfoWithContent()
+		m  = backupspec.NewManifestInfoWithContent()
 		ok bool
 	)
 
@@ -71,10 +72,10 @@ func (d *Downloader) LookupManifest(ctx context.Context, c ManifestLookupCriteri
 		return nil
 	}
 	if err := d.forEachMetaDirObject(ctx, lookup); err != nil {
-		return backup.ManifestInfoWithContent{}, err
+		return backupspec.ManifestInfoWithContent{}, err
 	}
 	if !ok {
-		return backup.ManifestInfoWithContent{}, errors.New("no manifests found")
+		return backupspec.ManifestInfoWithContent{}, errors.New("no manifests found")
 	}
 
 	return m, nil
@@ -91,7 +92,7 @@ func (d *Downloader) ListNodeSnapshots(ctx context.Context, nodeID uuid.UUID) ([
 	var (
 		snapshotTags []string
 
-		m = backup.NewManifestInfoWithContent()
+		m = backupspec.NewManifestInfoWithContent()
 		c = ManifestLookupCriteria{NodeID: nodeID}
 	)
 
@@ -189,7 +190,7 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 	)
 
 	lookup := func(o fs.Object) error {
-		m := backup.NewManifestInfoWithContent()
+		m := backupspec.NewManifestInfoWithContent()
 		if err := m.ParsePath(o.String()); err != nil {
 			return nil
 		}
@@ -233,11 +234,11 @@ func (d *Downloader) ListNodes(ctx context.Context) (NodeInfoSlice, error) {
 }
 
 func (d *Downloader) forEachMetaDirObject(ctx context.Context, fn func(o fs.Object) error) error {
-	baseDir := path.Join("backup", string(backup.MetaDirKind))
-	return walk.ListR(ctx, d.fsrc, baseDir, true, backup.RemoteManifestLevel(baseDir)+1, walk.ListObjects, func(e fs.DirEntries) error { return e.ForObjectError(fn) })
+	baseDir := path.Join("backup", string(backupspec.MetaDirKind))
+	return walk.ListR(ctx, d.fsrc, baseDir, true, backupspec.RemoteManifestLevel(baseDir)+1, walk.ListObjects, func(e fs.DirEntries) error { return e.ForObjectError(fn) })
 }
 
-func readManifestContentFromObject(ctx context.Context, o fs.Object, c *backup.ManifestContentWithIndex) error {
+func readManifestContentFromObject(ctx context.Context, o fs.Object, c *backupspec.ManifestContentWithIndex) error {
 	r, err := o.Open(ctx)
 	if err != nil {
 		return err

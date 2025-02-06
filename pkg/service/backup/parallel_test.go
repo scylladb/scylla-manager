@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 func TestMakeHostsLimit(t *testing.T) {
