@@ -60,6 +60,10 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 		"location":       loc,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+		// DC Mapping is required
+		"dc-mapping": []map[string][]string{
+			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
+		},
 	})
 
 	Print("Log in via restored user and check permissions")
@@ -107,6 +111,10 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+		// DC Mapping is required
+		"dc-mapping": []map[string][]string{
+			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
+		},
 	})
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -297,6 +305,10 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+		// DC Mapping is required
+		"dc-mapping": []map[string][]string{
+			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
+		},
 	})
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -355,6 +367,10 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+		// DC Mapping is required
+		"dc-mapping": []map[string][]string{
+			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
+		},
 	})
 
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
@@ -456,6 +472,10 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 		"keyspace":       []string{ks1, ks2},
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+		// DC Mapping is required
+		"dc-mapping": []map[string][]string{
+			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
+		},
 	}
 	err = runPausedRestore(t, func(ctx context.Context) error {
 		h.dstCluster.RunID = uuid.NewTime()
@@ -626,6 +646,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 			"rate_limit":      []string{"0"},
 			"unpin_agent_cpu": true,
 			"restore_tables":  true,
+			// DC Mapping is required
+			"dc-mapping": []map[string][]string{
+				{"source": {"dc1", "dc2"}, "target": {"dc1"}},
+			},
 		})
 		if err != nil {
 			finishedRestore <- err
@@ -773,6 +797,10 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		"keyspace":       ksFilter,
 		"snapshot_tag":   tag,
 		"restore_tables": true,
+		// DC Mapping is required
+		"dc-mapping": []map[string][]string{
+			{"source": {"dc1"}, "target": {"dc1", "dc2"}},
+		},
 	}
 
 	t.Run("batch retry finished with success", func(t *testing.T) {
@@ -972,6 +1000,10 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 			"parallel":       1,
 			"snapshot_tag":   tag,
 			"restore_tables": true,
+			// DC Mapping is required, because dcs are reversed :D
+			"dc-mapping": []map[string][]string{
+				{"source": {"dc1", "dc2"}, "target": {"dc2", "dc1"}},
+			},
 		})
 		close(res)
 	}()
@@ -1070,5 +1102,163 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 		if v.BuildStatus != scyllaclient.StatusSuccess {
 			t.Fatalf("Expected status: %s, got: %s", scyllaclient.StatusSuccess, v.BuildStatus)
 		}
+	}
+}
+
+func TestRestoreTablesIntoClusterWithAnotherDCNameIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedThirdClusterHosts())
+
+	Print("Keyspace setup")
+	// Source cluster
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}"
+	ks := randomizedName("multi_location_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks))
+
+	// Target cluster
+	ksStmtDst := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc3': 1}"
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ks))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	Print("Save filled table into map")
+	srcM := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Run backup")
+	loc := []Location{
+		testLocation("one-location-1", ""),
+	}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	res := make(chan struct{})
+	go func() {
+		h.runRestore(t, map[string]any{
+			"location": loc,
+			"keyspace": ksFilter,
+			// Test if batching does not hang with
+			// limited parallel and location access.
+			"parallel":       1,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+			// DC Mapping is required
+			"dc-mapping": []map[string][]string{
+				{"source": {"dc1"}, "target": {"dc3"}},
+			},
+		})
+		close(res)
+	}()
+
+	select {
+	case <-res:
+	case <-time.NewTimer(2 * time.Minute).C:
+		t.Fatal("Restore hanged")
+	}
+
+	Print("Save restored table into map")
+	dstM := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Validate success")
+	if !maps.Equal(srcM, dstM) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
+	}
+}
+
+func TestRestoreOnlyOneDCFromLocation(t *testing.T) {
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedThirdClusterHosts())
+
+	Print("Keyspace setup")
+	// Source cluster
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1}"
+	ksTwoDC := randomizedName("two_dc_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ksTwoDC))
+
+	// Keyspace thats only available in dc2
+	ksStmtOneDC := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1':0, 'dc2': 1}"
+	ksOneDC := randomizedName("one_dc_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmtOneDC, ksOneDC))
+
+	// Target cluster
+	ksStmtDst := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc3': 1}"
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ksTwoDC))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ksOneDC))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	for _, ks := range []string{ksTwoDC, ksOneDC} {
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+		ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+	}
+
+	Print("Fill setup")
+	for _, ks := range []string{ksTwoDC, ksOneDC} {
+		fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+	}
+
+	Print("Save filled table into map")
+	srcMTwoDC := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ksTwoDC, tab, "id", "data")
+
+	Print("Run backup")
+	loc := []Location{
+		testLocation("one-location-1", ""),
+	}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ksTwoDC, ksOneDC}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	res := make(chan struct{})
+	go func() {
+		h.runRestore(t, map[string]any{
+			"location": loc,
+			"keyspace": ksFilter,
+			// Test if batching does not hang with
+			// limited parallel and location access.
+			"parallel":       1,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+			// DC Mapping is required
+			"dc-mapping": []map[string][]string{
+				{"source": {"dc1", "!dc2"}, "target": {"dc3"}},
+			},
+		})
+		close(res)
+	}()
+
+	select {
+	case <-res:
+	case <-time.NewTimer(2 * time.Minute).C:
+		t.Fatal("Restore hanged")
+	}
+
+	Print("Save restored table into map")
+	dstMTwoDC := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ksTwoDC, tab, "id", "data")
+	dstMOneDC := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ksOneDC, tab, "id", "data")
+
+	Print("Validate success")
+	if !maps.Equal(srcMTwoDC, dstMTwoDC) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcMTwoDC, dstMTwoDC)
+	}
+	if len(dstMOneDC) != 0 {
+		t.Fatalf("dc2 shouldn't be restored")
 	}
 }
