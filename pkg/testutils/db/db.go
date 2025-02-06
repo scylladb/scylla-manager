@@ -3,6 +3,7 @@
 package db
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -201,10 +202,12 @@ func WriteData(t *testing.T, session gocqlx.Session, keyspace string, sizeMiB in
 }
 
 // WriteDataSecondClusterSchema creates big_table in the provided keyspace with the size in MiB with replication set for second cluster.
-func WriteDataSecondClusterSchema(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, tables ...string) int {
+func WriteDataSecondClusterSchema(t *testing.T, session gocqlx.Session, keyspace string, startingID, sizeMiB int, replication string, tables ...string) int {
 	t.Helper()
 
-	return RawWriteData(t, session, keyspace, startingID, sizeMiB, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}", false, tables...)
+	replication = cmp.Or(replication, "{'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc3': 2}")
+
+	return RawWriteData(t, session, keyspace, startingID, sizeMiB, replication, false, tables...)
 }
 
 // RawWriteData creates big_table in the provided keyspace with the size in MiB.

@@ -645,7 +645,6 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -657,6 +656,7 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		DCMappings: DCMappings{
 			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
 		},
+		SkipDCMappingsValidation: true,
 	}
 
 	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}")
@@ -674,7 +674,6 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -711,7 +710,7 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 		RawWriteData(t, dstSession, keyspace, 0, 0, replication, false)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize, replication)
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
 	if target.RestoreTables {
@@ -740,7 +739,6 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -750,7 +748,7 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -778,10 +776,10 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
-		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
+		WriteData(t, dstSession, keyspace, 0)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize, "")
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
 	if target.RestoreTables {
@@ -819,7 +817,6 @@ func TestRestoreTablesResumeIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -830,7 +827,7 @@ func TestRestoreTablesResumeIntegration(t *testing.T) {
 		RestoreTables: true,
 		Continue:      true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -849,7 +846,6 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -859,7 +855,7 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -889,11 +885,11 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
-		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
+		WriteData(t, dstSession, keyspace, 0)
 		CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize, "")
 	CreateMaterializedView(t, srcSession, keyspace, BigTableName, mv)
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
@@ -1016,7 +1012,6 @@ func TestRestoreTablesVersionedIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -1026,7 +1021,7 @@ func TestRestoreTablesVersionedIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -1046,7 +1041,6 @@ func TestRestoreSchemaVersionedIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -1101,7 +1095,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 
 	if target.RestoreTables {
 		Print("Recreate schema on destination cluster")
-		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
+		WriteData(t, dstSession, keyspace, 0)
 	} else {
 		// This test requires SSTables in Scylla data dir to remain unchanged.
 		// This is achieved by NullCompactionStrategy in user table, but since system tables
@@ -1112,7 +1106,12 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		defer srcH.Client.EnableAutoCompaction(ctx, host.Addr, corruptedKeyspace, corruptedTable)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	replication := ""
+	if target.RestoreSchema {
+		replication = "{'class': 'NetworkTopologyStrategy', 'dc1': 2}"
+	}
+
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize, replication)
 	srcH.simpleBackup(target.Location[0])
 
 	// Corrupting SSTables allows us to force the creation of versioned files
@@ -1311,7 +1310,7 @@ func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
 	target := Target{
 		Location: []backupspec.Location{
 			{
-				DC:       "dc1",
+				DC:       "",
 				Provider: backupspec.S3,
 				Path:     testBucket,
 			},
@@ -1322,7 +1321,7 @@ func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -1350,12 +1349,12 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 
 	if target.RestoreTables {
 		Print("When: Recreate dst schema from CQL")
-		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0, BigTableName)
+		WriteData(t, dstSession, keyspace, 0, BigTableName)
 		createBigTableViews(t, dstSession, keyspace, BigTableName, mvName, siName)
 	}
 
 	Print("When: Create src table with MV and SI")
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize, " {'class': 'NetworkTopologyStrategy', 'dc1': 2}")
 	createBigTableViews(t, srcSession, keyspace, BigTableName, mvName, siName)
 	time.Sleep(5 * time.Second)
 
@@ -1388,7 +1387,7 @@ func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
 
 	locs := []backupspec.Location{
 		{
-			DC:       "dc1",
+			DC:       "",
 			Provider: backupspec.S3,
 			Path:     testBucket,
 		},
@@ -1409,7 +1408,7 @@ func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -1436,7 +1435,7 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
 	Print("When: Create src table with MV and SI")
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize, " {'class': 'NetworkTopologyStrategy', 'dc1': 2}")
 	createBigTableViews(t, srcSession, keyspace, BigTableName, mvName, siName)
 	time.Sleep(5 * time.Second)
 
@@ -1480,7 +1479,6 @@ func TestRestoreFullIntegration(t *testing.T) {
 
 	locs := []backupspec.Location{
 		{
-			DC:       "dc1",
 			Provider: backupspec.S3,
 			Path:     testBucket,
 		},
@@ -1499,7 +1497,7 @@ func TestRestoreFullIntegration(t *testing.T) {
 		Parallel:      testParallel,
 		RestoreTables: true,
 		DCMappings: DCMappings{
-			{Source: []string{"dc1"}, Target: []string{"dc1", "dc2"}},
+			{Source: []string{"dc1", "dc3"}, Target: []string{"dc1", "dc2"}},
 		},
 	}
 
@@ -1783,7 +1781,7 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(s gocqlx.Session, k
 	}
 
 	// Create keyspace and table
-	WriteDataSecondClusterSchema(h.T, s, keyspace, 0, 0)
+	WriteDataSecondClusterSchema(h.T, s, keyspace, 0, 0, " {'class': 'NetworkTopologyStrategy', 'dc1': 2}")
 
 	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
 	if !rd.IsTabletKeyspace(keyspace) {
@@ -1795,7 +1793,7 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(s gocqlx.Session, k
 
 	createBigTableViews(h.T, s, keyspace, BigTableName, mvName, siName)
 
-	h.prepareRestoreBackup(s, keyspace, loadCnt, loadSize)
+	h.prepareRestoreBackup(s, keyspace, loadCnt, loadSize, "")
 }
 
 func createBigTableViews(t *testing.T, s gocqlx.Session, keyspace, baseTable, mv, si string) {
@@ -1814,15 +1812,15 @@ func createBigTableViews(t *testing.T, s gocqlx.Session, keyspace, baseTable, mv
 // It also disables compaction for keyspace.big_table so that SSTables flushed into memory are not merged together.
 // This way we can efficiently test restore procedure without the need to produce big backups
 // (restore functionality depends more on the amount of restored SSTables rather than on their total size).
-func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspace string, loadCnt, loadSize int) {
+func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspace string, loadCnt, loadSize int, replication string) {
 	// Create keyspace and table
-	WriteDataSecondClusterSchema(h.T, session, keyspace, 0, 0)
+	WriteDataSecondClusterSchema(h.T, session, keyspace, 0, 0, replication)
 
 	var startingID int
 	for i := 0; i < loadCnt; i++ {
 		Printf("When: Write load nr %d to second cluster", i)
 
-		startingID = WriteDataSecondClusterSchema(h.T, session, keyspace, startingID, loadSize)
+		startingID = WriteDataSecondClusterSchema(h.T, session, keyspace, startingID, loadSize, replication)
 		FlushTable(h.T, h.Client, ManagedSecondClusterHosts(), keyspace, BigTableName)
 	}
 }
