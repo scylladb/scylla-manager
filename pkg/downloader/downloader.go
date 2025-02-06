@@ -16,7 +16,7 @@ import (
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/sync"
 	"github.com/scylladb/go-log"
-	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
@@ -37,7 +37,7 @@ type Downloader struct {
 	fdst fs.Fs
 }
 
-func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (*Downloader, error) {
+func New(l backupspec.Location, dataDir string, logger log.Logger, opts ...Option) (*Downloader, error) {
 	// Temporary context to satisfy rclone.
 	ctx := context.Background()
 
@@ -70,7 +70,7 @@ func New(l backup.Location, dataDir string, logger log.Logger, opts ...Option) (
 }
 
 // DryRun returns an action plan without performing any disk operations.
-func (d *Downloader) DryRun(ctx context.Context, m backup.ManifestInfoWithContent) (Plan, error) {
+func (d *Downloader) DryRun(ctx context.Context, m backupspec.ManifestInfoWithContent) (Plan, error) {
 	d.dryRun = true
 	d.plan = Plan{m: m}
 	return d.plan, d.download(ctx, m, 1)
@@ -78,12 +78,12 @@ func (d *Downloader) DryRun(ctx context.Context, m backup.ManifestInfoWithConten
 
 // Download executes download operation by taking snapshot files from configured
 // locations and downloading them to the data directory.
-func (d *Downloader) Download(ctx context.Context, m backup.ManifestInfoWithContent) error {
+func (d *Downloader) Download(ctx context.Context, m backupspec.ManifestInfoWithContent) error {
 	d.dryRun = false
 	return d.download(ctx, m, parallel.NoLimit)
 }
 
-func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithContent, workers int) error {
+func (d *Downloader) download(ctx context.Context, m backupspec.ManifestInfoWithContent, workers int) error {
 	d.logger.Info(ctx, "Initializing downloader",
 		"cluster_id", m.ClusterID,
 		"cluster_name", m.ClusterName,
@@ -182,8 +182,8 @@ func (d *Downloader) download(ctx context.Context, m backup.ManifestInfoWithCont
 	return parallel.Run(len(index), workers, f, notify)
 }
 
-func (d *Downloader) filteredIndex(ctx context.Context, m backup.ManifestInfoWithContent) ([]backup.FilesMeta, error) {
-	var i []backup.FilesMeta
+func (d *Downloader) filteredIndex(ctx context.Context, m backupspec.ManifestInfoWithContent) ([]backupspec.FilesMeta, error) {
+	var i []backupspec.FilesMeta
 
 	if m.Index != nil {
 		i = m.Index
@@ -199,7 +199,7 @@ func (d *Downloader) filteredIndex(ctx context.Context, m backup.ManifestInfoWit
 		return i, nil
 	}
 
-	var index []backup.FilesMeta
+	var index []backupspec.FilesMeta
 	for _, u := range i {
 		if !d.shouldDownload(u.Keyspace, u.Table) {
 			d.logger.Debug(ctx, "Table filtered out", "keyspace", u.Keyspace, "table", u.Table)
@@ -214,7 +214,7 @@ func (d *Downloader) shouldDownload(keyspace, table string) bool {
 	return d.keyspace == nil || d.keyspace.Check(keyspace, table)
 }
 
-func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta) error {
+func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backupspec.FilesMeta) error {
 	if !d.clearTables {
 		return nil
 	}
@@ -274,7 +274,7 @@ func (d *Downloader) clearTableIfNeeded(ctx context.Context, u backup.FilesMeta)
 	return nil
 }
 
-func (d *Downloader) downloadFiles(ctx context.Context, m backup.ManifestInfoWithContent, u backup.FilesMeta) error {
+func (d *Downloader) downloadFiles(ctx context.Context, m backupspec.ManifestInfoWithContent, u backupspec.FilesMeta) error {
 	d.logger.Info(ctx, "Downloading",
 		"keyspace", u.Keyspace,
 		"table", u.Table,
@@ -295,7 +295,7 @@ func (d *Downloader) downloadFiles(ctx context.Context, m backup.ManifestInfoWit
 	return sync.CopyPaths(ctx, d.fdst, d.dstDir(u), d.fsrc, m.SSTableVersionDir(u.Keyspace, u.Table, u.Version), u.Files, false)
 }
 
-func (d *Downloader) dstDir(u backup.FilesMeta) (dir string) {
+func (d *Downloader) dstDir(u backupspec.FilesMeta) (dir string) {
 	switch d.mode {
 	case DefaultTableDirMode:
 		dir = path.Join(u.Keyspace, u.Table+"-"+u.Version)

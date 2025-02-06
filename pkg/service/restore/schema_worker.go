@@ -14,11 +14,13 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+
 	"go.uber.org/atomic"
 
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -28,10 +30,10 @@ type schemaWorker struct {
 	worker
 
 	generationCnt atomic.Int64
-	miwc          ManifestInfoWithContent // Currently restored manifest
+	miwc          backupspec.ManifestInfoWithContent // Currently restored manifest
 	// Maps original SSTable name to its existing older version (with respect to currently restored snapshot tag)
 	// that should be used during the restore procedure. It should be initialized per each restored table.
-	versionedFiles VersionedMap
+	versionedFiles backup.VersionedMap
 }
 
 // Due to Scylla issue #16349 it is expected that restore schema tests will fail
@@ -76,7 +78,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			uploadDir := UploadTableDir(u.Keyspace, t.Table, version)
+			uploadDir := backupspec.UploadTableDir(u.Keyspace, t.Table, version)
 
 			for _, h := range status {
 				if err := w.cleanUploadDir(ctx, h.Addr, uploadDir, nil); err != nil {
@@ -193,11 +195,11 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 	return nil
 }
 
-func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Location) error {
+func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location backupspec.Location) error {
 	w.logger.Info(ctx, "Downloading schema from location", "location", location)
 	defer w.logger.Info(ctx, "Downloading schema from location finished", "location", location)
 
-	tableDownloadHandler := func(fm FilesMeta) error {
+	tableDownloadHandler := func(fm backupspec.FilesMeta) error {
 		if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
 			return nil
 		}
@@ -208,7 +210,7 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 		return w.workFunc(ctx, fm)
 	}
 
-	manifestDownloadHandler := func(miwc ManifestInfoWithContent) error {
+	manifestDownloadHandler := func(miwc backupspec.ManifestInfoWithContent) error {
 		w.logger.Info(ctx, "Downloading schema from manifest", "manifest", miwc.ManifestInfo)
 		defer w.logger.Info(ctx, "Downloading schema from manifest finished", "manifest", miwc.ManifestInfo)
 
@@ -221,7 +223,7 @@ func (w *schemaWorker) locationDownloadHandler(ctx context.Context, location Loc
 	return w.forEachManifest(ctx, location, manifestDownloadHandler)
 }
 
-func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
+func (w *schemaWorker) workFunc(ctx context.Context, fm backupspec.FilesMeta) error {
 	version, err := query.GetTableVersion(w.clusterSession, fm.Keyspace, fm.Table)
 	if err != nil {
 		return err
@@ -229,7 +231,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 
 	var (
 		srcDir = w.miwc.LocationSSTableVersionDir(fm.Keyspace, fm.Table, fm.Version)
-		dstDir = UploadTableDir(fm.Keyspace, fm.Table, version)
+		dstDir = backupspec.UploadTableDir(fm.Keyspace, fm.Table, version)
 	)
 
 	w.logger.Info(ctx, "Start downloading schema files",
@@ -241,7 +243,7 @@ func (w *schemaWorker) workFunc(ctx context.Context, fm FilesMeta) error {
 	)
 
 	hosts := w.target.locationHosts[w.miwc.Location]
-	w.versionedFiles, err = ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
+	w.versionedFiles, err = backup.ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, hosts[0], srcDir)
 	if err != nil {
 		return errors.Wrap(err, "initialize versioned SSTables")
 	}
@@ -333,8 +335,8 @@ func (w *schemaWorker) getFileNamesMapping(sstables []string, sstableUUIDFormat 
 	return sstable.RenameToIDs(sstables, &w.generationCnt)
 }
 
-func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapshotTag string, locHost map[Location][]string) (schema *query.DescribedSchema, err error) {
-	baseDir := path.Join("backup", string(SchemaDirKind))
+func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapshotTag string, locHost map[backupspec.Location][]string) (schema *query.DescribedSchema, err error) {
+	baseDir := path.Join("backup", string(backupspec.SchemaDirKind))
 	// It's enough to get a single schema file, but it's important to validate
 	// that each location contains exactly one or none of them.
 	var (
@@ -399,7 +401,7 @@ func getRemoteSchemaFilePath(ctx context.Context, client *scyllaclient.Client, s
 
 	var schemaPaths []string
 	err := client.RcloneListDirIter(ctx, host, remotePath, &opts, func(f *scyllaclient.RcloneListDirItem) {
-		if strings.HasSuffix(f.Name, RemoteSchemaFileSuffix(snapshotTag)) {
+		if strings.HasSuffix(f.Name, backupspec.RemoteSchemaFileSuffix(snapshotTag)) {
 			schemaPaths = append(schemaPaths, f.Path)
 		}
 	})

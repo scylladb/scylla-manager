@@ -9,10 +9,11 @@ import (
 	"sync"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -21,7 +22,7 @@ type hostInfo struct {
 	DC        string
 	IP        string
 	ID        string
-	Location  Location
+	Location  backupspec.Location
 	RateLimit DCLimit
 	Transfers int
 }
@@ -30,7 +31,7 @@ func (h hostInfo) String() string {
 	return h.IP
 }
 
-// snapshotDir represents a remote directory containing a table snapshot.
+// snapshotDir represents a remote directory containing a table backupspec.
 type snapshotDir struct {
 	Host     string
 	Unit     int64

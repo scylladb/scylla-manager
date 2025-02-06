@@ -18,7 +18,6 @@ require (
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-version v1.7.0
-	github.com/json-iterator/go v1.1.12
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.0
@@ -31,8 +30,9 @@ require (
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
+	github.com/scylladb/scylla-manager/backupspec v1.0.1
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250122142320-e1127475cc4c
-	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250122142320-e1127475cc4c
+	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250123113205-a6303e03d168
 	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250122142320-e1127475cc4c
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
@@ -83,6 +83,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/lnquy/cron v1.1.1 // indirect

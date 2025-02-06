@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -63,7 +64,7 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 		defer func() {
 			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
 		}()
-		// Delete table snapshot.
+		// Delete table backupspec.
 		defer func() {
 			if err != nil {
 				return
@@ -295,5 +296,5 @@ func (w *worker) onRunProgress(ctx context.Context, p *RunProgress) {
 }
 
 func (w *worker) remoteSSTableDir(h hostInfo, d snapshotDir) string {
-	return RemoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
+	return backupspec.RemoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, d.Keyspace, d.Table, d.Version)
 }

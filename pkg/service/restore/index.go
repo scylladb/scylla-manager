@@ -7,15 +7,16 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 )
 
 // Workload represents total restore workload.
 type Workload struct {
 	TotalSize    int64
-	LocationSize map[Location]int64
+	LocationSize map[backupspec.Location]int64
 	TableSize    map[TableName]int64
 	RemoteDir    []RemoteDirWorkload
 }
@@ -24,7 +25,7 @@ type Workload struct {
 // for given table and manifest in given backup location.
 type RemoteDirWorkload struct {
 	TableName
-	*ManifestInfo
+	*backupspec.ManifestInfo
 
 	RemoteSSTableDir string
 	Size             int64
@@ -45,7 +46,7 @@ type SSTable struct {
 }
 
 // IndexWorkload returns sstables to be restored aggregated by location, table and remote sstable dir.
-func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location) (Workload, error) {
+func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []backupspec.Location) (Workload, error) {
 	var rawWorkload []RemoteDirWorkload
 	for _, l := range locations {
 		lw, err := w.indexLocationWorkload(ctx, l)
@@ -59,7 +60,7 @@ func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []Location) 
 	return workload, nil
 }
 
-func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Location) ([]RemoteDirWorkload, error) {
+func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location backupspec.Location) ([]RemoteDirWorkload, error) {
 	rawWorkload, err := w.createRemoteDirWorkloads(ctx, location)
 	if err != nil {
 		return nil, errors.Wrap(err, "create remote dir workloads")
@@ -73,10 +74,10 @@ func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Locat
 	return rawWorkload, nil
 }
 
-func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Location) ([]RemoteDirWorkload, error) {
+func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location backupspec.Location) ([]RemoteDirWorkload, error) {
 	var rawWorkload []RemoteDirWorkload
-	err := w.forEachManifest(ctx, location, func(m ManifestInfoWithContent) error {
-		return m.ForEachIndexIterWithError(nil, func(fm FilesMeta) error {
+	err := w.forEachManifest(ctx, location, func(m backupspec.ManifestInfoWithContent) error {
+		return m.ForEachIndexIterWithError(nil, func(fm backupspec.FilesMeta) error {
 			if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
 				return nil
 			}
@@ -232,7 +233,7 @@ func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
 func aggregateWorkload(rawWorkload []RemoteDirWorkload) Workload {
 	var (
 		totalSize    int64
-		locationSize = make(map[Location]int64)
+		locationSize = make(map[backupspec.Location]int64)
 		tableSize    = make(map[TableName]int64)
 	)
 	for _, rdw := range rawWorkload {
@@ -249,7 +250,7 @@ func aggregateWorkload(rawWorkload []RemoteDirWorkload) Workload {
 }
 
 func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remoteDir string, sstables map[string]SSTable) ([]RemoteSSTable, error) {
-	versioned, err := ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, host, remoteDir)
+	versioned, err := backup.ListVersionedFiles(ctx, w.client, w.run.SnapshotTag, host, remoteDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "list versioned files")
 	}
@@ -273,7 +274,7 @@ func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remot
 	return remoteSSTables, nil
 }
 
-func filesMetaToSSTables(fm FilesMeta) (map[string]SSTable, error) {
+func filesMetaToSSTables(fm backupspec.FilesMeta) (map[string]SSTable, error) {
 	const expectedSSTableFileCnt = 9
 	sstables := make(map[string]SSTable, len(fm.Files)/expectedSSTableFileCnt)
 
