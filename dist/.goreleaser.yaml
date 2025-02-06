@@ -2,6 +2,10 @@ project_name: scylla-manager
 dist: release
 version: 2
 
+git:
+  ignore_tags:
+    - "backupspec/*"
+
 changelog:
   sort: asc
   filters:
