@@ -1,0 +1,30 @@
+use: 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
+
+short: Run an ad-hoc restore of tables to a cluster that mirrors the topology (DCs, racks, nodes structure and tokens) of a backup cluster.
+
+long: |
+  This command allows you to run ad-hoc restore of tables to a cluster that mirrors the topology of a backup cluster. This means that the target cluster must have 
+  the same number of nodes in each datacenter and rack, as well as the same token assignment for each node.  
+  **Note:** This command only restores the data within the tables. 
+  You must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.
+
+location: |
+  A list of backup locations separated by a comma, specifies places where restored backup is stored.
+  
+  The format is `[<dc>:]<provider>:<bucket>`.
+  The `<dc>` parameter will be ignored and nodes-mapping will be used instead.
+
+source-cluster-id: |
+  Cluster ID of the backup cluster.
+
+snapshot-tag: |
+  Scylla Manager snapshot tag identifying restored backup.
+  Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
+
+nodes-mapping:
+  Path to a file with source cluster and target cluster nodes mapping. Each line should contain node mapping in the following format
+  <source_dc>:<source_rack>:<source_host_id>=<destination_dc>:<destination_rack>:<destination_host_id>
+
+dry-run: |
+  Validates and displays restore information without actually running the restore.
+  This allows you to display what will happen should the restore run with the parameters you set.

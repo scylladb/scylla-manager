@@ -1,0 +1,14 @@
+[
+  {
+    "source": {
+      "dc": "dc1",
+      "rack_id": "rack1",
+      "host_id": "host1"
+    },
+    "target": {
+      "dc": "dc2",
+      "rack_id": "rack2",
+      "host_id": "host2"
+    }
+  }
+]
