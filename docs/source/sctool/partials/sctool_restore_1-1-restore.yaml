@@ -1,23 +1,9 @@
-name: sctool restore
-synopsis: Run an ad-hoc restore of schema or tables
-description: |
-    This command allows you to run an ad-hoc restore.
-    Restore is always one of two types: restore schema ('--restore-schema' flag) or restore tables' contents ('--restore-tables' flag).
-    In both cases, for the restore effects to be visible, you need to perform
-    a specific follow-up action described by selected type.
-usage: sctool restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags]
+name: sctool restore 1-1-restore
+synopsis: |
+    Run an ad-hoc restore of tables to a cluster that mirrors the topology (DCs, racks, nodes structure and tokens) of a backup cluster.
+description: "This command allows you to run ad-hoc restore of tables to a cluster that mirrors the topology of a backup cluster. This means that the target cluster must have \nthe same number of nodes in each datacenter and rack, as well as the same token assignment for each node.  \n**Note:** This command only restores the data within the tables. \nYou must first restore the schema of the database separately using the regular restore command with the `--restore-schema` flag.\n"
+usage: sctool restore 1-1-restore --cluster <id|name> --location [<dc>:]<provider>:<bucket> --snapshot-tag <tag> [flags] --source-cluster-id <id> --nodes-mapping <filepath>
 options:
-    - name: allow-compaction
-      default_value: "false"
-      usage: |
-        Defines if auto compactions should be running on Scylla nodes during restore.
-        Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.
-    - name: batch-size
-      default_value: "2"
-      usage: |
-        Number of SSTables per shard to process in one request by one node.
-        Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
-        Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).
     - name: cluster
       shorthand: c
       usage: |
@@ -38,7 +24,7 @@ options:
     - name: help
       shorthand: h
       default_value: "false"
-      usage: help for restore
+      usage: help for 1-1-restore
     - name: interval
       shorthand: i
       usage: |
@@ -87,63 +73,31 @@ options:
         A list of backup locations separated by a comma, specifies places where restored backup is stored.
 
         The format is `[<dc>:]<provider>:<bucket>`.
-        The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
-        from this location in a multi-dc setting, it must match Scylla nodes datacenter.
-        By default, all live nodes are used to restore data from specified locations.
-
-        Note that specifying datacenters closest to backup locations might reduce download time of restored data.
-        The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
-        The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+        The `<dc>` parameter will be ignored and nodes-mapping will be used instead.
     - name: name
       usage: |
         Task name that can be used instead of ID.
+    - name: nodes-mapping
+      usage: |
+        Path to a file with source cluster and target cluster nodes mapping. Each line should contain node mapping in the following format <source_dc>:<source_rack>:<source_host_id>=<destination_dc>:<destination_rack>:<destination_host_id>
     - name: num-retries
       shorthand: r
       default_value: "3"
       usage: |
         Number of times a task reruns following a failure.
-    - name: parallel
-      default_value: "0"
-      usage: |
-        The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
-        Each node can take part in at most one restore at any given moment.
-    - name: rate-limit
-      default_value: '[]'
-      usage: |
-        Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
-        You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
-        The <dc>: part is optional and is only needed when different datacenters require different download limits.
-        Set to 0 for no limit (default 0).
-    - name: restore-schema
-      default_value: "false"
-      usage: |
-        Specifies restore type (alternative to '--restore-tables' flag).
-        Restore will recreate schema by applying the backed up output of DESCRIBE SCHEMA WITH INTERNALS via CQL.
-        It requires that restored keyspaces aren't present in the cluster.
-        For the full list of prerequisites, please see https://manager.docs.scylladb.com/stable/restore/restore-schema.html.
-    - name: restore-tables
-      default_value: "false"
-      usage: |
-        Specifies restore type (alternative to '--restore-schema' flag).
-        Restore will recreate contents of tables specified by '--keyspace' flag.
-        It requires that correct schema of restored tables is already present in the cluster (schema can be restored using '--restore-schema' flag).
-        Moreover, in order to prevent situation in which current tables' contents overlaps restored data,
-        tables should be truncated before initializing restore.
-        For the full list of prerequisites, please see https://manager.docs.scylladb.com/stable/restore/restore-tables.html.
     - name: retry-wait
       default_value: 10m
       usage: |
         Initial exponential backoff `duration` X[h|m|s].
         With --retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.
-    - name: show-tables
-      default_value: "false"
-      usage: |
-        Prints table names together with keyspace, used in combination with --dry-run.
     - name: snapshot-tag
       shorthand: T
       usage: |
         Scylla Manager snapshot tag identifying restored backup.
         Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
+    - name: source-cluster-id
+      usage: |
+        Cluster ID of the backup cluster.
     - name: start-date
       shorthand: s
       usage: |
@@ -163,15 +117,6 @@ options:
       usage: |
         Timezone of --cron and --window flag values.
         The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
-    - name: transfers
-      default_value: "0"
-      usage: |
-        Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
-        Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
-        Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
-    - name: unpin-agent-cpu
-      default_value: "false"
-      usage: "Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.\nThis might significantly improve download speed at the cost of decreasing streaming speed. \n"
     - name: window
       default_value: '[]'
       usage: |
@@ -194,6 +139,5 @@ inherited_options:
         Base `URL` of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
-    - sctool - Scylla Manager Snapshot
-    - sctool restore 1-1-restore - Run an ad-hoc restore of tables to a cluster that mirrors the topology (DCs, racks, nodes structure and tokens) of a backup cluster.
-    - sctool restore update - Modify properties of the existing restore task
+    - sctool restore - Run an ad-hoc restore of schema or tables
+    - sctool restore 1-1-restore update - Modify properties of the existing 1-1-restore task
