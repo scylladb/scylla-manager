@@ -89,7 +89,7 @@ func mapSourceNodesToTarget(sourceNodeInfo []nodeValidationInfo, nodeMappings []
 	for _, source := range sourceNodeInfo {
 		target, ok := sourceMappings[node{DC: source.DC, Rack: source.Rack, HostID: source.HostID}]
 		if !ok {
-			return nil, errors.Errorf("mapping for source node (%v) is not found", source)
+			return nil, errors.Errorf("mapping for source node (%s %s %s) is not found", source.DC, source.Rack, source.HostID)
 		}
 		sourceByTarget[target] = source
 	}
