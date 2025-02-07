@@ -76,7 +76,7 @@ func (cmd *command) init() {
 	w.Location(&cmd.location)
 	w.Keyspace(&cmd.keyspace)
 
-	// Flags specific to fast restore
+	// Flags specific to 1-1-restore
 	w.Unwrap().Var(&cmd.sourceCluster, "source-cluster-id", "")
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().Var(&cmd.nodesMapping, "nodes-mapping", "")
