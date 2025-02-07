@@ -1109,7 +1109,7 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	srcMTwoDC := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ksTwoDC, tab, "id", "data")
 
 	Print("Run backup")
-	loc := []Location{
+	loc := []backupspec.Location{
 		testLocation("one-location-1", ""),
 	}
 	S3InitBucket(t, loc[0].Path)
