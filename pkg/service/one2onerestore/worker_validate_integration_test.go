@@ -8,6 +8,8 @@ package one2onerestore
 import (
 	"context"
 	"encoding/json"
+	"math/rand/v2"
+	"net/http"
 	"testing"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -33,7 +36,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 	}
 	testutils.S3InitBucket(t, loc.Path)
 
-	w := testNewWorker(t)
+	w, hrt := testNewWorker(t)
 
 	clusterID := uuid.MustRandom()
 	backupSvc := newBackupSvc(t, db.CreateScyllaManagerDBSession(t), w.client, clusterID)
@@ -57,6 +60,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 		hostsProvider        func() []Host
 		manifestsProvider    func() []*backupspec.ManifestInfo
 		nodeMappingsProvider func() []nodeMapping
+		setIntereptor        func()
 		expecterErr          bool
 	}{
 
@@ -71,6 +75,9 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
 			},
+			setIntereptor: func() {
+				hrt.SetInterceptor(nil)
+			},
 			expecterErr: false,
 		},
 		{
@@ -83,6 +90,9 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			},
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
+			},
+			setIntereptor: func() {
+				hrt.SetInterceptor(nil)
 			},
 			expecterErr: true,
 		},
@@ -110,6 +120,9 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings[1:]
 			},
+			setIntereptor: func() {
+				hrt.SetInterceptor(nil)
+			},
 			expecterErr: true,
 		},
 		{
@@ -125,6 +138,9 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 				copy(modified, nodeMappings)
 				modified[0].Source.DC = "not found"
 				return modified
+			},
+			setIntereptor: func() {
+				hrt.SetInterceptor(nil)
 			},
 			expecterErr: true,
 		},
@@ -142,12 +158,69 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 				modified[0].Target.DC = "not found"
 				return modified
 			},
+			setIntereptor: func() {
+				hrt.SetInterceptor(nil)
+			},
+			expecterErr: true,
+		},
+		{
+			name: "Node doesn't have access to manifest location",
+			manifestsProvider: func() []*backupspec.ManifestInfo {
+				return manifests
+			},
+			hostsProvider: func() []Host {
+				return hosts
+			},
+			nodeMappingsProvider: func() []nodeMapping {
+				return nodeMappings
+			},
+			setIntereptor: func() {
+				randomNode := hosts[rand.IntN(len(hosts))].Addr
+				hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if req.URL.Hostname() != randomNode {
+						return nil, nil
+					}
+					if req.URL.Path != "/agent/rclone/operations/cat" {
+						return nil, nil
+					}
+					return httpx.MakeResponse(req, http.StatusBadRequest), nil
+				}))
+			},
+			expecterErr: true,
+		},
+		{
+			name: "Node is not alive",
+			manifestsProvider: func() []*backupspec.ManifestInfo {
+				return manifests
+			},
+			hostsProvider: func() []Host {
+				return hosts
+			},
+			nodeMappingsProvider: func() []nodeMapping {
+				return nodeMappings
+			},
+			setIntereptor: func() {
+				randomNode := hosts[rand.IntN(len(hosts))].Addr
+				hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if req.URL.Hostname() != randomNode {
+						return nil, nil
+					}
+					if req.URL.Path != "/storage_service/scylla_release_version" {
+						return nil, nil
+					}
+					return httpx.MakeResponse(req, http.StatusBadRequest), nil
+				}))
+			},
 			expecterErr: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.setIntereptor != nil {
+				tc.setIntereptor()
+			}
+
 			err := w.validateClusters(context.Background(), tc.manifestsProvider(), tc.hostsProvider(), tc.nodeMappingsProvider())
 			if tc.expecterErr && err == nil {
 				t.Fatalf("Expected err, but got nil")
@@ -159,7 +232,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 	}
 }
 
-func testNewWorker(t *testing.T) *worker {
+func testNewWorker(t *testing.T) (*worker, *testutils.HackableRoundTripper) {
 	t.Helper()
 	hrt := testutils.NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	cfg := scyllaclient.TestConfig(testconfig.ManagedSecondClusterHosts(), testutils.AgentAuthToken())
@@ -178,7 +251,7 @@ func testNewWorker(t *testing.T) *worker {
 		clusterSession: clusterSession,
 		logger:         log.NopLogger,
 	}
-	return w
+	return w, hrt
 }
 
 func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID) *backup.Service {
