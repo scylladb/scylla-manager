@@ -1,1 +1,0 @@
-rack1:host1=dc2:rack2:host2

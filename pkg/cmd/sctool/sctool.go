@@ -16,7 +16,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusterdelete"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusterlist"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/cluster/clusterupdate"
-	"github.com/scylladb/scylla-manager/v3/pkg/command/fastrestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/info"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskdelete"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskhistory"
@@ -100,7 +99,6 @@ func buildCommand() *cobra.Command {
 	rootCmd.AddCommand(
 		backupCmd,
 		restoreCmd,
-		fastrestore.NewCommand(&client),
 		clusterCmd,
 		info.NewCommand(&client),
 		repairCmd,
