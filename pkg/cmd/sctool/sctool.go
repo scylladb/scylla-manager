@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskstart"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskstop"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskupdate"
+	"github.com/scylladb/scylla-manager/v3/pkg/command/one2onerestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/progress"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair/repaircontrol"
@@ -63,6 +64,7 @@ func buildCommand() *cobra.Command {
 	)
 
 	restoreCmd := restore.NewCommand(&client)
+	restoreCmd.AddCommand(one2onerestore.NewCommand(&client))
 
 	clusterCmd := &cobra.Command{
 		Use:   "cluster",
