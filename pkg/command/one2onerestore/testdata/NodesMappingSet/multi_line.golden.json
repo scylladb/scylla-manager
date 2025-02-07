@@ -1,0 +1,38 @@
+[
+  {
+    "source": {
+      "dc": "cd1",
+      "rack_id": "ack1",
+      "host_id": "hwost1"
+    },
+    "target": {
+      "dc": "dc1",
+      "rack_id": "rack1",
+      "host_id": "host1"
+    }
+  },
+  {
+    "source": {
+      "dc": "cd1",
+      "rack_id": "ack1",
+      "host_id": "hwost2"
+    },
+    "target": {
+      "dc": "dc1",
+      "rack_id": "rack1",
+      "host_id": "host2"
+    }
+  },
+  {
+    "source": {
+      "dc": "cd2",
+      "rack_id": "ack2",
+      "host_id": "hwost3"
+    },
+    "target": {
+      "dc": "dc2",
+      "rack_id": "rack2",
+      "host_id": "host3"
+    }
+  }
+]
