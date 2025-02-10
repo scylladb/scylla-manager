@@ -13,7 +13,7 @@ func TestValidateDCMappings(t *testing.T) {
 		name       string
 		sourceDC   []string
 		targetDC   []string
-		dcMappings DCMappings
+		dcMappings map[string]string
 
 		expectedErr bool
 	}{
@@ -21,18 +21,18 @@ func TestValidateDCMappings(t *testing.T) {
 			name:     "sourceDC != targetDC, but with full mapping",
 			sourceDC: []string{"dc1"},
 			targetDC: []string{"dc2"},
-			dcMappings: []DCMapping{
-				{Source: "dc1", Target: "dc2"},
+			dcMappings: map[string]string{
+				"dc1": "dc2",
 			},
 			expectedErr: false,
 		},
 		{
-			name:     "source != target, but will full mapping, two dcs per cluster",
+			name:     "source != target, but with full mapping, two dcs per cluster",
 			sourceDC: []string{"dc1", "dc2"},
 			targetDC: []string{"dc3", "dc4"},
-			dcMappings: []DCMapping{
-				{Source: "dc1", Target: "dc3"},
-				{Source: "dc2", Target: "dc4"},
+			dcMappings: map[string]string{
+				"dc1": "dc3",
+				"dc2": "dc4",
 			},
 			expectedErr: false,
 		},
@@ -40,9 +40,9 @@ func TestValidateDCMappings(t *testing.T) {
 			name:     "DC mappings has unknown source dc",
 			sourceDC: []string{"dc1", "dc2"},
 			targetDC: []string{"dc3", "dc4"},
-			dcMappings: []DCMapping{
-				{Source: "dc1", Target: "dc3"},
-				{Source: "dc0", Target: "dc4"},
+			dcMappings: map[string]string{
+				"dc1": "dc3",
+				"dc0": "dc4",
 			},
 			expectedErr: true,
 		},
@@ -50,9 +50,9 @@ func TestValidateDCMappings(t *testing.T) {
 			name:     "DC mappings has unknown target dc",
 			sourceDC: []string{"dc1", "dc2"},
 			targetDC: []string{"dc3", "dc4"},
-			dcMappings: []DCMapping{
-				{Source: "dc1", Target: "dc3"},
-				{Source: "dc2", Target: "dc5"},
+			dcMappings: map[string]string{
+				"dc1": "dc3",
+				"dc2": "dc5",
 			},
 			expectedErr: true,
 		},
@@ -60,19 +60,9 @@ func TestValidateDCMappings(t *testing.T) {
 			name:     "Squeezing DCs is not supported",
 			sourceDC: []string{"dc1", "dc2"},
 			targetDC: []string{"dc1"},
-			dcMappings: []DCMapping{
-				{Source: "dc1", Target: "dc1"},
-				{Source: "dc2", Target: "dc1"},
-			},
-			expectedErr: true,
-		},
-		{
-			name:     "Expanding DCs is not supported",
-			sourceDC: []string{"dc1"},
-			targetDC: []string{"dc1", "dc2"},
-			dcMappings: []DCMapping{
-				{Source: "dc1", Target: "dc1"},
-				{Source: "dc1", Target: "dc2"},
+			dcMappings: map[string]string{
+				"dc1": "dc1",
+				"dc2": "dc1",
 			},
 			expectedErr: true,
 		},
@@ -102,7 +92,7 @@ func TestHostsByDC(t *testing.T) {
 		expected map[string][]string
 	}{
 		{
-			name: "When --dc-mapping is provided will all DCs",
+			name: "When --dc-mapping is provided with all DCs",
 			nodes: scyllaclient.NodeStatusInfoSlice{
 				{Addr: "n1", Datacenter: "target_dc1"},
 				{Addr: "n2", Datacenter: "target_dc1"},
@@ -121,7 +111,7 @@ func TestHostsByDC(t *testing.T) {
 			},
 		},
 		{
-			name: "When --dc-mapping is provided will some DCs",
+			name: "When --dc-mapping is provided with some DCs",
 			nodes: scyllaclient.NodeStatusInfoSlice{
 				{Addr: "n1", Datacenter: "target_dc1"},
 				{Addr: "n2", Datacenter: "target_dc1"},

@@ -79,7 +79,7 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 		return nil, errors.Wrap(err, "get status")
 	}
 
-	sourceDC2TargetDCMap, targetDC2SourceDCMap := target.DCMappings.calculateMappings()
+	sourceDC2TargetDCMap, targetDC2SourceDCMap := target.DCMappings, reverseMap(target.DCMappings)
 
 	for _, l := range target.Location {
 		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, l, len(target.DCMappings) > 0)
@@ -110,6 +110,15 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 	return result, nil
 }
 
+// From map[k]v to map[v]k.
+func reverseMap(m map[string]string) map[string]string {
+	result := make(map[string]string, len(m))
+	for k, v := range m {
+		result[v] = k
+	}
+	return result
+}
+
 func (w *worker) getNodesWithAccess(
 	ctx context.Context,
 	nodeStatus scyllaclient.NodeStatusInfoSlice,
@@ -136,7 +145,7 @@ func (w *worker) getNodesWithAccess(
 // hostsByDC creates map of which hosts are responsible for which DC, also applies DCMappings if available.
 func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetDC2SourceDCMap map[string]string, locationDCs []string) map[string][]string {
 	dc2HostsMap := map[string][]string{}
-	// when --dc-mapping is not set all nodes with access to the location can handle all DCs from it
+	// When --dc-mapping is not set all nodes (or nodes from location.DC) with access to the location can handle all DCs (or location.DC) from it
 	if len(targetDC2SourceDCMap) == 0 {
 		var hosts []string
 		for _, node := range nodes {
@@ -147,7 +156,7 @@ func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetDC2SourceDCMap map[
 		}
 		return dc2HostsMap
 	}
-	// when --dc-mapping is set, nodes can handle DCs only accordingly to mappings
+	// When --dc-mapping is set, nodes can handle DCs only accordingly to mappings
 	for _, n := range nodes {
 		sourceDC, ok := targetDC2SourceDCMap[n.Datacenter]
 		if !ok {
@@ -169,7 +178,7 @@ func collectDCsFromManifests(manifests []*backupspec.ManifestInfo) []string {
 	return dcs.List()
 }
 
-// keep only manifests that have dc mapping. if --dc-mapping is not set it will return all manifests.
+// Keep only manifests that have dc mapping. if --dc-mapping is not set it will return all manifests.
 func filterManifests(manifests []*backupspec.ManifestInfo, sourceDC2TargetDCMap map[string]string) []*backupspec.ManifestInfo {
 	if len(sourceDC2TargetDCMap) == 0 {
 		return manifests
@@ -239,13 +248,13 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 			sourceDC.Add(locInfo.DC...)
 		}
 		targetDC := slices.Collect(maps.Keys(dcMap))
+		w.logger.Debug(ctx,
+			"Validate dc mapping",
+			"source_dc", sourceDC,
+			"target_dc", targetDC,
+			"mappings", t.DCMappings,
+		)
 		if err := w.validateDCMappings(t.DCMappings, sourceDC.List(), targetDC); err != nil {
-			w.logger.Debug(ctx,
-				"Validate dc mapping",
-				"source_dc", sourceDC,
-				"target_dc", targetDC,
-				"mappings", t.DCMappings,
-			)
 			return err
 		}
 	}
@@ -255,27 +264,27 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 }
 
 // validateDCMappings that every dc from mappings exists in source or target cluster respectevely.
-func (w *worker) validateDCMappings(mappings DCMappings, sourceDC, targetDC []string) error {
+func (w *worker) validateDCMappings(dcMappings map[string]string, sourceDC, targetDC []string) error {
 	sourceDCSet := strset.New(sourceDC...)
 	targetDCSet := strset.New(targetDC...)
 	sourceDCMappingSet, targetDCMappingSet := strset.New(), strset.New()
-	for _, m := range mappings {
-		if !sourceDCSet.Has(m.Source) {
-			return errors.Errorf("No such dc in source cluster: %s", m.Source)
+	for sourceDC, targetDC := range dcMappings {
+		if !sourceDCSet.Has(sourceDC) {
+			return errors.Errorf("No such dc in source cluster: %s", sourceDC)
 		}
-		if !targetDCSet.Has(m.Target) {
-			return errors.Errorf("No such dc in target cluster: %s", m.Target)
+		if !targetDCSet.Has(targetDC) {
+			return errors.Errorf("No such dc in target cluster: %s", targetDC)
 		}
 
-		if sourceDCMappingSet.Has(m.Source) {
-			return errors.Errorf("DC mapping contains duplicates in source DCs: %s", m.Source)
+		if sourceDCMappingSet.Has(sourceDC) {
+			return errors.Errorf("DC mapping contains duplicates in source DCs: %s", sourceDC)
 		}
-		sourceDCMappingSet.Add(m.Source)
+		sourceDCMappingSet.Add(sourceDC)
 
-		if targetDCMappingSet.Has(m.Target) {
-			return errors.Errorf("DC mapping contains duplicates in target DCs: %s", m.Target)
+		if targetDCMappingSet.Has(targetDC) {
+			return errors.Errorf("DC mapping contains duplicates in target DCs: %s", targetDC)
 		}
-		targetDCMappingSet.Add(m.Target)
+		targetDCMappingSet.Add(targetDC)
 	}
 	return nil
 }

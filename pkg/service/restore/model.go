@@ -34,7 +34,7 @@ type Target struct {
 	RestoreSchema   bool                  `json:"restore_schema,omitempty"`
 	RestoreTables   bool                  `json:"restore_tables,omitempty"`
 	Continue        bool                  `json:"continue"`
-	DCMappings      DCMappings            `json:"dc_mapping"`
+	DCMappings      map[string]string     `json:"dc_mapping"`
 
 	locationInfo []LocationInfo
 }
@@ -45,12 +45,12 @@ type LocationInfo struct {
 	// DC contains all data centers that can be found in this location
 	DC []string
 	// Contains hosts that should handle DCs from this location
-	// after DCMappings are applied
+	// after DCMappings are applied.
 	DCHosts  map[string][]string
 	Location backupspec.Location
 
 	// Manifest in this Location. Shouldn't contain manifests from DCs
-	// that are not in the DCMappings
+	// that are not in the DCMappings.
 	Manifest []*backupspec.ManifestInfo
 }
 
@@ -330,25 +330,4 @@ type HostInfo struct {
 	Host      string
 	Transfers int
 	RateLimit int
-}
-
-// DCMappings represents how DCs from the backup cluster are mapped to DCs in the restore cluster.
-// For details about how DCs can be mapped refer to --dc-mapping documentation.
-type DCMappings []DCMapping
-
-// DCMapping represent single instance of datacenter mappings. See DCMappings for details.
-type DCMapping struct {
-	Source string `json:"source"`
-	Target string `json:"target"`
-}
-
-// calculateMappings creates two maps from DCMappings where each contains mapping between
-// source and target data centers.
-func (mappings DCMappings) calculateMappings() (sourceDC2TargetDCMap, targetDC2SourceDCMap map[string]string) {
-	sourceDC2TargetDCMap, targetDC2SourceDCMap = map[string]string{}, map[string]string{}
-	for _, mapping := range mappings {
-		sourceDC2TargetDCMap[mapping.Source] = mapping.Target
-		targetDC2SourceDCMap[mapping.Target] = mapping.Source
-	}
-	return sourceDC2TargetDCMap, targetDC2SourceDCMap
 }

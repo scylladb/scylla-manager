@@ -37,7 +37,7 @@ type command struct {
 	restoreTables   bool
 	dryRun          bool
 	showTables      bool
-	dcMapping       dcMappings
+	dcMapping       map[string]string
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -91,7 +91,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.restoreTables, "restore-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
-	w.Unwrap().Var(&cmd.dcMapping, "dc-mapping", "")
+	w.Unwrap().StringToStringVar(&cmd.dcMapping, "dc-mapping", nil, "")
 }
 
 func (cmd *command) run(args []string) error {
