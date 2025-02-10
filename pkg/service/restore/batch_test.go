@@ -180,18 +180,16 @@ func TestBatchDispatcher(t *testing.T) {
 	}
 }
 
-func TestNewWorkloadProgress(t *testing.T) {
+func TestGetHostDCAccess(t *testing.T) {
 	testCases := []struct {
 		name string
 
-		workload     Workload
 		locationInfo []LocationInfo
 
 		expected map[string][]string
 	}{
 		{
-			name:     "one location with one DC",
-			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1"}}),
+			name: "one location with one DC",
 			locationInfo: []LocationInfo{
 				{
 					DCHosts: map[string][]string{
@@ -205,8 +203,7 @@ func TestNewWorkloadProgress(t *testing.T) {
 			},
 		},
 		{
-			name:     "one location with two DC's",
-			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1", "dc2"}}),
+			name: "one location with two DC's",
 			locationInfo: []LocationInfo{
 				{
 					DCHosts: map[string][]string{
@@ -221,8 +218,7 @@ func TestNewWorkloadProgress(t *testing.T) {
 			},
 		},
 		{
-			name:     "one location with two DC's, more nodes",
-			workload: generateWorkload(t, []string{""}, map[string][]string{"": {"dc1", "dc2"}}),
+			name: "one location with two DC's, more nodes",
 			locationInfo: []LocationInfo{
 				{
 					DCHosts: map[string][]string{
@@ -240,10 +236,6 @@ func TestNewWorkloadProgress(t *testing.T) {
 		},
 		{
 			name: "two locations with one DC each",
-			workload: generateWorkload(t,
-				[]string{"location1", "location2"},
-				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
-			),
 			locationInfo: []LocationInfo{
 				{
 					DCHosts: map[string][]string{
@@ -263,10 +255,6 @@ func TestNewWorkloadProgress(t *testing.T) {
 		},
 		{
 			name: "two locations with one DC each, but hosts maps to all dcs",
-			workload: generateWorkload(t,
-				[]string{"location1", "location2"},
-				map[string][]string{"location1": {"dc1"}, "location2": {"dc2"}},
-			),
 			locationInfo: []LocationInfo{
 				{
 					DCHosts: map[string][]string{
@@ -288,31 +276,10 @@ func TestNewWorkloadProgress(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			wp := newWorkloadProgress(tc.workload, tc.locationInfo)
-			if diff := cmp.Diff(wp.hostDCAccess, tc.expected); diff != "" {
+			actual := getHostDCAccess(tc.locationInfo)
+			if diff := cmp.Diff(actual, tc.expected); diff != "" {
 				t.Fatalf("Actual != Expected: %s", diff)
 			}
 		})
 	}
-}
-
-func generateWorkload(t *testing.T, locationPaths []string, dcsInLocation map[string][]string) Workload {
-	t.Helper()
-
-	var remoteDirs []RemoteDirWorkload
-	for _, path := range locationPaths {
-		dcs, ok := dcsInLocation[path]
-		if !ok {
-			t.Fatalf("each location should have corresponding entry in dcsInLocation map")
-		}
-		for _, dc := range dcs {
-			remoteDirs = append(remoteDirs, RemoteDirWorkload{
-				ManifestInfo: &backupspec.ManifestInfo{
-					DC:       dc,
-					Location: backupspec.Location{Path: path},
-				},
-			})
-		}
-	}
-	return Workload{RemoteDir: remoteDirs}
 }

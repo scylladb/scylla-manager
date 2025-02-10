@@ -248,12 +248,6 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 			sourceDC.Add(locInfo.DC...)
 		}
 		targetDC := slices.Collect(maps.Keys(dcMap))
-		w.logger.Debug(ctx,
-			"Validate dc mapping",
-			"source_dc", sourceDC,
-			"target_dc", targetDC,
-			"mappings", t.DCMappings,
-		)
 		if err := w.validateDCMappings(t.DCMappings, sourceDC.List(), targetDC); err != nil {
 			return err
 		}

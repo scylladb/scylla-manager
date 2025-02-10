@@ -116,6 +116,15 @@ func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloa
 			RemainingSSTables: rdw.SSTables,
 		}
 	}
+	return workloadProgress{
+		dcBytesToBeRestored: dcBytes,
+		hostFailedDC:        make(map[string][]string),
+		hostDCAccess:        getHostDCAccess(locationInfo),
+		remoteDir:           p,
+	}
+}
+
+func getHostDCAccess(locationInfo []LocationInfo) map[string][]string {
 	hostDCAccess := map[string][]string{}
 	for _, l := range locationInfo {
 		for dc, hosts := range l.DCHosts {
@@ -124,12 +133,7 @@ func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloa
 			}
 		}
 	}
-	return workloadProgress{
-		dcBytesToBeRestored: dcBytes,
-		hostFailedDC:        make(map[string][]string),
-		hostDCAccess:        hostDCAccess,
-		remoteDir:           p,
-	}
+	return hostDCAccess
 }
 
 // Checks if given host finished restoring all that it could.
