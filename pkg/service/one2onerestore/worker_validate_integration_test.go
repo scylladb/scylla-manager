@@ -44,13 +44,13 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 		"location": []backupspec.Location{loc},
 	})
 
-	manifests, hosts, err := w.getManifestsAndHosts(context.Background(), Target{
+	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(context.Background(), Target{
 		SourceClusterID: clusterID,
 		SnapshotTag:     snapshotTag,
 		Location:        []backupspec.Location{loc},
 	})
 	if err != nil {
-		t.Fatalf("Unexpected err, getManifestsAndHosts: %v", err)
+		t.Fatalf("Unexpected err, getAllSnapshotManifestsAndTargetHosts: %v", err)
 	}
 
 	nodeMappings := getNodeMappings(t, w.client)
@@ -81,6 +81,22 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			expecterErr: false,
 		},
 		{
+			name: "Less nodes in nodes mappings",
+			manifestsProvider: func() []*backupspec.ManifestInfo {
+				return manifests
+			},
+			hostsProvider: func() []Host {
+				return hosts
+			},
+			nodeMappingsProvider: func() []nodeMapping {
+				return nodeMappings[1:]
+			},
+			setIntereptor: func() {
+				hrt.SetInterceptor(nil)
+			},
+			expecterErr: true,
+		},
+		{
 			name: "Less nodes in target clusters",
 			manifestsProvider: func() []*backupspec.ManifestInfo {
 				return manifests
@@ -106,22 +122,6 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			},
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
-			},
-			expecterErr: true,
-		},
-		{
-			name: "Less nodes in nodes mappings",
-			manifestsProvider: func() []*backupspec.ManifestInfo {
-				return manifests
-			},
-			hostsProvider: func() []Host {
-				return hosts
-			},
-			nodeMappingsProvider: func() []nodeMapping {
-				return nodeMappings[1:]
-			},
-			setIntereptor: func() {
-				hrt.SetInterceptor(nil)
 			},
 			expecterErr: true,
 		},

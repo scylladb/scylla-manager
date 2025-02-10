@@ -75,7 +75,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		return errors.Wrap(err, "new worker")
 	}
 
-	manifests, hosts, err := w.getManifestsAndHosts(ctx, target)
+	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(ctx, target)
 	if err != nil {
 		return errors.Wrap(err, "get manifests and hosts info")
 	}

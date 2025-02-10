@@ -4,12 +4,9 @@ package one2onerestore
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
@@ -24,54 +21,51 @@ type worker struct {
 	logger log.Logger
 }
 
-// getManifestsAndHosts checks that each host in target cluster should have an access to at least one target location and fetches manifest info.
-func (w *worker) getManifestsAndHosts(ctx context.Context, target Target) ([]*backupspec.ManifestInfo, []Host, error) {
+// getAllSnapshotManifestsAndTargetHosts gets backup(source) cluster node represented by manifests and target cluster nodes.
+func (w *worker) getAllSnapshotManifestsAndTargetHosts(ctx context.Context, target Target) ([]*backupspec.ManifestInfo, []Host, error) {
 	nodeStatus, err := w.client.Status(ctx)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "nodes status")
 	}
-	var (
-		allManifests  []*backupspec.ManifestInfo
-		nodesCountSet = strset.New()
-	)
+	var allManifests []*backupspec.ManifestInfo
 	for _, location := range target.Location {
-		// Ignore location.DC because all mappings should be specified via nodes-mapping file
-		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, location.RemotePath(""))
+		nodeAddr, err := findCorrespondingNode(nodeStatus, location.DC, target.NodesMapping)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "invalid mappings")
+		}
+		manifests, err := w.getManifestInfo(ctx, nodeAddr, target.SnapshotTag, target.SourceClusterID, location)
 		if err != nil {
 			return nil, nil, err
 		}
-		manifests, err := w.getManifestInfo(ctx, nodes[0].Addr, target.SnapshotTag, target.SourceClusterID, location)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		allManifests = append(allManifests, manifests...)
-
-		for _, n := range nodes {
-			nodesCountSet.Add(n.HostID)
-		}
 	}
-
-	// If manifest count != nodes with access count means that 1-1 restore is not possible.
-	if len(allManifests) != nodesCountSet.Size() || len(allManifests) != len(nodeStatus) {
-		return nil, nil, fmt.Errorf("manifest count (%d) != target nodes (%d)", len(allManifests), nodesCountSet.Size())
-	}
-
 	return allManifests, nodesToHosts(nodeStatus), nil
 }
 
-func (w *worker) getNodesWithAccess(ctx context.Context, nodesInfo scyllaclient.NodeStatusInfoSlice, remotePath string) (scyllaclient.NodeStatusInfoSlice, error) {
-	nodesWithAccess, err := w.client.GetNodesWithLocationAccess(ctx, nodesInfo, remotePath)
-	if err != nil {
-		if strings.Contains(err.Error(), "NoSuchBucket") {
-			return nil, errors.Errorf("specified bucket does not exist: %s", remotePath)
+func findCorrespondingNode(nodeStatus scyllaclient.NodeStatusInfoSlice, locationDC string, nodeMappings []nodeMapping) (addr string, err error) {
+	// when location DC is empty, it means that location contains all backup DCs
+	// and should be accessible by any node from target cluster
+	if locationDC == "" {
+		return nodeStatus[0].Addr, nil
+	}
+	// otherwise find node from location dc accordingly to node mappings
+	var targetDC string
+	for _, nodeMap := range nodeMappings {
+		if nodeMap.Source.DC == locationDC {
+			targetDC = nodeMap.Target.DC
+			break
 		}
-		return nil, errors.Wrapf(err, "location %s is not accessible", remotePath)
 	}
-	if len(nodesWithAccess) == 0 {
-		return nil, errors.Errorf("no nodes with location %s access", remotePath)
+	if targetDC == "" {
+		return "", errors.Errorf("mapping for source DC is not found: %s", locationDC)
 	}
-	return nodesWithAccess, nil
+	for _, node := range nodeStatus {
+		if node.Datacenter != targetDC {
+			continue
+		}
+		return node.Addr, nil
+	}
+	return "", errors.Errorf("node with access to location dc is not found: %s", locationDC)
 }
 
 func nodesToHosts(nodes scyllaclient.NodeStatusInfoSlice) []Host {

@@ -70,208 +70,58 @@ func TestMapTargetHostToSource(t *testing.T) {
 	}
 }
 
-func TestMapSourceNodeToTarget(t *testing.T) {
-	testCases := []struct {
-		name string
-
-		nodeMappings   []nodeMapping
-		sourceNodeInfo []nodeValidationInfo
-		expected       map[node]nodeValidationInfo
-		expectedErr    bool
-	}{
-		{
-			name: "All nodes have mappings",
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
-				{Source: node{DC: "dc3", Rack: "rack3", HostID: "host3"}, Target: node{DC: "dc6", Rack: "rack6", HostID: "host6"}},
-			},
-			sourceNodeInfo: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1"},
-				{DC: "dc2", Rack: "rack2", HostID: "host2"},
-				{DC: "dc3", Rack: "rack3", HostID: "host3"},
-			},
-			expected: map[node]nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4"}: {DC: "dc1", Rack: "rack1", HostID: "host1"},
-				{DC: "dc5", Rack: "rack5", HostID: "host5"}: {DC: "dc2", Rack: "rack2", HostID: "host2"},
-				{DC: "dc6", Rack: "rack6", HostID: "host6"}: {DC: "dc3", Rack: "rack3", HostID: "host3"},
-			},
-			expectedErr: false,
-		},
-		{
-			name: "Mapping for source node is not found",
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
-				{Source: node{DC: "dc3", Rack: "rack3", HostID: "host3"}, Target: node{DC: "dc7", Rack: "rack7", HostID: "host7"}},
-			},
-			sourceNodeInfo: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1"},
-				{DC: "dc2", Rack: "rack2", HostID: "host2"},
-				{DC: "hi", Rack: "rack3", HostID: "host3"},
-			},
-			expected:    nil,
-			expectedErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual, err := mapSourceNodesToTarget(tc.sourceNodeInfo, tc.nodeMappings)
-			if tc.expectedErr && err == nil {
-				t.Fatalf("Expected err, but got nil")
-			}
-			if !tc.expectedErr && err != nil {
-				t.Fatalf("Unexpected err: %v", err)
-			}
-			if diff := gocmp.Diff(actual, tc.expected); diff != "" {
-				t.Fatalf("actual != expected\n%s", diff)
-			}
-		})
-	}
-
-}
-
 func TestCheckOne2OneRestoreCompatibility(t *testing.T) {
 	testCases := []struct {
 		name string
 
-		sourceCluster, targetCluster []nodeValidationInfo
-		nodeMappings                 []nodeMapping
+		sourceCluster, targetCluster nodeValidationInfo
 		expectedErr                  string
 	}{
 		{
-			name: "Compatible clusters",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+			name: "Compatible nodes",
+			sourceCluster: nodeValidationInfo{
+				DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3},
 			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
+			targetCluster: nodeValidationInfo{
+				DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 4, StorageSize: 200, Tokens: []int64{1, 2, 3},
 			},
 			expectedErr: "",
 		},
 		{
-			name: "Different nodes count",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
-			},
-			expectedErr: "clusters have different nodes count: source 1 != target 2",
-		},
-		{
 			name: "Different ShardCount",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+			sourceCluster: nodeValidationInfo{
+				DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3},
 			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 8, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
+			targetCluster: nodeValidationInfo{
+				DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 8, StorageSize: 100, Tokens: []int64{1, 2, 3},
 			},
 			expectedErr: "source ShardCount doesn't match target ShardCount",
 		},
 		{
 			name: "StorageSize greater in source",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 200, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+			sourceCluster: nodeValidationInfo{
+				DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 200, Tokens: []int64{1, 2, 3},
 			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
+			targetCluster: nodeValidationInfo{
+				DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3},
 			},
 			expectedErr: "source StorageSize greater than target StorageSize",
 		},
 		{
 			name: "Different Tokens",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
+			sourceCluster: nodeValidationInfo{
+				DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3},
 			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{4, 5, 6}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{7, 8, 9}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
+			targetCluster: nodeValidationInfo{
+				DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{4, 5, 6},
 			},
 			expectedErr: "source Tokens doesn't match target Tokens",
-		},
-		{
-			name: "Wrong HostID in node mappings",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "hello"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "world"}},
-			},
-			expectedErr: "target node has no match in source cluster",
-		},
-		{
-			name: "Wrong Rack in node mappings",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "hello", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "dc5", Rack: "rack5", HostID: "host5"}},
-			},
-			expectedErr: "target node has no match in source cluster",
-		},
-		{
-			name: "Wrong DC in node mappings",
-			sourceCluster: []nodeValidationInfo{
-				{DC: "dc1", Rack: "rack1", HostID: "host1", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc2", Rack: "rack2", HostID: "host2", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			targetCluster: []nodeValidationInfo{
-				{DC: "dc4", Rack: "rack4", HostID: "host4", ShardCount: 4, StorageSize: 100, Tokens: []int64{1, 2, 3}},
-				{DC: "dc5", Rack: "rack5", HostID: "host5", ShardCount: 8, StorageSize: 200, Tokens: []int64{4, 5, 6}},
-			},
-			nodeMappings: []nodeMapping{
-				{Source: node{DC: "dc1", Rack: "rack1", HostID: "host1"}, Target: node{DC: "dc4", Rack: "rack4", HostID: "host4"}},
-				{Source: node{DC: "dc2", Rack: "rack2", HostID: "host2"}, Target: node{DC: "marvel", Rack: "rack5", HostID: "host5"}},
-			},
-			expectedErr: "target node has no match in source cluster:",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := checkOne2OneRestoreCompatibility(tc.sourceCluster, tc.targetCluster, tc.nodeMappings)
+			actual := checkOne2OneRestoreCompatibility(tc.sourceCluster, tc.targetCluster)
 			if tc.expectedErr != "" && actual == nil {
 				t.Fatalf("Expected err %q, but got nil", tc.expectedErr)
 			}
@@ -281,6 +131,94 @@ func TestCheckOne2OneRestoreCompatibility(t *testing.T) {
 			if tc.expectedErr != "" && actual != nil {
 				if !strings.HasPrefix(actual.Error(), tc.expectedErr) {
 					t.Fatalf("Expected err %q, but got %q", tc.expectedErr, actual.Error())
+				}
+			}
+		})
+	}
+}
+
+func TestCheckNodeMappings(t *testing.T) {
+	testCases := []struct {
+		name         string
+		sourceNode   nodeValidationInfo
+		targetNode   nodeValidationInfo
+		nodeMappings []nodeMapping
+		error        string
+	}{
+		{
+			name:       "Everything is fine",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "h2"}},
+			},
+		},
+		{
+			name:       "Different source mapping DC",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "h2"}},
+			},
+			error: "mapping for source node is not found: dc1 rack1 h1",
+		},
+		{
+			name:       "Different source mapping Rack",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "h2"}},
+			},
+			error: "mapping for source node is not found: dc1 rack1 h1",
+		},
+		{
+			name:       "Different source mapping HostID",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "h2"}},
+			},
+			error: "mapping for source node is not found: dc1 rack1 h1",
+		},
+		{
+			name:       "Different target mapping DC",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc", Rack: "rack2", HostID: "h2"}},
+			},
+			error: "mapping for target node is not found: dc2 rack2 h2",
+		},
+		{
+			name:       "Different target mapping Rack",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack", HostID: "h2"}},
+			},
+			error: "mapping for target node is not found: dc2 rack2 h2",
+		},
+		{
+			name:       "Different target mapping HostID",
+			sourceNode: nodeValidationInfo{DC: "dc1", Rack: "rack1", HostID: "h1"},
+			targetNode: nodeValidationInfo{DC: "dc2", Rack: "rack2", HostID: "h2"},
+			nodeMappings: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "h"}},
+			},
+			error: "mapping for target node is not found: dc2 rack2 h2",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkNodeMappings(tc.sourceNode, tc.targetNode, tc.nodeMappings)
+			if err == nil && tc.error != "" {
+				t.Fatalf("Expected err %q, but got nil", tc.error)
+			}
+
+			if err != nil && tc.error != "" {
+				if err.Error() != tc.error {
+					t.Fatalf("Expected err %q, but got %q", tc.error, err.Error())
 				}
 			}
 		})
