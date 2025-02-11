@@ -25,7 +25,7 @@ type Servicer interface {
 	Runner() Runner
 }
 
-// Service for the 1-2-1 restore.
+// Service for the 1-1-restore.
 type Service struct {
 	session gocqlx.Session
 

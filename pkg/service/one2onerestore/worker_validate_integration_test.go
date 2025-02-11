@@ -36,7 +36,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 	}
 	testutils.S3InitBucket(t, loc.Path)
 
-	w, hrt := testNewWorker(t)
+	w, hrt := newTestWorker(t)
 
 	clusterID := uuid.MustRandom()
 	backupSvc := newBackupSvc(t, db.CreateScyllaManagerDBSession(t), w.client, clusterID)
@@ -61,7 +61,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 		manifestsProvider    func() []*backupspec.ManifestInfo
 		nodeMappingsProvider func() []nodeMapping
 		setIntereptor        func()
-		expecterErr          bool
+		expectedErr          bool
 	}{
 
 		{
@@ -75,10 +75,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
 			},
-			setIntereptor: func() {
-				hrt.SetInterceptor(nil)
-			},
-			expecterErr: false,
+			expectedErr: false,
 		},
 		{
 			name: "Less nodes in nodes mappings",
@@ -91,10 +88,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings[1:]
 			},
-			setIntereptor: func() {
-				hrt.SetInterceptor(nil)
-			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 		{
 			name: "Less nodes in target clusters",
@@ -107,10 +101,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
 			},
-			setIntereptor: func() {
-				hrt.SetInterceptor(nil)
-			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 		{
 			name: "Less nodes in source clusters",
@@ -123,7 +114,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
 			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 		{
 			name: "Wrong source nodes mapping",
@@ -139,10 +130,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 				modified[0].Source.DC = "not found"
 				return modified
 			},
-			setIntereptor: func() {
-				hrt.SetInterceptor(nil)
-			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 		{
 			name: "Wrong target nodes mapping",
@@ -158,10 +146,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 				modified[0].Target.DC = "not found"
 				return modified
 			},
-			setIntereptor: func() {
-				hrt.SetInterceptor(nil)
-			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 		{
 			name: "Node doesn't have access to manifest location",
@@ -186,7 +171,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 					return httpx.MakeResponse(req, http.StatusBadRequest), nil
 				}))
 			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 		{
 			name: "Node is not alive",
@@ -211,7 +196,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 					return httpx.MakeResponse(req, http.StatusBadRequest), nil
 				}))
 			},
-			expecterErr: true,
+			expectedErr: true,
 		},
 	}
 
@@ -222,20 +207,21 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			}
 
 			err := w.validateClusters(context.Background(), tc.manifestsProvider(), tc.hostsProvider(), tc.nodeMappingsProvider())
-			if tc.expecterErr && err == nil {
+			if tc.expectedErr && err == nil {
 				t.Fatalf("Expected err, but got nil")
 			}
-			if !tc.expecterErr && err != nil {
+			if !tc.expectedErr && err != nil {
 				t.Fatalf("Unexpected err: %v", err)
 			}
+			hrt.SetInterceptor(nil)
 		})
 	}
 }
 
-func testNewWorker(t *testing.T) (*worker, *testutils.HackableRoundTripper) {
+func newTestWorker(t *testing.T) (*worker, *testutils.HackableRoundTripper) {
 	t.Helper()
 	hrt := testutils.NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	cfg := scyllaclient.TestConfig(testconfig.ManagedSecondClusterHosts(), testutils.AgentAuthToken())
+	cfg := scyllaclient.TestConfig(testconfig.ManagedClusterHosts(), testutils.AgentAuthToken())
 	cfg.Transport = hrt
 	sc, err := scyllaclient.NewClient(cfg, log.NopLogger)
 	if err != nil {
@@ -315,6 +301,8 @@ func runBackup(t *testing.T, backupSvc *backup.Service, clusterID uuid.UUID, pro
 	return pr.SnapshotTag
 }
 
+// getNodeMappings creates []nodeMapping from the cluster that can be reached by client.
+// Nodes are mapped to themselves.
 func getNodeMappings(t *testing.T, client *scyllaclient.Client) []nodeMapping {
 	t.Helper()
 	ctx := context.Background()

@@ -8,7 +8,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
-func TestFindCorresponingNode(t *testing.T) {
+func TestFindNodeFromDC(t *testing.T) {
 	testCases := []struct {
 		name         string
 		nodes        scyllaclient.NodeStatusInfoSlice
@@ -70,7 +70,7 @@ func TestFindCorresponingNode(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			nodeAddr, err := findCorrespondingNode(tc.nodes, tc.locationDC, tc.nodeMappings)
+			nodeAddr, err := findNodeFromDC(tc.nodes, tc.locationDC, tc.nodeMappings)
 			if err == nil && tc.expectedErr {
 				t.Fatalf("Expected err, but got nil")
 			}

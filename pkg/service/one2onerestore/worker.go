@@ -29,7 +29,7 @@ func (w *worker) getAllSnapshotManifestsAndTargetHosts(ctx context.Context, targ
 	}
 	var allManifests []*backupspec.ManifestInfo
 	for _, location := range target.Location {
-		nodeAddr, err := findCorrespondingNode(nodeStatus, location.DC, target.NodesMapping)
+		nodeAddr, err := findNodeFromDC(nodeStatus, location.DC, target.NodesMapping)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "invalid mappings")
 		}
@@ -42,13 +42,13 @@ func (w *worker) getAllSnapshotManifestsAndTargetHosts(ctx context.Context, targ
 	return allManifests, nodesToHosts(nodeStatus), nil
 }
 
-func findCorrespondingNode(nodeStatus scyllaclient.NodeStatusInfoSlice, locationDC string, nodeMappings []nodeMapping) (addr string, err error) {
-	// when location DC is empty, it means that location contains all backup DCs
-	// and should be accessible by any node from target cluster
+func findNodeFromDC(nodeStatus scyllaclient.NodeStatusInfoSlice, locationDC string, nodeMappings []nodeMapping) (addr string, err error) {
+	// When location DC is empty, it means that location contains all backup DCs
+	// and should be accessible by any node from target cluster.
 	if locationDC == "" {
 		return nodeStatus[0].Addr, nil
 	}
-	// otherwise find node from location dc accordingly to node mappings
+	// Otherwise find node from location dc accordingly to node mappings
 	var targetDC string
 	for _, nodeMap := range nodeMappings {
 		if nodeMap.Source.DC == locationDC {
