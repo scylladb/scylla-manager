@@ -60,7 +60,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 		hostsProvider        func() []Host
 		manifestsProvider    func() []*backupspec.ManifestInfo
 		nodeMappingsProvider func() []nodeMapping
-		setIntereptor        func()
+		setInterceptor       func()
 		expectedErr          bool
 	}{
 
@@ -159,7 +159,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
 			},
-			setIntereptor: func() {
+			setInterceptor: func() {
 				randomNode := hosts[rand.IntN(len(hosts))].Addr
 				hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 					if req.URL.Hostname() != randomNode {
@@ -184,7 +184,7 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			nodeMappingsProvider: func() []nodeMapping {
 				return nodeMappings
 			},
-			setIntereptor: func() {
+			setInterceptor: func() {
 				randomNode := hosts[rand.IntN(len(hosts))].Addr
 				hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 					if req.URL.Hostname() != randomNode {
@@ -202,8 +202,8 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.setIntereptor != nil {
-				tc.setIntereptor()
+			if tc.setInterceptor != nil {
+				tc.setInterceptor()
 			}
 
 			err := w.validateClusters(context.Background(), tc.manifestsProvider(), tc.hostsProvider(), tc.nodeMappingsProvider())
