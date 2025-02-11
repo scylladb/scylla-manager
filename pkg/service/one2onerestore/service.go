@@ -88,7 +88,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	s.logger.Info(ctx, "Can proceed with 1-1-restore")
 
 	start := timeutc.Now()
-	if err := w.restoreTables(ctx, manifests, hosts, target.NodesMapping); err != nil {
+	if err := w.restoreTables(ctx, manifests, hosts, target.NodesMapping, target.Keyspace); err != nil {
 		return errors.Wrap(err, "restore data")
 	}
 	s.logger.Info(ctx, "Data restore is completed", "took", timeutc.Since(start))

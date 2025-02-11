@@ -3,9 +3,7 @@
 package one2onerestore
 
 import (
-	"cmp"
 	"context"
-	"slices"
 	"strings"
 	"time"
 
@@ -15,11 +13,11 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
-func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, nodeMappings []nodeMapping) error {
+func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, nodeMappings []nodeMapping, keyspaces []string) error {
 	// we can safely ignore error here because node mappings must've been validated up to this point.
 	targetBySourceHostID, _ := mapTargetHostToSource(hosts, nodeMappings) //nolint
 
-	err := parallel.Run(len(manifests), parallel.NoLimit, func(i int) error {
+	return parallel.Run(len(manifests), parallel.NoLimit, func(i int) error {
 		m := manifests[i]
 		h := targetBySourceHostID[m.NodeID]
 
@@ -27,20 +25,12 @@ func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.Mani
 		if err != nil {
 			return errors.Wrap(err, "manifest content")
 		}
-		index, err := mc.ReadIndex()
-		if err != nil {
-			return errors.Wrap(err, "read index")
-		}
-		// sort in descending order, so we download the biggest tables first
-		slices.SortFunc(index, func(a, b backupspec.FilesMeta) int {
-			return cmp.Compare(b.Size, a.Size)
-		})
 
 		const (
 			repeatInterval  = 10 * time.Second
 			pollIntervalSec = 10
 		)
-		for _, table := range index {
+		return mc.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
 			jobID, err := w.createDownloadJob(ctx, table, m, h)
@@ -55,12 +45,9 @@ func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.Mani
 			if err := w.refreshNode(ctx, table, h, repeatInterval); err != nil {
 				return errors.Wrapf(err, "refresh node: %s.%s", table.Keyspace, table.Table)
 			}
-		}
-
-		return nil
+			return nil
+		})
 	}, parallel.NopNotify)
-
-	return err
 }
 
 func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (int64, error) {
