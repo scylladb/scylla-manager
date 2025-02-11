@@ -145,7 +145,8 @@ func (w *worker) getNodesWithAccess(
 // hostsByDC creates map of which hosts are responsible for which DC, also applies DCMappings if available.
 func hostsByDC(nodes scyllaclient.NodeStatusInfoSlice, targetDC2SourceDCMap map[string]string, locationDCs []string) map[string][]string {
 	dc2HostsMap := map[string][]string{}
-	// When --dc-mapping is not set all nodes (or nodes from location.DC) with access to the location can handle all DCs (or location.DC) from it
+	// When --dc-mapping is not set all nodes (or nodes from location.DC)
+	// with access to the location can handle all DCs from it.
 	if len(targetDC2SourceDCMap) == 0 {
 		var hosts []string
 		for _, node := range nodes {
