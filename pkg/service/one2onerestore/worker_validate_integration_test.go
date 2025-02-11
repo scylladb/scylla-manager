@@ -8,8 +8,10 @@ package one2onerestore
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"math/rand/v2"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -198,8 +200,31 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			},
 			expectedErr: true,
 		},
+		{
+			name: "Node tokens mismatch",
+			manifestsProvider: func() []*backupspec.ManifestInfo {
+				return manifests
+			},
+			hostsProvider: func() []Host {
+				return hosts
+			},
+			nodeMappingsProvider: func() []nodeMapping {
+				return nodeMappings
+			},
+			setInterceptor: func() {
+				randomNode := hosts[rand.IntN(len(hosts))].Addr
+				hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if req.URL.Path != "/storage_service/tokens/"+randomNode {
+						return nil, nil
+					}
+					resp := httpx.MakeResponse(req, http.StatusOK)
+					resp.Body = io.NopCloser(strings.NewReader(`["-5","-4","-3","-2","-1","0","1","2","3","4","5"]`))
+					return resp, nil
+				}))
+			},
+			expectedErr: true,
+		},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setInterceptor != nil {
