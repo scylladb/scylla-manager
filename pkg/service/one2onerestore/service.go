@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -69,6 +70,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	if err != nil {
 		return errors.Wrap(err, "parse target")
 	}
+	s.logger.Info(ctx, "Service input params", "target", target)
 
 	w, err := s.newWorker(ctx, clusterID)
 	if err != nil {
@@ -85,7 +87,11 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	}
 	s.logger.Info(ctx, "Can proceed with 1-1-restore")
 
-	s.logger.Info(ctx, "Not yet implemented", "target", target)
+	start := timeutc.Now()
+	if err := w.restoreTables(ctx, manifests, hosts, target.NodesMapping); err != nil {
+		return errors.Wrap(err, "restore data")
+	}
+	s.logger.Info(ctx, "Data restore is completed", "took", timeutc.Since(start))
 	return nil
 }
 
