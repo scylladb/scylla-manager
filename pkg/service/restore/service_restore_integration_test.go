@@ -772,7 +772,7 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
-		WriteData(t, dstSession, keyspace, 0)
+		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
 	}
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
@@ -877,7 +877,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
-		WriteData(t, dstSession, keyspace, 0)
+		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
 		CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
 	}
 
@@ -1086,7 +1086,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 
 	if target.RestoreTables {
 		Print("Recreate schema on destination cluster")
-		WriteData(t, dstSession, keyspace, 0)
+		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
 	} else {
 		// This test requires SSTables in Scylla data dir to remain unchanged.
 		// This is achieved by NullCompactionStrategy in user table, but since system tables
@@ -1332,7 +1332,7 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 
 	if target.RestoreTables {
 		Print("When: Recreate dst schema from CQL")
-		WriteData(t, dstSession, keyspace, 0, BigTableName)
+		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0, BigTableName)
 		createBigTableViews(t, dstSession, keyspace, BigTableName, mvName, siName)
 	}
 

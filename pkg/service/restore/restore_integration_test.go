@@ -1234,7 +1234,7 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	}
 
 	Print("Ensure nodes downloaded tables only from corresponding DC")
-	// Restore run progess has RmoteSSTableDir of downloaded table which contains dc name in the path
+	// Restore run progess has RemoteSSTableDir of downloaded table which contains dc name in the path.
 	// We can compare this dc with the host dc (apply mappings) and they should be equal.
 	restoreProgress := selectRestoreRunProgress(t, h)
 	sourceDCByTargetDC := revertDCMapping(dcMappings)
