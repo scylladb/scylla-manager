@@ -236,13 +236,18 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 	return out, nil
 }
 
-// ErrRestoreSchemaUnsupportedScyllaVersion means that restore schema procedure is not safe for used Scylla configuration.
-var ErrRestoreSchemaUnsupportedScyllaVersion = errors.Errorf("restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
-	"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
+// ErrRestoreSchemaUnsupportedScyllaVersion means that restore schema procedure
+// is not safe for used Scylla configuration.
+var ErrRestoreSchemaUnsupportedScyllaVersion = errors.Errorf(
+	"restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
+		"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
 
-// IsRestoreSchemaFromSSTablesSupported checks if restore schema procedure is supported for used Scylla configuration.
-// Because of #3662, there is no way fo SM to safely restore schema into cluster with consistent_cluster_management
-// and version higher or equal to OSS 5.4 or ENT 2024. There is a documented workaround in SM docs.
+// IsRestoreSchemaFromSSTablesSupported if schema can be restored from SSTables
+// for given cluster configuration. Because of #3662, there is no way for SM to
+// restore schema from SSTables into a cluster with consistent_cluster_management
+// starting from Scylla 5.4 or 2024.1. Note that consistent_cluster_management
+// is always enabled starting from Scylla 6.0 or 2024.1.
+// There is a documented workaround in SM docs.
 func IsRestoreSchemaFromSSTablesSupported(ctx context.Context, client *scyllaclient.Client) error {
 	const (
 		DangerousConstraintOSS = ">= 6.0, < 2000"
