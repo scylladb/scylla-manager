@@ -1,15 +1,13 @@
-FROM ubuntu
-ARG ARCH=amd64
+FROM docker.io/redhat/ubi9-minimal:latest
+ARG ARCH=x86_64
 
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get install -y --no-install-recommends ca-certificates && \
-    apt-get autoremove -y && \
-    apt-get clean && \
+RUN microdnf update && \
+    microdnf -y upgrade && \
+    microdnf install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY release/scylla-manager-agent*$ARCH.deb /
-RUN dpkg -i scylla-manager-agent*$ARCH.deb && rm /scylla-manager-agent*.deb
+COPY release/scylla-manager-agent*$ARCH.rpm /
+RUN rpm -ivh scylla-manager-agent*$ARCH.rpm && rm /scylla-manager-agent*.rpm
 
 USER scylla-manager
 ENV HOME=/var/lib/scylla-manager/
