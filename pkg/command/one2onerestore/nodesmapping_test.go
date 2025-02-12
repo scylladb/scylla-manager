@@ -48,6 +48,31 @@ func TestNodesMappingSet(t *testing.T) {
 			nodesMapping: "./testdata/not_found.404",
 			expectedErr:  true,
 		},
+		{
+			name:         "empty file",
+			nodesMapping: "./testdata/empty.txt",
+			expectedErr:  true,
+		},
+		{
+			name:         "dc count mismatch, 1 in source, but 2 in target",
+			nodesMapping: "./testdata/nodesmapping_dc_mismatch_source.txt",
+			expectedErr:  true,
+		},
+		{
+			name:         "dc count mismatch, 2 in source, but 1 in target",
+			nodesMapping: "./testdata/nodesmapping_dc_mismatch_target.txt",
+			expectedErr:  true,
+		},
+		{
+			name:         "rack count mismatch, 1 in source, but 2 in target",
+			nodesMapping: "./testdata/nodesmapping_rack_mismatch_source.txt",
+			expectedErr:  true,
+		},
+		{
+			name:         "rack count mismatch, 2 in source, but 1 in target",
+			nodesMapping: "./testdata/nodesmapping_rack_mismatch_target.txt",
+			expectedErr:  true,
+		},
 	}
 
 	for _, tc := range testCases {

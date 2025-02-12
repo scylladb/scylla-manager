@@ -29,6 +29,7 @@ func (m *nodesMapping) Set(filePath string) error {
 	if err != nil {
 		return errors.Wrap(err, "open a file")
 	}
+	defer fd.Close()
 
 	scanner := bufio.NewScanner(fd)
 	scanner.Split(bufio.ScanLines)
@@ -51,8 +52,14 @@ func (m *nodesMapping) Set(filePath string) error {
 			Target: targetNode,
 		})
 	}
-
-	return errors.Wrap(scanner.Err(), "scan lines")
+	if err := scanner.Err(); err != nil {
+		return errors.Wrap(scanner.Err(), "scan lines")
+	}
+	if err := m.validate(); err != nil {
+		*m = nil
+		return errors.Wrap(err, "validation")
+	}
+	return nil
 }
 
 func parseNode(rawNode []byte) (node, error) {
@@ -65,6 +72,37 @@ func parseNode(rawNode []byte) (node, error) {
 		Rack:   string(bytes.TrimSpace(nodeParts[1])),
 		HostID: string(bytes.TrimSpace(nodeParts[2])),
 	}, nil
+}
+
+func (m nodesMapping) validate() error {
+	if len(m) == 0 {
+		return errors.Errorf("node mappings can't be empty")
+	}
+	var (
+		sourceDCCount = map[string]int{}
+		targetDCCount = map[string]int{}
+
+		sourceRackCount = map[string]int{}
+		targetRackCount = map[string]int{}
+	)
+	for _, nodeMapping := range m {
+		s, t := nodeMapping.Source, nodeMapping.Target
+
+		sourceDCCount[s.DC]++
+		targetDCCount[t.DC]++
+
+		sourceRackCount[s.DC+s.Rack]++
+		targetRackCount[t.DC+t.Rack]++
+
+		if sourceDCCount[s.DC] != targetDCCount[t.DC] {
+			return errors.Errorf("source and target cluster has different nodes per DC count")
+		}
+
+		if sourceRackCount[s.DC+s.Rack] != targetRackCount[t.DC+t.Rack] {
+			return errors.Errorf("source and target cluster has different nodes per Rack count")
+		}
+	}
+	return nil
 }
 
 func (m *nodesMapping) String() string {
