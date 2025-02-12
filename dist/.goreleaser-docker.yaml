@@ -29,8 +29,8 @@ dockers:
       - docker/scylla-manager.yaml
       - release/
     build_flag_templates:
-      - "--build-arg=ARCH=arm64"
-      - "--platform=linux/arm64"
+      - "--build-arg=ARCH=aarch64"
+      - "--platform=linux/aarch64"
 
   - ids:
     use: docker
@@ -56,8 +56,8 @@ dockers:
       - docker/scylla-manager.yaml
       - release
     build_flag_templates:
-      - "--build-arg=ARCH=arm64"
-      - "--platform=linux/arm64"
+      - "--build-arg=ARCH=aarch64"
+      - "--platform=linux/aarch64"
 
 docker_manifests:
   - id: scylla-manager
