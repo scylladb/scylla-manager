@@ -49,9 +49,41 @@ func (t *Target) validateProperties() error {
 	if t.SourceClusterID == uuid.Nil {
 		return errors.New("source cluster id is empty")
 	}
-	if len(t.NodesMapping) == 0 {
-		return errors.New("nodes mapping is empty")
+	if err := validateNodesMapping(t.NodesMapping); err != nil {
+		return errors.Wrap(err, "nodes mapping")
+	}
+	return nil
+}
+
+func validateNodesMapping(nodesMapping []nodeMapping) error {
+	if len(nodesMapping) == 0 {
+		return errors.New("empty")
 	}
 
+	var (
+		sourceDCCount = map[string]int{}
+		targetDCCount = map[string]int{}
+
+		sourceRackCount = map[string]int{}
+		targetRackCount = map[string]int{}
+	)
+
+	for _, nodeMapping := range nodesMapping {
+		s, t := nodeMapping.Source, nodeMapping.Target
+
+		sourceDCCount[s.DC]++
+		targetDCCount[t.DC]++
+
+		sourceRackCount[s.DC+s.Rack]++
+		targetRackCount[t.DC+t.Rack]++
+
+		if sourceDCCount[s.DC] != targetDCCount[t.DC] {
+			return errors.Errorf("source and target clusters has different number of nodes per DC")
+		}
+
+		if sourceRackCount[s.DC+s.Rack] != targetRackCount[t.DC+t.Rack] {
+			return errors.Errorf("source and target clusters has different number of nodes per Rack")
+		}
+	}
 	return nil
 }
