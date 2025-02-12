@@ -349,13 +349,17 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			if err = json.Unmarshal(b, &target); err != nil {
 				t.Fatal(err)
 			}
-			h.shouldSkipTest(target)
+			if target.RestoreSchema {
+				h.skipImpossibleSchemaTest()
+			}
 
 			target, units, views, err := h.service.GetTargetUnitsViews(ctx, h.ClusterID, b)
 			if err != nil {
 				t.Fatal(err)
 			}
-			h.shouldSkipTest(target)
+			if target.RestoreSchema {
+				h.skipImpossibleSchemaTest()
+			}
 
 			if UpdateGoldenFiles() {
 				var buf bytes.Buffer
@@ -696,7 +700,9 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
-	dstH.shouldSkipTest(target)
+	if target.RestoreSchema {
+		dstH.skipImpossibleSchemaTest()
+	}
 
 	// Restore should be performed on user with limited permissions
 	dropNonSuperUsers(t, dstSession)
@@ -763,7 +769,11 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 		ctx          = context.Background()
 	)
 
-	dstH.shouldSkipTest(target)
+	if target.RestoreSchema {
+		dstH.skipImpossibleSchemaTest()
+		// Test relies on interceptors
+		dstH.skipCQLSchemaTestAssumingSSTables()
+	}
 
 	// Restore should be performed on user with limited permissions
 	dropNonSuperUsers(t, dstSession)
@@ -868,7 +878,11 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 		mv            = "mv_resume"
 	)
 
-	dstH.shouldSkipTest(target)
+	if target.RestoreSchema {
+		dstH.skipImpossibleSchemaTest()
+		// Test relies on interceptors
+		dstH.skipCQLSchemaTestAssumingSSTables()
+	}
 
 	// Restore should be performed on user with limited permissions
 	dropNonSuperUsers(t, dstSession)
@@ -1056,7 +1070,11 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		ctx          = context.Background()
 	)
 
-	dstH.shouldSkipTest(target)
+	if target.RestoreSchema {
+		dstH.skipImpossibleSchemaTest()
+		// Versioned files don't occur when restoring schema from CQL.
+		dstH.skipCQLSchemaTestAssumingSSTables()
+	}
 
 	status, err := srcH.Client.Status(ctx)
 	if err != nil {
@@ -1323,7 +1341,9 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
-	dstH.shouldSkipTest(target)
+	if target.RestoreSchema {
+		dstH.skipImpossibleSchemaTest()
+	}
 
 	Print("When: Create Restore user")
 	dropNonSuperUsers(t, dstSession)
@@ -1407,7 +1427,7 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
-	dstH.shouldSkipTest(schemaTarget, tablesTarget)
+	dstH.skipImpossibleSchemaTest()
 
 	Print("When: Create Restore user")
 	dropNonSuperUsers(t, dstSession)
@@ -1494,7 +1514,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
-	dstH.shouldSkipTest(schemaTarget, tablesTarget)
+	dstH.skipImpossibleSchemaTest()
 
 	// Ensure clean scylla tables
 	if err := cleanScyllaTables(t, srcSession, srcH.Client); err != nil {
@@ -1600,10 +1620,10 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 		srcSession   = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 	)
 
-	dstH.shouldSkipTest(schemaTarget, tablesTarget)
-	if CheckAnyConstraint(t, dstH.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		t.Skip("See https://github.com/scylladb/scylladb/issues/19112")
-	}
+	dstH.skipImpossibleSchemaTest()
+	// SM can't restore Alternator table schema via CQL.
+	// See https://github.com/scylladb/scylladb/issues/19112
+	dstH.skipCQLSchemaTestAssumingSSTables()
 
 	// Restore should be performed on user with limited permissions
 	dropNonSuperUsers(t, dstSession)
@@ -1651,11 +1671,9 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	h.T.Helper()
 	Print("Then: validate restore result")
 
-	if target.RestoreSchema {
-		if !CheckAnyConstraint(h.T, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-			// Schema restart is required only for older Scylla versions
-			h.restartScylla()
-		}
+	if target.RestoreSchema && !h.isRestoreSchemaFromCQLSupported() {
+		// Cluster restart is required after restoring schema from SSTables
+		h.restartScylla()
 	}
 
 	Print("And: validate that restore preserves tombstone_gc mode")
@@ -1712,7 +1730,6 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
 		h.T.Fatal("Expected complete restore")
 	}
-
 }
 
 // cleanScyllaTables truncates scylla tables populated in prepareRestoreBackupWithFeatures.
@@ -1946,12 +1963,27 @@ func getBucketKeyspaceUser(t *testing.T) (string, string, string) {
 	return bucketName, keyspaceName, userName
 }
 
-func (h *restoreTestHelper) shouldSkipTest(targets ...Target) {
-	for _, target := range targets {
-		if target.RestoreSchema {
-			if err := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client); err != nil && !CheckAnyConstraint(h.T, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-				h.T.Skip(err)
-			}
-		}
+// skipImpossibleRestoreSchemaTest skips the test if there
+// is no way to restore schema for this cluster configuration.
+func (h *restoreTestHelper) skipImpossibleSchemaTest() {
+	restoreSchemaFromSSTableSupport := IsRestoreSchemaFromSSTablesSupported(context.Background(), h.Client)
+	restoreSchemaFromCQLSupport := h.isRestoreSchemaFromCQLSupported()
+	if restoreSchemaFromSSTableSupport != nil && !restoreSchemaFromCQLSupport {
+		h.T.Skip("Given cluster configuration does not support schema restoration from neither SSTables or CQL")
 	}
+}
+
+// skipCQLSchemaTestAssumingSSTables skips the test if it
+// assumes that schema will be restored from SSTables,
+// but it will actually be restored from CQL.
+// This method might be helpful for tests using interceptors.
+func (h *restoreTestHelper) skipCQLSchemaTestAssumingSSTables() {
+	if h.isRestoreSchemaFromCQLSupported() {
+		h.T.Skip("This test assumes that schema is restored from SSTables, " +
+			"but it is restored from CQL")
+	}
+}
+
+func (h *restoreTestHelper) isRestoreSchemaFromCQLSupported() bool {
+	return CheckAnyConstraint(h.T, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000")
 }
