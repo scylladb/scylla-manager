@@ -40,6 +40,22 @@ func TestValidateNodesMapping(t *testing.T) {
 			expectedErr: true,
 		},
 		{
+			name: "DC count mismatch, 2 in source and 1 in target, dc+racks are unique in source",
+			nodesMapping: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "host1"}},
+				{Source: node{DC: "dc2", Rack: "rack1", HostID: "h2"}, Target: node{DC: "dc2", Rack: "rack3", HostID: "host2"}},
+			},
+			expectedErr: true,
+		},
+		{
+			name: "DC count mismatch, 1 in source and 2 in target, dc+racks are unique in target",
+			nodesMapping: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "host1"}},
+				{Source: node{DC: "dc1", Rack: "rack2", HostID: "h2"}, Target: node{DC: "dc3", Rack: "rack3", HostID: "host2"}},
+			},
+			expectedErr: true,
+		},
+		{
 			name: "Rack count mismatch, 2 in source and 1 in target",
 			nodesMapping: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "host1"}},
@@ -52,6 +68,42 @@ func TestValidateNodesMapping(t *testing.T) {
 			nodesMapping: []nodeMapping{
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host1"}},
 				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h2"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "host2"}},
+			},
+			expectedErr: true,
+		},
+		{
+			name: "DCs are not mapped 1 to 1",
+			nodesMapping: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc1", Rack: "rack1", HostID: "host1"}},
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h2"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host2"}},
+				{Source: node{DC: "dc2", Rack: "rack1", HostID: "h3"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host3"}},
+			},
+			expectedErr: true,
+		},
+		{
+			name: "Racks are not mapped 1 to 1",
+			nodesMapping: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host1"}},
+				{Source: node{DC: "dc1", Rack: "rack2", HostID: "h2"}, Target: node{DC: "dc2", Rack: "rack2", HostID: "host3"}},
+				{Source: node{DC: "dc1", Rack: "rack2", HostID: "h3"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host2"}},
+			},
+			expectedErr: true,
+		},
+		{
+			name: "Nodes are not mapped 1 to 1, duplicate in the source",
+			nodesMapping: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host1"}},
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host3"}},
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h3"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host2"}},
+			},
+			expectedErr: true,
+		},
+		{
+			name: "Nodes are not mapped 1 to 1, duplicate in the target",
+			nodesMapping: []nodeMapping{
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h1"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host1"}},
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h2"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host3"}},
+				{Source: node{DC: "dc1", Rack: "rack1", HostID: "h3"}, Target: node{DC: "dc2", Rack: "rack1", HostID: "host3"}},
 			},
 			expectedErr: true,
 		},

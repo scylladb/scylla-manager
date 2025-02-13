@@ -55,35 +55,72 @@ func (t *Target) validateProperties() error {
 	return nil
 }
 
+type dcRack struct {
+	dc   string
+	rack string
+}
+
 func validateNodesMapping(nodesMapping []nodeMapping) error {
 	if len(nodesMapping) == 0 {
 		return errors.New("empty")
 	}
 
 	var (
-		sourceDCCount = map[string]int{}
-		targetDCCount = map[string]int{}
+		sourceDCMap = map[dcRack]dcRack{}
+		targetDCMap = map[dcRack]dcRack{}
 
-		sourceRackCount = map[string]int{}
-		targetRackCount = map[string]int{}
+		sourceDCRackMap = map[dcRack]dcRack{}
+		targetDCRackMap = map[dcRack]dcRack{}
+
+		sourceNodes = map[string]struct{}{}
+		targetNodes = map[string]struct{}{}
 	)
 
 	for _, nodeMapping := range nodesMapping {
 		s, t := nodeMapping.Source, nodeMapping.Target
 
-		sourceDCCount[s.DC]++
-		targetDCCount[t.DC]++
-
-		sourceRackCount[s.DC+s.Rack]++
-		targetRackCount[t.DC+t.Rack]++
-
-		if sourceDCCount[s.DC] != targetDCCount[t.DC] {
-			return errors.Errorf("source and target clusters has different number of nodes per DC")
+		// Check DCs
+		if err := checkDCRackMapping(sourceDCMap, dcRack{dc: s.DC}, dcRack{dc: t.DC}); err != nil {
+			return err
 		}
-
-		if sourceRackCount[s.DC+s.Rack] != targetRackCount[t.DC+t.Rack] {
-			return errors.Errorf("source and target clusters has different number of nodes per Rack")
+		if err := checkDCRackMapping(targetDCMap, dcRack{dc: t.DC}, dcRack{dc: s.DC}); err != nil {
+			return err
+		}
+		// Check Racks
+		sourceDCRack, targetDCRack := dcRack{dc: s.DC, rack: s.Rack}, dcRack{dc: t.DC, rack: t.Rack}
+		if err := checkDCRackMapping(sourceDCRackMap, sourceDCRack, targetDCRack); err != nil {
+			return err
+		}
+		if err := checkDCRackMapping(targetDCRackMap, targetDCRack, sourceDCRack); err != nil {
+			return err
+		}
+		// Check Hosts
+		if err := checkHostMapping(sourceNodes, s.HostID); err != nil {
+			return err
+		}
+		if err := checkHostMapping(targetNodes, t.HostID); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func checkDCRackMapping(dcRackMap map[dcRack]dcRack, source, target dcRack) error {
+	mapped, ok := dcRackMap[source]
+	if !ok {
+		dcRackMap[source] = target
+		return nil
+	}
+	if mapped != target {
+		return errors.Errorf("%s %s is already mapped to %s %s", source.dc, source.rack, mapped.dc, mapped.rack)
+	}
+	return nil
+}
+
+func checkHostMapping(hostMap map[string]struct{}, hostID string) error {
+	if _, ok := hostMap[hostID]; !ok {
+		hostMap[hostID] = struct{}{}
+		return nil
+	}
+	return errors.Errorf("host is already mapped: %s", hostID)
 }
