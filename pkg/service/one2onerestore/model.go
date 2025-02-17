@@ -3,6 +3,8 @@
 package one2onerestore
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -77,8 +79,32 @@ func (t *Target) validateProperties() error {
 	if t.SourceClusterID == uuid.Nil {
 		return errors.New("source cluster id is empty")
 	}
+	if err := validateKeyspaceFilter(t.Keyspace); err != nil {
+		return errors.Wrap(err, "keyspace filter")
+	}
 	if err := validateNodesMapping(t.NodesMapping); err != nil {
 		return errors.Wrap(err, "nodes mapping")
+	}
+	return nil
+}
+
+// 1-1-restore --keyspace filter is limited to keyspaces only (e.g. keyspace.table is not supported).
+// Also exclude operations (!) are forbidden as well.
+func validateKeyspaceFilter(keyspaces []string) error {
+	// default value, it's ok to have a wildcard(*) in that case.
+	if len(keyspaces) == 1 && keyspaces[0] == "*" {
+		return nil
+	}
+	for _, filter := range keyspaces {
+		if strings.Contains(filter, ".") {
+			return errors.Errorf("only keyspace level filtering is allowed, but table is provided: %s", filter)
+		}
+		if strings.HasPrefix(filter, "!") {
+			return errors.Errorf("exclude filter(!) is not supported: %s", filter)
+		}
+		if strings.Contains(filter, "*") {
+			return errors.Errorf("wildcard pattern(*) is not supported: %s", filter)
+		}
 	}
 	return nil
 }

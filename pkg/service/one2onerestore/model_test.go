@@ -121,3 +121,60 @@ func TestValidateNodesMapping(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateKeyspaceFilter(t *testing.T) {
+	testCases := []struct {
+		name        string
+		keyspace    []string
+		expectedErr string
+	}{
+		{
+			name:     "Only keyspace level filtering",
+			keyspace: []string{"hello", "system"},
+		},
+		{
+			name:        "Include all * is supported (default)",
+			keyspace:    []string{"*"},
+			expectedErr: "",
+		},
+		{
+			name:        "Wildcard patterns are not supported",
+			keyspace:    []string{"hello*"},
+			expectedErr: "wildcard pattern(*) is not supported: hello*",
+		},
+		{
+			name:        "Wildcard patterns are not supported2",
+			keyspace:    []string{"*", "hi"},
+			expectedErr: "wildcard pattern(*) is not supported: *",
+		},
+		{
+			name:        "Table level is not allowed",
+			keyspace:    []string{"hello", "system.table"},
+			expectedErr: "only keyspace level filtering is allowed, but table is provided: system.table",
+		},
+		{
+			name:        "Exclude filters are not supported",
+			keyspace:    []string{"hello", "!world"},
+			expectedErr: "exclude filter(!) is not supported: !world",
+		},
+		{
+			name:     "Empty(nil) filters",
+			keyspace: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		errMsg := func(err error) string {
+			if err == nil {
+				return ""
+			}
+			return err.Error()
+		}
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateKeyspaceFilter(tc.keyspace)
+			if errMsg(err) != tc.expectedErr {
+				t.Fatalf("Expected err %q, but got %q", tc.expectedErr, errMsg(err))
+			}
+		})
+	}
+}
