@@ -70,6 +70,21 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		return errors.Wrap(err, "parse target")
 	}
 
+	w, err := s.newWorker(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "new worker")
+	}
+
+	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(ctx, target)
+	if err != nil {
+		return errors.Wrap(err, "get manifests and hosts info")
+	}
+
+	if err := w.validateClusters(ctx, manifests, hosts, target.NodesMapping); err != nil {
+		return errors.Wrap(err, "validate clusters")
+	}
+	s.logger.Info(ctx, "Can proceed with 1-1-restore")
+
 	s.logger.Info(ctx, "Not yet implemented", "target", target)
 	return nil
 }
@@ -83,4 +98,24 @@ func (s *Service) parseTarget(properties json.RawMessage) (Target, error) {
 		return Target{}, errors.Wrap(err, "invalid target")
 	}
 	return target, nil
+}
+
+func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, error) {
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return worker{}, errors.Wrap(err, "get client")
+	}
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return worker{}, errors.Wrap(err, "get CQL cluster session")
+	}
+
+	return worker{
+		managerSession: s.session,
+
+		client:         client,
+		clusterSession: clusterSession,
+
+		logger: s.logger,
+	}, nil
 }
