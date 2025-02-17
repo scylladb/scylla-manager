@@ -46,12 +46,12 @@ type SSTable struct {
 }
 
 // IndexWorkload returns sstables to be restored aggregated by location, table and remote sstable dir.
-func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []backupspec.Location) (Workload, error) {
+func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []LocationInfo) (Workload, error) {
 	var rawWorkload []RemoteDirWorkload
 	for _, l := range locations {
 		lw, err := w.indexLocationWorkload(ctx, l)
 		if err != nil {
-			return Workload{}, errors.Wrapf(err, "index workload in %s", l)
+			return Workload{}, errors.Wrapf(err, "index workload in %s", l.Location)
 		}
 		rawWorkload = append(rawWorkload, lw...)
 	}
@@ -60,7 +60,7 @@ func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []backupspec
 	return workload, nil
 }
 
-func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location backupspec.Location) ([]RemoteDirWorkload, error) {
+func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location LocationInfo) ([]RemoteDirWorkload, error) {
 	rawWorkload, err := w.createRemoteDirWorkloads(ctx, location)
 	if err != nil {
 		return nil, errors.Wrap(err, "create remote dir workloads")
@@ -74,7 +74,7 @@ func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location backu
 	return rawWorkload, nil
 }
 
-func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location backupspec.Location) ([]RemoteDirWorkload, error) {
+func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location LocationInfo) ([]RemoteDirWorkload, error) {
 	var rawWorkload []RemoteDirWorkload
 	err := w.forEachManifest(ctx, location, func(m backupspec.ManifestInfoWithContent) error {
 		return m.ForEachIndexIterWithError(nil, func(fm backupspec.FilesMeta) error {
@@ -87,7 +87,7 @@ func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location ba
 				return errors.Wrapf(err, "convert files meta to sstables")
 			}
 			sstDir := m.LocationSSTableVersionDir(fm.Keyspace, fm.Table, fm.Version)
-			remoteSSTables, err := w.adjustSSTablesWithRemote(ctx, w.randomHostFromLocation(location), sstDir, sstables)
+			remoteSSTables, err := w.adjustSSTablesWithRemote(ctx, location.AnyHost(), sstDir, sstables)
 			if err != nil {
 				return errors.Wrap(err, "fetch sstables sizes")
 			}

@@ -57,7 +57,7 @@ type batchDispatcher struct {
 	hostShardCnt map[string]uint
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationHosts map[backupspec.Location][]string) *batchDispatcher {
+func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationInfo []LocationInfo) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, sh := range hostShardCnt {
@@ -70,7 +70,7 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 		mu:                    sync.Mutex{},
 		wait:                  make(chan struct{}),
 		workload:              workload,
-		workloadProgress:      newWorkloadProgress(workload, locationHosts),
+		workloadProgress:      newWorkloadProgress(workload, locationInfo),
 		batchSize:             batchSize,
 		expectedShardWorkload: workload.TotalSize / int64(shards),
 		hostShardCnt:          hostShardCnt,
@@ -106,30 +106,34 @@ type remoteSSTableDirProgress struct {
 	RemainingSSTables []RemoteSSTable
 }
 
-func newWorkloadProgress(workload Workload, locationHosts map[backupspec.Location][]string) workloadProgress {
+func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloadProgress {
 	dcBytes := make(map[string]int64)
-	locationDC := make(map[string][]string)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
 	for i, rdw := range workload.RemoteDir {
 		dcBytes[rdw.DC] += rdw.Size
-		locationDC[rdw.Location.StringWithoutDC()] = append(locationDC[rdw.Location.StringWithoutDC()], rdw.DC)
 		p[i] = remoteSSTableDirProgress{
 			RemainingSize:     rdw.Size,
 			RemainingSSTables: rdw.SSTables,
 		}
 	}
-	hostDCAccess := make(map[string][]string)
-	for loc, hosts := range locationHosts {
-		for _, h := range hosts {
-			hostDCAccess[h] = append(hostDCAccess[h], locationDC[loc.StringWithoutDC()]...)
-		}
-	}
 	return workloadProgress{
 		dcBytesToBeRestored: dcBytes,
 		hostFailedDC:        make(map[string][]string),
-		hostDCAccess:        hostDCAccess,
+		hostDCAccess:        getHostDCAccess(locationInfo),
 		remoteDir:           p,
 	}
+}
+
+func getHostDCAccess(locationInfo []LocationInfo) map[string][]string {
+	hostDCAccess := map[string][]string{}
+	for _, l := range locationInfo {
+		for dc, hosts := range l.DCHosts {
+			for _, h := range hosts {
+				hostDCAccess[h] = append(hostDCAccess[h], dc)
+			}
+		}
+	}
+	return hostDCAccess
 }
 
 // Checks if given host finished restoring all that it could.
@@ -201,8 +205,8 @@ func (bd *batchDispatcher) ValidateAllDispatched() error {
 	for i, rdp := range bd.workloadProgress.remoteDir {
 		if rdp.RemainingSize != 0 || len(rdp.RemainingSSTables) != 0 {
 			rdw := bd.workload.RemoteDir[i]
-			return errors.Errorf("failed to restore sstables from location %s table %s.%s (%d bytes). See logs for more info",
-				rdw.Location, rdw.Keyspace, rdw.Table, rdw.Size)
+			return errors.Errorf("failed to restore sstables from location %s dc %s table %s.%s (%d bytes). See logs for more info",
+				rdw.Location, rdw.DC, rdw.Keyspace, rdw.Table, rdw.Size)
 		}
 	}
 	for dc, bytes := range bd.workloadProgress.dcBytesToBeRestored {
@@ -257,7 +261,7 @@ func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 		if slices.Contains(bd.workloadProgress.hostFailedDC[host], rdw.DC) {
 			continue
 		}
-		// Sip dir from location without access
+		// Skip dir from location without access
 		if !slices.Contains(bd.workloadProgress.hostDCAccess[host], rdw.DC) {
 			continue
 		}

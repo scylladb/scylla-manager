@@ -76,22 +76,8 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	defer w.clusterSession.Close()
 	w.setRunInfo(taskID, runID)
 
-	if err := w.initTarget(ctx, properties); err != nil {
-		return errors.Wrap(err, "init target")
-	}
-	if err := w.decorateWithPrevRun(ctx); err != nil {
+	if err := w.init(ctx, properties); err != nil {
 		return err
-	}
-
-	if w.run.Units == nil {
-		// Cache must be initialised only once (even with continue=false), as it contains information already lost
-		// in the cluster (e.g. tombstone_gc mode, views definition, etc).
-		if err := w.initUnits(ctx); err != nil {
-			return errors.Wrap(err, "initialize units")
-		}
-		if err := w.initViews(ctx); err != nil {
-			return errors.Wrap(err, "initialize views")
-		}
 	}
 
 	if w.run.PrevID == uuid.Nil {
