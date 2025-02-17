@@ -5,6 +5,7 @@ package restore
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/backupspec"
 )
 
@@ -104,17 +105,29 @@ func TestBatchDispatcher(t *testing.T) {
 
 	workload := aggregateWorkload(rawWorkload)
 
-	locationHosts := map[backupspec.Location][]string{
-		l1: {"h1", "h2"},
-		l2: {"h3"},
-	}
 	hostToShard := map[string]uint{
 		"h1": 1,
 		"h2": 2,
 		"h3": 3,
 	}
 
-	bd := newBatchDispatcher(workload, 1, hostToShard, locationHosts)
+	locationInfo := []LocationInfo{
+		{
+			Location: l1,
+			DCHosts: map[string][]string{
+				"dc1": {"h1", "h2"},
+				"dc2": {"h1", "h2"},
+			},
+		},
+		{
+			Location: l2,
+			DCHosts: map[string][]string{
+				"dc3": {"h3"},
+			},
+		},
+	}
+
+	bd := newBatchDispatcher(workload, 1, hostToShard, locationInfo)
 
 	scenario := []struct {
 		host  string
@@ -164,5 +177,109 @@ func TestBatchDispatcher(t *testing.T) {
 
 	if err := bd.ValidateAllDispatched(); err != nil {
 		t.Fatalf("Expected sstables to be batched: %s", err)
+	}
+}
+
+func TestGetHostDCAccess(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		locationInfo []LocationInfo
+
+		expected map[string][]string
+	}{
+		{
+			name: "one location with one DC",
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1", "host2"},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+			},
+		},
+		{
+			name: "one location with two DC's",
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1"},
+						"dc2": {"host2"},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc2"},
+			},
+		},
+		{
+			name: "one location with two DC's, more nodes",
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1", "host2"},
+						"dc2": {"host3", "host4"},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc1"},
+				"host3": {"dc2"},
+				"host4": {"dc2"},
+			},
+		},
+		{
+			name: "two locations with one DC each",
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1"},
+					},
+				},
+				{
+					DCHosts: map[string][]string{
+						"dc2": {"host2"},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"host1": {"dc1"},
+				"host2": {"dc2"},
+			},
+		},
+		{
+			name: "two locations with one DC each, but hosts maps to all dcs",
+			locationInfo: []LocationInfo{
+				{
+					DCHosts: map[string][]string{
+						"dc1": {"host1", "host2"},
+					},
+				},
+				{
+					DCHosts: map[string][]string{
+						"dc2": {"host1", "host2"},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"host1": {"dc1", "dc2"},
+				"host2": {"dc1", "dc2"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := getHostDCAccess(tc.locationInfo)
+			if diff := cmp.Diff(actual, tc.expected); diff != "" {
+				t.Fatalf("Actual != Expected: %s", diff)
+			}
+		})
 	}
 }

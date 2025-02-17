@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -82,11 +81,10 @@ func newTablesWorker(ctx context.Context, w worker, repairSvc *repair.Service, t
 		}
 	}
 
-	hostsS := strset.New()
-	for _, h := range w.target.locationHosts {
-		hostsS.Add(h...)
+	var hosts []string
+	for _, l := range w.target.locationInfo {
+		hosts = append(hosts, l.AllHosts()...)
 	}
-	hosts := hostsS.List()
 
 	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
 	if err != nil {
@@ -181,7 +179,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
 
-	workload, err := w.IndexWorkload(ctx, w.target.Location)
+	workload, err := w.IndexWorkload(ctx, w.target.locationInfo)
 	if err != nil {
 		return err
 	}
@@ -213,7 +211,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationHosts)
+	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationInfo)
 
 	f := func(n int) error {
 		host := w.hosts[n]

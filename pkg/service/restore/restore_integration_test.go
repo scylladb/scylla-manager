@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -20,9 +21,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
+	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
@@ -1071,4 +1075,222 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 			t.Fatalf("Expected status: %s, got: %s", scyllaclient.StatusSuccess, v.BuildStatus)
 		}
 	}
+}
+
+func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
+
+	Print("Keyspace setup")
+	// Source cluster
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1}"
+	ksTwoDC := randomizedName("two_dc_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ksTwoDC))
+
+	// Keyspace thats only available in dc2
+	ksStmtOneDC := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1':0, 'dc2': 1}"
+	ksOneDC := randomizedName("one_dc_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmtOneDC, ksOneDC))
+
+	// Target cluster
+	ksStmtDst := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}"
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ksTwoDC))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmtDst, ksOneDC))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	for _, ks := range []string{ksTwoDC, ksOneDC} {
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+		ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+	}
+
+	Print("Fill setup")
+	for _, ks := range []string{ksTwoDC, ksOneDC} {
+		fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+	}
+
+	Print("Save filled table into map")
+	srcMTwoDC := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ksTwoDC, tab, "id", "data")
+
+	Print("Run backup")
+	loc := []backupspec.Location{
+		testLocation("one-location-1", ""),
+	}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ksTwoDC, ksOneDC}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	res := make(chan struct{})
+	go func() {
+		h.runRestore(t, map[string]any{
+			"location": loc,
+			"keyspace": ksFilter,
+			// Test if batching does not hang with
+			// limited parallel and location access.
+			"parallel":       1,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+			"dc_mapping": map[string]string{
+				"dc1": "dc1",
+			},
+		})
+		close(res)
+	}()
+
+	select {
+	case <-res:
+	case <-time.NewTimer(2 * time.Minute).C:
+		t.Fatal("Restore hanged")
+	}
+
+	Print("Save restored table into map")
+	dstMTwoDC := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ksTwoDC, tab, "id", "data")
+	dstMOneDC := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ksOneDC, tab, "id", "data")
+
+	Print("Validate success")
+	if !maps.Equal(srcMTwoDC, dstMTwoDC) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcMTwoDC, dstMTwoDC)
+	}
+	if len(dstMOneDC) != 0 {
+		t.Fatalf("dc2 shouldn't be restored")
+	}
+}
+
+func TestRestoreDCMappingsIntegration(t *testing.T) {
+	// Since we need multi-dc clusters for multi-dc backup/restore
+	// we will use the same cluster as both src and dst.
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedClusterHosts())
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1}"
+	ks := randomizedName("multi_location_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	Print("Save filled table into map")
+	srcM := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Run backup")
+	loc := []backupspec.Location{
+		testLocation("dc-mapping-1", "dc1"),
+		testLocation("dc-mapping-2", "dc2"),
+	}
+	S3InitBucket(t, loc[0].Path)
+	S3InitBucket(t, loc[1].Path)
+	ksFilter := []string{ks}
+	tag := h.runBackup(t, map[string]any{
+		"location":   loc,
+		"keyspace":   ksFilter,
+		"batch_size": 100,
+	})
+
+	Print("Truncate backed up table")
+	truncateStmt := "TRUNCATE TABLE %q.%q"
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(truncateStmt, ks, tab))
+
+	Print("Run restore")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	res := make(chan struct{})
+	dcMappings := map[string]string{
+		"dc1": "dc1",
+		"dc2": "dc2",
+	}
+	go func() {
+		h.runRestore(t, map[string]any{
+			"location":       loc,
+			"keyspace":       ksFilter,
+			"snapshot_tag":   tag,
+			"restore_tables": true,
+			"dc_mapping":     dcMappings,
+		})
+		close(res)
+	}()
+
+	select {
+	case <-res:
+	case <-time.NewTimer(2 * time.Minute).C:
+		t.Fatal("Restore hanged")
+	}
+
+	Print("Save restored table into map")
+	dstM := selectTableAsMap[int, int](t, h.dstCluster.rootSession, ks, tab, "id", "data")
+
+	Print("Validate success")
+	if !maps.Equal(srcM, dstM) {
+		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
+	}
+
+	Print("Ensure nodes downloaded tables only from corresponding DC")
+	// Restore run progess has RemoteSSTableDir of downloaded table which contains dc name in the path.
+	// We can compare this dc with the host dc (apply mappings) and they should be equal.
+	restoreProgress := selectRestoreRunProgress(t, h)
+	sourceDCByTargetDC := revertDCMapping(dcMappings)
+	for _, pr := range restoreProgress {
+		targetDC, err := h.dstCluster.Client.HostDatacenter(context.Background(), pr.Host)
+		if err != nil {
+			t.Fatalf("get host dc: %v", err)
+		}
+		expectedSourceDC, ok := sourceDCByTargetDC[targetDC]
+		if !ok {
+			t.Fatalf("mapping not found for target dc: %v", targetDC)
+		}
+		actualDC := getDCFromRemoteSSTableDir(t, pr.RemoteSSTableDir)
+
+		if actualDC != expectedSourceDC {
+			t.Fatalf("Host should download data only from %s, but downloaded from %s", expectedSourceDC, actualDC)
+		}
+	}
+}
+
+func getDCFromRemoteSSTableDir(t *testing.T, remoteSSTableDir string) string {
+	t.Helper()
+	// hacky way of extracting value of dc_name from  /dc/{dc_name}/node/
+	var re = regexp.MustCompile(`\/dc\/(.*?)\/node\/`)
+	matches := re.FindStringSubmatch(remoteSSTableDir)
+	if len(matches) != 2 {
+		t.Fatalf("Unexpected remote sstable dir format: %s", remoteSSTableDir)
+	}
+
+	return matches[1]
+}
+
+func revertDCMapping(dcMapping map[string]string) map[string]string {
+	result := make(map[string]string, len(dcMapping))
+	for k, v := range dcMapping {
+		result[v] = k
+	}
+	return result
+}
+
+func selectRestoreRunProgress(t *testing.T, h *testHelper) []restore.RunProgress {
+	t.Helper()
+	q := schematable.RestoreRunProgress.SelectQuery(h.dstCluster.Session)
+	it := q.BindMap(qb.M{
+		"cluster_id": h.dstCluster.ClusterID,
+		"task_id":    h.dstCluster.TaskID,
+		"run_id":     h.dstCluster.RunID,
+	}).Iter()
+	defer q.Release()
+	var (
+		result []restore.RunProgress
+		row    restore.RunProgress
+	)
+	for it.StructScan(&row) {
+		result = append(result, row)
+		row = restore.RunProgress{}
+	}
+	return result
 }
