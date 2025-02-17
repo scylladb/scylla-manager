@@ -14,10 +14,15 @@ import (
 )
 
 func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, nodeMappings []nodeMapping, keyspaces []string) error {
-	// we can safely ignore error here because node mappings must've been validated up to this point.
-	targetBySourceHostID, _ := mapTargetHostToSource(hosts, nodeMappings) //nolint
+	targetBySourceHostID, err := mapTargetHostToSource(hosts, nodeMappings)
+	if err != nil {
+		return errors.Wrap(err, "invalid node mapping")
+	}
 
-	return parallel.Run(len(manifests), parallel.NoLimit, func(i int) error {
+	logError := func(i int, err error) {
+		w.logger.Error(ctx, "Restore data", "err", err, "node_id", manifests[i].NodeID)
+	}
+	return parallel.Run(len(manifests), len(manifests), func(i int) error {
 		m := manifests[i]
 		h := targetBySourceHostID[m.NodeID]
 
@@ -47,7 +52,7 @@ func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.Mani
 			}
 			return nil
 		})
-	}, parallel.NopNotify)
+	}, logError)
 }
 
 func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (int64, error) {
