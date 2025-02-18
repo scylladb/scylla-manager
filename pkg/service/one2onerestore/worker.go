@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"go.uber.org/multierr"
 )
 
 type worker struct {
@@ -33,7 +34,10 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 	}
 	defer func() {
 		if rErr := w.reCreateViews(ctx, views); rErr != nil {
-			err = errors.Wrap(rErr, "recreate views")
+			err = multierr.Combine(
+				err,
+				errors.Wrap(rErr, "recreate views"),
+			)
 		}
 	}()
 
