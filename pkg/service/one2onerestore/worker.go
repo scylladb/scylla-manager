@@ -33,6 +33,10 @@ type worker struct {
 
 // restore is an actual 1-1-restore stages.
 func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) (err error) {
+	if err := w.setTombstoneGCModeRepair(ctx, workload, target.Keyspace); err != nil {
+		return errors.Wrap(err, "tombstone_gc mode")
+	}
+
 	views, err := w.dropViews(ctx, workload, target.Keyspace)
 	if err != nil {
 		return errors.Wrap(err, "drop views")
