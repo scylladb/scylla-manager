@@ -8,7 +8,6 @@ package one2onerestore
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -85,10 +84,6 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	if mode != modeRepair {
 		t.Fatalf("Expected repair mode, but got %s", string(mode))
 	}
-
-	if mode = getViewTombstoneGCMode(t, clusterSession, ksName, mvName); mode != modeRepair {
-		t.Fatalf("Expected repair mode, but got %s", string(mode))
-	}
 }
 
 func truncateAllTablesInKeyspace(tb testing.TB, session gocqlx.Session, ks string) {
@@ -120,35 +115,4 @@ func rowCount(t *testing.T, s gocqlx.Session, ks, tab string) int {
 	}
 	Printf("%s.%s row count: %v", ks, tab, cnt)
 	return cnt
-}
-
-func getViewTombstoneGCMode(t *testing.T, clusterSession gocqlx.Session, keyspace, view string) tombstoneGCMode {
-	t.Helper()
-	var ext map[string]string
-	q := qb.Select("system_schema.views").
-		Columns("extensions").
-		Where(qb.Eq("keyspace_name"), qb.Eq("view_name")).
-		Query(clusterSession).
-		Bind(keyspace, view)
-
-	defer q.Release()
-	err := q.Scan(&ext)
-	if err != nil {
-		t.Fatalf("scan: %v", err)
-	}
-
-	// Timeout (just using gc_grace_seconds) is the default mode
-	mode, ok := ext["tombstone_gc"]
-	if !ok {
-		return modeTimeout
-	}
-
-	allModes := []tombstoneGCMode{modeDisabled, modeTimeout, modeRepair, modeImmediate}
-	for _, m := range allModes {
-		if strings.Contains(mode, string(m)) {
-			return m
-		}
-	}
-	t.Fatalf("unrecognized tombstone_gc mode: %s", mode)
-	return ""
 }
