@@ -66,16 +66,16 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		"run_id", runID,
 	)
 
-	target, err := s.parseTarget(properties)
-	if err != nil {
-		return errors.Wrap(err, "parse target")
-	}
-	s.logger.Info(ctx, "Service input params", "target", target)
-
 	w, err := s.newWorker(ctx, clusterID)
 	if err != nil {
 		return errors.Wrap(err, "new worker")
 	}
+
+	target, err := w.parseTarget(ctx, properties)
+	if err != nil {
+		return errors.Wrap(err, "parse target")
+	}
+	s.logger.Info(ctx, "Service input params", "target", target)
 
 	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(ctx, target)
 	if err != nil {
@@ -98,17 +98,6 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	}
 	s.logger.Info(ctx, "Data restore is completed", "took", timeutc.Since(start))
 	return nil
-}
-
-func (s *Service) parseTarget(properties json.RawMessage) (Target, error) {
-	target := defaultTarget()
-	if err := json.Unmarshal(properties, &target); err != nil {
-		return Target{}, errors.Wrap(err, "unmarshal json")
-	}
-	if err := target.validateProperties(); err != nil {
-		return Target{}, errors.Wrap(err, "invalid target")
-	}
-	return target, nil
 }
 
 func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, error) {
