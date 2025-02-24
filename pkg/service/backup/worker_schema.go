@@ -14,11 +14,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"

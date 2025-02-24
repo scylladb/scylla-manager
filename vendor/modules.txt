@@ -212,6 +212,12 @@ github.com/googleapis/gax-go/v2/internal
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 ## explicit
 github.com/hailocab/go-hostpool
+# github.com/hashicorp/go-cleanhttp v0.5.2
+## explicit; go 1.13
+github.com/hashicorp/go-cleanhttp
+# github.com/hashicorp/go-retryablehttp v0.7.7
+## explicit; go 1.19
+github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-version v1.7.0
 ## explicit
 github.com/hashicorp/go-version
@@ -253,13 +259,13 @@ github.com/lnquy/cron/i18n
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mattn/go-colorable v0.1.8
-## explicit; go 1.13
+# github.com/mattn/go-colorable v0.1.13
+## explicit; go 1.15
 github.com/mattn/go-colorable
 # github.com/mattn/go-ieproxy v0.0.1
 ## explicit; go 1.14
 github.com/mattn/go-ieproxy
-# github.com/mattn/go-isatty v0.0.16
+# github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.16
@@ -395,12 +401,15 @@ github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
-# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/backupspec v1.0.1
+## explicit; go 1.23.2
+github.com/scylladb/scylla-manager/backupspec
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250107150413-48d43ab3e02c
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/managerclient
 github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250123113205-a6303e03d168
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
 github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil
@@ -431,8 +440,8 @@ github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid
 github.com/scylladb/scylla-manager/v3/pkg/util/version
 github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
-# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20241104134613-aba35605c28b
-## explicit; go 1.21.1
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250107150413-48d43ab3e02c
+## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models

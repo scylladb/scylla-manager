@@ -10,8 +10,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/scylladb/scylla-manager/backupspec"
 	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	backupspec "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+
 	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 

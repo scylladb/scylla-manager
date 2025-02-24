@@ -10,15 +10,17 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/operations"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 )
 
 var checkLocationArgs = struct {
 	configFiles []string
-	location    backupspec.LocationValue
+	location    backup.LocationValue
 	debug       bool
 }{}
 

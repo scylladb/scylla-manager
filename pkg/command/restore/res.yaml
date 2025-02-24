@@ -15,6 +15,7 @@ location: |
   The `<dc>` parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
   from this location in a multi-dc setting, it must match Scylla nodes datacenter.
   By default, all live nodes are used to restore data from specified locations.
+  If `--dc-mapping` is used, then `<dc>` parameter will be ignored.
   
   Note that specifying datacenters closest to backup locations might reduce download time of restored data.
   The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
@@ -72,3 +73,14 @@ dry-run: |
 
 show-tables: |
   Prints table names together with keyspace, used in combination with --dry-run.
+
+dc-mapping: |
+  Specifies mapping between DCs from the backup and DCs in the restored(target) cluster.
+
+  The Syntax is "source_dc1=target_dc1,source_dc2=target_dc2" where multiple mappings are separated by comma (,)
+  and source and target DCs are separated by equal (=).
+
+  Example: "dc1=dc3,dc2=dc4" - data from dc1 should be restored to dc3 and data from dc2 should be restored to dc4.
+
+  Only works with tables restoration (--restore-tables=true). 
+  Note: Only DCs that are provided in mappings will be restored.

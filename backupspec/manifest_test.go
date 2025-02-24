@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -16,7 +15,7 @@ func TestManifestInfoParsePath(t *testing.T) {
 	t.Parallel()
 
 	opts := cmp.Options{
-		UUIDComparer(),
+		cmp.Comparer(func(a, b uuid.UUID) bool { return a == b }),
 		cmpopts.IgnoreUnexported(ManifestInfo{}),
 	}
 
