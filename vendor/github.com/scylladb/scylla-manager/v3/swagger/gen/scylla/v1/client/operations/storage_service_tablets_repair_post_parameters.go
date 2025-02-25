@@ -61,6 +61,11 @@ for the storage service tablets repair post operation typically these are writte
 */
 type StorageServiceTabletsRepairPostParams struct {
 
+	/*AwaitCompletion
+	  Set true to wait for the repair to complete. Set false to skip waiting for the repair to complete. When the option is not provided, it defaults to false.
+
+	*/
+	AwaitCompletion *string
 	/*Ks
 	  Keyspace name to repair
 
@@ -115,6 +120,17 @@ func (o *StorageServiceTabletsRepairPostParams) SetHTTPClient(client *http.Clien
 	o.HTTPClient = client
 }
 
+// WithAwaitCompletion adds the awaitCompletion to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) WithAwaitCompletion(awaitCompletion *string) *StorageServiceTabletsRepairPostParams {
+	o.SetAwaitCompletion(awaitCompletion)
+	return o
+}
+
+// SetAwaitCompletion adds the awaitCompletion to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) SetAwaitCompletion(awaitCompletion *string) {
+	o.AwaitCompletion = awaitCompletion
+}
+
 // WithKs adds the ks to the storage service tablets repair post params
 func (o *StorageServiceTabletsRepairPostParams) WithKs(ks string) *StorageServiceTabletsRepairPostParams {
 	o.SetKs(ks)
@@ -155,6 +171,22 @@ func (o *StorageServiceTabletsRepairPostParams) WriteToRequest(r runtime.ClientR
 		return err
 	}
 	var res []error
+
+	if o.AwaitCompletion != nil {
+
+		// query param await_completion
+		var qrAwaitCompletion string
+		if o.AwaitCompletion != nil {
+			qrAwaitCompletion = *o.AwaitCompletion
+		}
+		qAwaitCompletion := qrAwaitCompletion
+		if qAwaitCompletion != "" {
+			if err := r.SetQueryParam("await_completion", qAwaitCompletion); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	// query param ks
 	qrKs := o.Ks
