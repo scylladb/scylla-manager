@@ -4,6 +4,7 @@ package configcache
 
 import (
 	"context"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -80,7 +81,12 @@ func (svc *Service) Read(clusterID uuid.UUID, host string) (NodeConfig, error) {
 		return emptyConfig, err
 	}
 
-	rawHostConfig, ok := clusterConfig.Load(host)
+	hostKey := host
+	if addr, err := netip.ParseAddr(host); err == nil {
+		hostKey = addr.String()
+	}
+
+	rawHostConfig, ok := clusterConfig.Load(hostKey)
 	if !ok {
 		return emptyConfig, ErrNoHostConfig
 	}
@@ -192,17 +198,23 @@ func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
 
 	for _, host := range client.Config().Hosts {
 		hostsWg.Add(1)
+		hostKey := host
 
-		perHostLogger := logger.Named("Cluster host config update").With("host", host)
+		parsedIP, err := netip.ParseAddr(host)
+		if err == nil {
+			hostKey = parsedIP.String()
+		}
+
+		perHostLogger := logger.Named("Cluster host config update").With("host", host, "hostKey", hostKey)
 		go func() {
 			defer hostsWg.Done()
 
-			config, err := svc.retrieveNodeConfig(ctx, host, client, c)
+			config, err := svc.retrieveNodeConfig(ctx, hostKey, client, c)
 			if err != nil {
 				perHostLogger.Error(ctx, "Couldn't read cluster host config", "error", err)
 				return
 			}
-			clusterConfig.Store(host, config)
+			clusterConfig.Store(hostKey, config)
 		}()
 	}
 	hostsWg.Wait()
