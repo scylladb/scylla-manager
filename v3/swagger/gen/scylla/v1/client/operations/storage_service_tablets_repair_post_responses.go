@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
@@ -50,12 +51,24 @@ func NewStorageServiceTabletsRepairPostOK() *StorageServiceTabletsRepairPostOK {
 /*
 StorageServiceTabletsRepairPostOK handles this case with default header values.
 
-Success
+Tablet task ID
 */
 type StorageServiceTabletsRepairPostOK struct {
+	Payload *StorageServiceTabletsRepairPostOKBody
+}
+
+func (o *StorageServiceTabletsRepairPostOK) GetPayload() *StorageServiceTabletsRepairPostOKBody {
+	return o.Payload
 }
 
 func (o *StorageServiceTabletsRepairPostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(StorageServiceTabletsRepairPostOKBody)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -101,4 +114,37 @@ func (o *StorageServiceTabletsRepairPostDefault) readResponse(response runtime.C
 
 func (o *StorageServiceTabletsRepairPostDefault) Error() string {
 	return fmt.Sprintf("agent [HTTP %d] %s", o._statusCode, strings.TrimRight(o.Payload.Message, "."))
+}
+
+/*
+StorageServiceTabletsRepairPostOKBody storage service tablets repair post o k body
+swagger:model StorageServiceTabletsRepairPostOKBody
+*/
+type StorageServiceTabletsRepairPostOKBody struct {
+
+	// Tablet task ID
+	TabletTaskID string `json:"tablet_task_id,omitempty"`
+}
+
+// Validate validates this storage service tablets repair post o k body
+func (o *StorageServiceTabletsRepairPostOKBody) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *StorageServiceTabletsRepairPostOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *StorageServiceTabletsRepairPostOKBody) UnmarshalBinary(b []byte) error {
+	var res StorageServiceTabletsRepairPostOKBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }
