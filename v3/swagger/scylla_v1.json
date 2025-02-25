@@ -12694,12 +12694,27 @@
             "required": true,
             "type": "string",
             "description": "Tokens owned by the tablets to repair. Multiple tokens can be provided using a comma-separated list. When set to the special word 'all', all tablets will be repaired"
+          },
+          {
+            "name": "await_completion",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Set true to wait for the repair to complete. Set false to skip waiting for the repair to complete. When the option is not provided, it defaults to false."
           }
         ],
         "responses": {
           "200": {
-            "description": "Success",
-            "headers": {}
+            "description": "Tablet task ID",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "tablet_task_id": {
+                  "description": "Tablet task ID",
+                  "type": "string"
+                }
+              }
+            }
           },
           "default": {
             "description": "internal server error",
