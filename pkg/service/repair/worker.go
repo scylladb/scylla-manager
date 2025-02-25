@@ -181,6 +181,7 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 	for {
 		status, err := w.client.ScyllaWaitTask(ctx, host, id, int64(w.config.LongPollingTimeoutSeconds))
 		if err != nil {
+			w.scyllaAbortTask(host, id)
 			return errors.Wrap(err, "get tablet repair task status")
 		}
 
@@ -192,7 +193,18 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 		case scyllaclient.ScyllaTaskStateCreated, scyllaclient.ScyllaTaskStateRunning:
 			continue
 		default:
+			w.scyllaAbortTask(host, id)
 			return errors.Errorf("unexpected tablet repair task status %q", status.State)
 		}
+	}
+}
+
+func (w *worker) scyllaAbortTask(host, id string) {
+	if err := w.client.ScyllaAbortTask(context.Background(), host, id); err != nil {
+		w.logger.Error(context.Background(), "Failed to abort task",
+			"host", host,
+			"id", id,
+			"error", err,
+		)
 	}
 }
