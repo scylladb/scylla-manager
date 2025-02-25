@@ -65,10 +65,10 @@ func createTabletKeyspace(t *testing.T, session gocqlx.Session, keyspace string,
 }
 
 // Creates keyspace with default replication type (vnode or tablets).
-func createDefaultKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2, tablets int) {
+func createDefaultKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2 int) {
 	if globalNodeInfo.EnableTablets {
-		stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d} AND tablets = {'enabled': true, 'initial': %d}"
-		ExecStmt(t, session, fmt.Sprintf(stmt, keyspace, rf1, rf2, tablets))
+		stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d} AND tablets = {'enabled': true}"
+		ExecStmt(t, session, fmt.Sprintf(stmt, keyspace, rf1, rf2))
 		return
 	}
 	stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"

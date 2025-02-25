@@ -559,8 +559,8 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		maxJobsOnHost = 1
 	)
 	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks2, 2, 2, 256)
-	createDefaultKeyspace(t, clusterSession, ks3, 3, 3, 256)
+	createDefaultKeyspace(t, clusterSession, ks2, 2, 2)
+	createDefaultKeyspace(t, clusterSession, ks3, 3, 3)
 	WriteData(t, clusterSession, ks1, 5, t1, t2)
 	WriteData(t, clusterSession, ks2, 5, t1, t2)
 	WriteData(t, clusterSession, ks3, 5, t1, t2)
@@ -673,8 +673,8 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 	// Create keyspaces. Low RF improves repair parallelism.
 	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks2, 1, 1, 256)
-	createDefaultKeyspace(t, clusterSession, ks3, 2, 1, 256)
+	createDefaultKeyspace(t, clusterSession, ks2, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks3, 2, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -889,7 +889,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	// Create keyspaces. Low RF increases repair parallelism.
 	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
 	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks3, 1, 1, 256)
+	createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -1142,7 +1142,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2, 256)
+	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -1311,7 +1311,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 2))
+		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1335,7 +1335,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 2))
+		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1413,7 +1413,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: run repair")
-		props := singleUnit(map[string]any{
+		props := multipleUnits(map[string]any{
 			"parallel":              propParallel,
 			"intensity":             propIntensity,
 			"small_table_threshold": -1,
@@ -1491,13 +1491,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		props := singleUnit(map[string]any{
+		props := multipleUnits(map[string]any{
 			"continue":              false,
 			"small_table_threshold": repairAllSmallTableThreshold,
 		})
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 2))
+		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
@@ -1630,8 +1630,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
-		h.runRepair(ctx, singleUnit(map[string]any{
+		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
+		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
@@ -1706,7 +1706,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3, 256)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1716,7 +1716,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 0))
 		h.runRepair(ctx, map[string]any{
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"dc":                    []string{"dc1", "dc2"},
@@ -1742,7 +1742,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3, 256)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1759,7 +1759,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 0))
 		h.runRepair(ctx, props)
 
 		Print("When: 10% progress")
@@ -1788,7 +1788,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 			Print("When: run repair")
 			var killRepairCalled int32
-			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", holdRepairInterceptor(ctx, 2)))
+			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", holdRepairInterceptor(ctx, 1)))
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
@@ -1813,7 +1813,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			Print("When: run repair")
 			holdCtx, holdCancel := context.WithCancel(context.Background())
-			h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+			h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
@@ -2091,7 +2091,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		createDefaultKeyspace(t, clusterSession, ks, 2, 2, 256)
+		createDefaultKeyspace(t, clusterSession, ks, 2, 2)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -2143,7 +2143,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		createDefaultKeyspace(t, clusterSession, ks, 2, 2, 256)
+		createDefaultKeyspace(t, clusterSession, ks, 2, 2)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -2286,7 +2286,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 	const ks = "test_repair"
 
-	createDefaultKeyspace(t, clusterSession, ks, 3, 3, 256)
+	createDefaultKeyspace(t, clusterSession, ks, 3, 3)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, ks)
