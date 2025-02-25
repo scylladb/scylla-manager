@@ -6,15 +6,12 @@
 package repair_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"regexp"
+	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -64,7 +61,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+	hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	s := newTestService(t, session, c, config, logger, clusterID)
 
@@ -88,7 +85,7 @@ func newRepairWithClusterSessionTestHelper(t *testing.T, session gocqlx.Session,
 	t.Helper()
 
 	clusterID := uuid.MustRandom()
-	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
+	logger := log.NewDevelopmentWithLevel(zapcore.ErrorLevel)
 	s := newTestServiceWithClusterSession(t, session, c, config, logger, clusterID)
 
 	return &repairTestHelper{
@@ -275,108 +272,6 @@ func percentComplete(p repair.Progress) (int, int) {
 	return int(p.Success * 100 / p.TokenRanges), int(p.Error * 100 / p.TokenRanges)
 }
 
-var (
-	repairEndpointRegexp = regexp.MustCompile("/storage_service/repair_(async|status)")
-	commandCounter       int32
-)
-
-func repairInterceptor(s scyllaclient.CommandStatus) http.RoundTripper {
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if !repairEndpointRegexp.MatchString(req.URL.Path) {
-			return nil, nil
-		}
-
-		resp := httpx.MakeResponse(req, 200)
-
-		switch req.Method {
-		case http.MethodGet:
-			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", s)))
-		case http.MethodPost:
-			id := atomic.AddInt32(&commandCounter, 1)
-			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
-		}
-
-		return resp, nil
-	})
-}
-
-func repairStatusNoResponseInterceptor(ctx context.Context) http.RoundTripper {
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if !repairEndpointRegexp.MatchString(req.URL.Path) {
-			return nil, nil
-		}
-
-		resp := httpx.MakeResponse(req, 200)
-
-		switch req.Method {
-		case http.MethodGet:
-			// do not respond until context is canceled.
-			<-ctx.Done()
-			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("\"%s\"", scyllaclient.StatusSuccess)))
-		case http.MethodPost:
-			id := atomic.AddInt32(&commandCounter, 1)
-			resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
-		}
-
-		return resp, nil
-	})
-}
-
-func assertReplicasRepairInterceptor(t *testing.T, host string) http.RoundTripper {
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-			hosts := req.URL.Query().Get("hosts")
-			if !strings.Contains(hosts, host) {
-				t.Errorf("Replicas %s missing %s", hosts, host)
-			}
-		}
-		return nil, nil
-	})
-}
-
-func countInterceptor(counter *int32, path, method string, next http.RoundTripper) http.RoundTripper {
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, path) && (method == "" || req.Method == method) {
-			atomic.AddInt32(counter, 1)
-		}
-		if next != nil {
-			return next.RoundTrip(req)
-		}
-		return nil, nil
-	})
-}
-
-func holdRepairInterceptor(ctx context.Context, after int64) http.RoundTripper {
-	cnt := &atomic.Int64{}
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodGet {
-			if curr := cnt.Add(1); curr > after {
-				<-ctx.Done()
-				return nil, nil
-			}
-		}
-		return nil, nil
-	})
-}
-
-func unstableRepairInterceptor() http.RoundTripper {
-	failRi := repairInterceptor(scyllaclient.CommandFailed)
-	successRi := repairInterceptor(scyllaclient.CommandSuccessful)
-	return httpx.RoundTripperFunc(func(req *http.Request) (resp *http.Response, err error) {
-		id := atomic.LoadInt32(&commandCounter)
-		if id != 0 && id%20 == 0 {
-			return failRi.RoundTrip(req)
-		}
-		return successRi.RoundTrip(req)
-	})
-}
-
-func dialErrorInterceptor() http.RoundTripper {
-	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		return nil, errors.New("mock dial error")
-	})
-}
-
 func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
 	t.Helper()
 
@@ -435,28 +330,6 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 	}
 
 	return s
-}
-
-func createKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2 int) {
-	createKeyspaceStmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"
-	ExecStmt(t, session, fmt.Sprintf(createKeyspaceStmt, keyspace, rf1, rf2))
-}
-
-func tryCreateTabletKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2, tablets int) {
-	createKeyspaceStmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"
-	tabletStmt := " AND tablets = {'enabled': true, 'initial': %d}"
-	if tablets > 0 {
-		err := session.ExecStmt(fmt.Sprintf(createKeyspaceStmt+tabletStmt, keyspace, rf1, rf2, tablets))
-		if err == nil {
-			return
-		}
-		// Fallback as we don't know if tablets are enabled
-	}
-	ExecStmt(t, session, fmt.Sprintf(createKeyspaceStmt, keyspace, rf1, rf2))
-}
-
-func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
-	ExecStmt(t, session, fmt.Sprintf("DROP KEYSPACE IF EXISTS %q", keyspace))
 }
 
 // We must use -1 here to support working with empty tables or not flushed data.
@@ -580,9 +453,9 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		t2            = "test_table_2"
 		maxJobsOnHost = 1
 	)
-	createKeyspace(t, clusterSession, ks1, 1, 1)
-	createKeyspace(t, clusterSession, ks2, 2, 2)
-	createKeyspace(t, clusterSession, ks3, 3, 3)
+	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks2, 2, 2)
+	createDefaultKeyspace(t, clusterSession, ks3, 3, 3)
 	WriteData(t, clusterSession, ks1, 5, t1, t2)
 	WriteData(t, clusterSession, ks2, 5, t1, t2)
 	WriteData(t, clusterSession, ks3, 5, t1, t2)
@@ -606,12 +479,11 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 
 		// Repair request
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-				hosts := strings.Split(req.URL.Query()["hosts"][0], ",")
+			if r, ok := newRepairSchedReq(t, req); ok {
 				muJPH.Lock()
 				defer muJPH.Unlock()
 
-				for _, host := range hosts {
+				for _, host := range r.replicaSet {
 					jobsPerHost[host]++
 					if jobsPerHost[host] > maxJobsOnHost {
 						cnt.Add(1)
@@ -619,7 +491,6 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 					}
 				}
 			}
-
 			return nil, nil
 		}))
 
@@ -628,24 +499,16 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 				return nil, nil
 			}
 
-			var copiedBody bytes.Buffer
-			tee := io.TeeReader(resp.Body, &copiedBody)
-			body, _ := io.ReadAll(tee)
-			resp.Body = io.NopCloser(&copiedBody)
-
-			// Response to repair schedule
-			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
+			if r, ok := newRepairSchedResp(t, resp); ok {
 				muHIJ.Lock()
-				hostsInJob[resp.Request.Host+string(body)] = strings.Split(resp.Request.URL.Query()["hosts"][0], ",")
+				hostsInJob[r.host+r.id] = r.replicaSet
 				muHIJ.Unlock()
 			}
 
-			// Response to repair status
-			if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
-				status := string(body)
-				if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
+			if r, ok := newRepairStatusResp(t, resp); ok {
+				if r.status == repairStatusDone || r.status == repairStatusFailed {
 					muHIJ.Lock()
-					hosts := hostsInJob[resp.Request.Host+resp.Request.URL.Query()["id"][0]]
+					hosts := hostsInJob[r.host+r.id]
 					muHIJ.Unlock()
 
 					muJPH.Lock()
@@ -672,7 +535,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 
 func TestServiceRepairOrderIntegration(t *testing.T) {
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+	hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	ctx := context.Background()
 
@@ -694,9 +557,9 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 	)
 
 	// Create keyspaces. Low RF improves repair parallelism.
-	createKeyspace(t, clusterSession, ks1, 1, 1)
-	createKeyspace(t, clusterSession, ks2, 1, 1)
-	createKeyspace(t, clusterSession, ks3, 2, 1)
+	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks2, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks3, 2, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -764,19 +627,14 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-			pathParts := strings.Split(req.URL.Path, "/")
-			keyspace := pathParts[len(pathParts)-1]
-			fullTable := keyspace + "." + req.URL.Query().Get("columnFamilies")
-
+		if r, ok := newRepairSchedReq(t, req); ok {
 			// Update actual repair order on both repair start and end
 			muARO.Lock()
-			if len(actualRepairOrder) == 0 || actualRepairOrder[len(actualRepairOrder)-1] != fullTable {
-				actualRepairOrder = append(actualRepairOrder, fullTable)
+			if len(actualRepairOrder) == 0 || actualRepairOrder[len(actualRepairOrder)-1] != r.fullTable() {
+				actualRepairOrder = append(actualRepairOrder, r.fullTable())
 			}
 			muARO.Unlock()
 		}
-
 		return nil, nil
 	}))
 
@@ -785,30 +643,17 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 			return nil, nil
 		}
 
-		var copiedBody bytes.Buffer
-		tee := io.TeeReader(resp.Body, &copiedBody)
-		body, _ := io.ReadAll(tee)
-		resp.Body = io.NopCloser(&copiedBody)
-
-		// Response to repair schedule
-		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
-			pathParts := strings.Split(resp.Request.URL.Path, "/")
-			keyspace := pathParts[len(pathParts)-1]
-			fullTable := keyspace + "." + resp.Request.URL.Query().Get("columnFamilies")
-
+		if r, ok := newRepairSchedResp(t, resp); ok {
 			// Register what table is being repaired
 			muJT.Lock()
-			jobTable[resp.Request.Host+string(body)] = fullTable
+			jobTable[r.host+r.id] = r.fullTable()
 			muJT.Unlock()
 		}
 
-		// Response to repair status
-		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
-			status := string(body)
-			if status == "\"SUCCESSFUL\"" || status == "\"FAILED\"" {
+		if r, ok := newRepairStatusResp(t, resp); ok {
+			if r.status == repairStatusDone || r.status == repairStatusFailed {
 				// Add host prefix as IDs are unique only for a given host
-				jobID := resp.Request.Host + resp.Request.URL.Query()["id"][0]
-
+				jobID := r.host + r.id
 				muJT.Lock()
 				fullTable := jobTable[jobID]
 				muJT.Unlock()
@@ -883,7 +728,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	// It also checks if too many token ranges were redundantly repaired multiple times.
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+	hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	ctx := context.Background()
 
@@ -909,9 +754,9 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	)
 
 	// Create keyspaces. Low RF increases repair parallelism.
-	tryCreateTabletKeyspace(t, clusterSession, ks1, 2, 1, 256)
-	tryCreateTabletKeyspace(t, clusterSession, ks2, 1, 1, 256)
-	tryCreateTabletKeyspace(t, clusterSession, ks3, 1, 1, 256)
+	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
+	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -949,26 +794,6 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	doneRanges := make(map[string][]scyllaclient.TokenRange)
 	muDR := sync.Mutex{}
 
-	parseRanges := func(dumpedRanges string) []scyllaclient.TokenRange {
-		var out []scyllaclient.TokenRange
-		for _, r := range strings.Split(dumpedRanges, ",") {
-			tokens := strings.Split(r, ":")
-			s, err := strconv.ParseInt(tokens[0], 10, 64)
-			if err != nil {
-				t.Fatal(err)
-			}
-			e, err := strconv.ParseInt(tokens[1], 10, 64)
-			if err != nil {
-				t.Fatal(err)
-			}
-			out = append(out, scyllaclient.TokenRange{
-				StartToken: s,
-				EndToken:   e,
-			})
-		}
-		return out
-	}
-
 	// Tools for performing a repair with 4 pauses
 	var (
 		reqCnt          = atomic.Int64{}
@@ -986,7 +811,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+		if isRepairSchedReq(req) {
 			switch int(reqCnt.Add(1)) {
 			case stopCnt1:
 				stop1()
@@ -1011,42 +836,29 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 			return nil, nil
 		}
 
-		var copiedBody bytes.Buffer
-		tee := io.TeeReader(resp.Body, &copiedBody)
-		body, _ := io.ReadAll(tee)
-		resp.Body = io.NopCloser(&copiedBody)
-
-		// Response to repair schedule
-		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodPost {
-			pathParts := strings.Split(resp.Request.URL.Path, "/")
-			keyspace := pathParts[len(pathParts)-1]
-			fullTable := keyspace + "." + resp.Request.URL.Query().Get("columnFamilies")
-			ranges := parseRanges(resp.Request.URL.Query().Get("ranges"))
-
+		if r, ok := newRepairSchedResp(t, resp); ok {
 			// Register what table is being repaired
 			muJS.Lock()
-			jobSpec[resp.Request.Host+string(body)] = TableRange{
-				FullTable: fullTable,
-				Ranges:    ranges,
+			jobSpec[r.host+r.id] = TableRange{
+				FullTable: r.fullTable(),
+				Ranges:    r.ranges,
 			}
 			muJS.Unlock()
 		}
 
-		// Response to repair status
-		if repairEndpointRegexp.MatchString(resp.Request.URL.Path) && resp.Request.Method == http.MethodGet {
+		if r, ok := newRepairStatusResp(t, resp); ok {
 			// Inject errors on all runs except the last one.
 			// This helps to test repair error resilience.
 			if !stopErrInject.Load() && rspCnt.Add(1)%20 == 0 {
-				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
-				return nil, nil
+				resp.Body, _ = mockRepairStatusRespBody(t, resp.Request, repairStatusFailed)
+				return resp, nil
 			}
 
-			status := string(body)
-			if status == "\"SUCCESSFUL\"" {
+			if r.status == repairStatusDone {
 				muJS.Lock()
 				defer muJS.Unlock()
 
-				k := resp.Request.Host + resp.Request.URL.Query()["id"][0]
+				k := r.host + r.id
 				if tr, ok := jobSpec[k]; ok {
 					// Make sure that retries don't result in counting redundant ranges
 					delete(jobSpec, k)
@@ -1146,7 +958,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	for tab, tr := range doneRanges {
 		r, err := validate(tab, tr)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal(tab, err)
 		}
 		if r > 0 {
 			t.Fatalf("Expected no redundant ranges in %s, got %d (out of total %d)", tab, r, len(tr))
@@ -1164,7 +976,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	tryCreateTabletKeyspace(t, clusterSession, "test_repair", 2, 2, 256)
+	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -1294,7 +1106,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		host := h.GetHostsFromDC("dc1")[0]
-		h.Hrt.SetInterceptor(assertReplicasRepairInterceptor(t, host))
+		h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
 
 		Print("When: run repair")
 		h.runRepair(ctx, singleUnit(map[string]any{
@@ -1333,7 +1145,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1357,7 +1169,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1378,7 +1190,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1396,7 +1208,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1440,7 +1252,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			"intensity":             propIntensity,
 			"small_table_threshold": -1,
 		})
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
@@ -1472,7 +1284,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: resume repair")
 		ctx = context.Background()
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: resumed repair is running")
@@ -1491,7 +1303,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run fresh repair")
 		h.RunID = uuid.NewTime()
 		holdCtx, holdCancel = context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: fresh repair is running")
@@ -1513,13 +1325,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		props := singleUnit(map[string]any{
+		props := multipleUnits(map[string]any{
 			"continue":              false,
 			"small_table_threshold": repairAllSmallTableThreshold,
 		})
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 2))
 		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
@@ -1537,7 +1349,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 0))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, props)
 
 		WaitCond(h.T, func() bool {
@@ -1563,7 +1375,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(holdRepairInterceptor(ctx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1614,7 +1426,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, allUnits(map[string]any{
 			"fail_fast":             true,
 			"small_table_threshold": repairAllSmallTableThreshold,
@@ -1624,7 +1436,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: errors occur")
-		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandFailed))
+		h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusFailed))
 		holdCancel()
 
 		Print("Then: repair completes with error")
@@ -1633,7 +1445,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("When: create a new run")
 		h.RunID = uuid.NewTime()
 
-		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 
 		Print("And: run repair")
 		h.runRepair(ctx, allUnits(nil))
@@ -1652,7 +1464,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
 		h.runRepair(ctx, singleUnit(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1664,7 +1476,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(dialErrorInterceptor())
 		holdCancel()
 		time.AfterFunc(2*h.Client.Config().Timeout, func() {
-			h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+			h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 		})
 
 		Print("And: repair contains error")
@@ -1688,7 +1500,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 1))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, allUnits(map[string]any{
 			"fail_fast":             true,
 			"small_table_threshold": repairAllSmallTableThreshold,
@@ -1701,7 +1513,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(dialErrorInterceptor())
 		holdCancel()
 		time.AfterFunc(3*h.Client.Config().Timeout, func() {
-			h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+			h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 		})
 
 		Print("Then: repair completes with error")
@@ -1728,7 +1540,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1738,7 +1550,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
 		h.runRepair(ctx, map[string]any{
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"dc":                    []string{"dc1", "dc2"},
@@ -1764,7 +1576,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createKeyspace(t, clusterSession, testKeyspace, 3, 3)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1781,7 +1593,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
 		h.runRepair(ctx, props)
 
 		Print("When: 10% progress")
@@ -1797,8 +1609,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("kill repairs on task failure", func(t *testing.T) {
-		const killPath = "/storage_service/force_terminate_repair"
-
 		props := multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		})
@@ -1810,7 +1620,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 			Print("When: run repair")
 			var killRepairCalled int32
-			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", holdRepairInterceptor(ctx, 2)))
+			h.Hrt.SetInterceptor(combineInterceptors(
+				countInterceptor(&killRepairCalled, isKillRepairReq),
+				repairHoldInterceptor(t, ctx, 2),
+			))
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
@@ -1835,7 +1648,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			Print("When: run repair")
 			holdCtx, holdCancel := context.WithCancel(context.Background())
-			h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 2))
+			h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
@@ -1843,7 +1656,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			Print("When: Scylla returns failures")
 			var killRepairCalled int32
-			h.Hrt.SetInterceptor(countInterceptor(&killRepairCalled, killPath, "", repairInterceptor(scyllaclient.CommandFailed)))
+			h.Hrt.SetInterceptor(combineInterceptors(
+				countInterceptor(&killRepairCalled, isKillRepairReq),
+				repairStatusInterceptor(t, repairStatusFailed),
+			))
 			holdCancel()
 
 			Print("Then: repair finish with error")
@@ -1860,8 +1676,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		const (
 			testKeyspace = "test_repair_optimize_table"
 			testTable    = "test_table_0"
-
-			repairPath = "/storage_service/repair_async/"
 		)
 
 		Print("Given: small and fully replicated table")
@@ -1890,17 +1704,19 @@ func TestServiceRepairIntegration(t *testing.T) {
 		var (
 			repairCalled int32
 			optUsed      = atomic.Bool{}
-			inner        = countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful))
 		)
-		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-				opt, ok := req.URL.Query()["small_table_optimization"]
-				if ok && opt[0] == "true" {
-					optUsed.Store(true)
+		h.Hrt.SetInterceptor(combineInterceptors(
+			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if r, ok := newRepairSchedReq(t, req); ok {
+					if r.SmallTableOptimization {
+						optUsed.Store(true)
+					}
 				}
-			}
-			return inner.RoundTrip(req)
-		}))
+				return nil, nil
+			}),
+			countInterceptor(&repairCalled, isRepairSchedReq),
+			repairStatusInterceptor(t, repairStatusDone),
+		))
 
 		Print("When: run repair")
 		h.runRepair(ctx, map[string]any{
@@ -1954,22 +1770,21 @@ func TestServiceRepairIntegration(t *testing.T) {
 		var (
 			optUsed         = atomic.Bool{}
 			mergedRangeUsed = atomic.Bool{}
-			mergedRange     = fmt.Sprintf("%d:%d", dht.Murmur3MinToken, dht.Murmur3MaxToken)
-			inner           = repairInterceptor(scyllaclient.CommandSuccessful)
 		)
-		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-				opt, ok := req.URL.Query()["small_table_optimization"]
-				if ok && opt[0] == "true" {
-					optUsed.Store(true)
+		h.Hrt.SetInterceptor(combineInterceptors(
+			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if r, ok := newRepairSchedReq(t, req); ok {
+					if r.SmallTableOptimization {
+						optUsed.Store(true)
+					}
+					if slices.Equal(r.ranges, []scyllaclient.TokenRange{{StartToken: dht.Murmur3MinToken, EndToken: dht.Murmur3MaxToken}}) {
+						mergedRangeUsed.Store(true)
+					}
 				}
-				merged, ok := req.URL.Query()["ranges"]
-				if ok && merged[0] == mergedRange {
-					mergedRangeUsed.Store(true)
-				}
-			}
-			return inner.RoundTrip(req)
-		}))
+				return nil, nil
+			}),
+			repairStatusInterceptor(t, repairStatusDone),
+		))
 
 		Print("When: run repair")
 		h.runRepair(ctx, map[string]any{
@@ -2031,7 +1846,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: repair status is not responding in time")
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(holdRepairInterceptor(holdCtx, 0))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
 
 		Print("And: run repair")
 		h.runRepair(ctx, allUnits(map[string]any{
@@ -2043,7 +1858,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		h.Hrt.SetInterceptor(repairInterceptor(scyllaclient.CommandSuccessful))
+		h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
@@ -2054,7 +1869,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable      = "Tab_le-With1.da_sh2-aNd.d33ot.-"
 			testKeyspace   = "alternator_" + testTable
 			alternatorPort = 8000
-			repairPath     = "/storage_service/repair_async/"
 		)
 
 		Print("When: create alternator table with 1 row")
@@ -2071,7 +1885,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		var repairCalled int32
-		h.Hrt.SetInterceptor(countInterceptor(&repairCalled, repairPath, http.MethodPost, repairInterceptor(scyllaclient.CommandSuccessful)))
+		h.Hrt.SetInterceptor(combineInterceptors(
+			countInterceptor(&repairCalled, isRepairSchedReq),
+			repairStatusInterceptor(t, repairStatusDone),
+		))
 		h.runRepair(ctx, map[string]any{
 			"keyspace": []string{testKeyspace + "." + testTable},
 		})
@@ -2113,23 +1930,18 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		tryCreateTabletKeyspace(t, clusterSession, ks, 2, 2, 256)
+		createDefaultKeyspace(t, clusterSession, ks, 2, 2)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
 		cnt := atomic.Int64{}
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
+			if r, ok := newRepairSchedReq(t, req); ok {
 				cnt.Add(1)
-				intensity, err := strconv.Atoi(req.URL.Query()["ranges_parallelism"][0])
-				if err != nil {
-					t.Error(err)
+				if r.RangesParallelism != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
 				}
-				if intensity != desiredIntensity {
-					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, intensity)
-				}
-				rangesCnt := len(strings.Split(req.URL.Query()["ranges"][0], ","))
-				if intensity == rangesCnt {
+				if r.RangesParallelism == len(r.ranges) {
 					t.Error("Ranges should be batched")
 				}
 			}
@@ -2165,7 +1977,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		tryCreateTabletKeyspace(t, clusterSession, ks, 2, 2, 256)
+		createDefaultKeyspace(t, clusterSession, ks, 2, 2)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -2174,49 +1986,43 @@ func TestServiceRepairIntegration(t *testing.T) {
 		stop := atomic.Bool{}
 		pauseCtx, pauseCancel := context.WithCancel(ctx)
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			// Handle job schedule requests
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodPost {
-				intensity, err := strconv.Atoi(req.URL.Query()["ranges_parallelism"][0])
-				if err != nil {
-					t.Error(err)
-				}
-				if intensity != desiredIntensity {
-					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, intensity)
+			if r, ok := newRepairSchedReq(t, req); ok {
+				if r.RangesParallelism != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
 				}
 
-				rawRanges := req.URL.Query()["ranges"][0]
-				rangesCnt := len(strings.Split(rawRanges, ","))
+				rangesCnt := len(r.ranges)
 				// Watch out for split range
-				if strings.Contains(rawRanges, fmt.Sprintf("%d,%d", dht.Murmur3MaxToken, dht.Murmur3MinToken)) {
+				if slices.ContainsFunc(r.ranges, func(tr scyllaclient.TokenRange) bool { return tr.EndToken == dht.Murmur3MinToken }) &&
+					slices.ContainsFunc(r.ranges, func(tr scyllaclient.TokenRange) bool { return tr.StartToken == dht.Murmur3MaxToken }) {
 					rangesCnt--
 				}
 
 				if batching.Load() {
-					if intensity == rangesCnt {
+					if r.RangesParallelism == rangesCnt {
 						t.Error("Ranges should be batched")
 					}
 				} else {
-					if intensity != rangesCnt {
+					if r.RangesParallelism != rangesCnt {
 						t.Error("Ranges shouldn't be batched")
 					}
 				}
 
-				id := atomic.AddInt32(&commandCounter, 1)
 				resp := httpx.MakeResponse(req, 200)
-				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprint(id)))
+				resp.Body, _ = mockRepairSchedRespBody(t, req)
 				return resp, nil
 			}
-			// Handle status requests
-			if repairEndpointRegexp.MatchString(req.URL.Path) && req.Method == http.MethodGet {
+
+			if isRepairStatusReq(req) {
 				resp := httpx.MakeResponse(req, 200)
 				if stop.CompareAndSwap(true, false) {
 					pauseCancel()
 				}
 				if fail.Load() {
-					resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandFailed)))
+					resp.Body, _ = mockRepairStatusRespBody(t, req, repairStatusFailed)
 					return resp, nil
 				}
-				resp.Body = io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", scyllaclient.CommandSuccessful)))
+				resp.Body, _ = mockRepairStatusRespBody(t, req, repairStatusDone)
 				return resp, nil
 			}
 
@@ -2308,7 +2114,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 	const ks = "test_repair"
 
-	createKeyspace(t, clusterSession, ks, 3, 3)
+	createDefaultKeyspace(t, clusterSession, ks, 3, 3)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, ks)
