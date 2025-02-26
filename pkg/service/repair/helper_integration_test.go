@@ -8,6 +8,7 @@ package repair_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -23,11 +24,15 @@ import (
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 // Read only, should be used for checking testing environment
@@ -129,25 +134,35 @@ const (
 )
 
 const (
-	oldRepairSchedPathPrefix  = "/storage_service/repair_async"
-	oldRepairStatusPathPrefix = "/storage_service/repair_status"
-	killRepairPathPrefix      = "/storage_service/force_terminate_repair"
+	oldRepairSchedPathPrefix     = "/storage_service/repair_async"
+	oldRepairStatusPathPrefix    = "/storage_service/repair_status"
+	tabletRepairSchedPathPrefix  = "/storage_service/tablets/repair"
+	tabletRepairStatusPathPrefix = "/task_manager/wait_task"
+	killRepairPathPrefix         = "/storage_service/force_terminate_repair"
 )
 
 func isOldRepairSchedReq(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, oldRepairSchedPathPrefix) && req.Method == http.MethodPost
 }
 
+func isTabletRepairSchedReq(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, tabletRepairSchedPathPrefix) && req.Method == http.MethodPost
+}
+
 func isRepairSchedReq(req *http.Request) bool {
-	return isOldRepairSchedReq(req)
+	return isOldRepairSchedReq(req) || isTabletRepairSchedReq(req)
 }
 
 func isOldRepairStatusReq(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, oldRepairStatusPathPrefix) && req.Method == http.MethodGet
 }
 
+func isTabletRepairStatusReq(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, tabletRepairStatusPathPrefix) && req.Method == http.MethodGet
+}
+
 func isRepairStatusReq(req *http.Request) bool {
-	return isOldRepairStatusReq(req)
+	return isOldRepairStatusReq(req) || isTabletRepairStatusReq(req)
 }
 
 func isKillRepairReq(req *http.Request) bool {
@@ -157,6 +172,9 @@ func isKillRepairReq(req *http.Request) bool {
 func newRepairSchedReq(t *testing.T, req *http.Request) (repairSchedReq, bool) {
 	if isOldRepairSchedReq(req) {
 		return newOldRepairSchedReq(t, req), true
+	}
+	if isTabletRepairSchedReq(req) {
+		return newTabletRepairSchedReq(t, req), true
 	}
 	return repairSchedReq{}, false
 }
@@ -191,9 +209,38 @@ func newOldRepairSchedReq(t *testing.T, req *http.Request) repairSchedReq {
 	return sched
 }
 
+func newTabletRepairSchedReq(t *testing.T, req *http.Request) repairSchedReq {
+	if !isTabletRepairSchedReq(req) {
+		t.Error("Not tablet repair sched req")
+		return repairSchedReq{}
+	}
+
+	sched := repairSchedReq{
+		host:       req.Host,
+		keyspace:   req.URL.Query().Get("ks"),
+		table:      req.URL.Query().Get("table"),
+		replicaSet: ManagedClusterHosts(),
+		ranges: []scyllaclient.TokenRange{
+			{
+				StartToken: dht.Murmur3MinToken,
+				EndToken:   dht.Murmur3MaxToken,
+			},
+		},
+	}
+	if sched.keyspace == "" || sched.table == "" {
+		t.Error("Not fully initialized tablet repair sched req")
+		return repairSchedReq{}
+	}
+
+	return sched
+}
+
 func newRepairStatusReq(t *testing.T, req *http.Request) (repairStatusReq, bool) {
 	if isOldRepairStatusReq(req) {
 		return newOldRepairStatusReq(t, req), true
+	}
+	if isTabletRepairStatusReq(req) {
+		return newTabletRepairStatusReq(t, req), true
 	}
 	return repairStatusReq{}, false
 }
@@ -216,12 +263,33 @@ func newOldRepairStatusReq(t *testing.T, req *http.Request) repairStatusReq {
 	return status
 }
 
+func newTabletRepairStatusReq(t *testing.T, req *http.Request) repairStatusReq {
+	if !isTabletRepairStatusReq(req) {
+		t.Error("Not tablet repair status req")
+		return repairStatusReq{}
+	}
+
+	status := repairStatusReq{
+		host: req.Host,
+		id:   strings.TrimPrefix(req.URL.Path, tabletRepairStatusPathPrefix+"/"),
+	}
+	if status.id == "" {
+		t.Error("Not fully initialized tablet repair status req")
+		return repairStatusReq{}
+	}
+
+	return status
+}
+
 func newRepairSchedResp(t *testing.T, resp *http.Response) (repairSchedResp, bool) {
 	if resp.StatusCode != http.StatusOK {
 		return repairSchedResp{}, false
 	}
 	if isOldRepairSchedReq(resp.Request) {
 		return newOldRepairSchedResp(t, resp), true
+	}
+	if isTabletRepairSchedReq(resp.Request) {
+		return newTabletRepairSchedResp(t, resp), true
 	}
 	return repairSchedResp{}, false
 
@@ -246,12 +314,39 @@ func newOldRepairSchedResp(t *testing.T, resp *http.Response) repairSchedResp {
 	return sched
 }
 
+func newTabletRepairSchedResp(t *testing.T, resp *http.Response) repairSchedResp {
+	req, ok := newRepairSchedReq(t, resp.Request)
+	if !ok {
+		t.Error("Not repair sched resp")
+		return repairSchedResp{}
+	}
+
+	var b operations.StorageServiceTabletsRepairPostOKBody
+	if err := json.Unmarshal(copyRespBody(t, resp), &b); err != nil {
+		t.Error(err)
+		return repairSchedResp{}
+	}
+	sched := repairSchedResp{
+		repairSchedReq: req,
+		id:             b.TabletTaskID,
+	}
+	if sched.id == "" {
+		t.Error("Not fully initialized repair sched resp")
+		return repairSchedResp{}
+	}
+
+	return sched
+}
+
 func newRepairStatusResp(t *testing.T, resp *http.Response) (repairStatusResp, bool) {
 	if resp.StatusCode != http.StatusOK {
 		return repairStatusResp{}, false
 	}
 	if isOldRepairStatusReq(resp.Request) {
 		return newOldRepairStatusResp(t, resp), true
+	}
+	if isTabletRepairStatusReq(resp.Request) {
+		return newTabletRepairStatusResp(t, resp), true
 	}
 	return repairStatusResp{}, false
 }
@@ -283,9 +378,44 @@ func newOldRepairStatusResp(t *testing.T, resp *http.Response) repairStatusResp 
 	}
 }
 
+func newTabletRepairStatusResp(t *testing.T, resp *http.Response) repairStatusResp {
+	req, ok := newRepairStatusReq(t, resp.Request)
+	if !ok {
+		t.Error("Not repair status resp")
+		return repairStatusResp{}
+	}
+
+	var taskStatus models.TaskStatus
+	body := copyRespBody(t, resp)
+	if err := json.Unmarshal(body, &taskStatus); err != nil {
+		t.Error(err)
+		return repairStatusResp{}
+	}
+	var status repairStatus
+	switch scyllaclient.ScyllaTaskState(taskStatus.State) {
+	case scyllaclient.ScyllaTaskStateDone:
+		status = repairStatusDone
+	case scyllaclient.ScyllaTaskStateFailed:
+		status = repairStatusFailed
+	case scyllaclient.ScyllaTaskStateCreated, scyllaclient.ScyllaTaskStateRunning:
+		status = repairStatusRunning
+	default:
+		t.Error("Unknown tablet repair status: " + string(body))
+		return repairStatusResp{}
+	}
+
+	return repairStatusResp{
+		repairStatusReq: req,
+		status:          status,
+	}
+}
+
 func mockRepairSchedRespBody(t *testing.T, req *http.Request) (io.ReadCloser, bool) {
 	if isOldRepairSchedReq(req) {
 		return mockOldRepairSchedRespBody(t, req), true
+	}
+	if isTabletRepairSchedReq(req) {
+		return mockTabletRepairSchedRespBody(t, req), true
 	}
 	return nil, false
 }
@@ -300,9 +430,28 @@ func mockOldRepairSchedRespBody(t *testing.T, req *http.Request) io.ReadCloser {
 	return io.NopCloser(bytes.NewBufferString(fmt.Sprint(atomic.AddInt32(&repairTaskCounter, 1))))
 }
 
+func mockTabletRepairSchedRespBody(t *testing.T, req *http.Request) io.ReadCloser {
+	if !isTabletRepairSchedReq(req) {
+		t.Error("Not tablet repair sched req")
+	}
+
+	b, err := json.Marshal(operations.StorageServiceTabletsRepairPostOKBody{
+		TabletTaskID: uuid.NewTime().String(),
+	})
+	if err != nil {
+		t.Error(err)
+		return nil
+	}
+
+	return io.NopCloser(bytes.NewBuffer(b))
+}
+
 func mockRepairStatusRespBody(t *testing.T, req *http.Request, status repairStatus) (io.ReadCloser, bool) {
 	if isOldRepairStatusReq(req) {
 		return mockOldRepairStatusRespBody(t, req, status), true
+	}
+	if isTabletRepairStatusReq(req) {
+		return mockTabletRepairStatusRespBody(t, req, status), true
 	}
 	return nil, false
 }
@@ -327,6 +476,43 @@ func mockOldRepairStatusRespBody(t *testing.T, req *http.Request, status repairS
 	}
 
 	return io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", s)))
+}
+
+func mockTabletRepairStatusRespBody(t *testing.T, req *http.Request, status repairStatus) io.ReadCloser {
+	if !isTabletRepairStatusReq(req) {
+		t.Error("Not tablet repair status req")
+		return nil
+	}
+
+	var s models.TaskStatus
+	switch status {
+	case repairStatusDone:
+		s = models.TaskStatus{
+			ProgressCompleted: 1,
+			ProgressTotal:     1,
+			State:             string(scyllaclient.ScyllaTaskStateDone),
+		}
+	case repairStatusFailed:
+		s = models.TaskStatus{
+			ProgressTotal: 1,
+			State:         string(scyllaclient.ScyllaTaskStateFailed),
+		}
+	case repairStatusRunning:
+		s = models.TaskStatus{
+			ProgressTotal: 1,
+			State:         string(scyllaclient.ScyllaTaskStateRunning),
+		}
+	default:
+		t.Errorf("Unknown tablet repair status: %d", status)
+		return nil
+	}
+
+	b := &bytes.Buffer{}
+	if err := json.NewEncoder(b).Encode(s); err != nil {
+		t.Error(err)
+		return nil
+	}
+	return io.NopCloser(b)
 }
 
 func repairStatusInterceptor(t *testing.T, status repairStatus) http.RoundTripper {
