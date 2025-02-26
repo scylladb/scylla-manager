@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
@@ -65,19 +66,19 @@ func createVnodeKeyspace(t *testing.T, session gocqlx.Session, keyspace string, 
 }
 
 // Creates tablet keyspace or skips the test if that's not possible.
-func createTabletKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2, tablets int) {
+func createTabletKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2 int) {
 	if !globalNodeInfo.EnableTablets {
 		t.Skip("Test requires tablets enabled in order to create tablet keyspace")
 	}
-	stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d} AND tablets = {'enabled': true, 'initial': %d}"
-	ExecStmt(t, session, fmt.Sprintf(stmt, keyspace, rf1, rf2, tablets))
+	stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d} AND tablets = {'enabled': true}"
+	ExecStmt(t, session, fmt.Sprintf(stmt, keyspace, rf1, rf2))
 }
 
 // Creates keyspace with default replication type (vnode or tablets).
-func createDefaultKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2, tablets int) {
+func createDefaultKeyspace(t *testing.T, session gocqlx.Session, keyspace string, rf1, rf2 int) {
 	if globalNodeInfo.EnableTablets {
-		stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d} AND tablets = {'enabled': true, 'initial': %d}"
-		ExecStmt(t, session, fmt.Sprintf(stmt, keyspace, rf1, rf2, tablets))
+		stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d} AND tablets = {'enabled': true}"
+		ExecStmt(t, session, fmt.Sprintf(stmt, keyspace, rf1, rf2))
 		return
 	}
 	stmt := "CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d, 'dc2': %d}"
@@ -366,6 +367,20 @@ func repairHoldInterceptor(t *testing.T, ctx context.Context, after int64) http.
 	})
 }
 
+func repairRunningInterceptor() (http.RoundTripper, chan struct{}) {
+	done := make(chan struct{})
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if isRepairSchedReq(req) {
+			select {
+			case <-done:
+			default:
+				close(done)
+			}
+		}
+		return nil, nil
+	}), done
+}
+
 func repairReqAssertHostInterceptor(t *testing.T, host string) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if r, ok := newRepairSchedReq(t, req); ok {
@@ -441,4 +456,12 @@ func copyRespBody(t *testing.T, resp *http.Response) []byte {
 	}
 	resp.Body = io.NopCloser(&copiedBody)
 	return body
+}
+
+func chanClosedWithin(t *testing.T, c chan struct{}, d time.Duration) {
+	select {
+	case <-c:
+	case <-time.After(d):
+		t.Fatal("timeout after ", d)
+	}
 }

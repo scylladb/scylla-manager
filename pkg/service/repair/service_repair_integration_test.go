@@ -454,8 +454,8 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		maxJobsOnHost = 1
 	)
 	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks2, 2, 2, 256)
-	createDefaultKeyspace(t, clusterSession, ks3, 3, 3, 256)
+	createDefaultKeyspace(t, clusterSession, ks2, 2, 2)
+	createDefaultKeyspace(t, clusterSession, ks3, 3, 3)
 	WriteData(t, clusterSession, ks1, 5, t1, t2)
 	WriteData(t, clusterSession, ks2, 5, t1, t2)
 	WriteData(t, clusterSession, ks3, 5, t1, t2)
@@ -558,8 +558,8 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 	// Create keyspaces. Low RF improves repair parallelism.
 	createVnodeKeyspace(t, clusterSession, ks1, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks2, 1, 1, 256)
-	createDefaultKeyspace(t, clusterSession, ks3, 2, 1, 256)
+	createDefaultKeyspace(t, clusterSession, ks2, 1, 1)
+	createDefaultKeyspace(t, clusterSession, ks3, 2, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -756,7 +756,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	// Create keyspaces. Low RF increases repair parallelism.
 	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
 	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks3, 1, 1, 256)
+	createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -976,7 +976,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2, 256)
+	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2)
 	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
 	defer dropKeyspace(t, clusterSession, "test_repair")
 
@@ -1169,13 +1169,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 2))
+		i, running := repairRunningInterceptor()
+		h.Hrt.SetInterceptor(i)
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
 		Print("Then: repair is running")
-		h.assertRunning(shortWait)
+		chanClosedWithin(t, running, shortWait)
 
 		Print("When: repair is stopped")
 		cancel()
@@ -1247,7 +1248,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: run repair")
-		props := singleUnit(map[string]any{
+		props := multipleUnits(map[string]any{
 			"parallel":              propParallel,
 			"intensity":             propIntensity,
 			"small_table_threshold": -1,
@@ -1325,13 +1326,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		props := singleUnit(map[string]any{
+		props := multipleUnits(map[string]any{
 			"continue":              false,
 			"small_table_threshold": repairAllSmallTableThreshold,
 		})
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 2))
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
@@ -1464,8 +1465,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
-		h.runRepair(ctx, singleUnit(map[string]any{
+		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
+		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
@@ -1540,7 +1541,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3, 256)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1549,22 +1550,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
+		// It's difficult to ensure that table deletion happened while
+		// the table was repaired, so we just make the best effort to hit it.
+		i, running := repairRunningInterceptor()
+		h.Hrt.SetInterceptor(i)
 		h.runRepair(ctx, map[string]any{
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"dc":                    []string{"dc1", "dc2"},
-			"intensity":             0,
+			"intensity":             1,
 			"parallel":              1,
 			"small_table_threshold": repairAllSmallTableThreshold,
 		})
 
-		Print("When: 10% progress")
-		h.assertRunning(shortWait)
+		Print("When: repair is running")
+		chanClosedWithin(t, running, shortWait)
 
 		ExecStmt(t, clusterSession, fmt.Sprintf("DROP TABLE %s.%s", testKeyspace, testTable))
-		h.Hrt.SetInterceptor(nil)
-		holdCancel()
 
 		Print("Then: repair is done")
 		h.assertDone(shortWait)
@@ -1576,7 +1577,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3, 256)
+		createDefaultKeyspace(t, clusterSession, testKeyspace, 3, 3)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1588,21 +1589,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"dc":                    []string{"dc1", "dc2"},
 			"intensity":             1,
+			"parallel":              1,
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}
 
 		Print("When: run repair")
-		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
+		// It's difficult to ensure that table deletion happened while
+		// the table was repaired, so we just make the best effort to hit it.
+		i, running := repairRunningInterceptor()
+		h.Hrt.SetInterceptor(i)
 		h.runRepair(ctx, props)
 
-		Print("When: 10% progress")
-		h.assertRunning(longWait)
+		Print("When: repair is running")
+		chanClosedWithin(t, running, shortWait)
 
 		Print("And: keyspace is dropped during repair")
 		dropKeyspace(t, clusterSession, testKeyspace)
-		h.Hrt.SetInterceptor(nil)
-		holdCancel()
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
@@ -1620,14 +1622,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 			Print("When: run repair")
 			var killRepairCalled int32
+			i, running := repairRunningInterceptor()
 			h.Hrt.SetInterceptor(combineInterceptors(
 				countInterceptor(&killRepairCalled, isKillRepairReq),
-				repairHoldInterceptor(t, ctx, 2),
+				i,
 			))
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
-			h.assertRunning(longWait)
+			chanClosedWithin(t, running, shortWait)
 
 			Print("When: repair is cancelled")
 			cancel()
@@ -1679,7 +1682,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("Given: small and fully replicated table")
-		ExecStmt(t, clusterSession, "CREATE KEYSPACE "+testKeyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3}")
+		// Small table optimisation is not supported for tablet keyspaces
+		createVnodeKeyspace(t, clusterSession, testKeyspace, 3, 0)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
@@ -1688,17 +1692,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		// Check small_table_optimization support
-		ni, err := h.Client.AnyNodeInfo(ctx)
+		support, err := globalNodeInfo.SupportsRepairSmallTableOptimization()
 		if err != nil {
 			t.Fatal(err)
-		}
-		support, err := ni.SupportsRepairSmallTableOptimization()
-		if err != nil {
-			t.Fatal(err)
-		}
-		rd := scyllaclient.NewRingDescriber(ctx, h.Client)
-		if rd.IsTabletKeyspace(testKeyspace) {
-			support = false
 		}
 
 		var (
@@ -1758,7 +1754,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("Given: big and fully replicated table")
-		ExecStmt(t, clusterSession, "CREATE KEYSPACE "+testKeyspace+" WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 3}")
+		// Small table optimisation is not supported for tablet keyspaces
+		createVnodeKeyspace(t, clusterSession, testKeyspace, 3, 0)
 		WriteData(t, clusterSession, testKeyspace, tableMBSize, testTable)
 		FlushTable(t, h.Client, ManagedClusterHosts(), testKeyspace, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
@@ -1930,7 +1927,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		createDefaultKeyspace(t, clusterSession, ks, 2, 2, 256)
+		// Ranges batching is mainly used for speeding up vnode keyspace repair
+		createVnodeKeyspace(t, clusterSession, ks, 2, 2)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -1977,7 +1975,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 
 		Print("When: prepare keyspace with 9 replica sets")
-		createDefaultKeyspace(t, clusterSession, ks, 2, 2, 256)
+		// Ranges batching is mainly used for speeding up vnode keyspace repair
+		createVnodeKeyspace(t, clusterSession, ks, 2, 2)
 		WriteData(t, clusterSession, ks, 1, "test_table_0")
 		defer dropKeyspace(t, clusterSession, ks)
 
@@ -2101,7 +2100,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: not-batched repair is done")
 		h.assertDone(longWait)
 	})
-
 }
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
@@ -2114,7 +2112,7 @@ func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 	const ks = "test_repair"
 
-	createDefaultKeyspace(t, clusterSession, ks, 3, 3, 256)
+	createDefaultKeyspace(t, clusterSession, ks, 3, 3)
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_0 (id int PRIMARY KEY)")
 	ExecStmt(t, clusterSession, "CREATE TABLE test_repair.test_table_1 (id int PRIMARY KEY)")
 	defer dropKeyspace(t, clusterSession, ks)
