@@ -568,7 +568,7 @@ func (c *Client) ListBackups(ctx context.Context, clusterID string,
 		return BackupListItems{}, err
 	}
 
-	return BackupListItems{items: resp.Payload}, nil
+	return BackupListItems{Items: resp.Payload}, nil
 }
 
 // ListBackupFiles returns a listing of available backup files.
