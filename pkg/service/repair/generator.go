@@ -132,11 +132,15 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	}()
 
 	for _, ksp := range g.plan.Keyspaces {
-		// Disable tablet migration when repairing tablet table.
-		// Without that it could be possible that some tablet "escapes" being
-		// a repaired by migrating from not yet repaired token range to already repaired one.
-		if err := g.ringDescriber.ControlTabletLoadBalancing(ctx, g.ringDescriber.IsTabletKeyspace(ksp.Keyspace)); err != nil {
-			return errors.Wrapf(err, "control tablet load balancing")
+		if !g.plan.apiSupport.tabletRepairNoHostFiltering {
+			// Disable tablet migration when repairing tablet table.
+			// Without that it could be possible that some tablet "escapes" being
+			// repaired by migrating from not yet repaired token range to already repaired one.
+			// We don't need to do it when tablet repair API is available
+			// (even if it does not allow for host filtering).
+			if err := g.ringDescriber.ControlTabletLoadBalancing(ctx, g.ringDescriber.IsTabletKeyspace(ksp.Keyspace)); err != nil {
+				return errors.Wrapf(err, "control tablet load balancing")
+			}
 		}
 
 		for _, tp := range ksp.Tables {
