@@ -14,6 +14,7 @@ import (
 )
 
 type worker struct {
+	config Config
 	client *scyllaclient.Client
 	// Marks tables for which handleRunningStatus didn't have any effect.
 	// We want to limit the usage of handleRunningStatus to once per table
@@ -60,7 +61,9 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 
 	var ranges []scyllaclient.TokenRange
 	switch {
-	case j.jobType == optimizeJobType:
+	case j.jobType == tabletJobType:
+		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master)
+	case j.jobType == smallTableJobType:
 		ranges = nil
 	case j.jobType == mergeRangesJobType:
 		ranges = []scyllaclient.TokenRange{
@@ -73,7 +76,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		ranges = j.ranges
 	}
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, ranges, j.intensity, j.jobType == optimizeJobType)
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, ranges, j.intensity, j.jobType == smallTableJobType)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}
@@ -161,4 +164,35 @@ func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
 		return false
 	}
 	return !exists
+}
+
+func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, host string) error {
+	id, err := w.client.TabletRepair(ctx, keyspace, table, host)
+	if err != nil {
+		return errors.Wrap(err, "schedule tablet repair task")
+	}
+
+	w.logger.Info(ctx, "Repairing entire tablet table",
+		"keyspace", keyspace,
+		"table", table,
+		"task ID", id,
+	)
+
+	for {
+		status, err := w.client.ScyllaWaitTask(ctx, host, id, int64(w.config.LongPollingTimeoutSeconds))
+		if err != nil {
+			return errors.Wrap(err, "get tablet repair task status")
+		}
+
+		switch scyllaclient.ScyllaTaskState(status.State) {
+		case scyllaclient.ScyllaTaskStateDone:
+			return nil
+		case scyllaclient.ScyllaTaskStateFailed:
+			return errors.Errorf("tablet repair task finished with status %q", scyllaclient.ScyllaTaskStateFailed)
+		case scyllaclient.ScyllaTaskStateCreated, scyllaclient.ScyllaTaskStateRunning:
+			continue
+		default:
+			return errors.Errorf("unexpected tablet repair task status %q", status.State)
+		}
+	}
 }

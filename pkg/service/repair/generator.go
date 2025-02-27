@@ -62,8 +62,15 @@ const (
 	normalJobType jobType = iota
 	skipJobType
 	mergeRangesJobType
-	optimizeJobType
+	smallTableJobType
+	tabletJobType
 )
+
+// fullTableRepair returns true if the table is repaired
+// with a single API call.
+func (jt jobType) fullTableRepair() bool {
+	return jt == smallTableJobType || jt == tabletJobType
+}
 
 type job struct {
 	keyspace   string
@@ -176,8 +183,10 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 
 	var jt jobType
 	switch {
-	case g.plan.SmallTableOptSupport && tp.Small && !tabletKs:
-		jt = optimizeJobType
+	case tabletKs && tp.FullRepair && g.plan.apiSupport.tabletRepairNoHostFiltering:
+		jt = tabletJobType
+	case g.plan.apiSupport.smallTableRepair && tp.Small && !tabletKs:
+		jt = smallTableJobType
 	case len(ring.ReplicaTokens) == 1 && tp.Small:
 		jt = mergeRangesJobType
 	default:
@@ -265,9 +274,9 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				continue
 			}
 			jt := tg.JobType
-			// A single optimized job repairs the whole table,
+			// Some repair jobType repair an entire table with a single API call,
 			// so the remaining job are skipped (and sent only for recording progress).
-			if tg.JobType == optimizeJobType {
+			if tg.JobType.fullTableRepair() {
 				tg.JobType = skipJobType
 			}
 
