@@ -134,11 +134,12 @@ const (
 )
 
 const (
-	oldRepairSchedPathPrefix     = "/storage_service/repair_async"
-	oldRepairStatusPathPrefix    = "/storage_service/repair_status"
-	tabletRepairSchedPathPrefix  = "/storage_service/tablets/repair"
-	tabletRepairStatusPathPrefix = "/task_manager/wait_task"
-	killRepairPathPrefix         = "/storage_service/force_terminate_repair"
+	oldRepairSchedPathPrefix      = "/storage_service/repair_async"
+	oldRepairStatusPathPrefix     = "/storage_service/repair_status"
+	tabletRepairSchedPathPrefix   = "/storage_service/tablets/repair"
+	tabletRepairStatusPathPrefix  = "/task_manager/wait_task"
+	killRepairPathPrefix          = "/storage_service/force_terminate_repair"
+	tabletLoadBalancingPathPrefix = "/storage_service/tablets/balancing"
 )
 
 func isOldRepairSchedReq(req *http.Request) bool {
@@ -167,6 +168,10 @@ func isRepairStatusReq(req *http.Request) bool {
 
 func isKillRepairReq(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, killRepairPathPrefix) && req.Method == http.MethodPost
+}
+
+func isTabletLoadBalancingReq(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, tabletLoadBalancingPathPrefix) && req.Method == http.MethodPost
 }
 
 func newRepairSchedReq(t *testing.T, req *http.Request) (repairSchedReq, bool) {
@@ -407,6 +412,23 @@ func newTabletRepairStatusResp(t *testing.T, resp *http.Response) repairStatusRe
 	return repairStatusResp{
 		repairStatusReq: req,
 		status:          status,
+	}
+}
+
+func newTabletLoadBalancingReq(t *testing.T, req *http.Request) (enabled bool, ok bool) {
+	if !isTabletLoadBalancingReq(req) {
+		return false, false
+	}
+
+	rawEnabled := req.URL.Query().Get("enabled")
+	switch rawEnabled {
+	case "true":
+		return true, true
+	case "false":
+		return false, true
+	default:
+		t.Error("Unexpected 'enabled' query param")
+		return false, false
 	}
 }
 
