@@ -875,7 +875,6 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 		srcSession    = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx1, cancel1 = context.WithCancel(context.Background())
 		ctx2, cancel2 = context.WithCancel(context.Background())
-		mv            = "mv_resume"
 	)
 
 	if target.RestoreSchema {
@@ -889,14 +888,23 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
 		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
-		CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	CreateMaterializedView(t, srcSession, keyspace, BigTableName, mv)
+	// It's not possible to create views on tablet keyspaces
+	tabToValidate := []string{BigTableName}
+	rd := scyllaclient.NewRingDescriber(context.Background(), srcH.Client)
+	if !rd.IsTabletKeyspace(keyspace) {
+		mv := "mv_resume"
+		CreateMaterializedView(t, srcSession, keyspace, BigTableName, mv)
+		if target.RestoreTables {
+			CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
+		}
+		tabToValidate = append(tabToValidate, mv)
+	}
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
 	// but backed up views should still be tested as older backups might
@@ -913,7 +921,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	backupTarget.Units = []backup.Unit{
 		{
 			Keyspace:  keyspace,
-			Tables:    []string{BigTableName, mv},
+			Tables:    tabToValidate,
 			AllTables: true,
 		},
 	}

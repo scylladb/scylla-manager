@@ -391,33 +391,42 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	createTable(t, h.srcCluster.rootSession, ks2, tab2)
 	createTable(t, h.dstCluster.rootSession, ks2, tab2)
 
-	Print("View setup")
-	mv := randomizedName("mv_")
-	CreateMaterializedView(t, h.srcCluster.rootSession, ks1, tab, mv)
-	CreateMaterializedView(t, h.dstCluster.rootSession, ks1, tab, mv)
-	si := randomizedName("si_")
-	CreateSecondaryIndex(t, h.srcCluster.rootSession, ks1, tab, si)
-	CreateSecondaryIndex(t, h.dstCluster.rootSession, ks1, tab, si)
-	mv1 := randomizedName("mv_1_")
-	CreateMaterializedView(t, h.srcCluster.rootSession, ks2, tab1, mv1)
-	CreateMaterializedView(t, h.dstCluster.rootSession, ks2, tab1, mv1)
-
-	Print("Fill setup")
-	fillTable(t, h.srcCluster.rootSession, 100, ks1, tab)
-	fillTable(t, h.srcCluster.rootSession, 100, ks2, tab1, tab2)
-
 	units := []backup.Unit{
 		{
 			Keyspace:  ks1,
-			Tables:    []string{tab, mv, si + "_index"},
+			Tables:    []string{tab},
 			AllTables: true,
 		},
 		{
 			Keyspace:  ks2,
-			Tables:    []string{tab1, tab2, mv1},
+			Tables:    []string{tab1, tab2},
 			AllTables: true,
 		},
 	}
+
+	// It's not possible to create views on tablet keyspaces
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.srcCluster.Client)
+	if !rd.IsTabletKeyspace(ks1) {
+		Print("View setup (ks1)")
+		mv := randomizedName("mv_")
+		CreateMaterializedView(t, h.srcCluster.rootSession, ks1, tab, mv)
+		CreateMaterializedView(t, h.dstCluster.rootSession, ks1, tab, mv)
+		si := randomizedName("si_")
+		CreateSecondaryIndex(t, h.srcCluster.rootSession, ks1, tab, si)
+		CreateSecondaryIndex(t, h.dstCluster.rootSession, ks1, tab, si)
+		units[0].Tables = append(units[0].Tables, mv, si+"_index")
+	}
+	if !rd.IsTabletKeyspace(ks2) {
+		Print("View setup (ks2)")
+		mv1 := randomizedName("mv_1_")
+		CreateMaterializedView(t, h.srcCluster.rootSession, ks2, tab1, mv1)
+		CreateMaterializedView(t, h.dstCluster.rootSession, ks2, tab1, mv1)
+		units[1].Tables = append(units[1].Tables, mv1)
+	}
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks1, tab)
+	fillTable(t, h.srcCluster.rootSession, 100, ks2, tab1, tab2)
 
 	Print("Run backup")
 	loc := []backupspec.Location{testLocation("paused", "")}
@@ -1018,10 +1027,16 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
 
-	Print("View setup")
-	mv := randomizedName("mv_")
-	CreateMaterializedView(t, h.srcCluster.rootSession, ks, tab, mv)
-	CreateMaterializedView(t, h.dstCluster.rootSession, ks, tab, mv)
+	// It's not possible to create views on tablet keyspaces
+	tabToValidate := []string{tab}
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.srcCluster.Client)
+	if !rd.IsTabletKeyspace(ks) {
+		Print("View setup")
+		mv := randomizedName("mv_")
+		CreateMaterializedView(t, h.srcCluster.rootSession, ks, tab, mv)
+		CreateMaterializedView(t, h.dstCluster.rootSession, ks, tab, mv)
+		tabToValidate = append(tabToValidate, mv)
+	}
 
 	Print("Fill setup")
 	fillTable(t, h.srcCluster.rootSession, 1, ks, tab)
@@ -1042,8 +1057,9 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	})
 
 	Print("Validate success")
-	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, "id", "data")
-	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, mv, "id", "data")
+	for _, tab := range tabToValidate {
+		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, "id", "data")
+	}
 
 	Print("Validate view progress")
 	pr, err := h.dstRestoreSvc.GetProgress(context.Background(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID)
