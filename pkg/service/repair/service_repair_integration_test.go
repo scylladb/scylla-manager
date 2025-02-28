@@ -688,9 +688,6 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		t1  = "zz_test_table_1"
 		t2  = "hh_test_table_2"
 		t3  = "aa_test_table_3"
-		si1 = "aa_test_si_1"
-		mv1 = "zz_test_mv_1"
-		mv2 = "hh_test_mv_2"
 	)
 
 	// Create keyspaces. Low RF improves repair parallelism.
@@ -709,23 +706,37 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 	WriteData(t, clusterSession, ks3, 20, t1)
 
 	// Create views
-	CreateMaterializedView(t, clusterSession, ks1, t1, mv1)
-
-	CreateSecondaryIndex(t, clusterSession, ks2, t1, si1)
-	CreateMaterializedView(t, clusterSession, ks2, t2, mv1)
-	CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
+	var ks1Views []string
+	if !rd.IsTabletKeyspace(ks1) {
+		mv1 := "zz_test_mv_1"
+		CreateMaterializedView(t, clusterSession, ks1, t1, mv1)
+		ks1Views = append(ks1Views, mv1)
+	}
+	var ks2Views []string
+	if !rd.IsTabletKeyspace(ks2) {
+		si1 := "aa_test_si_1"
+		mv1 := "zz_test_mv_1"
+		mv2 := "hh_test_mv_2"
+		CreateSecondaryIndex(t, clusterSession, ks2, t1, si1)
+		CreateMaterializedView(t, clusterSession, ks2, t2, mv1)
+		CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
+		ks2Views = append(ks2Views, si1+"_index", mv1, mv2)
+	}
 
 	// Flush tables for correct memory calculations
 	FlushTable(t, c, ManagedClusterHosts(), ks1, t1)
 	FlushTable(t, c, ManagedClusterHosts(), ks1, t2)
-	FlushTable(t, c, ManagedClusterHosts(), ks1, mv1)
+	for _, v := range ks1Views {
+		FlushTable(t, c, ManagedClusterHosts(), ks1, v)
+	}
 
 	FlushTable(t, c, ManagedClusterHosts(), ks2, t1)
 	FlushTable(t, c, ManagedClusterHosts(), ks2, t2)
 	FlushTable(t, c, ManagedClusterHosts(), ks2, t3)
-	FlushTable(t, c, ManagedClusterHosts(), ks2, si1+"_index")
-	FlushTable(t, c, ManagedClusterHosts(), ks2, mv1)
-	FlushTable(t, c, ManagedClusterHosts(), ks2, mv2)
+	for _, v := range ks2Views {
+		FlushTable(t, c, ManagedClusterHosts(), ks2, v)
+	}
 
 	FlushTable(t, c, ManagedClusterHosts(), ks3, t1)
 
@@ -735,20 +746,19 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		"system_distributed.*",
 		"system_distributed_everywhere.*",
 		"system_traces.*",
-
-		ks1 + "." + t1,
-		ks1 + "." + t2,
-		ks1 + "." + mv1,
-
-		ks2 + "." + t1,
-		ks2 + "." + t2,
-		ks2 + "." + t3,
-		ks2 + "." + si1 + "_index",
-		ks2 + "." + mv1,
-		ks2 + "." + mv2,
-
-		ks3 + "." + t1,
 	}
+
+	expectedRepairOrder = append(expectedRepairOrder, ks1+"."+t1, ks1+"."+t2)
+	for _, v := range ks1Views {
+		expectedRepairOrder = append(expectedRepairOrder, ks1+"."+v)
+	}
+
+	expectedRepairOrder = append(expectedRepairOrder, ks2+"."+t1, ks2+"."+t2, ks2+"."+t3)
+	for _, v := range ks2Views {
+		expectedRepairOrder = append(expectedRepairOrder, ks2+"."+v)
+	}
+
+	expectedRepairOrder = append(expectedRepairOrder, ks3+"."+t1)
 
 	props := map[string]any{
 		"fail_fast": true,
@@ -903,9 +913,6 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		t1  = "test_table_1"
 		t2  = "test_table_2"
 		t3  = "test_table_3"
-		si1 = "test_si_1"
-		mv1 = "test_mv_1"
-		mv2 = "test_mv_2"
 	)
 
 	// Create keyspaces. Low RF increases repair parallelism.
@@ -923,12 +930,16 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, ks3, 5, t1)
 
-	// Create views
-	CreateMaterializedView(t, clusterSession, ks1, t1, mv1)
-
-	CreateSecondaryIndex(t, clusterSession, ks2, t1, si1)
-	CreateMaterializedView(t, clusterSession, ks2, t2, mv1)
-	CreateMaterializedView(t, clusterSession, ks2, t3, mv2)
+	// It's not possible to create views on tablet keyspaces
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
+	if !rd.IsTabletKeyspace(ks1) {
+		CreateMaterializedView(t, clusterSession, ks1, t1, "test_mv_1")
+	}
+	if !rd.IsTabletKeyspace(ks2) {
+		CreateSecondaryIndex(t, clusterSession, ks2, t1, "test_si_1")
+		CreateMaterializedView(t, clusterSession, ks2, t2, "test_mv_1")
+		CreateMaterializedView(t, clusterSession, ks2, t3, "test_mv_2")
+	}
 
 	props := map[string]any{
 		"fail_fast":             false,
