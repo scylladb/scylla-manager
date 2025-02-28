@@ -139,6 +139,7 @@ const (
 	tabletRepairEndpoint         = "/storage_service/tablets/repair"
 	waitTaskEndpoint             = "/task_manager/wait_task"
 	forceTerminateRepairEndpoint = "/storage_service/force_terminate_repair"
+	tabletBalancingEndpoint      = "/storage_service/tablets/balancing"
 )
 
 func isRepairAsyncReq(req *http.Request) bool {
@@ -167,6 +168,10 @@ func isRepairStatusReq(req *http.Request) bool {
 
 func isForceTerminateRepairReq(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, forceTerminateRepairEndpoint) && req.Method == http.MethodPost
+}
+
+func isTabletBalancingReq(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, tabletBalancingEndpoint) && req.Method == http.MethodPost
 }
 
 // Returns parsed repair request and true if provided with repair request.
@@ -414,6 +419,25 @@ func parseTabletRepairStatusResp(t *testing.T, resp *http.Response) repairStatus
 	return repairStatusResp{
 		repairStatusReq: req,
 		status:          status,
+	}
+}
+
+// Returns whether tablet load balancing is enabled and true if provided with tablet balancing request.
+// If provided with any other request, returns false and false.
+func newTabletLoadBalancingReq(t *testing.T, req *http.Request) (enabled bool, ok bool) {
+	if !isTabletBalancingReq(req) {
+		return false, false
+	}
+
+	rawEnabled := req.URL.Query().Get("enabled")
+	switch rawEnabled {
+	case "true":
+		return true, true
+	case "false":
+		return false, true
+	default:
+		t.Error("Unexpected 'enabled' query param")
+		return false, false
 	}
 }
 

@@ -2111,6 +2111,111 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: not-batched repair is done")
 		h.assertDone(longWait)
 	})
+
+	t.Run("tablet repair API", func(t *testing.T) {
+		if ok, err := globalNodeInfo.SupportsTabletRepairNoHostFiltering(); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Skip("This test is expects that tablet repair API is exposed")
+		}
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		const (
+			multiDCTabletKs  = "test_repair_multi_dc_tablet_ks"
+			singleDCTabletKS = "test_repair_single_dc_tablet_ks"
+			vnodeKs          = "test_repair_vnode_ks"
+			t1               = "test_table_1"
+			t2               = "test_table_2"
+		)
+		testCases := []struct {
+			ks         string
+			tab        []string
+			api        string
+			singleCall bool
+		}{
+			{
+				ks:         multiDCTabletKs,
+				tab:        []string{t1, t2},
+				api:        repairAsyncEndpoint,
+				singleCall: false,
+			},
+			{
+				ks:         singleDCTabletKS,
+				tab:        []string{t1, t2},
+				api:        tabletRepairEndpoint,
+				singleCall: true,
+			},
+			{
+				ks:         vnodeKs,
+				tab:        []string{t1, t2},
+				api:        repairAsyncEndpoint,
+				singleCall: false,
+			},
+		}
+
+		Print("When: prepare keyspaces")
+		createTabletKeyspace(t, clusterSession, multiDCTabletKs, 2, 2)
+		WriteData(t, clusterSession, multiDCTabletKs, 1, t1, t2)
+		defer dropKeyspace(t, clusterSession, multiDCTabletKs)
+
+		createTabletKeyspace(t, clusterSession, singleDCTabletKS, 2, 0)
+		WriteData(t, clusterSession, singleDCTabletKS, 1, t1, t2)
+		defer dropKeyspace(t, clusterSession, singleDCTabletKS)
+
+		createVnodeKeyspace(t, clusterSession, vnodeKs, 2, 2)
+		WriteData(t, clusterSession, vnodeKs, 1, t1, t2)
+		defer dropKeyspace(t, clusterSession, vnodeKs)
+
+		tabRepairAPI := make(map[string]string)
+		tabCallCnt := make(map[string]int)
+		mu := sync.Mutex{}
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if enabled, ok := newTabletLoadBalancingReq(t, req); ok {
+				if !enabled {
+					t.Error("Disabled tablet load balancing when tablet repair API is exposed")
+				}
+			}
+			if r, ok := parseRepairReq(t, req); ok {
+				mu.Lock()
+				tabCallCnt[r.fullTable()]++
+				if api, ok := tabRepairAPI[r.fullTable()]; ok {
+					if api != req.URL.Path {
+						t.Error("Mixing repair API for the same table")
+					}
+				} else {
+					tabRepairAPI[r.fullTable()] = req.URL.Path
+				}
+				mu.Unlock()
+			}
+			return nil, nil
+		}))
+
+		Print("When: run dc1 repair")
+		h.runRepair(ctx, map[string]any{
+			"keyspace":              []string{multiDCTabletKs, singleDCTabletKS, vnodeKs},
+			"dc":                    []string{"dc1"},
+			"small_table_threshold": repairAllSmallTableThreshold,
+		})
+
+		Print("Then: repair is done")
+		h.assertDone(longWait)
+
+		Print("Then: validate used repair API")
+		for _, tc := range testCases {
+			for _, tab := range tc.tab {
+				fn := tc.ks + "." + tab
+				if api := tabRepairAPI[fn]; !strings.HasPrefix(api, tc.api) {
+					t.Errorf("Table %q: expected API %q, got %q", fn, tc.api, api)
+				}
+				if cnt := tabCallCnt[fn]; cnt <= 0 || ((cnt == 1) != tc.singleCall) {
+					t.Errorf("Table %q: expected single_call=%v, got %d", fn, tc.singleCall, cnt)
+				}
+			}
+		}
+	})
 }
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
