@@ -333,8 +333,56 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	tag := h.initGetTargetUnitViewsCluster(clusterSession, testBucket)
+	const (
+		testKs1        = "ks1"
+		testKs2        = "ks2"
+		testTable1     = "table1"
+		testTable2     = "table2"
+		testMV         = "mv1"
+		testSI         = "si1"
+		testBackupSize = 1
+	)
 
+	Print("Tables setup")
+	S3InitBucket(h.T, testBucket)
+
+	WriteData(h.T, clusterSession, testKs1, testBackupSize, testTable1, testTable2)
+	WriteData(h.T, clusterSession, testKs2, testBackupSize, testTable1, testTable2)
+
+	var ignoreTarget []string
+	var ignoreUnits []string
+	var ignoredViews []string
+	// Those tables have been migrated to system keyspace
+	if CheckAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
+		ignoreTarget = []string{
+			"!system_auth.*",
+			"!system_distributed.service_levels",
+		}
+		ignoreUnits = append(ignoreUnits,
+			"system_auth",
+			"service_levels",
+		)
+	}
+	// Not available in Scylla opensource
+	if CheckAnyConstraint(t, h.Client, "< 1000") {
+		ignoreUnits = append(ignoreUnits, "system_replicated_keys")
+	}
+	// It's not possible to create views on tablet keyspaces
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
+	if !rd.IsTabletKeyspace(testKs1) {
+		CreateMaterializedView(h.T, clusterSession, testKs1, testTable1, testMV)
+	} else {
+		ignoredViews = append(ignoredViews, testMV)
+		ignoreTarget = append(ignoreTarget, "!"+testKs1+"."+testMV)
+	}
+	if !rd.IsTabletKeyspace(testKs2) {
+		CreateSecondaryIndex(h.T, clusterSession, testKs2, testTable2, testSI)
+	} else {
+		ignoredViews = append(ignoredViews, testSI)
+		ignoreTarget = append(ignoreTarget, "!"+testKs2+"."+testSI+"_index")
+	}
+
+	tag := h.simpleBackup(s3Location(testBucket))
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			h := h
@@ -412,14 +460,6 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			var ignoreTarget []string
-			if CheckAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-				ignoreTarget = []string{
-					"!system_auth.*",
-					"!system_distributed.service_levels",
-				}
-			}
-
 			if diff := cmp.Diff(goldenTarget, target,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.IgnoreUnexported(Target{}),
@@ -427,17 +467,6 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.IgnoreSliceElements(func(v string) bool { return slices.Contains(ignoreTarget, v) }),
 			); diff != "" {
 				t.Fatal(tc.target, diff)
-			}
-
-			var ignoreUnits []string
-			if CheckAnyConstraint(t, h.Client, "< 1000") {
-				ignoreUnits = append(ignoreUnits, "system_replicated_keys")
-			}
-			if CheckAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-				ignoreUnits = append(ignoreUnits,
-					"system_auth",
-					"service_levels",
-				)
 			}
 
 			if diff := cmp.Diff(goldenUnits, units,
@@ -451,8 +480,17 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				t.Fatal(tc.units, diff)
 			}
 
+			if goldenViews == nil {
+				goldenViews = make([]View, 0)
+			}
+			if views == nil {
+				views = make([]View, 0)
+			}
 			if diff := cmp.Diff(goldenViews, views,
 				cmpopts.SortSlices(func(a, b View) bool { return a.Keyspace+a.View < b.Keyspace+b.View }),
+				cmpopts.IgnoreSliceElements(func(v View) bool {
+					return slices.Contains(ignoredViews, v.View)
+				}),
 				cmpopts.IgnoreFields(View{}, "CreateStmt")); diff != "" {
 				t.Fatal(tc.views, diff)
 			}
@@ -537,7 +575,21 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	tag := h.initGetTargetUnitViewsCluster(clusterSession, testBucket)
+	const (
+		testKs1        = "ks1"
+		testKs2        = "ks2"
+		testTable1     = "table1"
+		testTable2     = "table2"
+		testBackupSize = 1
+	)
+
+	Print("Tables setup")
+	S3InitBucket(h.T, testBucket)
+
+	WriteData(h.T, clusterSession, testKs1, testBackupSize, testTable1, testTable2)
+	WriteData(h.T, clusterSession, testKs2, testBackupSize, testTable1, testTable2)
+
+	tag := h.simpleBackup(s3Location(testBucket))
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -557,31 +609,6 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 			t.Log("GetTargetUnitsViews(): ", err)
 		})
 	}
-}
-
-func (h *restoreTestHelper) initGetTargetUnitViewsCluster(clusterSession gocqlx.Session, bucket string) string {
-	const (
-		testKs1        = "ks1"
-		testKs2        = "ks2"
-		testTable1     = "table1"
-		testTable2     = "table2"
-		testMV         = "mv1"
-		testSI         = "si1"
-		testBackupSize = 1
-	)
-
-	S3InitBucket(h.T, bucket)
-
-	WriteData(h.T, clusterSession, testKs1, testBackupSize, testTable1, testTable2)
-	WriteData(h.T, clusterSession, testKs2, testBackupSize, testTable1, testTable2)
-	ExecStmt(h.T, clusterSession,
-		fmt.Sprintf("CREATE MATERIALIZED VIEW IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", testKs1, testMV, testKs1, testTable1),
-	)
-	ExecStmt(h.T, clusterSession,
-		fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s.%s (data)", testSI, testKs2, testTable2),
-	)
-
-	return h.simpleBackup(s3Location(bucket))
 }
 
 func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
@@ -875,7 +902,6 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 		srcSession    = CreateSessionAndDropAllKeyspaces(t, srcH.Client)
 		ctx1, cancel1 = context.WithCancel(context.Background())
 		ctx2, cancel2 = context.WithCancel(context.Background())
-		mv            = "mv_resume"
 	)
 
 	if target.RestoreSchema {
@@ -889,14 +915,23 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	// Recreate schema on destination cluster
 	if target.RestoreTables {
 		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
-		CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
 	}
 
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	CreateMaterializedView(t, srcSession, keyspace, BigTableName, mv)
+	// It's not possible to create views on tablet keyspaces
+	tabToValidate := []string{BigTableName}
+	rd := scyllaclient.NewRingDescriber(context.Background(), srcH.Client)
+	if !rd.IsTabletKeyspace(keyspace) {
+		mv := "mv_resume"
+		CreateMaterializedView(t, srcSession, keyspace, BigTableName, mv)
+		if target.RestoreTables {
+			CreateMaterializedView(t, dstSession, keyspace, BigTableName, mv)
+		}
+		tabToValidate = append(tabToValidate, mv)
+	}
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
 	// but backed up views should still be tested as older backups might
@@ -913,7 +948,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	backupTarget.Units = []backup.Unit{
 		{
 			Keyspace:  keyspace,
-			Tables:    []string{BigTableName, mv},
+			Tables:    tabToValidate,
 			AllTables: true,
 		},
 	}
@@ -1350,15 +1385,23 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
+	Print("When: Create src table with MV and SI")
+	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
+
+	rd := scyllaclient.NewRingDescriber(context.Background(), srcH.Client)
+	if rd.IsTabletKeyspace(keyspace) {
+		t.Skip("Test expects to create views, but it's not possible for tablet keyspaces")
+	}
+
+	CreateMaterializedView(t, srcSession, keyspace, BigTableName, mvName)
+	CreateSecondaryIndex(t, srcSession, keyspace, BigTableName, siName)
+
 	if target.RestoreTables {
 		Print("When: Recreate dst schema from CQL")
 		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0, BigTableName)
-		createBigTableViews(t, dstSession, keyspace, BigTableName, mvName, siName)
+		CreateMaterializedView(t, dstSession, keyspace, BigTableName, mvName)
+		CreateSecondaryIndex(t, dstSession, keyspace, BigTableName, siName)
 	}
-
-	Print("When: Create src table with MV and SI")
-	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	createBigTableViews(t, srcSession, keyspace, BigTableName, mvName, siName)
 	time.Sleep(5 * time.Second)
 
 	Print("When: Make src backup")
@@ -1436,7 +1479,14 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 
 	Print("When: Create src table with MV and SI")
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	createBigTableViews(t, srcSession, keyspace, BigTableName, mvName, siName)
+
+	rd := scyllaclient.NewRingDescriber(context.Background(), srcH.Client)
+	if rd.IsTabletKeyspace(keyspace) {
+		t.Skip("Test expects to create views, but it's not possible for tablet keyspaces")
+	}
+
+	CreateMaterializedView(t, srcSession, keyspace, BigTableName, mvName)
+	CreateSecondaryIndex(t, srcSession, keyspace, BigTableName, siName)
 	time.Sleep(5 * time.Second)
 
 	Print("When: Make src backup")
@@ -1539,14 +1589,19 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	}
 
 	toValidate := []table{
-		{ks: keyspace, tab: BigTableName},
-		{ks: keyspace, tab: mvName},
-		{ks: keyspace, tab: siTableName},
 		{ks: "system_traces", tab: "events"},
 		{ks: "system_traces", tab: "node_slow_log"},
 		{ks: "system_traces", tab: "node_slow_log_time_idx"},
 		{ks: "system_traces", tab: "sessions"},
 		{ks: "system_traces", tab: "sessions_time_idx"},
+	}
+	rd := scyllaclient.NewRingDescriber(context.Background(), srcH.Client)
+	if !rd.IsTabletKeyspace(keyspace) {
+		toValidate = append(toValidate,
+			table{ks: keyspace, tab: BigTableName},
+			table{ks: keyspace, tab: mvName},
+			table{ks: keyspace, tab: siTableName},
+		)
 	}
 	if !CheckAnyConstraint(t, dstH.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
 		toValidate = append(toValidate,
@@ -1752,7 +1807,7 @@ func cleanScyllaTables(t *testing.T, session gocqlx.Session, client *scyllaclien
 }
 
 // prepareRestoreBackupWithFeatures is a wrapper over prepareRestoreBackup that:
-// - adds materialized view and secondary index
+// - adds materialized view and secondary index (for vnode keyspace only)
 // - adds CDC log table
 // - populates system_auth, system_traces, system_distributed tables
 func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(s gocqlx.Session, keyspace string, loadCnt, loadSize int) {
@@ -1781,22 +1836,12 @@ func (h *restoreTestHelper) prepareRestoreBackupWithFeatures(s gocqlx.Session, k
 		ExecStmt(h.T, s,
 			fmt.Sprintf("ALTER TABLE %s.%s WITH cdc = {'enabled': 'true', 'preimage': 'true'}", keyspace, BigTableName),
 		)
+		// It's not possible to create views on tablet keyspaces
+		CreateMaterializedView(h.T, s, keyspace, BigTableName, mvName)
+		CreateSecondaryIndex(h.T, s, keyspace, BigTableName, siName)
 	}
 
-	createBigTableViews(h.T, s, keyspace, BigTableName, mvName, siName)
-
 	h.prepareRestoreBackup(s, keyspace, loadCnt, loadSize)
-}
-
-func createBigTableViews(t *testing.T, s gocqlx.Session, keyspace, baseTable, mv, si string) {
-	t.Helper()
-
-	ExecStmt(t, s,
-		fmt.Sprintf("CREATE MATERIALIZED VIEW IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s WHERE data IS NOT NULL PRIMARY KEY (id, data)", keyspace, mv, keyspace, baseTable),
-	)
-	ExecStmt(t, s,
-		fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s.%s (data)", si, keyspace, baseTable),
-	)
 }
 
 // prepareRestoreBackup populates second cluster with loadCnt * loadSize MiB of data living in keyspace.big_table table.
