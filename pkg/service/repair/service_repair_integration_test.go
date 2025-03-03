@@ -1145,7 +1145,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 2))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 2))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1191,7 +1191,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1209,7 +1209,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1253,7 +1253,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			"intensity":             propIntensity,
 			"small_table_threshold": -1,
 		})
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
@@ -1285,7 +1285,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: resume repair")
 		ctx = context.Background()
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: resumed repair is running")
@@ -1304,7 +1304,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run fresh repair")
 		h.RunID = uuid.NewTime()
 		holdCtx, holdCancel = context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: fresh repair is running")
@@ -1332,7 +1332,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		})
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
 		h.runRepair(ctx, props)
 
 		Print("Then: repair is running")
@@ -1350,7 +1350,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 0))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 0))
 		h.runRepair(ctx, props)
 
 		WaitCond(h.T, func() bool {
@@ -1376,7 +1376,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, ctx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1427,7 +1427,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, allUnits(map[string]any{
 			"fail_fast":             true,
 			"small_table_threshold": repairAllSmallTableThreshold,
@@ -1465,7 +1465,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1501,7 +1501,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
 		h.runRepair(ctx, allUnits(map[string]any{
 			"fail_fast":             true,
 			"small_table_threshold": repairAllSmallTableThreshold,
@@ -1651,7 +1651,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			Print("When: run repair")
 			holdCtx, holdCancel := context.WithCancel(context.Background())
-			h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 2))
+			h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 2))
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
@@ -1843,7 +1843,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("When: repair status is not responding in time")
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(repairHoldInterceptor(t, holdCtx, 0))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 0))
 
 		Print("And: run repair")
 		h.runRepair(ctx, allUnits(map[string]any{

@@ -365,25 +365,25 @@ func repairMockInterceptor(t *testing.T, status repairStatus) http.RoundTripper 
 	})
 }
 
-func repairHoldInterceptor(t *testing.T, ctx context.Context, after int64) http.RoundTripper {
+// It allows for mocking responses to both repair and repair status requests
+// (similar to repairMockInterceptor with repair statusStatusDone).
+// Apart from that, it also starts blocking on repair status requests
+// after mocking a response to blockAfter of them.
+func repairMockAndBlockInterceptor(t *testing.T, ctx context.Context, blockAfter int64) http.RoundTripper {
+	i := repairMockInterceptor(t, repairStatusDone)
 	cnt := &atomic.Int64{}
-	cnt.Add(after)
+	cnt.Add(blockAfter)
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if body, ok := mockRepairRespBody(t, req); ok {
-			resp := httpx.MakeResponse(req, http.StatusOK)
-			resp.Body = body
-			return resp, nil
+		resp, err := i.RoundTrip(req)
+		if err != nil {
+			return resp, err
 		}
-		if body, ok := mockRepairStatusRespBody(t, req, repairStatusDone); ok {
-			resp := httpx.MakeResponse(req, 200)
-			resp.Body = body
+		if isRepairStatusReq(req) {
 			if v := cnt.Add(-1); v < 0 {
 				<-ctx.Done()
-				return resp, nil
 			}
-			return resp, nil
 		}
-		return nil, nil
+		return resp, nil
 	})
 }
 
