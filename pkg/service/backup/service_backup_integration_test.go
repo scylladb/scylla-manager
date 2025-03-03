@@ -2556,6 +2556,13 @@ func TestBackupViewsIntegration(t *testing.T) {
 
 	Print("Given: table with MV and SI")
 	WriteData(t, clusterSession, testKeyspace, 1, testTable)
+
+	// It's not possible to create views on tablet keyspaces
+	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
+	if rd.IsTabletKeyspace(testKeyspace) {
+		t.Skip("Test expects to create views, but it's not possible for tablet keyspaces")
+	}
+
 	CreateMaterializedView(t, clusterSession, testKeyspace, testTable, testMV)
 	CreateSecondaryIndex(t, clusterSession, testKeyspace, testTable, testSI)
 
