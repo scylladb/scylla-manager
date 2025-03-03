@@ -479,7 +479,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 
 		// Repair request
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if r, ok := newRepairSchedReq(t, req); ok {
+			if r, ok := parseRepairReq(t, req); ok {
 				muJPH.Lock()
 				defer muJPH.Unlock()
 
@@ -499,13 +499,13 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 				return nil, nil
 			}
 
-			if r, ok := newRepairSchedResp(t, resp); ok {
+			if r, ok := parseRepairResp(t, resp); ok {
 				muHIJ.Lock()
 				hostsInJob[r.host+r.id] = r.replicaSet
 				muHIJ.Unlock()
 			}
 
-			if r, ok := newRepairStatusResp(t, resp); ok {
+			if r, ok := parseRepairStatusResp(t, resp); ok {
 				if r.status == repairStatusDone || r.status == repairStatusFailed {
 					muHIJ.Lock()
 					hosts := hostsInJob[r.host+r.id]
@@ -627,7 +627,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if r, ok := newRepairSchedReq(t, req); ok {
+		if r, ok := parseRepairReq(t, req); ok {
 			// Update actual repair order on both repair start and end
 			muARO.Lock()
 			if len(actualRepairOrder) == 0 || actualRepairOrder[len(actualRepairOrder)-1] != r.fullTable() {
@@ -643,14 +643,14 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 			return nil, nil
 		}
 
-		if r, ok := newRepairSchedResp(t, resp); ok {
+		if r, ok := parseRepairResp(t, resp); ok {
 			// Register what table is being repaired
 			muJT.Lock()
 			jobTable[r.host+r.id] = r.fullTable()
 			muJT.Unlock()
 		}
 
-		if r, ok := newRepairStatusResp(t, resp); ok {
+		if r, ok := parseRepairStatusResp(t, resp); ok {
 			if r.status == repairStatusDone || r.status == repairStatusFailed {
 				// Add host prefix as IDs are unique only for a given host
 				jobID := r.host + r.id
@@ -811,7 +811,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 
 	// Repair request
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if isRepairSchedReq(req) {
+		if isRepairReq(req) {
 			switch int(reqCnt.Add(1)) {
 			case stopCnt1:
 				stop1()
@@ -836,7 +836,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 			return nil, nil
 		}
 
-		if r, ok := newRepairSchedResp(t, resp); ok {
+		if r, ok := parseRepairResp(t, resp); ok {
 			// Register what table is being repaired
 			muJS.Lock()
 			jobSpec[r.host+r.id] = TableRange{
@@ -846,7 +846,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 			muJS.Unlock()
 		}
 
-		if r, ok := newRepairStatusResp(t, resp); ok {
+		if r, ok := parseRepairStatusResp(t, resp); ok {
 			// Inject errors on all runs except the last one.
 			// This helps to test repair error resilience.
 			if !stopErrInject.Load() && rspCnt.Add(1)%20 == 0 {
@@ -1624,7 +1624,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			var killRepairCalled int32
 			i, running := repairRunningInterceptor()
 			h.Hrt.SetInterceptor(combineInterceptors(
-				countInterceptor(&killRepairCalled, isKillRepairReq),
+				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
 				i,
 			))
 			h.runRepair(ctx, props)
@@ -1660,7 +1660,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			Print("When: Scylla returns failures")
 			var killRepairCalled int32
 			h.Hrt.SetInterceptor(combineInterceptors(
-				countInterceptor(&killRepairCalled, isKillRepairReq),
+				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
 				repairStatusInterceptor(t, repairStatusFailed),
 			))
 			holdCancel()
@@ -1703,14 +1703,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-				if r, ok := newRepairSchedReq(t, req); ok {
+				if r, ok := parseRepairReq(t, req); ok {
 					if r.SmallTableOptimization {
 						optUsed.Store(true)
 					}
 				}
 				return nil, nil
 			}),
-			countInterceptor(&repairCalled, isRepairSchedReq),
+			countInterceptor(&repairCalled, isRepairReq),
 			repairStatusInterceptor(t, repairStatusDone),
 		))
 
@@ -1770,7 +1770,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		)
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-				if r, ok := newRepairSchedReq(t, req); ok {
+				if r, ok := parseRepairReq(t, req); ok {
 					if r.SmallTableOptimization {
 						optUsed.Store(true)
 					}
@@ -1883,7 +1883,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("When: run repair")
 		var repairCalled int32
 		h.Hrt.SetInterceptor(combineInterceptors(
-			countInterceptor(&repairCalled, isRepairSchedReq),
+			countInterceptor(&repairCalled, isRepairReq),
 			repairStatusInterceptor(t, repairStatusDone),
 		))
 		h.runRepair(ctx, map[string]any{
@@ -1934,7 +1934,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		cnt := atomic.Int64{}
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if r, ok := newRepairSchedReq(t, req); ok {
+			if r, ok := parseRepairReq(t, req); ok {
 				cnt.Add(1)
 				if r.RangesParallelism != desiredIntensity {
 					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
@@ -1985,7 +1985,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		stop := atomic.Bool{}
 		pauseCtx, pauseCancel := context.WithCancel(ctx)
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if r, ok := newRepairSchedReq(t, req); ok {
+			if r, ok := parseRepairReq(t, req); ok {
 				if r.RangesParallelism != desiredIntensity {
 					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
 				}
@@ -2008,7 +2008,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 
 				resp := httpx.MakeResponse(req, 200)
-				resp.Body, _ = mockRepairSchedRespBody(t, req)
+				resp.Body, _ = mockRepairRespBody(t, req)
 				return resp, nil
 			}
 
