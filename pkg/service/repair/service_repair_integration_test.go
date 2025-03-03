@@ -61,7 +61,7 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+	hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	s := newTestService(t, session, c, config, logger, clusterID)
 
@@ -535,7 +535,7 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 
 func TestServiceRepairOrderIntegration(t *testing.T) {
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+	hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	ctx := context.Background()
 
@@ -728,7 +728,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	// It also checks if too many token ranges were redundantly repaired multiple times.
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+	hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	ctx := context.Background()
 
@@ -1437,7 +1437,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertRunning(shortWait)
 
 		Print("And: errors occur")
-		h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusFailed))
+		h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusFailed))
 		holdCancel()
 
 		Print("Then: repair completes with error")
@@ -1446,7 +1446,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("When: create a new run")
 		h.RunID = uuid.NewTime()
 
-		h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+		h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 
 		Print("And: run repair")
 		h.runRepair(ctx, allUnits(nil))
@@ -1477,7 +1477,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(dialErrorInterceptor())
 		holdCancel()
 		time.AfterFunc(2*h.Client.Config().Timeout, func() {
-			h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+			h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 		})
 
 		Print("And: repair contains error")
@@ -1514,7 +1514,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(dialErrorInterceptor())
 		holdCancel()
 		time.AfterFunc(3*h.Client.Config().Timeout, func() {
-			h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+			h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 		})
 
 		Print("Then: repair completes with error")
@@ -1661,7 +1661,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			var killRepairCalled int32
 			h.Hrt.SetInterceptor(combineInterceptors(
 				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
-				repairStatusInterceptor(t, repairStatusFailed),
+				repairMockInterceptor(t, repairStatusFailed),
 			))
 			holdCancel()
 
@@ -1711,7 +1711,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 				return nil, nil
 			}),
 			countInterceptor(&repairCalled, isRepairReq),
-			repairStatusInterceptor(t, repairStatusDone),
+			repairMockInterceptor(t, repairStatusDone),
 		))
 
 		Print("When: run repair")
@@ -1780,7 +1780,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 				return nil, nil
 			}),
-			repairStatusInterceptor(t, repairStatusDone),
+			repairMockInterceptor(t, repairStatusDone),
 		))
 
 		Print("When: run repair")
@@ -1855,7 +1855,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is running")
 		h.assertRunning(shortWait)
 
-		h.Hrt.SetInterceptor(repairStatusInterceptor(t, repairStatusDone))
+		h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 
 		Print("Then: repair is done")
 		h.assertDone(longWait)
@@ -1884,7 +1884,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		var repairCalled int32
 		h.Hrt.SetInterceptor(combineInterceptors(
 			countInterceptor(&repairCalled, isRepairReq),
-			repairStatusInterceptor(t, repairStatusDone),
+			repairMockInterceptor(t, repairStatusDone),
 		))
 		h.runRepair(ctx, map[string]any{
 			"keyspace": []string{testKeyspace + "." + testTable},

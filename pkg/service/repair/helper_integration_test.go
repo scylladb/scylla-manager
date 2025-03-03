@@ -341,7 +341,15 @@ func mockRepairAsyncStatusRespBody(t *testing.T, req *http.Request, status repai
 	return io.NopCloser(bytes.NewBufferString(fmt.Sprintf("%q", s)))
 }
 
-func repairStatusInterceptor(t *testing.T, status repairStatus) http.RoundTripper {
+// It allows for mocking responses to both repair and repair status requests.
+// For repair requests, it mocks response with random repair ID.
+// For repair status requests, it mocks response with provided status.
+// When mocking, it's usually important to mock both responses to repair
+// and repair status requests. If we mock only one of those, we might end up
+// in a situation when SM schedules repair jobs in a manner which breaks
+// its contract (e.g. by breaking the one job per one host rule), but not because
+// of incorrect SM behavior, but rather not appropriate mocking.
+func repairMockInterceptor(t *testing.T, status repairStatus) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if body, ok := mockRepairRespBody(t, req); ok {
 			resp := httpx.MakeResponse(req, http.StatusOK)
