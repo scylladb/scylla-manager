@@ -154,6 +154,8 @@ func isForceTerminateRepairReq(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, forceTerminateRepairEndpoint) && req.Method == http.MethodPost
 }
 
+// Returns parsed repair request and true if provided with repair request.
+// If provided with any other request, returns an empty struct and false.
 func parseRepairReq(t *testing.T, req *http.Request) (repairReq, bool) {
 	if isRepairAsyncReq(req) {
 		return parseRepairAsyncReq(t, req), true
@@ -191,6 +193,8 @@ func parseRepairAsyncReq(t *testing.T, req *http.Request) repairReq {
 	return sched
 }
 
+// Returns parsed repair status request and true if provided with repair status request.
+// If provided with any other request, returns an empty struct and false.
 func parseRepairStatusReq(t *testing.T, req *http.Request) (repairStatusReq, bool) {
 	if isRepairAsyncStatusReq(req) {
 		return parseRepairAsyncStatusReq(t, req), true
@@ -216,6 +220,8 @@ func parseRepairAsyncStatusReq(t *testing.T, req *http.Request) repairStatusReq 
 	return status
 }
 
+// Returns parsed repair response and true if provided with repair response.
+// If provided with any other response, returns an empty struct and false.
 func parseRepairResp(t *testing.T, resp *http.Response) (repairResp, bool) {
 	if resp.StatusCode != http.StatusOK {
 		return repairResp{}, false
@@ -246,6 +252,8 @@ func parseRepairAsyncResp(t *testing.T, resp *http.Response) repairResp {
 	return sched
 }
 
+// Returns parsed repair status response and true if provided with repair status response.
+// If provided with any other response, returns an empty struct and false.
 func parseRepairStatusResp(t *testing.T, resp *http.Response) (repairStatusResp, bool) {
 	if resp.StatusCode != http.StatusOK {
 		return repairStatusResp{}, false
@@ -283,6 +291,8 @@ func parseRepairAsyncStatusResp(t *testing.T, resp *http.Response) repairStatusR
 	}
 }
 
+// Returns mocked body of repair response and true if provided with repair request.
+// If provided with any other request, returns nil and false.
 func mockRepairRespBody(t *testing.T, req *http.Request) (io.ReadCloser, bool) {
 	if isRepairAsyncReq(req) {
 		return mockRepairAsyncRespBody(t, req), true
@@ -300,6 +310,8 @@ func mockRepairAsyncRespBody(t *testing.T, req *http.Request) io.ReadCloser {
 	return io.NopCloser(bytes.NewBufferString(fmt.Sprint(atomic.AddInt32(&repairTaskCounter, 1))))
 }
 
+// Returns mocked body of repair status response and true if provided with repair status request.
+// If provided with any other request, returns nil and false.
 func mockRepairStatusRespBody(t *testing.T, req *http.Request, status repairStatus) (io.ReadCloser, bool) {
 	if isRepairAsyncStatusReq(req) {
 		return mockRepairAsyncStatusRespBody(t, req, status), true
