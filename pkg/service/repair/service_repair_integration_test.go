@@ -987,9 +987,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2)
-	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
-	defer dropKeyspace(t, clusterSession, "test_repair")
+	const testKs = "test_repair"
+	createDefaultKeyspace(t, clusterSession, testKs, 2, 2)
+	WriteData(t, clusterSession, testKs, 1, "test_table_0", "test_table_1")
+	defer dropKeyspace(t, clusterSession, testKs)
 
 	t.Run("repair simple", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
@@ -1156,7 +1157,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 2))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
@@ -1436,6 +1437,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		rd := scyllaclient.NewRingDescriber(ctx, h.Client)
+		if rd.IsTabletKeyspace(testKs) {
+			t.Skip("Test expects vnode keyspace: tablet tables are repaired with a single API call or they don't support resume")
+		}
+
 		Print("When: run repair")
 		holdCtx, holdCancel := context.WithCancel(ctx)
 		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
@@ -1475,18 +1481,17 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
+		i, running := repairRunningInterceptor()
+		h.Hrt.SetInterceptor(i)
 		h.runRepair(ctx, multipleUnits(map[string]any{
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
 		Print("Then: repair is running")
-		h.assertRunning(shortWait)
+		chanClosedWithin(t, running, shortWait)
 
 		Print("And: no network for 5s with 1s backoff")
 		h.Hrt.SetInterceptor(dialErrorInterceptor())
-		holdCancel()
 		time.AfterFunc(2*h.Client.Config().Timeout, func() {
 			h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 		})
@@ -1661,12 +1666,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 			props["fail_fast"] = true
 
 			Print("When: run repair")
-			holdCtx, holdCancel := context.WithCancel(context.Background())
-			h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 2))
+			i, running := repairRunningInterceptor()
+			h.Hrt.SetInterceptor(i)
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
-			h.assertRunning(longWait)
+			chanClosedWithin(t, running, shortWait)
 
 			Print("When: Scylla returns failures")
 			var killRepairCalled int32
@@ -1674,7 +1679,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
 				repairMockInterceptor(t, repairStatusFailed),
 			))
-			holdCancel()
 
 			Print("Then: repair finish with error")
 			h.assertError(longWait)
