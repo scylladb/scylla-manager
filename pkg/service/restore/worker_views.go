@@ -9,7 +9,6 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 )
 
 // DropView drops specified Materialized View or Secondary Index.
@@ -78,16 +77,17 @@ func (w *worker) WaitForViewBuilding(ctx context.Context, view *View) error {
 		View:      view.View,
 	}
 
-	op := func() error {
-		viewTableName := view.View
-		if view.Type == SecondaryIndex {
-			viewTableName += "_index"
-		}
+	viewTableName := view.View
+	if view.Type == SecondaryIndex {
+		viewTableName += "_index"
+	}
 
+	const retryInterval = 10 * time.Second
+	for {
 		status, err := w.client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
 		if err != nil {
 			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusError)
-			return retry.Permanent(err)
+			return err
 		}
 
 		view.BuildStatus = status
@@ -95,25 +95,17 @@ func (w *worker) WaitForViewBuilding(ctx context.Context, view *View) error {
 		switch status {
 		case scyllaclient.StatusUnknown:
 			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusUnknown)
-			return fmt.Errorf("current status: %s", status)
 		case scyllaclient.StatusStarted:
 			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusStarted)
-			return fmt.Errorf("current status: %s", status)
 		case scyllaclient.StatusSuccess:
 			w.metrics.SetViewBuildStatus(labels, metrics.BuildStatusSuccess)
+			return nil
 		}
 
-		return nil
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(retryInterval):
+		}
 	}
-
-	notify := func(err error) {
-		w.logger.Info(ctx, "Waiting for view",
-			"keyspace", view.Keyspace,
-			"view", view.View,
-			"type", view.Type,
-			"error", err,
-		)
-	}
-
-	return indefiniteHangingRetryWrapper(ctx, op, notify)
 }

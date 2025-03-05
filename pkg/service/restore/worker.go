@@ -677,34 +677,6 @@ func (w *worker) cleanUploadDir(ctx context.Context, host, dir string, excluded 
 	return nil
 }
 
-// indefiniteHangingRetryWrapper is useful when waiting on
-// Scylla operation that might take a really long (and difficult to estimate) time.
-// This wrapper exits ONLY on: success, context cancel, op returned retry.IsPermanent error.
-func indefiniteHangingRetryWrapper(ctx context.Context, op func() error, notify func(err error)) error {
-	const repeatInterval = 10 * time.Second
-
-	ticker := time.NewTicker(repeatInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-
-		err := op()
-		switch {
-		case err == nil:
-			return nil
-		case retry.IsPermanent(err):
-			return err
-		default:
-			notify(err)
-		}
-	}
-}
-
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
 // as it might take more time for Scylla to process them one after another.
 // This wrapper exits on: success, context cancel, op returned non-timeout error or after maxTotalTime has passed.
