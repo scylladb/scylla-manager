@@ -4,6 +4,7 @@ package one2onerestore
 
 import (
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -67,7 +68,7 @@ type hostWorkload struct {
 	manifestContent *ManifestContentWithIndex
 }
 
-func (t *Target) validateProperties() error {
+func (t *Target) validateProperties(keyspaces []string) error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
@@ -77,8 +78,26 @@ func (t *Target) validateProperties() error {
 	if t.SourceClusterID == uuid.Nil {
 		return errors.New("source cluster id is empty")
 	}
+	if err := validateKeyspaceFilter(t.Keyspace, keyspaces); err != nil {
+		return errors.Wrap(err, "keyspace filter")
+	}
 	if err := validateNodesMapping(t.NodesMapping); err != nil {
 		return errors.Wrap(err, "nodes mapping")
+	}
+	return nil
+}
+
+// 1-1-restore --keyspace filter is limited to keyspaces only (e.g. keyspace.table is not supported).
+func validateKeyspaceFilter(keyspaceFilter, keyspaces []string) error {
+	// default value, it's ok to have a wildcard(*) in that case.
+	if len(keyspaceFilter) == 1 && keyspaceFilter[0] == "*" {
+		return nil
+	}
+	clusterKeyspaces := strset.New(keyspaces...)
+	for _, filter := range keyspaceFilter {
+		if !clusterKeyspaces.Has(filter) {
+			return errors.Errorf("only existing keyspaces can be provided, but got: %s", filter)
+		}
 	}
 	return nil
 }
