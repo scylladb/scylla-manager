@@ -1035,29 +1035,91 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 	return report, err
 }
 
-const loadSSTablesTimeout = time.Hour
+// AwaitLoadSSTables loads sstables that are already downloaded to host's table upload directory.
+func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+	c.logger.Info(ctx, "First try on loading sstables",
+		"host", host,
+		"keyspace", keyspace,
+		"table", table,
+		"load&stream", loadAndStream,
+		"primary replica only", primaryReplicaOnly,
+	)
 
-// LoadSSTables that are already downloaded to host's table upload directory.
+	isAlreadyLoadingSSTables := func(err error) bool {
+		const alreadyLoadingSSTablesErrMsg = "Already loading SSTables"
+		return err != nil && strings.Contains(err.Error(), alreadyLoadingSSTablesErrMsg)
+	}
+
+	// The first call is synchronous and might time out.
+	// We also need to handle situation where SM task
+	// was interrupted and retried immediately.
+	// Then it might also happen, that we get the
+	// already loading error, and we should await its completion.
+	const firstCallTimeout = time.Hour
+	firstCallCtx := ctx
+	firstCallCtx = customTimeout(firstCallCtx, firstCallTimeout)
+	firstCallCtx = noRetry(firstCallCtx)
+	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+	if err == nil {
+		return nil // Return on success
+	}
+	if !isAlreadyLoadingSSTables(err) && !errors.Is(err, context.DeadlineExceeded) {
+		return err // Return on not already loading nor timeout related error
+	}
+
+	dontRetryOnAlreadyLoadingSSTablesRetryHandler := func(err error) *bool {
+		if isAlreadyLoadingSSTables(err) {
+			return pointer.BoolPtr(false)
+		}
+		return nil
+	}
+
+	// Retry calls are not blocking as they return an error
+	// if the sstables are still being loaded.
+	const retryInterval = 10 * time.Second
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(retryInterval):
+		}
+
+		c.logger.Info(ctx, "Retry on loading sstables",
+			"host", host,
+			"keyspace", keyspace,
+			"table", table,
+			"load&stream", loadAndStream,
+			"primary replica only", primaryReplicaOnly,
+		)
+
+		retryCallCtx := ctx
+		retryCallCtx = withShouldRetryHandler(retryCallCtx, dontRetryOnAlreadyLoadingSSTablesRetryHandler)
+		err = c.loadSSTables(retryCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+		if err == nil {
+			return nil // Return on success
+		}
+		if !isAlreadyLoadingSSTables(err) {
+			return err // Return on not already loading sstables error
+		}
+	}
+}
+
+// loadSSTables that are already downloaded to host's table upload directory.
 // Used API endpoint has the following properties:
 // - It is synchronous - response is received only after the loading has finished
 // - It immediately returns an error if called while loading is still happening
 // - It returns nil when called on an empty upload dir
-// Except for the error, LoadSSTables also checks if loading of SSTables is still happening.
-func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) (bool, error) {
-	const WIPError = "Already loading SSTables"
-
+// loadSSTables does not perform any special error, timeout or retry handling.
+// See AwaitLoadSSTables for a wrapper with those features.
+func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
-		Context:            customTimeout(forceHost(ctx, host), loadSSTablesTimeout),
+		Context:            forceHost(ctx, host),
 		Keyspace:           keyspace,
 		Cf:                 table,
 		LoadAndStream:      &loadAndStream,
 		PrimaryReplicaOnly: &primaryReplicaOnly,
 	})
-
-	if err != nil && strings.Contains(err.Error(), WIPError) {
-		return true, err
-	}
-	return false, err
+	return err
 }
 
 // IsAutoCompactionEnabled checks if auto compaction of given table is enabled on the host.
