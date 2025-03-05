@@ -4,6 +4,7 @@ package one2onerestore
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -24,6 +25,21 @@ type worker struct {
 	clusterSession gocqlx.Session
 
 	logger log.Logger
+}
+
+func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (Target, error) {
+	target := defaultTarget()
+	if err := json.Unmarshal(properties, &target); err != nil {
+		return Target{}, errors.Wrap(err, "unmarshal json")
+	}
+	keyspaces, err := w.client.Keyspaces(ctx)
+	if err != nil {
+		return Target{}, errors.Wrap(err, "get keyspaces")
+	}
+	if err := target.validateProperties(keyspaces); err != nil {
+		return Target{}, errors.Wrap(err, "invalid target")
+	}
+	return target, nil
 }
 
 // restore is an actual 1-1-restore stages.

@@ -124,42 +124,54 @@ func TestValidateNodesMapping(t *testing.T) {
 
 func TestValidateKeyspaceFilter(t *testing.T) {
 	testCases := []struct {
-		name        string
-		keyspace    []string
-		expectedErr string
+		name           string
+		keyspaceFilter []string
+		keyspaces      []string
+		expectedErr    string
 	}{
 		{
-			name:     "Only keyspace level filtering",
-			keyspace: []string{"hello", "system"},
+			name:           "Only keyspace level filtering",
+			keyspaceFilter: []string{"hello", "system"},
+			keyspaces:      []string{"system", "hello", "world"},
 		},
 		{
-			name:        "Include all * is supported (default)",
-			keyspace:    []string{"*"},
-			expectedErr: "",
+			name:           "Include all * is supported (default)",
+			keyspaceFilter: []string{"*"},
+			keyspaces:      []string{"hello", "world"},
+			expectedErr:    "",
 		},
 		{
-			name:        "Wildcard patterns are not supported",
-			keyspace:    []string{"hello*"},
-			expectedErr: "wildcard pattern(*) is not supported: hello*",
+			name:           "Wildcard patterns are not supported",
+			keyspaceFilter: []string{"hello*"},
+			keyspaces:      []string{"hello", "helloworld"},
+			expectedErr:    "only existing keyspaces can be provided, but got: hello*",
 		},
 		{
-			name:        "Wildcard patterns are not supported2",
-			keyspace:    []string{"*", "hi"},
-			expectedErr: "wildcard pattern(*) is not supported: *",
+			name:           "Wildcard patterns are not supported2",
+			keyspaceFilter: []string{"*", "hi"},
+			keyspaces:      []string{"hi", "hey"},
+			expectedErr:    "only existing keyspaces can be provided, but got: *",
 		},
 		{
-			name:        "Table level is not allowed",
-			keyspace:    []string{"hello", "system.table"},
-			expectedErr: "only keyspace level filtering is allowed, but table is provided: system.table",
+			name:           "Table level is not allowed",
+			keyspaceFilter: []string{"hello", "system.table"},
+			keyspaces:      []string{"hello", "system"},
+			expectedErr:    "only existing keyspaces can be provided, but got: system.table",
 		},
 		{
-			name:        "Exclude filters are not supported",
-			keyspace:    []string{"hello", "!world"},
-			expectedErr: "exclude filter(!) is not supported: !world",
+			name:           "Exclude filters are not supported",
+			keyspaceFilter: []string{"hello", "!world"},
+			keyspaces:      []string{"hello", "world"},
+			expectedErr:    "only existing keyspaces can be provided, but got: !world",
 		},
 		{
-			name:     "Empty(nil) filters",
-			keyspace: nil,
+			name:           "Alternator keyspaces are supported",
+			keyspaceFilter: []string{"alternator_Tab_le-With1.da_sh2-aNd.d33ot.-"},
+			keyspaces:      []string{"hello", "alternator_Tab_le-With1.da_sh2-aNd.d33ot.-"},
+		},
+		{
+			name:           "Empty(nil) filters",
+			keyspaceFilter: nil,
 		},
 	}
 
@@ -171,7 +183,7 @@ func TestValidateKeyspaceFilter(t *testing.T) {
 			return err.Error()
 		}
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateKeyspaceFilter(tc.keyspace)
+			err := validateKeyspaceFilter(tc.keyspaceFilter, tc.keyspaces)
 			if errMsg(err) != tc.expectedErr {
 				t.Fatalf("Expected err %q, but got %q", tc.expectedErr, errMsg(err))
 			}
