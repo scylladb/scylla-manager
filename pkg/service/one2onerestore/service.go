@@ -87,8 +87,13 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	}
 	s.logger.Info(ctx, "Can proceed with 1-1-restore")
 
+	workload, err := w.prepareHostWorkload(ctx, manifests, hosts, target.NodesMapping)
+	if err != nil {
+		return errors.Wrap(err, "prepare hosts workload")
+	}
+
 	start := timeutc.Now()
-	if err := w.restoreTables(ctx, manifests, hosts, target.NodesMapping, target.Keyspace); err != nil {
+	if err := w.restore(ctx, workload, target); err != nil {
 		return errors.Wrap(err, "restore data")
 	}
 	s.logger.Info(ctx, "Data restore is completed", "took", timeutc.Since(start))
