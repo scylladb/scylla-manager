@@ -41,6 +41,32 @@ type Host struct {
 	Addr string
 }
 
+// ViewType either Materialized View or Secondary Index.
+type ViewType string
+
+// ViewType enumeration.
+const (
+	MaterializedView ViewType = "MaterializedView"
+	SecondaryIndex   ViewType = "SecondaryIndex"
+)
+
+// View represents statement used for recreating restored (dropped) views.
+type View struct {
+	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
+	View       string   `json:"view" db:"view_name"`
+	Type       ViewType `json:"type" db:"view_type"`
+	BaseTable  string   `json:"base_table"`
+	CreateStmt string   `json:"create_stmt"`
+}
+
+// hostWorkload represents what data (manifest) from the backup should be handled
+// by which node (host) in the target cluster.
+type hostWorkload struct {
+	host            Host
+	manifestInfo    *ManifestInfo
+	manifestContent *ManifestContentWithIndex
+}
+
 func (t *Target) validateProperties() error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")

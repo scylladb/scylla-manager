@@ -13,41 +13,29 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
-func (w *worker) restoreTables(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, nodeMappings []nodeMapping, keyspaces []string) error {
-	targetBySourceHostID, err := mapTargetHostToSource(hosts, nodeMappings)
-	if err != nil {
-		return errors.Wrap(err, "invalid node mapping")
-	}
-
+func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, keyspaces []string) error {
 	logError := func(i int, err error) {
-		w.logger.Error(ctx, "Restore data", "err", err, "node_id", manifests[i].NodeID)
+		w.logger.Error(ctx, "Restore data", "err", err, "host", workload[i].host)
 	}
-	return parallel.Run(len(manifests), len(manifests), func(i int) error {
-		m := manifests[i]
-		h := targetBySourceHostID[m.NodeID]
-
-		mc, err := w.getManifestContent(ctx, h.Addr, m)
-		if err != nil {
-			return errors.Wrap(err, "manifest content")
-		}
-
+	return parallel.Run(len(workload), len(workload), func(i int) error {
+		hostTask := workload[i]
 		const (
 			repeatInterval  = 10 * time.Second
 			pollIntervalSec = 10
 		)
-		return mc.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
+		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
-			jobID, err := w.createDownloadJob(ctx, table, m, h)
+			jobID, err := w.createDownloadJob(ctx, table, hostTask.manifestInfo, hostTask.host)
 			if err != nil {
 				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			if err := w.waitJob(ctx, h, jobID, pollIntervalSec); err != nil {
+			if err := w.waitJob(ctx, hostTask.host, jobID, pollIntervalSec); err != nil {
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			if err := w.refreshNode(ctx, table, h, repeatInterval); err != nil {
+			if err := w.refreshNode(ctx, table, hostTask.host, repeatInterval); err != nil {
 				return errors.Wrapf(err, "refresh node: %s.%s", table.Keyspace, table.Table)
 			}
 			return nil
