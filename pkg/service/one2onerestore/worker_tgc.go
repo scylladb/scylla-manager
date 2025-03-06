@@ -9,12 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 
-	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 )
 
@@ -29,25 +24,8 @@ const (
 )
 
 // setTombstoneGCModeRepair sets tombstone gc mode to repair to avoid data resurrection issues during restore.
-func (w *worker) setTombstoneGCModeRepair(ctx context.Context, workload []hostWorkload, keyspaceFilter []string) error {
-	w.awaitSchemaAgreement(ctx, w.clusterSession)
-
-	type backupTable struct {
-		keyspace, table string
-	}
-
-	tablesToRestore := map[backupTable]struct{}{}
-
-	for _, wl := range workload {
-		err := wl.manifestContent.ForEachIndexIter(keyspaceFilter, func(fm backupspec.FilesMeta) {
-			tablesToRestore[backupTable{keyspace: fm.Keyspace, table: fm.Table}] = struct{}{}
-		})
-		if err != nil {
-			return errors.Wrap(err, "manifest content files")
-		}
-	}
-
-	for table := range tablesToRestore {
+func (w *worker) setTombstoneGCModeRepair(ctx context.Context, workload []hostWorkload) error {
+	for table := range getTablesToRestore(workload) {
 		mode, err := w.getTableTombstoneGCMode(table.keyspace, table.table)
 		if err != nil {
 			return errors.Wrap(err, "get tombstone_gc mode")
@@ -120,62 +98,4 @@ func (w *worker) setTableTombstoneGCMode(ctx context.Context, keyspace, table st
 
 func alterTableTombstoneGCStmt(keyspace, table string, mode tombstoneGCMode) string {
 	return fmt.Sprintf(`ALTER TABLE %q.%q WITH tombstone_gc = {'mode': '%s'}`, keyspace, table, mode)
-}
-
-func (w *worker) awaitSchemaAgreement(ctx context.Context, clusterSession gocqlx.Session) {
-	w.logger.Info(ctx, "Awaiting schema agreement...")
-
-	var stepError error
-	defer func(start time.Time) {
-		if stepError != nil {
-			w.logger.Error(ctx, "Awaiting schema agreement failed see exact errors above", "duration", timeutc.Since(start))
-		} else {
-			w.logger.Info(ctx, "Done awaiting schema agreement", "duration", timeutc.Since(start))
-		}
-	}(timeutc.Now())
-
-	const (
-		waitMin        = 15 * time.Second // nolint: revive
-		waitMax        = 1 * time.Minute
-		maxElapsedTime = 15 * time.Minute
-		multiplier     = 2
-		jitter         = 0.2
-	)
-
-	backoff := retry.NewExponentialBackoff(
-		waitMin,
-		maxElapsedTime,
-		waitMax,
-		multiplier,
-		jitter,
-	)
-
-	notify := func(err error, wait time.Duration) {
-		w.logger.Info(ctx, "Schema agreement not reached, retrying...", "error", err, "wait", wait)
-	}
-
-	const (
-		peerSchemasStmt = "SELECT schema_version FROM system.peers"
-		localSchemaStmt = "SELECT schema_version FROM system.local WHERE key='local'"
-	)
-
-	stepError = retry.WithNotify(ctx, func() error {
-		var v []string
-		if err := clusterSession.Query(peerSchemasStmt, nil).SelectRelease(&v); err != nil {
-			return retry.Permanent(err)
-		}
-		var lv string
-		if err := clusterSession.Query(localSchemaStmt, nil).GetRelease(&lv); err != nil {
-			return retry.Permanent(err)
-		}
-
-		// Join all versions
-		m := strset.New(v...)
-		m.Add(lv)
-		if m.Size() > 1 {
-			return errors.Errorf("cluster schema versions not consistent: %s", m.List())
-		}
-
-		return nil
-	}, backoff, notify)
 }

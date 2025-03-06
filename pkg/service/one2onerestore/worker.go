@@ -54,11 +54,11 @@ func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (T
 
 // restore is an actual 1-1-restore stages.
 func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) (err error) {
-	if err := w.setTombstoneGCModeRepair(ctx, workload, target.Keyspace); err != nil {
+	if err := w.setTombstoneGCModeRepair(ctx, workload); err != nil {
 		return errors.Wrap(err, "tombstone_gc mode")
 	}
 
-	views, err := w.dropViews(ctx, workload, target.Keyspace)
+	views, err := w.dropViews(ctx, workload)
 	if err != nil {
 		return errors.Wrap(err, "drop views")
 	}
@@ -135,8 +135,8 @@ func nodesToHosts(nodes scyllaclient.NodeStatusInfoSlice) []Host {
 
 // prepareHostWorkload is a helper function that creates a hostWorkload structure convenient for use in later 1-1-restore stages.
 // This avoids the need to repeat operations like node mapping and fetching manifest content.
-func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, nodeMappings []nodeMapping) ([]hostWorkload, error) {
-	targetBySourceHostID, err := mapTargetHostToSource(hosts, nodeMappings)
+func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspec.ManifestInfo, hosts []Host, target Target) ([]hostWorkload, error) {
+	targetBySourceHostID, err := mapTargetHostToSource(hosts, target.NodesMapping)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid node mapping")
 	}
@@ -150,11 +150,19 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 		if err != nil {
 			return errors.Wrap(err, "manifest content")
 		}
-		result[i] = hostWorkload{
+		hw := hostWorkload{
 			host:            h,
 			manifestInfo:    m,
 			manifestContent: mc,
 		}
+
+		if err := mc.ForEachIndexIter(target.Keyspace, func(fm backupspec.FilesMeta) {
+			hw.tablesToRestore = append(hw.tablesToRestore, scyllaTable{keyspace: fm.Keyspace, table: fm.Table})
+		}); err != nil {
+			return errors.Wrap(err, "read manifest content")
+		}
+
+		result[i] = hw
 
 		return nil
 	}, parallel.NopNotify)
