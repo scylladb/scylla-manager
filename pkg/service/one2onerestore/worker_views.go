@@ -11,31 +11,19 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 // dropsViews drops all Materialized View or Secondary Index which base tables are exists in the backup and returns
 // what was dropped, so it can be re-created using worker.reCreateViews.
-func (w *worker) dropViews(ctx context.Context, workload []hostWorkload, keyspaceFilter []string) ([]View, error) {
+func (w *worker) dropViews(ctx context.Context, workload []hostWorkload) ([]View, error) {
 	start := timeutc.Now()
 	defer func() {
 		w.logger.Info(ctx, "Drop views", "took", timeutc.Since(start))
 	}()
 
-	tablesToRestore := strset.New()
-	for _, wl := range workload {
-		err := wl.manifestContent.ForEachIndexIter(keyspaceFilter, func(fm backupspec.FilesMeta) {
-			tablesToRestore.Add(fm.Keyspace + "." + fm.Table)
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "manifest content files")
-		}
-	}
-
-	views, err := w.getViews(ctx, tablesToRestore)
+	views, err := w.getViews(ctx, getTablesToRestore(workload))
 	if err != nil {
 		return nil, errors.Wrap(err, "get views")
 	}
@@ -81,7 +69,7 @@ func (w *worker) dropView(ctx context.Context, view View) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) getViews(ctx context.Context, tablesToRestore *strset.Set) ([]View, error) {
+func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]struct{}) ([]View, error) {
 	keyspaces, err := w.client.Keyspaces(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "get keyspaces")
@@ -95,7 +83,7 @@ func (w *worker) getViews(ctx context.Context, tablesToRestore *strset.Set) ([]V
 		}
 
 		for _, index := range meta.Indexes {
-			if !tablesToRestore.Has(index.KeyspaceName + "." + index.TableName) {
+			if _, ok := tablesToRestore[scyllaTable{keyspace: index.KeyspaceName, table: index.TableName}]; !ok {
 				continue
 			}
 			dummyMeta := gocql.KeyspaceMetadata{
@@ -124,7 +112,7 @@ func (w *worker) getViews(ctx context.Context, tablesToRestore *strset.Set) ([]V
 		}
 
 		for _, view := range meta.Views {
-			if !tablesToRestore.Has(view.KeyspaceName + "." + view.BaseTableName) {
+			if _, ok := tablesToRestore[scyllaTable{keyspace: view.KeyspaceName, table: view.BaseTableName}]; !ok {
 				continue
 			}
 			dummyMeta := gocql.KeyspaceMetadata{
