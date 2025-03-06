@@ -188,11 +188,11 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 	var jt jobType
 	switch {
 	case tabletKs && tp.FullRepair && g.plan.apiSupport.tabletRepairNoHostFiltering:
-		jt = tabletJobType
+		jt = normalJobType
 	case g.plan.apiSupport.smallTableRepair && tp.Small && !tabletKs:
-		jt = smallTableJobType
+		jt = normalJobType
 	case len(ring.ReplicaTokens) == 1 && tp.Small:
-		jt = mergeRangesJobType
+		jt = normalJobType
 	default:
 		jt = normalJobType
 	}
