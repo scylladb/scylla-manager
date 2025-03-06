@@ -84,7 +84,7 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 type workloadProgress struct {
 	// Bytes that are yet to be restored from given backed up DC.
 	// They are decreased after a successful batch restoration.
-	dcBytesToBeRestored map[string]int64
+	dcSSTableToBeRestored map[string]int
 	// Marks which host failed to restore batches from which DCs.
 	// When host failed to restore a batch from one backed up DC,
 	// it can still restore other batches coming from different
@@ -105,19 +105,25 @@ type workloadProgress struct {
 // Describes current state of SSTables from given RemoteSSTableDir
 // that are yet to be batched.
 type remoteSSTableDirProgress struct {
-	RemainingSize     int64
 	RemainingSSTables map[batchType][]RemoteSSTable
 }
 
+func (dp *remoteSSTableDirProgress) RemainingSSTableCnt() int {
+	out := 0
+	for _, ssts := range dp.RemainingSSTables {
+		out += len(ssts)
+	}
+	return out
+}
+
 func newWorkloadProgress(workload Workload, locationHosts map[Location][]string) workloadProgress {
-	dcBytes := make(map[string]int64)
+	dcSSTable := make(map[string]int)
 	locationDC := make(map[string][]string)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
 	for i, rdw := range workload.RemoteDir {
-		dcBytes[rdw.DC] += rdw.Size
+		dcSSTable[rdw.DC] += len(rdw.SSTables)
 		locationDC[rdw.Location.StringWithoutDC()] = append(locationDC[rdw.Location.StringWithoutDC()], rdw.DC)
 		p[i] = remoteSSTableDirProgress{
-			RemainingSize:     rdw.Size,
 			RemainingSSTables: groupSSTablesByBatchType(rdw.SSTables),
 		}
 	}
@@ -128,10 +134,10 @@ func newWorkloadProgress(workload Workload, locationHosts map[Location][]string)
 		}
 	}
 	return workloadProgress{
-		dcBytesToBeRestored: dcBytes,
-		hostFailedDC:        make(map[string][]string),
-		hostDCAccess:        hostDCAccess,
-		remoteDir:           p,
+		dcSSTableToBeRestored: dcSSTable,
+		hostFailedDC:          make(map[string][]string),
+		hostDCAccess:          hostDCAccess,
+		remoteDir:             p,
 	}
 }
 
@@ -139,10 +145,10 @@ func newWorkloadProgress(workload Workload, locationHosts map[Location][]string)
 func (wp workloadProgress) isDone(host string) bool {
 	failed := wp.hostFailedDC[host]
 	for _, dc := range wp.hostDCAccess[host] {
-		// Host isn't done when there is still some data to be restored
+		// Host isn't done when there are still some sstables to be restored
 		// from a DC that it has access to, and it didn't previously fail
 		// to restore data from this DC.
-		if !slices.Contains(failed, dc) && wp.dcBytesToBeRestored[dc] != 0 {
+		if !slices.Contains(failed, dc) && wp.dcSSTableToBeRestored[dc] > 0 {
 			return false
 		}
 	}
@@ -224,22 +230,10 @@ func (bd *batchDispatcher) ValidateAllDispatched() error {
 	defer bd.mu.Unlock()
 
 	for i, rdp := range bd.workloadProgress.remoteDir {
-		failed := rdp.RemainingSize != 0
-		for _, ssts := range rdp.RemainingSSTables {
-			if len(ssts) != 0 {
-				failed = true
-			}
-		}
-		if failed {
+		if failed := rdp.RemainingSSTableCnt(); failed > 0 {
 			rdw := bd.workload.RemoteDir[i]
 			return errors.Errorf("failed to restore sstables from location %s table %s.%s (%d bytes). See logs for more info",
-				rdw.Location, rdw.Keyspace, rdw.Table, rdp.RemainingSize)
-		}
-	}
-	for dc, bytes := range bd.workloadProgress.dcBytesToBeRestored {
-		if bytes != 0 {
-			return errors.Errorf("expected all data from DC %q to be restored (missing %d bytes): "+
-				"internal progress calculation error", dc, bytes)
+				rdw.Location, rdw.Keyspace, rdw.Table, failed)
 		}
 	}
 	return nil
@@ -281,7 +275,7 @@ func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 	for i := range bd.workloadProgress.remoteDir {
 		rdw := bd.workload.RemoteDir[i]
 		// Skip empty dir
-		if bd.workloadProgress.remoteDir[i].RemainingSize == 0 {
+		if bd.workloadProgress.remoteDir[i].RemainingSSTableCnt() == 0 {
 			continue
 		}
 		// Skip dir from already failed dc
@@ -367,7 +361,6 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 	rdp.RemainingSSTables[batchT] = sstables[i:]
 	rdw := bd.workload.RemoteDir[dirIdx]
 
-	rdp.RemainingSize -= size
 	return batch{
 		TableName:        rdw.TableName,
 		ManifestInfo:     rdw.ManifestInfo,
@@ -383,8 +376,8 @@ func (bd *batchDispatcher) ReportSuccess(b batch) {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
 
-	dcBytes := bd.workloadProgress.dcBytesToBeRestored
-	dcBytes[b.DC] -= b.Size
+	dcBytes := bd.workloadProgress.dcSSTableToBeRestored
+	dcBytes[b.DC] -= len(b.SSTables)
 	// Mark batching as finished due to successful restore
 	if dcBytes[b.DC] == 0 {
 		bd.wakeUpWaiting()
@@ -412,7 +405,6 @@ func (bd *batchDispatcher) ReportFailure(host string, b batch) error {
 
 	rdp := &bd.workloadProgress.remoteDir[dirIdx]
 	rdp.RemainingSSTables[b.batchType] = append(b.SSTables, rdp.RemainingSSTables[b.batchType]...)
-	rdp.RemainingSize += b.Size
 
 	bd.wakeUpWaiting()
 	return nil
