@@ -16,7 +16,7 @@ import (
 // Workload across different hosts during restore.
 // It follows a few rules:
 //
-// - all SSTables within a batch have the same have the same batchType
+// - all SSTables within a batch have the same batchType
 //
 // - it dispatches batches from the RemoteDirWorkload with the biggest
 // initial size first
