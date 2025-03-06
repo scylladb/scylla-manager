@@ -5009,6 +5009,37 @@
           }
         }
       }
+    },
+    "/config/object_storage_endpoints": {
+      "get": {
+        "description": "Returns configured object storage endpoints",
+        "operationId": "find_config_object_storage_endpoints",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "config"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Config value",
+            "schema": {
+              "description": "Maps endpoint name to endpoint configuration encoded in json string (see https://github.com/scylladb/scylladb/blob/master/docs/dev/object_storage.md).",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
