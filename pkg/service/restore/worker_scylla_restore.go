@@ -87,28 +87,18 @@ func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch) 
 }
 
 func (w *tablesWorker) scyllaWaitTask(ctx context.Context, pr *RunProgress, b batch) (err error) {
-	defer func() {
-		// On error abort task
-		if err != nil {
-			if e := w.client.ScyllaAbortTask(context.Background(), pr.Host, pr.ScyllaTaskID); e != nil {
-				w.logger.Error(ctx, "Failed to abort task",
-					"host", pr.Host,
-					"id", pr.ScyllaTaskID,
-					"error", e,
-				)
-			}
-		}
-	}()
-
 	for {
 		if ctx.Err() != nil {
+			w.scyllaAbortTask(pr.Host, pr.ScyllaTaskID)
 			return ctx.Err()
 		}
 
 		task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(w.config.LongPollingTimeoutSeconds))
 		if err != nil {
+			w.scyllaAbortTask(pr.Host, pr.ScyllaTaskID)
 			return errors.Wrap(err, "wait for task")
 		}
+
 		w.scyllaUpdateProgress(ctx, pr, b, task)
 		switch scyllaclient.ScyllaTaskState(task.State) {
 		case scyllaclient.ScyllaTaskStateFailed:
@@ -116,6 +106,16 @@ func (w *tablesWorker) scyllaWaitTask(ctx context.Context, pr *RunProgress, b ba
 		case scyllaclient.ScyllaTaskStateDone:
 			return nil
 		}
+	}
+}
+
+func (w *tablesWorker) scyllaAbortTask(host, id string) {
+	if err := w.client.ScyllaAbortTask(context.Background(), host, id); err != nil {
+		w.logger.Error(context.Background(), "Failed to abort task",
+			"host", host,
+			"id", id,
+			"error", err,
+		)
 	}
 }
 
