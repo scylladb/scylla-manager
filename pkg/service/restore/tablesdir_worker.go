@@ -81,7 +81,7 @@ func (w *tablesWorker) waitJob(ctx context.Context, b batch, pr *RunProgress) (e
 
 func (w *tablesWorker) restoreSSTables(ctx context.Context, b batch, pr *RunProgress) error {
 	w.onLasStart(ctx, b, pr)
-	err := w.worker.restoreSSTables(ctx, pr.Host, pr.Keyspace, pr.Table, true, true)
+	err := w.worker.client.AwaitLoadSSTables(ctx, pr.Host, pr.Keyspace, pr.Table, true, true)
 	if err == nil {
 		w.onLasEnd(ctx, b, pr)
 	}
