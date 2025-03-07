@@ -27,7 +27,7 @@ func init() {
 // Callback is a sibling of migrate.Callback that registers all mandatory callbacks as nop.
 var Callback = reg.Callback
 
-// MigrateToRestoreRunProgressWithSortKeyWithScyllaTaskID needs to be implemented here because
+// MigrateToRestoreRunProgressWithSortKeyWithScyllaTaskID needs to be implemented here
 // and not in the migrate pkg, because of an import cycle.
 func MigrateToRestoreRunProgressWithSortKeyWithScyllaTaskID(_ context.Context, session gocqlx.Session, _ migrate.CallbackEvent, _ string) error {
 	const createDstStmt = `CREATE TABLE %s (
