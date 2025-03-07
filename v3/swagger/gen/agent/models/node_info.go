@@ -6,8 +6,10 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // NodeInfo node info
@@ -77,11 +79,17 @@ type NodeInfo struct {
 	// Port for the encrypted CQL native transport to listen for clients on.
 	NativeTransportPortSsl string `json:"native_transport_port_ssl,omitempty"`
 
+	// Maps endpoint name to endpoint configuration encoded in json string (see https://github.com/scylladb/scylladb/blob/master/docs/dev/object_storage.md).
+	ObjectStorageEndpoints map[string]ObjectStorageEndpoint `json:"object_storage_endpoints,omitempty"`
+
 	// Address for Prometheus queries.
 	PrometheusAddress string `json:"prometheus_address,omitempty"`
 
 	// Port for Prometheus server.
 	PrometheusPort string `json:"prometheus_port,omitempty"`
+
+	// rclone backend config
+	RcloneBackendConfig NodeInfoRcloneBackendConfig `json:"rclone_backend_config,omitempty"`
 
 	// Address on which Scylla is going to expect Thrift and CQL clients connections.
 	RPCAddress string `json:"rpc_address,omitempty"`
@@ -104,6 +112,57 @@ type NodeInfo struct {
 
 // Validate validates this node info
 func (m *NodeInfo) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateObjectStorageEndpoints(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRcloneBackendConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *NodeInfo) validateObjectStorageEndpoints(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ObjectStorageEndpoints) { // not required
+		return nil
+	}
+
+	for k := range m.ObjectStorageEndpoints {
+
+		if err := validate.Required("object_storage_endpoints"+"."+k, "body", m.ObjectStorageEndpoints[k]); err != nil {
+			return err
+		}
+		if val, ok := m.ObjectStorageEndpoints[k]; ok {
+			if err := val.Validate(formats); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *NodeInfo) validateRcloneBackendConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RcloneBackendConfig) { // not required
+		return nil
+	}
+
+	if err := m.RcloneBackendConfig.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("rclone_backend_config")
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -118,6 +177,104 @@ func (m *NodeInfo) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *NodeInfo) UnmarshalBinary(b []byte) error {
 	var res NodeInfo
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// NodeInfoRcloneBackendConfig Subset of rclone backend configuration from 'scylla-manager-agent.yaml'.
+//
+// swagger:model NodeInfoRcloneBackendConfig
+type NodeInfoRcloneBackendConfig struct {
+
+	// azure
+	Azure interface{} `json:"azure,omitempty"`
+
+	// gcs
+	Gcs interface{} `json:"gcs,omitempty"`
+
+	// s3
+	S3 NodeInfoRcloneBackendConfigS3 `json:"s3,omitempty"`
+}
+
+// Validate validates this node info rclone backend config
+func (m *NodeInfoRcloneBackendConfig) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateS3(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *NodeInfoRcloneBackendConfig) validateS3(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.S3) { // not required
+		return nil
+	}
+
+	if err := m.S3.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("rclone_backend_config" + "." + "s3")
+		}
+		return err
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *NodeInfoRcloneBackendConfig) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *NodeInfoRcloneBackendConfig) UnmarshalBinary(b []byte) error {
+	var res NodeInfoRcloneBackendConfig
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// NodeInfoRcloneBackendConfigS3 node info rclone backend config s3
+//
+// swagger:model NodeInfoRcloneBackendConfigS3
+type NodeInfoRcloneBackendConfigS3 struct {
+
+	// endpoint
+	Endpoint string `json:"endpoint,omitempty"`
+
+	// region
+	Region string `json:"region,omitempty"`
+}
+
+// Validate validates this node info rclone backend config s3
+func (m *NodeInfoRcloneBackendConfigS3) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *NodeInfoRcloneBackendConfigS3) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *NodeInfoRcloneBackendConfigS3) UnmarshalBinary(b []byte) error {
+	var res NodeInfoRcloneBackendConfigS3
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
