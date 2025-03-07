@@ -677,60 +677,6 @@ func (w *worker) cleanUploadDir(ctx context.Context, host, dir string, excluded 
 	return nil
 }
 
-func (w *worker) restoreSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
-	w.logger.Info(ctx, "Load SSTables for the first time",
-		"host", host,
-		"load_and_stream", loadAndStream,
-		"primary_replica_only", primaryReplicaOnly,
-	)
-
-	op := func() error {
-		running, err := w.client.LoadSSTables(ctx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
-		if err == nil || running || strings.Contains(err.Error(), "timeout") {
-			return err
-		}
-		// Don't retry if error isn't connected to timeout or already running l&s
-		return retry.Permanent(err)
-	}
-
-	notify := func(err error) {
-		w.logger.Info(ctx, "Waiting for SSTables loading to finish",
-			"host", host,
-			"error", err,
-		)
-	}
-
-	return indefiniteHangingRetryWrapper(ctx, op, notify)
-}
-
-// indefiniteHangingRetryWrapper is useful when waiting on
-// Scylla operation that might take a really long (and difficult to estimate) time.
-// This wrapper exits ONLY on: success, context cancel, op returned retry.IsPermanent error.
-func indefiniteHangingRetryWrapper(ctx context.Context, op func() error, notify func(err error)) error {
-	const repeatInterval = 10 * time.Second
-
-	ticker := time.NewTicker(repeatInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-
-		err := op()
-		switch {
-		case err == nil:
-			return nil
-		case retry.IsPermanent(err):
-			return err
-		default:
-			notify(err)
-		}
-	}
-}
-
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
 // as it might take more time for Scylla to process them one after another.
 // This wrapper exits on: success, context cancel, op returned non-timeout error or after maxTotalTime has passed.
