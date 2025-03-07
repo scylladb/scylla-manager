@@ -15,6 +15,7 @@ IP_FAMILY?=IPV4
 RAFT_SCHEMA?=none
 TABLETS?=enabled
 
+MINIO_HOST := 192.168.200.99
 MINIO_ENDPOINT := https://192.168.200.99:9000
 COMPOSE_FILE := docker-compose-ipv4.yaml
 AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent.yaml
@@ -23,6 +24,7 @@ SECOND_NET := 192.168.200.
 MINIO_CERT_DIR := ./minio/certs_ipv4
 
 ifeq ($(IP_FAMILY), IPV6)
+	MINIO_HOST := 2001:0DB9:200::99
 	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 	COMPOSE_FILE := docker-compose-ipv6.yaml
 	AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent-ipv6.yaml
@@ -63,6 +65,7 @@ up:
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
+	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(MINIO_HOST)
 
 ifeq ($(SSL_ENABLED),true)
 	# disable non-ssl port
