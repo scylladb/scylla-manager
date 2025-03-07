@@ -1720,6 +1720,42 @@
           "description": "Total disk size of the first entry from `data_file_directories` list from scylla config file. In bytes.",
           "type": "integer",
           "format": "uint64"
+        },
+        "object_storage_endpoints": {
+          "description": "Maps endpoint name to endpoint configuration encoded in json string (see https://github.com/scylladb/scylladb/blob/master/docs/dev/object_storage.md).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ObjectStorageEndpoint"
+          }
+        },
+        "rclone_backend_config": {
+          "description": "Subset of rclone backend configuration from 'scylla-manager-agent.yaml'.",
+          "type": "object",
+          "x-nullable": false,
+          "properties": {
+            "s3": {
+              "type": "object",
+              "x-nullable": false,
+              "properties": {
+                "endpoint": {
+                  "type": "string"
+                },
+                "region": {
+                  "type": "string"
+                }
+              }
+            },
+            "gcs": {
+              "type": "object",
+              "x-nullable": false,
+              "properties": {}
+            },
+            "azure": {
+              "type": "object",
+              "x-nullable": false,
+              "properties": {}
+            }
+          }
         }
       }
     },
@@ -1741,6 +1777,27 @@
             "azure",
             ""
           ]
+        }
+      }
+    },
+    "ObjectStorageEndpoint": {
+      "description": "Object storage endpoint configuration as described in https://github.com/scylladb/scylladb/blob/master/docs/dev/object_storage.md",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "use_https": {
+          "type": "boolean"
+        },
+        "aws_region": {
+          "type": "string"
+        },
+        "iam_role_arn": {
+          "type": "string"
         }
       }
     }
