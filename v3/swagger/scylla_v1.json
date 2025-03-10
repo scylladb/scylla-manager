@@ -12696,6 +12696,20 @@
             "description": "Tokens owned by the tablets to repair. Multiple tokens can be provided using a comma-separated list. When set to the special word 'all', all tablets will be repaired"
           },
           {
+            "name": "hosts_filter",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Repair replicas listed in the comma-separated host_id list."
+          },
+          {
+            "name": "dcs_filter",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Repair replicas listed in the comma-separated DC list"
+          },
+          {
             "name": "await_completion",
             "in": "query",
             "required": false,
