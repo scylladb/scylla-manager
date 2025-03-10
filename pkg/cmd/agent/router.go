@@ -116,7 +116,7 @@ const (
 //
 // ML_TODO: this is tmp solution (#4211) - verify that it's still needed before merging to master.
 func objectStorageEndpointDirector(cfg agent.Config, logger log.Logger) func(r *http.Request) {
-	regex := regexp.MustCompile(`^/storage_service/backup$`)
+	regex := regexp.MustCompile(`^/storage_service/(backup|restore)$`)
 	resolver := endpointResolver(cfg)
 
 	return func(r *http.Request) {
