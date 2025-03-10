@@ -26,12 +26,12 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
-			jobID, err := w.createDownloadJob(ctx, table, hostTask.manifestInfo, hostTask.host)
+			pr, err := w.createDownloadJob(ctx, table, hostTask.manifestInfo, hostTask.host)
 			if err != nil {
 				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			if err := w.waitJob(ctx, hostTask.host, jobID, pollIntervalSec); err != nil {
+			if err := w.waitJob(ctx, hostTask.host, pr, pollIntervalSec); err != nil {
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
@@ -43,14 +43,14 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 	}, logError)
 }
 
-func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (int64, error) {
+func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (*RunProgress, error) {
 	uploadDir := backupspec.UploadTableDir(table.Keyspace, table.Table, table.Version)
 	remoteDir := m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version)
 	jobID, err := w.client.RcloneCopyPaths(ctx, h.Addr, scyllaclient.TransfersFromConfig, scyllaclient.NoRateLimit, uploadDir, remoteDir, table.Files)
 	if err != nil {
-		return 0, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
+		return &RunProgress{}, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
 	}
-	return jobID, nil
+	return w.downloadProgress(ctx, remoteDir, h.Addr, h.ShardCount, jobID, table), nil
 }
 
 // Scylla operation might take a really long (and difficult to estimate) time.
@@ -79,15 +79,15 @@ func errContains(err error, s string) bool {
 	return strings.Contains(err.Error(), s)
 }
 
-func (w *worker) waitJob(ctx context.Context, h Host, jobID int64, pollIntervalSec int) (err error) {
+func (w *worker) waitJob(ctx context.Context, h Host, pr *RunProgress, pollIntervalSec int) (err error) {
 	defer func() {
 		cleanCtx := context.Background()
 		// On error stop job
 		if err != nil {
-			w.stopJob(cleanCtx, jobID, h.Addr)
+			w.stopJob(cleanCtx, pr.AgentJobID, h.Addr)
 		}
 		// On exit clear stats
-		w.clearJobStats(cleanCtx, jobID, h.Addr)
+		w.clearJobStats(cleanCtx, pr.AgentJobID, h.Addr)
 	}()
 
 	for {
@@ -95,17 +95,18 @@ func (w *worker) waitJob(ctx context.Context, h Host, jobID int64, pollIntervalS
 			return ctx.Err()
 		}
 
-		job, err := w.client.RcloneJobProgress(ctx, h.Addr, jobID, pollIntervalSec)
+		job, err := w.client.RcloneJobProgress(ctx, h.Addr, pr.AgentJobID, pollIntervalSec)
 		if err != nil {
 			return errors.Wrap(err, "fetch job info")
 		}
+		w.updateDownloadProgress(ctx, pr, job)
 
 		switch scyllaclient.RcloneJobStatus(job.Status) {
 		case scyllaclient.JobError:
-			return errors.Errorf("job error (%d): %s: host %s", jobID, job.Error, h.Addr)
+			return errors.Errorf("job error (%d): %s: host %s", pr.AgentJobID, job.Error, h.Addr)
 		case scyllaclient.JobSuccess:
 			w.logger.Info(ctx, "Job done",
-				"job_id", jobID,
+				"job_id", pr.AgentJobID,
 				"host", h,
 				"took", time.Time(job.CompletedAt).Sub(time.Time(job.StartedAt)),
 			)

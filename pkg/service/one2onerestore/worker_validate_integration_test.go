@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -23,6 +24,9 @@ import (
 )
 
 func TestWorkerValidateClustersIntegration(t *testing.T) {
+	if tablets := os.Getenv("TABLETS"); tablets == "enabled" {
+		t.Skip("1-1-restore is available only for v-nodes")
+	}
 	loc := backupspec.Location{
 		Provider: backupspec.S3,
 		Path:     "my-1-1-restore-test",
@@ -242,7 +246,7 @@ func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRo
 		t.Fatalf("new scylla client: %v", err)
 	}
 
-	managerSession := db.CreateManagedClusterSession(t, false, sc, "", "")
+	managerSession := db.CreateScyllaManagerDBSession(t)
 	clusterSession := db.CreateSession(t, sc)
 
 	w := &worker{
