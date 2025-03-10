@@ -66,6 +66,16 @@ type StorageServiceTabletsRepairPostParams struct {
 
 	*/
 	AwaitCompletion *string
+	/*DcsFilter
+	  Repair replicas listed in the comma-separated DC list
+
+	*/
+	DcsFilter *string
+	/*HostsFilter
+	  Repair replicas listed in the comma-separated host_id list.
+
+	*/
+	HostsFilter *string
 	/*Ks
 	  Keyspace name to repair
 
@@ -131,6 +141,28 @@ func (o *StorageServiceTabletsRepairPostParams) SetAwaitCompletion(awaitCompleti
 	o.AwaitCompletion = awaitCompletion
 }
 
+// WithDcsFilter adds the dcsFilter to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) WithDcsFilter(dcsFilter *string) *StorageServiceTabletsRepairPostParams {
+	o.SetDcsFilter(dcsFilter)
+	return o
+}
+
+// SetDcsFilter adds the dcsFilter to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) SetDcsFilter(dcsFilter *string) {
+	o.DcsFilter = dcsFilter
+}
+
+// WithHostsFilter adds the hostsFilter to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) WithHostsFilter(hostsFilter *string) *StorageServiceTabletsRepairPostParams {
+	o.SetHostsFilter(hostsFilter)
+	return o
+}
+
+// SetHostsFilter adds the hostsFilter to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) SetHostsFilter(hostsFilter *string) {
+	o.HostsFilter = hostsFilter
+}
+
 // WithKs adds the ks to the storage service tablets repair post params
 func (o *StorageServiceTabletsRepairPostParams) WithKs(ks string) *StorageServiceTabletsRepairPostParams {
 	o.SetKs(ks)
@@ -182,6 +214,38 @@ func (o *StorageServiceTabletsRepairPostParams) WriteToRequest(r runtime.ClientR
 		qAwaitCompletion := qrAwaitCompletion
 		if qAwaitCompletion != "" {
 			if err := r.SetQueryParam("await_completion", qAwaitCompletion); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.DcsFilter != nil {
+
+		// query param dcs_filter
+		var qrDcsFilter string
+		if o.DcsFilter != nil {
+			qrDcsFilter = *o.DcsFilter
+		}
+		qDcsFilter := qrDcsFilter
+		if qDcsFilter != "" {
+			if err := r.SetQueryParam("dcs_filter", qDcsFilter); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.HostsFilter != nil {
+
+		// query param hosts_filter
+		var qrHostsFilter string
+		if o.HostsFilter != nil {
+			qrHostsFilter = *o.HostsFilter
+		}
+		qHostsFilter := qrHostsFilter
+		if qHostsFilter != "" {
+			if err := r.SetQueryParam("hosts_filter", qHostsFilter); err != nil {
 				return err
 			}
 		}
