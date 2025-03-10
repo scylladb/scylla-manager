@@ -13,9 +13,11 @@ import (
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/downloader"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
-	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	scyllaOperations "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/spf13/cobra"
@@ -206,7 +208,7 @@ func init() {
 	a := &downloadFilesArgs
 
 	f.StringSliceVarP(&a.configFiles, "config-file", "c", []string{"/etc/scylla-manager-agent/scylla-manager-agent.yaml"}, "configuration file `path`")
-	f.VarP(&a.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backup.Providers(), ", "))                   //nolint: lll
+	f.VarP(&a.location, "location", "L", "backup location in the format <provider>:<name> e.g. s3:my-bucket, the supported providers are: "+strings.Join(backupspec.Providers(), ", "))               //nolint: lll
 	f.StringVarP(&a.dataDir, "data-dir", "d", "", "`path` to Scylla data directory (typically /var/lib/scylla/data) or other directory to use for downloading the files (default current directory)") //nolint: lll
 	f.StringSliceVarP(&a.keyspace, "keyspace", "K", nil, "a comma-separated `list` of keyspace/tables glob patterns, e.g. 'keyspace,!keyspace.table_prefix_*'")
 	f.Var(&a.mode, "mode", "mode changes resulting directory structure, supported values are: `upload, sstableloader`, set 'upload' to use table upload directories, set 'sstableloader' for <keyspace>/<table> directories layout") // nolint: lll

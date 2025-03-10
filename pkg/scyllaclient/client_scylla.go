@@ -591,6 +591,27 @@ func ReplicaHash(replicaSet []string) uint64 {
 	return hash.Sum64()
 }
 
+// TabletRepair schedules Scylla repair tablet table task and returns its ID.
+// The whole table will be repaired on all nodes with just a single task.
+// The host is only needed so that we know which node should be queried
+// for the task status.
+func (c *Client) TabletRepair(ctx context.Context, keyspace, table, host string) (string, error) {
+	const allTablets = "all"
+	dontAwaitCompletion := "false"
+	p := operations.StorageServiceTabletsRepairPostParams{
+		Context:         forceHost(ctx, host),
+		Ks:              keyspace,
+		Table:           table,
+		Tokens:          allTablets,
+		AwaitCompletion: &dontAwaitCompletion,
+	}
+	resp, err := c.scyllaOps.StorageServiceTabletsRepairPost(&p)
+	if err != nil {
+		return "", err
+	}
+	return resp.GetPayload().TabletTaskID, nil
+}
+
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, keyspace, table, master string, replicaSet []string, ranges []TokenRange, intensity int, smallTableOpt bool) (int32, error) {
 	dr := dumpRanges(ranges)
@@ -1035,29 +1056,91 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 	return report, err
 }
 
-const loadSSTablesTimeout = time.Hour
+// AwaitLoadSSTables loads sstables that are already downloaded to host's table upload directory.
+func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+	c.logger.Info(ctx, "First try on loading sstables",
+		"host", host,
+		"keyspace", keyspace,
+		"table", table,
+		"load&stream", loadAndStream,
+		"primary replica only", primaryReplicaOnly,
+	)
 
-// LoadSSTables that are already downloaded to host's table upload directory.
+	isAlreadyLoadingSSTables := func(err error) bool {
+		const alreadyLoadingSSTablesErrMsg = "Already loading SSTables"
+		return err != nil && strings.Contains(err.Error(), alreadyLoadingSSTablesErrMsg)
+	}
+
+	// The first call is synchronous and might time out.
+	// We also need to handle situation where SM task
+	// was interrupted and retried immediately.
+	// Then it might also happen, that we get the
+	// already loading error, and we should await its completion.
+	const firstCallTimeout = time.Hour
+	firstCallCtx := ctx
+	firstCallCtx = customTimeout(firstCallCtx, firstCallTimeout)
+	firstCallCtx = noRetry(firstCallCtx)
+	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+	if err == nil {
+		return nil // Return on success
+	}
+	if !isAlreadyLoadingSSTables(err) && !errors.Is(err, context.DeadlineExceeded) {
+		return err // Return on not already loading nor timeout related error
+	}
+
+	dontRetryOnAlreadyLoadingSSTablesRetryHandler := func(err error) *bool {
+		if isAlreadyLoadingSSTables(err) {
+			return pointer.BoolPtr(false)
+		}
+		return nil
+	}
+
+	// Retry calls are not blocking as they return an error
+	// if the sstables are still being loaded.
+	const retryInterval = 10 * time.Second
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(retryInterval):
+		}
+
+		c.logger.Info(ctx, "Retry on loading sstables",
+			"host", host,
+			"keyspace", keyspace,
+			"table", table,
+			"load&stream", loadAndStream,
+			"primary replica only", primaryReplicaOnly,
+		)
+
+		retryCallCtx := ctx
+		retryCallCtx = withShouldRetryHandler(retryCallCtx, dontRetryOnAlreadyLoadingSSTablesRetryHandler)
+		err = c.loadSSTables(retryCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+		if err == nil {
+			return nil // Return on success
+		}
+		if !isAlreadyLoadingSSTables(err) {
+			return err // Return on not already loading sstables error
+		}
+	}
+}
+
+// loadSSTables that are already downloaded to host's table upload directory.
 // Used API endpoint has the following properties:
 // - It is synchronous - response is received only after the loading has finished
 // - It immediately returns an error if called while loading is still happening
 // - It returns nil when called on an empty upload dir
-// Except for the error, LoadSSTables also checks if loading of SSTables is still happening.
-func (c *Client) LoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) (bool, error) {
-	const WIPError = "Already loading SSTables"
-
+// loadSSTables does not perform any special error, timeout or retry handling.
+// See AwaitLoadSSTables for a wrapper with those features.
+func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
-		Context:            customTimeout(forceHost(ctx, host), loadSSTablesTimeout),
+		Context:            forceHost(ctx, host),
 		Keyspace:           keyspace,
 		Cf:                 table,
 		LoadAndStream:      &loadAndStream,
 		PrimaryReplicaOnly: &primaryReplicaOnly,
 	})
-
-	if err != nil && strings.Contains(err.Error(), WIPError) {
-		return true, err
-	}
-	return false, err
+	return err
 }
 
 // IsAutoCompactionEnabled checks if auto compaction of given table is enabled on the host.
@@ -1130,6 +1213,100 @@ func (c *Client) ControlTabletLoadBalancing(ctx context.Context, enabled bool) e
 	_, err := c.scyllaOps.StorageServiceTabletsBalancingPost(&operations.StorageServiceTabletsBalancingPostParams{
 		Context: ctx,
 		Enabled: enabled,
+	})
+	return err
+}
+
+// raftReadBarrierTimeout reflects a default timeout defined on the scylla side
+// so we can align scyllclient timeout with it.
+const raftReadBarrierTimeout = 60 * time.Second
+
+// RaftReadBarrier triggers read barrier for the given Raft group to wait for previously committed commands in this group to be applied locally.
+// For example, can be used on group 0 (default, when group is not provided) to wait for the node to obtain latest schema changes.
+func (c *Client) RaftReadBarrier(ctx context.Context, host, groupID string) error {
+	ctx = forceHost(ctx, host)
+	ctx = customTimeout(ctx, raftReadBarrierTimeout)
+
+	params := operations.RaftReadBarrierPostParams{
+		Context: ctx,
+	}
+
+	if groupID != "" {
+		params.SetGroupID(&groupID)
+	}
+
+	_, err := c.scyllaOps.RaftReadBarrierPost(&params)
+	if err != nil {
+		return fmt.Errorf("RaftReadBarrierPost: %w", err)
+	}
+	return nil
+}
+
+// ScyllaTaskState describes Scylla task state.
+type ScyllaTaskState string
+
+// Possible ScyllaTaskState.
+const (
+	ScyllaTaskStateCreated ScyllaTaskState = "created"
+	ScyllaTaskStateRunning ScyllaTaskState = "running"
+	ScyllaTaskStateDone    ScyllaTaskState = "done"
+	ScyllaTaskStateFailed  ScyllaTaskState = "failed"
+)
+
+func isScyllaTaskRunning(err error) bool {
+	// Scylla API call might return earlier due to timeout (see swagger definition)
+	status, _ := StatusCodeAndMessageOf(err)
+	return status == http.StatusRequestTimeout
+}
+
+func scyllaWaitTaskShouldRetryHandler(err error) *bool {
+	if isScyllaTaskRunning(err) {
+		return pointer.BoolPtr(false)
+	}
+	return nil
+}
+
+// ScyllaWaitTask long polls Scylla task status.
+func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
+	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
+	ctx = forceHost(ctx, host)
+	ctx = noTimeout(ctx)
+	p := &operations.TaskManagerWaitTaskTaskIDGetParams{
+		Context: ctx,
+		TaskID:  id,
+	}
+	if longPollingSeconds > 0 {
+		p.SetTimeout(&longPollingSeconds)
+	}
+
+	resp, err := c.scyllaOps.TaskManagerWaitTaskTaskIDGet(p)
+	if err != nil {
+		if isScyllaTaskRunning(err) {
+			return c.ScyllaTaskProgress(ctx, host, id)
+		}
+		return nil, err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaTaskProgress returns provided Scylla task status.
+func (c *Client) ScyllaTaskProgress(ctx context.Context, host, id string) (*models.TaskStatus, error) {
+	resp, err := c.scyllaOps.TaskManagerTaskStatusTaskIDGet(&operations.TaskManagerTaskStatusTaskIDGetParams{
+		Context: forceHost(ctx, host),
+		TaskID:  id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaAbortTask aborts provided Scylla task.
+// Note that not all Scylla tasks can be aborted - see models.TaskStatus to check that.
+func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
+	_, err := c.scyllaOps.TaskManagerAbortTaskTaskIDPost(&operations.TaskManagerAbortTaskTaskIDPostParams{
+		Context: forceHost(ctx, host),
+		TaskID:  id,
 	})
 	return err
 }

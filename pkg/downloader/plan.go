@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/rclone/rclone/fs"
-	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
 )
 
 // ClearAction represents removal of all files in Dir.
@@ -35,7 +35,7 @@ type Plan struct {
 	// BaseDir can be set externally to set prefix to paths printed in WriteTo.
 	BaseDir string `json:"-"`
 
-	m backup.ManifestInfoWithContent `json:"-"`
+	m backupspec.ManifestInfoWithContent `json:"-"`
 }
 
 func (p Plan) WriteTo(w io.Writer) (n int64, err error) {
@@ -58,7 +58,7 @@ func (p Plan) WriteTo(w io.Writer) (n int64, err error) {
 	} else {
 		fmt.Fprintf(b, "Node:\t\t%s (%s)\n", p.m.IP, p.m.NodeID)
 	}
-	t, err := backup.SnapshotTagTime(p.m.SnapshotTag)
+	t, err := backupspec.SnapshotTagTime(p.m.SnapshotTag)
 	if err != nil {
 		return 0, err
 	}

@@ -888,6 +888,7 @@
           "type": "integer"
         },
         "downloaded": {
+          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored)",
           "type": "integer"
         },
         "failed": {
@@ -1055,6 +1056,7 @@
           "type": "integer"
         },
         "downloaded": {
+          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored)",
           "type": "integer"
         },
         "failed": {
@@ -1091,6 +1093,7 @@
           "type": "integer"
         },
         "downloaded": {
+          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored)",
           "type": "integer"
         },
         "failed": {
@@ -1118,20 +1121,28 @@
           "description": "Host shard count",
           "type": "integer"
         },
+        "restored_bytes": {
+          "description": "Total bytes restored by host",
+          "type": "integer"
+        },
+        "restore_duration": {
+          "description": "Total time spent by host on restore in milliseconds",
+          "type": "integer"
+        },
         "downloaded_bytes": {
-          "description": "Total bytes downloaded by host",
+          "description": "Total bytes downloaded by host (included in restored_bytes)",
           "type": "integer"
         },
         "download_duration": {
-          "description": "Total time spent by host on download in milliseconds",
+          "description": "Total time spent by host on download in milliseconds (included in restore_duration)",
           "type": "integer"
         },
         "streamed_bytes": {
-          "description": "Total bytes load&streamed by host",
+          "description": "Total bytes load&streamed by host (included in restored_bytes)",
           "type": "integer"
         },
         "stream_duration": {
-          "description": "Total time spent by host on load&stream in milliseconds",
+          "description": "Total time spent by host on load&stream in milliseconds (included in restore_duration)",
           "type": "integer"
         }
       }

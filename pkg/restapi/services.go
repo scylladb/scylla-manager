@@ -6,13 +6,14 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -46,6 +47,7 @@ type HealthCheckService interface {
 // RepairService service interface for the REST API handlers.
 type RepairService interface {
 	GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*repair.Run, error)
+	// GetProgress must work even when the cluster is no longer available.
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (repair.Progress, error)
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (repair.Target, error)
 	SetIntensity(ctx context.Context, runID uuid.UUID, intensity float64) error
@@ -59,15 +61,18 @@ type BackupService interface {
 	ExtractLocations(ctx context.Context, properties []json.RawMessage) []backupspec.Location
 	List(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backup.ListItem, error)
 	ListFiles(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, filter backup.ListFilter) ([]backupspec.FilesInfo, error)
+	// GetProgress must work even when the cluster is no longer available.
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
 	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, snapshotTags []string) error
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
+	// GetValidationProgress must work even when the cluster is no longer available.
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)
 }
 
 // RestoreService service interface for the REST API handlers.
 type RestoreService interface {
 	GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (restore.Target, []restore.Unit, []restore.View, error)
+	// GetProgress must work even when the cluster is no longer available.
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (restore.Progress, error)
 }
 

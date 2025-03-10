@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
@@ -45,12 +45,15 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 		return err
 	}
 
-	m := w.createTemporaryManifest(h, tokens)
+	m, err := w.createTemporaryManifest(ctx, h, tokens)
+	if err != nil {
+		return errors.Wrap(err, "create temp manifest")
+	}
 	return w.uploadHostManifest(ctx, h, m)
 }
 
-func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInfoWithContent {
-	m := &ManifestInfo{
+func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens []int64) (backupspec.ManifestInfoWithContent, error) {
+	m := &backupspec.ManifestInfo{
 		Location:    h.Location,
 		DC:          h.DC,
 		ClusterID:   w.ClusterID,
@@ -62,14 +65,19 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 
 	dirs := w.hostSnapshotDirs(h)
 
-	c := &ManifestContentWithIndex{
-		ManifestContent: ManifestContent{
+	c := &backupspec.ManifestContentWithIndex{
+		ManifestContent: backupspec.ManifestContent{
 			Version:     "v2",
-			ClusterName: w.ClusterName,
 			IP:          h.IP,
 			Tokens:      tokens,
+			ClusterName: w.ClusterName,
+			DC:          h.DC,
+			ClusterID:   w.ClusterID,
+			NodeID:      h.ID,
+			TaskID:      w.TaskID,
+			SnapshotTag: w.SnapshotTag,
 		},
-		Index: make([]FilesMeta, len(dirs)),
+		Index: make([]backupspec.FilesMeta, len(dirs)),
 	}
 	if w.SchemaFilePath != "" {
 		c.Schema = w.SchemaFilePath
@@ -88,13 +96,39 @@ func (w *worker) createTemporaryManifest(h hostInfo, tokens []int64) ManifestInf
 		c.Size += d.Progress.Size
 	}
 
-	return ManifestInfoWithContent{
+	rack, err := w.Client.HostRack(ctx, h.IP)
+	if err != nil {
+		return backupspec.ManifestInfoWithContent{}, errors.Wrap(err, "client.HostRack")
+	}
+	c.Rack = rack
+
+	shardCound, err := w.Client.ShardCount(ctx, h.IP)
+	if err != nil {
+		return backupspec.ManifestInfoWithContent{}, errors.Wrap(err, "client.ShardCount")
+	}
+	c.ShardCount = int(shardCound)
+
+	// VA_TODO:  candidate for #3892 (but only after #4181 gets fixed...).
+	nodeInfo, err := w.Client.NodeInfo(ctx, h.IP)
+	if err != nil {
+		return backupspec.ManifestInfoWithContent{}, errors.Wrap(err, "client.NodeInfo")
+	}
+	c.CPUCount = int(nodeInfo.CPUCount)
+	c.StorageSize = nodeInfo.StorageSize
+
+	instanceMeta, err := w.Client.CloudMetadata(ctx, h.IP)
+	if err != nil {
+		return backupspec.ManifestInfoWithContent{}, errors.Wrap(err, "client.CloudMetadata")
+	}
+	c.InstanceDetails = backupspec.InstanceDetails(instanceMeta)
+
+	return backupspec.ManifestInfoWithContent{
 		ManifestInfo:             m,
 		ManifestContentWithIndex: c,
-	}
+	}, nil
 }
 
-func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m ManifestInfoWithContent) error {
+func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m backupspec.ManifestInfoWithContent) error {
 	// Get memory buffer for gzip compressed output
 	buf := w.memoryPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -122,8 +156,8 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 		}()
 
 		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
-		dst := h.Location.RemotePath(RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
-		src := TempFile(dst)
+		dst := h.Location.RemotePath(backupspec.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
+		src := backupspec.TempFile(dst)
 
 		// Register rollback
 		rollbacks[i] = func(ctx context.Context) error { return w.Client.RcloneMoveFile(ctx, h.IP, src, dst) }

@@ -159,10 +159,12 @@ func WaitForNodeUPOrTimeout(h string, timeout time.Duration) error {
 }
 
 // BlockREST blocks the Scylla API ports on h machine by dropping TCP packets.
-func BlockREST(t *testing.T, h string) {
+func BlockREST(t *testing.T, hosts ...string) {
 	t.Helper()
-	if err := RunIptablesCommand(t, h, CmdBlockScyllaREST); err != nil {
-		t.Error(err)
+	for _, host := range hosts {
+		if err := RunIptablesCommand(t, host, CmdBlockScyllaREST); err != nil {
+			t.Error(err)
+		}
 	}
 }
 

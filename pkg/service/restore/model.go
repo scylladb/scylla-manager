@@ -3,39 +3,74 @@
 package restore
 
 import (
+	"encoding/json"
 	"reflect"
 	"slices"
-	"sort"
 	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
-
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location        []Location `json:"location"`
-	Keyspace        []string   `json:"keyspace,omitempty"`
-	SnapshotTag     string     `json:"snapshot_tag"`
-	BatchSize       int        `json:"batch_size,omitempty"`
-	Parallel        int        `json:"parallel,omitempty"`
-	Transfers       int        `json:"transfers"`
-	RateLimit       []DCLimit  `json:"rate_limit,omitempty"`
-	AllowCompaction bool       `json:"allow_compaction,omitempty"`
-	UnpinAgentCPU   bool       `json:"unpin_agent_cpu"`
-	RestoreSchema   bool       `json:"restore_schema,omitempty"`
-	RestoreTables   bool       `json:"restore_tables,omitempty"`
-	Continue        bool       `json:"continue"`
+	Location        []backupspec.Location `json:"location"`
+	Keyspace        []string              `json:"keyspace,omitempty"`
+	SnapshotTag     string                `json:"snapshot_tag"`
+	BatchSize       int                   `json:"batch_size,omitempty"`
+	Parallel        int                   `json:"parallel,omitempty"`
+	Transfers       int                   `json:"transfers"`
+	RateLimit       []backup.DCLimit      `json:"rate_limit,omitempty"`
+	AllowCompaction bool                  `json:"allow_compaction,omitempty"`
+	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
+	RestoreSchema   bool                  `json:"restore_schema,omitempty"`
+	RestoreTables   bool                  `json:"restore_tables,omitempty"`
+	Continue        bool                  `json:"continue"`
+	DCMappings      map[string]string     `json:"dc_mapping"`
 
-	// Cache for host with access to remote location
-	locationHosts map[Location][]string `json:"-"`
+	locationInfo []LocationInfo
+}
+
+// LocationInfo contains information about Location, such as what DCs it has,
+// what hosts can access what dcs, and the list of manifests from this location.
+type LocationInfo struct {
+	// DC contains all data centers that can be found in this location
+	DC []string
+	// Contains hosts that should handle DCs from this location
+	// after DCMappings are applied.
+	DCHosts  map[string][]string
+	Location backupspec.Location
+
+	// Manifest in this Location. Shouldn't contain manifests from DCs
+	// that are not in the DCMappings.
+	Manifest []*backupspec.ManifestInfo
+}
+
+// AnyHost returns random host with access to this Location.
+func (l LocationInfo) AnyHost() string {
+	for _, hosts := range l.DCHosts {
+		if len(hosts) != 0 {
+			return hosts[0]
+		}
+	}
+	return ""
+}
+
+// AllHosts returns all hosts with the access to this Location.
+func (l LocationInfo) AllHosts() []string {
+	hosts := strset.New()
+	for _, h := range l.DCHosts {
+		hosts.Add(h...)
+	}
+	return hosts.List()
 }
 
 const (
@@ -54,13 +89,22 @@ func defaultTarget() Target {
 	}
 }
 
+// parseTarget parse Target from properties and applies defaults.
+func parseTarget(properties json.RawMessage) (Target, error) {
+	t := defaultTarget()
+	if err := json.Unmarshal(properties, &t); err != nil {
+		return Target{}, err
+	}
+	return t, t.validateProperties()
+}
+
 // validateProperties makes a simple validation of params set by user.
 // It does not perform validations that require access to the service.
-func (t Target) validateProperties(dcMap map[string][]string) error {
+func (t Target) validateProperties() error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
-	if _, err := SnapshotTagTime(t.SnapshotTag); err != nil {
+	if _, err := backupspec.SnapshotTagTime(t.SnapshotTag); err != nil {
 		return err
 	}
 	if t.BatchSize < 0 {
@@ -73,22 +117,22 @@ func (t Target) validateProperties(dcMap map[string][]string) error {
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or 0 (set transfers for fastest download) or greater than zero")
 	}
-	if err := CheckDCs(t.RateLimit, dcMap); err != nil {
-		return errors.Wrap(err, "invalid rate limit")
-	}
 	if t.RestoreSchema == t.RestoreTables {
 		return errors.New("choose EXACTLY ONE restore type ('--restore-schema' or '--restore-tables' flag)")
 	}
 	if t.RestoreSchema && t.Keyspace != nil {
 		return errors.New("restore schema always restores 'system_schema.*' tables only, no need to specify '--keyspace' flag")
 	}
+	// Check for duplicates in Location
+	allLocations := strset.New()
+	for _, l := range t.Location {
+		p := l.RemotePath("")
+		if allLocations.Has(p) {
+			return errors.Errorf("location %s is specified multiple times", l)
+		}
+		allLocations.Add(p)
+	}
 	return nil
-}
-
-func (t Target) sortLocations() {
-	sort.SliceStable(t.Location, func(i, j int) bool {
-		return t.Location[i].String() < t.Location[j].String()
-	})
 }
 
 // Run tracks restore progress, shares ID with scheduler.Run that initiated it.
@@ -160,11 +204,12 @@ const (
 
 // View represents statement used for recreating restored (dropped) views.
 type View struct {
-	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
-	View       string   `json:"view" db:"view_name"`
-	Type       ViewType `json:"type" db:"view_type"`
-	BaseTable  string   `json:"base_table"`
-	CreateStmt string   `json:"create_stmt"`
+	Keyspace    string                       `json:"keyspace" db:"keyspace_name"`
+	View        string                       `json:"view" db:"view_name"`
+	Type        ViewType                     `json:"type" db:"view_type"`
+	BaseTable   string                       `json:"base_table"`
+	CreateStmt  string                       `json:"create_stmt"`
+	BuildStatus scyllaclient.ViewBuildStatus `json:"status"`
 }
 
 func (t View) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
@@ -193,13 +238,15 @@ type RunProgress struct {
 	ShardCnt   int64  // Host shard count used for bandwidth per shard calculation.
 	AgentJobID int64
 
+	// DownloadStartedAt and DownloadCompletedAt are within the
+	// RestoreStartedAt and RestoreCompletedAt time frame.
 	DownloadStartedAt   *time.Time
 	DownloadCompletedAt *time.Time
 	RestoreStartedAt    *time.Time
 	RestoreCompletedAt  *time.Time
 	Error               string
 	Downloaded          int64
-	Skipped             int64
+	Restored            int64
 	Failed              int64
 	VersionedProgress   int64
 }
@@ -235,7 +282,7 @@ type Progress struct {
 	SnapshotTag string             `json:"snapshot_tag"`
 	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
 	Hosts       []HostProgress     `json:"hosts,omitempty"`
-	Views       []ViewProgress     `json:"views,omitempty"`
+	Views       []View             `json:"views,omitempty"`
 	Stage       Stage              `json:"stage"`
 }
 
@@ -251,6 +298,8 @@ type KeyspaceProgress struct {
 type HostProgress struct {
 	Host             string `json:"host"`
 	ShardCnt         int64  `json:"shard_cnt"`
+	RestoredBytes    int64  `json:"restored_bytes"`
+	RestoreDuration  int64  `json:"restore_duration"`
 	DownloadedBytes  int64  `json:"downloaded_bytes"`
 	DownloadDuration int64  `json:"download_duration"`
 	StreamedBytes    int64  `json:"streamed_bytes"`
@@ -264,13 +313,6 @@ type TableProgress struct {
 	Table       string          `json:"table"`
 	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
 	Error       string          `json:"error,omitempty"`
-}
-
-// ViewProgress defines restore progress for the view.
-type ViewProgress struct {
-	View
-
-	Status scyllaclient.ViewBuildStatus `json:"status"`
 }
 
 // TableName represents full table name.

@@ -9,8 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-set/strset"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -82,11 +81,10 @@ func newTablesWorker(ctx context.Context, w worker, repairSvc *repair.Service, t
 		}
 	}
 
-	hostsS := strset.New()
-	for _, h := range w.target.locationHosts {
-		hostsS.Add(h...)
+	var hosts []string
+	for _, l := range w.target.locationInfo {
+		hosts = append(hosts, l.AllHosts()...)
 	}
-	hosts := hostsS.List()
 
 	hostToShard, err := w.client.HostsShardCount(ctx, hosts)
 	if err != nil {
@@ -146,11 +144,11 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 			return nil
 		},
 		StageRecreateViews: func() error {
-			for _, v := range w.run.Views {
+			for i, v := range w.run.Views {
 				if err := w.CreateView(ctx, v); err != nil {
 					return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
 				}
-				if err := w.WaitForViewBuilding(ctx, v); err != nil {
+				if err := w.WaitForViewBuilding(ctx, &w.run.Views[i]); err != nil {
 					return errors.Wrapf(err, "wait for %s.%s", v.Keyspace, v.View)
 				}
 			}
@@ -181,7 +179,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
 
-	workload, err := w.IndexWorkload(ctx, w.target.Location)
+	workload, err := w.IndexWorkload(ctx, w.target.locationInfo)
 	if err != nil {
 		return err
 	}
@@ -213,7 +211,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationHosts)
+	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationInfo)
 
 	f := func(n int) error {
 		host := w.hosts[n]
@@ -354,7 +352,7 @@ func hostTransfers(transfers int, shards uint) int {
 	return transfers
 }
 
-func dcRateLimit(limits []DCLimit, dc string) int {
+func dcRateLimit(limits []backup.DCLimit, dc string) int {
 	defaultLimit := maxRateLimit
 	for _, limit := range limits {
 		if limit.DC == dc {

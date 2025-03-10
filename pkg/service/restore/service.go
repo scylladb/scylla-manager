@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -29,11 +30,13 @@ type Service struct {
 
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
+	configCache    configcache.ConfigCacher
 	logger         log.Logger
 }
 
 func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config, metrics metrics.RestoreMetrics,
-	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, logger log.Logger,
+	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
+	logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -53,6 +56,7 @@ func NewService(repairSvc *repair.Service, session gocqlx.Session, config Config
 		metrics:        metrics,
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
+		configCache:    configCache,
 		logger:         logger,
 	}, nil
 }
@@ -72,22 +76,8 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 	defer w.clusterSession.Close()
 	w.setRunInfo(taskID, runID)
 
-	if err := w.initTarget(ctx, properties); err != nil {
-		return errors.Wrap(err, "init target")
-	}
-	if err := w.decorateWithPrevRun(ctx); err != nil {
+	if err := w.init(ctx, properties); err != nil {
 		return err
-	}
-
-	if w.run.Units == nil {
-		// Cache must be initialised only once (even with continue=false), as it contains information already lost
-		// in the cluster (e.g. tombstone_gc mode, views definition, etc).
-		if err := w.initUnits(ctx); err != nil {
-			return errors.Wrap(err, "initialize units")
-		}
-		if err := w.initViews(ctx); err != nil {
-			return errors.Wrap(err, "initialize views")
-		}
 	}
 
 	if w.run.PrevID == uuid.Nil {
@@ -154,12 +144,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return Progress{}, errors.Wrap(err, "get run")
 	}
 
-	w, err := s.newProgressWorker(ctx, run)
-	if err != nil {
-		return Progress{}, errors.Wrap(err, "create progress worker")
-	}
-
-	pr, err := w.aggregateProgress(ctx)
+	pr, err := getProgress(run, s.session)
 	if err != nil {
 		return Progress{}, err
 	}
@@ -169,7 +154,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 		return pr, nil
 	}
 
-	q := table.RepairRun.SelectQuery(w.session).BindMap(qb.M{
+	q := table.RepairRun.SelectQuery(s.session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
 		"task_id":    run.RepairTaskID,
 	})
@@ -215,22 +200,6 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 func (w *worker) setRunInfo(taskID, runID uuid.UUID) {
 	w.run.TaskID = taskID
 	w.run.ID = runID
-}
-
-func (s *Service) newProgressWorker(ctx context.Context, run *Run) (worker, error) {
-	client, err := s.scyllaClient(ctx, run.ClusterID)
-	if err != nil {
-		return worker{}, errors.Wrap(err, "get client")
-	}
-
-	return worker{
-		run:     run,
-		config:  s.config,
-		logger:  s.logger,
-		metrics: s.metrics,
-		client:  client,
-		session: s.session,
-	}, nil
 }
 
 // GetRun returns run with specified cluster, task and run ID.

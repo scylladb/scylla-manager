@@ -102,6 +102,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		metrics.NewRepairMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.configCacheSvc,
 		s.logger.Named("repair"),
 	)
 	if err != nil {
@@ -115,6 +116,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.configCacheSvc,
 		s.logger.Named("backup"),
 	)
 	if err != nil {
@@ -128,6 +130,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		metrics.NewRestoreMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.configCacheSvc,
 		s.logger.Named("restore"),
 	)
 	if err != nil {
@@ -144,11 +147,13 @@ func (s *server) makeServices(ctx context.Context) error {
 		return errors.Wrapf(err, "scheduler service")
 	}
 
+	restoreExclusiveLock := scheduler.NewTaskExclusiveLockPolicy(scheduler.RestoreTask)
+
 	// Register the runners
-	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.backupSvc.Runner()})
-	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.restoreSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.BackupTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.backupSvc.Runner(), TaskType: scheduler.BackupTask})
+	s.schedSvc.SetRunner(scheduler.RestoreTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.restoreSvc.Runner(), TaskType: scheduler.RestoreTask})
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
-	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: scheduler.NewLockClusterPolicy(), Runner: s.repairSvc.Runner()})
+	s.schedSvc.SetRunner(scheduler.RepairTask, scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.Runner(), TaskType: scheduler.RepairTask})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
 
 	// Add additional properties on task run.
@@ -164,7 +169,7 @@ func (s *server) makeServices(ctx context.Context) error {
 func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 	switch c.Type {
 	case cluster.Update:
-		go s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
+		go s.configCacheSvc.ForceUpdateCluster(context.Background(), c.ID)
 	case cluster.Create:
 		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
 		for _, t := range makeAutoHealthCheckTasks(c.ID) {
