@@ -27,10 +27,11 @@ import (
 )
 
 type testHelper struct {
-	client     *scyllaclient.Client
-	clusterID  uuid.UUID
-	backupSvc  *backup.Service
-	restoreSvc Servicer
+	client                   *scyllaclient.Client
+	clusterID, taskID, runID uuid.UUID
+	props                    []byte
+	backupSvc                *backup.Service
+	restoreSvc               Servicer
 }
 
 func newTestHelper(t *testing.T, hosts []string) *testHelper {
@@ -40,6 +41,8 @@ func newTestHelper(t *testing.T, hosts []string) *testHelper {
 	session := CreateScyllaManagerDBSession(t)
 
 	clusterID := uuid.NewTime()
+	taskID := uuid.NewTime()
+	runID := uuid.NewTime()
 
 	backupSvc := newBackupSvc(t, session, sc, clusterID)
 	restoreSvc := newRestoreSvc(t, session, sc, clusterID, "", "")
@@ -47,6 +50,8 @@ func newTestHelper(t *testing.T, hosts []string) *testHelper {
 	return &testHelper{
 		client:     sc,
 		clusterID:  clusterID,
+		taskID:     taskID,
+		runID:      runID,
 		backupSvc:  backupSvc,
 		restoreSvc: restoreSvc,
 	}
@@ -86,15 +91,16 @@ func (h *testHelper) runRestore(t *testing.T, props map[string]any) {
 	t.Helper()
 	Printf("Run 1-1-restore with properties: %v", props)
 	ctx := context.Background()
-	taskID := uuid.NewTime()
-	runID := uuid.NewTime()
+	h.taskID = uuid.NewTime()
+	h.runID = uuid.NewTime()
 
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "marshal properties"))
 	}
+	h.props = rawProps
 
-	err = h.restoreSvc.One2OneRestore(ctx, h.clusterID, taskID, runID, rawProps)
+	err = h.restoreSvc.One2OneRestore(ctx, h.clusterID, h.taskID, h.runID, h.props)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "run 1-1-restore"))
 	}
