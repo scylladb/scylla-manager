@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/one2onerestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
@@ -18,12 +19,13 @@ import (
 
 // Services contains REST API services.
 type Services struct {
-	Cluster     ClusterService
-	HealthCheck HealthCheckService
-	Repair      RepairService
-	Backup      BackupService
-	Restore     RestoreService
-	Scheduler   SchedService
+	Cluster        ClusterService
+	HealthCheck    HealthCheckService
+	Repair         RepairService
+	Backup         BackupService
+	Restore        RestoreService
+	Scheduler      SchedService
+	One2OneRestore One2OneRestoreService
 }
 
 // ClusterService service interface for the REST API handlers.
@@ -91,4 +93,9 @@ type SchedService interface {
 	IsSuspended(ctx context.Context, clusterID uuid.UUID) bool
 	Suspend(ctx context.Context, clusterID uuid.UUID) error
 	Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error
+}
+
+// One2OneRestoreService service interface for the 1-1-restore REST API handlers.
+type One2OneRestoreService interface {
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) (one2onerestore.Progress, error)
 }

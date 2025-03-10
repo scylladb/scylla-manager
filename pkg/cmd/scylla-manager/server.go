@@ -221,12 +221,13 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 
 func (s *server) makeServers(ctx context.Context) error {
 	services := restapi.Services{
-		Cluster:     s.clusterSvc,
-		HealthCheck: s.healthSvc,
-		Repair:      s.repairSvc,
-		Backup:      s.backupSvc,
-		Restore:     s.restoreSvc,
-		Scheduler:   s.schedSvc,
+		Cluster:        s.clusterSvc,
+		HealthCheck:    s.healthSvc,
+		Repair:         s.repairSvc,
+		Backup:         s.backupSvc,
+		Restore:        s.restoreSvc,
+		Scheduler:      s.schedSvc,
+		One2OneRestore: s.one2OneRestoreSvc,
 	}
 	h := restapi.New(services, s.logger.Named("http"))
 
