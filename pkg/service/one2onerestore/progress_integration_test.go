@@ -35,9 +35,6 @@ func TestGetProgressIntegration(t *testing.T) {
 		TaskID:    h.taskID,
 		RunID:     h.runID,
 	}
-	snapshotTag := h.runBackup(t, map[string]any{
-		"location": []backupspec.Location{loc},
-	})
 	clusterSession := db.CreateSessionAndDropAllKeyspaces(t, h.client)
 	ksName := "testgetprogress"
 	db.WriteData(t, clusterSession, ksName, 10)
@@ -47,6 +44,10 @@ func TestGetProgressIntegration(t *testing.T) {
 	if srcCnt := rowCount(t, clusterSession, ksName, db.BigTableName); srcCnt == 0 {
 		t.Fatalf("Unexpected row count in table: 0")
 	}
+
+	snapshotTag := h.runBackup(t, map[string]any{
+		"location": []backupspec.Location{loc},
+	})
 
 	target := Target{
 		Keyspace:        []string{ksName},
