@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"net/netip"
 	"sync"
 	"testing"
 	"time"
@@ -220,6 +221,73 @@ func TestServiceForceUpdateCluster(t *testing.T) {
 			t.Fatalf("Expected updating non-existing cluster config to fail")
 		}
 	})
+}
+
+func TestService_Read_IPv6Normalization(t *testing.T) {
+	// Define a canonical IPv6 representation
+	key := "2001:0db8:0000:0000:0000:0000:0000:0001"
+	parsedKey, err := netip.ParseAddr(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Assume that our system normalizes IPv6 addresses to the canonical form.
+	// Create the configuration for the canonical IPv6 address.
+	nodeConfig := NodeConfig{
+		NodeInfo: &scyllaclient.NodeInfo{
+			AgentVersion: "expectedVersion",
+		},
+	}
+	configHash, err := nodeConfig.sha256hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clusterID := uuid.MustRandom()
+	// Prepopulate the service config with the canonical representation as the key.
+	initialState := convertMapToSyncMap(map[any]any{
+		clusterID.String(): convertMapToSyncMap(map[any]any{
+			parsedKey.String(): nodeConfig,
+		}),
+	})
+
+	// Define several valid IPv6 representations for the same host.
+	testCases := []struct {
+		name    string
+		hostKey string
+	}{
+		{"Fully Expanded", "2001:0db8:0000:0000:0000:0000:0000:0001"},
+		{"Uncompressed", "2001:db8:0:0:0:0:0:1"},
+		{"Compressed", "2001:db8::1"},
+		{"Uppercase Variant", "2001:DB8::1"},
+		{"Bracketed", "[2001:db8::1]"},
+	}
+
+	svc := Service{
+		svcConfig:    DefaultConfig(),
+		clusterSvc:   &mockClusterServicer{},
+		scyllaClient: mockProviderFunc,
+		secretsStore: &mockStore{},
+		configs:      initialState,
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// When
+			conf, err := svc.Read(clusterID, tc.hostKey)
+			// Then
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			h, err := conf.sha256hash()
+			if err != nil {
+				t.Fatalf("error creating hash: %v", err)
+			}
+			if h != configHash {
+				t.Fatalf("expected hash %v, got %v", configHash, h)
+			}
+		})
+	}
 }
 
 func (nc NodeConfig) sha256hash() (hash [32]byte, err error) {
