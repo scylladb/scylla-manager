@@ -1031,9 +1031,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
 
-	createDefaultKeyspace(t, clusterSession, "test_repair", 2, 2)
-	WriteData(t, clusterSession, "test_repair", 1, "test_table_0", "test_table_1")
-	defer dropKeyspace(t, clusterSession, "test_repair")
+	const testKs = "test_repair"
+	createDefaultKeyspace(t, clusterSession, testKs, 2, 2)
+	WriteData(t, clusterSession, testKs, 1, "test_table_0", "test_table_1")
+	defer dropKeyspace(t, clusterSession, testKs)
 
 	t.Run("repair simple", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
@@ -2120,6 +2121,183 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: not-batched repair is done")
 		h.assertDone(longWait)
+	})
+
+	t.Run("repair tablet API filtering", func(t *testing.T) {
+		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Skip("Test expects tablet repair API to be exposed")
+		}
+
+		const (
+			tabletMultiDCKs  = "tablet_api_filtering_multi_dc_tablet_ks"
+			tabletSingleDCKs = "tablet_api_filtering_single_dc_tablet_ks"
+			vnodeKs          = "tablet_api_filtering_vnode_ks"
+		)
+		createTabletKeyspace(t, clusterSession, tabletMultiDCKs, 2, 2)
+		createTabletKeyspace(t, clusterSession, tabletSingleDCKs, 2, 0)
+		createVnodeKeyspace(t, clusterSession, vnodeKs, 2, 2)
+		WriteData(t, clusterSession, tabletMultiDCKs, 1, "tab")
+		WriteData(t, clusterSession, tabletSingleDCKs, 1, "tab")
+		WriteData(t, clusterSession, vnodeKs, 1, "tab")
+
+		t.Run("Repairing tablet table with --host should fail at generating target", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+			_, err := h.generateTarget(map[string]any{
+				"keyspace": []string{tabletMultiDCKs, tabletSingleDCKs, vnodeKs},
+				"host":     ManagedClusterHost(),
+			})
+			if err == nil {
+				t.Fatal("Expected err, got nil")
+			}
+		})
+
+		t.Run("Repairing filtered out tablet table with --host should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			host := IPFromTestNet("22")
+			h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
+
+			h.runRepair(ctx, map[string]any{
+				"dc":       []string{"dc2"},
+				"keyspace": []string{tabletSingleDCKs, vnodeKs},
+				"host":     IPFromTestNet("22"),
+			})
+			h.assertDone(shortWait)
+		})
+
+		t.Run("Repairing table with node down should fail at generating target", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			down := IPFromTestNet("22")
+			h.stopNode(down)
+			defer h.startNode(down, globalNodeInfo)
+
+			_, err := h.generateTarget(map[string]any{
+				"keyspace": []string{tabletMultiDCKs},
+			})
+			if err == nil {
+				t.Fatal("Expected err, got nil")
+			}
+			_, err = h.generateTarget(map[string]any{
+				"keyspace": []string{vnodeKs},
+			})
+			if err == nil {
+				t.Fatal("Expected err, got nil")
+			}
+		})
+
+		t.Run("Repairing table with node down from filtered out DC should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			down := IPFromTestNet("22")
+			h.stopNode(down)
+			defer h.startNode(down, globalNodeInfo)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			h.runRepair(ctx, map[string]any{
+				"keyspace": []string{tabletMultiDCKs, vnodeKs},
+				"dc":       []string{"dc1"},
+			})
+			h.assertDone(2 * longWait)
+		})
+	})
+
+	t.Run("tablet repair API load balancing", func(t *testing.T) {
+		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Skip("This test is expects that tablet repair API is exposed")
+		}
+
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		const (
+			tabletKS = "test_repair_single_dc_tablet_ks"
+			vnodeKs  = "test_repair_vnode_ks"
+			t1       = "test_table_1"
+			t2       = "test_table_2"
+		)
+		testCases := []struct {
+			ks         string
+			tab        []string
+			api        string
+			singleCall bool
+		}{
+			{
+				ks:         tabletKS,
+				tab:        []string{t1, t2},
+				api:        tabletRepairEndpoint,
+				singleCall: true,
+			},
+			{
+				ks:         vnodeKs,
+				tab:        []string{t1, t2},
+				api:        repairAsyncEndpoint,
+				singleCall: false,
+			},
+		}
+
+		Print("When: prepare keyspaces")
+		createTabletKeyspace(t, clusterSession, tabletKS, 2, 2)
+		WriteData(t, clusterSession, tabletKS, 1, t1, t2)
+		defer dropKeyspace(t, clusterSession, tabletKS)
+
+		createVnodeKeyspace(t, clusterSession, vnodeKs, 2, 2)
+		WriteData(t, clusterSession, vnodeKs, 1, t1, t2)
+		defer dropKeyspace(t, clusterSession, vnodeKs)
+
+		tabRepairAPI := make(map[string]string)
+		tabCallCnt := make(map[string]int)
+		mu := sync.Mutex{}
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if enabled, ok := newTabletLoadBalancingReq(t, req); ok {
+				if !enabled {
+					t.Error("Disabled tablet load balancing when tablet repair API is exposed")
+				}
+			}
+			if r, ok := parseRepairReq(t, req); ok {
+				mu.Lock()
+				tabCallCnt[r.fullTable()]++
+				if api, ok := tabRepairAPI[r.fullTable()]; ok {
+					if api != req.URL.Path {
+						t.Error("Mixing repair API for the same table")
+					}
+				} else {
+					tabRepairAPI[r.fullTable()] = req.URL.Path
+				}
+				mu.Unlock()
+			}
+			return nil, nil
+		}))
+
+		Print("When: run dc1 repair")
+		h.runRepair(ctx, map[string]any{
+			"keyspace":              []string{tabletKS, vnodeKs},
+			"small_table_threshold": repairAllSmallTableThreshold,
+		})
+
+		Print("Then: repair is done")
+		h.assertDone(longWait)
+
+		Print("Then: validate used repair API")
+		for _, tc := range testCases {
+			for _, tab := range tc.tab {
+				fn := tc.ks + "." + tab
+				if api := tabRepairAPI[fn]; !strings.HasPrefix(api, tc.api) {
+					t.Errorf("Table %q: expected API %q, got %q", fn, tc.api, api)
+				}
+				if cnt := tabCallCnt[fn]; cnt <= 0 || ((cnt == 1) != tc.singleCall) {
+					t.Errorf("Table %q: expected single_call=%v, got %d", fn, tc.singleCall, cnt)
+				}
+			}
+		}
 	})
 }
 
