@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -968,22 +969,35 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	}
 
 	a := atomic.NewInt64(0)
-	b := atomic.NewInt64(0)
 	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") && a.Inc() == 1 {
 			Print("And: context1 is canceled")
 			cancel1()
 		}
-		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async") && b.Inc() == 1 {
-			Print("And: context2 is canceled")
-			cancel2()
-		}
-		if strings.HasPrefix(req.URL.Path, "/storage_service/tablets/repair") && b.Inc() == 1 {
-			Print("And: context2 is canceled")
-			cancel2()
-		}
 		return nil, nil
 	}))
+
+	b := atomic.NewInt64(0)
+	dstH.Hrt.SetRespInterceptor(func(resp *http.Response, err error) (*http.Response, error) {
+		if resp == nil {
+			return nil, nil
+		}
+
+		var copiedBody bytes.Buffer
+		tee := io.TeeReader(resp.Body, &copiedBody)
+		body, _ := io.ReadAll(tee)
+		resp.Body = io.NopCloser(&copiedBody)
+
+		// Response to repair status
+		if resp.Request.URL.Path == "/storage_service/repair_status" && resp.Request.Method == http.MethodGet && resp.Request.URL.Query()["id"][0] != "-1" {
+			status := string(body)
+			if status == "\"SUCCESSFUL\"" && b.Inc() == 1 {
+				Print("And: context2 is canceled")
+				cancel2()
+			}
+		}
+		return nil, nil
+	})
 
 	Print("When: run restore and stop it during load and stream")
 	err = dstH.service.Restore(ctx1, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target))

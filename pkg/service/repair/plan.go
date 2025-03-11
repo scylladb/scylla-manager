@@ -19,10 +19,10 @@ import (
 type plan struct {
 	Keyspaces keyspacePlans
 
-	Hosts            []string
-	MaxParallel      int
-	MaxHostIntensity map[string]Intensity
-	apiSupport       apiSupport
+	Hosts                []string
+	MaxParallel          int
+	MaxHostIntensity     map[string]Intensity
+	SmallTableOptSupport bool
 	// Used for progress purposes
 	Stats map[scyllaclient.HostKeyspaceTable]tableStats
 }
@@ -43,7 +43,6 @@ type tablePlan struct {
 	RangesCnt     int
 	ReplicaSetCnt int
 	Small         bool
-	FullRepair    bool // Is an entire table is going to be repaired
 }
 
 type tableStats struct {
@@ -83,12 +82,8 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 			// Update ranges and hosts
 			rangesCnt := 0
 			replicaSetCnt := 0
-			fullRepair := true
 			for _, rep := range ring.ReplicaTokens {
 				filtered := filterReplicaSet(rep.ReplicaSet, ring.HostDC, target)
-				if len(filtered) != len(rep.ReplicaSet) {
-					fullRepair = false
-				}
 				if len(filtered) == 0 {
 					continue
 				}
@@ -106,7 +101,6 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 				Table:         t,
 				ReplicaSetCnt: replicaSetCnt,
 				RangesCnt:     rangesCnt,
-				FullRepair:    fullRepair,
 			})
 		}
 
@@ -130,7 +124,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 	ks.fillSmall(target.SmallTableThreshold)
 
-	support, err := getRepairAPISupport(ctx, client, hosts)
+	support, err := isSmallTableOptSupported(ctx, client, hosts)
 	if err != nil {
 		return nil, errors.Wrap(err, "check support of small_table_optimization")
 	}
@@ -142,12 +136,12 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 
 	return &plan{
-		Keyspaces:        ks,
-		Hosts:            hosts,
-		MaxParallel:      maxP,
-		MaxHostIntensity: mhi,
-		apiSupport:       support,
-		Stats:            newStats(sizeReport, ranges),
+		Keyspaces:            ks,
+		Hosts:                hosts,
+		MaxParallel:          maxP,
+		MaxHostIntensity:     mhi,
+		SmallTableOptSupport: support,
+		Stats:                newStats(sizeReport, ranges),
 	}, nil
 }
 
@@ -374,22 +368,9 @@ func newHostKsTable(host, ks, table string) scyllaclient.HostKeyspaceTable {
 	}
 }
 
-// apiSupport describes the support for optimized repair API
-// calls which are not present in all supported Scylla versions.
-type apiSupport struct {
-	// If /storage_service/repair_async/{keyspace} API supports
-	// 'small_table_optimization' query param.
-	smallTableRepair bool
-	// If /storage_service/tablets/repair API is exposed.
-	// It might not necessarily allow for host filtering.
-	tabletRepairNoHostFiltering bool
-}
-
-func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts []string) (apiSupport, error) {
-	smallTableOpt := atomic.Bool{}
-	smallTableOpt.Store(true)
-	fullTabletTableOpt := atomic.Bool{}
-	fullTabletTableOpt.Store(true)
+func isSmallTableOptSupported(ctx context.Context, client *scyllaclient.Client, hosts []string) (bool, error) {
+	out := atomic.Bool{}
+	out.Store(true)
 	eg := errgroup.Group{}
 
 	for _, host := range hosts {
@@ -399,32 +380,19 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 			if err != nil {
 				return err
 			}
-
 			res, err := ni.SupportsRepairSmallTableOptimization()
 			if err != nil {
 				return err
 			}
 			if !res {
-				smallTableOpt.Store(false)
+				out.Store(false)
 			}
-
-			res, err = ni.SupportsTabletRepairNoHostFiltering()
-			if err != nil {
-				return err
-			}
-			if !res {
-				fullTabletTableOpt.Store(false)
-			}
-
 			return nil
 		})
 	}
 
 	if err := eg.Wait(); err != nil {
-		return apiSupport{}, err
+		return false, err
 	}
-	return apiSupport{
-		smallTableRepair:            smallTableOpt.Load(),
-		tabletRepairNoHostFiltering: fullTabletTableOpt.Load(),
-	}, nil
+	return out.Load(), nil
 }

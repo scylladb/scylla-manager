@@ -255,7 +255,6 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Create worker pool
 	workers := workerpool.New[*worker, job, jobResult](gracefulCtx, func(_ context.Context, i int) *worker {
 		return &worker{
-			config:     s.config,
 			client:     client,
 			stopTrying: make(map[string]struct{}),
 			progress:   pm,
