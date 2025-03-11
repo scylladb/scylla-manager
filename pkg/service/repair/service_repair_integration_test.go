@@ -1715,7 +1715,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if r, ok := parseRepairReq(t, req); ok {
-					if r.SmallTableOptimization {
+					if r.smallTableOptimization {
 						optUsed.Store(true)
 					}
 				}
@@ -1782,7 +1782,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if r, ok := parseRepairReq(t, req); ok {
-					if r.SmallTableOptimization {
+					if r.smallTableOptimization {
 						optUsed.Store(true)
 					}
 					if slices.Equal(r.ranges, []scyllaclient.TokenRange{{StartToken: dht.Murmur3MinToken, EndToken: dht.Murmur3MaxToken}}) {
@@ -1947,10 +1947,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if r, ok := parseRepairReq(t, req); ok {
 				cnt.Add(1)
-				if r.RangesParallelism != desiredIntensity {
-					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
+				if r.rangesParallelism != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.rangesParallelism)
 				}
-				if r.RangesParallelism == len(r.ranges) {
+				if r.rangesParallelism == len(r.ranges) {
 					t.Error("Ranges should be batched")
 				}
 			}
@@ -1997,8 +1997,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		pauseCtx, pauseCancel := context.WithCancel(ctx)
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if r, ok := parseRepairReq(t, req); ok {
-				if r.RangesParallelism != desiredIntensity {
-					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
+				if r.rangesParallelism != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.rangesParallelism)
 				}
 
 				rangesCnt := len(r.ranges)
@@ -2009,11 +2009,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 
 				if batching.Load() {
-					if r.RangesParallelism == rangesCnt {
+					if r.rangesParallelism == rangesCnt {
 						t.Error("Ranges should be batched")
 					}
 				} else {
-					if r.RangesParallelism != rangesCnt {
+					if r.rangesParallelism != rangesCnt {
 						t.Error("Ranges shouldn't be batched")
 					}
 				}
