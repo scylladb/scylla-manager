@@ -125,18 +125,23 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start generator")
 	var genErr error
 
-	defer func() {
-		// Always leave tablet migration enabled after repair
-		tabletBalancingErr := g.ringDescriber.ControlTabletLoadBalancing(context.Background(), true)
-		err = stdErrors.Join(err, errors.Wrap(tabletBalancingErr, "control post repair tablet load balancing"))
-	}()
+	if !g.plan.apiSupport.tabletRepair {
+		defer func() {
+			// Always leave tablet migration enabled after repair
+			tabletBalancingErr := g.ringDescriber.ControlTabletLoadBalancing(context.Background(), true)
+			err = stdErrors.Join(err, errors.Wrap(tabletBalancingErr, "control post repair tablet load balancing"))
+		}()
+	}
 
 	for _, ksp := range g.plan.Keyspaces {
-		// Disable tablet migration when repairing tablet table.
-		// Without that it could be possible that some tablet "escapes" being
-		// a repaired by migrating from not yet repaired token range to already repaired one.
-		if err := g.ringDescriber.ControlTabletLoadBalancing(ctx, g.ringDescriber.IsTabletKeyspace(ksp.Keyspace)); err != nil {
-			return errors.Wrapf(err, "control tablet load balancing")
+		if !g.plan.apiSupport.tabletRepair {
+			// Disable tablet migration when repairing tablet table.
+			// Without that it could be possible that some tablet "escapes" being
+			// repaired by migrating from not yet repaired token range to already repaired one.
+			// We don't need to do it when tablet repair API is available.
+			if err := g.ringDescriber.ControlTabletLoadBalancing(ctx, g.ringDescriber.IsTabletKeyspace(ksp.Keyspace)); err != nil {
+				return errors.Wrapf(err, "control tablet load balancing")
+			}
 		}
 
 		for _, tp := range ksp.Tables {
