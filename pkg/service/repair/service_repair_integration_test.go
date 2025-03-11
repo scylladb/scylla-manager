@@ -265,6 +265,51 @@ func (h *repairTestHelper) assertParallelIntensity(parallel, intensity int) {
 	}
 }
 
+func (h *repairTestHelper) stopNode(host string) {
+	h.T.Helper()
+
+	_, _, err := ExecOnHost(host, "sudo supervisorctl stop scylla")
+	if err != nil {
+		h.T.Fatal(err)
+	}
+}
+
+func (h *repairTestHelper) startNode(host string, ni *scyllaclient.NodeInfo) {
+	h.T.Helper()
+
+	_, _, err := ExecOnHost(host, "sudo supervisorctl start scylla")
+	if err != nil {
+		h.T.Fatal(err)
+	}
+
+	cfg := cqlping.Config{
+		Addr:    ni.CQLAddr(host, false),
+		Timeout: time.Minute,
+	}
+	if testconfig.IsSSLEnabled() {
+		sslOpts := testconfig.CQLSSLOptions()
+		tlsConfig, err := testconfig.TLSConfig(sslOpts)
+		if err != nil {
+			h.T.Fatalf("setup tls config: %v", err)
+		}
+		cfg.TLSConfig = tlsConfig
+	}
+
+	cond := func() bool {
+		if _, err = cqlping.QueryPing(context.Background(), cfg, TestDBUsername(), TestDBPassword()); err != nil {
+			return false
+		}
+		status, err := h.Client.Status(context.Background())
+		if err != nil {
+			return false
+		}
+		return len(status.Live()) == len(ManagedClusterHosts())
+	}
+
+	WaitCond(h.T, cond, time.Second, shortWait)
+	time.Sleep(time.Second)
+}
+
 func percentComplete(p repair.Progress) (int, int) {
 	if p.TokenRanges == 0 {
 		return 0, 0
@@ -1051,42 +1096,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, _, err = ExecOnHost(ignored, "sudo supervisorctl stop scylla")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() {
-			_, _, err := ExecOnHost(ignored, "sudo supervisorctl start scylla")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			cfg := cqlping.Config{
-				Addr:    ni.CQLAddr(ignored, false),
-				Timeout: time.Minute,
-			}
-			if testconfig.IsSSLEnabled() {
-				sslOpts := testconfig.CQLSSLOptions()
-				tlsConfig, err := testconfig.TLSConfig(sslOpts)
-				if err != nil {
-					t.Fatalf("setup tls config: %v", err)
-				}
-				cfg.TLSConfig = tlsConfig
-			}
-
-			cond := func() bool {
-				if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
-					return false
-				}
-				status, err := h.Client.Status(ctx)
-				if err != nil {
-					return false
-				}
-				return len(status.Live()) == len(ManagedClusterHosts())
-			}
-
-			WaitCond(t, cond, time.Second, shortWait)
-		}()
+		h.stopNode(ignored)
+		defer h.startNode(ignored, ni)
 
 		Print("When: run repair")
 		h.runRepair(ctx, singleUnit(map[string]any{
