@@ -33,6 +33,7 @@ type keyspacePlans []keyspacePlan
 type keyspacePlan struct {
 	Keyspace string
 	Size     int64
+	Tablet   bool
 	Tables   []tablePlan
 }
 
@@ -107,6 +108,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		if len(tables) > 0 {
 			ks = append(ks, keyspacePlan{
 				Keyspace: u.Keyspace,
+				Tablet:   ringDescriber.IsTabletKeyspace(u.Keyspace),
 				Tables:   tables,
 			})
 		}
