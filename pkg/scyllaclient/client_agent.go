@@ -214,6 +214,16 @@ func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
 	return supports, nil
 }
 
+// SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
+func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
+	// Detect master builds
+	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
+		return true, nil
+	}
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
+}
+
 // SafeDescribeMethod describes supported methods to ensure that scylla schema is consistent.
 type SafeDescribeMethod string
 
