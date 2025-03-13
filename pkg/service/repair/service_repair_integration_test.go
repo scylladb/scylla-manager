@@ -61,7 +61,6 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	s := newTestService(t, session, c, config, logger, clusterID)
 
