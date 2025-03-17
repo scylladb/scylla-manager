@@ -10,7 +10,7 @@ YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-SCYLLA_VERSION?=scylla:6.0.1
+SCYLLA_VERSION?=scylla-nightly:latest
 IP_FAMILY?=IPV4
 RAFT_SCHEMA?=none
 TABLETS?=enabled
