@@ -82,5 +82,27 @@ docker_manifests:
     - --insecure
     skip_push: false
 
+  - id: scylla-manager-latest
+    name_template: "scylladb/scylla-manager:latest"
+    image_templates:
+    - "scylladb/scylla-manager:{{ .Version }}-x86_64"
+    - "scylladb/scylla-manager:{{ .Version }}-aarch64"
+    create_flags:
+    - --insecure
+    push_flags:
+    - --insecure
+    skip_push: false
+  
+  - id: scylla-manager-agent-latest
+    name_template: "scylladb/scylla-manager-agent:latest"
+    image_templates:
+    - "scylladb/scylla-manager-agent:{{ .Version }}-x86_64"
+    - "scylladb/scylla-manager-agent:{{ .Version }}-aarch64"
+    create_flags:
+    - --insecure
+    push_flags:
+    - --insecure
+    skip_push: false
+
 checksum:
   name_template: 'checksums'
