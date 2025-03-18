@@ -101,11 +101,7 @@ func testRetry(t *testing.T, hosts []string, n int, shouldTimeout bool) error {
 	config := scyllaclient.TestConfig(hosts, AgentAuthToken())
 	config.Transport = hostRecorder(scyllaclient.DefaultTransport(), triedHosts)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.Timeout)
-	defer cancel()
-	defer unblock(context.Background())
-
-	if err := block(ctx, hosts[0:n]); err != nil {
+	if err := block(context.Background(), hosts[0:n]); err != nil {
 		return err
 	}
 
@@ -113,6 +109,10 @@ func testRetry(t *testing.T, hosts []string, n int, shouldTimeout bool) error {
 	if err != nil {
 		return err
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.Timeout)
+	defer cancel()
+	defer unblock(context.Background())
 
 	if _, err = client.Hosts(ctx); err != nil {
 		if shouldTimeout {

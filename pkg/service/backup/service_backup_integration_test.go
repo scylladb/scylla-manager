@@ -2222,7 +2222,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 		}
 	}
 	downloadFilesCmd := []string{
-		"sudo -u scylla",
+		"su scylla -c",
 		"scylla-manager-agent",
 		"download-files",
 		"-d", "/var/lib/scylla/data",

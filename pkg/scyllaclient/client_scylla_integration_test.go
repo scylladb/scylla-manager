@@ -169,14 +169,37 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hosts, err := client.Hosts(context.Background())
+	ni, err := client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tabletAPI, err := ni.SupportsTabletRepair()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	Print("Given: cluster with table to repair")
+	const ks = "test_active_repairs_ks"
+	s := db.CreateSessionAndDropAllKeyspaces(t, client)
+	db.WriteData(t, s, ks, 1)
+
+	rd := scyllaclient.NewRingDescriber(context.Background(), client)
+	asyncRepair := func(ctx context.Context, ks, tab, master string) {
+		if _, err := client.RawRepair(ctx, ks, tab, master); err != nil {
+			t.Error(err)
+		}
+	}
+	if rd.IsTabletKeyspace(ks) && tabletAPI {
+		asyncRepair = func(ctx context.Context, ks, tab, master string) {
+			if _, err := client.TabletRepair(ctx, ks, tab, master, nil, nil); err != nil {
+				t.Error(err)
+			}
+		}
+	}
+
 	Print("When: cluster is idle")
 	Print("Then: no repairs are running")
-	active, err := client.ActiveRepairs(context.Background(), hosts)
+	active, err := client.ActiveRepairs(context.Background(), ManagedClusterHosts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,23 +207,23 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		t.Fatal(active)
 	}
 
-	Print("When: repair is running on host 0")
-	go func() {
-		ExecOnHost(hosts[0], "nodetool repair -pr")
-	}()
 	defer func() {
-		if err := client.KillAllRepairs(context.Background(), hosts[0]); err != nil {
+		// Make sure that repairs don't spill to other tests
+		if err := client.KillAllRepairs(context.Background(), ManagedClusterHosts()...); err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	Print("Then: active repairs reports host 0")
+	Print("When: repairs are running")
+	Print("Then: repairs are reported as active")
 	WaitCond(t, func() bool {
-		active, err = client.ActiveRepairs(context.Background(), hosts)
+		// Multiple repair requests in order to reduce flakiness
+		asyncRepair(context.Background(), ks, db.BigTableName, ManagedClusterHost())
+		active, err = client.ActiveRepairs(context.Background(), ManagedClusterHosts())
 		if err != nil {
 			t.Fatal(err)
 		}
-		return cmp.Diff(active, hosts[0:1]) == ""
+		return len(active) > 0
 	}, 500*time.Millisecond, 4*time.Second)
 }
 

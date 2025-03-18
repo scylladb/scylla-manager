@@ -267,7 +267,7 @@ func (h *repairTestHelper) assertParallelIntensity(parallel, intensity int) {
 func (h *repairTestHelper) stopNode(host string) {
 	h.T.Helper()
 
-	_, _, err := ExecOnHost(host, "sudo supervisorctl stop scylla")
+	_, _, err := ExecOnHost(host, "supervisorctl stop scylla")
 	if err != nil {
 		h.T.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func (h *repairTestHelper) stopNode(host string) {
 func (h *repairTestHelper) startNode(host string, ni *scyllaclient.NodeInfo) {
 	h.T.Helper()
 
-	_, _, err := ExecOnHost(host, "sudo supervisorctl start scylla")
+	_, _, err := ExecOnHost(host, "supervisorctl start scylla")
 	if err != nil {
 		h.T.Fatal(err)
 	}
