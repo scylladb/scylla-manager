@@ -1,7 +1,7 @@
 FROM docker.io/redhat/ubi9-minimal:latest
 ARG ARCH=x86_64
 
-RUN microdnf update && \
+RUN microdnf -y update && \
     microdnf -y upgrade && \
     microdnf install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
