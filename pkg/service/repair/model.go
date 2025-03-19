@@ -31,9 +31,10 @@ func NewIntensityFromDeprecated(i float64) Intensity {
 
 // Target specifies what shall be repaired.
 type Target struct {
-	Units               []Unit    `json:"units"`
-	DC                  []string  `json:"dc"`
-	Host                string    `json:"host,omitempty"`
+	Units []Unit   `json:"units"`
+	DC    []string `json:"dc"`
+	Host  string   `json:"host,omitempty"`
+	// Down hosts excluded from repair by the --ignore-down-hosts flag.
 	IgnoreHosts         []string  `json:"ignore_hosts,omitempty"`
 	FailFast            bool      `json:"fail_fast"`
 	Continue            bool      `json:"continue"`

@@ -177,13 +177,13 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 func validateIgnoreDownNodes(t Target, status scyllaclient.NodeStatusInfoSlice) error {
 	// Ensure that either there are no down nodes in repaired DCs,
-	// or that --ignore-down-nodes is set.
+	// or that --ignore-down-hosts is set.
 	downNodesInDCs := status.Datacenter(t.DC).Down().Hosts()
 	if len(downNodesInDCs) == 0 || len(t.IgnoreHosts) > 0 {
 		return nil
 	}
 	return errors.Errorf("repairing DCs with down nodes won't be successful: %v. "+
-		"Please either exclude down nodes from being repaired with --ignore-down-nodes flag, "+
+		"Please either exclude down nodes from being repaired with --ignore-down-hosts flag, "+
 		"or filter out DCs with down nodes with --dc flag", downNodesInDCs)
 }
 
