@@ -2219,13 +2219,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		})
 	})
 
-	t.Run("tablet repair API load balancing", func(t *testing.T) {
-		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
-			t.Fatal(err)
-		} else if !ok {
-			t.Skip("This test is expects that tablet repair API is exposed")
-		}
-
+	t.Run("repair API", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -2237,23 +2231,36 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t2       = "test_table_2"
 		)
 		testCases := []struct {
-			ks         string
-			tab        []string
-			api        string
-			singleCall bool
+			ks            string
+			tab           []string
+			api           string
+			singleCall    bool
+			loadBalancing bool
 		}{
 			{
-				ks:         tabletKS,
-				tab:        []string{t1, t2},
-				api:        tabletRepairEndpoint,
-				singleCall: true,
+				ks:            tabletKS,
+				tab:           []string{t1, t2},
+				api:           tabletRepairEndpoint,
+				singleCall:    true,
+				loadBalancing: true,
 			},
 			{
-				ks:         vnodeKs,
-				tab:        []string{t1, t2},
-				api:        repairAsyncEndpoint,
-				singleCall: false,
+				ks:            vnodeKs,
+				tab:           []string{t1, t2},
+				api:           repairAsyncEndpoint,
+				singleCall:    false,
+				loadBalancing: true,
 			},
+		}
+
+		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			// For this Scylla version tablet tables
+			// are still repaired with the old repair API.
+			testCases[0].api = repairAsyncEndpoint
+			testCases[0].singleCall = false
+			testCases[0].loadBalancing = false
 		}
 
 		Print("When: prepare keyspaces")
@@ -2265,31 +2272,42 @@ func TestServiceRepairIntegration(t *testing.T) {
 		WriteData(t, clusterSession, vnodeKs, 1, t1, t2)
 		defer dropKeyspace(t, clusterSession, vnodeKs)
 
-		tabRepairAPI := make(map[string]string)
-		tabCallCnt := make(map[string]int)
+		tabRepairEndpoint := make(map[string]string) // The endpoint used for repairing the table
+		tabCallCnt := make(map[string]int)           // The amount of API calls needed for repairing the table
+		tabLoadBalancing := make(map[string]bool)    // Was load balancing enabled when table was repaired
+		loadBalancing := true                        // Keeps track of current load balancing setting
 		mu := sync.Mutex{}
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if enabled, ok := newTabletLoadBalancingReq(t, req); ok {
-				if !enabled {
-					t.Error("Disabled tablet load balancing when tablet repair API is exposed")
-				}
+				mu.Lock()
+				loadBalancing = enabled
+				mu.Unlock()
 			}
 			if r, ok := parseRepairReq(t, req); ok {
 				mu.Lock()
 				tabCallCnt[r.fullTable()]++
-				if api, ok := tabRepairAPI[r.fullTable()]; ok {
+				// Ensure single repair endpoint per table
+				if api, ok := tabRepairEndpoint[r.fullTable()]; ok {
 					if api != req.URL.Path {
 						t.Error("Mixing repair API for the same table")
 					}
 				} else {
-					tabRepairAPI[r.fullTable()] = req.URL.Path
+					tabRepairEndpoint[r.fullTable()] = req.URL.Path
+				}
+				// Ensure single tablet load balancing setting per table
+				if enabled, ok := tabLoadBalancing[r.fullTable()]; ok {
+					if enabled != loadBalancing {
+						t.Error("Mixing load balancing for the same table")
+					}
+				} else {
+					tabLoadBalancing[r.fullTable()] = loadBalancing
 				}
 				mu.Unlock()
 			}
 			return nil, nil
 		}))
 
-		Print("When: run dc1 repair")
+		Print("When: run repair")
 		h.runRepair(ctx, map[string]any{
 			"keyspace":              []string{tabletKS, vnodeKs},
 			"small_table_threshold": repairAllSmallTableThreshold,
@@ -2302,11 +2320,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		for _, tc := range testCases {
 			for _, tab := range tc.tab {
 				fn := tc.ks + "." + tab
-				if api := tabRepairAPI[fn]; !strings.HasPrefix(api, tc.api) {
+				if api := tabRepairEndpoint[fn]; !strings.HasPrefix(api, tc.api) {
 					t.Errorf("Table %q: expected API %q, got %q", fn, tc.api, api)
 				}
 				if cnt := tabCallCnt[fn]; cnt <= 0 || ((cnt == 1) != tc.singleCall) {
 					t.Errorf("Table %q: expected single_call=%v, got %d", fn, tc.singleCall, cnt)
+				}
+				if enabled := tabLoadBalancing[fn]; enabled != tc.loadBalancing {
+					t.Errorf("Table %q: expected tablet load balancing: %v, got %v", fn, tc.loadBalancing, enabled)
 				}
 			}
 		}
