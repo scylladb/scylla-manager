@@ -23,7 +23,7 @@ GORELEASER := goreleaser --clean
 release:
 	git tag -f $(VERSION_NAME)
 	$(GORELEASER) $(publish) --skip=validate --config .goreleaser.yaml
-	$(GORELEASER) --skip=validate --config .goreleaser-docker.yaml --env LATEST_RELEASE=$(LATEST_RELEASE)
+	LATEST_RELEASE=$(LATEST_RELEASE) $(GORELEASER) --skip=validate --config .goreleaser-docker.yaml
 
 .PHONY: snapshot
 snapshot:

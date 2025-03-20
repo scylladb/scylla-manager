@@ -91,10 +91,7 @@ docker_manifests:
     - --insecure
     push_flags:
     - --insecure
-    skip_push: false
-    when:
-      env:
-        LATEST_RELEASE: "true"
+    skip_push: "{{ no .Env.LATEST_RELEASE }}"
   
   - id: scylla-manager-agent-latest
     name_template: "scylladb/scylla-manager-agent:latest"
@@ -105,10 +102,7 @@ docker_manifests:
     - --insecure
     push_flags:
     - --insecure
-    skip_push: false
-    when:
-      env:
-        LATEST_RELEASE: "true"
+    skip_push: "{{ no .Env.LATEST_RELEASE }}"
 
 checksum:
   name_template: 'checksums'
