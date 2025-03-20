@@ -125,23 +125,14 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start generator")
 	var genErr error
 
-	if !g.plan.apiSupport.tabletRepair {
-		defer func() {
-			// Always leave tablet migration enabled after repair
-			tabletBalancingErr := g.ringDescriber.ControlTabletLoadBalancing(context.Background(), true)
-			err = stdErrors.Join(err, errors.Wrap(tabletBalancingErr, "control post repair tablet load balancing"))
-		}()
-	}
+	defer func() {
+		balancingErr := g.handleTabletLoadBalancing(context.Background(), "")
+		err = stdErrors.Join(err, errors.Wrap(balancingErr, "control post repair tablet load balancing"))
+	}()
 
 	for _, ksp := range g.plan.Keyspaces {
-		if !g.plan.apiSupport.tabletRepair {
-			// Disable tablet migration when repairing tablet table.
-			// Without that it could be possible that some tablet "escapes" being
-			// repaired by migrating from not yet repaired token range to already repaired one.
-			// We don't need to do it when tablet repair API is available.
-			if err := g.ringDescriber.ControlTabletLoadBalancing(ctx, g.ringDescriber.IsTabletKeyspace(ksp.Keyspace)); err != nil {
-				return errors.Wrapf(err, "control tablet load balancing")
-			}
+		if err := g.handleTabletLoadBalancing(ctx, ksp.Keyspace); err != nil {
+			return errors.Wrapf(err, "control tablet load balancing")
 		}
 
 		for _, tp := range ksp.Tables {
@@ -166,6 +157,34 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Close generator")
 	g.submitter.Close() // Free workers waiting on next
 	return errors.Wrap(genErr, "see more errors in logs")
+}
+
+// handleTabletLoadBalancing, if needed, controls tablet load
+// balancing, so that the provided keyspace can be safely repaired.
+// It must be called before repairing any keyspace.
+// It must also be called after finishing all repairs,
+// but this time with an empty keyspace argument.
+func (g *generator) handleTabletLoadBalancing(ctx context.Context, keyspace string) error {
+	// No need to disable tablet load balancing since
+	// tablet repair API handles it correctly.
+	if g.plan.apiSupport.tabletRepair {
+		return nil
+	}
+	// Re-enable tablet load balancing after the repair if finished.
+	if keyspace == "" {
+		return g.ringDescriber.ControlTabletLoadBalancing(ctx, true)
+	}
+	// Need to disable tablet load balancing when repairing tablet
+	// keyspace with old repair API since it does not respect tablet migrations.
+	// Not disabling tablet migration would result in skipping repair of tablets
+	// which migrated from not yet repaired token range to already repaired one.
+	// It wouldn't result in data resurrection, as tablets have tombstone_gc
+	// mode set to 'repair'.
+	if g.ringDescriber.IsTabletKeyspace(keyspace) {
+		return g.ringDescriber.ControlTabletLoadBalancing(ctx, false)
+	}
+	// No need to disable tablet load balancing for vnode keyspace.
+	return g.ringDescriber.ControlTabletLoadBalancing(ctx, true)
 }
 
 func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scyllaclient.Ring) *tableGenerator {
