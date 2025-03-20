@@ -1,7 +1,6 @@
 RELEASE        := 0.$(shell date +%Y%m%d).$(shell git describe --always)
 VERSION        ?=3.5.0-dev
 PUBLISH        := 0
-LATEST_RELEASE := false
 
 ifdef $$VERSION
 VERSION := $$VERSION
@@ -12,7 +11,6 @@ publish = --skip=publish
 VERSION_NAME := $(VERSION)-$(RELEASE)
 else
 VERSION_NAME := v$(VERSION)
-LATEST_RELEASE := true
 endif
 
 $(shell echo $(VERSION) > .version)
@@ -23,7 +21,7 @@ GORELEASER := goreleaser --clean
 release:
 	git tag -f $(VERSION_NAME)
 	$(GORELEASER) $(publish) --skip=validate --config .goreleaser.yaml
-	LATEST_RELEASE=$(LATEST_RELEASE) $(GORELEASER) --skip=validate --config .goreleaser-docker.yaml
+	LATEST_RELEASE=true $(GORELEASER) --skip=validate --config .goreleaser-docker.yaml
 
 .PHONY: snapshot
 snapshot:
