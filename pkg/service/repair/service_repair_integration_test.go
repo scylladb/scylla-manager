@@ -808,9 +808,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
 	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
 
-	if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
-		t.Fatal(err)
-	} else if ok {
+	if tabletRepairSupport(t) {
 		createVnodeKeyspace(t, clusterSession, ks3, 1, 1)
 	} else {
 		createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
@@ -1129,9 +1127,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
-			t.Fatal(err)
-		} else if ok {
+		if tabletRepairSupport(t) {
 			t.Skip("This behavior is tested by test 'repair tablet API filtering'")
 		}
 
@@ -2136,9 +2132,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair tablet API filtering", func(t *testing.T) {
-		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
-			t.Fatal(err)
-		} else if !ok {
+		if !tabletRepairSupport(t) {
 			t.Skip("Test expects tablet repair API to be exposed")
 		}
 
@@ -2253,9 +2247,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			},
 		}
 
-		if ok, err := globalNodeInfo.SupportsTabletRepair(); err != nil {
-			t.Fatal(err)
-		} else if !ok {
+		if !tabletRepairSupport(t) {
 			// For this Scylla version tablet tables
 			// are still repaired with the old repair API.
 			testCases[0].api = repairAsyncEndpoint

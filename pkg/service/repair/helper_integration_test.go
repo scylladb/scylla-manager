@@ -38,6 +38,16 @@ import (
 // like Scylla version or tablets.
 var globalNodeInfo *scyllaclient.NodeInfo
 
+func tabletRepairSupport(t *testing.T) bool {
+	t.Helper()
+
+	ok, err := globalNodeInfo.SupportsTabletRepair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ok
+}
+
 // Used to fill globalNodeInfo before running the tests.
 func TestMain(m *testing.M) {
 	if !flag.Parsed() {
