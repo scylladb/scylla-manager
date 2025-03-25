@@ -113,10 +113,10 @@ func (s *Scheduler[K]) Schedule(ctx context.Context, key K, d Details) {
 	}
 	next := d.Trigger.Next(now)
 
-	s.scheduleLocked(ctx, key, next, 0, nil, d.Window)
+	s.scheduleLocked(ctx, key, next, time.Time{}, 0, nil, d.Window)
 }
 
-func (s *Scheduler[K]) reschedule(ctx *RunContext[K]) {
+func (s *Scheduler[K]) reschedule(ctx *RunContext[K], initialActivation time.Time) {
 	key := ctx.Key
 
 	s.mu.Lock()
@@ -143,14 +143,16 @@ func (s *Scheduler[K]) reschedule(ctx *RunContext[K]) {
 	next := d.Trigger.Next(now)
 
 	var (
-		retno int8
-		p     Properties
+		retno                   int8
+		p                       Properties
+		preRescheduleActivation time.Time
 	)
 	switch {
 	case shouldContinue(ctx):
 		next = now
 		retno = ctx.Retry
 		p = ctx.Properties
+		preRescheduleActivation = initialActivation
 	case shouldRetry(ctx, ctx.err):
 		if d.Backoff != nil {
 			if b := d.Backoff.NextBackOff(); b != retry.Stop {
@@ -158,14 +160,45 @@ func (s *Scheduler[K]) reschedule(ctx *RunContext[K]) {
 				retno = ctx.Retry + 1
 				p = ctx.Properties
 				s.listener.OnRetryBackoff(ctx, key, b, retno)
+				preRescheduleActivation = initialActivation
 			}
 		}
 	default:
+		// Use initial activation time instead of now so that we don't skip
+		// activations of runs which ran longer than cron interval (#4309).
+		//
+		// Reschedule after long run:
+		// Cron activation: |-A-------A-------A------ ...
+		// Task execution:  |-[EEEEEEEE][EEE]-[EEE]-- ...
+		//
+		// Reschedule after retries:
+		// Cron activation:      |-A-------A-------A----- ...
+		// Task execution/retry: |-[E]-[R]-[R][EE]-[EE]-- ...
+		//
+		// Reschedule after maintenance window:
+		// Cron activation:         |-A-------A-------A----- ...
+		// Maintenance window:      |[WW]-[W]---[WWWWWWWWWWW ...
+		// Task execution/continue: |-[E]-[C]---[C][E][E]--- ...
+		//
+		// Note that initial activation run is not calculated for runs interrupted
+		// by pause/start and suspend/resume, as they are treated as fresh runs by
+		// the scheduler.
+		//
+		// In general, if task execution takes more time than cron interval,
+		// then the problem is on the cron definition side, but we should still
+		// try to alleviate this issue for "spontaneous" long task executions.
+		//
+		// The +1 should ensure that next is strictly after activation time.
+		// In case this assertion fails, fallback to the previous scheduling
+		// mechanism which uses now for calculating next activation time.
+		if a := d.Trigger.Next(initialActivation.Add(1)); a.After(initialActivation) {
+			next = a
+		}
 		if d.Backoff != nil {
 			d.Backoff.Reset()
 		}
 	}
-	s.scheduleLocked(ctx, key, next, retno, p, d.Window)
+	s.scheduleLocked(ctx, key, next, preRescheduleActivation, retno, p, d.Window)
 }
 
 func shouldContinue(ctx context.Context) bool {
@@ -176,7 +209,7 @@ func shouldRetry(ctx context.Context, err error) bool {
 	return !(err == nil || errors.Is(context.Cause(ctx), ErrStoppedTask) || retry.IsPermanent(err))
 }
 
-func (s *Scheduler[K]) scheduleLocked(ctx context.Context, key K, next time.Time, retno int8, p Properties, w Window) {
+func (s *Scheduler[K]) scheduleLocked(ctx context.Context, key K, next, preRescheduleActivation time.Time, retno int8, p Properties, w Window) {
 	if next.IsZero() {
 		s.listener.OnNoTrigger(ctx, key)
 		s.unscheduleLocked(key)
@@ -186,7 +219,14 @@ func (s *Scheduler[K]) scheduleLocked(ctx context.Context, key K, next time.Time
 	begin, end := w.Next(next)
 
 	s.listener.OnSchedule(ctx, key, begin, end, retno)
-	a := Activation[K]{Key: key, Time: begin, Retry: retno, Properties: p, Stop: end}
+	a := Activation[K]{
+		Time:                    begin,
+		Key:                     key,
+		Retry:                   retno,
+		Properties:              p,
+		Stop:                    end,
+		PreRescheduleActivation: preRescheduleActivation,
+	}
 	if s.queue.Push(a) {
 		s.wakeup()
 	}
@@ -230,7 +270,7 @@ func (s *Scheduler[K]) Trigger(ctx context.Context, key K) bool {
 
 	s.listener.OnTrigger(ctx, key, ok)
 	if ok {
-		s.asyncRun(runCtx)
+		s.asyncRun(runCtx, s.now())
 	}
 	return ok
 }
@@ -326,7 +366,7 @@ func (s *Scheduler[_]) Start(ctx context.Context) {
 		runCtx := s.newRunContextLocked(a)
 		s.mu.Unlock()
 
-		s.asyncRun(runCtx)
+		s.asyncRun(runCtx, InitialActivation(a))
 	}
 
 	s.listener.OnSchedulerStop(ctx)
@@ -393,14 +433,14 @@ func (s *Scheduler[K]) newRunContextLocked(a Activation[K]) *RunContext[K] {
 	return ctx
 }
 
-func (s *Scheduler[K]) asyncRun(ctx *RunContext[K]) {
+func (s *Scheduler[K]) asyncRun(ctx *RunContext[K], initialActivation time.Time) {
 	s.listener.OnRunStart(ctx)
 	s.wg.Add(1)
 	go func(ctx *RunContext[K]) {
 		defer s.wg.Done()
 		ctx.err = s.run(*ctx)
 		s.onRunEnd(ctx)
-		s.reschedule(ctx)
+		s.reschedule(ctx, initialActivation)
 	}(ctx)
 }
 
