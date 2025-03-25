@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/workerpool"
@@ -122,13 +122,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	if props.IgnoreDownHosts {
 		t.IgnoreHosts = status.Datacenter(t.DC).Down().Hosts()
 	}
-	// Ensure Host is not ignored
-	if t.Host != "" && slice.ContainsString(t.IgnoreHosts, t.Host) {
-		return t, errors.New("host can't have status down")
-	}
-	// Ensure Host belongs to DCs
-	if t.Host != "" && !hostBelongsToDCs(t.Host, t.DC, dcMap) {
-		return t, util.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
+	if err := validateIgnoreDownNodes(t, status); err != nil {
+		return t, err
 	}
 
 	// Get potential units - all tables matched by keyspace flag
@@ -160,6 +155,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	p.SizeSort()
 	p.PrioritySort(NewInternalTablePreference())
 
+	if err := validateHost(t, p, dcMap); err != nil {
+		return t, err
+	}
+
 	if clusterSession, err := s.clusterSession(ctx, clusterID); err != nil {
 		s.logger.Info(ctx, "No cluster credentials, couldn't ensure repairing base table before its views", "error", err)
 	} else {
@@ -174,6 +173,49 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Set filtered units as they are still used for displaying --dry-run
 	t.Units = p.FilteredUnits(t.Units)
 	return t, nil
+}
+
+func validateIgnoreDownNodes(t Target, status scyllaclient.NodeStatusInfoSlice) error {
+	// Ensure that either there are no down nodes in repaired DCs,
+	// or that --ignore-down-hosts is set.
+	downNodesInDCs := status.Datacenter(t.DC).Down().Hosts()
+	if len(downNodesInDCs) == 0 || len(t.IgnoreHosts) > 0 {
+		return nil
+	}
+	return errors.Errorf("repairing DCs with down nodes won't be successful: %v. "+
+		"Please either exclude down nodes from being repaired with --ignore-down-hosts flag, "+
+		"or filter out DCs with down nodes with --dc flag", downNodesInDCs)
+}
+
+func validateHost(t Target, p *plan, dcMap map[string][]string) error {
+	// Nothing to validate - no --host flag
+	if t.Host == "" {
+		return nil
+	}
+	// Ensure Host is not ignored
+	if slices.Contains(t.IgnoreHosts, t.Host) {
+		return errors.New("host can't have status down")
+	}
+	// Ensure Host belongs to DCs
+	if !hostBelongsToDCs(t.Host, t.DC, dcMap) {
+		return util.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
+	}
+	// Ensure Host is not used with tablet repair API
+	if !p.apiSupport.tabletRepair {
+		return nil
+	}
+	var tabletKs []string
+	for _, ks := range p.Keyspaces {
+		if ks.Tablet {
+			tabletKs = append(tabletKs, ks.Keyspace)
+		}
+	}
+	if len(tabletKs) > 0 {
+		return errors.Errorf("repairing with --host flag is not supported for tablet keyspaces: %v. "+
+			"It also shouldn't be required as a part of any procedure. Please either remove the --host flag, "+
+			"or filter out all tablet keyspaces with --keyspace flag", tabletKs)
+	}
+	return nil
 }
 
 func hostBelongsToDCs(host string, dcs []string, dcMap map[string][]string) bool {
@@ -256,6 +298,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	workers := workerpool.New[*worker, job, jobResult](gracefulCtx, func(_ context.Context, i int) *worker {
 		return &worker{
 			config:     s.config,
+			target:     target,
 			client:     client,
 			stopTrying: make(map[string]struct{}),
 			progress:   pm,

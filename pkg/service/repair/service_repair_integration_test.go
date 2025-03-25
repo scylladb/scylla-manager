@@ -61,7 +61,6 @@ func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Con
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
 	c := newTestClient(t, hrt, log.NopLogger)
 	s := newTestService(t, session, c, config, logger, clusterID)
 
@@ -263,6 +262,51 @@ func (h *repairTestHelper) assertParallelIntensity(parallel, intensity int) {
 	if p.Parallel != parallel || int(p.Intensity) != intensity {
 		h.T.Fatalf("Expected parallel %d, intensity %d, got parallel %d, intensity %d", parallel, intensity, p.Parallel, int(p.Intensity))
 	}
+}
+
+func (h *repairTestHelper) stopNode(host string) {
+	h.T.Helper()
+
+	_, _, err := ExecOnHost(host, "sudo supervisorctl stop scylla")
+	if err != nil {
+		h.T.Fatal(err)
+	}
+}
+
+func (h *repairTestHelper) startNode(host string, ni *scyllaclient.NodeInfo) {
+	h.T.Helper()
+
+	_, _, err := ExecOnHost(host, "sudo supervisorctl start scylla")
+	if err != nil {
+		h.T.Fatal(err)
+	}
+
+	cfg := cqlping.Config{
+		Addr:    ni.CQLAddr(host, false),
+		Timeout: time.Minute,
+	}
+	if testconfig.IsSSLEnabled() {
+		sslOpts := testconfig.CQLSSLOptions()
+		tlsConfig, err := testconfig.TLSConfig(sslOpts)
+		if err != nil {
+			h.T.Fatalf("setup tls config: %v", err)
+		}
+		cfg.TLSConfig = tlsConfig
+	}
+
+	cond := func() bool {
+		if _, err = cqlping.QueryPing(context.Background(), cfg, TestDBUsername(), TestDBPassword()); err != nil {
+			return false
+		}
+		status, err := h.Client.Status(context.Background())
+		if err != nil {
+			return false
+		}
+		return len(status.Live()) == len(ManagedClusterHosts())
+	}
+
+	WaitCond(h.T, cond, time.Second, shortWait)
+	time.Sleep(time.Second)
 }
 
 func percentComplete(p repair.Progress) (int, int) {
@@ -763,7 +807,12 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	// Create keyspaces. Low RF increases repair parallelism.
 	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
 	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
-	createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
+
+	if tabletRepairSupport(t) {
+		createVnodeKeyspace(t, clusterSession, ks3, 1, 1)
+	} else {
+		createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
+	}
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -1047,47 +1096,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		var ignored = IPFromTestNet("12")
-		ni, err := h.Client.NodeInfo(ctx, ignored)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		_, _, err = ExecOnHost(ignored, "sudo supervisorctl stop scylla")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() {
-			_, _, err := ExecOnHost(ignored, "sudo supervisorctl start scylla")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			cfg := cqlping.Config{
-				Addr:    ni.CQLAddr(ignored, false),
-				Timeout: time.Minute,
-			}
-			if testconfig.IsSSLEnabled() {
-				sslOpts := testconfig.CQLSSLOptions()
-				tlsConfig, err := testconfig.TLSConfig(sslOpts)
-				if err != nil {
-					t.Fatalf("setup tls config: %v", err)
-				}
-				cfg.TLSConfig = tlsConfig
-			}
-
-			cond := func() bool {
-				if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
-					return false
-				}
-				status, err := h.Client.Status(ctx)
-				if err != nil {
-					return false
-				}
-				return len(status.Live()) == len(ManagedClusterHosts())
-			}
-
-			WaitCond(t, cond, time.Second, shortWait)
-		}()
+		h.stopNode(ignored)
+		defer h.startNode(ignored, globalNodeInfo)
 
 		Print("When: run repair")
 		h.runRepair(ctx, singleUnit(map[string]any{
@@ -1116,6 +1126,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+
+		if tabletRepairSupport(t) {
+			t.Skip("This behavior is tested by test 'repair tablet API filtering'")
+		}
 
 		host := h.GetHostsFromDC("dc1")[0]
 		h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
@@ -1516,25 +1530,26 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		Print("When: run repair")
-		holdCtx, holdCancel := context.WithCancel(context.Background())
-		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
-		h.runRepair(ctx, allUnits(map[string]any{
+		// Since RF={'dc1': 2, 'dc2': 2}, max parallel = 1,
+		// so the repair with --fail-fast should finish right
+		// after the first error.
+		var callCnt int32
+		h.Hrt.SetInterceptor(combineInterceptors(
+			countInterceptor(&callCnt, isRepairReq),
+			repairMockInterceptor(t, repairStatusFailed),
+		))
+		h.runRepair(ctx, multipleUnits(map[string]any{
 			"fail_fast":             true,
 			"small_table_threshold": repairAllSmallTableThreshold,
 		}))
 
-		Print("Then: repair is running")
-		h.assertRunning(shortWait)
-
-		Print("And: no network for 5s with 1s backoff")
-		h.Hrt.SetInterceptor(dialErrorInterceptor())
-		holdCancel()
-		time.AfterFunc(3*h.Client.Config().Timeout, func() {
-			h.Hrt.SetInterceptor(repairMockInterceptor(t, repairStatusDone))
-		})
-
 		Print("Then: repair completes with error")
 		h.assertError(longWait)
+
+		Print("Then: repair finished after the first error")
+		if callCnt != 1 {
+			t.Fatalf("Expected repair to finish after the first error, got: %d", callCnt)
+		}
 	})
 
 	t.Run("repair non existing keyspace", func(t *testing.T) {
@@ -1719,7 +1734,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if r, ok := parseRepairReq(t, req); ok {
-					if r.SmallTableOptimization {
+					if r.smallTableOptimization {
 						optUsed.Store(true)
 					}
 				}
@@ -1786,7 +1801,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if r, ok := parseRepairReq(t, req); ok {
-					if r.SmallTableOptimization {
+					if r.smallTableOptimization {
 						optUsed.Store(true)
 					}
 					if slices.Equal(r.ranges, []scyllaclient.TokenRange{{StartToken: dht.Murmur3MinToken, EndToken: dht.Murmur3MaxToken}}) {
@@ -1951,10 +1966,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if r, ok := parseRepairReq(t, req); ok {
 				cnt.Add(1)
-				if r.RangesParallelism != desiredIntensity {
-					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
+				if r.rangesParallelism != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.rangesParallelism)
 				}
-				if r.RangesParallelism == len(r.ranges) {
+				if r.rangesParallelism == len(r.ranges) {
 					t.Error("Ranges should be batched")
 				}
 			}
@@ -2001,8 +2016,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		pauseCtx, pauseCancel := context.WithCancel(ctx)
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if r, ok := parseRepairReq(t, req); ok {
-				if r.RangesParallelism != desiredIntensity {
-					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.RangesParallelism)
+				if r.rangesParallelism != desiredIntensity {
+					t.Errorf("Expected ranges_parallelism=%d, got %d", desiredIntensity, r.rangesParallelism)
 				}
 
 				rangesCnt := len(r.ranges)
@@ -2013,11 +2028,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 
 				if batching.Load() {
-					if r.RangesParallelism == rangesCnt {
+					if r.rangesParallelism == rangesCnt {
 						t.Error("Ranges should be batched")
 					}
 				} else {
-					if r.RangesParallelism != rangesCnt {
+					if r.rangesParallelism != rangesCnt {
 						t.Error("Ranges shouldn't be batched")
 					}
 				}
@@ -2116,91 +2131,177 @@ func TestServiceRepairIntegration(t *testing.T) {
 		h.assertDone(longWait)
 	})
 
-	t.Run("tablet repair API", func(t *testing.T) {
-		if ok, err := globalNodeInfo.SupportsTabletRepairNoHostFiltering(); err != nil {
-			t.Fatal(err)
-		} else if !ok {
-			t.Skip("This test is expects that tablet repair API is exposed")
+	t.Run("repair tablet API filtering", func(t *testing.T) {
+		if !tabletRepairSupport(t) {
+			t.Skip("Test expects tablet repair API to be exposed")
 		}
 
+		const (
+			tabletMultiDCKs  = "tablet_api_filtering_multi_dc_tablet_ks"
+			tabletSingleDCKs = "tablet_api_filtering_single_dc_tablet_ks"
+			vnodeKs          = "tablet_api_filtering_vnode_ks"
+		)
+		createTabletKeyspace(t, clusterSession, tabletMultiDCKs, 2, 2)
+		createTabletKeyspace(t, clusterSession, tabletSingleDCKs, 2, 0)
+		createVnodeKeyspace(t, clusterSession, vnodeKs, 2, 2)
+		WriteData(t, clusterSession, tabletMultiDCKs, 1, "tab")
+		WriteData(t, clusterSession, tabletSingleDCKs, 1, "tab")
+		WriteData(t, clusterSession, vnodeKs, 1, "tab")
+
+		t.Run("Repairing tablet table with --host should fail at generating target", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+			_, err := h.generateTarget(map[string]any{
+				"keyspace": []string{tabletMultiDCKs, tabletSingleDCKs, vnodeKs},
+				"host":     ManagedClusterHost(),
+			})
+			if err == nil {
+				t.Fatal("Expected err, got nil")
+			}
+		})
+
+		t.Run("Repairing filtered out tablet table with --host should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			host := IPFromTestNet("22")
+			h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
+
+			h.runRepair(ctx, map[string]any{
+				"dc":       []string{"dc2"},
+				"keyspace": []string{tabletSingleDCKs, vnodeKs},
+				"host":     IPFromTestNet("22"),
+			})
+			h.assertDone(shortWait)
+		})
+
+		t.Run("Repairing table with node down should fail at generating target", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			down := IPFromTestNet("22")
+			h.stopNode(down)
+			defer h.startNode(down, globalNodeInfo)
+
+			_, err := h.generateTarget(map[string]any{
+				"keyspace": []string{tabletMultiDCKs},
+			})
+			if err == nil {
+				t.Fatal("Expected err, got nil")
+			}
+			_, err = h.generateTarget(map[string]any{
+				"keyspace": []string{vnodeKs},
+			})
+			if err == nil {
+				t.Fatal("Expected err, got nil")
+			}
+		})
+
+		t.Run("Repairing table with node down from filtered out DC should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			down := IPFromTestNet("22")
+			h.stopNode(down)
+			defer h.startNode(down, globalNodeInfo)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			h.runRepair(ctx, map[string]any{
+				"keyspace": []string{tabletMultiDCKs, vnodeKs},
+				"dc":       []string{"dc1"},
+			})
+			h.assertDone(2 * longWait)
+		})
+	})
+
+	t.Run("repair API", func(t *testing.T) {
 		h := newRepairTestHelper(t, session, defaultConfig())
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		const (
-			multiDCTabletKs  = "test_repair_multi_dc_tablet_ks"
-			singleDCTabletKS = "test_repair_single_dc_tablet_ks"
-			vnodeKs          = "test_repair_vnode_ks"
-			t1               = "test_table_1"
-			t2               = "test_table_2"
+			tabletKS = "test_repair_single_dc_tablet_ks"
+			vnodeKs  = "test_repair_vnode_ks"
+			t1       = "test_table_1"
+			t2       = "test_table_2"
 		)
 		testCases := []struct {
-			ks         string
-			tab        []string
-			api        string
-			singleCall bool
+			ks            string
+			tab           []string
+			api           string
+			singleCall    bool
+			loadBalancing bool
 		}{
 			{
-				ks:         multiDCTabletKs,
-				tab:        []string{t1, t2},
-				api:        repairAsyncEndpoint,
-				singleCall: false,
+				ks:            tabletKS,
+				tab:           []string{t1, t2},
+				api:           tabletRepairEndpoint,
+				singleCall:    true,
+				loadBalancing: true,
 			},
 			{
-				ks:         singleDCTabletKS,
-				tab:        []string{t1, t2},
-				api:        tabletRepairEndpoint,
-				singleCall: true,
-			},
-			{
-				ks:         vnodeKs,
-				tab:        []string{t1, t2},
-				api:        repairAsyncEndpoint,
-				singleCall: false,
+				ks:            vnodeKs,
+				tab:           []string{t1, t2},
+				api:           repairAsyncEndpoint,
+				singleCall:    false,
+				loadBalancing: true,
 			},
 		}
 
-		Print("When: prepare keyspaces")
-		createTabletKeyspace(t, clusterSession, multiDCTabletKs, 2, 2)
-		WriteData(t, clusterSession, multiDCTabletKs, 1, t1, t2)
-		defer dropKeyspace(t, clusterSession, multiDCTabletKs)
+		if !tabletRepairSupport(t) {
+			// For this Scylla version tablet tables
+			// are still repaired with the old repair API.
+			testCases[0].api = repairAsyncEndpoint
+			testCases[0].singleCall = false
+			testCases[0].loadBalancing = false
+		}
 
-		createTabletKeyspace(t, clusterSession, singleDCTabletKS, 2, 0)
-		WriteData(t, clusterSession, singleDCTabletKS, 1, t1, t2)
-		defer dropKeyspace(t, clusterSession, singleDCTabletKS)
+		Print("When: prepare keyspaces")
+		createTabletKeyspace(t, clusterSession, tabletKS, 2, 2)
+		WriteData(t, clusterSession, tabletKS, 1, t1, t2)
+		defer dropKeyspace(t, clusterSession, tabletKS)
 
 		createVnodeKeyspace(t, clusterSession, vnodeKs, 2, 2)
 		WriteData(t, clusterSession, vnodeKs, 1, t1, t2)
 		defer dropKeyspace(t, clusterSession, vnodeKs)
 
-		tabRepairAPI := make(map[string]string)
-		tabCallCnt := make(map[string]int)
+		tabRepairEndpoint := make(map[string]string) // The endpoint used for repairing the table
+		tabCallCnt := make(map[string]int)           // The amount of API calls needed for repairing the table
+		tabLoadBalancing := make(map[string]bool)    // Was load balancing enabled when table was repaired
+		loadBalancing := true                        // Keeps track of current load balancing setting
 		mu := sync.Mutex{}
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			if enabled, ok := newTabletLoadBalancingReq(t, req); ok {
-				if !enabled {
-					t.Error("Disabled tablet load balancing when tablet repair API is exposed")
-				}
+				mu.Lock()
+				loadBalancing = enabled
+				mu.Unlock()
 			}
 			if r, ok := parseRepairReq(t, req); ok {
 				mu.Lock()
 				tabCallCnt[r.fullTable()]++
-				if api, ok := tabRepairAPI[r.fullTable()]; ok {
+				// Ensure single repair endpoint per table
+				if api, ok := tabRepairEndpoint[r.fullTable()]; ok {
 					if api != req.URL.Path {
 						t.Error("Mixing repair API for the same table")
 					}
 				} else {
-					tabRepairAPI[r.fullTable()] = req.URL.Path
+					tabRepairEndpoint[r.fullTable()] = req.URL.Path
+				}
+				// Ensure single tablet load balancing setting per table
+				if enabled, ok := tabLoadBalancing[r.fullTable()]; ok {
+					if enabled != loadBalancing {
+						t.Error("Mixing load balancing for the same table")
+					}
+				} else {
+					tabLoadBalancing[r.fullTable()] = loadBalancing
 				}
 				mu.Unlock()
 			}
 			return nil, nil
 		}))
 
-		Print("When: run dc1 repair")
+		Print("When: run repair")
 		h.runRepair(ctx, map[string]any{
-			"keyspace":              []string{multiDCTabletKs, singleDCTabletKS, vnodeKs},
-			"dc":                    []string{"dc1"},
+			"keyspace":              []string{tabletKS, vnodeKs},
 			"small_table_threshold": repairAllSmallTableThreshold,
 		})
 
@@ -2211,11 +2312,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 		for _, tc := range testCases {
 			for _, tab := range tc.tab {
 				fn := tc.ks + "." + tab
-				if api := tabRepairAPI[fn]; !strings.HasPrefix(api, tc.api) {
+				if api := tabRepairEndpoint[fn]; !strings.HasPrefix(api, tc.api) {
 					t.Errorf("Table %q: expected API %q, got %q", fn, tc.api, api)
 				}
 				if cnt := tabCallCnt[fn]; cnt <= 0 || ((cnt == 1) != tc.singleCall) {
 					t.Errorf("Table %q: expected single_call=%v, got %d", fn, tc.singleCall, cnt)
+				}
+				if enabled := tabLoadBalancing[fn]; enabled != tc.loadBalancing {
+					t.Errorf("Table %q: expected tablet load balancing: %v, got %v", fn, tc.loadBalancing, enabled)
 				}
 			}
 		}

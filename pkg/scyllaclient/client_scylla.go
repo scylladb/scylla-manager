@@ -592,18 +592,26 @@ func ReplicaHash(replicaSet []string) uint64 {
 }
 
 // TabletRepair schedules Scylla repair tablet table task and returns its ID.
-// The whole table will be repaired on all nodes with just a single task.
-// The host is only needed so that we know which node should be queried
-// for the task status.
-func (c *Client) TabletRepair(ctx context.Context, keyspace, table, host string) (string, error) {
+// All tablets will be repaired with just a single task. It repairs all hosts
+// by default, but it's possible to filter them by DC or host ID. The master is
+// only needed so that we know which node should be queried for the task status.
+func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string) (string, error) {
 	const allTablets = "all"
 	dontAwaitCompletion := "false"
 	p := operations.StorageServiceTabletsRepairPostParams{
-		Context:         forceHost(ctx, host),
+		Context:         forceHost(ctx, master),
 		Ks:              keyspace,
 		Table:           table,
 		Tokens:          allTablets,
 		AwaitCompletion: &dontAwaitCompletion,
+	}
+	if len(dcs) > 0 {
+		merged := strings.Join(dcs, ",")
+		p.SetDcsFilter(&merged)
+	}
+	if len(hostIDs) > 0 {
+		merged := strings.Join(hostIDs, ",")
+		p.SetHostsFilter(&merged)
 	}
 	resp, err := c.scyllaOps.StorageServiceTabletsRepairPost(&p)
 	if err != nil {

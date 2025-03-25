@@ -15,6 +15,7 @@ import (
 
 type worker struct {
 	config Config
+	target Target
 	client *scyllaclient.Client
 	// Marks tables for which handleRunningStatus didn't have any effect.
 	// We want to limit the usage of handleRunningStatus to once per table
@@ -167,7 +168,12 @@ func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
 }
 
 func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, host string) error {
-	id, err := w.client.TabletRepair(ctx, keyspace, table, host)
+	hostFilter, err := w.hostFilter(ctx)
+	if err != nil {
+		return errors.Wrap(err, "create host filter")
+	}
+
+	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter)
 	if err != nil {
 		return errors.Wrap(err, "schedule tablet repair task")
 	}
@@ -197,6 +203,17 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 			return errors.Errorf("unexpected tablet repair task status %q", status.State)
 		}
 	}
+}
+
+func (w *worker) hostFilter(ctx context.Context) ([]string, error) {
+	if len(w.target.IgnoreHosts) == 0 {
+		return nil, nil
+	}
+	status, err := w.client.Status(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get status")
+	}
+	return status.Up().HostIDs(), nil
 }
 
 func (w *worker) scyllaAbortTask(host, id string) {

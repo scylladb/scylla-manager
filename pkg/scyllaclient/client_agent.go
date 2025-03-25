@@ -214,9 +214,8 @@ func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
 	return supports, nil
 }
 
-// SupportsTabletRepairNoHostFiltering returns true if /storage_service/tablets/repair API is exposed.
-// It might not necessarily allow for host filtering.
-func (ni *NodeInfo) SupportsTabletRepairNoHostFiltering() (bool, error) {
+// SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
+func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
 	// Detect master builds
 	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
 		return true, nil

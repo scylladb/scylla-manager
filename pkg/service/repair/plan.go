@@ -33,6 +33,7 @@ type keyspacePlans []keyspacePlan
 type keyspacePlan struct {
 	Keyspace string
 	Size     int64
+	Tablet   bool
 	Tables   []tablePlan
 }
 
@@ -43,7 +44,6 @@ type tablePlan struct {
 	RangesCnt     int
 	ReplicaSetCnt int
 	Small         bool
-	FullRepair    bool // Is an entire table is going to be repaired
 }
 
 type tableStats struct {
@@ -83,12 +83,8 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 			// Update ranges and hosts
 			rangesCnt := 0
 			replicaSetCnt := 0
-			fullRepair := true
 			for _, rep := range ring.ReplicaTokens {
 				filtered := filterReplicaSet(rep.ReplicaSet, ring.HostDC, target)
-				if len(filtered) != len(rep.ReplicaSet) {
-					fullRepair = false
-				}
 				if len(filtered) == 0 {
 					continue
 				}
@@ -106,13 +102,13 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 				Table:         t,
 				ReplicaSetCnt: replicaSetCnt,
 				RangesCnt:     rangesCnt,
-				FullRepair:    fullRepair,
 			})
 		}
 
 		if len(tables) > 0 {
 			ks = append(ks, keyspacePlan{
 				Keyspace: u.Keyspace,
+				Tablet:   ringDescriber.IsTabletKeyspace(u.Keyspace),
 				Tables:   tables,
 			})
 		}
@@ -381,8 +377,7 @@ type apiSupport struct {
 	// 'small_table_optimization' query param.
 	smallTableRepair bool
 	// If /storage_service/tablets/repair API is exposed.
-	// It might not necessarily allow for host filtering.
-	tabletRepairNoHostFiltering bool
+	tabletRepair bool
 }
 
 func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts []string) (apiSupport, error) {
@@ -408,7 +403,7 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 				smallTableOpt.Store(false)
 			}
 
-			res, err = ni.SupportsTabletRepairNoHostFiltering()
+			res, err = ni.SupportsTabletRepair()
 			if err != nil {
 				return err
 			}
@@ -424,7 +419,7 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 		return apiSupport{}, err
 	}
 	return apiSupport{
-		smallTableRepair:            smallTableOpt.Load(),
-		tabletRepairNoHostFiltering: fullTabletTableOpt.Load(),
+		smallTableRepair: smallTableOpt.Load(),
+		tabletRepair:     fullTabletTableOpt.Load(),
 	}, nil
 }

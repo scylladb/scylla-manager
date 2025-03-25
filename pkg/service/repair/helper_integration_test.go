@@ -24,7 +24,6 @@ import (
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
@@ -38,6 +37,16 @@ import (
 // Read only, should be used for checking testing environment
 // like Scylla version or tablets.
 var globalNodeInfo *scyllaclient.NodeInfo
+
+func tabletRepairSupport(t *testing.T) bool {
+	t.Helper()
+
+	ok, err := globalNodeInfo.SupportsTabletRepair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ok
+}
 
 // Used to fill globalNodeInfo before running the tests.
 func TestMain(m *testing.M) {
@@ -96,15 +105,18 @@ func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 
 type repairReq struct {
 	// always set
-	host       string
-	keyspace   string
-	table      string
+	host     string
+	keyspace string
+	table    string
+	// always set for vnode
 	replicaSet []string
 	ranges     []scyllaclient.TokenRange
-
-	// optional
-	SmallTableOptimization bool
-	RangesParallelism      int
+	// optional for vnode
+	smallTableOptimization bool
+	rangesParallelism      int
+	// optional for tablet
+	dcFilter   []string
+	hostFilter []string
 }
 
 func (r repairReq) fullTable() string {
@@ -198,7 +210,7 @@ func parseRepairAsyncReq(t *testing.T, req *http.Request) repairReq {
 		table:                  req.URL.Query().Get("columnFamilies"),
 		replicaSet:             strings.Split(req.URL.Query().Get("hosts"), ","),
 		ranges:                 parseRanges(t, req.URL.Query().Get("ranges")),
-		SmallTableOptimization: req.URL.Query().Get("small_table_optimization") == "true",
+		smallTableOptimization: req.URL.Query().Get("small_table_optimization") == "true",
 	}
 	if rawRangesParallelism := req.URL.Query().Get("ranges_parallelism"); rawRangesParallelism != "" {
 		rangesParallelism, err := strconv.Atoi(rawRangesParallelism)
@@ -206,7 +218,7 @@ func parseRepairAsyncReq(t *testing.T, req *http.Request) repairReq {
 			t.Error(err)
 			return repairReq{}
 		}
-		sched.RangesParallelism = rangesParallelism
+		sched.rangesParallelism = rangesParallelism
 	}
 	if sched.keyspace == "" || sched.table == "" || len(sched.replicaSet) == 0 {
 		t.Error("Not fully initialized old repair sched req")
@@ -226,13 +238,8 @@ func parseTabletRepairReq(t *testing.T, req *http.Request) repairReq {
 		host:       req.Host,
 		keyspace:   req.URL.Query().Get("ks"),
 		table:      req.URL.Query().Get("table"),
-		replicaSet: ManagedClusterHosts(),
-		ranges: []scyllaclient.TokenRange{
-			{
-				StartToken: dht.Murmur3MinToken,
-				EndToken:   dht.Murmur3MaxToken,
-			},
-		},
+		dcFilter:   strings.Split(req.URL.Query().Get("dcs_filter"), ","),
+		hostFilter: strings.Split(req.URL.Query().Get("hosts_filter"), ","),
 	}
 	if sched.keyspace == "" || sched.table == "" {
 		t.Error("Not fully initialized tablet repair sched req")
