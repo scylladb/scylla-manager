@@ -10,7 +10,6 @@ Restore
    restore-schema
    old-restore-schema
    examples
-   compatibility-matrix
 
 .. contents::
    :depth: 2

@@ -10,6 +10,7 @@ ScyllaDB Manager
    install-scylla-manager
    install-scylla-manager-agent
    upgrade/index
+   compatibility-matrix
    add-a-cluster
    backup/index
    restore/index
