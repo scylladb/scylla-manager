@@ -133,11 +133,11 @@ func (h *consulHandler) getCatalogNodes(w http.ResponseWriter, r *http.Request) 
 			cn := consulNode{
 				Datacenter:     n.Datacenter,
 				Node:           n.Address,
-				Address:        n.Address,
+				Address:        n.PrometheusAddress,
 				ServiceAddress: n.Address,
 				ServiceID:      "scylla",
 				ServiceName:    "scylla",
-				ServicePort:    9180,
+				ServicePort:    n.PrometheusPort,
 				ServiceTags:    []string{c.String()},
 				ServiceMeta: map[string]string{
 					"shard_num":    strconv.Itoa(int(n.ShardNum)),
@@ -180,10 +180,10 @@ func (h *consulHandler) getHealthNodes(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 				Service: consulService{
-					Address: n.Address,
+					Address: n.PrometheusAddress,
 					ID:      "scylla",
 					Service: "scylla",
-					Port:    9180,
+					Port:    n.PrometheusPort,
 					Tags:    []string{c.String()},
 					Meta: map[string]string{
 						"dc":           n.Datacenter,

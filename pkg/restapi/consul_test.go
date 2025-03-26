@@ -60,11 +60,15 @@ func TestConsulAPI(t *testing.T) {
 				"dc1",
 				"127.0.0.1",
 				2,
+				"127.0.0.1",
+				9180,
 			},
 			{
 				"dc2",
 				"127.0.0.1",
 				3,
+				"127.0.0.1",
+				9180,
 			},
 		}
 		m := NewMockClusterService(ctrl)
@@ -129,11 +133,15 @@ func TestConsulAPI(t *testing.T) {
 				"dc1",
 				"127.0.0.1",
 				2,
+				"10.10.10.10",
+				4000,
 			},
 			{
 				"dc2",
 				"127.0.0.1",
 				3,
+				"127.0.0.1",
+				9180,
 			},
 		}
 		m := NewMockClusterService(ctrl)
@@ -161,10 +169,10 @@ func TestConsulAPI(t *testing.T) {
 					},
 				},
 				Service: consulService{
-					Address: "127.0.0.1",
+					Address: "10.10.10.10",
 					ID:      "scylla",
 					Service: "scylla",
-					Port:    9180,
+					Port:    4000,
 					Tags:    []string{"cluster1"},
 					Meta: map[string]string{
 						"dc":           "dc1",

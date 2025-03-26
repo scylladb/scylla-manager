@@ -174,10 +174,17 @@ services:
 
   prometheus:
     image: prom/prometheus:${PROMETHEUS_VERSION}
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--log.level=debug'
+      - '--log.format=json'
     ports:
       - "9090:9090"
     networks:
-      second:
+      public:
 
 networks:
   public:
