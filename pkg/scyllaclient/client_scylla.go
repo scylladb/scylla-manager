@@ -1218,6 +1218,23 @@ func (c *Client) ViewBuildStatus(ctx context.Context, keyspace, view string) (Vi
 
 // ControlTabletLoadBalancing disables or enables tablet load balancing in cluster.
 func (c *Client) ControlTabletLoadBalancing(ctx context.Context, enabled bool) error {
+	// Disabling tablet load balancing might take a lot of time,
+	// because it waits for all currently running migrations to finish.
+	// Because of that, we need to increase the timeout.
+	// In case of timeout, retries don't make sense, because it would
+	// be better to increase the timeout instead, so that we ensure
+	// that no new tablet migrations are started during retry interval.
+	// On the other hand, we should still retry in other scenarios.
+	const tabletsBalancingTimeout = 30 * time.Minute
+	ctx = customTimeout(ctx, tabletsBalancingTimeout)
+	ctx = withShouldRetryHandler(ctx, func(err error) *bool {
+		// It's fine not to retry even is the context error
+		// is propagated from parent - it wouldn't work anyway.
+		if errors.Is(err, context.DeadlineExceeded) {
+			return pointer.BoolPtr(false)
+		}
+		return nil
+	})
 	_, err := c.scyllaOps.StorageServiceTabletsBalancingPost(&operations.StorageServiceTabletsBalancingPostParams{
 		Context: ctx,
 		Enabled: enabled,
