@@ -1,6 +1,6 @@
 services:
   dc1_node_1:
-    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::11 --alternator-address 2001:0DB9:200::11 --listen-address 2001:0DB9:200::11
+    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::11 --alternator-address 2001:0DB9:200::11 --listen-address 2001:0DB9:200::11 --prometheus-address 2001:0DB9:100::11
     networks:
       public:
         ipv6_address: 2001:0DB9:100::11
@@ -8,7 +8,7 @@ services:
         ipv6_address: 2001:0DB9:200::11
 
   dc1_node_2:
-    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::12 --alternator-address 2001:0DB9:200::12 --listen-address 2001:0DB9:200::12
+    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::12 --alternator-address 2001:0DB9:200::12 --listen-address 2001:0DB9:200::12 --prometheus-address 2001:0DB9:100::12
     networks:
       public:
         ipv6_address: 2001:0DB9:100::12
@@ -16,7 +16,7 @@ services:
         ipv6_address: 2001:0DB9:200::12
 
   dc1_node_3:
-    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::13 --alternator-address 2001:0DB9:200::13 --listen-address 2001:0DB9:200::13
+    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::13 --alternator-address 2001:0DB9:200::13 --listen-address 2001:0DB9:200::13 --prometheus-address 2001:0DB9:100::13
     networks:
       public:
         ipv6_address: 2001:0DB9:100::13
@@ -24,7 +24,7 @@ services:
         ipv6_address: 2001:0DB9:200::13
 
   dc2_node_1:
-    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::21 --alternator-address 2001:0DB9:200::21 --listen-address 2001:0DB9:200::21
+    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::21 --alternator-address 2001:0DB9:200::21 --listen-address 2001:0DB9:200::21 --prometheus-address 2001:0DB9:100::21
     networks:
       public:
         ipv6_address: 2001:0DB9:100::21
@@ -32,7 +32,7 @@ services:
         ipv6_address: 2001:0DB9:200::21
 
   dc2_node_2:
-    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::22 --alternator-address 2001:0DB9:200::22 --listen-address 2001:0DB9:200::22
+    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::22 --alternator-address 2001:0DB9:200::22 --listen-address 2001:0DB9:200::22 --prometheus-address 2001:0DB9:100::22
     networks:
       public:
         ipv6_address: 2001:0DB9:100::22
@@ -40,7 +40,7 @@ services:
         ipv6_address: 2001:0DB9:200::22
 
   dc2_node_3:
-    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::23 --alternator-address 2001:0DB9:200::23 --listen-address 2001:0DB9:200::23
+    command: ${SCYLLA_ARGS} --rpc-address 2001:0DB9:100::23 --alternator-address 2001:0DB9:200::23 --listen-address 2001:0DB9:200::23 --prometheus-address 2001:0DB9:100::23
     networks:
       public:
         ipv6_address: 2001:0DB9:100::23
@@ -48,7 +48,7 @@ services:
         ipv6_address: 2001:0DB9:200::23
 
   second_cluster_dc1_node_1:
-    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 2001:0DB9:100::31 --alternator-address 2001:0DB9:200::31 --listen-address 2001:0DB9:200::31
+    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 2001:0DB9:100::31 --alternator-address 2001:0DB9:200::31 --listen-address 2001:0DB9:200::31 --prometheus-address 2001:0DB9:100::31
     networks:
       public:
         ipv6_address: 2001:0DB9:100::31
@@ -56,7 +56,7 @@ services:
         ipv6_address: 2001:0DB9:200::31
 
   second_cluster_dc1_node_2:
-    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 2001:0DB9:100::32 --alternator-address 2001:0DB9:200::32 --listen-address 2001:0DB9:200::32
+    command: ${SCYLLA_SECOND_CLUSTER_ARGS} --rpc-address 2001:0DB9:100::32 --alternator-address 2001:0DB9:200::32 --listen-address 2001:0DB9:200::32 --prometheus-address 2001:0DB9:100::32
     networks:
       public:
         ipv6_address: 2001:0DB9:100::32

@@ -31,6 +31,7 @@ var (
 	flagManagedCluster       = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
 	flagManagedSecondCluster = flag.String("managed-second-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data second cluster hosts")
 	flagTestNet              = flag.String("test-network", "192.168.200.", "a network where test nodes are residing")
+	flagSecondTestNet        = flag.String("test-second-network", "192.168.100.", "a second network used by prometheus and for rpc")
 )
 
 // ManagedClusterHosts specifies addresses of nodes in a test cluster.
@@ -50,6 +51,17 @@ func IPFromTestNet(hostIPending string) string {
 		flag.Parse()
 	}
 	return *flagTestNet + hostIPending
+}
+
+// IPFromSecondTestNet returns IP from the host network:
+//
+//	IPFromTestNet("11") -> 192.168.100.11
+//	IPFromTestNet("11") -> 2001:0DB9:100::11.
+func IPFromSecondTestNet(hostIPending string) string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return *flagSecondTestNet + hostIPending
 }
 
 // ManagedClusterHost returns ManagedClusterHosts()[0].
