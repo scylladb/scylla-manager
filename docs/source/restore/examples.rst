@@ -66,7 +66,7 @@ Complete the restore procedure - restore both the schema and the content of the 
      │ system_schema │ 100% | 100% │ 557.728k │ 557.728k │   557.728k │            0 │      0 │
      ╰───────────────┴─────────────┴──────────┴──────────┴────────────┴──────────────┴────────╯
 
-#. Perform restore schema follow-up action - `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_.
+#. Perform restore schema follow-up action (only for ScyllaDB **5.4**/**2024.1** or older) - `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_.
 
 #. Ensure that all prerequisites of restoring the content of the tables are met.
 
@@ -87,7 +87,7 @@ Complete the restore procedure - restore both the schema and the content of the 
 
      sctool progress restore/31043443-8214-42d3-be98-ed9771c48dde -c prod-cluster --details
      Run:            e10ec718-a7bf-11ed-b05a-0892040e83bb
-     Status:         DONE - repair required (see restore docs)
+     Status:         DONE
      Start time:     16 Feb 23 17:17:29 CET
      End time:       16 Feb 23 17:18:44 CET
      Duration:       1m15s
