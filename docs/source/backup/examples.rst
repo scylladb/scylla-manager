@@ -95,7 +95,7 @@ If your buckets are created in the same regions as your data centers, you may sa
 
 .. code-block:: none
 
-   sctool backup -c prod-cluster -i 30d --dc 'eu-dc,us-dc' -L 's3:eu-dc:eu-backups,s3:us-dc:us-backups'
+   sctool backup -c prod-cluster -i 30d --dc 'eu-dc,us-dc' -L 'eu-dc:s3:eu-backups,us-dc:s3:us-backups'
 
 Backup a specific keyspace or table
 ...................................
