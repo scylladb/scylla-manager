@@ -35,9 +35,6 @@ Introduction
 ScyllaDB Manager automates database operations.
 With ScyllaDB Manager you can schedule tasks such as backups and repairs, check cluster status, and more.
 ScyllaDB Manager can manage multiple ScyllaDB clusters and run cluster-wide tasks in a controlled and predictable way.
-It is available for ScyllaDB Enterprise customers and ScyllaDB Open Source users.
-With ScyllaDB Open Source, ScyllaDB Manager is limited to 5 nodes.
-See the ScyllaDB Manager Proprietary Software `License Agreement <https://www.scylladb.com/scylla-manager-software-license-agreement/>`_ for details.
 
 
 ScyllaDB Manager consists of three components:
