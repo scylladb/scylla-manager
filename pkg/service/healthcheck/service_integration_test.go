@@ -439,9 +439,6 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 	})
 
 	t.Run("all nodes REST DOWN", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
 		for _, h := range ManagedClusterHosts() {
 			BlockREST(t, h)
 		}
@@ -452,6 +449,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}()
 
 		msg := ""
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		if _, err := s.Status(ctx, clusterID); err != nil {
 			msg = err.Error()
 		}

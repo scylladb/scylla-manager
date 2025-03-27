@@ -10,7 +10,7 @@ YQ           := ../bin/yq
 CURRENT_UID  := $(shell id -u)
 CURRENT_GID  := $(shell id -g)
 
-SCYLLA_VERSION?=scylla:6.0.1
+SCYLLA_VERSION?=scylla:latest
 IP_FAMILY?=IPV4
 RAFT_SCHEMA?=none
 TABLETS?=enabled
@@ -93,8 +93,7 @@ endif
 	mkdir -p $(MINIO_DATA_DIR)
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 second_cluster_dc1_node_1
-	$(COMPOSE) exec -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
-	$(COMPOSE) exec -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
+	$(COMPOSE) exec -T --privileged dc1_node_1 su root -c 'echo 1048579 > /proc/sys/fs/aio-max-nr'
 	@echo "==> Waiting for dc1 node1"
 	@cnt=0; until [ 1 -le $$($(NODETOOL) status | grep -c "UN") ]; do \
 		cnt=$$(expr $$cnt + 1); \
@@ -110,8 +109,9 @@ endif
 		echo "==> Waiting node $$node number $$cnt"; \
 		until [ $$cnt -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
 
+	@echo "==> Start ssh servers"
 	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2; do \
-		$(COMPOSE) exec -T --privileged $$node sudo bash -c 'service ssh start'; done
+		$(COMPOSE) exec -T --privileged $$node su root -c '/usr/sbin/sshd'; done
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
 	@echo "==> Waiting for the rest of containers"
@@ -168,11 +168,11 @@ deploy-agent: ## Update agent to the latest build on all nodes
 	@./nodes_cp ../scylla-manager-agent.dev /usr/bin/scylla-manager-agent
 	@./nodes_cp $(AGENT_CONFIG) /etc/scylla-manager-agent/scylla-manager-agent.yaml
 ifeq ($(IP_FAMILY), IPV6)
-	@./nodes_cp minio/certs_ipv6/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt
+	@(./nodes_cp minio/certs_ipv6/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt) || (./nodes_cp minio/certs_ipv6/CAs/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt)
 else
-	@./nodes_cp minio/certs_ipv4/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt
+	@(./nodes_cp minio/certs_ipv4/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt) || (./nodes_cp minio/certs_ipv4/CAs/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt)
 endif
-	@./nodes_exec "sudo update-ca-certificates"
+	@(./nodes_exec "sudo update-ca-certificates") || (./nodes_exec "su root -c update-ca-trust")
 
 .PHONY: restart-agent
 restart-agent: ## Restart agent on all nodes
