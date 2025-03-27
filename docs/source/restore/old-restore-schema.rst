@@ -6,7 +6,7 @@ Restore schema for ScyllaDB 5.4/2024.1 or older
 
 .. note:: Because of small size of schema files, resuming schema restoration always starts from scratch.
 
-.. include:: _common/restore-raft-schema-warn.rst
+.. include:: ../common/restore-raft-schema-warn.rst
 
 | In order to restore ScyllaDB cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
 | Please note that the term *schema* specifically refers to the data residing in the ``system_schema keyspace``, such as keyspace and table definitions. All other data stored in keyspaces managed by ScyllaDB, such as authentication data in the ``system_auth`` keyspace, is restored as part of the :doc:`restore tables procedure <restore-tables>`.
