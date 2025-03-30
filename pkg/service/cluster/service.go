@@ -18,6 +18,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -874,4 +875,34 @@ func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []s
 	}
 
 	return sessionHosts, combinedError
+}
+
+func (s *Service) VerifySMAndAgentVersions(ctx context.Context) error {
+	smVersion := pkg.Version()
+	var combinedError error
+
+	clusters, err := s.ListClusters(ctx, &Filter{})
+	if err != nil {
+		return errors.New("unable to get list of clusters")
+	}
+
+	// Possible improvement could be to process each cluster in parallel
+	for _, cluster := range clusters {
+		client, err := s.CreateClientNoCache(ctx, cluster.ID)
+		if err != nil {
+			return fmt.Errorf("unable to create client for cluster %s", cluster.ID.String())
+		}
+		for _, h := range client.Config().Hosts {
+			ni, err := client.NodeInfo(ctx, h)
+			if err != nil {
+				combinedError = multierr.Append(combinedError, err)
+				continue
+			}
+			if ni.AgentVersion != smVersion {
+				combinedError = multierr.Append(fmt.Errorf("agent version %s on host %s does not match scylla manager version %s", h, ni.AgentVersion, smVersion), combinedError)
+			}
+		}
+	}
+
+	return combinedError
 }
