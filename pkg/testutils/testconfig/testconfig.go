@@ -55,8 +55,8 @@ func IPFromTestNet(hostIPending string) string {
 
 // IPFromSecondTestNet returns IP from the host network:
 //
-//	IPFromTestNet("11") -> 192.168.100.11
-//	IPFromTestNet("11") -> 2001:0DB9:100::11.
+//	IPFromSecondTestNet("11") -> 192.168.100.11
+//	IPFromSecondTestNet("11") -> 2001:0DB9:100::11.
 func IPFromSecondTestNet(hostIPending string) string {
 	if !flag.Parsed() {
 		flag.Parse()
