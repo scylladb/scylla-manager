@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"net/netip"
 	"sort"
 	"strconv"
@@ -673,13 +672,17 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 			if err != nil {
 				return nil, errors.Wrapf(err, "node info call of %s", h)
 			}
-			promAddr := ni.PrometheusAddress
-			if temp, err := netip.ParseAddr(ni.PrometheusAddress); err == nil {
-				promAddr = temp.String()
+
+			promAddr := h
+			if ni.PrometheusAddress != "" {
+				promAddr = ni.PrometheusAddress
+				if temp, err := netip.ParseAddr(ni.PrometheusAddress); err == nil {
+					if !temp.IsUnspecified() {
+						promAddr = temp.String()
+					}
+				}
 			}
-			if promAddr == "" || promAddr == "0.0.0.0" || promAddr == net.ParseIP("0:0:0:0:0:0:0:0").String() {
-				promAddr = h
-			}
+
 			promPort, err := strconv.Atoi(ni.PrometheusPort)
 			if err != nil {
 				promPort = 9180
