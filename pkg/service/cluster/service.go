@@ -674,13 +674,13 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 			}
 
 			promAddr := h
-			if ni.PrometheusAddress != "" {
-				promAddr = ni.PrometheusAddress
-				if temp, err := netip.ParseAddr(ni.PrometheusAddress); err == nil {
-					if !temp.IsUnspecified() {
-						promAddr = temp.String()
-					}
+			// If PrometheusAddress is valid and specified, use its normalized string form.
+			// Otherwise fall back to node address.
+			if addr := ni.PrometheusAddress; addr != "" {
+				if parsed, err := netip.ParseAddr(addr); err == nil && !parsed.IsUnspecified() {
+					promAddr = parsed.String()
 				}
+				// Else: leave promAddr as `h`
 			}
 
 			promPort, err := strconv.Atoi(ni.PrometheusPort)
