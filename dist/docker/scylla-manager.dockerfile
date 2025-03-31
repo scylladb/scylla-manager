@@ -9,6 +9,7 @@ RUN microdnf -y update && \
 COPY release/scylla-manager-*$ARCH.rpm /
 RUN rpm -ivh scylla-manager-*$ARCH.rpm && rm /scylla-manager-*.rpm
 COPY docker/scylla-manager.yaml /etc/scylla-manager/
+COPY license/LICENSE.* /licenses/
 
 USER scylla-manager
 ENV HOME=/var/lib/scylla-manager/

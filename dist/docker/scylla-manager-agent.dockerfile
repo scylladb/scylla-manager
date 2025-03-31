@@ -8,6 +8,7 @@ RUN microdnf -y update && \
 
 COPY release/scylla-manager-agent*$ARCH.rpm /
 RUN rpm -ivh scylla-manager-agent*$ARCH.rpm && rm /scylla-manager-agent*.rpm
+COPY license/LICENSE.* /licenses/
 
 USER scylla-manager
 ENV HOME=/var/lib/scylla-manager/

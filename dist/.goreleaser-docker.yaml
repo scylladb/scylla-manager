@@ -16,6 +16,15 @@ dockers:
     extra_files:
       - docker/scylla-manager.yaml
       - release
+      - license/
+    build_flag_templates:
+      - "--label=name=scylla-manager"
+      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=vendor=ScyllaDB, Inc."
+      - "--label=version={{.Version}}"
+      - "--label=release=1"
+      - "--label=summary=Scylla Manager"
+      - "--label=description=Scylla Manager"
 
   - ids:
     use: docker
@@ -28,9 +37,17 @@ dockers:
     extra_files:
       - docker/scylla-manager.yaml
       - release/
+      - license/
     build_flag_templates:
       - "--build-arg=ARCH=aarch64"
       - "--platform=linux/aarch64"
+      - "--label=name=scylla-manager"
+      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=vendor=ScyllaDB, Inc."
+      - "--label=version={{.Version}}"
+      - "--label=release=1"
+      - "--label=summary=Scylla Manager"
+      - "--label=description=Scylla Manager"
 
   - ids:
     use: docker
@@ -43,6 +60,15 @@ dockers:
     extra_files:
       - docker/scylla-manager.yaml
       - release
+      - license/
+    build_flag_templates:
+      - "--label=name=scylla-manager-agent"
+      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=vendor=ScyllaDB, Inc."
+      - "--label=version={{.Version}}"
+      - "--label=release=1"
+      - "--label=summary=Scylla Manager Agent"
+      - "--label=description=Scylla Manager Agent"
 
   - ids:
     use: docker
@@ -55,9 +81,17 @@ dockers:
     extra_files:
       - docker/scylla-manager.yaml
       - release
+      - license/
     build_flag_templates:
       - "--build-arg=ARCH=aarch64"
       - "--platform=linux/aarch64"
+      - "--label=name=scylla-manager-agent"
+      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=vendor=ScyllaDB, Inc."
+      - "--label=version={{.Version}}"
+      - "--label=release=1"
+      - "--label=summary=Scylla Manager Agent"
+      - "--label=description=Scylla Manager Agent"
 
 docker_manifests:
   - id: scylla-manager
