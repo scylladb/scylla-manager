@@ -19,7 +19,7 @@ dockers:
       - license/
     build_flag_templates:
       - "--label=name=scylla-manager"
-      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
       - "--label=version={{.Version}}"
       - "--label=release=1"
@@ -42,7 +42,7 @@ dockers:
       - "--build-arg=ARCH=aarch64"
       - "--platform=linux/aarch64"
       - "--label=name=scylla-manager"
-      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
       - "--label=version={{.Version}}"
       - "--label=release=1"
@@ -63,7 +63,7 @@ dockers:
       - license/
     build_flag_templates:
       - "--label=name=scylla-manager-agent"
-      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
       - "--label=version={{.Version}}"
       - "--label=release=1"
@@ -86,7 +86,7 @@ dockers:
       - "--build-arg=ARCH=aarch64"
       - "--platform=linux/aarch64"
       - "--label=name=scylla-manager-agent"
-      - "--label=maintainer=Michał Jan Matczuk <michal@scylladb.com>"
+      - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
       - "--label=version={{.Version}}"
       - "--label=release=1"
