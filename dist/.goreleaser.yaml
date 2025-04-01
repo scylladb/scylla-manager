@@ -88,7 +88,7 @@ nfpms:
       {{ .ProjectName }}-server-{{ .Version }}_{{ .Os }}.{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
     vendor: ScyllaDB
     homepage: https://www.scylladb.com/product/scylla-manager/
-    maintainer: Michał Jan Matczuk <michal@scylladb.com>
+    maintainer: Karol Kokoszka <karol.kokoszka@scylladb.com>
     description: "Scylla Manager server"
     license: Proprietary
     replaces:
@@ -150,7 +150,7 @@ nfpms:
       {{ .ProjectName }}-client-{{ .Version }}_{{ .Os }}.{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
     vendor: ScyllaDB
     homepage: https://www.scylladb.com/product/scylla-manager/
-    maintainer: Michał Jan Matczuk <michal@scylladb.com>
+    maintainer: Karol Kokoszka <karol.kokoszka@scylladb.com>
     description: "Scylla Manager client"
     license: Proprietary
     formats:
@@ -188,7 +188,7 @@ nfpms:
       {{ .ProjectName }}-agent-{{ .Version }}_{{ .Os }}.{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "arm64" }}aarch64{{ end }}
     vendor: ScyllaDB
     homepage: https://www.scylladb.com/product/scylla-manager/
-    maintainer: Michał Jan Matczuk <michal@scylladb.com>
+    maintainer: Karol Kokoszka <karol.kokoszka@scylladb.com>
     description: "Scylla Manager agent"
     license: Proprietary
     formats:
