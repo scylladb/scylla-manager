@@ -1,9 +1,9 @@
 Compatibility Matrix
 ====================
 
-The following table shows which version of Scylla Manager restore task supports which versions of Scylla.
+The following table shows which version of Scylla Manager supports which versions of Scylla.
 
-.. include:: _common/restore-raft-schema-warn.rst
+.. include:: common/restore-raft-schema-warn.rst
 
 .. list-table::
    :widths: 25 25 25
@@ -12,6 +12,12 @@ The following table shows which version of Scylla Manager restore task supports 
    * - ScyllaDB Manager Version
      - ScyllaDB Open Source Version
      - ScyllaDB Enterprise Version
+   * - 3.5
+     - 6.2
+     - 2024.1, 2024.2, 2025.1
+   * - 3.4
+     - 5.4, 6.0, 6.1, 6.2
+     - 2023.1, 2024.1, 2024.2
    * - 3.3
      - 5.4, 6.0
      - 2023.1, 2024.1
