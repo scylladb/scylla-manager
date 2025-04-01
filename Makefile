@@ -25,10 +25,12 @@ SSL_ENABLED?=false
 
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
+PUBLIC_SECOND_NET := 192.168.100.
 MINIO_ENDPOINT := https://192.168.200.99:9000
 ifeq ($(IP_FAMILY), IPV6)
 	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:200::
+	PUBLIC_SECOND_NET := 2001:0DB9:100::
 	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 endif
 
@@ -114,6 +116,7 @@ include testing/.env
 INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
 -managed-cluster $(PUBLIC_NET)11,$(PUBLIC_NET)12,$(PUBLIC_NET)13,$(PUBLIC_NET)21,$(PUBLIC_NET)22,$(PUBLIC_NET)23 \
 -test-network $(PUBLIC_NET) \
+-test-second-network $(PUBLIC_SECOND_NET) \
 -managed-second-cluster $(PUBLIC_NET)31,$(PUBLIC_NET)32 \
 -user cassandra -password cassandra \
 -agent-auth-token token \

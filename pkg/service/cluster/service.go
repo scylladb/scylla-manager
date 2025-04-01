@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net/netip"
 	"sort"
 	"strconv"
 	"sync"
@@ -667,10 +668,31 @@ func (s *Service) ListNodes(ctx context.Context, clusterID uuid.UUID) ([]Node, e
 			if err != nil {
 				s.logger.Error(ctx, "Failed to get number of shards", "error", err)
 			}
+			ni, err := client.NodeInfo(ctx, h)
+			if err != nil {
+				return nil, errors.Wrapf(err, "node info call of %s", h)
+			}
+
+			promAddr := h
+			// If PrometheusAddress is valid and specified, use its normalized string form.
+			// Otherwise fall back to node address.
+			if addr := ni.PrometheusAddress; addr != "" {
+				if parsed, err := netip.ParseAddr(addr); err == nil && !parsed.IsUnspecified() {
+					promAddr = parsed.String()
+				}
+				// Else: leave promAddr as `h`
+			}
+
+			promPort, err := strconv.Atoi(ni.PrometheusPort)
+			if err != nil {
+				promPort = 9180
+			}
 			nodes = append(nodes, Node{
-				Datacenter: dc,
-				Address:    h,
-				ShardNum:   sh,
+				Datacenter:        dc,
+				Address:           h,
+				ShardNum:          sh,
+				PrometheusAddress: promAddr,
+				PrometheusPort:    promPort,
 			})
 		}
 	}

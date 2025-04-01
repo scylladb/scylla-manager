@@ -91,7 +91,9 @@ func (f *Filter) Validate() error {
 
 // Node represents single node in a cluster.
 type Node struct {
-	Datacenter string
-	Address    string
-	ShardNum   uint
+	Datacenter        string
+	Address           string
+	ShardNum          uint
+	PrometheusAddress string
+	PrometheusPort    int
 }
