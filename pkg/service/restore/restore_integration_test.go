@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
 	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -35,7 +34,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestRestoreTablesUserIntegration(t *testing.T) {
@@ -743,10 +741,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
-	// Ensure no built-in retries
-	clientCfg := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	clientCfg.Backoff.MaxRetries = 0
-	h.dstCluster.Client = newTestClient(t, h.dstCluster.Hrt, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), &clientCfg)
 
 	Print("Keyspace setup")
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
