@@ -98,7 +98,7 @@ var cqlUnauthorisedMessage = []string{
 	"Username and/or password are incorrect",
 }
 
-// QueryPing executes "SELECT now() FROM system.local" on a single host.
+// QueryPing executes "SELECT now() FROM system.local WHERE key='local'" on a single host.
 // It returns rtt and error.
 func QueryPing(_ context.Context, config Config, username, password string) (rtt time.Duration, err error) {
 	host, port, err := net.SplitHostPort(config.Addr)
@@ -169,7 +169,7 @@ func QueryPing(_ context.Context, config Config, username, password string) (rtt
 	defer e.Close()
 
 	var date []byte
-	iter := e.Iter("SELECT now() FROM system.local")
+	iter := e.Iter("SELECT now() FROM system.local WHERE key='local'")
 	iter.Scan(&date)
 	return 0, iter.Close()
 }
