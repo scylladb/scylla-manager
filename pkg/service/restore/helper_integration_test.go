@@ -68,6 +68,7 @@ func newCluster(t *testing.T, hosts []string) clusterHelper {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	clientCfg := scyllaclient.TestConfig(hosts, AgentAuthToken())
+	clientCfg.Backoff.MaxRetries = 0
 	client := newTestClient(t, hrt, logger.Named("client"), &clientCfg)
 
 	for _, h := range hosts {
