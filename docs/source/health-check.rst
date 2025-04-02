@@ -141,7 +141,7 @@ CQL query health check
 
 You may specify CQL ``username`` and ``password`` flags when adding cluster to Scylla Manager using :ref:`sctool cluster add <cluster-add>` command.
 It's also possible to add or change that using :ref:`sctool cluster update <cluster-update>` command.
-Once Scylla Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local`` query.
+Once Scylla Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local WHERE key='local'`` query.
 
 
 .. _scylla-alternator-health-check:
