@@ -3,6 +3,7 @@
 package repair
 
 import (
+	"net/netip"
 	"time"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -31,16 +32,16 @@ func NewIntensityFromDeprecated(i float64) Intensity {
 
 // Target specifies what shall be repaired.
 type Target struct {
-	Units []Unit   `json:"units"`
-	DC    []string `json:"dc"`
-	Host  string   `json:"host,omitempty"`
+	Units []Unit     `json:"units"`
+	DC    []string   `json:"dc"`
+	Host  netip.Addr `json:"host,omitempty"`
 	// Down hosts excluded from repair by the --ignore-down-hosts flag.
-	IgnoreHosts         []string  `json:"ignore_hosts,omitempty"`
-	FailFast            bool      `json:"fail_fast"`
-	Continue            bool      `json:"continue"`
-	Intensity           Intensity `json:"intensity"`
-	Parallel            int       `json:"parallel"`
-	SmallTableThreshold int64     `json:"small_table_threshold"`
+	IgnoreHosts         []netip.Addr `json:"ignore_hosts,omitempty"`
+	FailFast            bool         `json:"fail_fast"`
+	Continue            bool         `json:"continue"`
+	Intensity           Intensity    `json:"intensity"`
+	Parallel            int          `json:"parallel"`
+	SmallTableThreshold int64        `json:"small_table_threshold"`
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.

@@ -3,6 +3,7 @@
 package scyllaclient
 
 import (
+	"net/netip"
 	"reflect"
 
 	"github.com/gocql/gocql"
@@ -177,7 +178,7 @@ const (
 // Ring describes token ring of a keyspace.
 type Ring struct {
 	ReplicaTokens []ReplicaTokenRanges
-	HostDC        map[string]string
+	HostDC        map[netip.Addr]string
 	// Replication is not returned by Scylla, but assumed by SM.
 	// Don't use it for correctness.
 	Replication ReplicationStrategy
@@ -212,7 +213,7 @@ func (t *TokenRange) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 
 // ReplicaTokenRanges describes all token ranges belonging to given replica set.
 type ReplicaTokenRanges struct {
-	ReplicaSet []string     // Sorted lexicographically
+	ReplicaSet []netip.Addr // Sorted by Addr.Compare
 	Ranges     []TokenRange // Sorted by start token
 }
 

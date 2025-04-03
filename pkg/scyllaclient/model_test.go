@@ -3,6 +3,7 @@
 package scyllaclient
 
 import (
+	"net/netip"
 	"sort"
 	"testing"
 
@@ -44,13 +45,13 @@ func TestRingDatacenters(t *testing.T) {
 	t.Parallel()
 
 	r := Ring{
-		HostDC: map[string]string{
-			"172.16.1.10": "dc1",
-			"172.16.1.2":  "dc1",
-			"172.16.1.20": "dc2",
-			"172.16.1.3":  "dc1",
-			"172.16.1.4":  "dc2",
-			"172.16.1.5":  "dc2",
+		HostDC: map[netip.Addr]string{
+			netip.MustParseAddr("172.16.1.10"): "dc1",
+			netip.MustParseAddr("172.16.1.2"):  "dc1",
+			netip.MustParseAddr("172.16.1.20"): "dc2",
+			netip.MustParseAddr("172.16.1.3"):  "dc1",
+			netip.MustParseAddr("172.16.1.4"):  "dc2",
+			netip.MustParseAddr("172.16.1.5"):  "dc2",
 		},
 	}
 	d := r.Datacenters()

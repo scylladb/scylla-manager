@@ -2,15 +2,17 @@
 
 package repair
 
+import "net/netip"
+
 // controller keeps the state of repairs running in the cluster
 // and informs generator about allowed repair intensity on a given replica set.
 type controller interface {
 	// TryBlock returns if it's allowed to schedule a repair job on given replica set.
 	// The second returned value is the allowed intensity of such job.
-	TryBlock(replicaSet []string) (ok bool, intensity int)
+	TryBlock(replicaSet []netip.Addr) (ok bool, intensity int)
 	// Unblock informs controller that a repair job running on replica set has finished.
 	// This makes it possible to call TryBlock on nodes from replica set.
-	Unblock(replicaSet []string)
+	Unblock(replicaSet []netip.Addr)
 	// Busy checks if there are any running repair jobs that controller is aware of.
 	Busy() bool
 }
@@ -19,7 +21,7 @@ type intensityChecker interface {
 	Intensity() Intensity
 	Parallel() int
 	MaxParallel() int
-	ReplicaSetMaxIntensity(replicaSet []string) Intensity
+	ReplicaSetMaxIntensity(replicaSet []netip.Addr) Intensity
 }
 
 // rowLevelRepairController is a specialised controller for row-level repair.
@@ -29,8 +31,8 @@ type intensityChecker interface {
 type rowLevelRepairController struct {
 	intensity intensityChecker
 
-	jobsCnt  int            // Total amount of repair jobs in the cluster
-	nodeJobs map[string]int // Amount of repair jobs on a given node
+	jobsCnt  int                // Total amount of repair jobs in the cluster
+	nodeJobs map[netip.Addr]int // Amount of repair jobs on a given node
 }
 
 var _ controller = &rowLevelRepairController{}
@@ -38,11 +40,11 @@ var _ controller = &rowLevelRepairController{}
 func newRowLevelRepairController(i intensityChecker) *rowLevelRepairController {
 	return &rowLevelRepairController{
 		intensity: i,
-		nodeJobs:  make(map[string]int),
+		nodeJobs:  make(map[netip.Addr]int),
 	}
 }
 
-func (c *rowLevelRepairController) TryBlock(replicaSet []string) (ok bool, intensity int) {
+func (c *rowLevelRepairController) TryBlock(replicaSet []netip.Addr) (ok bool, intensity int) {
 	if !c.shouldBlock(replicaSet) {
 		return false, 0
 	}
@@ -55,7 +57,7 @@ func (c *rowLevelRepairController) TryBlock(replicaSet []string) (ok bool, inten
 	return true, int(i)
 }
 
-func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
+func (c *rowLevelRepairController) shouldBlock(replicaSet []netip.Addr) bool {
 	// DENY if any node is already participating in repair job
 	for _, r := range replicaSet {
 		if c.nodeJobs[r] > 0 {
@@ -76,14 +78,14 @@ func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
 	return true
 }
 
-func (c *rowLevelRepairController) block(replicaSet []string) {
+func (c *rowLevelRepairController) block(replicaSet []netip.Addr) {
 	c.jobsCnt++
 	for _, r := range replicaSet {
 		c.nodeJobs[r]++
 	}
 }
 
-func (c *rowLevelRepairController) Unblock(replicaSet []string) {
+func (c *rowLevelRepairController) Unblock(replicaSet []netip.Addr) {
 	c.jobsCnt--
 	for _, r := range replicaSet {
 		c.nodeJobs[r]--
