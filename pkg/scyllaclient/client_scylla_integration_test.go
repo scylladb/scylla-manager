@@ -164,6 +164,12 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 	}
 }
 
+func TestClientActiveRepairsFlakinessIntegration(t *testing.T) {
+	for i := range 20 {
+		t.Run(fmt.Sprintf("run %d", i), TestClientActiveRepairsIntegration)
+	}
+}
+
 func TestClientActiveRepairsIntegration(t *testing.T) {
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 	if err != nil {
