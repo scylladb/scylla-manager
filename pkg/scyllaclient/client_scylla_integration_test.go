@@ -181,7 +181,7 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 	Print("Given: cluster with table to repair")
 	const ks = "test_active_repairs_ks"
 	s := db.CreateSessionAndDropAllKeyspaces(t, client)
-	db.WriteData(t, s, ks, 1)
+	db.WriteData(t, s, ks, 2)
 
 	rd := scyllaclient.NewRingDescriber(context.Background(), client)
 	asyncRepair := func(ctx context.Context, ks, tab, master string) {
@@ -190,6 +190,15 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		}
 	}
 	if rd.IsTabletKeyspace(ks) && tabletAPI {
+		// Make sure that migrations don't delay repair
+		defer func() {
+			if err := client.ControlTabletLoadBalancing(context.Background(), true); err != nil {
+				t.Fatal(err)
+			}
+		}()
+		if err := client.ControlTabletLoadBalancing(context.Background(), false); err != nil {
+			t.Fatal(err)
+		}
 		asyncRepair = func(ctx context.Context, ks, tab, master string) {
 			if _, err := client.TabletRepair(ctx, ks, tab, master, nil, nil); err != nil {
 				t.Error(err)
@@ -214,17 +223,22 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		}
 	}()
 
-	Print("When: repairs are running")
-	Print("Then: repairs are reported as active")
-	WaitCond(t, func() bool {
-		// Multiple repair requests in order to reduce flakiness
+	check := func() bool {
 		asyncRepair(context.Background(), ks, db.BigTableName, ManagedClusterHost())
 		active, err = client.ActiveRepairs(context.Background(), ManagedClusterHosts())
 		if err != nil {
 			t.Fatal(err)
 		}
 		return len(active) > 0
-	}, 500*time.Millisecond, 4*time.Second)
+	}
+
+	Print("When: repairs are running")
+	asyncRepair(context.Background(), ks, db.BigTableName, ManagedClusterHost())
+	Print("Then: repairs are reported as active")
+	if check() {
+		return
+	}
+	WaitCond(t, check, 500*time.Millisecond, 10*time.Second)
 }
 
 func TestClientSnapshotIntegration(t *testing.T) {
