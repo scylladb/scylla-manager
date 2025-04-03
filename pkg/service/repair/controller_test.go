@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"net/netip"
 	"testing"
 
 	"github.com/scylladb/go-log"
@@ -12,16 +13,16 @@ import (
 )
 
 func TestRowLevelRepairController_TryBlock(t *testing.T) {
-	const (
-		node1 = "192.168.1.1"
-		node2 = "192.168.1.2"
-		node3 = "192.168.1.3"
-		node4 = "192.168.1.4"
-		node5 = "192.168.1.5"
-		node6 = "192.168.1.6"
+	var (
+		node1 = netip.MustParseAddr("192.168.1.1")
+		node2 = netip.MustParseAddr("192.168.1.2")
+		node3 = netip.MustParseAddr("192.168.1.3")
+		node4 = netip.MustParseAddr("192.168.1.4")
+		node5 = netip.MustParseAddr("192.168.1.5")
+		node6 = netip.MustParseAddr("192.168.1.6")
 	)
 
-	maxRangesPerHost := map[string]Intensity{
+	maxRangesPerHost := map[netip.Addr]Intensity{
 		node1: 20,
 		node2: 19,
 		node3: 18,
@@ -43,7 +44,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 	}
 
 	t.Run("make sure TryBlock() will deny if replicaset is already blocked", func(t *testing.T) {
-		replicaSet := []string{node1, node2}
+		replicaSet := []netip.Addr{node1, node2}
 		c := newRowLevelRepairController(defaultIntensityHandler())
 
 		if ok, _ := c.TryBlock(replicaSet); !ok {
@@ -64,7 +65,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 			expectedNrOfRanges = 10
 			maxParallel        = 2
 		)
-		replicaSet := []string{node1, node2}
+		replicaSet := []netip.Addr{node1, node2}
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
@@ -80,7 +81,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 			maxParallel        = 2
 			expectedNrOfRanges = 19
 		)
-		replicaSet := []string{node1, node2}
+		replicaSet := []netip.Addr{node1, node2}
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
@@ -97,7 +98,7 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 			intensity           = 20
 			minRangesInParallel = 15
 		)
-		replicaSet := []string{node1, node2, node6}
+		replicaSet := []netip.Addr{node1, node2, node6}
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
 		c := newRowLevelRepairController(ih)
@@ -109,8 +110,8 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 	})
 
 	t.Run("make sure TryBlock() will deny if there is more jobs than {parallel} already", func(t *testing.T) {
-		replicaSet1 := []string{node1, node2}
-		replicaSet2 := []string{node3, node4}
+		replicaSet1 := []netip.Addr{node1, node2}
+		replicaSet2 := []netip.Addr{node3, node4}
 		maxParallel := 10
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
@@ -126,9 +127,9 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 	})
 
 	t.Run("make sure TryBlock() will deny if there is more jobs than maxParallel=2 already", func(t *testing.T) {
-		replicaSet1 := []string{node1, node2}
-		replicaSet2 := []string{node3, node4}
-		replicaSet3 := []string{node3, node4}
+		replicaSet1 := []netip.Addr{node1, node2}
+		replicaSet2 := []netip.Addr{node3, node4}
+		replicaSet3 := []netip.Addr{node3, node4}
 		maxParallel := 2
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel

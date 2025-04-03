@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2"
 
 	"go.uber.org/multierr"
 
@@ -504,7 +505,7 @@ type tokenRangesValidator struct {
 
 func (v tokenRangesValidator) validate(ks, tab string, ring scyllaclient.Ring) error {
 	for _, rt := range ring.ReplicaTokens {
-		if !v.liveNodes.HasAny(rt.ReplicaSet...) {
+		if !v.liveNodes.HasAny(util2.ConvertSliceToString(rt.ReplicaSet)...) {
 			return errors.Errorf("%s.%s: the whole replica set %v is filtered out, so the data owned by it can't be backed up", ks, tab, rt.ReplicaSet)
 		}
 	}

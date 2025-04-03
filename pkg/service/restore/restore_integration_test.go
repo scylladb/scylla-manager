@@ -782,49 +782,51 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		"restore_tables": true,
 	}
 
-	t.Run("batch retry finished with success", func(t *testing.T) {
-		Print("Inject errors to some download and las calls")
-		downloadCnt := atomic.Int64{}
-		lasCnt := atomic.Int64{}
-		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			// For this setup, we have 6 remote sstable dirs and 6 workers.
-			// We inject 2 errors during download and 3 errors during LAS.
-			// This means that only a single node will be restoring at the end.
-			// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
-			// The last failed call to LAS (cnt=8) waits a bit so that we test
-			// that batch dispatcher correctly reuses and releases nodes waiting
-			// for failed sstables to come back to the batch dispatcher.
-			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
-				if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
-					t.Log("Fake download error ", cnt)
-					return nil, downloadErr
+	for i := range 20 {
+		t.Run(fmt.Sprintf("%d: batch retry finished with success", i), func(t *testing.T) {
+			Print("Inject errors to some download and las calls")
+			downloadCnt := atomic.Int64{}
+			lasCnt := atomic.Int64{}
+			h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				// For this setup, we have 6 remote sstable dirs and 6 workers.
+				// We inject 2 errors during download and 3 errors during LAS.
+				// This means that only a single node will be restoring at the end.
+				// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
+				// The last failed call to LAS (cnt=8) waits a bit so that we test
+				// that batch dispatcher correctly reuses and releases nodes waiting
+				// for failed sstables to come back to the batch dispatcher.
+				if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+					if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
+						t.Log("Fake download error ", cnt)
+						return nil, downloadErr
+					}
 				}
-			}
-			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
-				cnt := lasCnt.Add(1)
-				if cnt == 8 {
-					time.Sleep(15 * time.Second)
+				if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+					cnt := lasCnt.Add(1)
+					if cnt == 8 {
+						time.Sleep(15 * time.Second)
+					}
+					if cnt == 1 || cnt == 5 || cnt == 8 {
+						t.Log("Fake LAS error ", cnt)
+						return nil, lasErr
+					}
 				}
-				if cnt == 1 || cnt == 5 || cnt == 8 {
-					t.Log("Fake LAS error ", cnt)
-					return nil, lasErr
-				}
-			}
-			return nil, nil
-		}))
+				return nil, nil
+			}))
 
-		Print("Run restore")
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-		h.runRestore(t, props)
+			Print("Run restore")
+			grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+			h.runRestore(t, props)
 
-		Print("Validate success")
-		if cnt := lasCnt.Add(0); cnt < 9 {
-			t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
-		}
-		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
-		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab2, "id", "data")
-		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab3, "id", "data")
-	})
+			Print("Validate success")
+			if cnt := lasCnt.Add(0); cnt < 9 {
+				t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
+			}
+			validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
+			validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab2, "id", "data")
+			validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab3, "id", "data")
+		})
+	}
 
 	t.Run("restore with injected failures only", func(t *testing.T) {
 		Print("Inject errors to all download and las calls")

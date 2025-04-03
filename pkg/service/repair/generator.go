@@ -5,12 +5,14 @@ package repair
 import (
 	"context"
 	stdErrors "errors"
+	"net/netip"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2"
 )
 
 // generator is responsible for creating and orchestrating tableGenerators.
@@ -104,11 +106,16 @@ func newGenerator(ctx context.Context, target Target, client *scyllaclient.Clien
 		return nil, err
 	}
 
+	ms, err := newMasterSelector(shards, status.HostDC(), closestDC)
+	if err != nil {
+		return nil, err
+	}
+
 	return &generator{
 		generatorTools: generatorTools{
 			target:        target,
 			ctl:           newRowLevelRepairController(i),
-			ms:            newMasterSelector(shards, status.HostDC(), closestDC),
+			ms:            ms,
 			submitter:     s,
 			ringDescriber: scyllaclient.NewRingDescriber(ctx, client),
 			stop:          &atomic.Bool{},
@@ -303,12 +310,11 @@ func (tg *tableGenerator) newJob() (job, bool) {
 			if tg.JobType.fullTableRepair() {
 				tg.JobType = skipJobType
 			}
-
 			return job{
 				keyspace:   tg.Keyspace,
 				table:      tg.Table,
-				master:     tg.ms.Select(filtered),
-				replicaSet: filtered,
+				master:     tg.ms.Select(filtered).String(),
+				replicaSet: util2.ConvertSliceToString(filtered),
 				ranges:     ranges,
 				intensity:  intensity,
 				jobType:    jt,
@@ -374,7 +380,14 @@ func (tg *tableGenerator) processResult(ctx context.Context, jr jobResult) {
 			tg.stopGenerating()
 		}
 	}
-	tg.ctl.Unblock(jr.replicaSet)
+
+	replicaSet, err := util2.ConvertSliceWithError(jr.replicaSet, netip.ParseAddr)
+	if err != nil {
+		tg.logger.Error(ctx, "Couldn't parse replica set IP addresses", "error", err)
+		return
+	}
+
+	tg.ctl.Unblock(replicaSet)
 }
 
 func (gt generatorTools) stopGenerating() {
