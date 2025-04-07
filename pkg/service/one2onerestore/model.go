@@ -3,8 +3,11 @@
 package one2onerestore
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -37,9 +40,10 @@ type node struct {
 
 // Host contains basic information about Scylla node.
 type Host struct {
-	ID   string
-	DC   string
-	Addr string
+	ID         string
+	DC         string
+	Addr       string
+	ShardCount int
 }
 
 // ViewType either Materialized View or Secondary Index.
@@ -53,11 +57,12 @@ const (
 
 // View represents statement used for recreating restored (dropped) views.
 type View struct {
-	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
-	View       string   `json:"view" db:"view_name"`
-	Type       ViewType `json:"type" db:"view_type"`
-	BaseTable  string   `json:"base_table"`
-	CreateStmt string   `json:"create_stmt"`
+	Keyspace    string                       `json:"keyspace" db:"keyspace_name"`
+	View        string                       `json:"view" db:"view_name"`
+	Type        ViewType                     `json:"type" db:"view_type"`
+	BaseTable   string                       `json:"base_table"`
+	CreateStmt  string                       `json:"create_stmt,omitempty"`
+	BuildStatus scyllaclient.ViewBuildStatus `json:"status"`
 }
 
 // hostWorkload represents what data (manifest) from the backup should be handled
@@ -71,6 +76,10 @@ type hostWorkload struct {
 }
 
 type scyllaTable struct{ keyspace, table string }
+
+func (st scyllaTable) String() string {
+	return st.keyspace + "." + st.table
+}
 
 func getTablesToRestore(workload []hostWorkload) map[scyllaTable]struct{} {
 	tablesToRestore := map[scyllaTable]struct{}{}
@@ -184,4 +193,96 @@ func checkHostMapping(hostMap map[string]struct{}, hostID string) error {
 		return nil
 	}
 	return errors.Errorf("host is already mapped: %s", hostID)
+}
+
+// RunProgress describes progress of various 1-1-restore stages.
+type RunProgress struct {
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+
+	KeyspaceName     string
+	TableName        string
+	TableSize        int64
+	RemoteSSTableDir string `db:"remote_sstable_dir"`
+	TombstoneGC      string
+
+	Host     string // IP of the node to which SSTables are downloaded.
+	ShardCnt int    // Host shard count used for bandwidth per shard calculation.
+
+	VersionedProgress int64
+
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+	// RClone job info fields
+	AgentJobID   int64
+	ScyllaTaskID string // reserved for future use
+
+	Downloaded int64
+	Skipped    int64
+	Failed     int64
+	Error      string
+
+	ViewName        string
+	ViewType        ViewType
+	ViewBuildStatus scyllaclient.ViewBuildStatus
+
+	Stage Stage
+}
+
+// Stage specifies the restore stage.
+type Stage string
+
+// Stage enumeration.
+const (
+	StageDropViews     Stage = "DROP_VIEWS"
+	StageAlterTGC      Stage = "ALTER_TGC"
+	StageData          Stage = "DATA"
+	StageRecreateViews Stage = "RECREATE_VIEWS"
+	StageDone          Stage = "DONE"
+)
+
+// Progress groups restore progress for all restored keyspaces.
+type Progress struct {
+	progress
+
+	SnapshotTag string             `json:"snapshot_tag"`
+	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
+	Hosts       []HostProgress     `json:"hosts,omitempty"`
+	Views       []View             `json:"views,omitempty"`
+	Stage       Stage              `json:"stage"`
+}
+
+// KeyspaceProgress groups restore progress for the tables belonging to this keyspace.
+type KeyspaceProgress struct {
+	progress
+
+	Keyspace string          `json:"keyspace"`
+	Tables   []TableProgress `json:"tables,omitempty"`
+}
+
+// TableProgress defines restore progress for the table.
+type TableProgress struct {
+	progress
+
+	Table       string          `json:"table"`
+	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
+	Error       string          `json:"error,omitempty"`
+}
+
+// HostProgress groups restore progress for the host.
+type HostProgress struct {
+	Host             string `json:"host"`
+	ShardCnt         int    `json:"shard_cnt"`
+	DownloadedBytes  int64  `json:"downloaded_bytes"`
+	DownloadDuration int64  `json:"download_duration"`
+}
+
+type progress struct {
+	Size        int64      `json:"size"`
+	Restored    int64      `json:"restored"`
+	Downloaded  int64      `json:"downloaded"`
+	Failed      int64      `json:"failed"`
+	StartedAt   *time.Time `json:"started_at"`
+	CompletedAt *time.Time `json:"completed_at"`
 }
