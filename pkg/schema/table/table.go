@@ -64,14 +64,14 @@ var (
 		Name: "cluster",
 		Columns: []string{
 			"auth_token",
+			"force_non_ssl_session_port",
+			"force_tls_disabled",
+			"host",
 			"id",
 			"known_hosts",
 			"labels",
 			"name",
 			"port",
-			"force_tls_disabled",
-			"force_non_ssl_session_port",
-			"host",
 		},
 		PartKey: []string{
 			"id",
@@ -107,6 +107,49 @@ var (
 			"name",
 		},
 		SortKey: []string{},
+	})
+
+	One2onerestoreRunProgress = table.New(table.Metadata{
+		Name: "one2onerestore_run_progress",
+		Columns: []string{
+			"agent_job_id",
+			"cluster_id",
+			"completed_at",
+			"downloaded",
+			"error",
+			"failed",
+			"host",
+			"keyspace_name",
+			"remote_sstable_dir",
+			"run_id",
+			"scylla_task_id",
+			"shard_cnt",
+			"skipped",
+			"stage",
+			"started_at",
+			"table_name",
+			"table_size",
+			"task_id",
+			"tombstone_gc",
+			"versioned_progress",
+			"view_build_status",
+			"view_name",
+			"view_type",
+		},
+		PartKey: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+		},
+		SortKey: []string{
+			"remote_sstable_dir",
+			"keyspace_name",
+			"table_name",
+			"view_name",
+			"host",
+			"agent_job_id",
+			"scylla_task_id",
+		},
 	})
 
 	RepairRun = table.New(table.Metadata{

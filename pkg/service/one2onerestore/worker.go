@@ -18,6 +18,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"go.uber.org/multierr"
 )
@@ -29,6 +30,10 @@ type worker struct {
 	clusterSession gocqlx.Session
 
 	logger log.Logger
+
+	runInfo struct {
+		ClusterID, TaskID, RunID uuid.UUID
+	}
 }
 
 func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (Target, error) {
@@ -150,6 +155,7 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 		if err != nil {
 			return errors.Wrap(err, "manifest content")
 		}
+		h.ShardCount = mc.ShardCount
 		hw := hostWorkload{
 			host:            h,
 			manifestInfo:    m,
