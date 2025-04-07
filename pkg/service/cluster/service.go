@@ -877,6 +877,7 @@ func GetRPCAddresses(ctx context.Context, client *scyllaclient.Client, hosts []s
 	return sessionHosts, combinedError
 }
 
+// VerifySMAndAgentVersions checks if the versions of all agents and scylla manager are the same
 func (s *Service) VerifySMAndAgentVersions(ctx context.Context) error {
 	smVersion := pkg.Version()
 	var combinedError error
