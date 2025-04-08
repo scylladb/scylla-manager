@@ -1681,19 +1681,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 			props["fail_fast"] = true
 
 			Print("When: run repair")
-			i, running := repairRunningInterceptor()
-			h.Hrt.SetInterceptor(i)
-			h.runRepair(ctx, props)
-
-			Print("When: repair is running")
-			chanClosedWithin(t, running, shortWait)
-
-			Print("When: Scylla returns failures")
 			var killRepairCalled int32
 			h.Hrt.SetInterceptor(combineInterceptors(
 				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
 				repairMockInterceptor(t, repairStatusFailed),
 			))
+			h.runRepair(ctx, props)
 
 			Print("Then: repair finish with error")
 			h.assertError(longWait)
