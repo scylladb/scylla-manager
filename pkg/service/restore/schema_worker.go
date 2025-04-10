@@ -146,13 +146,6 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 
 	var createdKs []string
 	for _, row := range *w.describedSchema {
-		if row.Keyspace == "" {
-			// Scylla 6.3 added roles and service levels to the output of
-			// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
-			// Those entities do not live in any particular keyspace, so that's how we identify them.
-			// We are skipping them until we properly support their restoration.
-			continue
-		}
 		if row.Keyspace == "system_replicated_keys" {
 			// See https://github.com/scylladb/scylla-enterprise/issues/4168
 			continue

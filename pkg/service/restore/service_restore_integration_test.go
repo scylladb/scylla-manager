@@ -731,7 +731,7 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	}
 
 	// Restore should be performed on user with limited permissions
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
@@ -802,7 +802,7 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 	}
 
 	// Restore should be performed on user with limited permissions
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
@@ -910,7 +910,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	}
 
 	// Restore should be performed on user with limited permissions
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
@@ -1118,11 +1118,6 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	// This also allows us to test scenario with mixed ID type SSTables.
 	srcH.Hrt.SetRespInterceptor(newRenameSnapshotSSTablesRespInterceptor(srcH.Client, srcSession, halfUUIDToIntIDGen()))
 
-	// Restore should be performed on user with limited permissions
-	//dropNonSuperUsers(t, dstSession)
-	//createUser(t, dstSession, user, "pass")
-	//dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
-
 	if target.RestoreTables {
 		Print("Recreate schema on destination cluster")
 		WriteDataSecondClusterSchema(t, dstSession, keyspace, 0, 0)
@@ -1304,12 +1299,6 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	Print("Restore 3-rd backup with versioned files")
 	target.SnapshotTag = tag3
 
-	if target.RestoreTables {
-		//	grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
-	} else {
-		//	grantRestoreSchemaPermissions(t, dstSession, user)
-	}
-
 	if err = dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
 		t.Fatal(err)
 	}
@@ -1367,7 +1356,7 @@ func restoreViewCQLSchema(t *testing.T, target Target, keyspace string, loadCnt,
 	}
 
 	Print("When: Create Restore user")
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, target.Location[0], nil, user, "pass")
 
@@ -1459,7 +1448,7 @@ func restoreViewSSTableSchema(t *testing.T, schemaTarget, tablesTarget Target, k
 	dstH.skipImpossibleSchemaTest()
 
 	Print("When: Create Restore user")
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
@@ -1561,7 +1550,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	}
 
 	// Restore should be performed on user with limited permissions
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
@@ -1667,7 +1656,7 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 	dstH.skipCQLSchemaTestAssumingSSTables()
 
 	// Restore should be performed on user with limited permissions
-	dropNonSuperUsers(t, dstSession)
+	dropNonCassandraUsers(t, dstSession)
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
