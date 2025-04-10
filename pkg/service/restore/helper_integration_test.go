@@ -108,7 +108,8 @@ func newTestHelper(t *testing.T, srcHosts, dstHosts []string) *testHelper {
 	user := randomizedName("helper_user_")
 	pass := randomizedName("helper_pass_")
 
-	dropNonSuperUsers(t, dstCluster.rootSession)
+	dropNonCassandraUsers(t, dstCluster.rootSession)
+	dropServiceLevels(t, dstCluster.rootSession)
 	createUser(t, dstCluster.rootSession, user, pass)
 
 	return &testHelper{
@@ -378,14 +379,14 @@ func filteredTables(t *testing.T, s gocqlx.Session, filter []string) []string {
 	return out
 }
 
-func dropNonSuperUsers(t *testing.T, s gocqlx.Session) {
+func dropNonCassandraUsers(t *testing.T, s gocqlx.Session) {
 	var (
 		name  string
 		super bool
 	)
 	iter := s.Query("LIST USERS", nil).Iter()
 	for iter.Scan(&name, &super) {
-		if !super {
+		if name != "cassandra" {
 			if err := s.ExecStmt(fmt.Sprintf("DROP USER '%s'", name)); err != nil {
 				t.Fatal(errors.Wrapf(err, "drop user %s", name))
 			}
@@ -396,6 +397,39 @@ func dropNonSuperUsers(t *testing.T, s gocqlx.Session) {
 func createUser(t *testing.T, s gocqlx.Session, user, pass string) {
 	if err := s.ExecStmt(fmt.Sprintf("CREATE USER '%s' WITH PASSWORD '%s'", user, pass)); err != nil {
 		t.Fatal(errors.Wrapf(err, "create user %s with pass %s", user, pass))
+	}
+}
+
+func listServiceLevels(t *testing.T, s gocqlx.Session) []string {
+	raw := make(map[string]any)
+	var out []string
+	iter := s.Query("LIST ALL SERVICE_LEVELS", nil).Iter()
+	for iter.MapScan(raw) {
+		out = append(out, raw["service_level"].(string))
+		raw = make(map[string]any)
+	}
+	if err := iter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func dropServiceLevels(t *testing.T, s gocqlx.Session) {
+	for _, sl := range listServiceLevels(t, s) {
+		if err := s.ExecStmt(fmt.Sprintf("DROP SERVICE_LEVEL '%s'", sl)); err != nil {
+			t.Fatal(errors.Wrapf(err, "drop service level %s", sl))
+		}
+	}
+}
+
+func createServiceLevel(t *testing.T, s gocqlx.Session, sl, role string) {
+	if err := s.ExecStmt(fmt.Sprintf("CREATE SERVICE_LEVEL '%s' WITH SHARES = 10", sl)); err != nil {
+		t.Fatal(errors.Wrapf(err, "create service level %s", sl))
+	}
+	if role != "" {
+		if err := s.ExecStmt(fmt.Sprintf("ATTACH SERVICE_LEVEL '%s' TO '%s'", sl, role)); err != nil {
+			t.Fatal(errors.Wrapf(err, "attach service level %s to %s", sl, role))
+		}
 	}
 }
 
@@ -434,7 +468,7 @@ func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTable
 }
 
 func grantRestoreSchemaPermissions(t *testing.T, s gocqlx.Session, user string) {
-	ExecStmt(t, s, "GRANT CREATE ON ALL KEYSPACES TO "+user)
+	ExecStmt(t, s, fmt.Sprintf("ALTER USER %s SUPERUSER", user))
 }
 
 func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {
