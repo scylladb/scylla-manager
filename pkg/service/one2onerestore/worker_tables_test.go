@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 )
 
 func TestWorkerRefreshNode(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"

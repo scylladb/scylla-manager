@@ -7,18 +7,18 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location        []Location    `json:"location"`
-	Keyspace        []string      `json:"keyspace,omitempty"`
-	SourceClusterID uuid.UUID     `json:"source_cluster_id"`
-	SnapshotTag     string        `json:"snapshot_tag"`
-	NodesMapping    []nodeMapping `json:"nodes_mapping"`
+	Location        []backupspec.Location `json:"location"`
+	Keyspace        []string              `json:"keyspace,omitempty"`
+	SourceClusterID uuid.UUID             `json:"source_cluster_id"`
+	SnapshotTag     string                `json:"snapshot_tag"`
+	NodesMapping    []nodeMapping         `json:"nodes_mapping"`
 }
 
 func defaultTarget() Target {
@@ -69,8 +69,8 @@ type View struct {
 // by which node (host) in the target cluster.
 type hostWorkload struct {
 	host            Host
-	manifestInfo    *ManifestInfo
-	manifestContent *ManifestContentWithIndex
+	manifestInfo    *backupspec.ManifestInfo
+	manifestContent *backupspec.ManifestContentWithIndex
 
 	tablesToRestore []scyllaTable
 }
@@ -95,7 +95,7 @@ func (t *Target) validateProperties(keyspaces []string) error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
-	if !IsSnapshotTag(t.SnapshotTag) {
+	if !backupspec.IsSnapshotTag(t.SnapshotTag) {
 		return errors.Errorf("unexpected snapshot-tag format: %s", t.SnapshotTag)
 	}
 	if t.SourceClusterID == uuid.Nil {

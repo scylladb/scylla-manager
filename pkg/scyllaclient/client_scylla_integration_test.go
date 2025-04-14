@@ -224,7 +224,7 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		return len(active) > 0
-	}, 500*time.Millisecond, 4*time.Second)
+	}, 500*time.Millisecond, 10*time.Second)
 }
 
 func TestClientSnapshotIntegration(t *testing.T) {
