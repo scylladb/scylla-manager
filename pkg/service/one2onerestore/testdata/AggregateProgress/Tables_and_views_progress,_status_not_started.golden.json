@@ -1,0 +1,44 @@
+{
+  "tables": [
+    {
+      "started_at": null,
+      "completed_at": null,
+      "size": 40,
+      "restored": 0,
+      "status": "not_started",
+      "keyspace": "ks1",
+      "table": "t1"
+    },
+    {
+      "started_at": null,
+      "completed_at": null,
+      "size": 20,
+      "restored": 0,
+      "status": "not_started",
+      "keyspace": "ks1",
+      "table": "t2"
+    }
+  ],
+  "views": [
+    {
+      "started_at": null,
+      "completed_at": null,
+      "size": 0,
+      "restored": 0,
+      "status": "not_started",
+      "keyspace": "ks1",
+      "table": "v1",
+      "type": "MaterializedView"
+    },
+    {
+      "started_at": null,
+      "completed_at": null,
+      "size": 0,
+      "restored": 0,
+      "status": "not_started",
+      "keyspace": "ks1",
+      "table": "v2",
+      "type": "MaterializedView"
+    }
+  ]
+}

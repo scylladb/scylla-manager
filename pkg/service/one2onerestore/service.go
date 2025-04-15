@@ -95,12 +95,15 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		return errors.Wrap(err, "prepare hosts workload")
 	}
 
+	if err := w.initProgress(ctx, workload); err != nil {
+		return errors.Wrap(err, "init progress")
+	}
+
 	start := timeutc.Now()
 	if err := w.restore(ctx, workload, target); err != nil {
 		return errors.Wrap(err, "restore data")
 	}
 	s.logger.Info(ctx, "Data restore is completed", "took", timeutc.Since(start))
-	w.progressDone(ctx, start, timeutc.Now())
 	return nil
 }
 
@@ -130,17 +133,13 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 	}, nil
 }
 
-// GetProgress aggregates progress for the run of the task and breaks it down by keyspace and table.
-func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) (Progress, error) {
+// GetProgress aggregates progress for the run of the task.
+func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, _ json.RawMessage) (Progress, error) {
 	w, err := s.newWorker(ctx, clusterID, taskID, runID)
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "new worker")
 	}
-	target, err := w.parseTarget(ctx, properties)
-	if err != nil {
-		return Progress{}, errors.Wrap(err, "parse target")
-	}
-	pr, err := w.getProgress(ctx, target)
+	pr, err := w.getProgress(ctx)
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "get progress")
 	}

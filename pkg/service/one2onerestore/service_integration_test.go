@@ -91,7 +91,7 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected err: %v", err)
 	}
-	validateGetProgress(t, pr, tag)
+	validateGetProgress(t, pr)
 }
 
 func truncateAllTablesInKeyspace(tb testing.TB, session gocqlx.Session, ks string) {

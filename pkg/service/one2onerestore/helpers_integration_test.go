@@ -37,7 +37,9 @@ type testHelper struct {
 func newTestHelper(t *testing.T, hosts []string) *testHelper {
 	clientCfg := scyllaclient.TestConfig(hosts, AgentAuthToken())
 	sc, err := scyllaclient.NewClient(clientCfg, log.NopLogger)
-	requireNoError(t, err)
+	if err != nil {
+		t.Fatalf("Unexpected err: %v", err)
+	}
 	session := CreateScyllaManagerDBSession(t)
 
 	clusterID := uuid.NewTime()

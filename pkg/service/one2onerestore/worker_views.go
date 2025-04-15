@@ -29,11 +29,9 @@ func (w *worker) dropViews(ctx context.Context, workload []hostWorkload) ([]View
 	}
 
 	for _, view := range views {
-		pr := w.dropViewProgress(ctx, view)
 		if err := w.dropView(ctx, view); err != nil {
 			return nil, errors.Wrap(err, "drop view")
 		}
-		w.updateDropViewProgress(ctx, pr, timeutc.Now())
 	}
 
 	return views, nil
@@ -174,10 +172,10 @@ func (w *worker) reCreateViews(ctx context.Context, views []View) error {
 		w.logger.Info(ctx, "Re-create views", "took", timeutc.Since(start))
 	}()
 	for _, view := range views {
-		pr := w.reCreateViewProgress(ctx, view)
 		if err := w.createView(ctx, view); err != nil {
 			return errors.Wrap(err, "create view")
 		}
+		pr := w.reCreateViewProgress(ctx, view)
 		if err := w.waitForViewBuilding(ctx, view, pr); err != nil {
 			return errors.Wrap(err, "wait for view")
 		}
@@ -213,7 +211,7 @@ func (w *worker) createView(ctx context.Context, view View) error {
 
 // Scylla operation might take a really long (and difficult to estimate) time.
 // This func exits ONLY on: success, context cancel or error.
-func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunProgress) error {
+func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunViewProgress) error {
 	viewTableName := view.View
 	if view.Type == SecondaryIndex {
 		viewTableName += "_index"

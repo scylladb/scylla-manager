@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 // Docs: https://docs.scylladb.com/stable/cql/ddl.html#tombstones-gc-options.
@@ -31,17 +30,14 @@ func (w *worker) setTombstoneGCModeRepair(ctx context.Context, workload []hostWo
 		if err != nil {
 			return errors.Wrap(err, "get tombstone_gc mode")
 		}
-		pr := w.alterTGCProgress(ctx, table, mode)
 		// No need to change tombstone gc mode.
 		if mode == modeDisabled || mode == modeImmediate || mode == modeRepair {
-			w.updateTGCProgress(ctx, pr, mode, timeutc.Now())
 			w.logger.Info(ctx, "Skipping set tombstone_gc mode", "table", table, "mode", mode)
 			continue
 		}
 		if err := w.setTableTombstoneGCMode(ctx, table.keyspace, table.table, modeRepair); err != nil {
 			return errors.Wrap(err, "set tombstone_gc mode repair")
 		}
-		w.updateTGCProgress(ctx, pr, modeRepair, timeutc.Now())
 	}
 
 	return nil

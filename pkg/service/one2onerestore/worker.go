@@ -163,7 +163,7 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 		}
 
 		if err := mc.ForEachIndexIter(target.Keyspace, func(fm backupspec.FilesMeta) {
-			hw.tablesToRestore = append(hw.tablesToRestore, scyllaTable{keyspace: fm.Keyspace, table: fm.Table})
+			hw.tablesToRestore = append(hw.tablesToRestore, scyllaTableWithSize{scyllaTable: scyllaTable{keyspace: fm.Keyspace, table: fm.Table}, size: fm.Size})
 		}); err != nil {
 			return errors.Wrap(err, "read manifest content")
 		}

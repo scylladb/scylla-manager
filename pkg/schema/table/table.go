@@ -109,31 +109,47 @@ var (
 		SortKey: []string{},
 	})
 
-	One2onerestoreRunProgress = table.New(table.Metadata{
-		Name: "one2onerestore_run_progress",
+	One2onerestoreRunTableProgress = table.New(table.Metadata{
+		Name: "one2onerestore_run_table_progress",
 		Columns: []string{
-			"agent_job_id",
 			"cluster_id",
 			"completed_at",
 			"downloaded",
 			"error",
-			"failed",
 			"host",
+			"is_refreshed",
 			"keyspace_name",
-			"remote_sstable_dir",
 			"run_id",
-			"scylla_task_id",
-			"shard_cnt",
-			"skipped",
-			"stage",
 			"started_at",
 			"table_name",
 			"table_size",
 			"task_id",
-			"tombstone_gc",
-			"versioned_progress",
+			"versioned_downloaded",
+		},
+		PartKey: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+		},
+		SortKey: []string{
+			"keyspace_name",
+			"table_name",
+			"host",
+		},
+	})
+
+	One2onerestoreRunViewProgress = table.New(table.Metadata{
+		Name: "one2onerestore_run_view_progress",
+		Columns: []string{
+			"cluster_id",
+			"completed_at",
+			"error",
+			"keyspace_name",
+			"run_id",
+			"started_at",
+			"table_name",
+			"task_id",
 			"view_build_status",
-			"view_name",
 			"view_type",
 		},
 		PartKey: []string{
@@ -142,13 +158,9 @@ var (
 			"run_id",
 		},
 		SortKey: []string{
-			"remote_sstable_dir",
 			"keyspace_name",
 			"table_name",
-			"view_name",
-			"host",
-			"agent_job_id",
-			"scylla_task_id",
+			"view_type",
 		},
 	})
 

@@ -4,7 +4,6 @@ package one2onerestore
 
 import (
 	"context"
-	"os"
 	"path"
 
 	"github.com/pkg/errors"
@@ -14,19 +13,19 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
-const MetaBaseDir = "backup" + string(os.PathSeparator) + string(backupspec.MetaDirKind)
-
 // getManifestInfo returns manifests with receiver's snapshot tag for all nodes in the location.
 func (w *worker) getManifestInfo(ctx context.Context, host, snapshotTag string, clusterID uuid.UUID, location backupspec.Location) ([]*backupspec.ManifestInfo, error) {
+	metaBaseDir := path.Join("backup", string(backupspec.MetaDirKind))
+
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
 		Recurse:   true,
 	}
 
 	var manifests []*backupspec.ManifestInfo
-	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(MetaBaseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
+	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(metaBaseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
 		m := new(backupspec.ManifestInfo)
-		if err := m.ParsePath(path.Join(MetaBaseDir, f.Path)); err != nil {
+		if err := m.ParsePath(path.Join(metaBaseDir, f.Path)); err != nil {
 			return
 		}
 		m.Location = location

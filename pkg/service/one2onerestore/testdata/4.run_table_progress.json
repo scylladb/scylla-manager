@@ -1,0 +1,32 @@
+[
+  {
+    "StartedAt": "2025-01-01T12:00:00Z",
+    "CompletedAt": "2025-01-01T12:00:01Z",
+    "KeyspaceName": "ks1",
+    "TableName": "t1",
+    "TableSize": 20,
+    "Host": "192.168.1.1",
+    "Downloaded": 20,
+    "IsRefreshed": false
+  },
+  {
+    "StartedAt": "2025-01-01T12:00:00Z",
+    "CompletedAt": "2025-01-01T12:00:01Z",
+    "KeyspaceName": "ks1",
+    "TableName": "t1",
+    "TableSize": 20,
+    "Host": "192.168.1.3",
+    "Downloaded": 20,
+    "IsRefreshed": false
+  },
+  {
+    "StartedAt": "2025-01-01T12:00:01Z",
+    "CompletedAt": "2025-01-01T12:00:03Z",
+    "KeyspaceName": "ks1",
+    "TableName": "t2",
+    "TableSize": 20,
+    "Host": "192.168.1.2",
+    "Downloaded": 20,
+    "IsRefreshed": false
+  }
+]
