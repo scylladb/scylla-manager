@@ -250,6 +250,9 @@ func (w *worker) aggregateProgress(tableIter, viewIter dbIterator) Progress {
 }
 
 func tableProgressStatus(rtp RunTableProgress) ProgressStatus {
+	if rtp.Error != "" {
+		return ProgressStatusFailed
+	}
 	if rtp.StartedAt == nil && rtp.CompletedAt == nil {
 		return ProgressStatusNotStarted
 	}
@@ -266,6 +269,9 @@ func tableProgressStatus(rtp RunTableProgress) ProgressStatus {
 }
 
 func viewProgressStatus(rvp RunViewProgress) ProgressStatus {
+	if rvp.Error != "" {
+		return ProgressStatusFailed
+	}
 	switch rvp.ViewBuildStatus {
 	case scyllaclient.StatusUnknown:
 		return ProgressStatusNotStarted
@@ -282,14 +288,19 @@ func incrementProgress(dst, src progress) progress {
 	dst.Restored += src.Restored
 	dst.StartedAt = minTime(dst.StartedAt, src.StartedAt)
 	dst.CompletedAt = maxTime(dst.CompletedAt, src.CompletedAt)
-
-	if dst.Status == "" {
-		dst.Status = src.Status
-	}
-	if dst.Status == ProgressStatusDone && src.Status != ProgressStatusDone {
-		dst.Status = ProgressStatusInProgress
-	}
+	dst.Status = mergeProgressStatus(dst.Status, src.Status)
 	return dst
+}
+
+// mergeProgressStatus decides which status should table/view progress have.
+func mergeProgressStatus(dst, src ProgressStatus) ProgressStatus {
+	if dst == "" || dst == src {
+		return src
+	}
+	if dst == ProgressStatusFailed || src == ProgressStatusFailed {
+		return ProgressStatusFailed
+	}
+	return ProgressStatusInProgress
 }
 
 func minTime(a, b *time.Time) *time.Time {

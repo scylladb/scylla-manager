@@ -1,15 +1,6 @@
 {
   "tables": [
     {
-      "started_at": "2025-01-01T12:00:01Z",
-      "completed_at": "2025-01-01T12:00:03Z",
-      "size": 20,
-      "restored": 20,
-      "status": "done",
-      "keyspace": "ks1",
-      "table": "t2"
-    },
-    {
       "started_at": "2025-01-01T12:00:00Z",
       "completed_at": null,
       "size": 40,
@@ -17,6 +8,15 @@
       "status": "in_progress",
       "keyspace": "ks1",
       "table": "t1"
+    },
+    {
+      "started_at": "2025-01-01T12:00:01Z",
+      "completed_at": "2025-01-01T12:00:03Z",
+      "size": 20,
+      "restored": 20,
+      "status": "done",
+      "keyspace": "ks1",
+      "table": "t2"
     }
   ],
   "views": [

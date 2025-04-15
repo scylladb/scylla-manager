@@ -280,4 +280,6 @@ var (
 	ProgressStatusInProgress ProgressStatus = "in_progress"
 	// ProgressStatusDone indicates that 1-1-restore of table/view is done.
 	ProgressStatusDone ProgressStatus = "done"
+	// ProgressStatusFailed indicates that 1-1-restore of table/view is failed due to some error.
+	ProgressStatusFailed ProgressStatus = "failed"
 )

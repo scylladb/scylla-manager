@@ -14,6 +14,59 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 )
 
+func TestMergeProgressStatus(t *testing.T) {
+	testCases := []struct {
+		name     string
+		dst, src ProgressStatus
+		expected ProgressStatus
+	}{
+		{
+			name:     "empty + not_started(any) = not_started",
+			src:      ProgressStatusNotStarted,
+			expected: ProgressStatusNotStarted,
+		},
+		{
+			name:     "done + done = done",
+			src:      ProgressStatusDone,
+			dst:      ProgressStatusDone,
+			expected: ProgressStatusDone,
+		},
+		{
+			name:     "any + failed = failed",
+			dst:      ProgressStatusDone,
+			src:      ProgressStatusFailed,
+			expected: ProgressStatusFailed,
+		},
+		{
+			name:     "failed + any = failed",
+			dst:      ProgressStatusFailed,
+			src:      ProgressStatusNotStarted,
+			expected: ProgressStatusFailed,
+		},
+		{
+			name:     "done + in_progress = in_progress",
+			dst:      ProgressStatusDone,
+			src:      ProgressStatusInProgress,
+			expected: ProgressStatusInProgress,
+		},
+		{
+			name:     "not_started + in_progress = in_progress",
+			dst:      ProgressStatusNotStarted,
+			src:      ProgressStatusInProgress,
+			expected: ProgressStatusInProgress,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := mergeProgressStatus(tc.dst, tc.src)
+			if actual != tc.expected {
+				t.Fatalf("Expected %q, but got %q", tc.expected, actual)
+			}
+		})
+	}
+}
+
 func TestAggregateProgress(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -50,6 +103,11 @@ func TestAggregateProgress(t *testing.T) {
 			name:      "Tables and views progress, status mixed",
 			tableRows: "testdata/6.run_table_progress.json",
 			viewRows:  "testdata/6.run_view_progress.json",
+		},
+		{
+			name:      "Tables and views progress, status failed",
+			tableRows: "testdata/7.run_table_progress.json",
+			viewRows:  "testdata/7.run_view_progress.json",
 		},
 	}
 
