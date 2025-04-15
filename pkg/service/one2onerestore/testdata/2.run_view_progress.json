@@ -1,0 +1,18 @@
+[
+  {
+    "StartedAt": "2025-01-01T12:00:01Z",
+    "CompletedAt": "2025-01-01T12:00:03Z",
+    "KeyspaceName": "ks1",
+    "TableName": "v1",
+    "ViewType": "MaterializedView",
+    "ViewBuildStatus": "SUCCESS"
+  },
+  {
+    "StartedAt": "2025-01-01T12:01:03Z",
+    "CompletedAt": "2025-01-01T12:00:04Z",
+    "KeyspaceName": "ks1",
+    "TableName": "v2",
+    "ViewType": "MaterializedView",
+    "ViewBuildStatus": "SUCCESS"
+  }
+]
