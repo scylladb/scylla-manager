@@ -269,8 +269,8 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	return "", nil
 }
 
-// SupportsScyllaBackupRestoreAPI returns whether node exposes /storage_service/<backup|restore> API.
-func (ni *NodeInfo) SupportsScyllaBackupRestoreAPI() (bool, error) {
+// SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
+func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
 	// Detect master builds
 	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
 		return true, nil
@@ -279,9 +279,9 @@ func (ni *NodeInfo) SupportsScyllaBackupRestoreAPI() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
 }
 
-// ScyllaBackupRestoreEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
+// ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
-func (ni *NodeInfo) ScyllaBackupRestoreEndpoint(provider backupspec.Provider) (string, error) {
+func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {
 	if provider != backupspec.S3 {
 		return "", errors.Errorf("unsupported provider %s for native Scylla backup and restore", provider)
 	}

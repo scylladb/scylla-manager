@@ -13,6 +13,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/netip"
 	"os"
 	"path"
 	"strings"
@@ -29,7 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
-
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -144,27 +145,60 @@ func defaultConfig() backup.Config {
 	return c
 }
 
-func (h *backupTestHelper) setInterceptorBlockEndpointOnFirstHost(method string, path string) {
-	var (
-		brokenHost string
-		mu         sync.Mutex
-	)
+func (h *backupTestHelper) setInterceptorBlockPathOnFirstHost(paths ...string) {
+	brokenHost := atomic.NewString("")
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if req.Method == method && req.URL.Path == path {
-			mu.Lock()
-			defer mu.Unlock()
-
-			if brokenHost == "" {
-				h.T.Log("Setting broken host", req.Host)
-				brokenHost = req.Host
-			}
-
-			if brokenHost == req.Host {
-				return nil, errors.New("dial error")
+		for _, p := range paths {
+			if strings.HasPrefix(req.URL.Path, p) {
+				if brokenHost.CompareAndSwap("", req.Host) {
+					h.T.Log("Setting broken host", req.Host)
+				}
+				if brokenHost.Load() == req.Host {
+					return nil, errors.New("dial error")
+				}
 			}
 		}
 		return nil, nil
 	}))
+}
+
+func (h *backupTestHelper) setInterceptorWaitPath(hosts []string, paths ...string) chan struct{} {
+	wait := make(chan struct{})
+
+	mu := sync.Mutex{}
+	chanIsClosed := false
+	missingHosts, err := maps.MapKeyWithError(maps.SetFromSlice(hosts), netip.ParseAddr)
+	if err != nil {
+		h.T.Error(errors.Wrap(err, "setInterceptorWaitPath: parse provided hosts IPs"))
+	}
+
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		for _, p := range paths {
+			if strings.HasPrefix(req.URL.Path, p) {
+				func() {
+					mu.Lock()
+					defer mu.Unlock()
+
+					if chanIsClosed {
+						return
+					}
+
+					ip, err := netip.ParseAddr(req.URL.Hostname())
+					if err != nil {
+						h.T.Error(errors.Wrap(err, "setInterceptorWaitPath: parse request host IP"))
+					}
+
+					delete(missingHosts, ip)
+					if len(missingHosts) == 0 && !chanIsClosed {
+						chanIsClosed = true
+						close(wait)
+					}
+				}()
+			}
+		}
+		return nil, nil
+	}))
+	return wait
 }
 
 func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
@@ -1063,6 +1097,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 			done        = make(chan struct{})
 		)
 
+		upload := h.setInterceptorWaitPath(h.GetHostsFromDC("dc1"), "/task_manager/wait_task", "/agent/rclone/job/progress")
+
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(err)
 		}
@@ -1071,20 +1107,19 @@ func TestBackupResumeIntegration(t *testing.T) {
 			defer close(done)
 			Print("When: backup is running")
 			err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
-			if err == nil {
-				t.Error("Expected error on run but got nil")
-			} else {
-				if !strings.Contains(err.Error(), "context") {
-					t.Errorf("Expected context error but got: %+v", err)
-				}
+			if !errors.Is(err, context.Canceled) {
+				t.Errorf("Expected %q error but got: %q", context.Canceled, err)
 			}
 		}()
 
-		h.waitTransfersStarted()
-
-		Print("And: context is canceled")
-		cancel()
-		<-ctx.Done()
+		select {
+		case <-time.After(backupTimeout):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout)
+		case <-upload:
+			Print("And: context is canceled")
+			cancel()
+			<-ctx.Done()
+		}
 
 		select {
 		case <-time.After(backupTimeout):
@@ -1120,6 +1155,8 @@ func TestBackupResumeIntegration(t *testing.T) {
 		)
 		defer cancel()
 
+		upload := h.setInterceptorWaitPath(h.GetHostsFromDC("dc1"), "/task_manager/wait_task", "/agent/rclone/job/progress")
+
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(err)
 		}
@@ -1133,16 +1170,18 @@ func TestBackupResumeIntegration(t *testing.T) {
 			close(done)
 		}()
 
-		h.waitTransfersStarted()
-
-		Print("And: we restart the agents")
-		restartAgents(h.CommonTestHelper)
+		select {
+		case <-time.After(backupTimeout * 3):
+			t.Fatalf("Backup failed to complete in under %s", backupTimeout*3)
+		case <-upload:
+			Print("And: we restart the agents")
+			restartAgents(h.CommonTestHelper)
+		}
 
 		select {
 		case <-time.After(backupTimeout * 3):
 			t.Fatalf("Backup failed to complete in under %s", backupTimeout*3)
 		case <-done:
-			Print("Then: backup completed execution")
 		}
 
 		Print("And: nothing is transferring")
@@ -1155,7 +1194,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after snapshot failed", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location, nil)
 		Print("Given: snapshot fails on a host")
-		h.setInterceptorBlockEndpointOnFirstHost(http.MethodPost, "/storage_service/snapshots")
+		h.setInterceptorBlockPathOnFirstHost("/storage_service/snapshots")
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -1193,7 +1232,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 	t.Run("resume after upload failed", func(t *testing.T) {
 		h := newBackupTestHelper(t, session, config, location, nil)
 		Print("Given: upload fails on a host")
-		h.setInterceptorBlockEndpointOnFirstHost(http.MethodPost, "/agent/rclone/job/progress")
+		h.setInterceptorBlockPathOnFirstHost("/agent/rclone/job/progress", "/task_manager/wait_task")
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -2548,5 +2587,134 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 		if strings.Contains(f, "system_schema") {
 			t.Fatalf("Expected no system_schema sstables to be backed up, got: %s", f)
 		}
+	}
+}
+
+func TestBackupMethodIntegration(t *testing.T) {
+	// This test validates that the correct API is used
+	// for uploading snapshot dirs (Rclone or Scylla).
+	const (
+		testBucket   = "backuptest-api"
+		testKeyspace = "backuptest_api"
+	)
+
+	var (
+		location       = s3Location(testBucket)
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	const tableCnt = 2
+	WriteData(t, clusterSession, testKeyspace, 1, "tab1", "tab2")
+
+	const (
+		rcloneAPIPath = "/agent/rclone/sync/movedir"
+		nativeAPIPath = "/storage_service/backup"
+	)
+
+	ni, err := h.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	support, err := ni.SupportsNativeBackupAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type testCase struct {
+		method           string
+		blockedPath      string
+		ensuredPath      string
+		getTargetSuccess bool
+	}
+	var testCases []testCase
+	// As currently scylla can't handle ipv6 object storage endpoints,
+	// we don't configure them for ipv6 test env and don't expect them to work.
+	switch {
+	case support && !IsIPV6Network():
+		testCases = []testCase{
+			{method: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	case support && IsIPV6Network():
+		testCases = []testCase{
+			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "native", getTargetSuccess: false},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	default:
+		testCases = []testCase{
+			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "native", getTargetSuccess: false},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Test case: %s", tc.method), func(t *testing.T) {
+			encounteredEnsured := atomic.NewBool(false)
+			encounteredBlocked := atomic.NewBool(false)
+			if tc.getTargetSuccess {
+				waitForParallelUploads := make(chan struct{})
+				parallelUploads := atomic.NewInt32(0)
+
+				h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if strings.HasPrefix(req.URL.Path, tc.ensuredPath) {
+						encounteredEnsured.Store(true)
+
+						if tc.ensuredPath == nativeAPIPath {
+							// Verify that tables uploaded with native backup API are uploaded
+							// in parallel within the context of the same host.
+							if cnt := parallelUploads.Add(1); cnt == tableCnt {
+								close(waitForParallelUploads)
+							}
+							select {
+							case <-waitForParallelUploads:
+							case <-time.After(time.Second):
+								t.Error("No parallel uploads")
+							}
+						}
+					}
+					if strings.HasPrefix(req.URL.Path, tc.blockedPath) {
+						encounteredBlocked.Store(true)
+					}
+					return nil, nil
+				}))
+			}
+
+			rawProps, err := json.Marshal(map[string]any{
+				"location": []backupspec.Location{location},
+				"keyspace": []string{testKeyspace},
+				"method":   tc.method,
+				"parallel": 1, // to ensure that parallel uploads come from the same host
+			})
+			if err != nil {
+				t.Fatal(errors.Wrap(err, "create raw properties"))
+			}
+
+			target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+			if err != nil {
+				if !tc.getTargetSuccess {
+					return
+				}
+				t.Fatal(errors.Wrap(err, "create target"))
+			}
+			err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.getTargetSuccess {
+				if !encounteredEnsured.Load() {
+					t.Fatalf("Expected SM to use %q API", tc.ensuredPath)
+				}
+				if encounteredBlocked.Load() {
+					t.Fatalf("Expected SM not to use %q API", tc.blockedPath)
+				}
+			}
+		})
 	}
 }

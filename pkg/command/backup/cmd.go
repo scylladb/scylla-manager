@@ -39,6 +39,7 @@ type command struct {
 	showTables       bool
 	purgeOnly        bool
 	skipSchema       bool
+	method           string
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -92,6 +93,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.purgeOnly, "purge-only", false, "")
 	w.Unwrap().BoolVar(&cmd.skipSchema, "skip-schema", false, "")
+	w.Unwrap().StringVar(&cmd.method, "method", "auto", "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -164,6 +166,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("skip-schema").Changed {
 		props["skip_schema"] = cmd.skipSchema
+		ok = true
+	}
+	if cmd.Flag("method").Changed {
+		props["method"] = cmd.method
 		ok = true
 	}
 

@@ -40,6 +40,9 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 	if target.Transfers == 0 {
 		target.Transfers = scyllaclient.TransfersFromConfig
 	}
+	if target.Method == "" {
+		target.Method = "auto"
+	}
 	return err
 }
 

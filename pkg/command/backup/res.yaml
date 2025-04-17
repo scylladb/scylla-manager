@@ -50,3 +50,12 @@ skip-schema: |
   CQL Credentials can be added with 'sctool cluster update --username --password' command.
   This flag can be used to skip this step and allow for backing up user data without providing SM with CQL credentials.
   Note that it's impossible to restore schema from such backups.
+
+method: |
+  Specify the API used for uploading files:
+  - 'auto': Use the native API when possible, otherwise use the Rclone API.
+  - 'native': Scylla server uploads directly to S3.
+  - 'rclone': Scylla Manager Agent uploads to S3.
+  
+  Both methods require configuring the Scylla Manager Agent in 'scylla-manager-agent.yaml'.
+  The native API also requires 'object_storage_endpoints' to be configured in 'scylla.yaml'.
