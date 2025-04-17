@@ -3,7 +3,10 @@
 package repair
 
 import (
+	"maps"
 	"math"
+	"net/netip"
+	"slices"
 	"sort"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
@@ -12,14 +15,10 @@ import (
 // masterSelector describes each host priority for being repair master.
 // Repair master is first chosen by smallest shard count,
 // then by smallest dc RTT from SM.
-type masterSelector map[string]int
+type masterSelector map[netip.Addr]int
 
-func newMasterSelector(shards map[string]uint, hostDC map[string]string, closestDC []string) masterSelector {
-	hosts := make([]string, 0, len(shards))
-	for h := range shards {
-		hosts = append(hosts, h)
-	}
-
+func newMasterSelector(shards map[netip.Addr]uint, hostDC map[netip.Addr]string, closestDC []string) masterSelector {
+	hosts := slices.Collect(maps.Keys(shards))
 	sort.Slice(hosts, func(i, j int) bool {
 		if shards[hosts[i]] != shards[hosts[j]] {
 			return shards[hosts[i]] < shards[hosts[j]]
@@ -35,8 +34,8 @@ func newMasterSelector(shards map[string]uint, hostDC map[string]string, closest
 }
 
 // Select returns repair master from replica set.
-func (ms masterSelector) Select(replicas []string) string {
-	var master string
+func (ms masterSelector) Select(replicas []netip.Addr) netip.Addr {
+	var master netip.Addr
 	p := math.MaxInt64
 	for _, r := range replicas {
 		if ms[r] < p {

@@ -5,12 +5,14 @@ package repair
 import (
 	"context"
 	stdErrors "errors"
+	"net/netip"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 )
 
 // generator is responsible for creating and orchestrating tableGenerators.
@@ -75,8 +77,8 @@ func (jt jobType) fullTableRepair() bool {
 type job struct {
 	keyspace   string
 	table      string
-	master     string
-	replicaSet []string
+	master     netip.Addr
+	replicaSet []netip.Addr
 	ranges     []scyllaclient.TokenRange
 	intensity  int
 	jobType    jobType
@@ -103,12 +105,21 @@ func newGenerator(ctx context.Context, target Target, client *scyllaclient.Clien
 	if err != nil {
 		return nil, err
 	}
+	hostShards, err := maps.MapKeyWithError(shards, netip.ParseAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	hostDC, err := maps.MapKeyWithError(status.HostDC(), netip.ParseAddr)
+	if err != nil {
+		return nil, err
+	}
 
 	return &generator{
 		generatorTools: generatorTools{
 			target:        target,
 			ctl:           newRowLevelRepairController(i),
-			ms:            newMasterSelector(shards, status.HostDC(), closestDC),
+			ms:            newMasterSelector(hostShards, hostDC, closestDC),
 			submitter:     s,
 			ringDescriber: scyllaclient.NewRingDescriber(ctx, client),
 			stop:          &atomic.Bool{},
@@ -303,7 +314,6 @@ func (tg *tableGenerator) newJob() (job, bool) {
 			if tg.JobType.fullTableRepair() {
 				tg.JobType = skipJobType
 			}
-
 			return job{
 				keyspace:   tg.Keyspace,
 				table:      tg.Table,
@@ -374,6 +384,7 @@ func (tg *tableGenerator) processResult(ctx context.Context, jr jobResult) {
 			tg.stopGenerating()
 		}
 	}
+
 	tg.ctl.Unblock(jr.replicaSet)
 }
 

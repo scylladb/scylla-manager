@@ -169,32 +169,23 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ni, err := client.AnyNodeInfo(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	tabletAPI, err := ni.SupportsTabletRepair()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	Print("Given: cluster with table to repair")
 	const ks = "test_active_repairs_ks"
 	s := db.CreateSessionAndDropAllKeyspaces(t, client)
-	db.WriteData(t, s, ks, 1)
+	db.WriteData(t, s, ks, 2)
 
 	rd := scyllaclient.NewRingDescriber(context.Background(), client)
-	asyncRepair := func(ctx context.Context, ks, tab, master string) {
-		if _, err := client.RawRepair(ctx, ks, tab, master); err != nil {
-			t.Error(err)
-		}
-	}
-	if rd.IsTabletKeyspace(ks) && tabletAPI {
-		asyncRepair = func(ctx context.Context, ks, tab, master string) {
-			if _, err := client.TabletRepair(ctx, ks, tab, master, nil, nil); err != nil {
-				t.Error(err)
-			}
-		}
+	if rd.IsTabletKeyspace(ks) {
+		// When SM uses tablet repair API, Scylla registers a request to repair
+		// a tablet table. Later on, Scylla creates repair jobs for given tablets
+		// according to its own internal scheduler. Because of that, we have no guarantee
+		// that Scylla will start any repair jobs right after SM used tablet repair API.
+		// For example, they might be delayed due to a table migration/merge/split.
+		// The API for checking active repairs and killing repairs works on the repair job
+		// level, not the tablet repair API request level. Task manager API should be used
+		// for handling those requests.
+		t.Skip("Checking active repairs and killing repairs is flaky with tablets")
 	}
 
 	Print("When: cluster is idle")
@@ -207,24 +198,25 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		t.Fatal(active)
 	}
 
+	Print("When: repair is running")
+	go ExecOnHost(ManagedClusterHost(), "nodetool repair")
 	defer func() {
-		// Make sure that repairs don't spill to other tests
 		if err := client.KillAllRepairs(context.Background(), ManagedClusterHosts()...); err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	Print("When: repairs are running")
-	Print("Then: repairs are reported as active")
-	WaitCond(t, func() bool {
-		// Multiple repair requests in order to reduce flakiness
-		asyncRepair(context.Background(), ks, db.BigTableName, ManagedClusterHost())
+	Print("Then: active repairs reports")
+	check := func() bool {
 		active, err = client.ActiveRepairs(context.Background(), ManagedClusterHosts())
 		if err != nil {
 			t.Fatal(err)
 		}
 		return len(active) > 0
-	}, 500*time.Millisecond, 4*time.Second)
+	}
+	if !check() {
+		WaitCond(t, check, 500*time.Millisecond, 4*time.Second)
+	}
 }
 
 func TestClientSnapshotIntegration(t *testing.T) {

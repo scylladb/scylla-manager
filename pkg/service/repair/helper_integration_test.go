@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
 	"os"
 	"slices"
 	"strconv"
@@ -30,6 +31,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
@@ -105,18 +107,18 @@ func dropKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 
 type repairReq struct {
 	// always set
-	host     string
+	host     netip.Addr
 	keyspace string
 	table    string
 	// always set for vnode
-	replicaSet []string
+	replicaSet []netip.Addr
 	ranges     []scyllaclient.TokenRange
 	// optional for vnode
 	smallTableOptimization bool
 	rangesParallelism      int
 	// optional for tablet
 	dcFilter   []string
-	hostFilter []string
+	hostFilter []netip.Addr
 }
 
 func (r repairReq) fullTable() string {
@@ -124,7 +126,7 @@ func (r repairReq) fullTable() string {
 }
 
 type repairStatusReq struct {
-	host string
+	host netip.Addr
 	id   string
 }
 
@@ -205,12 +207,14 @@ func parseRepairAsyncReq(t *testing.T, req *http.Request) repairReq {
 	}
 
 	sched := repairReq{
-		host:                   req.Host,
+		host:                   netip.MustParseAddr(req.URL.Hostname()),
 		keyspace:               strings.TrimPrefix(req.URL.Path, repairAsyncEndpoint+"/"),
 		table:                  req.URL.Query().Get("columnFamilies"),
-		replicaSet:             strings.Split(req.URL.Query().Get("hosts"), ","),
 		ranges:                 parseRanges(t, req.URL.Query().Get("ranges")),
 		smallTableOptimization: req.URL.Query().Get("small_table_optimization") == "true",
+	}
+	if replicaSet := req.URL.Query().Get("hosts"); replicaSet != "" {
+		sched.replicaSet = slices2.Map(strings.Split(replicaSet, ","), netip.MustParseAddr)
 	}
 	if rawRangesParallelism := req.URL.Query().Get("ranges_parallelism"); rawRangesParallelism != "" {
 		rangesParallelism, err := strconv.Atoi(rawRangesParallelism)
@@ -235,11 +239,15 @@ func parseTabletRepairReq(t *testing.T, req *http.Request) repairReq {
 	}
 
 	sched := repairReq{
-		host:       req.Host,
-		keyspace:   req.URL.Query().Get("ks"),
-		table:      req.URL.Query().Get("table"),
-		dcFilter:   strings.Split(req.URL.Query().Get("dcs_filter"), ","),
-		hostFilter: strings.Split(req.URL.Query().Get("hosts_filter"), ","),
+		host:     netip.MustParseAddr(req.URL.Hostname()),
+		keyspace: req.URL.Query().Get("ks"),
+		table:    req.URL.Query().Get("table"),
+	}
+	if dcFilter := req.URL.Query().Get("dcs_filter"); dcFilter != "" {
+		sched.dcFilter = strings.Split(dcFilter, ",")
+	}
+	if hostsFilter := req.URL.Query().Get("hosts_filter"); hostsFilter != "" {
+		sched.hostFilter = slices2.Map(strings.Split(hostsFilter, ","), netip.MustParseAddr)
 	}
 	if sched.keyspace == "" || sched.table == "" {
 		t.Error("Not fully initialized tablet repair sched req")
@@ -268,7 +276,7 @@ func parseRepairAsyncStatusReq(t *testing.T, req *http.Request) repairStatusReq 
 	}
 
 	status := repairStatusReq{
-		host: req.Host,
+		host: netip.MustParseAddr(req.URL.Hostname()),
 		id:   req.URL.Query().Get("id"),
 	}
 	if status.id == "" {
@@ -286,7 +294,7 @@ func parseTabletRepairStatusReq(t *testing.T, req *http.Request) repairStatusReq
 	}
 
 	status := repairStatusReq{
-		host: req.Host,
+		host: netip.MustParseAddr(req.URL.Hostname()),
 		id:   strings.TrimPrefix(req.URL.Path, waitTaskEndpoint+"/"),
 	}
 	if status.id == "" {
@@ -617,7 +625,7 @@ func repairRunningInterceptor() (http.RoundTripper, chan struct{}) {
 	}), done
 }
 
-func repairReqAssertHostInterceptor(t *testing.T, host string) http.RoundTripper {
+func repairReqAssertHostInterceptor(t *testing.T, host netip.Addr) http.RoundTripper {
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if r, ok := parseRepairReq(t, req); ok {
 			if !slices.Contains(r.replicaSet, host) {

@@ -276,7 +276,7 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 	defer q.Release()
 
 	for _, h := range j.replicaSet {
-		pk := newHostKsTable(h, j.keyspace, j.table)
+		pk := newHostKsTable(h.String(), j.keyspace, j.table)
 
 		pm.mu.Lock()
 		rp := pm.progress[pk]
@@ -297,7 +297,7 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 		if err := q.Exec(); err != nil {
 			pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
 		}
-		pm.metrics.AddJob(pm.run.ClusterID, h, len(j.ranges))
+		pm.metrics.AddJob(pm.run.ClusterID, h.String(), len(j.ranges))
 	}
 }
 
@@ -315,7 +315,7 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 	for _, h := range result.replicaSet {
 		pm.mu.Lock()
 
-		pk := newHostKsTable(h, result.keyspace, result.table)
+		pk := newHostKsTable(h.String(), result.keyspace, result.table)
 		rp := pm.progress[pk]
 		if result.Success() {
 			rp.Success += int64(len(result.ranges))
@@ -340,8 +340,8 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 			pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
 		}
 
-		pm.metrics.SubJob(pm.run.ClusterID, h, len(result.ranges))
-		pm.metrics.SetTokenRanges(pm.run.ClusterID, result.keyspace, result.table, h,
+		pm.metrics.SubJob(pm.run.ClusterID, h.String(), len(result.ranges))
+		pm.metrics.SetTokenRanges(pm.run.ClusterID, result.keyspace, result.table, h.String(),
 			rp.TokenRanges, rp.Success, rp.Error)
 	}
 }

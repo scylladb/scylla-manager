@@ -5,8 +5,6 @@ package scyllaclient
 import (
 	"context"
 	"time"
-
-	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 )
 
 func NoRetry(ctx context.Context) context.Context {
@@ -39,17 +37,4 @@ func (p *CachedProvider) SetValidity(d time.Duration) {
 
 func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 	return c.hosts(ctx)
-}
-
-func (c *Client) RawRepair(ctx context.Context, ks, tab, master string) (int32, error) {
-	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
-		Context:        forceHost(ctx, master),
-		Keyspace:       ks,
-		ColumnFamilies: &tab,
-	}
-	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspacePost(&p)
-	if err != nil {
-		return 0, err
-	}
-	return resp.GetPayload(), nil
 }

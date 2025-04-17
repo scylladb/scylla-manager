@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/netip"
 	"slices"
 	"strings"
 	"sync"
@@ -27,6 +28,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/workerpool"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 )
@@ -89,12 +91,19 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 
 	// Copy basic properties
 	t := Target{
-		Host:                props.Host,
 		FailFast:            props.FailFast,
 		Continue:            props.Continue,
 		Intensity:           NewIntensityFromDeprecated(props.Intensity),
 		Parallel:            props.Parallel,
 		SmallTableThreshold: props.SmallTableThreshold,
+	}
+
+	if props.Host != "" {
+		hostIP, err := netip.ParseAddr(props.Host)
+		if err != nil {
+			return Target{}, util.ErrValidate(errors.Wrap(err, "parse host IP address"))
+		}
+		t.Host = hostIP
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -120,7 +129,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 	// Ignore nodes with status DOWN
 	if props.IgnoreDownHosts {
-		t.IgnoreHosts = status.Datacenter(t.DC).Down().Hosts()
+		ips, err := slices2.MapWithError(status.Datacenter(t.DC).Down().Hosts(), netip.ParseAddr)
+		if err != nil {
+			return t, util.ErrValidate(errors.Wrapf(err, "parse down hosts IP addresses"))
+		}
+		t.IgnoreHosts = ips
 	}
 	if err := validateIgnoreDownNodes(t, status); err != nil {
 		return t, err
@@ -189,7 +202,7 @@ func validateIgnoreDownNodes(t Target, status scyllaclient.NodeStatusInfoSlice) 
 
 func validateHost(t Target, p *plan, dcMap map[string][]string) error {
 	// Nothing to validate - no --host flag
-	if t.Host == "" {
+	if !t.Host.IsValid() {
 		return nil
 	}
 	// Ensure Host is not ignored
@@ -197,7 +210,9 @@ func validateHost(t Target, p *plan, dcMap map[string][]string) error {
 		return errors.New("host can't have status down")
 	}
 	// Ensure Host belongs to DCs
-	if !hostBelongsToDCs(t.Host, t.DC, dcMap) {
+	if ok, err := hostBelongsToDCs(t.Host, t.DC, dcMap); err != nil {
+		return err
+	} else if !ok {
 		return util.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
 	}
 	// Ensure Host is not used with tablet repair API
@@ -218,15 +233,19 @@ func validateHost(t Target, p *plan, dcMap map[string][]string) error {
 	return nil
 }
 
-func hostBelongsToDCs(host string, dcs []string, dcMap map[string][]string) bool {
+func hostBelongsToDCs(host netip.Addr, dcs []string, dcMap map[string][]string) (bool, error) {
 	for _, dc := range dcs {
 		for _, h := range dcMap[dc] {
-			if host == h {
-				return true
+			ip, err := netip.ParseAddr(h)
+			if err != nil {
+				return false, err
+			}
+			if host == ip {
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
 // Repair performs the repair process on the Target.
@@ -242,7 +261,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		TaskID:    taskID,
 		ID:        runID,
 		DC:        target.DC,
-		Host:      target.Host,
+		Host:      target.Host.String(),
 		Parallel:  target.Parallel,
 		Intensity: target.Intensity,
 		StartTime: timeutc.Now(),
@@ -376,7 +395,7 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 }
 
 func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, runID uuid.UUID,
-	maxHostIntensity map[string]Intensity, maxParallel int, poolController sizeSetter,
+	maxHostIntensity map[netip.Addr]Intensity, maxParallel int, poolController sizeSetter,
 ) (ih *intensityParallelHandler, cleanup func()) {
 	ih = &intensityParallelHandler{
 		taskID:           taskID,

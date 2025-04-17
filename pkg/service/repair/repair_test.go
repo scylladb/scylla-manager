@@ -4,30 +4,33 @@ package repair_test
 
 import (
 	"fmt"
+	"net/netip"
+	"strings"
 	"testing"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
 func TestMaxRingParallel(t *testing.T) {
-	hostDC := map[string]string{
+	hostDC := map[netip.Addr]string{
 		// dc1 -> 3
-		"h1": "dc1",
-		"h2": "dc1",
-		"h3": "dc1",
+		hostIP("h1"): "dc1",
+		hostIP("h2"): "dc1",
+		hostIP("h3"): "dc1",
 		// dc2 -> 4
-		"h4": "dc2",
-		"h5": "dc2",
-		"h6": "dc2",
-		"h7": "dc2",
+		hostIP("h4"): "dc2",
+		hostIP("5"):  "dc2",
+		hostIP("6"):  "dc2",
+		hostIP("7"):  "dc2",
 		// dc3 -> 5
-		"h8":  "dc3",
-		"h9":  "dc3",
-		"h10": "dc3",
-		"h11": "dc3",
-		"h12": "dc3",
+		hostIP("8"):  "dc3",
+		hostIP("9"):  "dc3",
+		hostIP("10"): "dc3",
+		hostIP("11"): "dc3",
+		hostIP("12"): "dc3",
 	}
 
 	testCases := []struct {
@@ -109,25 +112,25 @@ func TestMaxRingParallel(t *testing.T) {
 }
 
 func TestShouldRepairRing(t *testing.T) {
-	hostDC := map[string]string{
+	hostDC := map[netip.Addr]string{
 		// dc1 -> 1
-		"h1": "dc1",
+		hostIP("h1"): "dc1",
 		// dc2 -> 1
-		"h2": "dc2",
+		hostIP("h2"): "dc2",
 		// dc3 -> 3
-		"h3": "dc3",
-		"h4": "dc3",
-		"h5": "dc3",
+		hostIP("h3"): "dc3",
+		hostIP("h4"): "dc3",
+		hostIP("h5"): "dc3",
 		// dc3 -> 4
-		"h6": "dc4",
-		"h7": "dc4",
-		"h8": "dc4",
-		"h9": "dc4",
+		hostIP("h6"): "dc4",
+		hostIP("h7"): "dc4",
+		hostIP("h8"): "dc4",
+		hostIP("h9"): "dc4",
 	}
 
 	rs := func(reps ...string) scyllaclient.ReplicaTokenRanges {
 		return scyllaclient.ReplicaTokenRanges{
-			ReplicaSet: reps,
+			ReplicaSet: slices.Map(reps, hostIP),
 			Ranges: []scyllaclient.TokenRange{
 				{
 					StartToken: dht.Murmur3MinToken,
@@ -305,9 +308,17 @@ func TestShouldRepairRing(t *testing.T) {
 		tc := testCases[i]
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
-			if out := repair.ShouldRepairRing(tc.Ring, tc.DCs, tc.Host); out != tc.Expected {
+			if out := repair.ShouldRepairRing(tc.Ring, tc.DCs, hostIP(tc.Host)); out != tc.Expected {
 				t.Fatalf("Expected %v, got %v", tc.Expected, out)
 			}
 		})
 	}
+}
+
+// dummyHost is a number (possibly prefixed with "h").
+func hostIP(dummyHost string) netip.Addr {
+	if dummyHost == "" {
+		return netip.Addr{}
+	}
+	return netip.MustParseAddr("192.168.100." + strings.TrimPrefix(dummyHost, "h"))
 }
