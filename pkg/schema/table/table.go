@@ -64,14 +64,14 @@ var (
 		Name: "cluster",
 		Columns: []string{
 			"auth_token",
+			"force_non_ssl_session_port",
+			"force_tls_disabled",
+			"host",
 			"id",
 			"known_hosts",
 			"labels",
 			"name",
 			"port",
-			"force_tls_disabled",
-			"force_non_ssl_session_port",
-			"host",
 		},
 		PartKey: []string{
 			"id",
