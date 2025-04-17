@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -19,12 +20,13 @@ import (
 
 // hostInfo groups target host properties needed for backup.
 type hostInfo struct {
-	DC        string
-	IP        string
-	ID        string
-	Location  backupspec.Location
-	RateLimit DCLimit
-	Transfers int
+	DC         string
+	IP         string
+	ID         string
+	Location   backupspec.Location
+	RateLimit  DCLimit
+	Transfers  int
+	NodeConfig configcache.NodeConfig
 }
 
 func (h hostInfo) String() string {
@@ -43,6 +45,9 @@ type snapshotDir struct {
 
 	SkippedBytesOffset int64
 	NewFilesSize       int64
+	// willCreateVersioned is set to true when uploading the snapshot directory after
+	// the deduplication results in creating versioned SSTables.
+	willCreateVersioned bool
 }
 
 func (sd snapshotDir) String() string {
@@ -57,6 +62,7 @@ type workerTools struct {
 	TaskID      uuid.UUID
 	RunID       uuid.UUID
 	SnapshotTag string
+	Method      method
 	Config      Config
 	Client      *scyllaclient.Client
 	Logger      log.Logger

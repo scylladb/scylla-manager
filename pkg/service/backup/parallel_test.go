@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestMakeHostsLimit(t *testing.T) {
@@ -64,7 +65,7 @@ func TestMakeHostsLimit(t *testing.T) {
 
 			golden := test.HostsLimit
 			m := makeHostsLimit(test.Hosts, test.Limits)
-			if diff := cmp.Diff(golden, m, cmp.AllowUnexported(hostsLimit{})); diff != "" {
+			if diff := cmp.Diff(golden, m, cmp.AllowUnexported(hostsLimit{}), cmpopts.IgnoreFields(hostInfo{}, "NodeConfig")); diff != "" {
 				t.Errorf(diff)
 			}
 		})

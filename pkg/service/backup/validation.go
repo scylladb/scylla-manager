@@ -5,6 +5,7 @@ package backup
 import (
 	"context"
 	"encoding/json"
+	"net/netip"
 	"sort"
 	"strings"
 	"sync"
@@ -21,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -147,7 +149,16 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 		}
 	}
 
-	hosts, err := makeHostInfo(target.liveNodes, target.Location, nil, 0)
+	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return errors.Wrap(err, "read all nodes config")
+	}
+	nodeConfig, err := maps.MapKeyWithError(rawNodeConfig, netip.ParseAddr)
+	if err != nil {
+		return errors.Wrap(err, "parse node config IP address")
+	}
+
+	hosts, err := makeHostInfo(target.liveNodes, nodeConfig, target.Location, nil, 0)
 	if err != nil {
 		return err
 	}

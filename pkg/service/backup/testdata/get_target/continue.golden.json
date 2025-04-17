@@ -69,5 +69,6 @@
   "rate_limit": [
     "100"
   ],
-  "transfers": -1
+  "transfers": -1,
+  "method": "auto"
 }
