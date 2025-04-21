@@ -18,7 +18,7 @@ Restore
 The :ref:`sctool restore <sctool-restore>` command allows you to run a restore of backed-up data (identified by its snapshot-tag) into a cluster.
 Restore and backups are scheduled in the same manner: you can start, stop, resume, and track task progress on demand.
 
-.. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/nodeoperations/restore.html#>`_.
+.. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/resources/scyllaclusters/nodeoperations/restore.html>`_.
 
 .. warning::
     Restore works only when ScyllaDB version of backed-up cluster is the same or older than ScyllaDB version of restore destination cluster.
