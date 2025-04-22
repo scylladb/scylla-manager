@@ -264,6 +264,16 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	return "", nil
 }
 
+// SupportsScyllaBackupRestoreAPI returns whether node exposes /storage_service/<backup|restore> API.
+func (ni *NodeInfo) SupportsScyllaBackupRestoreAPI() (bool, error) {
+	// Detect master builds
+	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
+		return true, nil
+	}
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
+}
+
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
 func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 	p := operations.FreeOSMemoryParams{
