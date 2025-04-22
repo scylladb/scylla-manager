@@ -16,6 +16,10 @@ import (
 
 func getProgress(run *Run, s gocqlx.Session) (Progress, error) {
 	seq := newRunProgressSeq()
+	// Note that interrupted run progresses are deleted from the DB,
+	// as we don't support resume on a batch level.
+	// This means that it's safe to always use timeutc.Now() instead of
+	// replacing it with run end time.
 	pr := aggregateProgress(run, seq.All(run.ClusterID, run.TaskID, run.ID, s), timeutc.Now())
 	if seq.err != nil {
 		return Progress{}, seq.err
@@ -131,15 +135,22 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	// Update host progress
 	hp := hostProgress[pr.Host]
 	hp.ShardCnt = pr.ShardCnt
-	hp.DownloadedBytes += pr.Downloaded + pr.VersionedDownloaded
-	// We can update download duration on the fly,
-	// but it's not possible with sync load&stream API.
-	hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt, now).Milliseconds()
-	if validateTimeIsSet(pr.RestoreCompletedAt) {
+	// Restoring with native Scylla restore task populates
+	// just the restored bytes/duration metrics.
+	if pr.ScyllaTaskID != "" {
 		hp.RestoredBytes += pr.Restored
 		hp.RestoreDuration += timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt, now).Milliseconds()
-		hp.StreamedBytes += pr.Restored
-		hp.StreamDuration += timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt, now).Milliseconds()
+	} else {
+		// We can update download duration on the fly,
+		// but it's not possible with sync load&stream API.
+		hp.DownloadedBytes += pr.Downloaded + pr.VersionedDownloaded
+		hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt, now).Milliseconds()
+		if validateTimeIsSet(pr.RestoreCompletedAt) {
+			hp.RestoredBytes += pr.Restored
+			hp.RestoreDuration += timeSub(pr.RestoreStartedAt, pr.RestoreCompletedAt, now).Milliseconds()
+			hp.StreamedBytes += pr.Restored
+			hp.StreamDuration += timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt, now).Milliseconds()
+		}
 	}
 	hostProgress[pr.Host] = hp
 }
