@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,6 +27,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"go.uber.org/multierr"
@@ -492,12 +495,12 @@ func (c *Client) describeRing(params *operations.StorageServiceDescribeRingByKey
 
 	ring := Ring{
 		ReplicaTokens: make([]ReplicaTokenRanges, 0),
-		HostDC:        map[string]string{},
+		HostDC:        map[netip.Addr]string{},
 	}
 	dcTokens := make(map[string]int)
 
 	replicaTokens := make(map[uint64][]TokenRange)
-	replicaHash := make(map[uint64][]string)
+	replicaHash := make(map[uint64][]netip.Addr)
 
 	isNetworkTopologyStrategy := true
 	rf := len(resp.Payload[0].Endpoints)
@@ -513,12 +516,18 @@ func (c *Client) describeRing(params *operations.StorageServiceDescribeRingByKey
 			return Ring{}, errors.Wrap(err, "parse EndToken")
 		}
 
-		// Ensure deterministic order or nodes in replica set
-		sort.Strings(p.Endpoints)
+		replicaSet, err := slices2.MapWithError(p.Endpoints, netip.ParseAddr)
+		if err != nil {
+			return Ring{}, err
+		}
+		// Ensure deterministic order of nodes in replica set
+		slices.SortFunc(replicaSet, func(a, b netip.Addr) int {
+			return a.Compare(b)
+		})
 
 		// Aggregate replica set token ranges
-		hash := ReplicaHash(p.Endpoints)
-		replicaHash[hash] = p.Endpoints
+		hash := ReplicaHash(replicaSet)
+		replicaHash[hash] = replicaSet
 		replicaTokens[hash] = append(replicaTokens[hash], TokenRange{
 			StartToken: startToken,
 			EndToken:   endToken,
@@ -541,7 +550,11 @@ func (c *Client) describeRing(params *operations.StorageServiceDescribeRingByKey
 
 		// Update host to DC mapping
 		for _, e := range p.EndpointDetails {
-			ring.HostDC[e.Host] = e.Datacenter
+			ip, err := netip.ParseAddr(e.Host)
+			if err != nil {
+				return Ring{}, err
+			}
+			ring.HostDC[ip] = e.Datacenter
 		}
 
 		// Update DC token metrics
@@ -582,11 +595,11 @@ func (c *Client) describeRing(params *operations.StorageServiceDescribeRingByKey
 }
 
 // ReplicaHash hashes replicas so that it can be used as a map key.
-func ReplicaHash(replicaSet []string) uint64 {
+func ReplicaHash(replicaSet []netip.Addr) uint64 {
 	hash := xxhash.New()
 	for _, r := range replicaSet {
-		_, _ = hash.WriteString(r)   // nolint: errcheck
-		_, _ = hash.WriteString(",") // nolint: errcheck
+		_, _ = hash.WriteString(r.String()) // nolint: errcheck
+		_, _ = hash.WriteString(",")        // nolint: errcheck
 	}
 	return hash.Sum64()
 }

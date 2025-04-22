@@ -5,6 +5,8 @@ package scyllaclient_test
 import (
 	"context"
 	"net/http"
+	"net/netip"
+	"slices"
 	"strings"
 	"testing"
 
@@ -193,11 +195,26 @@ func TestClientDescribeRing(t *testing.T) {
 
 	{
 		golden := scyllaclient.ReplicaTokenRanges{
-			ReplicaSet: []string{"172.16.1.10", "172.16.1.2", "172.16.1.20", "172.16.1.3", "172.16.1.4", "172.16.1.5"},
-			Ranges:     []scyllaclient.TokenRange{{StartToken: -9223128845313325022, EndToken: -9197905337938558763}},
+			ReplicaSet: []netip.Addr{
+				netip.MustParseAddr("172.16.1.10"),
+				netip.MustParseAddr("172.16.1.2"),
+				netip.MustParseAddr("172.16.1.20"),
+				netip.MustParseAddr("172.16.1.3"),
+				netip.MustParseAddr("172.16.1.4"),
+				netip.MustParseAddr("172.16.1.5"),
+			},
+			Ranges: []scyllaclient.TokenRange{{StartToken: -9223128845313325022, EndToken: -9197905337938558763}},
 		}
-		if diff := cmp.Diff(ring.ReplicaTokens[0].ReplicaSet, golden.ReplicaSet); diff != "" {
-			t.Fatal(diff)
+
+		slices.SortFunc(ring.ReplicaTokens[0].ReplicaSet, func(a, b netip.Addr) int {
+			return a.Compare(b)
+		})
+		slices.SortFunc(golden.ReplicaSet, func(a, b netip.Addr) int {
+			return a.Compare(b)
+		})
+
+		if !slices.Equal(ring.ReplicaTokens[0].ReplicaSet, golden.ReplicaSet) {
+			t.Fatalf("Expected replica set %v, got %v", ring.ReplicaTokens[0].ReplicaSet, golden.ReplicaSet)
 		}
 		if diff := cmp.Diff(ring.ReplicaTokens[0].Ranges[0], golden.Ranges[0]); diff != "" {
 			t.Fatal(diff)
@@ -205,13 +222,13 @@ func TestClientDescribeRing(t *testing.T) {
 	}
 
 	{
-		golden := map[string]string{
-			"172.16.1.10": "dc1",
-			"172.16.1.2":  "dc1",
-			"172.16.1.20": "dc2",
-			"172.16.1.3":  "dc1",
-			"172.16.1.4":  "dc2",
-			"172.16.1.5":  "dc2",
+		golden := map[netip.Addr]string{
+			netip.MustParseAddr("172.16.1.10"): "dc1",
+			netip.MustParseAddr("172.16.1.2"):  "dc1",
+			netip.MustParseAddr("172.16.1.20"): "dc2",
+			netip.MustParseAddr("172.16.1.3"):  "dc1",
+			netip.MustParseAddr("172.16.1.4"):  "dc2",
+			netip.MustParseAddr("172.16.1.5"):  "dc2",
 		}
 		if diff := cmp.Diff(ring.HostDC, golden); diff != "" {
 			t.Fatal(diff)

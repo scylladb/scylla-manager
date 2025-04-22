@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/netip"
 	"reflect"
 	"slices"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 
 	"go.uber.org/multierr"
 
@@ -498,13 +500,13 @@ type tabValidator interface {
 // Validates that each token range is owned by at least one live backed up node.
 // Otherwise, corresponding data wouldn't be included in the backup.
 type tokenRangesValidator struct {
-	liveNodes *strset.Set
+	liveNodes *map[netip.Addr]struct{}
 	dcs       *strset.Set
 }
 
 func (v tokenRangesValidator) validate(ks, tab string, ring scyllaclient.Ring) error {
 	for _, rt := range ring.ReplicaTokens {
-		if !v.liveNodes.HasAny(rt.ReplicaSet...) {
+		if !maps.HasAnyKey(*v.liveNodes, rt.ReplicaSet...) {
 			return errors.Errorf("%s.%s: the whole replica set %v is filtered out, so the data owned by it can't be backed up", ks, tab, rt.ReplicaSet)
 		}
 	}

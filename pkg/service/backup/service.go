@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/netip"
 	"sort"
 	"strings"
 	"sync"
@@ -30,6 +31,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -193,9 +196,14 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, errors.Wrap(err, "create cluster session")
 	}
 
+	liveNodeIPs, err := slices.MapWithError(liveNodes.Hosts(), netip.ParseAddr)
+	if err != nil {
+		return Target{}, err
+	}
+	liveNodesSet := maps.SetFromSlice(liveNodeIPs)
 	validators := []tabValidator{
 		tokenRangesValidator{
-			liveNodes: strset.New(liveNodes.Hosts()...),
+			liveNodes: &liveNodesSet,
 			dcs:       strset.New(dcs...),
 		},
 	}
