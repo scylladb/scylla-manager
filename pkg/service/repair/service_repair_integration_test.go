@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"slices"
 	"sort"
 	"strings"
@@ -477,8 +478,12 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(u1, u2 repair.Unit) bool { return u1.Keyspace < u2.Keyspace }),
 				cmpopts.IgnoreUnexported(repair.Target{}),
 				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool { return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" }),
-				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" })); diff != "" {
+				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" }),
+				cmpopts.IgnoreFields(repair.Target{}, "Host")); diff != "" {
 				t.Fatal(diff)
+			}
+			if golden.Host != v.Host {
+				t.Fatalf("Expected host: %s, got: %s", golden.Host, v.Host)
 			}
 		})
 	}
@@ -512,11 +517,11 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 		}
 
 		// The amount of currently executed repair jobs on host
-		jobsPerHost := make(map[string]int)
+		jobsPerHost := make(map[netip.Addr]int)
 		muJPH := sync.Mutex{}
 
 		// Set of hosts used for given repair job
-		hostsInJob := make(map[string][]string)
+		hostsInJob := make(map[string][]netip.Addr)
 		muHIJ := sync.Mutex{}
 
 		cnt := atomic.Int64{}
@@ -545,14 +550,14 @@ func TestServiceRepairOneJobPerHostIntegration(t *testing.T) {
 
 			if r, ok := parseRepairResp(t, resp); ok {
 				muHIJ.Lock()
-				hostsInJob[r.host+r.id] = r.replicaSet
+				hostsInJob[r.host.String()+r.id] = r.replicaSet
 				muHIJ.Unlock()
 			}
 
 			if r, ok := parseRepairStatusResp(t, resp); ok {
 				if r.status == repairStatusDone || r.status == repairStatusFailed {
 					muHIJ.Lock()
-					hosts := hostsInJob[r.host+r.id]
+					hosts := hostsInJob[r.host.String()+r.id]
 					muHIJ.Unlock()
 
 					muJPH.Lock()
@@ -700,14 +705,14 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 		if r, ok := parseRepairResp(t, resp); ok {
 			// Register what table is being repaired
 			muJT.Lock()
-			jobTable[r.host+r.id] = r.fullTable()
+			jobTable[r.host.String()+r.id] = r.fullTable()
 			muJT.Unlock()
 		}
 
 		if r, ok := parseRepairStatusResp(t, resp); ok {
 			if r.status == repairStatusDone || r.status == repairStatusFailed {
 				// Add host prefix as IDs are unique only for a given host
-				jobID := r.host + r.id
+				jobID := r.host.String() + r.id
 				muJT.Lock()
 				fullTable := jobTable[jobID]
 				muJT.Unlock()
@@ -899,7 +904,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 		if r, ok := parseRepairResp(t, resp); ok {
 			// Register what table is being repaired
 			muJS.Lock()
-			jobSpec[r.host+r.id] = TableRange{
+			jobSpec[r.host.String()+r.id] = TableRange{
 				FullTable: r.fullTable(),
 				Ranges:    r.ranges,
 			}
@@ -918,7 +923,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 				muJS.Lock()
 				defer muJS.Unlock()
 
-				k := r.host + r.id
+				k := r.host.String() + r.id
 				if tr, ok := jobSpec[k]; ok {
 					// Make sure that retries don't result in counting redundant ranges
 					delete(jobSpec, k)
@@ -1095,7 +1100,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		var ignored = IPFromTestNet("12")
+		var ignored = ManagedClusterHost()
 		h.stopNode(ignored)
 		defer h.startNode(ignored, globalNodeInfo)
 
@@ -1131,7 +1136,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Skip("This behavior is tested by test 'repair tablet API filtering'")
 		}
 
-		host := h.GetHostsFromDC("dc1")[0]
+		host := netip.MustParseAddr(h.GetHostsFromDC("dc1")[0])
 		h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
 
 		Print("When: run repair")
@@ -2157,13 +2162,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			host := IPFromTestNet("22")
+			host := netip.MustParseAddr(h.GetHostsFromDC("dc2")[0])
 			h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
 
 			h.runRepair(ctx, map[string]any{
 				"dc":       []string{"dc2"},
 				"keyspace": []string{tabletSingleDCKs, vnodeKs},
-				"host":     IPFromTestNet("22"),
+				"host":     host.String(),
 			})
 			h.assertDone(shortWait)
 		})
@@ -2171,7 +2176,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Run("Repairing table with node down should fail at generating target", func(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 
-			down := IPFromTestNet("22")
+			down := ManagedClusterHost()
 			h.stopNode(down)
 			defer h.startNode(down, globalNodeInfo)
 
@@ -2192,7 +2197,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		t.Run("Repairing table with node down from filtered out DC should succeed", func(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 
-			down := IPFromTestNet("22")
+			down := h.GetHostsFromDC("dc2")[0]
 			h.stopNode(down)
 			defer h.startNode(down, globalNodeInfo)
 

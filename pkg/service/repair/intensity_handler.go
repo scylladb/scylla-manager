@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"math"
+	"net/netip"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -19,7 +20,7 @@ type intensityParallelHandler struct {
 	taskID           uuid.UUID
 	runID            uuid.UUID
 	logger           log.Logger
-	maxHostIntensity map[string]Intensity
+	maxHostIntensity map[netip.Addr]Intensity
 	intensity        *atomic.Int64
 	maxParallel      int
 	parallel         *atomic.Int64
@@ -55,7 +56,7 @@ func (i *intensityParallelHandler) SetParallel(ctx context.Context, parallel int
 
 // ReplicaSetMaxIntensity returns the max amount of ranges that can be repaired in parallel on given replica set.
 // It results in returning min(max_repair_ranges_in_parallel) across nodes from replica set.
-func (i *intensityParallelHandler) ReplicaSetMaxIntensity(replicaSet []string) Intensity {
+func (i *intensityParallelHandler) ReplicaSetMaxIntensity(replicaSet []netip.Addr) Intensity {
 	out := NewIntensity(math.MaxInt)
 	for _, rep := range replicaSet {
 		if ranges := i.maxHostIntensity[rep]; ranges < out {
@@ -66,7 +67,7 @@ func (i *intensityParallelHandler) ReplicaSetMaxIntensity(replicaSet []string) I
 }
 
 // MaxHostIntensity returns max_token_ranges_in_parallel per host.
-func (i *intensityParallelHandler) MaxHostIntensity() map[string]Intensity {
+func (i *intensityParallelHandler) MaxHostIntensity() map[netip.Addr]Intensity {
 	return i.maxHostIntensity
 }
 

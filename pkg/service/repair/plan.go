@@ -5,6 +5,8 @@ package repair
 import (
 	"context"
 	"math"
+	"net/netip"
+	"slices"
 	"sort"
 	"sync/atomic"
 
@@ -21,7 +23,7 @@ type plan struct {
 
 	Hosts            []string
 	MaxParallel      int
-	MaxHostIntensity map[string]Intensity
+	MaxHostIntensity map[netip.Addr]Intensity
 	apiSupport       apiSupport
 	// Used for progress purposes
 	Stats map[scyllaclient.HostKeyspaceTable]tableStats
@@ -90,10 +92,9 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 				}
 
 				replicaSetCnt++
-				allHosts.Add(filtered...)
-
 				for _, h := range filtered {
-					ranges[newHostKsTable(h, u.Keyspace, t)] += len(rep.Ranges)
+					allHosts.Add(h.String())
+					ranges[newHostKsTable(h.String(), u.Keyspace, t)] += len(rep.Ranges)
 				}
 				rangesCnt += len(rep.Ranges)
 			}
@@ -249,9 +250,9 @@ func (p keyspacePlans) fillSmall(smallTableThreshold int64) {
 
 // ShouldRepairRing when all ranges are replicated (len(replicaSet) > 1) in specified dcs.
 // If host is set, it also checks if host belongs to the dcs.
-func ShouldRepairRing(ring scyllaclient.Ring, dcs []string, host string) bool {
+func ShouldRepairRing(ring scyllaclient.Ring, dcs []string, host netip.Addr) bool {
 	repairedDCs := strset.New(dcs...)
-	if host != "" {
+	if host.IsValid() {
 		if dc, ok := ring.HostDC[host]; !ok || !repairedDCs.Has(dc) {
 			return false
 		}
@@ -272,7 +273,7 @@ func ShouldRepairRing(ring scyllaclient.Ring, dcs []string, host string) bool {
 }
 
 // maxHostIntensity sets max_ranges_in_parallel for all repaired host.
-func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []string) (map[string]Intensity, error) {
+func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []string) (map[netip.Addr]Intensity, error) {
 	shards, err := client.HostsShardCount(ctx, hosts)
 	if err != nil {
 		return nil, err
@@ -281,15 +282,19 @@ func maxHostIntensity(ctx context.Context, client *scyllaclient.Client, hosts []
 	if err != nil {
 		return nil, err
 	}
-	return hostMaxRanges(shards, memory), nil
+	return hostMaxRanges(shards, memory)
 }
 
-func hostMaxRanges(shards map[string]uint, memory map[string]int64) map[string]Intensity {
-	out := make(map[string]Intensity, len(shards))
+func hostMaxRanges(shards map[string]uint, memory map[string]int64) (map[netip.Addr]Intensity, error) {
+	out := make(map[netip.Addr]Intensity, len(shards))
 	for h, sh := range shards {
-		out[h] = maxRepairRangesInParallel(sh, memory[h])
+		ip, err := netip.ParseAddr(h)
+		if err != nil {
+			return nil, err
+		}
+		out[ip] = maxRepairRangesInParallel(sh, memory[h])
 	}
-	return out
+	return out, nil
 }
 
 func maxRepairRangesInParallel(shards uint, totalMemory int64) Intensity {
@@ -336,18 +341,16 @@ func MaxRingParallel(ring scyllaclient.Ring, dcs []string) int {
 }
 
 // Filters replica set according to --dc, --ignore-down-hosts, --host.
-func filterReplicaSet(replicaSet []string, hostDC map[string]string, target Target) []string {
-	if target.Host != "" && !slice.ContainsString(replicaSet, target.Host) {
+func filterReplicaSet(replicaSet []netip.Addr, hostDC map[netip.Addr]string, target Target) []netip.Addr {
+	if target.Host.IsValid() && !slices.Contains(replicaSet, target.Host) {
 		return nil
 	}
-
-	var out []string
+	var out []netip.Addr
 	for _, h := range replicaSet {
-		if slice.ContainsString(target.DC, hostDC[h]) && !slice.ContainsString(target.IgnoreHosts, h) {
+		if slice.ContainsString(target.DC, hostDC[h]) && !slices.Contains(target.IgnoreHosts, h) {
 			out = append(out, h)
 		}
 	}
-
 	return out
 }
 
