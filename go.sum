@@ -1064,8 +1064,10 @@ github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e h1:lJRphCtu+nKd
 github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e/go.mod h1:JGZp4EvCUK+6AM1Fe1dye5xvihTc/Bk0WnHHSCJOePM=
 github.com/scylladb/scylla-manager/backupspec v1.0.1 h1:WaFVHEWwVA3WUeCf2WakmhQ59o+wTYdzo4+qQf8maXk=
 github.com/scylladb/scylla-manager/backupspec v1.0.1/go.mod h1:izqe7mR8wpSFUTjwM3ptUHIk3nF+F5Bipmm0FPRqnlI=
-github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250310104639-18257b71bb48 h1:5UxdS6I8EaXSKkEwsV/MAwfCTGpeFDsFFN7UWYkXdW8=
-github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250310104639-18257b71bb48/go.mod h1:jVpZJLyynSmkukNbUhn3p0ZOlwGwH8nvx6FYOWIoMxg=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250407164115-c5bf399e1759 h1:Sm7q88sTIUWe0AWW/i/50WlS6ZJrlvjKA5MPtHZVix4=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250407164115-c5bf399e1759/go.mod h1:IUo0KL/TTqXUg8ur6sGhAc1jDDF8TBV6LYVTKB2AlIQ=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250414145630-57597921df36 h1:4KrWcwsGKXdJ4dkzDeYMXygsgkd3tFBXRtVSPGm8f0w=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250414145630-57597921df36/go.mod h1:9zNRbjtQus9dlIgwxlPjt4tmemN7x5G4Av8P9msakUo=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb48 h1:2iJMWV073twoCG2L/F5DBzQApxVX8kKEEeke3qvSitM=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb48/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
 github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250310104639-18257b71bb48 h1:bAQTWuQ8tkbUuHvaMOQBTJaLaTMpXMsBi1znv+yIpLo=
