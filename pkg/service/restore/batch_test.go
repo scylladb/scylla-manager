@@ -3,10 +3,12 @@
 package restore
 
 import (
+	"maps"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 )
 
 func TestBatchDispatcher(t *testing.T) {
@@ -281,5 +283,126 @@ func TestGetHostDCAccess(t *testing.T) {
 				t.Fatalf("Actual != Expected: %s", diff)
 			}
 		})
+	}
+}
+
+func TestBatchDispatcherType(t *testing.T) {
+	l := backupspec.Location{
+		Provider: "s3",
+		Path:     "l",
+	}
+
+	rawWorkload := []RemoteDirWorkload{
+		{
+			ManifestInfo: &backupspec.ManifestInfo{
+				Location: l,
+				DC:       "dc1",
+			},
+			TableName: TableName{
+				Keyspace: "ks1",
+				Table:    "t1",
+			},
+			RemoteSSTableDir: "a",
+			Size:             7,
+			SSTables: []RemoteSSTable{
+				// Integer ID, not versioned
+				{
+					SSTable:   SSTable{ID: sstable.ID{Type: sstable.IntegerID}},
+					Versioned: false,
+					Size:      1,
+				},
+				{
+					SSTable:   SSTable{ID: sstable.ID{Type: sstable.IntegerID}},
+					Versioned: false,
+					Size:      1,
+				},
+				{
+					SSTable:   SSTable{ID: sstable.ID{Type: sstable.IntegerID}},
+					Versioned: false,
+					Size:      1,
+				},
+				{
+					SSTable:   SSTable{ID: sstable.ID{Type: sstable.IntegerID}},
+					Versioned: false,
+					Size:      1,
+				},
+				// Integer ID, versioned
+				{
+					SSTable:   SSTable{ID: sstable.ID{Type: sstable.IntegerID}},
+					Versioned: true,
+					Size:      1,
+				},
+				// UUID, not versioned
+				{
+					SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}},
+					Size:    1,
+				},
+				{
+					SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}},
+					Size:    1,
+				},
+			},
+		},
+	}
+
+	workload := aggregateWorkload(rawWorkload)
+	batchSize := 3
+	locationHosts := []LocationInfo{
+		{
+			DCHosts: map[string][]string{
+				"dc1": {"h1"},
+			},
+			Location: l,
+		},
+	}
+	hostToShard := map[string]uint{
+		"h1": 1,
+	}
+
+	bd := newBatchDispatcher(workload, batchSize, hostToShard, locationHosts)
+
+	type batchTypeWithSSTableCnt struct {
+		bt         batchType
+		SSTableCnt int
+	}
+
+	// Describes how many batchTypeWithSSTableCnt are we expecting to encounter
+	expected := map[batchTypeWithSSTableCnt]int{
+		batchTypeWithSSTableCnt{
+			bt:         batchType{IDType: sstable.IntegerID, Versioned: false},
+			SSTableCnt: 3,
+		}: 1,
+		batchTypeWithSSTableCnt{
+			bt:         batchType{IDType: sstable.IntegerID, Versioned: false},
+			SSTableCnt: 1,
+		}: 1,
+		batchTypeWithSSTableCnt{
+			bt:         batchType{IDType: sstable.IntegerID, Versioned: true},
+			SSTableCnt: 1,
+		}: 1,
+		batchTypeWithSSTableCnt{
+			bt:         batchType{IDType: sstable.UUID},
+			SSTableCnt: 2,
+		}: 1,
+	}
+
+	result := make(map[batchTypeWithSSTableCnt]int)
+	for {
+		b, ok := bd.dispatchBatch("h1")
+		if !ok {
+			break
+		}
+		result[batchTypeWithSSTableCnt{
+			bt:         b.batchType,
+			SSTableCnt: len(b.SSTables),
+		}]++
+		bd.ReportSuccess(b)
+	}
+
+	if !maps.Equal(expected, result) {
+		t.Fatalf("Expected batches %v, got %v", expected, result)
+	}
+	if err := bd.ValidateAllDispatched(); err != nil {
+		t.Fatalf("Expected all sstables to be batched: %s", err)
 	}
 }
