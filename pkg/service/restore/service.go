@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/netip"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -18,6 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 )
 
 // Service orchestrates clusterName backups.
@@ -182,6 +184,14 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 	if err != nil {
 		return worker{}, errors.Wrap(err, "get CQL cluster session")
 	}
+	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return worker{}, errors.Wrap(err, "read all nodes config")
+	}
+	nodeConfig, err := maps.MapKeyWithError(rawNodeConfig, netip.ParseAddr)
+	if err != nil {
+		return worker{}, errors.Wrap(err, "parse node config IP address")
+	}
 
 	return worker{
 		run: &Run{
@@ -194,6 +204,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 		client:         client,
 		session:        s.session,
 		clusterSession: clusterSession,
+		nodeConfig:     nodeConfig,
 	}, nil
 }
 
