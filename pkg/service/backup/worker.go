@@ -6,12 +6,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/netip"
 	"sync"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -43,6 +45,9 @@ type snapshotDir struct {
 
 	SkippedBytesOffset int64
 	NewFilesSize       int64
+	// willCreateVersioned is set to true when uploading the snapshot directory after
+	// the deduplication results in creating versioned SSTables.
+	willCreateVersioned bool
 }
 
 func (sd snapshotDir) String() string {
@@ -59,6 +64,7 @@ type workerTools struct {
 	SnapshotTag string
 	Config      Config
 	Client      *scyllaclient.Client
+	NodeConfig  map[netip.Addr]configcache.NodeConfig
 	Logger      log.Logger
 }
 
