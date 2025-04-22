@@ -7,6 +7,7 @@ package repair
 
 import (
 	"context"
+	"net/netip"
 	"slices"
 	"testing"
 	"time"
@@ -34,6 +35,9 @@ func TestProgressManagerIntegration(t *testing.T) {
 		NearDurationComparer(5 * time.Millisecond),
 	}
 
+	h1 := netip.MustParseAddr("192.168.100.11")
+	h2 := netip.MustParseAddr("192.168.100.12")
+
 	t.Run("progress update sequence (Init,OnJobStart,OnJobEnd)", func(t *testing.T) {
 		var (
 			run = &Run{
@@ -49,13 +53,13 @@ func TestProgressManagerIntegration(t *testing.T) {
 				EndToken:   10,
 			}
 			p = &plan{
-				Hosts: []string{"h1", "h2"},
+				Hosts: []string{h1.String(), h2.String()},
 				Stats: map[scyllaclient.HostKeyspaceTable]tableStats{
-					newHostKsTable("h1", "k1", "t1"): {
+					newHostKsTable(h1.String(), "k1", "t1"): {
 						Size:   5,
 						Ranges: 2,
 					},
-					newHostKsTable("h2", "k1", "t1"): {
+					newHostKsTable(h2.String(), "k1", "t1"): {
 						Size:   7,
 						Ranges: 2,
 					},
@@ -86,7 +90,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 				ClusterID:   run.ClusterID,
 				TaskID:      run.TaskID,
 				RunID:       run.ID,
-				Host:        "h1",
+				Host:        h1.String(),
 				Keyspace:    "k1",
 				Table:       "t1",
 				Size:        5,
@@ -98,7 +102,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 				ClusterID:   run.ClusterID,
 				TaskID:      run.TaskID,
 				RunID:       run.ID,
-				Host:        "h2",
+				Host:        h2.String(),
 				Keyspace:    "k1",
 				Table:       "t1",
 				Size:        7,
@@ -116,8 +120,8 @@ func TestProgressManagerIntegration(t *testing.T) {
 		j := job{
 			keyspace:   "k1",
 			table:      "t1",
-			master:     "h1",
-			replicaSet: []string{"h1", "h2"},
+			master:     netip.MustParseAddr("192.168.100.11"),
+			replicaSet: []netip.Addr{netip.MustParseAddr("192.168.100.11"), netip.MustParseAddr("192.168.100.12")},
 			ranges:     []scyllaclient.TokenRange{token1},
 		}
 
@@ -193,10 +197,10 @@ func TestProgressManagerIntegration(t *testing.T) {
 			}
 			p = &plan{ // Plan containing token1 and token2
 				Stats: map[scyllaclient.HostKeyspaceTable]tableStats{
-					newHostKsTable("h1", "k1", "t1"): {
+					newHostKsTable(h1.String(), "k1", "t1"): {
 						Ranges: 1,
 					},
-					newHostKsTable("h2", "k1", "t1"): {
+					newHostKsTable(h2.String(), "k1", "t1"): {
 						Ranges: 1,
 					},
 				},
@@ -229,7 +233,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 			ClusterID:   prevRun.ClusterID,
 			TaskID:      prevRun.TaskID,
 			RunID:       prevRun.ID,
-			Host:        "h1",
+			Host:        h1.String(),
 			Keyspace:    "k1",
 			Table:       "t1",
 			TokenRanges: 1,
@@ -241,7 +245,7 @@ func TestProgressManagerIntegration(t *testing.T) {
 			ClusterID:   prevRun.ClusterID,
 			TaskID:      prevRun.TaskID,
 			RunID:       prevRun.ID,
-			Host:        "h2",
+			Host:        h2.String(),
 			Keyspace:    "k1",
 			Table:       "t1",
 			TokenRanges: 1,

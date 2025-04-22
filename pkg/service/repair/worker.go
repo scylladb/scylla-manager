@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
 type worker struct {
@@ -63,7 +64,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 	var ranges []scyllaclient.TokenRange
 	switch {
 	case j.jobType == tabletJobType:
-		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master)
+		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master.String())
 	case j.jobType == smallTableJobType:
 		ranges = nil
 	case j.jobType == mergeRangesJobType:
@@ -77,7 +78,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		ranges = j.ranges
 	}
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master, j.replicaSet, ranges, j.intensity, j.jobType == smallTableJobType)
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master.String(), slices.MapToString(j.replicaSet), ranges, j.intensity, j.jobType == smallTableJobType)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}
@@ -92,7 +93,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		"job_id", jobID,
 	)
 
-	status, err := w.client.RepairStatus(ctx, j.master, jobID)
+	status, err := w.client.RepairStatus(ctx, j.master.String(), jobID)
 	if err != nil {
 		return errors.Wrap(err, "get repair status")
 	}
@@ -136,7 +137,7 @@ func (w *worker) handleRunningStatus(ctx context.Context, j job) error {
 
 	// Table deletion is visible only after a short while
 	op := func() error {
-		exists, err := w.client.TableExists(ctx, j.master, j.keyspace, j.table)
+		exists, err := w.client.TableExists(ctx, j.master.String(), j.keyspace, j.table)
 		if err != nil {
 			return retry.Permanent(err)
 		}
@@ -155,7 +156,7 @@ func (w *worker) handleRunningStatus(ctx context.Context, j job) error {
 }
 
 func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
-	exists, err := w.client.TableExists(ctx, j.master, j.keyspace, j.table)
+	exists, err := w.client.TableExists(ctx, j.master.String(), j.keyspace, j.table)
 	if err != nil {
 		w.logger.Error(ctx, "Couldn't check for table deletion",
 			"keyspace", j.keyspace,
