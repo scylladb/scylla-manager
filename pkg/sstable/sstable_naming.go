@@ -139,3 +139,97 @@ func RandomSSTableUUID() string {
 		encodeBase36(uint64(nsecs/100)),
 		encodeBase36(msb))
 }
+
+// ComponentSuffix defines SSTable components by their suffixes.
+// Definitions and documentation were taken from:
+// https://github.com/scylladb/scylladb/blob/master/docs/dev/sstables-directory-structure.md#sstable-files.
+//
+// Note that SSTables of different format version might consist
+// of different set of component files.
+type ComponentSuffix string
+
+const (
+	// ComponentData is the SSTable data file,
+	// containing a part of the actual data stored in the database.
+	ComponentData ComponentSuffix = "Data.db"
+
+	// ComponentIndex of the row keys with pointers to their positions in the data file.
+	ComponentIndex ComponentSuffix = "Index.db"
+
+	// ComponentFilter is a structure stored in memory that checks
+	// if row data exists in the memtable before accessing SSTables on disk.
+	ComponentFilter ComponentSuffix = "Filter.db"
+
+	// ComponentCompressionInfo is a file holding information about
+	// uncompressed data length, chunk offsets and other compression information.
+	ComponentCompressionInfo ComponentSuffix = "CompressionInfo.db"
+
+	// ComponentStatistics is a statistical metadata about the content of the SSTable
+	// and encoding statistics for the data file, starting with the mc format.
+	ComponentStatistics ComponentSuffix = "Statistics.db"
+
+	// ComponentSummary holds a sample of the partition index stored in memory.
+	ComponentSummary ComponentSuffix = "Summary.db"
+
+	// ComponentTOC is a file that stores the list of all components for the SSTable TOC.
+	// See details below regarding the use of a temporary TOC name during creation and deletion of SSTables.
+	ComponentTOC ComponentSuffix = "TOC.txt"
+
+	// ComponentScylla holds scylla-specific metadata about the SSTable,
+	// such as sharding information, extended features support, and sstabe-run identifier.
+	ComponentScylla ComponentSuffix = "Scylla.db"
+
+	// ComponentCRC holds the CRC32 for chunks in an uncompressed file.
+	ComponentCRC ComponentSuffix = "CRC.db"
+
+	// ComponentDigest are files holding the checksum of the data file.
+	// The method used for checksum is specific to the SSTable format version.
+
+	// ComponentDigestCRC holds crc32 checksum.
+	ComponentDigestCRC ComponentSuffix = "Digest.crc32"
+	// ComponentDigestADLER holds adler32 checksum.
+	ComponentDigestADLER ComponentSuffix = "Digest.adler32"
+	// ComponentDigestSHA1 holds sha1 checksum.
+	ComponentDigestSHA1 ComponentSuffix = "Digest.sha1"
+)
+
+// IDType describes possible formats of SSTable ID.
+type IDType int
+
+const (
+	// IntegerID describes integer based ID.
+	// It used to be the only IDType supported by the older Scylla version.
+	// Note that cluster with newer Scylla versions might still contain
+	// SSTables with this type of ID, as they need to be compacted
+	// in order to be re-written with the UUID.
+	IntegerID IDType = iota
+	// UUID describes UUID based ID.
+	// This is the default IDType for the newer Scylla versions.
+	UUID
+)
+
+// GetIDType returns the IDType of provided ID.
+func GetIDType(id string) IDType {
+	if _, err := strconv.Atoi(id); err == nil {
+		return IntegerID
+	}
+	return UUID
+}
+
+// ID describes SSTable ID.
+type ID struct {
+	Type IDType
+	ID   string
+}
+
+// ParseID returns the ID of provided SSTable component.
+func ParseID(component string) (ID, error) {
+	id, err := ExtractID(component)
+	if err != nil {
+		return ID{}, err
+	}
+	return ID{
+		Type: GetIDType(id),
+		ID:   id,
+	}, nil
+}
