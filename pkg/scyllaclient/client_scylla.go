@@ -1279,6 +1279,42 @@ func (c *Client) RaftReadBarrier(ctx context.Context, host, groupID string) erro
 	return nil
 }
 
+// ScyllaBackup schedules Scylla backup task and returns its ID.
+func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table, snapshotTag string) (string, error) {
+	resp, err := c.scyllaOps.StorageServiceBackupPost(&operations.StorageServiceBackupPostParams{
+		Context:  forceHost(ctx, host),
+		Endpoint: endpoint,
+		Bucket:   bucket,
+		Prefix:   prefix,
+		Keyspace: keyspace,
+		Table:    table,
+		Snapshot: &snapshotTag,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaRestore schedules Scylla restore task and returns its ID.
+// tocComponents are a list of sstable.ComponentTOC of SSTables that should be restored.
+// This method does not work with sstables with sstable.IntegerID.
+func (c *Client) ScyllaRestore(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table string, tocComponents []string) (string, error) {
+	resp, err := c.scyllaOps.StorageServiceRestorePost(&operations.StorageServiceRestorePostParams{
+		Context:  forceHost(ctx, host),
+		Endpoint: endpoint,
+		Bucket:   bucket,
+		Prefix:   prefix,
+		Keyspace: keyspace,
+		Table:    table,
+		Sstables: tocComponents,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.GetPayload(), nil
+}
+
 // ScyllaTaskState describes Scylla task state.
 type ScyllaTaskState string
 
@@ -1344,6 +1380,57 @@ func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
 	_, err := c.scyllaOps.TaskManagerAbortTaskTaskIDPost(&operations.TaskManagerAbortTaskTaskIDPostParams{
 		Context: forceHost(ctx, host),
 		TaskID:  id,
+	})
+	return err
+}
+
+// ManagerTaskTTLSeconds defines the Scylla user task TTL
+// that SM should use for the Scylla tasks it schedules.
+// We do it in order to minimize the chance that Scylla task finished
+// right after we timed out on long polling its progress.
+// (5 minutes is generous for such use case).
+const ManagerTaskTTLSeconds = 5 * 60
+
+// ScyllaControlTaskUserTTL sets Scylla user task TTL to ManagerTaskTTLSeconds.
+// Returned reset func resets Scylla user task TTL to the original value.
+func (c *Client) ScyllaControlTaskUserTTL(ctx context.Context, host string) (reset func(), err error) {
+	oldTTL, err := c.ScyllaGetUserTaskTTL(ctx, host)
+	if err != nil {
+		return nil, errors.Wrap(err, "get user task TTL")
+	}
+
+	c.logger.Info(ctx, "Set Scylla user task TTL", "host", host, "new TTL", ManagerTaskTTLSeconds, "old TTL", oldTTL)
+	if err := c.ScyllaSetUserTaskTTL(ctx, host, ManagerTaskTTLSeconds); err != nil {
+		return nil, errors.Wrap(err, "set user task TTL")
+	}
+
+	return func() {
+		// We should reset TTL even when context was cancelled
+		err := c.ScyllaSetUserTaskTTL(context.Background(), host, oldTTL)
+		if err != nil {
+			c.logger.Error(ctx, "Failed to reset user task TTL", "host", host, "TTL", oldTTL, "error", err)
+		}
+	}, nil
+}
+
+// ScyllaGetUserTaskTTL gets the amount of time for which the status
+// of finished Scylla task will be available to query.
+func (c *Client) ScyllaGetUserTaskTTL(ctx context.Context, host string) (ttlSeconds int64, err error) {
+	resp, err := c.scyllaOps.TaskManagerUserTTLGet(&operations.TaskManagerUserTTLGetParams{
+		Context: forceHost(ctx, host),
+	})
+	if err != nil {
+		return 0, err
+	}
+	return resp.GetPayload(), nil
+}
+
+// ScyllaSetUserTaskTTL sets the amount of time for which the status
+// of finished Scylla task will be available to query.
+func (c *Client) ScyllaSetUserTaskTTL(ctx context.Context, host string, ttlSeconds int64) error {
+	_, err := c.scyllaOps.TaskManagerUserTTLPost(&operations.TaskManagerUserTTLPostParams{
+		Context: forceHost(ctx, host),
+		UserTTL: ttlSeconds,
 	})
 	return err
 }
