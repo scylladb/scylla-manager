@@ -7,7 +7,6 @@ import (
 	"context"
 	stdErrors "errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/netip"
 	"regexp"
@@ -1347,15 +1346,4 @@ func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
 		TaskID:  id,
 	})
 	return err
-}
-
-// ToCanonicalIP replaces ":0:0" in IPv6 addresses with "::"
-// ToCanonicalIP("192.168.0.1") -> "192.168.0.1"
-// ToCanonicalIP("100:200:0:0:0:0:0:1") -> "100:200::1".
-func ToCanonicalIP(host string) string {
-	val := net.ParseIP(host)
-	if val == nil {
-		return host
-	}
-	return val.String()
 }
