@@ -438,17 +438,17 @@ func grantRestoreSchemaPermissions(t *testing.T, s gocqlx.Session, user string) 
 }
 
 func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {
-	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
+	if pr.Size != pr.Restored {
 		t.Fatal("Expected complete restore")
 	}
 	encountered := make(map[table]struct{})
 	for _, kpr := range pr.Keyspaces {
-		if kpr.Size != kpr.Restored || kpr.Size != kpr.Downloaded {
+		if kpr.Size != kpr.Restored {
 			t.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
 		}
 		for _, tpr := range kpr.Tables {
 			encountered[table{ks: kpr.Keyspace, tab: tpr.Table}] = struct{}{}
-			if tpr.Size != tpr.Restored || tpr.Size != tpr.Downloaded {
+			if tpr.Size != tpr.Restored {
 				t.Fatalf("Expected complete table restore (%s)", tpr.Table)
 			}
 		}
@@ -524,4 +524,14 @@ func runPausedRestore(t *testing.T, restore func(ctx context.Context) error, int
 			}()
 		}
 	}
+}
+
+func isDownloadOrRestoreEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/agent/rclone/sync/copypaths") ||
+		strings.HasPrefix(path, "/storage_service/restore")
+}
+
+func isLasOrRestoreEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/storage_service/sstables") ||
+		strings.HasPrefix(path, "/storage_service/restore")
 }

@@ -970,9 +970,11 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	a := atomic.NewInt64(0)
 	b := atomic.NewInt64(0)
 	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") && a.Inc() == 1 {
-			Print("And: context1 is canceled")
-			cancel1()
+		if isLasOrRestoreEndpoint(req.URL.Path) {
+			if a.Inc() == 1 {
+				Print("And: context1 is canceled")
+				cancel1()
+			}
 		}
 		if strings.HasPrefix(req.URL.Path, "/storage_service/repair_async") && b.Inc() == 1 {
 			Print("And: context2 is canceled")
@@ -1760,15 +1762,15 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 	for _, kpr := range pr.Keyspaces {
 		for _, tpr := range kpr.Tables {
 			Printf("name %s %v %v %v", tpr.Table, tpr.Downloaded, tpr.Size, tpr.Restored)
-			if tpr.Size != tpr.Restored || tpr.Size != tpr.Downloaded {
+			if tpr.Size != tpr.Restored {
 				h.T.Fatalf("Expected complete table restore (%s)", tpr.Table)
 			}
 		}
-		if kpr.Size != kpr.Restored || kpr.Size != kpr.Downloaded {
+		if kpr.Size != kpr.Restored {
 			h.T.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
 		}
 	}
-	if pr.Size != pr.Restored || pr.Size != pr.Downloaded {
+	if pr.Size != pr.Restored {
 		h.T.Fatal("Expected complete restore")
 	}
 }
