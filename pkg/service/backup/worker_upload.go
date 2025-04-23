@@ -38,6 +38,13 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	if err != nil {
 		return errors.Wrap(err, "check host Scylla backup API support")
 	}
+	if hostScyllaBackupSupport {
+		reset, err := w.Client.ScyllaControlTaskUserTTL(ctx, h.IP)
+		if err != nil {
+			return err
+		}
+		defer reset()
+	}
 
 	f := func(i int) (err error) {
 		d := dirs[i]

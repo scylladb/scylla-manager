@@ -226,6 +226,13 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "check host Scylla restore API support")
 		}
+		if hostScyllaRestoreSupport {
+			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
+			if err != nil {
+				return err
+			}
+			defer reset()
+		}
 
 		for {
 			if ctx.Err() != nil {

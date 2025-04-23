@@ -525,15 +525,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	Print("Fill setup")
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
 
-	ni, err = h.dstCluster.Client.AnyNodeInfo(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	supportScyllaRestoreAPI, err := ni.SupportsScyllaBackupRestoreAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Choose expected API - load&stream or native restore depending on node version
 	ensuredPath := "/storage_service/sstables"
 	blockedPath := "/storage_service/restore"
@@ -566,14 +557,24 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 	setDstInterceptor(nil)
 
-	validateState := func(ch clusterHelper, tombstone string, compaction bool, transfers int, rateLimit int, cpus []int64) {
+	validateState := func(ch clusterHelper, tombstone string, compaction bool, transfers int, rateLimit int, cpus []int64, ttl int64) {
 		// Validate tombstone_gc mode
 		if got := tombstoneGCMode(t, ch.rootSession, ks, tab); tombstone != got {
 			t.Errorf("expected tombstone_gc=%s, got %s", tombstone, got)
 		}
 		// Restore with Scylla API does not need to directly control
 		// compaction, transfers, rate limit, cpu pinning.
-		if supportScyllaRestoreAPI {
+		// We only need to check for user task TTL.
+		if nativeAPISupport {
+			for _, host := range ch.Client.Config().Hosts {
+				got, err := ch.Client.ScyllaGetUserTaskTTL(context.Background(), host)
+				if err != nil {
+					t.Errorf("check user task ttl on host %s: %s", host, err)
+				}
+				if ttl != got {
+					t.Errorf("Expected user_task_ttl=%d, got=%d on host %s", ttl, got, host)
+				}
+			}
 			return
 		}
 		// Validate compaction
@@ -600,7 +601,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		for _, host := range ch.Client.Config().Hosts {
 			got, err := ch.Client.RcloneGetBandwidthLimit(context.Background(), host)
 			if err != nil {
-				t.Fatal(errors.Wrapf(err, "check transfers on host %s", host))
+				t.Fatal(errors.Wrapf(err, "check rate limit on host %s", host))
 			}
 			rawLimit := fmt.Sprintf("%dM", rateLimit)
 			if rateLimit == 0 {
@@ -614,7 +615,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		for _, host := range ch.Client.Config().Hosts {
 			got, err := ch.Client.GetPinnedCPU(context.Background(), host)
 			if err != nil {
-				t.Fatal(errors.Wrapf(err, "check transfers on host %s", host))
+				t.Fatal(errors.Wrapf(err, "check cpus on host %s", host))
 			}
 			slices.Sort(cpus)
 			slices.Sort(got)
@@ -636,8 +637,17 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 	transfers0 := 2 * int(shardCnt)
 
-	setTransfersAndRateLimitAndPinnedCPU := func(ch clusterHelper, transfers int, rateLimit int, pin bool) {
+	setTransfersAndRateLimitAndPinnedCPU := func(ch clusterHelper, transfers int, rateLimit int, pin bool, ttl int64) {
 		for _, host := range ch.Client.Config().Hosts {
+			// Restore with Scylla API does not need to directly control
+			// compaction, transfers, rate limit, cpu pinning.
+			// We only need to set user task TTL.
+			if nativeAPISupport {
+				if err := ch.Client.ScyllaSetUserTaskTTL(context.Background(), host, ttl); err != nil {
+					t.Fatalf("Set user task ttl on host %s: %s", host, err)
+				}
+				continue
+			}
 			err := ch.Client.RcloneSetTransfers(context.Background(), host, transfers)
 			if err != nil {
 				t.Fatal(errors.Wrapf(err, "set transfers on host %s", host))
@@ -660,12 +670,12 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		}
 	}
 
-	Print("Set initial transfers and rate limit")
-	setTransfersAndRateLimitAndPinnedCPU(h.srcCluster, 10, 99, true)
-	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 10, 99, true)
+	Print("Set initial config")
+	setTransfersAndRateLimitAndPinnedCPU(h.srcCluster, 10, 99, true, 1)
+	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 10, 99, true, 1)
 
 	Print("Validate state before backup")
-	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
+	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run backup")
 	loc := []backupspec.Location{testLocation("preparation", "")}
@@ -680,9 +690,9 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	Print("Validate state after backup")
 	if nativeAPISupport {
-		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
+		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 	} else {
-		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
+		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU, 1)
 	}
 
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
@@ -728,7 +738,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	makeLASHang(reachedDataStageChan, hangLAS)
 
 	Print("Validate state before restore")
-	validateState(h.dstCluster, "repair", true, 10, 99, pinnedCPU)
+	validateState(h.dstCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run restore")
 	finishedRestore := make(chan error)
@@ -743,7 +753,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data")
-	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU)
+	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
 
 	Print("Pause restore")
 	restoreCancel()
@@ -758,10 +768,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during pause")
-	validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU)
+	validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU, 1)
 
 	Print("Change transfers and rate limit during pause")
-	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 9, 55, false)
+	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 9, 55, false, 2)
 
 	reachedDataStageChan = make(chan struct{})
 	hangLAS = make(chan struct{})
@@ -780,7 +790,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data after pause")
-	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU)
+	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
 
 	Print("Release LAS")
 	close(hangLAS)
@@ -792,7 +802,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state after restore success")
-	validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU)
+	validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU, 2)
 
 	Print("Validate table contents")
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
