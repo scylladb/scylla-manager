@@ -34,10 +34,7 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit)
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
-	hostScyllaBackupSupport, err := w.hostScyllaBackupSupport(ctx, h)
-	if err != nil {
-		return errors.Wrap(err, "check host Scylla backup API support")
-	}
+	hostScyllaBackupSupport := w.hostScyllaBackupSupport(ctx, h)
 	if hostScyllaBackupSupport {
 		reset, err := w.Client.ScyllaControlTaskUserTTL(ctx, h.IP)
 		if err != nil {
