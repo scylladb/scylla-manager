@@ -2564,3 +2564,105 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 		}
 	}
 }
+
+func TestBackupAPIHintIntegration(t *testing.T) {
+	// This test validates that the correct API is used
+	// for uploading snapshot dirs (Rclone or Scylla).
+	const (
+		testBucket   = "backuptest-api"
+		testKeyspace = "backuptest_api"
+	)
+
+	var (
+		location       = s3Location(testBucket)
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 1)
+
+	const (
+		rcloneAPIPath = "/agent/rclone/sync/movedir"
+		nativeAPIPath = "/storage_service/backup"
+	)
+
+	ni, err := h.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	support, err := ni.SupportsScyllaBackupRestoreAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type testCase struct {
+		apiHint          string
+		blockedPath      string
+		ensuredPath      string
+		getTargetSuccess bool
+	}
+	var testCases []testCase
+	if support {
+		testCases = []testCase{
+			{apiHint: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{apiHint: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	} else {
+		testCases = []testCase{
+			{apiHint: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{apiHint: "native", getTargetSuccess: false},
+			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Test case: %s", tc.apiHint), func(t *testing.T) {
+			encounteredEnsured := atomic.NewBool(false)
+			encounteredBlocked := atomic.NewBool(false)
+			if tc.getTargetSuccess {
+				h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if strings.HasPrefix(req.URL.Path, tc.ensuredPath) {
+						encounteredEnsured.Store(true)
+					}
+					if strings.HasPrefix(req.URL.Path, tc.blockedPath) {
+						encounteredBlocked.Store(true)
+					}
+					return nil, nil
+				}))
+			}
+
+			rawProps, err := json.Marshal(map[string]any{
+				"location": []backupspec.Location{location},
+				"keyspace": []string{testKeyspace},
+				"api_hint": tc.apiHint,
+			})
+			if err != nil {
+				t.Fatal(errors.Wrap(err, "create raw properties"))
+			}
+
+			target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+			if err != nil {
+				if !tc.getTargetSuccess {
+					return
+				}
+				t.Fatal(errors.Wrap(err, "create target"))
+			}
+			err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.getTargetSuccess {
+				if !encounteredEnsured.Load() {
+					t.Fatalf("Expected SM to use %q API", tc.ensuredPath)
+				}
+				if encounteredBlocked.Load() {
+					t.Fatalf("Expected SM not to use %q API", tc.blockedPath)
+				}
+			}
+		})
+	}
+}
