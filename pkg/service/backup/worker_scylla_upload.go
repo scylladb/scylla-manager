@@ -4,80 +4,73 @@ package backup
 
 import (
 	"context"
-	"maps"
-	"net/netip"
-	"slices"
 	"time"
 
 	"github.com/pkg/errors"
-	. "github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
-// hostScyllaBackupSupport checks if native backup API for given provider
-// is supported by node's Scylla version.
-func (w *worker) hostScyllaBackupSupport(ctx context.Context, hi hostInfo) (bool, error) {
-	scyllaSupportedProviders := []Provider{
-		S3,
-	}
-	if !slices.Contains(scyllaSupportedProviders, hi.Location.Provider) {
-		w.Logger.Info(ctx, "Can't use Scylla backup API with unsupported provider",
-			"host", hi.IP,
-			"provider", hi.Location.Provider)
-		return false, nil
-	}
-	ip, err := netip.ParseAddr(hi.IP)
+// hostNativeBackupSupport validates that native backup API can be used for given host.
+func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
+	ok, err := ni.SupportsScyllaBackupRestoreAPI()
 	if err != nil {
-		return false, err
+		return errors.Wrap(err, "check native backup api support")
 	}
-	nc, ok := w.NodeConfig[ip]
 	if !ok {
-		return false, errors.Errorf("unknown node IP %s, known node IPs %v", ip, slices.Collect(maps.Keys(w.NodeConfig)))
+		return errors.New("native backup api is not supported")
 	}
-	ok, err = nc.SupportsScyllaBackupRestoreAPI()
-	if err == nil && !ok {
-		w.Logger.Info(ctx, "Can't use Scylla backup API with given Scylla version",
-			"host", hi.IP,
-			"version", nc.ScyllaVersion)
+	_, err = ni.ScyllaBackupRestoreEndpoint(loc.Provider)
+	if err != nil {
+		return errors.Wrap(err, "check scylla object storage endpoint")
 	}
-	return ok, err
+	return nil
 }
 
-// snapshotDirScyllaBackupSupport checks if we should use native backup API
-// for uploading given snapshot-ed dir.
-func (w *worker) snapshotDirScyllaBackupSupport(ctx context.Context, d snapshotDir) bool {
+// hostNativeBackupSupport is the regular hostNativeBackupSupport with logging on error.
+func (w *worker) hostNativeBackupSupport(ctx context.Context, host string, ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
+	err := hostNativeBackupSupport(ni, loc)
+	if err != nil {
+		w.Logger.Info(ctx, "Can't use native backup api", "host", host, "error", err)
+	}
+	return err
+}
+
+// snapshotDirNativeBackupSupport validates that native backup API can be used for given snapshot dir.
+func snapshotDirNativeBackupSupport(d snapshotDir) error {
 	if d.willCreateVersioned {
-		w.Logger.Info(ctx, "Can't use Scylla backup API with versioned sstables",
-			"host", d.Host,
-			"keyspace", d.Keyspace,
-			"table", d.Table)
-		return false
+		return errors.New("native backup api does not support creation of versioned files")
 	}
-	return true
+	return nil
 }
 
-// tryScyllaBackup returns true and runs scyllaBackup if hostScyllaBackupSupport and snapshotDirScyllaBackupSupport
-// checks have passed. Otherwise, it returns false, nil.
-// Note that hostScyllaBackupSupport needs to be evaluated before running this method.
-func (w *worker) tryScyllaBackup(ctx context.Context, hostScyllaBackupSupport bool, hi hostInfo, d snapshotDir) (bool, error) {
-	if !hostScyllaBackupSupport {
-		return false, nil
+// snapshotDirNativeBackupSupport is the regular snapshotDirNativeBackupSupport with logging on error.
+func (w *worker) snapshotDirNativeBackupSupport(ctx context.Context, host string, d snapshotDir) error {
+	err := snapshotDirNativeBackupSupport(d)
+	if err != nil {
+		w.Logger.Info(ctx, "Can't use native backup api",
+			"host", host,
+			"keyspace", d.Keyspace,
+			"table", d.Table,
+			"error", err)
 	}
-	if !w.snapshotDirScyllaBackupSupport(ctx, d) {
-		return false, nil
-	}
-	w.Logger.Info(ctx, "Use Scylla backup API",
+	return err
+}
+
+func (w *worker) nativeBackup(ctx context.Context, hi hostInfo, d snapshotDir) error {
+	w.Logger.Info(ctx, "Use native backup api", "host", hi.IP,
 		"host", d.Host,
 		"keyspace", d.Keyspace,
 		"table", d.Table)
-	return true, w.scyllaBackup(ctx, hi, d)
-}
-
-func (w *worker) scyllaBackup(ctx context.Context, hi hostInfo, d snapshotDir) error {
 	if d.Progress.ScyllaTaskID == "" || !w.scyllaCanAttachToTask(ctx, hi.IP, d.Progress.ScyllaTaskID) {
 		prefix := w.remoteSSTableDir(hi, d)
-		id, err := w.Client.ScyllaBackup(ctx, hi.IP, string(hi.Location.Provider), hi.Location.Path, prefix, d.Keyspace, d.Table, w.SnapshotTag)
+		endpoint, err := hi.NodeConfig.ScyllaBackupRestoreEndpoint(hi.Location.Provider)
+		if err != nil {
+			return errors.Wrap(err, "get Scylla object storage endpoint")
+		}
+
+		id, err := w.Client.ScyllaBackup(ctx, hi.IP, endpoint, hi.Location.Path, prefix, d.Keyspace, d.Table, w.SnapshotTag)
 		if err != nil {
 			return errors.Wrap(err, "backup")
 		}

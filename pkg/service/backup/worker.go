@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/netip"
 	"sync"
 
 	"github.com/scylladb/go-log"
@@ -21,12 +20,13 @@ import (
 
 // hostInfo groups target host properties needed for backup.
 type hostInfo struct {
-	DC        string
-	IP        string
-	ID        string
-	Location  backupspec.Location
-	RateLimit DCLimit
-	Transfers int
+	DC         string
+	IP         string
+	ID         string
+	Location   backupspec.Location
+	RateLimit  DCLimit
+	Transfers  int
+	NodeConfig configcache.NodeConfig
 }
 
 func (h hostInfo) String() string {
@@ -62,9 +62,9 @@ type workerTools struct {
 	TaskID      uuid.UUID
 	RunID       uuid.UUID
 	SnapshotTag string
+	APIHint     apiHint
 	Config      Config
 	Client      *scyllaclient.Client
-	NodeConfig  map[netip.Addr]configcache.NodeConfig
 	Logger      log.Logger
 }
 
