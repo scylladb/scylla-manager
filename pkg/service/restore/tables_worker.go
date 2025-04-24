@@ -6,6 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"net/netip"
+	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -222,10 +225,16 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		hi := w.hostInfo(host, dc, w.hostShardCnt[host])
 		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers, "rate limit", hi.RateLimit)
 
-		hostScyllaRestoreSupport, err := w.hostScyllaRestoreSupport(ctx, hi.Host)
+		ip, err := netip.ParseAddr(host)
 		if err != nil {
-			return errors.Wrap(err, "check host Scylla restore API support")
+			return errors.Wrap(err, "parse host IP address")
 		}
+		nc, ok := w.nodeConfig[ip]
+		if !ok {
+			return errors.Errorf("unknown node IP %s, known node IPs %v", ip, slices.Collect(maps.Keys(w.nodeConfig)))
+		}
+
+		hostScyllaRestoreSupport := w.hostScyllaRestoreSupport(ctx, hi.Host, nc)
 		if hostScyllaRestoreSupport {
 			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
 			if err != nil {
@@ -249,7 +258,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
-			ok, err := w.tryScyllaRestore(ctx, hostScyllaRestoreSupport, hi.Host, b)
+			ok, err := w.tryScyllaRestore(ctx, hostScyllaRestoreSupport, hi.Host, b, nc)
 			if err != nil {
 				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
 				w.logger.Error(ctx, "Failed to restore batch",
