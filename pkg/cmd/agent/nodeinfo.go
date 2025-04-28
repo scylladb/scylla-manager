@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 type nodeInfoHandler struct {
@@ -48,6 +49,8 @@ func (h *nodeInfoHandler) getNodeInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.rcloneProviderConfig(nodeInfo)
+
 	render.Respond(w, r, nodeInfo)
 }
 
@@ -61,6 +64,15 @@ func (h *nodeInfoHandler) versionInfo(ctx context.Context, info *scyllaclient.No
 	info.ScyllaVersion = scyllaVersion
 
 	return nil
+}
+
+func (h *nodeInfoHandler) rcloneProviderConfig(info *scyllaclient.NodeInfo) {
+	info.RcloneBackendConfig = models.NodeInfoRcloneBackendConfig{
+		S3: models.NodeInfoRcloneBackendConfigS3{
+			Endpoint: h.config.S3.Endpoint,
+			Region:   h.config.S3.Region,
+		},
+	}
 }
 
 func (h *nodeInfoHandler) getScyllaVersion(ctx context.Context) (string, error) {
