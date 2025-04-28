@@ -19,5 +19,8 @@
   "sstable_uuid_format":true,
   "consistent_cluster_management":true,
   "enable_tablets":true,
-  "data_directory": "/var/lib/scylla/data"
+  "data_directory": "/var/lib/scylla/data",
+  "object_storage_endpoints": {
+    "s3.us-east-1.amazonaws.com": { "port": 9000, "use_https": true, "aws_region": "us-east-1", "name":  "s3.us-east-1.amazonaws.com"}
+  }
 }
