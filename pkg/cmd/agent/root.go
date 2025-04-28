@@ -65,6 +65,11 @@ var rootCmd = &cobra.Command{
 			return errors.New("configuration file must specify auth-token")
 		}
 
+		// Fill provider config
+		c.S3.AutoFill()
+		c.GCS.AutoFill()
+		c.Azure.AutoFill()
+
 		// Start server
 		s := newServer(c, logger)
 		if err := s.init(ctx); err != nil {
