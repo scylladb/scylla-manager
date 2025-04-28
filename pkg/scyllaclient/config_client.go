@@ -4,6 +4,7 @@ package scyllaclient
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	api "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
+	agentModels "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	scyllaV2Client "github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/client"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/client/config"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/models"
@@ -245,6 +247,28 @@ func (c *ConfigClient) AlternatorEnforceAuthorization(ctx context.Context) (bool
 	return resp.Payload, err
 }
 
+// ObjectStorageEndpoints returns configured object storage endpoints.
+func (c *ConfigClient) ObjectStorageEndpoints(ctx context.Context) (map[string]agentModels.ObjectStorageEndpoint, error) {
+	resp, err := c.client.Config.FindConfigObjectStorageEndpoints(config.NewFindConfigObjectStorageEndpointsParamsWithContext(ctx))
+	if isStatusCode400(err) {
+		return nil, nil // nolint: nilnil
+	}
+	if err != nil {
+		return nil, err
+	}
+	parsedPayload := make(map[string]agentModels.ObjectStorageEndpoint)
+	rawPayload := resp.GetPayload()
+	for name, rawCfg := range rawPayload {
+		var cfg agentModels.ObjectStorageEndpoint
+		if err := json.Unmarshal([]byte(rawCfg), &cfg); err != nil {
+			return nil, err
+		}
+		cfg.Name = name
+		parsedPayload[name] = cfg
+	}
+	return parsedPayload, nil
+}
+
 func isStatusCode400(err error) bool {
 	// Scylla will return 400 when alternator is disabled, for example:
 	// {"message": "No such config entry: alternator_port", "code": 400}
@@ -263,11 +287,17 @@ func (c *ConfigClient) NodeInfo(ctx context.Context) (*NodeInfo, error) {
 		return nil, errors.Wrap(err, "fetch Scylla config client encryption enabled")
 	}
 
+	ose, err := c.ObjectStorageEndpoints(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetch Scylla config object storage endpoints")
+	}
+
 	ni := &NodeInfo{
 		APIAddress:                  apiAddress,
 		APIPort:                     apiPort,
 		ClientEncryptionEnabled:     strings.EqualFold(ceo.Enabled, "true"),
 		ClientEncryptionRequireAuth: strings.EqualFold(ceo.RequireClientAuth, "true"),
+		ObjectStorageEndpoints:      ose,
 	}
 
 	ffs := []struct {
