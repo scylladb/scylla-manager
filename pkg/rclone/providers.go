@@ -49,7 +49,6 @@ func RegisterS3Provider(opts S3Options) error {
 		backend = "s3"
 	)
 
-	opts.AutoFill()
 	if err := opts.Validate(); err != nil {
 		return err
 	}
@@ -78,8 +77,6 @@ func RegisterGCSProvider(opts GCSOptions) error {
 		backend = "gcs"
 	)
 
-	opts.AutoFill()
-
 	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
 
@@ -90,8 +87,6 @@ func RegisterAzureProvider(opts AzureOptions) error {
 		name    = "azure"
 		backend = "azureblob"
 	)
-
-	opts.AutoFill()
 
 	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
