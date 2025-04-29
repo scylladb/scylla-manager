@@ -299,15 +299,15 @@ func (h *repairTestHelper) startNode(host string, ni *scyllaclient.NodeInfo) {
 		if _, err = cqlping.QueryPing(context.Background(), cfg, TestDBUsername(), TestDBPassword()); err != nil {
 			return false
 		}
-		status, err := h.Client.Status(context.Background())
-		if err != nil {
-			return false
+		for _, other := range ManagedClusterHosts() {
+			status, err := h.Client.Status(scyllaclient.ClientContextWithSelectedHost(context.Background(), other))
+			if err != nil || len(status.Live()) != len(ManagedClusterHosts()) {
+				return false
+			}
 		}
-		return len(status.Live()) == len(ManagedClusterHosts())
+		return true
 	}
-
 	WaitCond(h.T, cond, time.Second, shortWait)
-	time.Sleep(time.Second)
 }
 
 func percentComplete(p repair.Progress) (int, int) {
