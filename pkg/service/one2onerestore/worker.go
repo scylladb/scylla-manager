@@ -226,6 +226,8 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 			skip = append(skip, ks)
 		}
 	}
+	// See https://github.com/scylladb/scylla-enterprise/issues/4168
+	skip = append(skip, "system_replicated_keys")
 
 	// Skip outdated tables.
 	// Note that even though system_auth is not used in Scylla 6.0,
