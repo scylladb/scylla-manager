@@ -4,7 +4,6 @@ package one2onerestore
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,7 +34,7 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			if err := w.refreshNode(ctx, table, hostTask.host, repeatInterval); err != nil {
+			if err := w.refreshNode(ctx, table, hostTask.host); err != nil {
 				return errors.Wrapf(err, "refresh node: %s.%s", table.Keyspace, table.Table)
 			}
 			return nil
@@ -53,17 +52,8 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 	return w.downloadProgress(ctx, remoteDir, h.Addr, h.ShardCount, jobID, table), nil
 }
 
-// Scylla operation might take a really long (and difficult to estimate) time.
-// This func exits ONLY on: success, context cancel or non-timeout related error.
-func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, h Host, repeatInterval time.Duration) error {
+func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, h Host) error {
 	return w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
-}
-
-func errContains(err error, s string) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), s)
 }
 
 func (w *worker) waitJob(ctx context.Context, h Host, pr *RunProgress, pollIntervalSec int) (err error) {
