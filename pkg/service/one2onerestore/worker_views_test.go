@@ -4,9 +4,11 @@ package one2onerestore
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -207,4 +209,16 @@ func TestWaitForViewBuilding(t *testing.T) {
 			}
 		})
 	}
+}
+
+type testHandler struct {
+	http.Handler
+	// Keep track of how many times handler func has been called
+	// so we can test retries policy.
+	calls atomic.Int32
+}
+
+func (th *testHandler) ServeHTTP(w http.ResponseWriter, t *http.Request) {
+	t.Header.Add("test-call-i", fmt.Sprint(th.calls.Add(1)))
+	th.Handler.ServeHTTP(w, t)
 }
