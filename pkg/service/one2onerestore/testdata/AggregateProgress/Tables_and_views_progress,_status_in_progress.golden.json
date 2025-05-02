@@ -27,7 +27,8 @@
       "restored": 0,
       "status": "in_progress",
       "keyspace": "ks1",
-      "table": "v1",
+      "table": "t1",
+      "view": "v1",
       "type": "MaterializedView"
     },
     {
@@ -37,7 +38,8 @@
       "restored": 0,
       "status": "in_progress",
       "keyspace": "ks1",
-      "table": "v2",
+      "table": "t2",
+      "view": "v2",
       "type": "MaterializedView"
     }
   ]

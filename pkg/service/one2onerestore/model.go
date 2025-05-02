@@ -209,16 +209,16 @@ type RunTableProgress struct {
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 
-	KeyspaceName string
-	TableName    string
-	Error        string
+	Keyspace string `db:"keyspace_name"`
+	Table    string `db:"table_name"`
+	Error    string
 
 	Host string
 
 	TableSize           int64
 	Downloaded          int64
 	VersionedDownloaded int64
-	IsRefreshed         bool // indicates whether node tool refresh is completed for this table or not
+	IsRefreshed         bool // indicates whether nodetool refresh is completed for this table or not
 }
 
 // RunViewProgress database representation of view progress.
@@ -230,9 +230,10 @@ type RunViewProgress struct {
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 
-	KeyspaceName string
-	TableName    string
-	Error        string
+	Keyspace string `db:"keyspace_name"`
+	Table    string `db:"table_name"`
+	View     string `db:"view_name"`
+	Error    string
 
 	ViewType        string
 	ViewBuildStatus scyllaclient.ViewBuildStatus
@@ -258,6 +259,7 @@ type ViewProgress struct {
 
 	Keyspace string `json:"keyspace"`
 	Table    string `json:"table"`
+	View     string `json:"view"`
 	ViewType string `json:"type"`
 }
 
@@ -273,7 +275,7 @@ type progress struct {
 // ProgressStatus enum for progress status.
 type ProgressStatus string
 
-var (
+const (
 	// ProgressStatusNotStarted indicates that 1-1-restore of table/view is not yet started.
 	ProgressStatusNotStarted ProgressStatus = "not_started"
 	// ProgressStatusInProgress indicates that 1-1-restore of table/view is in progress.

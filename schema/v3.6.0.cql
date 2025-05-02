@@ -31,6 +31,7 @@ CREATE TABLE one2onerestore_run_view_progress (
 
     keyspace_name     text,
     table_name        text,
+    view_name         text,
     view_type         text,
     view_build_status text,
 

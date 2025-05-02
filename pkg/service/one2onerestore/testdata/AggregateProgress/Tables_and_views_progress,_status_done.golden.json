@@ -21,23 +21,25 @@
   ],
   "views": [
     {
-      "started_at": "2025-01-01T12:00:01Z",
-      "completed_at": "2025-01-01T12:00:03Z",
-      "size": 0,
-      "restored": 0,
-      "status": "done",
-      "keyspace": "ks1",
-      "table": "v1",
-      "type": "MaterializedView"
-    },
-    {
       "started_at": "2025-01-01T12:01:03Z",
       "completed_at": "2025-01-01T12:00:04Z",
       "size": 0,
       "restored": 0,
       "status": "done",
       "keyspace": "ks1",
-      "table": "v2",
+      "table": "t2",
+      "view": "v2",
+      "type": "MaterializedView"
+    },
+    {
+      "started_at": "2025-01-01T12:00:01Z",
+      "completed_at": "2025-01-01T12:00:03Z",
+      "size": 0,
+      "restored": 0,
+      "status": "done",
+      "keyspace": "ks1",
+      "table": "t1",
+      "view": "v1",
       "type": "MaterializedView"
     }
   ]

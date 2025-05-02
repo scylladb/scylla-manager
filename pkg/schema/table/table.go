@@ -150,6 +150,7 @@ var (
 			"table_name",
 			"task_id",
 			"view_build_status",
+			"view_name",
 			"view_type",
 		},
 		PartKey: []string{

@@ -31,8 +31,9 @@ func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) erro
 			TaskID:    w.runInfo.TaskID,
 			RunID:     w.runInfo.RunID,
 
-			KeyspaceName: v.Keyspace,
-			TableName:    v.View,
+			Keyspace: v.Keyspace,
+			Table:    v.BaseTable,
+			View:     v.View,
 
 			ViewType:        string(v.Type),
 			ViewBuildStatus: scyllaclient.StatusUnknown,
@@ -49,9 +50,9 @@ func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) erro
 				TaskID:    w.runInfo.TaskID,
 				RunID:     w.runInfo.RunID,
 
-				KeyspaceName: tableInfo.keyspace,
-				TableName:    tableInfo.table,
-				Host:         host,
+				Keyspace: tableInfo.keyspace,
+				Table:    tableInfo.table,
+				Host:     host,
 
 				TableSize: tableInfo.size,
 			}); err != nil {
@@ -72,9 +73,10 @@ func (w *worker) reCreateViewProgress(ctx context.Context, view View) *RunViewPr
 
 		StartedAt: &started,
 
-		KeyspaceName: view.Keyspace,
-		TableName:    view.View,
-		ViewType:     string(view.Type),
+		Keyspace: view.Keyspace,
+		Table:    view.BaseTable,
+		View:     view.View,
+		ViewType: string(view.Type),
 
 		ViewBuildStatus: view.BuildStatus,
 	}
@@ -105,8 +107,8 @@ func (w *worker) downloadProgress(ctx context.Context, host string, table backup
 
 		StartedAt: &started,
 
-		KeyspaceName: table.Keyspace,
-		TableName:    table.Table,
+		Keyspace: table.Keyspace,
+		Table:    table.Table,
 
 		Host: host,
 
@@ -206,7 +208,7 @@ func (w *worker) aggregateProgress(tableIter, viewIter dbIterator) Progress {
 	)
 
 	for tableIter.StructScan(&rtp) {
-		tableKey := scyllaTable{keyspace: rtp.KeyspaceName, table: rtp.TableName}
+		tableKey := scyllaTable{keyspace: rtp.Keyspace, table: rtp.Table}
 		tp := tableProgress[tableKey]
 		tp.progress = incrementProgress(tp.progress, progress{
 			StartedAt:   rtp.StartedAt,
@@ -215,23 +217,24 @@ func (w *worker) aggregateProgress(tableIter, viewIter dbIterator) Progress {
 			Restored:    rtp.Downloaded,
 			Status:      tableProgressStatus(rtp),
 		})
-		tp.Keyspace = rtp.KeyspaceName
-		tp.Table = rtp.TableName
+		tp.Keyspace = rtp.Keyspace
+		tp.Table = rtp.Table
 
 		tableProgress[tableKey] = tp
 		rtp = RunTableProgress{}
 	}
 
 	for viewIter.StructScan(&rvp) {
-		viewKey := scyllaTable{keyspace: rvp.KeyspaceName, table: rvp.TableName}
+		viewKey := scyllaTable{keyspace: rvp.Keyspace, table: rvp.Table}
 		vp := viewProgress[viewKey]
 		vp.progress = incrementProgress(vp.progress, progress{
 			StartedAt:   rvp.StartedAt,
 			CompletedAt: rvp.CompletedAt,
 			Status:      viewProgressStatus(rvp),
 		})
-		vp.Keyspace = rvp.KeyspaceName
-		vp.Table = rvp.TableName
+		vp.Keyspace = rvp.Keyspace
+		vp.Table = rvp.Table
+		vp.View = rvp.View
 		vp.ViewType = rvp.ViewType
 
 		viewProgress[viewKey] = vp
@@ -255,12 +258,6 @@ func tableProgressStatus(rtp RunTableProgress) ProgressStatus {
 	}
 	if rtp.StartedAt == nil && rtp.CompletedAt == nil {
 		return ProgressStatusNotStarted
-	}
-	if rtp.StartedAt != nil && rtp.CompletedAt == nil {
-		return ProgressStatusInProgress
-	}
-	if rtp.StartedAt != nil && rtp.CompletedAt != nil && !rtp.IsRefreshed {
-		return ProgressStatusInProgress
 	}
 	if rtp.StartedAt != nil && rtp.CompletedAt != nil && rtp.IsRefreshed {
 		return ProgressStatusDone
