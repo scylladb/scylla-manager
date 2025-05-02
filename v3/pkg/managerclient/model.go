@@ -1431,6 +1431,73 @@ func (p ValidateBackupProgress) addHostProgress(w io.Writer) error {
 	return nil
 }
 
+// One2OneRestoreProgress prints validate_backup task progress.
+type One2OneRestoreProgress struct {
+	*models.TaskRunOne2OneRestoreProgress
+	Task *Task
+
+	Detailed bool
+}
+
+// Render implements Renderer interface.
+func (p One2OneRestoreProgress) Render(w io.Writer) error {
+	t := template.Must(template.New("").Funcs(template.FuncMap{
+		"isZero":               isZero,
+		"FormatTime":           FormatTime,
+		"FormatDuration":       FormatDuration,
+		"FormatError":          FormatError,
+		"FormatSizeSuffix":     FormatSizeSuffix,
+		"FormatTablesProgress": FormatTablesProgress,
+		"FormatViewsProgress":  FormatViewsProgress,
+	}).Parse(one2oneRestoreProgressTemplate))
+	return t.Execute(w, p)
+}
+
+var one2oneRestoreProgressTemplate = `{{ with .Run -}}
+Run:		{{ .ID }}
+Status:		{{ .Status }}
+{{- if .Cause }}
+Cause:		{{ FormatError .Cause }}
+
+{{- end }}
+{{- if not (isZero .StartTime) }}
+Start time:	{{ FormatTime .StartTime }}
+{{- end -}}
+{{- if not (isZero .EndTime) }}
+End time:	{{ FormatTime .EndTime }}
+{{- end }}
+Duration:	{{ FormatDuration .StartTime .EndTime }}
+{{- end -}}
+{{- with .Progress }}
+Progress: {{- if $.Detailed }} {{ template "DetailedProgress" . }} {{- else }} {{ template "SummaryProgress" . }} {{- end }}
+{{- else }}
+Progress: 0%
+{{- end }}
+
+{{- define "SummaryProgress" }} 
+{{- if .Tables }}
+  Tables: {{ FormatTablesProgress .Tables }}
+{{- end }}
+{{- if .Views }}
+  Views:  {{ FormatViewsProgress .Views }}
+{{- end }}
+{{- end }}
+
+{{- define "DetailedProgress" }}
+{{- range $table := .Tables }}	
+- Name: {{.Keyspace}}.{{.Table}}: 
+  Size: {{ FormatSizeSuffix .Size }}
+  Restored: {{ FormatSizeSuffix .Restored }}
+  Duration: {{ FormatDuration .StartedAt .CompletedAt }}
+  Status: {{ .Status }}
+{{ end }}
+{{- range $view := .Views }}
+- Name: {{.Keyspace}}.{{.View}}: 
+  Duration: {{ FormatDuration .StartedAt .CompletedAt }}
+  Status: {{ .Status }}
+{{ end }}
+{{- end}}`
+
 // BackupListItems is a []backup.ListItem representation.
 type BackupListItems struct {
 	items       []*models.BackupListItem
