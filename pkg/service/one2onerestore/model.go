@@ -72,7 +72,12 @@ type hostWorkload struct {
 	manifestInfo    *backupspec.ManifestInfo
 	manifestContent *backupspec.ManifestContentWithIndex
 
-	tablesToRestore []scyllaTable
+	tablesToRestore []scyllaTableWithSize
+}
+
+type scyllaTableWithSize struct {
+	scyllaTable
+	size int64
 }
 
 type scyllaTable struct{ keyspace, table string }
@@ -85,7 +90,7 @@ func getTablesToRestore(workload []hostWorkload) map[scyllaTable]struct{} {
 	tablesToRestore := map[scyllaTable]struct{}{}
 	for _, wl := range workload {
 		for _, table := range wl.tablesToRestore {
-			tablesToRestore[table] = struct{}{}
+			tablesToRestore[table.scyllaTable] = struct{}{}
 		}
 	}
 	return tablesToRestore
@@ -195,94 +200,84 @@ func checkHostMapping(hostMap map[string]struct{}, hostID string) error {
 	return errors.Errorf("host is already mapped: %s", hostID)
 }
 
-// RunProgress describes progress of various 1-1-restore stages.
-type RunProgress struct {
+// RunTableProgress database representation for table progress.
+type RunTableProgress struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 	RunID     uuid.UUID
 
-	KeyspaceName     string
-	TableName        string
-	TableSize        int64
-	RemoteSSTableDir string `db:"remote_sstable_dir"`
-	TombstoneGC      string
+	StartedAt   *time.Time
+	CompletedAt *time.Time
 
-	Host     string // IP of the node to which SSTables are downloaded.
-	ShardCnt int    // Host shard count used for bandwidth per shard calculation.
+	KeyspaceName string
+	TableName    string
+	Error        string
 
-	VersionedProgress int64
+	Host string
+
+	TableSize           int64
+	Downloaded          int64
+	VersionedDownloaded int64
+	IsRefreshed         bool // indicates whether node tool refresh is completed for this table or not
+}
+
+// RunViewProgress database representation of view progress.
+type RunViewProgress struct {
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
 
 	StartedAt   *time.Time
 	CompletedAt *time.Time
-	// RClone job info fields
-	AgentJobID   int64
-	ScyllaTaskID string // reserved for future use
 
-	Downloaded int64
-	Skipped    int64
-	Failed     int64
-	Error      string
+	KeyspaceName string
+	TableName    string
+	Error        string
 
-	ViewName        string
-	ViewType        ViewType
+	ViewType        string
 	ViewBuildStatus scyllaclient.ViewBuildStatus
-
-	Stage Stage
 }
-
-// Stage specifies the restore stage.
-type Stage string
-
-// Stage enumeration.
-const (
-	StageDropViews     Stage = "DROP_VIEWS"
-	StageAlterTGC      Stage = "ALTER_TGC"
-	StageData          Stage = "DATA"
-	StageRecreateViews Stage = "RECREATE_VIEWS"
-	StageDone          Stage = "DONE"
-)
 
 // Progress groups restore progress for all restored keyspaces.
 type Progress struct {
-	progress
-
-	SnapshotTag string             `json:"snapshot_tag"`
-	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
-	Hosts       []HostProgress     `json:"hosts,omitempty"`
-	Views       []View             `json:"views,omitempty"`
-	Stage       Stage              `json:"stage"`
-}
-
-// KeyspaceProgress groups restore progress for the tables belonging to this keyspace.
-type KeyspaceProgress struct {
-	progress
-
-	Keyspace string          `json:"keyspace"`
-	Tables   []TableProgress `json:"tables,omitempty"`
+	Tables []TableProgress `json:"tables"`
+	Views  []ViewProgress  `json:"views"`
 }
 
 // TableProgress defines restore progress for the table.
 type TableProgress struct {
 	progress
 
-	Table       string          `json:"table"`
-	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
-	Error       string          `json:"error,omitempty"`
+	Keyspace string `json:"keyspace"`
+	Table    string `json:"table"`
 }
 
-// HostProgress groups restore progress for the host.
-type HostProgress struct {
-	Host             string `json:"host"`
-	ShardCnt         int    `json:"shard_cnt"`
-	DownloadedBytes  int64  `json:"downloaded_bytes"`
-	DownloadDuration int64  `json:"download_duration"`
+// ViewProgress defines restore progress for the view.
+type ViewProgress struct {
+	progress
+
+	Keyspace string `json:"keyspace"`
+	Table    string `json:"table"`
+	ViewType string `json:"type"`
 }
 
+// progress describes general properties of Table or View progress.
 type progress struct {
-	Size        int64      `json:"size"`
-	Restored    int64      `json:"restored"`
-	Downloaded  int64      `json:"downloaded"`
-	Failed      int64      `json:"failed"`
-	StartedAt   *time.Time `json:"started_at"`
-	CompletedAt *time.Time `json:"completed_at"`
+	StartedAt   *time.Time     `json:"started_at"`
+	CompletedAt *time.Time     `json:"completed_at"`
+	Size        int64          `json:"size"`
+	Restored    int64          `json:"restored"`
+	Status      ProgressStatus `json:"status"`
 }
+
+// ProgressStatus enum for progress status.
+type ProgressStatus string
+
+var (
+	// ProgressStatusNotStarted indicates that 1-1-restore of table/view is not yet started.
+	ProgressStatusNotStarted ProgressStatus = "not_started"
+	// ProgressStatusInProgress indicates that 1-1-restore of table/view is in progress.
+	ProgressStatusInProgress ProgressStatus = "in_progress"
+	// ProgressStatusDone indicates that 1-1-restore of table/view is done.
+	ProgressStatusDone ProgressStatus = "done"
+)

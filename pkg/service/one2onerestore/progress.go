@@ -4,9 +4,9 @@ package one2onerestore
 
 import (
 	"context"
-	"maps"
-	"slices"
 	"time"
+
+	stderr "errors"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -17,294 +17,279 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-func (w *worker) alterTGCProgress(ctx context.Context, table scyllaTable, mode tombstoneGCMode) *RunProgress {
-	started := timeutc.Now()
-	pr := RunProgress{
-		Stage: StageAlterTGC,
+// initProgress adds entries to RunTableProgress and RunViewProgress, so that API call
+// to show progress can return some information at this point.
+func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) error {
+	tablesToRestore := getTablesToRestore(workload)
+	views, err := w.getViews(ctx, tablesToRestore)
+	if err != nil {
+		return errors.Wrap(err, "get views")
+	}
+	for _, v := range views {
+		if err := w.insertRunViewProgress(ctx, &RunViewProgress{
+			ClusterID: w.runInfo.ClusterID,
+			TaskID:    w.runInfo.TaskID,
+			RunID:     w.runInfo.RunID,
 
+			KeyspaceName: v.Keyspace,
+			TableName:    v.View,
+
+			ViewType:        string(v.Type),
+			ViewBuildStatus: scyllaclient.StatusUnknown,
+		}); err != nil {
+			w.logger.Error(ctx, "Failed to init view progress", "err", err)
+		}
+	}
+
+	for _, work := range workload {
+		host := work.host.Addr
+		for _, tableInfo := range work.tablesToRestore {
+			if err := w.insertRunTableProgress(ctx, &RunTableProgress{
+				ClusterID: w.runInfo.ClusterID,
+				TaskID:    w.runInfo.TaskID,
+				RunID:     w.runInfo.RunID,
+
+				KeyspaceName: tableInfo.keyspace,
+				TableName:    tableInfo.table,
+				Host:         host,
+
+				TableSize: tableInfo.size,
+			}); err != nil {
+				w.logger.Error(ctx, "Failed to init table progress", "err", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (w *worker) reCreateViewProgress(ctx context.Context, view View) *RunViewProgress {
+	started := timeutc.Now()
+	pr := RunViewProgress{
 		ClusterID: w.runInfo.ClusterID,
 		TaskID:    w.runInfo.TaskID,
 		RunID:     w.runInfo.RunID,
 
-		KeyspaceName: table.keyspace,
-		TableName:    table.table,
-		TombstoneGC:  string(mode),
-		StartedAt:    &started,
-	}
+		StartedAt: &started,
 
-	if err := w.insertRunProgress(ctx, &pr); err != nil {
-		w.logger.Error(ctx, "Alter tombstone_gc mode progress", "err", err, "pr", pr)
-	}
-	return &pr
-}
+		KeyspaceName: view.Keyspace,
+		TableName:    view.View,
+		ViewType:     string(view.Type),
 
-func (w *worker) updateTGCProgress(ctx context.Context, pr *RunProgress, mode tombstoneGCMode, completedAt time.Time) {
-	pr.CompletedAt = &completedAt
-	pr.TombstoneGC = string(mode)
-
-	if err := w.insertRunProgress(ctx, pr); err != nil {
-		w.logger.Error(ctx, "Update alter tombstone_gc mode progress", "err", err, "pr", pr)
-	}
-}
-
-func (w *worker) dropViewProgress(ctx context.Context, view View) *RunProgress {
-	started := timeutc.Now()
-	pr := RunProgress{
-		Stage: StageDropViews,
-
-		ClusterID: w.runInfo.ClusterID,
-		TaskID:    w.runInfo.TaskID,
-		RunID:     w.runInfo.RunID,
-
-		KeyspaceName:    view.Keyspace,
-		TableName:       view.BaseTable,
-		ViewName:        view.View,
-		ViewType:        view.Type,
 		ViewBuildStatus: view.BuildStatus,
-		StartedAt:       &started,
 	}
 
-	if err := w.insertRunProgress(ctx, &pr); err != nil {
-		w.logger.Error(ctx, "DropView progress", "err", err, "pr", pr)
-	}
-	return &pr
-}
-
-func (w *worker) updateDropViewProgress(ctx context.Context, pr *RunProgress, completedAt time.Time) {
-	pr.CompletedAt = &completedAt
-	if err := w.insertRunProgress(ctx, pr); err != nil {
-		w.logger.Error(ctx, "Update dropView progress", "err", err, "pr", pr)
-	}
-}
-
-func (w *worker) reCreateViewProgress(ctx context.Context, view View) *RunProgress {
-	started := timeutc.Now()
-	pr := RunProgress{
-		Stage: StageRecreateViews,
-
-		ClusterID: w.runInfo.ClusterID,
-		TaskID:    w.runInfo.TaskID,
-		RunID:     w.runInfo.RunID,
-
-		KeyspaceName:    view.Keyspace,
-		TableName:       view.BaseTable,
-		ViewName:        view.View,
-		ViewType:        view.Type,
-		ViewBuildStatus: view.BuildStatus,
-		StartedAt:       &started,
-	}
-
-	if err := w.insertRunProgress(ctx, &pr); err != nil {
+	if err := w.insertRunViewProgress(ctx, &pr); err != nil {
 		w.logger.Error(ctx, "Recreate view progress", "err", err, "pr", pr)
 	}
 	return &pr
 }
 
-func (w *worker) updateReCreateViewProgress(ctx context.Context, pr *RunProgress, status scyllaclient.ViewBuildStatus) {
+func (w *worker) updateReCreateViewProgress(ctx context.Context, pr *RunViewProgress, status scyllaclient.ViewBuildStatus) {
 	completedAt := timeutc.Now()
 	if status == scyllaclient.StatusSuccess {
 		pr.CompletedAt = &completedAt
 	}
 	pr.ViewBuildStatus = status
-	if err := w.insertRunProgress(ctx, pr); err != nil {
+	if err := w.insertRunViewProgress(ctx, pr); err != nil {
 		w.logger.Error(ctx, "Update recreate view progress", "err", err, "pr", pr)
 	}
 }
 
-func (w *worker) downloadProgress(ctx context.Context, remoteDir, host string, shardCount int, jobID int64, table backupspec.FilesMeta) *RunProgress {
+func (w *worker) downloadProgress(ctx context.Context, host string, table backupspec.FilesMeta) *RunTableProgress {
 	started := timeutc.Now()
-	pr := RunProgress{
-		Stage: StageData,
-
+	pr := RunTableProgress{
 		ClusterID: w.runInfo.ClusterID,
 		TaskID:    w.runInfo.TaskID,
 		RunID:     w.runInfo.RunID,
 
-		KeyspaceName:     table.Keyspace,
-		TableName:        table.Table,
-		RemoteSSTableDir: remoteDir,
-		AgentJobID:       jobID,
-		Host:             host,
-		ShardCnt:         shardCount,
-		TableSize:        table.Size,
-		StartedAt:        &started,
+		StartedAt: &started,
+
+		KeyspaceName: table.Keyspace,
+		TableName:    table.Table,
+
+		Host: host,
+
+		TableSize: table.Size,
 	}
 
-	if err := w.insertRunProgress(ctx, &pr); err != nil {
+	if err := w.insertRunTableProgress(ctx, &pr); err != nil {
 		w.logger.Error(ctx, "Download progress", "err", err, "pr", pr)
 	}
 	return &pr
 }
 
-func (w *worker) updateDownloadProgress(ctx context.Context, pr *RunProgress, job *scyllaclient.RcloneJobProgress) {
-	startedAt, completedAt := time.Time(job.StartedAt), time.Time(job.CompletedAt)
+func (w *worker) updateDownloadProgress(ctx context.Context, pr *RunTableProgress, job *scyllaclient.RcloneJobProgress) {
+	startedAt := time.Time(job.StartedAt)
 	if !startedAt.IsZero() {
 		pr.StartedAt = &startedAt
 	}
-	if !completedAt.IsZero() {
-		pr.CompletedAt = &completedAt
-	}
 	pr.Error = job.Error
 	pr.Downloaded = job.Uploaded
-	pr.Skipped = job.Skipped
-	pr.Failed = job.Failed
 
-	if err := w.insertRunProgress(ctx, pr); err != nil {
+	if err := w.insertRunTableProgress(ctx, pr); err != nil {
 		w.logger.Error(ctx, "Update download progress", "err", err, "pr", pr)
 	}
 }
 
-func (w *worker) progressDone(ctx context.Context, start, end time.Time) {
-	pr := RunProgress{
-		Stage: StageDone,
-
-		ClusterID: w.runInfo.ClusterID,
-		TaskID:    w.runInfo.TaskID,
-		RunID:     w.runInfo.RunID,
-
-		StartedAt:   &start,
-		CompletedAt: &end,
+func (w *worker) finishDownloadProgress(ctx context.Context, pr *RunTableProgress, err error) {
+	completedAt := timeutc.Now()
+	pr.CompletedAt = &completedAt
+	pr.IsRefreshed = err == nil
+	if err != nil {
+		pr.Error = err.Error()
 	}
-	if err := w.insertRunProgress(ctx, &pr); err != nil {
-		w.logger.Error(ctx, "Done progress", "err", err, "pr", pr)
+	if err := w.insertRunTableProgress(ctx, pr); err != nil {
+		w.logger.Error(ctx, "Update download progress", "err", err, "pr", pr)
 	}
 }
 
-func (w *worker) insertRunProgress(ctx context.Context, pr *RunProgress) error {
+func (w *worker) insertRunTableProgress(ctx context.Context, pr *RunTableProgress) error {
 	// The main reason for these checks is the ability to 'mock' this function simply by
 	// passing empty RunProgress.
 	if pr.ClusterID == uuid.Nil || pr.TaskID == uuid.Nil || pr.RunID == uuid.Nil {
 		return errors.New("ClusterID, TaskID and RunID can't be empty")
 	}
-	q := table.One2onerestoreRunProgress.InsertQueryContext(ctx, w.managerSession).BindStruct(pr)
+	q := table.One2onerestoreRunTableProgress.InsertQueryContext(ctx, w.managerSession).BindStruct(pr)
 	return q.ExecRelease()
 }
 
-func (w *worker) getProgress(ctx context.Context, target Target) (Progress, error) {
-	q := table.One2onerestoreRunProgress.SelectQueryContext(ctx, w.managerSession)
-	iter := q.BindMap(qb.M{
+func (w *worker) insertRunViewProgress(ctx context.Context, pr *RunViewProgress) error {
+	// The main reason for these checks is the ability to 'mock' this function simply by
+	// passing empty RunProgress.
+	if pr.ClusterID == uuid.Nil || pr.TaskID == uuid.Nil || pr.RunID == uuid.Nil {
+		return errors.New("ClusterID, TaskID and RunID can't be empty")
+	}
+	q := table.One2onerestoreRunViewProgress.InsertQueryContext(ctx, w.managerSession).BindStruct(pr)
+	return q.ExecRelease()
+}
+
+func (w *worker) getProgress(ctx context.Context) (Progress, error) {
+	qt := table.One2onerestoreRunTableProgress.SelectQueryContext(ctx, w.managerSession)
+	tableIter := qt.BindMap(qb.M{
 		"cluster_id": w.runInfo.ClusterID,
 		"task_id":    w.runInfo.TaskID,
 		"run_id":     w.runInfo.RunID,
 	}).Iter()
 
-	pr := w.aggregateProgress(iter, target.SnapshotTag)
+	qv := table.One2onerestoreRunViewProgress.SelectQueryContext(ctx, w.managerSession)
+	viewIter := qv.BindMap(qb.M{
+		"cluster_id": w.runInfo.ClusterID,
+		"task_id":    w.runInfo.TaskID,
+		"run_id":     w.runInfo.RunID,
+	}).Iter()
 
-	if err := iter.Close(); err != nil {
-		return Progress{}, errors.Wrap(err, "close iterator")
+	pr := w.aggregateProgress(tableIter, viewIter)
+
+	var closeErrs error
+	if err := tableIter.Close(); err != nil {
+		closeErrs = stderr.Join(closeErrs, errors.Wrap(err, "close tables iterator"))
 	}
-	return pr, nil
+	if err := viewIter.Close(); err != nil {
+		closeErrs = stderr.Join(closeErrs, errors.Wrap(err, "close views iterator"))
+	}
+	return pr, closeErrs
 }
 
 type dbIterator interface {
 	StructScan(v any) bool
 }
 
-func (w *worker) aggregateProgress(iter dbIterator, snapshotTag string) Progress {
+func (w *worker) aggregateProgress(tableIter, viewIter dbIterator) Progress {
 	var (
-		tablesProgress = map[scyllaTable]TableProgress{}
-		hostsProgress  = map[string]HostProgress{}
-		views          []View
-		pr             RunProgress
-		latestRP       RunProgress
-		resultProgress progress
+		rtp RunTableProgress
+		rvp RunViewProgress
+
+		tableProgress = map[scyllaTable]TableProgress{}
+		viewProgress  = map[scyllaTable]ViewProgress{}
+		result        Progress
 	)
 
-	for iter.StructScan(&pr) {
-		latestRP = latestStage(latestRP, pr)
-		resultProgress = incrementProgress(resultProgress, toProgress(pr))
-		switch pr.Stage {
-		case StageData:
-			tKey := scyllaTable{keyspace: pr.KeyspaceName, table: pr.TableName}
-			tp := tablesProgress[tKey]
-			tp.Table = pr.TableName
-			tp.Error += pr.Error
-			tp.progress = incrementProgress(tp.progress, toProgress(pr))
-			tablesProgress[tKey] = tp
+	for tableIter.StructScan(&rtp) {
+		tableKey := scyllaTable{keyspace: rtp.KeyspaceName, table: rtp.TableName}
+		tp := tableProgress[tableKey]
+		tp.progress = incrementProgress(tp.progress, progress{
+			StartedAt:   rtp.StartedAt,
+			CompletedAt: rtp.CompletedAt,
+			Size:        rtp.TableSize,
+			Restored:    rtp.Downloaded,
+			Status:      tableProgressStatus(rtp),
+		})
+		tp.Keyspace = rtp.KeyspaceName
+		tp.Table = rtp.TableName
 
-			hp := hostsProgress[pr.Host]
-			hp.Host = pr.Host
-			hp.ShardCnt = pr.ShardCnt
-			hp.DownloadedBytes += pr.Downloaded
-			hp.DownloadDuration += durationMiliseconds(pr.StartedAt, pr.CompletedAt)
-			hostsProgress[pr.Host] = hp
-		case StageAlterTGC:
-			tKey := scyllaTable{keyspace: pr.KeyspaceName, table: pr.TableName}
-			tp := tablesProgress[tKey]
-			tp.progress = incrementProgress(tp.progress, toProgress(pr))
-			tp.Table = pr.TableName
-			tp.TombstoneGC = tombstoneGCMode(pr.TombstoneGC)
-			tablesProgress[tKey] = tp
-		case StageDropViews, StageRecreateViews:
-			views = append(views, View{
-				Keyspace:    pr.KeyspaceName,
-				View:        pr.ViewName,
-				Type:        pr.ViewType,
-				BaseTable:   pr.TableName,
-				BuildStatus: pr.ViewBuildStatus,
-			})
-		}
+		tableProgress[tableKey] = tp
+		rtp = RunTableProgress{}
 	}
 
-	ksProgress := map[string]KeyspaceProgress{}
-	for key, tp := range tablesProgress {
-		kp := ksProgress[key.keyspace]
-		kp.Keyspace = key.keyspace
-		kp.progress = incrementProgress(kp.progress, tp.progress)
-		kp.Tables = append(kp.Tables, tp)
-		ksProgress[key.keyspace] = kp
+	for viewIter.StructScan(&rvp) {
+		viewKey := scyllaTable{keyspace: rvp.KeyspaceName, table: rvp.TableName}
+		vp := viewProgress[viewKey]
+		vp.progress = incrementProgress(vp.progress, progress{
+			StartedAt:   rvp.StartedAt,
+			CompletedAt: rvp.CompletedAt,
+			Status:      viewProgressStatus(rvp),
+		})
+		vp.Keyspace = rvp.KeyspaceName
+		vp.Table = rvp.TableName
+		vp.ViewType = rvp.ViewType
+
+		viewProgress[viewKey] = vp
+		rvp = RunViewProgress{}
 	}
 
-	return Progress{
-		progress: resultProgress,
-
-		Stage:       latestRP.Stage,
-		SnapshotTag: snapshotTag,
-		Keyspaces:   slices.Collect(maps.Values(ksProgress)),
-		Hosts:       slices.Collect(maps.Values(hostsProgress)),
-		Views:       views,
+	for _, tp := range tableProgress {
+		result.Tables = append(result.Tables, tp)
 	}
+
+	for _, vp := range viewProgress {
+		result.Views = append(result.Views, vp)
+	}
+
+	return result
 }
 
-func toProgress(rp RunProgress) progress {
-	return progress{
-		Size:        rp.TableSize,
-		Restored:    rp.Downloaded - rp.Failed - rp.Skipped,
-		Downloaded:  rp.Downloaded,
-		Failed:      rp.Failed,
-		StartedAt:   rp.StartedAt,
-		CompletedAt: rp.CompletedAt,
+func tableProgressStatus(rtp RunTableProgress) ProgressStatus {
+	if rtp.StartedAt == nil && rtp.CompletedAt == nil {
+		return ProgressStatusNotStarted
 	}
+	if rtp.StartedAt != nil && rtp.CompletedAt == nil {
+		return ProgressStatusInProgress
+	}
+	if rtp.StartedAt != nil && rtp.CompletedAt != nil && !rtp.IsRefreshed {
+		return ProgressStatusInProgress
+	}
+	if rtp.StartedAt != nil && rtp.CompletedAt != nil && rtp.IsRefreshed {
+		return ProgressStatusDone
+	}
+	return ProgressStatusInProgress
+}
+
+func viewProgressStatus(rvp RunViewProgress) ProgressStatus {
+	switch rvp.ViewBuildStatus {
+	case scyllaclient.StatusUnknown:
+		return ProgressStatusNotStarted
+	case scyllaclient.StatusStarted:
+		return ProgressStatusInProgress
+	case scyllaclient.StatusSuccess:
+		return ProgressStatusDone
+	}
+	return ProgressStatusInProgress
 }
 
 func incrementProgress(dst, src progress) progress {
 	dst.Size += src.Size
-	dst.Downloaded += src.Downloaded
 	dst.Restored += src.Restored
-	dst.Failed += src.Failed
 	dst.StartedAt = minTime(dst.StartedAt, src.StartedAt)
 	dst.CompletedAt = maxTime(dst.CompletedAt, src.CompletedAt)
+
+	if dst.Status == "" {
+		dst.Status = src.Status
+	}
+	if dst.Status == ProgressStatusDone && src.Status != ProgressStatusDone {
+		dst.Status = ProgressStatusInProgress
+	}
 	return dst
-}
-
-func latestStage(a, b RunProgress) RunProgress {
-	if a.Stage == StageDone {
-		return a
-	}
-	if b.Stage == StageDone {
-		return b
-	}
-	if beforeTime(a.StartedAt, b.StartedAt) {
-		return b
-	}
-	return a
-}
-
-func durationMiliseconds(start, end *time.Time) int64 {
-	if start == nil || end == nil {
-		return 0
-	}
-	return end.Sub(*start).Milliseconds()
 }
 
 func minTime(a, b *time.Time) *time.Time {
