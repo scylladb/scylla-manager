@@ -197,7 +197,7 @@ func TestWaitForViewBuilding(t *testing.T) {
 			w := &worker{
 				client: scyllaclienttest.MakeClient(t, tsAddr.Hostname(), tsAddr.Port()),
 			}
-			err = w.waitForViewBuilding(tc.contextProvider(), tc.view, &RunProgress{})
+			err = w.waitForViewBuilding(tc.contextProvider(), tc.view, &RunViewProgress{})
 			if err != nil && !tc.expectedErr {
 				t.Fatalf("Unexpected err: %v", err)
 			}
