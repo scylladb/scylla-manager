@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"strconv"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -19,7 +17,7 @@ import (
 type TaskRunOne2OneRestoreProgress struct {
 
 	// progress
-	Progress []*One2OneRestoreProgress `json:"progress"`
+	Progress *One2OneRestoreProgress `json:"progress,omitempty"`
 
 	// run
 	Run *TaskRun `json:"run,omitempty"`
@@ -49,20 +47,13 @@ func (m *TaskRunOne2OneRestoreProgress) validateProgress(formats strfmt.Registry
 		return nil
 	}
 
-	for i := 0; i < len(m.Progress); i++ {
-		if swag.IsZero(m.Progress[i]) { // not required
-			continue
-		}
-
-		if m.Progress[i] != nil {
-			if err := m.Progress[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("progress" + "." + strconv.Itoa(i))
-				}
-				return err
+	if m.Progress != nil {
+		if err := m.Progress.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("progress")
 			}
+			return err
 		}
-
 	}
 
 	return nil

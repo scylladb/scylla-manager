@@ -1216,10 +1216,7 @@
           "$ref": "#/definitions/TaskRun"
         },
         "progress": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/One2OneRestoreProgress"
-          }
+          "$ref": "#/definitions/One2OneRestoreProgress"
         }
       }
     },
