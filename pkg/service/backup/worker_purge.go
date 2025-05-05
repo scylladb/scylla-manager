@@ -57,11 +57,11 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 		fHost := func(nodeID string, manifests []*backupspec.ManifestInfo) error {
 			var logger log.Logger
 			if nodeID == h.ID {
-				logger := w.Logger.With("host", h.IP)
+				logger = w.Logger.With("host", h.IP)
 				logger.Info(ctx, "Purging stale snapshots of host")
 				defer logger.Info(ctx, "Done purging stale snapshots of host")
 			} else {
-				logger := w.Logger.With(
+				logger = w.Logger.With(
 					"host", h.IP,
 					"node", nodeID,
 				)
@@ -70,11 +70,8 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 			}
 			p.logger = logger
 
-			if _, err := p.PurgeSnapshotTags(ctx, manifests, tags, oldest); err != nil {
-				return err
-			}
-
-			return nil
+			_, err := p.PurgeSnapshotTags(ctx, manifests, tags, oldest)
+			return err
 		}
 
 		for {
