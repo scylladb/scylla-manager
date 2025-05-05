@@ -23,15 +23,6 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 			pollIntervalSec = 10
 		)
 
-		if err := w.setAutoCompaction(ctx, hostTask, false); err != nil {
-			return errors.Wrap(err, "disable auto compaction")
-		}
-		defer func() {
-			if err := w.setAutoCompaction(ctx, hostTask, true); err != nil {
-				w.logger.Error(ctx, "Can't enable auto compaction", "err", err)
-			}
-		}()
-
 		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
@@ -127,17 +118,4 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
-}
-
-func (w *worker) setAutoCompaction(ctx context.Context, workload hostWorkload, enabled bool) error {
-	setAutoCompactionFunc := w.client.EnableAutoCompaction
-	if !enabled {
-		setAutoCompactionFunc = w.client.DisableAutoCompaction
-	}
-	for _, table := range workload.tablesToRestore {
-		if err := setAutoCompactionFunc(ctx, workload.host.Addr, table.keyspace, table.table); err != nil {
-			return errors.Wrapf(err, "set auto compaction on %s", workload.host.Addr)
-		}
-	}
-	return nil
 }

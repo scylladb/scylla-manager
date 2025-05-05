@@ -59,6 +59,15 @@ func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (T
 
 // restore is an actual 1-1-restore stages.
 func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) (err error) {
+	if err := w.setAutoCompaction(ctx, workload, false); err != nil {
+		return errors.Wrap(err, "disable auto compaction")
+	}
+	defer func() {
+		if err := w.setAutoCompaction(context.Background(), workload, true); err != nil {
+			w.logger.Error(ctx, "Can't enable auto compaction", "err", err)
+		}
+	}()
+
 	if err := w.setTombstoneGCModeRepair(ctx, workload); err != nil {
 		return errors.Wrap(err, "tombstone_gc mode")
 	}
@@ -172,6 +181,21 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 
 		return nil
 	}, parallel.NopNotify)
+}
+
+func (w *worker) setAutoCompaction(ctx context.Context, workload []hostWorkload, enabled bool) error {
+	setAutoCompactionFunc := w.client.EnableAutoCompaction
+	if !enabled {
+		setAutoCompactionFunc = w.client.DisableAutoCompaction
+	}
+	for _, hw := range workload {
+		for _, table := range hw.tablesToRestore {
+			if err := setAutoCompactionFunc(ctx, hw.host.Addr, table.keyspace, table.table); err != nil {
+				return errors.Wrapf(err, "set auto compaction on %s", hw.host.Addr)
+			}
+		}
+	}
+	return nil
 }
 
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
