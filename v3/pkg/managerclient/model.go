@@ -1453,6 +1453,64 @@ func (p One2OneRestoreProgress) Render(w io.Writer) error {
 	return t.Execute(w, p)
 }
 
+// RenderDetailedTableProgress renders detailed information about table progress in tabular format.
+func (p One2OneRestoreProgress) RenderDetailedTableProgress() string {
+	t := table.New(
+		"Keyspace",
+		"Table",
+		"Size",
+		"Restored",
+		"Duration",
+		"Status",
+	)
+	for _, table := range p.Progress.Tables {
+		startedAt, completedAt := strfmt.NewDateTime(), strfmt.NewDateTime()
+		if table.StartedAt != nil {
+			startedAt = *table.StartedAt
+		}
+		if table.CompletedAt != nil {
+			completedAt = *table.CompletedAt
+		}
+		t.AddRow(
+			table.Keyspace,
+			table.Table,
+			FormatSizeSuffix(table.Size),
+			FormatSizeSuffix(table.Restored),
+			FormatDuration(startedAt, completedAt),
+			table.Status,
+		)
+	}
+	return t.Render()
+}
+
+// RenderDetailedTableProgress renders detailed information about view progress in tabular format.
+func (p One2OneRestoreProgress) RenderDetailedViewProgress() string {
+	t := table.New(
+		"Keyspace",
+		"View",
+		"Type",
+		"Duration",
+		"Status",
+	)
+	for _, view := range p.Progress.Views {
+		startedAt, completedAt := strfmt.NewDateTime(), strfmt.NewDateTime()
+		if view.StartedAt != nil {
+			startedAt = *view.StartedAt
+		}
+		if view.CompletedAt != nil {
+			completedAt = *view.CompletedAt
+		}
+		t.AddRow(
+			view.Keyspace,
+			view.View,
+			view.ViewType,
+			FormatDuration(startedAt, completedAt),
+			view.Status,
+		)
+	}
+	return t.Render()
+}
+
 var one2oneRestoreProgressTemplate = `{{ with .Run -}}
 Run:		{{ .ID }}
 Status:		{{ .Status }}
@@ -1469,7 +1527,7 @@ End time:	{{ FormatTime .EndTime }}
 Duration:	{{ FormatDuration .StartTime .EndTime }}
 {{- end -}}
 {{- with .Progress }}
-Progress: {{- if $.Detailed }} {{ template "DetailedProgress" . }} {{- else }} {{ template "SummaryProgress" . }} {{- end }}
+Progress: {{- if $.Detailed }} {{ template "DetailedProgress" $ }} {{- else }} {{ template "SummaryProgress" . }} {{- end }}
 {{- else }}
 Progress: 0%
 {{- end }}
@@ -1484,18 +1542,12 @@ Progress: 0%
 {{- end }}
 
 {{- define "DetailedProgress" }}
-{{- range $table := .Tables }}	
-- Name: {{.Keyspace}}.{{.Table}}: 
-  Size: {{ FormatSizeSuffix .Size }}
-  Restored: {{ FormatSizeSuffix .Restored }}
-  Duration: {{ FormatDuration .StartedAt .CompletedAt }}
-  Status: {{ .Status }}
-{{ end }}
-{{- range $view := .Views }}
-- Name: {{.Keyspace}}.{{.View}}: 
-  Duration: {{ FormatDuration .StartedAt .CompletedAt }}
-  Status: {{ .Status }}
-{{ end }}
+{{- if .Progress.Tables }}
+{{ .RenderDetailedTableProgress }}
+{{- end }}
+{{- if .Progress.Views }}
+{{ .RenderDetailedViewProgress }}
+{{- end}}
 {{- end}}`
 
 // BackupListItems is a []backup.ListItem representation.
