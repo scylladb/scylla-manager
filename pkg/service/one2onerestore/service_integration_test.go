@@ -21,7 +21,7 @@ import (
 )
 
 func TestOne2OneRestoreServiceIntegration(t *testing.T) {
-	if tablets := os.Getenv("TABLETS"); tablets == "enabled" {
+	if tablets := os.Getenv("TABLETS"); tablets == "enabled" || tablets == "none" {
 		t.Skip("1-1-restore is available only for v-nodes")
 	}
 	h := newTestHelper(t, ManagedClusterHosts())
