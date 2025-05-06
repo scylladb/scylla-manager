@@ -10,7 +10,6 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
@@ -77,7 +76,6 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 	}()
 
 	Print("Then: another backup to deduplicate everything (no delta)")
-	time.Sleep(time.Second)
 	func() {
 		var totalDeduplicated, totalUploaded, totalSize int64
 		after := func(skipped, uploaded, size int64) {
@@ -107,7 +105,6 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 	}()
 
 	Print("Given: yet  another backup is started on empty delta (no data changes) and paused od DEDUPLICATE stage")
-	time.Sleep(time.Second)
 	func() {
 		onlyOneHostToProcessMutex := sync.Mutex{}
 		var totalDeduplicated, totalUploaded, totalSize int64
