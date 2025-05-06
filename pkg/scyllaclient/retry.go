@@ -221,7 +221,8 @@ func (o *retryableOperation) nextTimeout() time.Duration {
 }
 
 func shouldRetry(ctx context.Context, err error) bool {
-	if ctx.Err() != nil {
+	// Don't retry on context error only if it is the actual cause of failure
+	if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
 		return false
 	}
 
