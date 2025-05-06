@@ -1851,10 +1851,7 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 func (h *restoreTestHelper) simpleBackup(location backupspec.Location) string {
 	h.T.Helper()
 
-	// Make sure that next backup will have different snapshot tag
-	time.Sleep(time.Second)
 	ctx := context.Background()
-
 	props, err := json.Marshal(map[string]any{
 		"location": []backupspec.Location{location},
 	})
