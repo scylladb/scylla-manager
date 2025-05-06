@@ -11,7 +11,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb48
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250310104639-18257b71bb48
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250502123045-ee6af14e22db
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 )
 
