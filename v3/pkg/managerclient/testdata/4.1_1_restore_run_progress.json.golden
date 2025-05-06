@@ -1,0 +1,19 @@
+Run:		task_run_id
+Status:		DONE
+Start time:	01 Jan 25 10:00:00 CET
+End time:	01 Jan 25 11:00:00 CET
+Duration:	1h0m0s
+Progress: 
+╭───────────┬────────┬───────┬──────────┬──────────┬────────╮
+│ Keyspace  │ Table  │ Size  │ Restored │ Duration │ Status │
+├───────────┼────────┼───────┼──────────┼──────────┼────────┤
+│ keyspace1 │ table1 │ 1000B │ 1000B    │ 30m0s    │ done   │
+│ keyspace1 │ table2 │ 1000B │ 1000B    │ 1h0m0s   │ done   │
+╰───────────┴────────┴───────┴──────────┴──────────┴────────╯
+
+╭───────────┬────────┬──────────────────┬──────────┬────────╮
+│ Keyspace  │ View   │ Type             │ Duration │ Status │
+├───────────┼────────┼──────────────────┼──────────┼────────┤
+│ keyspace1 │ view1  │ MaterializedView │ 30m0s    │ done   │
+│ keyspace1 │ index1 │ SecondaryIndex   │ 30m0s    │ done   │
+╰───────────┴────────┴──────────────────┴──────────┴────────╯
