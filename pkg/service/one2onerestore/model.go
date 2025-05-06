@@ -96,7 +96,7 @@ func getTablesToRestore(workload []hostWorkload) map[scyllaTable]struct{} {
 	return tablesToRestore
 }
 
-func (t *Target) validateProperties(keyspaces []string) error {
+func (t *Target) validateProperties(allKeyspaces []string) error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
@@ -106,7 +106,7 @@ func (t *Target) validateProperties(keyspaces []string) error {
 	if t.SourceClusterID == uuid.Nil {
 		return errors.New("source cluster id is empty")
 	}
-	if err := validateKeyspaceFilter(t.Keyspace, keyspaces); err != nil {
+	if err := validateKeyspaceFilter(t.Keyspace, allKeyspaces); err != nil {
 		return errors.Wrap(err, "keyspace filter")
 	}
 	if err := validateNodesMapping(t.NodesMapping); err != nil {
