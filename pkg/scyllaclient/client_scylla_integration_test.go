@@ -7,6 +7,7 @@ package scyllaclient_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,15 +15,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
-	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/i64set"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -198,16 +198,29 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		t.Fatal(active)
 	}
 
-	Print("When: repair is running")
-	go ExecOnHost(ManagedClusterHost(), "nodetool repair")
+	errC := make(chan error, 1)
+	go func() {
+		Printf("When (%v): repair is running", timeutc.Now())
+		_, stderr, err := ExecOnHost(ManagedClusterHost(), "nodetool repair")
+		switch {
+		case stderr != "":
+			errC <- errors.New(stderr)
+		case err != nil:
+			errC <- err
+		default:
+			errC <- nil
+		}
+	}()
+
 	defer func() {
+		Printf("Then (%v): kill all repairs so that they don't spill to other tests", timeutc.Now())
 		if err := client.KillAllRepairs(context.Background(), ManagedClusterHosts()...); err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	Print("Then: active repairs reports")
 	check := func() bool {
+		Printf("Then (%v): active repairs reports", timeutc.Now())
 		active, err = client.ActiveRepairs(context.Background(), ManagedClusterHosts())
 		if err != nil {
 			t.Fatal(err)
@@ -215,7 +228,12 @@ func TestClientActiveRepairsIntegration(t *testing.T) {
 		return len(active) > 0
 	}
 	if !check() {
-		WaitCond(t, check, 500*time.Millisecond, 4*time.Second)
+		WaitCond(t, check, 500*time.Millisecond, 10*time.Second)
+	}
+
+	Printf("Then (%v): repair finishes", timeutc.Now())
+	if err := <-errC; err != nil {
+		t.Fatal(err)
 	}
 }
 
