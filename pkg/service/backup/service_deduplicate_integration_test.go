@@ -35,7 +35,7 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 		ctx, cancel    = context.WithCancel(context.Background())
 	)
 
-	db.WriteData(t, clusterSession, testKeyspace, 3)
+	db.RawWriteData(t, clusterSession, testKeyspace, 0, 3, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", false)
 
 	target := backup.Target{
 		Units: []backup.Unit{
