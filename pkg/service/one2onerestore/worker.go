@@ -59,14 +59,14 @@ func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (T
 
 // restore is an actual 1-1-restore stages.
 func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) (err error) {
-	if err := w.setAutoCompaction(ctx, workload, false); err != nil {
-		return errors.Wrap(err, "disable auto compaction")
-	}
 	defer func() {
 		if err := w.setAutoCompaction(context.Background(), workload, true); err != nil {
 			w.logger.Error(ctx, "Can't enable auto compaction", "err", err)
 		}
 	}()
+	if err := w.setAutoCompaction(ctx, workload, false); err != nil {
+		return errors.Wrap(err, "disable auto compaction")
+	}
 
 	if err := w.setTombstoneGCModeRepair(ctx, workload); err != nil {
 		return errors.Wrap(err, "tombstone_gc mode")
