@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
@@ -54,6 +55,14 @@ func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (T
 	}
 	w.logger.Info(ctx, "Extended excluded tables pattern", "pattern", skip)
 	target.Keyspace = append(target.Keyspace, skip...)
+
+	tabletKeyspaces, err := w.client.FilteredKeyspaces(ctx, scyllaclient.KeyspaceTypeUser, scyllaclient.ReplicationTablet)
+	if err != nil {
+		return Target{}, errors.Wrap(err, "get tablet keyspaces")
+	}
+	if err := tabletKeyspacesAreNotSupported(target.Keyspace, tabletKeyspaces); err != nil {
+		return Target{}, err
+	}
 	return target, nil
 }
 
@@ -217,6 +226,8 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 			skip = append(skip, ks)
 		}
 	}
+	// See https://github.com/scylladb/scylla-enterprise/issues/4168
+	skip = append(skip, "system_replicated_keys")
 
 	// Skip outdated tables.
 	// Note that even though system_auth is not used in Scylla 6.0,
@@ -303,5 +314,19 @@ func isRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, cli
 		}
 	}
 
+	return nil
+}
+
+// 1-1-restore can work only with vnode replication keyspaces.
+func tabletKeyspacesAreNotSupported(keyspaceFilter, tabletKeyspaces []string) error {
+	filter, err := ksfilter.NewFilter(keyspaceFilter)
+	if err != nil {
+		return errors.Wrap(err, "new keyspace filter")
+	}
+	for _, ks := range tabletKeyspaces {
+		if filter.Check(ks, "") {
+			return errors.Errorf("1-1-restore doesn't support tablet based replication. Keyspace: %s", ks)
+		}
+	}
 	return nil
 }
