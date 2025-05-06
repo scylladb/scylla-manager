@@ -670,8 +670,6 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
 	}
-	// Sleep to avoid tag collision.
-	time.Sleep(time.Second)
 	Print("And: run it again")
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
@@ -1058,15 +1056,6 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 	}
 
-	getTagAndWait := func() string {
-		tag := backupspec.NewSnapshotTag()
-
-		// Wait for new tag as they have a second resolution
-		time.Sleep(time.Second)
-
-		return tag
-	}
-
 	t.Run("resume after stop", func(t *testing.T) {
 		var (
 			h           = newBackupTestHelper(t, session, config, location, nil)
@@ -1188,7 +1177,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(nil)
 
 		Print("When: backup is resumed with new RunID")
-		tag := getTagAndWait()
+		tag := backup.NewSnapshotTag()
 		err = h.service.Backup(context.Background(), h.ClusterID, h.TaskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
@@ -1291,7 +1280,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		h.waitNoTransfers()
 
 		Print("When: backup is resumed with new RunID")
-		tag := getTagAndWait()
+		tag := backup.NewSnapshotTag()
 		err := h.service.Backup(context.Background(), h.ClusterID, h.TaskID, uuid.NewTime(), target)
 		if err != nil {
 			t.Error("Unexpected error", err)
@@ -1348,12 +1337,10 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	Print("And: add a fake temporary manifest")
 	manifests, _, _ := h.listS3Files()
 
-	// Sleep to avoid tag collision.
-	time.Sleep(time.Second)
 	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		// Mark manifest as temporary, change snapshot tag
 		m.Temporary = true
-		m.SnapshotTag = backupspec.NewSnapshotTag()
+		m.SnapshotTag = backup.NewSnapshotTag()
 		// Add "xxx" file to a table
 		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xxx")
@@ -1372,9 +1359,6 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("List() = %v, expected one item", items)
 	}
-
-	// Sleep to avoid tag collision.
-	time.Sleep(time.Second)
 
 	Print("When: run backup")
 	h.RunID = uuid.NewTime()
@@ -1725,9 +1709,6 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	})
 
 	Print("And: run backup again")
-	// wait at least 1 sec to avoid having same snapshot ID as in previous backup run
-	time.Sleep(time.Second)
-
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
 	}
@@ -1778,9 +1759,6 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, runID, target); err != nil {
 		t.Fatal(err)
 	}
-
-	// Ensure second task has different snapshot tag
-	time.Sleep(1 * time.Second)
 
 	task2ID := uuid.NewTime()
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -2139,8 +2117,7 @@ func TestBackupListIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace1, 1)
 	WriteData(t, clusterSession, testKeyspace2, 1)
 
-	timeBeforeFirstBackup := time.Now()
-	time.Sleep(time.Second)
+	timeBeforeFirstBackup := timeutc.Now().Add(-time.Second)
 
 	target := backup.Target{
 		Units: []backup.Unit{
@@ -2160,9 +2137,9 @@ func TestBackupListIntegration(t *testing.T) {
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
 	}
-	// Sleep to avoid tag collision.
+	//  Sleep to avoid inconsistent filtering
 	time.Sleep(time.Second)
-	timeBetweenBackups := time.Now()
+	timeBetweenBackups := timeutc.Now()
 	time.Sleep(time.Second)
 
 	target = backup.Target{
@@ -2184,8 +2161,7 @@ func TestBackupListIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Second)
-	timeAfterSecondBackup := time.Now()
+	timeAfterSecondBackup := timeutc.Now().Add(time.Second)
 
 	testCases := []struct {
 		name     string
