@@ -6,6 +6,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 	scyllaversion "github.com/scylladb/scylla-manager/v3/pkg/util/version"
@@ -275,8 +276,14 @@ func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 
 // CloudMetadata returns instance metadata from agent node.
 func (c *Client) CloudMetadata(ctx context.Context, host string) (InstanceMetadata, error) {
+	// There is no way for agent to be sure that it is deployed in the cloud.
+	// That's why it uses the 5 seconds timeout for querying the cloud metadata.
+	// If the timeout is reached, agent assumes that it's not deployed in the cloud
+	// and returns empty result with http code 200. That's why we need to account for
+	// agent side timeout so that we don't time out when agent is not deployed in the cloud.
+	const agentSideTimeout = 5 * time.Second
 	p := operations.MetadataParams{
-		Context: forceHost(ctx, host),
+		Context: customTimeout(forceHost(ctx, host), c.config.Timeout+agentSideTimeout),
 	}
 
 	meta, err := c.agentOps.Metadata(&p)
