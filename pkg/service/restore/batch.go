@@ -369,7 +369,7 @@ func (bd *batchDispatcher) ReportFailure(host string, b batch) error {
 	}
 
 	rdp := &bd.workloadProgress.remoteDir[dirIdx]
-	rdp.RemainingSSTables = append(b.SSTables, rdp.RemainingSSTables...)
+	rdp.RemainingSSTables = append(rdp.RemainingSSTables, b.SSTables...)
 	rdp.RemainingSize += b.Size
 
 	bd.wakeUpWaiting()
