@@ -70,6 +70,52 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	ExecStmt(t, userSession, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}", newKs))
 }
 
+func TestRestoreSchemaRoleAndServiceLevelIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	if CheckAnyConstraint(t, h.dstCluster.Client, "< 2025.1") {
+		t.Skip("Auth and service levels restore from CQL is not supported before Scylla 2025.1, " +
+			"as the output of DESC SCHEMA WITH INTERNALS didn't include them.")
+	}
+
+	user := randomizedName("user_")
+	pass := randomizedName("pass_")
+	sl := randomizedName("sl_")
+	Printf("Create user (%s/%s) and service level (%s) to be backed-up", user, pass, sl)
+	createUser(t, h.srcCluster.rootSession, user, pass)
+	createServiceLevel(t, h.srcCluster.rootSession, sl, user)
+	ExecStmt(t, h.srcCluster.rootSession, "GRANT CREATE ON ALL KEYSPACES TO "+user)
+
+	Print("Run backup")
+	loc := []backupspec.Location{testLocation("role-sl", "")}
+	S3InitBucket(t, loc[0].Path)
+	tag := h.runBackup(t, map[string]any{
+		"location": loc,
+	})
+
+	Print("Run restore")
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	h.runRestore(t, map[string]any{
+		"location":       loc,
+		"snapshot_tag":   tag,
+		"restore_schema": true,
+	})
+
+	Print("Reset restored user password manually")
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("ALTER ROLE '%s' WITH PASSWORD = '%s'", user, pass))
+
+	Print("Log in via restored user and check permissions")
+	userSession := CreateManagedClusterSession(t, false, h.dstCluster.Client, user, pass)
+	newKs := randomizedName("ks_")
+	ExecStmt(t, userSession, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}", newKs))
+
+	Print("Validate service level restore")
+	levels := listServiceLevels(t, h.dstCluster.rootSession)
+	if !slices.Equal(levels, []string{sl}) {
+		t.Fatalf("Expected service level %s to be restored, got: %v", sl, levels)
+	}
+}
+
 func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 
@@ -151,6 +197,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run src backup")
+	dropNonCassandraUsers(t, h.srcCluster.rootSession)
 	loc := []backupspec.Location{testLocation("schema-roundtrip", "")}
 	S3InitBucket(t, loc[0].Path)
 	tag := h.runBackup(t, map[string]any{
@@ -175,11 +222,13 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run dst backup")
+	dropNonCassandraUsers(t, hRev.srcCluster.rootSession)
 	tag = hRev.runBackup(t, map[string]any{
 		"location": loc,
 	})
 
 	Print("Run restore of dst backup on src cluster")
+	createUser(t, hRev.dstCluster.rootSession, hRev.dstUser, hRev.dstPass)
 	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
 	hRev.runRestore(t, map[string]any{
 		"location":       loc,
@@ -200,10 +249,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		m3 = map[query.DescribedSchemaRow]struct{}{}
 	)
 	for _, row := range srcSchema {
-		// Scylla 6.3 added roles and service levels to the output of
-		// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
-		// Those entities do not live in any particular keyspace, so that's how we identify them.
-		// We are skipping them until we properly support their restoration.
+		// This test does not validate auth or service levels
 		if row.Keyspace == "" {
 			continue
 		}

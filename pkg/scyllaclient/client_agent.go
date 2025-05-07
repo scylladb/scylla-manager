@@ -6,6 +6,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 	scyllaversion "github.com/scylladb/scylla-manager/v3/pkg/util/version"
@@ -275,8 +276,13 @@ func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 
 // CloudMetadata returns instance metadata from agent node.
 func (c *Client) CloudMetadata(ctx context.Context, host string) (InstanceMetadata, error) {
+	ctx = forceHost(ctx, host)
+	// Agent metadata endpoint timeouts after 5 seconds
+	// if the node is not in the cloud. We need to take
+	// it into consideration when setting timeout on SM side.
+	ctx = customTimeout(ctx, c.config.Timeout+5*time.Second)
 	p := operations.MetadataParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 	}
 
 	meta, err := c.agentOps.Metadata(&p)
