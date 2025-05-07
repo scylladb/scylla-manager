@@ -22,6 +22,7 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 			repeatInterval  = 10 * time.Second
 			pollIntervalSec = 10
 		)
+
 		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
