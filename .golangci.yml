@@ -115,6 +115,7 @@ issues:
     - should not use dot imports
     - string `string` has [\d]+ occurrences, make it a constant
     - Function name[:] .+, Cyclomatic Complexity
+    - string `http[s]` has [\d]+ occurrences, make it a constant
   exclude-rules:
     - path: v3/pkg/managerclient|pkg/command|pkg/cmd
       text: Error return value of `fmt.Fprintf?(ln)?` is not checked

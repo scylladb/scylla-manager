@@ -3,14 +3,18 @@
 package backup
 
 import (
+	"net/netip"
+
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"go.uber.org/multierr"
 )
 
-func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []backupspec.Location, rateLimits []DCLimit, transfers int) ([]hostInfo, error) {
+func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, nodeConfig map[netip.Addr]configcache.NodeConfig,
+	locations []backupspec.Location, rateLimits []DCLimit, transfers int,
+) ([]hostInfo, error) {
 	// DC location index
 	dcl := map[string]backupspec.Location{}
 	for _, l := range locations {
@@ -45,6 +49,16 @@ func makeHostInfo(nodes []scyllaclient.NodeStatusInfo, locations []backupspec.Lo
 			hi[i].RateLimit = dcr[""] // no rate limit is ok, fallback to 0 - no limit
 		}
 		hi[i].Transfers = transfers
+
+		ip, err := netip.ParseAddr(h.Addr)
+		if err != nil {
+			errs = multierr.Append(errs, err)
+			continue
+		}
+		hi[i].NodeConfig, ok = nodeConfig[ip]
+		if !ok {
+			errs = multierr.Append(errs, errors.New("no node config for "+h.Addr))
+		}
 	}
 
 	return hi, errs

@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 type (
@@ -144,9 +145,25 @@ func TestClientConfigReturnsResponseFromScylla(t *testing.T) {
 			Name:             "Tablets enabled",
 			ResponseFilePath: "testdata/scylla_api/v2_config_enable_tablets.json",
 			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
-				return convertBool(client.ConsistentClusterManagement)
+				return convertBool(client.EnableTablets)
 			},
 			Golden: true,
+		},
+		{
+			Name:             "Object storage endpoints",
+			ResponseFilePath: "testdata/scylla_api/v2_config_object_storage_endpoints.json",
+			BindClientFunc: func(client *scyllaclient.ConfigClient) configClientFunc {
+				return func(ctx context.Context) (interface{}, error) {
+					ose, err := client.ObjectStorageEndpoints(ctx)
+					return ose["s3.us-east-1.amazonaws.com"], err // Need to return comparable type
+				}
+			},
+			Golden: models.ObjectStorageEndpoint{
+				AwsRegion: "us-east-1",
+				UseHTTPS:  true,
+				Name:      "s3.us-east-1.amazonaws.com",
+				Port:      9000,
+			},
 		},
 	}
 
@@ -192,6 +209,7 @@ func TestConfigClientPullsNodeInformationUsingScyllaAPI(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/uuid_sstable_identifiers_enabled", "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/consistent_cluster_management", "testdata/scylla_api/v2_config_consistent_cluster_management.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/enable_tablets", "testdata/scylla_api/v2_config_enable_tablets.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/object_storage_endpoints", "testdata/scylla_api/v2_config_object_storage_endpoints.json"),
 		),
 	)
 	defer closeServer()
@@ -242,6 +260,7 @@ func TestConfigOptionIsNotSupported(t *testing.T) {
 			scyllaclienttest.PathFileMatcher("/v2/config/uuid_sstable_identifiers_enabled", "testdata/scylla_api/v2_config_uuid_sstable_identifiers_enabled.400.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/consistent_cluster_management", "testdata/scylla_api/v2_config_consistent_cluster_management.400.json"),
 			scyllaclienttest.PathFileMatcher("/v2/config/enable_tablets", "testdata/scylla_api/v2_config_enable_tablets.400.json"),
+			scyllaclienttest.PathFileMatcher("/v2/config/object_storage_endpoints", "testdata/scylla_api/v2_config_object_storage_endpoints.400.json"),
 		),
 	)
 	defer closeServer()

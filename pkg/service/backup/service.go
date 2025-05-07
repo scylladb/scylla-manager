@@ -671,8 +671,17 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return errors.Wrap(err, "read all nodes config")
+	}
+	nodeConfig, err := maps.MapKeyWithError(rawNodeConfig, netip.ParseAddr)
+	if err != nil {
+		return errors.Wrap(err, "parse node config IP address")
+	}
+
 	// Create hostInfo for run hosts
-	hi, err := makeHostInfo(liveNodes, target.Location, target.RateLimit, target.Transfers)
+	hi, err := makeHostInfo(liveNodes, nodeConfig, target.Location, target.RateLimit, target.Transfers)
 	if err != nil {
 		return err
 	}

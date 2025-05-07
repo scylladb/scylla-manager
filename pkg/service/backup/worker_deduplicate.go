@@ -81,10 +81,11 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		}
 
 		deduplicatedUUIDSSTables := w.deduplicateUUIDSStables(remoteSSTableBundles, localSSTableBundles)
-		deduplicatedIntSSTables, err := w.deduplicateIntSSTables(ctx, h.IP, dataDst, d.Path, remoteSSTableBundles, localSSTableBundles)
+		deduplicatedIntSSTables, willCreateVersioned, err := w.deduplicateIntSSTables(ctx, h.IP, dataDst, d.Path, remoteSSTableBundles, localSSTableBundles)
 		if err != nil {
 			return errors.Wrap(err, "deduplication based on .crc32 content")
 		}
+		d.willCreateVersioned = willCreateVersioned
 		deduplicated := make([]string, 0, len(deduplicatedUUIDSSTables)+len(deduplicatedIntSSTables))
 
 		var totalSkipped int64
@@ -133,9 +134,10 @@ func (w *worker) deduplicateUUIDSStables(remoteSSTables, localSSTables *sstableB
 	return deduplicated
 }
 
+// willCreateVersioned corresponds to snapshotDir.willCreateVersioned.
 func (w *worker) deduplicateIntSSTables(ctx context.Context, host string, remoteDir, localDir string,
 	remoteSSTables, localSSTables *sstableBundlesByID,
-) (deduplicated []fileInfo, err error) {
+) (deduplicated []fileInfo, willCreateVersioned bool, err error) {
 	// Reference to SSTables 3.0 Data File Format
 	// https://opensource.docs.scylladb.com/stable/architecture/sstable/sstable3/sstables-3-data-file-format.html
 
@@ -143,38 +145,44 @@ func (w *worker) deduplicateIntSSTables(ctx context.Context, host string, remote
 	// to the remote <ID>-Digest.crc32 content.
 	// The same content implies that SSTable can be deduplicated and removed from local directory.
 	for id, localBundle := range localSSTables.intID {
-		crc32Idx := slices.IndexFunc(localBundle, func(fi fileInfo) bool {
-			return strings.HasSuffix(fi.Name, "Digest.crc32")
-		})
-		if crc32Idx == -1 {
-			continue
-		}
-		crc32FileName := localBundle[crc32Idx].Name
 		remoteBundle, ok := remoteSSTables.intID[id]
 		if !ok {
 			continue
 		}
+		// At this point analyzed SSTable ID is present in both local and remote dirs.
+		// Not being able to deduplicate it results in setting 'willCreateVersioned' to true.
+		crc32Idx := slices.IndexFunc(localBundle, func(fi fileInfo) bool {
+			return strings.HasSuffix(fi.Name, "Digest.crc32")
+		})
+		if crc32Idx == -1 {
+			willCreateVersioned = true
+			continue
+		}
+		crc32FileName := localBundle[crc32Idx].Name
 		if !isSSTableBundleSizeEqual(localBundle, remoteBundle) {
+			willCreateVersioned = true
 			continue
 		}
 
 		remoteCRC32Path := path.Join(remoteDir, crc32FileName)
 		remoteCRC32, err := w.Client.RcloneCat(ctx, host, remoteCRC32Path)
 		if err != nil {
-			return deduplicated, errors.Wrapf(err, "get content of remote CRC32 %s", remoteCRC32Path)
+			return nil, true, errors.Wrapf(err, "get content of remote CRC32 %s", remoteCRC32Path)
 		}
 
 		localCRC32Path := path.Join(localDir, crc32FileName)
 		localCRC32, err := w.Client.RcloneCat(ctx, host, localCRC32Path)
 		if err != nil {
-			return deduplicated, errors.Wrapf(err, "get content of local CRC32 %s", localCRC32Path)
+			return nil, true, errors.Wrapf(err, "get content of local CRC32 %s", localCRC32Path)
 		}
 
 		if bytes.Equal(localCRC32, remoteCRC32) {
 			deduplicated = append(deduplicated, localBundle...)
+		} else {
+			willCreateVersioned = true
 		}
 	}
-	return deduplicated, nil
+	return deduplicated, willCreateVersioned, nil
 }
 
 type sstableBundlesByID struct {

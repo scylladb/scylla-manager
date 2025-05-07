@@ -102,6 +102,9 @@ func TestAggregateProgress(t *testing.T) {
 	setRclone := func(rp *RunProgress, d, v int64,
 		downloadStartFromNowInSec, downloadEndFromNowInSec, restoreEndFromNowInSec int) *RunProgress {
 		clone := *rp
+		clone.AgentJobID = 1
+		clone.ScyllaTaskID = ""
+
 		clone.RestoreStartedAt = timePtr(taskStart.Add(time.Duration(downloadStartFromNowInSec) * time.Second))
 		clone.DownloadStartedAt = timePtr(taskStart.Add(time.Duration(downloadStartFromNowInSec) * time.Second))
 		if downloadEndFromNowInSec != unsetCompletedAt {
@@ -117,7 +120,25 @@ func TestAggregateProgress(t *testing.T) {
 			clone.RestoreCompletedAt = nil
 		}
 		clone.Downloaded = d
-		clone.VersionedProgress = v
+		clone.VersionedDownloaded = v
+		return &clone
+	}
+	setScylla := func(rp *RunProgress, r int64, restoreStartFromNowInSec, restoreEndFromNowInSec int) *RunProgress {
+		clone := *rp
+		clone.AgentJobID = 0
+		clone.ScyllaTaskID = "1"
+		clone.DownloadStartedAt = nil
+		clone.DownloadCompletedAt = nil
+		clone.Downloaded = 0
+		clone.VersionedDownloaded = 0
+
+		clone.RestoreStartedAt = timePtr(taskStart.Add(time.Duration(restoreStartFromNowInSec) * time.Second))
+		if restoreEndFromNowInSec != unsetCompletedAt {
+			clone.RestoreCompletedAt = timePtr(taskStart.Add(time.Duration(restoreEndFromNowInSec) * time.Second))
+		} else {
+			clone.RestoreCompletedAt = nil
+		}
+		clone.Restored = r
 		return &clone
 	}
 
@@ -164,6 +185,38 @@ func TestAggregateProgress(t *testing.T) {
 				setRclone(fullTab1, tab1size/2, tab1size/2, 5, 7, 10),
 				setRclone(fullTab2, tab2size/3, 0, 1, 2, 3),
 				setRclone(fullTab2, tab2size/3, tab2size/3, 1, 2, unsetCompletedAt),
+			},
+		},
+		{
+			name: "scylla API full tab1 partial tab2",
+			progress: []*RunProgress{
+				setScylla(fullTab1, tab1size, 0, 10),
+				setScylla(fullTab2, tab2size/3, 1, 3),
+				setScylla(fullTab2, tab2size/3, 1, unsetCompletedAt),
+			},
+		},
+		{
+			name: "scylla API partial tab1 partial tab2",
+			progress: []*RunProgress{
+				setScylla(fullTab1, tab1size/2, 0, unsetCompletedAt),
+				setScylla(fullTab2, tab2size/3, 0, 7),
+				setScylla(fullTab2, tab2size/3, 0, unsetCompletedAt),
+			},
+		},
+		{
+			name: "mixed API full tab1 partial tab2",
+			progress: []*RunProgress{
+				fullTab1,
+				setScylla(fullTab2, tab2size/3, 1, 5),
+				setScylla(fullTab2, tab2size/3, 0, unsetCompletedAt),
+			},
+		},
+		{
+			name: "mixed API full tab1 full tab2",
+			progress: []*RunProgress{
+				fullTab1,
+				setScylla(fullTab2, tab2size/3, 1, 3),
+				setRclone(fullTab2, tab2size/3, tab2size/3, 1, 2, 4),
 			},
 		},
 	}
