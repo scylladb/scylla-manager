@@ -16,6 +16,7 @@ import (
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
@@ -254,6 +255,7 @@ func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRo
 		client:         sc,
 		clusterSession: clusterSession,
 		logger:         log.NopLogger,
+		metrics:        metrics.NewOne2OneRestoreMetrics(),
 	}
 	return w, hrt
 }

@@ -145,6 +145,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.clusterSvc.GetSession,
 		s.configCacheSvc,
 		s.logger.Named("one2onerestore"),
+		metrics.NewOne2OneRestoreMetrics().MustRegister(),
 	)
 	if err != nil {
 		return errors.Wrapf(err, "one2onerestore service")
