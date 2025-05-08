@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 )
 
@@ -195,7 +196,8 @@ func TestWaitForViewBuilding(t *testing.T) {
 				t.Fatalf("Unexpected err: %v", err)
 			}
 			w := &worker{
-				client: scyllaclienttest.MakeClient(t, tsAddr.Hostname(), tsAddr.Port()),
+				client:  scyllaclienttest.MakeClient(t, tsAddr.Hostname(), tsAddr.Port()),
+				metrics: metrics.NewOne2OneRestoreMetrics(),
 			}
 			err = w.waitForViewBuilding(tc.contextProvider(), tc.view, &RunViewProgress{})
 			if err != nil && !tc.expectedErr {

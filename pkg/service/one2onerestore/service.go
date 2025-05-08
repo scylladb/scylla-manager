@@ -10,6 +10,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
@@ -36,11 +37,13 @@ type Service struct {
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
 	configCache    configcache.ConfigCacher
-	logger         log.Logger
+
+	logger  log.Logger
+	metrics metrics.One2OneRestoreMetrics
 }
 
 func NewService(session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
-	logger log.Logger,
+	logger log.Logger, metrics metrics.One2OneRestoreMetrics,
 ) (Servicer, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -57,7 +60,8 @@ func NewService(session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, 
 		clusterSession: clusterSession,
 		configCache:    configCache,
 
-		logger: logger,
+		logger:  logger,
+		metrics: metrics,
 	}, nil
 }
 
@@ -68,6 +72,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		"task_id", taskID,
 		"run_id", runID,
 	)
+	s.metrics.ResetClusterMetrics(clusterID)
 
 	w, err := s.newWorker(ctx, clusterID, taskID, runID)
 	if err != nil {
@@ -123,7 +128,8 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 		client:         client,
 		clusterSession: clusterSession,
 
-		logger: s.logger,
+		logger:  s.logger,
+		metrics: s.metrics,
 
 		runInfo: struct{ ClusterID, TaskID, RunID uuid.UUID }{
 			ClusterID: clusterID,
