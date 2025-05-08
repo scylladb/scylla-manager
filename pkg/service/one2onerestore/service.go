@@ -100,8 +100,8 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		return errors.Wrap(err, "prepare hosts workload")
 	}
 
-	if err := w.initProgress(ctx, workload); err != nil {
-		return errors.Wrap(err, "init progress")
+	if err := w.initProgressAndMetrics(ctx, workload); err != nil {
+		return errors.Wrap(err, "init progress and metrics")
 	}
 
 	start := timeutc.Now()

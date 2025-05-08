@@ -19,10 +19,11 @@ func NewOne2OneRestoreMetrics() One2OneRestoreMetrics {
 
 	return One2OneRestoreMetrics{
 		remainingBytes: g("Remaining bytes of backup to be restored yet.", "download_remaining_bytes",
-			"source_cluster", "cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-		state: g("Defines current state of the 1-1-restore process (downloading/loading/error/done).",
-			"state", "source_cluster", "cluster", "location", "snapshot_tag", "host"),
-		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
+			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
+		state: g("Defines current state of the 1-1-restore process (downloading/loading/error/done).", "state",
+			"cluster", "location", "snapshot_tag", "host"),
+		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status",
+			"cluster", "keyspace", "view"),
 	}
 }
 
@@ -49,26 +50,25 @@ func (m One2OneRestoreMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 
 // One2OneRestoreBytesLabels is a set of labels for restore metrics.
 type One2OneRestoreBytesLabels struct {
-	SourceClusterID, ClusterID string
-	SnapshotTag                string
-	Location                   string
-	DC                         string
-	Node                       string
-	Keyspace                   string
-	Table                      string
+	ClusterID   string
+	SnapshotTag string
+	Location    string
+	DC          string
+	Node        string
+	Keyspace    string
+	Table       string
 }
 
 // SetDownloadRemainingBytes sets download_remaining_bytes metrics.
 func (m One2OneRestoreMetrics) SetDownloadRemainingBytes(labels One2OneRestoreBytesLabels, remainingBytes float64) {
 	l := prometheus.Labels{
-		"source_cluster": labels.SourceClusterID,
-		"cluster":        labels.ClusterID,
-		"snapshot_tag":   labels.SnapshotTag,
-		"location":       labels.Location,
-		"dc":             labels.DC,
-		"node":           labels.Node,
-		"keyspace":       labels.Keyspace,
-		"table":          labels.Table,
+		"cluster":      labels.ClusterID,
+		"snapshot_tag": labels.SnapshotTag,
+		"location":     labels.Location,
+		"dc":           labels.DC,
+		"node":         labels.Node,
+		"keyspace":     labels.Keyspace,
+		"table":        labels.Table,
 	}
 	m.remainingBytes.With(l).Set(remainingBytes)
 }
@@ -88,13 +88,12 @@ const (
 )
 
 // SetOne2OneRestoreState sets 1-1-restore "state" metric.
-func (m One2OneRestoreMetrics) SetOne2OneRestoreState(sourceClusterID, clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state One2OneRestoreState) {
+func (m One2OneRestoreMetrics) SetOne2OneRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state One2OneRestoreState) {
 	l := prometheus.Labels{
-		"source_cluster": sourceClusterID.String(),
-		"cluster":        clusterID.String(),
-		"location":       location.String(),
-		"snapshot_tag":   snapshotTag,
-		"host":           host,
+		"cluster":      clusterID.String(),
+		"location":     location.String(),
+		"snapshot_tag": snapshotTag,
+		"host":         host,
 	}
 	m.state.With(l).Set(float64(state))
 }

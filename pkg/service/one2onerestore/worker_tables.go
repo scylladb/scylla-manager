@@ -42,10 +42,10 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 			}
 			return nil
 		}); err != nil {
-			w.metrics.SetOne2OneRestoreState(manifestInfo.ClusterID, w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
+			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
 			return err
 		}
-		w.metrics.SetOne2OneRestoreState(manifestInfo.ClusterID, w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateDone)
+		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateDone)
 		return nil
 	}, logError)
 }
@@ -57,22 +57,21 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 	if err != nil {
 		return 0, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
 	}
-	w.metrics.SetOne2OneRestoreState(m.ClusterID, w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateDownloading)
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateDownloading)
 	w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
-		SourceClusterID: m.ClusterID.String(),
-		ClusterID:       w.runInfo.ClusterID.String(),
-		SnapshotTag:     m.SnapshotTag,
-		Location:        m.Location.String(),
-		DC:              h.DC,
-		Node:            h.Addr,
-		Keyspace:        table.Keyspace,
-		Table:           table.Table,
+		ClusterID:   w.runInfo.ClusterID.String(),
+		SnapshotTag: m.SnapshotTag,
+		Location:    m.Location.String(),
+		DC:          h.DC,
+		Node:        h.Addr,
+		Keyspace:    table.Keyspace,
+		Table:       table.Table,
 	}, float64(table.Size))
 	return jobID, nil
 }
 
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
-	w.metrics.SetOne2OneRestoreState(m.ClusterID, w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
 	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
 	w.finishDownloadProgress(ctx, pr, err)
 	return err
@@ -100,14 +99,13 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 		}
 		w.updateDownloadProgress(ctx, pr, job)
 		w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
-			SourceClusterID: m.ClusterID.String(),
-			ClusterID:       w.runInfo.ClusterID.String(),
-			SnapshotTag:     m.SnapshotTag,
-			Location:        m.Location.String(),
-			DC:              h.DC,
-			Node:            h.Addr,
-			Keyspace:        pr.Keyspace,
-			Table:           pr.Table,
+			ClusterID:   w.runInfo.ClusterID.String(),
+			SnapshotTag: m.SnapshotTag,
+			Location:    m.Location.String(),
+			DC:          h.DC,
+			Node:        h.Addr,
+			Keyspace:    pr.Keyspace,
+			Table:       pr.Table,
 		}, float64(pr.TableSize-job.Uploaded))
 
 		switch scyllaclient.RcloneJobStatus(job.Status) {
