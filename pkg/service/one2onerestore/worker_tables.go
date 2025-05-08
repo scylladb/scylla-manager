@@ -58,15 +58,6 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 		return 0, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
 	}
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateDownloading)
-	w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
-		ClusterID:   w.runInfo.ClusterID.String(),
-		SnapshotTag: m.SnapshotTag,
-		Location:    m.Location.String(),
-		DC:          h.DC,
-		Node:        h.Addr,
-		Keyspace:    table.Keyspace,
-		Table:       table.Table,
-	}, float64(table.Size))
 	return jobID, nil
 }
 
