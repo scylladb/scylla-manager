@@ -163,7 +163,7 @@ func (cmd *command) run(args []string) error {
 		ok = true
 	}
 	if cmd.Flag("skip-schema").Changed {
-		props["skip_schema"] = cmd.purgeOnly
+		props["skip_schema"] = cmd.skipSchema
 		ok = true
 	}
 
