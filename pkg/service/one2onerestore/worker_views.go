@@ -6,12 +6,12 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
+	"slices"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -72,7 +72,12 @@ func (w *worker) dropView(ctx context.Context, view View) error {
 func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]struct{}) ([]View, error) {
 	keyspaces, err := w.client.Keyspaces(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get keyspaces")
+		return nil, errors.Wrap(err, "get keyspaces")
+	}
+
+	describedViews, err := w.viewsSchemaByName()
+	if err != nil {
+		return nil, err
 	}
 
 	var views []View
@@ -86,17 +91,10 @@ func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]s
 			if _, ok := tablesToRestore[scyllaTable{keyspace: index.KeyspaceName, table: index.TableName}]; !ok {
 				continue
 			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Indexes: map[string]*gocql.IndexMetadata{index.Name: index},
+			stmt, ok := describedViews[scyllaTable{keyspace: index.KeyspaceName, table: index.Name + "_index"}]
+			if !ok {
+				continue
 			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return nil, errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
 			stmt, err = addIfNotExists(stmt, SecondaryIndex)
 			if err != nil {
 				return nil, err
@@ -115,17 +113,10 @@ func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]s
 			if _, ok := tablesToRestore[scyllaTable{keyspace: view.KeyspaceName, table: view.BaseTableName}]; !ok {
 				continue
 			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Views: map[string]*gocql.ViewMetadata{view.ViewName: view},
+			stmt, ok := describedViews[scyllaTable{keyspace: view.KeyspaceName, table: view.ViewName}]
+			if !ok {
+				continue
 			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return nil, errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
 			stmt, err = addIfNotExists(stmt, MaterializedView)
 			if err != nil {
 				return nil, err
@@ -240,4 +231,23 @@ func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunView
 	}
 
 	return nil
+}
+
+func (w *worker) viewsSchemaByName() (map[scyllaTable]string, error) {
+	describedSchema, err := query.DescribeSchemaWithInternals(w.clusterSession)
+	if err != nil {
+		return nil, errors.Wrap(err, "describe schema")
+	}
+	result := map[scyllaTable]string{}
+	for _, stmt := range describedSchema {
+		if stmt.Keyspace == "" {
+			continue
+		}
+		if !slices.Contains([]string{"view", "index"}, stmt.Type) {
+			continue
+		}
+
+		result[scyllaTable{keyspace: stmt.Keyspace, table: stmt.Name}] = stmt.CQLStmt
+	}
+	return result, nil
 }

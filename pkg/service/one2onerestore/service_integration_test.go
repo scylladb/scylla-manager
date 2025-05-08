@@ -33,6 +33,9 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	WriteData(t, clusterSession, ksName, 10)
 	mvName := "testmv"
 	CreateMaterializedView(t, clusterSession, ksName, BigTableName, mvName)
+	siName := "testsi"
+	siTableName := siName + "_index"
+	CreateSecondaryIndex(t, clusterSession, ksName, BigTableName, siName)
 
 	srcCnt := rowCount(t, clusterSession, ksName, BigTableName)
 	if srcCnt == 0 {
@@ -41,6 +44,10 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	srcCntMV := rowCount(t, clusterSession, ksName, mvName)
 	if srcCntMV == 0 {
 		t.Fatalf("Unexpected row count in materialized view: 0")
+	}
+	srcCntSI := rowCount(t, clusterSession, ksName, siTableName)
+	if srcCntSI == 0 {
+		t.Fatalf("Unexpected row count in secondary index: 0")
 	}
 
 	Print("Run backup")
@@ -75,16 +82,30 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	if srcCntMV != dstCntMV {
 		t.Fatalf("Expected row count in materialized view %d, but got %d", srcCntMV, dstCntMV)
 	}
+	dstCntSI := rowCount(t, clusterSession, ksName, siTableName)
+	if srcCntSI != dstCntSI {
+		t.Fatalf("Expected row count in secondary index %d, but got %d", srcCntSI, dstCntSI)
+	}
 
 	// Ensure table's tombstone_gc mode is set to 'repair'
-	w, _ := newTestWorker(t, ManagedClusterHosts())
-	mode, err := w.getTableTombstoneGCMode(ksName, BigTableName)
-	if err != nil {
-		t.Fatalf("Get table tombstone_gc mode: %v", err)
-	}
-	if mode != modeRepair {
-		t.Fatalf("Expected repair mode, but got %s", string(mode))
-	}
+	validateTombstoneGCMode(t, []testTable{
+		{
+			ks:   ksName,
+			name: BigTableName,
+		},
+		{
+			ks:     ksName,
+			name:   mvName,
+			isView: true,
+		},
+		// It turns out, there is no way to create INDEX with tombstone_gc mode repair,
+		// so for now I'm skipping this check.
+		//{
+		//	ks:     ksName,
+		//	name:   siTableName,
+		//	isView: true,
+		//},
+	})
 
 	Print("Validate progress")
 	pr, err := h.restoreSvc.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID, h.props)
@@ -92,6 +113,25 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 		t.Fatalf("Unexpected err: %v", err)
 	}
 	validateGetProgress(t, pr)
+}
+
+type testTable struct {
+	ks, name string
+	isView   bool
+}
+
+func validateTombstoneGCMode(t *testing.T, tables []testTable) {
+	t.Helper()
+	w, _ := newTestWorker(t, ManagedClusterHosts())
+	for _, table := range tables {
+		mode, err := w.getTombstoneGCMode(table.ks, table.name, table.isView)
+		if err != nil {
+			t.Fatalf("Get table tombstone_gc mode: %v", err)
+		}
+		if mode != modeRepair {
+			t.Fatalf("Expected repair mode, but got %s, table: %s.%s", string(mode), table.ks, table.name)
+		}
+	}
 }
 
 func truncateAllTablesInKeyspace(tb testing.TB, session gocqlx.Session, ks string) {
