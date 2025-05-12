@@ -189,7 +189,7 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 			t.Fatalf("t.running[clusterID] should be deleted")
 		}
 
-		// Lock can be acquried again.
+		// Lock can be acquired again.
 		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)

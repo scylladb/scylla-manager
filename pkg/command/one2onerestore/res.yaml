@@ -28,3 +28,7 @@ nodes-mapping:
 dry-run: |
   Validates and displays restore information without actually running the restore.
   This allows you to display what will happen should the restore run with the parameters you set.
+
+stop-all: |
+  If true, then before executing 1-1-restore all enabled tasks will be disabled and all running tasks will be stopped. Once 1-1-restore is finished
+  all disabled tasks will be re-enabled.
