@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
@@ -18,29 +19,34 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 	}
 	return parallel.Run(len(workload), len(workload), func(i int) error {
 		hostTask := workload[i]
+		manifestInfo, host := hostTask.manifestInfo, hostTask.host
 		const (
 			repeatInterval  = 10 * time.Second
 			pollIntervalSec = 10
 		)
-
-		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
+		if err := hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
-			jobID, err := w.createDownloadJob(ctx, table, hostTask.manifestInfo, hostTask.host)
+			jobID, err := w.createDownloadJob(ctx, table, manifestInfo, host)
 			if err != nil {
 				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
 			}
 			pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
 
-			if err := w.waitJob(ctx, jobID, hostTask.host, pr, pollIntervalSec); err != nil {
+			if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, pollIntervalSec); err != nil {
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			if err := w.refreshNode(ctx, table, hostTask.host, pr); err != nil {
+			if err := w.refreshNode(ctx, table, manifestInfo, host, pr); err != nil {
 				return errors.Wrapf(err, "refresh node: %s.%s", table.Keyspace, table.Table)
 			}
 			return nil
-		})
+		}); err != nil {
+			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
+			return err
+		}
+		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateDone)
+		return nil
 	}, logError)
 }
 
@@ -51,16 +57,18 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 	if err != nil {
 		return 0, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
 	}
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateDownloading)
 	return jobID, nil
 }
 
-func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, h Host, pr *RunTableProgress) error {
+func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
 	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
 	w.finishDownloadProgress(ctx, pr, err)
 	return err
 }
 
-func (w *worker) waitJob(ctx context.Context, jobID int64, h Host, pr *RunTableProgress, pollIntervalSec int) (err error) {
+func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress, pollIntervalSec int) (err error) {
 	defer func() {
 		cleanCtx := context.Background()
 		// On error stop job
@@ -81,6 +89,15 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, h Host, pr *RunTableP
 			return errors.Wrap(err, "fetch job info")
 		}
 		w.updateDownloadProgress(ctx, pr, job)
+		w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
+			ClusterID:   w.runInfo.ClusterID.String(),
+			SnapshotTag: m.SnapshotTag,
+			Location:    m.Location.String(),
+			DC:          h.DC,
+			Node:        h.Addr,
+			Keyspace:    pr.Keyspace,
+			Table:       pr.Table,
+		}, float64(pr.TableSize-job.Uploaded))
 
 		switch scyllaclient.RcloneJobStatus(job.Status) {
 		case scyllaclient.JobError:
