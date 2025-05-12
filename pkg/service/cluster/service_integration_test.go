@@ -812,6 +812,23 @@ func TestServiceStorageIntegration(t *testing.T) {
 	})
 }
 
+func TestVerifySMAndAgentVersionsIntegration(t *testing.T) {
+	session := CreateScyllaManagerDBSession(t)
+	secretsStore := store.NewTableStore(session, table.Secrets)
+	s, err := cluster.NewService(session, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
+		server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("verify scylla manager and agent versions", func(t *testing.T) {
+		err = s.VerifySMAndAgentVersions(context.Background())
+		if err != nil {
+			t.Fatalf("scylla manager and agent have different versions %v", err)
+		}
+	})
+}
+
 func validCluster() *cluster.Cluster {
 	return &cluster.Cluster{
 		ID:        uuid.MustRandom(),
