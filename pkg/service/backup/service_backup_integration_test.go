@@ -2604,13 +2604,22 @@ func TestBackupAPIHintIntegration(t *testing.T) {
 		getTargetSuccess bool
 	}
 	var testCases []testCase
-	if support {
+	// As currently scylla can't handle ipv6 object storage endpoints,
+	// we don't configure them for ipv6 test env and don't expect them to work.
+	switch {
+	case support && !IsIPV6Network():
 		testCases = []testCase{
 			{apiHint: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{apiHint: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
-	} else {
+	case support && IsIPV6Network():
+		testCases = []testCase{
+			{apiHint: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{apiHint: "native", getTargetSuccess: false},
+			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	default:
 		testCases = []testCase{
 			{apiHint: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{apiHint: "native", getTargetSuccess: false},
