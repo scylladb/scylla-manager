@@ -28,3 +28,7 @@ nodes-mapping:
 dry-run: |
   Validates and displays restore information without actually running the restore.
   This allows you to display what will happen should the restore run with the parameters you set.
+
+unpin-agent-cpu: |
+  Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
+  This might significantly improve download speed at the cost of decreasing streaming speed. 

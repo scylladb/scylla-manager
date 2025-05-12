@@ -79,6 +79,18 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 		return errors.Wrap(err, "disable auto compaction")
 	}
 
+	// We always want to pin agent to CPUs outside the 1-1-restore.
+	defer func() {
+		if err := w.pinAgentCPU(context.Background(), workload, true); err != nil {
+			w.logger.Error(ctx, "Can't pin agent to CPU", "error", err)
+		}
+	}()
+	if target.UnpinAgentCPU {
+		if err := w.pinAgentCPU(ctx, workload, false); err != nil {
+			return errors.Wrap(err, "unpin agent from CPU")
+		}
+	}
+
 	if err := w.setTombstoneGCModeRepair(ctx, workload); err != nil {
 		return errors.Wrap(err, "tombstone_gc mode")
 	}
@@ -207,6 +219,22 @@ func (w *worker) setAutoCompaction(ctx context.Context, workload []hostWorkload,
 		}
 	}
 	return nil
+}
+
+func (w *worker) pinAgentCPU(ctx context.Context, workload []hostWorkload, pin bool) error {
+	setPinFunc := w.client.PinCPU
+	if !pin {
+		setPinFunc = w.client.UnpinFromCPU
+	}
+	return parallel.Run(len(workload), len(workload), func(i int) error {
+		host := workload[i].host
+		return errors.Wrapf(setPinFunc(ctx, host.Addr), "set CPU pinning on %s", host.Addr)
+	}, func(i int, err error) {
+		w.logger.Error(ctx, "Failed to change agent CPU pinning",
+			"host", workload[i].host.Addr,
+			"pinned", pin,
+			"error", err)
+	})
 }
 
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
