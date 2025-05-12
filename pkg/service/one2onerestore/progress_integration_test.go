@@ -71,7 +71,7 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Fatalf("Expected empty progress, but got: %v", pr)
 	}
 
-	w.initProgress(context.Background(), workload)
+	w.initProgressAndMetrics(context.Background(), workload)
 
 	pr, err = w.getProgress(context.Background())
 	if err != nil {

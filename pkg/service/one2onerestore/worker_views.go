@@ -11,6 +11,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -223,6 +224,15 @@ func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunView
 	}
 
 	w.updateReCreateViewProgress(ctx, pr, status)
+	switch status {
+	case scyllaclient.StatusUnknown:
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, viewTableName, metrics.BuildStatusUnknown)
+	case scyllaclient.StatusStarted:
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, viewTableName, metrics.BuildStatusStarted)
+	case scyllaclient.StatusSuccess:
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, viewTableName, metrics.BuildStatusSuccess)
+		return nil
+	}
 
 	if status == scyllaclient.StatusUnknown || status == scyllaclient.StatusStarted {
 		w.logger.Info(ctx, "Waiting for view",
