@@ -152,6 +152,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		},
 		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("1-1-restore"),
+		metrics.NewOne2OneRestoreMetrics(),
 	)
 	if err != nil {
 		t.Fatal(err)

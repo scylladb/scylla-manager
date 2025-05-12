@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -30,7 +31,8 @@ type worker struct {
 	client         *scyllaclient.Client
 	clusterSession gocqlx.Session
 
-	logger log.Logger
+	logger  log.Logger
+	metrics metrics.One2OneRestoreMetrics
 
 	runInfo struct {
 		ClusterID, TaskID, RunID uuid.UUID

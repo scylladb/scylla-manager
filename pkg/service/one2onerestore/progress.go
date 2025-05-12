@@ -11,15 +11,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// initProgress adds entries to RunTableProgress and RunViewProgress, so that API call
+// initProgressAndMetrics adds entries to RunTableProgress and RunViewProgress, so that API call
 // to show progress can return some information at this point.
-func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) error {
+// Sets initial values for download_remaining_bytes and view_build_status metrics.
+func (w *worker) initProgressAndMetrics(ctx context.Context, workload []hostWorkload) error {
 	tablesToRestore := getTablesToRestore(workload)
 	views, err := w.getViews(ctx, tablesToRestore)
 	if err != nil {
@@ -40,6 +42,7 @@ func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) erro
 		}); err != nil {
 			w.logger.Error(ctx, "Failed to init view progress", "err", err)
 		}
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, v.Keyspace, v.View, metrics.BuildStatusUnknown)
 	}
 
 	for _, work := range workload {
@@ -58,6 +61,15 @@ func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) erro
 			}); err != nil {
 				w.logger.Error(ctx, "Failed to init table progress", "err", err)
 			}
+			w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
+				ClusterID:   w.runInfo.ClusterID.String(),
+				SnapshotTag: work.manifestInfo.SnapshotTag,
+				Location:    work.manifestInfo.Location.String(),
+				DC:          work.manifestInfo.DC,
+				Node:        host,
+				Keyspace:    tableInfo.keyspace,
+				Table:       tableInfo.table,
+			}, float64(tableInfo.size))
 		}
 	}
 
