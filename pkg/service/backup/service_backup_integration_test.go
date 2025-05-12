@@ -2592,7 +2592,7 @@ func TestBackupAPIHintIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	support, err := ni.SupportsScyllaBackupRestoreAPI()
+	support, err := ni.SupportsNativeBackupAPI()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,14 +14,14 @@ import (
 
 // hostNativeBackupSupport validates that native backup API can be used for given host.
 func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
-	ok, err := ni.SupportsScyllaBackupRestoreAPI()
+	ok, err := ni.SupportsNativeBackupAPI()
 	if err != nil {
 		return errors.Wrap(err, "check native backup api support")
 	}
 	if !ok {
 		return errors.New("native backup api is not supported")
 	}
-	_, err = ni.ScyllaBackupRestoreEndpoint(loc.Provider)
+	_, err = ni.ScyllaObjectStorageEndpoint(loc.Provider)
 	if err != nil {
 		return errors.Wrap(err, "check scylla object storage endpoint")
 	}
@@ -65,7 +65,7 @@ func (w *worker) nativeBackup(ctx context.Context, hi hostInfo, d snapshotDir) e
 		"table", d.Table)
 	if d.Progress.ScyllaTaskID == "" || !w.scyllaCanAttachToTask(ctx, hi.IP, d.Progress.ScyllaTaskID) {
 		prefix := w.remoteSSTableDir(hi, d)
-		endpoint, err := hi.NodeConfig.ScyllaBackupRestoreEndpoint(hi.Location.Provider)
+		endpoint, err := hi.NodeConfig.ScyllaObjectStorageEndpoint(hi.Location.Provider)
 		if err != nil {
 			return errors.Wrap(err, "get Scylla object storage endpoint")
 		}

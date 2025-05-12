@@ -505,7 +505,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAPISupport, err := ni.SupportsScyllaBackupRestoreAPI()
+	nativeBackupSupport, err := ni.SupportsNativeBackupAPI()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -633,7 +633,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	})
 
 	Print("Validate state after backup")
-	if nativeAPISupport {
+	if nativeBackupSupport && !IsIPV6Network() {
 		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
 	} else {
 		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
