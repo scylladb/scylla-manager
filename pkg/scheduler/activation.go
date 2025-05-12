@@ -20,6 +20,22 @@ type Activation[K comparable] struct {
 	Retry      int8
 	Properties Properties
 	Stop       time.Time
+
+	// PreRescheduleActivation keeps track of initial run activation time.
+	// It is set only for run activations rescheduled by maintenance window
+	// or retries. It helps to improve reschedule mechanism.
+	// PreRescheduleActivation should be accessed by InitialActivation.
+	PreRescheduleActivation time.Time
+}
+
+// InitialActivation returns the activation time of the first run in task
+// execution sequence. Task execution sequence starts with the initial run
+// followed by reschedules triggered by maintenance window and/or retries.
+func InitialActivation[K comparable](a Activation[K]) time.Time {
+	if a.PreRescheduleActivation.IsZero() {
+		return a.Time
+	}
+	return a.PreRescheduleActivation
 }
 
 // activationHeap implements heap.Interface.

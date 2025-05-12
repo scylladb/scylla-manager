@@ -728,3 +728,131 @@ func TestWindowWithBackoff(t *testing.T) {
 		}
 	}
 }
+
+// TestReschedule behavior described in (s *Scheduler[K]).reschedule comment.
+func TestReschedule(t *testing.T) {
+	t.Run("after long run", func(t *testing.T) {
+		// Tested behavior:
+		// Cron activation: |-A-------A-------A------ ...
+		// Task execution:  |-[EEEEEEEE][EEE]-[EEE]-- ...
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		f := newFakeRunner()
+		runDuration := []time.Duration{
+			125 * time.Millisecond,
+			50 * time.Millisecond,
+			50 * time.Millisecond,
+		}
+		f.F = func(ctx testRunContext) error {
+			time.Sleep(runDuration[f.Count()-1])
+			return nil
+		}
+		s := NewScheduler[testKey](relativeTime(), f.Run, ll)
+		k := randomKey()
+
+		s.Schedule(ctx, k, details(newFakeTrigger(100*time.Millisecond, 200*time.Millisecond, 300*time.Millisecond)))
+		select {
+		case <-startAndWait(ctx, s):
+			t.Fatal("expected a run, scheduler exit")
+		case <-f.Wait(time.Second):
+			if c := f.Count(); c != len(runDuration) {
+				t.Fatal("Run mismatch")
+			}
+		}
+	})
+
+	t.Run("after retries", func(t *testing.T) {
+		// Tested behavior:
+		// Cron activation:      |-A-------A-------A----- ...
+		// Task execution/retry: |-[E]-[R]-[R][EE]-[EE]-- ...
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		f := newFakeRunner()
+		runErr := []error{
+			errors.New("a"),
+			errors.New("b"),
+			nil,
+			nil,
+			nil,
+		}
+		f.F = func(ctx testRunContext) error {
+			return runErr[f.Count()-1]
+		}
+		s := NewScheduler[testKey](relativeTime(), f.Run, ll)
+		k := randomKey()
+
+		d := details(newFakeTrigger(100*time.Millisecond, 200*time.Millisecond, 300*time.Millisecond))
+		d.Backoff = retry.BackoffFunc(func() time.Duration {
+			return 60 * time.Millisecond
+		})
+		d.Backoff = retry.WithMaxRetries(d.Backoff, 2)
+
+		s.Schedule(ctx, k, d)
+		select {
+		case <-startAndWait(ctx, s):
+			t.Fatal("expected a run, scheduler exit")
+		case <-f.Wait(time.Second):
+			if c := f.Count(); c != len(runErr) {
+				t.Fatal("Run mismatch")
+			}
+		}
+	})
+
+	t.Run("after window", func(t *testing.T) {
+		// Tested behavior:
+		// Cron activation:         |-A-------A-------A----- ...
+		// Maintenance window:      |[WW]-[W]---[WWWWWWWWWWW ...
+		// Task execution/continue: |-[E]-[C]---[C][E][E]--- ...
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		runOutOfWindow := []bool{
+			true,
+			true,
+			false,
+			false,
+			false,
+		}
+		f := newFakeRunner()
+		f.F = func(ctx testRunContext) error {
+			if runOutOfWindow[f.Count()-1] {
+				<-ctx.Done()
+				return ctx.err
+			}
+			return nil
+		}
+		now := timeutc.Now()
+		s := NewScheduler[testKey](timeutc.Now, f.Run, ll)
+		k := randomKey()
+
+		d := details(newFakeTriggerWithTime(
+			now.Add(100*time.Millisecond),
+			now.Add(200*time.Millisecond),
+			now.Add(300*time.Millisecond),
+		))
+		wdt := func(d time.Duration) WeekdayTime {
+			return WeekdayTime{
+				Weekday: now.Weekday(),
+				Time:    now.Sub(now.Truncate(24*time.Hour)) + d,
+			}
+		}
+		d.Window, _ = NewWindow(
+			wdt(80*time.Millisecond), wdt(120*time.Millisecond),
+			wdt(160*time.Millisecond), wdt(180*time.Millisecond),
+			wdt(220*time.Millisecond), wdt(400*time.Millisecond),
+		)
+		d.Backoff = retry.BackoffFunc(func() time.Duration {
+			return time.Millisecond
+		})
+		d.Backoff = retry.WithMaxRetries(d.Backoff, 2)
+
+		s.Schedule(ctx, k, d)
+		select {
+		case <-startAndWait(ctx, s):
+			t.Fatal("expected a run, scheduler exit")
+		case <-f.Wait(time.Second):
+			if c := f.Count(); c != len(runOutOfWindow) {
+				t.Fatal("Run mismatch")
+			}
+		}
+	})
+}
