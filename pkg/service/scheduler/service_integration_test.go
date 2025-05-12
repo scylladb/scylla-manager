@@ -203,6 +203,17 @@ func (h *schedulerTestHelper) makeTask(s scheduler.Schedule) *scheduler.Task {
 	}
 }
 
+func (h *schedulerTestHelper) assertTasksLen(expectedTasksLen int, filter scheduler.ListFilter) {
+	h.t.Helper()
+	tasks, err := h.service.ListTasks(context.Background(), h.clusterID, filter)
+	if err != nil {
+		h.t.Fatalf("Unexpected err, service.ListTasks: %v", err)
+	}
+	if len(tasks) != expectedTasksLen {
+		h.t.Fatalf("Unexpected task count, want %d, got %d", expectedTasksLen, len(tasks))
+	}
+}
+
 func newTestService(session gocqlx.Session) *scheduler.Service {
 	s, _ := scheduler.NewService(
 		session,
@@ -1086,5 +1097,117 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task ends with status error")
 		h.assertStatus(task, scheduler.StatusError)
+	})
+}
+
+func TestStoppingRunnerIntegration(t *testing.T) {
+	session := CreateScyllaManagerDBSession(t)
+
+	t.Run("execute task when no other tasks are running", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+
+		h.service.SetRunner(mockTask, scheduler.StoppingRunner{
+			Runner:   h.runner,
+			Service:  h.service,
+			TaskType: mockTask,
+		})
+		h.assertTasksLen(0, scheduler.ListFilter{})
+		task := &scheduler.Task{
+			ClusterID: h.clusterID,
+			Type:      mockTask,
+			Enabled:   true,
+			Sched: scheduler.Schedule{
+				StartDate: timeutc.Now().Add(100 * time.Millisecond),
+			},
+		}
+		if err := h.service.PutTask(context.Background(), task); err != nil {
+			t.Fatalf("Unexpected err, service.PutTask: %v", err)
+		}
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.assertTasksLen(1, scheduler.ListFilter{})
+
+		h.runner.Done()
+
+		h.assertStatus(task, scheduler.StatusDone)
+		h.assertTasksLen(1, scheduler.ListFilter{})
+	})
+
+	t.Run("execute task when other tasks are running", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+
+		vipTaskType := scheduler.One2OneRestoreTask
+		stoppingRunner := &scheduler.StoppingRunner{
+			Runner:   h.runner,
+			Service:  h.service,
+			TaskType: vipTaskType,
+		}
+		h.service.SetRunner(vipTaskType, stoppingRunner)
+
+		regularTask := &scheduler.Task{
+			ClusterID: h.clusterID,
+			Type:      mockTask,
+			Enabled:   true,
+			Sched: scheduler.Schedule{
+				StartDate: timeutc.Now().Add(100 * time.Millisecond),
+			},
+		}
+		if err := h.service.PutTask(context.Background(), regularTask); err != nil {
+			t.Fatalf("Unexpected err, service.PutTask: %v", err)
+		}
+		h.assertStatus(regularTask, scheduler.StatusRunning)
+		h.assertTasksLen(1, scheduler.ListFilter{})
+		// This is to check that there is no disabled tasks actually
+		// as previous assertTaskLen is also equal 1.
+		h.assertTasksLen(1, scheduler.ListFilter{
+			Disabled: true,
+		})
+
+		vipTask := &scheduler.Task{
+			ClusterID: h.clusterID,
+			Type:      vipTaskType,
+			Enabled:   true,
+			Sched: scheduler.Schedule{
+				StartDate: timeutc.Now().Add(100 * time.Millisecond),
+			},
+			Properties: []byte(`{"stop_all":true}`),
+		}
+		if err := h.service.PutTask(context.Background(), vipTask); err != nil {
+			t.Fatalf("Unexpected err, service.PutTask: %v", err)
+		}
+
+		Printf("When vip task is started")
+		h.assertStatus(vipTask, scheduler.StatusRunning)
+
+		Printf("Other tasks should be stopped")
+		h.assertStatus(regularTask, scheduler.StatusStopped)
+		regularTask, err := h.service.GetTaskByID(context.Background(), h.clusterID, mockTask, regularTask.ID)
+		if err != nil {
+			t.Fatalf("Unexpected err, service.GetTaskByID: %v", err)
+		}
+		if val := regularTask.Labels["disabled-by"]; val != "stopping-runner" {
+			t.Fatalf("Expected label `stopping-runner`, but got: %v", val)
+		}
+
+		h.assertTasksLen(1, scheduler.ListFilter{})
+		// 1 task should be disabled.
+		h.assertTasksLen(2, scheduler.ListFilter{Disabled: true})
+
+		Printf("When VIP task is finished, other task should be re-enabled")
+		// Finish VIP task.
+		h.runner.Done()
+		h.assertStatus(vipTask, scheduler.StatusDone)
+
+		// Regular task should be re-enabled.
+		h.assertTasksLen(2, scheduler.ListFilter{})
+		h.assertTasksLen(2, scheduler.ListFilter{Disabled: true})
+		regularTask, err = h.service.GetTaskByID(context.Background(), h.clusterID, mockTask, regularTask.ID)
+		if err != nil {
+			t.Fatalf("Unexpected err, service.GetTaskByID: %v", err)
+		}
+		if val, ok := regularTask.Labels["disabled-by"]; ok {
+			t.Fatalf("Expected no disabled-by label, but got: %v", val)
+		}
 	})
 }

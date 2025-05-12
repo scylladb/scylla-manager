@@ -167,9 +167,12 @@ func (s *server) makeServices(ctx context.Context) error {
 		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.backupSvc.Runner(), TaskType: scheduler.BackupTask})
 	s.schedSvc.SetRunner(scheduler.RestoreTask,
 		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.restoreSvc.Runner(), TaskType: scheduler.RestoreTask})
-	s.schedSvc.SetRunner(scheduler.One2OneRestoreTask,
-		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.one2OneRestoreSvc.Runner(), TaskType: scheduler.One2OneRestoreTask},
-	)
+	one2OneRestoreRunner := scheduler.StoppingRunner{
+		Runner:   scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.one2OneRestoreSvc.Runner(), TaskType: scheduler.One2OneRestoreTask},
+		Service:  s.schedSvc,
+		TaskType: scheduler.One2OneRestoreTask,
+	}
+	s.schedSvc.SetRunner(scheduler.One2OneRestoreTask, one2OneRestoreRunner)
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask,
 		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.Runner(), TaskType: scheduler.RepairTask})
