@@ -38,7 +38,7 @@ func (sr StoppingRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.
 	}
 	defer func() {
 		if dErr := sr.enableAllTasks(ctx, clusterID, opt.StopAll); dErr != nil {
-			err = stderr.Join(err, errors.Wrap(err, "enable all tasks"))
+			err = stderr.Join(err, errors.Wrap(dErr, "enable all tasks"))
 		}
 	}()
 	if err := sr.disableAndStopAllTasks(ctx, clusterID, opt.StopAll); err != nil {
