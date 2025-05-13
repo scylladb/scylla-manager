@@ -31,4 +31,3 @@ dry-run: |
 
 unpin-agent-cpu: |
   Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
-  This might significantly improve download speed at the cost of decreasing streaming speed. 
