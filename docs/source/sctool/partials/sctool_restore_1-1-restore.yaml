@@ -119,7 +119,8 @@ options:
         The default value is taken from this system, namely 'TZ' envvar or '/etc/localtime' file.
     - name: unpin-agent-cpu
       default_value: "false"
-      usage: "Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.\nThis might significantly improve download speed at the cost of decreasing streaming speed. "
+      usage: |
+        Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
     - name: window
       default_value: '[]'
       usage: |
