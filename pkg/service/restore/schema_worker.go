@@ -130,7 +130,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 	// Set restore completed in all run progresses
 	for pr := range seq.All(w.run.ClusterID, w.run.TaskID, w.run.ID, w.session) {
 		pr.setRestoreCompletedAt()
-		pr.Restored = pr.Downloaded + pr.VersionedProgress
+		pr.Restored = pr.Downloaded + pr.VersionedDownloaded
 		w.insertRunProgress(ctx, pr)
 	}
 	if seq.err != nil {

@@ -117,7 +117,7 @@ func TestAggregateProgress(t *testing.T) {
 			clone.RestoreCompletedAt = nil
 		}
 		clone.Downloaded = d
-		clone.VersionedProgress = v
+		clone.VersionedDownloaded = v
 		return &clone
 	}
 

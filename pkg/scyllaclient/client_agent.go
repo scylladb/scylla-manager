@@ -4,11 +4,15 @@ package scyllaclient
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"net/netip"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	scyllaversion "github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -265,6 +269,35 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	return "", nil
 }
 
+// SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
+func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
+	// Detect master builds
+	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
+		return true, nil
+	}
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
+}
+
+// ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
+// It also validates that agent's and Scylla's configurations match.
+func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {
+	if provider != backupspec.S3 {
+		return "", errors.Errorf("unsupported provider %s for native Scylla backup and restore", provider)
+	}
+	if len(ni.ObjectStorageEndpoints) == 0 {
+		return "", errors.New("no object storage endpoint configured")
+	}
+	for _, ose := range ni.ObjectStorageEndpoints {
+		if EqualObjectStorageEndpoints(ni.RcloneBackendConfig.S3, ose) {
+			return ose.Name, nil
+		}
+	}
+	return "", errors.Errorf("scylla and scylla-manager-agent backup configurations don't match. "+
+		"Please make sure that the same endpoint is set in both `scylla-manager-agent.yaml` %s config "+
+		"and in `scylla.yaml` object_storage_endpoints config", provider)
+}
+
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
 func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 	p := operations.FreeOSMemoryParams{
@@ -300,4 +333,46 @@ func (c *Client) CloudMetadata(ctx context.Context, host string) (InstanceMetada
 		CloudProvider: payload.CloudProvider,
 		InstanceType:  payload.InstanceType,
 	}, nil
+}
+
+// EqualObjectStorageEndpoints checks if rclone and Scylla object storage endpoints match.
+func EqualObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigS3, scylla models.ObjectStorageEndpoint) bool {
+	// Get specified or region default rclone s3 endpoint
+	rcloneName := rclone.Endpoint
+	if rcloneName == "" {
+		// See https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
+		rcloneName = fmt.Sprintf("s3.%s.amazonaws.com", rclone.Region)
+	}
+
+	// Clean rclone and scylla names
+	scheme := "http"
+	if scylla.UseHTTPS {
+		scheme = "https"
+	}
+	// Remove scheme
+	rcloneName = strings.TrimPrefix(rcloneName, scheme+"://")
+	// Remove port
+	rcloneName = strings.TrimSuffix(rcloneName, fmt.Sprintf(":%d", scylla.Port))
+	// Remove brackets
+	rcloneName = trimBrackets(rcloneName)
+	scyllaName := trimBrackets(scylla.Name)
+
+	if rcloneName == scyllaName {
+		return true
+	}
+
+	// Handle different ipv6 string representations
+	scyllaIP, err := netip.ParseAddr(scyllaName)
+	if err != nil {
+		return false
+	}
+	rcloneIP, err := netip.ParseAddr(rcloneName)
+	if err != nil {
+		return false
+	}
+	return scyllaIP == rcloneIP
+}
+
+func trimBrackets(e string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(e, "]"), "[")
 }

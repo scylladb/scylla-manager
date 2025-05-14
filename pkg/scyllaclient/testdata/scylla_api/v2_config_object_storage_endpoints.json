@@ -1,0 +1,1 @@
+{"s3.us-east-1.amazonaws.com": "{ \"port\": 9000, \"use_https\": true, \"aws_region\": \"us-east-1\", \"iam_role_arn\": \"\" }"}

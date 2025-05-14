@@ -646,3 +646,9 @@ alternator_port: 8000
 alternator_write_isolation: only_rmw_uses_lwt
 alternator_enforce_authorization: true
 enable_ipv6_dns_lookup: true
+
+object_storage_endpoints:
+  # Name depends on IP family and is filled in makefile
+  - port: 9000
+    https: true
+    aws_region: us-east-1

@@ -58,6 +58,7 @@ type Target struct {
 	Continue         bool                  `json:"continue,omitempty"`
 	PurgeOnly        bool                  `json:"purge_only,omitempty"`
 	SkipSchema       bool                  `json:"skip_schema,omitempty"`
+	APIHint          apiHint               `json:"api_hint,omitempty"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -93,6 +94,18 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 // stageNone is a special Stage indicating the there is no stage.
 // This happens when working with runs coming from versions prior to adding stage.
 const stageNone Stage = ""
+
+// apiHint describes which API should be used by SM during backup.
+type apiHint string
+
+const (
+	// apiHintAuto means that SM will use native backup API when possible, and rclone API otherwise.
+	apiHintAuto apiHint = "auto"
+	// apiHintRclone means that SM will only use rclone API.
+	apiHintRclone apiHint = "rclone"
+	// apiHintNative means that SM will only use native scylla backup API (whether it's configured or not).
+	apiHintNative apiHint = "native"
+)
 
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
@@ -132,7 +145,10 @@ type RunProgress struct {
 	Unit      int64
 	TableName string
 
-	AgentJobID  int64
+	// Uploading SSTables could be done by either Rclone or Scylla API.
+	AgentJobID   int64
+	ScyllaTaskID string
+
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string
@@ -215,6 +231,7 @@ type taskProperties struct {
 	Continue         bool                  `json:"continue"`
 	PurgeOnly        bool                  `json:"purge_only"`
 	SkipSchema       bool                  `json:"skip_schema"`
+	APIHint          apiHint               `json:"api_hint,omitempty"`
 }
 
 func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error {
@@ -227,6 +244,9 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 	if p.Transfers != scyllaclient.TransfersFromConfig && p.Transfers < 1 {
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or greater than zero")
+	}
+	if !slices.Contains([]apiHint{apiHintAuto, apiHintRclone, apiHintNative}, p.APIHint) {
+		return errors.New("unknown api hint: " + string(p.APIHint))
 	}
 
 	// Validate location DCs
@@ -280,6 +300,7 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 		Continue:         p.Continue,
 		PurgeOnly:        p.PurgeOnly,
 		SkipSchema:       p.SkipSchema,
+		APIHint:          p.APIHint,
 		liveNodes:        liveNodes,
 	}, nil
 }
@@ -383,6 +404,7 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
 		Transfers: scyllaclient.TransfersFromConfig,
+		APIHint:   apiHintAuto,
 		Continue:  true,
 	}
 }

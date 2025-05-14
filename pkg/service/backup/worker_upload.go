@@ -34,6 +34,14 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit)
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	dirs := w.hostSnapshotDirs(h)
+	hostNativeBackupSupportErr := w.hostNativeBackupSupport(ctx, h.IP, h.NodeConfig.NodeInfo, h.Location)
+	if hostNativeBackupSupportErr == nil {
+		reset, err := w.Client.ScyllaControlTaskUserTTL(ctx, h.IP)
+		if err != nil {
+			return err
+		}
+		defer reset()
+	}
 
 	f := func(i int) (err error) {
 		d := dirs[i]
@@ -72,18 +80,28 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
 		}()
 
-		// Check if we should attach to a previous job and wait for it to complete.
-		if attached, err := w.attachToJob(ctx, h, d); err != nil {
-			return errors.Wrap(err, "attach to the agent job")
-		} else if attached {
-			return nil
-		}
-		// Start new upload with new job.
-		if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
-			return errors.Wrap(err, "upload snapshot")
+		nativeBackupSupportErr := hostNativeBackupSupportErr
+		if nativeBackupSupportErr == nil {
+			nativeBackupSupportErr = w.snapshotDirNativeBackupSupport(ctx, h.IP, d)
 		}
 
-		return nil
+		switch w.APIHint {
+		case apiHintNative:
+			if nativeBackupSupportErr != nil {
+				return errors.Wrap(nativeBackupSupportErr, "ensure native backup")
+			}
+			return errors.Wrap(w.nativeBackup(ctx, h, d), "native backup")
+		case apiHintRclone:
+			return errors.Wrap(w.rcloneBackup(ctx, h, d), "rclone backup")
+		case apiHintAuto:
+			if nativeBackupSupportErr != nil {
+				return errors.Wrap(w.rcloneBackup(ctx, h, d), "auto rclone backup")
+			} else {
+				return errors.Wrap(w.nativeBackup(ctx, h, d), "auto native backup")
+			}
+		default:
+			return errors.New("unknown api hint: " + string(w.APIHint))
+		}
 	}
 
 	notify := func(i int, err error) {
@@ -97,6 +115,24 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 	}
 
 	return parallel.Run(len(dirs), 1, f, notify)
+}
+
+func (w *worker) rcloneBackup(ctx context.Context, h hostInfo, d snapshotDir) error {
+	w.Logger.Info(ctx, "Use rclone movedir api",
+		"host", h.IP,
+		"keyspace", d.Keyspace,
+		"table", d.Table)
+	// Check if we should attach to a previous job and wait for it to complete.
+	if attached, err := w.attachToJob(ctx, h, d); err != nil {
+		return errors.Wrap(err, "attach to the agent job")
+	} else if attached {
+		return nil
+	}
+	// Start new upload with new job.
+	if err := w.uploadSnapshotDir(ctx, h, d); err != nil {
+		return errors.Wrap(err, "upload snapshot")
+	}
+	return nil
 }
 
 // attachToJob returns true if previous job was found and wait procedure was
