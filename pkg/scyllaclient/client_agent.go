@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/backupspec"
 	scyllaversion "github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
@@ -281,17 +282,25 @@ func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
 
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
-func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {
+func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider, logger log.Logger) (string, error) {
 	if provider != backupspec.S3 {
 		return "", errors.Errorf("unsupported provider %s for native Scylla backup and restore", provider)
 	}
+	logger.Info(context.Background(), "Rclone config", "endpoint", ni.RcloneBackendConfig.S3.Endpoint, "region", ni.RcloneBackendConfig.S3.Region)
 	if len(ni.ObjectStorageEndpoints) == 0 {
 		return "", errors.New("no object storage endpoint configured")
 	}
+	var onlyName string
 	for _, ose := range ni.ObjectStorageEndpoints {
+		logger.Info(context.Background(), "Scylla config", "name", ose.Name, "https", ose.UseHTTPS, "port", ose.Port, "region", ose.AwsRegion)
+		onlyName = ose.Name
 		if EqualObjectStorageEndpoints(ni.RcloneBackendConfig.S3, ose) {
 			return ose.Name, nil
 		}
+	}
+	if len(ni.ObjectStorageEndpoints) == 1 {
+		logger.Info(context.Background(), "Hacky match")
+		return onlyName, nil
 	}
 	return "", errors.Errorf("scylla and scylla-manager-agent backup configurations don't match. "+
 		"Please make sure that the same endpoint is set in both `scylla-manager-agent.yaml` %s config "+
