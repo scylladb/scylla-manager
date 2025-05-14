@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	disabledByLabel = "disabled-by"
+	disabledByLabel = "sm-disabled-by"
 	disabledByValue = "stopping-runner"
 )
 
@@ -36,21 +36,20 @@ func (sr StoppingRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.
 	if err := json.Unmarshal(properties, &opt); err != nil {
 		return errors.Wrap(err, "unmarshal task properties")
 	}
-	defer func() {
-		if dErr := sr.enableAllTasks(ctx, clusterID, opt.StopAll); dErr != nil {
-			err = stderr.Join(err, errors.Wrap(dErr, "enable all tasks"))
+	if opt.StopAll {
+		defer func() {
+			if dErr := sr.enableAllTasks(context.Background(), clusterID); dErr != nil {
+				err = stderr.Join(err, errors.Wrap(dErr, "enable all tasks"))
+			}
+		}()
+		if err := sr.disableAndStopAllTasks(ctx, clusterID); err != nil {
+			return errors.Wrap(err, "disable and stop all tasks")
 		}
-	}()
-	if err := sr.disableAndStopAllTasks(ctx, clusterID, opt.StopAll); err != nil {
-		return errors.Wrap(err, "disable and stop all tasks")
 	}
 	return sr.Runner.Run(ctx, clusterID, taskID, runID, properties)
 }
 
-func (sr StoppingRunner) disableAndStopAllTasks(ctx context.Context, clusterID uuid.UUID, stopAll bool) error {
-	if !stopAll {
-		return nil
-	}
+func (sr StoppingRunner) disableAndStopAllTasks(ctx context.Context, clusterID uuid.UUID) error {
 	tasks, err := sr.Service.ListTasks(ctx, clusterID, ListFilter{})
 	if err != nil {
 		return errors.Wrap(err, "list tasks")
@@ -67,9 +66,7 @@ func (sr StoppingRunner) disableAndStopAllTasks(ctx context.Context, clusterID u
 			task.Labels = map[string]string{}
 		}
 		task.Labels[disabledByLabel] = disabledByValue
-		if task.Enabled {
-			task.Enabled = false
-		}
+		task.Enabled = false
 		if err := sr.Service.PutTask(ctx, &task.Task); err != nil {
 			return errors.Wrap(err, "disable task")
 		}
@@ -80,10 +77,7 @@ func (sr StoppingRunner) disableAndStopAllTasks(ctx context.Context, clusterID u
 	return nil
 }
 
-func (sr StoppingRunner) enableAllTasks(ctx context.Context, clusterID uuid.UUID, stopAll bool) error {
-	if !stopAll {
-		return nil
-	}
+func (sr StoppingRunner) enableAllTasks(ctx context.Context, clusterID uuid.UUID) error {
 	tasks, err := sr.Service.ListTasks(ctx, clusterID, ListFilter{
 		Disabled: true,
 	})
@@ -92,12 +86,6 @@ func (sr StoppingRunner) enableAllTasks(ctx context.Context, clusterID uuid.UUID
 	}
 
 	for _, task := range tasks {
-		if task.Enabled {
-			continue
-		}
-		if task.Type == sr.TaskType {
-			continue
-		}
 		// Enabling only tasks that were disabled by StoppingRunner.
 		if val := task.Labels[disabledByLabel]; val != disabledByValue {
 			continue

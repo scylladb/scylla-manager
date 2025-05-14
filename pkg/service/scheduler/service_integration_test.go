@@ -1186,7 +1186,7 @@ func TestStoppingRunnerIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected err, service.GetTaskByID: %v", err)
 		}
-		if val := regularTask.Labels["disabled-by"]; val != "stopping-runner" {
+		if val := regularTask.Labels["sm-disabled-by"]; val != "stopping-runner" {
 			t.Fatalf("Expected label `stopping-runner`, but got: %v", val)
 		}
 
