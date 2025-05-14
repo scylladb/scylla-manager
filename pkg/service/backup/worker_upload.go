@@ -114,7 +114,11 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 		)
 	}
 
-	return parallel.Run(len(dirs), 1, f, notify)
+	limit := 1
+	if w.APIHint == apiHintNative {
+		limit = parallel.NoLimit
+	}
+	return parallel.Run(len(dirs), limit, f, notify)
 }
 
 func (w *worker) rcloneBackup(ctx context.Context, h hostInfo, d snapshotDir) error {
