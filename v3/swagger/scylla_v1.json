@@ -11875,6 +11875,13 @@
             "required": false,
             "type": "boolean",
             "description": "Load the sstables and stream to primary replica node that owns the data. Repair is needed after the load and stream process"
+          },
+          {
+            "name":"skip_cleanup",
+            "required":false,
+            "type":"string",
+            "description":"Don't cleanup keys from loaded sstables. Invalid if load_and_stream is true",
+            "in": "query"
           }
         ],
         "responses": {
