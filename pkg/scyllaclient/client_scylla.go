@@ -1078,7 +1078,7 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 }
 
 // AwaitLoadSSTables loads sstables that are already downloaded to host's table upload directory.
-func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup bool) error {
 	c.logger.Info(ctx, "First try on loading sstables",
 		"host", host,
 		"keyspace", keyspace,
@@ -1101,7 +1101,7 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 	firstCallCtx := ctx
 	firstCallCtx = customTimeout(firstCallCtx, firstCallTimeout)
 	firstCallCtx = noRetry(firstCallCtx)
-	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly, skipCleanup)
 	if err == nil {
 		return nil // Return on success
 	}
@@ -1136,7 +1136,7 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 
 		retryCallCtx := ctx
 		retryCallCtx = withShouldRetryHandler(retryCallCtx, dontRetryOnAlreadyLoadingSSTablesRetryHandler)
-		err = c.loadSSTables(retryCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
+		err = c.loadSSTables(retryCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly, skipCleanup)
 		if err == nil {
 			return nil // Return on success
 		}
@@ -1153,13 +1153,14 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 // - It returns nil when called on an empty upload dir
 // loadSSTables does not perform any special error, timeout or retry handling.
 // See AwaitLoadSSTables for a wrapper with those features.
-func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly bool) error {
+func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup bool) error {
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
 		Context:            forceHost(ctx, host),
 		Keyspace:           keyspace,
 		Cf:                 table,
 		LoadAndStream:      &loadAndStream,
 		PrimaryReplicaOnly: &primaryReplicaOnly,
+		SkipCleanup:        &skipCleanup,
 	})
 	return err
 }
