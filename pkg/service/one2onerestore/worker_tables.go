@@ -63,7 +63,7 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
-	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
+	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, true)
 	w.finishDownloadProgress(ctx, pr, err)
 	return err
 }
