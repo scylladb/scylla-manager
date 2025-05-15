@@ -86,7 +86,7 @@ type StorageServiceSstablesByKeyspacePostParams struct {
 	  Don't cleanup keys from loaded sstables. Invalid if load_and_stream is true
 
 	*/
-	SkipCleanup *string
+	SkipCleanup *bool
 
 	timeout    time.Duration
 	Context    context.Context
@@ -171,13 +171,13 @@ func (o *StorageServiceSstablesByKeyspacePostParams) SetPrimaryReplicaOnly(prima
 }
 
 // WithSkipCleanup adds the skipCleanup to the storage service sstables by keyspace post params
-func (o *StorageServiceSstablesByKeyspacePostParams) WithSkipCleanup(skipCleanup *string) *StorageServiceSstablesByKeyspacePostParams {
+func (o *StorageServiceSstablesByKeyspacePostParams) WithSkipCleanup(skipCleanup *bool) *StorageServiceSstablesByKeyspacePostParams {
 	o.SetSkipCleanup(skipCleanup)
 	return o
 }
 
 // SetSkipCleanup adds the skipCleanup to the storage service sstables by keyspace post params
-func (o *StorageServiceSstablesByKeyspacePostParams) SetSkipCleanup(skipCleanup *string) {
+func (o *StorageServiceSstablesByKeyspacePostParams) SetSkipCleanup(skipCleanup *bool) {
 	o.SkipCleanup = skipCleanup
 }
 
@@ -238,11 +238,11 @@ func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.Cl
 	if o.SkipCleanup != nil {
 
 		// query param skip_cleanup
-		var qrSkipCleanup string
+		var qrSkipCleanup bool
 		if o.SkipCleanup != nil {
 			qrSkipCleanup = *o.SkipCleanup
 		}
-		qSkipCleanup := qrSkipCleanup
+		qSkipCleanup := swag.FormatBool(qrSkipCleanup)
 		if qSkipCleanup != "" {
 			if err := r.SetQueryParam("skip_cleanup", qSkipCleanup); err != nil {
 				return err
