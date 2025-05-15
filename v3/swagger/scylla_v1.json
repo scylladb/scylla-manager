@@ -11879,7 +11879,7 @@
           {
             "name":"skip_cleanup",
             "required":false,
-            "type":"string",
+            "type":"boolean",
             "description":"Don't cleanup keys from loaded sstables. Invalid if load_and_stream is true",
             "in": "query"
           }
