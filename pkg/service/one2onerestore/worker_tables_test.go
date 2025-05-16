@@ -28,15 +28,15 @@ func TestRefreshNodeWorker(t *testing.T) {
 			inputCh: make(chan refreshNodeInput, 3),
 			input: []refreshNodeInput{
 				{
-					ManfiestInfo: &backupspec.ManifestInfo{},
+					ManifestInfo: &backupspec.ManifestInfo{},
 					Progress:     &RunTableProgress{},
 				},
 				{
-					ManfiestInfo: &backupspec.ManifestInfo{},
+					ManifestInfo: &backupspec.ManifestInfo{},
 					Progress:     &RunTableProgress{},
 				},
 				{
-					ManfiestInfo: &backupspec.ManifestInfo{},
+					ManifestInfo: &backupspec.ManifestInfo{},
 					Progress:     &RunTableProgress{},
 				},
 			},
