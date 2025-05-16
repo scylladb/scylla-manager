@@ -1154,13 +1154,25 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 // loadSSTables does not perform any special error, timeout or retry handling.
 // See AwaitLoadSSTables for a wrapper with those features.
 func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup bool) error {
+	params := &operations.StorageServiceSstablesByKeyspacePostParams{
+		Context:  forceHost(ctx, host),
+		Keyspace: keyspace,
+		Cf:       table,
+	}
+	if loadAndStream {
+		params.LoadAndStream = &loadAndStream
+	}
+	if primaryReplicaOnly {
+		params.PrimaryReplicaOnly = &primaryReplicaOnly
+	}
+	if skipCleanup {
+		params.SkipCleanup = &skipCleanup
+	}
+
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
-		Context:            forceHost(ctx, host),
-		Keyspace:           keyspace,
-		Cf:                 table,
-		LoadAndStream:      &loadAndStream,
-		PrimaryReplicaOnly: &primaryReplicaOnly,
-		SkipCleanup:        &skipCleanup,
+		Context:  forceHost(ctx, host),
+		Keyspace: keyspace,
+		Cf:       table,
 	})
 	return err
 }
