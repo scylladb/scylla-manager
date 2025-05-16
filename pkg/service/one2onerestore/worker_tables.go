@@ -69,7 +69,7 @@ func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload
 		refreshQueue <- refreshNodeInput{
 			Table:        table,
 			Host:         host,
-			ManfiestInfo: manifestInfo,
+			ManifestInfo: manifestInfo,
 			Progress:     pr,
 		}
 		return nil
@@ -90,7 +90,7 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 type refreshNodeInput struct {
 	Table        backupspec.FilesMeta
 	Host         Host
-	ManfiestInfo *backupspec.ManifestInfo
+	ManifestInfo *backupspec.ManifestInfo
 	Progress     *RunTableProgress
 }
 
@@ -104,7 +104,7 @@ func (w *worker) refreshNodeWorker(ctx context.Context, queue <-chan refreshNode
 				if !ok {
 					return nil // Channel closed
 				}
-				if err := w.refreshNode(ctx, input.Table, input.ManfiestInfo, input.Host, input.Progress); err != nil {
+				if err := w.refreshNode(ctx, input.Table, input.ManifestInfo, input.Host, input.Progress); err != nil {
 					return errors.Wrapf(err, "refresh node: %s.%s", input.Table.Keyspace, input.Table.Table)
 				}
 			}
