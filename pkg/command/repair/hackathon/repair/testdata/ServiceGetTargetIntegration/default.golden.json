@@ -1,0 +1,40 @@
+{
+  "units": [
+    {
+      "Keyspace": "system_auth",
+      "Tables": [
+        "role_attributes",
+        "role_members",
+        "role_permissions",
+        "roles"
+      ],
+      "AllTables": true
+    },
+    {
+      "Keyspace": "system_distributed",
+      "Tables": [
+        "view_build_status",
+        "service_levels",
+        "cdc_generation_timestamps",
+        "cdc_streams_descriptions_v2"
+      ],
+      "AllTables": true
+    },
+    {
+      "Keyspace": "system_distributed_everywhere",
+      "Tables": [
+        "cdc_generation_descriptions_v2"
+      ],
+      "AllTables": true
+    }
+  ],
+  "dc": [
+    "dc1",
+    "dc2"
+  ],
+  "fail_fast": false,
+  "continue": true,
+  "intensity": 1,
+  "parallel": 0,
+  "small_table_threshold": 1073741824
+}

@@ -1,0 +1,20 @@
+{
+  "units": [
+    {
+      "Keyspace": "system_auth",
+      "Tables": [
+        "role_members",
+        "roles",
+        "role_permissions"
+      ],
+      "AllTables": true
+    }
+  ],
+  "dc": [
+    "dc1"
+  ],
+  "fail_fast": false,
+  "continue": true,
+  "intensity": 1,
+  "small_table_threshold": 1073741824
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "Host": "h1",
+    "Keyspace": "k1",
+    "Table": "t1",
+    "Size": 10,
+    "TokenRanges": 10,
+    "Success": 10,
+    "Error": 0,
+    "StartedAt": "2019-01-01T00:00:00Z",
+    "CompletedAt": "2019-01-01T00:01:00Z",
+    "Duration": 60000000000
+  },
+  {
+    "Host": "h1",
+    "Keyspace": "k2",
+    "Table": "t1",
+    "Size": 5,
+    "TokenRanges": 5,
+    "Success": 5,
+    "Error": 0,
+    "StartedAt": "2019-01-01T00:01:00Z",
+    "CompletedAt": "2019-01-01T00:02:00Z",
+    "Duration": 60000000000
+  },
+  {
+    "Host": "h2",
+    "Keyspace": "k2",
+    "Table": "t1",
+    "Size": 5,
+    "TokenRanges": 5,
+    "Success": 5,
+    "Error": 0,
+    "StartedAt": "2019-01-01T00:01:01Z",
+    "CompletedAt": "2019-01-01T00:02:00Z",
+    "Duration": 59000000000
+  },
+  {
+    "Host": "h2",
+    "Keyspace": "k3",
+    "Table": "t1",
+    "Size": 3,
+    "TokenRanges": 3,
+    "Success": 3,
+    "Error": 0,
+    "StartedAt": "2019-01-01T00:00:00Z",
+    "CompletedAt": "2019-01-01T00:02:00Z",
+    "Duration": 120000000000
+  }
+]

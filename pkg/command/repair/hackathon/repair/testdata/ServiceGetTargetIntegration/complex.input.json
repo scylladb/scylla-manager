@@ -1,0 +1,9 @@
+{
+  "keyspace": [
+    "system_distributed_everywhere.cdc_generation_descriptions_v2","system_traces.node*"
+  ],
+  "dc": [
+    "dc1"
+  ],
+  "continue": false
+}

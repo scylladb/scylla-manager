@@ -1,0 +1,23 @@
+{
+  "units": [
+    {
+      "Keyspace": "system_distributed",
+      "Tables": [
+        "service_levels",
+        "view_build_status",
+        "cdc_generation_timestamps",
+        "cdc_streams_descriptions_v2"
+      ],
+      "AllTables": true
+    }
+  ],
+  "dc": [
+    "dc1",
+    "dc2"
+  ],
+  "fail_fast": false,
+  "continue": true,
+  "intensity": 1,
+  "parallel": 0,
+  "small_table_threshold": 1073741824
+}

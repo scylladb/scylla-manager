@@ -1,0 +1,19 @@
+{
+  "units": [
+    {
+      "Keyspace": "system_distributed_everywhere",
+      "Tables": [
+        "cdc_generation_descriptions_v2"
+      ],
+      "AllTables": true
+    }
+  ],
+  "dc": [
+    "dc1"
+  ],
+  "fail_fast": false,
+  "continue": false,
+  "intensity": 1,
+  "parallel": 0,
+  "small_table_threshold": 1073741824
+}

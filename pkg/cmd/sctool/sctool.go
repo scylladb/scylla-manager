@@ -26,6 +26,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/command/legacy/task/taskupdate"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/progress"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/command/repair/hackathon"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/repair/repaircontrol"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/resume"
@@ -77,6 +78,7 @@ func buildCommand() *cobra.Command {
 
 	repairCmd := repair.NewCommand(&client)
 	repairCmd.AddCommand(repaircontrol.NewCommand(&client))
+	repairCmd.AddCommand(hackathon.NewCommand())
 
 	taskCmd := &cobra.Command{
 		Use:        "task",
