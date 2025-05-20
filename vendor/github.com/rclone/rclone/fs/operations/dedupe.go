@@ -5,13 +5,12 @@ package operations
 import (
 	"context"
 	"fmt"
-	"log"
 	"path"
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/accounting"
 	"github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/hash"
 	"github.com/rclone/rclone/fs/walk"
@@ -21,7 +20,7 @@ import (
 func dedupeRename(ctx context.Context, f fs.Fs, remote string, objs []fs.Object) {
 	doMove := f.Features().Move
 	if doMove == nil {
-		log.Fatalf("Fs %v doesn't support Move", f)
+		fs.Fatalf(nil, "Fs %v doesn't support Move", f)
 	}
 	ext := path.Ext(remote)
 	base := remote[:len(remote)-len(ext)]
@@ -33,7 +32,7 @@ outer:
 		_, err := f.NewObject(ctx, newName)
 		for ; err != fs.ErrorObjectNotFound; suffix++ {
 			if err != nil {
-				err = fs.CountError(err)
+				err = fs.CountError(ctx, err)
 				fs.Errorf(o, "Failed to check for existing object: %v", err)
 				continue outer
 			}
@@ -47,7 +46,7 @@ outer:
 		if !SkipDestructive(ctx, o, "rename") {
 			newObj, err := doMove(ctx, o, newName)
 			if err != nil {
-				err = fs.CountError(err)
+				err = fs.CountError(ctx, err)
 				fs.Errorf(o, "Failed to rename: %v", err)
 				continue
 			}
@@ -159,12 +158,13 @@ func dedupeList(ctx context.Context, f fs.Fs, ht hash.Type, remote string, objs 
 }
 
 // dedupeInteractive interactively dedupes the slice of objects
-func dedupeInteractive(ctx context.Context, f fs.Fs, ht hash.Type, remote string, objs []fs.Object, byHash bool) {
+func dedupeInteractive(ctx context.Context, f fs.Fs, ht hash.Type, remote string, objs []fs.Object, byHash bool) bool {
 	dedupeList(ctx, f, ht, remote, objs, byHash)
 	commands := []string{"sSkip and do nothing", "kKeep just one (choose which in next step)"}
 	if !byHash {
 		commands = append(commands, "rRename all to be different (by changing file.jpg to file-1.jpg)")
 	}
+	commands = append(commands, "qQuit")
 	switch config.Command(commands) {
 	case 's':
 	case 'k':
@@ -172,7 +172,10 @@ func dedupeInteractive(ctx context.Context, f fs.Fs, ht hash.Type, remote string
 		dedupeDeleteAllButOne(ctx, keep-1, remote, objs)
 	case 'r':
 		dedupeRename(ctx, f, remote, objs)
+	case 'q':
+		return false
 	}
+	return true
 }
 
 // DeduplicateMode is how the dedupe command chooses what to do
@@ -237,7 +240,7 @@ func (x *DeduplicateMode) Set(s string) error {
 	case "list":
 		*x = DeduplicateList
 	default:
-		return errors.Errorf("Unknown mode for dedupe %q.", s)
+		return fmt.Errorf("unknown mode for dedupe %q", s)
 	}
 	return nil
 }
@@ -247,20 +250,85 @@ func (x *DeduplicateMode) Type() string {
 	return "string"
 }
 
+// Directory with entry count and links to parents
+type dedupeDir struct {
+	dir    fs.Directory
+	parent string
+	count  int
+}
+
+// Map of directories by ID with recursive counts
+type dedupeDirsMap map[string]*dedupeDir
+
+func (dm dedupeDirsMap) get(id string) *dedupeDir {
+	d := dm[id]
+	if d == nil {
+		d = &dedupeDir{}
+		dm[id] = d
+	}
+	return d
+}
+
+func (dm dedupeDirsMap) increment(parent string) {
+	if parent != "" {
+		d := dm.get(parent)
+		d.count++
+		dm.increment(d.parent)
+	}
+}
+
 // dedupeFindDuplicateDirs scans f for duplicate directories
-func dedupeFindDuplicateDirs(ctx context.Context, f fs.Fs) ([][]fs.Directory, error) {
+func dedupeFindDuplicateDirs(ctx context.Context, f fs.Fs) (duplicateDirs [][]*dedupeDir, err error) {
+	dirsByID := dedupeDirsMap{}
+	dirs := map[string][]*dedupeDir{}
+
 	ci := fs.GetConfig(ctx)
-	dirs := map[string][]fs.Directory{}
-	err := walk.ListR(ctx, f, "", true, ci.MaxDepth, walk.ListDirs, func(entries fs.DirEntries) error {
-		entries.ForDir(func(d fs.Directory) {
-			dirs[d.Remote()] = append(dirs[d.Remote()], d)
-		})
+	err = walk.ListR(ctx, f, "", false, ci.MaxDepth, walk.ListAll, func(entries fs.DirEntries) error {
+		for _, entry := range entries {
+			tr := accounting.Stats(ctx).NewCheckingTransfer(entry, "merging")
+
+			remote := entry.Remote()
+			parentRemote := path.Dir(remote)
+			if parentRemote == "." {
+				parentRemote = ""
+			}
+
+			// Obtain ID of the object parent, if known.
+			// (This usually means that backend allows duplicate paths)
+			// Fall back to remote parent path, if unavailable.
+			var parent string
+			if entryParentIDer, ok := entry.(fs.ParentIDer); ok {
+				parent = entryParentIDer.ParentID()
+			}
+			if parent == "" {
+				parent = parentRemote
+			}
+
+			var ID string
+			if entryIDer, ok := entry.(fs.IDer); ok {
+				ID = entryIDer.ID()
+			}
+			if ID == "" {
+				ID = remote
+			}
+
+			if fsDir, ok := entry.(fs.Directory); ok {
+				d := dirsByID.get(ID)
+				d.dir = fsDir
+				d.parent = parent
+				dirs[remote] = append(dirs[remote], d)
+			}
+
+			dirsByID.increment(parent)
+			tr.Done(ctx, nil)
+		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "find duplicate dirs")
+		return nil, fmt.Errorf("find duplicate dirs: %w", err)
 	}
-	// make sure parents are before children
+
+	// Make sure parents are before children
 	duplicateNames := []string{}
 	for name, ds := range dirs {
 		if len(ds) > 1 {
@@ -268,31 +336,46 @@ func dedupeFindDuplicateDirs(ctx context.Context, f fs.Fs) ([][]fs.Directory, er
 		}
 	}
 	sort.Strings(duplicateNames)
-	duplicateDirs := [][]fs.Directory{}
 	for _, name := range duplicateNames {
 		duplicateDirs = append(duplicateDirs, dirs[name])
 	}
-	return duplicateDirs, nil
+
+	return
 }
 
 // dedupeMergeDuplicateDirs merges all the duplicate directories found
-func dedupeMergeDuplicateDirs(ctx context.Context, f fs.Fs, duplicateDirs [][]fs.Directory) error {
+func dedupeMergeDuplicateDirs(ctx context.Context, f fs.Fs, duplicateDirs [][]*dedupeDir) error {
 	mergeDirs := f.Features().MergeDirs
 	if mergeDirs == nil {
-		return errors.Errorf("%v: can't merge directories", f)
+		return fmt.Errorf("%v: can't merge directories", f)
 	}
 	dirCacheFlush := f.Features().DirCacheFlush
 	if dirCacheFlush == nil {
-		return errors.Errorf("%v: can't flush dir cache", f)
+		return fmt.Errorf("%v: can't flush dir cache", f)
 	}
-	for _, dirs := range duplicateDirs {
-		if !SkipDestructive(ctx, dirs[0], "merge duplicate directories") {
-			fs.Infof(dirs[0], "Merging contents of duplicate directories")
-			err := mergeDirs(ctx, dirs)
-			if err != nil {
-				err = fs.CountError(err)
-				fs.Errorf(nil, "merge duplicate dirs: %v", err)
+	for _, dedupeDirs := range duplicateDirs {
+		if SkipDestructive(ctx, dedupeDirs[0].dir, "merge duplicate directories") {
+			continue
+		}
+
+		// Put largest directory in front to minimize movements
+		fsDirs := []fs.Directory{}
+		largestCount := -1
+		largestIdx := 0
+		for i, d := range dedupeDirs {
+			fsDirs = append(fsDirs, d.dir)
+			if d.count > largestCount {
+				largestIdx = i
+				largestCount = d.count
 			}
+		}
+		fsDirs[largestIdx], fsDirs[0] = fsDirs[0], fsDirs[largestIdx]
+
+		fs.Infof(fsDirs[0], "Merging contents of duplicate directories")
+		err := mergeDirs(ctx, fsDirs)
+		if err != nil {
+			err = fs.CountError(ctx, err)
+			fs.Errorf(nil, "merge duplicate dirs: %v", err)
 		}
 	}
 	dirCacheFlush()
@@ -323,7 +406,7 @@ func Deduplicate(ctx context.Context, f fs.Fs, mode DeduplicateMode, byHash bool
 	what := "names"
 	if byHash {
 		if ht == hash.None {
-			return errors.Errorf("%v has no hashes", f)
+			return fmt.Errorf("%v has no hashes", f)
 		}
 		what = ht.String() + " hashes"
 	}
@@ -335,15 +418,16 @@ func Deduplicate(ctx context.Context, f fs.Fs, mode DeduplicateMode, byHash bool
 		if err != nil {
 			return err
 		}
-		if len(duplicateDirs) != 0 {
+		if len(duplicateDirs) > 0 {
 			if mode != DeduplicateList {
 				err = dedupeMergeDuplicateDirs(ctx, f, duplicateDirs)
 				if err != nil {
 					return err
 				}
 			} else {
-				for _, dir := range duplicateDirs {
-					fmt.Printf("%s: %d duplicates of this directory\n", dir[0].Remote(), len(dir))
+				for _, dedupeDirs := range duplicateDirs {
+					remote := dedupeDirs[0].dir.Remote()
+					fmt.Printf("%s: %d duplicates of this directory\n", remote, len(dedupeDirs))
 				}
 			}
 		}
@@ -351,8 +435,11 @@ func Deduplicate(ctx context.Context, f fs.Fs, mode DeduplicateMode, byHash bool
 
 	// Now find duplicate files
 	files := map[string][]fs.Object{}
-	err := walk.ListR(ctx, f, "", true, ci.MaxDepth, walk.ListObjects, func(entries fs.DirEntries) error {
+	err := walk.ListR(ctx, f, "", false, ci.MaxDepth, walk.ListObjects, func(entries fs.DirEntries) error {
 		entries.ForObject(func(o fs.Object) {
+			tr := accounting.Stats(ctx).NewCheckingTransfer(o, "checking")
+			defer tr.Done(ctx, nil)
+
 			var remote string
 			var err error
 			if byHash {
@@ -375,41 +462,44 @@ func Deduplicate(ctx context.Context, f fs.Fs, mode DeduplicateMode, byHash bool
 	}
 
 	for remote, objs := range files {
-		if len(objs) > 1 {
-			fs.Logf(remote, "Found %d files with duplicate %s", len(objs), what)
-			if !byHash && mode != DeduplicateList {
-				objs = dedupeDeleteIdentical(ctx, ht, remote, objs)
-				if len(objs) <= 1 {
-					fs.Logf(remote, "All duplicates removed")
-					continue
-				}
+		if len(objs) <= 1 {
+			continue
+		}
+		fs.Logf(remote, "Found %d files with duplicate %s", len(objs), what)
+		if !byHash && mode != DeduplicateList {
+			objs = dedupeDeleteIdentical(ctx, ht, remote, objs)
+			if len(objs) <= 1 {
+				fs.Logf(remote, "All duplicates removed")
+				continue
 			}
-			switch mode {
-			case DeduplicateInteractive:
-				dedupeInteractive(ctx, f, ht, remote, objs, byHash)
-			case DeduplicateFirst:
-				dedupeDeleteAllButOne(ctx, 0, remote, objs)
-			case DeduplicateNewest:
-				sortOldestFirst(objs)
-				dedupeDeleteAllButOne(ctx, len(objs)-1, remote, objs)
-			case DeduplicateOldest:
-				sortOldestFirst(objs)
-				dedupeDeleteAllButOne(ctx, 0, remote, objs)
-			case DeduplicateRename:
-				dedupeRename(ctx, f, remote, objs)
-			case DeduplicateLargest:
-				sortSmallestFirst(objs)
-				dedupeDeleteAllButOne(ctx, len(objs)-1, remote, objs)
-			case DeduplicateSmallest:
-				sortSmallestFirst(objs)
-				dedupeDeleteAllButOne(ctx, 0, remote, objs)
-			case DeduplicateSkip:
-				fs.Logf(remote, "Skipping %d files with duplicate %s", len(objs), what)
-			case DeduplicateList:
-				dedupeList(ctx, f, ht, remote, objs, byHash)
-			default:
-				//skip
+		}
+		switch mode {
+		case DeduplicateInteractive:
+			if !dedupeInteractive(ctx, f, ht, remote, objs, byHash) {
+				return nil
 			}
+		case DeduplicateFirst:
+			dedupeDeleteAllButOne(ctx, 0, remote, objs)
+		case DeduplicateNewest:
+			sortOldestFirst(objs)
+			dedupeDeleteAllButOne(ctx, len(objs)-1, remote, objs)
+		case DeduplicateOldest:
+			sortOldestFirst(objs)
+			dedupeDeleteAllButOne(ctx, 0, remote, objs)
+		case DeduplicateRename:
+			dedupeRename(ctx, f, remote, objs)
+		case DeduplicateLargest:
+			sortSmallestFirst(objs)
+			dedupeDeleteAllButOne(ctx, len(objs)-1, remote, objs)
+		case DeduplicateSmallest:
+			sortSmallestFirst(objs)
+			dedupeDeleteAllButOne(ctx, 0, remote, objs)
+		case DeduplicateSkip:
+			fs.Logf(remote, "Skipping %d files with duplicate %s", len(objs), what)
+		case DeduplicateList:
+			dedupeList(ctx, f, ht, remote, objs, byHash)
+		default:
+			//skip
 		}
 	}
 	return nil

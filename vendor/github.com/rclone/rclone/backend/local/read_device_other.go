@@ -1,6 +1,6 @@
 // Device reading functions
 
-// +build !darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris
+//go:build !darwin && !dragonfly && !freebsd && !linux && !netbsd && !openbsd && !solaris
 
 package local
 

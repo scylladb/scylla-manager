@@ -3,7 +3,6 @@ package accounting
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"sync"
 	"time"
@@ -11,63 +10,6 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/rc"
 )
-
-// AggregatedTransferInfo aggregated transfer statistics.
-type AggregatedTransferInfo struct {
-	Uploaded    int64     `json:"uploaded"`
-	Skipped     int64     `json:"skipped"`
-	Failed      int64     `json:"failed"`
-	Size        int64     `json:"size"`
-	Error       error     `json:"error"`
-	StartedAt   time.Time `json:"started_at"`
-	CompletedAt time.Time `json:"completed_at,omitempty"`
-}
-
-func (ai *AggregatedTransferInfo) update(t *Transfer) {
-	if t.checking {
-		return
-	}
-
-	if ai.StartedAt.IsZero() {
-		ai.StartedAt = t.startedAt
-	}
-	if !t.startedAt.IsZero() && t.startedAt.Before(ai.StartedAt) {
-		ai.StartedAt = t.startedAt
-	}
-
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	if !t.completedAt.IsZero() && ai.CompletedAt.Before(t.completedAt) {
-		ai.CompletedAt = t.completedAt
-	}
-
-	var b, s int64 = 0, t.size
-	if t.acc != nil {
-		b, s = t.acc.progress()
-	}
-	ai.Size += s
-	if t.err != nil {
-		ai.Failed += s
-		ai.Error = errors.Join(ai.Error, t.err)
-	} else {
-		ai.Uploaded += b
-	}
-}
-
-func (ai *AggregatedTransferInfo) merge(other AggregatedTransferInfo) {
-	ai.Uploaded += other.Uploaded
-	ai.Skipped += other.Skipped
-	ai.Failed += other.Failed
-	ai.Size += other.Size
-	ai.Error = errors.Join(ai.Error, other.Error)
-	if !other.StartedAt.IsZero() && other.StartedAt.Before(ai.StartedAt) {
-		ai.StartedAt = other.StartedAt
-	}
-	if ai.CompletedAt.Before(other.CompletedAt) {
-		ai.CompletedAt = other.CompletedAt
-	}
-}
 
 // TransferSnapshot represents state of an account at point in time.
 type TransferSnapshot struct {
@@ -79,6 +21,8 @@ type TransferSnapshot struct {
 	CompletedAt time.Time `json:"completed_at,omitempty"`
 	Error       error     `json:"-"`
 	Group       string    `json:"group"`
+	SrcFs       string    `json:"srcFs,omitempty"`
+	DstFs       string    `json:"dstFs,omitempty"`
 }
 
 // MarshalJSON implements json.Marshaler interface.
@@ -108,6 +52,9 @@ type Transfer struct {
 	size      int64
 	startedAt time.Time
 	checking  bool
+	what      string // what kind of transfer this is
+	srcFs     fs.Fs  // source Fs - may be nil
+	dstFs     fs.Fs  // destination Fs - may be nil
 
 	// Protects all below
 	//
@@ -121,22 +68,25 @@ type Transfer struct {
 }
 
 // newCheckingTransfer instantiates new checking of the object.
-func newCheckingTransfer(stats *StatsInfo, obj fs.Object) *Transfer {
-	return newTransferRemoteSize(stats, obj.Remote(), obj.Size(), true)
+func newCheckingTransfer(stats *StatsInfo, obj fs.DirEntry, what string) *Transfer {
+	return newTransferRemoteSize(stats, obj.Remote(), obj.Size(), true, what, nil, nil)
 }
 
 // newTransfer instantiates new transfer.
-func newTransfer(stats *StatsInfo, obj fs.Object) *Transfer {
-	return newTransferRemoteSize(stats, obj.Remote(), obj.Size(), false)
+func newTransfer(stats *StatsInfo, obj fs.DirEntry, srcFs, dstFs fs.Fs) *Transfer {
+	return newTransferRemoteSize(stats, obj.Remote(), obj.Size(), false, "", srcFs, dstFs)
 }
 
-func newTransferRemoteSize(stats *StatsInfo, remote string, size int64, checking bool) *Transfer {
+func newTransferRemoteSize(stats *StatsInfo, remote string, size int64, checking bool, what string, srcFs, dstFs fs.Fs) *Transfer {
 	tr := &Transfer{
 		stats:     stats,
 		remote:    remote,
 		size:      size,
 		startedAt: time.Now(),
 		checking:  checking,
+		what:      what,
+		srcFs:     srcFs,
+		dstFs:     dstFs,
 	}
 	stats.AddTransfer(tr)
 	return tr
@@ -190,6 +140,7 @@ func (tr *Transfer) Reset(ctx context.Context) {
 	ci := fs.GetConfig(ctx)
 
 	if acc != nil {
+		acc.Done()
 		if err := acc.Close(); err != nil {
 			fs.LogLevelPrintf(ci.StatsLogLevel, nil, "can't close account: %+v\n", err)
 		}
@@ -204,6 +155,7 @@ func (tr *Transfer) Account(ctx context.Context, in io.ReadCloser) *Account {
 	} else {
 		tr.acc.UpdateReader(ctx, in)
 	}
+	tr.acc.checking = tr.checking
 	tr.mu.Unlock()
 	return tr.acc
 }
@@ -232,7 +184,7 @@ func (tr *Transfer) Snapshot() TransferSnapshot {
 	if tr.acc != nil {
 		b, s = tr.acc.progress()
 	}
-	return TransferSnapshot{
+	snapshot := TransferSnapshot{
 		Name:        tr.remote,
 		Checked:     tr.checking,
 		Size:        s,
@@ -242,12 +194,26 @@ func (tr *Transfer) Snapshot() TransferSnapshot {
 		Error:       tr.err,
 		Group:       tr.stats.group,
 	}
+	if tr.srcFs != nil {
+		snapshot.SrcFs = fs.ConfigString(tr.srcFs)
+	}
+	if tr.dstFs != nil {
+		snapshot.DstFs = fs.ConfigString(tr.dstFs)
+	}
+	return snapshot
 }
 
 // rcStats returns stats for the transfer suitable for the rc
 func (tr *Transfer) rcStats() rc.Params {
-	return rc.Params{
-		"name": tr.remote, // no locking needed to access thess
+	out := rc.Params{
+		"name": tr.remote, // no locking needed to access this
 		"size": tr.size,
 	}
+	if tr.srcFs != nil {
+		out["srcFs"] = fs.ConfigString(tr.srcFs)
+	}
+	if tr.dstFs != nil {
+		out["dstFs"] = fs.ConfigString(tr.dstFs)
+	}
+	return out
 }

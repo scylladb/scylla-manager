@@ -2,13 +2,13 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"math/bits"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/aalpar/deheap"
-	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/fserrors"
 )
@@ -85,6 +85,8 @@ func (p *pipe) Pop() interface{} {
 // It returns ok = false if the context was cancelled
 //
 // It will panic if you call it after Close()
+//
+// Note that pairs where src==dst aren't counted for stats
 func (p *pipe) Put(ctx context.Context, pair fs.ObjectPair) (ok bool) {
 	if ctx.Err() != nil {
 		return false
@@ -97,7 +99,7 @@ func (p *pipe) Put(ctx context.Context, pair fs.ObjectPair) (ok bool) {
 		deheap.Push(p, pair)
 	}
 	size := pair.Src.Size()
-	if size > 0 {
+	if size > 0 && pair.Src != pair.Dst {
 		p.totalSize += size
 	}
 	p.stats(len(p.queue), p.totalSize)
@@ -141,7 +143,7 @@ func (p *pipe) GetMax(ctx context.Context, fraction int) (pair fs.ObjectPair, ok
 		pair = deheap.PopMax(p).(fs.ObjectPair)
 	}
 	size := pair.Src.Size()
-	if size > 0 {
+	if size > 0 && pair.Src != pair.Dst {
 		p.totalSize -= size
 	}
 	if p.totalSize < 0 {
@@ -201,7 +203,7 @@ func newLess(orderBy string) (less lessFn, fraction int, err error) {
 			return a.Src.ModTime(ctx).Before(b.Src.ModTime(ctx))
 		}
 	default:
-		return nil, fraction, errors.Errorf("unknown --order-by comparison %q", parts[0])
+		return nil, fraction, fmt.Errorf("unknown --order-by comparison %q", parts[0])
 	}
 	descending := false
 	if len(parts) > 1 {
@@ -214,16 +216,16 @@ func newLess(orderBy string) (less lessFn, fraction int, err error) {
 			if len(parts) > 2 {
 				fraction, err = strconv.Atoi(parts[2])
 				if err != nil {
-					return nil, fraction, errors.Errorf("bad mixed fraction --order-by %q", parts[2])
+					return nil, fraction, fmt.Errorf("bad mixed fraction --order-by %q", parts[2])
 				}
 			}
 
 		default:
-			return nil, fraction, errors.Errorf("unknown --order-by sort direction %q", parts[1])
+			return nil, fraction, fmt.Errorf("unknown --order-by sort direction %q", parts[1])
 		}
 	}
 	if (fraction >= 0 && len(parts) > 3) || (fraction < 0 && len(parts) > 2) {
-		return nil, fraction, errors.Errorf("bad --order-by string %q", orderBy)
+		return nil, fraction, fmt.Errorf("bad --order-by string %q", orderBy)
 	}
 	if descending {
 		oldLess := less

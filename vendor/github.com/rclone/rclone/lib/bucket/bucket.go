@@ -1,4 +1,4 @@
-// Package bucket is contains utilities for managing bucket based backends
+// Package bucket is contains utilities for managing bucket-based backends
 package bucket
 
 import (
@@ -27,6 +27,19 @@ func Split(absPath string) (bucket, bucketPath string) {
 		return absPath, ""
 	}
 	return absPath[:slash], absPath[slash+1:]
+}
+
+// Join path1 and path2
+//
+// Like path.Join but does not clean the path - useful to preserve trailing /
+func Join(path1, path2 string) string {
+	if path1 == "" {
+		return path2
+	}
+	if path2 == "" {
+		return path1
+	}
+	return strings.TrimSuffix(path1, "/") + "/" + strings.TrimPrefix(path2, "/")
 }
 
 // Cache stores whether buckets are available and their IDs
@@ -120,7 +133,7 @@ func (c *Cache) Create(bucket string, create CreateFn, exists ExistsFn) (err err
 
 // Remove the bucket with f if it exists
 //
-// If f returns an error we assume the bucket was not removed
+// If f returns an error we assume the bucket was not removed.
 //
 // If the bucket has already been deleted it returns ErrAlreadyDeleted
 func (c *Cache) Remove(bucket string, f func() error) error {

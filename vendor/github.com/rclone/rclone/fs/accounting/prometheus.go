@@ -2,10 +2,11 @@ package accounting
 
 import (
 	"context"
-	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+var namespace = "rclone_"
 
 // RcloneCollector is a Prometheus collector for Rclone
 type RcloneCollector struct {
@@ -23,11 +24,7 @@ type RcloneCollector struct {
 }
 
 // NewRcloneCollector make a new RcloneCollector
-func NewRcloneCollector(ctx context.Context, namespace string) *RcloneCollector {
-	if !strings.HasSuffix(namespace, "_") {
-		namespace = namespace + "_"
-	}
-
+func NewRcloneCollector(ctx context.Context) *RcloneCollector {
 	return &RcloneCollector{
 		ctx: ctx,
 		bytesTransferred: prometheus.NewDesc(namespace+"bytes_transferred_total",
@@ -35,7 +32,7 @@ func NewRcloneCollector(ctx context.Context, namespace string) *RcloneCollector 
 			nil, nil,
 		),
 		transferSpeed: prometheus.NewDesc(namespace+"speed",
-			"Average speed in bytes/sec since the start of the Rclone process",
+			"Average speed in bytes per second since the start of the Rclone process",
 			nil, nil,
 		),
 		numOfErrors: prometheus.NewDesc(namespace+"errors_total",
@@ -93,7 +90,7 @@ func (c *RcloneCollector) Collect(ch chan<- prometheus.Metric) {
 	s.mu.RLock()
 
 	ch <- prometheus.MustNewConstMetric(c.bytesTransferred, prometheus.CounterValue, float64(s.bytes))
-	ch <- prometheus.MustNewConstMetric(c.transferSpeed, prometheus.GaugeValue, s.Speed())
+	ch <- prometheus.MustNewConstMetric(c.transferSpeed, prometheus.GaugeValue, s._speed())
 	ch <- prometheus.MustNewConstMetric(c.numOfErrors, prometheus.CounterValue, float64(s.errors))
 	ch <- prometheus.MustNewConstMetric(c.numOfCheckFiles, prometheus.CounterValue, float64(s.checks))
 	ch <- prometheus.MustNewConstMetric(c.transferredFiles, prometheus.CounterValue, float64(s.transfers))

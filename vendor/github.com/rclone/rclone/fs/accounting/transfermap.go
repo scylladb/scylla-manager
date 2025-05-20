@@ -34,10 +34,13 @@ func (tm *transferMap) add(tr *Transfer) {
 }
 
 // del removes a transfer from the map by name
-func (tm *transferMap) del(remote string) {
+func (tm *transferMap) del(remote string) bool {
 	tm.mu.Lock()
+	_, exists := tm.items[remote]
 	delete(tm.items, remote)
 	tm.mu.Unlock()
+
+	return exists
 }
 
 // merge adds items from another map
@@ -95,6 +98,7 @@ func (tm *transferMap) String(ctx context.Context, progress *inProgress, exclude
 	ci := fs.GetConfig(ctx)
 	stringList := make([]string, 0, len(tm.items))
 	for _, tr := range tm._sortedSlice() {
+		var what = tr.what
 		if exclude != nil {
 			exclude.mu.RLock()
 			_, found := exclude.items[tr.remote]
@@ -106,11 +110,17 @@ func (tm *transferMap) String(ctx context.Context, progress *inProgress, exclude
 		var out string
 		if acc := progress.get(tr.remote); acc != nil {
 			out = acc.String()
+			if what != "" {
+				out += ", " + what
+			}
 		} else {
+			if what == "" {
+				what = tm.name
+			}
 			out = fmt.Sprintf("%*s: %s",
 				ci.StatsFileNameLength,
 				shortenName(tr.remote, ci.StatsFileNameLength),
-				tm.name,
+				what,
 			)
 		}
 		stringList = append(stringList, " * "+out)
@@ -149,11 +159,11 @@ func (tm *transferMap) rcStats(progress *inProgress) (t []rc.Params) {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 	for _, tr := range tm._sortedSlice() {
+		out := tr.rcStats() // basic stats
 		if acc := progress.get(tr.remote); acc != nil {
-			t = append(t, acc.rcStats())
-		} else {
-			t = append(t, tr.rcStats())
+			acc.rcStats(out) // add extended stats if have acc
 		}
+		t = append(t, out)
 	}
 	return t
 }

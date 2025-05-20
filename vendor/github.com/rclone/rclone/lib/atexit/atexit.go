@@ -19,7 +19,8 @@ var (
 	exitChan     chan os.Signal
 	exitOnce     sync.Once
 	registerOnce sync.Once
-	signalled    int32
+	signalled    atomic.Int32
+	runCalled    atomic.Int32
 )
 
 // FnHandle is the type of the handle returned by function `Register`
@@ -29,6 +30,9 @@ type FnHandle *func()
 // Register a function to be called on exit.
 // Returns a handle which can be used to unregister the function with `Unregister`.
 func Register(fn func()) FnHandle {
+	if running() {
+		return nil
+	}
 	fnsMutex.Lock()
 	fns[&fn] = true
 	fnsMutex.Unlock()
@@ -42,11 +46,12 @@ func Register(fn func()) FnHandle {
 			if sig == nil {
 				return
 			}
-			atomic.StoreInt32(&signalled, 1)
+			signal.Stop(exitChan)
+			signalled.Store(1)
 			fs.Infof(nil, "Signal received: %s", sig)
 			Run()
 			fs.Infof(nil, "Exiting...")
-			os.Exit(0)
+			os.Exit(exitCode(sig))
 		}()
 	})
 
@@ -55,11 +60,19 @@ func Register(fn func()) FnHandle {
 
 // Signalled returns true if an exit signal has been received
 func Signalled() bool {
-	return atomic.LoadInt32(&signalled) != 0
+	return signalled.Load() != 0
+}
+
+// running returns true if run has been called
+func running() bool {
+	return runCalled.Load() != 0
 }
 
 // Unregister a function using the handle returned by `Register`
 func Unregister(handle FnHandle) {
+	if running() {
+		return
+	}
 	fnsMutex.Lock()
 	defer fnsMutex.Unlock()
 	delete(fns, handle)
@@ -67,6 +80,9 @@ func Unregister(handle FnHandle) {
 
 // IgnoreSignals disables the signal handler and prevents Run from being executed automatically
 func IgnoreSignals() {
+	if running() {
+		return
+	}
 	registerOnce.Do(func() {})
 	if exitChan != nil {
 		signal.Stop(exitChan)
@@ -77,9 +93,13 @@ func IgnoreSignals() {
 
 // Run all the at exit functions if they haven't been run already
 func Run() {
+	runCalled.Store(1)
+	// Take the lock here (not inside the exitOnce) so we wait
+	// until the exit handlers have run before any calls to Run()
+	// return.
+	fnsMutex.Lock()
+	defer fnsMutex.Unlock()
 	exitOnce.Do(func() {
-		fnsMutex.Lock()
-		defer fnsMutex.Unlock()
 		for fnHandle := range fns {
 			(*fnHandle)()
 		}
@@ -91,16 +111,22 @@ func Run() {
 //
 // It should be used in a defer statement normally so
 //
-//     defer OnError(&err, cancelFunc)()
+//	defer OnError(&err, cancelFunc)()
 //
 // So cancelFunc will be run if the function exits with an error or
 // at exit.
+//
+// cancelFunc will only be run once.
 func OnError(perr *error, fn func()) func() {
-	handle := Register(fn)
+	var once sync.Once
+	onceFn := func() {
+		once.Do(fn)
+	}
+	handle := Register(onceFn)
 	return func() {
 		defer Unregister(handle)
 		if *perr != nil {
-			fn()
+			onceFn()
 		}
 	}
 

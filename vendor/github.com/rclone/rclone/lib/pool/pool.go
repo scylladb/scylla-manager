@@ -4,11 +4,10 @@ package pool
 
 import (
 	"fmt"
-	"log"
-	"runtime"
 	"sync"
 	"time"
 
+	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/lib/mmap"
 )
 
@@ -59,7 +58,6 @@ func New(flushTime time.Duration, bufferSize, poolSize int, useMmap bool) *Pool 
 		}
 	}
 	bp.timer = time.AfterFunc(flushTime, bp.flushAged)
-	runtime.SetFinalizer(bp, (*Pool).flushAndStop)
 	return bp
 }
 
@@ -93,14 +91,6 @@ func (bp *Pool) flush(n int) {
 // Flush the entire buffer pool
 func (bp *Pool) Flush() {
 	bp.mu.Lock()
-	bp.flush(len(bp.cache))
-	bp.mu.Unlock()
-}
-
-// Flush the entire buffer pool and stop flusher
-func (bp *Pool) flushAndStop() {
-	bp.mu.Lock()
-	bp.timer.Stop()
 	bp.flush(len(bp.cache))
 	bp.mu.Unlock()
 }
@@ -171,7 +161,7 @@ func (bp *Pool) Get() []byte {
 				bp.alloced++
 				break
 			}
-			log.Printf("Failed to get memory for buffer, waiting for %v: %v", waitTime, err)
+			fs.Logf(nil, "Failed to get memory for buffer, waiting for %v: %v", waitTime, err)
 			bp.mu.Unlock()
 			time.Sleep(waitTime)
 			bp.mu.Lock()
@@ -188,7 +178,7 @@ func (bp *Pool) Get() []byte {
 func (bp *Pool) freeBuffer(mem []byte) {
 	err := bp.free(mem)
 	if err != nil {
-		log.Printf("Failed to free memory: %v", err)
+		fs.Logf(nil, "Failed to free memory: %v", err)
 	}
 	bp.alloced--
 }

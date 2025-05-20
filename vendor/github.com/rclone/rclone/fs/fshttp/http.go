@@ -6,12 +6,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
+	"os"
 	"sync"
 	"time"
 
@@ -31,69 +30,15 @@ var (
 	noTransport  = new(sync.Once)
 	cookieJar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	logMutex     sync.Mutex
+
+	// UnixSocketConfig describes the option to configure the path to a unix domain socket to connect to
+	UnixSocketConfig = fs.Option{
+		Name:     "unix_socket",
+		Help:     "Path to a unix domain socket to dial to, instead of opening a TCP connection directly",
+		Advanced: true,
+		Default:  "",
+	}
 )
-
-// A net.Conn that sets a deadline for every Read or Write operation
-type timeoutConn struct {
-	net.Conn
-	timeout time.Duration
-}
-
-// create a timeoutConn using the timeout
-func newTimeoutConn(conn net.Conn, timeout time.Duration) (c *timeoutConn, err error) {
-	c = &timeoutConn{
-		Conn:    conn,
-		timeout: timeout,
-	}
-	err = c.nudgeDeadline()
-	return
-}
-
-// Nudge the deadline for an idle timeout on by c.timeout if non-zero
-func (c *timeoutConn) nudgeDeadline() (err error) {
-	if c.timeout == 0 {
-		return nil
-	}
-	when := time.Now().Add(c.timeout)
-	return c.Conn.SetDeadline(when)
-}
-
-// Read bytes doing idle timeouts
-func (c *timeoutConn) Read(b []byte) (n int, err error) {
-	// Ideally we would LimitBandwidth(len(b)) here and replace tokens we didn't use
-	n, err = c.Conn.Read(b)
-	accounting.TokenBucket.LimitBandwidth(accounting.TokenBucketSlotTransportRx, n)
-	// Don't nudge if no bytes or an error
-	if n == 0 || err != nil {
-		return
-	}
-	// Nudge the deadline on successful Read or Write
-	err = c.nudgeDeadline()
-	return n, err
-}
-
-// Write bytes doing idle timeouts
-func (c *timeoutConn) Write(b []byte) (n int, err error) {
-	accounting.TokenBucket.LimitBandwidth(accounting.TokenBucketSlotTransportTx, len(b))
-	n, err = c.Conn.Write(b)
-	// Don't nudge if no bytes or an error
-	if n == 0 || err != nil {
-		return
-	}
-	// Nudge the deadline on successful Read or Write
-	err = c.nudgeDeadline()
-	return n, err
-}
-
-// dial with context and timeouts
-func dialContextTimeout(ctx context.Context, network, address string, ci *fs.ConfigInfo) (net.Conn, error) {
-	dialer := NewDialer(ctx)
-	c, err := dialer.DialContext(ctx, network, address)
-	if err != nil {
-		return c, err
-	}
-	return newTimeoutConn(c, ci.Timeout)
-}
 
 // ResetTransport resets the existing transport, allowing it to take new settings.
 // Should only be used for testing.
@@ -115,6 +60,7 @@ func NewTransportCustom(ctx context.Context, customize func(*http.Transport)) ht
 	t.MaxIdleConns = 2 * t.MaxIdleConnsPerHost
 	t.TLSHandshakeTimeout = ci.ConnectTimeout
 	t.ResponseHeaderTimeout = ci.Timeout
+	t.DisableKeepAlives = ci.DisableHTTPKeepAlives
 
 	// TLS Config
 	t.TLSClientConfig = &tls.Config{
@@ -124,33 +70,43 @@ func NewTransportCustom(ctx context.Context, customize func(*http.Transport)) ht
 	// Load client certs
 	if ci.ClientCert != "" || ci.ClientKey != "" {
 		if ci.ClientCert == "" || ci.ClientKey == "" {
-			log.Fatalf("Both --client-cert and --client-key must be set")
+			fs.Fatalf(nil, "Both --client-cert and --client-key must be set")
 		}
 		cert, err := tls.LoadX509KeyPair(ci.ClientCert, ci.ClientKey)
 		if err != nil {
-			log.Fatalf("Failed to load --client-cert/--client-key pair: %v", err)
+			fs.Fatalf(nil, "Failed to load --client-cert/--client-key pair: %v", err)
+		}
+		if cert.Leaf == nil {
+			// Leaf is always the first certificate
+			cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
+			if err != nil {
+				fs.Fatalf(nil, "Failed to parse the certificate")
+			}
 		}
 		t.TLSClientConfig.Certificates = []tls.Certificate{cert}
-		t.TLSClientConfig.BuildNameToCertificate()
 	}
 
-	// Load CA cert
-	if ci.CaCert != "" {
-		caCert, err := ioutil.ReadFile(ci.CaCert)
-		if err != nil {
-			log.Fatalf("Failed to read --ca-cert: %v", err)
-		}
+	// Load CA certs
+	if len(ci.CaCert) != 0 {
+
 		caCertPool := x509.NewCertPool()
-		ok := caCertPool.AppendCertsFromPEM(caCert)
-		if !ok {
-			log.Fatalf("Failed to add certificates from --ca-cert")
+
+		for _, cert := range ci.CaCert {
+			caCert, err := os.ReadFile(cert)
+			if err != nil {
+				fs.Fatalf(nil, "Failed to read --ca-cert file %q : %v", cert, err)
+			}
+			ok := caCertPool.AppendCertsFromPEM(caCert)
+			if !ok {
+				fs.Fatalf(nil, "Failed to add certificates from --ca-cert file %q", cert)
+			}
 		}
 		t.TLSClientConfig.RootCAs = caCertPool
 	}
 
 	t.DisableCompression = ci.NoGzip
-	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return dialContextTimeout(ctx, network, addr, ci)
+	t.DialContext = func(reqCtx context.Context, network, addr string) (net.Conn, error) {
+		return NewDialer(ctx).DialContext(reqCtx, network, addr)
 	}
 	t.IdleConnTimeout = 60 * time.Second
 	t.ExpectContinueTimeout = ci.ExpectContinueTimeout
@@ -160,6 +116,10 @@ func NewTransportCustom(ctx context.Context, customize func(*http.Transport)) ht
 			"Accept-Encoding as shown may not be correct in the request and the response may not show "+
 			"Content-Encoding if the go standard libraries auto gzip encoding was in effect. In this case"+
 			" the body of the request will be gunzipped before showing it.")
+	}
+
+	if ci.DisableHTTP2 {
+		t.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
 	}
 
 	// customize the transport if required
@@ -181,14 +141,31 @@ func NewTransport(ctx context.Context) http.RoundTripper {
 
 // NewClient returns an http.Client with the correct timeouts
 func NewClient(ctx context.Context) *http.Client {
+	return NewClientCustom(ctx, nil)
+}
+
+// NewClientCustom returns an http.Client with the correct timeouts.
+// It allows customizing the transport, using NewTransportCustom.
+func NewClientCustom(ctx context.Context, customize func(*http.Transport)) *http.Client {
 	ci := fs.GetConfig(ctx)
 	client := &http.Client{
-		Transport: NewTransport(ctx),
+		Transport: NewTransportCustom(ctx, customize),
 	}
 	if ci.Cookie {
 		client.Jar = cookieJar
 	}
 	return client
+}
+
+// NewClientWithUnixSocket returns an http.Client with the correct timeout.
+// It internally uses NewClientCustom with a custom dialer connecting to
+// the specified unix domain socket.
+func NewClientWithUnixSocket(ctx context.Context, path string) *http.Client {
+	return NewClientCustom(ctx, func(t *http.Transport) {
+		t.DialContext = func(reqCtx context.Context, network, addr string) (net.Conn, error) {
+			return NewDialer(ctx).DialContext(reqCtx, "unix", path)
+		}
+	})
 }
 
 // Transport is our http Transport which wraps an http.Transport
@@ -202,17 +179,24 @@ type Transport struct {
 	userAgent     string
 	headers       []*fs.HTTPOption
 	metrics       *Metrics
+	// Filename of the client cert in case we need to reload it
+	clientCert string
+	clientKey  string
+	// Mutex for serializing attempts at reloading the certificates
+	reloadMutex sync.Mutex
 }
 
 // newTransport wraps the http.Transport passed in and logs all
 // roundtrips including the body if logBody is set.
 func newTransport(ci *fs.ConfigInfo, transport *http.Transport) *Transport {
 	return &Transport{
-		Transport: transport,
-		dump:      ci.Dump,
-		userAgent: ci.UserAgent,
-		headers:   ci.Headers,
-		metrics:   DefaultMetrics,
+		Transport:  transport,
+		dump:       ci.Dump,
+		userAgent:  ci.UserAgent,
+		headers:    ci.Headers,
+		metrics:    DefaultMetrics,
+		clientCert: ci.ClientCert,
+		clientKey:  ci.ClientKey,
 	}
 }
 
@@ -301,8 +285,44 @@ func cleanAuths(buf []byte) []byte {
 	return buf
 }
 
+var expireWindow = 30 * time.Second
+
+func isCertificateExpired(cc *tls.Config) bool {
+	return len(cc.Certificates) > 0 && cc.Certificates[0].Leaf != nil && time.Until(cc.Certificates[0].Leaf.NotAfter) < expireWindow
+}
+
+func (t *Transport) reloadCertificates() {
+	t.reloadMutex.Lock()
+	defer t.reloadMutex.Unlock()
+	// Check that the certificate is expired before trying to reload it
+	// it might have been reloaded while we were waiting to lock the mutex
+	if !isCertificateExpired(t.TLSClientConfig) {
+		return
+	}
+
+	cert, err := tls.LoadX509KeyPair(t.clientCert, t.clientKey)
+	if err != nil {
+		fs.Fatalf(nil, "Failed to load --client-cert/--client-key pair: %v", err)
+	}
+	// Check if we need to parse the certificate again, we need it
+	// for checking the expiration date
+	if cert.Leaf == nil {
+		// Leaf is always the first certificate
+		cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			fs.Fatalf(nil, "Failed to parse the certificate")
+		}
+	}
+	t.TLSClientConfig.Certificates = []tls.Certificate{cert}
+}
+
 // RoundTrip implements the RoundTripper interface.
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	// Check if certificates are being used and the certificates are expired
+	if isCertificateExpired(t.TLSClientConfig) {
+		t.reloadCertificates()
+	}
+
 	// Limit transactions per second if required
 	accounting.LimitTPS(req.Context())
 	// Force user agent
@@ -351,18 +371,4 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		checkServerTime(req, resp)
 	}
 	return resp, err
-}
-
-// NewDialer creates a net.Dialer structure with Timeout, Keepalive
-// and LocalAddr set from rclone flags.
-func NewDialer(ctx context.Context) *net.Dialer {
-	ci := fs.GetConfig(ctx)
-	dialer := &net.Dialer{
-		Timeout:   ci.ConnectTimeout,
-		KeepAlive: 30 * time.Second,
-	}
-	if ci.BindAddr != nil {
-		dialer.LocalAddr = &net.TCPAddr{IP: ci.BindAddr}
-	}
-	return dialer
 }

@@ -1,4 +1,4 @@
-//+build !windows
+//go:build !windows
 
 package file
 
@@ -13,3 +13,8 @@ import "os"
 // Under both Unix and Windows this will allow open files to be
 // renamed and or deleted.
 var OpenFile = os.OpenFile
+
+// IsReserved checks if path contains a reserved name
+func IsReserved(path string) error {
+	return nil
+}

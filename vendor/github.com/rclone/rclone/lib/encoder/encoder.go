@@ -1,15 +1,13 @@
-/*
-Translate file names for usage on restrictive storage systems
-
-The restricted set of characters are mapped to a unicode equivalent version
-(most to their FULLWIDTH variant) to increase compatibility with other
-storage systems.
-See: http://unicode-search.net/unicode-namesearch.pl?term=FULLWIDTH
-
-Encoders will also quote reserved characters to differentiate between
-the raw and encoded forms.
-*/
-
+// Package encoder provides functionality to translate file names
+// for usage on restrictive storage systems.
+//
+// The restricted set of characters are mapped to a unicode equivalent version
+// (most to their FULLWIDTH variant) to increase compatibility with other
+// storage systems.
+// See: http://unicode-search.net/unicode-namesearch.pl?term=FULLWIDTH
+//
+// Encoders will also quote reserved characters to differentiate between
+// the raw and encoded forms.
 package encoder
 
 import (
@@ -37,32 +35,36 @@ const (
 
 // Possible flags for the MultiEncoder
 const (
-	EncodeZero          MultiEncoder = 0         // NUL(0x00)
-	EncodeSlash         MultiEncoder = 1 << iota // /
-	EncodeLtGt                                   // <>
-	EncodeDoubleQuote                            // "
-	EncodeSingleQuote                            // '
-	EncodeBackQuote                              // `
-	EncodeDollar                                 // $
-	EncodeColon                                  // :
-	EncodeQuestion                               // ?
-	EncodeAsterisk                               // *
-	EncodePipe                                   // |
-	EncodeHash                                   // #
-	EncodePercent                                // %
-	EncodeBackSlash                              // \
-	EncodeCrLf                                   // CR(0x0D), LF(0x0A)
-	EncodeDel                                    // DEL(0x7F)
-	EncodeCtl                                    // CTRL(0x01-0x1F)
-	EncodeLeftSpace                              // Leading SPACE
-	EncodeLeftPeriod                             // Leading .
-	EncodeLeftTilde                              // Leading ~
-	EncodeLeftCrLfHtVt                           // Leading CR LF HT VT
-	EncodeRightSpace                             // Trailing SPACE
-	EncodeRightPeriod                            // Trailing .
-	EncodeRightCrLfHtVt                          // Trailing CR LF HT VT
-	EncodeInvalidUtf8                            // Invalid UTF-8 bytes
-	EncodeDot                                    // . and .. names
+	EncodeZero          MultiEncoder = 0 // NUL(0x00)
+	EncodeRaw           MultiEncoder = 1 << (iota - 1)
+	EncodeSlash                      // /
+	EncodeLtGt                       // <>
+	EncodeDoubleQuote                // "
+	EncodeSingleQuote                // '
+	EncodeBackQuote                  // `
+	EncodeDollar                     // $
+	EncodeColon                      // :
+	EncodeQuestion                   // ?
+	EncodeAsterisk                   // *
+	EncodePipe                       // |
+	EncodeHash                       // #
+	EncodePercent                    // %
+	EncodeBackSlash                  // \
+	EncodeCrLf                       // CR(0x0D), LF(0x0A)
+	EncodeDel                        // DEL(0x7F)
+	EncodeCtl                        // CTRL(0x01-0x1F)
+	EncodeLeftSpace                  // Leading SPACE
+	EncodeLeftPeriod                 // Leading .
+	EncodeLeftTilde                  // Leading ~
+	EncodeLeftCrLfHtVt               // Leading CR LF HT VT
+	EncodeRightSpace                 // Trailing SPACE
+	EncodeRightPeriod                // Trailing .
+	EncodeRightCrLfHtVt              // Trailing CR LF HT VT
+	EncodeInvalidUtf8                // Invalid UTF-8 bytes
+	EncodeDot                        // . and .. names
+	EncodeSquareBracket              // []
+	EncodeSemicolon                  // ;
+	EncodeExclamation                // !
 
 	// Synthetic
 	EncodeWin         = EncodeColon | EncodeQuestion | EncodeDoubleQuote | EncodeAsterisk | EncodeLtGt | EncodePipe // :?"*<>|
@@ -117,9 +119,13 @@ func alias(name string, mask MultiEncoder) {
 }
 
 func init() {
+	alias("Raw", EncodeRaw)
 	alias("None", EncodeZero)
 	alias("Slash", EncodeSlash)
 	alias("LtGt", EncodeLtGt)
+	alias("SquareBracket", EncodeSquareBracket)
+	alias("Semicolon", EncodeSemicolon)
+	alias("Exclamation", EncodeExclamation)
 	alias("DoubleQuote", EncodeDoubleQuote)
 	alias("SingleQuote", EncodeSingleQuote)
 	alias("BackQuote", EncodeBackQuote)
@@ -184,7 +190,7 @@ func (mask *MultiEncoder) Set(in string) error {
 		if bits, ok := nameToEncoding[part]; ok {
 			out |= bits
 		} else {
-			i, err := strconv.ParseInt(part, 0, 64)
+			i, err := strconv.ParseUint(part, 0, 0)
 			if err != nil {
 				return fmt.Errorf("bad encoding %q: possible values are: %s", part, validStrings())
 			}
@@ -212,6 +218,10 @@ func (mask *MultiEncoder) Scan(s fmt.ScanState, ch rune) error {
 // Encode takes a raw name and substitutes any reserved characters and
 // patterns in it
 func (mask MultiEncoder) Encode(in string) string {
+	if mask == EncodeRaw {
+		return in
+	}
+
 	if in == "" {
 		return ""
 	}
@@ -312,6 +322,25 @@ func (mask MultiEncoder) Encode(in string) string {
 				switch r {
 				case '<', '>',
 					'＜', '＞':
+					return true
+				}
+			}
+			if mask.Has(EncodeSquareBracket) { // []
+				switch r {
+				case '[', ']',
+					'［', '］':
+					return true
+				}
+			}
+			if mask.Has(EncodeSemicolon) { // ;
+				switch r {
+				case ';', '；':
+					return true
+				}
+			}
+			if mask.Has(EncodeExclamation) { // !
+				switch r {
+				case '!', '！':
 					return true
 				}
 			}
@@ -468,6 +497,39 @@ func (mask MultiEncoder) Encode(in string) string {
 				out.WriteRune(r + fullOffset)
 				continue
 			case '＜', '＞':
+				out.WriteRune(QuoteRune)
+				out.WriteRune(r)
+				continue
+			}
+		}
+		if mask.Has(EncodeSquareBracket) { // []
+			switch r {
+			case '[', ']':
+				out.WriteRune(r + fullOffset)
+				continue
+			case '［', '］':
+				out.WriteRune(QuoteRune)
+				out.WriteRune(r)
+				continue
+			}
+		}
+		if mask.Has(EncodeSemicolon) { // ;
+			switch r {
+			case ';':
+				out.WriteRune(r + fullOffset)
+				continue
+			case '；':
+				out.WriteRune(QuoteRune)
+				out.WriteRune(r)
+				continue
+			}
+		}
+		if mask.Has(EncodeExclamation) { // !
+			switch r {
+			case '!':
+				out.WriteRune(r + fullOffset)
+				continue
+			case '！':
 				out.WriteRune(QuoteRune)
 				out.WriteRune(r)
 				continue
@@ -634,6 +696,10 @@ func (mask MultiEncoder) Encode(in string) string {
 
 // Decode takes a name and undoes any substitutions made by Encode
 func (mask MultiEncoder) Decode(in string) string {
+	if mask == EncodeRaw {
+		return in
+	}
+
 	if mask.Has(EncodeDot) {
 		switch in {
 		case "．":
@@ -710,6 +776,24 @@ func (mask MultiEncoder) Decode(in string) string {
 			if mask.Has(EncodeLtGt) { // <>
 				switch r {
 				case '＜', '＞':
+					return true
+				}
+			}
+			if mask.Has(EncodeSquareBracket) { // []
+				switch r {
+				case '［', '］':
+					return true
+				}
+			}
+			if mask.Has(EncodeSemicolon) { // ;
+				switch r {
+				case '；':
+					return true
+				}
+			}
+			if mask.Has(EncodeExclamation) { // !
+				switch r {
+				case '！':
 					return true
 				}
 			}
@@ -849,6 +933,39 @@ func (mask MultiEncoder) Decode(in string) string {
 		if mask.Has(EncodeLtGt) { // <>
 			switch r {
 			case '＜', '＞':
+				if unquote {
+					out.WriteRune(r)
+				} else {
+					out.WriteRune(r - fullOffset)
+				}
+				continue
+			}
+		}
+		if mask.Has(EncodeSquareBracket) { // []
+			switch r {
+			case '［', '］':
+				if unquote {
+					out.WriteRune(r)
+				} else {
+					out.WriteRune(r - fullOffset)
+				}
+				continue
+			}
+		}
+		if mask.Has(EncodeSemicolon) { // ;
+			switch r {
+			case '；':
+				if unquote {
+					out.WriteRune(r)
+				} else {
+					out.WriteRune(r - fullOffset)
+				}
+				continue
+			}
+		}
+		if mask.Has(EncodeExclamation) { // !
+			switch r {
+			case '！':
 				if unquote {
 					out.WriteRune(r)
 				} else {

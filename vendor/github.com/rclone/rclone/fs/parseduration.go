@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -76,16 +77,26 @@ var timeFormats = []string{
 	"2006-01-02",
 }
 
-// parse the age as time before the epoch in various date formats
-func parseDurationDates(age string, epoch time.Time) (t time.Duration, err error) {
+// parse the date as time in various date formats
+func parseTimeDates(date string) (t time.Time, err error) {
 	var instant time.Time
 	for _, timeFormat := range timeFormats {
-		instant, err = time.Parse(timeFormat, age)
+		instant, err = time.ParseInLocation(timeFormat, date, time.Local)
 		if err == nil {
-			return epoch.Sub(instant), nil
+			return instant, nil
 		}
 	}
 	return t, err
+}
+
+// parse the age as time before the epoch in various date formats
+func parseDurationDates(age string, epoch time.Time) (d time.Duration, err error) {
+	instant, err := parseTimeDates(age)
+	if err != nil {
+		return d, err
+	}
+
+	return epoch.Sub(instant), nil
 }
 
 // parseDurationFromNow parses a duration string. Allows ParseDuration to match the time
@@ -116,12 +127,30 @@ func parseDurationFromNow(age string, getNow func() time.Time) (d time.Duration,
 
 // ParseDuration parses a duration string. Accept ms|s|m|h|d|w|M|y suffixes. Defaults to second if not provided
 func ParseDuration(age string) (time.Duration, error) {
-	return parseDurationFromNow(age, time.Now)
+	return parseDurationFromNow(age, timeNowFunc)
 }
 
-// ReadableString parses d into a human readable duration.
-// Based on https://github.com/hako/durafmt
+// ReadableString parses d into a human-readable duration with units.
+// Examples: "3s", "1d2h23m20s", "292y24w3d23h47m16s".
 func (d Duration) ReadableString() string {
+	return d.readableString(0)
+}
+
+// ShortReadableString parses d into a human-readable duration with units.
+// This method returns it in short format, including the 3 most significant
+// units only, sacrificing precision if necessary. E.g. returns "292y24w3d"
+// instead of "292y24w3d23h47m16s", and "3d23h47m" instead of "3d23h47m16s".
+func (d Duration) ShortReadableString() string {
+	return d.readableString(3)
+}
+
+// readableString parses d into a human-readable duration with units.
+// Parameter maxNumberOfUnits limits number of significant units to include,
+// sacrificing precision. E.g. with argument 3 it returns "292y24w3d" instead
+// of "292y24w3d23h47m16s", and "3d23h47m" instead of "3d23h47m16s". Zero or
+// negative argument means include all.
+// Based on https://github.com/hako/durafmt
+func (d Duration) readableString(maxNumberOfUnits int) string {
 	switch d {
 	case DurationOff:
 		return "off"
@@ -169,6 +198,7 @@ func (d Duration) ReadableString() string {
 	}
 
 	// Construct duration string.
+	numberOfUnits := 0
 	for _, u := range [...]string{"y", "w", "d", "h", "m", "s", "ms"} {
 		v := durationMap[u]
 		strval := strconv.FormatInt(v, 10)
@@ -176,6 +206,10 @@ func (d Duration) ReadableString() string {
 			continue
 		}
 		readableString += strval + u
+		numberOfUnits++
+		if maxNumberOfUnits > 0 && numberOfUnits >= maxNumberOfUnits {
+			break
+		}
 	}
 
 	return readableString
@@ -196,9 +230,33 @@ func (d Duration) Type() string {
 	return "Duration"
 }
 
+// UnmarshalJSON makes sure the value can be parsed as a string or integer in JSON
+func (d *Duration) UnmarshalJSON(in []byte) error {
+	// Check if the input is a string value.
+	if len(in) >= 2 && in[0] == '"' && in[len(in)-1] == '"' {
+		strVal := string(in[1 : len(in)-1]) // Remove the quotes
+
+		// Attempt to parse the string as a duration.
+		parsedDuration, err := ParseDuration(strVal)
+		if err != nil {
+			return err
+		}
+		*d = Duration(parsedDuration)
+		return nil
+	}
+	// Handle numeric values.
+	var i int64
+	err := json.Unmarshal(in, &i)
+	if err != nil {
+		return err
+	}
+	*d = Duration(i)
+	return nil
+}
+
 // Scan implements the fmt.Scanner interface
 func (d *Duration) Scan(s fmt.ScanState, ch rune) error {
-	token, err := s.Token(true, nil)
+	token, err := s.Token(true, func(rune) bool { return true })
 	if err != nil {
 		return err
 	}

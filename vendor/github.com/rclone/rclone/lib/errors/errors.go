@@ -1,21 +1,9 @@
+// Package errors provides error handling utilities.
 package errors
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 )
-
-// New returns an error that formats as the given text.
-func New(text string) error {
-	return errors.New(text)
-}
-
-// Errorf formats according to a format specifier and returns the string
-// as a value that satisfies error.
-func Errorf(format string, a ...interface{}) error {
-	return fmt.Errorf(format, a...)
-}
 
 // WalkFunc is the signature of the Walk callback function. The function gets the
 // current error in the chain and should return true if the chain processing
@@ -27,11 +15,13 @@ type WalkFunc func(error) bool
 // is stopped and no further calls will be made.
 //
 // The next error in the chain is determined by the following rules:
-// - If the current error has a `Cause() error` method (github.com/pkg/errors),
-//   the return value of this method is used.
-// - If the current error has a `Unwrap() error` method (golang.org/x/xerrors),
-//   the return value of this method is used.
-// - Common errors in the Go runtime that contain an Err field will use this value.
+//
+//		the return value of this method is used.
+//	  - If the current error has a `Unwrap() error` method
+//	    the return value of this method is used.
+//	  - If the current error has a `Unwrap() []error` method
+//	    the return values of this method is used.
+//	  - Common errors in the Go runtime that contain an Err field will use this value.
 func Walk(err error, f WalkFunc) {
 	for prev := err; err != nil; prev = err {
 		if f(err) {
@@ -39,6 +29,11 @@ func Walk(err error, f WalkFunc) {
 		}
 
 		switch e := err.(type) {
+		case multiWrapper:
+			for _, err = range e.Unwrap() {
+				Walk(err, f)
+			}
+			return
 		case causer:
 			err = e.Cause()
 		case wrapper:
@@ -73,4 +68,7 @@ type causer interface {
 }
 type wrapper interface {
 	Unwrap() error
+}
+type multiWrapper interface {
+	Unwrap() []error
 }

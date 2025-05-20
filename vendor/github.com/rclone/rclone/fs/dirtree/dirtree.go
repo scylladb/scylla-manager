@@ -1,5 +1,5 @@
 // Package dirtree contains the DirTree type which is used for
-// building filesystem heirachies in memory.
+// building filesystem hierarchies in memory.
 package dirtree
 
 import (
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/rclone/rclone/fs"
-	"github.com/rclone/rclone/lib/errors"
 )
 
 // DirTree is a map of directories to entries
@@ -41,9 +40,12 @@ func (dt DirTree) Add(entry fs.DirEntry) {
 // this creates the directory itself if required
 // it doesn't create parents
 func (dt DirTree) AddDir(entry fs.DirEntry) {
+	dirPath := entry.Remote()
+	if dirPath == "" {
+		return
+	}
 	dt.Add(entry)
 	// create the directory itself if it doesn't exist already
-	dirPath := entry.Remote()
 	if _, ok := dt[dirPath]; !ok {
 		dt[dirPath] = nil
 	}
@@ -61,10 +63,12 @@ func (dt DirTree) AddEntry(entry fs.DirEntry) {
 		panic("unknown entry type")
 	}
 	remoteParent := parentDir(entry.Remote())
-	dt.CheckParent("", remoteParent)
+	dt.checkParent("", remoteParent, nil)
 }
 
 // Find returns the DirEntry for filePath or nil if not found
+//
+// None that Find does a O(N) search so can be slow
 func (dt DirTree) Find(filePath string) (parentPath string, entry fs.DirEntry) {
 	parentPath = parentDir(filePath)
 	for _, entry := range dt[parentPath] {
@@ -75,23 +79,52 @@ func (dt DirTree) Find(filePath string) (parentPath string, entry fs.DirEntry) {
 	return parentPath, nil
 }
 
-// CheckParent checks that dirPath has a *Dir in its parent
-func (dt DirTree) CheckParent(root, dirPath string) {
-	if dirPath == root {
-		return
+// checkParent checks that dirPath has a *Dir in its parent
+//
+// If dirs is not nil it must contain entries for every *Dir found in
+// the tree. It is used to speed up the checking when calling this
+// repeatedly.
+func (dt DirTree) checkParent(root, dirPath string, dirs map[string]struct{}) {
+	var parentPath string
+	for {
+		if dirPath == root {
+			return
+		}
+		// Can rely on dirs to have all directories in it so
+		// we don't need to call Find.
+		if dirs != nil {
+			if _, found := dirs[dirPath]; found {
+				return
+			}
+			parentPath = parentDir(dirPath)
+		} else {
+			var entry fs.DirEntry
+			parentPath, entry = dt.Find(dirPath)
+			if entry != nil {
+				return
+			}
+		}
+		dt[parentPath] = append(dt[parentPath], fs.NewDir(dirPath, time.Now()))
+		if dirs != nil {
+			dirs[dirPath] = struct{}{}
+		}
+		dirPath = parentPath
 	}
-	parentPath, entry := dt.Find(dirPath)
-	if entry != nil {
-		return
-	}
-	dt[parentPath] = append(dt[parentPath], fs.NewDir(dirPath, time.Now()))
-	dt.CheckParent(root, parentPath)
 }
 
 // CheckParents checks every directory in the tree has *Dir in its parent
 func (dt DirTree) CheckParents(root string) {
+	dirs := make(map[string]struct{})
+	// Find all the directories and stick them in dirs
+	for _, entries := range dt {
+		for _, entry := range entries {
+			if _, ok := entry.(fs.Directory); ok {
+				dirs[entry.Remote()] = struct{}{}
+			}
+		}
+	}
 	for dirPath := range dt {
-		dt.CheckParent(root, dirPath)
+		dt.checkParent(root, dirPath, dirs)
 	}
 }
 
@@ -153,7 +186,7 @@ func (dt DirTree) Prune(dirNames map[string]bool) error {
 			case fs.Object:
 				// do nothing
 			default:
-				return errors.Errorf("unknown object type %T", entry)
+				return fmt.Errorf("unknown object type %T", entry)
 
 			}
 		}
@@ -179,7 +212,7 @@ func (dt DirTree) Prune(dirNames map[string]bool) error {
 				case fs.Object:
 					// do nothing
 				default:
-					return errors.Errorf("unknown object type %T", entry)
+					return fmt.Errorf("unknown object type %T", entry)
 
 				}
 			}

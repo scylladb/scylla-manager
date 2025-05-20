@@ -6,33 +6,19 @@ package rc
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/filter"
 )
-
-var (
-	optionBlock  = map[string]interface{}{}
-	optionReload = map[string]func(context.Context) error{}
-)
-
-// AddOption adds an option set
-func AddOption(name string, option interface{}) {
-	optionBlock[name] = option
-}
-
-// AddOptionReload adds an option set with a reload function to be
-// called when options are changed
-func AddOptionReload(name string, option interface{}, reload func(context.Context) error) {
-	optionBlock[name] = option
-	optionReload[name] = reload
-}
 
 func init() {
 	Add(Call{
 		Path:  "options/blocks",
 		Fn:    rcOptionsBlocks,
 		Title: "List all the option blocks",
-		Help: `Returns
+		Help: `Returns:
 - options - a list of the options block names`,
 	})
 }
@@ -40,8 +26,8 @@ func init() {
 // Show the list of all the option blocks
 func rcOptionsBlocks(ctx context.Context, in Params) (out Params, err error) {
 	options := []string{}
-	for name := range optionBlock {
-		options = append(options, name)
+	for _, opt := range fs.OptionsRegistry {
+		options = append(options, opt.Name)
 	}
 	out = make(Params)
 	out["options"] = options
@@ -52,9 +38,18 @@ func init() {
 	Add(Call{
 		Path:  "options/get",
 		Fn:    rcOptionsGet,
-		Title: "Get all the options",
+		Title: "Get all the global options",
 		Help: `Returns an object where keys are option block names and values are an
 object with the current option values in.
+
+Parameters:
+
+- blocks: optional string of comma separated blocks to include
+    - all are included if this is missing or ""
+
+Note that these are the global options which are unaffected by use of
+the _config and _filter parameters. If you wish to read the parameters
+set in _config then use options/config and for _filter use options/filter.
 
 This shows the internal names of the option within rclone which should
 map to the external options very easily with a few exceptions.
@@ -62,12 +57,90 @@ map to the external options very easily with a few exceptions.
 	})
 }
 
+// Filter the blocks according to name
+func filterBlocks(in Params, f func(oi fs.OptionsInfo)) (err error) {
+	blocksStr, err := in.GetString("blocks")
+	if err != nil && !IsErrParamNotFound(err) {
+		return err
+	}
+	blocks := map[string]struct{}{}
+	for _, name := range strings.Split(blocksStr, ",") {
+		if name != "" {
+			blocks[name] = struct{}{}
+		}
+	}
+	for _, oi := range fs.OptionsRegistry {
+		if _, found := blocks[oi.Name]; found || len(blocks) == 0 {
+			f(oi)
+		}
+	}
+	return nil
+}
+
 // Show the list of all the option blocks
 func rcOptionsGet(ctx context.Context, in Params) (out Params, err error) {
 	out = make(Params)
-	for name, options := range optionBlock {
-		out[name] = options
-	}
+	err = filterBlocks(in, func(oi fs.OptionsInfo) {
+		out[oi.Name] = oi.Opt
+	})
+	return out, err
+}
+
+func init() {
+	Add(Call{
+		Path:  "options/info",
+		Fn:    rcOptionsInfo,
+		Title: "Get info about all the global options",
+		Help: `Returns an object where keys are option block names and values are an
+array of objects with info about each options.
+
+Parameters:
+
+- blocks: optional string of comma separated blocks to include
+    - all are included if this is missing or ""
+
+These objects are in the same format as returned by "config/providers". They are
+described in the [option blocks](#option-blocks) section.
+`,
+	})
+}
+
+// Show the info of all the option blocks
+func rcOptionsInfo(ctx context.Context, in Params) (out Params, err error) {
+	out = make(Params)
+	err = filterBlocks(in, func(oi fs.OptionsInfo) {
+		out[oi.Name] = oi.Options
+	})
+	return out, err
+}
+
+func init() {
+	Add(Call{
+		Path:  "options/local",
+		Fn:    rcOptionsLocal,
+		Title: "Get the currently active config for this call",
+		Help: `Returns an object with the keys "config" and "filter".
+The "config" key contains the local config and the "filter" key contains
+the local filters.
+
+Note that these are the local options specific to this rc call. If
+_config was not supplied then they will be the global options.
+Likewise with "_filter".
+
+This call is mostly useful for seeing if _config and _filter passing
+is working.
+
+This shows the internal names of the option within rclone which should
+map to the external options very easily with a few exceptions.
+`,
+	})
+}
+
+// Show the current config
+func rcOptionsLocal(ctx context.Context, in Params) (out Params, err error) {
+	out = make(Params)
+	out["config"] = fs.GetConfig(ctx)
+	out["filter"] = filter.GetConfig(ctx).Opt
 	return out, nil
 }
 
@@ -76,7 +149,7 @@ func init() {
 		Path:  "options/set",
 		Fn:    rcOptionsSet,
 		Title: "Set an option",
-		Help: `Parameters
+		Help: `Parameters:
 
 - option block name containing an object with
   - key: value
@@ -89,17 +162,18 @@ changed like this.
 
 For example:
 
-This sets DEBUG level logs (-vv)
+This sets DEBUG level logs (-vv) (these can be set by number or string)
 
+    rclone rc options/set --json '{"main": {"LogLevel": "DEBUG"}}'
     rclone rc options/set --json '{"main": {"LogLevel": 8}}'
 
 And this sets INFO level logs (-v)
 
-    rclone rc options/set --json '{"main": {"LogLevel": 7}}'
+    rclone rc options/set --json '{"main": {"LogLevel": "INFO"}}'
 
 And this sets NOTICE level logs (normal without -v)
 
-    rclone rc options/set --json '{"main": {"LogLevel": 6}}'
+    rclone rc options/set --json '{"main": {"LogLevel": "NOTICE"}}'
 `,
 	})
 }
@@ -107,18 +181,18 @@ And this sets NOTICE level logs (normal without -v)
 // Set an option in an option block
 func rcOptionsSet(ctx context.Context, in Params) (out Params, err error) {
 	for name, options := range in {
-		current := optionBlock[name]
-		if current == nil {
-			return nil, errors.Errorf("unknown option block %q", name)
+		opt, ok := fs.OptionsRegistry[name]
+		if !ok {
+			return nil, fmt.Errorf("unknown option block %q", name)
 		}
-		err := Reshape(current, options)
+		err := Reshape(opt.Opt, options)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to write options from block %q", name)
+			return nil, fmt.Errorf("failed to write options from block %q: %w", name, err)
 		}
-		if reload := optionReload[name]; reload != nil {
-			err = reload(ctx)
+		if opt.Reload != nil {
+			err = opt.Reload(ctx)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to reload options from block %q", name)
+				return nil, fmt.Errorf("failed to reload options from block %q: %w", name, err)
 			}
 		}
 	}

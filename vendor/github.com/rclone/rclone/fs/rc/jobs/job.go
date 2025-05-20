@@ -1,20 +1,28 @@
-// Manage background jobs that the rc is running
-
+// Package jobs manages background jobs that the rc is running.
 package jobs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/google/uuid"
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/accounting"
+	"github.com/rclone/rclone/fs/cache"
+	"github.com/rclone/rclone/fs/filter"
 	"github.com/rclone/rclone/fs/rc"
 )
+
+// Fill in these to avoid circular dependencies
+func init() {
+	cache.JobOnFinish = OnFinish
+	cache.JobGetJobID = GetJobID
+}
 
 // Job describes an asynchronous task started via the rc package
 type Job struct {
@@ -66,12 +74,6 @@ func (job *Job) finish(out rc.Params, err error) {
 	running.kickExpire() // make sure this job gets expired
 }
 
-func (job *Job) addListener(fn *func()) {
-	job.mu.Lock()
-	defer job.mu.Unlock()
-	job.listeners = append(job.listeners, fn)
-}
-
 func (job *Job) removeListener(fn *func()) {
 	job.mu.Lock()
 	defer job.mu.Unlock()
@@ -83,11 +85,24 @@ func (job *Job) removeListener(fn *func()) {
 	}
 }
 
+// OnFinish adds listener to job that will be triggered when job is finished.
+// It returns a function to cancel listening.
+func (job *Job) OnFinish(fn func()) func() {
+	job.mu.Lock()
+	defer job.mu.Unlock()
+	if job.Finished {
+		go fn()
+	} else {
+		job.listeners = append(job.listeners, &fn)
+	}
+	return func() { job.removeListener(&fn) }
+}
+
 // run the job until completion writing the return status
 func (job *Job) run(ctx context.Context, fn rc.Func, in rc.Params) {
 	defer func() {
 		if r := recover(); r != nil {
-			job.finish(nil, errors.Errorf("panic received: %v \n%s", r, string(debug.Stack())))
+			job.finish(nil, fmt.Errorf("panic received: %v \n%s", r, string(debug.Stack())))
 		}
 	}()
 	job.finish(fn(ctx, in))
@@ -102,15 +117,16 @@ type Jobs struct {
 }
 
 var (
-	running = newJobs()
-	jobID   = int64(0)
+	running   = newJobs()
+	jobID     atomic.Int64
+	executeID = uuid.New().String()
 )
 
 // newJobs makes a new Jobs structure
 func newJobs() *Jobs {
 	return &Jobs{
 		jobs: map[int64]*Job{},
-		opt:  &rc.DefaultOpt,
+		opt:  &rc.Opt,
 	}
 }
 
@@ -121,7 +137,7 @@ func SetOpt(opt *rc.Options) {
 
 // SetInitialJobID allows for setting jobID before starting any jobs.
 func SetInitialJobID(id int64) {
-	if !atomic.CompareAndSwapInt64(&jobID, 0, id) {
+	if !jobID.CompareAndSwap(0, id) {
 		panic("Setting jobID is only possible before starting any jobs")
 	}
 }
@@ -174,85 +190,136 @@ func (jobs *Jobs) Get(ID int64) *Job {
 	return jobs.jobs[ID]
 }
 
-func getGroup(in rc.Params) string {
-	// Check to see if the group is set
+// Check to see if the group is set
+func getGroup(ctx context.Context, in rc.Params, id int64) (context.Context, string, error) {
 	group, err := in.GetString("_group")
 	if rc.NotErrParamNotFound(err) {
-		fs.Errorf(nil, "Can't get _group param %+v", err)
+		return ctx, "", err
 	}
 	delete(in, "_group")
-	return group
-}
-
-// NewAsyncJob start a new asynchronous Job off
-func (jobs *Jobs) NewAsyncJob(fn rc.Func, in rc.Params) *Job {
-	id := atomic.AddInt64(&jobID, 1)
-
-	group := getGroup(in)
 	if group == "" {
 		group = fmt.Sprintf("job/%d", id)
 	}
-	ctx := accounting.WithStatsGroup(context.Background(), group)
+	ctx = accounting.WithStatsGroup(ctx, group)
+	return ctx, group, nil
+}
+
+// See if _async is set returning a boolean and a possible new context
+func getAsync(ctx context.Context, in rc.Params) (context.Context, bool, error) {
+	isAsync, err := in.GetBool("_async")
+	if rc.NotErrParamNotFound(err) {
+		return ctx, false, err
+	}
+	delete(in, "_async") // remove the async parameter after parsing
+	if isAsync {
+		// unlink this job from the current context
+		ctx = context.Background()
+	}
+	return ctx, isAsync, nil
+}
+
+// See if _config is set and if so adjust ctx to include it
+func getConfig(ctx context.Context, in rc.Params) (context.Context, error) {
+	if _, ok := in["_config"]; !ok {
+		return ctx, nil
+	}
+	ctx, ci := fs.AddConfig(ctx)
+	err := in.GetStruct("_config", ci)
+	if err != nil {
+		return ctx, err
+	}
+	delete(in, "_config") // remove the parameter
+	return ctx, nil
+}
+
+// See if _filter is set and if so adjust ctx to include it
+func getFilter(ctx context.Context, in rc.Params) (context.Context, error) {
+	if _, ok := in["_filter"]; !ok {
+		return ctx, nil
+	}
+	// Copy of the current filter options
+	opt := filter.GetConfig(ctx).Opt
+	// Update the options from the parameter
+	err := in.GetStruct("_filter", &opt)
+	if err != nil {
+		return ctx, err
+	}
+	fi, err := filter.NewFilter(&opt)
+	if err != nil {
+		return ctx, err
+	}
+	ctx = filter.ReplaceConfig(ctx, fi)
+	delete(in, "_filter") // remove the parameter
+	return ctx, nil
+}
+
+type jobKeyType struct{}
+
+// Key for adding jobs to ctx
+var jobKey = jobKeyType{}
+
+// NewJob creates a Job and executes it, possibly in the background if _async is set
+func (jobs *Jobs) NewJob(ctx context.Context, fn rc.Func, in rc.Params) (job *Job, out rc.Params, err error) {
+	id := jobID.Add(1)
+	in = in.Copy() // copy input so we can change it
+
+	ctx, isAsync, err := getAsync(ctx, in)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ctx, err = getConfig(ctx, in)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ctx, err = getFilter(ctx, in)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ctx, group, err := getGroup(ctx, in, id)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	stop := func() {
 		cancel()
 		// Wait for cancel to propagate before returning.
 		<-ctx.Done()
 	}
-	job := &Job{
+	job = &Job{
 		ID:        id,
 		Group:     group,
 		StartTime: time.Now(),
 		Stop:      stop,
 	}
+
 	jobs.mu.Lock()
 	jobs.jobs[job.ID] = job
 	jobs.mu.Unlock()
-	go job.run(ctx, fn, in)
-	return job
+
+	// Add the job to the context
+	ctx = context.WithValue(ctx, jobKey, job)
+
+	if isAsync {
+		go job.run(ctx, fn, in)
+		out = make(rc.Params)
+		out["jobid"] = job.ID
+		err = nil
+	} else {
+		job.run(ctx, fn, in)
+		out = job.Output
+		err = job.realErr
+	}
+	return job, out, err
 }
 
-// NewSyncJob start a new synchronous Job off
-func (jobs *Jobs) NewSyncJob(ctx context.Context, in rc.Params) (*Job, context.Context) {
-	id := atomic.AddInt64(&jobID, 1)
-	group := getGroup(in)
-	if group == "" {
-		group = fmt.Sprintf("job/%d", id)
-	}
-	ctxG := accounting.WithStatsGroup(ctx, fmt.Sprintf("job/%d", id))
-	ctx, cancel := context.WithCancel(ctxG)
-	stop := func() {
-		cancel()
-		// Wait for cancel to propagate before returning.
-		<-ctx.Done()
-	}
-	job := &Job{
-		ID:        id,
-		Group:     group,
-		StartTime: time.Now(),
-		Stop:      stop,
-	}
-	jobs.mu.Lock()
-	jobs.jobs[job.ID] = job
-	jobs.mu.Unlock()
-	return job, ctx
-}
-
-// StartAsyncJob starts a new job asynchronously and returns a Param suitable
-// for output.
-func StartAsyncJob(fn rc.Func, in rc.Params) (rc.Params, error) {
-	job := running.NewAsyncJob(fn, in)
-	out := make(rc.Params)
-	out["jobid"] = job.ID
-	return out, nil
-}
-
-// ExecuteJob executes new job synchronously and returns a Param suitable for
-// output.
-func ExecuteJob(ctx context.Context, fn rc.Func, in rc.Params) (rc.Params, int64, error) {
-	job, ctx := running.NewSyncJob(ctx, in)
-	job.run(ctx, fn, in)
-	return job.Output, job.ID, job.realErr
+// NewJob creates a Job and executes it on the global job queue,
+// possibly in the background if _async is set
+func NewJob(ctx context.Context, fn rc.Func, in rc.Params) (job *Job, out rc.Params, err error) {
+	return running.NewJob(ctx, fn, in)
 }
 
 // OnFinish adds listener to jobid that will be triggered when job is finished.
@@ -262,12 +329,22 @@ func OnFinish(jobID int64, fn func()) (func(), error) {
 	if job == nil {
 		return func() {}, errors.New("job not found")
 	}
-	if job.Finished {
-		fn()
-	} else {
-		job.addListener(&fn)
+	return job.OnFinish(fn), nil
+}
+
+// GetJob gets the Job from the context if possible
+func GetJob(ctx context.Context) (job *Job, ok bool) {
+	job, ok = ctx.Value(jobKey).(*Job)
+	return job, ok
+}
+
+// GetJobID gets the Job from the context if possible
+func GetJobID(ctx context.Context) (jobID int64, ok bool) {
+	job, ok := GetJob(ctx)
+	if !ok {
+		return -1, ok
 	}
-	return func() { job.removeListener(&fn) }, nil
+	return job.ID, true
 }
 
 func init() {
@@ -275,11 +352,11 @@ func init() {
 		Path:  "job/status",
 		Fn:    rcJobStatus,
 		Title: "Reads the status of the job ID",
-		Help: `Parameters
+		Help: `Parameters:
 
-- jobid - id of the job (integer)
+- jobid - id of the job (integer).
 
-Results
+Results:
 
 - finished - boolean
 - duration - time in seconds that the job ran for
@@ -310,7 +387,7 @@ func rcJobStatus(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	out = make(rc.Params)
 	err = rc.Reshape(&out, job)
 	if err != nil {
-		return nil, errors.Wrap(err, "reshape failed in job status")
+		return nil, fmt.Errorf("reshape failed in job status: %w", err)
 	}
 	return out, nil
 }
@@ -320,11 +397,12 @@ func init() {
 		Path:  "job/list",
 		Fn:    rcJobList,
 		Title: "Lists the IDs of the running jobs",
-		Help: `Parameters - None
+		Help: `Parameters: None.
 
-Results
+Results:
 
-- jobids - array of integer job ids
+- executeId - string id of rclone executing (change after restart)
+- jobids - array of integer job ids (starting at 1 on each restart)
 `,
 	})
 }
@@ -333,6 +411,7 @@ Results
 func rcJobList(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	out = make(rc.Params)
 	out["jobids"] = running.IDs()
+	out["executeId"] = executeID
 	return out, nil
 }
 
@@ -341,9 +420,9 @@ func init() {
 		Path:  "job/stop",
 		Fn:    rcJobStop,
 		Title: "Stop the running job",
-		Help: `Parameters
+		Help: `Parameters:
 
-- jobid - id of the job (integer)
+- jobid - id of the job (integer).
 `,
 	})
 }
@@ -362,5 +441,36 @@ func rcJobStop(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	defer job.mu.Unlock()
 	out = make(rc.Params)
 	job.Stop()
+	return out, nil
+}
+
+func init() {
+	rc.Add(rc.Call{
+		Path:  "job/stopgroup",
+		Fn:    rcGroupStop,
+		Title: "Stop all running jobs in a group",
+		Help: `Parameters:
+
+- group - name of the group (string).
+`,
+	})
+}
+
+// Stops all running jobs in a group
+func rcGroupStop(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	group, err := in.GetString("group")
+	if err != nil {
+		return nil, err
+	}
+	running.mu.RLock()
+	defer running.mu.RUnlock()
+	for _, job := range running.jobs {
+		if job.Group == group {
+			job.mu.Lock()
+			job.Stop()
+			job.mu.Unlock()
+		}
+	}
+	out = make(rc.Params)
 	return out, nil
 }

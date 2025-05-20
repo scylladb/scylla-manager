@@ -104,68 +104,13 @@ func (c *Default) Calculate(state State) time.Duration {
 	return sleepTime
 }
 
-// AmazonCloudDrive is a specialized pacer for Amazon Drive
-//
-// It implements a truncated exponential backoff strategy with randomization.
-// Normally operations are paced at the interval set with SetMinSleep. On errors
-// the sleep timer is set to 0..2**retries seconds.
-//
-// See https://developer.amazon.com/public/apis/experience/cloud-drive/content/restful-api-best-practices
-type AmazonCloudDrive struct {
-	minSleep time.Duration // minimum sleep time
-}
-
-// AmazonCloudDriveOption is the interface implemented by all options for the AmazonCloudDrive Calculator
-type AmazonCloudDriveOption interface {
-	ApplyAmazonCloudDrive(*AmazonCloudDrive)
-}
-
-// NewAmazonCloudDrive returns a new AmazonCloudDrive Calculator with default values
-func NewAmazonCloudDrive(opts ...AmazonCloudDriveOption) *AmazonCloudDrive {
-	c := &AmazonCloudDrive{
-		minSleep: 10 * time.Millisecond,
-	}
-	c.Update(opts...)
-	return c
-}
-
-// Update applies the Calculator options.
-func (c *AmazonCloudDrive) Update(opts ...AmazonCloudDriveOption) {
-	for _, opt := range opts {
-		opt.ApplyAmazonCloudDrive(c)
-	}
-}
-
-// ApplyAmazonCloudDrive updates the value on the Calculator
-func (o MinSleep) ApplyAmazonCloudDrive(c *AmazonCloudDrive) {
-	c.minSleep = time.Duration(o)
+// ZeroDelayCalculator is a Calculator that never delays.
+type ZeroDelayCalculator struct {
 }
 
 // Calculate takes the current Pacer state and return the wait time until the next try.
-func (c *AmazonCloudDrive) Calculate(state State) time.Duration {
-	if t, ok := IsRetryAfter(state.LastError); ok {
-		if t < c.minSleep {
-			return c.minSleep
-		}
-		return t
-	}
-
-	consecutiveRetries := state.ConsecutiveRetries
-	if consecutiveRetries == 0 {
-		return c.minSleep
-	}
-	if consecutiveRetries > 9 {
-		consecutiveRetries = 9
-	}
-	// consecutiveRetries starts at 1 so
-	// maxSleep is 2**(consecutiveRetries-1) seconds
-	maxSleep := time.Second << uint(consecutiveRetries-1)
-	// actual sleep is random from 0..maxSleep
-	sleepTime := time.Duration(rand.Int63n(int64(maxSleep)))
-	if sleepTime < c.minSleep {
-		sleepTime = c.minSleep
-	}
-	return sleepTime
+func (c *ZeroDelayCalculator) Calculate(state State) time.Duration {
+	return 0
 }
 
 // AzureIMDS is a pacer for the Azure instance metadata service.
@@ -219,7 +164,7 @@ type GoogleDriveOption interface {
 func NewGoogleDrive(opts ...GoogleDriveOption) *GoogleDrive {
 	c := &GoogleDrive{
 		minSleep: 10 * time.Millisecond,
-		burst:    1,
+		burst:    100,
 	}
 	c.Update(opts...)
 	return c

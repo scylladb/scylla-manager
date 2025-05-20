@@ -1,7 +1,6 @@
+//go:build !windows
+
 // Package driveletter returns whether a name is a valid drive letter
-
-// +build !windows
-
 package driveletter
 
 // IsDriveLetter returns a bool indicating whether name is a valid

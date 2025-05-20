@@ -2,11 +2,10 @@
 package pacer
 
 import (
-	"context"
 	"sync"
 	"time"
 
-	"github.com/rclone/rclone/lib/errors"
+	liberrors "github.com/rclone/rclone/lib/errors"
 )
 
 // State represents the public Pacer state that will be passed to the
@@ -76,7 +75,7 @@ type Paced func() (bool, error)
 // New returns a Pacer with sensible defaults.
 func New(options ...Option) *Pacer {
 	opts := pacerOptions{
-		maxConnections: 10,
+		maxConnections: 0,
 		retries:        3,
 	}
 	for _, o := range options {
@@ -104,7 +103,7 @@ func New(options ...Option) *Pacer {
 // SetMaxConnections sets the maximum number of concurrent connections.
 // Setting the value to 0 will allow unlimited number of connections.
 // Should not be changed once you have started calling the pacer.
-// By default this will be set to fs.Config.Checkers.
+// By default this will be 0.
 func (p *Pacer) SetMaxConnections(n int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -149,7 +148,7 @@ func (p *Pacer) ModifyCalculator(f func(Calculator)) {
 
 // Start a call to the API
 //
-// This must be called as a pair with endCall
+// This must be called as a pair with endCall.
 //
 // This waits for the pacer token
 func (p *Pacer) beginCall() {
@@ -204,23 +203,6 @@ func (p *Pacer) call(fn Paced, retries int) (err error) {
 	return err
 }
 
-// CallContext paces the remote operations to not exceed the limits and retry
-// on rate limit exceeded. Context can be used to control the number of retries
-// on per Call basis. Use WithRetries function to set custom retry count.
-//
-// This calls fn, expecting it to return a retry flag and an
-// error. This error may be returned wrapped in a RetryError if the
-// number of retries is exceeded.
-func (p *Pacer) CallContext(ctx context.Context, fn Paced) (err error) {
-	p.mu.Lock()
-	retries := p.retries
-	if r, ok := RetriesCtx(ctx); ok {
-		retries = r
-	}
-	p.mu.Unlock()
-	return p.call(fn, retries)
-}
-
 // Call paces the remote operations to not exceed the limits and retry
 // on rate limit exceeded
 //
@@ -271,7 +253,7 @@ func RetryAfterError(err error, retryAfter time.Duration) error {
 // IsRetryAfter returns true if the error or any of it's Cause's is an error
 // returned by RetryAfterError. It also returns the associated Duration if possible.
 func IsRetryAfter(err error) (retryAfter time.Duration, isRetryAfter bool) {
-	errors.Walk(err, func(err error) bool {
+	liberrors.Walk(err, func(err error) bool {
 		if r, ok := err.(*retryAfterError); ok {
 			retryAfter, isRetryAfter = r.retryAfter, true
 			return true

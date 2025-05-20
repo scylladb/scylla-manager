@@ -1,4 +1,4 @@
-EME for Go [![Build Status](https://travis-ci.org/rfjakob/eme.svg?branch=master)](https://travis-ci.org/rfjakob/eme) [![GoDoc](https://godoc.org/github.com/rfjakob/eme?status.svg)](https://godoc.org/github.com/rfjakob/eme) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+EME for Go [![CI](https://github.com/rfjakob/eme/actions/workflows/ci.yml/badge.svg)](https://github.com/rfjakob/eme/actions/workflows/ci.yml) [![GoDoc](https://godoc.org/github.com/rfjakob/eme?status.svg)](https://godoc.org/github.com/rfjakob/eme) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ==========
 
 **EME** (ECB-Mix-ECB or, clearer, **Encrypt-Mix-Encrypt**) is a wide-block
@@ -98,6 +98,11 @@ and must be bought from IEEE.
 
 Package Changelog
 -----------------
+
+v1.1.2, 2021-06-27
+* Add `go.mod` file
+* Switch from Travis CI to Github Actions
+* No code changes
 
 v1.1.1, 2020-04-13
 * Update `go vet` call in `test.bash` to work on recent Go versions

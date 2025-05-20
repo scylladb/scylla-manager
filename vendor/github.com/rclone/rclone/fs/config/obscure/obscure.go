@@ -6,10 +6,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"io"
-	"log"
+	"math"
 
-	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs"
 )
 
 // crypt internals
@@ -47,13 +49,16 @@ func crypt(out, in, iv []byte) error {
 // This is done by encrypting with AES-CTR
 func Obscure(x string) (string, error) {
 	plaintext := []byte(x)
+	if math.MaxInt32-aes.BlockSize < len(plaintext) {
+		return "", fmt.Errorf("value too large")
+	}
 	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(cryptRand, iv); err != nil {
-		return "", errors.Wrap(err, "failed to read iv")
+		return "", fmt.Errorf("failed to read iv: %w", err)
 	}
 	if err := crypt(ciphertext[aes.BlockSize:], plaintext, iv); err != nil {
-		return "", errors.Wrap(err, "encrypt failed")
+		return "", fmt.Errorf("encrypt failed: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(ciphertext), nil
 }
@@ -62,7 +67,7 @@ func Obscure(x string) (string, error) {
 func MustObscure(x string) string {
 	out, err := Obscure(x)
 	if err != nil {
-		log.Fatalf("Obscure failed: %v", err)
+		fs.Fatalf(nil, "Obscure failed: %v", err)
 	}
 	return out
 }
@@ -71,7 +76,7 @@ func MustObscure(x string) string {
 func Reveal(x string) (string, error) {
 	ciphertext, err := base64.RawURLEncoding.DecodeString(x)
 	if err != nil {
-		return "", errors.Wrap(err, "base64 decode failed when revealing password - is it obscured?")
+		return "", fmt.Errorf("base64 decode failed when revealing password - is it obscured?: %w", err)
 	}
 	if len(ciphertext) < aes.BlockSize {
 		return "", errors.New("input too short when revealing password - is it obscured?")
@@ -79,7 +84,7 @@ func Reveal(x string) (string, error) {
 	buf := ciphertext[aes.BlockSize:]
 	iv := ciphertext[:aes.BlockSize]
 	if err := crypt(buf, buf, iv); err != nil {
-		return "", errors.Wrap(err, "decrypt failed when revealing password - is it obscured?")
+		return "", fmt.Errorf("decrypt failed when revealing password - is it obscured?: %w", err)
 	}
 	return string(buf), nil
 }
@@ -88,7 +93,7 @@ func Reveal(x string) (string, error) {
 func MustReveal(x string) string {
 	out, err := Reveal(x)
 	if err != nil {
-		log.Fatalf("Reveal failed: %v", err)
+		fs.Fatalf(nil, "Reveal failed: %v", err)
 	}
 	return out
 }

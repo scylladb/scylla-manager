@@ -1,15 +1,15 @@
 // Package mmap implements a large block memory allocator using
 // anonymous memory maps.
 
-// +build windows
+//go:build windows
 
 package mmap
 
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/windows"
 )
 
@@ -19,24 +19,33 @@ import (
 func Alloc(size int) ([]byte, error) {
 	p, err := windows.VirtualAlloc(0, uintptr(size), windows.MEM_COMMIT, windows.PAGE_READWRITE)
 	if err != nil {
-		return nil, errors.Wrap(err, "mmap: failed to allocate memory for buffer")
+		return nil, fmt.Errorf("mmap: failed to allocate memory for buffer: %w", err)
 	}
+	// SliceHeader is deprecated...
 	var mem []byte
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mem)) // nolint:staticcheck
 	sh.Data = p
 	sh.Len = size
 	sh.Cap = size
 	return mem, nil
+	// ...However the correct code gives a go vet warning
+	// "possible misuse of unsafe.Pointer"
+	//
+	// Maybe there is a different way of writing this, but none of
+	// the allowed uses of unsafe.Pointer seemed to cover it other
+	// than using SliceHeader (use 6 of unsafe.Pointer).
+	//
+	// return unsafe.Slice((*byte)(unsafe.Pointer(p)), size), nil
 }
 
 // Free frees buffers allocated by Alloc.  Note it should be passed
 // the same slice (not a derived slice) that Alloc returned.  If the
 // free fails it will return with an error.
 func Free(mem []byte) error {
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
-	err := windows.VirtualFree(sh.Data, 0, windows.MEM_RELEASE)
+	p := unsafe.SliceData(mem)
+	err := windows.VirtualFree(uintptr(unsafe.Pointer(p)), 0, windows.MEM_RELEASE)
 	if err != nil {
-		return errors.Wrap(err, "mmap: failed to unmap memory")
+		return fmt.Errorf("mmap: failed to unmap memory: %w", err)
 	}
 	return nil
 }

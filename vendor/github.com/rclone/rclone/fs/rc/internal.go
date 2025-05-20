@@ -4,6 +4,7 @@ package rc
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -12,11 +13,12 @@ import (
 	"time"
 
 	"github.com/coreos/go-semver/semver"
-	"github.com/pkg/errors"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/config/obscure"
 	"github.com/rclone/rclone/lib/atexit"
+	"github.com/rclone/rclone/lib/buildinfo"
+	"github.com/rclone/rclone/lib/debug"
 )
 
 func init() {
@@ -59,7 +61,7 @@ Useful for testing error handling.`,
 
 // Return an error regardless
 func rcError(ctx context.Context, in Params) (out Params, err error) {
-	return nil, errors.Errorf("arbitrary error on input %+v", in)
+	return nil, fmt.Errorf("arbitrary error on input %+v", in)
 }
 
 func init() {
@@ -109,10 +111,10 @@ are explained in the go docs: https://golang.org/pkg/runtime/#MemStats
 
 The most interesting values for most people are:
 
-* HeapAlloc: This is the amount of memory rclone is actually using
-* HeapSys: This is the amount of memory rclone has obtained from the OS
-* Sys: this is the total amount of memory requested from the OS
-  * It is virtual memory so may include unused memory
+- HeapAlloc - this is the amount of memory rclone is actually using
+- HeapSys - this is the amount of memory rclone has obtained from the OS
+- Sys - this is the total amount of memory requested from the OS
+   - It is virtual memory so may include unused memory
 `,
 	})
 }
@@ -170,7 +172,7 @@ func init() {
 		Fn:    rcVersion,
 		Title: "Shows the current version of rclone and the go runtime.",
 		Help: `
-This shows the current version of go and the go runtime
+This shows the current version of go and the go runtime:
 
 - version - rclone version, e.g. "v1.53.0"
 - decomposed - version number as [major, minor, patch]
@@ -179,6 +181,8 @@ This shows the current version of go and the go runtime
 - os - OS in use as according to Go
 - arch - cpu architecture in use according to Go
 - goVersion - version of Go runtime in use
+- linking - type of rclone executable (static or dynamic)
+- goTags - space separated build tags or "none"
 
 `,
 	})
@@ -190,6 +194,7 @@ func rcVersion(ctx context.Context, in Params) (out Params, err error) {
 	if err != nil {
 		return nil, err
 	}
+	linking, tagString := buildinfo.GetLinkingAndTags()
 	out = Params{
 		"version":    fs.Version,
 		"decomposed": version.Slice(),
@@ -198,6 +203,8 @@ func rcVersion(ctx context.Context, in Params) (out Params, err error) {
 		"os":         runtime.GOOS,
 		"arch":       runtime.GOARCH,
 		"goVersion":  runtime.Version(),
+		"linking":    linking,
+		"goTags":     tagString,
 	}
 	return out, nil
 }
@@ -211,7 +218,7 @@ func init() {
 Pass a clear string and rclone will obscure it for the config file:
 - clear - string
 
-Returns
+Returns:
 - obscured - string
 `,
 	})
@@ -239,7 +246,7 @@ func init() {
 		Fn:    rcQuit,
 		Title: "Terminates the app.",
 		Help: `
-(optional) Pass an exit code to be used for terminating the app:
+(Optional) Pass an exit code to be used for terminating the app:
 - exitCode - int
 `,
 	})
@@ -283,18 +290,17 @@ Once this is set you can look use this to profile the mutex contention:
 
     go tool pprof http://localhost:5572/debug/pprof/mutex
 
-Parameters
+Parameters:
 
 - rate - int
 
-Results
+Results:
 
 - previousRate - int
 `,
 	})
 }
 
-// Terminates app
 func rcSetMutexProfileFraction(ctx context.Context, in Params) (out Params, err error) {
 	rate, err := in.GetInt64("rate")
 	if err != nil {
@@ -323,14 +329,13 @@ After calling this you can use this to see the blocking profile:
 
     go tool pprof http://localhost:5572/debug/pprof/block
 
-Parameters
+Parameters:
 
 - rate - int
 `,
 	})
 }
 
-// Terminates app
 func rcSetBlockProfileRate(ctx context.Context, in Params) (out Params, err error) {
 	rate, err := in.GetInt64("rate")
 	if err != nil {
@@ -342,35 +347,121 @@ func rcSetBlockProfileRate(ctx context.Context, in Params) (out Params, err erro
 
 func init() {
 	Add(Call{
+		Path:  "debug/set-soft-memory-limit",
+		Fn:    rcSetSoftMemoryLimit,
+		Title: "Call runtime/debug.SetMemoryLimit for setting a soft memory limit for the runtime.",
+		Help: `
+SetMemoryLimit provides the runtime with a soft memory limit.
+
+The runtime undertakes several processes to try to respect this memory limit, including
+adjustments to the frequency of garbage collections and returning memory to the underlying
+system more aggressively. This limit will be respected even if GOGC=off (or, if SetGCPercent(-1) is executed).
+
+The input limit is provided as bytes, and includes all memory mapped, managed, and not
+released by the Go runtime. Notably, it does not account for space used by the Go binary
+and memory external to Go, such as memory managed by the underlying system on behalf of
+the process, or memory managed by non-Go code inside the same process.
+Examples of excluded memory sources include: OS kernel memory held on behalf of the process,
+memory allocated by C code, and memory mapped by syscall.Mmap (because it is not managed by the Go runtime).
+
+A zero limit or a limit that's lower than the amount of memory used by the Go runtime may cause
+the garbage collector to run nearly continuously. However, the application may still make progress.
+
+The memory limit is always respected by the Go runtime, so to effectively disable this behavior,
+set the limit very high. math.MaxInt64 is the canonical value for disabling the limit, but values
+much greater than the available memory on the underlying system work just as well.
+
+See https://go.dev/doc/gc-guide for a detailed guide explaining the soft memory limit in more detail,
+as well as a variety of common use-cases and scenarios.
+
+SetMemoryLimit returns the previously set memory limit. A negative input does not adjust the limit,
+and allows for retrieval of the currently set memory limit.
+
+Parameters:
+
+- mem-limit - int
+`,
+	})
+}
+
+func rcSetSoftMemoryLimit(ctx context.Context, in Params) (out Params, err error) {
+	memLimit, err := in.GetInt64("mem-limit")
+	if err != nil {
+		return nil, err
+	}
+	oldMemLimit := debug.SetMemoryLimit(memLimit)
+	out = Params{
+		"existing-mem-limit": oldMemLimit,
+	}
+	return out, nil
+}
+
+func init() {
+	Add(Call{
+		Path:  "debug/set-gc-percent",
+		Fn:    rcSetGCPercent,
+		Title: "Call runtime/debug.SetGCPercent for setting the garbage collection target percentage.",
+		Help: `
+SetGCPercent sets the garbage collection target percentage: a collection is triggered
+when the ratio of freshly allocated data to live data remaining after the previous collection
+reaches this percentage. SetGCPercent returns the previous setting. The initial setting is the
+value of the GOGC environment variable at startup, or 100 if the variable is not set.
+
+This setting may be effectively reduced in order to maintain a memory limit.
+A negative percentage effectively disables garbage collection, unless the memory limit is reached.
+
+See https://pkg.go.dev/runtime/debug#SetMemoryLimit for more details.
+
+Parameters:
+
+- gc-percent - int
+`,
+	})
+}
+
+func rcSetGCPercent(ctx context.Context, in Params) (out Params, err error) {
+	gcPercent, err := in.GetInt64("gc-percent")
+	if err != nil {
+		return nil, err
+	}
+	oldGCPercent := debug.SetGCPercent(int(gcPercent))
+	out = Params{
+		"existing-gc-percent": oldGCPercent,
+	}
+	return out, nil
+}
+
+func init() {
+	Add(Call{
 		Path:          "core/command",
 		AuthRequired:  true,
 		Fn:            rcRunCommand,
 		NeedsRequest:  true,
 		NeedsResponse: true,
 		Title:         "Run a rclone terminal command over rc.",
-		Help: `This takes the following parameters
+		Help: `This takes the following parameters:
 
-- command - a string with the command name
-- arg - a list of arguments for the backend command
-- opt - a map of string to string of options
-- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT", "STREAM_ONLY_STDERR")
-    - defaults to "COMBINED_OUTPUT" if not set
-    - the STREAM returnTypes will write the output to the body of the HTTP message
-    - the COMBINED_OUTPUT will write the output to the "result" parameter
+- command - a string with the command name.
+- arg - a list of arguments for the backend command.
+- opt - a map of string to string of options.
+- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT", "STREAM_ONLY_STDERR").
+    - Defaults to "COMBINED_OUTPUT" if not set.
+    - The STREAM returnTypes will write the output to the body of the HTTP message.
+    - The COMBINED_OUTPUT will write the output to the "result" parameter.
 
-Returns
+Returns:
 
-- result - result from the backend command
-    - only set when using returnType "COMBINED_OUTPUT"
-- error	 - set if rclone exits with an error code
-- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT", "STREAM_ONLY_STDERR")
+- result - result from the backend command.
+    - Only set when using returnType "COMBINED_OUTPUT".
+- error	 - set if rclone exits with an error code.
+- returnType - one of ("COMBINED_OUTPUT", "STREAM", "STREAM_ONLY_STDOUT", "STREAM_ONLY_STDERR").
 
-For example
+Example:
 
     rclone rc core/command command=ls -a mydrive:/ -o max-depth=1
     rclone rc core/command -a ls -a mydrive:/ -o max-depth=1
 
-Returns
+Returns:
 
 ` + "```" + `
 {
@@ -378,7 +469,7 @@ Returns
 	"result": "<Raw command line output>"
 }
 
-OR 
+OR
 {
 	"error": true,
 	"result": "<Raw command line output>"
@@ -416,7 +507,7 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 	var httpResponse http.ResponseWriter
 	httpResponse, err = in.GetHTTPResponseWriter()
 	if err != nil {
-		return nil, errors.Errorf("response object is required\n" + err.Error())
+		return nil, fmt.Errorf("response object is required\n%w", err)
 	}
 
 	var allArgs = []string{}
@@ -425,9 +516,7 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 		allArgs = append(allArgs, command)
 	}
 	// Add all from arg
-	for _, cur := range arg {
-		allArgs = append(allArgs, cur)
-	}
+	allArgs = append(allArgs, arg...)
 
 	// Add flags to args for e.g. --max-depth 1 comes in as { max-depth 1 }.
 	// Convert it to [ max-depth, 1 ] and append to args list
@@ -471,7 +560,7 @@ func rcRunCommand(ctx context.Context, in Params) (out Params, err error) {
 		cmd.Stdout = httpResponse
 		cmd.Stderr = httpResponse
 	} else {
-		return nil, errors.Errorf("Unknown returnType %q", returnType)
+		return nil, fmt.Errorf("unknown returnType %q", returnType)
 	}
 
 	err = cmd.Run()
