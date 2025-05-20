@@ -35,7 +35,7 @@ import (
 
 // Service orchestrates cluster repairs.
 type Service struct {
-	session gocqlx.Session
+	session gocqlx.Session // TODO: replace with sql
 	config  Config
 	metrics metrics.RepairMetrics
 
@@ -48,7 +48,7 @@ type Service struct {
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics,
+func NewService(dataPath string, config Config, metrics metrics.RepairMetrics,
 	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
 	logger log.Logger,
 ) (*Service, error) {
@@ -61,7 +61,6 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 	}
 
 	return &Service{
-		session:           session,
 		config:            config,
 		metrics:           metrics,
 		scyllaClient:      scyllaClient,
