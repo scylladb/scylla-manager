@@ -22,8 +22,7 @@ import (
 // to show progress can return some information at this point.
 // Sets initial values for download_remaining_bytes and view_build_status metrics.
 func (w *worker) initProgressAndMetrics(ctx context.Context, workload []hostWorkload) error {
-	tablesToRestore := getTablesToRestore(workload)
-	views, err := w.getViews(ctx, tablesToRestore)
+	views, err := w.getViews(ctx, workload)
 	if err != nil {
 		return errors.Wrap(err, "get views")
 	}
