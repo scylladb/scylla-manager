@@ -17,6 +17,10 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 	logError := func(i int, err error) {
 		w.logger.Error(ctx, "Restore data", "err", err, "host", workload[i].host)
 	}
+	stats := newRestoreStats(workload)
+	defer func() {
+		w.logger.Info(ctx, "Restore stats", "bandwidth_per_shard", stats.averageBandwidthPerShard())
+	}()
 	return parallel.Run(len(workload), len(workload), func(i int) error {
 		hostTask := workload[i]
 		manifestInfo, host := hostTask.manifestInfo, hostTask.host
@@ -33,7 +37,7 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 			}
 			pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
 
-			if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, pollIntervalSec); err != nil {
+			if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, stats, pollIntervalSec); err != nil {
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
@@ -68,7 +72,7 @@ func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m 
 	return err
 }
 
-func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress, pollIntervalSec int) (err error) {
+func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress, stats *restoreStats, pollIntervalSec int) (err error) {
 	defer func() {
 		cleanCtx := context.Background()
 		// On error stop job
@@ -103,11 +107,18 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 		case scyllaclient.JobError:
 			return errors.Errorf("job error (%d): %s: host %s", jobID, job.Error, h.Addr)
 		case scyllaclient.JobSuccess:
+			took := time.Time(job.CompletedAt).Sub(time.Time(job.StartedAt))
+			var bandwidth int64
+			if ms := took.Milliseconds(); ms > 0 {
+				bandwidth = job.Uploaded / ms
+			}
 			w.logger.Info(ctx, "Job done",
 				"job_id", jobID,
 				"host", h,
-				"took", time.Time(job.CompletedAt).Sub(time.Time(job.StartedAt)),
+				"bandwidth", bandwidth,
+				"took", took,
 			)
+			stats.incrementDownloadStats(job.Uploaded, took.Milliseconds())
 			return nil
 		case scyllaclient.JobRunning:
 			continue
