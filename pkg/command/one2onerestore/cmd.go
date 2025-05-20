@@ -32,6 +32,7 @@ type command struct {
 	keyspace      []string
 	snapshotTag   string
 	nodesMapping  nodesMapping
+	stopAll       bool
 	dryRun        bool
 }
 
@@ -80,6 +81,7 @@ func (cmd *command) init() {
 	w.Unwrap().Var(&cmd.sourceCluster, "source-cluster-id", "")
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().Var(&cmd.nodesMapping, "nodes-mapping", "")
+	w.Unwrap().BoolVar(&cmd.stopAll, "stop-all", false, "")
 
 	// Common configuration for restore procedures
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -204,6 +206,10 @@ func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err e
 		{
 			flagName: "nodes-mapping",
 			value:    cmd.nodesMapping,
+		},
+		{
+			flagName: "stop-all",
+			value:    cmd.stopAll,
 		},
 	}
 
