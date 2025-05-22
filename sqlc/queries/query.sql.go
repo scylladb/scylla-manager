@@ -147,7 +147,7 @@ func (q *Queries) GetRepairRunState(ctx context.Context, arg GetRepairRunStatePa
 }
 
 const insertRepairRun = `-- name: InsertRepairRun :exec
-INSERT INTO repair_run (cluster_id, task_id, id, dc, end_time, host, intensity, parallel, prev_id, start_time)
+REPLACE INTO repair_run (cluster_id, task_id, id, dc, end_time, host, intensity, parallel, prev_id, start_time)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
@@ -181,7 +181,7 @@ func (q *Queries) InsertRepairRun(ctx context.Context, arg InsertRepairRunParams
 }
 
 const insertRepairRunProgress = `-- name: InsertRepairRunProgress :exec
-INSERT INTO repair_run_progress (cluster_id, task_id, run_id, host, keyspace_name, table_name, completed_at, duration, duration_started_at, error, size, started_at, success, token_ranges)
+REPLACE INTO repair_run_progress (cluster_id, task_id, run_id, host, keyspace_name, table_name, completed_at, duration, duration_started_at, error, size, started_at, success, token_ranges)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
@@ -223,7 +223,7 @@ func (q *Queries) InsertRepairRunProgress(ctx context.Context, arg InsertRepairR
 }
 
 const insertRepairRunState = `-- name: InsertRepairRunState :exec
-INSERT INTO repair_run_state (cluster_id, task_id, run_id, keyspace_name, table_name, success_ranges)
+REPLACE INTO repair_run_state (cluster_id, task_id, run_id, keyspace_name, table_name, success_ranges)
 VALUES (?, ?, ?, ?, ?, ?)
 `
 
