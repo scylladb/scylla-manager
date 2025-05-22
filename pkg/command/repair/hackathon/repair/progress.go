@@ -10,13 +10,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
-	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/sqlc/queries"
 	"go.uber.org/atomic"
 )
 
@@ -51,7 +49,7 @@ type dbProgressManager struct {
 	totalTableSize int64            // Sum over tableSize
 	tableRanges    map[string]int   // Maps table to its range count
 
-	session gocqlx.Session
+	session *queries.Queries
 	metrics metrics.RepairMetrics
 	logger  log.Logger
 
@@ -62,7 +60,7 @@ type dbProgressManager struct {
 
 var _ ProgressManager = &dbProgressManager{}
 
-func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.RepairMetrics, logger log.Logger) ProgressManager {
+func NewDBProgressManager(run *Run, session *queries.Queries, metrics metrics.RepairMetrics, logger log.Logger) ProgressManager {
 	return &dbProgressManager{
 		run:     run,
 		session: session,
@@ -96,59 +94,60 @@ func (pm *dbProgressManager) Init(plan *plan, prevID uuid.UUID) error {
 }
 
 func (pm *dbProgressManager) GetPrevRun(ctx context.Context, ageMax time.Duration) *Run {
-	q := qb.Select(table.RepairRun.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-	).Limit(20).Query(pm.session).BindMap(qb.M{
-		"cluster_id": pm.run.ClusterID,
-		"task_id":    pm.run.TaskID,
-	})
-
-	var runs []*Run
-	if err := q.SelectRelease(&runs); err != nil {
-		pm.logger.Info(ctx, "Couldn't query previous run", "error", err)
-		return nil
-	}
-
-	var prev *Run
-	for _, r := range runs {
-		if pm.isRunInitialized(r) {
-			prev = r
-			break
-		}
-	}
-	if prev == nil {
-		return nil
-	}
-
-	pm.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
-	if !prev.EndTime.IsZero() {
-		pm.logger.Info(ctx, "Starting from scratch: previous run is completed")
-		return nil
-	}
-	if ageMax > 0 && timeutc.Since(prev.StartTime) > ageMax {
-		pm.logger.Info(ctx, "Starting from scratch: previous run is too old")
-		return nil
-	}
-
-	return prev
+	return nil
+	//q := qb.Select(table.RepairRun.Name()).Where(
+	//	qb.Eq("cluster_id"),
+	//	qb.Eq("task_id"),
+	//).Limit(20).Query(pm.session).BindMap(qb.M{
+	//	"cluster_id": pm.run.ClusterID,
+	//	"task_id":    pm.run.TaskID,
+	//})
+	//
+	//var runs []*Run
+	//if err := q.SelectRelease(&runs); err != nil {
+	//	pm.logger.Info(ctx, "Couldn't query previous run", "error", err)
+	//	return nil
+	//}
+	//
+	//var prev *Run
+	//for _, r := range runs {
+	//	if pm.isRunInitialized(r) {
+	//		prev = r
+	//		break
+	//	}
+	//}
+	//if prev == nil {
+	//	return nil
+	//}
+	//
+	//pm.logger.Info(ctx, "Found previous run", "prev_id", prev.ID)
+	//if !prev.EndTime.IsZero() {
+	//	pm.logger.Info(ctx, "Starting from scratch: previous run is completed")
+	//	return nil
+	//}
+	//if ageMax > 0 && timeutc.Since(prev.StartTime) > ageMax {
+	//	pm.logger.Info(ctx, "Starting from scratch: previous run is too old")
+	//	return nil
+	//}
+	//
+	//return prev
 }
 
-func (pm *dbProgressManager) isRunInitialized(run *Run) bool {
-	q := qb.Select(table.RepairRunProgress.Name()).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("task_id"),
-		qb.Eq("run_id"),
-	).Limit(1).Query(pm.session).BindMap(qb.M{
-		"cluster_id": run.ClusterID,
-		"task_id":    run.TaskID,
-		"run_id":     run.ID,
-	})
-
-	var check []*RunProgress
-	err := q.SelectRelease(&check)
-	return err == nil && len(check) > 0
-}
+//func (pm *dbProgressManager) isRunInitialized(run *Run) bool {
+//	q := qb.Select(table.RepairRunProgress.Name()).Where(
+//		qb.Eq("cluster_id"),
+//		qb.Eq("task_id"),
+//		qb.Eq("run_id"),
+//	).Limit(1).Query(pm.session).BindMap(qb.M{
+//		"cluster_id": run.ClusterID,
+//		"task_id":    run.TaskID,
+//		"run_id":     run.ID,
+//	})
+//
+//	var check []*RunProgress
+//	err := q.SelectRelease(&check)
+//	return err == nil && len(check) > 0
+//}
 
 func (pm *dbProgressManager) initProgress(plan *plan) error {
 	pm.progress = make(map[scyllaclient.HostKeyspaceTable]*RunProgress)
@@ -190,16 +189,16 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 		}
 	}
 
-	// Insert updated progress into DB
-	q := table.RepairRunProgress.InsertQuery(pm.session)
-	defer q.Release()
-	for _, p := range pm.progress {
-		if err := q.BindStruct(p).Exec(); err != nil {
-			return errors.Wrap(err, "init repair progress")
-		}
-		pm.metrics.SetTokenRanges(pm.run.ClusterID, p.Keyspace, p.Table, p.Host,
-			p.TokenRanges, p.Success, p.Error)
-	}
+	//// Insert updated progress into DB
+	//q := table.RepairRunProgress.InsertQuery(pm.session)
+	//defer q.Release()
+	//for _, p := range pm.progress {
+	//	if err := q.BindStruct(p).Exec(); err != nil {
+	//		return errors.Wrap(err, "init repair progress")
+	//	}
+	//	pm.metrics.SetTokenRanges(pm.run.ClusterID, p.Keyspace, p.Table, p.Host,
+	//		p.TokenRanges, p.Success, p.Error)
+	//}
 
 	return nil
 }
@@ -241,14 +240,14 @@ func (pm *dbProgressManager) initState(plan *plan) error {
 		return errors.Wrap(err, "fetch state from previous run")
 	}
 
-	// Insert updated state into DB
-	q := table.RepairRunState.InsertQuery(pm.session)
-	defer q.Release()
-	for _, rs := range pm.state {
-		if err := q.BindStruct(rs).Exec(); err != nil {
-			return errors.Wrap(err, "init repair state")
-		}
-	}
+	//// Insert updated state into DB
+	//q := table.RepairRunState.InsertQuery(pm.session)
+	//defer q.Release()
+	//for _, rs := range pm.state {
+	//	if err := q.BindStruct(rs).Exec(); err != nil {
+	//		return errors.Wrap(err, "init repair state")
+	//	}
+	//}
 
 	return nil
 }
@@ -272,8 +271,8 @@ func (pm *dbProgressManager) GetCompletedRanges(keyspace, table string) (doneRan
 
 func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 	start := timeutc.Now()
-	q := table.RepairRunProgress.InsertQuery(pm.session)
-	defer q.Release()
+	//q := table.RepairRunProgress.InsertQuery(pm.session)
+	//defer q.Release()
 
 	for _, h := range j.replicaSet {
 		pk := newHostKsTable(h.String(), j.keyspace, j.table)
@@ -289,15 +288,15 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 			rp.DurationStartedAt = &start
 		}
 
-		q.BindStruct(rp)
+		//q.BindStruct(rp)
 		// Inserts of repair run progress don't need to be done under mutex
 		// as long as the 1 job per 1 host rule is respected.
 		pm.mu.Unlock()
 
-		if err := q.Exec(); err != nil {
-			pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
-		}
-		pm.metrics.AddJob(pm.run.ClusterID, h.String(), len(j.ranges))
+		//if err := q.Exec(); err != nil {
+		//	pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
+		//}
+		//pm.metrics.AddJob(pm.run.ClusterID, h.String(), len(j.ranges))
 	}
 }
 
@@ -309,8 +308,8 @@ func (pm *dbProgressManager) OnJobEnd(ctx context.Context, result jobResult) {
 
 func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobResult) {
 	end := timeutc.Now()
-	q := table.RepairRunProgress.InsertQuery(pm.session)
-	defer q.Release()
+	//q := table.RepairRunProgress.InsertQuery(pm.session)
+	//defer q.Release()
 
 	for _, h := range result.replicaSet {
 		pm.mu.Lock()
@@ -331,14 +330,14 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 		if rp.Completed() {
 			rp.CompletedAt = &end
 		}
-		q.BindStruct(rp)
+		//q.BindStruct(rp)
 		// Inserts of repair run progress don't need to be done under mutex
 		// as long as the 1 job per 1 host rule is respected.
 		pm.mu.Unlock()
 
-		if err := q.Exec(); err != nil {
-			pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
-		}
+		//if err := q.Exec(); err != nil {
+		//	pm.logger.Error(ctx, "Update repair progress", "key", pk, "error", err)
+		//}
 
 		pm.metrics.SubJob(pm.run.ClusterID, h.String(), len(result.ranges))
 		pm.metrics.SetTokenRanges(pm.run.ClusterID, result.keyspace, result.table, h.String(),
@@ -362,9 +361,9 @@ func (pm *dbProgressManager) onJobEndState(ctx context.Context, result jobResult
 	rs := pm.state[sk]
 	rs.SuccessRanges = append(rs.SuccessRanges, result.ranges...)
 
-	if err := table.RepairRunState.InsertQuery(pm.session).BindStruct(rs).ExecRelease(); err != nil {
-		pm.logger.Error(ctx, "Update repair state", "key", sk, "error", err)
-	}
+	//if err := table.RepairRunState.InsertQuery(pm.session).BindStruct(rs).ExecRelease(); err != nil {
+	//	pm.logger.Error(ctx, "Update repair state", "key", sk, "error", err)
+	//}
 }
 
 // updateTotalProgress updates total repair progress weighted by repaired table size.
@@ -602,26 +601,27 @@ func (pm *dbProgressManager) ForEachPrevRunProgress(f func(*RunProgress)) error 
 }
 
 func (pm *dbProgressManager) forEachRunProgress(prev bool, f func(*RunProgress)) error {
-	m := qb.M{
-		"cluster_id": pm.run.ClusterID,
-		"task_id":    pm.run.TaskID,
-		"run_id":     pm.run.ID,
-	}
-	if prev {
-		if pm.run.PrevID == uuid.Nil {
-			return nil
-		}
-		m["run_id"] = pm.run.PrevID
-	}
-	q := table.RepairRunProgress.SelectQuery(pm.session).BindMap(m)
-	defer q.Release()
-	iter := q.Iter()
-
-	pr := &RunProgress{}
-	for iter.StructScan(pr) {
-		f(pr)
-	}
-	return iter.Close()
+	return nil
+	//m := qb.M{
+	//	"cluster_id": pm.run.ClusterID,
+	//	"task_id":    pm.run.TaskID,
+	//	"run_id":     pm.run.ID,
+	//}
+	//if prev {
+	//	if pm.run.PrevID == uuid.Nil {
+	//		return nil
+	//	}
+	//	m["run_id"] = pm.run.PrevID
+	//}
+	//q := table.RepairRunProgress.SelectQuery(pm.session).BindMap(m)
+	//defer q.Release()
+	//iter := q.Iter()
+	//
+	//pr := &RunProgress{}
+	//for iter.StructScan(pr) {
+	//	f(pr)
+	//}
+	//return iter.Close()
 }
 
 func (pm *dbProgressManager) ForEachRunState(f func(*RunState)) error {
@@ -633,24 +633,25 @@ func (pm *dbProgressManager) ForEachPrevRunState(f func(*RunState)) error {
 }
 
 func (pm *dbProgressManager) forEachRunState(prev bool, f func(*RunState)) error {
-	m := qb.M{
-		"cluster_id": pm.run.ClusterID,
-		"task_id":    pm.run.TaskID,
-		"run_id":     pm.run.ID,
-	}
-	if prev {
-		if pm.run.PrevID == uuid.Nil {
-			return nil
-		}
-		m["run_id"] = pm.run.PrevID
-	}
-	q := table.RepairRunState.SelectQuery(pm.session).BindMap(m)
-	defer q.Release()
-	iter := q.Iter()
-
-	pr := &RunState{}
-	for iter.StructScan(pr) {
-		f(pr)
-	}
-	return iter.Close()
+	return nil
+	//m := qb.M{
+	//	"cluster_id": pm.run.ClusterID,
+	//	"task_id":    pm.run.TaskID,
+	//	"run_id":     pm.run.ID,
+	//}
+	//if prev {
+	//	if pm.run.PrevID == uuid.Nil {
+	//		return nil
+	//	}
+	//	m["run_id"] = pm.run.PrevID
+	//}
+	//q := table.RepairRunState.SelectQuery(pm.session).BindMap(m)
+	//defer q.Release()
+	//iter := q.Iter()
+	//
+	//pr := &RunState{}
+	//for iter.StructScan(pr) {
+	//	f(pr)
+	//}
+	//return iter.Close()
 }

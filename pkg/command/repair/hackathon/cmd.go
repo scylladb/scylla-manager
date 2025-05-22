@@ -5,6 +5,7 @@ package hackathon
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -21,10 +22,12 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/logutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/sqlc/queries"
 	"github.com/spf13/cobra"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed res.yaml
@@ -83,18 +86,28 @@ func (cmd *command) run() error {
 		return errors.Wrap(err, "create client")
 	}
 
-	s, err := repair.NewService(cmd.dataPath, repair.DefaultConfig(), metrics.NewRepairMetrics(),
+	session, err := cmd.getSession(ctx)
+	if err != nil {
+		return errors.Wrap(err, "create session")
+	}
+
+	s, err := repair.NewService(session, repair.DefaultConfig(), metrics.NewRepairMetrics(),
 		func(ctx context.Context, _ uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
 		func(ctx context.Context, _ uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
-			return cmd.getSession(ctx, client)
+			return cmd.getClusterSession(ctx, client)
 		}, nil, logger.Named("repair"))
 	if err != nil {
 		return errors.Wrap(err, "create repair service")
 	}
 
-	return s.Runner().Run(ctx, uuid.Nil, uuid.Nil, uuid.Nil, json.RawMessage{})
+	props, err := json.Marshal(defaultTaskProperties())
+	if err != nil {
+		return errors.Wrap(err, "marshal task properties")
+	}
+
+	return s.Runner().Run(ctx, uuid.Nil, uuid.Nil, uuid.Nil, props)
 }
 
 func (cmd *command) getClient(ctx context.Context, logger log.Logger) (*scyllaclient.Client, error) {
@@ -130,7 +143,7 @@ func (cmd *command) knownHosts(ctx context.Context, logger log.Logger) ([]string
 	return client.GossiperEndpointLiveGet(ctx)
 }
 
-func (cmd *command) getSession(ctx context.Context, client *scyllaclient.Client) (session gocqlx.Session, err error) {
+func (cmd *command) getClusterSession(ctx context.Context, client *scyllaclient.Client) (session gocqlx.Session, err error) {
 	cfg := gocql.NewCluster()
 
 	sessionHosts, err := cmd.getRPCAddresses(ctx, client)
@@ -212,4 +225,44 @@ func (cmd *command) extendClusterConfigWithTLS(ni *scyllaclient.NodeInfo, cfg *g
 	}
 
 	return nil
+}
+
+//go:embed schema.sql
+var schema string
+
+func (cmd *command) getSession(ctx context.Context) (*queries.Queries, error) {
+	db, err := sql.Open("sqlite", cmd.dataPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "opens sqllite db")
+	}
+	if _, err := db.ExecContext(ctx, schema); err != nil {
+		return nil, errors.Wrap(err, "create schema")
+	}
+	return queries.New(db), nil
+}
+
+// taskProperties is the main data structure of the runner.Properties blob.
+type taskProperties struct {
+	Keyspace            []string `json:"keyspace"`
+	DC                  []string `json:"dc"`
+	Host                string   `json:"host"`
+	IgnoreDownHosts     bool     `json:"ignore_down_hosts"`
+	FailFast            bool     `json:"fail_fast"`
+	Continue            bool     `json:"continue"`
+	Intensity           float64  `json:"intensity"`
+	Parallel            int      `json:"parallel"`
+	SmallTableThreshold int64    `json:"small_table_threshold"`
+}
+
+func defaultTaskProperties() *taskProperties {
+	return &taskProperties{
+		// Don't repair system_traces unless it has been deliberately specified.
+		Keyspace: []string{"*", "!system_traces"},
+
+		Continue:  true,
+		Intensity: 0,
+
+		// Consider 1GB table as small by default.
+		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
+	}
 }

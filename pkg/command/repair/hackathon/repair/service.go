@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
@@ -29,13 +30,14 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/workerpool"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
+	"github.com/scylladb/scylla-manager/v3/sqlc/queries"
 	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 )
 
 // Service orchestrates cluster repairs.
 type Service struct {
-	session gocqlx.Session // TODO: replace with sql
+	session *queries.Queries
 	config  Config
 	metrics metrics.RepairMetrics
 
@@ -48,7 +50,7 @@ type Service struct {
 	mu                sync.Mutex
 }
 
-func NewService(dataPath string, config Config, metrics metrics.RepairMetrics,
+func NewService(session *queries.Queries, config Config, metrics metrics.RepairMetrics,
 	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
 	logger log.Logger,
 ) (*Service, error) {
@@ -61,6 +63,7 @@ func NewService(dataPath string, config Config, metrics metrics.RepairMetrics,
 	}
 
 	return &Service{
+		session:           session,
 		config:            config,
 		metrics:           metrics,
 		scyllaClient:      scyllaClient,
@@ -423,7 +426,8 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, ru
 
 // putRun upserts a repair run.
 func (s *Service) putRun(r *Run) error {
-	return table.RepairRun.InsertQuery(s.session).BindStruct(r).ExecRelease()
+	return nil
+	//return table.RepairRun.InsertQuery(s.session).BindStruct(r).ExecRelease()
 }
 
 // putRunLogError executes putRun and consumes the error.
@@ -439,12 +443,13 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 // GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
 func (s *Service) GetRun(_ context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
-	var r Run
-	return &r, table.RepairRun.GetQuery(s.session).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    taskID,
-		"id":         runID,
-	}).GetRelease(&r)
+	return nil, gocql.ErrNotFound
+	//var r Run
+	//return &r, table.RepairRun.GetQuery(s.session).BindMap(qb.M{
+	//	"cluster_id": clusterID,
+	//	"task_id":    taskID,
+	//	"id":         runID,
+	//}).GetRelease(&r)
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
@@ -484,89 +489,92 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 
 // SetIntensity changes intensity of an ongoing repair.
 func (s *Service) SetIntensity(ctx context.Context, clusterID uuid.UUID, intensity float64) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	ih, ok := s.intensityHandlers[clusterID]
-	if !ok {
-		return errors.Wrap(util.ErrNotFound, "repair task")
-	}
-	if intensity < 0 {
-		return util.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
-	}
-	ih.SetIntensity(ctx, NewIntensityFromDeprecated(intensity))
-	// Preserve applied change in SM DB, so that it will be visible in next task runs
-	err := table.RepairRun.UpdateBuilder("intensity").Query(s.session).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    ih.taskID,
-		"id":         ih.runID,
-		"intensity":  ih.Intensity(),
-	}).ExecRelease()
-	return errors.Wrap(err, "update db")
+	return nil
+	//s.mu.Lock()
+	//defer s.mu.Unlock()
+	//
+	//ih, ok := s.intensityHandlers[clusterID]
+	//if !ok {
+	//	return errors.Wrap(util.ErrNotFound, "repair task")
+	//}
+	//if intensity < 0 {
+	//	return util.ErrValidate(errors.Errorf("setting invalid intensity value %.2f", intensity))
+	//}
+	//ih.SetIntensity(ctx, NewIntensityFromDeprecated(intensity))
+	//// Preserve applied change in SM DB, so that it will be visible in next task runs
+	//err := table.RepairRun.UpdateBuilder("intensity").Query(s.session).BindMap(qb.M{
+	//	"cluster_id": clusterID,
+	//	"task_id":    ih.taskID,
+	//	"id":         ih.runID,
+	//	"intensity":  ih.Intensity(),
+	//}).ExecRelease()
+	//return errors.Wrap(err, "update db")
 }
 
 // SetParallel changes parallelism of an ongoing repair.
 func (s *Service) SetParallel(ctx context.Context, clusterID uuid.UUID, parallel int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	ih, ok := s.intensityHandlers[clusterID]
-	if !ok {
-		return errors.Wrap(util.ErrNotFound, "repair task")
-	}
-	if parallel < 0 {
-		return util.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
-	}
-	ih.SetParallel(ctx, parallel)
-	// Preserve applied change in SM DB, so that it will be visible in next task runs
-	err := table.RepairRun.UpdateBuilder("parallel").Query(s.session).BindMap(qb.M{
-		"cluster_id": clusterID,
-		"task_id":    ih.taskID,
-		"id":         ih.runID,
-		"parallel":   ih.Parallel(),
-	}).ExecRelease()
-	return errors.Wrap(err, "update db")
+	return nil
+	//s.mu.Lock()
+	//defer s.mu.Unlock()
+	//
+	//ih, ok := s.intensityHandlers[clusterID]
+	//if !ok {
+	//	return errors.Wrap(util.ErrNotFound, "repair task")
+	//}
+	//if parallel < 0 {
+	//	return util.ErrValidate(errors.Errorf("setting invalid parallel value %d", parallel))
+	//}
+	//ih.SetParallel(ctx, parallel)
+	//// Preserve applied change in SM DB, so that it will be visible in next task runs
+	//err := table.RepairRun.UpdateBuilder("parallel").Query(s.session).BindMap(qb.M{
+	//	"cluster_id": clusterID,
+	//	"task_id":    ih.taskID,
+	//	"id":         ih.runID,
+	//	"parallel":   ih.Parallel(),
+	//}).ExecRelease()
+	//return errors.Wrap(err, "update db")
 }
 
-func shouldBatchRanges(session gocqlx.Session, clusterID, taskID, runID uuid.UUID) (bool, error) {
-	prevIDs, err := getAllPrevRunIDs(session, clusterID, taskID, runID)
-	if err != nil {
-		return false, err
-	}
-	if len(prevIDs) == 0 {
-		return true, nil
-	}
-
-	q := qb.Select(table.SchedulerTaskRun.Name()).Columns(
-		"status",
-	).Where(
-		qb.Eq("cluster_id"),
-		qb.Eq("type"),
-		qb.Eq("task_id"),
-		qb.Eq("id"),
-	).Query(session)
-	defer q.Release()
-
-	var status string
-	for _, id := range prevIDs {
-		err := q.BindMap(qb.M{
-			"cluster_id": clusterID,
-			"type":       "repair",
-			"task_id":    taskID,
-			"id":         id,
-		}).Scan(&status)
-		if err != nil {
-			return false, errors.Wrap(err, "get prev run status")
-		}
-		// Fall back to no-batching when some of the previous runs:
-		// - finished with error
-		// - got out of scheduler window
-		if status == "WAITING" || status == "ERROR" {
-			return false, nil
-		}
-	}
-
+func shouldBatchRanges(session *queries.Queries, clusterID, taskID, runID uuid.UUID) (bool, error) {
 	return true, nil
+	//prevIDs, err := getAllPrevRunIDs(session, clusterID, taskID, runID)
+	//if err != nil {
+	//	return false, err
+	//}
+	//if len(prevIDs) == 0 {
+	//	return true, nil
+	//}
+	//
+	//q := qb.Select(table.SchedulerTaskRun.Name()).Columns(
+	//	"status",
+	//).Where(
+	//	qb.Eq("cluster_id"),
+	//	qb.Eq("type"),
+	//	qb.Eq("task_id"),
+	//	qb.Eq("id"),
+	//).Query(session)
+	//defer q.Release()
+	//
+	//var status string
+	//for _, id := range prevIDs {
+	//	err := q.BindMap(qb.M{
+	//		"cluster_id": clusterID,
+	//		"type":       "repair",
+	//		"task_id":    taskID,
+	//		"id":         id,
+	//	}).Scan(&status)
+	//	if err != nil {
+	//		return false, errors.Wrap(err, "get prev run status")
+	//	}
+	//	// Fall back to no-batching when some of the previous runs:
+	//	// - finished with error
+	//	// - got out of scheduler window
+	//	if status == "WAITING" || status == "ERROR" {
+	//		return false, nil
+	//	}
+	//}
+	//
+	//return true, nil
 }
 
 func getAllPrevRunIDs(session gocqlx.Session, clusterID, taskID, runID uuid.UUID) ([]uuid.UUID, error) {
