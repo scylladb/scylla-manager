@@ -268,7 +268,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		Intensity: target.Intensity,
 		StartTime: timeutc.Now(),
 	}
-	if err := s.putRun(run); err != nil {
+	if err := s.putRun(ctx, run); err != nil {
 		return errors.Wrapf(err, "put run")
 	}
 
@@ -306,7 +306,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	if err := pm.Init(p, prevID); err != nil {
+	if err := pm.Init(ctx, p, prevID); err != nil {
 		return err
 	}
 	s.putRunLogError(ctx, run)
@@ -425,14 +425,13 @@ func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, ru
 }
 
 // putRun upserts a repair run.
-func (s *Service) putRun(r *Run) error {
-	return nil
-	//return table.RepairRun.InsertQuery(s.session).BindStruct(r).ExecRelease()
+func (s *Service) putRun(ctx context.Context, run *Run) error {
+	return s.session.InsertRepairRun(ctx, queries.InsertRepairRunParams(gocqlToSqlRun(*run)))
 }
 
 // putRunLogError executes putRun and consumes the error.
 func (s *Service) putRunLogError(ctx context.Context, r *Run) {
-	if err := s.putRun(r); err != nil {
+	if err := s.putRun(ctx, r); err != nil {
 		s.logger.Error(ctx, "Cannot update the run",
 			"run", r,
 			"error", err,
@@ -442,14 +441,19 @@ func (s *Service) putRunLogError(ctx context.Context, r *Run) {
 
 // GetRun returns a run based on ID. If nothing was found scylla-manager.ErrNotFound
 // is returned.
-func (s *Service) GetRun(_ context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
-	return nil, gocql.ErrNotFound
-	//var r Run
-	//return &r, table.RepairRun.GetQuery(s.session).BindMap(qb.M{
-	//	"cluster_id": clusterID,
-	//	"task_id":    taskID,
-	//	"id":         runID,
-	//}).GetRelease(&r)
+func (s *Service) GetRun(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*Run, error) {
+	run, err := s.session.GetRepairRun(ctx, queries.GetRepairRunParams{
+		ClusterID: clusterID.String(),
+		TaskID:    taskID.String(),
+		ID:        runID.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(run) == 0 {
+		return nil, gocql.ErrNotFound
+	}
+	return sqlToGocqlRun(run[0]), nil
 }
 
 // GetProgress returns run progress for all shards on all the hosts. If nothing
@@ -461,7 +465,7 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	}
 
 	pm := NewDBProgressManager(run, s.session, s.metrics, s.logger)
-	p, err := pm.AggregateProgress()
+	p, err := pm.AggregateProgress(ctx)
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "aggregate progress")
 	}

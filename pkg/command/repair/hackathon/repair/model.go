@@ -3,12 +3,14 @@
 package repair
 
 import (
+	"database/sql"
 	"net/netip"
 	"time"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/sqlc/queries"
 )
 
 // Unit represents keyspace and its tables.
@@ -192,4 +194,112 @@ type Progress struct {
 
 func isTimeSet(t *time.Time) bool {
 	return t != nil && !t.IsZero()
+}
+
+func sqlToGocqlRun(run queries.RepairRun) *Run {
+	return &Run{
+		ClusterID: uuid.MustParse(run.ClusterID),
+		TaskID:    uuid.MustParse(run.TaskID),
+		ID:        uuid.MustParse(run.ID),
+		Host:      run.Host,
+		DC:        []string{"dc1"},
+		Parallel:  int(run.Parallel.Int64),
+		Intensity: Intensity(run.Intensity.Int64),
+		PrevID:    uuid.MustParse(run.PrevID),
+		StartTime: run.StartTime,
+		EndTime:   run.EndTime,
+	}
+}
+
+func sqlToGocqlRunProgress(run queries.RepairRunProgress) *RunProgress {
+	var startedAt, completedAt, durationStartedAt *time.Time
+	if run.StartedAt.Valid {
+		startedAt = &run.StartedAt.Time
+	}
+	if run.CompletedAt.Valid {
+		completedAt = &run.CompletedAt.Time
+	}
+	if run.DurationStartedAt.Valid {
+		durationStartedAt = &run.DurationStartedAt.Time
+	}
+	return &RunProgress{
+		ClusterID:         uuid.MustParse(run.ClusterID),
+		TaskID:            uuid.MustParse(run.TaskID),
+		RunID:             uuid.MustParse(run.RunID),
+		Host:              run.Host,
+		Keyspace:          run.KeyspaceName,
+		Table:             run.TableName,
+		Size:              run.Size,
+		TokenRanges:       run.TokenRanges,
+		Success:           run.Success,
+		Error:             run.Error,
+		StartedAt:         startedAt,
+		CompletedAt:       completedAt,
+		Duration:          time.Duration(run.Duration),
+		DurationStartedAt: durationStartedAt,
+	}
+}
+
+func sqlToGocqlRunState(run queries.RepairRunState) *RunState {
+	return &RunState{
+		ClusterID:     uuid.MustParse(run.ClusterID),
+		TaskID:        uuid.MustParse(run.TaskID),
+		RunID:         uuid.MustParse(run.RunID),
+		Keyspace:      run.KeyspaceName,
+		Table:         run.TableName,
+		SuccessRanges: []scyllaclient.TokenRange{{1, 2}},
+	}
+}
+
+func gocqlToSqlRun(run Run) queries.RepairRun {
+	return queries.RepairRun{
+		ClusterID: run.ClusterID.String(),
+		TaskID:    run.TaskID.String(),
+		ID:        run.ID.String(),
+		Dc:        []byte{48, 49, 50, 51, 52, 53, 54, 55, 56, 57},
+		EndTime:   run.EndTime,
+		Host:      run.Host,
+		PrevID:    run.PrevID.String(),
+		StartTime: run.StartTime,
+	}
+}
+
+func gocqlToSqlRunProgress(run RunProgress) queries.RepairRunProgress {
+	var completedAt, startedAt, durationStartedAt sql.NullTime
+	if run.CompletedAt != nil {
+		completedAt = sql.NullTime{Time: *run.CompletedAt, Valid: true}
+	}
+	if run.StartedAt != nil {
+		startedAt = sql.NullTime{Time: *run.StartedAt, Valid: true}
+	}
+	if run.DurationStartedAt != nil {
+		durationStartedAt = sql.NullTime{Time: *run.DurationStartedAt, Valid: true}
+	}
+	return queries.RepairRunProgress{
+		ClusterID:         run.ClusterID.String(),
+		TaskID:            run.TaskID.String(),
+		RunID:             run.RunID.String(),
+		Host:              run.Host,
+		KeyspaceName:      run.Keyspace,
+		TableName:         run.Table,
+		CompletedAt:       completedAt,
+		Duration:          int64(run.Duration),
+		DurationStartedAt: durationStartedAt,
+		Error:             run.Error,
+		Size:              run.Size,
+		StartedAt:         startedAt,
+		Success:           run.Success,
+		TokenRanges:       run.TokenRanges,
+	}
+}
+
+func gocqlToSqlRunState(run RunState) queries.RepairRunState {
+	return queries.RepairRunState{
+		ClusterID:     run.ClusterID.String(),
+		TaskID:        run.TaskID.String(),
+		RunID:         run.RunID.String(),
+		KeyspaceName:  run.Keyspace,
+		TableName:     run.Table,
+		SuccessRanges: []byte{1, 2, 3, 4, 5},
+	}
 }

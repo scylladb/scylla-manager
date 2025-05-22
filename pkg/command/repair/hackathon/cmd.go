@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -231,6 +232,16 @@ func (cmd *command) extendClusterConfigWithTLS(ni *scyllaclient.NodeInfo, cfg *g
 var schema string
 
 func (cmd *command) getSession(ctx context.Context) (*queries.Queries, error) {
+	if cmd.dataPath == "" {
+		return nil, errors.New("no data path specified")
+	}
+	fi, err := os.Stat(cmd.dataPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "check data path")
+	}
+	if fi.Mode().IsDir() {
+		cmd.dataPath = path.Join(cmd.dataPath, "db.db")
+	}
 	db, err := sql.Open("sqlite", cmd.dataPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "opens sqllite db")
