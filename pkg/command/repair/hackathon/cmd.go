@@ -246,6 +246,7 @@ func (cmd *command) getSession(ctx context.Context) (*queries.Queries, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "opens sqllite db")
 	}
+	db.SetMaxOpenConns(1)
 	if _, err := db.ExecContext(ctx, schema); err != nil {
 		return nil, errors.Wrap(err, "create schema")
 	}
