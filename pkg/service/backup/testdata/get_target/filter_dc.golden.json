@@ -49,5 +49,5 @@
   ],
   "continue": true,
   "transfers": -1,
-  "api_hint": "auto"
+  "method": "auto"
 }

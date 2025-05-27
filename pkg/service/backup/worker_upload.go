@@ -85,22 +85,22 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 			nativeBackupSupportErr = w.snapshotDirNativeBackupSupport(ctx, h.IP, d)
 		}
 
-		switch w.APIHint {
-		case apiHintNative:
+		switch w.Method {
+		case methodNative:
 			if nativeBackupSupportErr != nil {
 				return errors.Wrap(nativeBackupSupportErr, "ensure native backup")
 			}
 			return errors.Wrap(w.nativeBackup(ctx, h, d), "native backup")
-		case apiHintRclone:
+		case methodRclone:
 			return errors.Wrap(w.rcloneBackup(ctx, h, d), "rclone backup")
-		case apiHintAuto:
+		case methodAuto:
 			if nativeBackupSupportErr != nil {
 				return errors.Wrap(w.rcloneBackup(ctx, h, d), "auto rclone backup")
 			} else {
 				return errors.Wrap(w.nativeBackup(ctx, h, d), "auto native backup")
 			}
 		default:
-			return errors.New("unknown api hint: " + string(w.APIHint))
+			return errors.New("unknown method: " + string(w.Method))
 		}
 	}
 

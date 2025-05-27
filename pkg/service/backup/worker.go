@@ -62,7 +62,7 @@ type workerTools struct {
 	TaskID      uuid.UUID
 	RunID       uuid.UUID
 	SnapshotTag string
-	APIHint     apiHint
+	Method      method
 	Config      Config
 	Client      *scyllaclient.Client
 	Logger      log.Logger

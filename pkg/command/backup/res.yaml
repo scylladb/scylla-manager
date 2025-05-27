@@ -51,7 +51,7 @@ skip-schema: |
   This flag can be used to skip this step and allow for backing up user data without providing SM with CQL credentials.
   Note that it's impossible to restore schema from such backups.
 
-api-hint: |
+method: |
   Specify API used for uploading files.
   This flag can be set to either:
   - 'auto' means that native backup API will be used when possible, otherwise Rclone API will be used.

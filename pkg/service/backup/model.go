@@ -58,7 +58,7 @@ type Target struct {
 	Continue         bool                  `json:"continue,omitempty"`
 	PurgeOnly        bool                  `json:"purge_only,omitempty"`
 	SkipSchema       bool                  `json:"skip_schema,omitempty"`
-	APIHint          apiHint               `json:"api_hint,omitempty"`
+	Method           method                `json:"method,omitempty"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -95,16 +95,16 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 // This happens when working with runs coming from versions prior to adding stage.
 const stageNone Stage = ""
 
-// apiHint describes which API should be used by SM during backup.
-type apiHint string
+// method describes which API should be used by SM during backup.
+type method string
 
 const (
-	// apiHintAuto means that SM will use native backup API when possible, and rclone API otherwise.
-	apiHintAuto apiHint = "auto"
-	// apiHintRclone means that SM will only use rclone API.
-	apiHintRclone apiHint = "rclone"
-	// apiHintNative means that SM will only use native scylla backup API (whether it's configured or not).
-	apiHintNative apiHint = "native"
+	// methodAuto means that SM will use native backup API when possible, and rclone API otherwise.
+	methodAuto method = "auto"
+	// methodRclone means that SM will only use rclone API.
+	methodRclone method = "rclone"
+	// methodNative means that SM will only use native scylla backup API (whether it's configured or not).
+	methodNative method = "native"
 )
 
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
@@ -231,7 +231,7 @@ type taskProperties struct {
 	Continue         bool                  `json:"continue"`
 	PurgeOnly        bool                  `json:"purge_only"`
 	SkipSchema       bool                  `json:"skip_schema"`
-	APIHint          apiHint               `json:"api_hint,omitempty"`
+	Method           method                `json:"method,omitempty"`
 }
 
 func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error {
@@ -245,8 +245,8 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or greater than zero")
 	}
-	if !slices.Contains([]apiHint{apiHintAuto, apiHintRclone, apiHintNative}, p.APIHint) {
-		return errors.New("unknown api hint: " + string(p.APIHint))
+	if !slices.Contains([]method{methodAuto, methodRclone, methodNative}, p.Method) {
+		return errors.New("unknown method: " + string(p.Method))
 	}
 
 	// Validate location DCs
@@ -300,7 +300,7 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 		Continue:         p.Continue,
 		PurgeOnly:        p.PurgeOnly,
 		SkipSchema:       p.SkipSchema,
-		APIHint:          p.APIHint,
+		Method:           p.Method,
 		liveNodes:        liveNodes,
 	}, nil
 }
@@ -404,7 +404,7 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
 		Transfers: scyllaclient.TransfersFromConfig,
-		APIHint:   apiHintAuto,
+		Method:    methodAuto,
 		Continue:  true,
 	}
 }

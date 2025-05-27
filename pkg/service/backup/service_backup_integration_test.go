@@ -170,7 +170,7 @@ func (h *backupTestHelper) setInterceptorWaitPath(hosts []string, paths ...strin
 	chanIsClosed := false
 	missingHosts, err := maps.MapKeyWithError(maps.SetFromSlice(hosts), netip.ParseAddr)
 	if err != nil {
-		h.T.Fatal(errors.Wrap(err, "setInterceptorWaitPath: parse provided hosts IPs"))
+		h.T.Error(errors.Wrap(err, "setInterceptorWaitPath: parse provided hosts IPs"))
 	}
 
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -186,7 +186,7 @@ func (h *backupTestHelper) setInterceptorWaitPath(hosts []string, paths ...strin
 
 					ip, err := netip.ParseAddr(req.URL.Hostname())
 					if err != nil {
-						h.T.Fatal(errors.Wrap(err, "setInterceptorWaitPath: parse request host IP"))
+						h.T.Error(errors.Wrap(err, "setInterceptorWaitPath: parse request host IP"))
 					}
 
 					delete(missingHosts, ip)
@@ -2591,7 +2591,7 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 	}
 }
 
-func TestBackupAPIHintIntegration(t *testing.T) {
+func TestBackupMethodIntegration(t *testing.T) {
 	// This test validates that the correct API is used
 	// for uploading snapshot dirs (Rclone or Scylla).
 	const (
@@ -2624,7 +2624,7 @@ func TestBackupAPIHintIntegration(t *testing.T) {
 	}
 
 	type testCase struct {
-		apiHint          string
+		method           string
 		blockedPath      string
 		ensuredPath      string
 		getTargetSuccess bool
@@ -2635,26 +2635,26 @@ func TestBackupAPIHintIntegration(t *testing.T) {
 	switch {
 	case support && !IsIPV6Network():
 		testCases = []testCase{
-			{apiHint: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{apiHint: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	case support && IsIPV6Network():
 		testCases = []testCase{
-			{apiHint: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{apiHint: "native", getTargetSuccess: false},
-			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "native", getTargetSuccess: false},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	default:
 		testCases = []testCase{
-			{apiHint: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{apiHint: "native", getTargetSuccess: false},
-			{apiHint: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "native", getTargetSuccess: false},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Test case: %s", tc.apiHint), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Test case: %s", tc.method), func(t *testing.T) {
 			encounteredEnsured := atomic.NewBool(false)
 			encounteredBlocked := atomic.NewBool(false)
 			if tc.getTargetSuccess {
@@ -2672,7 +2672,7 @@ func TestBackupAPIHintIntegration(t *testing.T) {
 			rawProps, err := json.Marshal(map[string]any{
 				"location": []backupspec.Location{location},
 				"keyspace": []string{testKeyspace},
-				"api_hint": tc.apiHint,
+				"method":   tc.method,
 			})
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "create raw properties"))

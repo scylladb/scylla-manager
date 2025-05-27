@@ -134,8 +134,8 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 	if err := json.Unmarshal(properties, &p); err != nil {
 		return Target{}, util.ErrValidate(err)
 	}
-	if p.APIHint == "" {
-		p.APIHint = defaultTaskProperties().APIHint
+	if p.Method == "" {
+		p.Method = defaultTaskProperties().Method
 	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
@@ -167,7 +167,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, errors.Wrap(err, "location is not accessible")
 	}
 
-	if p.APIHint == apiHintNative {
+	if p.Method == methodNative {
 		if err := s.validateHostNativeBackupSupport(clusterID, liveNodes, p); err != nil {
 			return Target{}, err
 		}
@@ -735,7 +735,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			TaskID:      taskID,
 			RunID:       runID,
 			SnapshotTag: run.SnapshotTag,
-			APIHint:     target.APIHint,
+			Method:      target.Method,
 			Config:      s.config,
 			Client:      client,
 		},
