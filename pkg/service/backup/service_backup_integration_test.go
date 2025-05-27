@@ -13,9 +13,11 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/netip"
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
@@ -160,15 +163,38 @@ func (h *backupTestHelper) setInterceptorBlockPathOnFirstHost(paths ...string) {
 	}))
 }
 
-func (h *backupTestHelper) setInterceptorWaitPath(paths ...string) chan struct{} {
-	guard := atomic.NewBool(false)
+func (h *backupTestHelper) setInterceptorWaitPath(hosts []string, paths ...string) chan struct{} {
 	wait := make(chan struct{})
+
+	mu := sync.Mutex{}
+	chanIsClosed := false
+	missingHosts, err := maps.MapKeyWithError(maps.SetFromSlice(hosts), netip.ParseAddr)
+	if err != nil {
+		h.T.Fatal(errors.Wrap(err, "setInterceptorWaitPath: parse provided hosts IPs"))
+	}
+
 	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		for _, p := range paths {
 			if strings.HasPrefix(req.URL.Path, p) {
-				if guard.CompareAndSwap(false, true) {
-					close(wait)
-				}
+				func() {
+					mu.Lock()
+					defer mu.Unlock()
+
+					if chanIsClosed {
+						return
+					}
+
+					ip, err := netip.ParseAddr(req.URL.Hostname())
+					if err != nil {
+						h.T.Fatal(errors.Wrap(err, "setInterceptorWaitPath: parse request host IP"))
+					}
+
+					delete(missingHosts, ip)
+					if len(missingHosts) == 0 && !chanIsClosed {
+						chanIsClosed = true
+						close(wait)
+					}
+				}()
 			}
 		}
 		return nil, nil
@@ -1072,7 +1098,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 			done        = make(chan struct{})
 		)
 
-		upload := h.setInterceptorWaitPath("/storage_service/backup", "/agent/rclone/sync/movedir")
+		upload := h.setInterceptorWaitPath(h.GetHostsFromDC("dc1"), "/task_manager/wait_task", "/agent/rclone/job/progress")
 
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(err)
@@ -1130,7 +1156,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		)
 		defer cancel()
 
-		upload := h.setInterceptorWaitPath("/storage_service/backup", "/agent/rclone/sync/movedir")
+		upload := h.setInterceptorWaitPath(h.GetHostsFromDC("dc1"), "/task_manager/wait_task", "/agent/rclone/job/progress")
 
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(err)
