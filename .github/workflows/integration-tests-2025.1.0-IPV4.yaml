@@ -106,6 +106,8 @@ jobs:
               run: make pkg-integration-test PKG=./pkg/store
             - name: Run migrate tests
               run: make pkg-integration-test PKG=./pkg/schema/migrate
+            - name: Run 1-1-restore tests
+              run: make pkg-integration-test PKG=./pkg/service/one2onerestore
 name: integration-tests-2025.1.0-IPV4
 "on":
     pull_request:
