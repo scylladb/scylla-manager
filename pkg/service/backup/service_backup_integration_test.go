@@ -31,7 +31,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
-
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -2607,7 +2606,8 @@ func TestBackupMethodIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	WriteData(t, clusterSession, testKeyspace, 1)
+	const tableCnt = 2
+	WriteData(t, clusterSession, testKeyspace, 1, "tab1", "tab2")
 
 	const (
 		rcloneAPIPath = "/agent/rclone/sync/movedir"
@@ -2658,9 +2658,25 @@ func TestBackupMethodIntegration(t *testing.T) {
 			encounteredEnsured := atomic.NewBool(false)
 			encounteredBlocked := atomic.NewBool(false)
 			if tc.getTargetSuccess {
+				waitForParallelUploads := make(chan struct{})
+				parallelUploads := atomic.NewInt32(0)
+
 				h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 					if strings.HasPrefix(req.URL.Path, tc.ensuredPath) {
 						encounteredEnsured.Store(true)
+
+						if tc.ensuredPath == nativeAPIPath {
+							// Verify that tables uploaded with native backup API are uploaded
+							// in parallel within the context of the same host.
+							if cnt := parallelUploads.Add(1); cnt == tableCnt {
+								close(waitForParallelUploads)
+							}
+							select {
+							case <-waitForParallelUploads:
+							case <-time.After(time.Second):
+								t.Error("No parallel uploads")
+							}
+						}
 					}
 					if strings.HasPrefix(req.URL.Path, tc.blockedPath) {
 						encounteredBlocked.Store(true)
@@ -2673,6 +2689,7 @@ func TestBackupMethodIntegration(t *testing.T) {
 				"location": []backupspec.Location{location},
 				"keyspace": []string{testKeyspace},
 				"method":   tc.method,
+				"parallel": 1, // to ensure that parallel uploads come from the same host
 			})
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "create raw properties"))

@@ -4,6 +4,7 @@ package backup
 
 import (
 	"context"
+	stdErr "errors"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,7 +12,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -33,88 +33,115 @@ func (w *worker) Upload(ctx context.Context, hosts []hostInfo, limits []DCLimit)
 }
 
 func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
+	rclone, native, err := w.hostSnapshotDirsByMethod(ctx, h)
+	if err != nil {
+		return errors.Wrap(err, "ensure backup method")
+	}
+
+	var retErr error
+	if len(native) > 0 {
+		err := w.uploadSnapshotDirsInParallel(ctx, h, native, w.nativeBackup, parallel.NoLimit)
+		retErr = stdErr.Join(retErr, err)
+	}
+	if len(rclone) > 0 {
+		err := w.uploadSnapshotDirsInParallel(ctx, h, rclone, w.rcloneBackup, 1)
+		retErr = stdErr.Join(retErr, err)
+	}
+	return retErr
+}
+
+func (w *worker) hostSnapshotDirsByMethod(ctx context.Context, h hostInfo) (rclone, native []snapshotDir, err error) {
 	dirs := w.hostSnapshotDirs(h)
-	hostNativeBackupSupportErr := w.hostNativeBackupSupport(ctx, h.IP, h.NodeConfig.NodeInfo, h.Location)
-	if hostNativeBackupSupportErr == nil {
-		reset, err := w.Client.ScyllaControlTaskUserTTL(ctx, h.IP)
-		if err != nil {
-			return err
-		}
-		defer reset()
+
+	if w.Method == methodRclone {
+		return dirs, nil, nil
 	}
 
-	f := func(i int) (err error) {
-		d := dirs[i]
-
-		// Skip snapshots that are empty.
-		if d.Progress.Size == 0 {
-			w.Logger.Info(ctx, "Table is empty skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
-			now := timeutc.Now()
-			d.Progress.StartedAt = &now
-			d.Progress.CompletedAt = &now
-			w.onRunProgress(ctx, d.Progress)
-			return nil
+	// Handle lack of native backup support on the host level
+	if err := w.hostNativeBackupSupport(ctx, h.IP, h.NodeConfig.NodeInfo, h.Location); err != nil {
+		if w.Method == methodNative {
+			return nil, nil, err
 		}
-		// Skip snapshots that are already uploaded.
-		if d.Progress.IsUploaded() {
-			w.Logger.Info(ctx, "Snapshot already uploaded skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
-			return nil
+		return dirs, nil, nil
+	}
+
+	if w.Method == methodNative {
+		for _, d := range dirs {
+			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, d); err != nil {
+				return nil, nil, errors.Wrapf(err, "%s.%s: ensure native backup support", d.Keyspace, d.Table)
+			}
 		}
+		return nil, dirs, nil
+	}
 
-		// NOTE that defers are executed in LIFO order
-		// Abort on cancel.
-		defer func() {
-			if scheduler.IsTaskInterrupted(ctx) {
-				err = parallel.Abort(err)
-			}
-		}()
-		// Add keyspace table info to error mgs.
-		defer func() {
-			err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
-		}()
-		// Delete table backupspec.
-		defer func() {
-			if err != nil {
-				return
-			}
-			err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
-		}()
-
-		nativeBackupSupportErr := hostNativeBackupSupportErr
-		if nativeBackupSupportErr == nil {
-			nativeBackupSupportErr = w.snapshotDirNativeBackupSupport(ctx, h.IP, d)
-		}
-
-		switch w.Method {
-		case methodNative:
-			if nativeBackupSupportErr != nil {
-				return errors.Wrap(nativeBackupSupportErr, "ensure native backup")
-			}
-			return errors.Wrap(w.nativeBackup(ctx, h, d), "native backup")
-		case methodRclone:
-			return errors.Wrap(w.rcloneBackup(ctx, h, d), "rclone backup")
-		case methodAuto:
-			if nativeBackupSupportErr != nil {
-				return errors.Wrap(w.rcloneBackup(ctx, h, d), "auto rclone backup")
+	if w.Method == methodAuto {
+		for _, d := range dirs {
+			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, d); err != nil {
+				rclone = append(rclone, d)
 			} else {
-				return errors.Wrap(w.nativeBackup(ctx, h, d), "auto native backup")
+				native = append(native, d)
 			}
-		default:
-			return errors.New("unknown method: " + string(w.Method))
 		}
+		return rclone, native, nil
 	}
 
-	notify := func(i int, err error) {
-		d := dirs[i]
-		w.Logger.Error(ctx, "Failed to upload host",
-			"host", d.Host,
-			"keyspace", d.Keyspace,
-			"table", d.Table,
-			"error", err,
-		)
+	return nil, nil, errors.New("unknown method: " + string(w.Method))
+}
+
+type uploadSnapshotDirFunc func(ctx context.Context, h hostInfo, d snapshotDir) error
+
+func (w *worker) uploadSnapshotDirsInParallel(ctx context.Context, h hostInfo, dirs []snapshotDir, f uploadSnapshotDirFunc, limit int) error {
+	return parallel.Run(len(dirs), limit,
+		func(i int) error {
+			return w.uploadSnapshotDirWrapper(ctx, h, dirs[i], f)
+		},
+		func(i int, err error) {
+			d := dirs[i]
+			w.Logger.Error(ctx, "Failed to upload host",
+				"host", d.Host,
+				"keyspace", d.Keyspace,
+				"table", d.Table,
+				"error", err,
+			)
+		})
+}
+
+func (w *worker) uploadSnapshotDirWrapper(ctx context.Context, h hostInfo, d snapshotDir, f uploadSnapshotDirFunc) (err error) {
+	// Skip snapshots that are empty.
+	if d.Progress.Size == 0 {
+		w.Logger.Info(ctx, "Table is empty skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
+		now := timeutc.Now()
+		d.Progress.StartedAt = &now
+		d.Progress.CompletedAt = &now
+		w.onRunProgress(ctx, d.Progress)
+		return nil
+	}
+	// Skip snapshots that are already uploaded.
+	if d.Progress.IsUploaded() {
+		w.Logger.Info(ctx, "Snapshot already uploaded skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
+		return nil
 	}
 
-	return parallel.Run(len(dirs), 1, f, notify)
+	// NOTE that defers are executed in LIFO order
+	// Abort on cancel.
+	defer func() {
+		if scheduler.IsTaskInterrupted(ctx) {
+			err = parallel.Abort(err)
+		}
+	}()
+	// Add keyspace table info to error mgs.
+	defer func() {
+		err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
+	}()
+	// Delete table backupspec.
+	defer func() {
+		if err != nil {
+			return
+		}
+		err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
+	}()
+
+	return f(ctx, h, d)
 }
 
 func (w *worker) rcloneBackup(ctx context.Context, h hostInfo, d snapshotDir) error {
