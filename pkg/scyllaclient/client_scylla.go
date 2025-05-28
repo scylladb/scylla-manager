@@ -1169,11 +1169,7 @@ func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string,
 		params.SkipCleanup = &skipCleanup
 	}
 
-	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(&operations.StorageServiceSstablesByKeyspacePostParams{
-		Context:  forceHost(ctx, host),
-		Keyspace: keyspace,
-		Cf:       table,
-	})
+	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(params)
 	return err
 }
 
