@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 )
 
@@ -56,20 +56,7 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 // Scylla operation might take a really long (and difficult to estimate) time.
 // This func exits ONLY on: success, context cancel or non-timeout related error.
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, h Host, repeatInterval time.Duration) error {
-	running, err := w.client.LoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
-	if running || errContains(err, "timeout") {
-		w.logger.Info(ctx, "Waiting for SSTables loading to finish",
-			"host", h,
-			"error", err,
-		)
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(repeatInterval):
-		}
-		return w.refreshNode(ctx, table, h, repeatInterval)
-	}
-	return err
+	return w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
 }
 
 func errContains(err error, s string) bool {

@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
-	. "github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
+	"github.com/scylladb/scylla-manager/backupspec"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
@@ -44,7 +44,7 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []Location{testLocation("1-1-restore", "")}
+	loc := []backupspec.Location{testLocation("1-1-restore", "")}
 	S3InitBucket(t, loc[0].Path)
 	tag := h.runBackup(t, map[string]any{
 		"location": loc,

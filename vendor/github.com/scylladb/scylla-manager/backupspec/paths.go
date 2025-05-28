@@ -36,9 +36,6 @@ const (
 	MetaDirKind   = dirKind("meta")
 )
 
-// MetaBaseDir stores path to meta base directory.
-const MetaBaseDir = "backup" + sep + string(MetaDirKind)
-
 // RemoteManifestLevel calculates maximal depth of recursive listing starting at
 // baseDir to list all manifests.
 func RemoteManifestLevel(baseDir string) int {
