@@ -7,28 +7,19 @@ package one2onerestore
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"math/rand/v2"
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func TestWorkerValidateClustersIntegration(t *testing.T) {
@@ -38,16 +29,14 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 	}
 	testutils.S3InitBucket(t, loc.Path)
 
-	w, hrt := newTestWorker(t)
-
-	clusterID := uuid.MustRandom()
-	backupSvc := newBackupSvc(t, db.CreateScyllaManagerDBSession(t), w.client, clusterID)
-	snapshotTag := runBackup(t, backupSvc, clusterID, map[string]any{
+	w, hrt := newTestWorker(t, testconfig.ManagedClusterHosts())
+	h := newTestHelper(t, testconfig.ManagedClusterHosts())
+	snapshotTag := h.runBackup(t, map[string]any{
 		"location": []backupspec.Location{loc},
 	})
 
 	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(context.Background(), Target{
-		SourceClusterID: clusterID,
+		SourceClusterID: h.clusterID,
 		SnapshotTag:     snapshotTag,
 		Location:        []backupspec.Location{loc},
 	})
@@ -243,10 +232,10 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 	}
 }
 
-func newTestWorker(t *testing.T) (*worker, *testutils.HackableRoundTripper) {
+func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRoundTripper) {
 	t.Helper()
 	hrt := testutils.NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	cfg := scyllaclient.TestConfig(testconfig.ManagedClusterHosts(), testutils.AgentAuthToken())
+	cfg := scyllaclient.TestConfig(hosts, testutils.AgentAuthToken())
 	cfg.Transport = hrt
 	sc, err := scyllaclient.NewClient(cfg, log.NopLogger)
 	if err != nil {
@@ -263,92 +252,4 @@ func newTestWorker(t *testing.T) (*worker, *testutils.HackableRoundTripper) {
 		logger:         log.NopLogger,
 	}
 	return w, hrt
-}
-
-func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID) *backup.Service {
-	t.Helper()
-	svc, err := backup.NewService(
-		mgrSession,
-		defaultBackupTestConfig(),
-		metrics.NewBackupMetrics(),
-		func(_ context.Context, id uuid.UUID) (string, error) {
-			return "test_cluster", nil
-		},
-		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-			return client, nil
-		},
-		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
-			return db.CreateSession(t, client), nil
-		},
-		testhelper.NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
-		log.NopLogger,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return svc
-}
-
-func defaultBackupTestConfig() backup.Config {
-	return backup.Config{
-		DiskSpaceFreeMinPercent:   5,
-		LongPollingTimeoutSeconds: 1,
-		AgeMax:                    24 * time.Hour,
-	}
-}
-
-func runBackup(t *testing.T, backupSvc *backup.Service, clusterID uuid.UUID, props map[string]any) string {
-	t.Helper()
-	testutils.Printf("Run backup with properties: %v", props)
-	ctx := context.Background()
-	taskID := uuid.NewTime()
-	runID := uuid.NewTime()
-
-	rawProps, err := json.Marshal(props)
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "marshal properties"))
-	}
-
-	target, err := backupSvc.GetTarget(ctx, clusterID, rawProps)
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "generate target"))
-	}
-
-	err = backupSvc.Backup(ctx, clusterID, taskID, runID, target)
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "run backup"))
-	}
-
-	pr, err := backupSvc.GetProgress(ctx, clusterID, taskID, runID)
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "get progress"))
-	}
-	return pr.SnapshotTag
-}
-
-// getNodeMappings creates []nodeMapping from the cluster that can be reached by client.
-// Nodes are mapped to themselves.
-func getNodeMappings(t *testing.T, client *scyllaclient.Client) []nodeMapping {
-	t.Helper()
-	ctx := context.Background()
-
-	var result []nodeMapping
-
-	nodesStatus, err := client.Status(ctx)
-	if err != nil {
-		t.Fatalf("status: %v", err)
-	}
-
-	for _, n := range nodesStatus {
-		rack, err := client.HostRack(ctx, n.Addr)
-		if err != nil {
-			t.Fatalf("get host rack: %v", err)
-		}
-		result = append(result, nodeMapping{
-			Source: node{DC: n.Datacenter, Rack: rack, HostID: n.HostID},
-			Target: node{DC: n.Datacenter, Rack: rack, HostID: n.HostID},
-		})
-	}
-
-	return result
 }
