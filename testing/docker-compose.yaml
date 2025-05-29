@@ -2,6 +2,9 @@ services:
   dc1_node_1:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -19,6 +22,9 @@ services:
   dc1_node_2:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -36,6 +42,9 @@ services:
   dc1_node_3:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -53,6 +62,9 @@ services:
   dc2_node_1:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -70,6 +82,9 @@ services:
   dc2_node_2:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -87,6 +102,9 @@ services:
   dc2_node_3:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.2.properties
@@ -104,6 +122,9 @@ services:
   second_cluster_dc1_node_1:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties
@@ -121,6 +142,9 @@ services:
   second_cluster_dc1_node_2:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
+    environment:
+      AWS_ACCESS_KEY_ID: miniouser
+      AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.1.properties

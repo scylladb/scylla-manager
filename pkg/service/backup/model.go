@@ -58,6 +58,7 @@ type Target struct {
 	Continue         bool                  `json:"continue,omitempty"`
 	PurgeOnly        bool                  `json:"purge_only,omitempty"`
 	SkipSchema       bool                  `json:"skip_schema,omitempty"`
+	Method           method                `json:"method,omitempty"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -93,6 +94,18 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 // stageNone is a special Stage indicating the there is no stage.
 // This happens when working with runs coming from versions prior to adding stage.
 const stageNone Stage = ""
+
+// method describes which API should be used by SM during backup.
+type method string
+
+const (
+	// methodAuto means that SM will use native backup API when possible, and rclone API otherwise.
+	methodAuto method = "auto"
+	// methodRclone means that SM will only use rclone API.
+	methodRclone method = "rclone"
+	// methodNative means that SM will only use native scylla backup API (whether it's configured or not).
+	methodNative method = "native"
+)
 
 // Run tracks backup progress, shares ID with scheduler.Run that initiated it.
 type Run struct {
@@ -132,7 +145,10 @@ type RunProgress struct {
 	Unit      int64
 	TableName string
 
-	AgentJobID  int64
+	// Uploading SSTables could be done by either Rclone or Scylla API.
+	AgentJobID   int64
+	ScyllaTaskID string
+
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	Error       string
@@ -215,6 +231,7 @@ type taskProperties struct {
 	Continue         bool                  `json:"continue"`
 	PurgeOnly        bool                  `json:"purge_only"`
 	SkipSchema       bool                  `json:"skip_schema"`
+	Method           method                `json:"method,omitempty"`
 }
 
 func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error {
@@ -227,6 +244,9 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 	if p.Transfers != scyllaclient.TransfersFromConfig && p.Transfers < 1 {
 		return errors.New("transfers param has to be equal to -1 (set transfers to the value from scylla-manager-agent.yaml config) " +
 			"or greater than zero")
+	}
+	if !slices.Contains([]method{methodAuto, methodRclone, methodNative}, p.Method) {
+		return errors.New("unknown method: " + string(p.Method))
 	}
 
 	// Validate location DCs
@@ -280,6 +300,7 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 		Continue:         p.Continue,
 		PurgeOnly:        p.PurgeOnly,
 		SkipSchema:       p.SkipSchema,
+		Method:           p.Method,
 		liveNodes:        liveNodes,
 	}, nil
 }
@@ -383,6 +404,7 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
 		Transfers: scyllaclient.TransfersFromConfig,
+		Method:    methodAuto,
 		Continue:  true,
 	}
 }

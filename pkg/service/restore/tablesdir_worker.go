@@ -99,23 +99,23 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch)
 		return nil, errors.Wrapf(err, "clean upload dir of host %s", hi.Host)
 	}
 
-	jobID, versionedPr, err := w.startDownload(ctx, hi, b)
+	jobID, versionedDownloaded, err := w.startDownload(ctx, hi, b)
 	if err != nil {
 		return nil, err
 	}
 
 	pr := &RunProgress{
-		ClusterID:         w.run.ClusterID,
-		TaskID:            w.run.TaskID,
-		RunID:             w.run.ID,
-		RemoteSSTableDir:  b.RemoteSSTableDir,
-		Keyspace:          b.Keyspace,
-		Table:             b.Table,
-		Host:              hi.Host,
-		ShardCnt:          int64(w.hostShardCnt[hi.Host]),
-		AgentJobID:        jobID,
-		SSTableID:         b.IDs(),
-		VersionedProgress: versionedPr,
+		ClusterID:           w.run.ClusterID,
+		TaskID:              w.run.TaskID,
+		RunID:               w.run.ID,
+		RemoteSSTableDir:    b.RemoteSSTableDir,
+		Keyspace:            b.Keyspace,
+		Table:               b.Table,
+		Host:                hi.Host,
+		ShardCnt:            int64(w.hostShardCnt[hi.Host]),
+		AgentJobID:          jobID,
+		SSTableID:           b.IDs(),
+		VersionedDownloaded: versionedDownloaded,
 	}
 	w.onDownloadStart(ctx, b, pr)
 	return pr, nil
@@ -125,7 +125,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch)
 // Downloading of versioned files happens first in a synchronous way.
 // It returns jobID for asynchronous download of the newest versions of files
 // alongside with the size of the already downloaded versioned files.
-func (w *tablesWorker) startDownload(ctx context.Context, hi HostInfo, b batch) (jobID, versionedPr int64, err error) {
+func (w *tablesWorker) startDownload(ctx context.Context, hi HostInfo, b batch) (jobID, versionedDownloaded int64, err error) {
 	uploadDir := backupspec.UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
 	sstables := b.NotVersionedSSTables()
 	versioned := b.VersionedSSTables()
@@ -253,7 +253,7 @@ func (w *tablesWorker) onLasStart(ctx context.Context, b batch, pr *RunProgress)
 func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.target.SnapshotTag, pr.Host, metrics.RestoreStateIdle)
 	pr.setRestoreCompletedAt()
-	pr.Restored = pr.Downloaded + pr.VersionedProgress
+	pr.Restored = pr.Downloaded + pr.VersionedDownloaded
 	w.metrics.IncreaseRestoreStreamedBytes(w.run.ClusterID, pr.Host, b.Size)
 	w.metrics.IncreaseRestoreStreamDuration(w.run.ClusterID, pr.Host, timeSub(pr.DownloadCompletedAt, pr.RestoreCompletedAt, timeutc.Now()))
 

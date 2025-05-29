@@ -74,5 +74,6 @@
     "dc1:20"
   ],
   "continue": true,
-  "transfers": -1
+  "transfers": -1,
+  "method": "auto"
 }

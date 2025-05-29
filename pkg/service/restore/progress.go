@@ -114,7 +114,7 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	tn := TableName{Keyspace: pr.Keyspace, Table: pr.Table}
 	tp := tableProgress[tn]
 
-	tp.Downloaded += pr.Downloaded + pr.VersionedProgress
+	tp.Downloaded += pr.Downloaded + pr.VersionedDownloaded
 	tp.Restored += pr.Restored
 	tp.Failed += pr.Failed
 	tp.StartedAt = minTime(tp.StartedAt, pr.RestoreStartedAt)
@@ -131,7 +131,7 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	// Update host progress
 	hp := hostProgress[pr.Host]
 	hp.ShardCnt = pr.ShardCnt
-	hp.DownloadedBytes += pr.Downloaded + pr.VersionedProgress
+	hp.DownloadedBytes += pr.Downloaded + pr.VersionedDownloaded
 	// We can update download duration on the fly,
 	// but it's not possible with sync load&stream API.
 	hp.DownloadDuration += timeSub(pr.DownloadStartedAt, pr.DownloadCompletedAt, now).Milliseconds()

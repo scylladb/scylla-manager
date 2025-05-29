@@ -269,6 +269,8 @@ type ClientService interface {
 
 	FindConfigNumTokens(params *FindConfigNumTokensParams) (*FindConfigNumTokensOK, error)
 
+	FindConfigObjectStorageEndpoints(params *FindConfigObjectStorageEndpointsParams) (*FindConfigObjectStorageEndpointsOK, error)
+
 	FindConfigOverrideDecommission(params *FindConfigOverrideDecommissionParams) (*FindConfigOverrideDecommissionOK, error)
 
 	FindConfigPartitioner(params *FindConfigPartitionerParams) (*FindConfigPartitionerOK, error)
@@ -4529,6 +4531,39 @@ func (a *Client) FindConfigNumTokens(params *FindConfigNumTokensParams) (*FindCo
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*FindConfigNumTokensDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindConfigObjectStorageEndpoints Returns configured object storage endpoints
+*/
+func (a *Client) FindConfigObjectStorageEndpoints(params *FindConfigObjectStorageEndpointsParams) (*FindConfigObjectStorageEndpointsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindConfigObjectStorageEndpointsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "find_config_object_storage_endpoints",
+		Method:             "GET",
+		PathPattern:        "/config/object_storage_endpoints",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindConfigObjectStorageEndpointsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindConfigObjectStorageEndpointsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindConfigObjectStorageEndpointsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

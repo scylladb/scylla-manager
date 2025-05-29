@@ -134,6 +134,9 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 	if err := json.Unmarshal(properties, &p); err != nil {
 		return Target{}, util.ErrValidate(err)
 	}
+	if p.Method == "" {
+		p.Method = defaultTaskProperties().Method
+	}
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
@@ -162,6 +165,12 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 			return Target{}, errors.New("specified bucket does not exist")
 		}
 		return Target{}, errors.Wrap(err, "location is not accessible")
+	}
+
+	if p.Method == methodNative {
+		if err := s.validateHostNativeBackupSupport(clusterID, liveNodes, p); err != nil {
+			return Target{}, err
+		}
 	}
 
 	f, err := ksfilter.NewFilter(p.Keyspace)
@@ -289,6 +298,27 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 	}
 
 	s.logger.Info(ctx, "Location check OK", "host", h, "location", l)
+	return nil
+}
+
+func (s *Service) validateHostNativeBackupSupport(clusterID uuid.UUID, liveNodes scyllaclient.NodeStatusInfoSlice, p taskProperties) error {
+	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return errors.Wrap(err, "read all nodes config")
+	}
+	nodeConfig, err := maps.MapKeyWithError(rawNodeConfig, netip.ParseAddr)
+	if err != nil {
+		return errors.Wrap(err, "parse node config IP address")
+	}
+	hi, err := makeHostInfo(liveNodes, nodeConfig, p.Location, p.RateLimit, p.Transfers)
+	if err != nil {
+		return err
+	}
+	for i := range hi {
+		if err := hostNativeBackupSupport(hi[i].NodeConfig.NodeInfo, hi[i].Location); err != nil {
+			return errors.Wrap(err, "ensure native backup ")
+		}
+	}
 	return nil
 }
 
@@ -671,8 +701,17 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
+	if err != nil {
+		return errors.Wrap(err, "read all nodes config")
+	}
+	nodeConfig, err := maps.MapKeyWithError(rawNodeConfig, netip.ParseAddr)
+	if err != nil {
+		return errors.Wrap(err, "parse node config IP address")
+	}
+
 	// Create hostInfo for run hosts
-	hi, err := makeHostInfo(liveNodes, target.Location, target.RateLimit, target.Transfers)
+	hi, err := makeHostInfo(liveNodes, nodeConfig, target.Location, target.RateLimit, target.Transfers)
 	if err != nil {
 		return err
 	}
@@ -696,6 +735,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			TaskID:      taskID,
 			RunID:       runID,
 			SnapshotTag: run.SnapshotTag,
+			Method:      target.Method,
 			Config:      s.config,
 			Client:      client,
 		},

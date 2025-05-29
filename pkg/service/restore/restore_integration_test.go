@@ -501,6 +501,15 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
+	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nativeBackupSupport, err := ni.SupportsNativeBackupAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	Print("Keyspace setup")
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
 	ks := randomizedName("prep_")
@@ -624,7 +633,11 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	})
 
 	Print("Validate state after backup")
-	validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
+	if nativeBackupSupport && !IsIPV6Network() {
+		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
+	} else {
+		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
+	}
 
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
 		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)

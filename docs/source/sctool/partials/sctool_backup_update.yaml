@@ -88,6 +88,17 @@ options:
         The '<dc>' parameter is optional it allows to specify location for a datacenter in a multi-dc setting, it must match Scylla nodes datacenter.
         The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
         The 'bucket' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
+    - name: method
+      default_value: auto
+      usage: |-
+        Specify API used for uploading files.
+        This flag can be set to either:
+        - 'auto' means that native backup API will be used when possible, otherwise Rclone API will be used.
+        - 'rclone' means that only Rclone API will be used.
+        - 'native' means that only native API will be used.
+        ScyllaDB Manager can use either Rclone API or native Scylla API for uploading snapshot-ed files.
+        In both cases, it requires to configure ScyllaDB Manager Agent 'scylla-manager-agent.yaml' config.
+        In case of native backup API, it also requires to configure 'object_storage_endpoints' in 'scylla.yaml'.
     - name: name
       usage: |
         Task name that can be used instead of ID.

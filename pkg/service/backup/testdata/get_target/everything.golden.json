@@ -70,5 +70,6 @@
     "100"
   ],
   "continue": true,
-  "transfers": -1
+  "transfers": -1,
+  "method": "rclone"
 }
