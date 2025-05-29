@@ -53,7 +53,7 @@ func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload
 			if err != nil {
 				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
 			}
-			pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
+			pr := w.restoreTableProgress(ctx, hostTask.host.Addr, table)
 
 			const pollIntervalSec = 10
 			if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, stats, pollIntervalSec); err != nil {
@@ -111,7 +111,7 @@ func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m 
 	start := timeutc.Now()
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
 	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, true)
-	w.finishDownloadProgress(ctx, pr, err)
+	w.finishRestoreTableProgress(ctx, pr, err)
 	w.logger.Info(ctx, "Refresh node done",
 		"host", h.Addr,
 		"keyspace", table.Keyspace,
@@ -142,7 +142,7 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 		if err != nil {
 			return errors.Wrap(err, "fetch job info")
 		}
-		w.updateDownloadProgress(ctx, pr, job)
+		w.updateRestoreTableProgress(ctx, pr, job)
 		w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
 			ClusterID:   w.runInfo.ClusterID.String(),
 			SnapshotTag: m.SnapshotTag,
