@@ -32,6 +32,7 @@ type command struct {
 	keyspace      []string
 	snapshotTag   string
 	nodesMapping  nodesMapping
+	unpinAgentCPU bool
 	dryRun        bool
 }
 
@@ -83,6 +84,7 @@ func (cmd *command) init() {
 
 	// Common configuration for restore procedures
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
+	w.Unwrap().BoolVar(&cmd.unpinAgentCPU, "unpin-agent-cpu", false, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -204,6 +206,11 @@ func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err e
 		{
 			flagName: "nodes-mapping",
 			value:    cmd.nodesMapping,
+		},
+		{
+			flagName:     "unpin-agent-cpu",
+			value:        cmd.unpinAgentCPU,
+			canBeUpdated: true,
 		},
 	}
 

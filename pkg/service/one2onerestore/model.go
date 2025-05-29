@@ -19,6 +19,7 @@ type Target struct {
 	SourceClusterID uuid.UUID             `json:"source_cluster_id"`
 	SnapshotTag     string                `json:"snapshot_tag"`
 	NodesMapping    []nodeMapping         `json:"nodes_mapping"`
+	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
 }
 
 func defaultTarget() Target {
