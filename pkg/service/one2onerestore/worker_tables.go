@@ -15,6 +15,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	downloadWorkerName = "download"
+	refreshWorkerName  = "refresh"
+)
+
 func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, keyspaces []string) error {
 	logError := func(i int, err error) {
 		w.logger.Error(ctx, "Restore data", "err", err, "host", workload[i].host)
@@ -30,21 +35,22 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 			refreshQueueSize = min(100, len(hostTask.manifestContent.Index))
 			refreshQueue     = make(chan refreshNodeInput, refreshQueueSize)
 		)
+		workerNames := []string{downloadWorkerName, refreshWorkerName}
+		w.setRestoreStateForWorkers(manifestInfo, host, workerNames, metrics.One2OneRestoreStateIdle)
 		downloadAndRefreshGroup, ctx := errgroup.WithContext(ctx)
-		downloadAndRefreshGroup.Go(w.downloadTablesByHost(ctx, hostTask, keyspaces, stats, refreshQueue))
-		downloadAndRefreshGroup.Go(w.refreshNodeWorker(ctx, refreshQueue))
+		downloadAndRefreshGroup.Go(w.downloadTablesWorker(ctx, hostTask, keyspaces, stats, refreshQueue))
+		downloadAndRefreshGroup.Go(w.refreshNodeWorker(ctx, hostTask, refreshQueue))
 		if err := downloadAndRefreshGroup.Wait(); err != nil {
-			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
 			return err
 		}
-		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateDone)
 		return nil
 	}, logError)
 }
 
-func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload, keyspaces []string, stats *restoreStats, refreshQueue chan<- refreshNodeInput) func() error {
-	return func() error {
-		manifestInfo, host := hostTask.manifestInfo, hostTask.host
+func (w *worker) downloadTablesWorker(ctx context.Context, hostTask hostWorkload, keyspaces []string, stats *restoreStats, refreshQueue chan<- refreshNodeInput) func() error {
+	manifestInfo, host := hostTask.manifestInfo, hostTask.host
+	return func() (err error) {
+		defer w.finishWorker(manifestInfo, host, downloadWorkerName, &err)
 		defer close(refreshQueue)
 		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
@@ -61,10 +67,8 @@ func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload
 			}
 
 			refreshQueue <- refreshNodeInput{
-				Table:        table,
-				Host:         host,
-				ManifestInfo: manifestInfo,
-				Progress:     pr,
+				Table:    table,
+				Progress: pr,
 			}
 			return nil
 		})
@@ -78,19 +82,19 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 	if err != nil {
 		return 0, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
 	}
-	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateDownloading)
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, downloadWorkerName, metrics.One2OneRestoreStateDownloading)
 	return jobID, nil
 }
 
 type refreshNodeInput struct {
-	Table        backupspec.FilesMeta
-	Host         Host
-	ManifestInfo *backupspec.ManifestInfo
-	Progress     *RunTableProgress
+	Table    backupspec.FilesMeta
+	Progress *RunTableProgress
 }
 
-func (w *worker) refreshNodeWorker(ctx context.Context, queue <-chan refreshNodeInput) func() error {
-	return func() error {
+func (w *worker) refreshNodeWorker(ctx context.Context, hostTask hostWorkload, queue <-chan refreshNodeInput) func() error {
+	manifestInfo, host := hostTask.manifestInfo, hostTask.host
+	return func() (err error) {
+		defer w.finishWorker(manifestInfo, host, refreshWorkerName, &err)
 		for {
 			select {
 			case <-ctx.Done():
@@ -99,7 +103,7 @@ func (w *worker) refreshNodeWorker(ctx context.Context, queue <-chan refreshNode
 				if !ok {
 					return nil
 				}
-				if err := w.refreshNode(ctx, input.Table, input.ManifestInfo, input.Host, input.Progress); err != nil {
+				if err := w.refreshNode(ctx, input.Table, manifestInfo, host, input.Progress); err != nil {
 					return errors.Wrapf(err, "refresh node: %s.%s", input.Table.Keyspace, input.Table.Table)
 				}
 			}
@@ -109,16 +113,19 @@ func (w *worker) refreshNodeWorker(ctx context.Context, queue <-chan refreshNode
 
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
 	start := timeutc.Now()
-	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, refreshWorkerName, metrics.One2OneRestoreStateLoading)
 	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, true)
 	w.finishRestoreTableProgress(ctx, pr, err)
-	w.logger.Info(ctx, "Refresh node done",
-		"host", h.Addr,
-		"keyspace", table.Keyspace,
-		"table", table.Table,
-		"size", table.Size,
-		"took", timeutc.Since(start),
-	)
+	if err == nil {
+		w.logger.Info(ctx, "Refresh node done",
+			"host", h.Addr,
+			"keyspace", table.Keyspace,
+			"table", table.Table,
+			"size", table.Size,
+			"took", timeutc.Since(start),
+		)
+		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, refreshWorkerName, metrics.One2OneRestoreStateIdle)
+	}
 	return err
 }
 
@@ -169,6 +176,7 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 				"took", took,
 			)
 			stats.incrementDownloadStats(job.Uploaded, took.Milliseconds())
+			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, downloadWorkerName, metrics.One2OneRestoreStateIdle)
 			return nil
 		case scyllaclient.JobRunning:
 			continue
@@ -198,4 +206,20 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
+}
+
+func (w *worker) setRestoreStateForWorkers(manifestInfo *backupspec.ManifestInfo, host Host, workerNames []string, state metrics.One2OneRestoreState) {
+	for _, worker := range workerNames {
+		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, worker, state)
+	}
+}
+
+// finishWorker accepts a pointer to an error so that it should be used in the defer statement with named return values.
+// nolint:gocritic
+func (w *worker) finishWorker(manifestInfo *backupspec.ManifestInfo, host Host, worker string, err *error) {
+	state := metrics.One2OneRestoreStateDone
+	if err != nil && *err != nil {
+		state = metrics.One2OneRestoreStateError
+	}
+	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, worker, metrics.One2OneRestoreState(state))
 }

@@ -28,16 +28,13 @@ func TestRefreshNodeWorker(t *testing.T) {
 			inputCh: make(chan refreshNodeInput, 3),
 			input: []refreshNodeInput{
 				{
-					ManifestInfo: &backupspec.ManifestInfo{},
-					Progress:     &RunTableProgress{},
+					Progress: &RunTableProgress{},
 				},
 				{
-					ManifestInfo: &backupspec.ManifestInfo{},
-					Progress:     &RunTableProgress{},
+					Progress: &RunTableProgress{},
 				},
 				{
-					ManifestInfo: &backupspec.ManifestInfo{},
-					Progress:     &RunTableProgress{},
+					Progress: &RunTableProgress{},
 				},
 			},
 			handler: func(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +65,7 @@ func TestRefreshNodeWorker(t *testing.T) {
 			}
 			close(tc.inputCh)
 			// Start the refresh node worker
-			err = w.refreshNodeWorker(context.Background(), tc.inputCh)()
+			err = w.refreshNodeWorker(context.Background(), hostWorkload{manifestInfo: &backupspec.ManifestInfo{}, host: Host{}}, tc.inputCh)()
 			// Check the result
 			if (err != nil) != tc.expectedError {
 				t.Errorf("Expected error: %v, got: %v", tc.expectedError, err)
