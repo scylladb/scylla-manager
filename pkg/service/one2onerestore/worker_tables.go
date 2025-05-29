@@ -11,6 +11,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"golang.org/x/sync/errgroup"
 )
 
 func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, keyspaces []string) error {
@@ -24,34 +26,54 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 	return parallel.Run(len(workload), len(workload), func(i int) error {
 		hostTask := workload[i]
 		manifestInfo, host := hostTask.manifestInfo, hostTask.host
-		const (
-			repeatInterval  = 10 * time.Second
-			pollIntervalSec = 10
+		var (
+			refreshQueueSize = max(100, len(hostTask.manifestContent.Index))
+			refreshQueue     = make(chan refreshNodeInput, refreshQueueSize)
+			refreshGroup     errgroup.Group
 		)
-		if err := hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
-			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
-
-			jobID, err := w.createDownloadJob(ctx, table, manifestInfo, host)
-			if err != nil {
-				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
-			}
-			pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
-
-			if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, stats, pollIntervalSec); err != nil {
-				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
-			}
-
-			if err := w.refreshNode(ctx, table, manifestInfo, host, pr); err != nil {
-				return errors.Wrapf(err, "refresh node: %s.%s", table.Keyspace, table.Table)
-			}
-			return nil
-		}); err != nil {
+		// Start refresh node worker to avoid blocking on refreshNode call.
+		refreshGroup.Go(w.refreshNodeWorker(ctx, refreshQueue))
+		if err := w.downloadTablesByHost(ctx, hostTask, keyspaces, stats, refreshQueue); err != nil {
+			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
+			return err
+		}
+		if err := refreshGroup.Wait(); err != nil {
 			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
 			return err
 		}
 		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateDone)
 		return nil
 	}, logError)
+}
+
+func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload, keyspaces []string, stats *restoreStats, refreshQueue chan<- refreshNodeInput) error {
+	manifestInfo, host := hostTask.manifestInfo, hostTask.host
+	const (
+		repeatInterval  = 10 * time.Second
+		pollIntervalSec = 10
+	)
+	defer close(refreshQueue)
+	return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
+		w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
+
+		jobID, err := w.createDownloadJob(ctx, table, manifestInfo, host)
+		if err != nil {
+			return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
+		}
+		pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
+
+		if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, stats, pollIntervalSec); err != nil {
+			return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
+		}
+
+		refreshQueue <- refreshNodeInput{
+			Table:        table,
+			Host:         host,
+			ManfiestInfo: manifestInfo,
+			Progress:     pr,
+		}
+		return nil
+	})
 }
 
 func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (int64, error) {
@@ -65,10 +87,43 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 	return jobID, nil
 }
 
+type refreshNodeInput struct {
+	Table        backupspec.FilesMeta
+	Host         Host
+	ManfiestInfo *backupspec.ManifestInfo
+	Progress     *RunTableProgress
+}
+
+func (w *worker) refreshNodeWorker(ctx context.Context, queue <-chan refreshNodeInput) func() error {
+	return func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case input, ok := <-queue:
+				if !ok {
+					return nil // Channel closed
+				}
+				if err := w.refreshNode(ctx, input.Table, input.ManfiestInfo, input.Host, input.Progress); err != nil {
+					return errors.Wrapf(err, "refresh node: %s.%s", input.Table.Keyspace, input.Table.Table)
+				}
+			}
+		}
+	}
+}
+
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
+	start := timeutc.Now()
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, metrics.One2OneRestoreStateLoading)
 	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, true)
 	w.finishDownloadProgress(ctx, pr, err)
+	w.logger.Info(ctx, "Refresh node done",
+		"host", h.Addr,
+		"keyspace", table.Keyspace,
+		"table", table.Table,
+		"size", table.Size,
+		"took", timeutc.Since(start),
+	)
 	return err
 }
 
