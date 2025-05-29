@@ -21,7 +21,7 @@ func NewOne2OneRestoreMetrics() One2OneRestoreMetrics {
 		remainingBytes: g("Remaining bytes of backup to be restored yet.", "download_remaining_bytes",
 			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
 		state: g("Defines current state of the 1-1-restore process (downloading/loading/error/done).", "state",
-			"cluster", "location", "snapshot_tag", "host"),
+			"cluster", "location", "snapshot_tag", "host", "worker"),
 		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status",
 			"cluster", "keyspace", "view"),
 	}
@@ -73,27 +73,30 @@ func (m One2OneRestoreMetrics) SetDownloadRemainingBytes(labels One2OneRestoreBy
 	m.remainingBytes.With(l).Set(remainingBytes)
 }
 
-// One2OneRestoreState is the enum that defines how node is used during the 1-1-restore.
+// One2OneRestoreState is the enum that defines how node (worker on a node) is used during the 1-1-restore.
 type One2OneRestoreState int
 
 const (
-	// One2OneRestoreStateDownloading means that node is downloading data from backup location.
-	One2OneRestoreStateDownloading = iota
-	// One2OneRestoreStateLoading means that node is calling load sstables (nodetool refresh).
+	// One2OneRestoreStateIdle means that worker is idle.
+	One2OneRestoreStateIdle = iota
+	// One2OneRestoreStateDownloading means that worker is downloading data from backup location.
+	One2OneRestoreStateDownloading
+	// One2OneRestoreStateLoading means that worker is calling load sstables (nodetool refresh).
 	One2OneRestoreStateLoading
-	// One2OneRestoreStateDone means that node ended downloading and loading data.
+	// One2OneRestoreStateDone means that worker ended downloading or loading all the data on a host.
 	One2OneRestoreStateDone
-	// One2OneRestoreStateError means that node ended up with error.
+	// One2OneRestoreStateError means that worker ended up with error.
 	One2OneRestoreStateError
 )
 
 // SetOne2OneRestoreState sets 1-1-restore "state" metric.
-func (m One2OneRestoreMetrics) SetOne2OneRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state One2OneRestoreState) {
+func (m One2OneRestoreMetrics) SetOne2OneRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host, worker string, state One2OneRestoreState) {
 	l := prometheus.Labels{
 		"cluster":      clusterID.String(),
 		"location":     location.String(),
 		"snapshot_tag": snapshotTag,
 		"host":         host,
+		"worker":       worker,
 	}
 	m.state.With(l).Set(float64(state))
 }
