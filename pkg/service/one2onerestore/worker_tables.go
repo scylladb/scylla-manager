@@ -27,17 +27,13 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 		hostTask := workload[i]
 		manifestInfo, host := hostTask.manifestInfo, hostTask.host
 		var (
-			refreshQueueSize = max(100, len(hostTask.manifestContent.Index))
+			refreshQueueSize = min(100, len(hostTask.manifestContent.Index))
 			refreshQueue     = make(chan refreshNodeInput, refreshQueueSize)
-			refreshGroup     errgroup.Group
 		)
-		// Start refresh node worker to avoid blocking on refreshNode call.
-		refreshGroup.Go(w.refreshNodeWorker(ctx, refreshQueue))
-		if err := w.downloadTablesByHost(ctx, hostTask, keyspaces, stats, refreshQueue); err != nil {
-			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
-			return err
-		}
-		if err := refreshGroup.Wait(); err != nil {
+		downloadAndRefreshGroup, ctx := errgroup.WithContext(ctx)
+		downloadAndRefreshGroup.Go(w.downloadTablesByHost(ctx, hostTask, keyspaces, stats, refreshQueue))
+		downloadAndRefreshGroup.Go(w.refreshNodeWorker(ctx, refreshQueue))
+		if err := downloadAndRefreshGroup.Wait(); err != nil {
 			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, metrics.One2OneRestoreStateError)
 			return err
 		}
@@ -46,34 +42,33 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 	}, logError)
 }
 
-func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload, keyspaces []string, stats *restoreStats, refreshQueue chan<- refreshNodeInput) error {
-	manifestInfo, host := hostTask.manifestInfo, hostTask.host
-	const (
-		repeatInterval  = 10 * time.Second
-		pollIntervalSec = 10
-	)
-	defer close(refreshQueue)
-	return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
-		w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
+func (w *worker) downloadTablesByHost(ctx context.Context, hostTask hostWorkload, keyspaces []string, stats *restoreStats, refreshQueue chan<- refreshNodeInput) func() error {
+	return func() error {
+		manifestInfo, host := hostTask.manifestInfo, hostTask.host
+		defer close(refreshQueue)
+		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
+			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
-		jobID, err := w.createDownloadJob(ctx, table, manifestInfo, host)
-		if err != nil {
-			return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
-		}
-		pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
+			jobID, err := w.createDownloadJob(ctx, table, manifestInfo, host)
+			if err != nil {
+				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
+			}
+			pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
 
-		if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, stats, pollIntervalSec); err != nil {
-			return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
-		}
+			const pollIntervalSec = 10
+			if err := w.waitJob(ctx, jobID, manifestInfo, host, pr, stats, pollIntervalSec); err != nil {
+				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
+			}
 
-		refreshQueue <- refreshNodeInput{
-			Table:        table,
-			Host:         host,
-			ManifestInfo: manifestInfo,
-			Progress:     pr,
-		}
-		return nil
-	})
+			refreshQueue <- refreshNodeInput{
+				Table:        table,
+				Host:         host,
+				ManifestInfo: manifestInfo,
+				Progress:     pr,
+			}
+			return nil
+		})
+	}
 }
 
 func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (int64, error) {
@@ -102,7 +97,7 @@ func (w *worker) refreshNodeWorker(ctx context.Context, queue <-chan refreshNode
 				return ctx.Err()
 			case input, ok := <-queue:
 				if !ok {
-					return nil // Channel closed
+					return nil
 				}
 				if err := w.refreshNode(ctx, input.Table, input.ManifestInfo, input.Host, input.Progress); err != nil {
 					return errors.Wrapf(err, "refresh node: %s.%s", input.Table.Keyspace, input.Table.Table)
