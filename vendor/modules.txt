@@ -408,7 +408,7 @@ github.com/scylladb/scylla-manager/backupspec
 ## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/managerclient
 github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb48
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250529094758-b6ddc3fd1fee
 ## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
@@ -435,6 +435,7 @@ github.com/scylladb/scylla-manager/v3/pkg/util/prom
 github.com/scylladb/scylla-manager/v3/pkg/util/query
 github.com/scylladb/scylla-manager/v3/pkg/util/retry
 github.com/scylladb/scylla-manager/v3/pkg/util/schedules
+github.com/scylladb/scylla-manager/v3/pkg/util/sizesuffix
 github.com/scylladb/scylla-manager/v3/pkg/util/slice
 github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid
