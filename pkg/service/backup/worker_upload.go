@@ -96,17 +96,11 @@ func (w *worker) uploadSnapshotDirsInParallel(ctx context.Context, h hostInfo, d
 			return w.uploadSnapshotDirWrapper(ctx, h, dirs[i], f)
 		},
 		func(i int, err error) {
-			d := dirs[i]
-			w.Logger.Error(ctx, "Failed to upload host",
-				"host", d.Host,
-				"keyspace", d.Keyspace,
-				"table", d.Table,
-				"error", err,
-			)
+			w.Logger.Error(ctx, "Failed to upload host", "host", dirs[i].Host, "error", err)
 		})
 }
 
-func (w *worker) uploadSnapshotDirWrapper(ctx context.Context, h hostInfo, d snapshotDir, f uploadSnapshotDirFunc) (err error) {
+func (w *worker) uploadSnapshotDirWrapper(ctx context.Context, h hostInfo, d snapshotDir, f uploadSnapshotDirFunc) error {
 	// Skip snapshots that are empty.
 	if d.Progress.Size == 0 {
 		w.Logger.Info(ctx, "Table is empty skipping", "host", h.IP, "keyspace", d.Keyspace, "table", d.Table)
@@ -122,26 +116,16 @@ func (w *worker) uploadSnapshotDirWrapper(ctx context.Context, h hostInfo, d sna
 		return nil
 	}
 
-	// NOTE that defers are executed in LIFO order
-	// Abort on cancel.
-	defer func() {
-		if scheduler.IsTaskInterrupted(ctx) {
-			err = parallel.Abort(err)
-		}
-	}()
-	// Add keyspace table info to error mgs.
-	defer func() {
-		err = errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
-	}()
-	// Delete table backupspec.
-	defer func() {
-		if err != nil {
-			return
-		}
+	err := f(ctx, h, d)
+	// Delete the snapshot only if it was successfully uploaded.
+	// Otherwise, we want to continue the upload on retry/resume.
+	if err == nil {
 		err = errors.Wrap(w.deleteTableSnapshot(ctx, h, d), "delete table snapshot")
-	}()
-
-	return f(ctx, h, d)
+	}
+	if scheduler.IsTaskInterrupted(ctx) {
+		err = parallel.Abort(err)
+	}
+	return errors.Wrapf(err, "%s.%s", d.Keyspace, d.Table)
 }
 
 func (w *worker) rcloneBackup(ctx context.Context, h hostInfo, d snapshotDir) error {
