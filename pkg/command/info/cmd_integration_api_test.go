@@ -37,7 +37,7 @@ func TestSctoolInfoLabelsIntegrationAPITest(t *testing.T) {
 
 	defer func() {
 		if err := client.DeleteCluster(context.Background(), clusterID); err != nil {
-			t.Logf("Failed to delete cluster, err = {%v}", err)
+			t.Fatalf("Failed to delete cluster, err = {%v}", err)
 		}
 	}()
 
@@ -50,7 +50,7 @@ func TestSctoolInfoLabelsIntegrationAPITest(t *testing.T) {
 		Properties: make(map[string]interface{}),
 	})
 	if err != nil {
-		t.Logf("Failed to create task, err = {%v}", err)
+		t.Fatalf("Failed to create task, err = {%v}", err)
 	}
 
 	if err := client.UpdateTask(context.Background(), clusterID, &managerclient.Task{
