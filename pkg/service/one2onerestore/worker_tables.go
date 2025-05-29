@@ -179,6 +179,8 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 			continue
 		case scyllaclient.JobNotFound:
 			return errors.New("job not found")
+		default:
+			return errors.Errorf("unknown job status (%d): %s: host %s", jobID, job.Status, h.Addr)
 		}
 	}
 }
