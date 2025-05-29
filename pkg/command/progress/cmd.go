@@ -68,6 +68,7 @@ var supportedTaskTypes = strset.New(
 	managerclient.RestoreTask,
 	managerclient.RepairTask,
 	managerclient.ValidateBackupTask,
+	managerclient.One2OneRestoreTask,
 )
 
 func (cmd *command) run(args []string) error {
@@ -99,6 +100,8 @@ func (cmd *command) run(args []string) error {
 		return cmd.renderRestoreProgress(task)
 	case managerclient.ValidateBackupTask:
 		return cmd.renderValidateBackupProgress(task)
+	case managerclient.One2OneRestoreTask:
+		return cmd.renderOne2OneRestoreProgress(task)
 	}
 
 	return nil
@@ -166,6 +169,17 @@ func (cmd *command) renderValidateBackupProgress(t *managerclient.Task) error {
 	if err := p.SetHostFilter(cmd.host); err != nil {
 		return err
 	}
+	p.Task = t
+
+	return p.Render(cmd.OutOrStdout())
+}
+
+func (cmd *command) renderOne2OneRestoreProgress(t *managerclient.Task) error {
+	p, err := cmd.client.One2OneRestoreProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
+	if err != nil {
+		return err
+	}
+	p.Detailed = cmd.details
 	p.Task = t
 
 	return p.Render(cmd.OutOrStdout())

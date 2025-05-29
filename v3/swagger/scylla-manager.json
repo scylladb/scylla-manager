@@ -1209,6 +1209,112 @@
         }
       }
     },
+    "TaskRunOne2OneRestoreProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/TaskRun"
+        },
+        "progress": {
+          "$ref": "#/definitions/One2OneRestoreProgress"
+        }
+      }
+    },
+    "One2OneRestoreProgress": {
+      "type": "object",
+      "properties": {
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/One2OneRestoreTableProgress"
+          }
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/One2OneRestoreViewProgress"
+          }
+        }
+      }
+    },
+    "One2OneRestoreTableProgress": {
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "size": {
+          "type": "integer"
+        },
+        "restored": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "in_progress",
+            "done",
+            "failed"
+          ]
+        },
+        "keyspace": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        }
+      }
+    },
+    "One2OneRestoreViewProgress": {
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "size": {
+          "type": "integer"
+        },
+        "restored": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "in_progress",
+            "done",
+            "failed"
+          ]
+        },
+        "keyspace": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        },
+        "view_type": {
+          "type": "string"
+        }
+      }
+    },
     "Suspended": {
       "type": "boolean"
     },
@@ -1941,6 +2047,44 @@
             "description": "Backup validation progress",
             "schema": {
               "$ref": "#/definitions/TaskRunValidateBackupProgress"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/1_1_restore/{task_id}/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "1-1-restore progress",
+            "schema": {
+              "$ref": "#/definitions/TaskRunOne2OneRestoreProgress"
             }
           },
           "default": {

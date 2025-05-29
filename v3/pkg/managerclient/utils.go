@@ -283,3 +283,24 @@ func FormatRetentionPolicy(retention, retentionDays int64) string {
 	}
 	return res
 }
+
+// FormatTablesProgress calculates percent of restored table bytes.
+func FormatTablesProgress(tables []*models.One2OneRestoreTableProgress) string {
+	var sumSize, sumRestored int64
+	for _, t := range tables {
+		sumSize += t.Size
+		sumRestored += t.Restored
+	}
+	return fmt.Sprintf("%d%%", sumRestored*100/sumSize)
+}
+
+// FormatViewsProgress calculates percent of restored views.
+func FormatViewsProgress(views []*models.One2OneRestoreViewProgress) string {
+	var done int
+	for _, v := range views {
+		if v.Status == models.One2OneRestoreTableProgressStatusDone {
+			done++
+		}
+	}
+	return fmt.Sprintf("%d%%", done*100/len(views))
+}

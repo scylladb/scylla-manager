@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -45,14 +46,14 @@ type TaskExclusiveLockPolicy struct {
 	mu      sync.Mutex
 	running map[uuid.UUID]map[TaskType]struct{}
 
-	exclusiveTask TaskType
+	exclusiveTasks []TaskType
 }
 
-func NewTaskExclusiveLockPolicy(exclusiveTask TaskType) *TaskExclusiveLockPolicy {
+func NewTaskExclusiveLockPolicy(exclusiveTasks ...TaskType) *TaskExclusiveLockPolicy {
 	return &TaskExclusiveLockPolicy{
 		running: map[uuid.UUID]map[TaskType]struct{}{},
 
-		exclusiveTask: exclusiveTask,
+		exclusiveTasks: exclusiveTasks,
 	}
 }
 
@@ -85,13 +86,15 @@ func (t *TaskExclusiveLockPolicy) canRunTaskExclusively(cluster map[TaskType]str
 	}
 
 	// Exclusive task can be run only when no other tasks is running.
-	if taskType == t.exclusiveTask {
+	if slices.Contains(t.exclusiveTasks, taskType) {
 		return fmt.Errorf("run exclusive task %s: %w", taskType, errClusterBusy)
 	}
 
 	// Any other task can't be run when exclusive task is running.
-	if _, ok := cluster[t.exclusiveTask]; ok {
-		return fmt.Errorf("exclusive task (%s) is running: %w", taskType, errClusterBusy)
+	for _, exclusiveTask := range t.exclusiveTasks {
+		if _, ok := cluster[exclusiveTask]; ok {
+			return fmt.Errorf("exclusive task (%s) is running: %w", taskType, errClusterBusy)
+		}
 	}
 
 	// Only one task of a taskType can run in a cluster at a time.

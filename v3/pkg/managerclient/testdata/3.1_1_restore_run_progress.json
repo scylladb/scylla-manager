@@ -1,0 +1,10 @@
+{
+  "run": {
+    "end_time": "2025-01-01T10:00:00.000Z",
+    "id": "task_run_id",
+    "start_time": "2025-01-01T09:00:00.000Z",
+    "status": "DONE"
+  },
+  "Task": null,
+  "Detailed": true
+}
