@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
+	"slices"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -24,7 +24,7 @@ func (w *worker) dropViews(ctx context.Context, workload []hostWorkload) ([]View
 		w.logger.Info(ctx, "Drop views", "took", timeutc.Since(start))
 	}()
 
-	views, err := w.getViews(ctx, getTablesToRestore(workload))
+	views, err := w.getViews(ctx, workload)
 	if err != nil {
 		return nil, errors.Wrap(err, "get views")
 	}
@@ -70,11 +70,18 @@ func (w *worker) dropView(ctx context.Context, view View) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]struct{}) ([]View, error) {
+func (w *worker) getViews(ctx context.Context, workload []hostWorkload) ([]View, error) {
 	keyspaces, err := w.client.Keyspaces(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get keyspaces")
+		return nil, errors.Wrap(err, "get keyspaces")
 	}
+
+	describedViews, err := w.viewsSchemaByName(ctx, workload)
+	if err != nil {
+		return nil, err
+	}
+
+	tablesToRestore := getTablesToRestore(workload)
 
 	var views []View
 	for _, ks := range keyspaces {
@@ -87,17 +94,10 @@ func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]s
 			if _, ok := tablesToRestore[scyllaTable{keyspace: index.KeyspaceName, table: index.TableName}]; !ok {
 				continue
 			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Indexes: map[string]*gocql.IndexMetadata{index.Name: index},
+			stmt, ok := describedViews[scyllaTable{keyspace: index.KeyspaceName, table: index.Name + "_index"}]
+			if !ok {
+				continue
 			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return nil, errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
 			stmt, err = addIfNotExists(stmt, SecondaryIndex)
 			if err != nil {
 				return nil, err
@@ -116,17 +116,10 @@ func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]s
 			if _, ok := tablesToRestore[scyllaTable{keyspace: view.KeyspaceName, table: view.BaseTableName}]; !ok {
 				continue
 			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Views: map[string]*gocql.ViewMetadata{view.ViewName: view},
+			stmt, ok := describedViews[scyllaTable{keyspace: view.KeyspaceName, table: view.ViewName}]
+			if !ok {
+				continue
 			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return nil, errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
 			stmt, err = addIfNotExists(stmt, MaterializedView)
 			if err != nil {
 				return nil, err
@@ -250,4 +243,45 @@ func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunView
 	}
 
 	return nil
+}
+
+func (w *worker) viewsSchemaByName(ctx context.Context, workload []hostWorkload) (map[scyllaTable]string, error) {
+	// In order to ensure schema consistency, we need to call raft read barrier on a host
+	// from which we are going to read the schema.
+	host := workload[0].host
+	if host.SafeDescribeMethod != scyllaclient.SafeDescribeMethodReadBarrierAPI {
+		// Let's try to find the host that supports raft read barrier api.
+		for _, w := range workload {
+			if w.host.SafeDescribeMethod == scyllaclient.SafeDescribeMethodReadBarrierAPI {
+				host = w.host
+				break
+			}
+		}
+	}
+
+	hostSession, err := w.singleHostCQLSession(ctx, w.runInfo.ClusterID, host.Addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "single host cql session")
+	}
+
+	if err := w.raftReadBarrier(ctx, hostSession, host); err != nil {
+		return nil, errors.Wrap(err, "raft read barrier")
+	}
+
+	describedSchema, err := query.DescribeSchemaWithInternals(hostSession)
+	if err != nil {
+		return nil, errors.Wrap(err, "describe schema")
+	}
+	result := map[scyllaTable]string{}
+	for _, stmt := range describedSchema {
+		if stmt.Keyspace == "" {
+			continue
+		}
+		if !slices.Contains([]string{"view", "index"}, stmt.Type) {
+			continue
+		}
+
+		result[scyllaTable{keyspace: stmt.Keyspace, table: stmt.Name}] = stmt.CQLStmt
+	}
+	return result, nil
 }

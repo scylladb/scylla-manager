@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -30,6 +31,7 @@ type worker struct {
 
 	client         *scyllaclient.Client
 	clusterSession gocqlx.Session
+	sessionFunc    cluster.SessionFunc // is needed to create cql session to single host
 
 	logger  log.Logger
 	metrics metrics.One2OneRestoreMetrics
@@ -200,6 +202,16 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 			return errors.Wrap(err, "read manifest content")
 		}
 
+		nodeInfo, err := w.client.NodeInfo(ctx, h.Addr)
+		if err != nil {
+			return errors.Wrapf(err, "get node %s info", h.Addr)
+		}
+		method, err := nodeInfo.SupportsSafeDescribeSchemaWithInternals()
+		if err != nil {
+			return errors.Wrapf(err, "node %s safe describe method", h.Addr)
+		}
+		hw.host.SafeDescribeMethod = method
+
 		result[i] = hw
 
 		return nil
@@ -235,6 +247,24 @@ func (w *worker) pinAgentCPU(ctx context.Context, workload []hostWorkload, pin b
 			"pinned", pin,
 			"error", err)
 	})
+}
+
+func (w *worker) singleHostCQLSession(ctx context.Context, clusterID uuid.UUID, host string) (gocqlx.Session, error) {
+	session, err := w.sessionFunc(ctx, clusterID, cluster.SingleHostSessionConfigOption(host))
+	if err != nil {
+		return gocqlx.Session{}, errors.Wrap(err, "create cql session")
+	}
+	return session, nil
+}
+
+func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, host Host) error {
+	switch host.SafeDescribeMethod {
+	case scyllaclient.SafeDescribeMethodReadBarrierAPI:
+		return w.client.RaftReadBarrier(ctx, host.Addr, "")
+	case scyllaclient.SafeDescribeMethodReadBarrierCQL:
+		return query.RaftReadBarrier(session)
+	}
+	return errors.Errorf("unsupported method: %s", host.SafeDescribeMethod)
 }
 
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
