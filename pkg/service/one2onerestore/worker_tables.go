@@ -37,9 +37,9 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 		)
 		workerNames := []string{downloadWorkerName, refreshWorkerName}
 		w.setRestoreStateForWorkers(manifestInfo, host, workerNames, metrics.One2OneRestoreStateIdle)
-		downloadAndRefreshGroup, ctx := errgroup.WithContext(ctx)
-		downloadAndRefreshGroup.Go(w.downloadTablesWorker(ctx, hostTask, keyspaces, stats, refreshQueue))
-		downloadAndRefreshGroup.Go(w.refreshNodeWorker(ctx, hostTask, refreshQueue))
+		downloadAndRefreshGroup, gCtx := errgroup.WithContext(ctx)
+		downloadAndRefreshGroup.Go(w.downloadTablesWorker(gCtx, hostTask, keyspaces, stats, refreshQueue))
+		downloadAndRefreshGroup.Go(w.refreshNodeWorker(gCtx, hostTask, refreshQueue))
 		if err := downloadAndRefreshGroup.Wait(); err != nil {
 			return err
 		}
@@ -50,8 +50,10 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 func (w *worker) downloadTablesWorker(ctx context.Context, hostTask hostWorkload, keyspaces []string, stats *restoreStats, refreshQueue chan<- refreshNodeInput) func() error {
 	manifestInfo, host := hostTask.manifestInfo, hostTask.host
 	return func() (err error) {
-		defer w.finishWorker(manifestInfo, host, downloadWorkerName, &err)
-		defer close(refreshQueue)
+		defer func() {
+			close(refreshQueue)
+			w.finishWorker(manifestInfo, host, downloadWorkerName, err)
+		}()
 		return hostTask.manifestContent.ForEachIndexIterWithError(keyspaces, func(table backupspec.FilesMeta) error {
 			w.logger.Info(ctx, "Restoring data", "ks", table.Keyspace, "table", table.Table, "size", table.Size)
 
@@ -66,9 +68,13 @@ func (w *worker) downloadTablesWorker(ctx context.Context, hostTask hostWorkload
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			refreshQueue <- refreshNodeInput{
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case refreshQueue <- refreshNodeInput{
 				Table:    table,
 				Progress: pr,
+			}:
 			}
 			return nil
 		})
@@ -94,7 +100,9 @@ type refreshNodeInput struct {
 func (w *worker) refreshNodeWorker(ctx context.Context, hostTask hostWorkload, queue <-chan refreshNodeInput) func() error {
 	manifestInfo, host := hostTask.manifestInfo, hostTask.host
 	return func() (err error) {
-		defer w.finishWorker(manifestInfo, host, refreshWorkerName, &err)
+		defer func() {
+			w.finishWorker(manifestInfo, host, refreshWorkerName, err)
+		}()
 		for {
 			select {
 			case <-ctx.Done():
@@ -214,11 +222,9 @@ func (w *worker) setRestoreStateForWorkers(manifestInfo *backupspec.ManifestInfo
 	}
 }
 
-// finishWorker accepts a pointer to an error so that it should be used in the defer statement with named return values.
-// nolint:gocritic
-func (w *worker) finishWorker(manifestInfo *backupspec.ManifestInfo, host Host, worker string, err *error) {
+func (w *worker) finishWorker(manifestInfo *backupspec.ManifestInfo, host Host, worker string, err error) {
 	state := metrics.One2OneRestoreStateDone
-	if err != nil && *err != nil {
+	if err != nil {
 		state = metrics.One2OneRestoreStateError
 	}
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, manifestInfo.Location, manifestInfo.SnapshotTag, host.Addr, worker, metrics.One2OneRestoreState(state))
