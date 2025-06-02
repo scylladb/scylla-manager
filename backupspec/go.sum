@@ -34,6 +34,7 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250123113205-a6303e03d168 h1:ua8SUnAgg1soc8zP5TInWfNpoWilBah8Mavdll7TxTs=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250123113205-a6303e03d168/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
+github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=

@@ -88,8 +88,10 @@ github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb4
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb48/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250529094758-b6ddc3fd1fee h1:6Ldh31IPcP/T/9Hugi5oeddfMNZTW7o5jJ7ChLcvkxM=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250529094758-b6ddc3fd1fee/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
+github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
 github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250310104639-18257b71bb48 h1:bAQTWuQ8tkbUuHvaMOQBTJaLaTMpXMsBi1znv+yIpLo=
 github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250310104639-18257b71bb48/go.mod h1:nCN5P0jiWL0W7jbcZ9p0ndtZAPoyEWXefddx/nbyFes=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:nCN5P0jiWL0W7jbcZ9p0ndtZAPoyEWXefddx/nbyFes=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

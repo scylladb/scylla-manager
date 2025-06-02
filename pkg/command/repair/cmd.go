@@ -9,6 +9,7 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/sizesuffix"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -31,7 +32,7 @@ type command struct {
 	ignoreDownHosts     bool
 	intensity           *flag.Intensity
 	parallel            int
-	smallTableThreshold managerclient.SizeSuffix
+	smallTableThreshold sizesuffix.SizeSuffix
 	dryRun              bool
 	showTables          bool
 }
