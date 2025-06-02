@@ -2,7 +2,7 @@
 //
 // Copyright Rclone https://github.com/rclone/rclone
 
-package managerclient
+package sizesuffix
 
 // SizeSuffix is parsed by flag with k/M/G suffixes
 import (

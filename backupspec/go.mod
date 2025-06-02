@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/json-iterator/go v1.1.12
 	github.com/pkg/errors v0.9.1
-	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250123113205-a6303e03d168
+	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6
 	go.uber.org/multierr v1.11.0
 )
 
