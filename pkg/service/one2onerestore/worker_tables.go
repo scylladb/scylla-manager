@@ -57,7 +57,8 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host) (int64, error) {
 	uploadDir := backupspec.UploadTableDir(table.Keyspace, table.Table, table.Version)
 	remoteDir := m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version)
-	jobID, err := w.client.RcloneCopyPaths(ctx, h.Addr, scyllaclient.TransfersFromConfig, scyllaclient.NoRateLimit, uploadDir, remoteDir, table.Files)
+	transfers := 2 * h.ShardCount // 2 * shard count showed to be the most optimal value in tests
+	jobID, err := w.client.RcloneCopyPaths(ctx, h.Addr, transfers, scyllaclient.NoRateLimit, uploadDir, remoteDir, table.Files)
 	if err != nil {
 		return 0, errors.Wrapf(err, "copy dir: %s", m.LocationSSTableVersionDir(table.Keyspace, table.Table, table.Version))
 	}
