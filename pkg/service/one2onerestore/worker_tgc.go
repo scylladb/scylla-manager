@@ -43,13 +43,9 @@ func (w *worker) setTombstoneGCModeRepair(ctx context.Context, workload []hostWo
 		return errors.Wrap(err, "get views")
 	}
 	for _, view := range views {
-		viewName := view.View
-		if view.Type == SecondaryIndex {
-			viewName += "_index"
-		}
 		targets = append(targets, alterTGCTarget{
 			keyspace: view.Keyspace,
-			name:     viewName,
+			name:     view.View,
 			isView:   true,
 		})
 	}
