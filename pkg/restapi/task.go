@@ -82,6 +82,11 @@ func (h *taskHandler) taskCtx(next http.Handler) http.Handler {
 			return
 		}
 
+		if t.Deleted {
+			respondError(w, r, errors.Errorf("task %q is deleted", taskID))
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), ctxTask, t)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
