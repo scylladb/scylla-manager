@@ -5,8 +5,8 @@ package one2onerestore
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -40,9 +40,14 @@ func (w *worker) dropViews(ctx context.Context, workload []hostWorkload) ([]View
 }
 
 func (w *worker) dropView(ctx context.Context, view View) error {
+	viewName := view.View
+	if view.Type == SecondaryIndex {
+		viewName = strings.TrimSuffix(view.View, "_index")
+	}
+
 	w.logger.Info(ctx, "Dropping view",
 		"keyspace", view.Keyspace,
-		"view", view.View,
+		"view", viewName,
 		"type", view.Type,
 	)
 
@@ -54,8 +59,7 @@ func (w *worker) dropView(ctx context.Context, view View) error {
 		case MaterializedView:
 			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %q.%q"
 		}
-
-		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, view.View))
+		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, viewName))
 	}
 
 	notify := func(err error, wait time.Duration) {
@@ -101,27 +105,6 @@ func (w *worker) getBaseTableName(keyspace, name string) (string, error) {
 		return "", errors.Wrapf(err, "scan base table name for view %s.%s", keyspace, name)
 	}
 	return baseTableName, nil
-}
-
-var (
-	regexMV = regexp.MustCompile(`CREATE\s*MATERIALIZED\s*VIEW`)
-	regexSI = regexp.MustCompile(`CREATE\s*INDEX`)
-)
-
-// create stmt has to contain "IF NOT EXISTS" clause as we have to be able to resume restore from any point.
-func addIfNotExists(stmt string, t ViewType) (string, error) {
-	var loc []int
-	switch t {
-	case MaterializedView:
-		loc = regexMV.FindStringIndex(stmt)
-	case SecondaryIndex:
-		loc = regexSI.FindStringIndex(stmt)
-	}
-	if loc == nil {
-		return "", fmt.Errorf("unknown create view statement %s", stmt)
-	}
-
-	return stmt[loc[0]:loc[1]] + " IF NOT EXISTS" + stmt[loc[1]:], nil
 }
 
 // reCreateViews re-creates views (materialized views or secondary indexes).
@@ -249,16 +232,12 @@ func (w *worker) viewsFromSchema(ctx context.Context, workload []hostWorkload) (
 		if err != nil {
 			return nil, errors.Wrapf(err, "get base table name for view %s.%s", stmt.Keyspace, stmt.Name)
 		}
-		createStmt, err := addIfNotExists(stmt.CQLStmt, viewType)
-		if err != nil {
-			return nil, err
-		}
 		result = append(result, View{
 			Keyspace:    stmt.Keyspace,
 			View:        stmt.Name,
 			Type:        viewType,
 			BaseTable:   baseTableName,
-			CreateStmt:  createStmt,
+			CreateStmt:  stmt.CQLStmt,
 			BuildStatus: scyllaclient.StatusUnknown, // We don't know the build status yet.
 		})
 	}
