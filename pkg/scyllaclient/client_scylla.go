@@ -1282,13 +1282,14 @@ func (c *Client) RaftReadBarrier(ctx context.Context, host, groupID string) erro
 // ScyllaBackup schedules Scylla backup task and returns its ID.
 func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table, snapshotTag string) (string, error) {
 	resp, err := c.scyllaOps.StorageServiceBackupPost(&operations.StorageServiceBackupPostParams{
-		Context:  forceHost(ctx, host),
-		Endpoint: endpoint,
-		Bucket:   bucket,
-		Prefix:   prefix,
-		Keyspace: keyspace,
-		Table:    table,
-		Snapshot: &snapshotTag,
+		Context:   forceHost(ctx, host),
+		Endpoint:  endpoint,
+		Bucket:    bucket,
+		Prefix:    prefix,
+		Keyspace:  keyspace,
+		Table:     table,
+		Snapshot:  &snapshotTag,
+		MoveFiles: pointer.BoolPtr(true),
 	})
 	if err != nil {
 		return "", err
