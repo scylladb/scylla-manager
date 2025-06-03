@@ -23,7 +23,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
-	"go.uber.org/multierr"
 )
 
 type worker struct {
@@ -71,7 +70,7 @@ func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (T
 }
 
 // restore is an actual 1-1-restore stages.
-func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) (err error) {
+func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) error {
 	defer func() {
 		if err := w.setAutoCompaction(context.Background(), workload, true); err != nil {
 			w.logger.Error(ctx, "Can't enable auto compaction", "err", err)
@@ -101,16 +100,16 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 	if err != nil {
 		return errors.Wrap(err, "drop views")
 	}
-	defer func() {
-		if rErr := w.reCreateViews(ctx, views); rErr != nil {
-			err = multierr.Combine(
-				err,
-				errors.Wrap(rErr, "recreate views"),
-			)
-		}
-	}()
 
-	return w.restoreTables(ctx, workload, target.Keyspace)
+	if err := w.restoreTables(ctx, workload, target.Keyspace); err != nil {
+		return errors.Wrap(err, "restore tables")
+	}
+
+	if err := w.reCreateViews(ctx, views); err != nil {
+		return errors.Wrap(err, "recreate views")
+	}
+
+	return nil
 }
 
 // getAllSnapshotManifestsAndTargetHosts gets backup(source) cluster node represented by manifests and target cluster nodes.
