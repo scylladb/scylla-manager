@@ -10088,6 +10088,13 @@
             "required": false,
             "type": "string",
             "description": "Name of a snapshot to copy sstables from"
+          },
+          {
+            "name": "move_files",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Move component files instead of copying them"
           }
         ],
         "responses": {

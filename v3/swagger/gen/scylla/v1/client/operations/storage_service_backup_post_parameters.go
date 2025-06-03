@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewStorageServiceBackupPostParams creates a new StorageServiceBackupPostParams object
@@ -76,6 +77,11 @@ type StorageServiceBackupPostParams struct {
 
 	*/
 	Keyspace string
+	/*MoveFiles
+	  Move component files instead of copying them
+
+	*/
+	MoveFiles *bool
 	/*Prefix
 	  The prefix of the objects for the backuped sstables
 
@@ -163,6 +169,17 @@ func (o *StorageServiceBackupPostParams) SetKeyspace(keyspace string) {
 	o.Keyspace = keyspace
 }
 
+// WithMoveFiles adds the moveFiles to the storage service backup post params
+func (o *StorageServiceBackupPostParams) WithMoveFiles(moveFiles *bool) *StorageServiceBackupPostParams {
+	o.SetMoveFiles(moveFiles)
+	return o
+}
+
+// SetMoveFiles adds the moveFiles to the storage service backup post params
+func (o *StorageServiceBackupPostParams) SetMoveFiles(moveFiles *bool) {
+	o.MoveFiles = moveFiles
+}
+
 // WithPrefix adds the prefix to the storage service backup post params
 func (o *StorageServiceBackupPostParams) WithPrefix(prefix string) *StorageServiceBackupPostParams {
 	o.SetPrefix(prefix)
@@ -229,6 +246,22 @@ func (o *StorageServiceBackupPostParams) WriteToRequest(r runtime.ClientRequest,
 		if err := r.SetQueryParam("keyspace", qKeyspace); err != nil {
 			return err
 		}
+	}
+
+	if o.MoveFiles != nil {
+
+		// query param move_files
+		var qrMoveFiles bool
+		if o.MoveFiles != nil {
+			qrMoveFiles = *o.MoveFiles
+		}
+		qMoveFiles := swag.FormatBool(qrMoveFiles)
+		if qMoveFiles != "" {
+			if err := r.SetQueryParam("move_files", qMoveFiles); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// query param prefix
