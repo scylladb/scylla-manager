@@ -15,13 +15,16 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func TestWorkerValidateClustersIntegration(t *testing.T) {
@@ -254,8 +257,11 @@ func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRo
 		managerSession: managerSession,
 		client:         sc,
 		clusterSession: clusterSession,
-		logger:         log.NopLogger,
-		metrics:        metrics.NewOne2OneRestoreMetrics(),
+		sessionFunc: func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+			return db.CreateSession(t, sc), nil
+		},
+		logger:  log.NopLogger,
+		metrics: metrics.NewOne2OneRestoreMetrics(),
 	}
 	return w, hrt
 }
