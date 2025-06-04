@@ -127,6 +127,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 
 		client:         client,
 		clusterSession: clusterSession,
+		sessionFunc:    s.clusterSession,
 
 		logger:  s.logger,
 		metrics: s.metrics,

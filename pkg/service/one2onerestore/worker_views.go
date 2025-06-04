@@ -5,14 +5,15 @@ package one2onerestore
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
@@ -24,7 +25,7 @@ func (w *worker) dropViews(ctx context.Context, workload []hostWorkload) ([]View
 		w.logger.Info(ctx, "Drop views", "took", timeutc.Since(start))
 	}()
 
-	views, err := w.getViews(ctx, getTablesToRestore(workload))
+	views, err := w.getViews(ctx, workload)
 	if err != nil {
 		return nil, errors.Wrap(err, "get views")
 	}
@@ -39,9 +40,14 @@ func (w *worker) dropViews(ctx context.Context, workload []hostWorkload) ([]View
 }
 
 func (w *worker) dropView(ctx context.Context, view View) error {
+	viewName := view.View
+	if view.Type == SecondaryIndex {
+		viewName = strings.TrimSuffix(view.View, "_index")
+	}
+
 	w.logger.Info(ctx, "Dropping view",
 		"keyspace", view.Keyspace,
-		"view", view.View,
+		"view", viewName,
 		"type", view.Type,
 	)
 
@@ -53,8 +59,7 @@ func (w *worker) dropView(ctx context.Context, view View) error {
 		case MaterializedView:
 			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %q.%q"
 		}
-
-		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, view.View))
+		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, viewName))
 	}
 
 	notify := func(err error, wait time.Duration) {
@@ -70,100 +75,36 @@ func (w *worker) dropView(ctx context.Context, view View) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) getViews(ctx context.Context, tablesToRestore map[scyllaTable]struct{}) ([]View, error) {
-	keyspaces, err := w.client.Keyspaces(ctx)
+func (w *worker) getViews(ctx context.Context, workload []hostWorkload) ([]View, error) {
+	tablesToRestore := getTablesToRestore(workload)
+	views, err := w.viewsFromSchema(ctx, workload)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get keyspaces")
+		return nil, errors.Wrap(err, "get views from schema")
+	}
+	result := make([]View, 0, len(views))
+	for _, view := range views {
+		if _, ok := tablesToRestore[scyllaTable{keyspace: view.Keyspace, table: view.BaseTable}]; !ok {
+			continue
+		}
+		result = append(result, view)
 	}
 
-	var views []View
-	for _, ks := range keyspaces {
-		meta, err := w.clusterSession.KeyspaceMetadata(ks)
-		if err != nil {
-			return nil, errors.Wrapf(err, "get keyspace %s metadata", ks)
-		}
-
-		for _, index := range meta.Indexes {
-			if _, ok := tablesToRestore[scyllaTable{keyspace: index.KeyspaceName, table: index.TableName}]; !ok {
-				continue
-			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Indexes: map[string]*gocql.IndexMetadata{index.Name: index},
-			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return nil, errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
-			stmt, err = addIfNotExists(stmt, SecondaryIndex)
-			if err != nil {
-				return nil, err
-			}
-
-			views = append(views, View{
-				Keyspace:   index.KeyspaceName,
-				View:       index.Name,
-				Type:       SecondaryIndex,
-				BaseTable:  index.TableName,
-				CreateStmt: stmt,
-			})
-		}
-
-		for _, view := range meta.Views {
-			if _, ok := tablesToRestore[scyllaTable{keyspace: view.KeyspaceName, table: view.BaseTableName}]; !ok {
-				continue
-			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Views: map[string]*gocql.ViewMetadata{view.ViewName: view},
-			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return nil, errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
-			stmt, err = addIfNotExists(stmt, MaterializedView)
-			if err != nil {
-				return nil, err
-			}
-
-			views = append(views, View{
-				Keyspace:   view.KeyspaceName,
-				View:       view.ViewName,
-				Type:       MaterializedView,
-				BaseTable:  view.BaseTableName,
-				CreateStmt: stmt,
-			})
-		}
-	}
-
-	return views, nil
+	return result, nil
 }
 
-var (
-	regexMV = regexp.MustCompile(`CREATE\s*MATERIALIZED\s*VIEW`)
-	regexSI = regexp.MustCompile(`CREATE\s*INDEX`)
-)
-
-// create stmt has to contain "IF NOT EXISTS" clause as we have to be able to resume restore from any point.
-func addIfNotExists(stmt string, t ViewType) (string, error) {
-	var loc []int
-	switch t {
-	case MaterializedView:
-		loc = regexMV.FindStringIndex(stmt)
-	case SecondaryIndex:
-		loc = regexSI.FindStringIndex(stmt)
+func (w *worker) getBaseTableName(keyspace, name string) (string, error) {
+	q := qb.Select("system_schema.views").
+		Columns("base_table_name").
+		Where(qb.Eq("keyspace_name"), qb.Eq("view_name")).
+		Query(w.clusterSession).
+		Bind(keyspace, name)
+	defer q.Release()
+	var baseTableName string
+	err := q.Scan(&baseTableName)
+	if err != nil {
+		return "", errors.Wrapf(err, "scan base table name for view %s.%s", keyspace, name)
 	}
-	if loc == nil {
-		return "", fmt.Errorf("unknown create view statement %s", stmt)
-	}
-
-	return stmt[loc[0]:loc[1]] + " IF NOT EXISTS" + stmt[loc[1]:], nil
+	return baseTableName, nil
 }
 
 // reCreateViews re-creates views (materialized views or secondary indexes).
@@ -213,12 +154,7 @@ func (w *worker) createView(ctx context.Context, view View) error {
 // Scylla operation might take a really long (and difficult to estimate) time.
 // This func exits ONLY on: success, context cancel or error.
 func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunViewProgress) error {
-	viewTableName := view.View
-	if view.Type == SecondaryIndex {
-		viewTableName += "_index"
-	}
-
-	status, err := w.client.ViewBuildStatus(ctx, view.Keyspace, viewTableName)
+	status, err := w.client.ViewBuildStatus(ctx, view.Keyspace, view.View)
 	if err != nil {
 		return err
 	}
@@ -226,11 +162,11 @@ func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunView
 	w.updateReCreateViewProgress(ctx, pr, status)
 	switch status {
 	case scyllaclient.StatusUnknown:
-		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, viewTableName, metrics.BuildStatusUnknown)
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, view.View, metrics.BuildStatusUnknown)
 	case scyllaclient.StatusStarted:
-		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, viewTableName, metrics.BuildStatusStarted)
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, view.View, metrics.BuildStatusStarted)
 	case scyllaclient.StatusSuccess:
-		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, viewTableName, metrics.BuildStatusSuccess)
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, view.Keyspace, view.View, metrics.BuildStatusSuccess)
 		return nil
 	}
 
@@ -250,4 +186,60 @@ func (w *worker) waitForViewBuilding(ctx context.Context, view View, pr *RunView
 	}
 
 	return nil
+}
+
+func (w *worker) viewsFromSchema(ctx context.Context, workload []hostWorkload) ([]View, error) {
+	// In order to ensure schema consistency, we need to call raft read barrier on a host
+	// from which we are going to read the schema.
+	host := workload[0].host
+	if host.SafeDescribeMethod != scyllaclient.SafeDescribeMethodReadBarrierAPI {
+		// Let's try to find the host that supports raft read barrier api.
+		for _, w := range workload {
+			if w.host.SafeDescribeMethod == scyllaclient.SafeDescribeMethodReadBarrierAPI {
+				host = w.host
+				break
+			}
+		}
+	}
+
+	hostSession, err := w.singleHostCQLSession(ctx, w.runInfo.ClusterID, host.Addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "single host cql session")
+	}
+
+	if err := w.raftReadBarrier(ctx, hostSession, host); err != nil {
+		return nil, errors.Wrap(err, "raft read barrier")
+	}
+
+	describedSchema, err := query.DescribeSchemaWithInternals(hostSession)
+	if err != nil {
+		return nil, errors.Wrap(err, "describe schema")
+	}
+	var result []View
+	for _, stmt := range describedSchema {
+		if stmt.Keyspace == "" {
+			continue
+		}
+		if !slices.Contains([]string{"view", "index"}, stmt.Type) {
+			continue
+		}
+
+		viewType := MaterializedView
+		if stmt.Type == "index" {
+			viewType = SecondaryIndex
+		}
+		baseTableName, err := w.getBaseTableName(stmt.Keyspace, stmt.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "get base table name for view %s.%s", stmt.Keyspace, stmt.Name)
+		}
+		result = append(result, View{
+			Keyspace:    stmt.Keyspace,
+			View:        stmt.Name,
+			Type:        viewType,
+			BaseTable:   baseTableName,
+			CreateStmt:  stmt.CQLStmt,
+			BuildStatus: scyllaclient.StatusUnknown, // We don't know the build status yet.
+		})
+	}
+	return result, nil
 }
