@@ -109,7 +109,7 @@ func (w *worker) updateReCreateViewProgress(ctx context.Context, pr *RunViewProg
 	}
 }
 
-func (w *worker) downloadProgress(ctx context.Context, host string, table backupspec.FilesMeta) *RunTableProgress {
+func (w *worker) restoreTableProgress(ctx context.Context, host string, table backupspec.FilesMeta) *RunTableProgress {
 	started := timeutc.Now()
 	pr := RunTableProgress{
 		ClusterID: w.runInfo.ClusterID,
@@ -132,7 +132,7 @@ func (w *worker) downloadProgress(ctx context.Context, host string, table backup
 	return &pr
 }
 
-func (w *worker) updateDownloadProgress(ctx context.Context, pr *RunTableProgress, job *scyllaclient.RcloneJobProgress) {
+func (w *worker) updateRestoreTableProgress(ctx context.Context, pr *RunTableProgress, job *scyllaclient.RcloneJobProgress) {
 	startedAt := time.Time(job.StartedAt)
 	if !startedAt.IsZero() {
 		pr.StartedAt = &startedAt
@@ -145,7 +145,7 @@ func (w *worker) updateDownloadProgress(ctx context.Context, pr *RunTableProgres
 	}
 }
 
-func (w *worker) finishDownloadProgress(ctx context.Context, pr *RunTableProgress, err error) {
+func (w *worker) finishRestoreTableProgress(ctx context.Context, pr *RunTableProgress, err error) {
 	completedAt := timeutc.Now()
 	pr.CompletedAt = &completedAt
 	pr.IsRefreshed = err == nil
