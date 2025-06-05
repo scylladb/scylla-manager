@@ -31,3 +31,6 @@ dry-run: |
 
 unpin-agent-cpu: |
   Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
+
+disable-repair: |
+  By default, repair is run on tables that have Indexes to ensure data consistency. By disabling repair, you can speed up the restore process, but it may lead to data inconsistency in case of Indexes, so use it with caution.
