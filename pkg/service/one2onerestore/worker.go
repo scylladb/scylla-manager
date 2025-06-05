@@ -113,7 +113,7 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 		}
 	}
 
-	if err := w.reCreateViews(ctx, views); err != nil {
+	if err := w.reCreateViews(ctx, views, target); err != nil {
 		return errors.Wrap(err, "recreate views")
 	}
 

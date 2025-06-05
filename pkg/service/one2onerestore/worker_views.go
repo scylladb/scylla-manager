@@ -108,7 +108,7 @@ func (w *worker) getBaseTableName(keyspace, name string) (string, error) {
 }
 
 // reCreateViews re-creates views (materialized views or secondary indexes).
-func (w *worker) reCreateViews(ctx context.Context, views []View) error {
+func (w *worker) reCreateViews(ctx context.Context, views []View, target Target) error {
 	start := timeutc.Now()
 	defer func() {
 		w.logger.Info(ctx, "Re-create views", "took", timeutc.Since(start))
@@ -116,6 +116,13 @@ func (w *worker) reCreateViews(ctx context.Context, views []View) error {
 	for _, view := range views {
 		if err := w.createView(ctx, view); err != nil {
 			return errors.Wrap(err, "create view")
+		}
+		// If repairs are disabled, we'll immediately change the tombstone_gc mode of an Index.
+		// This might help minimize the risk of data inconsistency, even if it's already a bit late.
+		if view.Type == SecondaryIndex && target.DisableRepair {
+			if err := w.setTombstoneGCMode(ctx, view.Keyspace, view.View, true, modeRepair); err != nil {
+				return errors.Wrapf(err, "set tombstone_gc mode repair for index %s.%s", view.Keyspace, view.View)
+			}
 		}
 		pr := w.reCreateViewProgress(ctx, view)
 		if err := w.waitForViewBuilding(ctx, view, pr); err != nil {
