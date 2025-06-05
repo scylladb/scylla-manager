@@ -20,6 +20,7 @@ type Target struct {
 	SnapshotTag     string                `json:"snapshot_tag"`
 	NodesMapping    []nodeMapping         `json:"nodes_mapping"`
 	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
+	DisableRepair   bool                  `json:"disable_repair"`
 }
 
 func defaultTarget() Target {

@@ -34,6 +34,7 @@ type command struct {
 	nodesMapping  nodesMapping
 	unpinAgentCPU bool
 	dryRun        bool
+	disableRepair bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -81,6 +82,8 @@ func (cmd *command) init() {
 	w.Unwrap().Var(&cmd.sourceCluster, "source-cluster-id", "")
 	w.Unwrap().StringVarP(&cmd.snapshotTag, "snapshot-tag", "T", "", "")
 	w.Unwrap().Var(&cmd.nodesMapping, "nodes-mapping", "")
+	// Feature flag to disable repair, should be removed once issue https://github.com/scylladb/scylladb/issues/16454 is resolved
+	w.Unwrap().BoolVar(&cmd.disableRepair, "disable-repair", false, "")
 
 	// Common configuration for restore procedures
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
@@ -211,6 +214,10 @@ func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err e
 			flagName:     "unpin-agent-cpu",
 			value:        cmd.unpinAgentCPU,
 			canBeUpdated: true,
+		},
+		{
+			flagName: "disable-repair",
+			value:    cmd.disableRepair,
 		},
 	}
 
