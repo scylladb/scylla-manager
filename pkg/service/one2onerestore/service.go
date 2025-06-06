@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -32,6 +33,8 @@ type Servicer interface {
 
 // Service for the 1-1-restore.
 type Service struct {
+	repairSvc *repair.Service // Needed to repair base tables of Indexes before recreating them. See https://github.com/scylladb/scylladb/issues/16454.
+
 	session gocqlx.Session
 
 	scyllaClient   scyllaclient.ProviderFunc
@@ -42,7 +45,7 @@ type Service struct {
 	metrics metrics.One2OneRestoreMetrics
 }
 
-func NewService(session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
+func NewService(repairSvc *repair.Service, session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
 	logger log.Logger, metrics metrics.One2OneRestoreMetrics,
 ) (Servicer, error) {
 	if session.Session == nil || session.Closed() {
@@ -54,6 +57,8 @@ func NewService(session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, 
 	}
 
 	return &Service{
+		repairSvc: repairSvc,
+
 		session: session,
 
 		scyllaClient:   scyllaClient,
@@ -128,6 +133,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 		client:         client,
 		clusterSession: clusterSession,
 		sessionFunc:    s.clusterSession,
+		repairSvc:      s.repairSvc,
 
 		logger:  s.logger,
 		metrics: s.metrics,
