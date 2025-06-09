@@ -1078,13 +1078,15 @@ func (c *Client) TableDiskSizeReport(ctx context.Context, hostKeyspaceTables Hos
 }
 
 // AwaitLoadSSTables loads sstables that are already downloaded to host's table upload directory.
-func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup bool) error {
+func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup, skipReshape bool) error {
 	c.logger.Info(ctx, "First try on loading sstables",
 		"host", host,
 		"keyspace", keyspace,
 		"table", table,
 		"load&stream", loadAndStream,
 		"primary replica only", primaryReplicaOnly,
+		"skip_cleanup", skipCleanup,
+		"skip_reshape", skipReshape,
 	)
 
 	isAlreadyLoadingSSTables := func(err error) bool {
@@ -1101,7 +1103,7 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 	firstCallCtx := ctx
 	firstCallCtx = customTimeout(firstCallCtx, firstCallTimeout)
 	firstCallCtx = noRetry(firstCallCtx)
-	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly, skipCleanup)
+	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly, skipCleanup, skipReshape)
 	if err == nil {
 		return nil // Return on success
 	}
@@ -1132,11 +1134,13 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 			"table", table,
 			"load&stream", loadAndStream,
 			"primary replica only", primaryReplicaOnly,
+			"skip_cleanup", skipCleanup,
+			"skip_reshape", skipReshape,
 		)
 
 		retryCallCtx := ctx
 		retryCallCtx = withShouldRetryHandler(retryCallCtx, dontRetryOnAlreadyLoadingSSTablesRetryHandler)
-		err = c.loadSSTables(retryCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly, skipCleanup)
+		err = c.loadSSTables(retryCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly, skipCleanup, skipReshape)
 		if err == nil {
 			return nil // Return on success
 		}
@@ -1153,7 +1157,7 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 // - It returns nil when called on an empty upload dir
 // loadSSTables does not perform any special error, timeout or retry handling.
 // See AwaitLoadSSTables for a wrapper with those features.
-func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup bool) error {
+func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string, loadAndStream, primaryReplicaOnly, skipCleanup, skipReshape bool) error {
 	params := &operations.StorageServiceSstablesByKeyspacePostParams{
 		Context:  forceHost(ctx, host),
 		Keyspace: keyspace,
@@ -1167,6 +1171,9 @@ func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string,
 	}
 	if skipCleanup {
 		params.SkipCleanup = &skipCleanup
+	}
+	if skipReshape {
+		params.SkipReshape = &skipReshape
 	}
 
 	_, err := c.scyllaOps.StorageServiceSstablesByKeyspacePost(params)

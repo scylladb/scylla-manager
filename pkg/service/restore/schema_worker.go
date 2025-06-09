@@ -109,7 +109,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 		host := status[i]
 		for _, ks := range w.run.Units {
 			for _, t := range ks.Tables {
-				if err := w.client.AwaitLoadSSTables(ctx, host.Addr, ks.Keyspace, t.Table, false, false, false); err != nil {
+				if err := w.client.AwaitLoadSSTables(ctx, host.Addr, ks.Keyspace, t.Table, false, false, false, false); err != nil {
 					return errors.Wrap(err, "restore schema")
 				}
 			}

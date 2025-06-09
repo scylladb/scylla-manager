@@ -123,7 +123,7 @@ func (w *worker) refreshNodeWorker(ctx context.Context, hostTask hostWorkload, q
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
 	start := timeutc.Now()
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, refreshWorkerName, metrics.One2OneRestoreStateLoading)
-	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, true)
+	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, true, true)
 	w.finishRestoreTableProgress(ctx, pr, err)
 	if err == nil {
 		w.logger.Info(ctx, "Refresh node done",
