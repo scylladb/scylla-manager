@@ -1032,11 +1032,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 }
 
 func TestServiceRepairIntegration(t *testing.T) {
-	defaultConfig := func() repair.Config {
-		c := repair.DefaultConfig()
-		c.PollInterval = 10 * time.Millisecond
-		return c
-	}
+	defaultConfig := repair.DefaultConfig
 	session := CreateScyllaManagerDBSession(t)
 	h := newRepairTestHelper(t, session, defaultConfig())
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
