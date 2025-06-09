@@ -13,10 +13,6 @@ options:
       usage: |
         Task schedule as a cron `expression`.
         It supports the extended syntax including @monthly, @weekly, @daily, @midnight, @hourly, @every X[h|m|s].
-    - name: disable-repair
-      default_value: "false"
-      usage: |
-        By default, repair is run on tables that have Indexes to ensure data consistency. By disabling repair, you can speed up the restore process, but it may lead to data inconsistency in case of Indexes, so use it with caution.
     - name: dry-run
       default_value: "false"
       usage: |
