@@ -123,6 +123,10 @@ http: 127.0.0.1:5080
 
 # Repair service configuration.
 #repair:
+# Timeout on querying repair status of vnode replicated table. Zero means no timeout.
+# Use only if you observe that Scylla Manager hangs indefinitely when querying vnode repair status.
+#  status_timeout: 0
+#
 # Maximal time a paused repair is considered fresh and can be continued,
 # if exceeded repair will start from the beginning. Zero means no limit.
 #  age_max: 0

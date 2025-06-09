@@ -87,6 +87,7 @@ func TestConfigModification(t *testing.T) {
 			LongPollingTimeoutSeconds: 5,
 		},
 		Repair: repair.Config{
+			StatusTimeout:                   time.Hour,
 			PollInterval:                    500 * time.Millisecond,
 			LongPollingTimeoutSeconds:       5,
 			AgeMax:                          12 * time.Hour,
