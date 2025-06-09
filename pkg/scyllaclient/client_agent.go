@@ -253,6 +253,7 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	}
 
 	for _, fv := range []featureByVersion{
+		{Constraint: ">= 2025.1", Method: SafeDescribeMethodReadBarrierAPI},
 		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarrierAPI},
 		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierCQL},
 		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarrierCQL},
