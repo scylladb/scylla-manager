@@ -107,13 +107,13 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 		return errors.Wrap(err, "restore tables")
 	}
 
-	if tables := w.tablesToRepair(ctx, views, target); len(tables) > 0 {
+	if tables := w.tablesToRepair(views); len(tables) > 0 {
 		if err := w.repair(ctx, tables); err != nil {
 			return errors.Wrap(err, "repair")
 		}
 	}
 
-	if err := w.reCreateViews(ctx, views, target); err != nil {
+	if err := w.reCreateViews(ctx, views); err != nil {
 		return errors.Wrap(err, "recreate views")
 	}
 

@@ -12,12 +12,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-func (w *worker) tablesToRepair(ctx context.Context, views []View, target Target) []scyllaTable {
+func (w *worker) tablesToRepair(views []View) []scyllaTable {
 	var result []scyllaTable
-	if target.DisableRepair {
-		w.logger.Info(ctx, "Repair is disabled by feature flag")
-		return result
-	}
 	for _, v := range views {
 		if v.Type == SecondaryIndex {
 			result = append(result, scyllaTable{

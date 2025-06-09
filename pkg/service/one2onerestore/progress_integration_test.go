@@ -110,7 +110,7 @@ func TestGetProgressIntegration(t *testing.T) {
 	expectViewsStatus(t, pr.Views, ProgressStatusNotStarted)
 
 	testutils.Print("RECREATE_VIEWS Stage")
-	if err := w.reCreateViews(context.Background(), views, target); err != nil {
+	if err := w.reCreateViews(context.Background(), views); err != nil {
 		t.Fatalf("Unexpected err, reCreateViews: %v", err)
 	}
 
