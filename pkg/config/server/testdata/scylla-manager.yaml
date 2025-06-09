@@ -46,6 +46,7 @@ restore:
   long_polling_timeout_seconds: 5
 
 repair:
+  status_timeout: 1h
   poll_interval: 500ms
   long_polling_timeout_seconds: 5
   age_max: 12h

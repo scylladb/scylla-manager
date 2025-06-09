@@ -24,6 +24,7 @@ const (
 
 // Config specifies the repair service configuration.
 type Config struct {
+	StatusTimeout                   time.Duration `yaml:"status_timeout"`
 	PollInterval                    time.Duration `yaml:"poll_interval"`
 	LongPollingTimeoutSeconds       int           `yaml:"long_polling_timeout_seconds"`
 	AgeMax                          time.Duration `yaml:"age_max"`
@@ -48,6 +49,9 @@ func (c *Config) Validate() error {
 	}
 
 	var err error
+	if c.StatusTimeout < 0 {
+		err = multierr.Append(err, errors.New("invalid status_timeout, must be >= 0"))
+	}
 	if c.PollInterval <= 0 {
 		err = multierr.Append(err, errors.New("invalid poll_interval, must be > 0"))
 	}
