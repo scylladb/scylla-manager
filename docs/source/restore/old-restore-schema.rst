@@ -20,7 +20,7 @@ Prerequisites
 * It is strongly advised to restore schema only into an empty cluster with no schema change history of the keyspace that is going to be restored.
    Otherwise, the restored schema might be overwritten by the already existing one and cause unexpected errors.
 
-* All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
+* All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/manual/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
 
 Procedure
 =========
@@ -46,13 +46,13 @@ However, the small size of schema files makes this overhead negligible.
             * Download all SSTables
     * For all nodes in restore destination cluster:
 
-        * `nodetool refresh <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/refresh.html#nodetool-refresh>`_ on all downloaded schema tables (full parallel)
+        * `nodetool refresh <https://docs.scylladb.com/manual/stable/operating-scylla/nodetool-commands/refresh.html>`_ on all downloaded schema tables (full parallel)
 
 Follow-up action
 ================
 
 After successful restore it is important to perform necessary follow-up action. In case of restoring schema,
-you should make a `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
+you should make a `rolling restart <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
 Without the restart, the restored schema might not be visible, and querying it can return various errors.
 
 .. _restore-schema-workaround:
@@ -65,5 +65,5 @@ is not supported. In such case, you should perform the following workaround:
 
     * Create a fresh cluster with ``consistent_cluster_management: false`` configured in ``scylla.yaml`` and a desired ScyllaDB version.
     * Restore schema via :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
-    * Perform `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
-    * Follow the steps of the `Enable Raft procedure <https://opensource.docs.scylladb.com/stable/architecture/raft.html#enabling-raft>`_.
+    * Perform `rolling restart <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_ of an entire cluster.
+    * Follow the steps of the `Enable Raft procedure <https://docs.scylladb.com/manual/stable/architecture/raft.html>`_.
