@@ -366,6 +366,12 @@ func TestSupportsSafeDescribeSchemaWithInternals(t *testing.T) {
 		expectedError  error
 	}{
 		{
+			name:           "when scylla >= 2025.1, then it is expected to support read barrier api",
+			scyllaVersion:  "2025.1.0-candidate-20241106103631",
+			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierAPI,
+			expectedError:  nil,
+		},
+		{
 			name:           "when scylla >= 6.1, then it is expected to support read barrier api",
 			scyllaVersion:  "6.2.1-candidate-20241106103631",
 			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierAPI,
