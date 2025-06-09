@@ -4,7 +4,7 @@ Restore schema for ScyllaDB 6.0/2024.2 or newer
 
 .. note:: Currently, ScyllaDB Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
 
-.. note:: Currently, restoring schema containing `alternator tables <https://opensource.docs.scylladb.com/stable/using-scylla/alternator/>`_ is not supported.
+.. note:: Currently, restoring schema containing `alternator tables <https://docs.scylladb.com/manual/stable/using-scylla/alternator/>`_ is not supported.
 
 | In order to restore ScyllaDB cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
 | Please note that the term *schema* specifically refers to the data residing in the ``system_schema keyspace``, such as keyspace and table definitions. All other data stored in keyspaces managed by ScyllaDB is restored as part of the :doc:`restore tables procedure <restore-tables>`.
@@ -15,7 +15,7 @@ Prerequisites
 
 * ScyllaDB Manager requires CQL credentials with
 
-    * `permission to create <https://opensource.docs.scylladb.com/stable/operating-scylla/security/authorization.html#permissions>`_ restored keyspaces.
+    * `permission to create <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html#permissions>`_ restored keyspaces.
 
 * No overlapping schema in restore destination cluster (see the procedure below for more details)
 

@@ -66,13 +66,13 @@ Complete the restore procedure - restore both the schema and the content of the 
      │ system_schema │ 100% | 100% │ 557.728k │ 557.728k │   557.728k │            0 │      0 │
      ╰───────────────┴─────────────┴──────────┴──────────┴────────────┴──────────────┴────────╯
 
-#. Perform restore schema follow-up action (only for ScyllaDB **5.4**/**2024.1** or older) - `rolling restart <https://docs.scylladb.com/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_.
+#. Perform restore schema follow-up action (only for ScyllaDB **5.4**/**2024.1** or older) - `rolling restart <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/config-change/rolling-restart.html>`_.
 
 #. Ensure that all prerequisites of restoring the content of the tables are met.
 
    The easiest way to achieve that is to restore schema with :doc:`sctool restore <restore-schema>` (so that's what has already been done in this example).
    You don't need to follow this step if you are sure that the destination cluster has the correct schema of restored tables and
-   that those tables are `truncated <https://docs.scylladb.com/stable/cql/ddl.html#truncate-statement>`_.
+   that those tables are `truncated <https://docs.scylladb.com/manual/stable/cql/ddl.html#truncate-statement>`_.
 
 #. Restore the content of the tables using :ref:`sctool restore <sctool-restore>`.
 
