@@ -2,7 +2,7 @@
 Restore tables
 ==============
 
-.. note:: Currently, Scylla Manager does not support restoring content of `CDC log tables <https://docs.scylladb.com/stable/using-scylla/cdc/cdc-log-table.html>`_.
+.. note:: Currently, Scylla Manager does not support restoring content of `CDC log tables <https://docs.scylladb.com/manual/stable/features/cdc/cdc-log-table.html>`_.
 
 .. warning:: Restoring data related to *authentication* (``system_auth``) and *service levels* (``system_distributed.service_levels``) is not supported in ScyllaDB 6.0.
 
@@ -16,8 +16,8 @@ Prerequisites
 
 * Scylla Manager requires CQL credentials with:
 
-    * `permission to alter <https://opensource.docs.scylladb.com/stable/operating-scylla/security/authorization.html#permissions>`_ restored tables.
-    * `permission to drop and create <https://opensource.docs.scylladb.com/stable/operating-scylla/security/authorization.html#permissions>`_ Materialized Views and Secondary Indexes of restored tables.
+    * `permission to alter <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html#permissions>`_ restored tables.
+    * `permission to drop and create <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html#permissions>`_ Materialized Views and Secondary Indexes of restored tables.
 
 * Restoring the content of the tables assumes that the correct schema (identical as in the backup) is already present in the destination cluster.
 
@@ -28,14 +28,14 @@ Prerequisites
 
    Note that this requirement also applies to the keyspace schema.
    Keyspace (where restored tables live) should have the correct schema, including the replication strategy.
-   It can be changed after successful restore according to: `How to Safely Increase the Replication Factor <https://opensource.docs.scylladb.com/stable/kb/rf-increase.html>`_.
+   It can be changed after successful restore according to: `How to Safely Increase the Replication Factor <https://docs.scylladb.com/manual/stable/kb/rf-increase.html>`_.
 
-* It is strongly advised to restore the contents of the tables only into `truncated <https://docs.scylladb.com/stable/cql/ddl.html#truncate-statement>`_ tables.
+* It is strongly advised to restore the contents of the tables only into `truncated <https://docs.scylladb.com/manual/stable/cql/ddl.html#truncate-statement>`_ tables.
 
    Otherwise, restored tables' contents might be overwritten by the already existing ones.
    Note that an empty table is not necessarily truncated!
 
-* All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
+* All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/manual/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
 
 Procedure
 =========
@@ -63,7 +63,7 @@ This section contains a description of the restore-tables procedure performed by
 
             * Select *node* with enough free space to restore given batch
             * Download batch to *node's* upload directory
-            * Call `load and stream <https://docs.scylladb.com/stable/operating-scylla/nodetool-commands/refresh.html#load-and-stream>`_ with ``primary_replica_only``
+            * Call `load and stream <https://docs.scylladb.com/manual/stable/operating-scylla/nodetool-commands/refresh.html#load-and-stream>`_ with ``primary_replica_only``
     * :ref:`Repair <sctool-repair>` restored tables
     * Reset all restored tables ``tombstone_gc`` to its original mode
     * Recreate restored views

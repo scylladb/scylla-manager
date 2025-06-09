@@ -47,8 +47,8 @@ Selecting tables and nodes to back up
 | All currently down nodes are ignored for the backup procedure.
 | In case table should be backed up, but some of its token ranges are not replicated on any currently live node in the cluster, the backup will fail.
 
-| Moreover, `Materialized Views <https://opensource.docs.scylladb.com/stable/using-scylla/materialized-views.html>`_ and `Secondary Indexes <https://opensource.docs.scylladb.com/stable/using-scylla/secondary-indexes.html>`_
-  won't be backed up, as they should be restored by recreating them on the restored base table (see `ScyllaDB docs <https://opensource.docs.scylladb.com/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster>`_).
+| Moreover, `Materialized Views <https://docs.scylladb.com/manual/stable/features/materialized-views.html>`_ and `Secondary Indexes <https://docs.scylladb.com/manual/stable/features/secondary-indexes.html>`_
+  won't be backed up, as they should be restored by recreating them on the restored base table (see `ScyllaDB docs <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster>`_).
 | In order to ensure that data residing in View table is preserved, make sure to backup its base table.
 
 Process
@@ -58,7 +58,7 @@ The backup procedure consists of multiple steps executed sequentially.
 
 #. **Snapshot** - Take a snapshot of data on each node (according to backup configuration settings).
 
-   Note that ScyllaDB Manager halts `tablets <https://opensource.docs.scylladb.com/stable/architecture/tablets.html>`_  migration for the duration of this step.
+   Note that ScyllaDB Manager halts `tablets <https://docs.scylladb.com/manual/stable/architecture/tablets.html>`_  migration for the duration of this step.
 #. **Schema** - Upload the schema in CQL text format to the backup storage destination,
    this requires that you added the cluster with CQL username and password.
    If you didn't you can :ref:`update the cluster using sctool <cluster-update>` at any point in time.
