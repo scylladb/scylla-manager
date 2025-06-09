@@ -1093,14 +1093,13 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 		return err != nil && strings.Contains(err.Error(), alreadyLoadingSSTablesErrMsg)
 	}
 
-	// The first call is synchronous and might time out.
+	// The first call is synchronous.
 	// We also need to handle situation where SM task
 	// was interrupted and retried immediately.
 	// Then it might also happen, that we get the
 	// already loading error, and we should await its completion.
-	const firstCallTimeout = time.Hour
 	firstCallCtx := ctx
-	firstCallCtx = customTimeout(firstCallCtx, firstCallTimeout)
+	firstCallCtx = noTimeout(firstCallCtx)
 	firstCallCtx = noRetry(firstCallCtx)
 	err := c.loadSSTables(firstCallCtx, host, keyspace, table, loadAndStream, primaryReplicaOnly)
 	if err == nil {
