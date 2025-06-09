@@ -82,6 +82,16 @@ type StorageServiceSstablesByKeyspacePostParams struct {
 
 	*/
 	PrimaryReplicaOnly *bool
+	/*Scope
+	  Defines the set of nodes to which mutations can be streamed
+
+	*/
+	Scope *string
+	/*SkipCleanup
+	  Don't cleanup keys from loaded sstables. Invalid if load_and_stream is true
+
+	*/
+	SkipCleanup *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -165,6 +175,28 @@ func (o *StorageServiceSstablesByKeyspacePostParams) SetPrimaryReplicaOnly(prima
 	o.PrimaryReplicaOnly = primaryReplicaOnly
 }
 
+// WithScope adds the scope to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) WithScope(scope *string) *StorageServiceSstablesByKeyspacePostParams {
+	o.SetScope(scope)
+	return o
+}
+
+// SetScope adds the scope to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) SetScope(scope *string) {
+	o.Scope = scope
+}
+
+// WithSkipCleanup adds the skipCleanup to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) WithSkipCleanup(skipCleanup *string) *StorageServiceSstablesByKeyspacePostParams {
+	o.SetSkipCleanup(skipCleanup)
+	return o
+}
+
+// SetSkipCleanup adds the skipCleanup to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) SetSkipCleanup(skipCleanup *string) {
+	o.SkipCleanup = skipCleanup
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -213,6 +245,38 @@ func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.Cl
 		qPrimaryReplicaOnly := swag.FormatBool(qrPrimaryReplicaOnly)
 		if qPrimaryReplicaOnly != "" {
 			if err := r.SetQueryParam("primary_replica_only", qPrimaryReplicaOnly); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.Scope != nil {
+
+		// query param scope
+		var qrScope string
+		if o.Scope != nil {
+			qrScope = *o.Scope
+		}
+		qScope := qrScope
+		if qScope != "" {
+			if err := r.SetQueryParam("scope", qScope); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.SkipCleanup != nil {
+
+		// query param skip_cleanup
+		var qrSkipCleanup string
+		if o.SkipCleanup != nil {
+			qrSkipCleanup = *o.SkipCleanup
+		}
+		qSkipCleanup := qrSkipCleanup
+		if qSkipCleanup != "" {
+			if err := r.SetQueryParam("skip_cleanup", qSkipCleanup); err != nil {
 				return err
 			}
 		}
