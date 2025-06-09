@@ -93,7 +93,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		"job_id", jobID,
 	)
 
-	status, err := w.client.RepairStatus(ctx, j.master.String(), jobID)
+	status, err := w.client.RepairStatus(ctx, j.master.String(), jobID, w.config.StatusTimeout)
 	if err != nil {
 		return errors.Wrap(err, "get repair status")
 	}
