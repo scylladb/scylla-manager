@@ -25,7 +25,7 @@ ScyllaDB Manager automates the repair process and allows you to configure how an
 chosen (by ScyllaDB Manager) token ranges of a given table owned by a specific replica set. All nodes from this replica set take part in
 the repair job and any node can take part only in a single repair job at any given time.
 
-Note that ScyllaDB Manager stops `tablets <https://opensource.docs.scylladb.com/stable/architecture/tablets.html>`_  migration for the duration of repair.
+Note that ScyllaDB Manager stops `tablets <https://docs.scylladb.com/manual/stable/architecture/tablets.html>`_  migration for the duration of repair.
 
 When you create a cluster a repair task is automatically scheduled.
 This task is set to occur each week by default, but you can change it to another time, change its parameters or add additional repair tasks if needed.
@@ -125,7 +125,7 @@ Scylla Manager repairs keyspace by keyspace and table by table in order to achie
 Keyspaces and tables are ordered according to the following rules:
 
 * repair internal (with ``system`` prefix) tables before user tables
-* repair base tables before `Materialized Views <https://opensource.docs.scylladb.com/stable/using-scylla/materialized-views.html>`_ and `Secondary Indexes <https://opensource.docs.scylladb.com/stable/using-scylla/secondary-indexes.html>`_
+* repair base tables before `Materialized Views <https://docs.scylladb.com/manual/stable/features/materialized-views.html>`_ and `Secondary Indexes <https://docs.scylladb.com/manual/stable/features/secondary-indexes.html>`_
 * repair smaller keyspaces and tables first
 
 .. note:: Ensuring that base tables are repaired before views is possible only when Scylla Manager has `CQL credentials <https://manager.docs.scylladb.com/stable/sctool/cluster.html#cluster-add>`_ to repaired cluster.

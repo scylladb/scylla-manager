@@ -161,7 +161,7 @@ Some files may be used in more than one backup.
 
 You may also find that some of those files have the snapshot tag suffix (e.g. ``.sm_20210809095541UTC``).
 Even though sstables (data files) are immutable by nature, using non UUID sstable identifiers alongside
-`replacing a running node <https://opensource.docs.scylladb.com/stable/operating-scylla/procedures/cluster-management/replace-running-node.html#replace-a-running-node-by-taking-its-place-in-the-cluster>`_
+`replacing a running node <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/cluster-management/replace-running-node.html#replace-a-running-node-by-taking-its-place-in-the-cluster>`_
 makes it possible to have two different sstables originating
 from the same table and with the same node ID. In this case, older versions of sstable are appended with the snapshot tag
 indicating the backup that introduced newer version of given sstable. The most current version of sstable does not have the snapshot tag suffix.
