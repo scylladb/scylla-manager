@@ -25,7 +25,7 @@ func NewOne2OneRestoreMetrics() One2OneRestoreMetrics {
 			"cluster", "location", "snapshot_tag", "host", "worker"),
 		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status",
 			"cluster", "keyspace", "view"),
-		progress: g("Defines current progress of the 1-1-restore process.", "progress",
+		progress: g("Defines current progress of the 1-1-restore process in percents from 0 to 100%", "progress",
 			"cluster", "snapshot_tag"),
 	}
 }
