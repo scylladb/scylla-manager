@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
@@ -142,7 +143,25 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID, user, pass string) Servicer {
 	configCacheSvc := NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts)
 
+	repairSvc, err := repair.NewService(
+		mgrSession,
+		repair.DefaultConfig(),
+		metrics.NewRepairMetrics(),
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			return client, nil
+		},
+		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+			return CreateSession(t, client), nil
+		},
+		configCacheSvc,
+		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("repair"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	svc, err := NewService(
+		repairSvc,
 		mgrSession,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil

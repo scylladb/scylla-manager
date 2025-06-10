@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -31,6 +32,7 @@ type worker struct {
 	client         *scyllaclient.Client
 	clusterSession gocqlx.Session
 	sessionFunc    cluster.SessionFunc // is needed to create cql session to single host
+	repairSvc      *repair.Service
 
 	logger  log.Logger
 	metrics metrics.One2OneRestoreMetrics
@@ -103,6 +105,12 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 
 	if err := w.restoreTables(ctx, workload, target.Keyspace); err != nil {
 		return errors.Wrap(err, "restore tables")
+	}
+
+	if tables := w.tablesToRepair(views); len(tables) > 0 {
+		if err := w.repair(ctx, tables); err != nil {
+			return errors.Wrap(err, "repair")
+		}
 	}
 
 	if err := w.reCreateViews(ctx, views); err != nil {
