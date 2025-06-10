@@ -186,6 +186,7 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 			)
 			stats.incrementDownloadStats(job.Uploaded, took.Milliseconds())
 			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, downloadWorkerName, metrics.One2OneRestoreStateIdle)
+			w.metrics.SetProgress(w.runInfo.ClusterID, m.SnapshotTag, stats.progress())
 			return nil
 		case scyllaclient.JobRunning:
 			continue

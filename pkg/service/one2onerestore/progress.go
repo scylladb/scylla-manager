@@ -72,6 +72,8 @@ func (w *worker) initProgressAndMetrics(ctx context.Context, workload []hostWork
 		}
 	}
 
+	w.metrics.SetProgress(w.runInfo.ClusterID, workload[0].manifestInfo.SnapshotTag, 0)
+
 	return nil
 }
 
