@@ -262,7 +262,7 @@ type ViewProgress struct {
 	Keyspace string `json:"keyspace"`
 	Table    string `json:"table"`
 	View     string `json:"view"`
-	ViewType string `json:"type"`
+	ViewType string `json:"view_type"`
 }
 
 // progress describes general properties of Table or View progress.

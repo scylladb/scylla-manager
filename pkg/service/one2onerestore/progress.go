@@ -236,7 +236,7 @@ func (w *worker) aggregateProgress(tableIter, viewIter dbIterator) Progress {
 	}
 
 	for viewIter.StructScan(&rvp) {
-		viewKey := scyllaTable{keyspace: rvp.Keyspace, table: rvp.Table}
+		viewKey := scyllaTable{keyspace: rvp.Keyspace, table: rvp.View}
 		vp := viewProgress[viewKey]
 		vp.progress = incrementProgress(vp.progress, progress{
 			StartedAt:   rvp.StartedAt,
