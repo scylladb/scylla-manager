@@ -29,7 +29,7 @@
       "keyspace": "ks1",
       "table": "t1",
       "view": "v1",
-      "type": "MaterializedView"
+      "view_type": "MaterializedView"
     },
     {
       "started_at": "2025-01-01T12:01:03Z",
@@ -40,7 +40,7 @@
       "keyspace": "ks1",
       "table": "t2",
       "view": "v2",
-      "type": "MaterializedView"
+      "view_type": "MaterializedView"
     }
   ]
 }
