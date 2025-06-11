@@ -149,6 +149,9 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 		w.clearJobStats(cleanCtx, jobID, h.Addr)
 	}()
 
+	// Initialize previous values, so we can calculate the difference.
+	var previousUploaded, previousTookMS int64
+
 	for {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -169,11 +172,19 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 			Table:       pr.Table,
 		}, float64(pr.TableSize-job.Uploaded))
 
+		// Calculate the difference in uploaded bytes and took time
+		// to update the stats later.
+		took := jobProgressTook(job)
+		diffUploaded := job.Uploaded - previousUploaded
+		diffTookMS := took.Milliseconds() - previousTookMS
+
+		previousUploaded = job.Uploaded
+		previousTookMS = took.Milliseconds()
+
 		switch scyllaclient.RcloneJobStatus(job.Status) {
 		case scyllaclient.JobError:
 			return errors.Errorf("job error (%d): %s: host %s", jobID, job.Error, h.Addr)
 		case scyllaclient.JobSuccess:
-			took := time.Time(job.CompletedAt).Sub(time.Time(job.StartedAt))
 			var bandwidth int64
 			if ms := took.Milliseconds(); ms > 0 {
 				bandwidth = job.Uploaded / ms
@@ -184,13 +195,12 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 				"bandwidth", bandwidth,
 				"took", took,
 			)
-			stats.incrementDownloadStats(job.Uploaded, took.Milliseconds())
+			stats.incrementDownloadStats(diffUploaded, diffTookMS)
 			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, downloadWorkerName, metrics.One2OneRestoreStateIdle)
 			w.metrics.SetProgress(w.runInfo.ClusterID, m.SnapshotTag, stats.progress())
 			return nil
 		case scyllaclient.JobRunning:
-			took := timeutc.Since(time.Time(job.StartedAt))
-			stats.incrementDownloadStats(job.Uploaded, took.Milliseconds())
+			stats.incrementDownloadStats(diffUploaded, diffTookMS)
 			w.metrics.SetProgress(w.runInfo.ClusterID, m.SnapshotTag, stats.progress())
 			continue
 		case scyllaclient.JobNotFound:
@@ -199,6 +209,16 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 			return errors.Errorf("unknown job status (%d): %s: host %s", jobID, job.Status, h.Addr)
 		}
 	}
+}
+
+func jobProgressTook(job *scyllaclient.RcloneJobProgress) time.Duration {
+	if job.CompletedAt.IsZero() && job.StartedAt.IsZero() {
+		return 0
+	}
+	if job.CompletedAt.IsZero() {
+		return timeutc.Since(time.Time(job.StartedAt))
+	}
+	return time.Time(job.CompletedAt).Sub(time.Time(job.StartedAt))
 }
 
 func (w *worker) clearJobStats(ctx context.Context, jobID int64, host string) {
