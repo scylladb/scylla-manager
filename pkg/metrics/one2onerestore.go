@@ -12,6 +12,7 @@ type One2OneRestoreMetrics struct {
 	remainingBytes  *prometheus.GaugeVec
 	state           *prometheus.GaugeVec
 	viewBuildStatus *prometheus.GaugeVec
+	progress        *prometheus.GaugeVec
 }
 
 func NewOne2OneRestoreMetrics() One2OneRestoreMetrics {
@@ -24,6 +25,8 @@ func NewOne2OneRestoreMetrics() One2OneRestoreMetrics {
 			"cluster", "location", "snapshot_tag", "host", "worker"),
 		viewBuildStatus: g("Defines build status of recreated view.", "view_build_status",
 			"cluster", "keyspace", "view"),
+		progress: g("Defines current progress of the 1-1-restore process in percents from 0 to 100%", "progress",
+			"cluster", "snapshot_tag"),
 	}
 }
 
@@ -38,6 +41,7 @@ func (m One2OneRestoreMetrics) all() []prometheus.Collector {
 		m.remainingBytes,
 		m.state,
 		m.viewBuildStatus,
+		m.progress,
 	}
 }
 
@@ -109,4 +113,14 @@ func (m One2OneRestoreMetrics) SetViewBuildStatus(clusterID uuid.UUID, keyspace,
 		"view":     view,
 	}
 	m.viewBuildStatus.With(l).Set(float64(status))
+}
+
+// SetProgress sets 1-1-restore "progress" metric,
+// progress should be a value between 0 and 100, that indicates global restore progress.
+func (m One2OneRestoreMetrics) SetProgress(clusterID uuid.UUID, snapshotTag string, progress float64) {
+	l := prometheus.Labels{
+		"cluster":      clusterID.String(),
+		"snapshot_tag": snapshotTag,
+	}
+	m.progress.With(l).Set(progress)
 }
