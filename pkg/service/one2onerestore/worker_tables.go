@@ -172,11 +172,14 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 			Table:       pr.Table,
 		}, float64(pr.TableSize-job.Uploaded))
 
-		// Calculate the difference in uploaded bytes and took time
+		// Calculate the difference in uploaded bytes and time taken
 		// to update the stats later.
 		took := jobProgressTook(job)
 		diffUploaded := job.Uploaded - previousUploaded
 		diffTookMS := took.Milliseconds() - previousTookMS
+
+		stats.incrementDownloadStats(diffUploaded, diffTookMS)
+		w.metrics.SetProgress(w.runInfo.ClusterID, m.SnapshotTag, stats.progress())
 
 		previousUploaded = job.Uploaded
 		previousTookMS = took.Milliseconds()
@@ -195,13 +198,9 @@ func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.Manifes
 				"bandwidth", bandwidth,
 				"took", took,
 			)
-			stats.incrementDownloadStats(diffUploaded, diffTookMS)
 			w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, downloadWorkerName, metrics.One2OneRestoreStateIdle)
-			w.metrics.SetProgress(w.runInfo.ClusterID, m.SnapshotTag, stats.progress())
 			return nil
 		case scyllaclient.JobRunning:
-			stats.incrementDownloadStats(diffUploaded, diffTookMS)
-			w.metrics.SetProgress(w.runInfo.ClusterID, m.SnapshotTag, stats.progress())
 			continue
 		case scyllaclient.JobNotFound:
 			return errors.New("job not found")
