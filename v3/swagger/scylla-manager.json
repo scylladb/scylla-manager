@@ -2355,6 +2355,12 @@
             "name": "start_tasks",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "allow_task_type",
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
