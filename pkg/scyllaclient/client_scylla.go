@@ -1304,7 +1304,8 @@ func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 	return nil
 }
 
-// ScyllaWaitTask long polls Scylla task status.
+// ScyllaWaitTask waits for Scylla task to finish and returns its status.
+// If longPollingSeconds is greater than 0, it will long poll instead of waiting for the task to finish.
 func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
 	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
 	ctx = forceHost(ctx, host)
