@@ -126,6 +126,7 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 	}
 	s.SetRunner(mockTask, h.runner)
 	s.SetRunner(scheduler.BackupTask, h.runner)
+	s.SetRunner(scheduler.One2OneRestoreTask, h.runner)
 
 	return h
 }
@@ -200,6 +201,16 @@ func (h *schedulerTestHelper) makeTask(s scheduler.Schedule) *scheduler.Task {
 		ID:        uuid.MustRandom(),
 		Enabled:   true,
 		Sched:     s,
+	}
+}
+
+func (h *schedulerTestHelper) makeTaskOfTypeWithStartDate(tp scheduler.TaskType, s time.Time) *scheduler.Task {
+	return &scheduler.Task{
+		ClusterID: h.clusterID,
+		Type:      tp,
+		ID:        uuid.MustRandom(),
+		Enabled:   true,
+		Sched:     scheduler.Schedule{StartDate: s},
 	}
 }
 
@@ -762,7 +773,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertNotStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -797,7 +808,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertNotStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -814,6 +825,118 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task1 is not executed")
 		h.assertNotStatus(task1, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend and start allowed task and resume", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task0 (mock type) is scheduled now")
+		task0 := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 (mock type) runs")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended with allow 1_1_restore task")
+		if err := h.service.Suspend(ctx, h.clusterID, scheduler.One2OneRestoreTask.String()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports suspended status")
+		s := h.service.SuspendStatus(ctx, h.clusterID)
+		if !s.Suspended {
+			t.Fatal("Expected suspended")
+		}
+		if s.AllowTask.TaskType != scheduler.One2OneRestoreTask {
+			t.Fatalf("Expected allow task %s, got %s", scheduler.One2OneRestoreTask, s.AllowTask)
+		}
+
+		Print("Then: task0 (mock type) is not executed")
+		h.assertNotStatus(task0, scheduler.StatusRunning)
+
+		Print("And: task0 (mock type) cannot be started")
+		h.assertError(h.service.StartTask(ctx, task0), "suspended")
+
+		Print("When: task1 (1_1_restore type) is scheduled in now")
+		task1 := h.makeTaskOfTypeWithStartDate(scheduler.One2OneRestoreTask, now())
+		if err := h.service.PutTask(ctx, task1); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: task1 (1_1_restore type) runs")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		Print("When: scheduler is resumed")
+		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 (mock type) is not executed")
+		h.assertNotStatus(task0, scheduler.StatusRunning)
+
+		Print("And: task1 (1_1_restore type) is running")
+		h.assertStatus(task1, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend with running allowed task and resume", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task0 (mock type) is scheduled now")
+		task0 := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 runs")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("When: task1 (1_1_restore type) is scheduled in now")
+		task1 := h.makeTaskOfTypeWithStartDate(scheduler.One2OneRestoreTask, now())
+		if err := h.service.PutTask(ctx, task1); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task1 runs")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended with allow 1_1_restore task")
+		if err := h.service.Suspend(ctx, h.clusterID, scheduler.One2OneRestoreTask.String()); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports suspended status")
+		s := h.service.SuspendStatus(ctx, h.clusterID)
+		if !s.Suspended {
+			t.Fatal("Expected suspended")
+		}
+		if s.AllowTask.TaskType != scheduler.One2OneRestoreTask {
+			t.Fatalf("Expected allow task %s, got %s", scheduler.One2OneRestoreTask, s.AllowTask)
+		}
+
+		Print("Then: task0 (mock type) is not executed")
+		h.assertNotStatus(task0, scheduler.StatusRunning)
+
+		Print("And: task0 cannot be started")
+		h.assertError(h.service.StartTask(ctx, task0), "suspended")
+
+		Print("Then: task1 (1_1_restore type) is running")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		Print("When: scheduler is resumed")
+		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 (mock type) is not executed")
+		h.assertNotStatus(task0, scheduler.StatusRunning)
+
+		Print("And: task1 (1_1_restore type) is running")
+		h.assertStatus(task1, scheduler.StatusRunning)
 	})
 
 	t.Run("suspend task", func(t *testing.T) {
@@ -860,13 +983,78 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusDone)
 	})
 
+	t.Run("suspend task with allow task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task0 (mock type) is scheduled now")
+		task0 := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 (mock type) is running")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("When: task1 (1_1_restore type) is scheduled now")
+		task1 := h.makeTaskOfTypeWithStartDate(scheduler.One2OneRestoreTask, now())
+		if err := h.service.PutTask(ctx, task1); err != nil {
+			t.Fatal(err)
+		}
+		Print("Then: task1 (1_1_restore type) is running")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		p, _ := json.Marshal(scheduler.SuspendProperties{
+			Duration:   duration.Duration(time.Second),
+			StartTasks: true,
+			AllowTask:  scheduler.AllowedTaskType{scheduler.One2OneRestoreTask},
+		})
+		suspendTask := &scheduler.Task{
+			ClusterID:  h.clusterID,
+			Type:       scheduler.SuspendTask,
+			Enabled:    true,
+			Properties: p,
+		}
+
+		Print("When: suspend task with allowed 1_1_restore task type is scheduled")
+		if err := h.service.PutTask(ctx, suspendTask); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 (mock type) status is stopped")
+		h.assertStatus(task0, scheduler.StatusStopped)
+
+		Print("And: task1 (1_1_restore type) is running")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		Print("And: scheduler reports suspended status")
+		if !h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("And: task0 (mock type) is automatically resumed")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("And: task1 (1_1_restore type) is continue to run")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		Print("When: suspend task is finished")
+		h.runner.Done()
+		h.runner.Done()
+		Print("Then: task0 (mock type) status is StatusDone")
+		h.assertStatus(task0, scheduler.StatusDone)
+		Print("And: task1 (1_1_restore type) status is StatusDone")
+		h.assertStatus(task1, scheduler.StatusDone)
+	})
+
 	t.Run("put task when suspended", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
 		Print("Given: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -900,7 +1088,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -943,7 +1131,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("And: scheduler is suspended during the start time")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -968,7 +1156,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
@@ -978,7 +1166,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("And: suspending it again has no side effects")
-		if err := h.service.Suspend(ctx, h.clusterID); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
 			t.Fatal(err)
 		}
 
