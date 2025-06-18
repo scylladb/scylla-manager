@@ -167,7 +167,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, errors.Wrap(err, "location is not accessible")
 	}
 
-	if p.Method == methodNative {
+	if p.Method == MethodNative {
 		if err := s.validateHostNativeBackupSupport(clusterID, liveNodes, p); err != nil {
 			return Target{}, err
 		}

@@ -53,19 +53,19 @@ func (w *worker) uploadHost(ctx context.Context, h hostInfo) error {
 func (w *worker) hostSnapshotDirsByMethod(ctx context.Context, h hostInfo) (rclone, native []snapshotDir, err error) {
 	dirs := w.hostSnapshotDirs(h)
 
-	if w.Method == methodRclone {
+	if w.Method == MethodRclone {
 		return dirs, nil, nil
 	}
 
 	// Handle lack of native backup support on the host level
 	if err := w.hostNativeBackupSupport(ctx, h.IP, h.NodeConfig.NodeInfo, h.Location); err != nil {
-		if w.Method == methodNative {
+		if w.Method == MethodNative {
 			return nil, nil, err
 		}
 		return dirs, nil, nil
 	}
 
-	if w.Method == methodNative {
+	if w.Method == MethodNative {
 		for _, d := range dirs {
 			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, d); err != nil {
 				return nil, nil, errors.Wrapf(err, "%s.%s: ensure native backup support", d.Keyspace, d.Table)
@@ -74,7 +74,7 @@ func (w *worker) hostSnapshotDirsByMethod(ctx context.Context, h hostInfo) (rclo
 		return nil, dirs, nil
 	}
 
-	if w.Method == methodAuto {
+	if w.Method == MethodAuto {
 		for _, d := range dirs {
 			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, d); err != nil {
 				rclone = append(rclone, d)

@@ -2624,7 +2624,7 @@ func TestBackupMethodIntegration(t *testing.T) {
 	}
 
 	type testCase struct {
-		method           string
+		method           backup.Method
 		blockedPath      string
 		ensuredPath      string
 		getTargetSuccess bool
@@ -2635,21 +2635,21 @@ func TestBackupMethodIntegration(t *testing.T) {
 	switch {
 	case support && !IsIPV6Network():
 		testCases = []testCase{
-			{method: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: backup.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: backup.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	case support && IsIPV6Network():
 		testCases = []testCase{
-			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: "native", getTargetSuccess: false},
-			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: backup.MethodNative, getTargetSuccess: false},
+			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	default:
 		testCases = []testCase{
-			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: "native", getTargetSuccess: false},
-			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: backup.MethodNative, getTargetSuccess: false},
+			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	}
 
