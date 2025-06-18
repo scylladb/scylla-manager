@@ -70,6 +70,31 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// AllowedTaskType is a wrapper around TaskType that allows it to be empty and adds additional validation.
+type AllowedTaskType struct {
+	TaskType
+}
+
+// IsEmpty returns true if the AllowedTaskType is empty.
+func (t AllowedTaskType) IsEmpty() bool {
+	return string(t.TaskType) == ""
+}
+
+func (t *AllowedTaskType) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return nil
+	}
+	var tt TaskType
+	if err := tt.UnmarshalText(text); err != nil {
+		return err
+	}
+	if tt == SuspendTask || tt == HealthCheckTask {
+		return fmt.Errorf("allowed task type cannot be %q", tt)
+	}
+	*t = AllowedTaskType{tt}
+	return nil
+}
+
 // WeekdayTime adds CQL capabilities to scheduler.WeekdayTime.
 type WeekdayTime struct {
 	scheduler.WeekdayTime
