@@ -185,24 +185,20 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 		"task ID", id,
 	)
 
-	for {
-		status, err := w.client.ScyllaWaitTask(ctx, host, id, int64(w.config.LongPollingTimeoutSeconds))
-		if err != nil {
-			w.scyllaAbortTask(host, id)
-			return errors.Wrap(err, "get tablet repair task status")
-		}
+	status, err := w.client.ScyllaWaitTask(ctx, host, id, 0)
+	if err != nil {
+		w.scyllaAbortTask(host, id)
+		return errors.Wrap(err, "get tablet repair task status")
+	}
 
-		switch scyllaclient.ScyllaTaskState(status.State) {
-		case scyllaclient.ScyllaTaskStateDone:
-			return nil
-		case scyllaclient.ScyllaTaskStateFailed:
-			return errors.Errorf("tablet repair task finished with status %q", scyllaclient.ScyllaTaskStateFailed)
-		case scyllaclient.ScyllaTaskStateCreated, scyllaclient.ScyllaTaskStateRunning:
-			continue
-		default:
-			w.scyllaAbortTask(host, id)
-			return errors.Errorf("unexpected tablet repair task status %q", status.State)
-		}
+	switch scyllaclient.ScyllaTaskState(status.State) {
+	case scyllaclient.ScyllaTaskStateDone:
+		return nil
+	case scyllaclient.ScyllaTaskStateFailed:
+		return errors.Errorf("tablet repair task finished with status %q", scyllaclient.ScyllaTaskStateFailed)
+	default:
+		w.scyllaAbortTask(host, id)
+		return errors.Errorf("unexpected tablet repair task status %q", status.State)
 	}
 }
 
