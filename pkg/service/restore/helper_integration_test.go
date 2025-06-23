@@ -19,7 +19,9 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -183,6 +185,19 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 	}
 
 	return svc
+}
+
+func defaultTestBackupProperties(loc backupspec.Location, ks string) map[string]any {
+	properties := map[string]any{
+		"location": []backupspec.Location{loc},
+	}
+	if ks != "" {
+		properties["keyspace"] = []string{ks}
+	}
+	if testconfig.BackupMethod() != nil && *testconfig.BackupMethod() != "" {
+		properties["method"] = *testconfig.BackupMethod()
+	}
+	return properties
 }
 
 func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
