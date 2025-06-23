@@ -27,6 +27,7 @@ var (
 	flagUserCertFile = flag.String("ssl-cert-file", "", "User SSL certificate file")
 	flagUserKeyFile  = flag.String("ssl-key-file", "", "User SSL key file")
 	flagValidate     = flag.Bool("ssl-validate", false, "Enable host verification")
+	flagBackupMethod = flag.String("backup-method", "", "Default backup --method to use")
 
 	flagManagedCluster       = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
 	flagManagedSecondCluster = flag.String("managed-second-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data second cluster hosts")
@@ -204,4 +205,13 @@ func TLSConfig(sslOpts *gocql.SslOptions) (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+// BackupMethod returns default backup --method to use.
+// Returns nil if not set.
+func BackupMethod() *string {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return flagBackupMethod
 }
