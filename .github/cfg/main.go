@@ -15,6 +15,7 @@ type integrationTestCfg struct {
 	RaftSchema    string `yaml:"raft-schema"`
 	Tablets       string `yaml:"tablets"`
 	SSLEnabled    string `yaml:"ssl-enabled,omitempty"`
+	BackupMethod  string `yaml:"backup-method,omitempty"`
 }
 
 func (cfg integrationTestCfg) name() string {
@@ -32,7 +33,9 @@ func (cfg integrationTestCfg) name() string {
 	}
 	if cfg.SSLEnabled == "false" {
 		parts = append(parts, "nossl")
-
+	}
+	if cfg.BackupMethod != "" {
+		parts = append(parts, cfg.BackupMethod)
 	}
 	return strings.Join(parts, "-")
 }
