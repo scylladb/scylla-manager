@@ -936,7 +936,7 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	// but backed up views should still be tested as older backups might
 	// contain them. That's why here we manually force backup target
 	// to contain the views.
-	backupProps, err := json.Marshal(map[string]any{"location": target.Location})
+	backupProps, err := json.Marshal(defaultTestBackupProperties(target.Location[0], ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1137,7 +1137,9 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	}
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	srcH.simpleBackup(target.Location[0])
+	backupProps := defaultTestBackupProperties(target.Location[0], "")
+	backupProps["method"] = backup.MethodAuto // This additionally validates fallback to rclone on versioned files creation
+	srcH.simpleBackupWithProperties(target.Location[0], backupProps)
 
 	// Corrupting SSTables allows us to force the creation of versioned files
 	Print("Choose SSTables to corrupt")
@@ -1249,7 +1251,7 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 		}
 
 		Print("Backup with corrupted SSTables in remote location")
-		tag := srcH.simpleBackup(target.Location[0])
+		tag := srcH.simpleBackupWithProperties(target.Location[0], backupProps)
 
 		Print("Validate creation of versioned files in remote location")
 		for _, tc := range toCorrupt {
@@ -1851,15 +1853,19 @@ func (h *restoreTestHelper) prepareRestoreBackup(session gocqlx.Session, keyspac
 func (h *restoreTestHelper) simpleBackup(location backupspec.Location) string {
 	h.T.Helper()
 
+	return h.simpleBackupWithProperties(location, defaultTestBackupProperties(location, ""))
+}
+
+func (h *restoreTestHelper) simpleBackupWithProperties(loc backupspec.Location, props map[string]any) string {
+	h.T.Helper()
+
 	ctx := context.Background()
-	props, err := json.Marshal(map[string]any{
-		"location": []backupspec.Location{location},
-	})
+	rawProps, err := json.Marshal(props)
 	if err != nil {
 		h.T.Fatal(err)
 	}
 
-	target, err := h.backupSvc.GetTarget(ctx, h.ClusterID, props)
+	target, err := h.backupSvc.GetTarget(ctx, h.ClusterID, rawProps)
 	if err != nil {
 		h.T.Fatal(err)
 	}
@@ -1872,7 +1878,7 @@ func (h *restoreTestHelper) simpleBackup(location backupspec.Location) string {
 	}
 
 	Print("When: list newly created backup")
-	items, err := h.backupSvc.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{
+	items, err := h.backupSvc.List(ctx, h.ClusterID, []backupspec.Location{loc}, backup.ListFilter{
 		ClusterID: h.ClusterID,
 		TaskID:    backupID,
 	})

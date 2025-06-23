@@ -52,9 +52,7 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	Print("Run backup")
 	loc := []backupspec.Location{testLocation("user", "")}
 	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, map[string]any{
-		"location": loc,
-	})
+	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
@@ -97,10 +95,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	loc := []backupspec.Location{testLocation("no-replication", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location": loc,
-		"keyspace": ksFilter,
-	})
+	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
@@ -153,9 +148,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	Print("Run src backup")
 	loc := []backupspec.Location{testLocation("schema-roundtrip", "")}
 	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, map[string]any{
-		"location": loc,
-	})
+	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
 
 	Print("Drop backed-up src cluster schema")
 	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+ks)
@@ -175,9 +168,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run dst backup")
-	tag = hRev.runBackup(t, map[string]any{
-		"location": loc,
-	})
+	tag = hRev.runBackup(t, defaultTestBackupProperties(loc[0], ""))
 
 	Print("Run restore of dst backup on src cluster")
 	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
@@ -279,10 +270,7 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	loc := []backupspec.Location{testLocation("drop-add", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location": loc,
-		"keyspace": ksFilter,
-	})
+	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
 
 	Print("Run restore schema")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
@@ -341,10 +329,7 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	loc := []backupspec.Location{testLocation("vnode-to-tablets", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location": loc,
-		"keyspace": ksFilter,
-	})
+	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
 
 	Print("Manually recreate tablet schema")
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 3, true))
@@ -438,7 +423,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	h.srcCluster.TaskID = uuid.NewTime()
 	h.srcCluster.RunID = uuid.NewTime()
 
-	rawProps, err := json.Marshal(map[string]any{"location": loc})
+	rawProps, err := json.Marshal(defaultTestBackupProperties(loc[0], ""))
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "marshal properties"))
 	}
@@ -625,12 +610,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	loc := []backupspec.Location{testLocation("preparation", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location":   loc,
-		"keyspace":   ksFilter,
-		"transfers":  3,
-		"rate_limit": []string{"88"},
-	})
+	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps["transfers"] = 3
+	backupProps["rate_limit"] = []string{"88"}
+	tag := h.runBackup(t, backupProps)
 
 	Print("Validate state after backup")
 	if nativeBackupSupport && !IsIPV6Network() {
@@ -780,11 +763,9 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	loc := []backupspec.Location{testLocation("batch-retry", "")}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location":   loc,
-		"keyspace":   ksFilter,
-		"batch_size": 100,
-	})
+	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps["batch_size"] = 100
+	tag := h.runBackup(t, backupProps)
 
 	downloadErr := errors.New("fake download error")
 	lasErr := errors.New("fake las error")
@@ -966,11 +947,10 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	S3InitBucket(t, loc[0].Path)
 	S3InitBucket(t, loc[1].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location":   loc,
-		"keyspace":   ksFilter,
-		"batch_size": 100,
-	})
+	backupProps := defaultTestBackupProperties(backupspec.Location{}, ks)
+	backupProps["location"] = loc
+	backupProps["batch_size"] = 100
+	tag := h.runBackup(t, backupProps)
 
 	Print("Truncate backed up table")
 	truncateStmt := "TRUNCATE TABLE %q.%q"
@@ -1051,9 +1031,7 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	Print("Run backup")
 	loc := []backupspec.Location{testLocation("progress", "")}
 	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, map[string]any{
-		"location": loc,
-	})
+	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
@@ -1141,11 +1119,10 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	}
 	S3InitBucket(t, loc[0].Path)
 	ksFilter := []string{ksTwoDC, ksOneDC}
-	tag := h.runBackup(t, map[string]any{
-		"location":   loc,
-		"keyspace":   ksFilter,
-		"batch_size": 100,
-	})
+	backupProps := defaultTestBackupProperties(loc[0], "")
+	backupProps["keyspace"] = ksFilter
+	backupProps["batch_size"] = 100
+	tag := h.runBackup(t, backupProps)
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
@@ -1214,11 +1191,10 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	S3InitBucket(t, loc[0].Path)
 	S3InitBucket(t, loc[1].Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, map[string]any{
-		"location":   loc,
-		"keyspace":   ksFilter,
-		"batch_size": 100,
-	})
+	backupProps := defaultTestBackupProperties(backupspec.Location{}, ks)
+	backupProps["location"] = loc
+	backupProps["batch_size"] = 100
+	tag := h.runBackup(t, backupProps)
 
 	Print("Truncate backed up table")
 	truncateStmt := "TRUNCATE TABLE %q.%q"
