@@ -41,6 +41,8 @@ type ClientService interface {
 
 	GetClusterClusterIDSuspended(params *GetClusterClusterIDSuspendedParams) (*GetClusterClusterIDSuspendedOK, error)
 
+	GetClusterClusterIDSuspendedDetails(params *GetClusterClusterIDSuspendedDetailsParams) (*GetClusterClusterIDSuspendedDetailsOK, error)
+
 	GetClusterClusterIDTask11RestoreTaskIDRunID(params *GetClusterClusterIDTask11RestoreTaskIDRunIDParams) (*GetClusterClusterIDTask11RestoreTaskIDRunIDOK, error)
 
 	GetClusterClusterIDTaskBackupTaskIDRunID(params *GetClusterClusterIDTaskBackupTaskIDRunIDParams) (*GetClusterClusterIDTaskBackupTaskIDRunIDOK, error)
@@ -349,6 +351,39 @@ func (a *Client) GetClusterClusterIDSuspended(params *GetClusterClusterIDSuspend
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterClusterIDSuspendedDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+GetClusterClusterIDSuspendedDetails get cluster cluster ID suspended details API
+*/
+func (a *Client) GetClusterClusterIDSuspendedDetails(params *GetClusterClusterIDSuspendedDetailsParams) (*GetClusterClusterIDSuspendedDetailsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDSuspendedDetailsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDSuspendedDetails",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/suspended/details",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDSuspendedDetailsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDSuspendedDetailsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDSuspendedDetailsDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
