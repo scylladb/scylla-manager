@@ -92,6 +92,11 @@ type StorageServiceSstablesByKeyspacePostParams struct {
 
 	*/
 	SkipCleanup *string
+	/*SkipReshape
+	  Don't reshape loaded sstables. Invalid if load_and_stream is true
+
+	*/
+	SkipReshape *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -197,6 +202,17 @@ func (o *StorageServiceSstablesByKeyspacePostParams) SetSkipCleanup(skipCleanup 
 	o.SkipCleanup = skipCleanup
 }
 
+// WithSkipReshape adds the skipReshape to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) WithSkipReshape(skipReshape *string) *StorageServiceSstablesByKeyspacePostParams {
+	o.SetSkipReshape(skipReshape)
+	return o
+}
+
+// SetSkipReshape adds the skipReshape to the storage service sstables by keyspace post params
+func (o *StorageServiceSstablesByKeyspacePostParams) SetSkipReshape(skipReshape *string) {
+	o.SkipReshape = skipReshape
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -277,6 +293,22 @@ func (o *StorageServiceSstablesByKeyspacePostParams) WriteToRequest(r runtime.Cl
 		qSkipCleanup := qrSkipCleanup
 		if qSkipCleanup != "" {
 			if err := r.SetQueryParam("skip_cleanup", qSkipCleanup); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.SkipReshape != nil {
+
+		// query param skip_reshape
+		var qrSkipReshape string
+		if o.SkipReshape != nil {
+			qrSkipReshape = *o.SkipReshape
+		}
+		qSkipReshape := qrSkipReshape
+		if qSkipReshape != "" {
+			if err := r.SetQueryParam("skip_reshape", qSkipReshape); err != nil {
 				return err
 			}
 		}
