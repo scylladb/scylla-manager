@@ -11902,6 +11902,13 @@
             ],
             "type": "string",
             "description": "Defines the set of nodes to which mutations can be streamed"
+          },
+          {
+            "name": "skip_reshape",
+            "required": false,
+            "type": "string",
+            "description": "Don't reshape loaded sstables. Invalid if load_and_stream is true",
+            "in": "query"
           }
         ],
         "responses": {
