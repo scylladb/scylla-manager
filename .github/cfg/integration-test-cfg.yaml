@@ -39,9 +39,11 @@
   raft-schema: none
   tablets: disabled
   ssl-enabled: true
+  backup-method: native
 
 - scylla-version: scylla-nightly:latest
   ip-family: IPV6
   raft-schema: none
   tablets: enabled
   ssl-enabled: false
+  backup-method: rclone

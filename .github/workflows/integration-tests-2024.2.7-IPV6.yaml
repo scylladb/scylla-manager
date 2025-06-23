@@ -23,7 +23,7 @@ jobs:
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
             - name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/backup
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} PKG=./pkg/service/backup
     repair:
         name: Test repair
         runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
             - name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
     restore-tables:
         name: Test restore tables
         runs-on: ubuntu-latest
@@ -71,7 +71,7 @@ jobs:
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
             - name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
     small-pkg:
         name: Test other, smaller packages
         runs-on: ubuntu-latest
