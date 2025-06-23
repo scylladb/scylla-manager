@@ -49,6 +49,32 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+func defaultTestProperties(loc backupspec.Location, ks string) map[string]any {
+	properties := map[string]any{
+		"location": []backupspec.Location{loc},
+	}
+	if ks != "" {
+		properties["keyspace"] = []string{ks}
+	}
+	if BackupMethod() != nil && *BackupMethod() != "" {
+		properties["method"] = *BackupMethod()
+	}
+	return properties
+}
+
+func defaultTestTarget(loc backupspec.Location, ks string, dc string, retention int) backup.Target {
+	target := backup.Target{
+		Units:     []backup.Unit{{Keyspace: ks}},
+		DC:        []string{dc},
+		Location:  []backupspec.Location{loc},
+		Retention: retention,
+	}
+	if BackupMethod() != nil && *BackupMethod() != "" {
+		target.Method = backup.Method(*BackupMethod())
+	}
+	return target
+}
+
 type backupTestHelper struct {
 	*CommonTestHelper
 
@@ -665,16 +691,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 1)
 
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 3,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 3)
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -970,16 +987,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	defer RunIptablesCommand(t, IPFromTestNet("11"), CmdUnblockScyllaREST)
 
 	Print("When: get target")
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 3,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 3)
 
 	Print("Then: target hosts does not contain the downed node")
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
@@ -1045,20 +1053,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 2,
-		RateLimit: []backup.DCLimit{
-			{"dc1", 1},
-		},
-		Continue: true,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 2)
+	target.RateLimit = []backup.DCLimit{{"dc1", 1}}
+	target.Continue = true
 
 	assertDataUploaded := func(t *testing.T, h *backupTestHelper) {
 		t.Helper()
@@ -1352,18 +1349,8 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("Given: retention policy of 1")
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:           []string{"dc1"},
-		Location:     []backupspec.Location{location},
-		Retention:    1,
-		RetentionMap: backup.RetentionMap{h.TaskID: {0, 1}},
-	}
-
+	target := defaultTestTarget(location, testKeyspace, "dc1", 1)
+	target.RetentionMap = backup.RetentionMap{h.TaskID: {RetentionDays: 0, Retention: 1}}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -1438,16 +1425,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 3,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 3)
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -1513,16 +1491,7 @@ func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("Given: retention policy of 1")
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 1,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 1)
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -1571,18 +1540,12 @@ func TestPurgeIntegration(t *testing.T) {
 	task3 := uuid.MustRandom()
 
 	Print("Given: retention policy 1")
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:           []string{"dc1"},
-		Location:     []backupspec.Location{location},
-		Retention:    1,
-		RetentionMap: map[uuid.UUID]backup.RetentionPolicy{task1: {7, 1}, task2: {7, 1}, task3: {2, 7}},
+	target := defaultTestTarget(location, testKeyspace, "dc1", 1)
+	target.RetentionMap = map[uuid.UUID]backup.RetentionPolicy{
+		task1: {RetentionDays: 7, Retention: 1},
+		task2: {RetentionDays: 7, Retention: 1},
+		task3: {RetentionDays: 2, Retention: 7},
 	}
-
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -1717,16 +1680,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 3)
 
 	Print("Given: retention policy 2")
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 2,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 2)
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -1776,16 +1730,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	)
 
 	Print("Given: retention policy of 1 for the both task")
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 1,
-	}
+	target := defaultTestTarget(location, testKeyspace, "dc1", 1)
 
 	Print("Given: given same data in shared keyspace")
 	WriteData(t, clusterSession, testKeyspace, 3)
@@ -2158,16 +2103,7 @@ func TestBackupListIntegration(t *testing.T) {
 
 	timeBeforeFirstBackup := timeutc.Now().Add(-time.Second)
 
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace1,
-			},
-		},
-		DC:        []string{"dc1"},
-		Location:  []backupspec.Location{location},
-		Retention: 3,
-	}
+	target := defaultTestTarget(location, testKeyspace1, "dc1", 3)
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -2181,16 +2117,7 @@ func TestBackupListIntegration(t *testing.T) {
 	timeBetweenBackups := timeutc.Now()
 	time.Sleep(time.Second)
 
-	target = backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace2,
-			},
-		},
-		DC:        []string{"dc2"},
-		Location:  []backupspec.Location{location},
-		Retention: 3,
-	}
+	target = defaultTestTarget(location, testKeyspace2, "dc2", 3)
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -2329,16 +2256,8 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		t.Fatal("Expected 1 row in alternator table")
 	}
 
-	target := backup.Target{
-		Units: []backup.Unit{
-			{
-				Keyspace: testKeyspace,
-			},
-		},
-		DC:        []string{"dc1", "dc2"},
-		Location:  []backupspec.Location{location},
-		Retention: 3,
-	}
+	target := defaultTestTarget(location, testKeyspace, "", 3)
+	target.DC = []string{"dc1", "dc2"}
 	if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 		t.Fatal(err)
 	}
@@ -2445,10 +2364,7 @@ func TestBackupViewsIntegration(t *testing.T) {
 	CreateMaterializedView(t, clusterSession, testKeyspace, testTable, testMV)
 	CreateSecondaryIndex(t, clusterSession, testKeyspace, testTable, testSI)
 
-	props := map[string]any{
-		"location": []backupspec.Location{location},
-		"keyspace": []string{testKeyspace},
-	}
+	props := defaultTestProperties(location, testKeyspace)
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "create raw properties"))
@@ -2530,10 +2446,8 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 	WriteData(t, clusterSession, testKeyspace, 1)
 
 	Print("And: backup target with --skip-schema=false")
-	props := map[string]any{
-		"location": []backupspec.Location{location},
-		"keyspace": []string{testKeyspace},
-	}
+
+	props := defaultTestProperties(location, testKeyspace)
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "create raw properties"))
@@ -2685,12 +2599,10 @@ func TestBackupMethodIntegration(t *testing.T) {
 				}))
 			}
 
-			rawProps, err := json.Marshal(map[string]any{
-				"location": []backupspec.Location{location},
-				"keyspace": []string{testKeyspace},
-				"method":   tc.method,
-				"parallel": 1, // to ensure that parallel uploads come from the same host
-			})
+			props := defaultTestProperties(location, testKeyspace)
+			props["method"] = tc.method
+			props["parallel"] = 1 // to ensure that parallel uploads come from the same host
+			rawProps, err := json.Marshal(props)
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "create raw properties"))
 			}
