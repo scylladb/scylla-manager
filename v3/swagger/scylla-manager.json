@@ -1318,6 +1318,17 @@
     "Suspended": {
       "type": "boolean"
     },
+    "SuspendDetails": {
+      "type": "object",
+      "properties": {
+        "suspended": {
+          "type": "boolean"
+        },
+        "allow_task_type": {
+          "type": "string"
+        }
+      }
+    },
     "ErrorResponse": {
       "type": "object",
       "properties": {
@@ -2355,11 +2366,43 @@
             "name": "start_tasks",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "allow_task_type",
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/suspended/details": {
+      "parameters": [
+        {
+          "type": "string",
+          "name": "cluster_id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/SuspendDetails"
+            }
           },
           "default": {
             "description": "Error",
