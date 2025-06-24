@@ -404,7 +404,7 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
 		Transfers: scyllaclient.TransfersFromConfig,
-		Method:    MethodAuto,
+		Method:    MethodRclone,
 		Continue:  true,
 	}
 }

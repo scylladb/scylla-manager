@@ -1,1 +1,1 @@
-{"location": ["s3:backuptest-get-target"], "method":  "rclone"}
+{"location": ["s3:backuptest-get-target"], "method":  "auto"}
