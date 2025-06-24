@@ -89,15 +89,18 @@ options:
         The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
         The 'bucket' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
     - name: method
-      default_value: auto
+      default_value: rclone
       usage: |-
         Specify the API used for uploading files:
         - 'auto': Use the native API when possible, otherwise use the Rclone API.
-        - 'native': Scylla server uploads directly to S3.
-        - 'rclone': Scylla Manager Agent uploads to S3.
+        - 'native': Scylla server uploads directly to backup location (supports only S3 provider).
+        - 'rclone': Scylla Manager Agent uploads to backup location.
 
         Both methods require configuring the Scylla Manager Agent in 'scylla-manager-agent.yaml'.
-        The native API also requires 'object_storage_endpoints' to be configured in 'scylla.yaml'.
+        The native API also requires 'object_storage_endpoints' to be configured in 'scylla.yaml' (See https://docs.scylladb.com/manual/stable/operating-scylla/admin.html#object-storage-configuration).
+
+        '--rate-limit' and '--transfers' flags do not take effect when using '--method=native',
+        as the upload performance is controlled by the Scylla server.
     - name: name
       usage: |
         Task name that can be used instead of ID.
@@ -117,6 +120,7 @@ options:
         You can set limits for more than one DC using a comma-separated list expressed in the format `[<dc>:]<limit>`.
         The <dc>: part is optional and is only needed when different datacenters require different upload limits.
         Set to 0 for no limit (default 100).
+        Does not take effect when using '--method=native' flag. See '--method' docs for more details.
     - name: retention
       default_value: "7"
       usage: |
@@ -175,6 +179,7 @@ options:
       usage: |
         Sets the amount of file transfers to run in parallel when uploading files from a Scylla node to its backup location.
         Set to -1 for using the transfers value defined in node's 'scylla-manager-agent.yaml' config file.
+        Does not take effect when using '--method=native' flag. See '--method' docs for more details.
     - name: upload-parallel
       default_value: '[]'
       usage: |

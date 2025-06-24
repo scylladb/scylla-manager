@@ -2552,18 +2552,21 @@ func TestBackupMethodIntegration(t *testing.T) {
 			{method: backup.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{method: backup.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	case support && IsIPV6Network():
 		testCases = []testCase{
 			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{method: backup.MethodNative, getTargetSuccess: false},
 			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	default:
 		testCases = []testCase{
 			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{method: backup.MethodNative, getTargetSuccess: false},
 			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	}
 
@@ -2601,6 +2604,9 @@ func TestBackupMethodIntegration(t *testing.T) {
 
 			props := defaultTestProperties(location, testKeyspace)
 			props["method"] = tc.method
+			if tc.method == "" {
+				delete(props, "method")
+			}
 			props["parallel"] = 1 // to ensure that parallel uploads come from the same host
 			rawProps, err := json.Marshal(props)
 			if err != nil {

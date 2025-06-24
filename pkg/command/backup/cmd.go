@@ -93,7 +93,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 	w.Unwrap().BoolVar(&cmd.purgeOnly, "purge-only", false, "")
 	w.Unwrap().BoolVar(&cmd.skipSchema, "skip-schema", false, "")
-	w.Unwrap().StringVar(&cmd.method, "method", "auto", "")
+	w.Unwrap().StringVar(&cmd.method, "method", "rclone", "")
 }
 
 func (cmd *command) run(args []string) error {
