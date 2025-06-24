@@ -590,6 +590,35 @@
         }
       }
     },
+    "BackupDescribeSchema": {
+      "description": "Output of the backed up DESCRIBE SCHEMA WITH INTERNALS CQL query",
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BackupDescribeSchemaItem"
+          }
+        }
+      }
+    },
+    "BackupDescribeSchemaItem": {
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "cql_stmt": {
+          "type": "string"
+        }
+      }
+    },
     "BackupTarget": {
       "type": "object",
       "properties": {
@@ -2254,6 +2283,61 @@
               "items": {
                 "$ref": "#/definitions/BackupFilesInfo"
               }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/backups/schema": {
+      "get": {
+        "parameters": [
+          {
+            "description": "ID of the cluster which will fetch backed up schema",
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Snapshot tag of the backup which schema will be fetched",
+            "type": "string",
+            "name": "snapshot_tag",
+            "in": "query",
+            "required": true
+          },
+          {
+            "description": "Location of the backup which schema will be fetched. In case of a multi-location backup, any location can be specified",
+            "type": "string",
+            "name": "location",
+            "in": "query",
+            "required": true
+          },
+          {
+            "description": "ID of the cluster which backed up schema will be fetched. Used for filtering purposes",
+            "type": "string",
+            "name": "query_cluster_id",
+            "in": "query",
+            "required": false
+          },
+          {
+            "description": "ID of the task which backed up schema. Used for filtering purposes",
+            "type": "string",
+            "name": "query_task_id",
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Described schema",
+            "schema": {
+              "$ref": "#/definitions/BackupDescribeSchema"
             }
           },
           "default": {

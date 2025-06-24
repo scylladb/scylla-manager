@@ -37,6 +37,8 @@ type ClientService interface {
 
 	GetClusterClusterIDBackupsFiles(params *GetClusterClusterIDBackupsFilesParams) (*GetClusterClusterIDBackupsFilesOK, error)
 
+	GetClusterClusterIDBackupsSchema(params *GetClusterClusterIDBackupsSchemaParams) (*GetClusterClusterIDBackupsSchemaOK, error)
+
 	GetClusterClusterIDStatus(params *GetClusterClusterIDStatusParams) (*GetClusterClusterIDStatusOK, error)
 
 	GetClusterClusterIDSuspended(params *GetClusterClusterIDSuspendedParams) (*GetClusterClusterIDSuspendedOK, error)
@@ -285,6 +287,39 @@ func (a *Client) GetClusterClusterIDBackupsFiles(params *GetClusterClusterIDBack
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterClusterIDBackupsFilesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+GetClusterClusterIDBackupsSchema get cluster cluster ID backups schema API
+*/
+func (a *Client) GetClusterClusterIDBackupsSchema(params *GetClusterClusterIDBackupsSchemaParams) (*GetClusterClusterIDBackupsSchemaOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDBackupsSchemaParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDBackupsSchema",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/backups/schema",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDBackupsSchemaReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDBackupsSchemaOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDBackupsSchemaDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
