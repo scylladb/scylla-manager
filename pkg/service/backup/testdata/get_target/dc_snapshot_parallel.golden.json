@@ -75,5 +75,5 @@
   ],
   "continue": true,
   "transfers": -1,
-  "method": "auto"
+  "method": "rclone"
 }
