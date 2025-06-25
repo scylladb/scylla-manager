@@ -1464,7 +1464,7 @@ func (p One2OneRestoreProgress) RenderDetailedTableProgress() string {
 		"Status",
 	)
 	for _, table := range p.Progress.Tables {
-		startedAt, completedAt := strfmt.NewDateTime(), strfmt.NewDateTime()
+		startedAt, completedAt := strfmt.DateTime{}, strfmt.DateTime{}
 		if table.StartedAt != nil {
 			startedAt = *table.StartedAt
 		}
@@ -1493,7 +1493,7 @@ func (p One2OneRestoreProgress) RenderDetailedViewProgress() string {
 		"Status",
 	)
 	for _, view := range p.Progress.Views {
-		startedAt, completedAt := strfmt.NewDateTime(), strfmt.NewDateTime()
+		startedAt, completedAt := strfmt.DateTime{}, strfmt.DateTime{}
 		if view.StartedAt != nil {
 			startedAt = *view.StartedAt
 		}
@@ -1600,4 +1600,25 @@ func formatLabels(labels map[string]string) string {
 		out = append(out, k+"="+v)
 	}
 	return strings.Join(out, ", ")
+}
+
+// ClusterSuspendDetails renders cluster suspend details.
+type ClusterSuspendDetails struct {
+	*models.SuspendDetails
+
+	ClusterID string
+}
+
+// Render implements Renderer interface.
+func (csd ClusterSuspendDetails) Render(w io.Writer) error {
+	t := table.New("Cluster ID", "Suspended", "Allowed Task")
+	t.AddRow(
+		csd.ClusterID,
+		csd.Suspended,
+		csd.AllowTaskType,
+	)
+	if _, err := w.Write([]byte(t.String())); err != nil {
+		return err
+	}
+	return nil
 }

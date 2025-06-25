@@ -31,7 +31,7 @@ require (
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
 	github.com/scylladb/scylla-manager/backupspec v1.0.2
-	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250506140140-b1b310d3a2e7
+	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250625075005-097d498f6569
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250529094758-b6ddc3fd1fee
 	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250623103824-f48697762eb6
 	github.com/spf13/cobra v1.8.0
