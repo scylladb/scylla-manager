@@ -1,0 +1,52 @@
+{
+  "progress": {
+    "tables": [
+      {
+        "completed_at": "2025-01-01T09:30:00.000Z",
+        "keyspace": "keyspace1",
+        "restored": 1000,
+        "size": 1000,
+        "started_at": "2025-01-01T09:00:00.000Z",
+        "status": "done",
+        "table": "table1"
+      },
+      {
+        "completed_at": "2025-01-01T10:00:00.000Z",
+        "keyspace": "keyspace1",
+        "restored": 900,
+        "size": 1000,
+        "started_at": "2025-01-01T09:00:00.000Z",
+        "status": "in_progress",
+        "table": "table2"
+      }
+    ],
+    "views": [
+      {
+        "completed_at": "2025-01-01T09:30:00.000Z",
+        "keyspace": "keyspace1",
+        "started_at": "2025-01-01T09:00:00.000Z",
+        "status": "done",
+        "table": "table1",
+        "view": "view1",
+        "view_type": "MaterializedView"
+      },
+      {
+        "completed_at": "2025-01-01T09:30:00.000Z",
+        "keyspace": "keyspace1",
+        "started_at": "2025-01-01T09:00:00.000Z",
+        "status": "in_progress",
+        "table": "table1",
+        "view": "index1",
+        "view_type": "SecondaryIndex"
+      }
+    ]
+  },
+  "run": {
+    "end_time": "2025-01-01T10:00:00.000Z",
+    "id": "task_run_id",
+    "start_time": "2025-01-01T09:00:00.000Z",
+    "status": "DONE"
+  },
+  "Task": null,
+  "Detailed": false
+}
