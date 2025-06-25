@@ -55,6 +55,15 @@ func (cmd *command) run() error {
 
 	w := cmd.OutOrStdout()
 	h := func(clusterID string) error {
+		suspendDetails, err := cmd.client.SuspendDetails(cmd.Context(), clusterID)
+		if err != nil {
+			return err
+		}
+		if suspendDetails.Suspended {
+			if err := suspendDetails.Render(w); err != nil {
+				return err
+			}
+		}
 		status, err := cmd.client.ClusterStatus(cmd.Context(), clusterID)
 		if err != nil {
 			return err
