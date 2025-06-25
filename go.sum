@@ -1066,6 +1066,8 @@ github.com/scylladb/scylla-manager/backupspec v1.0.2 h1:1gG2J6BsbjOUdF4SqDFrwWg6
 github.com/scylladb/scylla-manager/backupspec v1.0.2/go.mod h1:izqe7mR8wpSFUTjwM3ptUHIk3nF+F5Bipmm0FPRqnlI=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250530081649-30bcf253e6a6 h1:Hc+ibSyGuquHVZUkwmvEvTGBcVk4oPmKEsVMev2z1oE=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:iQua2KBWzpfzi7p3GUkfpTmujTSCTOTSGRDlB9qeoFE=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250625104256-6b6c8bc7650b h1:TR1FkiRnEVah4rrwbKZ3ygSYOpMBikQS1w1R8E3HLG4=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250625104256-6b6c8bc7650b/go.mod h1:fyQQ05QGlWFRqpP2GVI1k56x/De+KeCUu2iPmxSZ0M0=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6 h1:Tjt1RNnyWP+7Z32BUn2Q31gYrYCz2QszmNy6GnXhM2c=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
 github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250603122541-18564a0413d8 h1:lH0C9dPw5rROvIWbS7f2X74loSugu0Xw3uarPGdXYU0=
