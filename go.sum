@@ -1061,8 +1061,8 @@ github.com/scylladb/google-api-go-client v0.34.1-patched h1:DW+T0HA+74o6FDr3TFzV
 github.com/scylladb/google-api-go-client v0.34.1-patched/go.mod h1:RriRmS2wJXH+2yd9PRTEcR380U9AXmurWwznqVhzsSc=
 github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e h1:lJRphCtu+nKd+mfo8whOTeFkgjMWvk8iCSlqgibKSa8=
 github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e/go.mod h1:JGZp4EvCUK+6AM1Fe1dye5xvihTc/Bk0WnHHSCJOePM=
-github.com/scylladb/scylla-manager/backupspec v1.0.1 h1:WaFVHEWwVA3WUeCf2WakmhQ59o+wTYdzo4+qQf8maXk=
-github.com/scylladb/scylla-manager/backupspec v1.0.1/go.mod h1:izqe7mR8wpSFUTjwM3ptUHIk3nF+F5Bipmm0FPRqnlI=
+github.com/scylladb/scylla-manager/backupspec v1.0.2 h1:1gG2J6BsbjOUdF4SqDFrwWg6zev3zK2aTyKANvBKpc8=
+github.com/scylladb/scylla-manager/backupspec v1.0.2/go.mod h1:izqe7mR8wpSFUTjwM3ptUHIk3nF+F5Bipmm0FPRqnlI=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250310104639-18257b71bb48 h1:5UxdS6I8EaXSKkEwsV/MAwfCTGpeFDsFFN7UWYkXdW8=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250310104639-18257b71bb48/go.mod h1:jVpZJLyynSmkukNbUhn3p0ZOlwGwH8nvx6FYOWIoMxg=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250310104639-18257b71bb48 h1:2iJMWV073twoCG2L/F5DBzQApxVX8kKEEeke3qvSitM=
