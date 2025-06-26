@@ -6,6 +6,7 @@
 package one2onerestore
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -84,6 +85,13 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	if mode != modeRepair {
 		t.Fatalf("Expected repair mode, but got %s", string(mode))
 	}
+
+	Print("Validate progress")
+	pr, err := h.restoreSvc.GetProgress(context.Background(), h.clusterID, h.taskID, h.runID, h.props)
+	if err != nil {
+		t.Fatalf("Unexpected err: %v", err)
+	}
+	validateGetProgress(t, pr)
 }
 
 func truncateAllTablesInKeyspace(tb testing.TB, session gocqlx.Session, ks string) {

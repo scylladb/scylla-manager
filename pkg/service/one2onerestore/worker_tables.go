@@ -29,12 +29,13 @@ func (w *worker) restoreTables(ctx context.Context, workload []hostWorkload, key
 			if err != nil {
 				return errors.Wrapf(err, "create download job: %s.%s", table.Keyspace, table.Table)
 			}
+			pr := w.downloadProgress(ctx, hostTask.host.Addr, table)
 
-			if err := w.waitJob(ctx, hostTask.host, jobID, pollIntervalSec); err != nil {
+			if err := w.waitJob(ctx, jobID, hostTask.host, pr, pollIntervalSec); err != nil {
 				return errors.Wrapf(err, "wait job: %s.%s", table.Keyspace, table.Table)
 			}
 
-			if err := w.refreshNode(ctx, table, hostTask.host); err != nil {
+			if err := w.refreshNode(ctx, table, hostTask.host, pr); err != nil {
 				return errors.Wrapf(err, "refresh node: %s.%s", table.Keyspace, table.Table)
 			}
 			return nil
@@ -52,11 +53,13 @@ func (w *worker) createDownloadJob(ctx context.Context, table backupspec.FilesMe
 	return jobID, nil
 }
 
-func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, h Host) error {
-	return w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
+func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, h Host, pr *RunTableProgress) error {
+	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false)
+	w.finishDownloadProgress(ctx, pr, err)
+	return err
 }
 
-func (w *worker) waitJob(ctx context.Context, h Host, jobID int64, pollIntervalSec int) (err error) {
+func (w *worker) waitJob(ctx context.Context, jobID int64, h Host, pr *RunTableProgress, pollIntervalSec int) (err error) {
 	defer func() {
 		cleanCtx := context.Background()
 		// On error stop job
@@ -76,6 +79,7 @@ func (w *worker) waitJob(ctx context.Context, h Host, jobID int64, pollIntervalS
 		if err != nil {
 			return errors.Wrap(err, "fetch job info")
 		}
+		w.updateDownloadProgress(ctx, pr, job)
 
 		switch scyllaclient.RcloneJobStatus(job.Status) {
 		case scyllaclient.JobError:

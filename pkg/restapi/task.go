@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/one2onerestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
@@ -474,6 +475,8 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 				prog.Progress = restore.Progress{}
 			case scheduler.ValidateBackupTask:
 				prog.Progress = backup.ValidationHostProgress{}
+			case scheduler.One2OneRestoreTask:
+				prog.Progress = one2onerestore.Progress{}
 			}
 			render.Respond(w, r, prog)
 			return
@@ -508,6 +511,8 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 		pr, err = h.Restore.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	case scheduler.ValidateBackupTask:
 		pr, err = h.Backup.GetValidationProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+	case scheduler.One2OneRestoreTask:
+		pr, err = h.One2OneRestore.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID, t.Properties)
 	default:
 		respondBadRequest(w, r, errors.Errorf("unsupported task type %s", t.Type))
 		return

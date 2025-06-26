@@ -1,0 +1,16 @@
+[
+  {
+    "Keyspace": "ks1",
+    "Table": "t1",
+    "View": "v1",
+    "ViewType": "MaterializedView",
+    "ViewBuildStatus": "UNKNOWN"
+  },
+  {
+    "Keyspace": "ks1",
+    "Table": "t2",
+    "View": "v2",
+    "ViewType": "MaterializedView",
+    "ViewBuildStatus": "UNKNOWN"
+  }
+]
