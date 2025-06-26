@@ -18,7 +18,9 @@ type Target struct {
 }
 
 func defaultTarget() Target {
-	return Target{}
+	return Target{
+		Keyspace: []string{"*"},
+	}
 }
 
 type nodeMapping struct {
