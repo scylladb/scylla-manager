@@ -110,6 +110,62 @@ var (
 		SortKey: []string{},
 	})
 
+	One2onerestoreRunTableProgress = table.New(table.Metadata{
+		Name: "one2onerestore_run_table_progress",
+		Columns: []string{
+			"cluster_id",
+			"completed_at",
+			"downloaded",
+			"error",
+			"host",
+			"is_refreshed",
+			"keyspace_name",
+			"run_id",
+			"started_at",
+			"table_name",
+			"table_size",
+			"task_id",
+			"versioned_downloaded",
+		},
+		PartKey: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+		},
+		SortKey: []string{
+			"keyspace_name",
+			"table_name",
+			"host",
+		},
+	})
+
+	One2onerestoreRunViewProgress = table.New(table.Metadata{
+		Name: "one2onerestore_run_view_progress",
+		Columns: []string{
+			"cluster_id",
+			"completed_at",
+			"error",
+			"keyspace_name",
+			"run_id",
+			"started_at",
+			"table_name",
+			"task_id",
+			"view_build_status",
+			"view_name",
+			"view_type",
+		},
+		PartKey: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+		},
+		SortKey: []string{
+			"keyspace_name",
+			"table_name",
+			"view_type",
+		},
+	})
+
 	RepairRun = table.New(table.Metadata{
 		Name: "repair_run",
 		Columns: []string{

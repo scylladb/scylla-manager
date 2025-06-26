@@ -24,6 +24,9 @@ type Servicer interface {
 	One2OneRestore(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error
 	// Runner creates a Runner that handles 1-1-restore operations.
 	Runner() Runner
+
+	// GetProgress returns progress of the 1-1-restore task run identified by runID.
+	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) (Progress, error)
 }
 
 // Service for the 1-1-restore.
@@ -66,7 +69,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		"run_id", runID,
 	)
 
-	w, err := s.newWorker(ctx, clusterID)
+	w, err := s.newWorker(ctx, clusterID, taskID, runID)
 	if err != nil {
 		return errors.Wrap(err, "new worker")
 	}
@@ -92,6 +95,10 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 		return errors.Wrap(err, "prepare hosts workload")
 	}
 
+	if err := w.initProgress(ctx, workload); err != nil {
+		return errors.Wrap(err, "init progress")
+	}
+
 	start := timeutc.Now()
 	if err := w.restore(ctx, workload, target); err != nil {
 		return errors.Wrap(err, "restore data")
@@ -100,7 +107,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	return nil
 }
 
-func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, error) {
+func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.UUID) (worker, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return worker{}, errors.Wrap(err, "get client")
@@ -117,5 +124,24 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 		clusterSession: clusterSession,
 
 		logger: s.logger,
+
+		runInfo: struct{ ClusterID, TaskID, RunID uuid.UUID }{
+			ClusterID: clusterID,
+			TaskID:    taskID,
+			RunID:     runID,
+		},
 	}, nil
+}
+
+// GetProgress aggregates progress for the run of the task.
+func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, _ json.RawMessage) (Progress, error) {
+	w, err := s.newWorker(ctx, clusterID, taskID, runID)
+	if err != nil {
+		return Progress{}, errors.Wrap(err, "new worker")
+	}
+	pr, err := w.getProgress(ctx)
+	if err != nil {
+		return Progress{}, errors.Wrap(err, "get progress")
+	}
+	return pr, nil
 }
