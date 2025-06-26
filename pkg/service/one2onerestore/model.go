@@ -66,6 +66,20 @@ type hostWorkload struct {
 	host            Host
 	manifestInfo    *backupspec.ManifestInfo
 	manifestContent *backupspec.ManifestContentWithIndex
+
+	tablesToRestore []scyllaTable
+}
+
+type scyllaTable struct{ keyspace, table string }
+
+func getTablesToRestore(workload []hostWorkload) map[scyllaTable]struct{} {
+	tablesToRestore := map[scyllaTable]struct{}{}
+	for _, wl := range workload {
+		for _, table := range wl.tablesToRestore {
+			tablesToRestore[table] = struct{}{}
+		}
+	}
+	return tablesToRestore
 }
 
 func (t *Target) validateProperties(keyspaces []string) error {

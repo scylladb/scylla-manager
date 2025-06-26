@@ -87,7 +87,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	}
 	s.logger.Info(ctx, "Can proceed with 1-1-restore")
 
-	workload, err := w.prepareHostWorkload(ctx, manifests, hosts, target.NodesMapping)
+	workload, err := w.prepareHostWorkload(ctx, manifests, hosts, target)
 	if err != nil {
 		return errors.Wrap(err, "prepare hosts workload")
 	}
