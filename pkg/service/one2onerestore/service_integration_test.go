@@ -29,10 +29,16 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 
 	ksName := "testrestore"
 	WriteData(t, clusterSession, ksName, 10)
+	mvName := "testmv"
+	CreateMaterializedView(t, clusterSession, ksName, BigTableName, mvName)
 
 	srcCnt := rowCount(t, clusterSession, ksName, BigTableName)
 	if srcCnt == 0 {
-		t.Fatalf("Unexpected row count: 0")
+		t.Fatalf("Unexpected row count in table: 0")
+	}
+	srcCntMV := rowCount(t, clusterSession, ksName, mvName)
+	if srcCntMV == 0 {
+		t.Fatalf("Unexpected row count in materialized view: 0")
 	}
 
 	Print("Run backup")
@@ -44,8 +50,10 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 
 	Print("Truncate tables")
 	truncateAllTablesInKeyspace(t, clusterSession, ksName)
-	if cnt := rowCount(t, clusterSession, ksName, BigTableName); cnt != 0 {
-		t.Fatalf("Unexpected row count: %d", cnt)
+	for _, tableName := range []string{BigTableName, mvName} {
+		if cnt := rowCount(t, clusterSession, ksName, tableName); cnt != 0 {
+			t.Fatalf("Unexpected row count: %d", cnt)
+		}
 	}
 
 	Print("Run 1-1-restore")
@@ -59,7 +67,11 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	Print("Validate data")
 	dstCnt := rowCount(t, clusterSession, ksName, BigTableName)
 	if srcCnt != dstCnt {
-		t.Fatalf("Expected row count %d, but got %d", srcCnt, dstCnt)
+		t.Fatalf("Expected row count in table %d, but got %d", srcCnt, dstCnt)
+	}
+	dstCntMV := rowCount(t, clusterSession, ksName, mvName)
+	if srcCntMV != dstCntMV {
+		t.Fatalf("Expected row count in materialized view %d, but got %d", srcCntMV, dstCntMV)
 	}
 }
 
