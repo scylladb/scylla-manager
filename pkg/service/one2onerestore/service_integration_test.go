@@ -27,6 +27,7 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
 
+	// Setup schema and data
 	ksName := "testrestore"
 	WriteData(t, clusterSession, ksName, 10)
 	mvName := "testmv"
@@ -72,6 +73,16 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 	dstCntMV := rowCount(t, clusterSession, ksName, mvName)
 	if srcCntMV != dstCntMV {
 		t.Fatalf("Expected row count in materialized view %d, but got %d", srcCntMV, dstCntMV)
+	}
+
+	// Ensure table's tombstone_gc mode is set to 'repair'
+	w, _ := newTestWorker(t, ManagedClusterHosts())
+	mode, err := w.getTableTombstoneGCMode(ksName, BigTableName)
+	if err != nil {
+		t.Fatalf("Get table tombstone_gc mode: %v", err)
+	}
+	if mode != modeRepair {
+		t.Fatalf("Expected repair mode, but got %s", string(mode))
 	}
 }
 
