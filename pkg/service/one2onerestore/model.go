@@ -3,9 +3,12 @@
 package one2onerestore
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -37,9 +40,10 @@ type node struct {
 
 // Host contains basic information about Scylla node.
 type Host struct {
-	ID   string
-	DC   string
-	Addr string
+	ID         string
+	DC         string
+	Addr       string
+	ShardCount int
 }
 
 // ViewType either Materialized View or Secondary Index.
@@ -53,11 +57,12 @@ const (
 
 // View represents statement used for recreating restored (dropped) views.
 type View struct {
-	Keyspace   string   `json:"keyspace" db:"keyspace_name"`
-	View       string   `json:"view" db:"view_name"`
-	Type       ViewType `json:"type" db:"view_type"`
-	BaseTable  string   `json:"base_table"`
-	CreateStmt string   `json:"create_stmt"`
+	Keyspace    string                       `json:"keyspace" db:"keyspace_name"`
+	View        string                       `json:"view" db:"view_name"`
+	Type        ViewType                     `json:"type" db:"view_type"`
+	BaseTable   string                       `json:"base_table"`
+	CreateStmt  string                       `json:"create_stmt,omitempty"`
+	BuildStatus scyllaclient.ViewBuildStatus `json:"status"`
 }
 
 // hostWorkload represents what data (manifest) from the backup should be handled
@@ -67,16 +72,25 @@ type hostWorkload struct {
 	manifestInfo    *backupspec.ManifestInfo
 	manifestContent *backupspec.ManifestContentWithIndex
 
-	tablesToRestore []scyllaTable
+	tablesToRestore []scyllaTableWithSize
+}
+
+type scyllaTableWithSize struct {
+	scyllaTable
+	size int64
 }
 
 type scyllaTable struct{ keyspace, table string }
+
+func (st scyllaTable) String() string {
+	return st.keyspace + "." + st.table
+}
 
 func getTablesToRestore(workload []hostWorkload) map[scyllaTable]struct{} {
 	tablesToRestore := map[scyllaTable]struct{}{}
 	for _, wl := range workload {
 		for _, table := range wl.tablesToRestore {
-			tablesToRestore[table] = struct{}{}
+			tablesToRestore[table.scyllaTable] = struct{}{}
 		}
 	}
 	return tablesToRestore
@@ -185,3 +199,89 @@ func checkHostMapping(hostMap map[string]struct{}, hostID string) error {
 	}
 	return errors.Errorf("host is already mapped: %s", hostID)
 }
+
+// RunTableProgress database representation for table progress.
+type RunTableProgress struct {
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+
+	Keyspace string `db:"keyspace_name"`
+	Table    string `db:"table_name"`
+	Error    string
+
+	Host string
+
+	TableSize           int64
+	Downloaded          int64
+	VersionedDownloaded int64
+	IsRefreshed         bool // indicates whether nodetool refresh is completed for this table or not
+}
+
+// RunViewProgress database representation of view progress.
+type RunViewProgress struct {
+	ClusterID uuid.UUID
+	TaskID    uuid.UUID
+	RunID     uuid.UUID
+
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+
+	Keyspace string `db:"keyspace_name"`
+	Table    string `db:"table_name"`
+	View     string `db:"view_name"`
+	Error    string
+
+	ViewType        string
+	ViewBuildStatus scyllaclient.ViewBuildStatus
+}
+
+// Progress groups restore progress for all restored keyspaces.
+type Progress struct {
+	Tables []TableProgress `json:"tables"`
+	Views  []ViewProgress  `json:"views"`
+}
+
+// TableProgress defines restore progress for the table.
+type TableProgress struct {
+	progress
+
+	Keyspace string `json:"keyspace"`
+	Table    string `json:"table"`
+}
+
+// ViewProgress defines restore progress for the view.
+type ViewProgress struct {
+	progress
+
+	Keyspace string `json:"keyspace"`
+	Table    string `json:"table"`
+	View     string `json:"view"`
+	ViewType string `json:"view_type"`
+}
+
+// progress describes general properties of Table or View progress.
+type progress struct {
+	StartedAt   *time.Time     `json:"started_at"`
+	CompletedAt *time.Time     `json:"completed_at"`
+	Size        int64          `json:"size"`
+	Restored    int64          `json:"restored"`
+	Status      ProgressStatus `json:"status"`
+}
+
+// ProgressStatus enum for progress status.
+type ProgressStatus string
+
+const (
+	// ProgressStatusNotStarted indicates that 1-1-restore of table/view is not yet started.
+	ProgressStatusNotStarted ProgressStatus = "not_started"
+	// ProgressStatusInProgress indicates that 1-1-restore of table/view is in progress.
+	ProgressStatusInProgress ProgressStatus = "in_progress"
+	// ProgressStatusDone indicates that 1-1-restore of table/view is done.
+	ProgressStatusDone ProgressStatus = "done"
+	// ProgressStatusFailed indicates that 1-1-restore of table/view is failed due to some error.
+	ProgressStatusFailed ProgressStatus = "failed"
+)
