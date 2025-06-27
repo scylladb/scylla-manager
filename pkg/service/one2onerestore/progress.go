@@ -11,17 +11,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// initProgress adds entries to RunTableProgress and RunViewProgress, so that API call
+// initProgressAndMetrics adds entries to RunTableProgress and RunViewProgress, so that API call
 // to show progress can return some information at this point.
-func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) error {
-	tablesToRestore := getTablesToRestore(workload)
-	views, err := w.getViews(ctx, tablesToRestore)
+// Sets initial values for download_remaining_bytes and view_build_status metrics.
+func (w *worker) initProgressAndMetrics(ctx context.Context, workload []hostWorkload) error {
+	views, err := w.getViews(ctx, workload)
 	if err != nil {
 		return errors.Wrap(err, "get views")
 	}
@@ -40,6 +41,7 @@ func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) erro
 		}); err != nil {
 			w.logger.Error(ctx, "Failed to init view progress", "err", err)
 		}
+		w.metrics.SetViewBuildStatus(w.runInfo.ClusterID, v.Keyspace, v.View, metrics.BuildStatusUnknown)
 	}
 
 	for _, work := range workload {
@@ -58,8 +60,19 @@ func (w *worker) initProgress(ctx context.Context, workload []hostWorkload) erro
 			}); err != nil {
 				w.logger.Error(ctx, "Failed to init table progress", "err", err)
 			}
+			w.metrics.SetDownloadRemainingBytes(metrics.One2OneRestoreBytesLabels{
+				ClusterID:   w.runInfo.ClusterID.String(),
+				SnapshotTag: work.manifestInfo.SnapshotTag,
+				Location:    work.manifestInfo.Location.String(),
+				DC:          work.manifestInfo.DC,
+				Node:        host,
+				Keyspace:    tableInfo.keyspace,
+				Table:       tableInfo.table,
+			}, float64(tableInfo.size))
 		}
 	}
+
+	w.metrics.SetProgress(w.runInfo.ClusterID, workload[0].manifestInfo.SnapshotTag, 0)
 
 	return nil
 }
@@ -98,7 +111,7 @@ func (w *worker) updateReCreateViewProgress(ctx context.Context, pr *RunViewProg
 	}
 }
 
-func (w *worker) downloadProgress(ctx context.Context, host string, table backupspec.FilesMeta) *RunTableProgress {
+func (w *worker) restoreTableProgress(ctx context.Context, host string, table backupspec.FilesMeta) *RunTableProgress {
 	started := timeutc.Now()
 	pr := RunTableProgress{
 		ClusterID: w.runInfo.ClusterID,
@@ -121,7 +134,7 @@ func (w *worker) downloadProgress(ctx context.Context, host string, table backup
 	return &pr
 }
 
-func (w *worker) updateDownloadProgress(ctx context.Context, pr *RunTableProgress, job *scyllaclient.RcloneJobProgress) {
+func (w *worker) updateRestoreTableProgress(ctx context.Context, pr *RunTableProgress, job *scyllaclient.RcloneJobProgress) {
 	startedAt := time.Time(job.StartedAt)
 	if !startedAt.IsZero() {
 		pr.StartedAt = &startedAt
@@ -134,7 +147,7 @@ func (w *worker) updateDownloadProgress(ctx context.Context, pr *RunTableProgres
 	}
 }
 
-func (w *worker) finishDownloadProgress(ctx context.Context, pr *RunTableProgress, err error) {
+func (w *worker) finishRestoreTableProgress(ctx context.Context, pr *RunTableProgress, err error) {
 	completedAt := timeutc.Now()
 	pr.CompletedAt = &completedAt
 	pr.IsRefreshed = err == nil

@@ -92,7 +92,8 @@ type SchedService interface {
 	GetNthLastRun(ctx context.Context, t *scheduler.Task, n int) (*scheduler.Run, error)
 	GetLastRuns(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
 	IsSuspended(ctx context.Context, clusterID uuid.UUID) bool
-	Suspend(ctx context.Context, clusterID uuid.UUID) error
+	SuspendStatus(ctx context.Context, clusterID uuid.UUID) scheduler.SuspendStatus
+	Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskType string) error
 	Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error
 }
 

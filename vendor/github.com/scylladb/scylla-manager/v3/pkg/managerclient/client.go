@@ -543,6 +543,23 @@ func (c *Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, 
 	}, nil
 }
 
+// One2OneRestoreProgress returns 1-1-restore progress.
+func (c *Client) One2OneRestoreProgress(ctx context.Context, clusterID, taskID, runID string) (One2OneRestoreProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTask11RestoreTaskIDRunID(&operations.GetClusterClusterIDTask11RestoreTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return One2OneRestoreProgress{}, err
+	}
+
+	return One2OneRestoreProgress{
+		TaskRunOne2OneRestoreProgress: resp.Payload,
+	}, nil
+}
+
 // ListBackups returns listing of available backups.
 func (c *Client) ListBackups(ctx context.Context, clusterID string,
 	locations []string, allClusters bool, keyspace []string, minDate, maxDate time.Time,

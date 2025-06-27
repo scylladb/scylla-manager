@@ -18,7 +18,7 @@ import (
 )
 
 func TestGetProgressIntegration(t *testing.T) {
-	if tablets := os.Getenv("TABLETS"); tablets == "enabled" {
+	if tablets := os.Getenv("TABLETS"); tablets == "enabled" || tablets == "none" {
 		t.Skip("1-1-restore is available only for v-nodes")
 	}
 	loc := backupspec.Location{
@@ -71,7 +71,7 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Fatalf("Expected empty progress, but got: %v", pr)
 	}
 
-	w.initProgress(context.Background(), workload)
+	w.initProgressAndMetrics(context.Background(), workload)
 
 	pr, err = w.getProgress(context.Background())
 	if err != nil {

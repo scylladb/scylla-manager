@@ -23,6 +23,7 @@ func newSuspendHandler(services Services) *chi.Mux {
 	}
 
 	m.Get("/", h.get)
+	m.Get("/details", h.getDetails)
 	m.Put("/", h.update)
 
 	return m
@@ -31,6 +32,14 @@ func newSuspendHandler(services Services) *chi.Mux {
 func (h suspendHandler) get(w http.ResponseWriter, r *http.Request) {
 	v := h.svc.IsSuspended(r.Context(), mustClusterIDFromCtx(r))
 	render.Respond(w, r, models.Suspended(v))
+}
+
+func (h suspendHandler) getDetails(w http.ResponseWriter, r *http.Request) {
+	status := h.svc.SuspendStatus(r.Context(), mustClusterIDFromCtx(r))
+	render.Respond(w, r, models.SuspendDetails{
+		Suspended:     status.Suspended,
+		AllowTaskType: status.AllowTask.String(),
+	})
 }
 
 func (h suspendHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +58,8 @@ func (h suspendHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h suspendHandler) suspend(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.Suspend(r.Context(), mustClusterIDFromCtx(r)); err != nil {
+	allowTaskType := r.URL.Query().Get("allow_task_type")
+	if err := h.svc.Suspend(r.Context(), mustClusterIDFromCtx(r), allowTaskType); err != nil {
 		respondError(w, r, errors.Wrap(err, "suspend"))
 	}
 }

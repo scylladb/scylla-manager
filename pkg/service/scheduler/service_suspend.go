@@ -5,6 +5,7 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -20,10 +21,11 @@ import (
 )
 
 type suspendInfo struct {
-	ClusterID    uuid.UUID   `json:"-"`
-	StartedAt    time.Time   `json:"started_at"`
-	PendingTasks []uuid.UUID `json:"pending_tasks"`
-	RunningTask  []uuid.UUID `json:"running_tasks"`
+	ClusterID    uuid.UUID       `json:"-"`
+	StartedAt    time.Time       `json:"started_at"`
+	PendingTasks []uuid.UUID     `json:"pending_tasks"`
+	RunningTask  []uuid.UUID     `json:"running_tasks"`
+	AllowTask    AllowedTaskType `json:"allow_task_type"`
 }
 
 var _ store.Entry = &suspendInfo{}
@@ -45,6 +47,7 @@ type SuspendProperties struct {
 	Resume     bool              `json:"resume"`
 	Duration   duration.Duration `json:"duration"`
 	StartTasks bool              `json:"start_tasks"`
+	AllowTask  AllowedTaskType   `json:"allow_task_type"`
 }
 
 // GetSuspendProperties unmarshals suspend properties and validates them.
@@ -76,7 +79,9 @@ func (s *Service) initSuspended() error {
 				return err
 			}
 		} else {
-			s.suspended.Add(c.Bytes16())
+			s.suspended[c] = suspendParams{
+				AllowTask: si.AllowTask,
+			}
 			s.metrics.Suspend(c)
 		}
 	}
@@ -92,16 +97,55 @@ func (s *Service) IsSuspended(ctx context.Context, clusterID uuid.UUID) bool {
 	return s.isSuspendedLocked(clusterID)
 }
 
+// SuspendStatus contains information about the suspension state of a cluster.
+type SuspendStatus struct {
+	Suspended bool
+	AllowTask AllowedTaskType
+}
+
+// SuspendStatus returns detailed information about cluster suspend state.
+func (s *Service) SuspendStatus(_ context.Context, clusterID uuid.UUID) SuspendStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	params, ok := s.suspended[clusterID]
+	return SuspendStatus{
+		Suspended: ok,
+		AllowTask: params.AllowTask,
+	}
+}
+
 func (s *Service) isSuspendedLocked(clusterID uuid.UUID) bool {
-	return s.suspended.Has(clusterID.Bytes16())
+	_, ok := s.suspended[clusterID]
+	return ok
+}
+
+// isSuspendedForTaskLocked checks if the cluster is suspended for the provided task type.
+func (s *Service) isSuspendedForTaskLocked(clusterID uuid.UUID, taskType TaskType) bool {
+	p, suspended := s.suspended[clusterID]
+	if !suspended {
+		return false
+	}
+	if p.AllowTask.IsEmpty() {
+		return true
+	}
+	return p.AllowTask.TaskType != taskType
 }
 
 // Suspend stops scheduler for a given cluster.
 // Running tasks will be stopped.
 // Scheduled task executions will be canceled.
 // Scheduler can be later resumed, see `Resume` function.
-func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID) error {
-	wait, err := s.suspend(ctx, clusterID, SuspendProperties{})
+// If allowTaskType is provided, it will allow the specified task type to be scheduled while the cluster is suspended.
+func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskType string) error {
+	var (
+		allowTask AllowedTaskType
+		props     SuspendProperties
+	)
+	if err := allowTask.UnmarshalText([]byte(allowTaskType)); err != nil {
+		return err
+	}
+	props.AllowTask = allowTask
+	wait, err := s.suspend(ctx, clusterID, props)
 	if wait != nil {
 		wait()
 	}
@@ -110,14 +154,15 @@ func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID) error {
 
 func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendProperties) (func(), error) {
 	if p.Duration > 0 {
-		s.logger.Info(ctx, "Suspending cluster", "cluster_id", clusterID, "target", p)
+		s.logger.Info(ctx, "Suspending cluster", "cluster_id", clusterID, "target", p, "allow_task_type", p.AllowTask)
 	} else {
-		s.logger.Info(ctx, "Suspending cluster", "cluster_id", clusterID)
+		s.logger.Info(ctx, "Suspending cluster", "cluster_id", clusterID, "allow_task_type", p.AllowTask)
 	}
 
 	si := &suspendInfo{
 		ClusterID: clusterID,
 		StartedAt: timeutc.Now(),
+		AllowTask: p.AllowTask,
 	}
 
 	s.mu.Lock()
@@ -126,13 +171,22 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendPro
 		s.mu.Unlock()
 		return nil, nil // nolint: nilnil
 	}
-	s.suspended.Add(clusterID.Bytes16())
+	s.suspended[clusterID] = suspendParams{
+		AllowTask: p.AllowTask,
+	}
 	s.metrics.Suspend(clusterID)
 	l := s.resetSchedulerLocked(si)
 	s.mu.Unlock()
 
-	if err := s.forEachClusterHealthCheckTask(clusterID, func(t *Task) error {
-		s.schedule(ctx, t, false)
+	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
+		if t.Type == p.AllowTask.TaskType {
+			s.schedule(ctx, t, slices.Contains(si.RunningTask, t.ID))
+			return nil
+		}
+		if t.Type == HealthCheckTask {
+			s.schedule(ctx, t, false)
+			return nil
+		}
 		return nil
 	}); err != nil {
 		return nil, errors.Wrap(err, "schedule")
@@ -215,7 +269,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	s.logger.Info(ctx, "Resuming cluster", "cluster_id", clusterID)
 
 	s.mu.Lock()
-	if !s.suspended.Has(clusterID.Bytes16()) {
+	if !s.isSuspendedLocked(clusterID) {
 		s.mu.Unlock()
 		s.logger.Info(ctx, "Cluster not suspended", "cluster_id", clusterID)
 		return nil
@@ -232,7 +286,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	if err := s.drawer.Delete(si); err != nil {
 		s.logger.Error(ctx, "Failed to delete canceled tasks", "error", err)
 	}
-	s.suspended.Remove(clusterID.Bytes16())
+	delete(s.suspended, clusterID)
 	s.metrics.Resume(clusterID)
 	s.mu.Unlock()
 
@@ -244,6 +298,9 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	}
 	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
 		r := running.Has(t.ID.Bytes16())
+		if t.Type == si.AllowTask.TaskType {
+			return nil
+		}
 		if needsOneShotRun(t) {
 			r = true
 		}
@@ -261,16 +318,6 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	}
 
 	return nil
-}
-
-func (s *Service) forEachClusterHealthCheckTask(clusterID uuid.UUID, f func(t *Task) error) error {
-	q := qb.Select(table.SchedulerTask.Name()).
-		Where(qb.Eq("cluster_id"), qb.Eq("type")).
-		Query(s.session).
-		Bind(clusterID, HealthCheckTask)
-	defer q.Release()
-
-	return forEachTaskWithQuery(q, f)
 }
 
 func (s *Service) forEachClusterTask(clusterID uuid.UUID, f func(t *Task) error) error {

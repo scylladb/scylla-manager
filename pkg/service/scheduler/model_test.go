@@ -39,6 +39,60 @@ func TestTaskType(t *testing.T) {
 	}
 }
 
+func TestAllowedTaskType(t *testing.T) {
+	testCases := []struct {
+		allowedTask   AllowedTaskType
+		expectedError bool
+	}{
+		{
+			allowedTask:   AllowedTaskType{UnknownTask},
+			expectedError: false,
+		},
+		{
+			allowedTask:   AllowedTaskType{BackupTask},
+			expectedError: false,
+		},
+		{
+			allowedTask:   AllowedTaskType{RepairTask},
+			expectedError: false,
+		},
+		{
+			allowedTask:   AllowedTaskType{ValidateBackupTask},
+			expectedError: false,
+		},
+		{
+			allowedTask:   AllowedTaskType{""},
+			expectedError: false,
+		},
+		{
+			allowedTask:   AllowedTaskType{SuspendTask},
+			expectedError: true,
+		},
+		{
+			allowedTask:   AllowedTaskType{HealthCheckTask},
+			expectedError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.allowedTask.String(), func(t *testing.T) {
+			text, err := tc.allowedTask.MarshalText()
+			if err != nil {
+				t.Fatal("MarshalText() error", err)
+			}
+			var v AllowedTaskType
+			err = v.UnmarshalText(text)
+			if tc.expectedError && err == nil {
+				t.Fatal("UnmarshalText() should have failed")
+			}
+			if !tc.expectedError && err != nil {
+				t.Fatal("UnmarshalText() error", err)
+			}
+
+		})
+	}
+}
+
 func TestStatus(t *testing.T) {
 	for _, golden := range allStatuses {
 		t.Run(golden.String(), func(t *testing.T) {

@@ -19,6 +19,7 @@ type Target struct {
 	SourceClusterID uuid.UUID             `json:"source_cluster_id"`
 	SnapshotTag     string                `json:"snapshot_tag"`
 	NodesMapping    []nodeMapping         `json:"nodes_mapping"`
+	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
 }
 
 func defaultTarget() Target {
@@ -40,10 +41,11 @@ type node struct {
 
 // Host contains basic information about Scylla node.
 type Host struct {
-	ID         string
-	DC         string
-	Addr       string
-	ShardCount int
+	ID                 string
+	DC                 string
+	Addr               string
+	ShardCount         int
+	SafeDescribeMethod scyllaclient.SafeDescribeMethod
 }
 
 // ViewType either Materialized View or Secondary Index.
@@ -96,7 +98,7 @@ func getTablesToRestore(workload []hostWorkload) map[scyllaTable]struct{} {
 	return tablesToRestore
 }
 
-func (t *Target) validateProperties(keyspaces []string) error {
+func (t *Target) validateProperties(allKeyspaces []string) error {
 	if len(t.Location) == 0 {
 		return errors.New("missing location")
 	}
@@ -106,7 +108,7 @@ func (t *Target) validateProperties(keyspaces []string) error {
 	if t.SourceClusterID == uuid.Nil {
 		return errors.New("source cluster id is empty")
 	}
-	if err := validateKeyspaceFilter(t.Keyspace, keyspaces); err != nil {
+	if err := validateKeyspaceFilter(t.Keyspace, allKeyspaces); err != nil {
 		return errors.Wrap(err, "keyspace filter")
 	}
 	if err := validateNodesMapping(t.NodesMapping); err != nil {

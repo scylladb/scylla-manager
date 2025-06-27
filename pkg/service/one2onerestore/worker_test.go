@@ -83,3 +83,43 @@ func TestFindNodeFromDC(t *testing.T) {
 		})
 	}
 }
+
+func TestTabletKeyspacesAreNotSupported(t *testing.T) {
+	testCases := []struct {
+		name            string
+		keyspaceFilter  []string
+		tabletKeyspaces []string
+		expectedErr     string
+	}{
+		{
+			name:            "no tablet keyspaces",
+			keyspaceFilter:  []string{"*"},
+			tabletKeyspaces: nil,
+		},
+		{
+			name:            "tablet keyspace, but not included into the keyspaceFilter",
+			keyspaceFilter:  []string{"vnode-keyspace"},
+			tabletKeyspaces: []string{"tablet-keyspace"},
+		},
+		{
+			name:            "tablet keyspace, included into the keyspacesFilter",
+			keyspaceFilter:  []string{"*"},
+			tabletKeyspaces: []string{"tablet-keyspace"},
+			expectedErr:     "1-1-restore doesn't support tablet based replication. Keyspace: tablet-keyspace",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tabletKeyspacesAreNotSupported(tc.keyspaceFilter, tc.tabletKeyspaces)
+			if err != nil {
+				if tc.expectedErr != err.Error() {
+					t.Fatalf("Expected err: %s, but got %s", tc.expectedErr, err.Error())
+				}
+			}
+			if err == nil && tc.expectedErr != "" {
+				t.Fatalf("Expected err: %s, but got nil", tc.expectedErr)
+			}
+		})
+	}
+}

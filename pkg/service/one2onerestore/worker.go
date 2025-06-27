@@ -14,13 +14,16 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
-	"go.uber.org/multierr"
 )
 
 type worker struct {
@@ -28,8 +31,11 @@ type worker struct {
 
 	client         *scyllaclient.Client
 	clusterSession gocqlx.Session
+	sessionFunc    cluster.SessionFunc // is needed to create cql session to single host
+	repairSvc      *repair.Service
 
-	logger log.Logger
+	logger  log.Logger
+	metrics metrics.One2OneRestoreMetrics
 
 	runInfo struct {
 		ClusterID, TaskID, RunID uuid.UUID
@@ -54,11 +60,40 @@ func (w *worker) parseTarget(ctx context.Context, properties json.RawMessage) (T
 	}
 	w.logger.Info(ctx, "Extended excluded tables pattern", "pattern", skip)
 	target.Keyspace = append(target.Keyspace, skip...)
+
+	tabletKeyspaces, err := w.client.FilteredKeyspaces(ctx, scyllaclient.KeyspaceTypeUser, scyllaclient.ReplicationTablet)
+	if err != nil {
+		return Target{}, errors.Wrap(err, "get tablet keyspaces")
+	}
+	if err := tabletKeyspacesAreNotSupported(target.Keyspace, tabletKeyspaces); err != nil {
+		return Target{}, err
+	}
 	return target, nil
 }
 
 // restore is an actual 1-1-restore stages.
-func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) (err error) {
+func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Target) error {
+	defer func() {
+		if err := w.setAutoCompaction(context.Background(), workload, true); err != nil {
+			w.logger.Error(ctx, "Can't enable auto compaction", "err", err)
+		}
+	}()
+	if err := w.setAutoCompaction(ctx, workload, false); err != nil {
+		return errors.Wrap(err, "disable auto compaction")
+	}
+
+	// We always want to pin agent to CPUs outside the 1-1-restore.
+	defer func() {
+		if err := w.pinAgentCPU(context.Background(), workload, true); err != nil {
+			w.logger.Error(ctx, "Can't pin agent to CPU", "error", err)
+		}
+	}()
+	if target.UnpinAgentCPU {
+		if err := w.pinAgentCPU(ctx, workload, false); err != nil {
+			return errors.Wrap(err, "unpin agent from CPU")
+		}
+	}
+
 	if err := w.setTombstoneGCModeRepair(ctx, workload); err != nil {
 		return errors.Wrap(err, "tombstone_gc mode")
 	}
@@ -67,16 +102,22 @@ func (w *worker) restore(ctx context.Context, workload []hostWorkload, target Ta
 	if err != nil {
 		return errors.Wrap(err, "drop views")
 	}
-	defer func() {
-		if rErr := w.reCreateViews(ctx, views); rErr != nil {
-			err = multierr.Combine(
-				err,
-				errors.Wrap(rErr, "recreate views"),
-			)
-		}
-	}()
 
-	return w.restoreTables(ctx, workload, target.Keyspace)
+	if err := w.restoreTables(ctx, workload, target.Keyspace); err != nil {
+		return errors.Wrap(err, "restore tables")
+	}
+
+	if tables := w.tablesToRepair(views); len(tables) > 0 {
+		if err := w.repair(ctx, tables); err != nil {
+			return errors.Wrap(err, "repair")
+		}
+	}
+
+	if err := w.reCreateViews(ctx, views); err != nil {
+		return errors.Wrap(err, "recreate views")
+	}
+
+	return nil
 }
 
 // getAllSnapshotManifestsAndTargetHosts gets backup(source) cluster node represented by manifests and target cluster nodes.
@@ -168,10 +209,69 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 			return errors.Wrap(err, "read manifest content")
 		}
 
+		nodeInfo, err := w.client.NodeInfo(ctx, h.Addr)
+		if err != nil {
+			return errors.Wrapf(err, "get node %s info", h.Addr)
+		}
+		method, err := nodeInfo.SupportsSafeDescribeSchemaWithInternals()
+		if err != nil {
+			return errors.Wrapf(err, "node %s safe describe method", h.Addr)
+		}
+		hw.host.SafeDescribeMethod = method
+
 		result[i] = hw
 
 		return nil
 	}, parallel.NopNotify)
+}
+
+func (w *worker) setAutoCompaction(ctx context.Context, workload []hostWorkload, enabled bool) error {
+	setAutoCompactionFunc := w.client.EnableAutoCompaction
+	if !enabled {
+		setAutoCompactionFunc = w.client.DisableAutoCompaction
+	}
+	for _, hw := range workload {
+		for _, table := range hw.tablesToRestore {
+			if err := setAutoCompactionFunc(ctx, hw.host.Addr, table.keyspace, table.table); err != nil {
+				return errors.Wrapf(err, "set auto compaction on %s", hw.host.Addr)
+			}
+		}
+	}
+	return nil
+}
+
+func (w *worker) pinAgentCPU(ctx context.Context, workload []hostWorkload, pin bool) error {
+	setPinFunc := w.client.PinCPU
+	if !pin {
+		setPinFunc = w.client.UnpinFromCPU
+	}
+	return parallel.Run(len(workload), len(workload), func(i int) error {
+		host := workload[i].host
+		return errors.Wrapf(setPinFunc(ctx, host.Addr), "set CPU pinning on %s", host.Addr)
+	}, func(i int, err error) {
+		w.logger.Error(ctx, "Failed to change agent CPU pinning",
+			"host", workload[i].host.Addr,
+			"pinned", pin,
+			"error", err)
+	})
+}
+
+func (w *worker) singleHostCQLSession(ctx context.Context, clusterID uuid.UUID, host string) (gocqlx.Session, error) {
+	session, err := w.sessionFunc(ctx, clusterID, cluster.SingleHostSessionConfigOption(host))
+	if err != nil {
+		return gocqlx.Session{}, errors.Wrap(err, "create cql session")
+	}
+	return session, nil
+}
+
+func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, host Host) error {
+	switch host.SafeDescribeMethod {
+	case scyllaclient.SafeDescribeMethodReadBarrierAPI:
+		return w.client.RaftReadBarrier(ctx, host.Addr, "")
+	case scyllaclient.SafeDescribeMethodReadBarrierCQL:
+		return query.RaftReadBarrier(session)
+	}
+	return errors.Errorf("unsupported method: %s", host.SafeDescribeMethod)
 }
 
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
@@ -217,6 +317,8 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 			skip = append(skip, ks)
 		}
 	}
+	// See https://github.com/scylladb/scylla-enterprise/issues/4168
+	skip = append(skip, "system_replicated_keys")
 
 	// Skip outdated tables.
 	// Note that even though system_auth is not used in Scylla 6.0,
@@ -303,5 +405,19 @@ func isRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, cli
 		}
 	}
 
+	return nil
+}
+
+// 1-1-restore can work only with vnode replication keyspaces.
+func tabletKeyspacesAreNotSupported(keyspaceFilter, tabletKeyspaces []string) error {
+	filter, err := ksfilter.NewFilter(keyspaceFilter)
+	if err != nil {
+		return errors.Wrap(err, "new keyspace filter")
+	}
+	for _, ks := range tabletKeyspaces {
+		if filter.Check(ks, "") {
+			return errors.Errorf("1-1-restore doesn't support tablet based replication. Keyspace: %s", ks)
+		}
+	}
 	return nil
 }

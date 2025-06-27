@@ -1068,6 +1068,8 @@ github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250530081649-30
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:iQua2KBWzpfzi7p3GUkfpTmujTSCTOTSGRDlB9qeoFE=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250625104256-6b6c8bc7650b h1:TR1FkiRnEVah4rrwbKZ3ygSYOpMBikQS1w1R8E3HLG4=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250625104256-6b6c8bc7650b/go.mod h1:fyQQ05QGlWFRqpP2GVI1k56x/De+KeCUu2iPmxSZ0M0=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250626145254-64b5a3b94aaf h1:D1OuJles7+GCvSiizTU+mlkL9llH+JXJ5EACpwscT0g=
+github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250626145254-64b5a3b94aaf/go.mod h1:RmtRlpZS+Ox8xI19NFPzPdDK1MlZoF+WDzPqceW7EQE=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6 h1:Tjt1RNnyWP+7Z32BUn2Q31gYrYCz2QszmNy6GnXhM2c=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6/go.mod h1:VKqHSrDj9zfgCKilpbdpmqV1TjmSglt/df79eIg6wuI=
 github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250603122541-18564a0413d8 h1:lH0C9dPw5rROvIWbS7f2X74loSugu0Xw3uarPGdXYU0=

@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/b16set"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -54,10 +53,14 @@ type Service struct {
 	runs       map[uuid.UUID]Run
 	resolver   resolver
 	scheduler  map[uuid.UUID]*Scheduler
-	suspended  *b16set.Set
+	suspended  map[uuid.UUID]suspendParams
 	noContinue map[uuid.UUID]time.Time
 	closed     bool
 	mu         sync.Mutex
+}
+
+type suspendParams struct {
+	AllowTask AllowedTaskType
 }
 
 func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer store.Store, logger log.Logger) (*Service, error) {
@@ -72,7 +75,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		runs:       make(map[uuid.UUID]Run),
 		resolver:   newResolver(),
 		scheduler:  make(map[uuid.UUID]*Scheduler),
-		suspended:  b16set.New(),
+		suspended:  make(map[uuid.UUID]suspendParams),
 		noContinue: make(map[uuid.UUID]time.Time),
 	}
 	s.runners[SuspendTask] = suspendRunner{service: s}
@@ -310,7 +313,7 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if create && s.isSuspendedLocked(t.ClusterID) {
+	if create && s.isSuspendedForTaskLocked(t.ClusterID, t.Type) {
 		return util.ErrValidate(errors.New("cluster is suspended, scheduling tasks is not allowed"))
 	}
 
@@ -330,7 +333,7 @@ func (s *Service) initMetrics(t *Task) {
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	s.mu.Lock()
-	if s.isSuspendedLocked(t.ClusterID) && t.Type != HealthCheckTask && t.Type != SuspendTask {
+	if s.isSuspendedForTaskLocked(t.ClusterID, t.Type) && t.Type != HealthCheckTask && t.Type != SuspendTask {
 		s.mu.Unlock()
 		return
 	}
@@ -578,7 +581,7 @@ func (s *Service) startTask(ctx context.Context, t *Task, noContinue bool) error
 	s.logger.Debug(ctx, "StartTask", "task", t, "no_continue", noContinue)
 
 	s.mu.Lock()
-	if s.isSuspendedLocked(t.ClusterID) {
+	if s.isSuspendedForTaskLocked(t.ClusterID, t.Type) {
 		s.mu.Unlock()
 		return util.ErrValidate(errors.New("cluster is suspended"))
 	}

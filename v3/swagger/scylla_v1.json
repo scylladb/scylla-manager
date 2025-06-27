@@ -11887,7 +11887,7 @@
             "name": "skip_cleanup",
             "in": "query",
             "required": false,
-            "type": "string",
+            "type": "boolean",
             "description": "Don't cleanup keys from loaded sstables. Invalid if load_and_stream is true"
           },
           {
@@ -11906,7 +11906,7 @@
           {
             "name": "skip_reshape",
             "required": false,
-            "type": "string",
+            "type": "boolean",
             "description": "Don't reshape loaded sstables. Invalid if load_and_stream is true",
             "in": "query"
           }
