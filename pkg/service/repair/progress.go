@@ -46,12 +46,12 @@ type stateKey struct {
 type dbProgressManager struct {
 	run *Run
 
-	total          atomic.Float64   // Total weighted repair progress
-	tableSize      map[string]int64 // Maps table to its size
-	totalTableSize int64            // Sum over tableSize
-	tableRanges    map[string]int   // Maps table to its range count
+	total          atomic.Float64     // Total weighted repair progress
+	tableSize      map[tableKey]int64 // Maps table to its size
+	totalTableSize int64              // Sum over tableSize
+	tableRanges    map[tableKey]int   // Maps table to its range count
+	session        gocqlx.Session
 
-	session gocqlx.Session
 	metrics metrics.RepairMetrics
 	logger  log.Logger
 
@@ -76,15 +76,15 @@ func (pm *dbProgressManager) Init(plan *plan, prevID uuid.UUID) error {
 	pm.total.Store(0)
 	pm.metrics.SetProgress(pm.run.ClusterID, 0)
 
-	pm.tableSize = make(map[string]int64)
+	pm.tableSize = make(map[tableKey]int64)
 	pm.totalTableSize = 0
-	pm.tableRanges = make(map[string]int)
+	pm.tableRanges = make(map[tableKey]int)
 	for _, ksp := range plan.Keyspaces {
 		for _, tp := range ksp.Tables {
-			fullName := ksp.Keyspace + "." + tp.Table
-			pm.tableSize[fullName] = tp.Size
+			tk := tableKey{keyspace: ksp.Keyspace, table: tp.Table}
+			pm.tableSize[tk] = tp.Size
 			pm.totalTableSize += tp.Size
-			pm.tableRanges[fullName] = tp.RangesCnt
+			pm.tableRanges[tk] = tp.RangesCnt
 		}
 	}
 
@@ -263,11 +263,9 @@ func (pm *dbProgressManager) emptyState() bool {
 }
 
 func (pm *dbProgressManager) GetCompletedRanges(keyspace, table string) (doneRanges []scyllaclient.TokenRange, allRangesCnt int) {
-	sk := stateKey{
-		keyspace: keyspace,
-		table:    table,
-	}
-	return pm.state[sk].SuccessRanges, pm.tableRanges[keyspace+"."+table]
+	sk := stateKey{keyspace: keyspace, table: table}
+	tk := tableKey{keyspace: keyspace, table: table}
+	return pm.state[sk].SuccessRanges, pm.tableRanges[tk]
 }
 
 func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
@@ -374,17 +372,18 @@ func (pm *dbProgressManager) onJobEndState(ctx context.Context, result jobResult
 // However, rounding errors can't be totally avoided even
 // when calculating total progress from scratch, so it should be fine.
 func (pm *dbProgressManager) updateTotalProgress(keyspace, table string, ranges int) {
+	tk := tableKey{keyspace: keyspace, table: table}
 	var weight, totalWeight int64
 	if pm.totalTableSize == 0 {
 		weight = 1
 		totalWeight = int64(len(pm.state))
 	} else {
-		weight = pm.tableSize[keyspace+"."+table]
+		weight = pm.tableSize[tk]
 		totalWeight = pm.totalTableSize
 	}
 
-	delta := float64(ranges) / float64(pm.tableRanges[keyspace]) * 100 // Not weighted percentage progress delta
-	delta *= float64(weight) / float64(totalWeight)                    // Apply weight
+	delta := float64(ranges) / float64(pm.tableRanges[tk]) * 100 // Not weighted percentage progress delta
+	delta *= float64(weight) / float64(totalWeight)              // Apply weight
 
 	// Watch out for rounding over 100% errors
 	if total := pm.total.Add(delta); total <= 100 {
