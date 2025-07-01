@@ -225,15 +225,40 @@ Please find below the contents of the manifest file of the node shown in the sst
        -8863551618551160000,
        -8857300148094569000,
        ...],
-     "schema": "backup/schema/cluster/3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc/task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_schema.tar.gz"
+     "schema": "backup/schema/cluster/3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc/task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095541UTC_schema.tar.gz",
+     "rack": "rack1",
+     "shard_count": 14,
+     "cpu_count": 14,
+     "storage_size": 501809635328,
+     "instance_details": {
+        "cloud_provider": "aws",
+        "instance_type": "i4i.xlarge"
+     },
+     "dc": "dc1",
+     "cluster_id": "3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc",
+     "node_id": "01c9349e-89e6-4ceb-a727-4f27f9f2acce",
+     "task_id": "f70117d8-c10e-4e90-9606-2587936b3757",
+     "snapshot_tag": "sm_20210809095541UTC"
    }
 
 The manifest contains the following information.
 
-* version - the version of the manifest
-* cluster_name - name of the cluster as registered in Scylla Manager
-* ip - public IP address of the node
-* index - list of tables, each table holds a list of file names
-* size - total size of files in index
-* tokens - tokens owned by node, they allow to recreate the cluster topology
-* schema - path to schema file
+* version          - the version of the manifest
+* cluster_name     - name of the cluster as registered in Scylla Manager
+* ip               - public IP address of the node
+* index            - list of tables, each table holds a list of file names
+* size             - total size of files in index
+* tokens           - tokens owned by node, they allow to recreate the cluster topology
+* schema           - path to schema file
+* rack             - rack name of the node
+* shard_count      - number of shards in the node
+* cpu_count        - number of CPUs in the node
+* storage_size     - total size of disk in bytes in the node
+* instance_details - can be empty if running on-premises or instance metadata service is disabled
+   * cloud_provider   - cloud provider name, e.g. "aws", "gcp" or "azure"
+   * instance_type    - type of the instance
+* dc               - data center name of the node
+* cluster_id       - uuid of the cluster
+* node_id          - uuid of the node
+* task_id          - uuid of the backup task
+* snapshot_tag     - tag of the snapshot
