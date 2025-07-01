@@ -258,7 +258,7 @@ The manifest contains the following information.
    * cloud_provider   - cloud provider name, e.g. "aws", "gcp" or "azure"
    * instance_type    - type of the instance
 * dc               - data center name of the node
-* cluster_id       - uuid of the cluster
-* node_id          - uuid of the node
-* task_id          - uuid of the backup task
+* cluster_id       - UUID of the cluster
+* node_id          - UUID of the node
+* task_id          - UUID of the backup task
 * snapshot_tag     - tag of the snapshot
