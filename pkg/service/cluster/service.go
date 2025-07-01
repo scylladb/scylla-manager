@@ -538,10 +538,12 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 	}
 
 	// Create the session and log error
-	_, err = s.GetSession(ctx, c.ID)
+	session, err := s.GetSession(ctx, c.ID)
 	if err != nil {
 		s.logger.Info(ctx, "WARNING! Cannot create CQL session to the cluster. It will affect backup/restore/healthcheck services.",
 			"cluster_id", c.ID)
+	} else {
+		session.Close()
 	}
 
 	switch t {
