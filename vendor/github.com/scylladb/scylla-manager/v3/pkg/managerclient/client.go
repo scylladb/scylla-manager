@@ -701,3 +701,21 @@ func (c *Client) Resume(ctx context.Context, clusterID string, startTasks bool) 
 	_, err := c.operations.PutClusterClusterIDSuspended(p) // nolint: errcheck
 	return err
 }
+
+// SuspendDetails returns details about the cluster suspend state.
+func (c *Client) SuspendDetails(ctx context.Context, clusterID string) (ClusterSuspendDetails, error) {
+	p := &operations.GetClusterClusterIDSuspendedDetailsParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	}
+
+	resp, err := c.operations.GetClusterClusterIDSuspendedDetails(p)
+	if err != nil {
+		return ClusterSuspendDetails{}, err
+	}
+
+	return ClusterSuspendDetails{
+		SuspendDetails: resp.Payload,
+		ClusterID:      clusterID,
+	}, nil
+}
