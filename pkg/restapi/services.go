@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -69,6 +70,7 @@ type BackupService interface {
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
 	// GetValidationProgress must work even when the cluster is no longer available.
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)
+	GetDescribeSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location, filter backup.DescribeSchemaFilter) (query.DescribedSchema, error)
 }
 
 // RestoreService service interface for the REST API handlers.
