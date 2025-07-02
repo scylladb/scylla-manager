@@ -13,6 +13,11 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models"
 )
 
 type backupHandler struct {
@@ -27,13 +32,16 @@ func newBackupHandler(services Services) *chi.Mux {
 		schedSvc: services.Scheduler,
 	}
 
-	m.Use(
-		h.locationsCtx,
-		h.listFilterCtx,
-	)
-	m.Get("/", h.list)
-	m.Delete("/", h.deleteSnapshot)
-	m.Get("/files", h.listFiles)
+	m.Group(func(m chi.Router) {
+		m.Use(
+			h.locationsCtx,
+			h.listFilterCtx,
+		)
+		m.Get("/", h.list)
+		m.Delete("/", h.deleteSnapshot)
+		m.Get("/files", h.listFiles)
+	})
+	m.Get("/schema", h.describeSchema)
 
 	return m
 }
@@ -193,4 +201,72 @@ func (h backupHandler) deleteSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h backupHandler) describeSchema(w http.ResponseWriter, r *http.Request) {
+	cluster := mustClusterFromCtx(r)
+
+	snapshotTag := r.URL.Query().Get("snapshot_tag")
+	if snapshotTag == "" {
+		respondError(w, r, util.ErrValidate(errors.New("no snapshot_tag specified")))
+		return
+	}
+	if !backupspec.IsSnapshotTag(snapshotTag) {
+		respondError(w, r, util.ErrValidate(errors.Errorf("%s is not a snapshot tag", snapshotTag)))
+		return
+	}
+
+	rawLocation := r.URL.Query().Get("location")
+	if rawLocation == "" {
+		respondError(w, r, util.ErrValidate(errors.New("no location specified")))
+		return
+	}
+	var location backupspec.Location
+	if err := location.UnmarshalText([]byte(rawLocation)); err != nil {
+		respondError(w, r, util.ErrValidate(errors.Wrap(err, "parse location")))
+		return
+	}
+
+	queryClusterID, err := parseOptionalUUID(r.URL.Query().Get("query_cluster_id"))
+	if err != nil {
+		respondError(w, r, util.ErrValidate(errors.Wrap(err, "parse query_cluster_id")))
+		return
+	}
+	queryTaskID, err := parseOptionalUUID(r.URL.Query().Get("query_task_id"))
+	if err != nil {
+		respondError(w, r, util.ErrValidate(errors.Wrap(err, "parse query_task_id")))
+		return
+	}
+	filter := backup.DescribeSchemaFilter{
+		ClusterID: queryClusterID,
+		TaskID:    queryTaskID,
+	}
+
+	schema, err := h.svc.GetDescribeSchema(r.Context(), cluster.ID, snapshotTag, location, filter)
+	if err != nil {
+		respondError(w, r, errors.Wrap(err, "get describe schema"))
+		return
+	}
+	render.Respond(w, r, convertSchema(schema))
+}
+
+func parseOptionalUUID(v string) (uuid.UUID, error) {
+	if v == "" {
+		return uuid.Nil, nil
+	}
+	return uuid.Parse(v)
+}
+
+func convertSchema(schema query.DescribedSchema) models.BackupDescribeSchema {
+	convertedRows := slices.Map(schema, func(row query.DescribedSchemaRow) *models.BackupDescribeSchemaItem {
+		return &models.BackupDescribeSchemaItem{
+			Keyspace: row.Keyspace,
+			Type:     row.Type,
+			Name:     row.Name,
+			CqlStmt:  row.CQLStmt,
+		}
+	})
+	return models.BackupDescribeSchema{
+		Schema: convertedRows,
+	}
 }
