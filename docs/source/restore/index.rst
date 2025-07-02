@@ -32,6 +32,8 @@ Restore task has to be one of two types:
 
   * :doc:`restore tables <restore-tables>` - restores the content of the tables (rows)
 
+    * :ref:`1-1 restore <1-1-restore>` - faster restore of tables, please check the limitations before using it
+
   * :doc:`restore schema <restore-schema>` - restores the ScyllaDB cluster schema
 
 If both the schema and the content of the tables need to be restored, you must start with restoring the schema. Only after the schema is successfully restored can you proceed with restoring the content of the tables.
