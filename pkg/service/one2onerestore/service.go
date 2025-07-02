@@ -83,6 +83,7 @@ func (s *Service) One2OneRestore(ctx context.Context, clusterID, taskID, runID u
 	if err != nil {
 		return errors.Wrap(err, "new worker")
 	}
+	defer w.clusterSession.Close()
 
 	target, err := w.parseTarget(ctx, properties)
 	if err != nil {
