@@ -206,6 +206,7 @@ func (w *worker) viewsFromSchema(ctx context.Context, workload []hostWorkload) (
 	if err != nil {
 		return nil, errors.Wrap(err, "single host cql session")
 	}
+	defer hostSession.Close()
 
 	if err := w.raftReadBarrier(ctx, hostSession, host); err != nil {
 		return nil, errors.Wrap(err, "raft read barrier")
