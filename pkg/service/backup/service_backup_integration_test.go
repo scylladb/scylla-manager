@@ -30,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
@@ -2632,6 +2633,117 @@ func TestBackupMethodIntegration(t *testing.T) {
 				if encounteredBlocked.Load() {
 					t.Fatalf("Expected SM not to use %q API", tc.blockedPath)
 				}
+			}
+		})
+	}
+}
+
+func TestTGetDescribeSchemaIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-describe-schema"
+		testKeyspace = "backuptest_describe_schema"
+	)
+
+	location := s3Location(testBucket)
+	config := defaultConfig()
+	session := CreateScyllaManagerDBSession(t)
+	h := newBackupTestHelper(t, session, config, location, nil)
+
+	if CheckAnyConstraint(h.T, h.Client, "< 6.0", "< 2024.2, > 1000") {
+		t.Skip("GetDescribeSchema works only with DESCRIBE SCHEMA WITH INTERNALS schema backup")
+	}
+
+	ctx := context.Background()
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
+
+	prepTable := func(tab string) (schema query.DescribedSchema, tag string) {
+		Printf("Given: %s", tab)
+		WriteData(t, clusterSession, testKeyspace, 0, tab)
+
+		Print("And: described schema")
+		schema, err := query.DescribeSchemaWithInternals(clusterSession)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "DESCRIBE SCHEMA WITH INTERNALS"))
+		}
+
+		Printf("And: %s backup", tab)
+		target := defaultTestTarget(location, testKeyspace, "dc1", 1)
+		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
+			t.Fatal(errors.Wrap(err, "InitTarget"))
+		}
+		if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+			t.Fatal(errors.Wrap(err, "Backup"))
+		}
+
+		Print("And: snapshot tag")
+		items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID, TaskID: h.TaskID})
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "List"))
+		}
+		if len(items) == 0 || len(items[0].SnapshotInfo) == 0 {
+			t.Fatalf("No snapshot tag found")
+		}
+		return schema, items[0].SnapshotInfo[0].SnapshotTag
+	}
+
+	schemaTab1, tagTab1 := prepTable("tab1")
+	schemaTab2, tagTab2 := prepTable("tab2")
+
+	testCases := []struct {
+		name      string
+		tag       string
+		clusterID uuid.UUID
+		taskID    uuid.UUID
+		schema    query.DescribedSchema
+	}{
+		{
+			name:      "tab1 all",
+			tag:       tagTab1,
+			clusterID: h.ClusterID,
+			taskID:    h.TaskID,
+			schema:    schemaTab1,
+		},
+		{
+			name:      "tab1 no task ID",
+			tag:       tagTab1,
+			clusterID: h.ClusterID,
+			schema:    schemaTab1,
+		},
+		{
+			name:   "tab1 no cluster ID",
+			tag:    tagTab1,
+			taskID: h.TaskID,
+			schema: schemaTab1,
+		},
+		{
+			name:   "tab1 none",
+			tag:    tagTab1,
+			schema: schemaTab1,
+		},
+		{
+			name:   "tab2 none",
+			tag:    tagTab2,
+			schema: schemaTab2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			Print("When: call GetDescribeSchema")
+			filter := backup.DescribeSchemaFilter{
+				ClusterID: h.ClusterID,
+				TaskID:    h.TaskID,
+			}
+			schema, err := h.service.GetDescribeSchema(ctx, h.ClusterID, tc.tag, location, filter)
+			if err != nil {
+				t.Fatal(errors.Wrap(err, "GetDescribeSchema"))
+			}
+
+			Print("Then: GetDescribeSchema returned correct schema")
+			if diff := cmp.Diff(schema, tc.schema); diff != "" {
+				t.Fatalf("Schema mismatch\n%s", diff)
 			}
 		})
 	}
