@@ -543,6 +543,30 @@ func (c *Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, 
 	}, nil
 }
 
+// BackupDescribeSchema returns backed up schema from DESCRIBE SCHEMA WITH INTERNALS query.
+func (c *Client) BackupDescribeSchema(ctx context.Context, clusterID, snapshotTag, location, queryClusterID, queryTaskID string) (BackupDescribeSchema, error) {
+	params := &operations.GetClusterClusterIDBackupsSchemaParams{
+		Context:     ctx,
+		ClusterID:   clusterID,
+		SnapshotTag: snapshotTag,
+		Location:    location,
+	}
+	if queryClusterID != "" {
+		params.SetQueryClusterID(&queryClusterID)
+	}
+	if queryTaskID != "" {
+		params.SetQueryTaskID(&queryTaskID)
+	}
+
+	resp, err := c.operations.GetClusterClusterIDBackupsSchema(params)
+	if err != nil {
+		return BackupDescribeSchema{}, err
+	}
+	return BackupDescribeSchema{
+		BackupDescribeSchema: resp.GetPayload(),
+	}, nil
+}
+
 // One2OneRestoreProgress returns 1-1-restore progress.
 func (c *Client) One2OneRestoreProgress(ctx context.Context, clusterID, taskID, runID string) (One2OneRestoreProgress, error) {
 	resp, err := c.operations.GetClusterClusterIDTask11RestoreTaskIDRunID(&operations.GetClusterClusterIDTask11RestoreTaskIDRunIDParams{

@@ -1622,3 +1622,18 @@ func (csd ClusterSuspendDetails) Render(w io.Writer) error {
 	}
 	return nil
 }
+
+// BackupDescribeSchema renders described backup schema.
+type BackupDescribeSchema struct {
+	*models.BackupDescribeSchema
+}
+
+// Render implements Renderer interface.
+func (bds BackupDescribeSchema) Render(w io.Writer) error {
+	cqlStmts := make([]string, 0, len(bds.Schema))
+	for _, row := range bds.Schema {
+		cqlStmts = append(cqlStmts, row.CqlStmt)
+	}
+	_, err := w.Write([]byte(strings.Join(cqlStmts, "\n") + "\n"))
+	return err
+}
