@@ -69,3 +69,20 @@ This section contains a description of the restore-tables procedure performed by
     * Recreate restored views
 
 Information about original ``tombstone_gc`` mode, views definitions and repair progress is included in :ref:`sctool progress --details <task-progress>`.
+
+
+.. _1-1-restore:
+
+1-1 restore
+============
+
+Scylla Manager supports much faster restore of tables content using the :ref:`sctool restore 1-1-restore <sctool-1-1-restore>` command.
+
+Limitations:
+  * The source and destination clusters must have the same topology (DCs, racks, nodes structure and tokens).
+
+  * Only works with vnode based keyspaces.
+
+  * Performance will be much better than the regular restore, but only if Scylla version is 2025.2 or later.
+
+Please refer to the :ref:`sctool restore 1-1-restore <sctool-1-1-restore>` documentation for more details.
