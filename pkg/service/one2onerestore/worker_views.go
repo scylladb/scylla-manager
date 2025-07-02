@@ -135,7 +135,17 @@ func (w *worker) createView(ctx context.Context, view View) error {
 	)
 
 	op := func() error {
-		return w.clusterSession.ExecStmt(view.CreateStmt)
+		stmts := strings.Split(view.CreateStmt, ";")
+		for _, stmt := range stmts {
+			stmt = strings.TrimSpace(stmt)
+			if stmt == "" {
+				continue
+			}
+			if err := w.clusterSession.ExecStmt(stmt); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	notify := func(err error, wait time.Duration) {
