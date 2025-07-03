@@ -1,5 +1,6 @@
 // Copyright (C) 2017 ScyllaDB
 
+//go:build ignore
 // +build ignore
 
 package main
@@ -11,6 +12,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/rclone/rclone/fs"
@@ -34,7 +36,18 @@ var rclonePkgName = map[string]string{
 func main() {
 	b := &bytes.Buffer{}
 	writeHeader(b)
-	for _, r := range fs.Registry {
+	sortedRegistry := slices.Clone(fs.Registry)
+	slices.SortFunc(sortedRegistry, func(a, b *fs.RegInfo) int {
+		switch {
+		case a.Name < b.Name:
+			return -1
+		case a.Name > b.Name:
+			return 1
+		default:
+			return 0
+		}
+	})
+	for _, r := range sortedRegistry {
 		// Ignore crypt that is a transitive dependency.
 		if r.Name == "crypt" {
 			continue
