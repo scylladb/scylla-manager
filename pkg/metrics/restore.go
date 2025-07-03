@@ -15,6 +15,8 @@ type RestoreMetrics struct {
 	batchSize        *prometheus.GaugeVec
 	remainingBytes   *prometheus.GaugeVec
 	state            *prometheus.GaugeVec
+	restoredBytes    *prometheus.GaugeVec
+	restoreDuration  *prometheus.GaugeVec
 	downloadedBytes  *prometheus.GaugeVec
 	downloadDuration *prometheus.GaugeVec
 	streamedBytes    *prometheus.GaugeVec
@@ -31,6 +33,8 @@ func NewRestoreMetrics() RestoreMetrics {
 		remainingBytes: g("Remaining bytes of backup to be restored yet.", "remaining_bytes",
 			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
 		state:            g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
+		restoredBytes:    g("Restored bytes", "restored_bytes", "cluster", "host"),
+		restoreDuration:  g("Restore duration in ms", "restore_duration", "cluster", "host"),
 		downloadedBytes:  g("Downloaded bytes", "downloaded_bytes", "cluster", "location", "host"),
 		downloadDuration: g("Download duration in ms", "download_duration", "cluster", "location", "host"),
 		streamedBytes:    g("Load&Streamed bytes", "streamed_bytes", "cluster", "host"),
@@ -51,6 +55,8 @@ func (m RestoreMetrics) all() []prometheus.Collector {
 		m.batchSize,
 		m.remainingBytes,
 		m.state,
+		m.restoredBytes,
+		m.restoreDuration,
 		m.downloadedBytes,
 		m.downloadDuration,
 		m.streamedBytes,
@@ -155,6 +161,9 @@ const (
 	RestoreStateLoading
 	// RestoreStateError means that node ended up with error.
 	RestoreStateError
+	// RestoreStateNativeRestore means that node is restoring with
+	// native Scylla restore task.
+	RestoreStateNativeRestore
 )
 
 // SetRestoreState sets restore "state" metric.
@@ -166,6 +175,24 @@ func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupspec
 		"host":         host,
 	}
 	m.state.With(l).Set(float64(state))
+}
+
+// IncreaseRestoredBytes increases restore "restored_bytes" metric.
+func (m RestoreMetrics) IncreaseRestoredBytes(clusterID uuid.UUID, host string, bytes int64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+	m.restoredBytes.With(l).Add(float64(bytes))
+}
+
+// IncreaseRestoreDuration increases restore "restore_duration" metric.
+func (m RestoreMetrics) IncreaseRestoreDuration(clusterID uuid.UUID, host string, d time.Duration) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"host":    host,
+	}
+	m.restoreDuration.With(l).Add(float64(d.Milliseconds()))
 }
 
 // IncreaseRestoreDownloadedBytes increases restore "downloaded_bytes" metric.

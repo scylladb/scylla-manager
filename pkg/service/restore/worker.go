@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/netip"
 	"path"
 	"regexp"
 	"slices"
@@ -22,6 +23,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 
@@ -30,7 +32,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 )
 
-// restoreWorkerTools consists of utils common for both schemaWorker and tablesWorker.
+// worker consists of utils common for both schemaWorker and tablesWorker.
 type worker struct {
 	run             *Run
 	target          Target
@@ -43,6 +45,7 @@ type worker struct {
 	client         *scyllaclient.Client
 	session        gocqlx.Session
 	clusterSession gocqlx.Session
+	nodeConfig     map[netip.Addr]configcache.NodeConfig
 }
 
 func (w *worker) init(ctx context.Context, properties json.RawMessage) error {

@@ -494,6 +494,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	nativeRestoreSupport, err := ni.SupportsNativeRestoreAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	Print("Keyspace setup")
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
@@ -510,10 +514,55 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	Print("Fill setup")
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
 
-	validateState := func(ch clusterHelper, tombstone string, compaction bool, transfers int, rateLimit int, cpus []int64) {
+	// Choose expected API - load&stream or native restore depending on node version
+	ensuredPath := "/storage_service/sstables"
+	blockedPath := "/storage_service/restore"
+	if nativeRestoreSupport {
+		ensuredPath, blockedPath = blockedPath, ensuredPath
+	}
+
+	Printf("Expect that %q API will be used for restore, while %q API won't be used at all", ensuredPath, blockedPath)
+	encounteredEnsured := atomic.Bool{}
+	encounteredBlocked := atomic.Bool{}
+	// Should always be set (also as a part of other interceptors)
+	apiInterceptor := func(req *http.Request) {
+		if strings.HasPrefix(req.URL.Path, ensuredPath) {
+			encounteredEnsured.Store(true)
+		}
+		if strings.HasPrefix(req.URL.Path, blockedPath) {
+			encounteredBlocked.Store(true)
+		}
+	}
+	setDstInterceptor := func(interceptor httpx.RoundTripperFunc) {
+		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			apiInterceptor(req)
+			if interceptor != nil {
+				return interceptor.RoundTrip(req)
+			}
+			return nil, nil
+		}))
+	}
+	setDstInterceptor(nil)
+
+	validateState := func(ch clusterHelper, tombstone string, compaction bool, transfers int, rateLimit int, cpus []int64, ttl int64) {
 		// Validate tombstone_gc mode
 		if got := tombstoneGCMode(t, ch.rootSession, ks, tab); tombstone != got {
 			t.Errorf("expected tombstone_gc=%s, got %s", tombstone, got)
+		}
+		// Restore with Scylla API does not need to directly control
+		// compaction, transfers, rate limit, cpu pinning.
+		// We only need to check for user task TTL.
+		if nativeRestoreSupport {
+			for _, host := range ch.Client.Config().Hosts {
+				got, err := ch.Client.ScyllaGetUserTaskTTL(context.Background(), host)
+				if err != nil {
+					t.Errorf("check user task ttl on host %s: %s", host, err)
+				}
+				if ttl != got {
+					t.Errorf("Expected user_task_ttl=%d, got=%d on host %s", ttl, got, host)
+				}
+			}
+			return
 		}
 		// Validate compaction
 		for _, host := range ch.Client.Config().Hosts {
@@ -539,7 +588,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		for _, host := range ch.Client.Config().Hosts {
 			got, err := ch.Client.RcloneGetBandwidthLimit(context.Background(), host)
 			if err != nil {
-				t.Fatal(errors.Wrapf(err, "check transfers on host %s", host))
+				t.Fatal(errors.Wrapf(err, "check rate limit on host %s", host))
 			}
 			rawLimit := fmt.Sprintf("%dM", rateLimit)
 			if rateLimit == 0 {
@@ -553,7 +602,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		for _, host := range ch.Client.Config().Hosts {
 			got, err := ch.Client.GetPinnedCPU(context.Background(), host)
 			if err != nil {
-				t.Fatal(errors.Wrapf(err, "check transfers on host %s", host))
+				t.Fatal(errors.Wrapf(err, "check cpus on host %s", host))
 			}
 			slices.Sort(cpus)
 			slices.Sort(got)
@@ -575,8 +624,17 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 	transfers0 := 2 * int(shardCnt)
 
-	setTransfersAndRateLimitAndPinnedCPU := func(ch clusterHelper, transfers int, rateLimit int, pin bool) {
+	setTransfersAndRateLimitAndPinnedCPU := func(ch clusterHelper, transfers int, rateLimit int, pin bool, ttl int64) {
 		for _, host := range ch.Client.Config().Hosts {
+			// Restore with Scylla API does not need to directly control
+			// compaction, transfers, rate limit, cpu pinning.
+			// We only need to set user task TTL.
+			if nativeRestoreSupport {
+				if err := ch.Client.ScyllaSetUserTaskTTL(context.Background(), host, ttl); err != nil {
+					t.Fatalf("Set user task ttl on host %s: %s", host, err)
+				}
+				continue
+			}
 			err := ch.Client.RcloneSetTransfers(context.Background(), host, transfers)
 			if err != nil {
 				t.Fatal(errors.Wrapf(err, "set transfers on host %s", host))
@@ -599,12 +657,12 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		}
 	}
 
-	Print("Set initial transfers and rate limit")
-	setTransfersAndRateLimitAndPinnedCPU(h.srcCluster, 10, 99, true)
-	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 10, 99, true)
+	Print("Set initial config")
+	setTransfersAndRateLimitAndPinnedCPU(h.srcCluster, 10, 99, true, 1)
+	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 10, 99, true, 1)
 
 	Print("Validate state before backup")
-	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
+	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run backup")
 	loc := []backupspec.Location{testLocation("preparation", "")}
@@ -617,9 +675,9 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	Print("Validate state after backup")
 	if nativeBackupSupport && !IsIPV6Network() {
-		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU)
+		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 	} else {
-		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU)
+		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU, 1)
 	}
 
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
@@ -644,8 +702,8 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	makeLASHang := func(reachedDataStageChan, hangLAS chan struct{}) {
 		cnt := atomic.Int64{}
 		cnt.Add(int64(len(h.dstCluster.Client.Config().Hosts)))
-		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables") {
+		setDstInterceptor(func(req *http.Request) (*http.Response, error) {
+			if isLasOrRestoreEndpoint(req.URL.Path) {
 				if curr := cnt.Add(-1); curr == 0 {
 					Print("Reached data stage")
 					close(reachedDataStageChan)
@@ -654,7 +712,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 				<-hangLAS
 			}
 			return nil, nil
-		}))
+		})
 	}
 
 	var (
@@ -665,7 +723,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	makeLASHang(reachedDataStageChan, hangLAS)
 
 	Print("Validate state before restore")
-	validateState(h.dstCluster, "repair", true, 10, 99, pinnedCPU)
+	validateState(h.dstCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run restore")
 	finishedRestore := make(chan error)
@@ -680,7 +738,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data")
-	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU)
+	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
 
 	Print("Pause restore")
 	restoreCancel()
@@ -695,10 +753,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during pause")
-	validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU)
+	validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU, 1)
 
 	Print("Change transfers and rate limit during pause")
-	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 9, 55, false)
+	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 9, 55, false, 2)
 
 	reachedDataStageChan = make(chan struct{})
 	hangLAS = make(chan struct{})
@@ -717,7 +775,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data after pause")
-	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU)
+	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
 
 	Print("Release LAS")
 	close(hangLAS)
@@ -729,7 +787,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state after restore success")
-	validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU)
+	validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU, 2)
 
 	Print("Validate table contents")
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -767,8 +825,6 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	backupProps["batch_size"] = 100
 	tag := h.runBackup(t, backupProps)
 
-	downloadErr := errors.New("fake download error")
-	lasErr := errors.New("fake las error")
 	props := map[string]any{
 		"location":       loc,
 		"keyspace":       ksFilter,
@@ -778,30 +834,23 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 
 	t.Run("batch retry finished with success", func(t *testing.T) {
 		Print("Inject errors to some download and las calls")
-		downloadCnt := atomic.Int64{}
-		lasCnt := atomic.Int64{}
+		counter := atomic.Int64{}
 		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			// For this setup, we have 6 remote sstable dirs and 6 workers.
-			// We inject 2 errors during download and 3 errors during LAS.
+			// We inject 5 errors during LAS or Scylla Restore API.
 			// This means that only a single node will be restoring at the end.
-			// Huge batch size and 3 LAS errors guarantee total 9 calls to LAS.
-			// The last failed call to LAS (cnt=8) waits a bit so that we test
+			// Huge batch size and 5 errors guarantee total 11 calls to LAS or Scylla API.
+			// The last failed call (cnt=10) waits a bit so that we test
 			// that batch dispatcher correctly reuses and releases nodes waiting
 			// for failed sstables to come back to the batch dispatcher.
-			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
-				if cnt := downloadCnt.Add(1); cnt == 1 || cnt == 3 {
-					t.Log("Fake download error ", cnt)
-					return nil, downloadErr
-				}
-			}
-			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
-				cnt := lasCnt.Add(1)
-				if cnt == 8 {
+			if isLasOrRestoreEndpoint(req.URL.Path) {
+				cnt := counter.Add(1)
+				switch cnt {
+				case 10:
 					time.Sleep(15 * time.Second)
-				}
-				if cnt == 1 || cnt == 5 || cnt == 8 {
-					t.Log("Fake LAS error ", cnt)
-					return nil, lasErr
+					return nil, errors.New("fake error")
+				case 1, 3, 5, 8:
+					return nil, errors.New("fake error")
 				}
 			}
 			return nil, nil
@@ -812,7 +861,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		h.runRestore(t, props)
 
 		Print("Validate success")
-		if cnt := lasCnt.Add(0); cnt < 9 {
+		if cnt := counter.Add(0); cnt < 11 {
 			t.Fatalf("Expected at least 9 calls to LAS, got %d", cnt)
 		}
 		validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab1, "id", "data")
@@ -825,14 +874,14 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		reachedDataStage := atomic.Bool{}
 		reachedDataStageChan := make(chan struct{})
 		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") {
+			if isDownloadOrRestoreEndpoint(req.URL.Path) {
 				if reachedDataStage.CompareAndSwap(false, true) {
 					close(reachedDataStageChan)
 				}
-				return nil, downloadErr
+				return nil, errors.New("fake error")
 			}
-			if strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
-				return nil, lasErr
+			if isLasOrRestoreEndpoint(req.URL.Path) {
+				return nil, errors.New("fake error")
 			}
 			return nil, nil
 		}))
@@ -873,8 +922,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		reachedDataStage := atomic.Bool{}
 		reachedDataStageChan := make(chan struct{})
 		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if strings.HasPrefix(req.URL.Path, "/agent/rclone/sync/copypaths") ||
-				strings.HasPrefix(req.URL.Path, "/storage_service/sstables/") {
+			if isDownloadOrRestoreEndpoint(req.URL.Path) || isLasOrRestoreEndpoint(req.URL.Path) {
 				if reachedDataStage.CompareAndSwap(false, true) {
 					close(reachedDataStageChan)
 				}
