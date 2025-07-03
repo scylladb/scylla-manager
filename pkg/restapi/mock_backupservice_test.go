@@ -10,9 +10,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	"github.com/scylladb/scylla-manager/backupspec"
+	backupspec "github.com/scylladb/scylla-manager/backupspec"
 	backup "github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-
+	query "github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -65,6 +65,21 @@ func (m *MockBackupService) ExtractLocations(arg0 context.Context, arg1 []json.R
 func (mr *MockBackupServiceMockRecorder) ExtractLocations(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractLocations", reflect.TypeOf((*MockBackupService)(nil).ExtractLocations), arg0, arg1)
+}
+
+// GetDescribeSchema mocks base method.
+func (m *MockBackupService) GetDescribeSchema(arg0 context.Context, arg1 uuid.UUID, arg2 string, arg3 backupspec.Location, arg4 backup.DescribeSchemaFilter) (query.DescribedSchema, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDescribeSchema", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(query.DescribedSchema)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDescribeSchema indicates an expected call of GetDescribeSchema.
+func (mr *MockBackupServiceMockRecorder) GetDescribeSchema(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDescribeSchema", reflect.TypeOf((*MockBackupService)(nil).GetDescribeSchema), arg0, arg1, arg2, arg3, arg4)
 }
 
 // GetProgress mocks base method.
