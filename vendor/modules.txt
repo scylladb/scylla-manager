@@ -167,12 +167,34 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v1.6.0 => github.com/scylladb/gocql v1.12.0
+# github.com/gocql/gocql v1.6.0 => github.com/scylladb/gocql v1.14.5
 ## explicit; go 1.13
 github.com/gocql/gocql
+github.com/gocql/gocql/debounce
 github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur
 github.com/gocql/gocql/internal/streams
+github.com/gocql/gocql/serialization/ascii
+github.com/gocql/gocql/serialization/bigint
+github.com/gocql/gocql/serialization/blob
+github.com/gocql/gocql/serialization/boolean
+github.com/gocql/gocql/serialization/counter
+github.com/gocql/gocql/serialization/cqlint
+github.com/gocql/gocql/serialization/cqltime
+github.com/gocql/gocql/serialization/date
+github.com/gocql/gocql/serialization/decimal
+github.com/gocql/gocql/serialization/double
+github.com/gocql/gocql/serialization/duration
+github.com/gocql/gocql/serialization/float
+github.com/gocql/gocql/serialization/inet
+github.com/gocql/gocql/serialization/smallint
+github.com/gocql/gocql/serialization/text
+github.com/gocql/gocql/serialization/timestamp
+github.com/gocql/gocql/serialization/timeuuid
+github.com/gocql/gocql/serialization/tinyint
+github.com/gocql/gocql/serialization/uuid
+github.com/gocql/gocql/serialization/varchar
+github.com/gocql/gocql/serialization/varint
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 ## explicit
 github.com/golang/groupcache/lru
@@ -189,9 +211,6 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/golang/snappy v0.0.4
-## explicit
-github.com/golang/snappy
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -247,7 +266,9 @@ github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/race
 github.com/klauspost/compress/internal/snapref
+github.com/klauspost/compress/s2
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/lnquy/cron v1.1.1
@@ -767,5 +788,5 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# github.com/gocql/gocql => github.com/scylladb/gocql v1.12.0
+# github.com/gocql/gocql => github.com/scylladb/gocql v1.14.5
 # github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e
