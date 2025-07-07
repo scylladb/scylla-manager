@@ -106,13 +106,13 @@ http: 127.0.0.1:5080
 #  node_info_ttl: 5m
 #
 # cql_ping_cron specifies cron expression for scheduling CQL ping.
-#  cql_ping_cron: '*/15 * * * * *'
+#  cql_ping_cron: '* * * * *'
 #
 # rest_ping_cron specifies cron expression for scheduling REST ping.
-#  rest_ping_cron: '0 * * * * *'
+#  rest_ping_cron: '* * * * *'
 #
 # alternator_ping_cron specifies cron expression for scheduling Alternator ping.
-#  alternator_ping_cron: '*/15 * * * * *'
+#  alternator_ping_cron: '* * * * *'
 
 # Backup service configuration.
 #backup:
