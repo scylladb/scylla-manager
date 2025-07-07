@@ -4,6 +4,8 @@ package healthcheck
 
 import (
 	"time"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 )
 
 // Config specifies the healthcheck service configuration.
@@ -12,6 +14,12 @@ type Config struct {
 	NodeInfoTTL time.Duration `yaml:"node_info_ttl"`
 	// MaxTimeout specifies ping timeout for all ping types (CQL, REST, Alternator).
 	MaxTimeout time.Duration `yaml:"max_timeout"`
+	// CQLPingCron specifies cron expression for scheduling CQL ping.
+	CQLPingCron schedules.Cron `yaml:"cql_ping_cron"`
+	// RESTPingCron specifies cron expression for scheduling REST ping.
+	RESTPingCron schedules.Cron `yaml:"rest_ping_cron"`
+	// AlternatorPingCron specifies cron expression for scheduling Alternator ping.
+	AlternatorPingCron schedules.Cron `yaml:"alternator_ping_cron"`
 	// Deprecated: value is not used anymore
 	Probes int `yaml:"probes"`
 	// Deprecated: value is not used anymore
@@ -20,7 +28,10 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		MaxTimeout:  1 * time.Second,
-		NodeInfoTTL: 5 * time.Minute,
+		MaxTimeout:         1 * time.Second,
+		NodeInfoTTL:        5 * time.Minute,
+		CQLPingCron:        schedules.MustCron("*/15 * * * * *", time.Time{}),
+		RESTPingCron:       schedules.MustCron("0 * * * * *", time.Time{}),
+		AlternatorPingCron: schedules.MustCron("*/15 * * * * *", time.Time{}),
 	}
 }

@@ -104,6 +104,15 @@ http: 127.0.0.1:5080
 # healthcheck reliability on heavy loaded clusters, but it may cause transitional issues
 # on node configuration changes.
 #  node_info_ttl: 5m
+#
+# cql_ping_cron specifies cron expression for scheduling CQL ping.
+#  cql_ping_cron: '*/15 * * * * *'
+#
+# rest_ping_cron specifies cron expression for scheduling REST ping.
+#  rest_ping_cron: '0 * * * * *'
+#
+# alternator_ping_cron specifies cron expression for scheduling Alternator ping.
+#  alternator_ping_cron: '*/15 * * * * *'
 
 # Backup service configuration.
 #backup:
