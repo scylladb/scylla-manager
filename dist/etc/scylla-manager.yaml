@@ -99,6 +99,11 @@ http: 127.0.0.1:5080
 #healthcheck:
 # max_timeout specifies ping timeout for all ping types (CQL, REST, Alternator).
 #  max_timeout: 1s
+#
+# node_info_ttl specifies how long node info should be cached. Caching node info improves
+# healthcheck reliability on heavy loaded clusters, but it may cause transitional issues
+# on node configuration changes.
+#  node_info_ttl: 5m
 
 # Backup service configuration.
 #backup:
