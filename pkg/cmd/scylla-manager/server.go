@@ -348,10 +348,13 @@ func (s *server) certPool(file string) (*x509.CertPool, error) {
 
 func (s *server) startServices(ctx context.Context) error {
 	if err := s.clusterSvc.Init(ctx); err != nil {
-		return errors.Wrapf(err, "cluster service")
+		return errors.Wrap(err, "cluster service")
+	}
+	if err := s.schedSvc.UpdateHealthcheckTasks(ctx, s.config.Healthcheck); err != nil {
+		return errors.Wrap(err, "update healthcheck tasks")
 	}
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
-		return errors.Wrapf(err, "schedule service")
+		return errors.Wrap(err, "schedule service")
 	}
 
 	s.startConfigCacheSvcAsync(ctx)
