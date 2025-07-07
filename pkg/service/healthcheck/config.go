@@ -30,8 +30,8 @@ func DefaultConfig() Config {
 	return Config{
 		MaxTimeout:         1 * time.Second,
 		NodeInfoTTL:        5 * time.Minute,
-		CQLPingCron:        schedules.MustCron("*/15 * * * * *", time.Time{}),
+		CQLPingCron:        schedules.MustCron("0 * * * * *", time.Time{}),
 		RESTPingCron:       schedules.MustCron("0 * * * * *", time.Time{}),
-		AlternatorPingCron: schedules.MustCron("*/15 * * * * *", time.Time{}),
+		AlternatorPingCron: schedules.MustCron("0 * * * * *", time.Time{}),
 	}
 }
