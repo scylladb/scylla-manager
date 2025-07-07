@@ -193,7 +193,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 		go s.configCacheSvc.ForceUpdateCluster(context.Background(), c.ID)
 	case cluster.Create:
 		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
-		for _, t := range makeAutoHealthCheckTasks(c.ID) {
+		for _, t := range makeAutoHealthCheckTasks(c.ID, s.config.Healthcheck) {
 			if err := s.schedSvc.PutTask(ctx, t); err != nil {
 				return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
 			}
