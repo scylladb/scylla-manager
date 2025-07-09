@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -27,6 +28,7 @@ var configCmpOpts = cmp.Options{
 	testutils.UUIDComparer(),
 	cmpopts.IgnoreUnexported(server.DBConfig{}),
 	cmpopts.IgnoreTypes(zap.AtomicLevel{}),
+	cmpopts.IgnoreFields(schedules.Cron{}, "inner"),
 }
 
 func TestConfigModification(t *testing.T) {
@@ -74,8 +76,11 @@ func TestConfigModification(t *testing.T) {
 			UserKeyFile:  "ssl.key",
 		},
 		Healthcheck: healthcheck.Config{
-			MaxTimeout:  time.Second,
-			NodeInfoTTL: time.Second,
+			MaxTimeout:         time.Second,
+			NodeInfoTTL:        time.Second,
+			CQLPingCron:        schedules.MustCron("* 5,15 * * * *", time.Time{}),
+			RESTPingCron:       schedules.MustCron("* 5,15 * * * *", time.Time{}),
+			AlternatorPingCron: schedules.MustCron("* 5,15 * * * *", time.Time{}),
 		},
 		Backup: backup.Config{
 			DiskSpaceFreeMinPercent:   1,

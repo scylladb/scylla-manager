@@ -193,7 +193,7 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 		go s.configCacheSvc.ForceUpdateCluster(context.Background(), c.ID)
 	case cluster.Create:
 		s.configCacheSvc.ForceUpdateCluster(ctx, c.ID)
-		for _, t := range makeAutoHealthCheckTasks(c.ID) {
+		for _, t := range makeAutoHealthCheckTasks(c.ID, s.config.Healthcheck) {
 			if err := s.schedSvc.PutTask(ctx, t); err != nil {
 				return errors.Wrapf(err, "add automatically scheduled health check for cluster %s", c.ID)
 			}
@@ -348,10 +348,13 @@ func (s *server) certPool(file string) (*x509.CertPool, error) {
 
 func (s *server) startServices(ctx context.Context) error {
 	if err := s.clusterSvc.Init(ctx); err != nil {
-		return errors.Wrapf(err, "cluster service")
+		return errors.Wrap(err, "cluster service")
+	}
+	if err := s.schedSvc.UpdateHealthcheckTasks(ctx, s.config.Healthcheck); err != nil {
+		return errors.Wrap(err, "update healthcheck tasks")
 	}
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
-		return errors.Wrapf(err, "schedule service")
+		return errors.Wrap(err, "schedule service")
 	}
 
 	s.startConfigCacheSvcAsync(ctx)

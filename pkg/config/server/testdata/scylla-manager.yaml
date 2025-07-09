@@ -35,6 +35,9 @@ healthcheck:
   max_timeout: 1s
   probes: 0
   node_info_ttl: 1s
+  cql_ping_cron: '* 5,15 * * * *'
+  rest_ping_cron: '* 5,15 * * * *'
+  alternator_ping_cron: '* 5,15 * * * *'
 
 backup:
   disk_space_free_min_percent: 1
