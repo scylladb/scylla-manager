@@ -228,6 +228,16 @@ func (b batch) TOC() []string {
 	return out
 }
 
+// NativeRestoreSupport validates that native restore can be used for given batch.
+func (b batch) NativeRestoreSupport() error {
+	if len(b.SSTables) == 0 {
+		return errors.New("empty batch")
+	}
+	// Since all sstables within batch have the same type,
+	// it's enough to check native restore support only for the first one.
+	return b.SSTables[0].NativeRestoreSupport()
+}
+
 // ValidateAllDispatched returns error if not all SSTables were dispatched.
 func (bd *batchDispatcher) ValidateAllDispatched() error {
 	bd.mu.Lock()
