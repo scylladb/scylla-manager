@@ -310,7 +310,8 @@ func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (s
 }
 
 // SupportsSkipCleanupAndSkipReshape returns whether Scylla supports skip_cleanup and skip_reshape parameters
-// in /storage_service/sstables/{keyspace} endpoint as 2025.2.0 has a bug if this parameters are set to true -
+// in /storage_service/sstables/{keyspace} endpoint.
+// Note that scylla 2025.2.0 has a bug if this parameters are set to true -
 // https://github.com/scylladb/scylladb/issues/24913.
 func (ni *NodeInfo) SupportsSkipCleanupAndSkipReshape() (bool, error) {
 	// Detect master builds
