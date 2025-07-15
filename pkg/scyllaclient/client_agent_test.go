@@ -665,3 +665,58 @@ func TestEqualObjectStorageEndpoints(t *testing.T) {
 		})
 	}
 }
+
+func TestNodeInfoSupportsSkipCleanupAndSkipReshape(t *testing.T) {
+	testCases := []struct {
+		name          string
+		scyllaVersion string
+		expected      bool
+	}{
+		{
+			name:          "master version is supported",
+			scyllaVersion: "9999.enterprise_dev",
+			expected:      true,
+		},
+		{
+			name:          "2025.3.0 is supported",
+			scyllaVersion: "2025.3.0",
+			expected:      true,
+		},
+		{
+			name:          "2025.2.1 is supported",
+			scyllaVersion: "2025.2.1",
+			expected:      true,
+		},
+		{
+			name:          "2025.2.1 is supported",
+			scyllaVersion: "2025.2.1",
+			expected:      true,
+		},
+		{
+			name:          "2025.2.0 is not supported",
+			scyllaVersion: "2025.2.0",
+			expected:      false,
+		},
+		{
+			name:          "2025.1.0 is not supported",
+			scyllaVersion: "2025.1.0",
+			expected:      false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ni := scyllaclient.NodeInfo{ScyllaVersion: tc.scyllaVersion}
+			supported, err := ni.SupportsSkipCleanupAndSkipReshape()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if supported != tc.expected {
+				t.Fatalf("expected %v, got %v", tc.expected, supported)
+			}
+		})
+	}
+}

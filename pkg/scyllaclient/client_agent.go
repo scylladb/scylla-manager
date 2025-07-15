@@ -309,6 +309,19 @@ func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (s
 		"and in `scylla.yaml` object_storage_endpoints config", provider)
 }
 
+// SupportsSkipCleanupAndSkipReshape returns whether Scylla supports skip_cleanup and skip_reshape parameters
+// in /storage_service/sstables/{keyspace} endpoint as 2025.2.0 has a bug if this parameters are set to true -
+// https://github.com/scylladb/scylladb/issues/24913.
+func (ni *NodeInfo) SupportsSkipCleanupAndSkipReshape() (bool, error) {
+	// Detect master builds
+	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
+		return true, nil
+	}
+
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, "> 2025.2.0")
+}
+
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.
 func (c *Client) FreeOSMemory(ctx context.Context, host string) error {
 	p := operations.FreeOSMemoryParams{
