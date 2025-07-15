@@ -8,5 +8,6 @@
   "snapshot_tag": "sm_20230921151320UTC",
   "batch_size": 99,
   "restore_schema": true,
-  "continue": true
+  "continue": true,
+  "method": "auto"
 }

@@ -514,28 +514,8 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	Print("Fill setup")
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
 
-	// Choose expected API - load&stream or native restore depending on node version
-	ensuredPath := "/storage_service/sstables"
-	blockedPath := "/storage_service/restore"
-	if nativeRestoreSupport {
-		ensuredPath, blockedPath = blockedPath, ensuredPath
-	}
-
-	Printf("Expect that %q API will be used for restore, while %q API won't be used at all", ensuredPath, blockedPath)
-	encounteredEnsured := atomic.Bool{}
-	encounteredBlocked := atomic.Bool{}
-	// Should always be set (also as a part of other interceptors)
-	apiInterceptor := func(req *http.Request) {
-		if strings.HasPrefix(req.URL.Path, ensuredPath) {
-			encounteredEnsured.Store(true)
-		}
-		if strings.HasPrefix(req.URL.Path, blockedPath) {
-			encounteredBlocked.Store(true)
-		}
-	}
 	setDstInterceptor := func(interceptor httpx.RoundTripperFunc) {
 		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			apiInterceptor(req)
 			if interceptor != nil {
 				return interceptor.RoundTrip(req)
 			}
@@ -1299,6 +1279,136 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 		if actualDC != expectedSourceDC {
 			t.Fatalf("Host should download data only from %s, but downloaded from %s", expectedSourceDC, actualDC)
 		}
+	}
+}
+
+func TestRestoreTablesMethodIntegration(t *testing.T) {
+	// This test validates that the correct API is used
+	// for restoring batches (Rclone or Scylla).
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
+	ctx := context.Background()
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	ks := randomizedName("method_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	Print("Backup setup")
+	loc := []backupspec.Location{testLocation("method", "")}
+	S3InitBucket(t, loc[0].Path)
+	ksFilter := []string{ks}
+	backupProps := defaultTestBackupProperties(loc[0], ks)
+	tag := h.runBackup(t, backupProps)
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+
+	const (
+		rcloneAPIPath = "/storage_service/sstables"
+		nativeAPIPath = "/storage_service/restore"
+	)
+
+	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nativeRestoreSupport, err := ni.SupportsNativeRestoreAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type testCase struct {
+		method           string
+		blockedPath      string
+		ensuredPath      string
+		getTargetSuccess bool
+	}
+	var testCases []testCase
+	// As currently scylla can't handle ipv6 object storage endpoints,
+	// we don't configure them for ipv6 test env and don't expect them to work.
+	switch {
+	case nativeRestoreSupport && !IsIPV6Network():
+		testCases = []testCase{
+			{method: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	case nativeRestoreSupport && IsIPV6Network():
+		testCases = []testCase{
+			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "native", getTargetSuccess: false},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	default:
+		testCases = []testCase{
+			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: "native", getTargetSuccess: false},
+			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Test case: %s", tc.method), func(t *testing.T) {
+			if err := h.dstCluster.rootSession.ExecStmt(fmt.Sprintf("TRUNCATE TABLE %q.%q", ks, tab)); err != nil {
+				t.Fatal(err)
+			}
+
+			encounteredEnsured := atomic.Bool{}
+			encounteredBlocked := atomic.Bool{}
+			h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if strings.HasPrefix(req.URL.Path, tc.ensuredPath) {
+					encounteredEnsured.Store(true)
+				}
+				if strings.HasPrefix(req.URL.Path, tc.blockedPath) {
+					encounteredBlocked.Store(true)
+				}
+				return nil, nil
+			}))
+
+			h.dstCluster.RunID = uuid.NewTime()
+			rawProps, err := json.Marshal(map[string]any{
+				"location":       loc,
+				"keyspace":       ksFilter,
+				"snapshot_tag":   tag,
+				"restore_tables": true,
+				"method":         tc.method,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, _, _, err = h.dstRestoreSvc.GetTargetUnitsViews(ctx, h.dstCluster.ClusterID, rawProps)
+			if !tc.getTargetSuccess {
+				if err != nil {
+					return
+				}
+				t.Fatal("Expected GetTargetUnitsViews to fail")
+			} else if err != nil {
+				t.Fatal(err)
+			}
+
+			err = h.dstRestoreSvc.Restore(ctx, h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !encounteredEnsured.Load() {
+				t.Fatalf("Expected SM to use %q API", tc.ensuredPath)
+			}
+			if encounteredBlocked.Load() {
+				t.Fatalf("Expected SM not to use %q API", tc.blockedPath)
+			}
+
+			h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+		})
 	}
 }
 

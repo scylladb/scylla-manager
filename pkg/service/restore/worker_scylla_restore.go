@@ -4,7 +4,6 @@ package restore
 
 import (
 	"context"
-	"slices"
 	"strings"
 	"time"
 
@@ -14,86 +13,62 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
-	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
-// hostScyllaRestoreSupport checks if native restore API is supported for given host.
-func (w *tablesWorker) hostScyllaRestoreSupport(ctx context.Context, host string, nc configcache.NodeConfig) bool {
-	ok, err := nc.SupportsNativeRestoreAPI()
-	if err != nil || !ok {
-		w.logger.Info(ctx, "Can't use Scylla restore API with given Scylla version",
-			"host", host,
-			"version", nc.ScyllaVersion,
-			"error", err)
-		return false
-	}
-	return true
-}
-
-// batchScyllaRestoreSupport checks if we should use native restore API
-// for restoring given batch.
-func (w *tablesWorker) batchScyllaRestoreSupport(ctx context.Context, b batch, nc configcache.NodeConfig) bool {
-	scyllaSupportedProviders := []Provider{
-		S3,
-	}
-	if !slices.Contains(scyllaSupportedProviders, b.Location.Provider) {
-		// As this check is done per batch, we shouldn't flood the logs
-		// with semi-interesting information.
-		return false
-	}
-
-	_, err := nc.ScyllaObjectStorageEndpoint(b.Location.Provider)
+// hostNativeRestoreSupport validates that native restore API can be used for given host.
+func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location) error {
+	ok, err := ni.SupportsNativeRestoreAPI()
 	if err != nil {
-		w.logger.Info(ctx, "Can't use Scylla restore API without object storage endpoint configuration",
+		return errors.Wrap(err, "check native restore api support")
+	}
+	if !ok {
+		return errors.New("native restore api is not supported")
+	}
+	// Simplification - native restore is supported by host if host supports
+	// it for all providers from the backup. All sane scenarios have a single
+	// provider backup. Others can still use rclone method.
+	// This allows us not to check provider support per batch.
+	for _, l := range loc {
+		_, err := ni.ScyllaObjectStorageEndpoint(l.Provider)
+		if err != nil {
+			return errors.Wrap(err, "check scylla object storage endpoint")
+		}
+	}
+	return nil
+}
+
+// hostNativeRestoreSupport is the regular hostNativeRestoreSupport with logging on error.
+func (w *worker) hostNativeRestoreSupport(ctx context.Context, host string, ni *scyllaclient.NodeInfo, loc []Location) error {
+	err := hostNativeRestoreSupport(ni, loc)
+	if err != nil {
+		w.logger.Info(ctx, "Can't use native restore api", "host", host, "error", err)
+	}
+	return err
+}
+
+// batchNativeRestoreSupport is the regular batch.NativeRestoreSupport with logging on error.
+func (w *worker) batchNativeRestoreSupport(ctx context.Context, host string, b batch) error {
+	err := b.NativeRestoreSupport()
+	if err != nil {
+		w.logger.Info(ctx, "Can't use native restore api",
+			"host", host,
+			"keyspace", b.Keyspace,
+			"table", b.SSTables,
 			"error", err)
-		return false
 	}
-
-	if b.batchType.Versioned {
-		w.logger.Info(ctx, "Can't use Scylla restore API with versioned sstables",
-			"backup node ID", b.NodeID,
-			"keyspace", b.Keyspace,
-			"table", b.Table)
-		return false
-	}
-
-	if b.batchType.IDType == sstable.IntegerID {
-		w.logger.Info(ctx, "Can't use Scylla restore API with integer based sstable ID",
-			"backup node ID", b.NodeID,
-			"keyspace", b.Keyspace,
-			"table", b.Table)
-		return false
-	}
-	return true
+	return err
 }
 
-// tryScyllaRestore returns true and runs scyllaRestore if hostScyllaRestoreSupport and batchScyllaRestoreSupport
-// checks have passed. Otherwise, it returns false, nil.
-// Note that hostScyllaRestoreSupport needs to be evaluated before running this method.
-func (w *tablesWorker) tryScyllaRestore(ctx context.Context, hostScyllaRestoreSupport bool, host string, b batch, nc configcache.NodeConfig) (bool, error) {
-	if !hostScyllaRestoreSupport {
-		return false, nil
-	}
-	if !w.batchScyllaRestoreSupport(ctx, b, nc) {
-		return false, nil
-	}
-	w.logger.Info(ctx, "Use Scylla restore API",
-		"host", host,
-		"keyspace", b.Keyspace,
-		"table", b.Table)
-	return true, w.scyllaRestore(ctx, host, b, nc)
-}
-
-func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch, nc configcache.NodeConfig) (err error) {
-	w.logger.Info(ctx, "Use native Scylla restore API", "host", host, "keyspace", b.Keyspace, "table", b.Table)
-	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateNativeRestore)
+func (w *tablesWorker) nativeBatchRestore(ctx context.Context, h HostInfo, nc configcache.NodeConfig, b batch) (err error) {
+	w.logger.Info(ctx, "Use native restore API", "host", h.Host, "keyspace", b.Keyspace, "table", b.Table)
+	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, h.Host, metrics.RestoreStateNativeRestore)
 	defer func() {
 		if err != nil && scheduler.IsTaskInterrupted(ctx) {
-			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateError)
+			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, h.Host, metrics.RestoreStateError)
 		} else {
-			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateIdle)
+			w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, h.Host, metrics.RestoreStateIdle)
 		}
 	}()
 
@@ -107,7 +82,7 @@ func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch, 
 		return errors.Wrap(err, "get Scylla object storage endpoint")
 	}
 
-	id, err := w.client.ScyllaRestore(ctx, host, endpoint, b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC())
+	id, err := w.client.ScyllaRestore(ctx, h.Host, endpoint, b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC())
 	if err != nil {
 		return errors.Wrap(err, "restore")
 	}
@@ -119,14 +94,14 @@ func (w *tablesWorker) scyllaRestore(ctx context.Context, host string, b batch, 
 		RemoteSSTableDir: b.RemoteSSTableDir,
 		Keyspace:         b.Keyspace,
 		Table:            b.Table,
-		Host:             host,
-		ShardCnt:         int64(w.hostShardCnt[host]),
+		Host:             h.Host,
+		ShardCnt:         int64(w.hostShardCnt[h.Host]),
 		ScyllaTaskID:     id,
 		SSTableID:        b.IDs(),
 	}
 	w.insertRunProgress(ctx, pr)
 
-	w.logger.Info(ctx, "Wait for restore task to finish", "host", host, "task id", id)
+	w.logger.Info(ctx, "Wait for restore task to finish", "host", h.Host, "task id", id)
 	err = w.scyllaWaitTask(ctx, pr, b)
 	if err != nil {
 		w.cleanupRunProgress(context.Background(), pr)

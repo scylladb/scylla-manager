@@ -22,6 +22,18 @@ type Workload struct {
 	RemoteDir    []RemoteDirWorkload
 }
 
+// NativeRestoreSupport validates that native restore can be used for all sstables in the workload.
+func (w Workload) NativeRestoreSupport() error {
+	for _, rdw := range w.RemoteDir {
+		for _, sst := range rdw.SSTables {
+			if err := sst.NativeRestoreSupport(); err != nil {
+				return errors.Wrapf(err, "%s: %s.%s", rdw.NodeID, rdw.TableName.Keyspace, rdw.TableName.Table)
+			}
+		}
+	}
+	return nil
+}
+
 // RemoteDirWorkload represents restore workload
 // for given table and manifest in given backup location.
 type RemoteDirWorkload struct {
@@ -38,6 +50,17 @@ type RemoteSSTable struct {
 	SSTable   // SSTable.Files and SSTable.TOC might contain versioned snapshot tag extension
 	Size      int64
 	Versioned bool
+}
+
+// NativeRestoreSupport validates that native restore can be used for given sstable.
+func (sst RemoteSSTable) NativeRestoreSupport() error {
+	if sst.Versioned {
+		return errors.New("native restore api does not support restoration of versioned sstables files")
+	}
+	if sst.ID.Type == sstable.IntegerID {
+		return errors.New("native restore api does not support restoration of sstables with integer based IDs")
+	}
+	return nil
 }
 
 // SSTable represents files creating a single sstable.
