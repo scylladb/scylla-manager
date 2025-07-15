@@ -319,7 +319,7 @@ func (ni *NodeInfo) SupportsSkipCleanupAndSkipReshape() (bool, error) {
 	}
 
 	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, "> 2025.2.0")
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2.0")
 }
 
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.

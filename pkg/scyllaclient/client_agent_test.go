@@ -688,14 +688,9 @@ func TestNodeInfoSupportsSkipCleanupAndSkipReshape(t *testing.T) {
 			expected:      true,
 		},
 		{
-			name:          "2025.2.1 is supported",
-			scyllaVersion: "2025.2.1",
-			expected:      true,
-		},
-		{
-			name:          "2025.2.0 is not supported",
+			name:          "2025.2.0 is supported",
 			scyllaVersion: "2025.2.0",
-			expected:      false,
+			expected:      true,
 		},
 		{
 			name:          "2025.1.0 is not supported",

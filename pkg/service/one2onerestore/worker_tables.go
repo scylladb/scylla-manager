@@ -123,7 +123,7 @@ func (w *worker) refreshNodeWorker(ctx context.Context, hostTask hostWorkload, q
 func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress) error {
 	start := timeutc.Now()
 	w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, refreshWorkerName, metrics.One2OneRestoreStateLoading)
-	err := w.awaitLoadSSTables(ctx, h, table.Keyspace, table.Table)
+	err := w.client.AwaitLoadSSTables(ctx, h.Addr, table.Keyspace, table.Table, false, false, h.SkipCleanupAndSkipReshape, h.SkipCleanupAndSkipReshape)
 	w.finishRestoreTableProgress(ctx, pr, err)
 	if err == nil {
 		w.logger.Info(ctx, "Refresh node done",
@@ -136,15 +136,6 @@ func (w *worker) refreshNode(ctx context.Context, table backupspec.FilesMeta, m 
 		w.metrics.SetOne2OneRestoreState(w.runInfo.ClusterID, m.Location, m.SnapshotTag, h.Addr, refreshWorkerName, metrics.One2OneRestoreStateIdle)
 	}
 	return err
-}
-
-func (w *worker) awaitLoadSSTables(ctx context.Context, host Host, keyspace, table string) error {
-	var skipCleanup, skipReshape bool
-	if host.SkipCleanupAndSkipReshape {
-		skipCleanup, skipReshape = true, true
-	}
-
-	return w.client.AwaitLoadSSTables(ctx, host.Addr, keyspace, table, false, false, skipCleanup, skipReshape)
 }
 
 func (w *worker) waitJob(ctx context.Context, jobID int64, m *backupspec.ManifestInfo, h Host, pr *RunTableProgress, stats *restoreStats, pollIntervalSec int) (err error) {
