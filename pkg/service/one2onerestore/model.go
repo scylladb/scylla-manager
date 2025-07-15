@@ -41,11 +41,12 @@ type node struct {
 
 // Host contains basic information about Scylla node.
 type Host struct {
-	ID                 string
-	DC                 string
-	Addr               string
-	ShardCount         int
-	SafeDescribeMethod scyllaclient.SafeDescribeMethod
+	ID                        string
+	DC                        string
+	Addr                      string
+	ShardCount                int
+	SafeDescribeMethod        scyllaclient.SafeDescribeMethod
+	SkipCleanupAndSkipReshape bool
 }
 
 // ViewType either Materialized View or Secondary Index.

@@ -218,6 +218,11 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 			return errors.Wrapf(err, "node %s safe describe method", h.Addr)
 		}
 		hw.host.SafeDescribeMethod = method
+		supports, err := nodeInfo.SupportsSkipCleanupAndSkipReshape()
+		if err != nil {
+			return errors.Wrapf(err, "node %s supports skip_cleanup and skip_reshape", h.Addr)
+		}
+		hw.host.SkipCleanupAndSkipReshape = supports
 
 		result[i] = hw
 
