@@ -483,7 +483,16 @@ func (c *Client) DescribeVnodeRing(ctx context.Context, keyspace string) (Ring, 
 	})
 }
 
+// The describe ring API call might take a long time to complete, especially
+// in larger clusters. As it is non host specific API call, it won't
+// benefit from the backoff mechanism increasing the timeout on retries.
+// See https://github.com/scylladb/scylla-enterprise/issues/5516 for more context.
+const describeRingMinTimeout = 5 * time.Minute
+
 func (c *Client) describeRing(params *operations.StorageServiceDescribeRingByKeyspaceGetParams) (Ring, error) {
+	if c.config.Timeout < describeRingMinTimeout {
+		params.SetContext(customTimeout(params.Context, describeRingMinTimeout))
+	}
 	resp, err := c.scyllaOps.StorageServiceDescribeRingByKeyspaceGet(params)
 	if err != nil {
 		return Ring{}, err
