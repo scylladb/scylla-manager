@@ -15,19 +15,19 @@ Scylla Manager consists of tree components:
 
 ## Scylla integration status
 
-| ScyllaDB version | Workflows                                                                                         | Limitations                                                                                                                                           |
-|------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **2024.1.15**    | ![integration-tests-2024.1.15-IPV4]<br/>![integration-tests-2024.1.15-IPV6-raftschema-nossl]      | Restoration of schema into cluster with `consistant_cluster_management: true` is not supported                                                        |
-| **2024.2.7**     | ![integration-tests-2024.2.7-IPV4-nossl]<br/>![integration-tests-2024.2.7-IPV6]                   | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
-| **2025.1.0**     | ![integration-tests-2025.1.0-IPV4]<br/>![integration-tests-2025.1.0-IPV6-tablets-nossl]           | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
-| **latest**       | ![integration-tests-latest-IPV4-native]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone] | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
+| ScyllaDB version | Workflows                                                                                             | Limitations                                                                                                                                           |
+|------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **2024.1.18**    | ![integration-tests-2024.1.18-IPV4]<br/>![integration-tests-2024.1.18-IPV6-raftschema-nossl]          | Restoration of schema into cluster with `consistant_cluster_management: true` is not supported                                                        |
+| **2025.1.3**     | ![integration-tests-2025.1.3-IPV4]<br/>![integration-tests-2025.1.3-IPV6-tablets-nossl]               | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
+| **2025.2.0**     | ![integration-tests-2025.2.0-IPV4-tablets-nossl-native]<br/>![integration-tests-2025.2.0-IPV6-rclone] | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
+| **latest**       | ![integration-tests-latest-IPV4-native]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone]     | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 
-[integration-tests-2024.1.15-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.15-IPV4.yaml/badge.svg?branch=master
-[integration-tests-2024.1.15-IPV6-raftschema-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.15-IPV6-raftschema-nossl.yaml/badge.svg?branch=master
-[integration-tests-2024.2.7-IPV4-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.2.7-IPV4-nossl.yaml/badge.svg?branch=master
-[integration-tests-2024.2.7-IPV6]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.2.7-IPV6.yaml/badge.svg?branch=master
-[integration-tests-2025.1.0-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.0-IPV4.yaml/badge.svg?branch=master
-[integration-tests-2025.1.0-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.0-IPV6-tablets-nossl.yaml/badge.svg?branch=master
+[integration-tests-2024.1.18-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.18-IPV4.yaml/badge.svg?branch=master
+[integration-tests-2024.1.18-IPV6-raftschema-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.18-IPV6-raftschema-nossl.yaml/badge.svg?branch=master
+[integration-tests-2025.1.3-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.3-IPV4.yaml/badge.svg?branch=master
+[integration-tests-2025.1.3-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.3-IPV6-tablets-nossl.yaml/badge.svg?branch=master
+[integration-tests-2025.2.0-IPV4-tablets-nossl-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.2.0-IPV4-tablets-nossl-native.yaml/badge.svg?branch=master
+[integration-tests-2025.2.0-IPV6-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.2.0-IPV6-rclone.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV4-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV6-tablets-nossl-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone.yaml/badge.svg?branch=master
 
