@@ -28,7 +28,7 @@ func localTimezone() scheduler.Timezone {
 	return scheduler.NewTimezone(nil)
 }
 
-func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
+func makeAutoHealthCheckTasks(clusterID uuid.UUID, cfg healthcheck.Config) []*scheduler.Task {
 	return []*scheduler.Task{
 		{
 			ClusterID: clusterID,
@@ -36,7 +36,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "cql",
 			Sched: scheduler.Schedule{
-				Cron:     schedules.NewCronEvery(15*time.Second, time.Time{}),
+				Cron:     cfg.CQLPingCron,
 				Timezone: localTimezone(),
 			},
 			Properties: healthCheckModeProperties(healthcheck.CQLMode),
@@ -47,7 +47,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "rest",
 			Sched: scheduler.Schedule{
-				Cron:     schedules.NewCronEvery(1*time.Minute, time.Time{}),
+				Cron:     cfg.RESTPingCron,
 				Timezone: localTimezone(),
 			},
 			Properties: healthCheckModeProperties(healthcheck.RESTMode),
@@ -58,7 +58,7 @@ func makeAutoHealthCheckTasks(clusterID uuid.UUID) []*scheduler.Task {
 			Enabled:   true,
 			Name:      "alternator",
 			Sched: scheduler.Schedule{
-				Cron:     schedules.NewCronEvery(15*time.Second, time.Time{}),
+				Cron:     cfg.AlternatorPingCron,
 				Timezone: localTimezone(),
 			},
 			Properties: healthCheckModeProperties(healthcheck.AlternatorMode),

@@ -20,8 +20,10 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	sched "github.com/scylladb/scylla-manager/v3/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
@@ -322,6 +324,90 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task0, scheduler.StatusRunning)
 		h.assertStatus(task1, emptyStatus)
 		h.assertStatus(task2, emptyStatus)
+	})
+
+	t.Run("update healthcheck tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: default healthcheck tasks in SM DB")
+		tasks := []*scheduler.Task{
+			{
+				ClusterID: h.clusterID,
+				Type:      scheduler.HealthCheckTask,
+				Enabled:   true,
+				Name:      "cql",
+				Sched: scheduler.Schedule{
+					Cron: healthcheck.DefaultConfig().CQLPingCron,
+				},
+			},
+			{
+				ClusterID: h.clusterID,
+				Type:      scheduler.HealthCheckTask,
+				Enabled:   true,
+				Name:      "rest",
+				Sched: scheduler.Schedule{
+					Cron: healthcheck.DefaultConfig().RESTPingCron,
+				},
+			},
+			{
+				ClusterID: h.clusterID,
+				Type:      scheduler.HealthCheckTask,
+				Enabled:   true,
+				Name:      "alternator",
+				Sched: scheduler.Schedule{
+					Cron: healthcheck.DefaultConfig().AlternatorPingCron,
+				},
+			},
+		}
+		for _, task := range tasks {
+			if err := h.service.PutTask(ctx, task); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		Print("And: their IDs")
+		nameToID := make(map[string]uuid.UUID)
+		listed, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, task := range listed {
+			nameToID[task.Name] = task.ID
+		}
+
+		Print("When: update healthcheck tasks with new config")
+		nameToSpec := map[string]string{
+			"cql":        "0 * * * * *",
+			"rest":       "0 0 * * * *",
+			"alternator": "0 0 0 * * *",
+		}
+		cfg := healthcheck.Config{
+			CQLPingCron:        schedules.MustCron(nameToSpec["cql"], time.Time{}),
+			RESTPingCron:       schedules.MustCron(nameToSpec["rest"], time.Time{}),
+			AlternatorPingCron: schedules.MustCron(nameToSpec["alternator"], time.Time{}),
+		}
+		if err := h.service.UpdateHealthcheckTasks(ctx, cfg); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: healthcheck tasks are updated")
+		updated, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(updated) != len(listed) {
+			t.Fatalf("Expected %d healthcheck tasks, got %d", len(listed), len(updated))
+		}
+		for _, task := range updated {
+			if nameToID[task.Name] != task.ID {
+				t.Fatalf("Healthcheck task %s ID %s, expected: %s", task.Name, task.ID, nameToID[task.Name])
+			}
+			if nameToSpec[task.Name] != task.Sched.Cron.Spec {
+				t.Fatalf("Healthcheck task %s cron spec %q: expected %q", task.Name, task.Sched.Cron.Spec, nameToSpec[task.Name])
+			}
+		}
 	})
 
 	t.Run("stop task", func(t *testing.T) {

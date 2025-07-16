@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
@@ -120,6 +121,34 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 		panic("no runner")
 	}
 	return r
+}
+
+// UpdateHealthcheckTasks should be called on start before LoadTasks.
+// It updates healthcheck tasks cron schedule to match the one specified in the config.
+func (s *Service) UpdateHealthcheckTasks(ctx context.Context, cfg healthcheck.Config) error {
+	err := s.forEachTask(func(t *Task) error {
+		if t.Type != HealthCheckTask {
+			return nil
+		}
+		var expected schedules.Cron
+		switch healthcheck.Mode(t.Name) {
+		case healthcheck.CQLMode:
+			expected = cfg.CQLPingCron
+		case healthcheck.RESTMode:
+			expected = cfg.RESTPingCron
+		case healthcheck.AlternatorMode:
+			expected = cfg.AlternatorPingCron
+		default:
+			panic("unknown healthcheck mode: " + t.Name)
+		}
+		if expected.CronSpecification != t.Sched.Cron.CronSpecification {
+			s.logger.Info(ctx, "Updating healthcheck task cron schedule", "mode", t.Name, "task ID", t.ID)
+			t.Sched.Cron = expected
+			return s.PutTask(ctx, t)
+		}
+		return nil
+	})
+	return errors.Wrap(err, "iterate over tasks")
 }
 
 // LoadTasks should be called on start it loads and schedules task from database.
