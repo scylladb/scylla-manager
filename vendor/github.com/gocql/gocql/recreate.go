@@ -1,6 +1,3 @@
-//go:build !cassandra
-// +build !cassandra
-
 // Copyright (C) 2017 ScyllaDB
 
 package gocql

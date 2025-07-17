@@ -88,7 +88,6 @@ func TestAllowedTaskType(t *testing.T) {
 			if !tc.expectedError && err != nil {
 				t.Fatal("UnmarshalText() error", err)
 			}
-
 		})
 	}
 }
@@ -167,7 +166,6 @@ func TestCronMarshalUnmarshal(t *testing.T) {
 			if finalCron.StartDate != tc.expectedSpec.StartDate {
 				t.Fatalf("MarshalText() = %s, expected startDate %s", finalCron.StartDate, tc.expectedSpec.StartDate)
 			}
-
 		})
 	}
 }
