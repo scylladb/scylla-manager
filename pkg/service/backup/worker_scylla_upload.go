@@ -13,8 +13,8 @@ import (
 )
 
 // hostNativeBackupSupport validates that native backup API can be used for given host.
-func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
-	ok, err := ni.SupportsNativeBackupAPI()
+func hostNativeBackupSupport(fg ScyllaFeatureGate, ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
+	ok, err := fg.NativeBackup(ni.ScyllaVersion)
 	if err != nil {
 		return errors.Wrap(err, "check native backup api support")
 	}
@@ -30,7 +30,7 @@ func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location)
 
 // hostNativeBackupSupport is the regular hostNativeBackupSupport with logging on error.
 func (w *worker) hostNativeBackupSupport(ctx context.Context, host string, ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
-	err := hostNativeBackupSupport(ni, loc)
+	err := hostNativeBackupSupport(w.FG, ni, loc)
 	if err != nil {
 		w.Logger.Info(ctx, "Can't use native backup api", "host", host, "error", err)
 	}

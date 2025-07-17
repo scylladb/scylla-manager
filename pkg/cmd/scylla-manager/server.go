@@ -117,6 +117,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.session,
 		s.config.Backup,
 		metrics.NewBackupMetrics().MustRegister(),
+		featuregate.ScyllaFeatureGate{},
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,

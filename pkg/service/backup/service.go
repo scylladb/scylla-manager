@@ -46,6 +46,7 @@ type Service struct {
 	session gocqlx.Session
 	config  Config
 	metrics metrics.BackupMetrics
+	fg      ScyllaFeatureGate
 
 	clusterName    cluster.NameFunc
 	scyllaClient   scyllaclient.ProviderFunc
@@ -56,9 +57,16 @@ type Service struct {
 	dth deduplicateTestHooks
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName cluster.NameFunc,
-	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
-	logger log.Logger,
+// ScyllaFeatureGate is a helper for checking scylla feature availability based on scylla version.
+type ScyllaFeatureGate interface {
+	SafeDescribeMethodReadBarrierAPI(version string) (bool, error)
+	SafeDescribeMethodReadBarrierCQL(version string) (bool, error)
+	NativeBackup(version string) (bool, error)
+}
+
+func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, fg ScyllaFeatureGate,
+	clusterName cluster.NameFunc, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc,
+	configCache configcache.ConfigCacher, logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -80,6 +88,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 		session:        session,
 		config:         config,
 		metrics:        metrics,
+		fg:             fg,
 		clusterName:    clusterName,
 		scyllaClient:   scyllaClient,
 		clusterSession: clusterSession,
@@ -312,7 +321,7 @@ func (s *Service) validateHostNativeBackupSupport(clusterID uuid.UUID, liveNodes
 		return err
 	}
 	for i := range hi {
-		if err := hostNativeBackupSupport(hi[i].NodeConfig.NodeInfo, hi[i].Location); err != nil {
+		if err := hostNativeBackupSupport(s.fg, hi[i].NodeConfig.NodeInfo, hi[i].Location); err != nil {
 			return errors.Wrap(err, "ensure native backup ")
 		}
 	}
@@ -734,6 +743,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			SnapshotTag: run.SnapshotTag,
 			Method:      target.Method,
 			Config:      s.config,
+			FG:          s.fg,
 			Client:      client,
 		},
 		PrevStage:            run.Stage,

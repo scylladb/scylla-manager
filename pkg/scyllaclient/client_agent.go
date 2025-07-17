@@ -223,16 +223,6 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	return "", nil
 }
 
-// SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
-func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
-}
-
 // SupportsNativeRestoreAPI returns whether node exposes /storage_service/restore API.
 func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 	// Detect master builds

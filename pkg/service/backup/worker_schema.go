@@ -31,7 +31,7 @@ func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc clus
 		hosts = append(hosts, hi[i].IP)
 	}
 
-	descSchemaHosts, method, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, hosts)
+	descSchemaHosts, method, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, w.FG, hosts)
 	if err != nil {
 		return errors.Wrap(err, "get hosts supporting backup/restore from desc schema with internals")
 	}
@@ -172,7 +172,8 @@ func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error
 }
 
 // backupAndRestoreFromDescSchemaHosts returns hosts that restore schema from desc schema with internals output.
-func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, scyllaclient.SafeDescribeMethod, error) {
+func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclient.Client, fg ScyllaFeatureGate, hosts []string,
+) ([]string, scyllaclient.SafeDescribeMethod, error) {
 	var (
 		mu            = sync.Mutex{}
 		eg            = errgroup.Group{}
@@ -185,7 +186,7 @@ func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclie
 			if err != nil {
 				return err
 			}
-			method, err := ni.SupportsSafeDescribeSchemaWithInternals()
+			method, err := safeDescribeMethod(fg, ni.ScyllaVersion)
 			if err != nil {
 				return err
 			}
@@ -215,6 +216,24 @@ func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclie
 		return outHosts, m, nil
 	}
 	return nil, "", nil
+}
+
+func safeDescribeMethod(fg ScyllaFeatureGate, version string) (scyllaclient.SafeDescribeMethod, error) {
+	ok, err := fg.SafeDescribeMethodReadBarrierAPI(version)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return scyllaclient.SafeDescribeMethodReadBarrierAPI, nil
+	}
+	ok, err = fg.SafeDescribeMethodReadBarrierCQL(version)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return scyllaclient.SafeDescribeMethodReadBarrierCQL, nil
+	}
+	return "", nil
 }
 
 func createUnsafeSchemaArchive(ctx context.Context, units []Unit, clusterSession gocqlx.Session) (b bytes.Buffer, err error) {

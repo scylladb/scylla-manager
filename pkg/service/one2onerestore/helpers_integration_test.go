@@ -123,6 +123,7 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 		mgrSession,
 		defaultBackupTestConfig(),
 		metrics.NewBackupMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},

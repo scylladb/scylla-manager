@@ -29,6 +29,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -144,6 +145,7 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 		session,
 		c,
 		metrics.NewBackupMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
@@ -2532,7 +2534,7 @@ func TestBackupMethodIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	support, err := ni.SupportsNativeBackupAPI()
+	support, err := featuregate.ScyllaMasterFeatureGate{}.NativeBackup(ni.ScyllaVersion)
 	if err != nil {
 		t.Fatal(err)
 	}

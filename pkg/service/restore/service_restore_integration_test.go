@@ -140,6 +140,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		session,
 		defaultBackupTestConfig(),
 		metrics.NewBackupMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
