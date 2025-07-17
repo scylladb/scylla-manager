@@ -1,13 +1,32 @@
-// Copyright (c) 2012 The gocql Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+ * Content before git sha 34fdeebefcbf183ed7f916f931aa0586fdaa1b40
+ * Copyright (c) 2012, The Gocql authors,
+ * provided under the BSD-3-Clause License.
+ * See the NOTICE file distributed with this work for additional information.
+ */
 
 package gocql
 
 import (
 	"fmt"
 	"math/big"
-	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -285,7 +304,7 @@ func getApacheCassandraType(class string) Type {
 func (r *RowData) rowMap(m map[string]interface{}) {
 	for i, column := range r.Columns {
 		val := dereference(r.Values[i])
-		if valVal := reflect.ValueOf(val); valVal.Kind() == reflect.Slice {
+		if valVal := reflect.ValueOf(val); valVal.Kind() == reflect.Slice && !valVal.IsNil() {
 			valCopy := reflect.MakeSlice(valVal.Type(), valVal.Len(), valVal.Cap())
 			reflect.Copy(valCopy, valVal)
 			m[column] = valCopy.Interface()
@@ -302,6 +321,7 @@ func TupleColumnName(c string, n int) string {
 	return fmt.Sprintf("%s[%d]", c, n)
 }
 
+// RowData returns the RowData for the iterator.
 func (iter *Iter) RowData() (RowData, error) {
 	if iter.err != nil {
 		return RowData{}, iter.err
@@ -314,6 +334,7 @@ func (iter *Iter) RowData() (RowData, error) {
 		if c, ok := column.TypeInfo.(TupleTypeInfo); !ok {
 			val, err := column.TypeInfo.NewWithError()
 			if err != nil {
+				iter.err = err
 				return RowData{}, err
 			}
 			columns = append(columns, column.Name)
@@ -323,6 +344,7 @@ func (iter *Iter) RowData() (RowData, error) {
 				columns = append(columns, TupleColumnName(column.Name, i))
 				val, err := elem.NewWithError()
 				if err != nil {
+					iter.err = err
 					return RowData{}, err
 				}
 				values = append(values, val)
@@ -344,7 +366,10 @@ func (iter *Iter) rowMap() (map[string]interface{}, error) {
 		return nil, iter.err
 	}
 
-	rowData, _ := iter.RowData()
+	rowData, err := iter.RowData()
+	if err != nil {
+		return nil, err
+	}
 	iter.Scan(rowData.Values...)
 	m := make(map[string]interface{}, len(rowData.Columns))
 	rowData.rowMap(m)
@@ -359,7 +384,10 @@ func (iter *Iter) SliceMap() ([]map[string]interface{}, error) {
 	}
 
 	// Not checking for the error because we just did
-	rowData, _ := iter.RowData()
+	rowData, err := iter.RowData()
+	if err != nil {
+		return nil, err
+	}
 	dataToReturn := make([]map[string]interface{}, 0)
 	for iter.Scan(rowData.Values...) {
 		m := make(map[string]interface{}, len(rowData.Columns))
@@ -415,8 +443,10 @@ func (iter *Iter) MapScan(m map[string]interface{}) bool {
 		return false
 	}
 
-	// Not checking for the error because we just did
-	rowData, _ := iter.RowData()
+	rowData, err := iter.RowData()
+	if err != nil {
+		return false
+	}
 
 	for i, col := range rowData.Columns {
 		if dest, ok := m[col]; ok {
@@ -435,14 +465,4 @@ func copyBytes(p []byte) []byte {
 	b := make([]byte, len(p))
 	copy(b, p)
 	return b
-}
-
-var failDNS = false
-
-func LookupIP(host string) ([]net.IP, error) {
-	if failDNS {
-		return nil, &net.DNSError{}
-	}
-	return net.LookupIP(host)
-
 }

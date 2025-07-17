@@ -8,6 +8,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/scylladb/go-log/gocqllog"
+
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
@@ -19,8 +21,8 @@ import (
 	"github.com/scylladb/scylla-manager/v3/schema"
 )
 
-func keyspaceExists(c config.Config) (bool, error) {
-	session, err := gocqlClusterConfigForDBInit(c).CreateSession()
+func keyspaceExists(ctx context.Context, c config.Config, logger log.Logger) (bool, error) {
+	session, err := gocqlClusterConfigForDBInit(ctx, c, logger).CreateSession()
 	if err != nil {
 		return false, err
 	}
@@ -31,8 +33,8 @@ func keyspaceExists(c config.Config) (bool, error) {
 	return cnt == 1, q.Scan(&cnt)
 }
 
-func createKeyspace(c config.Config) error {
-	session, err := gocqlClusterConfigForDBInit(c).CreateSession()
+func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) error {
+	session, err := gocqlClusterConfigForDBInit(ctx, c, logger).CreateSession()
 	if err != nil {
 		return err
 	}
@@ -75,8 +77,8 @@ func mustEvaluateCreateKeyspaceStmt(c config.Config) string {
 	return buf.String()
 }
 
-func migrateSchema(c config.Config, logger log.Logger) error {
-	cluster := gocqlClusterConfigForDBInit(c)
+func migrateSchema(ctx context.Context, c config.Config, logger log.Logger) error {
+	cluster := gocqlClusterConfigForDBInit(ctx, c, logger)
 	cluster.Keyspace = c.Database.Keyspace
 
 	session, err := gocqlx.WrapSession(cluster.CreateSession())
@@ -86,7 +88,6 @@ func migrateSchema(c config.Config, logger log.Logger) error {
 	defer session.Close()
 
 	// Run migrations
-	ctx := context.Background()
 	schemamigrate.Logger = logger
 	migrate.Callback = schemamigrate.Callback
 	if err := migrate.FromFS(ctx, session, schema.Files); err != nil {
@@ -117,11 +118,16 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 	return dbutil.RewriteTable(session, table.SchedulerTask, table.SchedulerTask, nil)
 }
 
-func gocqlClusterConfigForDBInit(c config.Config) *gocql.ClusterConfig {
+func gocqlClusterConfigForDBInit(ctx context.Context, c config.Config, logger log.Logger) *gocql.ClusterConfig {
 	cluster := gocqlClusterConfig(c)
 	cluster.Keyspace = "system"
 	cluster.Timeout = c.Database.MigrateTimeout
 	cluster.MaxWaitSchemaAgreement = c.Database.MigrateMaxWaitSchemaAgreement
+
+	cluster.Logger = gocqllog.StdLogger{
+		BaseCtx: ctx,
+		Logger:  logger.Named("gocql"),
+	}
 
 	// Use only a single host for migrations, using multiple hosts may lead to
 	// conflicting schema changes. This can be avoided by awaiting schema
