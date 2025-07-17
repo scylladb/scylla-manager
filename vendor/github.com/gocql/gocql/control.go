@@ -1,3 +1,27 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+ * Content before git sha 34fdeebefcbf183ed7f916f931aa0586fdaa1b40
+ * Copyright (c) 2016, The Gocql authors,
+ * provided under the BSD-3-Clause License.
+ * See the NOTICE file distributed with this work for additional information.
+ */
+
 package gocql
 
 import (
@@ -7,7 +31,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
 	"regexp"
 	"strconv"
 	"sync"
@@ -66,9 +89,9 @@ func (c *controlConn) getSession() *Session {
 func createControlConn(session *Session) *controlConn {
 
 	control := &controlConn{
-		session:            session,
-		quit:               make(chan struct{}),
-		retry:              &SimpleRetryPolicy{NumRetries: 3},
+		session: session,
+		quit:    make(chan struct{}),
+		retry:   &SimpleRetryPolicy{NumRetries: 3},
 	}
 
 	control.conn.Store((*connHost)(nil))
@@ -118,9 +141,7 @@ func (c *controlConn) heartBeat() {
 	}
 }
 
-var hostLookupPreferV4 = os.Getenv("GOCQL_HOST_LOOKUP_PREFER_V4") == "true"
-
-func hostInfo(addr string, defaultPort int) ([]*HostInfo, error) {
+func hostInfo(resolver DNSResolver, translateAddressPort func(addr net.IP, port int) (net.IP, int), addr string, defaultPort int) ([]*HostInfo, error) {
 	var port int
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -137,35 +158,34 @@ func hostInfo(addr string, defaultPort int) ([]*HostInfo, error) {
 
 	// Check if host is a literal IP address
 	if ip := net.ParseIP(host); ip != nil {
-		hosts = append(hosts, &HostInfo{hostname: host, connectAddress: ip, port: port})
-		return hosts, nil
+		if validIpAddr(ip) {
+			hosts = append(hosts, &HostInfo{hostname: host, connectAddress: ip, port: port})
+			return hosts, nil
+		}
 	}
 
 	// Look up host in DNS
-	ips, err := LookupIP(host)
+	ips, err := resolver.LookupIP(host)
 	if err != nil {
 		return nil, err
 	} else if len(ips) == 0 {
 		return nil, fmt.Errorf("no IP's returned from DNS lookup for %q", addr)
 	}
 
-	// Filter to v4 addresses if any present
-	if hostLookupPreferV4 {
-		var preferredIPs []net.IP
-		for _, v := range ips {
-			if v4 := v.To4(); v4 != nil {
-				preferredIPs = append(preferredIPs, v4)
-			}
-		}
-		if len(preferredIPs) != 0 {
-			ips = preferredIPs
-		}
-	}
-
 	for _, ip := range ips {
-		hosts = append(hosts, &HostInfo{hostname: host, connectAddress: ip, port: port})
+		if validIpAddr(ip) {
+			hh := &HostInfo{hostname: host, connectAddress: ip, port: port}
+			hh.untranslatedConnectAddress = ip
+			if translateAddressPort != nil {
+				hh.connectAddress, hh.port = translateAddressPort(ip, port)
+			}
+			hosts = append(hosts, hh)
+		}
 	}
 
+	if len(hosts) == 0 {
+		return nil, fmt.Errorf("no IP's founded for %q", addr)
+	}
 	return hosts, nil
 }
 
@@ -207,7 +227,7 @@ func (c *controlConn) discoverProtocol(hosts []*HostInfo) (int, error) {
 	hosts = shuffleHosts(hosts)
 
 	connCfg := *c.session.connCfg
-	connCfg.ProtoVersion = 4 // TODO: define maxProtocol
+	connCfg.ProtoVersion = protoVersion4 // TODO: define maxProtocol
 
 	handler := connErrorHandlerFn(func(c *Conn, err error, closed bool) {
 		// we should never get here, but if we do it means we connected to a
@@ -366,9 +386,8 @@ func (c *controlConn) reconnect() {
 	}
 	defer atomic.StoreInt32(&c.reconnecting, 0)
 
-	conn, err := c.attemptReconnect()
-
-	if conn == nil {
+	err := c.attemptReconnect()
+	if err != nil {
 		c.session.logger.Printf("gocql: unable to reconnect control connection: %v\n", err)
 		return
 	}
@@ -384,7 +403,7 @@ func (c *controlConn) reconnect() {
 	}
 }
 
-func (c *controlConn) attemptReconnect() (*Conn, error) {
+func (c *controlConn) attemptReconnect() error {
 	hosts := c.session.hostSource.getHostsList()
 	hosts = shuffleHosts(hosts)
 
@@ -401,29 +420,26 @@ func (c *controlConn) attemptReconnect() (*Conn, error) {
 		ch.conn.Close()
 	}
 
-	conn, err := c.attemptReconnectToAnyOfHosts(hosts)
-
-	if conn != nil {
-		return conn, err
+	err := c.attemptReconnectToAnyOfHosts(hosts)
+	if err == nil {
+		return nil
 	}
 
 	c.session.logger.Printf("gocql: unable to connect to any ring node: %v\n", err)
 	c.session.logger.Printf("gocql: control falling back to initial contact points.\n")
 	// Fallback to initial contact points, as it may be the case that all known initialHosts
 	// changed their IPs while keeping the same hostname(s).
-	initialHosts, resolvErr := addrsToHosts(c.session.cfg.Hosts, c.session.cfg.Port, c.session.logger)
+	initialHosts, resolvErr := addrsToHosts(c.session.cfg.DNSResolver, c.session.cfg.translateAddressPort, c.session.cfg.Hosts, c.session.cfg.Port, c.session.logger)
 	if resolvErr != nil {
-		return nil, fmt.Errorf("resolve contact points' hostnames: %v", resolvErr)
+		return fmt.Errorf("resolve contact points' hostnames: %v", resolvErr)
 	}
 
 	return c.attemptReconnectToAnyOfHosts(initialHosts)
 }
 
-func (c *controlConn) attemptReconnectToAnyOfHosts(hosts []*HostInfo) (*Conn, error) {
-	var conn *Conn
-	var err error
+func (c *controlConn) attemptReconnectToAnyOfHosts(hosts []*HostInfo) error {
 	for _, host := range hosts {
-		conn, err = c.session.connect(c.session.ctx, host, c)
+		conn, err := c.session.connect(c.session.ctx, host, c)
 		if err != nil {
 			if c.session.cfg.ConvictionPolicy.AddFailure(err, host) {
 				c.session.handleNodeDown(host.ConnectAddress(), host.Port())
@@ -432,14 +448,14 @@ func (c *controlConn) attemptReconnectToAnyOfHosts(hosts []*HostInfo) (*Conn, er
 			continue
 		}
 		err = c.setupConn(conn)
-		if err == nil {
-			break
+		if err != nil {
+			c.session.logger.Printf("gocql: unable setup control conn %v:%v: %v\n", host.ConnectAddress(), host.Port(), err)
+			conn.Close()
+			continue
 		}
-		c.session.logger.Printf("gocql: unable setup control conn %v:%v: %v\n", host.ConnectAddress(), host.Port(), err)
-		conn.Close()
-		conn = nil
+		return nil
 	}
-	return conn, err
+	return fmt.Errorf("unable to connect to any known node: %v", hosts)
 }
 
 func (c *controlConn) HandleError(conn *Conn, err error, closed bool) {
