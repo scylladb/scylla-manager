@@ -2,7 +2,6 @@ package gocql
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 )
@@ -19,13 +18,11 @@ type ExecutableQuery interface {
 	Table() string
 	IsIdempotent() bool
 	IsLWT() bool
-	GetCustomPartitioner() Partitioner
+	GetCustomPartitioner() partitioner
 
 	withContext(context.Context) ExecutableQuery
 
 	RetryableQuery
-
-	GetSession() *Session
 }
 
 type queryExecutor struct {
@@ -108,107 +105,52 @@ func (q *queryExecutor) executeQuery(qry ExecutableQuery) (*Iter, error) {
 }
 
 func (q *queryExecutor) do(ctx context.Context, qry ExecutableQuery, hostIter NextHost) *Iter {
+	selectedHost := hostIter()
 	rt := qry.retryPolicy()
-	if rt == nil {
-		rt = &SimpleRetryPolicy{3}
-	}
 
-	lwtRT, isRTSupportsLWT := rt.(LWTRetryPolicy)
-
-	var getShouldRetry func(qry RetryableQuery) bool
-	var getRetryType func(error) RetryType
-
-	if isRTSupportsLWT && qry.IsLWT() {
-		getShouldRetry = lwtRT.AttemptLWT
-		getRetryType = lwtRT.GetRetryTypeLWT
-	} else {
-		getShouldRetry = rt.Attempt
-		getRetryType = rt.GetRetryType
-	}
-
-	var potentiallyExecuted bool
-
-	execute := func(qry ExecutableQuery, selectedHost SelectedHost) (iter *Iter, retry RetryType) {
+	var lastErr error
+	var iter *Iter
+	for selectedHost != nil {
 		host := selectedHost.Info()
 		if host == nil || !host.IsUp() {
-			return &Iter{
-				err: &QueryError{
-					err:                 ErrHostDown,
-					potentiallyExecuted: potentiallyExecuted,
-				},
-			}, RetryNextHost
+			selectedHost = hostIter()
+			continue
 		}
+
 		pool, ok := q.pool.getPool(host)
 		if !ok {
-			return &Iter{
-				err: &QueryError{
-					err:                 ErrNoPool,
-					potentiallyExecuted: potentiallyExecuted,
-				},
-			}, RetryNextHost
+			selectedHost = hostIter()
+			continue
 		}
-		conn := pool.Pick(selectedHost.Token(), qry)
+
+		conn := pool.Pick(selectedHost.Token())
 		if conn == nil {
-			return &Iter{
-				err: &QueryError{
-					err:                 ErrNoConnectionsInPool,
-					potentiallyExecuted: potentiallyExecuted,
-				},
-			}, RetryNextHost
+			selectedHost = hostIter()
+			continue
 		}
+
 		iter = q.attemptQuery(ctx, qry, conn)
 		iter.host = selectedHost.Info()
 		// Update host
-		if iter.err == nil {
-			return iter, RetryType(255)
-		}
-
-		switch {
-		case errors.Is(iter.err, context.Canceled),
-			errors.Is(iter.err, context.DeadlineExceeded):
+		switch iter.err {
+		case context.Canceled, context.DeadlineExceeded, ErrNotFound:
+			// those errors represents logical errors, they should not count
+			// toward removing a node from the pool
 			selectedHost.Mark(nil)
-			potentiallyExecuted = true
-			retry = Rethrow
+			return iter
 		default:
 			selectedHost.Mark(iter.err)
-			retry = RetryType(255) // Don't enforce retry and get it from retry policy
 		}
 
-		var qErr *QueryError
-		if errors.As(iter.err, &qErr) {
-			potentiallyExecuted = potentiallyExecuted && qErr.PotentiallyExecuted()
-			qErr.potentiallyExecuted = potentiallyExecuted
-			qErr.isIdempotent = qry.IsIdempotent()
-			iter.err = qErr
-		} else {
-			iter.err = &QueryError{
-				err:                 iter.err,
-				potentiallyExecuted: potentiallyExecuted,
-				isIdempotent:        qry.IsIdempotent(),
-			}
-		}
-		return iter, retry
-	}
-
-	var lastErr error
-	selectedHost := hostIter()
-	for selectedHost != nil {
-		iter, retryType := execute(qry, selectedHost)
-		if iter.err == nil {
+		// Exit if the query was successful
+		// or no retry policy defined or retry attempts were reached
+		if iter.err == nil || rt == nil || !rt.Attempt(qry) {
 			return iter
 		}
 		lastErr = iter.err
 
-		// Exit if retry policy decides to not retry anymore
-		if retryType == RetryType(255) {
-			if !getShouldRetry(qry) {
-				return iter
-			}
-			retryType = getRetryType(iter.err)
-		}
-
 		// If query is unsuccessful, check the error with RetryPolicy to retry
-		switch retryType {
+		switch rt.GetRetryType(iter.err) {
 		case Retry:
 			// retry on the same host
 			continue
@@ -223,9 +165,11 @@ func (q *queryExecutor) do(ctx context.Context, qry ExecutableQuery, hostIter Ne
 			return &Iter{err: ErrUnknownRetryType}
 		}
 	}
+
 	if lastErr != nil {
 		return &Iter{err: lastErr}
 	}
+
 	return &Iter{err: ErrNoConnections}
 }
 

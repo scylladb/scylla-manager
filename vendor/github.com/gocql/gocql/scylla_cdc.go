@@ -24,13 +24,13 @@ const (
 
 type scyllaCDCPartitioner struct{}
 
-var _ Partitioner = scyllaCDCPartitioner{}
+var _ partitioner = scyllaCDCPartitioner{}
 
 func (p scyllaCDCPartitioner) Name() string {
 	return scyllaCDCPartitionerName
 }
 
-func (p scyllaCDCPartitioner) Hash(partitionKey []byte) Token {
+func (p scyllaCDCPartitioner) Hash(partitionKey []byte) token {
 	if len(partitionKey) < 8 {
 		// The key is too short to extract any sensible token,
 		// so return the min token instead
@@ -68,7 +68,7 @@ func (p scyllaCDCPartitioner) Hash(partitionKey []byte) Token {
 	return int64Token(upperQword)
 }
 
-func (p scyllaCDCPartitioner) ParseString(str string) Token {
+func (p scyllaCDCPartitioner) ParseString(str string) token {
 	return parseInt64Token(str)
 }
 

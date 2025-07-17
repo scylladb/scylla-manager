@@ -7,10 +7,9 @@ import (
 )
 
 type ConnPicker interface {
-	Pick(Token, ExecutableQuery) *Conn
+	Pick(token) *Conn
 	Put(*Conn)
 	Remove(conn *Conn)
-	InFlight() int
 	Size() (int, int)
 	Close()
 
@@ -42,9 +41,8 @@ func (p *defaultConnPicker) Remove(conn *Conn) {
 
 	for i, candidate := range p.conns {
 		if candidate == conn {
-			last := len(p.conns) - 1
-			p.conns[i], p.conns = p.conns[last], p.conns[:last]
-			break
+			p.conns[i] = nil
+			return
 		}
 	}
 }
@@ -62,17 +60,12 @@ func (p *defaultConnPicker) Close() {
 	}
 }
 
-func (p *defaultConnPicker) InFlight() int {
-	size := len(p.conns)
-	return size
-}
-
 func (p *defaultConnPicker) Size() (int, int) {
 	size := len(p.conns)
 	return size, p.size - size
 }
 
-func (p *defaultConnPicker) Pick(Token, ExecutableQuery) *Conn {
+func (p *defaultConnPicker) Pick(token) *Conn {
 	pos := int(atomic.AddUint32(&p.pos, 1) - 1)
 	size := len(p.conns)
 
@@ -111,7 +104,7 @@ func (*defaultConnPicker) NextShard() (shardID, nrShards int) {
 // to the point where we have first connection.
 type nopConnPicker struct{}
 
-func (nopConnPicker) Pick(Token, ExecutableQuery) *Conn {
+func (nopConnPicker) Pick(token) *Conn {
 	return nil
 }
 
@@ -119,10 +112,6 @@ func (nopConnPicker) Put(*Conn) {
 }
 
 func (nopConnPicker) Remove(conn *Conn) {
-}
-
-func (nopConnPicker) InFlight() int {
-	return 0
 }
 
 func (nopConnPicker) Size() (int, int) {

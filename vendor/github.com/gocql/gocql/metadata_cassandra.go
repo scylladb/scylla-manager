@@ -1,5 +1,5 @@
-//go:build cassandra && !scylla
-// +build cassandra,!scylla
+// +build cassandra
+// +build !scylla
 
 // Copyright (c) 2015 The gocql Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -557,7 +557,7 @@ func getKeyspaceMetadata(session *Session, keyspaceName string) (*KeyspaceMetada
 
 		var replication map[string]string
 
-		iter := session.control.query(stmt+session.usingTimeoutClause, keyspaceName)
+		iter := session.control.query(stmt, keyspaceName)
 		if iter.NumRows() == 0 {
 			return nil, ErrKeyspaceDoesNotExist
 		}
@@ -583,7 +583,7 @@ func getKeyspaceMetadata(session *Session, keyspaceName string) (*KeyspaceMetada
 
 		var strategyOptionsJSON []byte
 
-		iter := session.control.query(stmt+session.usingTimeoutClause, keyspaceName)
+		iter := session.control.query(stmt, keyspaceName)
 		if iter.NumRows() == 0 {
 			return nil, ErrKeyspaceDoesNotExist
 		}
@@ -631,7 +631,7 @@ func getTableMetadata(session *Session, keyspaceName string) ([]TableMetadata, e
 					view_name
 				FROM system_schema.views
 				WHERE keyspace_name = ?`
-			iter = session.control.query(stmt+session.usingTimeoutClause, keyspaceName)
+			iter = session.control.query(stmt, keyspaceName)
 			return iter
 		}
 
@@ -693,7 +693,7 @@ func getTableMetadata(session *Session, keyspaceName string) ([]TableMetadata, e
 		}
 	}
 
-	iter = session.control.query(stmt+session.usingTimeoutClause, keyspaceName)
+	iter = session.control.query(stmt, keyspaceName)
 
 	tables := []TableMetadata{}
 	table := TableMetadata{Keyspace: keyspaceName}
@@ -756,7 +756,7 @@ func (s *Session) scanColumnMetadataV1(keyspace string) ([]ColumnMetadata, error
 
 	var columns []ColumnMetadata
 
-	rows := s.control.query(stmt+s.usingTimeoutClause, keyspace).Scanner()
+	rows := s.control.query(stmt, keyspace).Scanner()
 	for rows.Next() {
 		var (
 			column           = ColumnMetadata{Keyspace: keyspace}
@@ -817,7 +817,7 @@ func (s *Session) scanColumnMetadataV2(keyspace string) ([]ColumnMetadata, error
 
 	var columns []ColumnMetadata
 
-	rows := s.control.query(stmt+s.usingTimeoutClause, keyspace).Scanner()
+	rows := s.control.query(stmt, keyspace).Scanner()
 	for rows.Next() {
 		var (
 			column           = ColumnMetadata{Keyspace: keyspace}
@@ -875,7 +875,7 @@ func (s *Session) scanColumnMetadataSystem(keyspace string) ([]ColumnMetadata, e
 
 	var columns []ColumnMetadata
 
-	rows := s.control.query(stmt+s.usingTimeoutClause, keyspace).Scanner()
+	rows := s.control.query(stmt, keyspace).Scanner()
 	for rows.Next() {
 		column := ColumnMetadata{Keyspace: keyspace}
 
@@ -994,6 +994,7 @@ func getMaterializedViewsMetadata(session *Session, keyspaceName string) ([]Mate
 			compaction,
 			compression,
 			crc_check_chance,
+			dclocal_read_repair_chance,
 			default_time_to_live,
 			extensions,
 			gc_grace_seconds,
@@ -1002,6 +1003,7 @@ func getMaterializedViewsMetadata(session *Session, keyspaceName string) ([]Mate
 			max_index_interval,
 			memtable_flush_period_in_ms,
 			min_index_interval,
+			read_repair_chance,
 			speculative_retry
 		FROM %s
 		WHERE keyspace_name = ?`, tableName)
