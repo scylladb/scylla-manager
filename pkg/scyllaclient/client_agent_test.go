@@ -6,7 +6,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
@@ -217,77 +216,6 @@ func TestNodeInfoCQLSSLAddr(t *testing.T) {
 			addr := test.NodeInfo.CQLAddr(fallback, test.ClusterDisableSSL)
 			if addr != test.GoldenAddress {
 				t.Errorf("expected %s address, got %s", test.GoldenAddress, addr)
-			}
-		})
-	}
-}
-
-func TestSupportsSafeDescribeSchemaWithInternals(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name           string
-		scyllaVersion  string
-		expectedMethod scyllaclient.SafeDescribeMethod
-		expectedError  error
-	}{
-		{
-			name:           "when scylla >= 2025.1, then it is expected to support read barrier api",
-			scyllaVersion:  "2025.1.0-candidate-20241106103631",
-			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierAPI,
-			expectedError:  nil,
-		},
-		{
-			name:           "when scylla >= 6.1, then it is expected to support read barrier api",
-			scyllaVersion:  "6.2.1-candidate-20241106103631",
-			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierAPI,
-			expectedError:  nil,
-		},
-		{
-			name:           "when scylla >= 2024.2, then it is expected to support read barrier cql",
-			scyllaVersion:  "2024.2",
-			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierCQL,
-			expectedError:  nil,
-		},
-		{
-			name:           "when scylla >= 6.0, then it is expected to support read barrier cql",
-			scyllaVersion:  "6.0.1",
-			expectedMethod: scyllaclient.SafeDescribeMethodReadBarrierCQL,
-			expectedError:  nil,
-		},
-		{
-			name:           "when scylla < 6.0, then it is expected to not support any safe method",
-			scyllaVersion:  "5.9.9",
-			expectedMethod: "",
-			expectedError:  nil,
-		},
-		{
-			name:           "when scylla < 2024.2, then it is expected to not support any safe method",
-			scyllaVersion:  "2024.1",
-			expectedMethod: "",
-			expectedError:  nil,
-		},
-		{
-			name:           "when scylla version is not a semver, then it is expected to return an error",
-			scyllaVersion:  "main",
-			expectedMethod: "",
-			expectedError:  errors.New("Unsupported Scylla version: main"),
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ni := scyllaclient.NodeInfo{ScyllaVersion: tc.scyllaVersion}
-			method, err := ni.SupportsSafeDescribeSchemaWithInternals()
-			if err != nil && tc.expectedError == nil {
-				t.Fatalf("unexpected err - %v", err)
-			}
-			if tc.expectedError != nil && err.Error() != tc.expectedError.Error() {
-				t.Fatalf("actual err != expected err, '%s' != '%s'", err.Error(), tc.expectedError.Error())
-			}
-
-			if method != tc.expectedMethod {
-				t.Fatalf("actual method != expected method, %s != %s", method, tc.expectedMethod)
 			}
 		})
 	}
@@ -526,56 +454,6 @@ func TestEqualObjectStorageEndpoints(t *testing.T) {
 			ok := scyllaclient.EqualObjectStorageEndpoints(tc.rclone, tc.scylla)
 			if ok != tc.equal {
 				t.Fatalf("Expected %v, got %v", tc.equal, ok)
-			}
-		})
-	}
-}
-
-func TestNodeInfoSupportsSkipCleanupAndSkipReshape(t *testing.T) {
-	testCases := []struct {
-		name          string
-		scyllaVersion string
-		expected      bool
-	}{
-		{
-			name:          "master version is supported",
-			scyllaVersion: "9999.enterprise_dev",
-			expected:      true,
-		},
-		{
-			name:          "2025.3.0 is supported",
-			scyllaVersion: "2025.3.0",
-			expected:      true,
-		},
-		{
-			name:          "2025.2.1 is supported",
-			scyllaVersion: "2025.2.1",
-			expected:      true,
-		},
-		{
-			name:          "2025.2.0 is supported",
-			scyllaVersion: "2025.2.0",
-			expected:      true,
-		},
-		{
-			name:          "2025.1.0 is not supported",
-			scyllaVersion: "2025.1.0",
-			expected:      false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ni := scyllaclient.NodeInfo{ScyllaVersion: tc.scyllaVersion}
-			supported, err := ni.SupportsSkipCleanupAndSkipReshape()
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if supported != tc.expected {
-				t.Fatalf("expected %v, got %v", tc.expected, supported)
 			}
 		})
 	}

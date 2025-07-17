@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -262,6 +263,7 @@ func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRo
 		},
 		logger:  log.NopLogger,
 		metrics: metrics.NewOne2OneRestoreMetrics(),
+		fg:      featuregate.ScyllaMasterFeatureGate{},
 	}
 	return w, hrt
 }
