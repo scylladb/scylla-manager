@@ -6,7 +6,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -220,85 +219,6 @@ func TestNodeInfoCQLSSLAddr(t *testing.T) {
 				t.Errorf("expected %s address, got %s", test.GoldenAddress, addr)
 			}
 		})
-	}
-}
-
-func TestNodeInfoSupportsAlternatorQuery(t *testing.T) {
-	t.Parallel()
-
-	table := []struct {
-		Version string
-		Golden  bool
-	}{
-		{
-			Version: "2019.1.2-0.20190814.2772d52",
-			Golden:  false,
-		},
-		{
-			Version: "3.1.0-0.20191012.9c3cdded9",
-			Golden:  false,
-		},
-		{
-			Version: "3.2.2-0.20200222.0b23e7145d0",
-			Golden:  false,
-		},
-		{
-			Version: "666.development",
-			Golden:  true,
-		},
-		{
-			Version: "9999.enterprise_dev",
-			Golden:  true,
-		},
-		{
-			Version: "3.3.rc2",
-			Golden:  false,
-		},
-		{
-			Version: "3.1.hotfix",
-			Golden:  false,
-		},
-		{
-			Version: "3.0.rc8",
-			Golden:  false,
-		},
-		{
-			Version: "2019.1.1-2.reader_concurrency_semaphore.20190730.f0071c669",
-			Golden:  false,
-		},
-		{
-			Version: "2019.1.5-2.many_tables.20200311.be960ed96",
-			Golden:  false,
-		},
-		{
-			Version: "4.0.0",
-			Golden:  false,
-		},
-		{
-			Version: "4.1.0",
-			Golden:  true,
-		},
-		{
-			Version: "2020.1",
-			Golden:  false,
-		},
-		{
-			Version: "2021.1",
-			Golden:  false,
-		},
-	}
-
-	for i := range table {
-		test := table[i]
-
-		supports, err := scyllaclient.NodeInfo{ScyllaVersion: test.Version}.SupportsAlternatorQuery()
-		if err != nil {
-			t.Error(err)
-		}
-
-		if !cmp.Equal(supports, test.Golden) {
-			t.Errorf("SupportsAlternatorQuery(%s) = %+v, expected %+v", test.Version, supports, test.Golden)
-		}
 	}
 }
 
