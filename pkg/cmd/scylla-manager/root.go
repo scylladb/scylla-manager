@@ -12,10 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-log/gocqllog"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -100,13 +98,6 @@ var rootCmd = &cobra.Command{
 		zap.RedirectStdLog(log.BaseOf(logger))
 		// Set logger to netwait
 		netwait.DefaultWaiter.Logger = logger.Named("wait")
-
-		// Set gocql logger
-		gocql.Logger = gocqllog.StdLogger{
-			BaseCtx: ctx,
-			Logger:  logger.Named("gocql"),
-		}
-
 		// Wait for database
 		logger.Info(ctx, "Checking database connectivity...")
 		initHost, err := netwait.AnyHostPort(ctx, c.Database.Hosts, "9042")
@@ -120,13 +111,13 @@ var rootCmd = &cobra.Command{
 		c.Database.InitAddr = net.JoinHostPort(initHost, "9042")
 
 		// Create keyspace if needed
-		ok, err := keyspaceExists(c)
+		ok, err := keyspaceExists(ctx, c, logger)
 		if err != nil {
 			return errors.Wrapf(err, "db init")
 		}
 		if !ok {
 			logger.Info(ctx, "Creating keyspace", "keyspace", c.Database.Keyspace)
-			if err := createKeyspace(c); err != nil {
+			if err := createKeyspace(ctx, c, logger); err != nil {
 				return errors.Wrapf(err, "db init")
 			}
 			logger.Info(ctx, "Keyspace created", "keyspace", c.Database.Keyspace)
@@ -134,7 +125,7 @@ var rootCmd = &cobra.Command{
 
 		// Migrate schema
 		logger.Info(ctx, "Migrating schema", "keyspace", c.Database.Keyspace)
-		if err := migrateSchema(c, logger); err != nil {
+		if err := migrateSchema(ctx, c, logger); err != nil {
 			return errors.Wrapf(err, "db init")
 		}
 		logger.Info(ctx, "Schema up to date", "keyspace", c.Database.Keyspace)
