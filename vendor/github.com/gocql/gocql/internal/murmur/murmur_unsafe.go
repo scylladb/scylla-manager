@@ -1,5 +1,5 @@
-//go:build !appengine && !s390x
-// +build !appengine,!s390x
+// +build !appengine
+// +build !s390x
 
 package murmur
 

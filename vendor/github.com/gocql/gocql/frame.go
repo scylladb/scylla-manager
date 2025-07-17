@@ -344,12 +344,6 @@ type FrameHeaderObserver interface {
 	ObserveFrameHeader(context.Context, ObservedFrameHeader)
 }
 
-type framerInterface interface {
-	ReadBytesInternal() ([]byte, error)
-	GetCustomPayload() map[string][]byte
-	GetHeaderWarnings() []string
-}
-
 // a framer is responsible for reading, writing and parsing frames on a single stream
 type framer struct {
 	proto byte
@@ -373,7 +367,6 @@ type framer struct {
 
 	flagLWT               int
 	rateLimitingErrorCode int
-	tabletsRoutingV1      bool
 }
 
 func newFramer(compressor Compressor, version byte) *framer {
@@ -405,8 +398,6 @@ func newFramer(compressor Compressor, version byte) *framer {
 	f.header = nil
 	f.traceID = nil
 
-	f.tabletsRoutingV1 = false
-
 	return f
 }
 
@@ -434,17 +425,6 @@ func newFramerWithExts(compressor Compressor, version byte, cqlProtoExts []cqlPr
 			return f
 		}
 		f.rateLimitingErrorCode = castedExt.rateLimitErrorCode
-	}
-
-	if tabletsExt := findCQLProtoExtByName(cqlProtoExts, tabletsRoutingV1); tabletsExt != nil {
-		_, ok := tabletsExt.(*tabletsRoutingV1Ext)
-		if !ok {
-			Logger.Println(
-				fmt.Errorf("Failed to cast CQL protocol extension identified by name %s to type %T",
-					tabletsRoutingV1, tabletsRoutingV1Ext{}))
-			return f
-		}
-		f.tabletsRoutingV1 = true
 	}
 
 	return f
@@ -729,9 +709,7 @@ func (f *framer) parseErrorFrame() frame {
 			res.RejectedByCoordinator = f.readByte() != 0
 			return res
 		} else {
-			return &UnknownServerError{
-				errorFrame: errD,
-			}
+			panic(fmt.Errorf("unknown error code: 0x%x", errD.code))
 		}
 	}
 }
@@ -1874,7 +1852,7 @@ func (f *framer) readStringList() []string {
 	return l
 }
 
-func (f *framer) ReadBytesInternal() ([]byte, error) {
+func (f *framer) readBytesInternal() ([]byte, error) {
 	size := f.readInt()
 	if size < 0 {
 		return nil, nil
@@ -1891,7 +1869,7 @@ func (f *framer) ReadBytesInternal() ([]byte, error) {
 }
 
 func (f *framer) readBytes() []byte {
-	l, err := f.ReadBytesInternal()
+	l, err := f.readBytesInternal()
 	if err != nil {
 		panic(err)
 	}
@@ -2021,14 +1999,6 @@ func (f *framer) writeCustomPayload(customPayload *map[string][]byte) {
 		}
 		f.writeBytesMap(*customPayload)
 	}
-}
-
-func (f *framer) GetCustomPayload() map[string][]byte {
-	return f.customPayload
-}
-
-func (f *framer) GetHeaderWarnings() []string {
-	return f.header.warnings
 }
 
 // these are protocol level binary types
