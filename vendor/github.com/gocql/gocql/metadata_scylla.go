@@ -1,6 +1,3 @@
-//go:build !cassandra || scylla
-// +build !cassandra scylla
-
 // Copyright (c) 2015 The gocql Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -8,11 +5,14 @@
 package gocql
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/gocql/gocql/tablets"
 )
 
 // schema metadata for a keyspace
@@ -97,19 +97,21 @@ func (t *TableMetadataOptions) Equals(other *TableMetadataOptions) bool {
 }
 
 type ViewMetadata struct {
-	KeyspaceName      string
-	ViewName          string
-	BaseTableID       string
-	BaseTableName     string
-	ID                string
-	IncludeAllColumns bool
-	Columns           map[string]*ColumnMetadata
-	OrderedColumns    []string
-	PartitionKey      []*ColumnMetadata
-	ClusteringColumns []*ColumnMetadata
-	WhereClause       string
-	Options           TableMetadataOptions
-	Extensions        map[string]interface{}
+	KeyspaceName            string
+	ViewName                string
+	BaseTableID             string
+	BaseTableName           string
+	ID                      string
+	IncludeAllColumns       bool
+	Columns                 map[string]*ColumnMetadata
+	OrderedColumns          []string
+	PartitionKey            []*ColumnMetadata
+	ClusteringColumns       []*ColumnMetadata
+	WhereClause             string
+	Options                 TableMetadataOptions
+	Extensions              map[string]interface{}
+	DcLocalReadRepairChance float64 // After Scylla 4.2 by default read_repair turned off
+	ReadRepairChance        float64 // After Scylla 4.2 by default read_repair turned off
 }
 
 // schema metadata for a column
@@ -177,11 +179,15 @@ type TypeMetadata struct {
 }
 
 type IndexMetadata struct {
-	Name         string
-	KeyspaceName string
-	TableName    string
-	Kind         string
-	Options      map[string]string
+	Name              string
+	KeyspaceName      string
+	TableName         string // Name of corresponding view.
+	Kind              string
+	Options           map[string]string
+	Columns           map[string]*ColumnMetadata
+	OrderedColumns    []string
+	PartitionKey      []*ColumnMetadata
+	ClusteringColumns []*ColumnMetadata
 }
 
 func (t *TableMetadata) Equals(other *TableMetadata) bool {
@@ -434,7 +440,7 @@ func columnKindFromSchema(kind string) (ColumnKind, error) {
 }
 
 type Metadata struct {
-	tabletsMetadata  cowTabletList
+	tabletsMetadata  tablets.CowTabletList
 	keyspaceMetadata cowKeyspaceMetadataMap
 }
 
@@ -450,17 +456,16 @@ type metadataDescriber struct {
 // keyspace metadata and tablets metadata
 func newMetadataDescriber(session *Session) *metadataDescriber {
 	return &metadataDescriber{
-		session:  session,
-		metadata: &Metadata{},
+		session: session,
+		metadata: &Metadata{
+			tabletsMetadata: tablets.NewCowTabletList(),
+		},
 	}
 }
 
-// returns the cached KeyspaceMetadata held by the describer for the named
-// keyspace.
+// getSchema returns the KeyspaceMetadata for the keyspace, if it is not present, loads it from `system_schema`
+// does not require holding a lock
 func (s *metadataDescriber) getSchema(keyspaceName string) (*KeyspaceMetadata, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	metadata, found := s.metadata.keyspaceMetadata.getKeyspace(keyspaceName)
 	if !found {
 		// refresh the cache for this keyspace
@@ -478,61 +483,34 @@ func (s *metadataDescriber) getSchema(keyspaceName string) (*KeyspaceMetadata, e
 	return metadata, nil
 }
 
-func (s *metadataDescriber) setTablets(tablets TabletInfoList) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.metadata.tabletsMetadata.set(tablets)
+func (s *metadataDescriber) getTablets() tablets.TabletInfoList {
+	return s.metadata.tabletsMetadata.Get()
 }
 
-func (s *metadataDescriber) getTablets() TabletInfoList {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return s.metadata.tabletsMetadata.get()
+func (s *metadataDescriber) AddTablet(tablet *tablets.TabletInfo) {
+	s.metadata.tabletsMetadata.AddTablet(tablet)
 }
 
-func (s *metadataDescriber) addTablet(tablet *TabletInfo) error {
-	tablets := s.getTablets()
-	tablets = tablets.addTabletToTabletsList(tablet)
-
-	s.setTablets(tablets)
-
-	return nil
+// RemoveTabletsWithHost removes tablets that contains given host.
+// to be used outside the metadataDescriber
+func (s *metadataDescriber) RemoveTabletsWithHost(host *HostInfo) {
+	s.metadata.tabletsMetadata.RemoveTabletsWithHost(host.HostID())
 }
 
-func (s *metadataDescriber) removeTabletsWithHost(host *HostInfo) error {
-	tablets := s.getTablets()
-	tablets = tablets.removeTabletsWithHostFromTabletsList(host)
-
-	s.setTablets(tablets)
-
-	return nil
+// RemoveTabletsWithKeyspace removes tablets for given keyspace.
+// to be used outside the metadataDescriber
+func (s *metadataDescriber) RemoveTabletsWithKeyspace(keyspace string) {
+	s.metadata.tabletsMetadata.RemoveTabletsWithKeyspace(keyspace)
 }
 
-func (s *metadataDescriber) removeTabletsWithKeyspace(keyspace string) error {
-	tablets := s.getTablets()
-	tablets = tablets.removeTabletsWithKeyspaceFromTabletsList(keyspace)
-
-	s.setTablets(tablets)
-
-	return nil
+// RemoveTabletsWithTable removes tablets for given table.
+// to be used outside the metadataDescriber
+func (s *metadataDescriber) RemoveTabletsWithTable(keyspace string, table string) {
+	s.metadata.tabletsMetadata.RemoveTabletsWithTableFromTabletsList(keyspace, table)
 }
 
-func (s *metadataDescriber) removeTabletsWithTable(keyspace string, table string) error {
-	tablets := s.getTablets()
-	tablets = tablets.removeTabletsWithTableFromTabletsList(keyspace, table)
-
-	s.setTablets(tablets)
-
-	return nil
-}
-
-// clears the already cached keyspace metadata
+// clearSchema clears the cached keyspace metadata
 func (s *metadataDescriber) clearSchema(keyspaceName string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	s.metadata.keyspaceMetadata.remove(keyspaceName)
 }
 
@@ -565,9 +543,9 @@ func (s *metadataDescriber) refreshAllSchema() error {
 	for keyspaceName, metadata := range copiedMap {
 		// refresh the cache for this keyspace
 		err := s.refreshSchema(keyspaceName)
-		if err == ErrKeyspaceDoesNotExist {
+		if errors.Is(err, ErrKeyspaceDoesNotExist) {
 			s.clearSchema(keyspaceName)
-			s.removeTabletsWithKeyspace(keyspaceName)
+			s.RemoveTabletsWithKeyspace(keyspaceName)
 			continue
 		} else if err != nil {
 			return err
@@ -579,13 +557,13 @@ func (s *metadataDescriber) refreshAllSchema() error {
 		}
 
 		if !compareInterfaceMaps(metadata.StrategyOptions, updatedMetadata.StrategyOptions) {
-			s.removeTabletsWithKeyspace(keyspaceName)
+			s.RemoveTabletsWithKeyspace(keyspaceName)
 			continue
 		}
 
 		for tableName, tableMetadata := range metadata.Tables {
 			if updatedTableMetadata, ok := updatedMetadata.Tables[tableName]; !ok || tableMetadata.Equals(updatedTableMetadata) {
-				s.removeTabletsWithTable(keyspaceName, tableName)
+				s.RemoveTabletsWithTable(keyspaceName, tableName)
 			}
 		}
 	}
@@ -683,7 +661,9 @@ func compileMetadata(
 	}
 	keyspace.Indexes = make(map[string]*IndexMetadata, len(indexes))
 	for i := range indexes {
+		indexes[i].Columns = make(map[string]*ColumnMetadata)
 		keyspace.Indexes[indexes[i].Name] = &indexes[i]
+
 	}
 	keyspace.Views = make(map[string]*ViewMetadata, len(views))
 	for i := range views {
@@ -706,6 +686,17 @@ func compileMetadata(
 
 		table, ok := keyspace.Tables[col.Table]
 		if !ok {
+			// If column owned by a table that the table name ends with `_index`
+			// suffix then the table is a view corresponding to some index.
+			if indexName, found := strings.CutSuffix(col.Table, "_index"); found {
+				ix, ok := keyspace.Indexes[indexName]
+				if ok {
+					ix.Columns[col.Name] = col
+					ix.OrderedColumns = append(ix.OrderedColumns, col.Name)
+					continue
+				}
+			}
+
 			view, ok := keyspace.Views[col.Table]
 			if !ok {
 				// if the schema is being updated we will race between seeing
@@ -731,6 +722,10 @@ func compileMetadata(
 	for i := range views {
 		v := &views[i]
 		v.PartitionKey, v.ClusteringColumns, v.OrderedColumns = compileColumns(v.Columns, v.OrderedColumns)
+	}
+	for i := range indexes {
+		ix := &indexes[i]
+		ix.PartitionKey, ix.ClusteringColumns, ix.OrderedColumns = compileColumns(ix.Columns, ix.OrderedColumns)
 	}
 
 	keyspace.CreateStmts = string(createStmts)
@@ -1088,6 +1083,8 @@ func getViewMetadata(session *Session, keyspaceName string) ([]ViewMetadata, err
 		"min_index_interval":          &view.Options.MinIndexInterval,
 		"speculative_retry":           &view.Options.SpeculativeRetry,
 		"extensions":                  &view.Extensions,
+		"dclocal_read_repair_chance":  &view.DcLocalReadRepairChance,
+		"read_repair_chance":          &view.ReadRepairChance,
 	}) {
 		views = append(views, view)
 		view = ViewMetadata{KeyspaceName: keyspaceName}

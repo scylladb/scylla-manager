@@ -3,3 +3,9 @@ fuzz-corpus
 fuzz-work
 gocql.test
 .idea
+
+testdata/pki/.keystore
+testdata/pki/.truststore
+testdata/pki/*.crt
+testdata/pki/*.key
+testdata/pki/*.p12

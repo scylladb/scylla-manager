@@ -1,3 +1,27 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+ * Content before git sha 34fdeebefcbf183ed7f916f931aa0586fdaa1b40
+ * Copyright (c) 2016, The Gocql authors,
+ * provided under the BSD-3-Clause License.
+ * See the NOTICE file distributed with this work for additional information.
+ */
+
 package gocql
 
 import (
@@ -10,8 +34,10 @@ import (
 	"time"
 )
 
-var ErrCannotFindHost = errors.New("cannot find host")
-var ErrHostAlreadyExists = errors.New("host already exists")
+var (
+	ErrCannotFindHost    = errors.New("cannot find host")
+	ErrHostAlreadyExists = errors.New("host already exists")
+)
 
 type nodeState int32
 
@@ -31,6 +57,7 @@ const (
 
 type cassVersion struct {
 	Major, Minor, Patch int
+	Qualifier           string
 }
 
 func (c *cassVersion) Set(v string) error {
@@ -46,9 +73,7 @@ func (c *cassVersion) UnmarshalCQL(info TypeInfo, data []byte) error {
 }
 
 func (c *cassVersion) unmarshal(data []byte) error {
-	version := strings.TrimSuffix(string(data), "-SNAPSHOT")
-	version = strings.TrimPrefix(version, "v")
-	v := strings.Split(version, ".")
+	v := strings.SplitN(strings.TrimPrefix(strings.TrimSuffix(string(data), "-SNAPSHOT"), "v"), ".", 3)
 
 	if len(v) < 2 {
 		return fmt.Errorf("invalid version string: %s", data)
@@ -60,18 +85,31 @@ func (c *cassVersion) unmarshal(data []byte) error {
 		return fmt.Errorf("invalid major version %v: %v", v[0], err)
 	}
 
+	if len(v) == 2 {
+		vMinor := strings.SplitN(v[1], "-", 2)
+		c.Minor, err = strconv.Atoi(vMinor[0])
+		if err != nil {
+			return fmt.Errorf("invalid minor version %v: %v", vMinor[0], err)
+		}
+		if len(vMinor) == 2 {
+			c.Qualifier = vMinor[1]
+		}
+		return nil
+	}
+
 	c.Minor, err = strconv.Atoi(v[1])
 	if err != nil {
 		return fmt.Errorf("invalid minor version %v: %v", v[1], err)
 	}
 
-	if len(v) > 2 {
-		c.Patch, err = strconv.Atoi(v[2])
-		if err != nil {
-			return fmt.Errorf("invalid patch version %v: %v", v[2], err)
-		}
+	vPatch := strings.SplitN(v[2], "-", 2)
+	c.Patch, err = strconv.Atoi(vPatch[0])
+	if err != nil {
+		return fmt.Errorf("invalid patch version %v: %v", vPatch[0], err)
 	}
-
+	if len(vPatch) == 2 {
+		c.Qualifier = vPatch[1]
+	}
 	return nil
 }
 
@@ -86,7 +124,6 @@ func (c cassVersion) Before(major, minor, patch int) bool {
 		} else if c.Minor == minor && c.Patch < patch {
 			return true
 		}
-
 	}
 	return false
 }
@@ -96,6 +133,9 @@ func (c cassVersion) AtLeast(major, minor, patch int) bool {
 }
 
 func (c cassVersion) String() string {
+	if c.Qualifier != "" {
+		return fmt.Sprintf("%d.%d.%d-%v", c.Major, c.Minor, c.Patch, c.Qualifier)
+	}
 	return fmt.Sprintf("v%d.%d.%d", c.Major, c.Minor, c.Patch)
 }
 
@@ -207,6 +247,17 @@ func (h *HostInfo) ConnectAddress() net.IP {
 		return addr
 	}
 	panic(fmt.Sprintf("no valid connect address for host: %v. Is your cluster configured correctly?", h))
+}
+
+// ConnectAddressWithError same as ConnectAddress, but an error instead of panic.
+func (h *HostInfo) ConnectAddressWithError() (net.IP, error) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if addr, source := h.connectAddressLocked(); source != "invalid" {
+		return addr, nil
+	}
+	return nil, fmt.Errorf("no valid connect address for host: %v", h)
 }
 
 func (h *HostInfo) UntranslatedConnectAddress() net.IP {
@@ -413,53 +464,6 @@ func (h *HostInfo) IsBusy(s *Session) bool {
 	return ok && h != nil && pool.InFlight() >= MAX_IN_FLIGHT_THRESHOLD
 }
 
-func (h *HostInfo) HostnameAndPort() string {
-	// Fast path: in most cases hostname is not empty
-	var (
-		hostname string
-		port     int
-	)
-	h.mu.RLock()
-	hostname = h.hostname
-	port = h.port
-	h.mu.RUnlock()
-
-	if hostname != "" {
-		return net.JoinHostPort(hostname, strconv.Itoa(port))
-	}
-
-	// Slow path: hostname is empty
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.hostname == "" { // recheck is hostname empty
-		// if yes - fill it
-		addr, _ := h.connectAddressLocked()
-		h.hostname = addr.String()
-	}
-	return net.JoinHostPort(h.hostname, strconv.Itoa(h.port))
-}
-
-func (h *HostInfo) Hostname() string {
-	// Fast path: in most cases hostname is not empty
-	var hostname string
-	h.mu.RLock()
-	hostname = h.hostname
-	h.mu.RUnlock()
-
-	if hostname != "" {
-		return hostname
-	}
-
-	// Slow path: hostname is empty
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.hostname == "" {
-		addr, _ := h.connectAddressLocked()
-		h.hostname = addr.String()
-	}
-	return h.hostname
-}
-
 func (h *HostInfo) ConnectAddressAndPort() string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -474,7 +478,7 @@ func (h *HostInfo) String() string {
 	connectAddr, source := h.connectAddressLocked()
 	return fmt.Sprintf("[HostInfo hostname=%q connectAddress=%q peer=%q rpc_address=%q broadcast_address=%q "+
 		"preferred_ip=%q connect_addr=%q connect_addr_source=%q "+
-		"port=%d data_centre=%q rack=%q host_id=%q version=%q state=%s num_tokens=%d]",
+		"port=%d data_center=%q rack=%q host_id=%q version=%q state=%s num_tokens=%d]",
 		h.hostname, h.connectAddress, h.peer, h.rpcAddress, h.broadcastAddress, h.preferredIP,
 		connectAddr, source,
 		h.port, h.dataCenter, h.rack, h.hostId, h.version, h.state, len(h.tokens))
@@ -713,7 +717,7 @@ func (s *Session) refreshRing() error {
 	}
 
 	for _, host := range prevHosts {
-		s.metadataDescriber.removeTabletsWithHost(host)
+		s.metadataDescriber.RemoveTabletsWithHost(host)
 		s.removeHost(host)
 	}
 	s.policy.SetPartitioner(partitioner)
