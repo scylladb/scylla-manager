@@ -36,8 +36,8 @@ func (fg ScyllaFeatureGate) NativeBackup(version string) (bool, error) {
 }
 
 // NativeRestore - scylla exposes /storage_service/restore API.
-func (fg ScyllaFeatureGate) NativeRestore(version string) (bool, error) {
-	return checkConstraints(version, ">= 2025.3")
+func (fg ScyllaFeatureGate) NativeRestore(_ string) (bool, error) {
+	return false, nil
 }
 
 // SkipCleanupAndSkipReshape - scylla supports skip_cleanup and skip_reshape params in /storage_service/sstables/{keyspace} API.
