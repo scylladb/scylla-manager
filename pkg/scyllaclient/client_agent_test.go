@@ -222,61 +222,6 @@ func TestNodeInfoCQLSSLAddr(t *testing.T) {
 	}
 }
 
-func TestNodeInfoSupportsRepairSmallTableOptimization(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		scyllaVer string
-		expected  bool
-	}{
-		{
-			scyllaVer: "2024.1.4",
-			expected:  false,
-		},
-		{
-			scyllaVer: "2024.2.5",
-			expected:  true,
-		},
-		{
-			scyllaVer: "2024.2.6",
-			expected:  true,
-		},
-		{
-			scyllaVer: "5.4.9",
-			expected:  false,
-		},
-		{
-			scyllaVer: "5.5.0",
-			expected:  false,
-		},
-		{
-			scyllaVer: "6.0.0",
-			expected:  true,
-		},
-		{
-			scyllaVer: "6.0.1",
-			expected:  true,
-		},
-		{
-			scyllaVer: "6.1.0",
-			expected:  true,
-		},
-	}
-
-	for _, tc := range testCases {
-		ni := scyllaclient.NodeInfo{
-			ScyllaVersion: tc.scyllaVer,
-		}
-		result, err := ni.SupportsRepairSmallTableOptimization()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if result != tc.expected {
-			t.Fatalf("expected {%v}, but got {%v}, version = {%s}", tc.expected, result, tc.scyllaVer)
-		}
-	}
-}
-
 func TestSupportsSafeDescribeSchemaWithInternals(t *testing.T) {
 	t.Parallel()
 

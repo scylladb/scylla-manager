@@ -53,7 +53,7 @@ type tableStats struct {
 	Ranges int
 }
 
-func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*plan, error) {
+func newPlan(ctx context.Context, target Target, client *scyllaclient.Client, fg ScyllaFeatureGate) (*plan, error) {
 	status, err := client.Status(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get status")
@@ -127,7 +127,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 	ks.fillSmall(target.SmallTableThreshold)
 
-	support, err := getRepairAPISupport(ctx, client, hosts)
+	support, err := getRepairAPISupport(ctx, client, fg, hosts)
 	if err != nil {
 		return nil, errors.Wrap(err, "check support of small_table_optimization")
 	}
@@ -383,7 +383,7 @@ type apiSupport struct {
 	tabletRepair bool
 }
 
-func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts []string) (apiSupport, error) {
+func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, fg ScyllaFeatureGate, hosts []string) (apiSupport, error) {
 	smallTableOpt := atomic.Bool{}
 	smallTableOpt.Store(true)
 	fullTabletTableOpt := atomic.Bool{}
@@ -398,7 +398,7 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 				return err
 			}
 
-			res, err := ni.SupportsRepairSmallTableOptimization()
+			res, err := fg.RepairSmallTableOptimization(ni.ScyllaVersion)
 			if err != nil {
 				return err
 			}
@@ -406,7 +406,7 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 				smallTableOpt.Store(false)
 			}
 
-			res, err = ni.SupportsTabletRepair()
+			res, err = fg.TabletRepair(ni.ScyllaVersion)
 			if err != nil {
 				return err
 			}

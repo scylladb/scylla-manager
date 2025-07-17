@@ -35,6 +35,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
@@ -121,6 +122,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		session,
 		repair.DefaultConfig(),
 		metrics.NewRepairMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},

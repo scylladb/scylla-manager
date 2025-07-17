@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	config "github.com/scylladb/scylla-manager/v3/pkg/config/server"
+	"github.com/scylladb/scylla-manager/v3/pkg/featuregate"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/restapi"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -102,6 +103,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.session,
 		s.config.Repair,
 		metrics.NewRepairMetrics().MustRegister(),
+		featuregate.ScyllaFeatureGate{},
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.configCacheSvc,

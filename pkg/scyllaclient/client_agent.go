@@ -182,38 +182,6 @@ func (ni NodeInfo) AlternatorTLSEnabled() (tlsEnabled, certAuth bool) {
 	return ni.AlternatorEncryptionEnabled(), certAuth
 }
 
-// SupportsRepairSmallTableOptimization returns true if /storage_service/repair_async/{keyspace} supports small_table_optimization param.
-func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check OSS
-	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.0, < 2000")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	if supports {
-		return true, nil
-	}
-	// Check ENT
-	supports, err = scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2024.1.5")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	return supports, nil
-}
-
-// SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
-func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
-}
-
 // SafeDescribeMethod describes supported methods to ensure that scylla schema is consistent.
 type SafeDescribeMethod string
 

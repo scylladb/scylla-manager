@@ -21,6 +21,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"go.uber.org/zap/zapcore"
 
@@ -153,6 +154,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		mgrSession,
 		repair.DefaultConfig(),
 		metrics.NewRepairMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
