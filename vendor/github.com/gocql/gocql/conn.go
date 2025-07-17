@@ -1,6 +1,26 @@
-// Copyright (c) 2012 The gocql Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+ * Content before git sha 34fdeebefcbf183ed7f916f931aa0586fdaa1b40
+ * Copyright (c) 2012, The Gocql authors,
+ * provided under the BSD-3-Clause License.
+ * See the NOTICE file distributed with this work for additional information.
+ */
 
 package gocql
 
@@ -10,6 +30,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/gocql/gocql/tablets"
 	"io"
 	"io/ioutil"
 	"net"
@@ -137,7 +158,7 @@ type ConnConfig struct {
 
 func (c *ConnConfig) logger() StdLogger {
 	if c.Logger == nil {
-		return Logger
+		return &defaultLogger{}
 	}
 	return c.Logger
 }
@@ -151,14 +172,6 @@ type connErrorHandlerFn func(conn *Conn, err error, closed bool)
 func (fn connErrorHandlerFn) HandleError(conn *Conn, err error, closed bool) {
 	fn(conn, err, closed)
 }
-
-// If not zero, how many timeouts we will allow to occur before the connection is closed
-// and restarted. This is to prevent a single query timeout from killing a connection
-// which may be serving more queries just fine.
-// Default is 0, should not be changed concurrently with queries.
-//
-// Deprecated.
-var TimeoutLimit int64 = 0
 
 type ConnInterface interface {
 	Close()
@@ -186,7 +199,7 @@ type Conn struct {
 	frameObserver  FrameHeaderObserver
 	streamObserver StreamObserver
 
-	headerBuf [maxFrameHeaderSize]byte
+	headerBuf [headSize]byte
 
 	streams *streams.IDGenerator
 	mu      sync.Mutex
@@ -311,7 +324,7 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		errorHandler:  errorHandler,
 		compressor:    cfg.Compressor,
 		session:       s,
-		streams:       s.streamIDGenerator(cfg.ProtoVersion),
+		streams:       s.streamIDGenerator(),
 		host:          host,
 		isSchemaV2:    true, // Try using "system.peers_v2" until proven otherwise
 		frameObserver: s.frameObserver,
@@ -337,11 +350,11 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 	return c, nil
 }
 
-func (s *Session) streamIDGenerator(protocol int) *streams.IDGenerator {
+func (s *Session) streamIDGenerator() *streams.IDGenerator {
 	if s.cfg.MaxRequestsPerConn > 0 {
 		return streams.NewLimited(s.cfg.MaxRequestsPerConn)
 	}
-	return streams.New(protocol)
+	return streams.New()
 }
 
 func (c *Conn) init(ctx context.Context, dialedHost *DialedHost) error {
@@ -486,9 +499,9 @@ func (s *startupCoordinator) options(ctx context.Context) error {
 	}
 	// Keep raw supported multimap for debug purposes
 	s.conn.supported = v.supported
-	s.conn.scyllaSupported = parseSupported(s.conn.supported)
+	s.conn.scyllaSupported = parseSupported(s.conn.supported, s.conn.logger)
 	s.conn.host.setScyllaSupported(s.conn.scyllaSupported)
-	s.conn.cqlProtoExts = parseCQLProtocolExtensions(s.conn.supported)
+	s.conn.cqlProtoExts = parseCQLProtocolExtensions(s.conn.supported, s.conn.logger)
 
 	return s.startup(ctx)
 }
@@ -498,6 +511,10 @@ func (s *startupCoordinator) startup(ctx context.Context) error {
 		"CQL_VERSION":    s.conn.cfg.CQLVersion,
 		"DRIVER_NAME":    s.conn.session.cfg.DriverName,
 		"DRIVER_VERSION": s.conn.session.cfg.DriverVersion,
+	}
+
+	if s.conn.session.cfg.ApplicationInfo != nil {
+		s.conn.session.cfg.ApplicationInfo.UpdateStartupOptions(m)
 	}
 
 	if s.conn.compressor != nil {
@@ -762,7 +779,7 @@ func (c *Conn) recv(ctx context.Context) error {
 		return fmt.Errorf("gocql: frame header stream is beyond call expected bounds: %d", head.stream)
 	} else if head.stream == -1 {
 		// TODO: handle cassandra event frames, we shouldnt get any currently
-		framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts)
+		framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts, c.logger)
 		c.setTabletSupported(framer.tabletsRoutingV1)
 		if err := framer.readFrame(c, &head); err != nil {
 			return err
@@ -772,7 +789,7 @@ func (c *Conn) recv(ctx context.Context) error {
 	} else if head.stream <= 0 {
 		// reserved stream that we dont use, probably due to a protocol error
 		// or a bug in Cassandra, this should be an error, parse it and return.
-		framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts)
+		framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts, c.logger)
 		c.setTabletSupported(framer.tabletsRoutingV1)
 		if err := framer.readFrame(c, &head); err != nil {
 			return err
@@ -803,7 +820,7 @@ func (c *Conn) recv(ctx context.Context) error {
 		panic(fmt.Sprintf("call has incorrect streamID: got %d expected %d", call.streamID, head.stream))
 	}
 
-	framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts)
+	framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts, c.logger)
 
 	err = framer.readFrame(c, &head)
 	if err != nil {
@@ -843,7 +860,7 @@ func (c *Conn) releaseStream(call *callReq) {
 }
 
 func (c *Conn) handleTimeout() {
-	if TimeoutLimit > 0 && atomic.AddInt64(&c.timeouts, 1) > TimeoutLimit {
+	if atomic.AddInt64(&c.timeouts, 1) > 0 {
 		c.closeWithError(ErrTooManyTimeouts)
 	}
 }
@@ -1109,7 +1126,7 @@ func (c *Conn) exec(ctx context.Context, req frameBuilder, tracer Tracer) (*fram
 	}
 
 	// resp is basically a waiting semaphore protecting the framer
-	framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts)
+	framer := newFramerWithExts(c.compressor, c.version, c.cqlProtoExts, c.logger)
 	c.setTabletSupported(framer.tabletsRoutingV1)
 
 	call := &callReq{
@@ -1472,7 +1489,8 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) (iter *Iter) {
 			}
 		}
 
-		params.skipMeta = !(c.session.cfg.DisableSkipMetadata || qry.disableSkipMetadata)
+		// if the metadata was not present in the response then we should not skip it
+		params.skipMeta = !(c.session.cfg.DisableSkipMetadata || qry.disableSkipMetadata) && len(info.response.columns) != 0
 
 		frame = &writeExecuteFrame{
 			preparedID:    info.id,
@@ -1506,11 +1524,8 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) (iter *Iter) {
 
 	if len(framer.customPayload) > 0 {
 		if tabletInfo, ok := framer.customPayload["tablets-routing-v1"]; ok {
-			var firstToken string
-			var lastToken string
-			var replicas [][]interface{}
-			tabletInfoValue := []interface{}{&firstToken, &lastToken, &replicas}
-			Unmarshal(TupleTypeInfo{
+			tabletBuilder := tablets.NewTabletInfoBuilder()
+			err = Unmarshal(TupleTypeInfo{
 				NativeType: NativeType{proto: c.version, typ: TypeTuple},
 				Elems: []TypeInfo{
 					NativeType{typ: TypeBigInt},
@@ -1525,39 +1540,17 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) (iter *Iter) {
 							}},
 					},
 				},
-			}, tabletInfo, tabletInfoValue)
-
-			tablet := TabletInfo{}
-			tablet.firstToken, err = strconv.ParseInt(firstToken, 10, 64)
+			}, tabletInfo, []interface{}{&tabletBuilder.FirstToken, &tabletBuilder.LastToken, &tabletBuilder.Replicas})
 			if err != nil {
 				return &Iter{err: err}
 			}
-			tablet.lastToken, err = strconv.ParseInt(lastToken, 10, 64)
+			tabletBuilder.KeyspaceName = qry.routingInfo.keyspace
+			tabletBuilder.TableName = qry.routingInfo.table
+			tablet, err := tabletBuilder.Build()
 			if err != nil {
 				return &Iter{err: err}
 			}
-
-			tabletReplicas := make([]ReplicaInfo, 0, len(replicas))
-			for _, replica := range replicas {
-				if len(replica) != 2 {
-					return &Iter{err: err}
-				}
-				if hostId, ok := replica[0].(UUID); ok {
-					if shardId, ok := replica[1].(int); ok {
-						repInfo := ReplicaInfo{hostId, shardId}
-						tabletReplicas = append(tabletReplicas, repInfo)
-					} else {
-						return &Iter{err: err}
-					}
-				} else {
-					return &Iter{err: err}
-				}
-			}
-			tablet.replicas = tabletReplicas
-			tablet.keyspaceName = qry.routingInfo.keyspace
-			tablet.tableName = qry.routingInfo.table
-
-			c.session.metadataDescriber.addTablet(&tablet)
+			c.session.metadataDescriber.AddTablet(tablet)
 		}
 	}
 
@@ -1582,8 +1575,6 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) (iter *Iter) {
 			} else {
 				return &Iter{framer: framer, err: errors.New("gocql: did not receive metadata but prepared info is nil")}
 			}
-		} else {
-			iter.meta = x.meta
 		}
 
 		if x.meta.morePages() && !qry.disableAutoPage {
@@ -1687,10 +1678,6 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) (iter *Iter) {
 			c.session.warningHandler.HandleWarnings(batch, iter.host, warnings)
 		}
 	}()
-
-	if c.version == protoVersion1 {
-		return &Iter{err: ErrUnsupported}
-	}
 
 	n := len(batch.Entries)
 	req := &writeBatchFrame{
@@ -1823,25 +1810,19 @@ func (c *Conn) querySystem(ctx context.Context, query string) *Iter {
 }
 
 const qrySystemPeers = "SELECT * FROM system.peers"
-const qrySystemPeersV2 = "SELECT * FROM system.peers_2"
+const qrySystemPeersV2 = "SELECT * FROM system.peers_v2"
 
 const qrySystemLocal = "SELECT * FROM system.local WHERE key='local'"
 
-func getSchemaAgreement(queryLocalSchemasRows []string, querySystemPeersRows []map[string]interface{}, connectAddress net.IP, port int, translateAddressPort func(addr net.IP, port int) (net.IP, int), logger StdLogger) (err error) {
+func getSchemaAgreement(queryLocalSchemasRows []string, querySystemPeersRows []schemaAgreementHost, connectAddress net.IP, port int, translateAddressPort func(addr net.IP, port int) (net.IP, int), logger StdLogger) (err error) {
 	versions := make(map[string]struct{})
 
 	for _, row := range querySystemPeersRows {
-		var host *HostInfo
-		host, err = hostInfoFromMap(row, &HostInfo{connectAddress: connectAddress, port: port}, translateAddressPort)
-		if err != nil {
-			return err
-		}
-		if !isValidPeer(host) || host.schemaVersion == "" {
-			logger.Printf("invalid peer or peer with empty schema_version: peer=%q", host)
+		if !row.IsValid() {
+			logger.Printf("invalid peer or peer with empty schema_version: peer=%q", row)
 			continue
 		}
-
-		versions[host.schemaVersion] = struct{}{}
+		versions[row.SchemaVersion.String()] = struct{}{}
 	}
 
 	for _, schemaVersion := range queryLocalSchemasRows {
@@ -1861,11 +1842,19 @@ func getSchemaAgreement(queryLocalSchemasRows []string, querySystemPeersRows []m
 	return nil
 }
 
+type schemaAgreementHost struct {
+	DataCenter    string
+	Rack          string
+	HostID        UUID
+	SchemaVersion UUID
+	RPCAddress    string
+}
+
+func (h *schemaAgreementHost) IsValid() bool {
+	return h.DataCenter != "" && h.Rack != "" && h.HostID.String() != "" && h.SchemaVersion.String() != ""
+}
+
 func (c *Conn) awaitSchemaAgreement(ctx context.Context) error {
-	var localSchemas = "SELECT schema_version FROM system.local WHERE key='local'"
-
-	var schemaVersion string
-
 	endDeadline := time.Now().Add(c.session.cfg.MaxWaitSchemaAgreement)
 
 	var err error
@@ -1884,12 +1873,17 @@ func (c *Conn) awaitSchemaAgreement(ctx context.Context) error {
 	for time.Now().Before(endDeadline) {
 		var iter *Iter
 		if c.getIsSchemaV2() {
-			iter = c.querySystem(ctx, qrySystemPeersV2)
+			iter = c.querySystem(ctx, "SELECT host_id, data_center, rack, schema_version, preferred_ip FROM system.peers_v2")
 		} else {
-			iter = c.querySystem(ctx, qrySystemPeers)
+			iter = c.querySystem(ctx, "SELECT host_id, data_center, rack, schema_version, rpc_address FROM system.peers")
 		}
-		var systemPeersRows []map[string]interface{}
-		systemPeersRows, err = iter.SliceMap()
+		// data_center, rack, host_id, schema_version, rpc_address
+		var hosts []schemaAgreementHost
+		var tmp schemaAgreementHost
+		for iter.Scan(&tmp.HostID, &tmp.DataCenter, &tmp.Rack, &tmp.SchemaVersion, &tmp.RPCAddress) {
+			hosts = append(hosts, tmp)
+		}
+		err = iter.Close()
 		if err != nil {
 			return err
 		}
@@ -1899,7 +1893,9 @@ func (c *Conn) awaitSchemaAgreement(ctx context.Context) error {
 
 		schemaVersions := []string{}
 
-		iter = c.querySystem(ctx, localSchemas)
+		iter = c.querySystem(ctx, "SELECT schema_version FROM system.local WHERE key='local'")
+
+		var schemaVersion string
 		for iter.Scan(&schemaVersion) {
 			schemaVersions = append(schemaVersions, schemaVersion)
 			schemaVersion = ""
@@ -1908,7 +1904,13 @@ func (c *Conn) awaitSchemaAgreement(ctx context.Context) error {
 		if err = iter.Close(); err != nil {
 			return err
 		}
-		err = getSchemaAgreement(schemaVersions, systemPeersRows, c.host.ConnectAddress(), c.session.cfg.Port, c.session.cfg.translateAddressPort, c.logger)
+
+		var addr net.IP
+		if addr, err = c.host.ConnectAddressWithError(); err != nil {
+			return err
+		}
+
+		err = getSchemaAgreement(schemaVersions, hosts, addr, c.session.cfg.Port, c.session.cfg.translateAddressPort, c.logger)
 
 		if err == ErrConnectionClosed || err == nil {
 			return err
