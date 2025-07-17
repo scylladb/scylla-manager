@@ -28,6 +28,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
@@ -490,11 +491,11 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBackupSupport, err := ni.SupportsNativeBackupAPI()
+	nativeBackupSupport, err := featuregate.ScyllaMasterFeatureGate{}.NativeBackup(ni.ScyllaVersion)
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeRestoreSupport, err := ni.SupportsNativeRestoreAPI()
+	nativeRestoreSupport, err := featuregate.ScyllaMasterFeatureGate{}.NativeRestore(ni.ScyllaVersion)
 	if err != nil {
 		t.Fatal(err)
 	}

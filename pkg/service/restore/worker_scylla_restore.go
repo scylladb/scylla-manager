@@ -21,7 +21,7 @@ import (
 
 // hostScyllaRestoreSupport checks if native restore API is supported for given host.
 func (w *tablesWorker) hostScyllaRestoreSupport(ctx context.Context, host string, nc configcache.NodeConfig) bool {
-	ok, err := nc.SupportsNativeRestoreAPI()
+	ok, err := w.fg.NativeRestore(nc.ScyllaVersion)
 	if err != nil || !ok {
 		w.logger.Info(ctx, "Can't use Scylla restore API with given Scylla version",
 			"host", host,

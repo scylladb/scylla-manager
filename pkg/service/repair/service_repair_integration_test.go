@@ -31,6 +31,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
@@ -338,6 +339,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		session,
 		c,
 		metrics.NewRepairMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
@@ -361,6 +363,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 		session,
 		c,
 		metrics.NewRepairMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
@@ -1716,7 +1719,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		// Check small_table_optimization support
-		support, err := globalNodeInfo.SupportsRepairSmallTableOptimization()
+		support, err := featuregate.ScyllaMasterFeatureGate{}.RepairSmallTableOptimization(globalNodeInfo.ScyllaVersion)
 		if err != nil {
 			t.Fatal(err)
 		}

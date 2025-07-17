@@ -13,7 +13,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
-	scyllaversion "github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
@@ -139,21 +138,6 @@ func (ni *NodeInfo) AlternatorEncryptionEnabled() bool {
 	return ni.AlternatorHTTPSPort != "0" && ni.AlternatorHTTPSPort != ""
 }
 
-// SupportsAlternatorQuery returns if Alternator supports querying system tables.
-func (ni NodeInfo) SupportsAlternatorQuery() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-
-	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 4.1, < 2000")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-
-	return supports, nil
-}
-
 // AlternatorAddr returns Alternator address from NodeInfo.
 // It chooses right address and port based on information stored in NodeInfo.
 // HTTPS port has preference over HTTP.
@@ -197,38 +181,6 @@ func (ni NodeInfo) AlternatorTLSEnabled() (tlsEnabled, certAuth bool) {
 	return ni.AlternatorEncryptionEnabled(), certAuth
 }
 
-// SupportsRepairSmallTableOptimization returns true if /storage_service/repair_async/{keyspace} supports small_table_optimization param.
-func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check OSS
-	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.0, < 2000")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	if supports {
-		return true, nil
-	}
-	// Check ENT
-	supports, err = scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2024.1.5")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	return supports, nil
-}
-
-// SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
-func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
-}
-
 // SafeDescribeMethod describes supported methods to ensure that scylla schema is consistent.
 type SafeDescribeMethod string
 
@@ -238,57 +190,6 @@ var (
 	// SafeDescribeMethodReadBarrierCQL shows when scylla csq read barrier can be used.
 	SafeDescribeMethodReadBarrierCQL SafeDescribeMethod = "read_barrier_cql"
 )
-
-// SupportsSafeDescribeSchemaWithInternals returns not empty SafeDescribeMethod if the output of DESCRIBE SCHEMA WITH INTERNALS
-// is safe to use with backup/restore procedure and which method should be used to make sure that schema is consistent.
-func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMethod, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return SafeDescribeMethodReadBarrierAPI, nil
-	}
-
-	type featureByVersion struct {
-		Constraint string
-		Method     SafeDescribeMethod
-	}
-
-	for _, fv := range []featureByVersion{
-		{Constraint: ">= 2025.1", Method: SafeDescribeMethodReadBarrierAPI},
-		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarrierAPI},
-		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierCQL},
-		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarrierCQL},
-	} {
-		supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, fv.Constraint)
-		if err != nil {
-			return "", errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-		}
-		if supports {
-			return fv.Method, nil
-		}
-	}
-
-	return "", nil
-}
-
-// SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
-func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
-}
-
-// SupportsNativeRestoreAPI returns whether node exposes /storage_service/restore API.
-func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
-}
 
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
@@ -307,20 +208,6 @@ func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (s
 	return "", errors.Errorf("scylla and scylla-manager-agent backup configurations don't match. "+
 		"Please make sure that the same endpoint is set in both `scylla-manager-agent.yaml` %s config "+
 		"and in `scylla.yaml` object_storage_endpoints config", provider)
-}
-
-// SupportsSkipCleanupAndSkipReshape returns whether Scylla supports skip_cleanup and skip_reshape parameters
-// in /storage_service/sstables/{keyspace} endpoint.
-// Note that scylla 2025.2.0 has a bug if this parameters are set to true -
-// https://github.com/scylladb/scylladb/issues/24913.
-func (ni *NodeInfo) SupportsSkipCleanupAndSkipReshape() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
-
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2.0")
 }
 
 // FreeOSMemory calls debug.FreeOSMemory on the agent to return memory to OS.

@@ -43,10 +43,18 @@ type Service struct {
 
 	logger  log.Logger
 	metrics metrics.One2OneRestoreMetrics
+	fg      ScyllaFeatureGate
+}
+
+// ScyllaFeatureGate is a helper for checking scylla feature availability based on scylla version.
+type ScyllaFeatureGate interface {
+	SafeDescribeMethodReadBarrierAPI(version string) (bool, error)
+	SafeDescribeMethodReadBarrierCQL(version string) (bool, error)
+	SkipCleanupAndSkipReshape(version string) (bool, error)
 }
 
 func NewService(repairSvc *repair.Service, session gocqlx.Session, scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
-	logger log.Logger, metrics metrics.One2OneRestoreMetrics,
+	logger log.Logger, metrics metrics.One2OneRestoreMetrics, fg ScyllaFeatureGate,
 ) (Servicer, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -67,6 +75,7 @@ func NewService(repairSvc *repair.Service, session gocqlx.Session, scyllaClient 
 
 		logger:  logger,
 		metrics: metrics,
+		fg:      fg,
 	}, nil
 }
 
@@ -138,6 +147,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 
 		logger:  s.logger,
 		metrics: s.metrics,
+		fg:      s.fg,
 
 		runInfo: struct{ ClusterID, TaskID, RunID uuid.UUID }{
 			ClusterID: clusterID,

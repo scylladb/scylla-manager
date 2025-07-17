@@ -38,6 +38,7 @@ type Service struct {
 	session gocqlx.Session
 	config  Config
 	metrics metrics.RepairMetrics
+	fg      ScyllaFeatureGate
 
 	scyllaClient   scyllaclient.ProviderFunc
 	clusterSession cluster.SessionFunc
@@ -48,7 +49,13 @@ type Service struct {
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics,
+// ScyllaFeatureGate is a helper for checking scylla feature availability based on scylla version.
+type ScyllaFeatureGate interface {
+	RepairSmallTableOptimization(version string) (bool, error)
+	TabletRepair(version string) (bool, error)
+}
+
+func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics, fg ScyllaFeatureGate,
 	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
 	logger log.Logger,
 ) (*Service, error) {
@@ -64,6 +71,7 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 		session:           session,
 		config:            config,
 		metrics:           metrics,
+		fg:                fg,
 		scyllaClient:      scyllaClient,
 		clusterSession:    clusterSession,
 		configCache:       configCache,
@@ -160,7 +168,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		return t, errors.Wrap(ErrEmptyRepair, err.Error())
 	}
 
-	p, err := newPlan(ctx, t, client)
+	p, err := newPlan(ctx, t, client, s.fg)
 	if err != nil {
 		return t, errors.Wrap(err, "create repair plan")
 	}
@@ -275,7 +283,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "get client")
 	}
 
-	p, err := newPlan(ctx, target, client)
+	p, err := newPlan(ctx, target, client, s.fg)
 	if err != nil {
 		return errors.Wrap(err, "create repair plan")
 	}

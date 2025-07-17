@@ -65,6 +65,7 @@ type workerTools struct {
 	Method      Method
 	Config      Config
 	Client      *scyllaclient.Client
+	FG          ScyllaFeatureGate
 	Logger      log.Logger
 }
 

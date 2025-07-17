@@ -28,6 +28,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/featuregate"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -43,7 +44,7 @@ var globalNodeInfo *scyllaclient.NodeInfo
 func tabletRepairSupport(t *testing.T) bool {
 	t.Helper()
 
-	ok, err := globalNodeInfo.SupportsTabletRepair()
+	ok, err := featuregate.ScyllaMasterFeatureGate{}.TabletRepair(globalNodeInfo.ScyllaVersion)
 	if err != nil {
 		t.Fatal(err)
 	}

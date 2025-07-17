@@ -36,6 +36,7 @@ type worker struct {
 
 	logger  log.Logger
 	metrics metrics.One2OneRestoreMetrics
+	fg      ScyllaFeatureGate
 
 	runInfo struct {
 		ClusterID, TaskID, RunID uuid.UUID
@@ -213,12 +214,12 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 		if err != nil {
 			return errors.Wrapf(err, "get node %s info", h.Addr)
 		}
-		method, err := nodeInfo.SupportsSafeDescribeSchemaWithInternals()
+		method, err := safeDescribeMethod(w.fg, nodeInfo.ScyllaVersion)
 		if err != nil {
 			return errors.Wrapf(err, "node %s safe describe method", h.Addr)
 		}
 		hw.host.SafeDescribeMethod = method
-		supports, err := nodeInfo.SupportsSkipCleanupAndSkipReshape()
+		supports, err := w.fg.SkipCleanupAndSkipReshape(nodeInfo.ScyllaVersion)
 		if err != nil {
 			return errors.Wrapf(err, "node %s supports skip_cleanup and skip_reshape", h.Addr)
 		}
@@ -277,6 +278,24 @@ func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, ho
 		return query.RaftReadBarrier(session)
 	}
 	return errors.Errorf("unsupported method: %s", host.SafeDescribeMethod)
+}
+
+func safeDescribeMethod(fg ScyllaFeatureGate, version string) (scyllaclient.SafeDescribeMethod, error) {
+	ok, err := fg.SafeDescribeMethodReadBarrierAPI(version)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return scyllaclient.SafeDescribeMethodReadBarrierAPI, nil
+	}
+	ok, err = fg.SafeDescribeMethodReadBarrierCQL(version)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return scyllaclient.SafeDescribeMethodReadBarrierCQL, nil
+	}
+	return "", nil
 }
 
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
