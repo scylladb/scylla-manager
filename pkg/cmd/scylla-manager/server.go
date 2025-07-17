@@ -133,6 +133,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.session,
 		s.config.Restore,
 		metrics.NewRestoreMetrics().MustRegister(),
+		featuregate.ScyllaFeatureGate{},
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.configCacheSvc,

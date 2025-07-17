@@ -174,6 +174,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		mgrSession,
 		defaultTestConfig(),
 		metrics.NewRestoreMetrics(),
+		featuregate.ScyllaMasterFeatureGate{},
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},

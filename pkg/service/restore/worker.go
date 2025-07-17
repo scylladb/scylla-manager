@@ -41,6 +41,7 @@ type worker struct {
 	config  Config
 	logger  log.Logger
 	metrics metrics.RestoreMetrics
+	fg      ScyllaFeatureGate
 
 	client         *scyllaclient.Client
 	session        gocqlx.Session
