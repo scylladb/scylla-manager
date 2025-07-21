@@ -293,9 +293,6 @@ func (s *Service) parallelAlternatorPingFunc(ctx context.Context, clusterID uuid
 // pingAlternator sends ping probe and returns RTT.
 // When Alternator frontend is disabled, it returns 0 and nil error.
 func (s *Service) pingAlternator(ctx context.Context, _ uuid.UUID, host string, timeout time.Duration, ni configcache.NodeConfig) (rtt time.Duration, err error) {
-	if ni.NodeInfo == nil {
-		return 0, errors.Wrap(err, "get node info")
-	}
 	if !ni.AlternatorEnabled() {
 		return 0, nil
 	}
