@@ -126,6 +126,9 @@ INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
 ifdef BACKUP_METHOD
 INTEGRATION_TEST_ARGS += -backup-method $(BACKUP_METHOD)
 endif
+ifdef RESTORE_METHOD
+INTEGRATION_TEST_ARGS += -restore-method $(RESTORE_METHOD)
+endif
 
 SSL_FLAGS := -ssl-ca-file ./testing/$(SSL_AUTHORITY_CRT) -ssl-key-file ./testing/$(SSL_CLIENT_KEY) -ssl-cert-file ./testing/$(SSL_CLIENT_CRT) -gocql.port $(SSL_PORT)
 
