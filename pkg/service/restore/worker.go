@@ -80,7 +80,7 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 
 func (w *worker) validateHostNativeRestoreSupport(ctx context.Context) error {
 	for ip, ni := range w.nodeConfig {
-		if err := hostNativeRestoreSupport(ni.NodeInfo, w.target.Location); err != nil {
+		if err := hostNativeRestoreSupport(ni.NodeInfo, w.target.Location, w.target.Method); err != nil {
 			return errors.Wrap(err, "ensure native restore")
 		}
 		w.logger.Info(ctx, "Host supports native restore API", "host", ip.String())
