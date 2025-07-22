@@ -32,6 +32,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -461,12 +462,13 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBackupSupport, err := ni.SupportsNativeBackupAPI()
+	nativeBackupSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
 	if err != nil {
 		t.Fatal(err)
 	}
 	nativeBackup := nativeBackupSupport && !IsIPV6Network()
-	nativeRestoreSupport, err := ni.SupportsNativeRestoreAPI()
+	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
+	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -612,6 +614,9 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		props["rate_limit"] = []string{"0"}
 		props["unpin_agent_cpu"] = true
 		props["method"] = restore.MethodAuto
+		if nativeRestore {
+			props["method"] = restore.MethodNative
+		}
 		rawProps, err := json.Marshal(props)
 		if err != nil {
 			finishedRestore <- err
@@ -1258,7 +1263,8 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeRestoreSupport, err := ni.SupportsNativeRestoreAPI()
+	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
+	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1275,7 +1281,7 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	switch {
 	case nativeRestoreSupport && !IsIPV6Network():
 		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
