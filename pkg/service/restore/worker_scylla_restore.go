@@ -20,13 +20,16 @@ import (
 )
 
 // hostNativeRestoreSupport validates that native restore API can be used for given host.
-func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location) error {
-	ok, err := ni.SupportsNativeRestoreAPI()
-	if err != nil {
-		return errors.Wrap(err, "check native restore api support")
-	}
-	if !ok {
-		return errors.New("native restore api is not supported")
+// Scylla version check is not performed for explicit --method=native.
+func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location, method Method) error {
+	if method != MethodNative {
+		ok, err := ni.SupportsNativeRestoreAPI()
+		if err != nil {
+			return errors.Wrap(err, "check native restore api support")
+		}
+		if !ok {
+			return errors.New("native restore api is not supported")
+		}
 	}
 	// Simplification - native restore is supported by host if host supports
 	// it for all providers from the backup. All sane scenarios have a single
@@ -49,7 +52,7 @@ func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location) error {
 
 // hostNativeRestoreSupport is the regular hostNativeRestoreSupport with logging on error.
 func (w *worker) hostNativeRestoreSupport(ctx context.Context, host string, ni *scyllaclient.NodeInfo, loc []Location) error {
-	err := hostNativeRestoreSupport(ni, loc)
+	err := hostNativeRestoreSupport(ni, loc, w.target.Method)
 	if err != nil {
 		w.logger.Info(ctx, "Can't use native restore api", "host", host, "error", err)
 	}

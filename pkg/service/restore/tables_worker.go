@@ -299,7 +299,7 @@ func (w *tablesWorker) restoreBatch(ctx context.Context, hi HostInfo, nc configc
 	}
 
 	// Handle lack of native restore support on the host level
-	if err := hostNativeRestoreSupport(nc.NodeInfo, w.target.Location); err != nil {
+	if err := hostNativeRestoreSupport(nc.NodeInfo, w.target.Location, w.target.Method); err != nil {
 		if w.target.Method == MethodNative {
 			return errors.Wrap(err, "ensure native restore support")
 		}
