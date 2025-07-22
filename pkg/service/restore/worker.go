@@ -26,7 +26,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
-
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
@@ -60,6 +59,11 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 	if err := w.initTarget(ctx, target, locationInfo); err != nil {
 		return errors.Wrap(err, "init target")
 	}
+	if target.Method == MethodNative {
+		if err := w.validateHostNativeRestoreSupport(ctx); err != nil {
+			return err
+		}
+	}
 	if err := w.decorateWithPrevRun(ctx); err != nil {
 		return errors.Wrap(err, "get prev run")
 	}
@@ -72,6 +76,16 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 		return errors.Wrap(err, "init units")
 	}
 	return errors.Wrap(w.initViews(ctx), "init views")
+}
+
+func (w *worker) validateHostNativeRestoreSupport(ctx context.Context) error {
+	for ip, ni := range w.nodeConfig {
+		if err := hostNativeRestoreSupport(ni.NodeInfo, w.target.Location); err != nil {
+			return errors.Wrap(err, "ensure native restore")
+		}
+		w.logger.Info(ctx, "Host supports native restore API", "host", ip.String())
+	}
+	return nil
 }
 
 func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]LocationInfo, error) {

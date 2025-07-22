@@ -9,5 +9,6 @@
   "batch_size": 99,
   "parallel": 98,
   "restore_schema": false,
-  "restore_tables": true
+  "restore_tables": true,
+  "method": "rclone"
 }

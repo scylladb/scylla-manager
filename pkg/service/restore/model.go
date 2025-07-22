@@ -35,9 +35,22 @@ type Target struct {
 	RestoreTables   bool                  `json:"restore_tables,omitempty"`
 	Continue        bool                  `json:"continue"`
 	DCMappings      map[string]string     `json:"dc_mapping"`
+	Method          Method                `json:"method,omitempty"`
 
 	locationInfo []LocationInfo
 }
+
+// Method describes which API should be used by SM during restore.
+type Method string
+
+const (
+	// MethodAuto means that SM will use native restore API when possible, and rclone API otherwise.
+	MethodAuto Method = "auto"
+	// MethodRclone means that SM will only use rclone API.
+	MethodRclone Method = "rclone"
+	// MethodNative means that SM will only use native scylla restore API (whether it's configured or not).
+	MethodNative Method = "native"
+)
 
 // LocationInfo contains information about Location, such as what DCs it has,
 // what hosts can access what dcs, and the list of manifests from this location.
@@ -86,6 +99,7 @@ func defaultTarget() Target {
 		Parallel:  0,
 		Transfers: maxTransfers,
 		Continue:  true,
+		Method:    MethodAuto,
 	}
 }
 
@@ -131,6 +145,9 @@ func (t Target) validateProperties() error {
 			return errors.Errorf("location %s is specified multiple times", l)
 		}
 		allLocations.Add(p)
+	}
+	if !slices.Contains([]Method{MethodAuto, MethodRclone, MethodNative}, t.Method) {
+		return errors.New("unknown method: " + string(t.Method))
 	}
 	return nil
 }

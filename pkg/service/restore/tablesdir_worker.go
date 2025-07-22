@@ -16,7 +16,14 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
-func (w *tablesWorker) restoreBatch(ctx context.Context, b batch, pr *RunProgress) (err error) {
+func (w *tablesWorker) rcloneBatchRestore(ctx context.Context, hi HostInfo, b batch) (err error) {
+	w.logger.Info(ctx, "Use Rclone copypaths API", "host", hi.Host, "keyspace", b.Keyspace, "table", b.Table)
+
+	pr, err := w.newRunProgress(ctx, hi, b)
+	if err != nil {
+		return errors.Wrap(err, "create new run progress")
+	}
+
 	defer func() {
 		// Run cleanup on non-pause error
 		if err != nil {
