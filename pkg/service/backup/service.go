@@ -312,7 +312,7 @@ func (s *Service) validateHostNativeBackupSupport(clusterID uuid.UUID, liveNodes
 		return err
 	}
 	for i := range hi {
-		if err := hostNativeBackupSupport(hi[i].NodeConfig.NodeInfo, hi[i].Location); err != nil {
+		if err := hostNativeBackupSupport(hi[i].NodeConfig.NodeInfo, hi[i].Location, p.Method); err != nil {
 			return errors.Wrap(err, "ensure native backup ")
 		}
 	}
