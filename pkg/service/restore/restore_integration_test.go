@@ -50,17 +50,13 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, "GRANT CREATE ON ALL KEYSPACES TO "+user)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("user", "")}
-	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	loc := testLocation("user", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	h.runRestore(t, defaultTestProperties(loc, tag, true))
 
 	Print("Log in via restored user and check permissions")
 	userSession := CreateManagedClusterSession(t, false, h.dstCluster.Client, user, pass)
@@ -92,19 +88,16 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("no-replication", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("no-replication", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
+	h.runRestore(t, props)
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
 }
@@ -146,20 +139,16 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run src backup")
-	loc := []backupspec.Location{testLocation("schema-roundtrip", "")}
-	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	loc := testLocation("schema-roundtrip", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Drop backed-up src cluster schema")
 	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+ks)
 
 	Print("Run restore of src backup on dst cluster")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_schema": true,
-	})
+	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Save dst describe schema output from src backup")
 	dstSchemaSrcBackup, err := query.DescribeSchemaWithInternals(h.dstCluster.rootSession)
@@ -168,15 +157,11 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run dst backup")
-	tag = hRev.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	tag = hRev.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore of dst backup on src cluster")
 	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
-	hRev.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_schema": true,
-	})
+	hRev.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Save src describe schema output from dst backup")
 	srcSchemaDstBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
@@ -267,27 +252,20 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("drop-add", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("drop-add", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Run restore schema")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_schema": true,
-	})
+	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Run restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
+	h.runRestore(t, props)
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
 }
@@ -326,10 +304,10 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("vnode-to-tablets", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("vnode-to-tablets", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Manually recreate tablet schema")
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 3, true))
@@ -337,12 +315,9 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 
 	Print("Run restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
+	h.runRestore(t, props)
 
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
 }
@@ -412,8 +387,8 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks2, tab1, tab2)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("paused", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("paused", "")
+	S3InitBucket(t, loc.Path)
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
 	// but backed up views should still be tested as older backups might
@@ -423,7 +398,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	h.srcCluster.TaskID = uuid.NewTime()
 	h.srcCluster.RunID = uuid.NewTime()
 
-	rawProps, err := json.Marshal(defaultTestBackupProperties(loc[0], ""))
+	rawProps, err := json.Marshal(defaultTestBackupProperties(loc, ""))
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "marshal properties"))
 	}
@@ -447,12 +422,8 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 
 	Print("Run restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks1, ks2}, h.dstUser)
-	props := map[string]any{
-		"location":       loc,
-		"keyspace":       []string{ks1, ks2},
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	}
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = []string{ks1, ks2}
 	err = runPausedRestore(t, func(ctx context.Context) error {
 		h.dstCluster.RunID = uuid.NewTime()
 		rawProps, err := json.Marshal(props)
@@ -616,12 +587,13 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("preparation", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("preparation", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["transfers"] = 3
 	backupProps["rate_limit"] = []string{"88"}
+	backupProps["method"] = backup.MethodAuto
 	tag := h.runBackup(t, backupProps)
 
 	Print("Validate state after backup")
@@ -634,15 +606,13 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
 		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.dstCluster.RunID = uuid.NewTime()
-		rawProps, err := json.Marshal(map[string]any{
-			"location":        loc,
-			"keyspace":        ksFilter,
-			"snapshot_tag":    tag,
-			"transfers":       0,
-			"rate_limit":      []string{"0"},
-			"unpin_agent_cpu": true,
-			"restore_tables":  true,
-		})
+		props := defaultTestProperties(loc, tag, true)
+		props["keyspace"] = ksFilter
+		props["transfers"] = 0
+		props["rate_limit"] = []string{"0"}
+		props["unpin_agent_cpu"] = true
+		props["method"] = restore.MethodAuto
+		rawProps, err := json.Marshal(props)
 		if err != nil {
 			finishedRestore <- err
 			return
@@ -785,19 +755,15 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab1, tab2, tab3)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("batch-retry", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("batch-retry", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["batch_size"] = 100
 	tag := h.runBackup(t, backupProps)
 
-	props := map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	}
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
 
 	t.Run("batch retry finished with success", func(t *testing.T) {
 		Print("Inject errors to some download and las calls")
@@ -979,15 +945,11 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	go func() {
-		h.runRestore(t, map[string]any{
-			"location": loc,
-			"keyspace": ksFilter,
-			// Test if batching does not hang with
-			// limited parallel and location access.
-			"parallel":       1,
-			"snapshot_tag":   tag,
-			"restore_tables": true,
-		})
+		props := defaultTestProperties(backupspec.Location{}, tag, true)
+		props["location"] = loc
+		props["keyspace"] = ksFilter
+		props["parallel"] = 1 // Test if batching does not hang with limited parallel and location access
+		h.runRestore(t, props)
 		close(res)
 	}()
 
@@ -1044,17 +1006,14 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 1, ks, tab)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("progress", "")}
-	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	loc := testLocation("progress", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	h.runRestore(t, props)
 
 	Print("Validate success")
 	for _, tab := range tabToValidate {
@@ -1129,12 +1088,11 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	srcMTwoDC := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ksTwoDC, tab, "id", "data")
 
 	Print("Run backup")
-	loc := []backupspec.Location{
-		testLocation("one-location-1", ""),
-	}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("one-location-1", "")
+
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ksTwoDC, ksOneDC}
-	backupProps := defaultTestBackupProperties(loc[0], "")
+	backupProps := defaultTestBackupProperties(loc, "")
 	backupProps["keyspace"] = ksFilter
 	backupProps["batch_size"] = 100
 	tag := h.runBackup(t, backupProps)
@@ -1143,18 +1101,13 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	go func() {
-		h.runRestore(t, map[string]any{
-			"location": loc,
-			"keyspace": ksFilter,
-			// Test if batching does not hang with
-			// limited parallel and location access.
-			"parallel":       1,
-			"snapshot_tag":   tag,
-			"restore_tables": true,
-			"dc_mapping": map[string]string{
-				"dc1": "dc1",
-			},
-		})
+		props := defaultTestProperties(loc, tag, true)
+		props["keyspace"] = ksFilter
+		props["parallel"] = 1 // Test if batching does not hang with limited parallel and location access
+		props["dc_mapping"] = map[string]string{
+			"dc1": "dc1",
+		}
+		h.runRestore(t, props)
 		close(res)
 	}()
 
@@ -1223,13 +1176,11 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 		"dc2": "dc2",
 	}
 	go func() {
-		h.runRestore(t, map[string]any{
-			"location":       loc,
-			"keyspace":       ksFilter,
-			"snapshot_tag":   tag,
-			"restore_tables": true,
-			"dc_mapping":     dcMappings,
-		})
+		props := defaultTestProperties(backupspec.Location{}, tag, true)
+		props["location"] = loc
+		props["keyspace"] = ksFilter
+		props["dc_mapping"] = dcMappings
+		h.runRestore(t, props)
 		close(res)
 	}()
 
@@ -1248,7 +1199,7 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	}
 
 	Print("Ensure nodes downloaded tables only from corresponding DC")
-	// Restore run progess has RemoteSSTableDir of downloaded table which contains dc name in the path.
+	// Restore run progress has RemoteSSTableDir of downloaded table which contains dc name in the path.
 	// We can compare this dc with the host dc (apply mappings) and they should be equal.
 	restoreProgress := selectRestoreRunProgress(t, h)
 	sourceDCByTargetDC := revertDCMapping(dcMappings)
@@ -1291,10 +1242,10 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
 
 	Print("Backup setup")
-	loc := []backupspec.Location{testLocation("method", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("method", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps := defaultTestBackupProperties(loc, ks)
 	tag := h.runBackup(t, backupProps)
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 
@@ -1313,7 +1264,7 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	}
 
 	type testCase struct {
-		method           string
+		method           restore.Method
 		blockedPath      string
 		ensuredPath      string
 		getTargetSuccess bool
@@ -1324,21 +1275,21 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	switch {
 	case nativeRestoreSupport && !IsIPV6Network():
 		testCases = []testCase{
-			{method: "auto", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: "native", ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	case nativeRestoreSupport && IsIPV6Network():
 		testCases = []testCase{
-			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: "native", getTargetSuccess: false},
-			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, getTargetSuccess: false},
+			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	default:
 		testCases = []testCase{
-			{method: "auto", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: "native", getTargetSuccess: false},
-			{method: "rclone", ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, getTargetSuccess: false},
+			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	}
 
@@ -1361,13 +1312,10 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 			}))
 
 			h.dstCluster.RunID = uuid.NewTime()
-			rawProps, err := json.Marshal(map[string]any{
-				"location":       loc,
-				"keyspace":       ksFilter,
-				"snapshot_tag":   tag,
-				"restore_tables": true,
-				"method":         tc.method,
-			})
+			props := defaultTestProperties(loc, tag, true)
+			props["keyspace"] = ksFilter
+			props["method"] = tc.method
+			rawProps, err := json.Marshal(props)
 			if err != nil {
 				t.Fatal(err)
 			}
