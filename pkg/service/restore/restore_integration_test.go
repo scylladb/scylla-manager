@@ -1278,18 +1278,21 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 			{method: restore.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	case nativeRestoreSupport && IsIPV6Network():
 		testCases = []testCase{
 			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{method: restore.MethodNative, getTargetSuccess: false},
 			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	default:
 		testCases = []testCase{
 			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{method: restore.MethodNative, getTargetSuccess: false},
 			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
 	}
 
@@ -1315,6 +1318,9 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 			props := defaultTestProperties(loc, tag, true)
 			props["keyspace"] = ksFilter
 			props["method"] = tc.method
+			if tc.method == "" {
+				delete(props, "method")
+			}
 			rawProps, err := json.Marshal(props)
 			if err != nil {
 				t.Fatal(err)

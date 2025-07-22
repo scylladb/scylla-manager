@@ -97,7 +97,7 @@ options:
         The supported storage '<provider>'s are 'azure', 'gcs', 's3'.
         The `<bucket>` parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
     - name: method
-      default_value: auto
+      default_value: rclone
       usage: |
         Specify the API used for restoring files:
         - 'auto': Use the native API when possible, otherwise use the Rclone API.

@@ -99,7 +99,7 @@ func defaultTarget() Target {
 		Parallel:  0,
 		Transfers: maxTransfers,
 		Continue:  true,
-		Method:    MethodAuto,
+		Method:    MethodRclone,
 	}
 }
 
