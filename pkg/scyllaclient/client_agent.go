@@ -250,8 +250,8 @@ func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
 
 // SupportsNativeRestoreAPI returns whether node exposes /storage_service/restore API.
 func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
+	// Native restore is not a part of any release yet.
+	return false, nil
 }
 
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
