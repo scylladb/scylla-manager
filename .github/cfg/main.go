@@ -16,6 +16,7 @@ type integrationTestCfg struct {
 	Tablets       string `yaml:"tablets"`
 	SSLEnabled    string `yaml:"ssl-enabled,omitempty"`
 	BackupMethod  string `yaml:"backup-method,omitempty"`
+	RestoreMethod string `yaml:"restore-method,omitempty"`
 }
 
 func (cfg integrationTestCfg) name() string {
@@ -36,6 +37,9 @@ func (cfg integrationTestCfg) name() string {
 	}
 	if cfg.BackupMethod != "" {
 		parts = append(parts, cfg.BackupMethod)
+	}
+	if cfg.RestoreMethod != "" {
+		parts = append(parts, cfg.RestoreMethod)
 	}
 	return strings.Join(parts, "-")
 }
