@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -188,6 +189,12 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	}
 	w.initMetrics(workload)
 
+	if w.target.Method == MethodNative {
+		if err := workload.NativeRestoreSupport(); err != nil {
+			return errors.Wrap(err, "ensure native restore support")
+		}
+	}
+
 	// This defer is outside of target field check for improved safety.
 	// We always want to enable auto compaction outside the restore.
 	defer func() {
@@ -234,8 +241,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			return errors.Errorf("unknown node IP %s, known node IPs %v", ip, slices.Collect(maps.Keys(w.nodeConfig)))
 		}
 
-		hostScyllaRestoreSupport := w.hostScyllaRestoreSupport(ctx, hi.Host, nc)
-		if hostScyllaRestoreSupport {
+		if err := w.hostNativeRestoreSupport(ctx, hi.Host, nc.NodeInfo, w.target.Location); err == nil {
 			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
 			if err != nil {
 				return err
@@ -250,7 +256,6 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			if err := w.checkAvailableDiskSpace(ctx, hi.Host); err != nil {
 				return errors.Wrap(err, "validate free disk space")
 			}
-			// Download and stream in parallel
 			b, ok := bd.DispatchBatch(ctx, hi.Host)
 			if !ok {
 				w.logger.Info(ctx, "No more batches to restore", "host", hi.Host)
@@ -258,37 +263,12 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
-			ok, err := w.tryScyllaRestore(ctx, hostScyllaRestoreSupport, hi.Host, b, nc)
-			if err != nil {
+			if err := w.restoreBatch(ctx, hi, nc, b); err != nil {
 				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
 				w.logger.Error(ctx, "Failed to restore batch",
 					"host", hi.Host,
 					"keyspace", b.Keyspace,
 					"table", b.Table,
-					"error", err)
-				continue
-			}
-			if ok {
-				bd.ReportSuccess(b)
-				continue
-			}
-
-			w.logger.Info(ctx, "Use Rclone copypaths API",
-				"host", host,
-				"keyspace", b.Keyspace,
-				"table", b.Table)
-			pr, err := w.newRunProgress(ctx, hi, b)
-			if err != nil {
-				err = multierr.Append(errors.Wrap(err, "create new run progress"), bd.ReportFailure(hi.Host, b))
-				w.logger.Error(ctx, "Failed to create new run progress",
-					"host", hi.Host,
-					"error", err)
-				continue
-			}
-			if err := w.restoreBatch(ctx, b, pr); err != nil {
-				err = multierr.Append(errors.Wrap(err, "load and stream batch"), bd.ReportFailure(hi.Host, b))
-				w.logger.Error(ctx, "Failed to load and stream batch",
-					"host", hi.Host,
 					"error", err)
 				continue
 			}
@@ -311,6 +291,36 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		return bd.ValidateAllDispatched()
 	}
 	return err
+}
+
+func (w *tablesWorker) restoreBatch(ctx context.Context, hi HostInfo, nc configcache.NodeConfig, b batch) error {
+	if w.target.Method == MethodRclone {
+		return w.rcloneBatchRestore(ctx, hi, b)
+	}
+
+	// Handle lack of native restore support on the host level
+	if err := hostNativeRestoreSupport(nc.NodeInfo, w.target.Location); err != nil {
+		if w.target.Method == MethodNative {
+			return errors.Wrap(err, "ensure native restore support")
+		}
+		return w.rcloneBatchRestore(ctx, hi, b)
+	}
+
+	if w.target.Method == MethodNative {
+		if err := b.NativeRestoreSupport(); err != nil {
+			return errors.Wrap(err, "ensure native restore support")
+		}
+		return w.nativeBatchRestore(ctx, hi.Host, nc, b)
+	}
+
+	if w.target.Method == MethodAuto {
+		if err := w.batchNativeRestoreSupport(ctx, hi.Host, b); err != nil {
+			return w.rcloneBatchRestore(ctx, hi, b)
+		}
+		return w.nativeBatchRestore(ctx, hi.Host, nc, b)
+	}
+
+	return errors.New("unknown method: " + string(w.target.Method))
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context) error {

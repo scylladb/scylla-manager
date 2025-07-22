@@ -16,5 +16,6 @@
   "snapshot_tag": "sm_20240520084025UTC",
   "batch_size": 2,
   "restore_tables": true,
-  "continue": true
+  "continue": true,
+  "method": "auto"
 }
