@@ -671,21 +671,7 @@ func TestRestoreTablesSmokeIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 0
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, testKeyspace, testBatchSize, testParallel, true)
 	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}")
 }
 
@@ -697,20 +683,7 @@ func TestRestoreSchemaSmokeIntegration(t *testing.T) {
 		testBatchSize = 2
 		testParallel  = 0
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, false)
 	smokeRestore(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser, "{'class': 'NetworkTopologyStrategy', 'dc1': 2}")
 }
 
@@ -765,21 +738,7 @@ func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 2
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, testKeyspace, testBatchSize, testParallel, true)
 	restoreWithAgentRestart(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
 }
 
@@ -845,22 +804,8 @@ func TestRestoreTablesResumeIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 3
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-		Continue:      true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, testKeyspace, testBatchSize, testParallel, true)
+	target.Continue = true
 	restoreWithResume(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
 }
 
@@ -872,21 +817,8 @@ func TestRestoreTablesResumeContinueFalseIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 3
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, testKeyspace, testBatchSize, testParallel, true)
+	target.Continue = false
 	restoreWithResume(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
 }
 
@@ -1037,21 +969,8 @@ func TestRestoreTablesVersionedIntegration(t *testing.T) {
 		testParallel  = 0
 		corruptCnt    = 3
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		Keyspace:      []string{testKeyspace},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, testKeyspace, testBatchSize, testParallel, true)
+	target.Method = MethodAuto
 	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt, testUser)
 }
 
@@ -1064,20 +983,8 @@ func TestRestoreSchemaVersionedIntegration(t *testing.T) {
 		testParallel  = 0
 		corruptCnt    = 3
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
+	target := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, false)
+	target.Method = MethodAuto
 	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt, testUser)
 }
 
@@ -1335,22 +1242,8 @@ func TestRestoreTablesViewCQLSchemaIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 0
 	)
-
-	target := Target{
-		Location: []backupspec.Location{
-			{
-				DC:       "dc1",
-				Provider: backupspec.S3,
-				Path:     testBucket,
-			},
-		},
-		// Check whether view will be restored even when it's not included
-		Keyspace:      []string{testKeyspace + "." + BigTableName},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	// Check whether view will be restored even when it's not included
+	target := defaultTestTarget("dc1", testBucket, testKeyspace+"."+BigTableName, testBatchSize, testParallel, true)
 	restoreViewCQLSchema(t, target, testKeyspace, testLoadCnt, testLoadSize, testUser)
 }
 
@@ -1420,31 +1313,9 @@ func TestRestoreFullViewSSTableSchemaIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 0
 	)
-
-	locs := []backupspec.Location{
-		{
-			DC:       "dc1",
-			Provider: backupspec.S3,
-			Path:     testBucket,
-		},
-	}
-
-	schemaTarget := Target{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
-	tablesTarget := Target{
-		Location: locs,
-		// Check whether view will be restored even when it's not included
-		Keyspace:      []string{testKeyspace + "." + BigTableName},
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	// Check whether view will be restored even when it's not included
+	schemaTarget := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, false)
+	tablesTarget := defaultTestTarget("dc1", testBucket, testKeyspace+"."+BigTableName, testBatchSize, testParallel, true)
 	restoreViewSSTableSchema(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize, testUser)
 }
 
@@ -1516,29 +1387,8 @@ func TestRestoreFullIntegration(t *testing.T) {
 		testBatchSize = 1
 		testParallel  = 3
 	)
-
-	locs := []backupspec.Location{
-		{
-			DC:       "dc1",
-			Provider: backupspec.S3,
-			Path:     testBucket,
-		},
-	}
-
-	schemaTarget := Target{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
-	tablesTarget := Target{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	schemaTarget := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, false)
+	tablesTarget := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, true)
 	restoreAllTables(t, schemaTarget, tablesTarget, testKeyspace, testLoadCnt, testLoadSize, testUser)
 }
 
@@ -1627,29 +1477,8 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 		testParallel       = 3
 		testAlternatorPort = 8000
 	)
-
-	locs := []backupspec.Location{
-		{
-			DC:       "dc1",
-			Provider: backupspec.S3,
-			Path:     testBucket,
-		},
-	}
-
-	schemaTarget := Target{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreSchema: true,
-	}
-
-	tablesTarget := Target{
-		Location:      locs,
-		BatchSize:     testBatchSize,
-		Parallel:      testParallel,
-		RestoreTables: true,
-	}
-
+	schemaTarget := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, false)
+	tablesTarget := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, true)
 	restoreAlternator(t, schemaTarget, tablesTarget, testKeyspace, testTable, testUser, testAlternatorPort)
 }
 

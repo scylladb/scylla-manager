@@ -187,6 +187,42 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 	return svc
 }
 
+func defaultTestTarget(locDC, locPath, ks string, batchSize, parallel int, restoreTables bool) Target {
+	target := Target{
+		Location: []backupspec.Location{
+			{
+				DC:       locDC,
+				Provider: backupspec.S3,
+				Path:     locPath,
+			},
+		},
+		BatchSize:     batchSize,
+		Parallel:      parallel,
+		RestoreTables: restoreTables,
+		RestoreSchema: !restoreTables,
+	}
+	if ks != "" {
+		target.Keyspace = []string{ks}
+	}
+	if testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
+		target.Method = Method(*testconfig.RestoreMethod())
+	}
+	return target
+}
+
+func defaultTestProperties(loc backupspec.Location, tag string, restoreTables bool) map[string]any {
+	properties := map[string]any{
+		"location":       []backupspec.Location{loc},
+		"snapshot_tag":   tag,
+		"restore_tables": restoreTables,
+		"restore_schema": !restoreTables,
+	}
+	if testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
+		properties["method"] = *testconfig.RestoreMethod()
+	}
+	return properties
+}
+
 func defaultTestBackupProperties(loc backupspec.Location, ks string) map[string]any {
 	properties := map[string]any{
 		"location": []backupspec.Location{loc},
