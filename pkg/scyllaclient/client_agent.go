@@ -184,10 +184,6 @@ func (ni NodeInfo) AlternatorTLSEnabled() (tlsEnabled, certAuth bool) {
 
 // SupportsRepairSmallTableOptimization returns true if /storage_service/repair_async/{keyspace} supports small_table_optimization param.
 func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
 	// Check OSS
 	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.0, < 2000")
 	if err != nil {
@@ -206,10 +202,6 @@ func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
 
 // SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
 func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
 	// Check ENT
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
 }
@@ -227,11 +219,6 @@ var (
 // SupportsSafeDescribeSchemaWithInternals returns not empty SafeDescribeMethod if the output of DESCRIBE SCHEMA WITH INTERNALS
 // is safe to use with backup/restore procedure and which method should be used to make sure that schema is consistent.
 func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMethod, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return SafeDescribeMethodReadBarrierAPI, nil
-	}
-
 	type featureByVersion struct {
 		Constraint string
 		Method     SafeDescribeMethod
@@ -257,20 +244,12 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 
 // SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
 func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
 	// Check ENT
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
 }
 
 // SupportsNativeRestoreAPI returns whether node exposes /storage_service/restore API.
 func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
-	// Detect master builds
-	if scyllaversion.MasterVersion(ni.ScyllaVersion) {
-		return true, nil
-	}
 	// Check ENT
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
 }
