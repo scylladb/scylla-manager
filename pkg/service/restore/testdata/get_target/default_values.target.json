@@ -17,5 +17,5 @@
   "batch_size": 2,
   "restore_tables": true,
   "continue": true,
-  "method": "auto"
+  "method": "rclone"
 }

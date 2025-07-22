@@ -19,5 +19,5 @@
   "parallel": 98,
   "restore_tables": true,
   "continue": true,
-  "method": "rclone"
+  "method": "auto"
 }

@@ -9,5 +9,5 @@
   "batch_size": 99,
   "restore_schema": true,
   "continue": true,
-  "method": "auto"
+  "method": "rclone"
 }
