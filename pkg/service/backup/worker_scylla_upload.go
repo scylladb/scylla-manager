@@ -13,15 +13,18 @@ import (
 )
 
 // hostNativeBackupSupport validates that native backup API can be used for given host.
-func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
-	ok, err := ni.SupportsNativeBackupAPI()
-	if err != nil {
-		return errors.Wrap(err, "check native backup api support")
+// Scylla version check is not performed for explicit --method=native.
+func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location, method Method) error {
+	if method != MethodNative {
+		ok, err := ni.SupportsNativeBackupAPI()
+		if err != nil {
+			return errors.Wrap(err, "check native backup api support")
+		}
+		if !ok {
+			return errors.New("native backup api is not supported")
+		}
 	}
-	if !ok {
-		return errors.New("native backup api is not supported")
-	}
-	_, err = ni.ScyllaObjectStorageEndpoint(loc.Provider)
+	_, err := ni.ScyllaObjectStorageEndpoint(loc.Provider)
 	if err != nil {
 		return errors.Wrap(err, "check scylla object storage endpoint")
 	}
@@ -30,7 +33,7 @@ func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location)
 
 // hostNativeBackupSupport is the regular hostNativeBackupSupport with logging on error.
 func (w *worker) hostNativeBackupSupport(ctx context.Context, host string, ni *scyllaclient.NodeInfo, loc backupspec.Location) error {
-	err := hostNativeBackupSupport(ni, loc)
+	err := hostNativeBackupSupport(ni, loc, w.Method)
 	if err != nil {
 		w.Logger.Info(ctx, "Can't use native backup api", "host", host, "error", err)
 	}

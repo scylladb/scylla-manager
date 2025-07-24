@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	stdMaps "maps"
 	"net/netip"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -192,6 +194,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 	if err != nil {
 		return worker{}, errors.Wrap(err, "parse node config IP address")
 	}
+	s.logger.Info(ctx, "Collected node configs", "hosts", slices.Collect(stdMaps.Keys(nodeConfig)))
 
 	return worker{
 		run: &Run{

@@ -306,9 +306,7 @@ func (s *Service) pingAlternator(ctx context.Context, _ uuid.UUID, host string, 
 
 	pingFunc := dynamoping.SimplePing
 	if !config.RequiresAuthentication {
-		if queryPing, err := ni.SupportsAlternatorQuery(); err == nil && queryPing {
-			pingFunc = dynamoping.QueryPing
-		}
+		pingFunc = dynamoping.QueryPing
 	}
 
 	tlsConfig := ni.AlternatorTLSConfig()

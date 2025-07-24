@@ -32,6 +32,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -50,17 +51,13 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, "GRANT CREATE ON ALL KEYSPACES TO "+user)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("user", "")}
-	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	loc := testLocation("user", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	h.runRestore(t, defaultTestProperties(loc, tag, true))
 
 	Print("Log in via restored user and check permissions")
 	userSession := CreateManagedClusterSession(t, false, h.dstCluster.Client, user, pass)
@@ -92,19 +89,16 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("no-replication", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("no-replication", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
+	h.runRestore(t, props)
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
 }
@@ -146,20 +140,16 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run src backup")
-	loc := []backupspec.Location{testLocation("schema-roundtrip", "")}
-	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	loc := testLocation("schema-roundtrip", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Drop backed-up src cluster schema")
 	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+ks)
 
 	Print("Run restore of src backup on dst cluster")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_schema": true,
-	})
+	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Save dst describe schema output from src backup")
 	dstSchemaSrcBackup, err := query.DescribeSchemaWithInternals(h.dstCluster.rootSession)
@@ -168,15 +158,11 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run dst backup")
-	tag = hRev.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	tag = hRev.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore of dst backup on src cluster")
 	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
-	hRev.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_schema": true,
-	})
+	hRev.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Save src describe schema output from dst backup")
 	srcSchemaDstBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
@@ -267,27 +253,20 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("drop-add", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("drop-add", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Run restore schema")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_schema": true,
-	})
+	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Run restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
+	h.runRestore(t, props)
 
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
 }
@@ -326,10 +305,10 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	}
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("vnode-to-tablets", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("vnode-to-tablets", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ks))
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Manually recreate tablet schema")
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 3, true))
@@ -337,12 +316,9 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 
 	Print("Run restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
+	h.runRestore(t, props)
 
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
 }
@@ -412,8 +388,8 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks2, tab1, tab2)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("paused", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("paused", "")
+	S3InitBucket(t, loc.Path)
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
 	// but backed up views should still be tested as older backups might
@@ -423,7 +399,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	h.srcCluster.TaskID = uuid.NewTime()
 	h.srcCluster.RunID = uuid.NewTime()
 
-	rawProps, err := json.Marshal(defaultTestBackupProperties(loc[0], ""))
+	rawProps, err := json.Marshal(defaultTestBackupProperties(loc, ""))
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "marshal properties"))
 	}
@@ -447,12 +423,8 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 
 	Print("Run restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks1, ks2}, h.dstUser)
-	props := map[string]any{
-		"location":       loc,
-		"keyspace":       []string{ks1, ks2},
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	}
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = []string{ks1, ks2}
 	err = runPausedRestore(t, func(ctx context.Context) error {
 		h.dstCluster.RunID = uuid.NewTime()
 		rawProps, err := json.Marshal(props)
@@ -490,14 +462,17 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBackupSupport, err := ni.SupportsNativeBackupAPI()
+	nativeBackupSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeRestoreSupport, err := ni.SupportsNativeRestoreAPI()
+	nativeBackup := nativeBackupSupport && !IsIPV6Network()
+	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
+	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
 	if err != nil {
 		t.Fatal(err)
 	}
+	nativeRestore := nativeRestoreSupport && !IsIPV6Network()
 
 	Print("Keyspace setup")
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
@@ -514,28 +489,8 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	Print("Fill setup")
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
 
-	// Choose expected API - load&stream or native restore depending on node version
-	ensuredPath := "/storage_service/sstables"
-	blockedPath := "/storage_service/restore"
-	if nativeRestoreSupport {
-		ensuredPath, blockedPath = blockedPath, ensuredPath
-	}
-
-	Printf("Expect that %q API will be used for restore, while %q API won't be used at all", ensuredPath, blockedPath)
-	encounteredEnsured := atomic.Bool{}
-	encounteredBlocked := atomic.Bool{}
-	// Should always be set (also as a part of other interceptors)
-	apiInterceptor := func(req *http.Request) {
-		if strings.HasPrefix(req.URL.Path, ensuredPath) {
-			encounteredEnsured.Store(true)
-		}
-		if strings.HasPrefix(req.URL.Path, blockedPath) {
-			encounteredBlocked.Store(true)
-		}
-	}
 	setDstInterceptor := func(interceptor httpx.RoundTripperFunc) {
 		h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			apiInterceptor(req)
 			if interceptor != nil {
 				return interceptor.RoundTrip(req)
 			}
@@ -549,10 +504,8 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 		if got := tombstoneGCMode(t, ch.rootSession, ks, tab); tombstone != got {
 			t.Errorf("expected tombstone_gc=%s, got %s", tombstone, got)
 		}
-		// Restore with Scylla API does not need to directly control
-		// compaction, transfers, rate limit, cpu pinning.
-		// We only need to check for user task TTL.
-		if nativeRestoreSupport {
+		// Validate user task TTL
+		if nativeBackupSupport {
 			for _, host := range ch.Client.Config().Hosts {
 				got, err := ch.Client.ScyllaGetUserTaskTTL(context.Background(), host)
 				if err != nil {
@@ -562,7 +515,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 					t.Errorf("Expected user_task_ttl=%d, got=%d on host %s", ttl, got, host)
 				}
 			}
-			return
 		}
 		// Validate compaction
 		for _, host := range ch.Client.Config().Hosts {
@@ -572,30 +524,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 			}
 			if compaction != enabled {
 				t.Errorf("expected compaction enabled=%v, got=%v on host %s", compaction, enabled, host)
-			}
-		}
-		// Validate transfers
-		for _, host := range ch.Client.Config().Hosts {
-			got, err := ch.Client.RcloneGetTransfers(context.Background(), host)
-			if err != nil {
-				t.Fatal(errors.Wrapf(err, "check transfers on host %s", host))
-			}
-			if transfers != got {
-				t.Errorf("expected transfers=%d, got=%d on host %s", transfers, got, host)
-			}
-		}
-		// Validate rate limit
-		for _, host := range ch.Client.Config().Hosts {
-			got, err := ch.Client.RcloneGetBandwidthLimit(context.Background(), host)
-			if err != nil {
-				t.Fatal(errors.Wrapf(err, "check rate limit on host %s", host))
-			}
-			rawLimit := fmt.Sprintf("%dM", rateLimit)
-			if rateLimit == 0 {
-				rawLimit = "off"
-			}
-			if rawLimit != got {
-				t.Errorf("expected rate_limit=%s, got=%s on host %s", rawLimit, got, host)
 			}
 		}
 		// Validate cpu pinning
@@ -626,14 +554,10 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	setTransfersAndRateLimitAndPinnedCPU := func(ch clusterHelper, transfers int, rateLimit int, pin bool, ttl int64) {
 		for _, host := range ch.Client.Config().Hosts {
-			// Restore with Scylla API does not need to directly control
-			// compaction, transfers, rate limit, cpu pinning.
-			// We only need to set user task TTL.
-			if nativeRestoreSupport {
+			if nativeBackupSupport {
 				if err := ch.Client.ScyllaSetUserTaskTTL(context.Background(), host, ttl); err != nil {
 					t.Fatalf("Set user task ttl on host %s: %s", host, err)
 				}
-				continue
 			}
 			err := ch.Client.RcloneSetTransfers(context.Background(), host, transfers)
 			if err != nil {
@@ -665,16 +589,17 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("preparation", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("preparation", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["transfers"] = 3
 	backupProps["rate_limit"] = []string{"88"}
+	backupProps["method"] = backup.MethodAuto
 	tag := h.runBackup(t, backupProps)
 
 	Print("Validate state after backup")
-	if nativeBackupSupport && !IsIPV6Network() {
+	if nativeBackup {
 		validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 	} else {
 		validateState(h.srcCluster, "repair", true, 3, 88, pinnedCPU, 1)
@@ -683,15 +608,16 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
 		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.dstCluster.RunID = uuid.NewTime()
-		rawProps, err := json.Marshal(map[string]any{
-			"location":        loc,
-			"keyspace":        ksFilter,
-			"snapshot_tag":    tag,
-			"transfers":       0,
-			"rate_limit":      []string{"0"},
-			"unpin_agent_cpu": true,
-			"restore_tables":  true,
-		})
+		props := defaultTestProperties(loc, tag, true)
+		props["keyspace"] = ksFilter
+		props["transfers"] = 0
+		props["rate_limit"] = []string{"0"}
+		props["unpin_agent_cpu"] = true
+		props["method"] = restore.MethodAuto
+		if nativeRestore {
+			props["method"] = restore.MethodNative
+		}
+		rawProps, err := json.Marshal(props)
 		if err != nil {
 			finishedRestore <- err
 			return
@@ -738,7 +664,11 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data")
-	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
+	if nativeRestore {
+		validateState(h.dstCluster, "disabled", false, 10, 99, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
+	} else {
+		validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, 1)
+	}
 
 	Print("Pause restore")
 	restoreCancel()
@@ -753,7 +683,11 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during pause")
-	validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU, 1)
+	if nativeRestore {
+		validateState(h.dstCluster, "disabled", true, 10, 99, pinnedCPU, 1)
+	} else {
+		validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU, 1)
+	}
 
 	Print("Change transfers and rate limit during pause")
 	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 9, 55, false, 2)
@@ -775,7 +709,11 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data after pause")
-	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
+	if nativeRestore {
+		validateState(h.dstCluster, "disabled", false, 9, 55, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
+	} else {
+		validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, 2)
+	}
 
 	Print("Release LAS")
 	close(hangLAS)
@@ -787,7 +725,11 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state after restore success")
-	validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU, 2)
+	if nativeRestore {
+		validateState(h.dstCluster, "repair", true, 9, 55, pinnedCPU, 2)
+	} else {
+		validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU, 2)
+	}
 
 	Print("Validate table contents")
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -818,19 +760,15 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab1, tab2, tab3)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("batch-retry", "")}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("batch-retry", "")
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
-	backupProps := defaultTestBackupProperties(loc[0], ks)
+	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["batch_size"] = 100
 	tag := h.runBackup(t, backupProps)
 
-	props := map[string]any{
-		"location":       loc,
-		"keyspace":       ksFilter,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	}
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = ksFilter
 
 	t.Run("batch retry finished with success", func(t *testing.T) {
 		Print("Inject errors to some download and las calls")
@@ -1012,15 +950,11 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	go func() {
-		h.runRestore(t, map[string]any{
-			"location": loc,
-			"keyspace": ksFilter,
-			// Test if batching does not hang with
-			// limited parallel and location access.
-			"parallel":       1,
-			"snapshot_tag":   tag,
-			"restore_tables": true,
-		})
+		props := defaultTestProperties(backupspec.Location{}, tag, true)
+		props["location"] = loc
+		props["keyspace"] = ksFilter
+		props["parallel"] = 1 // Test if batching does not hang with limited parallel and location access
+		h.runRestore(t, props)
 		close(res)
 	}()
 
@@ -1077,17 +1011,14 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 1, ks, tab)
 
 	Print("Run backup")
-	loc := []backupspec.Location{testLocation("progress", "")}
-	S3InitBucket(t, loc[0].Path)
-	tag := h.runBackup(t, defaultTestBackupProperties(loc[0], ""))
+	loc := testLocation("progress", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	h.runRestore(t, map[string]any{
-		"location":       loc,
-		"snapshot_tag":   tag,
-		"restore_tables": true,
-	})
+	props := defaultTestProperties(loc, tag, true)
+	h.runRestore(t, props)
 
 	Print("Validate success")
 	for _, tab := range tabToValidate {
@@ -1162,12 +1093,11 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	srcMTwoDC := selectTableAsMap[int, int](t, h.srcCluster.rootSession, ksTwoDC, tab, "id", "data")
 
 	Print("Run backup")
-	loc := []backupspec.Location{
-		testLocation("one-location-1", ""),
-	}
-	S3InitBucket(t, loc[0].Path)
+	loc := testLocation("one-location-1", "")
+
+	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ksTwoDC, ksOneDC}
-	backupProps := defaultTestBackupProperties(loc[0], "")
+	backupProps := defaultTestBackupProperties(loc, "")
 	backupProps["keyspace"] = ksFilter
 	backupProps["batch_size"] = 100
 	tag := h.runBackup(t, backupProps)
@@ -1176,18 +1106,13 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	go func() {
-		h.runRestore(t, map[string]any{
-			"location": loc,
-			"keyspace": ksFilter,
-			// Test if batching does not hang with
-			// limited parallel and location access.
-			"parallel":       1,
-			"snapshot_tag":   tag,
-			"restore_tables": true,
-			"dc_mapping": map[string]string{
-				"dc1": "dc1",
-			},
-		})
+		props := defaultTestProperties(loc, tag, true)
+		props["keyspace"] = ksFilter
+		props["parallel"] = 1 // Test if batching does not hang with limited parallel and location access
+		props["dc_mapping"] = map[string]string{
+			"dc1": "dc1",
+		}
+		h.runRestore(t, props)
 		close(res)
 	}()
 
@@ -1256,13 +1181,11 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 		"dc2": "dc2",
 	}
 	go func() {
-		h.runRestore(t, map[string]any{
-			"location":       loc,
-			"keyspace":       ksFilter,
-			"snapshot_tag":   tag,
-			"restore_tables": true,
-			"dc_mapping":     dcMappings,
-		})
+		props := defaultTestProperties(backupspec.Location{}, tag, true)
+		props["location"] = loc
+		props["keyspace"] = ksFilter
+		props["dc_mapping"] = dcMappings
+		h.runRestore(t, props)
 		close(res)
 	}()
 
@@ -1281,7 +1204,7 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	}
 
 	Print("Ensure nodes downloaded tables only from corresponding DC")
-	// Restore run progess has RemoteSSTableDir of downloaded table which contains dc name in the path.
+	// Restore run progress has RemoteSSTableDir of downloaded table which contains dc name in the path.
 	// We can compare this dc with the host dc (apply mappings) and they should be equal.
 	restoreProgress := selectRestoreRunProgress(t, h)
 	sourceDCByTargetDC := revertDCMapping(dcMappings)
@@ -1299,6 +1222,138 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 		if actualDC != expectedSourceDC {
 			t.Fatalf("Host should download data only from %s, but downloaded from %s", expectedSourceDC, actualDC)
 		}
+	}
+}
+
+func TestRestoreTablesMethodIntegration(t *testing.T) {
+	// This test validates that the correct API is used
+	// for restoring batches (Rclone or Scylla).
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
+	ctx := context.Background()
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	ks := randomizedName("method_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Fill setup")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	Print("Backup setup")
+	loc := testLocation("method", "")
+	S3InitBucket(t, loc.Path)
+	ksFilter := []string{ks}
+	backupProps := defaultTestBackupProperties(loc, ks)
+	tag := h.runBackup(t, backupProps)
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+
+	const (
+		rcloneAPIPath = "/storage_service/sstables"
+		nativeAPIPath = "/storage_service/restore"
+	)
+
+	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
+	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type testCase struct {
+		method           restore.Method
+		blockedPath      string
+		ensuredPath      string
+		getTargetSuccess bool
+	}
+	var testCases []testCase
+	// As currently scylla can't handle ipv6 object storage endpoints,
+	// we don't configure them for ipv6 test env and don't expect them to work.
+	switch {
+	case nativeRestoreSupport && !IsIPV6Network():
+		testCases = []testCase{
+			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	case nativeRestoreSupport && IsIPV6Network():
+		testCases = []testCase{
+			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, getTargetSuccess: false},
+			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	default:
+		testCases = []testCase{
+			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, getTargetSuccess: false},
+			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Test case: %s, %s, %s, %v", tc.method, tc.ensuredPath, tc.blockedPath, tc.getTargetSuccess), func(t *testing.T) {
+			if err := h.dstCluster.rootSession.ExecStmt(fmt.Sprintf("TRUNCATE TABLE %q.%q", ks, tab)); err != nil {
+				t.Fatal(err)
+			}
+
+			encounteredEnsured := atomic.Bool{}
+			encounteredBlocked := atomic.Bool{}
+			h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if strings.HasPrefix(req.URL.Path, tc.ensuredPath) {
+					encounteredEnsured.Store(true)
+				}
+				if strings.HasPrefix(req.URL.Path, tc.blockedPath) {
+					encounteredBlocked.Store(true)
+				}
+				return nil, nil
+			}))
+
+			h.dstCluster.RunID = uuid.NewTime()
+			props := defaultTestProperties(loc, tag, true)
+			props["keyspace"] = ksFilter
+			props["method"] = tc.method
+			if tc.method == "" {
+				delete(props, "method")
+			}
+			rawProps, err := json.Marshal(props)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !tc.getTargetSuccess {
+				_, _, _, err := h.dstRestoreSvc.GetTargetUnitsViews(ctx, h.dstCluster.ClusterID, rawProps)
+				if err != nil {
+					return
+				}
+				t.Fatal("Expected GetTargetUnitsViews to fail")
+			}
+
+			err = h.dstRestoreSvc.Restore(ctx, h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !encounteredEnsured.Load() {
+				t.Fatalf("Expected SM to use %q API", tc.ensuredPath)
+			}
+			if encounteredBlocked.Load() {
+				t.Fatalf("Expected SM not to use %q API", tc.blockedPath)
+			}
+
+			h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+		})
 	}
 }
 

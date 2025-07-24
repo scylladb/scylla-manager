@@ -40,6 +40,7 @@
   tablets: disabled
   ssl-enabled: true
   backup-method: native
+  restore-method: native
 
 - scylla-version: scylla-nightly:latest
   ip-family: IPV6
@@ -47,3 +48,4 @@
   tablets: enabled
   ssl-enabled: false
   backup-method: rclone
+  restore-method: rclone
