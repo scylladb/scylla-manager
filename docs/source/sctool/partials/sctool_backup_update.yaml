@@ -100,7 +100,8 @@ options:
         The native API also requires 'object_storage_endpoints' to be configured in 'scylla.yaml' (See https://docs.scylladb.com/manual/stable/operating-scylla/admin.html#object-storage-configuration).
 
         '--rate-limit' and '--transfers' flags do not take effect when using '--method=native',
-        as the upload performance is controlled by the Scylla server.
+        as the upload performance is controlled by the Scylla server. In order to control it on the Scylla server side,
+        configure 'stream_io_throughput_mb_per_sec' in 'scylla.yaml' (See https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec).
     - name: name
       usage: |
         Task name that can be used instead of ID.
