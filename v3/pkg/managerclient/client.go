@@ -137,7 +137,7 @@ func (c *Client) DeleteCluster(ctx context.Context, clusterID string) error {
 }
 
 // DeleteClusterSecrets removes cluster secrets.
-func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, sslUserCert bool) error {
+func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, alternatorCreds, sslUserCert bool) error {
 	ok := false
 	p := &operations.DeleteClusterClusterIDParams{
 		Context:   ctx,
@@ -145,6 +145,10 @@ func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cql
 	}
 	if cqlCreds {
 		p.CqlCreds = &cqlCreds
+		ok = true
+	}
+	if alternatorCreds {
+		p.AlternatorCreds = &alternatorCreds
 		ok = true
 	}
 	if sslUserCert {
