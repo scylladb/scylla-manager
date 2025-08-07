@@ -129,7 +129,7 @@ func isBadRequestErr(err error) bool {
 	cause := errors.Cause(err)
 	return rc.IsErrParamInvalid(err) ||
 		rc.IsErrParamNotFound(err) ||
-		IsErrParamInvalid(err) ||
+		IsParamInvalidError(err) ||
 		cause == fs.ErrorIsFile ||
 		cause == fs.ErrorNotAFile ||
 		cause == fs.ErrorDirectoryNotEmpty ||
@@ -309,19 +309,19 @@ func validateFsName(in rc.Params) error {
 			return err
 		}
 		if !rclone.HasProvider(remote) {
-			return errParamInvalid{errors.Errorf("invalid provider %s in %s param", remote, name)}
+			return paramInvalidError{errors.Errorf("invalid provider %s in %s param", remote, name)}
 		}
 	}
 	return nil
 }
 
-type errParamInvalid struct {
+type paramInvalidError struct {
 	error
 }
 
-// IsErrParamInvalid checks if the provided error is invalid.
+// IsParamInvalidError checks if the provided error is invalid.
 // Added as a workaround for private error field of fs.ErrParamInvalid.
-func IsErrParamInvalid(err error) bool {
-	_, ok := err.(errParamInvalid) // nolint: errorlint
+func IsParamInvalidError(err error) bool {
+	_, ok := err.(paramInvalidError) // nolint: errorlint
 	return ok
 }

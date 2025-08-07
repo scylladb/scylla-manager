@@ -46,7 +46,6 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - err113
-    - gomnd
     - ireturn
     - nilerr
     - nlreturn
@@ -58,9 +57,10 @@ linters:
     - varnamelen
     - wrapcheck
     - wsl
-    - exportloopref
-    - execinquery
     - mnd
+    - tenv
+    - gomoddirectives
+    - recvcheck
 
 issues:
   exclude-files:
