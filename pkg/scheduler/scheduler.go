@@ -37,7 +37,7 @@ var (
 func newRunContext[K comparable](key K, properties Properties, stop time.Time) (*RunContext[K], context.CancelCauseFunc) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	if !stop.IsZero() {
-		ctx, _ = context.WithDeadlineCause(ctx, stop, ErrOutOfWindowTask)
+		ctx, _ = context.WithDeadlineCause(ctx, stop, ErrOutOfWindowTask) // nolint:govet
 	}
 
 	return &RunContext[K]{
