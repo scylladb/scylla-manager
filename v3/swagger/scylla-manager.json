@@ -44,6 +44,12 @@
         "password": {
           "type": "string"
         },
+        "alternator_access_key_id": {
+          "type": "string"
+        },
+        "alternator_secret_access_key": {
+          "type": "string"
+        },
         "labels": {
           "type": "object",
           "additionalProperties": {
@@ -1498,6 +1504,11 @@
           {
             "type": "boolean",
             "name": "cql_creds",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "name": "alternator_creds",
             "in": "query"
           },
           {
