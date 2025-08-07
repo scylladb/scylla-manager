@@ -21,6 +21,8 @@ const (
 	// UnsafeSchema is the name of the schema file that shouldn't be used for restore
 	// (so for Scylla versions older than 6.0).
 	UnsafeSchema = "schema.tar.gz"
+	// AlternatorSchema is the suffix of the alternator schema file.
+	AlternatorSchema = "alternator_schema.json.gz"
 	// TempFileExt is suffix for the temporary files.
 	TempFileExt = ".tmp"
 
@@ -120,6 +122,22 @@ func RemoteUnsafeSchemaFile(clusterID, taskID uuid.UUID, snapshotTag string) str
 	return path.Join(
 		remoteSchemaDir(clusterID),
 		manifestName,
+	)
+}
+
+// AlternatorSchemaPath returns path to the alternator schema file starting at backup dir root.
+// It has the following format: 'backup/schema/cluster/<cluster_ID>/task_<task_ID>_tag_<snapshot_tag>_alternator_schema.json.gz'
+func AlternatorSchemaPath(clusterID, taskID uuid.UUID, snapshotTag string) string {
+	fileName := strings.Join([]string{
+		"task",
+		taskID.String(),
+		"tag",
+		snapshotTag,
+		AlternatorSchema,
+	}, "_")
+	return path.Join(
+		remoteSchemaDir(clusterID),
+		fileName,
 	)
 }
 
