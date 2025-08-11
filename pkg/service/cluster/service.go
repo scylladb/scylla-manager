@@ -518,7 +518,19 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 			Password:  c.Password,
 		})
 		if err != nil {
-			return errors.Wrap(err, "save SSL cert file")
+			return errors.Wrap(err, "save CQL credentials")
+		}
+		rollback = append(rollback, r)
+	}
+
+	if c.AlternatorAccessKeyID != "" {
+		r, err := store.PutWithRollback(s.secretsStore, &secrets.AlternatorCreds{
+			ClusterID:       c.ID,
+			AccessKeyID:     c.AlternatorAccessKeyID,
+			SecretAccessKey: c.AlternatorSecretAccessKey,
+		})
+		if err != nil {
+			return errors.Wrap(err, "save alternator credentials")
 		}
 		rollback = append(rollback, r)
 	}
@@ -635,6 +647,21 @@ func (s *Service) CheckCQLCredentials(id uuid.UUID) (bool, error) {
 // DeleteCQLCredentials removes the associated CQLCreds from secrets store.
 func (s *Service) DeleteCQLCredentials(_ context.Context, clusterID uuid.UUID) error {
 	return s.secretsStore.Delete(&secrets.CQLCreds{
+		ClusterID: clusterID,
+	})
+}
+
+// CheckAlternatorCredentials checks if associated AlternatorCreds exist in secrets store.
+func (s *Service) CheckAlternatorCredentials(id uuid.UUID) (bool, error) {
+	credentials := secrets.AlternatorCreds{
+		ClusterID: id,
+	}
+	return s.secretsStore.Check(&credentials)
+}
+
+// DeleteAlternatorCredentials removes the associated AlternatorCreds from secrets store.
+func (s *Service) DeleteAlternatorCredentials(_ context.Context, clusterID uuid.UUID) error {
+	return s.secretsStore.Delete(&secrets.AlternatorCreds{
 		ClusterID: clusterID,
 	})
 }

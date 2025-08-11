@@ -77,7 +77,11 @@ func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if cluster CQL credentials are set, but don't return them
+	// Check if cluster CQL and alternator credentials are set, but don't return them
+	const (
+		setCreds   = "set"
+		unsetCreds = "not set"
+	)
 	for _, c := range ids {
 		ok, err := h.svc.CheckCQLCredentials(c.ID)
 		if err != nil {
@@ -85,11 +89,24 @@ func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if ok {
-			c.Username = "set"
-			c.Password = "set"
+			c.Username = setCreds
+			c.Password = setCreds
 		} else {
-			c.Username = "not set"
-			c.Password = "not set"
+			c.Username = unsetCreds
+			c.Password = unsetCreds
+		}
+
+		ok, err = h.svc.CheckAlternatorCredentials(c.ID)
+		if err != nil {
+			respondError(w, r, errors.Wrapf(err, "cluster %s: check alternator credentials", c.ID))
+			return
+		}
+		if ok {
+			c.AlternatorAccessKeyID = setCreds
+			c.AlternatorSecretAccessKey = setCreds
+		} else {
+			c.AlternatorAccessKeyID = unsetCreds
+			c.AlternatorSecretAccessKey = unsetCreds
 		}
 	}
 
@@ -153,13 +170,21 @@ func (h clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	c := mustClusterFromCtx(r)
 
 	var (
-		deleteCQLCredentials bool
-		deleteSSLUserCert    bool
-		err                  error
+		deleteCQLCredentials        bool
+		deleteAlternatorCredentials bool
+		deleteSSLUserCert           bool
+		err                         error
 	)
 
 	if v := r.FormValue("cql_creds"); v != "" {
 		deleteCQLCredentials, err = strconv.ParseBool(v)
+		if err != nil {
+			respondBadRequest(w, r, err)
+			return
+		}
+	}
+	if v := r.FormValue("alternator_creds"); v != "" {
+		deleteAlternatorCredentials, err = strconv.ParseBool(v)
 		if err != nil {
 			respondBadRequest(w, r, err)
 			return
@@ -173,7 +198,7 @@ func (h clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if !deleteCQLCredentials && !deleteSSLUserCert {
+	if !deleteCQLCredentials && !deleteAlternatorCredentials && !deleteSSLUserCert {
 		if err := h.svc.DeleteCluster(r.Context(), c.ID); err != nil {
 			respondError(w, r, errors.Wrapf(err, "delete cluster %q", c.ID))
 			return
@@ -182,6 +207,12 @@ func (h clusterHandler) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	if deleteCQLCredentials {
 		if err := h.svc.DeleteCQLCredentials(r.Context(), c.ID); err != nil {
 			respondError(w, r, errors.Wrapf(err, "delete CQL credentials for cluster %q", c.ID))
+			return
+		}
+	}
+	if deleteAlternatorCredentials {
+		if err := h.svc.DeleteAlternatorCredentials(r.Context(), c.ID); err != nil {
+			respondError(w, r, errors.Wrapf(err, "delete alternator credentials for cluster %q", c.ID))
 			return
 		}
 	}
