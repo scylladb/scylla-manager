@@ -429,6 +429,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := secretsStore.Get(cqlCreds); err != nil {
 			t.Fatal(err)
 		}
+		alternatorCreds := &secrets.AlternatorCreds{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(alternatorCreds); err != nil {
+			t.Fatal(err)
+		}
 		tlsIdentity := &secrets.TLSIdentity{
 			ClusterID: c.ID,
 		}
@@ -436,9 +442,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		goldenCqlCreds, goldenTlsIdentity := goldenSecrets(c)
+		goldenCqlCreds, goldenAlternatorCreds, goldenTlsIdentity := goldenSecrets(c)
 		if diff := cmp.Diff(goldenCqlCreds, cqlCreds, diffOpts...); diff != "" {
 			t.Error("Invalid CQL creds, diff", diff)
+		}
+		if diff := cmp.Diff(goldenAlternatorCreds, alternatorCreds, diffOpts...); diff != "" {
+			t.Error("Invalid alternator creds, diff", diff)
 		}
 		if diff := cmp.Diff(goldenTlsIdentity, tlsIdentity, diffOpts...); diff != "" {
 			t.Error("Invalid TLS identity, diff", diff)
@@ -521,6 +530,44 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("check existing alternator credentials", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		ok, err := s.CheckAlternatorCredentials(c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Fatal("expected true")
+		}
+	})
+
+	t.Run("check non-existing alternator credentials", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+		c.AlternatorAccessKeyID = ""
+		c.AlternatorSecretAccessKey = ""
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		ok, err := s.CheckAlternatorCredentials(c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Fatal("expected false")
+		}
+	})
+
 	t.Run("delete cluster removes secrets", func(t *testing.T) {
 		setup(t)
 
@@ -546,6 +593,12 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err := secretsStore.Get(tlsIdentity); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
+		alternatorCreds := &secrets.AlternatorCreds{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(alternatorCreds); !errors.Is(err, util.ErrNotFound) {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("delete CQL credentials", func(t *testing.T) {
@@ -565,6 +618,27 @@ func TestServiceStorageIntegration(t *testing.T) {
 			ClusterID: c.ID,
 		}
 		if err := secretsStore.Get(cqlCreds); !errors.Is(err, util.ErrNotFound) {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("delete alternator credentials", func(t *testing.T) {
+		setup(t)
+
+		c := tlsCluster()
+		c.ID = uuid.Nil
+
+		if err := s.PutCluster(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.DeleteAlternatorCredentials(ctx, c.ID); err != nil {
+			t.Fatal(err)
+		}
+
+		alternatorCreds := &secrets.AlternatorCreds{
+			ClusterID: c.ID,
+		}
+		if err := secretsStore.Get(alternatorCreds); !errors.Is(err, util.ErrNotFound) {
 			t.Fatal(err)
 		}
 	})
@@ -843,16 +917,22 @@ func tlsCluster() *cluster.Cluster {
 	c := validCluster()
 	c.Username = "user"
 	c.Password = "password"
+	c.AlternatorAccessKeyID = "id"
+	c.AlternatorSecretAccessKey = "key"
 	c.SSLUserCertFile = tlsCert
 	c.SSLUserKeyFile = tlsKey
 	return c
 }
 
-func goldenSecrets(c *cluster.Cluster) (*secrets.CQLCreds, *secrets.TLSIdentity) {
+func goldenSecrets(c *cluster.Cluster) (*secrets.CQLCreds, *secrets.AlternatorCreds, *secrets.TLSIdentity) {
 	return &secrets.CQLCreds{
 			ClusterID: c.ID,
 			Username:  c.Username,
 			Password:  c.Password,
+		}, &secrets.AlternatorCreds{
+			ClusterID:       c.ID,
+			AccessKeyID:     c.AlternatorAccessKeyID,
+			SecretAccessKey: c.AlternatorSecretAccessKey,
 		}, &secrets.TLSIdentity{
 			ClusterID:  c.ID,
 			Cert:       c.SSLUserCertFile,

@@ -24,11 +24,13 @@ type Cluster struct {
 	ForceTLSDisabled       bool `json:"force_tls_disabled"`
 	ForceNonSSLSessionPort bool `json:"force_non_ssl_session_port"`
 
-	Username        string `json:"username,omitempty" db:"-"`
-	Password        string `json:"password,omitempty" db:"-"`
-	SSLUserCertFile []byte `json:"ssl_user_cert_file,omitempty" db:"-"`
-	SSLUserKeyFile  []byte `json:"ssl_user_key_file,omitempty" db:"-"`
-	WithoutRepair   bool   `json:"without_repair,omitempty" db:"-"`
+	Username                  string `json:"username,omitempty" db:"-"`
+	Password                  string `json:"password,omitempty" db:"-"`
+	AlternatorAccessKeyID     string `json:"alternator_access_key_id,omitempty" db:"-"`
+	AlternatorSecretAccessKey string `json:"alternator_secret_access_key,omitempty" db:"-"`
+	SSLUserCertFile           []byte `json:"ssl_user_cert_file,omitempty" db:"-"`
+	SSLUserKeyFile            []byte `json:"ssl_user_key_file,omitempty" db:"-"`
+	WithoutRepair             bool   `json:"without_repair,omitempty" db:"-"`
 }
 
 // String returns cluster Name or ID if Name is empty.
@@ -56,6 +58,12 @@ func (c *Cluster) Validate() error {
 	}
 	if c.Username != "" && c.Password == "" {
 		errs = multierr.Append(errs, errors.New("missing password"))
+	}
+	if c.AlternatorAccessKeyID == "" && c.AlternatorSecretAccessKey != "" {
+		errs = multierr.Append(errs, errors.New("missing alternator access key ID"))
+	}
+	if c.AlternatorAccessKeyID != "" && c.AlternatorSecretAccessKey == "" {
+		errs = multierr.Append(errs, errors.New("missing alternator secret access key"))
 	}
 	if len(c.SSLUserCertFile) != 0 && len(c.SSLUserKeyFile) == 0 {
 		errs = multierr.Append(errs, errors.New("missing SSL user key"))

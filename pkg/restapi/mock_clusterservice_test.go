@@ -36,6 +36,21 @@ func (m *MockClusterService) EXPECT() *MockClusterServiceMockRecorder {
 	return m.recorder
 }
 
+// CheckAlternatorCredentials mocks base method.
+func (m *MockClusterService) CheckAlternatorCredentials(arg0 uuid.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckAlternatorCredentials", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckAlternatorCredentials indicates an expected call of CheckAlternatorCredentials.
+func (mr *MockClusterServiceMockRecorder) CheckAlternatorCredentials(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckAlternatorCredentials", reflect.TypeOf((*MockClusterService)(nil).CheckAlternatorCredentials), arg0)
+}
+
 // CheckCQLCredentials mocks base method.
 func (m *MockClusterService) CheckCQLCredentials(arg0 uuid.UUID) (bool, error) {
 	m.ctrl.T.Helper()
@@ -49,6 +64,20 @@ func (m *MockClusterService) CheckCQLCredentials(arg0 uuid.UUID) (bool, error) {
 func (mr *MockClusterServiceMockRecorder) CheckCQLCredentials(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckCQLCredentials", reflect.TypeOf((*MockClusterService)(nil).CheckCQLCredentials), arg0)
+}
+
+// DeleteAlternatorCredentials mocks base method.
+func (m *MockClusterService) DeleteAlternatorCredentials(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAlternatorCredentials", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAlternatorCredentials indicates an expected call of DeleteAlternatorCredentials.
+func (mr *MockClusterServiceMockRecorder) DeleteAlternatorCredentials(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAlternatorCredentials", reflect.TypeOf((*MockClusterService)(nil).DeleteAlternatorCredentials), arg0, arg1)
 }
 
 // DeleteCQLCredentials mocks base method.

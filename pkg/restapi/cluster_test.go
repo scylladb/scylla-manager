@@ -30,6 +30,7 @@ func TestClusterList(t *testing.T) {
 
 	m := restapi.NewMockClusterService(ctrl)
 	m.EXPECT().CheckCQLCredentials(gomock.Any()).Return(true, nil)
+	m.EXPECT().CheckAlternatorCredentials(gomock.Any()).Return(true, nil)
 	m.EXPECT().ListClusters(gomock.Any(), &cluster.Filter{}).Return(expected, nil)
 
 	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
@@ -109,6 +110,33 @@ func TestClusterDeleteCQLCredentials(t *testing.T) {
 	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
 	r := httptest.NewRequest(http.MethodDelete, fmt.Sprint("/api/v1/cluster/", id), nil)
 	r.URL.RawQuery = "cql_creds=1"
+	r.ParseForm()
+
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected to receive %d status code, got %d", http.StatusCreated, w.Code)
+	}
+}
+
+func TestClusterDeleteAlternatorCredentials(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	id := uuid.MustRandom()
+
+	m := restapi.NewMockClusterService(ctrl)
+	gomock.InOrder(
+		m.EXPECT().GetCluster(gomock.Any(), id.String()).Return(&cluster.Cluster{ID: id}, nil),
+		m.EXPECT().DeleteAlternatorCredentials(gomock.Any(), id).Return(nil),
+	)
+
+	h := restapi.New(restapi.Services{Cluster: m}, log.Logger{})
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprint("/api/v1/cluster/", id), nil)
+	r.URL.RawQuery = "alternator_creds=1"
 	r.ParseForm()
 
 	w := httptest.NewRecorder()
