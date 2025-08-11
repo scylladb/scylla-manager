@@ -10,10 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/ping"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -97,24 +95,21 @@ func QueryPing(ctx context.Context, config Config) (rtt time.Duration, err error
 		}
 	}()
 
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Endpoint:    aws.String(config.Addr),
-			Region:      aws.String("scylla"),
-			HTTPClient:  httpClient(config),
-			Credentials: credentials.AnonymousCredentials,
-		},
-	}))
-
-	svc := dynamodb.New(sess)
+	awsCfg := aws.Config{
+		BaseEndpoint: aws.String(config.Addr),
+		Region:       "scylla",
+		HTTPClient:   httpClient(config),
+		Credentials:  aws.AnonymousCredentials{},
+	}
+	client := dynamodb.NewFromConfig(awsCfg)
 
 	ctx, cancel := context.WithDeadline(ctx, t.Add(config.Timeout))
 	defer cancel()
 
 	const tableName = ".scylla.alternator.system_schema.tables"
-	_, err = svc.ScanWithContext(ctx, &dynamodb.ScanInput{
+	_, err = client.Scan(ctx, &dynamodb.ScanInput{
 		TableName: aws.String(tableName),
-		Limit:     aws.Int64(1),
+		Limit:     aws.Int32(1),
 	})
 	if err != nil {
 		return 0, err
