@@ -1887,17 +1887,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 	t.Run("repair alternator table", func(t *testing.T) {
 		const (
-			testTable      = "Tab_le-With1.da_sh2-aNd.d33ot.-"
-			testKeyspace   = "alternator_" + testTable
-			alternatorPort = 8000
+			testTable    = "Tab_le-With1.da_sh2-aNd.d33ot.-"
+			testKeyspace = "alternator_" + testTable
 		)
 
 		Print("When: create alternator table with 1 row")
-
-		accessKeyID, secretAccessKey := CreateAlternatorUser(t, clusterSession, "")
-		svc := CreateDynamoDBService(t, ManagedClusterHost(), alternatorPort, accessKeyID, secretAccessKey)
-		CreateAlternatorTable(t, svc, testTable)
-		FillAlternatorTableWithOneRow(t, svc, testTable)
+		accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
+		client := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
+		CreateAlternatorTable(t, client, testTable)
+		FillAlternatorTable(t, client, testTable, 100)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
 		h := newRepairTestHelper(t, session, defaultConfig())

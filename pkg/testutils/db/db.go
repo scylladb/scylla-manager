@@ -5,19 +5,20 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"fmt"
-	"net"
+	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	dbsession "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
@@ -318,18 +319,16 @@ func WaitForViews(t *testing.T, session gocqlx.Session) {
 	}
 }
 
-// CreateAlternatorUser creates a regular role via CQL and
-// returns its credentials used for authenticating alternator queries.
-// Empty username results in returning credentials for "cassandra" superuser.
+// GetAlternatorCreds creates (if not exists) a CQL role and alternator creds associated with it.
 // See https://opensource.docs.scylladb.com/stable/alternator/compatibility.html#authorization for more details.
-func CreateAlternatorUser(t *testing.T, s gocqlx.Session, role string) (accessKeyID, secretAccessKey string) {
+func GetAlternatorCreds(t *testing.T, s gocqlx.Session, role string) (accessKeyID, secretAccessKey string) {
 	t.Helper()
 
-	if role != "" {
-		ExecStmt(t, s, fmt.Sprintf("CREATE ROLE %q WITH PASSWORD = '%s' AND SUPERUSER = false AND LOGIN = true", role, role))
-	} else {
-		role = "cassandra"
+	if role == "" {
+		role = testconfig.TestDBUsername()
 	}
+
+	ExecStmt(t, s, fmt.Sprintf("CREATE ROLE IF NOT EXISTS %q WITH PASSWORD = '%s' AND SUPERUSER = false AND LOGIN = true", role, role))
 	accessKeyID = role
 
 	// Roles table is kept in different keyspaces depending on Scylla version
@@ -340,82 +339,93 @@ func CreateAlternatorUser(t *testing.T, s gocqlx.Session, role string) (accessKe
 		if err := q.Scan(&secretAccessKey); err != nil {
 			retErr = multierr.Append(retErr, err)
 		} else {
-			return
+			return accessKeyID, secretAccessKey
 		}
 	}
+
 	t.Fatal("Couldn't get salted_hash from roles table", retErr)
 	return
 }
 
 // CreateAlternatorTable creates "alternator_{table}.{table}" table via alternator API.
-func CreateAlternatorTable(t *testing.T, svc *dynamodb.DynamoDB, table string) {
+func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, table string) {
 	t.Helper()
 
-	createTable := &dynamodb.CreateTableInput{
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("key"),
-				AttributeType: aws.String("S"),
-			},
-		},
-		BillingMode: aws.String("PAY_PER_REQUEST"),
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("key"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		TableName: aws.String(table),
+	input := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []types.AttributeDefinition{{
+			AttributeName: ptr.String("key"),
+			AttributeType: "N",
+		}},
+		KeySchema: []types.KeySchemaElement{{
+			AttributeName: ptr.String("key"),
+			KeyType:       "HASH",
+		}},
+		TableName:   ptr.String(table),
+		BillingMode: "PAY_PER_REQUEST",
 	}
 
-	_, err := svc.CreateTable(createTable)
+	_, err := client.CreateTable(context.Background(), input)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-// FillAlternatorTableWithOneRow inserts 1 row into "alternator_{table}.{table}" table via alternator API.
-func FillAlternatorTableWithOneRow(t *testing.T, svc *dynamodb.DynamoDB, table string) {
+// FillAlternatorTable inserts 100 rows into "alternator_{table}.{table}" table via alternator API.
+func FillAlternatorTable(t *testing.T, client *dynamodb.Client, table string, rowCnt int) {
 	t.Helper()
 
-	insertData := &dynamodb.BatchWriteItemInput{
-		RequestItems: map[string][]*dynamodb.WriteRequest{
-			table: {
-				{
-					PutRequest: &dynamodb.PutRequest{
-						Item: map[string]*dynamodb.AttributeValue{
-							"key": {
-								S: aws.String("test"),
-							},
-						},
-					},
+	var reqs []types.WriteRequest
+	for i := range rowCnt {
+		v, err := attributevalue.Marshal(i)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reqs = append(reqs, types.WriteRequest{
+			PutRequest: &types.PutRequest{
+				Item: map[string]types.AttributeValue{
+					"key": v,
+				},
+			},
+		})
+	}
+
+	writeIn := &dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]types.WriteRequest{
+			table: reqs,
+		},
+	}
+	_, err := client.BatchWriteItem(context.Background(), writeIn)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CreateAlternatorClient returns alternator client.
+func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, accessKeyID, secretAccessKey string) *dynamodb.Client {
+	t.Helper()
+
+	ni, err := client.NodeInfo(context.Background(), host)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	awsCfg := aws.Config{
+		BaseEndpoint: ptr.String(ni.AlternatorAddr(host)),
+		Region:       "scylla",
+		HTTPClient: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
 				},
 			},
 		},
-	}
-
-	_, err := svc.BatchWriteItem(insertData)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// CreateDynamoDBService returns DynamoDB service.
-func CreateDynamoDBService(t *testing.T, host string, alternatorPort int, accessKeyID, secretAccessKey string) *dynamodb.DynamoDB {
-	t.Helper()
-
-	awsCfg := &aws.Config{
-		Endpoint: aws.String("http://" + net.JoinHostPort(host, strconv.Itoa(alternatorPort))),
-		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
-			AccessKeyID:     accessKeyID,
-			SecretAccessKey: secretAccessKey,
+		Credentials: aws.CredentialsProviderFunc(func(_ context.Context) (aws.Credentials, error) {
+			return aws.Credentials{
+				AccessKeyID:     accessKeyID,
+				SecretAccessKey: secretAccessKey,
+			}, nil
 		}),
-		Region: aws.String("None"),
-	}
-	dbs, err := dbsession.NewSession(awsCfg)
-	if err != nil {
-		t.Fatal(err)
 	}
 
-	return dynamodb.New(dbs)
+	return dynamodb.NewFromConfig(awsCfg)
 }
