@@ -2228,10 +2228,10 @@ func TestBackupListIntegration(t *testing.T) {
 
 func TestBackupAlternatorIntegration(t *testing.T) {
 	const (
-		testBucket     = "backuptest-alternator"
-		testTable      = "Tab_le-With1.da_sh2-aNd.d33ot.-"
-		testKeyspace   = "alternator_" + testTable
-		alternatorPort = 8000
+		testBucket   = "backuptest-alternator"
+		testTable    = "Tab_le-With1.da_sh2-aNd.d33ot.-"
+		testKeyspace = "alternator_" + testTable
+		rowCnt       = 100
 	)
 
 	location := s3Location(testBucket)
@@ -2244,18 +2244,18 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
 
-	accessKeyID, secretAccessKey := CreateAlternatorUser(t, clusterSession, "")
-	svc := CreateDynamoDBService(t, ManagedClusterHost(), alternatorPort, accessKeyID, secretAccessKey)
-	CreateAlternatorTable(t, svc, testTable)
-	FillAlternatorTableWithOneRow(t, svc, testTable)
+	accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
+	client := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
+	CreateAlternatorTable(t, client, testTable)
+	FillAlternatorTable(t, client, testTable, rowCnt)
 
 	Print("When: validate data insertion")
-	selectStmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q WHERE key='test'", testKeyspace, testTable)
+	selectStmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", testKeyspace, testTable)
 	var result int
 	if err := clusterSession.Query(selectStmt, nil).Scan(&result); err != nil {
 		t.Fatal(err)
 	}
-	if result != 1 {
+	if result != rowCnt {
 		t.Fatal("Expected 1 row in alternator table")
 	}
 

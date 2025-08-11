@@ -1503,10 +1503,10 @@ func restoreAlternator(t *testing.T, schemaTarget, tablesTarget Target, testKeys
 	createUser(t, dstSession, user, "pass")
 	dstH = newRestoreTestHelper(t, mgrSession, cfg, schemaTarget.Location[0], nil, user, "pass")
 
-	accessKeyID, secretAccessKey := CreateAlternatorUser(t, srcSession, "")
-	svc := CreateDynamoDBService(t, ManagedSecondClusterHosts()[0], alternatorPort, accessKeyID, secretAccessKey)
-	CreateAlternatorTable(t, svc, testTable)
-	FillAlternatorTableWithOneRow(t, svc, testTable)
+	accessKeyID, secretAccessKey := GetAlternatorCreds(t, srcSession, "")
+	client := CreateAlternatorClient(t, srcH.Client, ManagedSecondClusterHosts()[0], accessKeyID, secretAccessKey)
+	CreateAlternatorTable(t, client, testTable)
+	FillAlternatorTable(t, client, testTable, 100)
 
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
