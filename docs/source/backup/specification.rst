@@ -10,7 +10,7 @@ Directory Layout
 ----------------
 
 The Scylla Manager backup requires a backup location string that specifies the storage provider and name of a bucket (using Amazon S3 naming) ex. ``s3:<your S3 bucket name>``.
-In that bucket Scylla Manager creates a ``buckup`` directory where all the backup data and metadata are stored.
+In that bucket Scylla Manager creates a ``backup`` directory where all the backup data and metadata are stored.
 
 There are three subdirectories:
 
