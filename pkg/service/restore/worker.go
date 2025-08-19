@@ -60,7 +60,7 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 		return errors.Wrap(err, "init target")
 	}
 	if target.Method == MethodNative {
-		if err := w.validateHostNativeRestoreSupport(ctx); err != nil {
+		if err := w.validateHostNativeRestoreSupport(); err != nil {
 			return err
 		}
 	}
@@ -78,12 +78,11 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 	return errors.Wrap(w.initViews(ctx), "init views")
 }
 
-func (w *worker) validateHostNativeRestoreSupport(ctx context.Context) error {
-	for ip, ni := range w.nodeConfig {
+func (w *worker) validateHostNativeRestoreSupport() error {
+	for _, ni := range w.nodeConfig {
 		if err := hostNativeRestoreSupport(ni.NodeInfo, w.target.Location, w.target.Method); err != nil {
 			return errors.Wrap(err, "ensure native restore")
 		}
-		w.logger.Info(ctx, "Host supports native restore API", "host", ip.String())
 	}
 	return nil
 }
