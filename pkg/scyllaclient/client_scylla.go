@@ -1306,6 +1306,7 @@ func (c *Client) RaftReadBarrier(ctx context.Context, host, groupID string) erro
 }
 
 // ScyllaBackup schedules Scylla backup task and returns its ID.
+// Note that prefix must be a relative path (without leading slash) to the bucket root.
 func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table, snapshotTag string) (string, error) {
 	resp, err := c.scyllaOps.StorageServiceBackupPost(&operations.StorageServiceBackupPostParams{
 		Context:   forceHost(ctx, host),
@@ -1326,6 +1327,7 @@ func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefi
 // ScyllaRestore schedules Scylla restore task and returns its ID.
 // tocComponents are a list of sstable.ComponentTOC of SSTables that should be restored.
 // This method does not work with sstables with sstable.IntegerID.
+// Note that prefix must be a relative path (without leading slash) to the bucket root.
 func (c *Client) ScyllaRestore(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table string, tocComponents []string) (string, error) {
 	resp, err := c.scyllaOps.StorageServiceRestorePost(&operations.StorageServiceRestorePostParams{
 		Context:  forceHost(ctx, host),
