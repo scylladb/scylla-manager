@@ -21,6 +21,8 @@ const (
 	// UnsafeSchema is the name of the schema file that shouldn't be used for restore
 	// (so for Scylla versions older than 6.0).
 	UnsafeSchema = "schema.tar.gz"
+	// AlternatorSchemaFileSuffix is the suffix of all alternator schema files.
+	AlternatorSchemaFileSuffix = "alternator_schema.json.gz"
 	// TempFileExt is suffix for the temporary files.
 	TempFileExt = ".tmp"
 
@@ -121,6 +123,35 @@ func RemoteUnsafeSchemaFile(clusterID, taskID uuid.UUID, snapshotTag string) str
 		remoteSchemaDir(clusterID),
 		manifestName,
 	)
+}
+
+// AlternatorSchemaPath returns path to the alternator schema file starting at backup dir root.
+// It has the following format: 'backup/schema/cluster/<cluster_ID>/task_<task_ID>_tag_<snapshot_tag>_alternator_schema.json.gz'.
+func AlternatorSchemaPath(clusterID, taskID uuid.UUID, snapshotTag string) string {
+	return path.Join(
+		remoteSchemaDir(clusterID),
+		AlternatorSchemaFile(taskID, snapshotTag),
+	)
+}
+
+// AlternatorSchemaFile returns full name (without path) of the alternator schema file.
+// It has the following format: 'task_<task_ID>_tag_<snapshot_tag>_alternator_schema.json.gz'.
+func AlternatorSchemaFile(taskID uuid.UUID, snapshotTag string) string {
+	return strings.Join([]string{
+		"task",
+		taskID.String(),
+		AlternatorSchemaFileSuffixWithTag(snapshotTag),
+	}, "_")
+}
+
+// AlternatorSchemaFileSuffixWithTag returns AlternatorSchemaFileSuffix extended with snapshot tag.
+// It has the following format: 'tag_<snapshot_tag>_alternator_schema.json.gz'.
+func AlternatorSchemaFileSuffixWithTag(snapshotTag string) string {
+	return strings.Join([]string{
+		"tag",
+		snapshotTag,
+		AlternatorSchemaFileSuffix,
+	}, "_")
 }
 
 func remoteSchemaDir(clusterID uuid.UUID) string {
