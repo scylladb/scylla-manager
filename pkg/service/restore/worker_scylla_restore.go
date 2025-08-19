@@ -84,7 +84,7 @@ func (w *tablesWorker) nativeBatchRestore(ctx context.Context, host string, nc c
 	}()
 
 	// RemoteSSTableDir has "<provider>:<bucket>/<path>" format
-	prefix, ok := strings.CutPrefix(b.RemoteSSTableDir, b.Location.StringWithoutDC())
+	prefix, ok := strings.CutPrefix(b.RemoteSSTableDir, b.Location.StringWithoutDC()+"/")
 	if !ok {
 		return errors.Errorf("remote sstable dir (%s) should contain location path prefix (%s)", b.RemoteSSTableDir, b.Location.Path)
 	}
