@@ -165,7 +165,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 	}
 
 	if p.Method == MethodNative {
-		if err := s.validateHostNativeBackupSupport(clusterID, liveNodes, p); err != nil {
+		if err := s.validateHostNativeBackupSupport(ctx, clusterID, liveNodes, p); err != nil {
 			return Target{}, err
 		}
 	}
@@ -298,7 +298,10 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 	return nil
 }
 
-func (s *Service) validateHostNativeBackupSupport(clusterID uuid.UUID, liveNodes scyllaclient.NodeStatusInfoSlice, p taskProperties) error {
+func (s *Service) validateHostNativeBackupSupport(ctx context.Context, clusterID uuid.UUID, liveNodes scyllaclient.NodeStatusInfoSlice, p taskProperties) error {
+	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID); !ok {
+		return errors.New("failed to force update cluster config cache")
+	}
 	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
 	if err != nil {
 		return errors.Wrap(err, "read all nodes config")
@@ -698,6 +701,9 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID); !ok {
+		return errors.New("failed to force update cluster config cache")
+	}
 	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
 	if err != nil {
 		return errors.Wrap(err, "read all nodes config")
