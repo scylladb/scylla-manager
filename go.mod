@@ -30,10 +30,10 @@ require (
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
-	github.com/scylladb/scylla-manager/backupspec v1.0.2
+	github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20250818141015-50f1d9b3b087
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250630160519-24627a91850a
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250630112249-bb1265859a3e
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250818141015-50f1d9b3b087
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stoewer/go-strcase v1.3.0
@@ -59,6 +59,8 @@ require (
 	github.com/aalpar/deheap v0.0.0-20200318053559-9a0c2883bd56 // indirect
 	github.com/abbot/go-http-auth v0.4.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.46.0 // indirect
+	github.com/aws/smithy-go v1.22.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
