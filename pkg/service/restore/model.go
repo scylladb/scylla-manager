@@ -89,8 +89,9 @@ func (l LocationInfo) AllHosts() []string {
 const (
 	maxBatchSize = 0
 	// maxTransfers are experimentally defined to 2*node_shard_cnt.
-	maxTransfers = 0
-	maxRateLimit = 0
+	maxTransfers  = 0
+	maxRateLimit  = 0
+	defaultMethod = MethodRclone
 )
 
 func defaultTarget() Target {
@@ -99,7 +100,7 @@ func defaultTarget() Target {
 		Parallel:  0,
 		Transfers: maxTransfers,
 		Continue:  true,
-		Method:    MethodRclone,
+		Method:    defaultMethod,
 	}
 }
 
@@ -136,6 +137,9 @@ func (t Target) validateProperties() error {
 	}
 	if t.RestoreSchema && t.Keyspace != nil {
 		return errors.New("restore schema always restores 'system_schema.*' tables only, no need to specify '--keyspace' flag")
+	}
+	if t.RestoreSchema && t.Method != defaultMethod {
+		return errors.New("restore schema does not support '--method' flag")
 	}
 	// Check for duplicates in Location
 	allLocations := strset.New()

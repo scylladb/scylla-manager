@@ -984,7 +984,6 @@ func TestRestoreSchemaVersionedIntegration(t *testing.T) {
 		corruptCnt    = 3
 	)
 	target := defaultTestTarget("dc1", testBucket, "", testBatchSize, testParallel, false)
-	target.Method = MethodAuto
 	restoreWithVersions(t, target, testKeyspace, testLoadCnt, testLoadSize, corruptCnt, testUser)
 }
 

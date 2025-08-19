@@ -21,7 +21,7 @@ func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location,
 			return errors.Wrap(err, "check native backup api support")
 		}
 		if !ok {
-			return errors.New("native backup api is not supported")
+			return errors.New("native backup api is not supported for this scylla version")
 		}
 	}
 	_, err := ni.ScyllaObjectStorageEndpoint(loc.Provider)

@@ -28,7 +28,7 @@ func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location, method 
 			return errors.Wrap(err, "check native restore api support")
 		}
 		if !ok {
-			return errors.New("native restore api is not supported")
+			return errors.New("native restore api is not supported for this scylla version")
 		}
 	}
 	// Simplification - native restore is supported by host if host supports

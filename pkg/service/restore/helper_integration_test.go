@@ -204,7 +204,7 @@ func defaultTestTarget(locDC, locPath, ks string, batchSize, parallel int, resto
 	if ks != "" {
 		target.Keyspace = []string{ks}
 	}
-	if testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
+	if restoreTables && testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
 		target.Method = Method(*testconfig.RestoreMethod())
 	}
 	return target
@@ -217,7 +217,7 @@ func defaultTestProperties(loc backupspec.Location, tag string, restoreTables bo
 		"restore_tables": restoreTables,
 		"restore_schema": !restoreTables,
 	}
-	if testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
+	if restoreTables && testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
 		properties["method"] = *testconfig.RestoreMethod()
 	}
 	return properties
