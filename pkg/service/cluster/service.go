@@ -7,12 +7,17 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
 	"net/netip"
 	"sort"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -841,6 +846,106 @@ func (s *Service) extendClusterConfigWithTLS(cluster *Cluster, ni *scyllaclient.
 	}
 
 	return nil
+}
+
+// AlternatorClientFunc returns alternator client for given cluster ID.
+type AlternatorClientFunc func(ctx context.Context, clusterID uuid.UUID, host string) (*dynamodb.Client, error)
+
+// GetAlternatorClient returns alternator client for given cluster ID.
+func (s *Service) GetAlternatorClient(ctx context.Context, clusterID uuid.UUID, host string) (*dynamodb.Client, error) {
+	s.logger.Info(ctx, "Get Alternator client", "cluster_id", clusterID)
+
+	client, err := s.clientCache.Client(ctx, clusterID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client")
+	}
+	ni, err := client.NodeInfo(ctx, host)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get node (%s) info", host)
+	}
+
+	cfg, err := s.alternatorClientConfig(ctx, clusterID, host, ni)
+	if err != nil {
+		return nil, errors.Wrap(err, "create alternator client config")
+	}
+	return dynamodb.NewFromConfig(cfg), nil
+}
+
+// alternatorClientConfig return aws.Config used for creating *dynamodb.DynamoDB for communicating with alternator API.
+// It uses cluster scyllaclient.Config for configuring timeout and retry mechanisms.
+func (s *Service) alternatorClientConfig(ctx context.Context, clusterID uuid.UUID, host string, ni *scyllaclient.NodeInfo) (aws.Config, error) {
+	cluster, err := s.GetClusterByID(ctx, clusterID)
+	if err != nil {
+		return aws.Config{}, errors.Wrap(err, "get cluster")
+	}
+	scCfg := s.clientConfig(cluster)
+
+	transport := alternatorTransport()
+	if ni.AlternatorEncryptionEnabled() {
+		transport.TLSClientConfig = alternatorTLSConfig()
+	}
+
+	cfg := aws.Config{
+		BaseEndpoint: aws.String(ni.AlternatorAddr(host)),
+		Region:       "scylla",
+		HTTPClient: &http.Client{
+			Transport: transport,
+			Timeout:   scCfg.Timeout,
+		},
+		Retryer: func() aws.Retryer {
+			return retry.NewStandard(func(options *retry.StandardOptions) {
+				options.MaxAttempts = int(scCfg.Backoff.MaxRetries) + 1
+				options.MaxBackoff = scCfg.Backoff.WaitMax
+			})
+		},
+	}
+
+	if ni.AlternatorEnforceAuthorization {
+		cfg.Credentials, err = s.alternatorCredentials(clusterID)
+		if err != nil {
+			return aws.Config{}, errors.Wrap(err, "get alternator credentials")
+		}
+	}
+
+	return cfg, nil
+}
+
+func alternatorTransport() *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+}
+
+func alternatorTLSConfig() *tls.Config {
+	return &tls.Config{
+		// Right now Alternator does not support client TLS cert authentication, so we don't need to set them
+		InsecureSkipVerify: true,
+	}
+}
+
+func (s *Service) alternatorCredentials(clusterID uuid.UUID) (aws.CredentialsProvider, error) {
+	c := secrets.AlternatorCreds{ClusterID: clusterID}
+	err := s.secretsStore.Get(&c)
+	if errors.Is(err, util.ErrNotFound) {
+		return nil, ErrNoCQLCredentials
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "get credentials from secrets store")
+	}
+	return aws.CredentialsProviderFunc(func(_ context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     c.AccessKeyID,
+			SecretAccessKey: c.SecretAccessKey,
+		}, nil
+	}), nil
 }
 
 // ErrNoTLSIdentity is returned when cluster TSL/SSL key/cert is required to create session,
