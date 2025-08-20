@@ -461,6 +461,12 @@ func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTable
 	for iter.Scan(&ks, &tab) {
 		// Regular tables require ALTER permission
 		if f.Check(ks, tab) {
+			if ks == "system_auth" {
+				// Altering system_auth requires superuser
+				if err = s.ExecStmt(fmt.Sprintf("ALTER role '%s' WITH superuser=true", user)); err != nil {
+					t.Fatal(errors.Wrap(err, "grant superuser"))
+				}
+			}
 			if err = s.ExecStmt(fmt.Sprintf("GRANT ALTER ON %q.%q TO '%s'", ks, tab, user)); err != nil {
 				t.Fatal(errors.Wrapf(err, "grant alter on %s.%s", ks, tab))
 			}
