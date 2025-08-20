@@ -269,12 +269,18 @@ func TestAlternatorClientIntegration(t *testing.T) {
 	}
 
 	const tableName = ".scylla.alternator.system_schema.tables"
-	_, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+	out, err := client.Scan(context.Background(), &dynamodb.ScanInput{
 		TableName: aws.String(tableName),
 		Limit:     aws.Int32(1),
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if out == nil {
+		t.Fatal("Expected non-nil scan output")
+	}
+	if out.Count != 1 {
+		t.Fatalf("Expected 1 item in scan output, got: %d", out.Count)
 	}
 }
 

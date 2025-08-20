@@ -184,6 +184,12 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
 		},
+		func(ctx context.Context, clusterID uuid.UUID, host string) (*dynamodb.Client, error) {
+			clusterSession := CreateManagedClusterSession(t, false, client, "", "")
+			defer clusterSession.Close()
+			accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, user)
+			return CreateAlternatorClient(t, client, host, accessKeyID, secretAccessKey), nil
+		},
 		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("restore"),
 	)
