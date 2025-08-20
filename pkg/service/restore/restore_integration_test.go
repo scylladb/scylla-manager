@@ -1264,7 +1264,7 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
-	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
+	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
 	if err != nil {
 		t.Fatal(err)
 	}
