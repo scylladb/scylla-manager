@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -226,6 +228,54 @@ func ipsNotInSlice(a []string, b []string) []string {
 	}
 
 	return diff
+}
+
+func TestAlternatorClientIntegration(t *testing.T) {
+	smSession := CreateScyllaManagerDBSession(t)
+	defer smSession.Close()
+
+	secretsStore := store.NewTableStore(smSession, table.Secrets)
+	s, err := cluster.NewService(smSession, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
+		server.DefaultConfig().ClientCacheTimeout, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := &cluster.Cluster{
+		AuthToken: "token",
+		Host:      ManagedClusterHost(),
+	}
+	if err = s.PutCluster(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+
+	scClient, err := s.CreateClientNoCache(context.Background(), c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer scClient.Close()
+
+	clusterSession := CreateManagedClusterSession(t, false, scClient, "", "")
+	defer clusterSession.Close()
+
+	c.AlternatorAccessKeyID, c.AlternatorSecretAccessKey = GetAlternatorCreds(t, clusterSession, "")
+	if err = s.PutCluster(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := s.GetAlternatorClient(context.Background(), c.ID, ManagedClusterHost())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const tableName = ".scylla.alternator.system_schema.tables"
+	_, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+		TableName: aws.String(tableName),
+		Limit:     aws.Int32(1),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestServiceStorageIntegration(t *testing.T) {
