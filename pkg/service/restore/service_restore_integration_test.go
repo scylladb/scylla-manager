@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
@@ -146,6 +147,12 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		},
 		func(ctx context.Context, clusterID uuid.UUID, _ ...cluster.SessionConfigOption) (gocqlx.Session, error) {
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
+		},
+		func(ctx context.Context, clusterID uuid.UUID, host string) (*dynamodb.Client, error) {
+			clusterSession := CreateManagedClusterSession(t, false, client, "", "")
+			defer clusterSession.Close()
+			accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, user)
+			return CreateAlternatorClient(t, client, host, accessKeyID, secretAccessKey), nil
 		},
 		configCacheSvc,
 		log.NewDevelopmentWithLevel(zapcore.ErrorLevel).Named("backup"),

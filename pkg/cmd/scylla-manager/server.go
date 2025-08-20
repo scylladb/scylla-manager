@@ -118,6 +118,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.clusterSvc.GetClusterName,
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
+		s.clusterSvc.GetAlternatorClient,
 		s.configCacheSvc,
 		s.logger.Named("backup"),
 	)

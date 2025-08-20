@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -158,6 +159,12 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 				return gocqlx.Session{}, cluster.ErrNoCQLCredentials
 			}
 			return CreateManagedClusterSession(t, false, client, user, pass), nil
+		},
+		func(ctx context.Context, clusterID uuid.UUID, host string) (*dynamodb.Client, error) {
+			clusterSession := CreateManagedClusterSession(t, false, client, "", "")
+			defer clusterSession.Close()
+			accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, user)
+			return CreateAlternatorClient(t, client, host, accessKeyID, secretAccessKey), nil
 		},
 		NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts),
 		logger.Named("backup"),
