@@ -47,18 +47,19 @@ type Service struct {
 	config  Config
 	metrics metrics.BackupMetrics
 
-	clusterName    cluster.NameFunc
-	scyllaClient   scyllaclient.ProviderFunc
-	clusterSession cluster.SessionFunc
-	configCache    configcache.ConfigCacher
-	logger         log.Logger
+	clusterName      cluster.NameFunc
+	scyllaClient     scyllaclient.ProviderFunc
+	clusterSession   cluster.SessionFunc
+	alternatorClient cluster.AlternatorClientFunc
+	configCache      configcache.ConfigCacher
+	logger           log.Logger
 
 	dth deduplicateTestHooks
 }
 
 func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMetrics, clusterName cluster.NameFunc,
-	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
-	logger log.Logger,
+	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, alternatorClient cluster.AlternatorClientFunc,
+	configCache configcache.ConfigCacher, logger log.Logger,
 ) (*Service, error) {
 	if session.Session == nil || session.Closed() {
 		return nil, errors.New("invalid session")
@@ -77,14 +78,15 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.BackupMet
 	}
 
 	return &Service{
-		session:        session,
-		config:         config,
-		metrics:        metrics,
-		clusterName:    clusterName,
-		scyllaClient:   scyllaClient,
-		clusterSession: clusterSession,
-		configCache:    configCache,
-		logger:         logger,
+		session:          session,
+		config:           config,
+		metrics:          metrics,
+		clusterName:      clusterName,
+		scyllaClient:     scyllaClient,
+		clusterSession:   clusterSession,
+		alternatorClient: alternatorClient,
+		configCache:      configCache,
+		logger:           logger,
 	}, nil
 }
 
