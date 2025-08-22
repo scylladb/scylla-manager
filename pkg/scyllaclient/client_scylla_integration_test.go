@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -129,7 +130,12 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 	for i := range testCases {
 		tc := testCases[i]
 		t.Run(tc.name, func(t *testing.T) {
-			if err := clusterSession.ExecStmt(fmt.Sprintf("CREATE KEYSPACE %s WITH replication = %s", tc.name, tc.replicationStmt)); err != nil {
+			ksStmt := fmt.Sprintf("CREATE KEYSPACE %s WITH replication = %s", tc.name, tc.replicationStmt)
+			if tablets := os.Getenv("TABLETS"); tablets == "enabled" && tc.replication == scyllaclient.SimpleStrategy {
+				ksStmt += " AND tablets = {'enabled': false}"
+			}
+
+			if err := clusterSession.ExecStmt(ksStmt); err != nil {
 				t.Fatal(err)
 			}
 			defer func() {

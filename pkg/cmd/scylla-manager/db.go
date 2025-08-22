@@ -58,7 +58,8 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 	return session.Query(mustEvaluateCreateKeyspaceStmt(c)).Exec()
 }
 
-const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}}"
+const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}}" +
+	" AND tablets = {'enabled': false}"
 
 func mustEvaluateCreateKeyspaceStmt(c config.Config) string {
 	t := template.New("")
