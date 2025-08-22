@@ -154,7 +154,7 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 	WITH replication = {
 		'class' : 'SimpleStrategy',
 		'replication_factor' : %d
-	}`, keyspace, 1))
+	} AND tablets = {'enabled': false}`, keyspace, 1))
 }
 
 func dropAllKeyspaces(tb testing.TB, session gocqlx.Session) {
