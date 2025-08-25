@@ -159,6 +159,8 @@ Under the node directory each table version has it's directory, the path is stru
 The directory contains all the table files.
 Some files may be used in more than one backup.
 
+.. _backup-versioned-sstables:
+
 You may also find that some of those files have the snapshot tag suffix (e.g. ``.sm_20210809095541UTC``).
 Even though sstables (data files) are immutable by nature, using non UUID sstable identifiers alongside
 `replacing a running node <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/cluster-management/replace-running-node.html#replace-a-running-node-by-taking-its-place-in-the-cluster>`_

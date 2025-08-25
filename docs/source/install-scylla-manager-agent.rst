@@ -119,4 +119,5 @@ Next steps
 ==========
 
 * :ref:`Configure backup location <backup-location>`
+* :ref:`Configure native backup <configure-native-backup-in-scylla>`
 * :doc:`Add a Cluster <add-a-cluster>`
