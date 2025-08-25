@@ -10,6 +10,7 @@ Backup
    setup-s3-compatible-storage
    setup-gcs
    setup-azure-blobstorage
+   native-backup
    examples
    specification
 

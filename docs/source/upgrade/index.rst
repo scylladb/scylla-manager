@@ -237,6 +237,8 @@ For Ubuntu:
     mv scylla-manager-agent.yaml scylla-manager-agent.yaml.old
     mv scylla-manager-agent.yaml.dpkg-dist scylla-manager-agent.yaml
 
+.. note:: If you plan to use native backup after the upgrade, we recommend :ref:`configuring <configure-native-backup-in-scylla>` it at this point.
+
 Start the ScyllaDB Manager Agent on all nodes
 -------------------------------------------------
 
