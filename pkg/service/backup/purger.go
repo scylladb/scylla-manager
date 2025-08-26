@@ -172,20 +172,25 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*backupspec.M
 
 	deletedManifests := 0
 	for _, m := range manifests {
-		if tags.Has(m.SnapshotTag) {
-			// Note that schema files might not be backed up in the first place
-			unsafePath := backupspec.RemoteUnsafeSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
-			if err := p.deleteFile(ctx, m.Location.RemotePath(unsafePath)); err != nil {
-				p.logger.Info(ctx, "Remove unsafe schema file", "path", unsafePath, "error", err)
-			}
-			if err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
-				p.logger.Info(ctx, "Remove schema file", "path", m.SchemaPath(), "error", err)
-			}
-			if err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
-				p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
-			} else {
-				deletedManifests++
-			}
+		if !tags.Has(m.SnapshotTag) {
+			continue
+		}
+		// Note that schema files might not be backed up in the first place
+		if err := p.deleteFile(ctx, m.Location.RemotePath(m.SchemaPath())); err != nil {
+			p.logger.Info(ctx, "Remove schema file", "path", m.SchemaPath(), "error", err)
+		}
+		unsafePath := backupspec.RemoteUnsafeSchemaFile(m.ClusterID, m.TaskID, m.SnapshotTag)
+		if err := p.deleteFile(ctx, m.Location.RemotePath(unsafePath)); err != nil {
+			p.logger.Info(ctx, "Remove unsafe schema file", "path", unsafePath, "error", err)
+		}
+		alternatorPath := backupspec.AlternatorSchemaPath(m.ClusterID, m.TaskID, m.SnapshotTag)
+		if err := p.deleteFile(ctx, m.Location.RemotePath(alternatorPath)); err != nil {
+			p.logger.Info(ctx, "Remove alternator schema file", "path", alternatorPath, "error", err)
+		}
+		if err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
+			p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
+		} else {
+			deletedManifests++
 		}
 	}
 
