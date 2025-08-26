@@ -21,7 +21,8 @@ Status
 ======
 
 | This section contains the parts of backup procedure already moved to ScyllaDB.
-| Note that all other parts are still performed by the rclone server (e.g. deduplication of SSTables, retention of old backups, ...).
+| All other parts are still performed by the rclone server (e.g. deduplication of SSTables, retention of old backups, ...).
+| The ``ScyllaDB Version`` column describes the ScyllaDB version from which the functionality is considered production ready, even though the functionality might be available in earlier versions as well.
 
 .. list-table::
    :widths: 15 10 50 25
@@ -91,12 +92,13 @@ It supports three values: ``native``, ``rclone`` and ``auto``:
     Note that this will fail when:
 
     * ScyllaDB is not configured properly (see ``object_storage_endpoints`` in `Configuration`_)
-    * ScyllaDB version does not support all of the native functionalities (see version support in `Status`_)
+    * ScyllaDB does not expose all of the native functionalities (they don't need to be production ready in `Status`_)
     * Other provider than S3 is used (see limitations in `Status`_)
     * The upload of snapshot directories would result in creation of versioned SSTables (see limitations in `Status`_)
 
   * ``auto``: Use native backup functionalities when possible, otherwise fallback to rclone backup.
-    Use this value for production backups. The fallback works on per snapshot directory basis,
+    Use this value for production backups. It will use native backup functionality only when it is
+    considered production ready (see version support in `Status`_). The fallback works on per snapshot directory basis,
     so it allows for utilizing native backup functionalities for most snapshot directories,
     even if a small subset of them contains versioned SSTables.
 
