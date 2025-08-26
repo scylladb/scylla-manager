@@ -63,7 +63,7 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	if err != nil {
 		return err
 	}
-	b, err := marshalAndCompressSchema(schema)
+	b, err := marshalAndCompressArchive(schema)
 	if err != nil {
 		return errors.Wrap(err, "create safe schema file")
 	}
@@ -153,16 +153,16 @@ func (w *worker) createSingleHostSessionToAnyHost(ctx context.Context, hosts []s
 	return gocqlx.Session{}, "", errors.Wrap(retErr, "no host that can be accessed via CQL (more info in the logs)")
 }
 
-func marshalAndCompressSchema(schema query.DescribedSchema) (bytes.Buffer, error) {
-	rawSchema, err := json.Marshal(schema)
+func marshalAndCompressArchive(v any) (bytes.Buffer, error) {
+	rawSchema, err := json.Marshal(v)
 	if err != nil {
-		return bytes.Buffer{}, errors.Wrap(err, "marshal schema")
+		return bytes.Buffer{}, errors.Wrap(err, "marshal to json")
 	}
 
 	var b bytes.Buffer
 	gw := gzip.NewWriter(&b)
 	if _, err := gw.Write(rawSchema); err != nil {
-		return bytes.Buffer{}, errors.Wrap(err, "write compressed schema")
+		return bytes.Buffer{}, errors.Wrap(err, "compress with gzip")
 	}
 	if err := gw.Close(); err != nil {
 		return bytes.Buffer{}, errors.Wrap(err, "close gzip writer")

@@ -29,7 +29,7 @@ var stageDescription = map[Stage]string{
 	StageAwaitSchema:  "awaiting schema agreement",
 	StageIndex:        "indexing snapshot files",
 	StageManifest:     "uploading manifest files",
-	StageSchema:       "uploading cql schema",
+	StageSchema:       "uploading schema",
 	StageUpload:       "uploading snapshot files",
 	StageMoveManifest: "moving manifest files",
 	StagePurge:        "purging stale snapshots",

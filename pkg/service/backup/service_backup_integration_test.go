@@ -761,6 +761,11 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		}
 	}
 
+	ni, err := h.Client.AnyNodeInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	Print("And: files")
 	manifests, schemas, _ := h.listS3Files()
 	// Manifest meta per host per snapshot
@@ -770,7 +775,13 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	// Schema meta per snapshot
-	const schemasCount = 2
+	var schemasCount = 2
+	if ok, err := ni.SupportsAlternatorSchemaBackupFromAPI(); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		// Alternator schema per snapshot
+		schemasCount *= 2
+	}
 	if len(schemas) != schemasCount {
 		t.Fatalf("expected %d schemas, got %d", schemasCount, len(schemas))
 	}
