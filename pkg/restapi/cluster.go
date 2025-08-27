@@ -78,10 +78,7 @@ func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if cluster CQL and alternator credentials are set, but don't return them
-	const (
-		setCreds   = "set"
-		unsetCreds = "not set"
-	)
+	const setCreds = "set"
 	for _, c := range ids {
 		ok, err := h.svc.CheckCQLCredentials(c.ID)
 		if err != nil {
@@ -91,9 +88,6 @@ func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			c.Username = setCreds
 			c.Password = setCreds
-		} else {
-			c.Username = unsetCreds
-			c.Password = unsetCreds
 		}
 
 		ok, err = h.svc.CheckAlternatorCredentials(c.ID)
@@ -104,9 +98,6 @@ func (h clusterHandler) listClusters(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			c.AlternatorAccessKeyID = setCreds
 			c.AlternatorSecretAccessKey = setCreds
-		} else {
-			c.AlternatorAccessKeyID = unsetCreds
-			c.AlternatorSecretAccessKey = unsetCreds
 		}
 	}
 
