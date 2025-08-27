@@ -5,6 +5,7 @@ package restore
 import (
 	"context"
 	"encoding/json"
+	stdErrors "errors"
 	"fmt"
 	"maps"
 	"net/netip"
@@ -12,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
@@ -192,6 +194,22 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	if w.target.Method == MethodNative {
 		if err := workload.NativeRestoreSupport(); err != nil {
 			return errors.Wrap(err, "ensure native restore support")
+		}
+	}
+
+	restoreTabletKs := false
+	ringDescriber := scyllaclient.NewRingDescriber(ctx, w.client)
+	for _, u := range w.run.Units {
+		restoreTabletKs = restoreTabletKs || ringDescriber.IsTabletKeyspace(u.Keyspace)
+	}
+	// Disable tablet load balancing for the restore data stage (#4243)
+	if restoreTabletKs {
+		defer func() {
+			tabletBalancingErr := w.client.ControlTabletLoadBalancing(context.Background(), true)
+			err = stdErrors.Join(err, errors.Wrap(tabletBalancingErr, "enable post restore data tablet load balancing"))
+		}()
+		if err := w.client.ControlTabletLoadBalancing(ctx, false); err != nil {
+			return errors.Wrapf(err, "disable tablet load balancing")
 		}
 	}
 
