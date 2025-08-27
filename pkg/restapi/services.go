@@ -72,7 +72,8 @@ type BackupService interface {
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
 	// GetValidationProgress must work even when the cluster is no longer available.
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)
-	GetDescribeSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location, filter backup.DescribeSchemaFilter) (query.DescribedSchema, error)
+	GetDescribeSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location,
+		filter backup.DescribeSchemaFilter) (query.DescribedSchema, backupspec.AlternatorSchema, error)
 }
 
 // RestoreService service interface for the REST API handlers.
