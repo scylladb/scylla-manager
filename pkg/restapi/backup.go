@@ -242,12 +242,12 @@ func (h backupHandler) describeSchema(w http.ResponseWriter, r *http.Request) {
 		TaskID:    queryTaskID,
 	}
 
-	schema, err := h.svc.GetDescribeSchema(r.Context(), cluster.ID, snapshotTag, location, filter)
+	cqlSchema, _, err := h.svc.GetDescribeSchema(r.Context(), cluster.ID, snapshotTag, location, filter)
 	if err != nil {
 		respondError(w, r, errors.Wrap(err, "get describe schema"))
 		return
 	}
-	render.Respond(w, r, convertSchema(schema))
+	render.Respond(w, r, convertSchema(cqlSchema))
 }
 
 func parseOptionalUUID(v string) (uuid.UUID, error) {

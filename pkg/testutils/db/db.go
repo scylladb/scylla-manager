@@ -429,3 +429,120 @@ func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, acc
 
 	return dynamodb.NewFromConfig(awsCfg)
 }
+
+// CreateInterestingAlternatorSchema creates tables with specified names with LSI, GSI, tags and TTL.
+func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, tables ...string) {
+	t.Helper()
+
+	for _, table := range tables {
+		_, err := client.CreateTable(context.Background(), &dynamodb.CreateTableInput{
+			TableName: aws.String(table),
+			AttributeDefinitions: []types.AttributeDefinition{
+				{
+					AttributeName: aws.String("PK"),
+					AttributeType: types.ScalarAttributeTypeS,
+				},
+				{
+					AttributeName: aws.String("SK"),
+					AttributeType: types.ScalarAttributeTypeS,
+				},
+				{
+					AttributeName: aws.String("LSI_SK"),
+					AttributeType: types.ScalarAttributeTypeS,
+				},
+				{
+					AttributeName: aws.String("GSI_PK"),
+					AttributeType: types.ScalarAttributeTypeS,
+				},
+				{
+					AttributeName: aws.String("GSI_SK"),
+					AttributeType: types.ScalarAttributeTypeS,
+				},
+			},
+			KeySchema: []types.KeySchemaElement{
+				{
+					AttributeName: aws.String("PK"),
+					KeyType:       types.KeyTypeHash,
+				},
+				{
+					AttributeName: aws.String("SK"),
+					KeyType:       types.KeyTypeRange,
+				},
+			},
+			LocalSecondaryIndexes: []types.LocalSecondaryIndex{
+				{
+					IndexName: aws.String(table + "_LSI"),
+					KeySchema: []types.KeySchemaElement{
+						{
+							AttributeName: aws.String("PK"),
+							KeyType:       types.KeyTypeHash,
+						},
+						{
+							AttributeName: aws.String("LSI_SK"),
+							KeyType:       types.KeyTypeRange,
+						},
+					},
+					Projection: &types.Projection{
+						ProjectionType: types.ProjectionTypeAll,
+					},
+				},
+			},
+			GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+				{
+					IndexName: aws.String(table + "_GSI"),
+					KeySchema: []types.KeySchemaElement{
+						{
+							AttributeName: aws.String("GSI_PK"),
+							KeyType:       types.KeyTypeHash,
+						},
+						{
+							AttributeName: aws.String("GSI_SK"),
+							KeyType:       types.KeyTypeRange,
+						},
+					},
+					Projection: &types.Projection{
+						ProjectionType: types.ProjectionTypeAll,
+					},
+				},
+			},
+			Tags: []types.Tag{
+				{
+					Key:   aws.String(table + "_tag"),
+					Value: aws.String("1"),
+				},
+			},
+			BillingMode: types.BillingModePayPerRequest,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		WaitForAlternatorTable(t, client, table)
+
+		_, err = client.UpdateTimeToLive(context.Background(), &dynamodb.UpdateTimeToLiveInput{
+			TableName: aws.String(table),
+			TimeToLiveSpecification: &types.TimeToLiveSpecification{
+				AttributeName: aws.String(table + "_TTL"),
+				Enabled:       aws.Bool(true),
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Just to make sure that TTL changes are applied
+		time.Sleep(time.Second)
+	}
+}
+
+// WaitForAlternatorTable waits for alternator tablet o be created.
+func WaitForAlternatorTable(t *testing.T, client *dynamodb.Client, table string) {
+	t.Helper()
+
+	waiter := dynamodb.NewTableExistsWaiter(client)
+	err := waiter.Wait(context.Background(), &dynamodb.DescribeTableInput{
+		TableName: aws.String(table),
+	}, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

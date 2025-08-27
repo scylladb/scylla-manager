@@ -2672,21 +2672,21 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 	if CheckAnyConstraint(h.T, h.Client, "< 6.0", "< 2024.2, > 1000") {
 		t.Skip("GetDescribeSchema works only with DESCRIBE SCHEMA WITH INTERNALS schema backup")
 	}
+	ni, err := h.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	alternatorSchemaSupport, err := ni.SupportsAlternatorSchemaBackupFromAPI()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx := context.Background()
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
+	accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
+	client := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
 
-	prepTable := func(tab string) (schema query.DescribedSchema, tag string) {
-		Printf("Given: %s", tab)
-		WriteData(t, clusterSession, testKeyspace, 0, tab)
-
-		Print("And: described schema")
-		schema, err := query.DescribeSchemaWithInternals(clusterSession)
-		if err != nil {
-			t.Fatal(errors.Wrap(err, "DESCRIBE SCHEMA WITH INTERNALS"))
-		}
-
-		Printf("And: %s backup", tab)
+	makeBackup := func() string {
 		target := defaultTestTarget(location, testKeyspace, "dc1", 1)
 		if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
 			t.Fatal(errors.Wrap(err, "InitTarget"))
@@ -2694,8 +2694,6 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 		if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 			t.Fatal(errors.Wrap(err, "Backup"))
 		}
-
-		Print("And: snapshot tag")
 		items, err := h.service.List(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID, TaskID: h.TaskID})
 		if err != nil {
 			t.Fatal(errors.Wrap(err, "List"))
@@ -2703,47 +2701,88 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 		if len(items) == 0 || len(items[0].SnapshotInfo) == 0 {
 			t.Fatalf("No snapshot tag found")
 		}
-		return schema, items[0].SnapshotInfo[0].SnapshotTag
+		return items[0].SnapshotInfo[0].SnapshotTag
 	}
 
-	schemaTab1, tagTab1 := prepTable("tab1")
-	schemaTab2, tagTab2 := prepTable("tab2")
+	// First backup with table created with CQL
+	WriteData(t, clusterSession, testKeyspace, 0, "tab")
+	cqlSchema1, err := query.DescribeSchemaWithInternals(clusterSession)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "DESCRIBE SCHEMA WITH INTERNALS"))
+	}
+	tag1 := makeBackup()
+
+	// Second backup with table created with Alternator
+	const (
+		tabAlt    = "tab_alt"
+		tabAltLSI = tabAlt + "_LSI"
+		tabAltGSI = tabAlt + "_GSI"
+		tabAltTag = tabAlt + "_tag"
+		tabAltTTL = tabAlt + "_TTL"
+	)
+	CreateInterestingAlternatorSchema(t, client, "tab_alt")
+	cqlSchema2, err := query.DescribeSchemaWithInternals(clusterSession)
+	tag2 := makeBackup()
 
 	testCases := []struct {
-		name      string
-		tag       string
-		clusterID uuid.UUID
-		taskID    uuid.UUID
-		schema    query.DescribedSchema
+		name             string
+		tag              string
+		clusterID        uuid.UUID
+		taskID           uuid.UUID
+		cqlSchema        query.DescribedSchema
+		alternatorSchema bool
 	}{
 		{
-			name:      "tab1 all",
-			tag:       tagTab1,
+			name:      "tag1 all",
+			tag:       tag1,
 			clusterID: h.ClusterID,
 			taskID:    h.TaskID,
-			schema:    schemaTab1,
+			cqlSchema: cqlSchema1,
 		},
 		{
-			name:      "tab1 no task ID",
-			tag:       tagTab1,
+			name:      "tag1 no task ID",
+			tag:       tag1,
 			clusterID: h.ClusterID,
-			schema:    schemaTab1,
+			cqlSchema: cqlSchema1,
 		},
 		{
-			name:   "tab1 no cluster ID",
-			tag:    tagTab1,
-			taskID: h.TaskID,
-			schema: schemaTab1,
+			name:      "tag1 no cluster ID",
+			tag:       tag1,
+			taskID:    h.TaskID,
+			cqlSchema: cqlSchema1,
 		},
 		{
-			name:   "tab1 none",
-			tag:    tagTab1,
-			schema: schemaTab1,
+			name:      "tag1 none",
+			tag:       tag1,
+			cqlSchema: cqlSchema1,
 		},
 		{
-			name:   "tab2 none",
-			tag:    tagTab2,
-			schema: schemaTab2,
+			name:             "tag2 all",
+			tag:              tag2,
+			clusterID:        h.ClusterID,
+			taskID:           h.TaskID,
+			cqlSchema:        cqlSchema2,
+			alternatorSchema: alternatorSchemaSupport,
+		},
+		{
+			name:             "tag2 no task ID",
+			tag:              tag2,
+			clusterID:        h.ClusterID,
+			cqlSchema:        cqlSchema2,
+			alternatorSchema: alternatorSchemaSupport,
+		},
+		{
+			name:             "tag2 no cluster ID",
+			tag:              tag2,
+			taskID:           h.TaskID,
+			cqlSchema:        cqlSchema2,
+			alternatorSchema: alternatorSchemaSupport,
+		},
+		{
+			name:             "tag2 none",
+			tag:              tag2,
+			cqlSchema:        cqlSchema2,
+			alternatorSchema: alternatorSchemaSupport,
 		},
 	}
 
@@ -2756,16 +2795,51 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 				ClusterID: tc.clusterID,
 				TaskID:    tc.taskID,
 			}
-			schema, err := h.service.GetDescribeSchema(ctx, h.ClusterID, tc.tag, location, filter)
+			cqlSchema, alternatorSchema, err := h.service.GetDescribeSchema(ctx, h.ClusterID, tc.tag, location, filter)
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "GetDescribeSchema"))
 			}
-
-			slices.SortFunc(schema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
-			slices.SortFunc(tc.schema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
-			Print("Then: GetDescribeSchema returned correct schema")
-			if diff := cmp.Diff(schema, tc.schema); diff != "" {
+			// Validate always existing CQL schema
+			slices.SortFunc(cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
+			slices.SortFunc(tc.cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
+			Print("Then: GetDescribeSchema returned correct cqlSchema")
+			if diff := cmp.Diff(cqlSchema, tc.cqlSchema); diff != "" {
 				t.Fatalf("Schema mismatch\n%s", diff)
+			}
+			// Validate optional alternator schema
+			if !tc.alternatorSchema {
+				if len(alternatorSchema.Tables) != 0 {
+					t.Fatal("Expected alternator schema to be nil")
+				}
+				return
+			}
+			if len(alternatorSchema.Tables) != 1 {
+				t.Fatalf("Expected single alternator table, got: %d", len(alternatorSchema.Tables))
+			}
+			altTab := alternatorSchema.Tables[0]
+			if *altTab.Describe.TableName != tabAlt {
+				t.Fatalf("Expected alternator table: %s, got: %s", tabAlt, *altTab.Describe.TableName)
+			}
+			if len(altTab.Describe.LocalSecondaryIndexes) != 1 {
+				t.Fatalf("Expected singla alternator LSI, got: %d", len(altTab.Describe.LocalSecondaryIndexes))
+			}
+			if *altTab.Describe.LocalSecondaryIndexes[0].IndexName != tabAltLSI {
+				t.Fatalf("Expected alternator LSI: %s, got: %s", tabAltLSI, *altTab.Describe.LocalSecondaryIndexes[0].IndexName)
+			}
+			if len(altTab.Describe.GlobalSecondaryIndexes) != 1 {
+				t.Fatalf("Expected singla alternator GSI, got: %d", len(altTab.Describe.GlobalSecondaryIndexes))
+			}
+			if *altTab.Describe.GlobalSecondaryIndexes[0].IndexName != tabAltGSI {
+				t.Fatalf("Expected alternator GSI: %s, got: %s", tabAltGSI, *altTab.Describe.GlobalSecondaryIndexes[0].IndexName)
+			}
+			if len(altTab.Tags) != 1 {
+				t.Fatalf("Expected single alternator tag, got: %d", len(altTab.Tags))
+			}
+			if *altTab.Tags[0].Key != tabAltTag {
+				t.Fatalf("Expected alternator tag: %s, got: %s", tabAltTag, *altTab.Tags[0].Key)
+			}
+			if *altTab.TTL.AttributeName != tabAltTTL {
+				t.Fatalf("Expected alternator TTL: %s, got: %s", tabAltTTL, *altTab.TTL.AttributeName)
 			}
 		})
 	}

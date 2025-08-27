@@ -10,6 +10,7 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -25,32 +26,47 @@ type DescribeSchemaFilter struct {
 	TaskID    uuid.UUID
 }
 
-// GetDescribeSchema fetches the backed up schema.
+// GetDescribeSchema fetches both cql and alternator backed up schema.
 func (s *Service) GetDescribeSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location, filter DescribeSchemaFilter,
-) (query.DescribedSchema, error) {
+) (query.DescribedSchema, backupspec.AlternatorSchema, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
-		return nil, errors.Wrap(err, "create client")
+		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "create client")
 	}
 
 	host, err := getHostForLocation(ctx, client, location)
 	if err != nil {
-		return nil, errors.Wrap(err, "get host for location")
+		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "get host for location")
 	}
 	s.logger.Info(ctx, "Found host for fetching schema", "host", host)
 
-	schemaFilePath, err := getSchemaFilePath(ctx, client, host, location, snapshotTag, filter, s.logger)
+	cqlSchemaPath, alternatorSchemaPath, err := getSchemaFilePath(ctx, client, host, location, snapshotTag, filter, s.logger)
 	if err != nil {
-		return nil, errors.Wrap(err, "get schema file path")
+		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "get schema file path")
 	}
-	s.logger.Info(ctx, "Found schema file path", "path", schemaFilePath)
+	s.logger.Info(ctx, "Found schema file path", "cql", cqlSchemaPath, "alternator", alternatorSchemaPath)
 
-	schema, err := readSchemaFile(ctx, client, host, schemaFilePath)
+	rawCQLSchema, err := readRawSchemaFile(ctx, client, host, cqlSchemaPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "read schema file")
+		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "read cql schema file")
+	}
+	var cqlSchema query.DescribedSchema
+	if err := json.Unmarshal(rawCQLSchema, &cqlSchema); err != nil {
+		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "unmarshal cql schema")
 	}
 
-	return schema, nil
+	var alternatorSchema backupspec.AlternatorSchema
+	if alternatorSchemaPath != "" {
+		rawAlternatorSchema, err := readRawSchemaFile(ctx, client, host, alternatorSchemaPath)
+		if err != nil {
+			return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "read alternator schema file")
+		}
+		if err := json.Unmarshal(rawAlternatorSchema, &alternatorSchema); err != nil {
+			return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "unmarshal alternator schema")
+		}
+	}
+
+	return cqlSchema, alternatorSchema, nil
 }
 
 func getHostForLocation(ctx context.Context, client *scyllaclient.Client, loc backupspec.Location) (string, error) {
@@ -70,11 +86,14 @@ func getHostForLocation(ctx context.Context, client *scyllaclient.Client, loc ba
 	return status[0].Addr, nil
 }
 
-func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host string, loc backupspec.Location, tag string, f DescribeSchemaFilter, log log.Logger) (string, error) {
-	if f.ClusterID != uuid.Nil && f.TaskID != uuid.Nil {
-		return loc.RemotePath(backupspec.RemoteSchemaFile(f.ClusterID, f.TaskID, tag)), nil
-	}
+// ErrSchemaFileNotFound is returned when no schema file is found in the backup location.
+var ErrSchemaFileNotFound = errors.New("no cql schema file found in backup location")
 
+// getSchemaFilePath looks for cql and alternator schema files in the backup location and returns their remote paths.
+// If no cql schema file is found, ErrSchemaFileNotFound is returned.
+// If no alternator schema file is found, alternatorSchemaPath is empty.
+func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host string, loc backupspec.Location, tag string, f DescribeSchemaFilter, log log.Logger,
+) (cqlSchemaPath, alternatorSchemaPath string, err error) {
 	baseDir := path.Join("backup", string(backupspec.SchemaDirKind), "cluster")
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
@@ -87,10 +106,9 @@ func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host st
 
 	entries, err := client.RcloneListDir(ctx, host, loc.RemotePath(baseDir), &opts)
 	if err != nil {
-		return "", errors.Wrapf(err, "list directory %s on host %s", loc.RemotePath(baseDir), host)
+		return "", "", errors.Wrapf(err, "list directory %s on host %s", loc.RemotePath(baseDir), host)
 	}
 
-	var schemaFilePath string
 	var parseErr error
 	for _, entry := range entries {
 		entryTaskID, entryTag, err := ParseSchemaFileName(entry.Name)
@@ -106,22 +124,36 @@ func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host st
 			continue
 		}
 
-		if schemaFilePath != "" {
-			return "", errors.Errorf("multiple schema files found (%s, %s)", schemaFilePath, entry.Path)
+		if strings.HasSuffix(entry.Name, backupspec.Schema) {
+			if cqlSchemaPath != "" {
+				return "", "", errors.Errorf("multiple cql schema files found (%s, %s)", cqlSchemaPath, entry.Path)
+			}
+			cqlSchemaPath = entry.Path
 		}
-		schemaFilePath = entry.Path
+		if strings.HasSuffix(entry.Name, backupspec.AlternatorSchemaFileSuffix) {
+			if alternatorSchemaPath != "" {
+				return "", "", errors.Errorf("multiple alternator schema files found (%s, %s)", alternatorSchemaPath, entry.Path)
+			}
+			alternatorSchemaPath = entry.Path
+		}
 	}
-	if schemaFilePath == "" {
+	// CQL schema should always be backed up, alternator schema is optional
+	if cqlSchemaPath == "" {
 		if parseErr != nil {
-			return "", errors.Wrap(parseErr, "parse schema file name")
+			return "", "", errors.Wrap(parseErr, "parse cql schema file name")
 		}
-		return "", errors.New("no schema file found")
+		return "", "", ErrSchemaFileNotFound
 	}
-
-	return loc.RemotePath(path.Join(baseDir, schemaFilePath)), nil
+	var remoteAlternatorSchemaPath string
+	if alternatorSchemaPath == "" {
+		log.Info(ctx, "Couldn't find alternator schema file")
+	} else {
+		remoteAlternatorSchemaPath = loc.RemotePath(path.Join(baseDir, alternatorSchemaPath))
+	}
+	return loc.RemotePath(path.Join(baseDir, cqlSchemaPath)), remoteAlternatorSchemaPath, nil
 }
 
-var schemaFileNameRegex = regexp.MustCompile(`task_(.*)_tag_(.*)_schema_with_internals\.json\.gz`)
+var schemaFileNameRegex = regexp.MustCompile(`task_(.*)_tag_(.*)_`)
 
 const (
 	taskIDSubmatchIdx      = 1
@@ -131,6 +163,11 @@ const (
 
 // ParseSchemaFileName parses backed up schema file name into task ID and snapshot tag.
 func ParseSchemaFileName(name string) (taskID uuid.UUID, tag string, err error) {
+	name, ok := cutSchemaFileSuffix(name)
+	if !ok {
+		return uuid.Nil, "", errors.New("unexpected schema file suffix " + name)
+	}
+
 	m := schemaFileNameRegex.FindStringSubmatch(name)
 	if len(m) != expectedSubmatchCount {
 		return uuid.Nil, "", errors.New("unexpected schema file name format " + name)
@@ -149,7 +186,19 @@ func ParseSchemaFileName(name string) (taskID uuid.UUID, tag string, err error) 
 	return taskID, tag, nil
 }
 
-func readSchemaFile(ctx context.Context, client *scyllaclient.Client, host, schemaFilePath string) (schema query.DescribedSchema, err error) {
+func cutSchemaFileSuffix(name string) (string, bool) {
+	if name, ok := strings.CutSuffix(name, backupspec.Schema); ok {
+		return name, true
+	}
+	if name, ok := strings.CutSuffix(name, backupspec.AlternatorSchemaFileSuffix); ok {
+		return name, true
+	}
+	return name, false
+}
+
+// readRawSchemaFile fetches and decompresses schema file from the backup location.
+// It works for both cql and alternator schema files.
+func readRawSchemaFile(ctx context.Context, client *scyllaclient.Client, host, schemaFilePath string) (rawSchema []byte, err error) {
 	r, err := client.RcloneOpen(ctx, host, schemaFilePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "open schema file")
@@ -166,14 +215,9 @@ func readSchemaFile(ctx context.Context, client *scyllaclient.Client, host, sche
 		err = stdErr.Join(err, errors.Wrap(gzr.Close(), "close gzip reader"))
 	}()
 
-	rawSchema, err := io.ReadAll(gzr)
+	rawSchema, err = io.ReadAll(gzr)
 	if err != nil {
 		return nil, errors.Wrap(err, "decompress schema")
 	}
-
-	if err := json.Unmarshal(rawSchema, &schema); err != nil {
-		return nil, errors.Wrap(err, "unmarshal schema")
-	}
-
-	return schema, nil
+	return rawSchema, nil
 }
