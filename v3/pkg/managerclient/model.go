@@ -40,36 +40,20 @@ type ClusterSlice []*models.Cluster
 
 // Render renders ClusterSlice in a tabular format.
 func (cs ClusterSlice) Render(w io.Writer) error {
-	headers := []string{"ID", "Name", "Labels", "Port", "CQL credentials"}
-	anyAlternator := false
-	for _, c := range cs {
-		if c.AlternatorAccessKeyID != "" || c.AlternatorSecretAccessKey != "" {
-			anyAlternator = true
-			break
-		}
-	}
-	if anyAlternator {
-		headers = append(headers, "alternator credentials")
-	}
-	t := table.New(headers)
+	t := table.New("ID", "Name", "Labels", "Port", "Credentials")
 	for _, c := range cs {
 		p := "default"
 		if c.Port != 0 {
 			p = fmt.Sprint(c.Port)
 		}
-		cqlCreds := "not set"
-		if c.Username != "" && c.Password != "" {
-			cqlCreds = "set"
+		var creds []string
+		if c.Username != "" {
+			creds = append(creds, "CQL")
 		}
-		items := []interface{}{c.ID, c.Name, formatLabels(c.Labels), p, cqlCreds}
-		if anyAlternator {
-			alternatorCreds := "not set"
-			if c.AlternatorAccessKeyID != "" && c.AlternatorSecretAccessKey != "" {
-				alternatorCreds = "set"
-			}
-			items = append(items, alternatorCreds)
+		if c.AlternatorAccessKeyID != "" {
+			creds = append(creds, "Alternator")
 		}
-		t.AddRow(items)
+		t.AddRow(c.ID, c.Name, formatLabels(c.Labels), p, strings.Join(creds, ", "))
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
