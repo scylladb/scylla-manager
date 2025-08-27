@@ -2670,7 +2670,7 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 	h := newBackupTestHelper(t, session, config, location, nil)
 
 	if CheckAnyConstraint(h.T, h.Client, "< 6.0", "< 2024.2, > 1000") {
-		t.Skip("GetDescribeSchema works only with DESCRIBE SCHEMA WITH INTERNALS schema backup")
+		t.Skip("GetSchema works only with DESCRIBE SCHEMA WITH INTERNALS schema backup")
 	}
 	ni, err := h.Client.AnyNodeInfo(context.Background())
 	if err != nil {
@@ -2790,19 +2790,19 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			Print("When: call GetDescribeSchema")
-			filter := backup.DescribeSchemaFilter{
+			Print("When: call GetSchema")
+			filter := backup.SchemaFilter{
 				ClusterID: tc.clusterID,
 				TaskID:    tc.taskID,
 			}
-			cqlSchema, alternatorSchema, err := h.service.GetDescribeSchema(ctx, h.ClusterID, tc.tag, location, filter)
+			cqlSchema, alternatorSchema, err := h.service.GetSchema(ctx, h.ClusterID, tc.tag, location, filter)
 			if err != nil {
-				t.Fatal(errors.Wrap(err, "GetDescribeSchema"))
+				t.Fatal(errors.Wrap(err, "GetSchema"))
 			}
 			// Validate always existing CQL schema
 			slices.SortFunc(cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
 			slices.SortFunc(tc.cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
-			Print("Then: GetDescribeSchema returned correct cqlSchema")
+			Print("Then: GetSchema returned correct cqlSchema")
 			if diff := cmp.Diff(cqlSchema, tc.cqlSchema); diff != "" {
 				t.Fatalf("Schema mismatch\n%s", diff)
 			}

@@ -20,14 +20,14 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// DescribeSchemaFilter allows for faster and more robust schema file lookup.
-type DescribeSchemaFilter struct {
+// SchemaFilter allows for faster and more robust schema file lookup.
+type SchemaFilter struct {
 	ClusterID uuid.UUID
 	TaskID    uuid.UUID
 }
 
-// GetDescribeSchema fetches both cql and alternator backed up schema.
-func (s *Service) GetDescribeSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location, filter DescribeSchemaFilter,
+// GetSchema fetches both cql and alternator backed up schema.
+func (s *Service) GetSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location, filter SchemaFilter,
 ) (query.DescribedSchema, backupspec.AlternatorSchema, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
@@ -92,7 +92,7 @@ var ErrSchemaFileNotFound = errors.New("no cql schema file found in backup locat
 // getSchemaFilePath looks for cql and alternator schema files in the backup location and returns their remote paths.
 // If no cql schema file is found, ErrSchemaFileNotFound is returned.
 // If no alternator schema file is found, alternatorSchemaPath is empty.
-func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host string, loc backupspec.Location, tag string, f DescribeSchemaFilter, log log.Logger,
+func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host string, loc backupspec.Location, tag string, f SchemaFilter, log log.Logger,
 ) (cqlSchemaPath, alternatorSchemaPath string, err error) {
 	baseDir := path.Join("backup", string(backupspec.SchemaDirKind), "cluster")
 	opts := scyllaclient.RcloneListDirOpts{
