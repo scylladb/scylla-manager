@@ -4,6 +4,14 @@ description: |
     This command modifies managed cluster parameters
 usage: sctool cluster update --cluster <id|name> [flags]
 options:
+    - name: alternator-access-key-id
+      usage: |
+        Alternator `access-key-id`, for security reasons this account should NOT have access to your data.
+        If you specify the alternator access-key-id and secret-access-key, the alternator health check you see in status command would try to login and execute a query against system table.
+        Otherwise alternator health check is based on sending GET request to alternator port and does not create an alternator client.
+    - name: alternator-secret-access-key
+      usage: |
+        Alternator `secret-access-key` associated with access-key-id.
     - name: auth-token
       usage: |
         The authentication `token` you identified in '/etc/scylla-manager-agent/scylla-manager-agent.yaml'.
@@ -11,6 +19,10 @@ options:
       shorthand: c
       usage: |
         The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+    - name: delete-alternator-credentials
+      default_value: "false"
+      usage: |
+        Deletes alternator access-key-id and secret-access-key, added with --alternator-access-key-id and --alternator-secret-access-key.
     - name: delete-cql-credentials
       default_value: "false"
       usage: |

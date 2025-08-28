@@ -8,7 +8,6 @@ package clusteradd
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"maps"
 	"os/exec"
 	"strings"
@@ -92,7 +91,6 @@ func TestSctoolClusterAddIntegrationAPITest(t *testing.T) {
 
 			// when
 			output, err := cmd.Output()
-			fmt.Println(string(output))
 			if err != nil {
 				t.Fatalf("Unable to create cluster with sctool cluster add, err = {%v}, stderr = {%v}", err, stderr.String())
 			}

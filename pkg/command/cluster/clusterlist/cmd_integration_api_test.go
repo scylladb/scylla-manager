@@ -93,3 +93,88 @@ func TestSctoolClusterListIntegrationAPITest(t *testing.T) {
 	}
 
 }
+
+func TestSctoolClusterListCredentialsIntegrationAPITest(t *testing.T) {
+	for _, tc := range []struct {
+		name                  string
+		createArgs            []string
+		updateArgs            []string
+		expectedOutputPattern string
+	}{
+		{
+			name: "create cluster with alternator creds",
+			createArgs: []string{"--auth-token", authToken, "--host", clusterIntroHost,
+				"--username", "user", "--password", "pass",
+				"--alternator-access-key-id", "id", "--alternator-secret-access-key", "key",
+			},
+			expectedOutputPattern: `<cluster_id> .*\| .*\| .*\| .*\| CQL, Alternator`,
+		},
+		{
+			name: "update alternator creds",
+			createArgs: []string{"--auth-token", authToken, "--host", clusterIntroHost,
+				"--alternator-access-key-id", "id1", "--alternator-secret-access-key", "key1",
+			},
+			updateArgs:            []string{"--alternator-access-key-id", "id2", "--alternator-secret-access-key", "key2"},
+			expectedOutputPattern: `<cluster_id> .*\| .*\| .*\| .*\| Alternator`,
+		},
+		{
+			name: "delete alternator creds",
+			createArgs: []string{"--auth-token", authToken, "--host", clusterIntroHost,
+				"--username", "user", "--password", "pass",
+				"--alternator-access-key-id", "id", "--alternator-secret-access-key", "key",
+			},
+			updateArgs:            []string{"--delete-alternator-credentials"},
+			expectedOutputPattern: `<cluster_id> .*\| .*\| .*\| .*\| Alternator`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client, err := managerclient.NewClient("http://localhost:5080/api/v1")
+			if err != nil {
+				t.Fatalf("Unable to create managerclient to consume manager HTTP API, err = {%v}", err)
+			}
+			var stderr bytes.Buffer
+			// Create cluster
+			cmd := exec.Command("./sctool.api-tests", append([]string{"cluster", "add"}, tc.createArgs...)...)
+			cmd.Stderr = &stderr
+			cmd.Dir = "/scylla-manager"
+
+			output, err := cmd.Output()
+			if err != nil {
+				t.Fatalf("Unable to create cluster with sctool cluster add, err = {%v}, stderr = {%v}", err, stderr.String())
+			}
+			clusterID := strings.Split(string(output), "\n")[0]
+
+			defer func() {
+				if err := client.DeleteCluster(context.Background(), clusterID); err != nil {
+					t.Fatalf("Failed to delete cluster, err = {%v}", err)
+				}
+			}()
+			// Update cluster if needed
+			if len(tc.updateArgs) != 0 {
+				cmd = exec.Command("./sctool.api-tests", append([]string{"cluster", "update", "-c", clusterID}, tc.updateArgs...)...)
+				cmd.Stderr = &stderr
+				cmd.Dir = "/scylla-manager"
+
+				_, err = cmd.Output()
+				if err != nil {
+					t.Fatalf("Unable to update cluster with sctool cluster update, err = {%v}, stderr = {%v}", err, stderr.String())
+				}
+			}
+			// List clusters
+			cmd = exec.Command("./sctool.api-tests", "cluster", "list")
+			cmd.Stderr = &stderr
+			cmd.Dir = "/scylla-manager"
+
+			output, err = cmd.Output()
+			if err != nil {
+				t.Fatalf("Unable to list clusters with sctool cluster list, err = {%v}, stderr = {%v}", err, stderr.String())
+			}
+			// Validate output
+			pattern := strings.ReplaceAll(tc.expectedOutputPattern, "<cluster_id>", clusterID)
+			re := regexp.MustCompile(pattern)
+			if !re.Match(output) {
+				t.Fatalf("Expected to get pattern {%v}, got {%s}", pattern, string(output))
+			}
+		})
+	}
+}

@@ -56,6 +56,14 @@ username: |
 password: |
   CQL `password` associated with username.
 
+alternator-access-key-id: |
+  Alternator `access-key-id`, for security reasons this account should NOT have access to your data.
+  If you specify the alternator access-key-id and secret-access-key, the alternator health check you see in status command would try to login and execute a query against system table.
+  Otherwise alternator health check is based on sending GET request to alternator port and does not create an alternator client.
+
+alternator-secret-access-key: |
+  Alternator `secret-access-key` associated with access-key-id.
+
 ssl-user-cert-file: |
   File `path` to client certificate when Scylla uses client/server encryption (require_client_auth enabled).
 
