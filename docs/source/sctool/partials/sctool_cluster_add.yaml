@@ -7,6 +7,14 @@ description: |
     see https://manager.docs.scylladb.com/stable/add-a-cluster.html for instructions.
 usage: sctool cluster add --host <IP> [--name <alias>] [--auth-token <token>] [flags]
 options:
+    - name: alternator-access-key-id
+      usage: |
+        Alternator `access-key-id`, for security reasons this account should NOT have access to your data.
+        If you specify the alternator access-key-id and secret-access-key, the alternator health check you see in status command would try to login and execute a query against system table.
+        Otherwise alternator health check is based on sending GET request to alternator port and does not create an alternator client.
+    - name: alternator-secret-access-key
+      usage: |
+        Alternator `secret-access-key` associated with access-key-id.
     - name: auth-token
       usage: |
         The authentication `token` you identified in '/etc/scylla-manager-agent/scylla-manager-agent.yaml'.
