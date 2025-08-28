@@ -18,7 +18,7 @@ func TestParseSchemaFileName(t *testing.T) {
 		err        bool
 	}{
 		{
-			name:       "valid schema file",
+			name:       "valid cql schema file",
 			schemaFile: "task_1702a53a-2ecd-44b2-9c79-c45653a49d31_tag_sm_20250527161648UTC_schema_with_internals.json.gz",
 			taskID:     uuid.MustParse("1702a53a-2ecd-44b2-9c79-c45653a49d31"),
 			tag:        "sm_20250527161648UTC",
@@ -37,6 +37,12 @@ func TestParseSchemaFileName(t *testing.T) {
 			name:       "invalid tag",
 			schemaFile: "task_1702a53a-2ecd-44b2-9c79-c45653a49d31_tag_invalidtag_schema_with_internals.json.gz",
 			err:        true,
+		},
+		{
+			name:       "valid alternator schema file",
+			schemaFile: "task_1702a53a-2ecd-44b2-9c79-c45653a49d31_tag_sm_20250527161648UTC_alternator_schema.json.gz",
+			taskID:     uuid.MustParse("1702a53a-2ecd-44b2-9c79-c45653a49d31"),
+			tag:        "sm_20250527161648UTC",
 		},
 	}
 

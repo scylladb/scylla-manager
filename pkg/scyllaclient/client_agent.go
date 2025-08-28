@@ -242,6 +242,14 @@ func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMetho
 	return "", nil
 }
 
+// SupportsAlternatorSchemaBackupFromAPI true if alternator schema should be backed up using alternator API.
+func (ni *NodeInfo) SupportsAlternatorSchemaBackupFromAPI() (bool, error) {
+	// At the moment of writing this code, the only supported scylla versions are:
+	// 2024.1 - both CQL and alternator schema are restored from sstables
+	// 2025.1, 2025.2 - alternator schema is restored from alternator API
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
+}
+
 // SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
 func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
 	// Check ENT

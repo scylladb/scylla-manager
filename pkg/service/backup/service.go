@@ -767,7 +767,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 		StageAwaitSchema: func() error {
 			if !target.SkipSchema {
-				return w.DumpSchema(ctx, hi, s.clusterSession)
+				if err := w.DumpSchema(ctx, hi, s.clusterSession); err != nil {
+					return errors.Wrap(err, "dump CQL schema")
+				}
+				if err := w.DumpAlternatorSchema(ctx, hi, s.alternatorClient); err != nil {
+					return errors.Wrap(err, "dump alternator schema")
+				}
+				return nil
 			}
 			return nil
 		},
@@ -778,7 +784,13 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.UploadManifest(ctx, hi)
 		},
 		StageSchema: func() error {
-			return w.UploadSchema(ctx, hi)
+			if err := w.UploadSchema(ctx, hi); err != nil {
+				return errors.Wrap(err, "upload CQL schema")
+			}
+			if err := w.UploadAlternatorSchema(ctx, hi); err != nil {
+				return errors.Wrap(err, "upload alternator schema")
+			}
+			return nil
 		},
 		StageDeduplicate: func() error {
 			return w.Deduplicate(ctx, hi, target.UploadParallel)

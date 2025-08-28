@@ -67,21 +67,6 @@ func (mr *MockBackupServiceMockRecorder) ExtractLocations(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractLocations", reflect.TypeOf((*MockBackupService)(nil).ExtractLocations), arg0, arg1)
 }
 
-// GetDescribeSchema mocks base method.
-func (m *MockBackupService) GetDescribeSchema(arg0 context.Context, arg1 uuid.UUID, arg2 string, arg3 backupspec.Location, arg4 backup.DescribeSchemaFilter) (query.DescribedSchema, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDescribeSchema", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(query.DescribedSchema)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDescribeSchema indicates an expected call of GetDescribeSchema.
-func (mr *MockBackupServiceMockRecorder) GetDescribeSchema(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDescribeSchema", reflect.TypeOf((*MockBackupService)(nil).GetDescribeSchema), arg0, arg1, arg2, arg3, arg4)
-}
-
 // GetProgress mocks base method.
 func (m *MockBackupService) GetProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (backup.Progress, error) {
 	m.ctrl.T.Helper()
@@ -95,6 +80,22 @@ func (m *MockBackupService) GetProgress(arg0 context.Context, arg1, arg2, arg3 u
 func (mr *MockBackupServiceMockRecorder) GetProgress(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProgress", reflect.TypeOf((*MockBackupService)(nil).GetProgress), arg0, arg1, arg2, arg3)
+}
+
+// GetSchema mocks base method.
+func (m *MockBackupService) GetSchema(arg0 context.Context, arg1 uuid.UUID, arg2 string, arg3 backupspec.Location, arg4 backup.SchemaFilter) (query.DescribedSchema, backupspec.AlternatorSchema, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSchema", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(query.DescribedSchema)
+	ret1, _ := ret[1].(backupspec.AlternatorSchema)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetSchema indicates an expected call of GetSchema.
+func (mr *MockBackupServiceMockRecorder) GetSchema(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSchema", reflect.TypeOf((*MockBackupService)(nil).GetSchema), arg0, arg1, arg2, arg3, arg4)
 }
 
 // GetTarget mocks base method.
