@@ -3,19 +3,14 @@
 package restore
 
 import (
-	"compress/gzip"
 	"context"
-	"encoding/json"
-	stdErr "errors"
 	"fmt"
-	"io"
 	"path"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 
@@ -339,90 +334,6 @@ func (w *schemaWorker) getFileNamesMapping(sstables []string, sstableUUIDFormat 
 		return sstable.RenameToUUIDs(sstables)
 	}
 	return sstable.RenameToIDs(sstables, &w.generationCnt)
-}
-
-func getDescribedSchema(ctx context.Context, client *scyllaclient.Client, snapshotTag string, locationInfo []LocationInfo) (schema *query.DescribedSchema, err error) {
-	baseDir := path.Join("backup", string(backupspec.SchemaDirKind))
-	// It's enough to get a single schema file, but it's important to validate
-	// that each location contains exactly one or none of them.
-	var (
-		host       string
-		schemaPath *string
-		foundCnt   int
-	)
-	for _, l := range locationInfo {
-		host = l.AnyHost()
-		schemaPath, err = getRemoteSchemaFilePath(ctx, client, snapshotTag, host, l.Location.RemotePath(baseDir))
-		if err != nil {
-			return nil, errors.Wrapf(err, "get schema file from %s", l.Location.RemotePath(baseDir))
-		}
-		if schemaPath != nil {
-			foundCnt++
-		}
-	}
-
-	if foundCnt == 0 {
-		return nil, nil // nolint: nilnil
-	} else if foundCnt < len(locationInfo) {
-		return nil, errors.New("only a subset of provided locations has schema files")
-	}
-
-	r, err := client.RcloneOpen(ctx, host, *schemaPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "open schema file")
-	}
-	defer func() {
-		err = stdErr.Join(err, errors.Wrap(r.Close(), "close schema file reader"))
-	}()
-
-	gzr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, errors.Wrap(err, "create gzip reader")
-	}
-	defer func() {
-		err = stdErr.Join(err, errors.Wrap(gzr.Close(), "close gzip reader"))
-	}()
-
-	rawSchema, err := io.ReadAll(gzr)
-	if err != nil {
-		return nil, errors.Wrap(err, "decompress schema")
-	}
-
-	schema = new(query.DescribedSchema)
-	if err := json.Unmarshal(rawSchema, schema); err != nil {
-		return nil, errors.Wrap(err, "unmarshal schema")
-	}
-
-	return schema, nil
-}
-
-// getRemoteSchemaFilePath returns path to the schema file with given snapshotTag.
-// Both search and returned path are relative to the remotePath.
-// In case schema file wasn't found, nil is returned.
-func getRemoteSchemaFilePath(ctx context.Context, client *scyllaclient.Client, snapshotTag, host, remotePath string) (*string, error) {
-	opts := scyllaclient.RcloneListDirOpts{
-		FilesOnly: true,
-		Recurse:   true,
-	}
-
-	var schemaPaths []string
-	err := client.RcloneListDirIter(ctx, host, remotePath, &opts, func(f *scyllaclient.RcloneListDirItem) {
-		if strings.HasSuffix(f.Name, backupspec.RemoteSchemaFileSuffix(snapshotTag)) {
-			schemaPaths = append(schemaPaths, f.Path)
-		}
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err, "iterate over schema dir")
-	}
-
-	if len(schemaPaths) == 0 {
-		return nil, nil // nolint: nilnil
-	}
-	if len(schemaPaths) > 1 {
-		return nil, errors.Errorf("many schema files with %s snapshot tag: %v", snapshotTag, schemaPaths)
-	}
-	schemaPath := path.Join(remotePath, schemaPaths[0])
-	return &schemaPath, nil
 }
 
 // parseCQLStatement splits composite CQL statement into a slice of single CQL statements.
