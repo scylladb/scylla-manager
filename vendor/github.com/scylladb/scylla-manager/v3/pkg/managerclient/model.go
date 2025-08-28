@@ -40,17 +40,20 @@ type ClusterSlice []*models.Cluster
 
 // Render renders ClusterSlice in a tabular format.
 func (cs ClusterSlice) Render(w io.Writer) error {
-	t := table.New("ID", "Name", "Labels", "Port", "CQL credentials")
+	t := table.New("ID", "Name", "Labels", "Port", "Credentials")
 	for _, c := range cs {
 		p := "default"
 		if c.Port != 0 {
 			p = fmt.Sprint(c.Port)
 		}
-		creds := "not set"
-		if c.Username != "" && c.Password != "" {
-			creds = "set"
+		var creds []string
+		if c.Username != "" {
+			creds = append(creds, "CQL")
 		}
-		t.AddRow(c.ID, c.Name, formatLabels(c.Labels), p, creds)
+		if c.AlternatorAccessKeyID != "" {
+			creds = append(creds, "Alternator")
+		}
+		t.AddRow(c.ID, c.Name, formatLabels(c.Labels), p, strings.Join(creds, ", "))
 	}
 	if _, err := w.Write([]byte(t.String())); err != nil {
 		return err
@@ -1621,4 +1624,19 @@ func (csd ClusterSuspendDetails) Render(w io.Writer) error {
 		return err
 	}
 	return nil
+}
+
+// BackupDescribeSchema renders described backup schema.
+type BackupDescribeSchema struct {
+	*models.BackupDescribeSchema
+}
+
+// Render implements Renderer interface.
+func (bds BackupDescribeSchema) Render(w io.Writer) error {
+	cqlStmts := make([]string, 0, len(bds.Schema))
+	for _, row := range bds.Schema {
+		cqlStmts = append(cqlStmts, row.CqlStmt)
+	}
+	_, err := w.Write([]byte(strings.Join(cqlStmts, "\n") + "\n"))
+	return err
 }

@@ -495,7 +495,7 @@ github.com/scylladb/gocqlx/v2/table
 # github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20250818141015-50f1d9b3b087
 ## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/backupspec
-# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250630160519-24627a91850a
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20250828081109-82b83049f8f9
 ## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/v3/pkg/managerclient
 github.com/scylladb/scylla-manager/v3/pkg/managerclient/table

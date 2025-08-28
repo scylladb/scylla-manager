@@ -137,7 +137,7 @@ func (c *Client) DeleteCluster(ctx context.Context, clusterID string) error {
 }
 
 // DeleteClusterSecrets removes cluster secrets.
-func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, sslUserCert bool) error {
+func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cqlCreds, alternatorCreds, sslUserCert bool) error {
 	ok := false
 	p := &operations.DeleteClusterClusterIDParams{
 		Context:   ctx,
@@ -145,6 +145,10 @@ func (c *Client) DeleteClusterSecrets(ctx context.Context, clusterID string, cql
 	}
 	if cqlCreds {
 		p.CqlCreds = &cqlCreds
+		ok = true
+	}
+	if alternatorCreds {
+		p.AlternatorCreds = &alternatorCreds
 		ok = true
 	}
 	if sslUserCert {
@@ -540,6 +544,30 @@ func (c *Client) ValidateBackupProgress(ctx context.Context, clusterID, taskID, 
 
 	return ValidateBackupProgress{
 		TaskRunValidateBackupProgress: resp.Payload,
+	}, nil
+}
+
+// BackupDescribeSchema returns backed up schema from DESCRIBE SCHEMA WITH INTERNALS query.
+func (c *Client) BackupDescribeSchema(ctx context.Context, clusterID, snapshotTag, location, queryClusterID, queryTaskID string) (BackupDescribeSchema, error) {
+	params := &operations.GetClusterClusterIDBackupsSchemaParams{
+		Context:     ctx,
+		ClusterID:   clusterID,
+		SnapshotTag: snapshotTag,
+		Location:    location,
+	}
+	if queryClusterID != "" {
+		params.SetQueryClusterID(&queryClusterID)
+	}
+	if queryTaskID != "" {
+		params.SetQueryTaskID(&queryTaskID)
+	}
+
+	resp, err := c.operations.GetClusterClusterIDBackupsSchema(params)
+	if err != nil {
+		return BackupDescribeSchema{}, err
+	}
+	return BackupDescribeSchema{
+		BackupDescribeSchema: resp.GetPayload(),
 	}, nil
 }
 
