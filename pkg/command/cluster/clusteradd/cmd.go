@@ -23,19 +23,21 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	id                     string
-	name                   string
-	label                  flag.Label
-	host                   string
-	port                   int64
-	authToken              string
-	username               string
-	password               string
-	sslUserCertFile        string
-	sslUserKeyFile         string
-	withoutRepair          bool
-	forceTLSDisabled       bool
-	forceNonSSLSessionPort bool
+	id                        string
+	name                      string
+	label                     flag.Label
+	host                      string
+	port                      int64
+	authToken                 string
+	username                  string
+	password                  string
+	alternatorAccessKeyID     string
+	alternatorSecretAccessKey string
+	sslUserCertFile           string
+	sslUserKeyFile            string
+	withoutRepair             bool
+	forceTLSDisabled          bool
+	forceNonSSLSessionPort    bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -64,6 +66,8 @@ func (cmd *command) init() {
 	w.StringVar(&cmd.authToken, "auth-token", "", "")
 	w.StringVarP(&cmd.username, "username", "u", "", "")
 	w.StringVarP(&cmd.password, "password", "p", "", "")
+	w.StringVar(&cmd.alternatorAccessKeyID, "alternator-access-key-id", "", "")
+	w.StringVar(&cmd.alternatorSecretAccessKey, "alternator-secret-access-key", "", "")
 	w.StringVar(&cmd.sslUserCertFile, "ssl-user-cert-file", "", "")
 	w.StringVar(&cmd.sslUserKeyFile, "ssl-user-key-file", "", "")
 	w.BoolVar(&cmd.withoutRepair, "without-repair", false, "")
@@ -85,16 +89,18 @@ func (cmd *command) run() error {
 	}
 
 	c := &managerclient.Cluster{
-		ID:                     cmd.id,
-		Name:                   cmd.name,
-		Labels:                 cmd.label.NewLabels(),
-		Host:                   cmd.host,
-		AuthToken:              cmd.authToken,
-		Username:               cmd.username,
-		Password:               cmd.password,
-		WithoutRepair:          cmd.withoutRepair,
-		ForceTLSDisabled:       cmd.forceTLSDisabled,
-		ForceNonSslSessionPort: cmd.forceNonSSLSessionPort,
+		ID:                        cmd.id,
+		Name:                      cmd.name,
+		Labels:                    cmd.label.NewLabels(),
+		Host:                      cmd.host,
+		AuthToken:                 cmd.authToken,
+		Username:                  cmd.username,
+		Password:                  cmd.password,
+		AlternatorAccessKeyID:     cmd.alternatorAccessKeyID,
+		AlternatorSecretAccessKey: cmd.alternatorSecretAccessKey,
+		WithoutRepair:             cmd.withoutRepair,
+		ForceTLSDisabled:          cmd.forceTLSDisabled,
+		ForceNonSslSessionPort:    cmd.forceNonSSLSessionPort,
 	}
 	if cmd.port != 10001 {
 		c.Port = cmd.port
@@ -105,6 +111,13 @@ func (cmd *command) run() error {
 	}
 	if cmd.password != "" && cmd.username == "" {
 		return errors.New("missing flag \"username\"")
+	}
+
+	if cmd.alternatorAccessKeyID != "" && cmd.alternatorSecretAccessKey == "" {
+		return errors.New("missing flag \"alternator-secret-access-key\"")
+	}
+	if cmd.alternatorSecretAccessKey != "" && cmd.alternatorAccessKeyID == "" {
+		return errors.New("missing flag \"alternator-access-key-id\"")
 	}
 
 	if cmd.sslUserCertFile != "" && cmd.sslUserKeyFile == "" {

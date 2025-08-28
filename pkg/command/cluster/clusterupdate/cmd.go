@@ -20,20 +20,23 @@ type command struct {
 	cobra.Command
 	client *managerclient.Client
 
-	cluster                string
-	name                   string
-	label                  flag.Label
-	host                   string
-	port                   int64
-	authToken              string
-	username               string
-	password               string
-	sslUserCertFile        string
-	sslUserKeyFile         string
-	deleteCQLCredentials   bool
-	deleteSSLUserCert      bool
-	forceTLSDisabled       bool
-	forceNonSSLSessionPort bool
+	cluster                     string
+	name                        string
+	label                       flag.Label
+	host                        string
+	port                        int64
+	authToken                   string
+	username                    string
+	password                    string
+	alternatorAccessKeyID       string
+	alternatorSecretAccessKey   string
+	sslUserCertFile             string
+	sslUserKeyFile              string
+	deleteCQLCredentials        bool
+	deleteAlternatorCredentials bool
+	deleteSSLUserCert           bool
+	forceTLSDisabled            bool
+	forceNonSSLSessionPort      bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -62,9 +65,12 @@ func (cmd *command) init() {
 	w.Unwrap().StringVar(&cmd.authToken, "auth-token", "", "")
 	w.Unwrap().StringVarP(&cmd.username, "username", "u", "", "")
 	w.Unwrap().StringVarP(&cmd.password, "password", "p", "", "")
+	w.Unwrap().StringVar(&cmd.alternatorAccessKeyID, "alternator-access-key-id", "", "")
+	w.Unwrap().StringVar(&cmd.alternatorSecretAccessKey, "alternator-secret-access-key", "", "")
 	w.Unwrap().StringVar(&cmd.sslUserCertFile, "ssl-user-cert-file", "", "")
 	w.Unwrap().StringVar(&cmd.sslUserKeyFile, "ssl-user-key-file", "", "")
 	w.Unwrap().BoolVar(&cmd.deleteCQLCredentials, "delete-cql-credentials", false, "")
+	w.Unwrap().BoolVar(&cmd.deleteAlternatorCredentials, "delete-alternator-credentials", false, "")
 	w.Unwrap().BoolVar(&cmd.deleteSSLUserCert, "delete-ssl-user-cert", false, "")
 	w.Unwrap().BoolVar(&cmd.forceTLSDisabled, "force-tls-disabled", false, "")
 	w.Unwrap().BoolVar(&cmd.forceNonSSLSessionPort, "force-non-ssl-session-port", false, "")
@@ -101,6 +107,14 @@ func (cmd *command) run() error {
 		cluster.Password = cmd.password
 		ok = true
 	}
+	if cmd.Flags().Changed("alternator-access-key-id") {
+		cluster.AlternatorAccessKeyID = cmd.alternatorAccessKeyID
+		ok = true
+	}
+	if cmd.Flags().Changed("alternator-secret-access-key") {
+		cluster.AlternatorSecretAccessKey = cmd.alternatorSecretAccessKey
+		ok = true
+	}
 	if cmd.Flags().Changed("auth-token") {
 		cluster.AuthToken = cmd.authToken
 		ok = true
@@ -119,6 +133,13 @@ func (cmd *command) run() error {
 	}
 	if cmd.password != "" && cmd.username == "" {
 		return errors.New("missing flag \"username\"")
+	}
+
+	if cmd.alternatorAccessKeyID != "" && cmd.alternatorSecretAccessKey == "" {
+		return errors.New("missing flag \"alternator-secret-access-key\"")
+	}
+	if cmd.alternatorSecretAccessKey != "" && cmd.alternatorAccessKeyID == "" {
+		return errors.New("missing flag \"alternator-access-key-id\"")
 	}
 
 	if cmd.Flags().Changed("ssl-user-cert-file") {
@@ -144,11 +165,11 @@ func (cmd *command) run() error {
 		ok = true
 	}
 
-	if !ok && !cmd.deleteCQLCredentials && !cmd.deleteSSLUserCert {
+	if !ok && !cmd.deleteCQLCredentials && !cmd.deleteAlternatorCredentials && !cmd.deleteSSLUserCert {
 		return errors.New("nothing to do")
 	}
-	if cmd.deleteCQLCredentials || cmd.deleteSSLUserCert {
-		if err := cmd.client.DeleteClusterSecrets(cmd.Context(), cmd.cluster, cmd.deleteCQLCredentials, cmd.deleteSSLUserCert); err != nil {
+	if cmd.deleteCQLCredentials || cmd.deleteAlternatorCredentials || cmd.deleteSSLUserCert {
+		if err := cmd.client.DeleteClusterSecrets(cmd.Context(), cmd.cluster, cmd.deleteCQLCredentials, cmd.deleteAlternatorCredentials, cmd.deleteSSLUserCert); err != nil {
 			return err
 		}
 	}
