@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
@@ -243,17 +244,17 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 
 	if t.RestoreSchema {
 		w.logger.Info(ctx, "Look for schema file")
-		w.describedSchema, err = getDescribedSchema(ctx, w.client, t.SnapshotTag, t.locationInfo)
-		if err != nil {
-			return errors.Wrap(err, "look for schema file")
-		}
-
-		if w.describedSchema == nil {
+		cqlSchema, _, err := backup.GetSchema(ctx, w.client, t.SnapshotTag, t.Location[0], backup.SchemaFilter{}, w.logger)
+		switch {
+		case errors.Is(err, backup.ErrSchemaFileNotFound):
 			w.logger.Info(ctx, "Couldn't find schema file. Proceeding with schema restoration using sstables")
 			if err := IsRestoreSchemaFromSSTablesSupported(ctx, w.client); err != nil {
 				return errors.Wrap(err, "check safety of restoring schema from sstables")
 			}
-		} else {
+		case err != nil:
+			return errors.Wrap(err, "look for schema file")
+		default:
+			w.describedSchema = &cqlSchema
 			w.logger.Info(ctx, "Found schema file")
 		}
 		return nil
