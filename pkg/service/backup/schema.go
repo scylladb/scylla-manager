@@ -26,25 +26,30 @@ type SchemaFilter struct {
 	TaskID    uuid.UUID
 }
 
-// GetSchema fetches both cql and alternator backed up schema.
+// GetSchema is a simple wrapper for calling GetSchema directly on Service.
 func (s *Service) GetSchema(ctx context.Context, clusterID uuid.UUID, snapshotTag string, location backupspec.Location, filter SchemaFilter,
 ) (query.DescribedSchema, backupspec.AlternatorSchema, error) {
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
 		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "create client")
 	}
+	return GetSchema(ctx, client, snapshotTag, location, filter, s.logger)
+}
 
+// GetSchema fetches both cql and alternator backed up schema.
+func GetSchema(ctx context.Context, client *scyllaclient.Client, snapshotTag string, location backupspec.Location, filter SchemaFilter, log log.Logger,
+) (query.DescribedSchema, backupspec.AlternatorSchema, error) {
 	host, err := getHostForLocation(ctx, client, location)
 	if err != nil {
 		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "get host for location")
 	}
-	s.logger.Info(ctx, "Found host for fetching schema", "host", host)
+	log.Info(ctx, "Found host for fetching schema", "host", host)
 
-	cqlSchemaPath, alternatorSchemaPath, err := getSchemaFilePath(ctx, client, host, location, snapshotTag, filter, s.logger)
+	cqlSchemaPath, alternatorSchemaPath, err := getSchemaFilePath(ctx, client, host, location, snapshotTag, filter, log)
 	if err != nil {
 		return nil, backupspec.AlternatorSchema{}, errors.Wrap(err, "get schema file path")
 	}
-	s.logger.Info(ctx, "Found schema file path", "cql", cqlSchemaPath, "alternator", alternatorSchemaPath)
+	log.Info(ctx, "Found schema file path", "cql", cqlSchemaPath, "alternator", alternatorSchemaPath)
 
 	rawCQLSchema, err := readRawSchemaFile(ctx, client, host, cqlSchemaPath)
 	if err != nil {
