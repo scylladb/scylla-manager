@@ -931,11 +931,15 @@ func alternatorTLSConfig() *tls.Config {
 	}
 }
 
+// ErrNoAlternatorCredentials is returned when cluster alternator credentials are required, but credentials weren't added.
+var ErrNoAlternatorCredentials = errors.New("cluster requires alternator authentication but they aren't set. " +
+	"Use 'sctool cluster update --alternator-access-key-id --alternator-secret-access-key' for adding them")
+
 func (s *Service) alternatorCredentials(clusterID uuid.UUID) (aws.CredentialsProvider, error) {
 	c := secrets.AlternatorCreds{ClusterID: clusterID}
 	err := s.secretsStore.Get(&c)
 	if errors.Is(err, util.ErrNotFound) {
-		return nil, ErrNoCQLCredentials
+		return nil, ErrNoAlternatorCredentials
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "get credentials from secrets store")
