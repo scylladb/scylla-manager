@@ -58,7 +58,7 @@ func (w *schemaWorker) stageRestoreData(ctx context.Context) error {
 	w.logger.Info(ctx, "Started restoring schema")
 	defer w.logger.Info(ctx, "Restoring schema finished")
 
-	if w.describedSchema != nil {
+	if w.cqlSchema != nil {
 		return w.restoreFromSchemaFile(ctx)
 	}
 
@@ -139,8 +139,21 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 	w.logger.Info(ctx, "Apply schema CQL statements")
 	start := timeutc.Now()
 
+	// Alternator schema is independent of CQL schema, as each alternator table
+	// lives in its own personal keyspace. On the other hand, CQL schema contains
+	// alternator schema translated to CQL statements - those should be skipped.
+	// Moreover, CQL schema contains auth and service levels, which might rely on
+	// already existing alternator schema, so we need to restore alternator schema first.
+	aw, err := newAlternatorSchemaWorker(w.alternatorClient, w.alternatorSchema)
+	if err != nil {
+		return errors.Wrap(err, "create alternator schema worker")
+	}
+	if err := aw.restore(ctx); err != nil {
+		return errors.Wrap(err, "restore alternator schema")
+	}
+
 	var createdKs []string
-	for _, row := range *w.describedSchema {
+	for _, row := range *w.cqlSchema {
 		if row.Keyspace == "" {
 			// Scylla 6.3 added roles and service levels to the output of
 			// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
@@ -150,6 +163,9 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 		}
 		if row.Keyspace == "system_replicated_keys" {
 			// See https://github.com/scylladb/scylla-enterprise/issues/4168
+			continue
+		}
+		if aw.isAlternatorSchemaRow(row) {
 			continue
 		}
 		// Sometimes a single object might require multiple CQL statements (e.g. table with dropped and added column)
