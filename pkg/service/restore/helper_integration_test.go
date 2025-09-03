@@ -65,6 +65,7 @@ func randomizedName(name string) string {
 type clusterHelper struct {
 	*CommonTestHelper
 	rootSession gocqlx.Session
+	altClient   *dynamodb.Client
 }
 
 func newCluster(t *testing.T, hosts []string) clusterHelper {
@@ -73,6 +74,9 @@ func newCluster(t *testing.T, hosts []string) clusterHelper {
 	clientCfg := scyllaclient.TestConfig(hosts, AgentAuthToken())
 	clientCfg.Backoff.MaxRetries = 0
 	client := newTestClient(t, hrt, logger.Named("client"), &clientCfg)
+	rootSession := CreateSessionAndDropAllKeyspaces(t, client)
+	accessKeyID, secretAccessKey := GetAlternatorCreds(t, rootSession, "")
+	altClient := CreateAlternatorClient(t, client, client.Config().Hosts[0], accessKeyID, secretAccessKey)
 
 	for _, h := range hosts {
 		if err := client.RcloneResetStats(context.Background(), h); err != nil {
@@ -90,7 +94,8 @@ func newCluster(t *testing.T, hosts []string) clusterHelper {
 			RunID:     uuid.NewTime(),
 			T:         t,
 		},
-		rootSession: CreateSessionAndDropAllKeyspaces(t, client),
+		rootSession: rootSession,
+		altClient:   altClient,
 	}
 }
 
