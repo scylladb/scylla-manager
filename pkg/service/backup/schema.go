@@ -140,7 +140,7 @@ func getSchemaFilePath(ctx context.Context, client *scyllaclient.Client, host st
 	// CQL schema should always be backed up, alternator schema is optional
 	if cqlSchemaPath == "" {
 		if parseErr != nil {
-			return "", "", errors.Wrap(parseErr, "parse cql schema file name")
+			return "", "", stdErr.Join(ErrSchemaFileNotFound, errors.Wrap(parseErr, "parse cql schema file name"))
 		}
 		return "", "", ErrSchemaFileNotFound
 	}
