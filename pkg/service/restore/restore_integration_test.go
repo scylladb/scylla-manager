@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
@@ -104,7 +106,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 }
 
 func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
-	// Test scenario:
+	// Test scenario for both CQL and alternator schema:
 	// - create schema on src cluster
 	// - back up src cluster
 	// - restore src cluster schema to dst cluster
@@ -119,24 +121,34 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		t.Skip("This test assumes that schema is backed up and restored via DESCRIBE SCHEMA WITH INTERNALS")
 	}
 
-	ks := randomizedName("roundtrip_")
-	tab := randomizedName("tab_")
-	Print("Prepare schema with non-default options")
+	Print("Prepare CQL schema with non-default options")
+	cqlKs := randomizedName("roundtrip_")
+	cqlTab := randomizedName("tab_")
 	ksOpt := "durable_writes = false"
 	tabOpt := "compaction = {'class': 'NullCompactionStrategy', 'enabled': 'false'}"
 	objWithOpt := map[string]string{
-		ks:  ksOpt,
-		tab: tabOpt,
+		cqlKs:  ksOpt,
+		cqlTab: tabOpt,
 	}
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d} AND %s"
-	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2, ksOpt))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, cqlKs, 2, ksOpt))
 	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data blob) WITH %s"
-	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab, tabOpt))
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, cqlKs, cqlTab, tabOpt))
 
-	Print("Save src describe schema output")
-	srcSchema, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
+	Print("Prepare alternator schema")
+	altTab := "roundtrip_Tab_le-With1.da_sh2-aNd.d33ot.-"
+	CreateInterestingAlternatorSchema(t, h.srcCluster.altClient, altTab)
+
+	Print("Save src CQL schema")
+	srcCQLSchema, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
 	if err != nil {
-		t.Fatal(errors.Wrap(err, "describe src schema"))
+		t.Fatal(errors.Wrap(err, "get src CQL schema"))
+	}
+
+	Print("Save src alternator schema")
+	srcAltSchema, err := backup.GetAlternatorSchema(context.Background(), h.srcCluster.altClient)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get src alternator schema"))
 	}
 
 	Print("Run src backup")
@@ -144,17 +156,29 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	S3InitBucket(t, loc.Path)
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
-	Print("Drop backed-up src cluster schema")
-	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+ks)
+	Print("Drop backed-up src cluster CQL schema")
+	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+cqlKs)
+
+	Print("Drop backed-up src cluster alternator schema")
+	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(altTab)})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	Print("Run restore of src backup on dst cluster")
 	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
 	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
-	Print("Save dst describe schema output from src backup")
-	dstSchemaSrcBackup, err := query.DescribeSchemaWithInternals(h.dstCluster.rootSession)
+	Print("Save dst CQL schema from src backup")
+	dstCQLSchemaSrcBackup, err := query.DescribeSchemaWithInternals(h.dstCluster.rootSession)
 	if err != nil {
-		t.Fatal(errors.Wrap(err, "describe dst schema from src backup"))
+		t.Fatal(errors.Wrap(err, "get dst CQL schema from src backup"))
+	}
+
+	Print("Save dst alternator schema from src backup")
+	dstAltSchemaSrcBackup, err := backup.GetAlternatorSchema(context.Background(), h.dstCluster.altClient)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get dst alternator schema from src backup"))
 	}
 
 	Print("Run dst backup")
@@ -164,24 +188,34 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
 	hRev.runRestore(t, defaultTestProperties(loc, tag, false))
 
-	Print("Save src describe schema output from dst backup")
-	srcSchemaDstBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
+	Print("Save src CQL schema from dst backup")
+	srcCQLSchemaDstBackup, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
 	if err != nil {
-		t.Fatal(errors.Wrap(err, "describe src schema from dst backup"))
+		t.Fatal(errors.Wrap(err, "get src CQL schema from dst backup"))
 	}
 
-	Print("Validate that schema contains objects with options")
+	Print("Save src alternator schema output from dst backup")
+	srcAltSchemaDstBackup, err := backup.GetAlternatorSchema(context.Background(), h.srcCluster.altClient)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get src alternator schema from dst backup"))
+	}
+
+	Print("Validate that CQL schema contains objects with options")
 	var (
 		m1 = map[query.DescribedSchemaRow]struct{}{}
 		m2 = map[query.DescribedSchemaRow]struct{}{}
 		m3 = map[query.DescribedSchemaRow]struct{}{}
 	)
-	for _, row := range srcSchema {
+	for _, row := range srcCQLSchema {
 		// Scylla 6.3 added roles and service levels to the output of
 		// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
 		// Those entities do not live in any particular keyspace, so that's how we identify them.
 		// We are skipping them until we properly support their restoration.
 		if row.Keyspace == "" {
+			continue
+		}
+		// Don't validate alternator schema CQL statements
+		if row.Keyspace == fmt.Sprintf("%q", "alternator_"+altTab) {
 			continue
 		}
 		m1[row] = struct{}{}
@@ -193,24 +227,60 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		}
 	}
 	if len(objWithOpt) > 0 {
-		t.Fatalf("Src schema: %v, is missing created objects: %v", m1, objWithOpt)
+		t.Fatalf("Src CQL schema: %v, is missing created objects: %v", m1, objWithOpt)
 	}
-	for _, row := range dstSchemaSrcBackup {
-		if row.Keyspace != "" {
+	for _, row := range dstCQLSchemaSrcBackup {
+		if row.Keyspace != "" && row.Keyspace != fmt.Sprintf("%q", "alternator_"+altTab) {
 			m2[row] = struct{}{}
 		}
 	}
-	for _, row := range srcSchemaDstBackup {
-		if row.Keyspace != "" {
+	for _, row := range srcCQLSchemaDstBackup {
+		if row.Keyspace != "" && row.Keyspace != fmt.Sprintf("%q", "alternator_"+altTab) {
 			m3[row] = struct{}{}
 		}
 	}
-	Print("Validate that all schemas are the same")
+	Print("Validate that all CQL schemas are the same")
 	if !maputil.Equal(m1, m2) {
-		t.Fatalf("Src schema: %v, dst schema from src backup: %v, are not equal", m1, m2)
+		t.Fatalf("Src CQL schema:\n%v\nDst CQL schema from src backup:\n%v\nAre not equal", m1, m2)
 	}
 	if !maputil.Equal(m1, m3) {
-		t.Fatalf("Src schema: %v, dst schema from dst backup: %v, are not equal", m1, m3)
+		t.Fatalf("Src CQL schema:\n%v\nDst CQL schema from dst backup:\n%v\nAre not equal", m1, m3)
+	}
+
+	Print("Validate alternator schema")
+	sanitizeAltSchema := func(schema backupspec.AlternatorSchema) {
+		for i := range schema.Tables {
+			// Set TTL to nil as we don't restore it
+			schema.Tables[i].TTL = nil
+			// Set times to nil as they are expected to differ
+			schema.Tables[i].Describe.CreationDateTime = nil
+			schema.Tables[i].Describe.BillingModeSummary.LastUpdateToPayPerRequestDateTime = nil
+			schema.Tables[i].Describe.ProvisionedThroughput.LastDecreaseDateTime = nil
+			schema.Tables[i].Describe.ProvisionedThroughput.LastIncreaseDateTime = nil
+			// Set table ID to ni as it is expected to differ
+			schema.Tables[i].Describe.TableId = nil
+		}
+	}
+	sanitizeAltSchema(srcAltSchema)
+	jsonSrcAltSchema, err := json.Marshal(srcAltSchema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sanitizeAltSchema(dstAltSchemaSrcBackup)
+	jsonDstAltSchemaSrcBackup, err := json.Marshal(dstAltSchemaSrcBackup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sanitizeAltSchema(srcAltSchemaDstBackup)
+	jsonSrcAltSchemaDstBackup, err := json.Marshal(srcAltSchemaDstBackup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(jsonSrcAltSchema) != string(jsonDstAltSchemaSrcBackup) {
+		t.Fatalf("Src alternator schema:\n%v\nDst alternator schema from src backup:\n%v\nAre not equal", string(jsonSrcAltSchema), string(jsonDstAltSchemaSrcBackup))
+	}
+	if string(jsonSrcAltSchema) != string(jsonSrcAltSchemaDstBackup) {
+		t.Fatalf("Src alternator schema:\n%v\nDst alternator schema from dst backup:\n%v\nAre not equal", string(jsonSrcAltSchema), string(jsonSrcAltSchemaDstBackup))
 	}
 }
 

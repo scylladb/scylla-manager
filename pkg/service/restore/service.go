@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"slices"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
@@ -200,25 +201,44 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 		return worker{}, errors.Wrap(err, "parse node config IP address")
 	}
 	s.logger.Info(ctx, "Collected node configs", "hosts", slices.Collect(stdMaps.Keys(nodeConfig)))
+	var alternatorClient *dynamodb.Client
+	alternatorHost, ok := getAlternatorHost(nodeConfig)
+	if ok {
+		alternatorClient, err = s.alternatorClient(ctx, clusterID, alternatorHost)
+		if err != nil {
+			return worker{}, errors.Wrap(err, "create alternator client")
+		}
+	}
 
 	return worker{
 		run: &Run{
 			ClusterID: clusterID,
 			Stage:     StageInit,
 		},
-		config:         s.config,
-		logger:         s.logger,
-		metrics:        s.metrics,
-		client:         client,
-		session:        s.session,
-		clusterSession: clusterSession,
-		nodeConfig:     nodeConfig,
+		config:           s.config,
+		logger:           s.logger,
+		metrics:          s.metrics,
+		client:           client,
+		session:          s.session,
+		clusterSession:   clusterSession,
+		alternatorClient: alternatorClient,
+		nodeConfig:       nodeConfig,
 	}, nil
 }
 
 func (w *worker) setRunInfo(taskID, runID uuid.UUID) {
 	w.run.TaskID = taskID
 	w.run.ID = runID
+}
+
+// getAlternatorHost returns IP of host (if any) with alternator enabled.
+func getAlternatorHost(ncs map[netip.Addr]configcache.NodeConfig) (string, bool) {
+	for ip, nc := range ncs {
+		if nc.AlternatorEnabled() {
+			return ip.String(), true
+		}
+	}
+	return "", false
 }
 
 // GetRun returns run with specified cluster, task and run ID.
