@@ -5,6 +5,7 @@ package rclone
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-set/strset"
@@ -17,7 +18,7 @@ const (
 	// returning 5xx. In order to reduce number of requests to S3, we are
 	// increasing chunk size by ten times, which decreases number of
 	// requests by ten times.
-	defaultChunkSize = "50M"
+	defaultChunkSize = "10M"
 
 	// We want to kee the pools longer, in case something gets stuck we want to
 	// avoid buffer reallocation.
@@ -39,7 +40,7 @@ func DefaultGlobalOptions() GlobalOptions {
 	// Don't use JSON log format in logging.
 	c.UseJSONLog = false
 	// Skip based on checksum
-	c.CheckSum = true
+	c.SizeOnly = true
 	// Skip post copy check of checksums.
 	c.IgnoreChecksum = true
 	// Delete even if there are I/O errors.
@@ -72,7 +73,7 @@ func DefaultGlobalOptions() GlobalOptions {
 	// In order to reduce memory footprint, we allow at most two concurrent uploads.
 	// transfers * chunk size gives rough estimate how much memory for
 	// upload buffers will be allocated.
-	c.Transfers = 2
+	c.Transfers = 1
 	// Number of low level retries to do. (default 10)
 	// This applies to operations like S3 chunk upload.
 	c.LowLevelRetries = 20
@@ -96,6 +97,8 @@ func DefaultGlobalOptions() GlobalOptions {
 	// This partially results in memory leak detected in #3298.
 	c.MaxBacklog = -1
 
+	c.Timeout = 10 * time.Minute
+
 	return *c
 }
 
@@ -113,7 +116,7 @@ func DefaultS3Options() S3Options {
 		// Because of access denied issues with Minio.
 		// see https://github.com/rclone/rclone/issues/4633
 		NoCheckBucket:       _true,
-		UploadConcurrency:   "2",
+		UploadConcurrency:   "1",
 		MemoryPoolUseMmap:   _true,
 		MemoryPoolFlushTime: defaultPoolFlushTime,
 	}

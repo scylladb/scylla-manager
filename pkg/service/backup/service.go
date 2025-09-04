@@ -39,7 +39,7 @@ import (
 	"go.uber.org/atomic"
 )
 
-const defaultRateLimit = 100 // 100MiB
+const defaultRateLimit = 25 // 100MiB
 
 // Service orchestrates clusterName backups.
 type Service struct {
