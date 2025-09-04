@@ -38,7 +38,7 @@ func (w *worker) DumpAlternatorSchema(ctx context.Context, his []hostInfo, alter
 		return errors.Wrapf(err, "create alternator client to node")
 	}
 
-	schema, err := w.getAlternatorSchema(ctx, client)
+	schema, err := GetAlternatorSchema(ctx, client)
 	if err != nil {
 		return errors.Wrap(err, "get alternator schema")
 	}
@@ -85,8 +85,8 @@ func getAlternatorHost(his []hostInfo) (hostInfo, bool) {
 	return hostInfo{}, false
 }
 
-// getAlternatorSchema queries alternator API in order to get alternator schema.
-func (w *worker) getAlternatorSchema(ctx context.Context, client *dynamodb.Client) (backupspec.AlternatorSchema, error) {
+// GetAlternatorSchema queries alternator API in order to get alternator schema.
+func GetAlternatorSchema(ctx context.Context, client *dynamodb.Client) (backupspec.AlternatorSchema, error) {
 	tableNames, err := listAllTables(ctx, client)
 	if err != nil {
 		return backupspec.AlternatorSchema{}, errors.Wrap(err, "list all alternator tables")

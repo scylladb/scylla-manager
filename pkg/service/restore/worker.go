@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
@@ -23,6 +24,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
@@ -33,18 +35,20 @@ import (
 
 // worker consists of utils common for both schemaWorker and tablesWorker.
 type worker struct {
-	run             *Run
-	target          Target
-	describedSchema *query.DescribedSchema
+	run              *Run
+	target           Target
+	cqlSchema        *query.DescribedSchema
+	alternatorSchema backupspec.AlternatorSchema
 
 	config  Config
 	logger  log.Logger
 	metrics metrics.RestoreMetrics
 
-	client         *scyllaclient.Client
-	session        gocqlx.Session
-	clusterSession gocqlx.Session
-	nodeConfig     map[netip.Addr]configcache.NodeConfig
+	client           *scyllaclient.Client
+	session          gocqlx.Session
+	clusterSession   gocqlx.Session
+	alternatorClient *dynamodb.Client // Initialized only if alternator is enabled in the cluster
+	nodeConfig       map[netip.Addr]configcache.NodeConfig
 }
 
 func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
@@ -243,18 +247,25 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 
 	if t.RestoreSchema {
 		w.logger.Info(ctx, "Look for schema file")
-		w.describedSchema, err = getDescribedSchema(ctx, w.client, t.SnapshotTag, t.locationInfo)
-		if err != nil {
-			return errors.Wrap(err, "look for schema file")
-		}
-
-		if w.describedSchema == nil {
+		cqlSchema, alternatorSchema, err := backup.GetSchema(ctx, w.client, t.SnapshotTag, t.Location[0], backup.SchemaFilter{}, w.logger)
+		switch {
+		case errors.Is(err, backup.ErrSchemaFileNotFound):
 			w.logger.Info(ctx, "Couldn't find schema file. Proceeding with schema restoration using sstables")
 			if err := IsRestoreSchemaFromSSTablesSupported(ctx, w.client); err != nil {
 				return errors.Wrap(err, "check safety of restoring schema from sstables")
 			}
-		} else {
-			w.logger.Info(ctx, "Found schema file")
+		case err != nil:
+			return errors.Wrap(err, "look for schema file")
+		default:
+			w.cqlSchema = &cqlSchema
+			w.logger.Info(ctx, "Found CQL schema file")
+			w.alternatorSchema = alternatorSchema
+			if len(alternatorSchema.Tables) != 0 {
+				w.logger.Info(ctx, "Found alternator schema file")
+				if w.alternatorClient == nil {
+					return errors.Errorf("backup contains alternator schema, but alternator is not enabled in the cluster")
+				}
+			}
 		}
 		return nil
 	}

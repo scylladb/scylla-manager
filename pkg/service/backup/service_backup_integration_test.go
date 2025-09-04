@@ -2795,7 +2795,7 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 				ClusterID: tc.clusterID,
 				TaskID:    tc.taskID,
 			}
-			cqlSchema, alternatorSchema, err := h.service.GetSchema(ctx, h.ClusterID, tc.tag, location, filter)
+			cqlSchema, alternatorSchema, err := backup.GetSchema(ctx, h.Client, tc.tag, location, filter, log.NewDevelopment())
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "GetSchema"))
 			}

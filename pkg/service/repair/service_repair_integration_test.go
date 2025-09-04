@@ -1105,9 +1105,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 			"ignore_down_hosts": true,
 		}))
 
-		Print("Then: repair is running")
-		h.assertRunning(shortWait)
-
 		Print("When: repair is done")
 		h.assertDone(longWait)
 

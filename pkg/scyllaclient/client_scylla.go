@@ -333,9 +333,12 @@ func (c *Client) AllTables(ctx context.Context) (map[string][]string, error) {
 	}
 	out := make(map[string][]string)
 	for _, kst := range resp.Payload {
-		parts := strings.Split(kst, ":")
+		// Watchout for alternator views which have more colons in their full CQL names.
+		// It looks like '<ks>:<tab>:<view>' for GSI and '<ks>:<tab>!:<view>' for LSI.
+		// '<tab>:<view>' and '<tab>!:<view>' are valida CQL table names.
+		parts := strings.SplitN(kst, ":", 2)
 		if len(parts) != 2 {
-			return nil, errors.Errorf("GET /column_family/name: expected exactly 1 colon in '<keyspace>:<table>', got %d", len(parts)-1)
+			return nil, errors.New("GET /column_family/name: expected at least 1 colon in " + kst)
 		}
 		ks := parts[0]
 		t := parts[1]
