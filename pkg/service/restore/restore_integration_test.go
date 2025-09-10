@@ -6,6 +6,7 @@
 package restore_test
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
@@ -136,8 +138,9 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, cqlKs, cqlTab, tabOpt))
 
 	Print("Prepare alternator schema")
-	altTab := "roundtrip_Tab_le-With1.da_sh2-aNd.d33ot.-"
-	CreateInterestingAlternatorSchema(t, h.srcCluster.altClient, altTab)
+	altTab := "roundtrip_" + AlternatorProblematicTableChars
+	secondAltTab := altTab + "1"
+	CreateInterestingAlternatorSchema(t, h.srcCluster.altClient, 2, 2, altTab, secondAltTab)
 
 	Print("Save src CQL schema")
 	srcCQLSchema, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
@@ -161,6 +164,10 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 
 	Print("Drop backed-up src cluster alternator schema")
 	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(altTab)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(secondAltTab)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +222,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 			continue
 		}
 		// Don't validate alternator schema CQL statements
-		if row.Keyspace == fmt.Sprintf("%q", "alternator_"+altTab) {
+		if strings.HasPrefix(row.Keyspace, "\"alternator_") {
 			continue
 		}
 		m1[row] = struct{}{}
@@ -230,12 +237,12 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		t.Fatalf("Src CQL schema: %v, is missing created objects: %v", m1, objWithOpt)
 	}
 	for _, row := range dstCQLSchemaSrcBackup {
-		if row.Keyspace != "" && row.Keyspace != fmt.Sprintf("%q", "alternator_"+altTab) {
+		if row.Keyspace != "" && !strings.HasPrefix(row.Keyspace, "\"alternator_") {
 			m2[row] = struct{}{}
 		}
 	}
 	for _, row := range srcCQLSchemaDstBackup {
-		if row.Keyspace != "" && row.Keyspace != fmt.Sprintf("%q", "alternator_"+altTab) {
+		if row.Keyspace != "" && !strings.HasPrefix(row.Keyspace, "\"alternator_") {
 			m3[row] = struct{}{}
 		}
 	}
@@ -249,6 +256,10 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 
 	Print("Validate alternator schema")
 	sanitizeAltSchema := func(schema backupspec.AlternatorSchema) {
+		// Sort so that we can compare raw json encoding later
+		slices.SortFunc(schema.Tables, func(a, b backupspec.AlternatorTableSchema) int {
+			return cmp.Compare(*a.Describe.TableName, *b.Describe.TableName)
+		})
 		for i := range schema.Tables {
 			// Set TTL to nil as we don't restore it
 			schema.Tables[i].TTL = nil
@@ -259,6 +270,12 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 			schema.Tables[i].Describe.ProvisionedThroughput.LastIncreaseDateTime = nil
 			// Set table ID to ni as it is expected to differ
 			schema.Tables[i].Describe.TableId = nil
+			slices.SortFunc(schema.Tables[i].Describe.GlobalSecondaryIndexes, func(a, b types.GlobalSecondaryIndexDescription) int {
+				return cmp.Compare(*a.IndexName, *b.IndexName)
+			})
+			slices.SortFunc(schema.Tables[i].Describe.LocalSecondaryIndexes, func(a, b types.LocalSecondaryIndexDescription) int {
+				return cmp.Compare(*a.IndexName, *b.IndexName)
+			})
 		}
 	}
 	sanitizeAltSchema(srcAltSchema)

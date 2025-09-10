@@ -430,84 +430,107 @@ func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, acc
 	return dynamodb.NewFromConfig(awsCfg)
 }
 
+// Constants describing names used when operating on interesting alternator schema.
+const (
+	// AlternatorProblematicTableChars are chars which are allowed in alternator tables/indexes names, but not in cql.
+	AlternatorProblematicTableChars = "-.-.-."
+	AlternatorLSIPrefix             = "LSI_" + AlternatorProblematicTableChars + "_"
+	AlternatorGSIPrefix             = "GSI_" + AlternatorProblematicTableChars + "_"
+	// AlternatorProblematicAttrChars are chars which are allowed in alternator attributes names, but not in cql.
+	AlternatorProblematicAttrChars = "-.#:-.#:-.#:"
+	AlternatorPK                   = "PK_" + AlternatorProblematicAttrChars
+	AlternatorSK                   = "SK_" + AlternatorProblematicAttrChars
+	AlternatorLSISK                = "LSI_SK_" + AlternatorProblematicAttrChars
+	AlternatorGSIPK                = "GSI_PK_" + AlternatorProblematicAttrChars
+	AlternatorGSISK                = "GSI_SK_" + AlternatorProblematicAttrChars
+	AlternatorTTL                  = "TTL_" + AlternatorProblematicAttrChars
+	AlternatorTag                  = "TAG"
+)
+
 // CreateInterestingAlternatorSchema creates tables with specified names with LSI, GSI, tags and TTL.
-func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, tables ...string) {
+func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, gsiCnt, lsiCnt int, tables ...string) {
 	t.Helper()
+
+	var lsi []types.LocalSecondaryIndex
+	for i := range lsiCnt {
+		lsi = append(lsi, types.LocalSecondaryIndex{
+			IndexName: aws.String(fmt.Sprint(AlternatorLSIPrefix, i)),
+			KeySchema: []types.KeySchemaElement{
+				{
+					AttributeName: aws.String(AlternatorPK),
+					KeyType:       types.KeyTypeHash,
+				},
+				{
+					AttributeName: aws.String(AlternatorLSISK),
+					KeyType:       types.KeyTypeRange,
+				},
+			},
+			Projection: &types.Projection{
+				ProjectionType: types.ProjectionTypeAll,
+			},
+		})
+	}
+
+	var gsi []types.GlobalSecondaryIndex
+	for i := range gsiCnt {
+		gsi = append(gsi, types.GlobalSecondaryIndex{
+			IndexName: aws.String(fmt.Sprint(AlternatorGSIPrefix, i)),
+			KeySchema: []types.KeySchemaElement{
+				{
+					AttributeName: aws.String(AlternatorGSIPK),
+					KeyType:       types.KeyTypeHash,
+				},
+				{
+					AttributeName: aws.String(AlternatorGSISK),
+					KeyType:       types.KeyTypeRange,
+				},
+			},
+			Projection: &types.Projection{
+				ProjectionType: types.ProjectionTypeAll,
+			},
+		})
+	}
 
 	for _, table := range tables {
 		_, err := client.CreateTable(context.Background(), &dynamodb.CreateTableInput{
 			TableName: aws.String(table),
 			AttributeDefinitions: []types.AttributeDefinition{
 				{
-					AttributeName: aws.String("PK"),
+					AttributeName: aws.String(AlternatorPK),
 					AttributeType: types.ScalarAttributeTypeS,
 				},
 				{
-					AttributeName: aws.String("SK"),
+					AttributeName: aws.String(AlternatorSK),
 					AttributeType: types.ScalarAttributeTypeS,
 				},
 				{
-					AttributeName: aws.String("LSI_SK"),
+					AttributeName: aws.String(AlternatorLSISK),
 					AttributeType: types.ScalarAttributeTypeS,
 				},
 				{
-					AttributeName: aws.String("GSI_PK"),
+					AttributeName: aws.String(AlternatorGSIPK),
 					AttributeType: types.ScalarAttributeTypeS,
 				},
 				{
-					AttributeName: aws.String("GSI_SK"),
+					AttributeName: aws.String(AlternatorGSISK),
 					AttributeType: types.ScalarAttributeTypeS,
 				},
 			},
 			KeySchema: []types.KeySchemaElement{
 				{
-					AttributeName: aws.String("PK"),
+					AttributeName: aws.String(AlternatorPK),
 					KeyType:       types.KeyTypeHash,
 				},
 				{
-					AttributeName: aws.String("SK"),
+					AttributeName: aws.String(AlternatorSK),
 					KeyType:       types.KeyTypeRange,
 				},
 			},
-			LocalSecondaryIndexes: []types.LocalSecondaryIndex{
-				{
-					IndexName: aws.String(table + "_LSI"),
-					KeySchema: []types.KeySchemaElement{
-						{
-							AttributeName: aws.String("PK"),
-							KeyType:       types.KeyTypeHash,
-						},
-						{
-							AttributeName: aws.String("LSI_SK"),
-							KeyType:       types.KeyTypeRange,
-						},
-					},
-					Projection: &types.Projection{
-						ProjectionType: types.ProjectionTypeAll,
-					},
-				},
-			},
-			GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
-				{
-					IndexName: aws.String(table + "_GSI"),
-					KeySchema: []types.KeySchemaElement{
-						{
-							AttributeName: aws.String("GSI_PK"),
-							KeyType:       types.KeyTypeHash,
-						},
-						{
-							AttributeName: aws.String("GSI_SK"),
-							KeyType:       types.KeyTypeRange,
-						},
-					},
-					Projection: &types.Projection{
-						ProjectionType: types.ProjectionTypeAll,
-					},
-				},
-			},
+			LocalSecondaryIndexes:  lsi,
+			GlobalSecondaryIndexes: gsi,
 			Tags: []types.Tag{
 				{
-					Key:   aws.String(table + "_tag"),
+					Key:   aws.String(AlternatorTag),
 					Value: aws.String("1"),
 				},
 			},
@@ -522,7 +545,7 @@ func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, ta
 		_, err = client.UpdateTimeToLive(context.Background(), &dynamodb.UpdateTimeToLiveInput{
 			TableName: aws.String(table),
 			TimeToLiveSpecification: &types.TimeToLiveSpecification{
-				AttributeName: aws.String(table + "_TTL"),
+				AttributeName: aws.String(AlternatorTTL),
 				Enabled:       aws.Bool(true),
 			},
 		})
@@ -531,6 +554,88 @@ func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, ta
 		}
 		// Just to make sure that TTL changes are applied
 		time.Sleep(time.Second)
+	}
+}
+
+// InsertInterestingAlternatorData inserts data into the tables created with CreateInterestingAlternatorSchema.
+func InsertInterestingAlternatorData(t *testing.T, client *dynamodb.Client, rowCnt int, tables ...string) {
+	t.Helper()
+
+	for _, table := range tables {
+		var writeRequests []types.WriteRequest
+		for i := range rowCnt {
+			m := map[string]string{
+				AlternatorPK:    fmt.Sprint(AlternatorPK, "_", i),
+				AlternatorSK:    fmt.Sprint(AlternatorSK, "_", i),
+				AlternatorLSISK: fmt.Sprint(AlternatorLSISK, "_", i),
+				AlternatorGSIPK: fmt.Sprint(AlternatorGSIPK, "_", i),
+				AlternatorGSISK: fmt.Sprint(AlternatorGSISK, "_", i),
+			}
+			av, err := attributevalue.MarshalMap(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeRequests = append(writeRequests, types.WriteRequest{
+				PutRequest: &types.PutRequest{
+					Item: av,
+				},
+			})
+		}
+
+		in := &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				table: writeRequests,
+			},
+		}
+		_, err := client.BatchWriteItem(context.Background(), in)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// ValidateInterestingAlternatorData validates the data inserted with InsertInterestingAlternatorData.
+func ValidateInterestingAlternatorData(t *testing.T, client *dynamodb.Client, rowCnt, gsiCnt, lsiCnt int, tables ...string) {
+	t.Helper()
+
+	for _, table := range tables {
+		out, err := client.Scan(context.Background(), &dynamodb.ScanInput{
+			TableName: aws.String(table),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if out.Count != int32(rowCnt) {
+			t.Fatalf("expected %d items in %q, got %d", rowCnt, table, out.Count)
+		}
+
+		for i := range lsiCnt {
+			lsi := fmt.Sprint(AlternatorLSIPrefix, i)
+			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+				TableName: aws.String(table),
+				IndexName: aws.String(lsi),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if out.Count != int32(rowCnt) {
+				t.Fatalf("expected %d items in LSI %q of %q, got %d", rowCnt, lsi, table, out.Count)
+			}
+		}
+
+		for i := range gsiCnt {
+			gsi := fmt.Sprint(AlternatorGSIPrefix, i)
+			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+				TableName: aws.String(table),
+				IndexName: aws.String(gsi),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if out.Count != int32(rowCnt) {
+				t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
+			}
+		}
 	}
 }
 

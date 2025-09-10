@@ -2714,13 +2714,11 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 
 	// Second backup with table created with Alternator
 	const (
-		tabAlt    = "tab_alt"
-		tabAltLSI = tabAlt + "_LSI"
-		tabAltGSI = tabAlt + "_GSI"
-		tabAltTag = tabAlt + "_tag"
-		tabAltTTL = tabAlt + "_TTL"
+		tabAlt    = "tab_alt_" + AlternatorProblematicTableChars
+		tabAltLSI = AlternatorLSIPrefix + "0"
+		tabAltGSI = AlternatorGSIPrefix + "0"
 	)
-	CreateInterestingAlternatorSchema(t, client, "tab_alt")
+	CreateInterestingAlternatorSchema(t, client, 1, 1, tabAlt)
 	cqlSchema2, err := query.DescribeSchemaWithInternals(clusterSession)
 	tag2 := makeBackup()
 
@@ -2835,11 +2833,11 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 			if len(altTab.Tags) != 1 {
 				t.Fatalf("Expected single alternator tag, got: %d", len(altTab.Tags))
 			}
-			if *altTab.Tags[0].Key != tabAltTag {
-				t.Fatalf("Expected alternator tag: %s, got: %s", tabAltTag, *altTab.Tags[0].Key)
+			if *altTab.Tags[0].Key != AlternatorTag {
+				t.Fatalf("Expected alternator tag: %s, got: %s", AlternatorTag, *altTab.Tags[0].Key)
 			}
-			if *altTab.TTL.AttributeName != tabAltTTL {
-				t.Fatalf("Expected alternator TTL: %s, got: %s", tabAltTTL, *altTab.TTL.AttributeName)
+			if *altTab.TTL.AttributeName != AlternatorTTL {
+				t.Fatalf("Expected alternator TTL: %s, got: %s", AlternatorTTL, *altTab.TTL.AttributeName)
 			}
 		})
 	}
