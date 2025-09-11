@@ -33,6 +33,29 @@ func (w *worker) stageDropViews(ctx context.Context) error {
 	return nil
 }
 
+func (w *worker) stageRecreateViews(ctx context.Context) error {
+	aw, err := newAlternatorCreateViewsWorker(ctx, w.alternatorClient, w.run.Views)
+	if err != nil {
+		return errors.Wrap(err, "create alternator create views worker")
+	}
+	if err := aw.createViews(ctx); err != nil {
+		return err
+	}
+
+	for i, v := range w.run.Views {
+		if !aw.isAlternatorView(v) {
+			if err := w.CreateView(ctx, v); err != nil {
+				return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
+			}
+		}
+
+		if err := w.WaitForViewBuilding(ctx, &w.run.Views[i]); err != nil {
+			return errors.Wrapf(err, "wait for %s.%s", v.Keyspace, v.View)
+		}
+	}
+	return nil
+}
+
 // DropView drops specified Materialized View or Secondary Index.
 func (w *worker) DropView(ctx context.Context, view View) error {
 	w.logger.Info(ctx, "Dropping view",
