@@ -1454,6 +1454,83 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	}
 }
 
+func TestRestoreFullAlternatorIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	ni, err := h.srcCluster.Client.AnyNodeInfo(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := ni.SupportsAlternatorSchemaBackupFromAPI(); err != nil {
+		t.Fatal(err)
+	} else if !ok {
+		t.Skip("This test assumes that alternator tables are backed up and restored with alternator api")
+	}
+
+	Print("Prepare alternator schema")
+	altTab1 := "alt_full_1_" + AlternatorProblematicTableChars
+	altTab2 := "alt_full_2_" + AlternatorProblematicTableChars
+	altGSI1 := "gsi_1_" + AlternatorProblematicTableChars
+	altGSI2 := "gsi_2_" + AlternatorProblematicTableChars
+	CreateAlternatorTable(t, h.srcCluster.altClient, 2, altTab1, altTab2)
+	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab1, altGSI1, altGSI2)
+	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab2, altGSI1, altGSI2)
+
+	Print("Insert alternator rows")
+	const rowCnt = 100
+	InsertAlternatorTableData(t, h.srcCluster.altClient, rowCnt, altTab1, altTab2)
+
+	Print("Prepare simple clq schema")
+	ExecStmt(t, h.srcCluster.rootSession, "CREATE KEYSPACE cql_ks WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} and tablets = {'enabled': false}")
+	createTable(t, h.srcCluster.rootSession, "cql_ks", "cql_tab")
+	CreateMaterializedView(t, h.srcCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_1")
+	CreateMaterializedView(t, h.srcCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_2")
+	CreateSecondaryIndex(t, h.srcCluster.rootSession, "cql_ks", "cql_tab", "cql_si_1")
+
+	Print("Insert simple cql rows")
+	fillTable(t, h.srcCluster.rootSession, rowCnt, "cql_ks", "cql_tab")
+
+	Print("Run backup")
+	loc := testLocation("alternator-full", "")
+	S3InitBucket(t, loc.Path)
+	backupProps := defaultTestBackupProperties(loc, "")
+	tag := h.runBackup(t, backupProps)
+
+	Print("Restore schema")
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	props := defaultTestProperties(loc, tag, false)
+	h.runRestore(t, props)
+
+	Print("Reset user permissions")
+	dropNonSuperUsers(t, h.dstCluster.rootSession)
+	createUser(t, h.dstCluster.rootSession, h.dstUser, h.dstPass)
+
+	Print("Restore data")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	props = defaultTestProperties(loc, tag, true)
+	h.runRestore(t, props)
+
+	Print("Validate restored alternator data")
+	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, altTab1, altTab2)
+	ValidateAlternatorGSIData(t, h.dstCluster.altClient, rowCnt, altTab1, altGSI1, altGSI2)
+	ValidateAlternatorGSIData(t, h.dstCluster.altClient, rowCnt, altTab2, altGSI1, altGSI2)
+
+	Print("Validate restored simple cql data")
+	cqlTabs := []table{
+		{ks: "cql_ks", tab: "cql_tab"},
+		{ks: "cql_ks", tab: "cql_mv_1"},
+		{ks: "cql_ks", tab: "cql_mv_2"},
+		{ks: "cql_ks", tab: "cql_si_1_index"},
+	}
+	for _, tab := range cqlTabs {
+		srcCnt := rowCount(t, h.srcCluster.rootSession, tab.ks, tab.tab)
+		dstCnt := rowCount(t, h.dstCluster.rootSession, tab.ks, tab.tab)
+		if srcCnt != dstCnt {
+			t.Fatalf("Expected %d rows in cql table %q.%q, got %d", srcCnt, tab.ks, tab.tab, dstCnt)
+		}
+	}
+}
+
 func getDCFromRemoteSSTableDir(t *testing.T, remoteSSTableDir string) string {
 	t.Helper()
 	// hacky way of extracting value of dc_name from  /dc/{dc_name}/node/
