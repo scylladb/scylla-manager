@@ -219,16 +219,23 @@ type ViewType string
 
 // ViewType enumeration.
 const (
-	MaterializedView ViewType = "MaterializedView"
-	SecondaryIndex   ViewType = "SecondaryIndex"
+	MaterializedView               ViewType = "MaterializedView"
+	SecondaryIndex                 ViewType = "SecondaryIndex"
+	AlternatorGlobalSecondaryIndex ViewType = "AlternatorGlobalSecondaryIndex"
+	AlternatorLocalSecondaryIndex  ViewType = "AlternatorLocalSecondaryIndex"
 )
 
 // View represents statement used for recreating restored (dropped) views.
+// It primarily uses CQL names, because those names are also used for
+// interacting with views with scylla rest api.
 type View struct {
-	Keyspace    string                       `json:"keyspace" db:"keyspace_name"`
-	View        string                       `json:"view" db:"view_name"`
-	Type        ViewType                     `json:"type" db:"view_type"`
-	BaseTable   string                       `json:"base_table"`
+	Keyspace  string   `json:"keyspace" db:"keyspace_name"` // CQL keyspace name. There is no ks abstraction in alternator.
+	View      string   `json:"view" db:"view_name"`         // CQL view name. Different from alternator name.
+	Type      ViewType `json:"type" db:"view_type"`
+	BaseTable string   `json:"base_table"` // CQL name of the base table. Same as alternator name.
+	// For cql views, CreateStmt is the text encoded cql statement.
+	// For alternator GSIs, CreateStmt is the json encoded dynamodb.UpdateTableInput.
+	// For alternator LSIs, CreateStmt is empty, as we don't drop and re-create them.
 	CreateStmt  string                       `json:"create_stmt"`
 	BuildStatus scyllaclient.ViewBuildStatus `json:"status"`
 }
