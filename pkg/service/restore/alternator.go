@@ -4,6 +4,7 @@ package restore
 
 import (
 	"context"
+	"encoding/json"
 	stdErr "errors"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
@@ -27,6 +29,7 @@ type alternatorSchemaWorker struct {
 }
 
 // newAlternatorSchemaWorker creates new alternatorSchemaWorker.
+// It is safe to pass nil client if alternator schema is empty.
 func newAlternatorSchemaWorker(client *dynamodb.Client, schema backupspec.AlternatorSchema) (*alternatorSchemaWorker, error) {
 	if client == nil && len(schema.Tables) > 0 {
 		return nil, errors.New("uninitialized alternator client with non-empty alternator schema")
@@ -37,7 +40,7 @@ func newAlternatorSchemaWorker(client *dynamodb.Client, schema backupspec.Altern
 		if t.Describe == nil || t.Describe.TableName == nil {
 			continue
 		}
-		ksSchema[w.alternatorKeyspace(*t.Describe.TableName)] = t
+		ksSchema[w.cqlKeyspaceName(*t.Describe.TableName)] = t
 	}
 	return &alternatorSchemaWorker{
 		ksSchema: ksSchema,
@@ -108,11 +111,162 @@ func (sw *alternatorSchemaWorker) sanitizeCQLKeyspace(cql query.DescribedSchemaR
 	return strings.TrimPrefix(strings.TrimSuffix(cql.Keyspace, "\""), "\"")
 }
 
+// alternatorInitViewsWorker contains tools needed for initializing restored alternator views.
+// It basis its knowledge of alternator schema on the alternator schema described from the cluster.
+type alternatorInitViewsWorker struct {
+	alternatorWorker
+	// In alternator, each table lives in its own keyspace named 'alternator_<table>'.
+	// Table schema is stored under the keyspace name for easier lookup.
+	ksSchema map[string]backupspec.AlternatorTableSchema
+	client   *dynamodb.Client
+}
+
+// newAlternatorInitViewsWorker creates new alternatorInitViewsWorker.
+// Units are used for filtering alternator schema according to the --keyspace flag.
+// Passing nil client results in no initialized alternator views.
+func newAlternatorInitViewsWorker(ctx context.Context, client *dynamodb.Client, units []Unit) (*alternatorInitViewsWorker, error) {
+	ksSchema := make(map[string]backupspec.AlternatorTableSchema)
+	if client == nil {
+		return &alternatorInitViewsWorker{
+			ksSchema: ksSchema,
+			client:   client,
+		}, nil
+	}
+
+	type tableKey struct {
+		ks string
+		t  string
+	}
+	filteredCQLTables := make(map[tableKey]struct{})
+	for _, u := range units {
+		for _, t := range u.Tables {
+			filteredCQLTables[tableKey{ks: u.Keyspace, t: t.Table}] = struct{}{}
+		}
+	}
+
+	schema, err := backup.GetAlternatorSchema(ctx, client)
+	if err != nil {
+		return nil, errors.Wrap(err, "get alternator schema")
+	}
+	w := alternatorWorker{}
+	for _, t := range schema.Tables {
+		if t.Describe == nil || t.Describe.TableName == nil {
+			continue
+		}
+		altT := *t.Describe.TableName
+		altKs := w.cqlKeyspaceName(altT)
+		_, ok := filteredCQLTables[tableKey{ks: altKs, t: altT}]
+		if !ok {
+			continue
+		}
+		ksSchema[altKs] = t
+	}
+	return &alternatorInitViewsWorker{
+		ksSchema: ksSchema,
+		client:   client,
+	}, nil
+}
+
+// isAlternatorKeyspace checks if given keyspace is an alternator one.
+func (iw *alternatorInitViewsWorker) isAlternatorKeyspace(ks string) bool {
+	_, ok := iw.ksSchema[ks]
+	return ok
+}
+
+// initViews initializes alternator views translating them to Views.
+func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
+	var views []View
+	for _, schema := range iw.ksSchema {
+		if schema.Describe == nil || schema.Describe.TableName == nil {
+			continue
+		}
+		t := *schema.Describe.TableName
+		for _, gsi := range schema.Describe.GlobalSecondaryIndexes {
+			if gsi.IndexName == nil {
+				continue
+			}
+			stmt := dynamodb.UpdateTableInput{
+				TableName:                   aws.String(t),
+				AttributeDefinitions:        iw.filterGSIAttr(*schema.Describe, gsi),
+				GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{iw.gsiDescToCreateUpdate(gsi)},
+			}
+			rawCreateStmt, err := json.Marshal(stmt)
+			if err != nil {
+				return nil, err
+			}
+			views = append(views, View{
+				Keyspace:   iw.cqlKeyspaceName(t),
+				View:       iw.cqlGSIName(t, *gsi.IndexName),
+				Type:       AlternatorGlobalSecondaryIndex,
+				BaseTable:  t,
+				CreateStmt: string(rawCreateStmt),
+			})
+		}
+		for _, lsi := range schema.Describe.LocalSecondaryIndexes {
+			if lsi.IndexName == nil {
+				continue
+			}
+			views = append(views, View{
+				Keyspace:  iw.cqlKeyspaceName(t),
+				View:      iw.cqlLSIName(t, *lsi.IndexName),
+				Type:      AlternatorLocalSecondaryIndex,
+				BaseTable: t,
+			})
+		}
+	}
+	return views, nil
+}
+
+// filterGSIAttr filters table AttributeDefinition to only those used in GSI KeySchema.
+func (iw *alternatorInitViewsWorker) filterGSIAttr(desc types.TableDescription, gsiDesc types.GlobalSecondaryIndexDescription) []types.AttributeDefinition {
+	gsiAttrs := make(map[string]struct{})
+	for _, gsiAttr := range gsiDesc.KeySchema {
+		if gsiAttr.AttributeName == nil {
+			continue
+		}
+		gsiAttrs[*gsiAttr.AttributeName] = struct{}{}
+	}
+	var filtered []types.AttributeDefinition
+	for _, attr := range desc.AttributeDefinitions {
+		if attr.AttributeName == nil {
+			continue
+		}
+		if _, ok := gsiAttrs[*attr.AttributeName]; ok {
+			filtered = append(filtered, attr)
+		}
+	}
+	return filtered
+}
+
 // alternatorWorker contains basic tools for handling alternator schema.
 type alternatorWorker struct{}
 
-func (w alternatorWorker) alternatorKeyspace(table string) string {
+func (w alternatorWorker) cqlKeyspaceName(table string) string {
 	return "alternator_" + table
+}
+
+func (w alternatorWorker) cqlGSIName(table, gsi string) string {
+	return table + ":" + gsi
+}
+
+func (w alternatorWorker) cqlLSIName(table, lsi string) string {
+	return table + "!:" + lsi
+}
+
+func (w alternatorWorker) alternatorGSIName(table, cqlGSI string) (string, error) {
+	gsi, ok := strings.CutPrefix(cqlGSI, table+":")
+	if !ok {
+		return "", errors.Errorf("%q is not a valid alternator GSI name for table %q", cqlGSI, table)
+	}
+	return gsi, nil
+}
+
+func (w alternatorWorker) alternatorLSIName(table, cqlLSI string) (string, error) { //nolint: unused
+	lsi, ok := strings.CutPrefix(cqlLSI, table+"!:")
+	if !ok {
+		return "", errors.Errorf("%q is not a valid alternator LSI name for table %q", cqlLSI, table)
+	}
+	return lsi, nil
 }
 
 func (w alternatorWorker) gsiDescToCreate(desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndex {
@@ -164,6 +318,19 @@ func (w alternatorWorker) gsiWarmThroughputDescToCreate(desc *types.GlobalSecond
 	return &types.WarmThroughput{
 		ReadUnitsPerSecond:  desc.ReadUnitsPerSecond,
 		WriteUnitsPerSecond: desc.WriteUnitsPerSecond,
+	}
+}
+
+func (w alternatorWorker) gsiDescToCreateUpdate(desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndexUpdate {
+	return types.GlobalSecondaryIndexUpdate{
+		Create: &types.CreateGlobalSecondaryIndexAction{
+			IndexName:             desc.IndexName,
+			KeySchema:             desc.KeySchema,
+			Projection:            desc.Projection,
+			OnDemandThroughput:    desc.OnDemandThroughput,
+			ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(desc.ProvisionedThroughput),
+			WarmThroughput:        w.gsiWarmThroughputDescToCreate(desc.WarmThroughput),
+		},
 	}
 }
 

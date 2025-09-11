@@ -572,6 +572,15 @@ var (
 
 // initViews should be called with already initialized target and units.
 func (w *worker) initViews(ctx context.Context) error {
+	aw, err := newAlternatorInitViewsWorker(ctx, w.alternatorClient, w.run.Units)
+	if err != nil {
+		return errors.Wrap(err, "create alternator init views worker")
+	}
+	views, err := aw.initViews()
+	if err != nil {
+		return errors.Wrap(err, "init alternator views")
+	}
+
 	restoredTables := strset.New()
 	for _, u := range w.run.Units {
 		for _, t := range u.Tables {
@@ -600,8 +609,11 @@ func (w *worker) initViews(ctx context.Context) error {
 		return stmt[loc[0]:loc[1]] + " IF NOT EXISTS" + stmt[loc[1]:], nil
 	}
 
-	var views []View
 	for _, ks := range keyspaces {
+		if aw.isAlternatorKeyspace(ks) {
+			continue
+		}
+
 		meta, err := w.clusterSession.KeyspaceMetadata(ks)
 		if err != nil {
 			return errors.Wrapf(err, "get keyspace %s metadata", ks)
