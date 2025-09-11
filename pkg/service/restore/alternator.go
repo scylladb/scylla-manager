@@ -300,6 +300,59 @@ func (dw *alternatorDropViewsWorker) viewToDeleteUpdate(view View) (types.Global
 	}
 }
 
+// alternatorCreateViewsWorker contains tools needed for creating restored alternator views.
+// It basis its knowledge of alternator schema on the initialized Views.
+type alternatorCreateViewsWorker struct {
+	views  []View
+	client *dynamodb.Client
+}
+
+// newAlternatorCreateViewsWorker creates new alternatorCreateViewsWorker.
+func newAlternatorCreateViewsWorker(ctx context.Context, client *dynamodb.Client, views []View) (*alternatorCreateViewsWorker, error) {
+	// Only non-existing views should be created
+	filteredViews, err := filterAlternatorViews(ctx, client, views, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "filter alternator views")
+	}
+	return &alternatorCreateViewsWorker{
+		views:  filteredViews,
+		client: client,
+	}, nil
+}
+
+// isAlternatorView checks if given View is an alternator one.
+func (cw *alternatorCreateViewsWorker) isAlternatorView(view View) bool {
+	return view.Type == AlternatorGlobalSecondaryIndex || view.Type == AlternatorLocalSecondaryIndex
+}
+
+// createViews creates all alternator views that were previously dropped.
+func (cw *alternatorCreateViewsWorker) createViews(ctx context.Context) error {
+	for _, v := range cw.views {
+		update, err := cw.viewToCreateStmt(v)
+		if err != nil {
+			return errors.Wrap(err, "prepare alternator view create update")
+		}
+		_, err = cw.client.UpdateTable(ctx, update)
+		if err != nil {
+			return errors.Wrap(err, "create alternator view")
+		}
+	}
+	return nil
+}
+
+func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (*dynamodb.UpdateTableInput, error) {
+	switch view.Type {
+	case AlternatorGlobalSecondaryIndex:
+		var update dynamodb.UpdateTableInput
+		if err := json.Unmarshal([]byte(view.CreateStmt), &update); err != nil {
+			return nil, errors.Wrap(err, "unmarshal initialized alternator GSI create update")
+		}
+		return &update, nil
+	default:
+		return nil, errors.New("unsupported view type: " + string(view.Type))
+	}
+}
+
 // filterAlternatorViews is a helper function used for initialization of alternatorDropViewsWorker and alternatorCreateViewsWorker.
 // The exist parameter specifies if we want to filter for existing or non-existing views in the current cluster schema.
 // Since we don't drop and re-create alternator LSIs, we only need to filter for GSIs.
