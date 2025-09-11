@@ -7,9 +7,31 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
+
+func (w *worker) stageDropViews(ctx context.Context) error {
+	aw, err := newAlternatorDropViewsWorker(ctx, w.alternatorClient, w.run.Views)
+	if err != nil {
+		return errors.Wrap(err, "create alternator drop views worker")
+	}
+	if err := aw.dropViews(ctx); err != nil {
+		return err
+	}
+
+	for _, v := range w.run.Views {
+		if aw.isAlternatorView(v) {
+			continue
+		}
+
+		if err := w.DropView(ctx, v); err != nil {
+			return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
+		}
+	}
+	return nil
+}
 
 // DropView drops specified Materialized View or Secondary Index.
 func (w *worker) DropView(ctx context.Context, view View) error {

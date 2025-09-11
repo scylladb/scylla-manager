@@ -112,12 +112,7 @@ func newTablesWorker(ctx context.Context, w worker, repairSvc *repair.Service, t
 func (w *tablesWorker) restore(ctx context.Context) error {
 	stageFunc := map[Stage]func() error{
 		StageDropViews: func() error {
-			for _, v := range w.run.Views {
-				if err := w.DropView(ctx, v); err != nil {
-					return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
-				}
-			}
-			return nil
+			return w.stageDropViews(ctx)
 		},
 		StageDisableTGC: func() error {
 			w.AwaitSchemaAgreement(ctx, w.clusterSession)
