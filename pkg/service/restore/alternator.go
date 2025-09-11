@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	stdErr "errors"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -236,6 +237,115 @@ func (iw *alternatorInitViewsWorker) filterGSIAttr(desc types.TableDescription, 
 		}
 	}
 	return filtered
+}
+
+// alternatorDropViewsWorker contains tools needed for dropping restored alternator views.
+// It basis its knowledge of alternator schema on the initialized Views.
+type alternatorDropViewsWorker struct {
+	alternatorWorker
+	views  []View
+	client *dynamodb.Client
+}
+
+// newAlternatorDropViewsWorker creates new alternatorDropViewsWorker.
+func newAlternatorDropViewsWorker(ctx context.Context, client *dynamodb.Client, views []View) (*alternatorDropViewsWorker, error) {
+	// Only existing views should be dropped
+	filteredViews, err := filterAlternatorViews(ctx, client, views, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "filter alternator views")
+	}
+	return &alternatorDropViewsWorker{
+		views:  filteredViews,
+		client: client,
+	}, nil
+}
+
+// isAlternatorView checks if given View is an alternator one.
+func (dw *alternatorDropViewsWorker) isAlternatorView(view View) bool {
+	return view.Type == AlternatorGlobalSecondaryIndex || view.Type == AlternatorLocalSecondaryIndex
+}
+
+// dropViews drops all alternator views that should later be re-created.
+func (dw *alternatorDropViewsWorker) dropViews(ctx context.Context) error {
+	for _, v := range dw.views {
+		update, err := dw.viewToDeleteUpdate(v)
+		if err != nil {
+			return errors.Wrap(err, "prepare alternator view delete update")
+		}
+		_, err = dw.client.UpdateTable(ctx, &dynamodb.UpdateTableInput{
+			TableName:                   aws.String(v.BaseTable),
+			GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{update},
+		})
+		if err != nil {
+			return errors.Wrap(err, "drop alternator view")
+		}
+	}
+	return nil
+}
+
+func (dw *alternatorDropViewsWorker) viewToDeleteUpdate(view View) (types.GlobalSecondaryIndexUpdate, error) {
+	switch view.Type {
+	case AlternatorGlobalSecondaryIndex:
+		altView, err := dw.alternatorGSIName(view.BaseTable, view.View)
+		if err != nil {
+			return types.GlobalSecondaryIndexUpdate{}, err
+		}
+		return types.GlobalSecondaryIndexUpdate{
+			Delete: &types.DeleteGlobalSecondaryIndexAction{
+				IndexName: aws.String(altView),
+			},
+		}, nil
+	default:
+		return types.GlobalSecondaryIndexUpdate{}, errors.New("unsupported view type: " + string(view.Type))
+	}
+}
+
+// filterAlternatorViews is a helper function used for initialization of alternatorDropViewsWorker and alternatorCreateViewsWorker.
+// The exist parameter specifies if we want to filter for existing or non-existing views in the current cluster schema.
+// Since we don't drop and re-create alternator LSIs, we only need to filter for GSIs.
+func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views []View, exist bool) ([]View, error) {
+	if client == nil {
+		if ok := slices.ContainsFunc(views, func(v View) bool { return v.Type == AlternatorGlobalSecondaryIndex }); ok {
+			return nil, errors.New("uninitialized alternator client with non-empty alternator schema")
+		}
+		return []View{}, nil
+	}
+
+	schema, err := backup.GetAlternatorSchema(ctx, client)
+	if err != nil {
+		return nil, errors.Wrap(err, "get alternator schema")
+	}
+
+	type viewKey struct {
+		t string // CQL table name
+		v string // CQL view name
+	}
+	existingViews := make(map[viewKey]struct{})
+	w := alternatorWorker{}
+	for _, t := range schema.Tables {
+		if t.Describe == nil || t.Describe.TableName == nil {
+			continue
+		}
+		for _, gsi := range t.Describe.GlobalSecondaryIndexes {
+			if gsi.IndexName == nil {
+				continue
+			}
+			altT := *t.Describe.TableName
+			altV := *gsi.IndexName
+			existingViews[viewKey{t: altT, v: w.cqlGSIName(altT, altV)}] = struct{}{}
+		}
+	}
+
+	var filteredViews []View
+	for _, v := range views {
+		if v.Type != AlternatorGlobalSecondaryIndex {
+			continue
+		}
+		if _, ok := existingViews[viewKey{t: v.BaseTable, v: v.View}]; ok == exist {
+			filteredViews = append(filteredViews, v)
+		}
+	}
+	return filteredViews, nil
 }
 
 // alternatorWorker contains basic tools for handling alternator schema.
