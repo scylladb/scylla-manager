@@ -41,6 +41,12 @@ const (
 	// CmdUnblockScyllaAlternator defines the command used for unblocking the Scylla Alternator access.
 	CmdUnblockScyllaAlternator = "iptables -D INPUT -p tcp --destination-port 8000 -j DROP"
 
+	// CmdBlockScyllaAlternatorSSL defines the command used for blocking the Scylla Alternator access.
+	CmdBlockScyllaAlternatorSSL = "iptables -A INPUT -p tcp --destination-port 8100 -j DROP"
+
+	// CmdUnblockScyllaAlternatorSSL defines the command used for unblocking the Scylla Alternator access.
+	CmdUnblockScyllaAlternatorSSL = "iptables -D INPUT -p tcp --destination-port 8100 -j DROP"
+
 	// CmdOrTrueAppend let to accept shell command failure and proceed.
 	CmdOrTrueAppend = " || true"
 )
@@ -213,37 +219,53 @@ func UnblockCQL(t *testing.T, h string, sslEnabled bool) {
 
 // TryUnblockCQL tries to unblock the CQL ports on []hosts machines.
 // Logs an error if the execution failed, but doesn't return it.
-func TryUnblockCQL(t *testing.T, hosts []string) {
+func TryUnblockCQL(t *testing.T, hosts []string, sslEnabled bool) {
 	t.Helper()
+	cmd := CmdUnblockScyllaCQL
+	if sslEnabled {
+		cmd = CmdUnblockScyllaCQLSSL
+	}
 	for _, host := range hosts {
-		if err := RunIptablesCommand(t, host, CmdUnblockScyllaCQL+CmdOrTrueAppend); err != nil {
+		if err := RunIptablesCommand(t, host, cmd+CmdOrTrueAppend); err != nil {
 			t.Log(err)
 		}
 	}
 }
 
 // BlockAlternator blocks the Scylla Alternator ports on h machine by dropping TCP packets.
-func BlockAlternator(t *testing.T, h string) {
+func BlockAlternator(t *testing.T, h string, sslEnabled bool) {
 	t.Helper()
-	if err := RunIptablesCommand(t, h, CmdBlockScyllaAlternator); err != nil {
+	cmd := CmdBlockScyllaAlternator
+	if sslEnabled {
+		cmd = CmdBlockScyllaAlternatorSSL
+	}
+	if err := RunIptablesCommand(t, h, cmd); err != nil {
 		t.Error(err)
 	}
 }
 
 // UnblockAlternator unblocks the Alternator ports on []hosts machines.
-func UnblockAlternator(t *testing.T, h string) {
+func UnblockAlternator(t *testing.T, h string, sslEnabled bool) {
 	t.Helper()
-	if err := RunIptablesCommand(t, h, CmdUnblockScyllaAlternator); err != nil {
+	cmd := CmdUnblockScyllaAlternator
+	if sslEnabled {
+		cmd = CmdUnblockScyllaAlternatorSSL
+	}
+	if err := RunIptablesCommand(t, h, cmd); err != nil {
 		t.Error(err)
 	}
 }
 
 // TryUnblockAlternator tries to unblock the Alternator API ports on []hosts machines.
 // Logs an error if the execution failed, but doesn't return it.
-func TryUnblockAlternator(t *testing.T, hosts []string) {
+func TryUnblockAlternator(t *testing.T, hosts []string, sslEnabled bool) {
 	t.Helper()
+	cmd := CmdUnblockScyllaAlternator
+	if sslEnabled {
+		cmd = CmdUnblockScyllaAlternatorSSL
+	}
 	for _, host := range hosts {
-		if err := RunIptablesCommand(t, host, CmdUnblockScyllaAlternator+CmdOrTrueAppend); err != nil {
+		if err := RunIptablesCommand(t, host, cmd+CmdOrTrueAppend); err != nil {
 			t.Log(err)
 		}
 	}

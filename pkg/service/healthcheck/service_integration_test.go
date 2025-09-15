@@ -49,9 +49,9 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	}
 
 	// Given
-	TryUnblockCQL(t, ManagedClusterHosts())
+	TryUnblockCQL(t, ManagedClusterHosts(), IsSSLEnabled())
 	TryUnblockREST(t, ManagedClusterHosts())
-	TryUnblockAlternator(t, ManagedClusterHosts())
+	TryUnblockAlternator(t, ManagedClusterHosts(), IsSSLEnabled())
 	TryStartAgent(t, ManagedClusterHosts())
 	if err := EnsureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
 		t.Fatalf("not all nodes are UP, err = {%v}", err)
@@ -214,15 +214,15 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 	// Tests here do not test the dynamic t/o functionality
 	c := DefaultConfig()
 
-	TryUnblockCQL(t, ManagedClusterHosts())
+	TryUnblockCQL(t, ManagedClusterHosts(), IsSSLEnabled())
 	TryUnblockREST(t, ManagedClusterHosts())
-	TryUnblockAlternator(t, ManagedClusterHosts())
+	TryUnblockAlternator(t, ManagedClusterHosts(), IsSSLEnabled())
 	TryStartAgent(t, ManagedClusterHosts())
 
 	defer func() {
-		TryUnblockCQL(t, ManagedClusterHosts())
+		TryUnblockCQL(t, ManagedClusterHosts(), IsSSLEnabled())
 		TryUnblockREST(t, ManagedClusterHosts())
-		TryUnblockAlternator(t, ManagedClusterHosts())
+		TryUnblockAlternator(t, ManagedClusterHosts(), IsSSLEnabled())
 		TryStartAgent(t, ManagedClusterHosts())
 	}()
 
@@ -338,8 +338,8 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 
 	t.Run("node Alternator TIMEOUT", func(t *testing.T) {
 		host := IPFromTestNet("12")
-		BlockAlternator(t, host)
-		defer UnblockAlternator(t, host)
+		BlockAlternator(t, host, IsSSLEnabled())
+		defer UnblockAlternator(t, host, IsSSLEnabled())
 
 		status, err := s.Status(context.Background(), clusterID)
 		if err != nil {

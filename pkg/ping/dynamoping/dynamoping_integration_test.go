@@ -22,6 +22,15 @@ func TestPingIntegration(t *testing.T) {
 		Timeout:                250 * time.Millisecond,
 		RequiresAuthentication: true,
 	}
+	if testconfig.IsSSLEnabled() {
+		config.Addr = "https://" + testconfig.ManagedClusterHost() + ":8100"
+		sslOpts := testconfig.CQLSSLOptions()
+		tlsConfig, err := testconfig.TLSConfig(sslOpts)
+		if err != nil {
+			t.Fatalf("setup tls config: %v", err)
+		}
+		config.TLSConfig = tlsConfig
+	}
 
 	t.Run("simple", func(t *testing.T) {
 		d, err := SimplePing(context.Background(), config)
