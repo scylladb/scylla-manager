@@ -58,7 +58,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
-	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and TABLETS=$(TABLETS)"
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and TABLETS=$(TABLETS) and SSL_ENABLED=$(SSL_ENABLED)"
 # Scylla bootstrap procedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
@@ -70,8 +70,9 @@ up:
 	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(MINIO_HOST)
 
 ifeq ($(SSL_ENABLED),true)
-	# disable non-ssl port
+	# disable non-ssl ports
 	@$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
+	@$(YQ) delete -i scylla/scylla.yaml 'alternator_port'
 	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
 	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc

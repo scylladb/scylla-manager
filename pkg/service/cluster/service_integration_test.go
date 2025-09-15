@@ -104,9 +104,9 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 					}
 				}
 			}()
-			TryUnblockCQL(t, ManagedClusterHosts())
+			TryUnblockCQL(t, ManagedClusterHosts(), IsSSLEnabled())
 			TryUnblockREST(t, ManagedClusterHosts())
-			TryUnblockAlternator(t, ManagedClusterHosts())
+			TryUnblockAlternator(t, ManagedClusterHosts(), IsSSLEnabled())
 			TryStartAgent(t, ManagedClusterHosts())
 			if err := EnsureNodesAreUP(t, ManagedClusterHosts(), time.Minute); err != nil {
 				t.Fatalf("not all nodes are UP, err = {%v}", err)

@@ -8,3 +8,8 @@ client_encryption_options:
     keyfile: /etc/scylla/db.key
     truststore: /etc/scylla/ca.crt
     require_client_auth: true
+
+alternator_https_port: 8100
+alternator_encryption_options:
+    certificate: /etc/scylla/db.crt
+    keyfile: /etc/scylla/db.key
