@@ -821,6 +821,8 @@ func (s *Service) extendClusterConfigWithAuthentication(clusterID uuid.UUID, ni 
 			return errors.Wrap(err, "get credentials")
 		}
 
+		s.logger.Info(context.Background(), "CQL credentials", "cluster_id", clusterID, "username", credentials.Username, "password", credentials.Password)
+
 		cfg.Authenticator = gocql.PasswordAuthenticator{
 			Username: credentials.Username,
 			Password: credentials.Password,
@@ -882,6 +884,7 @@ func (s *Service) alternatorClientConfig(ctx context.Context, clusterID uuid.UUI
 
 	transport := alternatorTransport()
 	if ni.AlternatorEncryptionEnabled() {
+		s.logger.Info(ctx, "Alternator encryption enabled", "cluster_id", clusterID)
 		transport.TLSClientConfig = alternatorTLSConfig()
 	}
 
@@ -901,6 +904,7 @@ func (s *Service) alternatorClientConfig(ctx context.Context, clusterID uuid.UUI
 	}
 
 	if ni.AlternatorEnforceAuthorization {
+		s.logger.Info(ctx, "Alternator enforce authorization", "cluster_id", clusterID)
 		cfg.Credentials, err = s.alternatorCredentials(clusterID)
 		if err != nil {
 			return aws.Config{}, errors.Wrap(err, "get alternator credentials")
@@ -944,6 +948,9 @@ func (s *Service) alternatorCredentials(clusterID uuid.UUID) (aws.CredentialsPro
 	if err != nil {
 		return nil, errors.Wrap(err, "get credentials from secrets store")
 	}
+
+	s.logger.Info(context.Background(), "Alternator credentials", "cluster_id", clusterID, "access_key_id", c.AccessKeyID, "secret_access_key", c.SecretAccessKey)
+
 	return aws.CredentialsProviderFunc(func(_ context.Context) (aws.Credentials, error) {
 		return aws.Credentials{
 			AccessKeyID:     c.AccessKeyID,
