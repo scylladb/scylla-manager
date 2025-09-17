@@ -138,9 +138,19 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, cqlKs, cqlTab, tabOpt))
 
 	Print("Prepare alternator schema")
-	altTab := "roundtrip_" + AlternatorProblematicTableChars
-	secondAltTab := altTab + "1"
-	CreateInterestingAlternatorSchema(t, h.srcCluster.altClient, 2, 2, altTab, secondAltTab)
+	altTab1 := "roundtrip_1_" + AlternatorProblematicTableChars
+	altTab2 := "roundtrip_2_" + AlternatorProblematicTableChars
+	altGSI1 := "gsi_1_" + AlternatorProblematicTableChars
+	altGSI2 := "gsi_2_" + AlternatorProblematicTableChars
+	altTag := "tag"
+	altTTLAttr := "ttl_attr"
+	CreateAlternatorTable(t, h.srcCluster.altClient, 2, altTab1, altTab2)
+	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab1, altGSI1, altGSI2)
+	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab2, altGSI1, altGSI2)
+	TagAlternatorTable(t, h.srcCluster.altClient, altTab1, altTag)
+	TagAlternatorTable(t, h.srcCluster.altClient, altTab2, altTag)
+	UpdateAlternatorTableTTL(t, h.srcCluster.altClient, altTab1, altTTLAttr, true)
+	UpdateAlternatorTableTTL(t, h.srcCluster.altClient, altTab2, altTTLAttr, true)
 
 	Print("Save src CQL schema")
 	srcCQLSchema, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
@@ -163,11 +173,11 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, "DROP KEYSPACE "+cqlKs)
 
 	Print("Drop backed-up src cluster alternator schema")
-	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(altTab)})
+	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(altTab1)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(secondAltTab)})
+	_, err = h.srcCluster.altClient.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{TableName: aws.String(altTab2)})
 	if err != nil {
 		t.Fatal(err)
 	}

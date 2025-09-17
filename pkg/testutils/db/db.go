@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/multierr"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
@@ -347,59 +348,6 @@ func GetAlternatorCreds(t *testing.T, s gocqlx.Session, role string) (accessKeyI
 	return
 }
 
-// CreateAlternatorTable creates "alternator_{table}.{table}" table via alternator API.
-func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, table string) {
-	t.Helper()
-
-	input := &dynamodb.CreateTableInput{
-		AttributeDefinitions: []types.AttributeDefinition{{
-			AttributeName: ptr.String("key"),
-			AttributeType: "N",
-		}},
-		KeySchema: []types.KeySchemaElement{{
-			AttributeName: ptr.String("key"),
-			KeyType:       "HASH",
-		}},
-		TableName:   ptr.String(table),
-		BillingMode: "PAY_PER_REQUEST",
-	}
-
-	_, err := client.CreateTable(context.Background(), input)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// FillAlternatorTable inserts 100 rows into "alternator_{table}.{table}" table via alternator API.
-func FillAlternatorTable(t *testing.T, client *dynamodb.Client, table string, rowCnt int) {
-	t.Helper()
-
-	var reqs []types.WriteRequest
-	for i := range rowCnt {
-		v, err := attributevalue.Marshal(i)
-		if err != nil {
-			t.Fatal(err)
-		}
-		reqs = append(reqs, types.WriteRequest{
-			PutRequest: &types.PutRequest{
-				Item: map[string]types.AttributeValue{
-					"key": v,
-				},
-			},
-		})
-	}
-
-	writeIn := &dynamodb.BatchWriteItemInput{
-		RequestItems: map[string][]types.WriteRequest{
-			table: reqs,
-		},
-	}
-	_, err := client.BatchWriteItem(context.Background(), writeIn)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 // CreateAlternatorClient returns alternator client.
 func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, accessKeyID, secretAccessKey string) *dynamodb.Client {
 	t.Helper()
@@ -434,21 +382,21 @@ func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, acc
 const (
 	// AlternatorProblematicTableChars are chars which are allowed in alternator tables/indexes names, but not in cql.
 	AlternatorProblematicTableChars = "-.-.-."
-	AlternatorLSIPrefix             = "LSI_" + AlternatorProblematicTableChars + "_"
-	AlternatorGSIPrefix             = "GSI_" + AlternatorProblematicTableChars + "_"
+	// AlternatorLSIPrefix is the prefix for LSIs created with CreateAlternatorTable
+	// (first LSI is named '<AlternatorLSIPrefix>0', second '<AlternatorLSIPrefix>1', and so on).
+	AlternatorLSIPrefix = "LSI_" + AlternatorProblematicTableChars + "_"
 	// AlternatorProblematicAttrChars are chars which are allowed in alternator attributes names, but not in cql.
 	AlternatorProblematicAttrChars = "-.#:-.#:-.#:"
-	AlternatorPK                   = "PK_" + AlternatorProblematicAttrChars
-	AlternatorSK                   = "SK_" + AlternatorProblematicAttrChars
-	AlternatorLSISK                = "LSI_SK_" + AlternatorProblematicAttrChars
-	AlternatorGSIPK                = "GSI_PK_" + AlternatorProblematicAttrChars
-	AlternatorGSISK                = "GSI_SK_" + AlternatorProblematicAttrChars
-	AlternatorTTL                  = "TTL_" + AlternatorProblematicAttrChars
-	AlternatorTag                  = "TAG"
+	alternatorPK                   = "PK_" + AlternatorProblematicAttrChars
+	alternatorSK                   = "SK_" + AlternatorProblematicAttrChars
+	alternatorLSISK                = "LSI_SK_" + AlternatorProblematicAttrChars
+	alternatorGSIPK                = "GSI_PK_" + AlternatorProblematicAttrChars
+	alternatorGSISK                = "GSI_SK_" + AlternatorProblematicAttrChars
 )
 
-// CreateInterestingAlternatorSchema creates tables with specified names with LSI, GSI, tags and TTL.
-func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, gsiCnt, lsiCnt int, tables ...string) {
+// CreateAlternatorTable creates alternator tables with provided LSI count.
+// LSIs need to be created at table creation, so we can't move it to a separate function.
+func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt int, tables ...string) {
 	t.Helper()
 
 	var lsi []types.LocalSecondaryIndex
@@ -457,11 +405,11 @@ func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, gs
 			IndexName: aws.String(fmt.Sprint(AlternatorLSIPrefix, i)),
 			KeySchema: []types.KeySchemaElement{
 				{
-					AttributeName: aws.String(AlternatorPK),
+					AttributeName: aws.String(alternatorPK),
 					KeyType:       types.KeyTypeHash,
 				},
 				{
-					AttributeName: aws.String(AlternatorLSISK),
+					AttributeName: aws.String(alternatorLSISK),
 					KeyType:       types.KeyTypeRange,
 				},
 			},
@@ -471,105 +419,146 @@ func CreateInterestingAlternatorSchema(t *testing.T, client *dynamodb.Client, gs
 		})
 	}
 
-	var gsi []types.GlobalSecondaryIndex
-	for i := range gsiCnt {
-		gsi = append(gsi, types.GlobalSecondaryIndex{
-			IndexName: aws.String(fmt.Sprint(AlternatorGSIPrefix, i)),
-			KeySchema: []types.KeySchemaElement{
-				{
-					AttributeName: aws.String(AlternatorGSIPK),
-					KeyType:       types.KeyTypeHash,
-				},
-				{
-					AttributeName: aws.String(AlternatorGSISK),
-					KeyType:       types.KeyTypeRange,
-				},
-			},
-			Projection: &types.Projection{
-				ProjectionType: types.ProjectionTypeAll,
-			},
+	attrDef := []types.AttributeDefinition{
+		{
+			AttributeName: aws.String(alternatorPK),
+			AttributeType: types.ScalarAttributeTypeN,
+		},
+		{
+			AttributeName: aws.String(alternatorSK),
+			AttributeType: types.ScalarAttributeTypeN,
+		},
+	}
+	if lsiCnt > 0 {
+		attrDef = append(attrDef, types.AttributeDefinition{
+			AttributeName: aws.String(alternatorLSISK),
+			AttributeType: types.ScalarAttributeTypeN,
 		})
 	}
 
 	for _, table := range tables {
 		_, err := client.CreateTable(context.Background(), &dynamodb.CreateTableInput{
-			TableName: aws.String(table),
-			AttributeDefinitions: []types.AttributeDefinition{
-				{
-					AttributeName: aws.String(AlternatorPK),
-					AttributeType: types.ScalarAttributeTypeS,
-				},
-				{
-					AttributeName: aws.String(AlternatorSK),
-					AttributeType: types.ScalarAttributeTypeS,
-				},
-				{
-					AttributeName: aws.String(AlternatorLSISK),
-					AttributeType: types.ScalarAttributeTypeS,
-				},
-				{
-					AttributeName: aws.String(AlternatorGSIPK),
-					AttributeType: types.ScalarAttributeTypeS,
-				},
-				{
-					AttributeName: aws.String(AlternatorGSISK),
-					AttributeType: types.ScalarAttributeTypeS,
-				},
-			},
+			TableName:            aws.String(table),
+			AttributeDefinitions: attrDef,
 			KeySchema: []types.KeySchemaElement{
 				{
-					AttributeName: aws.String(AlternatorPK),
+					AttributeName: aws.String(alternatorPK),
 					KeyType:       types.KeyTypeHash,
 				},
 				{
-					AttributeName: aws.String(AlternatorSK),
+					AttributeName: aws.String(alternatorSK),
 					KeyType:       types.KeyTypeRange,
 				},
 			},
-			LocalSecondaryIndexes:  lsi,
-			GlobalSecondaryIndexes: gsi,
-			Tags: []types.Tag{
-				{
-					Key:   aws.String(AlternatorTag),
-					Value: aws.String("1"),
-				},
-			},
-			BillingMode: types.BillingModePayPerRequest,
+			LocalSecondaryIndexes: lsi,
+			BillingMode:           types.BillingModePayPerRequest,
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		WaitForAlternatorTable(t, client, table)
-
-		_, err = client.UpdateTimeToLive(context.Background(), &dynamodb.UpdateTimeToLiveInput{
-			TableName: aws.String(table),
-			TimeToLiveSpecification: &types.TimeToLiveSpecification{
-				AttributeName: aws.String(AlternatorTTL),
-				Enabled:       aws.Bool(true),
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		// Just to make sure that TTL changes are applied
-		time.Sleep(time.Second)
 	}
 }
 
-// InsertInterestingAlternatorData inserts data into the tables created with CreateInterestingAlternatorSchema.
-func InsertInterestingAlternatorData(t *testing.T, client *dynamodb.Client, rowCnt int, tables ...string) {
+// CreateAlternatorGSI creates alternator GSIs on provided table.
+func CreateAlternatorGSI(t *testing.T, client *dynamodb.Client, table string, gsis ...string) {
+	t.Helper()
+
+	for _, gsi := range gsis {
+		_, err := client.UpdateTable(context.Background(), &dynamodb.UpdateTableInput{
+			TableName: aws.String(table),
+			AttributeDefinitions: []types.AttributeDefinition{
+				{
+					AttributeName: aws.String(alternatorGSIPK),
+					AttributeType: types.ScalarAttributeTypeN,
+				},
+				{
+					AttributeName: aws.String(alternatorGSISK),
+					AttributeType: types.ScalarAttributeTypeN,
+				},
+			},
+			GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{
+				{
+					Create: &types.CreateGlobalSecondaryIndexAction{
+						IndexName: &gsi,
+						KeySchema: []types.KeySchemaElement{
+							{
+								AttributeName: aws.String(alternatorGSIPK),
+								KeyType:       types.KeyTypeHash,
+							},
+							{
+								AttributeName: aws.String(alternatorGSISK),
+								KeyType:       types.KeyTypeRange,
+							},
+						},
+						Projection: &types.Projection{
+							ProjectionType: types.ProjectionTypeAll,
+						}, OnDemandThroughput: nil,
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// TagAlternatorTable tags provided alternator table.
+func TagAlternatorTable(t *testing.T, client *dynamodb.Client, table string, tags ...string) {
+	t.Helper()
+
+	out, err := client.DescribeTable(context.Background(), &dynamodb.DescribeTableInput{
+		TableName: aws.String(table),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = client.TagResource(context.Background(), &dynamodb.TagResourceInput{
+		ResourceArn: out.Table.TableArn,
+		Tags: slices2.Map(tags, func(tag string) types.Tag {
+			return types.Tag{
+				Key:   aws.String(tag),
+				Value: aws.String(tag),
+			}
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// UpdateAlternatorTableTTL updates provided alternator table TTL.
+func UpdateAlternatorTableTTL(t *testing.T, client *dynamodb.Client, table, attr string, enabled bool) {
+	t.Helper()
+
+	_, err := client.UpdateTimeToLive(context.Background(), &dynamodb.UpdateTimeToLiveInput{
+		TableName: aws.String(table),
+		TimeToLiveSpecification: &types.TimeToLiveSpecification{
+			AttributeName: aws.String(attr),
+			Enabled:       aws.Bool(enabled),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Just to make sure that TTL changes are applied
+	time.Sleep(time.Second)
+}
+
+// InsertAlternatorTableData inserts data into alternator tables created with CreateAlternatorTable.
+func InsertAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt int, tables ...string) {
 	t.Helper()
 
 	for _, table := range tables {
 		var writeRequests []types.WriteRequest
 		for i := range rowCnt {
-			m := map[string]string{
-				AlternatorPK:    fmt.Sprint(AlternatorPK, "_", i),
-				AlternatorSK:    fmt.Sprint(AlternatorSK, "_", i),
-				AlternatorLSISK: fmt.Sprint(AlternatorLSISK, "_", i),
-				AlternatorGSIPK: fmt.Sprint(AlternatorGSIPK, "_", i),
-				AlternatorGSISK: fmt.Sprint(AlternatorGSISK, "_", i),
+			m := map[string]int{
+				alternatorPK:    i,
+				alternatorSK:    i,
+				alternatorLSISK: i,
+				alternatorGSIPK: i,
+				alternatorGSISK: i,
 			}
 			av, err := attributevalue.MarshalMap(m)
 			if err != nil {
@@ -594,8 +583,9 @@ func InsertInterestingAlternatorData(t *testing.T, client *dynamodb.Client, rowC
 	}
 }
 
-// ValidateInterestingAlternatorData validates the data inserted with InsertInterestingAlternatorData.
-func ValidateInterestingAlternatorData(t *testing.T, client *dynamodb.Client, rowCnt, gsiCnt, lsiCnt int, tables ...string) {
+// ValidateAlternatorTableData checks items count in provided alternator tables.
+// Since LSI names are auto-generated in CreateAlternatorTable, we also check for them here.
+func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, lsiCnt int, tables ...string) {
 	t.Helper()
 
 	for _, table := range tables {
@@ -606,14 +596,13 @@ func ValidateInterestingAlternatorData(t *testing.T, client *dynamodb.Client, ro
 			t.Fatal(err)
 		}
 		if out.Count != int32(rowCnt) {
-			t.Fatalf("expected %d items in %q, got %d", rowCnt, table, out.Count)
+			t.Fatalf("expected %d items in table %q, got %d", rowCnt, table, out.Count)
 		}
 
-		for i := range lsiCnt {
-			lsi := fmt.Sprint(AlternatorLSIPrefix, i)
+		for lsi := range lsiCnt {
 			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
 				TableName: aws.String(table),
-				IndexName: aws.String(lsi),
+				IndexName: aws.String(fmt.Sprint(AlternatorLSIPrefix, lsi)),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -622,32 +611,23 @@ func ValidateInterestingAlternatorData(t *testing.T, client *dynamodb.Client, ro
 				t.Fatalf("expected %d items in LSI %q of %q, got %d", rowCnt, lsi, table, out.Count)
 			}
 		}
-
-		for i := range gsiCnt {
-			gsi := fmt.Sprint(AlternatorGSIPrefix, i)
-			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
-				TableName: aws.String(table),
-				IndexName: aws.String(gsi),
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if out.Count != int32(rowCnt) {
-				t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
-			}
-		}
 	}
 }
 
-// WaitForAlternatorTable waits for alternator tablet o be created.
-func WaitForAlternatorTable(t *testing.T, client *dynamodb.Client, table string) {
+// ValidateAlternatorGSIData checks item count in provided alternator table GSIs.
+func ValidateAlternatorGSIData(t *testing.T, client *dynamodb.Client, rowCnt int, table string, gsis ...string) {
 	t.Helper()
 
-	waiter := dynamodb.NewTableExistsWaiter(client)
-	err := waiter.Wait(context.Background(), &dynamodb.DescribeTableInput{
-		TableName: aws.String(table),
-	}, time.Minute)
-	if err != nil {
-		t.Fatal(err)
+	for _, gsi := range gsis {
+		out, err := client.Scan(context.Background(), &dynamodb.ScanInput{
+			TableName: aws.String(table),
+			IndexName: aws.String(gsi),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if out.Count != int32(rowCnt) {
+			t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
+		}
 	}
 }
