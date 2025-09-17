@@ -29,6 +29,10 @@ The following backup storage engines are supported:
 * S3 compatible API storage providers such as Ceph or MinIO,
 * Google Cloud Storage.
 
+For the purposes of backing up schema, ScyllaDB Manager requires CQL credentials (`sctool cluster update --username --password <cluster-update>`_).
+In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`_).
+Alternator credentials can point to the same underlying CQL role as the CQL credentials (See `Alternator docs <https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization>`_ for details).
+
 Features
 ========
 

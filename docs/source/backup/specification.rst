@@ -67,7 +67,11 @@ They are are marked as temporary until all the backup files are fully uploaded.
 schema
 ......
 
-The schema directory contains text dumps of database schema.
+The schema directory contains dumps of database schema.
+It always contains CQL schema, and for Alternator clusters it also contains Alternator schema.
+
+CQL
++++
 
 Starting from ScyllaDB 6.0 and 2024.2 (and compatible ScyllaDB Manager 3.3), they are required for the schema restoration.
 They have ``schema_with_internals.json.gz`` suffix and represent the output of ``DESCRIBE SCHEMA WITH INTERNALS`` CQL query,
@@ -89,11 +93,85 @@ To enable upload of the files make sure that the cluster is added with username 
                ├── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095542UTC_schema_with_internals.json.gz
                └── task_f70117d8-c10e-4e90-9606-2587936b3757_tag_sm_20210809095748UTC_schema_with_internals.json.gz
 
-The schema file path is structured as follows.
+The schema file path is structured as follows:
 
 .. code-block:: none
 
    /backup/schema/cluster/<cluster ID>/task_<task ID>_tag_<snapshot tag>_schema_with_internals.json.gz
+
+
+Alternator
+++++++++++
+
+Alternator schema file layout can be found in the `backupspec package <https://github.com/scylladb/scylla-manager/blob/master/backupspec/schema.go>`_.
+It contains a list of alternator table schema, each of them consists of:
+
+* `Description <https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html#API_DescribeTable_ResponseSyntax>`_
+* `Tags <https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListTagsOfResource.html#API_ListTagsOfResource_ResponseSyntax>`_
+* `TTL <https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTimeToLive.html#API_DescribeTimeToLive_ResponseSyntax>`_
+
+Here is an example of an Alternator schema file:
+
+.. code-block:: none
+
+    {
+      "tables": [
+        {
+          "describe": {
+            "TableName": "alternator_table",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "SK",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "PK",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "PK",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "SK",
+                "KeyType": "RANGE"
+              }
+            ],
+            "GlobalSecondaryIndexes": [
+              {
+                "IndexName": "alternator_GSI",
+                ...
+              }
+            ],
+            "LocalSecondaryIndexes": [
+              {
+                "IndexName": "alternator_LSI",
+                ...
+              }
+            ],
+            ...
+          },
+          "tags": [
+            {
+              "Key": "alternator_tag",
+              "Value": "alternator_tag"
+            }
+          ],
+          "ttl": {
+            "AttributeName": "alternator_ttl",
+            "TimeToLiveStatus": "ENABLED"
+          }
+        }
+      ]
+    }
+
+Alternator schema file path is structured as follows:
+
+.. code-block:: none
+
+   /backup/schema/cluster/<cluster ID>/task_<task ID>_tag_<snapshot tag>_alternator_schema.json.gz
 
 sst
 ...
