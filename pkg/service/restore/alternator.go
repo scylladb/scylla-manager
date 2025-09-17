@@ -122,7 +122,7 @@ type alternatorInitViewsWorker struct {
 	client   *dynamodb.Client
 }
 
-// newAlternatorInitViewsWorker creates new alternatorTablesInitViewsWorker.
+// newAlternatorInitViewsWorker creates new alternatorInitViewsWorker.
 // Units are used for filtering alternator schema according to the --keyspace flag.
 // Passing nil client results in no initialized alternator views.
 func newAlternatorInitViewsWorker(ctx context.Context, client *dynamodb.Client, units []Unit) (*alternatorInitViewsWorker, error) {
@@ -186,9 +186,10 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			if gsi.IndexName == nil {
 				continue
 			}
-			stmt := AlternatorViewCreateStmt{
-				AttributeDefinitions:       iw.filterGSIAttr(*schema.Describe, gsi),
-				GlobalSecondaryIndexUpdate: iw.gsiDescToCreateUpdate(gsi),
+			stmt := dynamodb.UpdateTableInput{
+				TableName:                   aws.String(t),
+				AttributeDefinitions:        iw.filterGSIAttr(*schema.Describe, gsi),
+				GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{iw.gsiDescToCreateUpdate(gsi)},
 			}
 			rawCreateStmt, err := json.Marshal(stmt)
 			if err != nil {
@@ -415,7 +416,7 @@ func (w alternatorWorker) cqlGSIName(table, gsi string) string {
 	return table + ":" + gsi
 }
 
-func (w alternatorWorker) cqlLSIName(table, lsi string) string { //nolint: unused
+func (w alternatorWorker) cqlLSIName(table, lsi string) string {
 	return table + "!:" + lsi
 }
 
