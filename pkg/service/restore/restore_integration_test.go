@@ -1468,13 +1468,17 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	}
 
 	Print("Prepare alternator schema")
-	altTab := "alt_full_" + AlternatorProblematicTableChars
-	secondAltTab := altTab + "1"
-	CreateInterestingAlternatorSchema(t, h.srcCluster.altClient, 2, 2, altTab, secondAltTab)
+	altTab1 := "alt_full_1_" + AlternatorProblematicTableChars
+	altTab2 := "alt_full_2_" + AlternatorProblematicTableChars
+	altGSI1 := "gsi_1_" + AlternatorProblematicTableChars
+	altGSI2 := "gsi_2_" + AlternatorProblematicTableChars
+	CreateAlternatorTable(t, h.srcCluster.altClient, 2, altTab1, altTab2)
+	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab1, altGSI1, altGSI2)
+	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab2, altGSI1, altGSI2)
 
 	Print("Insert alternator rows")
 	const rowCnt = 100
-	InsertInterestingAlternatorData(t, h.srcCluster.altClient, rowCnt, altTab, secondAltTab)
+	InsertAlternatorTableData(t, h.srcCluster.altClient, rowCnt, altTab1, altTab2)
 
 	Print("Prepare simple clq schema")
 	ExecStmt(t, h.srcCluster.rootSession, "CREATE KEYSPACE cql_ks WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} and tablets = {'enabled': false}")
@@ -1507,7 +1511,9 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	h.runRestore(t, props)
 
 	Print("Validate restored alternator data")
-	ValidateInterestingAlternatorData(t, h.dstCluster.altClient, rowCnt, 2, 2, altTab, secondAltTab)
+	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, altTab1, altTab2)
+	ValidateAlternatorGSIData(t, h.dstCluster.altClient, rowCnt, altTab1, altGSI1, altGSI2)
+	ValidateAlternatorGSIData(t, h.dstCluster.altClient, rowCnt, altTab2, altGSI1, altGSI2)
 
 	Print("Validate restored simple cql data")
 	cqlTabs := []table{
