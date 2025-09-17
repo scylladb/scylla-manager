@@ -328,15 +328,11 @@ func (cw *alternatorCreateViewsWorker) isAlternatorView(view View) bool {
 // createViews creates all alternator views that were previously dropped.
 func (cw *alternatorCreateViewsWorker) createViews(ctx context.Context) error {
 	for _, v := range cw.views {
-		stmt, err := cw.viewToCreateStmt(v)
+		update, err := cw.viewToCreateStmt(v)
 		if err != nil {
-			return errors.Wrap(err, "prepare alternator view create statement")
+			return errors.Wrap(err, "prepare alternator view create update")
 		}
-		_, err = cw.client.UpdateTable(ctx, &dynamodb.UpdateTableInput{
-			TableName:                   aws.String(v.BaseTable),
-			AttributeDefinitions:        stmt.AttributeDefinitions,
-			GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{stmt.GlobalSecondaryIndexUpdate},
-		})
+		_, err = cw.client.UpdateTable(ctx, update)
 		if err != nil {
 			return errors.Wrap(err, "create alternator view")
 		}
@@ -344,16 +340,16 @@ func (cw *alternatorCreateViewsWorker) createViews(ctx context.Context) error {
 	return nil
 }
 
-func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (AlternatorViewCreateStmt, error) {
+func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (*dynamodb.UpdateTableInput, error) {
 	switch view.Type {
 	case AlternatorGlobalSecondaryIndex:
-		var stmt AlternatorViewCreateStmt
-		if err := json.Unmarshal([]byte(view.CreateStmt), &stmt); err != nil {
-			return AlternatorViewCreateStmt{}, errors.Wrap(err, "unmarshal initialized alternator GSI create update")
+		var update dynamodb.UpdateTableInput
+		if err := json.Unmarshal([]byte(view.CreateStmt), &update); err != nil {
+			return nil, errors.Wrap(err, "unmarshal initialized alternator GSI create update")
 		}
-		return stmt, nil
+		return &update, nil
 	default:
-		return AlternatorViewCreateStmt{}, errors.New("unsupported view type: " + string(view.Type))
+		return nil, errors.New("unsupported view type: " + string(view.Type))
 	}
 }
 
