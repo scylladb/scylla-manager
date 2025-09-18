@@ -1891,8 +1891,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("When: create alternator table with 1 row")
 		accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
 		client := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
-		CreateAlternatorTable(t, client, testTable)
-		FillAlternatorTable(t, client, testTable, 100)
+		CreateAlternatorTable(t, client, 0, testTable)
+		InsertAlternatorTableData(t, client, 100, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
 		h := newRepairTestHelper(t, session, defaultConfig())

@@ -7,9 +7,61 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"golang.org/x/sync/errgroup"
 )
+
+func (w *worker) stageDropViews(ctx context.Context) error {
+	aw, err := newAlternatorDropViewsWorker(ctx, w.alternatorClient, w.run.Views)
+	if err != nil {
+		return errors.Wrap(err, "create alternator drop views worker")
+	}
+	if err := aw.dropViews(ctx); err != nil {
+		return err
+	}
+
+	for _, v := range w.run.Views {
+		if aw.isAlternatorView(v) {
+			continue
+		}
+
+		if err := w.DropView(ctx, v); err != nil {
+			return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
+		}
+	}
+	return nil
+}
+
+func (w *worker) stageRecreateViews(ctx context.Context) error {
+	aw, err := newAlternatorCreateViewsWorker(ctx, w.alternatorClient, w.run.Views)
+	if err != nil {
+		return errors.Wrap(err, "create alternator create views worker")
+	}
+	if err := aw.createViews(ctx); err != nil {
+		return err
+	}
+
+	for _, v := range w.run.Views {
+		if aw.isAlternatorView(v) {
+			continue
+		}
+
+		if err := w.CreateView(ctx, v); err != nil {
+			return errors.Wrapf(err, "recreate %s.%s with statement %s", v.Keyspace, v.View, v.CreateStmt)
+		}
+	}
+	// Since we are waiting for view building with scylla rest api,
+	// we can do it in the same way for cql and alternator views.
+	eg, egCtx := errgroup.WithContext(ctx)
+	for i := range w.run.Views {
+		eg.Go(func() error {
+			return w.WaitForViewBuilding(egCtx, &w.run.Views[i])
+		})
+	}
+	return eg.Wait()
+}
 
 // DropView drops specified Materialized View or Secondary Index.
 func (w *worker) DropView(ctx context.Context, view View) error {

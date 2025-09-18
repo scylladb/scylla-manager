@@ -2264,8 +2264,8 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 
 	accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
 	client := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
-	CreateAlternatorTable(t, client, testTable)
-	FillAlternatorTable(t, client, testTable, rowCnt)
+	CreateAlternatorTable(t, client, 0, testTable)
+	InsertAlternatorTableData(t, client, rowCnt, testTable)
 
 	Print("When: validate data insertion")
 	selectStmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", testKeyspace, testTable)
@@ -2714,13 +2714,16 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 
 	// Second backup with table created with Alternator
 	const (
-		tabAlt    = "tab_alt"
-		tabAltLSI = tabAlt + "_LSI"
-		tabAltGSI = tabAlt + "_GSI"
-		tabAltTag = tabAlt + "_tag"
-		tabAltTTL = tabAlt + "_TTL"
+		tabAlt        = "tab_alt_" + AlternatorProblematicTableChars
+		tabAltLSI     = AlternatorLSIPrefix + "0"
+		tabAltGSI     = "gsi_alt" + AlternatorProblematicTableChars
+		tabAltTag     = "tab_alt_tag"
+		tabAltTTLAttr = "tab_alt_ttl_attr"
 	)
-	CreateInterestingAlternatorSchema(t, client, "tab_alt")
+	CreateAlternatorTable(t, client, 1, tabAlt)
+	CreateAlternatorGSI(t, client, tabAlt, tabAltGSI)
+	TagAlternatorTable(t, client, tabAlt, tabAltTag)
+	UpdateAlternatorTableTTL(t, client, tabAlt, tabAltTTLAttr, true)
 	cqlSchema2, err := query.DescribeSchemaWithInternals(clusterSession)
 	tag2 := makeBackup()
 
@@ -2838,8 +2841,8 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 			if *altTab.Tags[0].Key != tabAltTag {
 				t.Fatalf("Expected alternator tag: %s, got: %s", tabAltTag, *altTab.Tags[0].Key)
 			}
-			if *altTab.TTL.AttributeName != tabAltTTL {
-				t.Fatalf("Expected alternator TTL: %s, got: %s", tabAltTTL, *altTab.TTL.AttributeName)
+			if *altTab.TTL.AttributeName != tabAltTTLAttr {
+				t.Fatalf("Expected alternator TTL: %s, got: %s", tabAltTTLAttr, *altTab.TTL.AttributeName)
 			}
 		})
 	}
