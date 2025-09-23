@@ -4,8 +4,10 @@ ScyllaDB Manager Upgrade
 
 This document describes the upgrade process between two versions of ScyllaDB Manager.
 
-Applicable versions
-===================
+.. note:: See :doc:`../compatibility-matrix` for information about compatibility between ScyllaDB Manager and ScyllaDB versions.
+
+Applicable platforms
+====================
 
 This guide covers the general steps for upgrading ScyllaDB Manager between any two versions on the following platforms:
 
@@ -36,12 +38,6 @@ Stop all ScyllaDB Manager tasks (or wait for them to finish)
 ------------------------------------------------------------
 
 **On the Manager Server** check current status of the manager tasks:
-
-.. code:: sh
-
-    sctool task list -c <cluster>
-
-Or on versions 3.0 and higher using:
 
 .. code:: sh
 
@@ -93,7 +89,7 @@ Upgrade the ScyllaDB Manager Server and Client
    the `ScyllaDB Download Center <https://www.scylladb.com/download/#manager>`_, 
    and select your platform and the version to which you want to upgrade to display the relevant command.
    
-   The following examples show how to update the repo for Manager 3.1:
+   The following examples show how to update the repo for Manager 3.6:
 
    .. tabs::
 
@@ -102,22 +98,22 @@ Upgrade the ScyllaDB Manager Server and Client
            .. code:: console
               :class: hide-copy-button
 
-              sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L http://downloads.scylladb.com/rpm/centos/scylladb-manager-3.1.repo
+              sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.6.repo
 
       .. group-tab::  Example for Ubuntu
 
            .. code:: console
               :class: hide-copy-button
 
-              sudo wget -O /etc/apt/sources.list.d/scylla-manager.list http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.1.list
+              sudo wget -O /etc/apt/sources.list.d/scylla-manager.list https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.6.list
 
    .. note:: 
     
      You don't need to update the repo file if you upgrade to a patch release, for example, 
-     from Manager 3.1.1 to 3.1.2.
+     from Manager 3.5.0 to 3.5.1.
 
    You can display the contents of the Manager repo file to confirm that the displayed version 
-   is the version to which you want to upgrade.
+   is the ver#4487sion to which you want to upgrade.
 
      - On CentOS/Red Hat, run: ``cat /etc/yum.repos.d/scylla-manager.repo``
      - On Debian/Ubuntu, run: ``cat /etc/apt/sources.list.d/scylla-manager.list``
@@ -164,8 +160,6 @@ Debian, Ubuntu:
 
 Run `scyllamgr_agent_setup` script on all nodes
 -----------------------------------------------
-
-.. note:: Script mentioned in this section is added in version 2.0.2 so it won't be available for earlier versions.
 
 This step requires sudo rights:
 
@@ -367,13 +361,13 @@ CentOS, Red Hat:
 
 .. code:: sh
 
-    sudo yum downgrade scylla-manager-server-2.x* scylla-manager-client-2.x* -y
+    sudo yum downgrade scylla-manager-server-3.x* scylla-manager-client-3.x* -y
 
 Debian, Ubuntu:
 
 .. code:: sh
 
-    sudo apt-get install scylla-manager-server=2.x scylla-manager-client=2.x -y
+    sudo apt-get install scylla-manager-server=3.x scylla-manager-client=3.x -y
 
 Downgrade the ScyllaDB Manager Agent on all nodes
 -------------------------------------------------
@@ -384,13 +378,13 @@ CentOS, Red Hat:
 
 .. code:: sh
 
-    sudo yum downgrade scylla-manager-agent-2.x* -y
+    sudo yum downgrade scylla-manager-agent-3.x* -y
 
 Debian, Ubuntu:
 
 .. code:: sh
 
-    sudo apt-get install scylla-manager-agent=2.x -y
+    sudo apt-get install scylla-manager-agent=3.x -y
 
 Revert to the old configuration
 -------------------------------
@@ -460,8 +454,8 @@ Validate status of the cluster
 .. code:: sh
 
     sctool version
-    Client version: 2.x
-    Server version: 2.x
+    Client version: 3.x
+    Server version: 3.x
 
 Check that cluster is up:
 
