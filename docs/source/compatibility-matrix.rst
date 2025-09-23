@@ -12,6 +12,9 @@ The following table shows which version of Scylla Manager supports which version
    * - ScyllaDB Manager Version
      - ScyllaDB Open Source Version
      - ScyllaDB Enterprise Version
+   * - 3.7
+     -
+     - 2024.1, 2025.1, 2025.2, 2025.3
    * - 3.6
      -
      - 2024.1, 2025.1, 2025.2, 2025.3
