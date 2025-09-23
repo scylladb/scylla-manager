@@ -2,11 +2,11 @@ concurrency:
     cancel-in-progress: true
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
-    scylla-version: scylla:2025.1.0
-    ip-family: IPV4
+    scylla-version: scylla:2025.1.7
+    ip-family: IPV6
     raft-schema: none
-    tablets: disabled
-    ssl-enabled: "true"
+    tablets: enabled
+    ssl-enabled: "false"
 jobs:
     backup:
         name: Test backup
@@ -108,7 +108,7 @@ jobs:
               run: make pkg-integration-test PKG=./pkg/schema/migrate
             - name: Run 1-1-restore tests
               run: make pkg-integration-test TABLETS=${{ env.tablets }} PKG=./pkg/service/one2onerestore
-name: integration-tests-2025.1.0-IPV4
+name: integration-tests-2025.1.7-IPV6-tablets-nossl
 "on":
     pull_request:
         types:
