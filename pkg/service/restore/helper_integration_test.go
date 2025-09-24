@@ -257,7 +257,6 @@ func defaultTestBackupProperties(loc backupspec.Location, ks string) map[string]
 func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
 	Printf("Run backup with properties: %v", props)
 	ctx := context.Background()
-	h.srcCluster.TaskID = uuid.NewTime()
 	h.srcCluster.RunID = uuid.NewTime()
 
 	rawProps, err := json.Marshal(props)
@@ -286,7 +285,6 @@ func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
 func (h *testHelper) runRestore(t *testing.T, props map[string]any) {
 	Printf("Run restore with properties: %v", props)
 	ctx := context.Background()
-	h.dstCluster.TaskID = uuid.NewTime()
 	h.dstCluster.RunID = uuid.NewTime()
 
 	rawProps, err := json.Marshal(props)
