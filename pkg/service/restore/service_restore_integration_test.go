@@ -467,7 +467,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var goldenViews []View
+			var goldenViews []RestoredView
 			if err := json.Unmarshal(b, &goldenViews); err != nil {
 				t.Fatal(err)
 			}
@@ -493,17 +493,17 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			}
 
 			if goldenViews == nil {
-				goldenViews = make([]View, 0)
+				goldenViews = make([]RestoredView, 0)
 			}
 			if views == nil {
-				views = make([]View, 0)
+				views = make([]RestoredView, 0)
 			}
 			if diff := cmp.Diff(goldenViews, views,
-				cmpopts.SortSlices(func(a, b View) bool { return a.Keyspace+a.View < b.Keyspace+b.View }),
-				cmpopts.IgnoreSliceElements(func(v View) bool {
-					return slices.Contains(ignoredViews, v.View)
+				cmpopts.SortSlices(func(a, b RestoredView) bool { return a.Keyspace+a.Name < b.Keyspace+b.Name }),
+				cmpopts.IgnoreSliceElements(func(v RestoredView) bool {
+					return slices.Contains(ignoredViews, v.Name)
 				}),
-				cmpopts.IgnoreFields(View{}, "CreateStmt")); diff != "" {
+				cmpopts.IgnoreFields(RestoredView{}, "CreateStmt")); diff != "" {
 				t.Fatal(tc.views, diff)
 			}
 		})

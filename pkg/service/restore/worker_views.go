@@ -64,7 +64,7 @@ func (w *worker) stageRecreateViews(ctx context.Context) error {
 }
 
 // DropView drops specified Materialized View or Secondary Index.
-func (w *worker) DropView(ctx context.Context, view View) error {
+func (w *worker) DropView(ctx context.Context, view RestoredView) error {
 	w.logger.Info(ctx, "Dropping view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
@@ -97,7 +97,7 @@ func (w *worker) DropView(ctx context.Context, view View) error {
 }
 
 // CreateView creates specified Materialized View or Secondary Index.
-func (w *worker) CreateView(ctx context.Context, view View) error {
+func (w *worker) CreateView(ctx context.Context, view RestoredView) error {
 	w.logger.Info(ctx, "Creating view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
@@ -122,14 +122,14 @@ func (w *worker) CreateView(ctx context.Context, view View) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) WaitForViewBuilding(ctx context.Context, view *View) error {
+func (w *worker) WaitForViewBuilding(ctx context.Context, view *RestoredView) error {
 	labels := metrics.RestoreViewBuildStatusLabels{
 		ClusterID: w.run.ClusterID.String(),
 		Keyspace:  view.Keyspace,
-		View:      view.View,
+		View:      view.Name,
 	}
 
-	viewTableName := view.View
+	viewTableName := view.Name
 	if view.Type == SecondaryIndex {
 		viewTableName += "_index"
 	}

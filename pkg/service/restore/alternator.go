@@ -175,8 +175,8 @@ func (iw *alternatorInitViewsWorker) isAlternatorKeyspace(ks string) bool {
 }
 
 // initViews initializes alternator views translating them to Views.
-func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
-	var views []View
+func (iw *alternatorInitViewsWorker) initViews() ([]RestoredView, error) {
+	var views []RestoredView
 	for _, schema := range iw.ksSchema {
 		if schema.Describe == nil || schema.Describe.TableName == nil {
 			continue
@@ -195,11 +195,13 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			if err != nil {
 				return nil, err
 			}
-			views = append(views, View{
-				Keyspace:   iw.cqlKeyspaceName(t),
-				View:       iw.cqlGSIName(t, *gsi.IndexName),
-				Type:       AlternatorGlobalSecondaryIndex,
-				BaseTable:  t,
+			views = append(views, RestoredView{
+				View: View{
+					Keyspace:  iw.cqlKeyspaceName(t),
+					Name:      iw.cqlGSIName(t, *gsi.IndexName),
+					Type:      AlternatorGlobalSecondaryIndex,
+					BaseTable: t,
+				},
 				CreateStmt: string(rawCreateStmt),
 			})
 		}
@@ -207,11 +209,13 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			if lsi.IndexName == nil {
 				continue
 			}
-			views = append(views, View{
-				Keyspace:  iw.cqlKeyspaceName(t),
-				View:      iw.cqlLSIName(t, *lsi.IndexName),
-				Type:      AlternatorLocalSecondaryIndex,
-				BaseTable: t,
+			views = append(views, RestoredView{
+				View: View{
+					Keyspace:  iw.cqlKeyspaceName(t),
+					Name:      iw.cqlLSIName(t, *lsi.IndexName),
+					Type:      AlternatorLocalSecondaryIndex,
+					BaseTable: t,
+				},
 			})
 		}
 	}
@@ -243,12 +247,12 @@ func (iw *alternatorInitViewsWorker) filterGSIAttr(desc types.TableDescription, 
 // It basis its knowledge of alternator schema on the initialized Views.
 type alternatorDropViewsWorker struct {
 	alternatorWorker
-	views  []View
+	views  []RestoredView
 	client *dynamodb.Client
 }
 
 // newAlternatorDropViewsWorker creates new alternatorDropViewsWorker.
-func newAlternatorDropViewsWorker(ctx context.Context, client *dynamodb.Client, views []View) (*alternatorDropViewsWorker, error) {
+func newAlternatorDropViewsWorker(ctx context.Context, client *dynamodb.Client, views []RestoredView) (*alternatorDropViewsWorker, error) {
 	// Only existing views should be dropped
 	filteredViews, err := filterAlternatorViews(ctx, client, views, true)
 	if err != nil {
@@ -260,8 +264,8 @@ func newAlternatorDropViewsWorker(ctx context.Context, client *dynamodb.Client, 
 	}, nil
 }
 
-// isAlternatorView checks if given View is an alternator one.
-func (dw *alternatorDropViewsWorker) isAlternatorView(view View) bool {
+// isAlternatorView checks if given view is an alternator one.
+func (dw *alternatorDropViewsWorker) isAlternatorView(view RestoredView) bool {
 	return view.Type == AlternatorGlobalSecondaryIndex || view.Type == AlternatorLocalSecondaryIndex
 }
 
@@ -283,10 +287,10 @@ func (dw *alternatorDropViewsWorker) dropViews(ctx context.Context) error {
 	return nil
 }
 
-func (dw *alternatorDropViewsWorker) viewToDeleteUpdate(view View) (types.GlobalSecondaryIndexUpdate, error) {
+func (dw *alternatorDropViewsWorker) viewToDeleteUpdate(view RestoredView) (types.GlobalSecondaryIndexUpdate, error) {
 	switch view.Type {
 	case AlternatorGlobalSecondaryIndex:
-		altView, err := dw.alternatorGSIName(view.BaseTable, view.View)
+		altView, err := dw.alternatorGSIName(view.BaseTable, view.Name)
 		if err != nil {
 			return types.GlobalSecondaryIndexUpdate{}, err
 		}
@@ -303,12 +307,12 @@ func (dw *alternatorDropViewsWorker) viewToDeleteUpdate(view View) (types.Global
 // alternatorCreateViewsWorker contains tools needed for creating restored alternator views.
 // It basis its knowledge of alternator schema on the initialized Views.
 type alternatorCreateViewsWorker struct {
-	views  []View
+	views  []RestoredView
 	client *dynamodb.Client
 }
 
 // newAlternatorCreateViewsWorker creates new alternatorCreateViewsWorker.
-func newAlternatorCreateViewsWorker(ctx context.Context, client *dynamodb.Client, views []View) (*alternatorCreateViewsWorker, error) {
+func newAlternatorCreateViewsWorker(ctx context.Context, client *dynamodb.Client, views []RestoredView) (*alternatorCreateViewsWorker, error) {
 	// Only non-existing views should be created
 	filteredViews, err := filterAlternatorViews(ctx, client, views, false)
 	if err != nil {
@@ -320,8 +324,8 @@ func newAlternatorCreateViewsWorker(ctx context.Context, client *dynamodb.Client
 	}, nil
 }
 
-// isAlternatorView checks if given View is an alternator one.
-func (cw *alternatorCreateViewsWorker) isAlternatorView(view View) bool {
+// isAlternatorView checks if given view is an alternator one.
+func (cw *alternatorCreateViewsWorker) isAlternatorView(view RestoredView) bool {
 	return view.Type == AlternatorGlobalSecondaryIndex || view.Type == AlternatorLocalSecondaryIndex
 }
 
@@ -340,7 +344,7 @@ func (cw *alternatorCreateViewsWorker) createViews(ctx context.Context) error {
 	return nil
 }
 
-func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (*dynamodb.UpdateTableInput, error) {
+func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view RestoredView) (*dynamodb.UpdateTableInput, error) {
 	switch view.Type {
 	case AlternatorGlobalSecondaryIndex:
 		var update dynamodb.UpdateTableInput
@@ -356,12 +360,12 @@ func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (*dynamodb.Up
 // filterAlternatorViews is a helper function used for initialization of alternatorDropViewsWorker and alternatorCreateViewsWorker.
 // The exist parameter specifies if we want to filter for existing or non-existing views in the current cluster schema.
 // Since we don't drop and re-create alternator LSIs, we only need to filter for GSIs.
-func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views []View, exist bool) ([]View, error) {
+func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views []RestoredView, exist bool) ([]RestoredView, error) {
 	if client == nil {
-		if ok := slices.ContainsFunc(views, func(v View) bool { return v.Type == AlternatorGlobalSecondaryIndex }); ok {
+		if ok := slices.ContainsFunc(views, func(v RestoredView) bool { return v.Type == AlternatorGlobalSecondaryIndex }); ok {
 			return nil, errors.New("uninitialized alternator client with non-empty alternator schema")
 		}
-		return []View{}, nil
+		return []RestoredView{}, nil
 	}
 
 	schema, err := backup.GetAlternatorSchema(ctx, client)
@@ -389,12 +393,12 @@ func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views [
 		}
 	}
 
-	var filteredViews []View
+	var filteredViews []RestoredView
 	for _, v := range views {
 		if v.Type != AlternatorGlobalSecondaryIndex {
 			continue
 		}
-		if _, ok := existingViews[viewKey{t: v.BaseTable, v: v.View}]; ok == exist {
+		if _, ok := existingViews[viewKey{t: v.BaseTable, v: v.Name}]; ok == exist {
 			filteredViews = append(filteredViews, v)
 		}
 	}

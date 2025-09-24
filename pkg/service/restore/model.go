@@ -169,7 +169,7 @@ type Run struct {
 	RepairTaskID uuid.UUID // task ID of the automated post-restore repair
 	// Cache that's initialized once for entire task
 	Units []Unit
-	Views []View
+	Views []RestoredView
 }
 
 // Unit represents restored keyspace and its tables with their size.
@@ -225,14 +225,21 @@ const (
 	AlternatorLocalSecondaryIndex  ViewType = "AlternatorLocalSecondaryIndex"
 )
 
-// View represents statement used for recreating restored (dropped) views.
+// View describes different types of views.
 // It primarily uses CQL names, because those names are also used for
 // interacting with views with scylla rest api.
 type View struct {
 	Keyspace  string   `json:"keyspace" db:"keyspace_name"` // CQL keyspace name. There is no ks abstraction in alternator.
-	View      string   `json:"view" db:"view_name"`         // CQL view name. Different from alternator name.
+	Name      string   `json:"name" db:"view_name"`         // CQL view name. Different from alternator name.
 	Type      ViewType `json:"type" db:"view_type"`
 	BaseTable string   `json:"base_table"` // CQL name of the base table. Same as alternator name.
+}
+
+// RestoredView represents statement used for recreating restored (dropped) views.
+// It primarily uses CQL names, because those names are also used for
+// interacting with views with scylla rest api.
+type RestoredView struct {
+	View
 	// For cql views, CreateStmt is the text encoded cql statement.
 	// For alternator GSIs, CreateStmt is the json encoded dynamodb.UpdateTableInput.
 	// For alternator LSIs, CreateStmt is empty, as we don't drop and re-create them.
@@ -240,12 +247,12 @@ type View struct {
 	BuildStatus scyllaclient.ViewBuildStatus `json:"status"`
 }
 
-func (t View) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+func (t RestoredView) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Marshal(info, f.Interface())
 }
 
-func (t *View) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+func (t *RestoredView) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(t), name)
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
@@ -313,7 +320,7 @@ type Progress struct {
 	SnapshotTag string             `json:"snapshot_tag"`
 	Keyspaces   []KeyspaceProgress `json:"keyspaces,omitempty"`
 	Hosts       []HostProgress     `json:"hosts,omitempty"`
-	Views       []View             `json:"views,omitempty"`
+	Views       []RestoredView     `json:"views,omitempty"`
 	Stage       Stage              `json:"stage"`
 }
 

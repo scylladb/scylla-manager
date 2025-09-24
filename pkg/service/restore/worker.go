@@ -639,11 +639,13 @@ func (w *worker) initViews(ctx context.Context) error {
 				return err
 			}
 
-			views = append(views, View{
-				Keyspace:   index.KeyspaceName,
-				View:       index.Name,
-				Type:       SecondaryIndex,
-				BaseTable:  index.TableName,
+			views = append(views, RestoredView{
+				View: View{
+					Keyspace:  index.KeyspaceName,
+					Name:      index.Name,
+					Type:      SecondaryIndex,
+					BaseTable: index.TableName,
+				},
 				CreateStmt: stmt,
 			})
 		}
@@ -668,11 +670,13 @@ func (w *worker) initViews(ctx context.Context) error {
 				return err
 			}
 
-			views = append(views, View{
-				Keyspace:   view.KeyspaceName,
-				View:       view.ViewName,
-				Type:       MaterializedView,
-				BaseTable:  view.BaseTableName,
+			views = append(views, RestoredView{
+				View: View{
+					Keyspace:  view.KeyspaceName,
+					Name:      view.ViewName,
+					Type:      MaterializedView,
+					BaseTable: view.BaseTableName,
+				},
 				CreateStmt: stmt,
 			})
 		}
