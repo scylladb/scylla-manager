@@ -130,6 +130,13 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 	return result, nil
 }
 
+func (w *worker) anyNodeConfig() (configcache.NodeConfig, bool) {
+	for _, nc := range w.nodeConfig {
+		return nc, true
+	}
+	return configcache.NodeConfig{}, false
+}
+
 // From map[k]v to map[v]k.
 func reverseMap(m map[string]string) map[string]string {
 	result := make(map[string]string, len(m))

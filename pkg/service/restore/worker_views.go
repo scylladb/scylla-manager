@@ -14,7 +14,11 @@ import (
 )
 
 func (w *worker) stageDropViews(ctx context.Context) error {
-	aw, err := newAlternatorDropViewsWorker(ctx, w.alternatorClient, w.run.Views)
+	nc, ok := w.anyNodeConfig()
+	if !ok {
+		return errors.New("no node config")
+	}
+	aw, err := newAlternatorDropViewsWorker(ctx, w.alternatorClient, nc.NodeInfo, w.run.Views)
 	if err != nil {
 		return errors.Wrap(err, "create alternator drop views worker")
 	}
@@ -35,7 +39,11 @@ func (w *worker) stageDropViews(ctx context.Context) error {
 }
 
 func (w *worker) stageRecreateViews(ctx context.Context) error {
-	aw, err := newAlternatorCreateViewsWorker(ctx, w.alternatorClient, w.run.Views)
+	nc, ok := w.anyNodeConfig()
+	if !ok {
+		return errors.New("no node config")
+	}
+	aw, err := newAlternatorCreateViewsWorker(ctx, w.alternatorClient, nc.NodeInfo, w.run.Views)
 	if err != nil {
 		return errors.Wrap(err, "create alternator create views worker")
 	}
