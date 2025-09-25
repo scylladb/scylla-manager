@@ -51,7 +51,7 @@ func newAlternatorSchemaWorker(client *dynamodb.Client, schema backupspec.Altern
 
 // isAlternatorKeyspace checks if given query.DescribedSchemaRow describes alternator schema.
 func (sw *alternatorSchemaWorker) isAlternatorSchemaRow(cql query.DescribedSchemaRow) bool {
-	_, ok := sw.ksSchema[sw.sanitizeCQLKeyspace(cql)]
+	_, ok := sw.ksSchema[sanitizeSchemaRowName(cql.Keyspace)]
 	return ok
 }
 
@@ -105,11 +105,6 @@ func (sw *alternatorSchemaWorker) tableSchemaToCreate(schema backupspec.Alternat
 		Tags:                schema.Tags,
 		WarmThroughput:      sw.tableWarmThroughputDescToCreate(schema.Describe.WarmThroughput),
 	}
-}
-
-// sanitizeCQLKeyspace removes quotes from keyspace name in query.DescribedSchemaRow.
-func (sw *alternatorSchemaWorker) sanitizeCQLKeyspace(cql query.DescribedSchemaRow) string {
-	return strings.TrimPrefix(strings.TrimSuffix(cql.Keyspace, "\""), "\"")
 }
 
 // alternatorInitViewsWorker contains tools needed for initializing restored alternator views.
