@@ -42,6 +42,10 @@ func TestSExtractID(t *testing.T) {
 			expected: "17",
 		},
 		{
+			in:       "ms-3g7k_098r_4wtqo2asamoc1i8h9n-big-Partitions.db",
+			expected: "3g7k_098r_4wtqo2asamoc1i8h9n",
+		},
+		{
 			in:       "la-7-big-TOC.txt",
 			expected: "7",
 		},

@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	regexNewLaMx = regexp.MustCompile(`(la|m[cde])-([^-]+)-(\w+)-(.*)`)
-	regexLaMx    = regexp.MustCompile(`(la|m[cde])-(\d+)-(\w+)-(.*)`)
+	regexNewLaMx = regexp.MustCompile(`(la|m[cdes])-([^-]+)-(\w+)-(.*)`)
+	regexLaMx    = regexp.MustCompile(`(la|m[cdes])-(\d+)-(\w+)-(.*)`)
 	regexKa      = regexp.MustCompile(`(\w+)-(\w+)-ka-(\d+)-(.*)`)
 )
 
@@ -26,7 +26,7 @@ const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
 // ExtractID returns ID from SSTable name in a form string integer or UUID:
 // me-3g7k_098r_4wtqo2asamoc1i8h9n-big-CRC.db -> 3g7k_098r_4wtqo2asamoc1i8h9n
 // me-7-big-TOC.txt -> 7
-// Supported SSTable format versions are: "mc", "md", "me", "la", "ka".
+// Supported SSTable format versions are: "mc", "md", "me", "ms", "la", "ka".
 // Scylla code validating SSTable format can be found here:
 // https://github.com/scylladb/scylladb/blob/decbc841b749d8dd3e2ddd4be4817c57d905eff2/sstables/sstables.cc#L2115-L2117
 func ExtractID(sstable string) (string, error) {
@@ -58,7 +58,7 @@ func replaceID(sstable, newID string) string {
 }
 
 func unknownSSTableError(sstable string) error {
-	return errors.Errorf("unknown SSTable format version: %s. Supported versions are: 'mc', 'md', 'me', 'la', 'ka'", sstable)
+	return errors.Errorf("unknown SSTable format version: %s. Supported versions are: 'mc', 'md', 'me', 'ms', 'la', 'ka'", sstable)
 }
 
 // RenameToIDs reformat sstables ids to ID format keeping id consistency and uniqueness.
@@ -155,6 +155,16 @@ const (
 
 	// ComponentIndex of the row keys with pointers to their positions in the data file.
 	ComponentIndex ComponentSuffix = "Index.db"
+
+	// ComponentPartitions is the inter-partition part of trie-based SSTable indexes.
+	// Always used in conjunction with Rows.db.
+	// Used in some newer format versions as a replacement for Index.db.
+	ComponentPartitions ComponentSuffix = "Partitions.db"
+
+	// ComponentRows is the intra-partition part of trie-based SSTable indexes.
+	// Always used in conjunction with Partitions.db.
+	// Used in some newer format versions as a replacement for Index.db.
+	ComponentRows ComponentSuffix = "Rows.db"
 
 	// ComponentFilter is a structure stored in memory that checks
 	// if row data exists in the memtable before accessing SSTables on disk.
