@@ -250,6 +250,13 @@ func (ni *NodeInfo) SupportsAlternatorSchemaBackupFromAPI() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
 }
 
+// SupportsAlternatorCreateGSIOnExistingTable returns true if it's possible to
+// create alternator GSI on existing table with alternator API.
+func (ni *NodeInfo) SupportsAlternatorCreateGSIOnExistingTable() (bool, error) {
+	// Refs https://github.com/scylladb/scylladb/issues/11567
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
+}
+
 // SupportsNativeBackupAPI returns whether node exposes /storage_service/backup API.
 func (ni *NodeInfo) SupportsNativeBackupAPI() (bool, error) {
 	// Check ENT
