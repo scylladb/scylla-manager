@@ -2264,7 +2264,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 
 	accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
 	client := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
-	CreateAlternatorTable(t, client, 0, testTable)
+	CreateAlternatorTable(t, client, 0, 0, testTable)
 	InsertAlternatorTableData(t, client, rowCnt, testTable)
 
 	Print("When: validate data insertion")
@@ -2720,7 +2720,7 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 		tabAltTag     = "tab_alt_tag"
 		tabAltTTLAttr = "tab_alt_ttl_attr"
 	)
-	CreateAlternatorTable(t, client, 1, tabAlt)
+	CreateAlternatorTable(t, client, 1, 0, tabAlt)
 	CreateAlternatorGSI(t, client, tabAlt, tabAltGSI)
 	TagAlternatorTable(t, client, tabAlt, tabAltTag)
 	UpdateAlternatorTableTTL(t, client, tabAlt, tabAltTTLAttr, true)

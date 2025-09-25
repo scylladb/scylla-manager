@@ -384,7 +384,9 @@ const (
 	AlternatorProblematicTableChars = "-.-.-."
 	// AlternatorLSIPrefix is the prefix for LSIs created with CreateAlternatorTable
 	// (first LSI is named '<AlternatorLSIPrefix>0', second '<AlternatorLSIPrefix>1', and so on).
+	// The same goes for GSIs created with CreateAlternatorTable for scylla 2024.1.
 	AlternatorLSIPrefix = "LSI_" + AlternatorProblematicTableChars + "_"
+	AlternatorGSIPrefix = "GSI_" + AlternatorProblematicTableChars + "_"
 	// AlternatorProblematicAttrChars are chars which are allowed in alternator attributes names, but not in cql.
 	AlternatorProblematicAttrChars = "-.#:-.#:-.#:"
 	alternatorPK                   = "PK_" + AlternatorProblematicAttrChars
@@ -396,8 +398,29 @@ const (
 
 // CreateAlternatorTable creates alternator tables with provided LSI count.
 // LSIs need to be created at table creation, so we can't move it to a separate function.
-func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt int, tables ...string) {
+// GSIs need to be created at table creation for scylla 2024.1, and can be added separately starting from 2025.1.
+func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt, gsiCnt int, tables ...string) {
 	t.Helper()
+
+	var gsi []types.GlobalSecondaryIndex
+	for i := range gsiCnt {
+		gsi = append(gsi, types.GlobalSecondaryIndex{
+			IndexName: aws.String(fmt.Sprint(AlternatorGSIPrefix, i)),
+			KeySchema: []types.KeySchemaElement{
+				{
+					AttributeName: aws.String(alternatorGSIPK),
+					KeyType:       types.KeyTypeHash,
+				},
+				{
+					AttributeName: aws.String(alternatorGSISK),
+					KeyType:       types.KeyTypeRange,
+				},
+			},
+			Projection: &types.Projection{
+				ProjectionType: types.ProjectionTypeAll,
+			},
+		})
+	}
 
 	var lsi []types.LocalSecondaryIndex
 	for i := range lsiCnt {
@@ -435,6 +458,17 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt int, ta
 			AttributeType: types.ScalarAttributeTypeN,
 		})
 	}
+	if gsiCnt > 0 {
+		attrDef = append(attrDef,
+			types.AttributeDefinition{
+				AttributeName: aws.String(alternatorGSIPK),
+				AttributeType: types.ScalarAttributeTypeN,
+			}, types.AttributeDefinition{
+				AttributeName: aws.String(alternatorGSISK),
+				AttributeType: types.ScalarAttributeTypeN,
+			},
+		)
+	}
 
 	for _, table := range tables {
 		_, err := client.CreateTable(context.Background(), &dynamodb.CreateTableInput{
@@ -450,8 +484,9 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt int, ta
 					KeyType:       types.KeyTypeRange,
 				},
 			},
-			LocalSecondaryIndexes: lsi,
-			BillingMode:           types.BillingModePayPerRequest,
+			LocalSecondaryIndexes:  lsi,
+			GlobalSecondaryIndexes: gsi,
+			BillingMode:            types.BillingModePayPerRequest,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -585,7 +620,7 @@ func InsertAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt int
 
 // ValidateAlternatorTableData checks items count in provided alternator tables.
 // Since LSI names are auto-generated in CreateAlternatorTable, we also check for them here.
-func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, lsiCnt int, tables ...string) {
+func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, lsiCnt, gsiCnt int, tables ...string) {
 	t.Helper()
 
 	for _, table := range tables {
@@ -609,6 +644,19 @@ func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, 
 			}
 			if out.Count != int32(rowCnt) {
 				t.Fatalf("expected %d items in LSI %q of %q, got %d", rowCnt, lsi, table, out.Count)
+			}
+		}
+
+		for gsi := range gsiCnt {
+			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+				TableName: aws.String(table),
+				IndexName: aws.String(fmt.Sprint(AlternatorGSIPrefix, gsi)),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if out.Count != int32(rowCnt) {
+				t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
 			}
 		}
 	}
