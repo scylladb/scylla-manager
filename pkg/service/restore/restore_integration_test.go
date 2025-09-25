@@ -144,7 +144,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	altGSI2 := "gsi_2_" + AlternatorProblematicTableChars
 	altTag := "tag"
 	altTTLAttr := "ttl_attr"
-	CreateAlternatorTable(t, h.srcCluster.altClient, 2, altTab1, altTab2)
+	CreateAlternatorTable(t, h.srcCluster.altClient, 2, 0, altTab1, altTab2)
 	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab1, altGSI1, altGSI2)
 	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab2, altGSI1, altGSI2)
 	TagAlternatorTable(t, h.srcCluster.altClient, altTab1, altTag)
@@ -1461,27 +1461,22 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ok, err := ni.SupportsAlternatorSchemaBackupFromAPI(); err != nil {
-		t.Fatal(err)
-	} else if !ok {
-		t.Skip("This test assumes that alternator tables are backed up and restored with alternator api")
-	}
 
 	Print("Prepare alternator schema")
 	altTab1 := "alt_full_1_" + AlternatorProblematicTableChars
 	altTab2 := "alt_full_2_" + AlternatorProblematicTableChars
-	altGSI1 := "gsi_1_" + AlternatorProblematicTableChars
-	altGSI2 := "gsi_2_" + AlternatorProblematicTableChars
-	CreateAlternatorTable(t, h.srcCluster.altClient, 2, altTab1, altTab2)
-	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab1, altGSI1, altGSI2)
-	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab2, altGSI1, altGSI2)
+	CreateAlternatorTable(t, h.srcCluster.altClient, 2, 2, altTab1, altTab2)
 
 	Print("Insert alternator rows")
 	const rowCnt = 100
 	InsertAlternatorTableData(t, h.srcCluster.altClient, rowCnt, altTab1, altTab2)
 
 	Print("Prepare simple clq schema")
-	ExecStmt(t, h.srcCluster.rootSession, "CREATE KEYSPACE cql_ks WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} and tablets = {'enabled': false}")
+	ksStmt := "CREATE KEYSPACE cql_ks WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2}"
+	if ni.EnableTablets {
+		ksStmt += " and tablets = {'enabled': false}"
+	}
+	ExecStmt(t, h.srcCluster.rootSession, ksStmt)
 	createTable(t, h.srcCluster.rootSession, "cql_ks", "cql_tab")
 	CreateMaterializedView(t, h.srcCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_1")
 	CreateMaterializedView(t, h.srcCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_2")
@@ -1497,9 +1492,28 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	tag := h.runBackup(t, backupProps)
 
 	Print("Restore schema")
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-	props := defaultTestProperties(loc, tag, false)
-	h.runRestore(t, props)
+	schemaFromCQL, err := ni.SupportsSafeDescribeSchemaWithInternals()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Schema needs to be restored manually for scylla 2024.1 with raft schema
+	if schemaFromCQL == "" && ni.ConsistentClusterManagement {
+		CreateAlternatorTable(t, h.dstCluster.altClient, 2, 2, altTab1, altTab2)
+		ExecStmt(t, h.dstCluster.rootSession, ksStmt)
+		createTable(t, h.dstCluster.rootSession, "cql_ks", "cql_tab")
+		CreateMaterializedView(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_1")
+		CreateMaterializedView(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_2")
+		CreateSecondaryIndex(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_si_1")
+	} else {
+		grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+		props := defaultTestProperties(loc, tag, false)
+		h.runRestore(t, props)
+		// Cluster needs to be restarted after restoring schema from sstables
+		if schemaFromCQL == "" {
+			Print("Restart cluster")
+			h.dstCluster.RestartScylla()
+		}
+	}
 
 	Print("Reset user permissions")
 	dropNonSuperUsers(t, h.dstCluster.rootSession)
@@ -1507,13 +1521,14 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 
 	Print("Restore data")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	props = defaultTestProperties(loc, tag, true)
+	props := defaultTestProperties(loc, tag, true)
 	h.runRestore(t, props)
 
 	Print("Validate restored alternator data")
-	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, altTab1, altTab2)
-	ValidateAlternatorGSIData(t, h.dstCluster.altClient, rowCnt, altTab1, altGSI1, altGSI2)
-	ValidateAlternatorGSIData(t, h.dstCluster.altClient, rowCnt, altTab2, altGSI1, altGSI2)
+	// Reset alternator client in order to handle cluster restart
+	accessKeyID, secretAccessKey := GetAlternatorCreds(t, h.dstCluster.rootSession, "")
+	h.dstCluster.altClient = CreateAlternatorClient(t, h.dstCluster.Client, h.dstCluster.Client.Config().Hosts[0], accessKeyID, secretAccessKey)
+	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, 2, altTab1, altTab2)
 
 	Print("Validate restored simple cql data")
 	cqlTabs := []table{
