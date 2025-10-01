@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
@@ -248,9 +249,17 @@ type alternatorDropViewsWorker struct {
 }
 
 // newAlternatorDropViewsWorker creates new alternatorDropViewsWorker.
-func newAlternatorDropViewsWorker(ctx context.Context, client *dynamodb.Client, views []View) (*alternatorDropViewsWorker, error) {
+func newAlternatorDropViewsWorker(ctx context.Context, client *dynamodb.Client, ni *scyllaclient.NodeInfo, views []View) (*alternatorDropViewsWorker, error) {
+	ok, err := ni.SupportsAlternatorCreateGSIOnExistingTable()
+	if err != nil {
+		return nil, errors.Wrap(err, "check if alternator supports creating GSI on existing table")
+	}
+	var filteredTypes []ViewType
+	if ok {
+		filteredTypes = append(filteredTypes, AlternatorGlobalSecondaryIndex)
+	}
 	// Only existing views should be dropped
-	filteredViews, err := filterAlternatorViews(ctx, client, views, true)
+	filteredViews, err := filterAlternatorViews(ctx, client, views, true, filteredTypes...)
 	if err != nil {
 		return nil, errors.Wrap(err, "filter alternator views")
 	}
@@ -308,9 +317,17 @@ type alternatorCreateViewsWorker struct {
 }
 
 // newAlternatorCreateViewsWorker creates new alternatorCreateViewsWorker.
-func newAlternatorCreateViewsWorker(ctx context.Context, client *dynamodb.Client, views []View) (*alternatorCreateViewsWorker, error) {
+func newAlternatorCreateViewsWorker(ctx context.Context, client *dynamodb.Client, ni *scyllaclient.NodeInfo, views []View) (*alternatorCreateViewsWorker, error) {
+	ok, err := ni.SupportsAlternatorCreateGSIOnExistingTable()
+	if err != nil {
+		return nil, errors.Wrap(err, "check if alternator supports creating GSI on existing table")
+	}
+	var filteredTypes []ViewType
+	if ok {
+		filteredTypes = append(filteredTypes, AlternatorGlobalSecondaryIndex)
+	}
 	// Only non-existing views should be created
-	filteredViews, err := filterAlternatorViews(ctx, client, views, false)
+	filteredViews, err := filterAlternatorViews(ctx, client, views, false, filteredTypes...)
 	if err != nil {
 		return nil, errors.Wrap(err, "filter alternator views")
 	}
@@ -355,10 +372,13 @@ func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (*dynamodb.Up
 
 // filterAlternatorViews is a helper function used for initialization of alternatorDropViewsWorker and alternatorCreateViewsWorker.
 // The exist parameter specifies if we want to filter for existing or non-existing views in the current cluster schema.
-// Since we don't drop and re-create alternator LSIs, we only need to filter for GSIs.
-func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views []View, exist bool) ([]View, error) {
+// The types parameter specifies which types of alternator views should be filtered for.
+func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views []View, exist bool, types ...ViewType) ([]View, error) {
+	if len(types) == 0 {
+		return []View{}, nil
+	}
 	if client == nil {
-		if ok := slices.ContainsFunc(views, func(v View) bool { return v.Type == AlternatorGlobalSecondaryIndex }); ok {
+		if ok := slices.ContainsFunc(views, func(v View) bool { return slices.Contains(types, v.Type) }); ok {
 			return nil, errors.New("uninitialized alternator client with non-empty alternator schema")
 		}
 		return []View{}, nil
@@ -391,7 +411,7 @@ func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views [
 
 	var filteredViews []View
 	for _, v := range views {
-		if v.Type != AlternatorGlobalSecondaryIndex {
+		if !slices.Contains(types, v.Type) {
 			continue
 		}
 		if _, ok := existingViews[viewKey{t: v.BaseTable, v: v.View}]; ok == exist {

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/cenkalti/backoff/v4"
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -36,7 +35,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -44,7 +42,6 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
@@ -1494,7 +1491,7 @@ func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx
 
 	if target.RestoreSchema && !h.isRestoreSchemaFromCQLSupported() {
 		// Cluster restart is required after restoring schema from SSTables
-		h.restartScylla()
+		h.RestartScylla()
 	}
 
 	Print("And: validate that restore preserves tombstone_gc mode")
@@ -1670,59 +1667,6 @@ func (h *restoreTestHelper) simpleBackupWithProperties(loc backupspec.Location, 
 	Print(fmt.Sprintf("Then: backup snapshot info: %v", i.SnapshotInfo))
 
 	return i.SnapshotInfo[0].SnapshotTag
-}
-
-func (h *restoreTestHelper) restartScylla() {
-	h.T.Helper()
-	Print("When: restart cluster")
-
-	ctx := context.Background()
-	cfg := cqlping.Config{Timeout: 100 * time.Millisecond}
-	const cmdRestart = "supervisorctl restart scylla"
-
-	for _, host := range h.GetAllHosts() {
-		Print("When: restart Scylla on host: " + host)
-		stdout, stderr, err := ExecOnHost(host, cmdRestart)
-		if err != nil {
-			h.T.Log("stdout", stdout)
-			h.T.Log("stderr", stderr)
-			h.T.Fatal("Command failed on host", host, err)
-		}
-
-		var sessionHosts []string
-		b := backoff.WithContext(backoff.WithMaxRetries(
-			backoff.NewConstantBackOff(500*time.Millisecond), 10), ctx)
-		if err := backoff.Retry(func() error {
-			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host}, false)
-			return err
-		}, b); err != nil {
-			h.T.Fatal(err)
-		}
-
-		cfg.Addr = sessionHosts[0]
-		if testconfig.IsSSLEnabled() {
-			sslOpts := testconfig.CQLSSLOptions()
-			cfg.TLSConfig, err = testconfig.TLSConfig(sslOpts)
-			if err != nil {
-				h.T.Fatalf("tls config: %v", err)
-			}
-		}
-		cond := func() bool {
-			if _, err = cqlping.QueryPing(ctx, cfg, TestDBUsername(), TestDBPassword()); err != nil {
-				return false
-			}
-			status, err := h.Client.Status(ctx)
-			if err != nil {
-				return false
-			}
-			return len(status.Live()) == 6
-		}
-
-		WaitCond(h.T, cond, time.Second, 60*time.Second)
-		Print("Then: Scylla is restarted on host: " + host)
-	}
-
-	Print("Then: cluster is restarted")
 }
 
 func getBucketKeyspaceUser(t *testing.T) (string, string, string) {

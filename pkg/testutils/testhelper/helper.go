@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
+	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
@@ -61,6 +63,60 @@ func (h *CommonTestHelper) GetAllHosts() []string {
 // RestartAgents via supervisorctl.
 func (h *CommonTestHelper) RestartAgents() {
 	execOnAllHosts(h, "supervisorctl restart scylla-manager-agent")
+}
+
+// RestartScylla performs a rolling restart of a cluster.
+func (h *CommonTestHelper) RestartScylla() {
+	h.T.Helper()
+	Print("When: restart cluster")
+
+	ctx := context.Background()
+	cfg := cqlping.Config{Timeout: 100 * time.Millisecond}
+	const cmdRestart = "supervisorctl restart scylla"
+
+	for _, host := range h.GetAllHosts() {
+		Print("When: restart Scylla on host: " + host)
+		stdout, stderr, err := ExecOnHost(host, cmdRestart)
+		if err != nil {
+			h.T.Log("stdout", stdout)
+			h.T.Log("stderr", stderr)
+			h.T.Fatal("Command failed on host", host, err)
+		}
+
+		var sessionHosts []string
+		b := backoff.WithContext(backoff.WithMaxRetries(
+			backoff.NewConstantBackOff(500*time.Millisecond), 10), ctx)
+		if err := backoff.Retry(func() error {
+			sessionHosts, err = cluster.GetRPCAddresses(ctx, h.Client, []string{host}, false)
+			return err
+		}, b); err != nil {
+			h.T.Fatal(err)
+		}
+
+		cfg.Addr = sessionHosts[0]
+		if testconfig.IsSSLEnabled() {
+			sslOpts := testconfig.CQLSSLOptions()
+			cfg.TLSConfig, err = testconfig.TLSConfig(sslOpts)
+			if err != nil {
+				h.T.Fatalf("tls config: %v", err)
+			}
+		}
+		cond := func() bool {
+			if _, err = cqlping.QueryPing(ctx, cfg, testconfig.TestDBUsername(), testconfig.TestDBPassword()); err != nil {
+				return false
+			}
+			status, err := h.Client.Status(ctx)
+			if err != nil {
+				return false
+			}
+			return len(status.Live()) == 6
+		}
+
+		WaitCond(h.T, cond, time.Second, 60*time.Second)
+		Print("Then: Scylla is restarted on host: " + host)
+	}
+
+	Print("Then: cluster is restarted")
 }
 
 func execOnAllHosts(h *CommonTestHelper, cmd string) {
