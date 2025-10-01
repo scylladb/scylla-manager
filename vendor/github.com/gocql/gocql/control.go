@@ -62,10 +62,12 @@ type controlConnection interface {
 	getConn() *connHost
 	awaitSchemaAgreement() error
 	query(statement string, values ...interface{}) (iter *Iter)
+	querySystem(statement string, values ...interface{}) (iter *Iter)
 	discoverProtocol(hosts []*HostInfo) (int, error)
 	connect(hosts []*HostInfo) error
 	close()
 	getSession() *Session
+	reconnect() error
 }
 
 // Ensure that the atomic variable is aligned to a 64bit boundary
@@ -159,7 +161,12 @@ func hostInfo(resolver DNSResolver, translateAddressPort func(addr net.IP, port 
 	// Check if host is a literal IP address
 	if ip := net.ParseIP(host); ip != nil {
 		if validIpAddr(ip) {
-			hosts = append(hosts, &HostInfo{hostname: host, connectAddress: ip, port: port})
+			hh := &HostInfo{hostname: host, connectAddress: ip, port: port}
+			hh.untranslatedConnectAddress = ip
+			if translateAddressPort != nil {
+				hh.connectAddress, hh.port = translateAddressPort(ip, port)
+			}
+			hosts = append(hosts, hh)
 			return hosts, nil
 		}
 	}
@@ -241,6 +248,7 @@ func (c *controlConn) discoverProtocol(hosts []*HostInfo) (int, error) {
 	for _, host := range hosts {
 		var conn *Conn
 		conn, err = c.session.dial(c.session.ctx, host, &connCfg, handler)
+		// not need to call conn.finalizeConnection since this connection to be terminated right away
 		if conn != nil {
 			conn.Close()
 		}
@@ -273,6 +281,7 @@ func (c *controlConn) connect(hosts []*HostInfo) error {
 	var err error
 	for _, host := range hosts {
 		conn, err = c.session.dial(c.session.ctx, host, &cfg, c)
+		// conn.finalizeConnection() to be called outside of this function, since initialization process is not completed yet
 		if err != nil {
 			c.session.logger.Printf("gocql: unable to dial control conn %v:%v: %v\n", host.ConnectAddress(), host.Port(), err)
 			continue
@@ -362,7 +371,7 @@ func (c *controlConn) registerEvents(conn *Conn) error {
 	framer, err := conn.exec(context.Background(),
 		&writeRegisterFrame{
 			events: events,
-		}, nil)
+		}, nil, conn.cfg.ConnectTimeout)
 	if err != nil {
 		return err
 	}
@@ -377,19 +386,20 @@ func (c *controlConn) registerEvents(conn *Conn) error {
 	return nil
 }
 
-func (c *controlConn) reconnect() {
+func (c *controlConn) reconnect() error {
 	if atomic.LoadInt32(&c.state) == controlConnClosing {
-		return
+		return fmt.Errorf("control connection is closing")
 	}
 	if !atomic.CompareAndSwapInt32(&c.reconnecting, 0, 1) {
-		return
+		return fmt.Errorf("control connection is reconnecting")
 	}
 	defer atomic.StoreInt32(&c.reconnecting, 0)
 
 	err := c.attemptReconnect()
 	if err != nil {
-		c.session.logger.Printf("gocql: unable to reconnect control connection: %v\n", err)
-		return
+		err = fmt.Errorf("gocql: unable to reconnect control connection: %w\n", err)
+		c.session.logger.Printf(err.Error())
+		return err
 	}
 
 	err = c.session.refreshRingNow()
@@ -401,6 +411,7 @@ func (c *controlConn) reconnect() {
 	if err != nil {
 		c.session.logger.Printf("gocql: unable to refresh the schema: %v\n", err)
 	}
+	return nil
 }
 
 func (c *controlConn) attemptReconnect() error {
@@ -453,6 +464,7 @@ func (c *controlConn) attemptReconnectToAnyOfHosts(hosts []*HostInfo) error {
 			conn.Close()
 			continue
 		}
+		conn.finalizeConnection()
 		return nil
 	}
 	return fmt.Errorf("unable to connect to any known node: %v", hosts)
@@ -471,7 +483,7 @@ func (c *controlConn) HandleError(conn *Conn, err error, closed bool) {
 		return
 	}
 
-	c.reconnect()
+	go c.reconnect()
 }
 
 func (c *controlConn) getConn() *connHost {
@@ -484,7 +496,7 @@ func (c *controlConn) writeFrame(w frameBuilder) (frame, error) {
 		return nil, errNoControl
 	}
 
-	framer, err := ch.conn.exec(context.Background(), w, nil)
+	framer, err := ch.conn.exec(context.Background(), w, nil, c.session.cfg.MetadataSchemaRequestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -493,20 +505,33 @@ func (c *controlConn) writeFrame(w frameBuilder) (frame, error) {
 }
 
 // query will return nil if the connection is closed or nil
-func (c *controlConn) query(statement string, values ...interface{}) (iter *Iter) {
-	q := c.session.Query(statement, values...).Consistency(One).RoutingKey([]byte{}).Trace(nil)
+func (c *controlConn) querySystem(statement string, values ...interface{}) (iter *Iter) {
+	conn := c.getConn().conn.(*Conn)
+	return c.runQuery(c.session.Query(statement+conn.usingTimeoutClause, values...).
+		Consistency(One).
+		SetRequestTimeout(conn.systemRequestTimeout).
+		RoutingKey([]byte{}).
+		Trace(nil))
+}
 
+// query will return nil if the connection is closed or nil
+func (c *controlConn) query(statement string, values ...interface{}) (iter *Iter) {
+	return c.runQuery(c.session.Query(statement, values...).Consistency(One).RoutingKey([]byte{}).Trace(nil))
+}
+
+// query will return nil if the connection is closed or nil
+func (c *controlConn) runQuery(qry *Query) (iter *Iter) {
 	for {
 		ch := c.getConn()
-		q.conn = ch.conn.(*Conn)
-		iter = ch.conn.executeQuery(context.TODO(), q)
+		qry.conn = ch.conn
+		iter = ch.conn.executeQuery(context.TODO(), qry)
 
 		if gocqlDebug && iter.err != nil {
-			c.session.logger.Printf("control: error executing %q: %v\n", statement, iter.err)
+			c.session.logger.Printf("control: error executing %q: %v\n", qry.stmt, iter.err)
 		}
 
-		q.AddAttempts(1, c.getConn().host)
-		if iter.err == nil || !c.retry.Attempt(q) {
+		qry.AddAttempts(1, ch.host)
+		if iter.err == nil || !c.retry.Attempt(qry) {
 			break
 		}
 	}

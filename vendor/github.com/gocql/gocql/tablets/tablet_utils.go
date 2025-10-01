@@ -1,10 +1,11 @@
 package tablets
 
 import (
-	"github.com/gocql/gocql/internal/tests"
 	"math"
 	"math/rand"
 	"sync/atomic"
+
+	"github.com/gocql/gocql/internal/tests"
 )
 
 const randSeed = 100

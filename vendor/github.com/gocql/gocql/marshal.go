@@ -1459,7 +1459,7 @@ func unmarshalUDT(info TypeInfo, data []byte, value interface{}) error {
 		f, ok := fields[e.Name]
 		if !ok {
 			f = k.FieldByName(e.Name)
-			if f == emptyValue {
+			if f == emptyValue { //nolint:govet // no other way to do that
 				// skip fields which exist in the UDT but not in
 				// the struct passed in
 				continue
@@ -1510,24 +1510,24 @@ func (t NativeType) NewWithError() (interface{}, error) {
 	return reflect.New(typ).Interface(), nil
 }
 
-func (s NativeType) Type() Type {
-	return s.typ
+func (t NativeType) Type() Type {
+	return t.typ
 }
 
-func (s NativeType) Version() byte {
-	return s.proto
+func (t NativeType) Version() byte {
+	return t.proto
 }
 
-func (s NativeType) Custom() string {
-	return s.custom
+func (t NativeType) Custom() string {
+	return t.custom
 }
 
-func (s NativeType) String() string {
-	switch s.typ {
+func (t NativeType) String() string {
+	switch t.typ {
 	case TypeCustom:
-		return fmt.Sprintf("%s(%s)", s.typ, s.custom)
+		return fmt.Sprintf("%s(%s)", t.typ, t.custom)
 	default:
-		return s.typ.String()
+		return t.typ.String()
 	}
 }
 
@@ -1553,16 +1553,16 @@ func (t CollectionType) NewWithError() (interface{}, error) {
 	return reflect.New(typ).Interface(), nil
 }
 
-func (c CollectionType) String() string {
-	switch c.typ {
+func (t CollectionType) String() string {
+	switch t.typ {
 	case TypeMap:
-		return fmt.Sprintf("%s(%s, %s)", c.typ, c.Key, c.Elem)
+		return fmt.Sprintf("%s(%s, %s)", t.typ, t.Key, t.Elem)
 	case TypeList, TypeSet:
-		return fmt.Sprintf("%s(%s)", c.typ, c.Elem)
+		return fmt.Sprintf("%s(%s)", t.typ, t.Elem)
 	case TypeCustom:
-		return fmt.Sprintf("%s(%s)", c.typ, c.custom)
+		return fmt.Sprintf("%s(%s)", t.typ, t.custom)
 	default:
-		return c.typ.String()
+		return t.typ.String()
 	}
 }
 
@@ -1618,20 +1618,20 @@ type UDTTypeInfo struct {
 	Elements []UDTField
 }
 
-func (u UDTTypeInfo) NewWithError() (interface{}, error) {
-	typ, err := goType(u)
+func (t UDTTypeInfo) NewWithError() (interface{}, error) {
+	typ, err := goType(t)
 	if err != nil {
 		return nil, err
 	}
 	return reflect.New(typ).Interface(), nil
 }
 
-func (u UDTTypeInfo) String() string {
+func (t UDTTypeInfo) String() string {
 	buf := &bytes.Buffer{}
 
-	fmt.Fprintf(buf, "%s.%s{", u.KeySpace, u.Name)
+	fmt.Fprintf(buf, "%s.%s{", t.KeySpace, t.Name)
 	first := true
-	for _, e := range u.Elements {
+	for _, e := range t.Elements {
 		if !first {
 			fmt.Fprint(buf, ",")
 		} else {

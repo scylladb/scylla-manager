@@ -30,7 +30,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/gocql/gocql/tablets"
 	"io"
 	"io/ioutil"
 	"net"
@@ -39,6 +38,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gocql/gocql/tablets"
 
 	"github.com/gocql/gocql/internal/lru"
 	"github.com/gocql/gocql/internal/streams"
@@ -141,8 +142,8 @@ type SslOptions struct {
 type ConnConfig struct {
 	ProtoVersion   int
 	CQLVersion     string
-	Timeout        time.Duration
 	WriteTimeout   time.Duration
+	ReadTimeout    time.Duration
 	ConnectTimeout time.Duration
 	Dialer         Dialer
 	HostDialer     HostDialer
@@ -175,13 +176,12 @@ func (fn connErrorHandlerFn) HandleError(conn *Conn, err error, closed bool) {
 
 type ConnInterface interface {
 	Close()
-	exec(ctx context.Context, req frameBuilder, tracer Tracer) (*framer, error)
+	exec(ctx context.Context, req frameBuilder, tracer Tracer, requestTimeout time.Duration) (*framer, error)
 	awaitSchemaAgreement(ctx context.Context) error
 	executeQuery(ctx context.Context, qry *Query) *Iter
-	querySystem(ctx context.Context, query string) *Iter
+	querySystem(ctx context.Context, query string, values ...interface{}) *Iter
 	getIsSchemaV2() bool
 	setSchemaV2(s bool)
-	query(ctx context.Context, statement string, values ...interface{}) (iter *Iter)
 	getScyllaSupported() scyllaSupported
 }
 
@@ -193,11 +193,13 @@ type Conn struct {
 	r    *bufio.Reader
 	w    contextWriter
 
-	timeout        time.Duration
-	writeTimeout   time.Duration
-	cfg            *ConnConfig
-	frameObserver  FrameHeaderObserver
-	streamObserver StreamObserver
+	systemRequestTimeout time.Duration
+	usingTimeoutClause   string
+	readTimeout          atomic.Int64
+	writeTimeout         atomic.Int64
+	cfg                  *ConnConfig
+	frameObserver        FrameHeaderObserver
+	streamObserver       StreamObserver
 
 	headerBuf [headSize]byte
 
@@ -243,29 +245,54 @@ func (c *Conn) setSchemaV2(s bool) {
 	c.isSchemaV2 = s
 }
 
+func (c *Conn) setSystemRequestTimeout(t time.Duration) {
+	c.systemRequestTimeout = t
+	c.recalculateSystemRequestTimeout()
+}
+
+func (c *Conn) recalculateSystemRequestTimeout() {
+	if c.systemRequestTimeout > time.Duration(0) && c.isScyllaConn() {
+		c.usingTimeoutClause = " USING TIMEOUT " + strconv.FormatInt(c.systemRequestTimeout.Milliseconds(), 10) + "ms"
+	}
+}
+
+func (c *Conn) finalizeConnection() {
+	// When connection just created all timeouts are set to `cfg.ConnectTimeout`
+	// It is done to make sure that connection is easy to establish when users set very low `WriteTimeout` and/or `Timeout`
+	// This method sets timeouts to `operational` values after connection successfully created
+	c.writeTimeout.Store(int64(c.cfg.WriteTimeout))
+	c.readTimeout.Store(int64(c.cfg.ReadTimeout))
+	c.setSystemRequestTimeout(c.session.cfg.MetadataSchemaRequestTimeout)
+	c.w.setWriteTimeout(c.cfg.WriteTimeout)
+}
+
 func (c *Conn) getScyllaSupported() scyllaSupported {
 	return c.scyllaSupported
 }
 
 // connect establishes a connection to a Cassandra node using session's connection config.
+// note: every connection needs to get `conn.finalizeConnection` called ont it when initialization process is done
 func (s *Session) connect(ctx context.Context, host *HostInfo, errorHandler ConnErrorHandler) (*Conn, error) {
 	return s.dial(ctx, host, s.connCfg, errorHandler)
 }
 
 // connectShard establishes a connection to a shard.
 // If nrShards is zero, shard-aware dialing is disabled.
+// note: every connection needs to get `conn.finalizeConnection` called ont it when initialization process is done
 func (s *Session) connectShard(ctx context.Context, host *HostInfo, errorHandler ConnErrorHandler,
 	shardID, nrShards int) (*Conn, error) {
 	return s.dialShard(ctx, host, s.connCfg, errorHandler, shardID, nrShards)
 }
 
 // dial establishes a connection to a Cassandra node and notifies the session's connectObserver.
+// note: every connection needs to get `conn.finalizeConnection` called on it when initialization process is done
 func (s *Session) dial(ctx context.Context, host *HostInfo, connConfig *ConnConfig, errorHandler ConnErrorHandler) (*Conn, error) {
 	return s.dialShard(ctx, host, connConfig, errorHandler, 0, 0)
 }
 
 // dialShard establishes a connection to a host/shard and notifies the session's connectObserver.
 // If nrShards is zero, shard-aware dialing is disabled.
+// note: every connection needs to get `conn.finalizeConnection` called on it when initialization process is done
 func (s *Session) dialShard(ctx context.Context, host *HostInfo, connConfig *ConnConfig, errorHandler ConnErrorHandler,
 	shardID, nrShards int) (*Conn, error) {
 	var obs ObservedConnect
@@ -308,11 +335,6 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		return nil, err
 	}
 
-	writeTimeout := cfg.Timeout
-	if cfg.WriteTimeout > 0 {
-		writeTimeout = cfg.WriteTimeout
-	}
-
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Conn{
 		conn:          dialedHost.Conn,
@@ -330,15 +352,14 @@ func (s *Session) dialWithoutObserver(ctx context.Context, host *HostInfo, cfg *
 		frameObserver: s.frameObserver,
 		w: &deadlineContextWriter{
 			w:         dialedHost.Conn,
-			timeout:   writeTimeout,
 			semaphore: make(chan struct{}, 1),
 			quit:      make(chan struct{}),
 		},
-		ctx:            ctx,
-		cancel:         cancel,
-		logger:         cfg.logger(),
-		streamObserver: s.streamObserver,
-		writeTimeout:   writeTimeout,
+		ctx:                  ctx,
+		cancel:               cancel,
+		logger:               cfg.logger(),
+		streamObserver:       s.streamObserver,
+		systemRequestTimeout: cfg.ConnectTimeout,
 	}
 
 	if err := c.init(ctx, dialedHost); err != nil {
@@ -358,6 +379,10 @@ func (s *Session) streamIDGenerator() *streams.IDGenerator {
 }
 
 func (c *Conn) init(ctx context.Context, dialedHost *DialedHost) error {
+	c.readTimeout.Store(int64(c.cfg.ConnectTimeout))
+	c.writeTimeout.Store(int64(c.cfg.ConnectTimeout))
+	c.w.setWriteTimeout(c.cfg.ConnectTimeout)
+
 	if c.session.cfg.AuthProvider != nil {
 		var err error
 		c.auth, err = c.cfg.AuthProvider(c.host)
@@ -373,16 +398,13 @@ func (c *Conn) init(ctx context.Context, dialedHost *DialedHost) error {
 		conn:        c,
 	}
 
-	c.timeout = c.cfg.ConnectTimeout
 	if err := startup.setupConn(ctx); err != nil {
 		return err
 	}
 
-	c.timeout = c.cfg.Timeout
-
 	// dont coalesce startup frames
 	if c.session.cfg.WriteCoalesceWaitTime > 0 && !c.cfg.disableCoalesce && !dialedHost.DisableCoalesce {
-		c.w = newWriteCoalescer(c.conn, c.writeTimeout, c.session.cfg.WriteCoalesceWaitTime, ctx.Done())
+		c.w = newWriteCoalescer(c.conn, c.cfg.ConnectTimeout, c.session.cfg.WriteCoalesceWaitTime, ctx.Done())
 	}
 
 	if c.isScyllaConn() { // ScyllaDB does not support system.peers_v2
@@ -401,11 +423,15 @@ func (c *Conn) Write(p []byte) (n int, err error) {
 
 func (c *Conn) Read(p []byte) (n int, err error) {
 	const maxAttempts = 5
+	timeout := c.readTimeout.Load()
 
 	for i := 0; i < maxAttempts; i++ {
 		var nn int
-		if c.timeout > 0 {
-			c.conn.SetReadDeadline(time.Now().Add(c.timeout))
+		if timeout > 0 {
+			err = c.conn.SetReadDeadline(time.Now().Add(time.Duration(timeout)))
+			if err != nil {
+				return 0, err
+			}
 		}
 
 		nn, err = io.ReadFull(c.r, p[n:])
@@ -429,8 +455,8 @@ type startupCoordinator struct {
 
 func (s *startupCoordinator) setupConn(ctx context.Context) error {
 	var cancel context.CancelFunc
-	if s.conn.timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, s.conn.timeout)
+	if s.conn.cfg.ConnectTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, s.conn.cfg.ConnectTimeout)
 	} else {
 		ctx, cancel = context.WithCancel(ctx)
 	}
@@ -479,7 +505,7 @@ func (s *startupCoordinator) write(ctx context.Context, frame frameBuilder) (fra
 		return nil, ctx.Err()
 	}
 
-	framer, err := s.conn.exec(ctx, frame, nil)
+	framer, err := s.conn.exec(ctx, frame, nil, s.conn.cfg.ConnectTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -500,6 +526,7 @@ func (s *startupCoordinator) options(ctx context.Context) error {
 	// Keep raw supported multimap for debug purposes
 	s.conn.supported = v.supported
 	s.conn.scyllaSupported = parseSupported(s.conn.supported, s.conn.logger)
+	s.conn.recalculateSystemRequestTimeout()
 	s.conn.host.setScyllaSupported(s.conn.scyllaSupported)
 	s.conn.cqlProtoExts = parseCQLProtocolExtensions(s.conn.supported, s.conn.logger)
 
@@ -507,15 +534,15 @@ func (s *startupCoordinator) options(ctx context.Context) error {
 }
 
 func (s *startupCoordinator) startup(ctx context.Context) error {
-	m := map[string]string{
-		"CQL_VERSION":    s.conn.cfg.CQLVersion,
-		"DRIVER_NAME":    s.conn.session.cfg.DriverName,
-		"DRIVER_VERSION": s.conn.session.cfg.DriverVersion,
-	}
+	m := map[string]string{}
 
 	if s.conn.session.cfg.ApplicationInfo != nil {
 		s.conn.session.cfg.ApplicationInfo.UpdateStartupOptions(m)
 	}
+
+	m["CQL_VERSION"] = s.conn.cfg.CQLVersion
+	m["DRIVER_NAME"] = s.conn.session.cfg.DriverName
+	m["DRIVER_VERSION"] = s.conn.session.cfg.DriverVersion
 
 	if s.conn.compressor != nil {
 		comp := s.conn.supported["COMPRESSION"]
@@ -719,7 +746,7 @@ func (c *Conn) heartBeat(ctx context.Context) {
 		case <-timer.C:
 		}
 
-		framer, err := c.exec(context.Background(), &writeOptionsFrame{}, nil)
+		framer, err := c.exec(context.Background(), &writeOptionsFrame{}, nil, c.cfg.ConnectTimeout)
 		if err != nil {
 			failures++
 			continue
@@ -750,7 +777,7 @@ func (c *Conn) recv(ctx context.Context) error {
 
 	// read a full header, ignore timeouts, as this is being ran in a loop
 	// TODO: TCP level deadlines? or just query level deadlines?
-	if c.timeout > 0 {
+	if c.readTimeout.Load() > 0 {
 		c.conn.SetReadDeadline(time.Time{})
 	}
 
@@ -859,12 +886,6 @@ func (c *Conn) releaseStream(call *callReq) {
 	}
 }
 
-func (c *Conn) handleTimeout() {
-	if atomic.AddInt64(&c.timeouts, 1) > 0 {
-		c.closeWithError(ErrTooManyTimeouts)
-	}
-}
-
 type callReq struct {
 	// resp will receive the frame that was sent as a response to this stream.
 	resp     chan callResp
@@ -901,6 +922,8 @@ type contextWriter interface {
 	// early. writeContext must return a non-nil error if it returns n < len(p). writeContext must not modify the
 	// data in p, even temporarily.
 	writeContext(ctx context.Context, p []byte) (n int, err error)
+
+	setWriteTimeout(timeout time.Duration)
 }
 
 type deadlineWriter interface {
@@ -910,13 +933,17 @@ type deadlineWriter interface {
 
 type deadlineContextWriter struct {
 	w       deadlineWriter
-	timeout time.Duration
+	timeout atomic.Int64
 	// semaphore protects critical section for SetWriteDeadline/Write.
 	// It is a channel with capacity 1.
 	semaphore chan struct{}
 
 	// quit closed once the connection is closed.
 	quit chan struct{}
+}
+
+func (c *deadlineContextWriter) setWriteTimeout(timeout time.Duration) {
+	c.timeout.Store(int64(timeout))
 }
 
 // writeContext implements contextWriter.
@@ -935,8 +962,9 @@ func (c *deadlineContextWriter) writeContext(ctx context.Context, p []byte) (int
 		<-c.semaphore
 	}()
 
-	if c.timeout > 0 {
-		err := c.w.SetWriteDeadline(time.Now().Add(c.timeout))
+	timeout := c.timeout.Load()
+	if timeout > 0 {
+		err := c.w.SetWriteDeadline(time.Now().Add(time.Duration(timeout)))
 		if err != nil {
 			return 0, err
 		}
@@ -950,8 +978,8 @@ func newWriteCoalescer(conn deadlineWriter, writeTimeout, coalesceDuration time.
 		writeCh: make(chan writeRequest),
 		c:       conn,
 		quit:    quit,
-		timeout: writeTimeout,
 	}
+	wc.setWriteTimeout(writeTimeout)
 	go wc.writeFlusher(coalesceDuration)
 	return wc
 }
@@ -964,10 +992,14 @@ type writeCoalescer struct {
 	quit    <-chan struct{}
 	writeCh chan writeRequest
 
-	timeout time.Duration
+	timeout atomic.Int64
 
 	testEnqueuedHook func()
 	testFlushedHook  func()
+}
+
+func (w *writeCoalescer) setWriteTimeout(timeout time.Duration) {
+	w.timeout.Store(int64(timeout))
 }
 
 type writeRequest struct {
@@ -1059,8 +1091,9 @@ func (w *writeCoalescer) writeFlusherImpl(timerC <-chan time.Time, resetTimer fu
 
 func (w *writeCoalescer) flush(resultChans []chan<- writeResult, buffers net.Buffers) {
 	// Flush everything we have so far.
-	if w.timeout > 0 {
-		err := w.c.SetWriteDeadline(time.Now().Add(w.timeout))
+	timeout := w.timeout.Load()
+	if timeout > 0 {
+		err := w.c.SetWriteDeadline(time.Now().Add(time.Duration(timeout)))
 		if err != nil {
 			for i := range resultChans {
 				resultChans[i] <- writeResult{
@@ -1114,7 +1147,7 @@ func (c *Conn) addCall(call *callReq) error {
 	return nil
 }
 
-func (c *Conn) exec(ctx context.Context, req frameBuilder, tracer Tracer) (*framer, error) {
+func (c *Conn) exec(ctx context.Context, req frameBuilder, tracer Tracer, requestTimeout time.Duration) (*framer, error) {
 	if ctxErr := ctx.Err(); ctxErr != nil {
 		return nil, &QueryError{err: ctxErr, potentiallyExecuted: false}
 	}
@@ -1204,7 +1237,7 @@ func (c *Conn) exec(ctx context.Context, req frameBuilder, tracer Tracer) (*fram
 	}
 
 	var timeoutCh <-chan time.Time
-	if c.timeout > 0 {
+	if requestTimeout > 0 {
 		if call.timer == nil {
 			call.timer = time.NewTimer(0)
 			<-call.timer.C
@@ -1217,7 +1250,7 @@ func (c *Conn) exec(ctx context.Context, req frameBuilder, tracer Tracer) (*fram
 			}
 		}
 
-		call.timer.Reset(c.timeout)
+		call.timer.Reset(requestTimeout)
 		timeoutCh = call.timer.C
 	}
 
@@ -1254,7 +1287,6 @@ func (c *Conn) exec(ctx context.Context, req frameBuilder, tracer Tracer) (*fram
 		return resp.framer, nil
 	case <-timeoutCh:
 		close(call.timeout)
-		c.handleTimeout()
 		return nil, &QueryError{err: ErrTimeoutNoResponse, potentiallyExecuted: true}
 	case <-ctxDone:
 		close(call.timeout)
@@ -1324,7 +1356,7 @@ type inflightPrepare struct {
 	preparedStatment *preparedStatment
 }
 
-func (c *Conn) prepareStatement(ctx context.Context, stmt string, tracer Tracer) (*preparedStatment, error) {
+func (c *Conn) prepareStatement(ctx context.Context, stmt string, tracer Tracer, requestTimeout time.Duration) (*preparedStatment, error) {
 	stmtCacheKey := c.session.stmtsLRU.keyFor(c.host.HostID(), c.currentKeyspace, stmt)
 	flight, ok := c.session.stmtsLRU.execIfMissing(stmtCacheKey, func(lru *lru.Cache) *inflightPrepare {
 		flight := &inflightPrepare{
@@ -1348,7 +1380,7 @@ func (c *Conn) prepareStatement(ctx context.Context, stmt string, tracer Tracer)
 			// we won the race to do the load, if our context is canceled we shouldnt
 			// stop the load as other callers are waiting for it but this caller should get
 			// their context cancelled error.
-			framer, err := c.exec(c.ctx, prep, tracer)
+			framer, err := c.exec(c.ctx, prep, tracer, requestTimeout)
 			if err != nil {
 				flight.err = err
 				c.session.stmtsLRU.remove(stmtCacheKey)
@@ -1456,7 +1488,7 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) (iter *Iter) {
 	if !qry.skipPrepare && qry.shouldPrepare() {
 		// Prepare all DML queries. Other queries can not be prepared.
 		var err error
-		info, err = c.prepareStatement(ctx, qry.stmt, qry.trace)
+		info, err = c.prepareStatement(ctx, qry.stmt, qry.trace, qry.GetRequestTimeout())
 		if err != nil {
 			return &Iter{err: err}
 		}
@@ -1512,7 +1544,7 @@ func (c *Conn) executeQuery(ctx context.Context, qry *Query) (iter *Iter) {
 		}
 	}
 
-	framer, err := c.exec(ctx, frame, qry.trace)
+	framer, err := c.exec(ctx, frame, qry.trace, qry.GetRequestTimeout())
 	if err != nil {
 		return &Iter{err: err}
 	}
@@ -1645,7 +1677,7 @@ func (c *Conn) UseKeyspace(keyspace string) error {
 	q := &writeQueryFrame{statement: `USE "` + keyspace + `"`}
 	q.params.consistency = c.session.cons
 
-	framer, err := c.exec(c.ctx, q, nil)
+	framer, err := c.exec(c.ctx, q, nil, c.cfg.ConnectTimeout)
 	if err != nil {
 		return err
 	}
@@ -1699,7 +1731,7 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) (iter *Iter) {
 		b := &req.statements[i]
 
 		if len(entry.Args) > 0 || entry.binding != nil {
-			info, err := c.prepareStatement(batch.Context(), entry.Stmt, batch.trace)
+			info, err := c.prepareStatement(batch.Context(), entry.Stmt, batch.trace, batch.GetRequestTimeout())
 			if err != nil {
 				return &Iter{err: err}
 			}
@@ -1752,7 +1784,7 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) (iter *Iter) {
 	batch.routingInfo.mu.Unlock()
 
 	// TODO: should batch support tracing?
-	framer, err := c.exec(batch.Context(), req, batch.trace)
+	framer, err := c.exec(batch.Context(), req, batch.trace, batch.GetRequestTimeout())
 	if err != nil {
 		return &Iter{err: err}
 	}
@@ -1791,22 +1823,14 @@ func (c *Conn) executeBatch(ctx context.Context, batch *Batch) (iter *Iter) {
 	}
 }
 
-func (c *Conn) query(ctx context.Context, statement string, values ...interface{}) (iter *Iter) {
-	q := c.session.Query(statement, values...).Consistency(One).Trace(nil)
+func (c *Conn) querySystem(ctx context.Context, query string, values ...interface{}) *Iter {
+	q := c.session.Query(query+c.usingTimeoutClause, values...).Consistency(One).Trace(nil)
 	q.skipPrepare = true
 	q.disableSkipMetadata = true
 	// we want to keep the query on this connection
 	q.conn = c
+	q.SetRequestTimeout(c.systemRequestTimeout)
 	return c.executeQuery(ctx, q)
-}
-
-func (c *Conn) querySystem(ctx context.Context, query string) *Iter {
-	usingClause := ""
-	if c.session.control != nil {
-		usingClause = c.session.usingTimeoutClause
-	}
-	queryStmt := query + usingClause
-	return c.query(ctx, queryStmt)
 }
 
 const qrySystemPeers = "SELECT * FROM system.peers"

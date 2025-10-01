@@ -2,8 +2,9 @@ package decimal
 
 import (
 	"fmt"
-	"gopkg.in/inf.v0"
 	"reflect"
+
+	"gopkg.in/inf.v0"
 )
 
 func Unmarshal(data []byte, value interface{}) error {
