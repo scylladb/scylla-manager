@@ -2,9 +2,10 @@ package decimal
 
 import (
 	"fmt"
-	"gopkg.in/inf.v0"
 	"reflect"
 	"strconv"
+
+	"gopkg.in/inf.v0"
 
 	"github.com/gocql/gocql/serialization/varint"
 )

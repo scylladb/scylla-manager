@@ -235,7 +235,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v1.6.0 => github.com/scylladb/gocql v1.15.1
+# github.com/gocql/gocql v1.6.0 => github.com/scylladb/gocql v1.15.3
 ## explicit; go 1.13
 github.com/gocql/gocql
 github.com/gocql/gocql/debounce
@@ -860,5 +860,5 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# github.com/gocql/gocql => github.com/scylladb/gocql v1.15.1
+# github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
 # github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20240312172628-afe1fd2aa65e

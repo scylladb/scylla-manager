@@ -746,7 +746,8 @@ func (f *framer) setLength(length int) {
 }
 
 func (f *framer) finish() error {
-	if len(f.buf) > maxFrameSize {
+	bufLen := len(f.buf)
+	if bufLen > maxFrameSize {
 		// huge app frame, lets remove it so it doesn't bloat the heap
 		f.buf = make([]byte, defaultBufSize)
 		return ErrFrameTooBig
@@ -764,8 +765,9 @@ func (f *framer) finish() error {
 		}
 
 		f.buf = append(f.buf[:headSize], compressed...)
+		bufLen = len(f.buf)
 	}
-	length := len(f.buf) - headSize
+	length := bufLen - headSize
 	f.setLength(length)
 
 	return nil

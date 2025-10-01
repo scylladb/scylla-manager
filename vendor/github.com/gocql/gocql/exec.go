@@ -94,6 +94,7 @@ func NewSingleHostQueryExecutor(cfg *ClusterConfig) (e SingleHostQueryExecutor, 
 		}
 		err = e.control.setupConn(conn)
 		if err == nil {
+			conn.finalizeConnection()
 			break
 		}
 		e.control.session.logger.Printf("gocql: unable setup control conn %v:%v: %v\n", host.ConnectAddress(), host.Port(), err)

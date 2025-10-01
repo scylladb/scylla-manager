@@ -1,9 +1,11 @@
 SHELL := bash
 MAKEFILE_PATH := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 KEY_PATH = ${MAKEFILE_PATH}/testdata/pki
+BIN_DIR := "${MAKEFILE_PATH}/bin"
 
 CASSANDRA_VERSION ?= 4.1.6
 SCYLLA_VERSION ?= release:6.1.1
+GOLANGCI_VERSION = 2.1.6
 
 TEST_CQL_PROTOCOL ?= 4
 TEST_COMPRESSOR ?= snappy
@@ -71,6 +73,10 @@ export JAVA11_HOME=${JAVA_HOME_11_X64}
 export JAVA17_HOME=${JAVA_HOME_17_X64}
 export JAVA_HOME=${JAVA_HOME_11_X64}
 
+clean-old-temporary-docker-images:
+	@echo "Running Docker Hub image cleanup script..."
+	python ci/clean-old-temporary-docker-images.py
+
 cassandra-start: .prepare-pki .prepare-cassandra-ccm .prepare-java
 	@if [ -d ${CCM_CONFIG_DIR}/${CCM_CASSANDRA_CLUSTER_NAME} ] && ccm switch ${CCM_CASSANDRA_CLUSTER_NAME} 2>/dev/null 1>&2 && ccm status | grep UP 2>/dev/null 1>&2; then \
 		echo "Cassandra cluster is already started"; \
@@ -127,8 +133,7 @@ ifeq ($(shell if [[ -n "$${GITHUB_STEP_SUMMARY}" ]]; then echo "running-in-workf
 	@echo "### Unit Test Results" >>$${GITHUB_STEP_SUMMARY}
 	@echo '```' >>$${GITHUB_STEP_SUMMARY}
 	@echo go test -tags unit -timeout=5m -race ./...
-	@go test -tags unit -timeout=5m -race ./... | tee -a $${GITHUB_STEP_SUMMARY}
-	@echo '```' >>$${GITHUB_STEP_SUMMARY}
+	@go test -tags unit -timeout=5m -race ./... | tee -a $${GITHUB_STEP_SUMMARY}; TEST_STATUS=$${PIPESTATUS[0]}; echo '```' >>$${GITHUB_STEP_SUMMARY}; exit $${TEST_STATUS}
 else
 	go test -v -tags unit -timeout=5m -race ./...
 endif
@@ -145,9 +150,15 @@ else
 	go test -bench=. -benchmem ./...
 endif
 
-check:
-	@echo "Run go vet linter"
-	go vet --tags "unit all ccm cassandra integration" ./...
+check: .prepare-golangci
+	@echo "Build"
+	@go build -tags all .
+	@echo "Check linting"
+	@${BIN_DIR}/golangci-lint run
+
+fix: .prepare-golangci
+	@echo "Fix linting"
+	@${BIN_DIR}/golangci-lint run --fix
 
 .prepare-java:
 ifeq ($(shell if [ -f ~/.sdkman/bin/sdkman-init.sh ]; then echo "installed"; else echo "not-installed"; fi), not-installed)
@@ -179,7 +190,7 @@ install-java:
 		echo ${CCM_CASSANDRA_VERSION} > ${CCM_CONFIG_DIR}/ccm-version; \
   	fi
 
-install-cassandra-ccm: cassandra-start
+install-cassandra-ccm:
 	@echo "Install CCM ${CCM_CASSANDRA_VERSION}"
 	@pip install "git+https://${CCM_CASSANDRA_REPO}.git@${CCM_CASSANDRA_VERSION}"
 	@mkdir ${CCM_CONFIG_DIR} 2>/dev/null || true
@@ -211,3 +222,10 @@ generate-pki:
 	@echo "Generating new PKI"
 	@rm -f testdata/pki/.keystore testdata/pki/.truststore testdata/pki/*.p12 testdata/pki/*.key testdata/pki/*.crt || true
 	@cd testdata/pki/ && bash ./generate_certs.sh
+
+.prepare-golangci:
+	@if ! "${BIN_DIR}/golangci-lint" --version | grep '${GOLANGCI_VERSION}' >/dev/null 2>&1 ; then \
+		mkdir -p "${BIN_DIR}"; \
+  		echo "Installing golangci-lint to '${BIN_DIR}'"; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b bin/ v$(GOLANGCI_VERSION); \
+	fi

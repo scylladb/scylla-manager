@@ -79,14 +79,19 @@ type ClusterConfig struct {
 	// versions the protocol selected is not defined (ie, it can be any of the supported in the cluster)
 	ProtoVersion int
 
-	// Timeout limits the time spent on the client side while executing a query.
-	// Specifically, query or batch execution will return an error if the client does not receive a response
-	// from the server within the Timeout period.
-	// Timeout is also used to configure the read timeout on the underlying network connection.
-	// Client Timeout should always be higher than the request timeouts configured on the server,
-	// so that retries don't overload the server.
-	// Timeout has a default value of 11 seconds, which is higher than default server timeout for most query types.
-	// Timeout is not applied to requests during initial connection setup, see ConnectTimeout.
+	// Timeout defines the maximum time to wait for a single server response.
+	// The default is 11 seconds, which is slightly higher than the default
+	// server-side timeout for most query types.
+	//
+	// When a session creates a Query or Batch, it inherits this timeout as
+	// the request timeout.
+	//
+	// Important notes:
+	// 1. This value should be greater than the server timeout for all queries
+	//    you execute. Otherwise, you risk creating retry storms: the server
+	//    may still be processing the request while the client times out and retries.
+	// 2. This timeout does not apply during initial connection setup.
+	//    For that, see ConnectTimeout.
 	Timeout time.Duration
 
 	// ConnectTimeout limits the time spent during connection setup.
@@ -102,6 +107,11 @@ type ClusterConfig struct {
 	// WriteTimeout should be lower than or equal to Timeout.
 	// WriteTimeout defaults to the value of Timeout.
 	WriteTimeout time.Duration
+
+	// ReadTimeout limits the time the driver waits for data from the connection.
+	// It has only one purpose, identify faulty connection early and drop it.
+	// Default: 11 Seconds
+	ReadTimeout time.Duration
 
 	// Port used when dialing.
 	// Default: 9042
@@ -143,7 +153,7 @@ type ClusterConfig struct {
 	AuthProvider func(h *HostInfo) (Authenticator, error)
 
 	// Default retry policy to use for queries.
-	// Default: no retries.
+	// Default: SimpleRetryPolicy{NumRetries: 3}.
 	RetryPolicy RetryPolicy
 
 	// ConvictionPolicy decides whether to mark host as down based on the error and host info.
@@ -403,6 +413,8 @@ func NewCluster(hosts ...string) *ClusterConfig {
 		CQLVersion:                   "3.0.0",
 		Timeout:                      11 * time.Second,
 		ConnectTimeout:               11 * time.Second,
+		ReadTimeout:                  11 * time.Second,
+		WriteTimeout:                 11 * time.Second,
 		Port:                         9042,
 		NumConns:                     2,
 		Consistency:                  Quorum,
