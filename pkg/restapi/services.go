@@ -78,7 +78,7 @@ type BackupService interface {
 
 // RestoreService service interface for the REST API handlers.
 type RestoreService interface {
-	GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (restore.Target, []restore.Unit, []restore.View, error)
+	GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (restore.Target, []restore.Unit, []restore.RestoredView, error)
 	// GetProgress must work even when the cluster is no longer available.
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (restore.Progress, error)
 }

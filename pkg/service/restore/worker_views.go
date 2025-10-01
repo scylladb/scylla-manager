@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -26,7 +27,7 @@ func (w *worker) stageDropViews(ctx context.Context) error {
 		if aw.isAlternatorView(v) {
 			continue
 		}
-
+		// No need for checking if view exists, since we are using IF EXISTS clause.
 		if err := w.DropView(ctx, v); err != nil {
 			return errors.Wrapf(err, "drop %s.%s", v.Keyspace, v.View)
 		}
@@ -43,8 +44,19 @@ func (w *worker) stageRecreateViews(ctx context.Context) error {
 		return err
 	}
 
+	allViews, err := w.getAllViews()
+	if err != nil {
+		return errors.Wrap(err, "get all views")
+	}
+	allViewsM := maps.SetFromSlice(allViews)
+
 	for _, v := range w.run.Views {
 		if aw.isAlternatorView(v) {
+			continue
+		}
+		// Don't create already created view
+		// (it might happen when restore task is paused/resumed).
+		if _, ok := allViewsM[v.View]; ok {
 			continue
 		}
 
@@ -64,7 +76,7 @@ func (w *worker) stageRecreateViews(ctx context.Context) error {
 }
 
 // DropView drops specified Materialized View or Secondary Index.
-func (w *worker) DropView(ctx context.Context, view View) error {
+func (w *worker) DropView(ctx context.Context, view RestoredView) error {
 	w.logger.Info(ctx, "Dropping view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
@@ -72,12 +84,14 @@ func (w *worker) DropView(ctx context.Context, view View) error {
 	)
 
 	op := func() error {
-		dropStmt := ""
+		var dropStmt string
 		switch view.Type {
 		case SecondaryIndex:
 			dropStmt = "DROP INDEX IF EXISTS %q.%q"
 		case MaterializedView:
 			dropStmt = "DROP MATERIALIZED VIEW IF EXISTS %q.%q"
+		default:
+			return errors.New("unknown view type: " + string(view.Type))
 		}
 
 		return w.clusterSession.ExecStmt(fmt.Sprintf(dropStmt, view.Keyspace, view.View))
@@ -97,7 +111,7 @@ func (w *worker) DropView(ctx context.Context, view View) error {
 }
 
 // CreateView creates specified Materialized View or Secondary Index.
-func (w *worker) CreateView(ctx context.Context, view View) error {
+func (w *worker) CreateView(ctx context.Context, view RestoredView) error {
 	w.logger.Info(ctx, "Creating view",
 		"keyspace", view.Keyspace,
 		"view", view.View,
@@ -122,16 +136,16 @@ func (w *worker) CreateView(ctx context.Context, view View) error {
 	return alterSchemaRetryWrapper(ctx, op, notify)
 }
 
-func (w *worker) WaitForViewBuilding(ctx context.Context, view *View) error {
+func (w *worker) WaitForViewBuilding(ctx context.Context, view *RestoredView) error {
 	labels := metrics.RestoreViewBuildStatusLabels{
 		ClusterID: w.run.ClusterID.String(),
 		Keyspace:  view.Keyspace,
-		View:      view.View,
+		View:      view.Name,
 	}
 
-	viewTableName := view.View
+	viewTableName := view.Name
 	if view.Type == SecondaryIndex {
-		viewTableName += "_index"
+		viewTableName = indexViewName(view.Name)
 	}
 
 	const retryInterval = 10 * time.Second

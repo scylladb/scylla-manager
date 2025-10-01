@@ -44,12 +44,14 @@ func TestAggregateProgress(t *testing.T) {
 				},
 			},
 		},
-		Views: []View{
+		Views: []RestoredView{
 			{
-				Keyspace:   ks,
-				View:       "mv",
-				Type:       MaterializedView,
-				BaseTable:  tab1,
+				View: View{
+					Keyspace:  ks,
+					Name:      "mv",
+					Type:      MaterializedView,
+					BaseTable: tab1,
+				},
 				CreateStmt: "CREATE",
 			},
 		},

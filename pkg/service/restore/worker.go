@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -565,11 +566,6 @@ func (w *worker) initUnits(ctx context.Context, locationInfo []LocationInfo) err
 	return nil
 }
 
-var (
-	regexMV = regexp.MustCompile(`CREATE\s*MATERIALIZED\s*VIEW`)
-	regexSI = regexp.MustCompile(`CREATE\s*INDEX`)
-)
-
 // initViews should be called with already initialized target and units.
 func (w *worker) initViews(ctx context.Context) error {
 	aw, err := newAlternatorInitViewsWorker(ctx, w.alternatorClient, w.run.Units)
@@ -581,100 +577,20 @@ func (w *worker) initViews(ctx context.Context) error {
 		return errors.Wrap(err, "init alternator views")
 	}
 
-	restoredTables := strset.New()
-	for _, u := range w.run.Units {
-		for _, t := range u.Tables {
-			restoredTables.Add(u.Keyspace + "." + t.Table)
-		}
-	}
-
-	keyspaces, err := w.client.Keyspaces(ctx)
+	allViews, err := w.getAllViews()
 	if err != nil {
-		return errors.Wrapf(err, "get keyspaces")
+		return errors.Wrap(err, "get all views")
+	}
+	filteredViews := w.filterViewsByBaseTables(allViews, w.run.Units)
+
+	restoredViews, err := w.convertToRestoredViews(filteredViews)
+	if err != nil {
+		return errors.Wrap(err, "convert views to restored views")
 	}
 
-	// Create stmt has to contain "IF NOT EXISTS" clause as we have to be able to resume restore from any point
-	addIfNotExists := func(stmt string, t ViewType) (string, error) {
-		var loc []int
-		switch t {
-		case MaterializedView:
-			loc = regexMV.FindStringIndex(stmt)
-		case SecondaryIndex:
-			loc = regexSI.FindStringIndex(stmt)
-		}
-		if loc == nil {
-			return "", fmt.Errorf("unknown create view statement %s", stmt)
-		}
-
-		return stmt[loc[0]:loc[1]] + " IF NOT EXISTS" + stmt[loc[1]:], nil
-	}
-
-	for _, ks := range keyspaces {
-		if aw.isAlternatorKeyspace(ks) {
-			continue
-		}
-
-		meta, err := w.clusterSession.KeyspaceMetadata(ks)
-		if err != nil {
-			return errors.Wrapf(err, "get keyspace %s metadata", ks)
-		}
-
-		for _, index := range meta.Indexes {
-			if !restoredTables.Has(index.KeyspaceName + "." + index.TableName) {
-				continue
-			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Indexes: map[string]*gocql.IndexMetadata{index.Name: index},
-			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return errors.Wrapf(err, "get index %s.%s create statement", ks, index.Name)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
-			stmt, err = addIfNotExists(stmt, SecondaryIndex)
-			if err != nil {
-				return err
-			}
-
-			views = append(views, View{
-				Keyspace:   index.KeyspaceName,
-				View:       index.Name,
-				Type:       SecondaryIndex,
-				BaseTable:  index.TableName,
-				CreateStmt: stmt,
-			})
-		}
-
-		for _, view := range meta.Views {
-			if !restoredTables.Has(view.KeyspaceName + "." + view.BaseTableName) {
-				continue
-			}
-			dummyMeta := gocql.KeyspaceMetadata{
-				Views: map[string]*gocql.ViewMetadata{view.ViewName: view},
-			}
-
-			schema, err := dummyMeta.ToCQL()
-			if err != nil {
-				return errors.Wrapf(err, "get view %s.%s create statement", ks, view.ViewName)
-			}
-
-			// DummyMeta schema consists of create keyspace and create view statements
-			stmt := strings.Split(schema, ";")[1]
-			stmt, err = addIfNotExists(stmt, MaterializedView)
-			if err != nil {
-				return err
-			}
-
-			views = append(views, View{
-				Keyspace:   view.KeyspaceName,
-				View:       view.ViewName,
-				Type:       MaterializedView,
-				BaseTable:  view.BaseTableName,
-				CreateStmt: stmt,
-			})
+	for _, v := range restoredViews {
+		if !aw.isAlternatorKeyspace(v.Keyspace) {
+			views = append(views, v)
 		}
 	}
 
@@ -916,4 +832,147 @@ func (w *worker) stopJob(ctx context.Context, jobID int64, host string) {
 			"error", err,
 		)
 	}
+}
+
+// getAllViews lists views based on system_schema.views and system_schema.indexes tables.
+// They contain materialized views and secondary indexes.
+// Note that some of those views might be underlying alternator views.
+func (w *worker) getAllViews() ([]View, error) {
+	// Table system_schema.indexes contains secondary indexes.
+	// It uses index view names for all indexes.
+	q := qb.Select("system_schema.indexes").
+		Columns("keyspace_name", "index_name", "table_name").
+		Query(w.clusterSession)
+	iter := q.Iter()
+	// We first iter over indexes, as we know that all of them are secondary indexes.
+	// We store them both in a lookup set and in the result slice.
+	indexes := make(map[View]struct{})
+	out := make([]View, 0)
+	var keyspace, name, baseTable string
+	for iter.Scan(&keyspace, &name, &baseTable) {
+		indexes[View{
+			Keyspace:  keyspace,
+			Name:      name,
+			BaseTable: baseTable,
+			// Type: don't fill type for easier lookup
+		}] = struct{}{}
+
+		out = append(out, View{
+			Keyspace:  keyspace,
+			Name:      name,
+			BaseTable: baseTable,
+			Type:      SecondaryIndex,
+		})
+	}
+
+	q.Release()
+	if err := iter.Close(); err != nil {
+		return nil, errors.Wrap(err, "query indexes")
+	}
+
+	// Table system_schema.views contains both materialized views and secondary indexes.
+	// It uses index names for secondary indexes.
+	q = qb.Select("system_schema.views").
+		Columns("keyspace_name", "view_name", "base_table_name").
+		Query(w.clusterSession)
+	iter = q.Iter()
+	// Now we iterate over views and filter out already included secondary indexes.
+	for iter.Scan(&keyspace, &name, &baseTable) {
+		i := View{
+			Keyspace:  keyspace,
+			Name:      indexViewName(name),
+			BaseTable: baseTable,
+		}
+		if _, ok := indexes[i]; ok {
+			continue
+		}
+
+		out = append(out, View{
+			Keyspace:  keyspace,
+			Name:      name,
+			BaseTable: baseTable,
+			Type:      MaterializedView,
+		})
+	}
+
+	q.Release()
+	if err := iter.Close(); err != nil {
+		return nil, errors.Wrap(err, "query views")
+	}
+	return out, nil
+}
+
+// filterViewsByBaseTables based on restored units.
+// Note that units contain restored base tables only
+// and that we want to restore all views of those tables.
+func (w *worker) filterViewsByBaseTables(views []View, units []Unit) []View {
+	type kst struct {
+		ks string
+		t  string
+	}
+	tables := make(map[kst]struct{})
+	for _, u := range units {
+		for _, t := range u.Tables {
+			tables[kst{ks: u.Keyspace, t: t.Table}] = struct{}{}
+		}
+	}
+
+	out := make([]View, 0, len(views))
+	for _, v := range views {
+		if _, ok := tables[kst{ks: v.Keyspace, t: v.BaseTable}]; ok {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// convertToRestoredViews by filling in create statement from describe schema with internals.
+func (w *worker) convertToRestoredViews(views []View) ([]RestoredView, error) {
+	schema, err := query.DescribeSchemaWithInternals(w.clusterSession)
+	if err != nil {
+		return nil, errors.Wrap(err, "describe schema with internals")
+	}
+
+	schemaViews := make(map[View]RestoredView)
+	for _, row := range schema {
+		if row.Type != query.RowTypeView && row.Type != query.RowTypeIndex {
+			continue
+		}
+
+		v := View{
+			Keyspace: sanitizeSchemaRowName(row.Keyspace),
+			Name:     sanitizeSchemaRowName(row.Name),
+			// BaseTable: don't fill base table for easier lookup (and because we would need to parse it).
+			// Type: don't fill type for easier lookup.
+		}
+		schemaViews[v] = RestoredView{
+			View:       v,
+			CreateStmt: row.CQLStmt,
+		}
+	}
+
+	out := make([]RestoredView, 0, len(views))
+	for _, v := range views {
+		s, ok := schemaViews[View{Keyspace: v.Keyspace, Name: v.Name}]
+		if !ok {
+			return nil, errors.Errorf("view %q.%q is not described in schema", v.Keyspace, v.Name)
+		}
+		out = append(out, RestoredView{
+			View:       v,
+			CreateStmt: s.CreateStmt,
+		})
+	}
+	return out, nil
+}
+
+// Each regular index has underlying materialized view.
+// When using CQL, index name should be used (e.g. when dropping or creating index).
+// When using REST API, underlying materialized view name should be used (e.g. when checking view build status).
+func indexViewName(index string) string {
+	return index + "_index"
+}
+
+// sanitizeSchemaRowName removes quotes keyspace or name in query.DescribedSchemaRow.
+func sanitizeSchemaRowName(name string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(name, "\""), "\"")
 }

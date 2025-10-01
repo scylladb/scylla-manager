@@ -131,7 +131,7 @@ func (s *Service) Restore(ctx context.Context, clusterID, taskID, runID uuid.UUI
 }
 
 // GetTargetUnitsViews returns all information necessary for task validation and --dry-run.
-func (s *Service) GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, []Unit, []View, error) {
+func (s *Service) GetTargetUnitsViews(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, []Unit, []RestoredView, error) {
 	w, err := s.newWorker(ctx, clusterID)
 	if err != nil {
 		return Target{}, nil, nil, errors.Wrap(err, "create worker")
