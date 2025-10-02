@@ -1454,6 +1454,80 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	}
 }
 
+func TestRestoreFullChangingMethodIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
+	ctx := context.Background()
+
+	ni, err := h.srcCluster.Client.AnyNodeInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := ni.SupportsNativeBackupAPI(); err != nil {
+		t.Fatal(err)
+	} else if !ok || IsIPV6Network() {
+		t.Skip("Test assumes native backup usage")
+	}
+
+	Print("Keyspace setup")
+	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
+	ks := randomizedName("changing_method_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks, 2))
+
+	Print("Table setup")
+	tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+	tab := randomizedName("tab_")
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+
+	Print("Location and permissions setup")
+	loc := testLocation("changing-method", "")
+	S3InitBucket(t, loc.Path)
+	ksFilter := []string{ks}
+	backupProps := defaultTestBackupProperties(loc, ks)
+	// Configure retention policy so that the last backup happens after purge
+	backupProps["retention"] = 3
+	backupProps["retention_days"] = 0
+	backupProps["retention_map"] = backup.RetentionMap{
+		h.srcCluster.TaskID: backup.RetentionPolicy{
+			RetentionDays: 0,
+			Retention:     3,
+		},
+	}
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+
+	type testIter struct {
+		backupMethod backup.Method
+		rowCnt       int
+	}
+	testCases := []testIter{
+		{backupMethod: backup.MethodRclone, rowCnt: 50},
+		{backupMethod: backup.MethodNative, rowCnt: 100},
+		{backupMethod: backup.MethodRclone, rowCnt: 150},
+		{backupMethod: backup.MethodNative, rowCnt: 200},
+		{backupMethod: backup.MethodRclone, rowCnt: 250},
+	}
+	for i, tc := range testCases {
+		t.Log("Fill: ", i)
+		fillTable(t, h.srcCluster.rootSession, tc.rowCnt, ks, tab)
+
+		t.Log("Backup: ", i)
+		backupProps["method"] = tc.backupMethod
+		tag := h.runBackup(t, backupProps)
+
+		t.Log("Restore schema: ", i)
+		ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("DROP KEYSPACE IF EXISTS %q", ks))
+		restoreProps := defaultTestProperties(loc, tag, false)
+		h.runRestore(t, restoreProps)
+
+		t.Log("Restore tables: ", i)
+		restoreProps = defaultTestProperties(loc, tag, true)
+		h.runRestore(t, restoreProps)
+
+		t.Log("Validate: ", i)
+		h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+	}
+}
+
 func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 
