@@ -1,28 +1,4 @@
-- scylla-version: scylla-enterprise:2024.1.20
-  ip-family: IPV4
-  raft-schema: disabled
-  tablets: none
-  ssl-enabled: true
-
-- scylla-version: scylla-enterprise:2024.1.20
-  ip-family: IPV6
-  raft-schema: enabled
-  tablets: none
-  ssl-enabled: false
-
-- scylla-version: scylla:2025.1.6
-  ip-family: IPV4
-  raft-schema: none
-  tablets: disabled
-  ssl-enabled: true
-
-- scylla-version: scylla:2025.1.6
-  ip-family: IPV6
-  raft-schema: none
-  tablets: enabled
-  ssl-enabled: false
-
-- scylla-version: scylla:2025.2.2
+- scylla-version: scylla-nightly:2025.4.0-rc0-0.20251001.a9f4024c1b57
   ip-family: IPV4
   raft-schema: none
   tablets: enabled
@@ -30,7 +6,7 @@
   backup-method: native
   restore-method: rclone
 
-- scylla-version: scylla:2025.2.2
+- scylla-version: scylla-nightly:2025.4.0-rc0-0.20251001.a9f4024c1b57
   ip-family: IPV6
   raft-schema: none
   tablets: disabled
