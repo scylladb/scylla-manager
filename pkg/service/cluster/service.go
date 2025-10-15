@@ -433,23 +433,9 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		return util.ErrNilPtr
 	}
 
-	t := Update
-	if c.ID == uuid.Nil {
-		t = Create
-
-		var err error
-		if c.ID, err = uuid.NewRandom(); err != nil {
-			return errors.Wrap(err, "couldn't generate random UUID for Cluster")
-		}
-	} else {
-		// User may set ID on his own
-		_, err := s.GetClusterByID(ctx, c.ID)
-		if err != nil {
-			if !errors.Is(err, util.ErrNotFound) {
-				return err
-			}
-			t = Create
-		}
+	t, err := s.choosePutClusterChangeType(ctx, c)
+	if err != nil {
+		return errors.Wrap(err, "check for cluster creation or update")
 	}
 
 	if t == Create {
@@ -458,38 +444,40 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		s.logger.Info(ctx, "Updating cluster", "cluster_id", c.ID)
 	}
 
-	// Validate cluster model.
+	// Validate cluster model
 	if err := c.Validate(); err != nil {
 		return err
 	}
 
-	// Check for conflicting cluster names.
-	if c.Name != "" {
-		conflict, err := s.GetClusterByName(ctx, c.Name)
-		if !errors.Is(err, util.ErrNotFound) {
-			if err != nil {
-				return err
-			}
-			if conflict.ID != c.ID {
-				return util.ErrValidate(errors.Errorf("name %q is already taken", c.Name))
-			}
-		}
+	// Check for conflicting cluster names
+	if err := s.checkClusterNameConflict(ctx, c); err != nil {
+		return errors.Wrap(err, "check for cluster name conflict")
 	}
 
-	// Check hosts connectivity.
-	if err := s.ValidateHostsConnectivity(ctx, c); err != nil {
-		var tip string
-		switch scyllaclient.StatusCodeOf(err) {
-		case 0:
-			tip = "make sure the IP is correct and access to port 10001 is unblocked"
-		case 401:
-			tip = "make sure auth_token config option on nodes is set correctly"
+	// Check if host connectivity should be checked
+	shouldValidateHostsConnectivity := true
+	if t == Update {
+		old, err := s.GetClusterByID(ctx, c.ID)
+		if err != nil {
+			return err
 		}
-		if tip != "" {
-			err = fmt.Errorf("%w - %s", err, tip)
-		}
+		shouldValidateHostsConnectivity = shouldValidateHostsConnectivityOnUpdate(c, old)
+	}
 
-		return err
+	if shouldValidateHostsConnectivity {
+		if err := s.ValidateHostsConnectivity(ctx, c); err != nil {
+			var tip string
+			switch scyllaclient.StatusCodeOf(err) {
+			case 0:
+				tip = "make sure the IP is correct and access to port 10001 is unblocked"
+			case 401:
+				tip = "make sure auth_token config option on nodes is set correctly"
+			}
+			if tip != "" {
+				err = fmt.Errorf("%w - %s", err, tip)
+			}
+			return err
+		}
 	}
 
 	// Rollback on error.
@@ -579,6 +567,57 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		WithoutRepair: c.WithoutRepair,
 	}
 	return s.notifyChangeListener(ctx, changeEvent)
+}
+
+// choosePutClusterChangeType distinguishes between cluster creation and update.
+// Additionally, if cluster is created without predesignated ID, it generates a new random UUID for it.
+func (s *Service) choosePutClusterChangeType(ctx context.Context, c *Cluster) (ChangeType, error) {
+	var zero ChangeType
+
+	// Handle cluster without predesignated ID
+	if c.ID == uuid.Nil {
+		var err error
+		if c.ID, err = uuid.NewRandom(); err != nil {
+			return zero, errors.Wrap(err, "couldn't generate random UUID for Cluster")
+		}
+		return Create, nil
+	}
+
+	// Handle cluster with predesignated ID
+	_, err := s.GetClusterByID(ctx, c.ID)
+	switch {
+	case err == nil:
+		return Update, nil
+	case errors.Is(err, util.ErrNotFound):
+		return Create, nil
+	default:
+		return zero, err
+	}
+}
+
+// checkClusterNameConflict checks if the cluster that is supposed to be put
+// has a name conflict with already existing cluster.
+func (s *Service) checkClusterNameConflict(ctx context.Context, c *Cluster) error {
+	if c.Name == "" {
+		return nil
+	}
+	conflict, err := s.GetClusterByName(ctx, c.Name)
+	switch {
+	case err != nil && !errors.Is(err, util.ErrNotFound):
+		return err
+	case err == nil && conflict.ID != c.ID:
+		return util.ErrValidate(errors.Errorf("name %q is already taken", c.Name))
+	default:
+		return nil
+	}
+}
+
+// shouldValidateHostsConnectivityOnUpdate based on changed cluster params.
+// It needs to be done when cluster params influencing connectivity over http to sm-agents have been updated.
+// It doesn't need to be done when cluster params influencing connectivity over cql to scylla nodes have been updated,
+// as cql connectivity is not required for all tasks.
+func shouldValidateHostsConnectivityOnUpdate(c, old *Cluster) bool {
+	return old.Host != c.Host || old.Port != c.Port || old.AuthToken != c.AuthToken
 }
 
 // ValidateHostsConnectivity validates that scylla manager agent API is available and responding on all live hosts.

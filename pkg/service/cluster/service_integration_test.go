@@ -837,6 +837,51 @@ func TestServiceStorageIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("no connectivity check on update", func(t *testing.T) {
+		if IsIPV6Network() {
+			t.Skip("DB node do not have ip6tables and related modules to make it work properly")
+		}
+
+		setup(t)
+		hosts := ManagedClusterHosts()
+		clusterHost := hosts[0]
+		initialCluster := *validCluster()
+		initialCluster.Host = clusterHost
+		Print("Create initial cluster with host: " + clusterHost)
+		if err = s.PutCluster(ctx, &initialCluster); err != nil {
+			t.Fatal(err)
+		}
+
+		unavailableHost := hosts[1]
+		Print("Block connectivity to host: " + unavailableHost)
+		if err := RunIptablesCommand(t, unavailableHost, CmdBlockScyllaREST); err != nil {
+			t.Fatal(err)
+		}
+		defer RunIptablesCommand(t, unavailableHost, CmdUnblockScyllaREST)
+
+		Print("Expect connectivity failure when adding new cluster")
+		putCluster := *validCluster()
+		putCluster.Host = clusterHost
+		if err := s.PutCluster(ctx, &putCluster); err == nil {
+			t.Fatal("Expected connectivity failure when adding new cluster, got nil")
+		}
+
+		newClusterHost := hosts[2]
+		Print("Expect connectivity failure when updating existing cluster host param: " + newClusterHost)
+		putCluster = initialCluster
+		putCluster.Host = newClusterHost
+		if err := s.PutCluster(ctx, &putCluster); err == nil {
+			t.Fatal("Expected connectivity failure when updating existing cluster host param, got nil")
+		}
+
+		Print("Expect success when updating existing cluster labels param")
+		putCluster = initialCluster
+		putCluster.Labels = map[string]string{"foo": "bar"}
+		if err := s.PutCluster(ctx, &putCluster); err != nil {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("no --host in SM DB", func(t *testing.T) {
 		setup(t)
 		c := validCluster()
