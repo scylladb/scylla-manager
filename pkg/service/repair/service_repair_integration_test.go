@@ -35,6 +35,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -2312,6 +2313,61 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 			}
 		}
+	})
+
+	t.Run("repair colocated table", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		if ok, err := version.CheckConstraint(globalNodeInfo.ScyllaVersion, ">= 2025.4"); err != nil {
+			t.Fatal(err)
+		} else if !ok {
+			t.Skip("This test requires colocated tables, which are introduced in scylla 2025.4")
+		}
+
+		const (
+			ks          = "test_repair_colocated_table_ks"
+			baseTable   = "test_repair_base_tab"
+			randomTable = "test_repair_random_tab"
+		)
+		Print("Given: prepare 2 regular tables and 1 colocated LWT table")
+		createTabletKeyspace(t, clusterSession, ks, 2, 2)
+		defer dropKeyspace(t, clusterSession, ks)
+		WriteData(t, clusterSession, ks, 1, baseTable, randomTable)
+		// Executing LWT statement creates LWT table
+		ExecStmt(t, clusterSession, fmt.Sprintf("UPDATE %q.%q SET data = null WHERE id = 0 IF data != null", ks, baseTable))
+		tables, err := h.Client.Tables(ctx, ks)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(tables) != 3 {
+			t.Fatal("Expected 2 manually created tables and 1 LWT table, got: ", tables)
+		}
+
+		t.Run("Repair whole keyspace", func(t *testing.T) {
+			h.RunID = uuid.NewTime()
+			h.runRepair(ctx, map[string]any{
+				"keyspace": []string{ks},
+			})
+			h.assertDone(time.Minute)
+		})
+
+		t.Run("Repair just random and LWT tables", func(t *testing.T) {
+			h.RunID = uuid.NewTime()
+			h.runRepair(ctx, map[string]any{
+				"keyspace": []string{ks, "!" + ks + "." + baseTable},
+			})
+			h.assertError(time.Minute)
+		})
+
+		t.Run("Repair just base and LWT tables", func(t *testing.T) {
+			h.RunID = uuid.NewTime()
+			h.runRepair(ctx, map[string]any{
+				"keyspace": []string{ks, "!" + ks + "." + randomTable},
+			})
+			h.assertDone(time.Minute)
+		})
 	})
 }
 

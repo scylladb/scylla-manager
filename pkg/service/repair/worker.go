@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
@@ -176,7 +178,15 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 
 	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter)
 	if err != nil {
-		return errors.Wrap(err, "schedule tablet repair task")
+		convertedErr := w.convertColocatedTableRepairErr(err)
+		if convertedErr == nil {
+			w.logger.Info(ctx, "Skipping repair of colocated table, because its base table is repaired",
+				"keyspace", keyspace,
+				"table", table,
+				"initial error", err)
+			return nil
+		}
+		return errors.Wrap(convertedErr, "schedule tablet repair task")
 	}
 
 	w.logger.Info(ctx, "Repairing entire tablet table",
@@ -211,6 +221,39 @@ func (w *worker) hostFilter(ctx context.Context) ([]string, error) {
 		return nil, errors.Wrap(err, "get status")
 	}
 	return status.Up().HostIDs(), nil
+}
+
+// Regex of schedule colocated table repair error. Taken from:
+// https://github.com/scylladb/scylladb/blob/e4e79be295d18e2014796540684cdd4c1dca6788/service/storage_service.cc#L6738.
+var colocatedTableErrRe = regexp.MustCompile(`because it is colocated with the base table '([^']+)'.'([^']+)'`)
+
+// convertColocatedTableRepairErr checks if the error returned from scheduling tablet repair
+// is related to repairing colocated table and whether we can safely ignore it.
+// Scylla 2025.4 introduces concept of colocated tablet tables which cannot be
+// repaired directly, but they are repaired when their base table is repaired.
+// See https://github.com/scylladb/scylladb/blob/7600ccfb/docs/dev/topology-over-raft.md#co-located-tables.
+// Because of that, we can ignore such error after making sure that the base table
+// is included in repaired units. This method converts the error to nil in such case.
+// Otherwise, it returns the original error wrapped with additional context.
+func (w *worker) convertColocatedTableRepairErr(scheduleTabletRepairErr error) error {
+	matches := colocatedTableErrRe.FindStringSubmatch(scheduleTabletRepairErr.Error())
+	if len(matches) == 0 {
+		// Not a colocated table error
+		return scheduleTabletRepairErr
+	}
+	baseKs := matches[1]
+	baseTab := matches[2]
+	for _, u := range w.target.Units {
+		if u.Keyspace != baseKs {
+			continue
+		}
+		if slice.ContainsString(u.Tables, baseTab) {
+			// Base table is repaired, we can skip colocated table repair
+			return nil
+		}
+	}
+	// Base table is not repaired, we cannot skip colocated table repair
+	return errors.Wrap(scheduleTabletRepairErr, "base table is not repaired, use --keyspace flag to either include it or exclude its colocated tables")
 }
 
 func (w *worker) scyllaAbortTask(host, id string) {
