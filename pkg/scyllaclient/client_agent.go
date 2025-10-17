@@ -206,6 +206,12 @@ func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
 }
 
+// SupportsIncrementalRepair returns true if /storage_service/tablets/repair supports incremental_mode param.
+func (ni *NodeInfo) SupportsIncrementalRepair() (bool, error) {
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.4")
+}
+
 // SafeDescribeMethod describes supported methods to ensure that scylla schema is consistent.
 type SafeDescribeMethod string
 

@@ -36,26 +36,47 @@ type Target struct {
 	DC    []string   `json:"dc"`
 	Host  netip.Addr `json:"host,omitempty"`
 	// Down hosts excluded from repair by the --ignore-down-hosts flag.
-	IgnoreHosts         []netip.Addr `json:"ignore_hosts,omitempty"`
-	FailFast            bool         `json:"fail_fast"`
-	Continue            bool         `json:"continue"`
-	Intensity           Intensity    `json:"intensity"`
-	Parallel            int          `json:"parallel"`
-	SmallTableThreshold int64        `json:"small_table_threshold"`
+	IgnoreHosts         []netip.Addr    `json:"ignore_hosts,omitempty"`
+	FailFast            bool            `json:"fail_fast"`
+	Continue            bool            `json:"continue"`
+	Intensity           Intensity       `json:"intensity"`
+	Parallel            int             `json:"parallel"`
+	SmallTableThreshold int64           `json:"small_table_threshold"`
+	IncrementalMode     IncrementalMode `json:"incremental_mode"`
 }
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace            []string `json:"keyspace"`
-	DC                  []string `json:"dc"`
-	Host                string   `json:"host"`
-	IgnoreDownHosts     bool     `json:"ignore_down_hosts"`
-	FailFast            bool     `json:"fail_fast"`
-	Continue            bool     `json:"continue"`
-	Intensity           float64  `json:"intensity"`
-	Parallel            int      `json:"parallel"`
-	SmallTableThreshold int64    `json:"small_table_threshold"`
+	Keyspace            []string        `json:"keyspace"`
+	DC                  []string        `json:"dc"`
+	Host                string          `json:"host"`
+	IgnoreDownHosts     bool            `json:"ignore_down_hosts"`
+	FailFast            bool            `json:"fail_fast"`
+	Continue            bool            `json:"continue"`
+	Intensity           float64         `json:"intensity"`
+	Parallel            int             `json:"parallel"`
+	SmallTableThreshold int64           `json:"small_table_threshold"`
+	IncrementalMode     IncrementalMode `json:"incremental_mode"`
 }
+
+// IncrementalMode describes tablet repair api incremental_mode param.
+// When this param, is not provided, it defaults to IncrementalModeIncremental.
+type IncrementalMode string
+
+const (
+	// IncrementalModeIncremental means that incremental repair logic is enabled.
+	// Unrepaired sstables will be included for repair. Repaired sstables will be skipped.
+	// The incremental repair states will be updated after repair.
+	IncrementalModeIncremental IncrementalMode = "incremental"
+	// IncrementalModeFull means that incremental repair logic is enabled.
+	// Both repaired and unrepaired sstables will be included for repair.
+	// The incremental repair states will be updated after repair.
+	IncrementalModeFull IncrementalMode = "full"
+	// IncrementalModeDisabled means that incremental repair logic is disabled completely.
+	// The incremental repair states, e.g., repaired_at in sstables and sstables_repaired_at
+	// in the system.tablets table, will not be updated after repair.
+	IncrementalModeDisabled IncrementalMode = "disabled"
+)
 
 func defaultTaskProperties() *taskProperties {
 	return &taskProperties{
@@ -67,6 +88,7 @@ func defaultTaskProperties() *taskProperties {
 
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
+		IncrementalMode:     IncrementalModeIncremental,
 	}
 }
 
