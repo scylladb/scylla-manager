@@ -96,6 +96,11 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		Intensity:           NewIntensityFromDeprecated(props.Intensity),
 		Parallel:            props.Parallel,
 		SmallTableThreshold: props.SmallTableThreshold,
+		IncrementalMode:     props.IncrementalMode,
+	}
+
+	if err := validateIncrementalMode(props.IncrementalMode); err != nil {
+		return Target{}, err
 	}
 
 	if props.Host != "" {
@@ -186,6 +191,14 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Set filtered units as they are still used for displaying --dry-run
 	t.Units = p.FilteredUnits(t.Units)
 	return t, nil
+}
+
+func validateIncrementalMode(incrementalMode IncrementalMode) error {
+	knownIncrementalModes := []IncrementalMode{IncrementalModeIncremental, IncrementalModeFull, IncrementalModeDisabled}
+	if !slices.Contains(knownIncrementalModes, incrementalMode) {
+		return util.ErrValidate(errors.Errorf("unknown --incremental-mode: %s, known incremental modes: %v", incrementalMode, knownIncrementalModes))
+	}
+	return nil
 }
 
 func validateIgnoreDownNodes(t Target, status scyllaclient.NodeStatusInfoSlice) error {
@@ -319,6 +332,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			config:     s.config,
 			target:     target,
 			client:     client,
+			apiSupport: p.apiSupport,
 			stopTrying: make(map[string]struct{}),
 			progress:   pm,
 			logger:     s.logger.Named(fmt.Sprintf("worker %d", i)),

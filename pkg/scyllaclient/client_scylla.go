@@ -619,7 +619,7 @@ func ReplicaHash(replicaSet []netip.Addr) uint64 {
 // All tablets will be repaired with just a single task. It repairs all hosts
 // by default, but it's possible to filter them by DC or host ID. The master is
 // only needed so that we know which node should be queried for the task status.
-func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string) (string, error) {
+func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode string) (string, error) {
 	const allTablets = "all"
 	dontAwaitCompletion := "false"
 	p := operations.StorageServiceTabletsRepairPostParams{
@@ -636,6 +636,9 @@ func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master strin
 	if len(hostIDs) > 0 {
 		merged := strings.Join(hostIDs, ",")
 		p.SetHostsFilter(&merged)
+	}
+	if incrementalMode != "" {
+		p.SetIncrementalMode(&incrementalMode)
 	}
 	resp, err := c.scyllaOps.StorageServiceTabletsRepairPost(&p)
 	if err != nil {

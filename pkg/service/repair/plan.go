@@ -381,6 +381,9 @@ type apiSupport struct {
 	smallTableRepair bool
 	// If /storage_service/tablets/repair API is exposed.
 	tabletRepair bool
+	// If /storage_service/tablets/repair API supports
+	// 'incremental_mode' query param.
+	incrementalRepair bool
 }
 
 func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts []string) (apiSupport, error) {
@@ -388,6 +391,8 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 	smallTableOpt.Store(true)
 	fullTabletTableOpt := atomic.Bool{}
 	fullTabletTableOpt.Store(true)
+	incrementalRepair := atomic.Bool{}
+	incrementalRepair.Store(true)
 	eg := errgroup.Group{}
 
 	for _, host := range hosts {
@@ -414,6 +419,14 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 				fullTabletTableOpt.Store(false)
 			}
 
+			res, err = ni.SupportsIncrementalRepair()
+			if err != nil {
+				return err
+			}
+			if !res {
+				incrementalRepair.Store(false)
+			}
+
 			return nil
 		})
 	}
@@ -422,7 +435,8 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 		return apiSupport{}, err
 	}
 	return apiSupport{
-		smallTableRepair: smallTableOpt.Load(),
-		tabletRepair:     fullTabletTableOpt.Load(),
+		smallTableRepair:  smallTableOpt.Load(),
+		tabletRepair:      fullTabletTableOpt.Load(),
+		incrementalRepair: incrementalRepair.Load(),
 	}, nil
 }

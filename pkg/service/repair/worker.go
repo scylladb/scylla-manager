@@ -15,9 +15,10 @@ import (
 )
 
 type worker struct {
-	config Config
-	target Target
-	client *scyllaclient.Client
+	config     Config
+	target     Target
+	client     *scyllaclient.Client
+	apiSupport apiSupport
 	// Marks tables for which handleRunningStatus didn't have any effect.
 	// We want to limit the usage of handleRunningStatus to once per table
 	// in order to avoid long waiting time on failed ranges.
@@ -174,7 +175,11 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 		return errors.Wrap(err, "create host filter")
 	}
 
-	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter)
+	var incrementalMode string
+	if w.apiSupport.incrementalRepair {
+		incrementalMode = string(w.target.IncrementalMode)
+	}
+	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter, incrementalMode)
 	if err != nil {
 		return errors.Wrap(err, "schedule tablet repair task")
 	}
