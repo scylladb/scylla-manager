@@ -33,6 +33,7 @@ type command struct {
 	intensity           *flag.Intensity
 	parallel            int
 	smallTableThreshold sizesuffix.SizeSuffix
+	incrementalMode     string
 	dryRun              bool
 	showTables          bool
 }
@@ -85,6 +86,7 @@ func (cmd *command) init() {
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 	w.Unwrap().Var(&cmd.smallTableThreshold, "small-table-threshold", "")
+	w.Unwrap().StringVar(&cmd.incrementalMode, "incremental-mode", "incremental", "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 }
@@ -150,6 +152,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("small-table-threshold").Changed {
 		props["small_table_threshold"] = int64(cmd.smallTableThreshold)
+		ok = true
+	}
+	if cmd.Flag("incremental-mode").Changed {
+		props["incremental_mode"] = cmd.incrementalMode
 		ok = true
 	}
 
