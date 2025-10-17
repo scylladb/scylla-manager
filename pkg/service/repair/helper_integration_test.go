@@ -117,8 +117,9 @@ type repairReq struct {
 	smallTableOptimization bool
 	rangesParallelism      int
 	// optional for tablet
-	dcFilter   []string
-	hostFilter []netip.Addr
+	dcFilter        []string
+	hostFilter      []netip.Addr
+	incrementalMode string
 }
 
 func (r repairReq) fullTable() string {
@@ -248,6 +249,9 @@ func parseTabletRepairReq(t *testing.T, req *http.Request) repairReq {
 	}
 	if hostsFilter := req.URL.Query().Get("hosts_filter"); hostsFilter != "" {
 		sched.hostFilter = slices2.Map(strings.Split(hostsFilter, ","), netip.MustParseAddr)
+	}
+	if incrementalMode := req.URL.Query().Get("incremental_mode"); incrementalMode != "" {
+		sched.incrementalMode = incrementalMode
 	}
 	if sched.keyspace == "" || sched.table == "" {
 		t.Error("Not fully initialized tablet repair sched req")

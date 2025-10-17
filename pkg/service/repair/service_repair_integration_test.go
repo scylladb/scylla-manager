@@ -2369,6 +2369,56 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.assertDone(time.Minute)
 		})
 	})
+
+	t.Run("Incremental repair", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		const (
+			ks  = "test_incremental_repair_ks"
+			tab = "test_incremental_repair_tab"
+		)
+		createTabletKeyspace(t, clusterSession, ks, 2, 2)
+		WriteData(t, clusterSession, ks, 1, tab)
+		defer dropKeyspace(t, clusterSession, ks)
+
+		incrementalRepairSupport, err := globalNodeInfo.SupportsIncrementalRepair()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		modes := []repair.IncrementalMode{repair.IncrementalModeIncremental, repair.IncrementalModeFull, repair.IncrementalModeDisabled}
+		for _, m := range modes {
+			t.Run("IncrementalRepairMode: "+string(m), func(t *testing.T) {
+				var incrementalRepairUsed string
+				h.Hrt.SetInterceptor(
+					httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+						if r, ok := parseRepairReq(t, req); ok {
+							// No need for locking as we repair single table with a single request
+							t.Log("Recorded schedule tablet repair req", "incremental_mode", r.incrementalMode)
+							incrementalRepairUsed = r.incrementalMode
+						}
+						return nil, nil
+					}),
+				)
+
+				h.RunID = uuid.NewTime()
+				h.runRepair(ctx, map[string]any{
+					"keyspace":         []string{ks + "." + tab},
+					"incremental_mode": m,
+				})
+				h.assertDone(shortWait)
+
+				if incrementalRepairSupport && incrementalRepairUsed != string(m) {
+					t.Fatalf("Incremental repair is supported, expected mode: %q, got %q", m, incrementalRepairUsed)
+				}
+				if !incrementalRepairSupport && incrementalRepairUsed != "" {
+					t.Fatalf("Incremental repair is not supported, expected no mode, got %q", incrementalRepairUsed)
+				}
+			})
+		}
+	})
 }
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {
