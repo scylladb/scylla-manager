@@ -76,6 +76,11 @@ type StorageServiceTabletsRepairPostParams struct {
 
 	*/
 	HostsFilter *string
+	/*IncrementalMode
+	  Set the incremental repair mode. Can be 'disabled', 'incremental', or 'full'. 'incremental': The incremental repair logic is enabled. Unrepaired sstables will be included for repair. Repaired sstables will be skipped. The incremental repair states will be updated after repair. 'full': The incremental repair logic is enabled. Both repaired and unrepaired sstables will be included for repair. The incremental repair states will be updated after repair. 'disabled': The incremental repair logic is disabled completely. The incremental repair states, e.g., repaired_at in sstables and sstables_repaired_at in the system.tablets table, will not be updated after repair. When the option is not provided, it defaults to 'incremental'.
+
+	*/
+	IncrementalMode *string
 	/*Ks
 	  Keyspace name to repair
 
@@ -163,6 +168,17 @@ func (o *StorageServiceTabletsRepairPostParams) SetHostsFilter(hostsFilter *stri
 	o.HostsFilter = hostsFilter
 }
 
+// WithIncrementalMode adds the incrementalMode to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) WithIncrementalMode(incrementalMode *string) *StorageServiceTabletsRepairPostParams {
+	o.SetIncrementalMode(incrementalMode)
+	return o
+}
+
+// SetIncrementalMode adds the incrementalMode to the storage service tablets repair post params
+func (o *StorageServiceTabletsRepairPostParams) SetIncrementalMode(incrementalMode *string) {
+	o.IncrementalMode = incrementalMode
+}
+
 // WithKs adds the ks to the storage service tablets repair post params
 func (o *StorageServiceTabletsRepairPostParams) WithKs(ks string) *StorageServiceTabletsRepairPostParams {
 	o.SetKs(ks)
@@ -246,6 +262,22 @@ func (o *StorageServiceTabletsRepairPostParams) WriteToRequest(r runtime.ClientR
 		qHostsFilter := qrHostsFilter
 		if qHostsFilter != "" {
 			if err := r.SetQueryParam("hosts_filter", qHostsFilter); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.IncrementalMode != nil {
+
+		// query param incremental_mode
+		var qrIncrementalMode string
+		if o.IncrementalMode != nil {
+			qrIncrementalMode = *o.IncrementalMode
+		}
+		qIncrementalMode := qrIncrementalMode
+		if qIncrementalMode != "" {
+			if err := r.SetQueryParam("incremental_mode", qIncrementalMode); err != nil {
 				return err
 			}
 		}

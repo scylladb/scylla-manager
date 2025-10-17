@@ -12749,6 +12749,13 @@
             "required": false,
             "type": "string",
             "description": "Set true to wait for the repair to complete. Set false to skip waiting for the repair to complete. When the option is not provided, it defaults to false."
+          },
+          {
+            "name": "incremental_mode",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Set the incremental repair mode. Can be 'disabled', 'incremental', or 'full'. 'incremental': The incremental repair logic is enabled. Unrepaired sstables will be included for repair. Repaired sstables will be skipped. The incremental repair states will be updated after repair. 'full': The incremental repair logic is enabled. Both repaired and unrepaired sstables will be included for repair. The incremental repair states will be updated after repair. 'disabled': The incremental repair logic is disabled completely. The incremental repair states, e.g., repaired_at in sstables and sstables_repaired_at in the system.tablets table, will not be updated after repair. When the option is not provided, it defaults to 'incremental'."
           }
         ],
         "responses": {
