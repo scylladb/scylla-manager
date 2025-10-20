@@ -27,12 +27,12 @@ type Runner struct {
 }
 
 func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	p := taskProperties{}
-	if err := json.Unmarshal(properties, &p); err != nil {
-		return util.ErrValidate(err)
+	m, err := ModeFromProperties(properties)
+	if err != nil {
+		return err
 	}
 
-	switch p.Mode {
+	switch m {
 	case CQLMode:
 		return r.cql.Run(ctx, clusterID, taskID, runID, properties)
 	case RESTMode:
@@ -42,6 +42,15 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 	default:
 		return errors.Errorf("unspecified mode")
 	}
+}
+
+// ModeFromProperties return Mode of healthcheck task based on its properties.
+func ModeFromProperties(properties json.RawMessage) (Mode, error) {
+	p := taskProperties{}
+	if err := json.Unmarshal(properties, &p); err != nil {
+		return "", util.ErrValidate(err)
+	}
+	return p.Mode, nil
 }
 
 type runner struct {

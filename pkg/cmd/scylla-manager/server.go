@@ -352,8 +352,10 @@ func (s *server) startServices(ctx context.Context) error {
 	if err := s.clusterSvc.Init(ctx); err != nil {
 		return errors.Wrap(err, "cluster service")
 	}
+	// Not being able to update healthcheck tasks is not critical,
+	// so we shouldn't fail service start because of that.
 	if err := s.schedSvc.UpdateHealthcheckTasks(ctx, s.config.Healthcheck); err != nil {
-		return errors.Wrap(err, "update healthcheck tasks")
+		s.logger.Error(ctx, "Failed to update healthcheck tasks", "error", err)
 	}
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
 		return errors.Wrap(err, "schedule service")
