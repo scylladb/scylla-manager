@@ -5,6 +5,7 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	stdErr "errors"
 	"sync"
 	"time"
 	"unsafe"
@@ -125,13 +126,20 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 
 // UpdateHealthcheckTasks should be called on start before LoadTasks.
 // It updates healthcheck tasks cron schedule to match the one specified in the config.
+// It tries to process all tasks before returning any error.
 func (s *Service) UpdateHealthcheckTasks(ctx context.Context, cfg healthcheck.Config) error {
+	var iterErr error
 	err := s.forEachTask(func(t *Task) error {
-		if t.Type != HealthCheckTask {
+		if t.Type != HealthCheckTask || t.Deleted {
+			return nil
+		}
+		m, err := healthcheck.ModeFromProperties(t.Properties)
+		if err != nil {
+			iterErr = stdErr.Join(iterErr, errors.Wrapf(err, "task %s: get healthcheck task mode", t.ID))
 			return nil
 		}
 		var expected schedules.Cron
-		switch healthcheck.Mode(t.Name) {
+		switch m {
 		case healthcheck.CQLMode:
 			expected = cfg.CQLPingCron
 		case healthcheck.RESTMode:
@@ -139,16 +147,20 @@ func (s *Service) UpdateHealthcheckTasks(ctx context.Context, cfg healthcheck.Co
 		case healthcheck.AlternatorMode:
 			expected = cfg.AlternatorPingCron
 		default:
-			panic("unknown healthcheck mode: " + t.Name)
+			iterErr = stdErr.Join(iterErr, errors.Errorf("task %s: unknown healthcheck mode: %s", t.ID, m))
+			return nil
 		}
 		if expected.CronSpecification != t.Sched.Cron.CronSpecification {
 			s.logger.Info(ctx, "Updating healthcheck task cron schedule", "mode", t.Name, "task ID", t.ID)
 			t.Sched.Cron = expected
-			return s.PutTask(ctx, t)
+			if err := s.PutTask(ctx, t); err != nil {
+				iterErr = stdErr.Join(iterErr, errors.Wrapf(err, "task %s: put task", t.ID))
+				return nil
+			}
 		}
 		return nil
 	})
-	return errors.Wrap(err, "iterate over tasks")
+	return stdErr.Join(iterErr, errors.Wrap(err, "iterate over tasks"))
 }
 
 // LoadTasks should be called on start it loads and schedules task from database.

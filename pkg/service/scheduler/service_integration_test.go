@@ -341,6 +341,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 				Sched: scheduler.Schedule{
 					Cron: healthcheck.DefaultConfig().CQLPingCron,
 				},
+				Properties: json.RawMessage(`{"mode": "cql"}`),
 			},
 			{
 				ClusterID: h.clusterID,
@@ -350,6 +351,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 				Sched: scheduler.Schedule{
 					Cron: healthcheck.DefaultConfig().RESTPingCron,
 				},
+				Properties: json.RawMessage(`{"mode": "rest"}`),
 			},
 			{
 				ClusterID: h.clusterID,
@@ -359,6 +361,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 				Sched: scheduler.Schedule{
 					Cron: healthcheck.DefaultConfig().AlternatorPingCron,
 				},
+				Properties: json.RawMessage(`{"mode": "alternator"}`),
 			},
 		}
 		for _, task := range tasks {
@@ -407,6 +410,17 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			if nameToSpec[task.Name] != task.Sched.Cron.Spec {
 				t.Fatalf("Healthcheck task %s cron spec %q: expected %q", task.Name, task.Sched.Cron.Spec, nameToSpec[task.Name])
 			}
+		}
+
+		// Checks for #4599
+		Print("When: delete one healthcheck task")
+		if err := h.service.DeleteTask(ctx, tasks[0]); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: update healthcheck tasks succeeds")
+		if err := h.service.UpdateHealthcheckTasks(ctx, cfg); err != nil {
+			t.Fatal(err)
 		}
 	})
 
