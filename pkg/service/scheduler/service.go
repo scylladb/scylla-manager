@@ -438,13 +438,13 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 					"task", ti,
 					"status", r.Status,
 					"cause", r.Cause,
-					"duration", r.EndTime.Sub(r.StartTime),
+					"duration", r.Duration(),
 				)
 			} else {
 				logger.Info(runCtx, "Run ended",
 					"task", ti,
 					"status", r.Status,
-					"duration", r.EndTime.Sub(r.StartTime),
+					"duration", r.Duration(),
 				)
 			}
 		}()
