@@ -366,6 +366,15 @@ type Run struct {
 	EndTime   *time.Time `json:"end_time,omitempty"`
 }
 
+// Duration checks if both EndTime and StartTime are set correctly and returns
+// their difference formatted as a string. Otherwise, it returns "unknown" duration.
+func (r Run) Duration() string {
+	if r.EndTime != nil && !r.EndTime.IsZero() && !r.StartTime.IsZero() {
+		return r.EndTime.Sub(r.StartTime).String()
+	}
+	return "unknown"
+}
+
 func newRunFromTaskInfo(ti taskInfo) *Run {
 	var id uuid.UUID
 	if ti.TaskType == HealthCheckTask {
