@@ -30,7 +30,8 @@ type ConfigCacher interface {
 	AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]string, error)
 
 	// ForceUpdateCluster updates single cluster config in cache and does it outside the background process.
-	ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID) bool
+	// Hosts argument allows for restricting the update to specific hosts. Empty hosts results in full update.
+	ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID, hosts ...string) bool
 
 	// RemoveCluster removes cluster data of a given uuid from cache.
 	RemoveCluster(clusterID uuid.UUID)
@@ -147,7 +148,8 @@ func (svc *Service) RemoveCluster(clusterID uuid.UUID) {
 }
 
 // ForceUpdateCluster updates single cluster config in cache and does it outside the background process.
-func (svc *Service) ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID) bool {
+// Hosts argument allows for restricting the update to specific hosts. Empty hosts results in full update.
+func (svc *Service) ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID, hosts ...string) bool {
 	logger := svc.logger.Named("Force update cluster").With("cluster", clusterID)
 
 	c, err := svc.clusterSvc.GetCluster(ctx, clusterID.String())
@@ -156,7 +158,7 @@ func (svc *Service) ForceUpdateCluster(ctx context.Context, clusterID uuid.UUID)
 		return false
 	}
 
-	return svc.updateSingle(ctx, c)
+	return svc.updateSingle(ctx, c, hosts...)
 }
 
 // AvailableHosts returns list of hosts of given cluster that keep their configuration in cache.
@@ -182,7 +184,7 @@ func (svc *Service) AvailableHosts(ctx context.Context, clusterID uuid.UUID) ([]
 	return availableHosts, nil
 }
 
-func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
+func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster, hosts ...string) bool {
 	logger := svc.logger.Named("Cluster config update").With("cluster", c.ID)
 
 	clusterConfig := &sync.Map{}
@@ -198,11 +200,12 @@ func (svc *Service) updateSingle(ctx context.Context, c *cluster.Cluster) bool {
 		}
 	}()
 
-	// Hosts that are going to be asked about the configuration are exactly the same as
-	// the ones used by the scylla client.
+	// In case of empty hosts, use the ones discovered by scylla client
+	if len(hosts) == 0 {
+		hosts = client.Config().Hosts
+	}
 	hostsWg := sync.WaitGroup{}
-
-	for _, host := range client.Config().Hosts {
+	for _, host := range hosts {
 		hostsWg.Add(1)
 		hostKey := host
 
