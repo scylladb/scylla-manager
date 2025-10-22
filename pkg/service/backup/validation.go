@@ -149,7 +149,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 		}
 	}
 
-	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID); !ok {
+	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID, target.liveNodes.Hosts()...); !ok {
 		return errors.New("failed to force update cluster config cache")
 	}
 	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
