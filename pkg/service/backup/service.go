@@ -301,7 +301,7 @@ func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Cl
 }
 
 func (s *Service) validateHostNativeBackupSupport(ctx context.Context, clusterID uuid.UUID, liveNodes scyllaclient.NodeStatusInfoSlice, p taskProperties) error {
-	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID); !ok {
+	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID, liveNodes.Hosts()...); !ok {
 		return errors.New("failed to force update cluster config cache")
 	}
 	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
@@ -703,7 +703,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
-	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID); !ok {
+	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID, liveNodes.Hosts()...); !ok {
 		return errors.New("failed to force update cluster config cache")
 	}
 	rawNodeConfig, err := s.configCache.ReadAll(clusterID)
