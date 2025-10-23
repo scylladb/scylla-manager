@@ -84,15 +84,3 @@ dc-mapping: |
 
   Only works with tables restoration (--restore-tables=true). 
   Note: Only DCs that are provided in mappings will be restored.
-
-method: |
-  Specify the API used for restoring files:
-  - 'auto': Use the native API when possible, otherwise use the Rclone API.
-  - 'native': Scylla server streams directly from backup location (supports only S3 provider).
-  - 'rclone': Scylla Manager Agent downloads from backup location and calls Scylla server for streaming afterwards.
-  
-  Both methods require configuring the Scylla Manager Agent in 'scylla-manager-agent.yaml'.
-  The native API also requires 'object_storage_endpoints' to be configured in 'scylla.yaml' (See https://docs.scylladb.com/manual/stable/operating-scylla/admin.html#object-storage-configuration).
-  
-  '--rate-limit', '--transfers', '--unpin-agent-cpu' flags do not take effect when using '--method=native',
-  as the streaming performance is controlled by the Scylla server.
