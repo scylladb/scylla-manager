@@ -761,11 +761,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data")
-	if nativeRestore {
-		validateState(h.dstCluster, "disabled", false, 10, 99, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
-	} else {
-		validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, 1)
-	}
+	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, 1)
 
 	Print("Pause restore")
 	restoreCancel()
@@ -780,11 +776,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during pause")
-	if nativeRestore {
-		validateState(h.dstCluster, "disabled", true, 10, 99, pinnedCPU, 1)
-	} else {
-		validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU, 1)
-	}
+	validateState(h.dstCluster, "disabled", true, transfers0, 0, pinnedCPU, 1)
 
 	Print("Change transfers and rate limit during pause")
 	setTransfersAndRateLimitAndPinnedCPU(h.dstCluster, 9, 55, false, 2)
@@ -806,11 +798,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state during restore data after pause")
-	if nativeRestore {
-		validateState(h.dstCluster, "disabled", false, 9, 55, unpinnedCPU, scyllaclient.ManagerTaskTTLSeconds)
-	} else {
-		validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, 2)
-	}
+	validateState(h.dstCluster, "disabled", false, transfers0, 0, unpinnedCPU, 2)
 
 	Print("Release LAS")
 	close(hangLAS)
@@ -822,11 +810,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	Print("Validate state after restore success")
-	if nativeRestore {
-		validateState(h.dstCluster, "repair", true, 9, 55, pinnedCPU, 2)
-	} else {
-		validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU, 2)
-	}
+	validateState(h.dstCluster, "repair", true, transfers0, 0, pinnedCPU, 2)
 
 	Print("Validate table contents")
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
@@ -1356,47 +1340,17 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 		nativeAPIPath = "/storage_service/restore"
 	)
 
-	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
-	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	type testCase struct {
 		method           restore.Method
 		blockedPath      string
 		ensuredPath      string
 		getTargetSuccess bool
 	}
-	var testCases []testCase
-	// As currently scylla can't handle ipv6 object storage endpoints,
-	// we don't configure them for ipv6 test env and don't expect them to work.
-	switch {
-	case nativeRestoreSupport && !IsIPV6Network():
-		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
-	case nativeRestoreSupport && IsIPV6Network():
-		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, getTargetSuccess: false},
-			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
-	default:
-		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, getTargetSuccess: false},
-			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
+	testCases := []testCase{
+		{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		{method: restore.MethodNative, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 	}
 
 	for _, tc := range testCases {
