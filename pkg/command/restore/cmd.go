@@ -38,7 +38,6 @@ type command struct {
 	dryRun          bool
 	showTables      bool
 	dcMapping       map[string]string
-	method          string
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -93,7 +92,6 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 	w.Unwrap().StringToStringVar(&cmd.dcMapping, "dc-mapping", nil, "")
-	w.Unwrap().StringVar(&cmd.method, "method", "rclone", "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -191,10 +189,6 @@ func (cmd *command) run(args []string) error {
 			return wrapper("dc-mapping")
 		}
 		props["dc_mapping"] = cmd.dcMapping
-		ok = true
-	}
-	if cmd.Flag("method").Changed {
-		props["method"] = cmd.method
 		ok = true
 	}
 

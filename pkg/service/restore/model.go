@@ -110,6 +110,7 @@ func parseTarget(properties json.RawMessage) (Target, error) {
 	if err := json.Unmarshal(properties, &t); err != nil {
 		return Target{}, err
 	}
+	t.Method = MethodRclone
 	return t, t.validateProperties()
 }
 
