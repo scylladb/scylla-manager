@@ -1,16 +1,16 @@
 RELEASE      := 0.$(shell date +%Y%m%d).$(shell git describe --always)
-VERSION      ?=3.7.0-dev
+VERSION=3.8.0-dev
 PUBLISH      := 0
 
 ifdef $$VERSION
-VERSION := $$VERSION
+VERSION=3.8.0-dev
 endif
 
 ifeq ($(PUBLISH),0)
 publish = --skip=publish
-VERSION_NAME := $(VERSION)-$(RELEASE)
+VERSION=3.8.0-dev
 else
-VERSION_NAME := v$(VERSION)
+VERSION=3.8.0-dev
 endif
 
 $(shell echo $(VERSION) > .version)
