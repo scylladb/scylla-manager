@@ -2803,8 +2803,8 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 				t.Fatal(errors.Wrap(err, "GetSchema"))
 			}
 			// Validate always existing CQL schema
-			slices.SortFunc(cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
-			slices.SortFunc(tc.cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.Keyspace+a.Name, b.Keyspace+b.Name) })
+			slices.SortFunc(cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.CQLStmt, b.CQLStmt) })
+			slices.SortFunc(tc.cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.CQLStmt, b.CQLStmt) })
 			Print("Then: GetSchema returned correct cqlSchema")
 			if diff := cmp.Diff(cqlSchema, tc.cqlSchema); diff != "" {
 				t.Fatalf("Schema mismatch\n%s", diff)
