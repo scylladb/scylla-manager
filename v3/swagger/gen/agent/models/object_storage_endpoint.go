@@ -27,6 +27,9 @@ type ObjectStorageEndpoint struct {
 	// port
 	Port int64 `json:"port,omitempty"`
 
+	// type
+	Type string `json:"type,omitempty"`
+
 	// use https
 	UseHTTPS bool `json:"use_https,omitempty"`
 }
