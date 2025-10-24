@@ -1748,7 +1748,11 @@
             "gcs": {
               "type": "object",
               "x-nullable": false,
-              "properties": {}
+              "properties": {
+                "endpoint": {
+                  "type": "string"
+                }
+              }
             },
             "azure": {
               "type": "object",
@@ -1797,6 +1801,9 @@
           "type": "string"
         },
         "iam_role_arn": {
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         }
       }
