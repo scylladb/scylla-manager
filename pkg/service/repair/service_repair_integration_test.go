@@ -2337,6 +2337,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 		WriteData(t, clusterSession, ks, 1, baseTable, randomTable)
 		// Executing LWT statement creates LWT table
 		ExecStmt(t, clusterSession, fmt.Sprintf("UPDATE %q.%q SET data = null WHERE id = 0 IF data != null", ks, baseTable))
+		// Make sure that all nodes picked up the changes
+		for _, host := range ManagedClusterHosts() {
+			if err := h.Client.RaftReadBarrier(ctx, host, ""); err != nil {
+				t.Fatal(err)
+			}
+		}
 		tables, err := h.Client.Tables(ctx, ks)
 		if err != nil {
 			t.Fatal(err)
