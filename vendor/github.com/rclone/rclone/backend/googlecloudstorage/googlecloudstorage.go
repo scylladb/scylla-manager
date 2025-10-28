@@ -44,6 +44,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 
 	// NOTE: This API is deprecated
 	storage "google.golang.org/api/storage/v1"
@@ -93,6 +94,9 @@ func init() {
 			}
 		},
 		Options: append(oauthutil.SharedOptions, []fs.Option{{
+			Name: "endpoint",
+			Help: "Endpoint for GS API.\nRequired when using an GS clone.",
+		}, {
 			Name: "project_number",
 			Help: "Project number.\nOptional - needed only for list/create/delete buckets - see your developer console.",
 		}, {
@@ -302,6 +306,7 @@ If bucket doesn't exists, error will be returned.'`,
 
 // Options defines the configuration for this backend
 type Options struct {
+	Endpoint                  string               `config:"endpoint"`
 	ProjectNumber             string               `config:"project_number"`
 	ServiceAccountFile        string               `config:"service_account_file"`
 	ServiceAccountCredentials string               `config:"service_account_credentials"`
@@ -499,7 +504,11 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, e
 
 	// Create a new authorized Drive client.
 	f.client = oAuthClient
-	f.svc, err = storage.New(f.client)
+	clientOpts := []option.ClientOption{option.WithHTTPClient(f.client)}
+	if opt.Endpoint != "" {
+		clientOpts = append(clientOpts, option.WithEndpoint(opt.Endpoint+"/storage/v1/"))
+	}
+	f.svc, err = storage.NewService(ctx, clientOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create Google Cloud Storage client")
 	}
@@ -556,7 +565,7 @@ type listFn func(remote string, object *storage.Object, isDirectory bool) error
 //
 // dir is the starting directory, "" for root
 //
-// Set recurse to read sub directories
+// # Set recurse to read sub directories
 //
 // The remote has prefix removed from it and if addBucket is set
 // then it adds the bucket to the start.
@@ -774,7 +783,7 @@ func (f *Fs) ListR(ctx context.Context, dir string, callback fs.ListRCallback) (
 
 // Put the object into the bucket
 //
-// Copy the reader in to the new object which is returned
+// # Copy the reader in to the new object which is returned
 //
 // The new object may have been created if an error is returned
 func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
@@ -871,9 +880,9 @@ func (f *Fs) Precision() time.Duration {
 
 // Copy src to this remote using server-side copy operations.
 //
-// This is stored with the remote path given
+// # This is stored with the remote path given
 //
-// It returns the destination Object and a possible error
+// # It returns the destination Object and a possible error
 //
 // Will only be called if src.Fs().Name() == f.Name()
 //
