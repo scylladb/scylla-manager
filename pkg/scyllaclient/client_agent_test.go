@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
@@ -348,239 +349,442 @@ func TestSupportsSafeDescribeSchemaWithInternals(t *testing.T) {
 	}
 }
 
-func TestEqualObjectStorageEndpoints(t *testing.T) {
+func TestScyllaObjectStorageEndpoint(t *testing.T) {
 	testCases := []struct {
-		name   string
-		rclone models.NodeInfoRcloneBackendConfigS3
-		scylla models.ObjectStorageEndpoint
-		equal  bool
+		name     string
+		provider backupspec.Provider
+		rclone   models.NodeInfoRcloneBackendConfig
+		scylla   []models.ObjectStorageEndpoint
+		endpoint string
 	}{
 		{
-			name: "simple ipv4",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://192.168.200.99:9000",
-				Region:   "mock",
+			name:     "simple ipv4",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99:9000",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "192.168.200.99",
 		},
 		{
-			name: "ipv4 no schema no port",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "192.168.200.99",
-				Region:   "mock",
+			name:     "ipv4 no schema no port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "192.168.200.99",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+				},
 			},
-			equal: true,
+			endpoint: "192.168.200.99",
 		},
 		{
-			name: "simple ipv6",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://[2001:0DB9:200::99]:9000",
-				Region:   "mock",
+			name:     "simple ipv6",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://[2001:0DB9:200::99]:9000",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "2001:0DB9:200::99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "2001:0DB9:200::99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "2001:0DB9:200::99",
 		},
 		{
-			name: "ipv6 no schema no port",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "2001:0DB9:200::99",
-				Region:   "mock",
+			name:     "ipv6 no schema no port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "2001:0DB9:200::99",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "2001:0DB9:200::99",
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "2001:0DB9:200::99",
+				},
 			},
-			equal: true,
+			endpoint: "2001:0DB9:200::99",
 		},
 		{
-			name: "simple dns",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://s3.us-east-1.amazonaws.com:443",
-				Region:   "mock",
+			name:     "simple dns",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://s3.us-east-1.amazonaws.com:443",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "s3.us-east-1.amazonaws.com",
-				Port:       443,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "s3.us-east-1.amazonaws.com",
+					Port:       443,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "s3.us-east-1.amazonaws.com",
 		},
 		{
-			name: "dns no schema no port",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "s3.us-east-1.amazonaws.com",
-				Region:   "mock",
+			name:     "dns no schema no port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "s3.us-east-1.amazonaws.com",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "s3.us-east-1.amazonaws.com",
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "s3.us-east-1.amazonaws.com",
+				},
 			},
-			equal: true,
+			endpoint: "s3.us-east-1.amazonaws.com",
 		},
 		{
-			name: "default dns",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "",
-				Region:   "us-east-1",
+			name:     "default dns",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "",
+					Region:   "us-east-1",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "s3.us-east-1.amazonaws.com",
-				Port:       443,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "s3.us-east-1.amazonaws.com",
+					Port:       443,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "s3.us-east-1.amazonaws.com",
 		},
 		{
-			name: "ipv6 with brackets",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://[2001:0DB9:200::99]:9000",
-				Region:   "mock",
+			name:     "ipv6 with brackets",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://[2001:0DB9:200::99]:9000",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "[2001:0DB9:200::99]",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "[2001:0DB9:200::99]",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "[2001:0DB9:200::99]",
 		},
 		{
-			name: "ipv6 with mixed brackets no schema no port",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "2001:0DB9:200::99",
-				Region:   "mock",
+			name:     "ipv6 with mixed brackets no schema no port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "2001:0DB9:200::99",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "[2001:0DB9:200::99]",
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "[2001:0DB9:200::99]",
+				},
 			},
-			equal: true,
+			endpoint: "[2001:0DB9:200::99]",
 		},
 		{
-			name: "missing rclone port",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://192.168.200.99",
-				Region:   "mock",
+			name:     "missing rclone port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "192.168.200.99",
 		},
 		{
-			name: "missing rclone scheme",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "192.168.200.99:9000",
-				Region:   "mock",
+			name:     "missing rclone scheme",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "192.168.200.99:9000",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: true,
+			endpoint: "192.168.200.99",
 		},
 		{
-			name: "different name",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://192.168.200.100:9000",
-				Region:   "mock",
+			name:     "different name",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.100:9000",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: false,
+			endpoint: "",
 		},
 		{
-			name: "different port",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "https://192.168.200.99:9001",
-				Region:   "mock",
+			name:     "different port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99:9001",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: false,
+			endpoint: "",
 		},
 		{
-			name: "different scheme",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "http://192.168.200.99:9000",
-				Region:   "mock",
+			name:     "different scheme",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "http://192.168.200.99:9000",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: false,
+			endpoint: "",
 		},
 		{
-			name: "all different",
-			rclone: models.NodeInfoRcloneBackendConfigS3{
-				Endpoint: "http://192.168.200.100:9001",
-				Region:   "mock",
+			name:     "all different",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "http://192.168.200.100:9001",
+					Region:   "mock",
+				},
 			},
-			scylla: models.ObjectStorageEndpoint{
-				AwsRegion:  "mock",
-				IamRoleArn: "mock",
-				Name:       "192.168.200.99",
-				Port:       9000,
-				UseHTTPS:   true,
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
 			},
-			equal: false,
+			endpoint: "",
+		},
+		{
+			name:     "default gs",
+			provider: backupspec.GCS,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Type: "gs",
+					Name: "default",
+				},
+			},
+			endpoint: "default",
+		},
+		{
+			name:     "custom gs",
+			provider: backupspec.GCS,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{
+					Endpoint: "https://127.0.0.1:4443",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Type: "gs",
+					Name: "https://127.0.0.1:4443",
+				},
+			},
+			endpoint: "https://127.0.0.1:4443",
+		},
+		{
+			name:     "different endpoint gs",
+			provider: backupspec.GCS,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{
+					Endpoint: "https://127.0.0.1:4443",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Type: "gs",
+					Name: "https://127.0.0.2:4443",
+				},
+			},
+			endpoint: "",
+		},
+		{
+			name:     "multiple endpoints s3",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.100:9000",
+					Region:   "mock",
+				},
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{
+					Endpoint: "https://127.0.0.1:4443",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.99",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
+				{
+					Type: "gs",
+					Name: "http://192.168.200.100:9000",
+				},
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "192.168.200.100",
+					Port:       9000,
+					UseHTTPS:   true,
+				},
+			},
+			endpoint: "192.168.200.100",
+		},
+		{
+			name:     "multiple endpoints gs",
+			provider: backupspec.GCS,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.100:9000",
+					Region:   "mock",
+				},
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{
+					Endpoint: "https://127.0.0.1:4443",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Type: "gs",
+					Name: "default",
+				},
+				{
+					AwsRegion:  "mock",
+					IamRoleArn: "mock",
+					Name:       "127.0.0.1",
+					Port:       4443,
+					UseHTTPS:   true,
+				},
+				{
+					Type: "gs",
+					Name: "https://127.0.0.1:4443",
+				},
+			},
+			endpoint: "https://127.0.0.1:4443",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			ok := scyllaclient.EqualObjectStorageEndpoints(tc.rclone, tc.scylla)
-			if ok != tc.equal {
-				t.Fatalf("Expected %v, got %v", tc.equal, ok)
+			ose := make(map[string]models.ObjectStorageEndpoint)
+			for _, e := range tc.scylla {
+				ose[e.Name] = e
+			}
+			ni := scyllaclient.NodeInfo{
+				RcloneBackendConfig:    tc.rclone,
+				ObjectStorageEndpoints: ose,
+			}
+			endpoint, err := ni.ScyllaObjectStorageEndpoint(tc.provider)
+			if tc.endpoint == "" {
+				if err == nil {
+					t.Fatalf("Expected no matching endpoint and error, got: %v, %v", endpoint, err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("Expected no error, got: %v", err)
+				}
+				if tc.endpoint != endpoint {
+					t.Fatalf("Expected matching endpoint %q, got %q", tc.endpoint, endpoint)
+				}
 			}
 		})
 	}
