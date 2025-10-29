@@ -72,6 +72,9 @@ func (h *nodeInfoHandler) rcloneProviderConfig(info *scyllaclient.NodeInfo) {
 			Endpoint: h.config.S3.Endpoint,
 			Region:   h.config.S3.Region,
 		},
+		Gcs: models.NodeInfoRcloneBackendConfigGcs{
+			Endpoint: h.config.GCS.Endpoint,
+		},
 	}
 }
 
