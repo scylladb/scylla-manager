@@ -21,7 +21,7 @@ const (
 	scyllaConfigFile = "/etc/scylla.d/cpuset.conf"
 	// cpuSetPattern matches the configuration line in the scyllaConfigFile ex.
 	// CPUSET="--cpuset 0 --smp 1".
-	cpuSetPattern = `^\s*CPUSET=\s*\"(?:\s*--cpuset(?:\s*|=)(?P<cpuset>\d+(?:[-,]\d+)*))?(?:\s*--smp(?:\s*|=)(?P<smp>\d+))?"`
+	cpuSetPattern = `^\s*CPUSET=\s*\"(?:\s*--cpuset(?:\s*|=)(?P<cpuset>\d+(?:[-,]\d+)*))?(?:\s*--smp(?:\s*|=)(?P<smp>\d+))?\s*"`
 )
 
 // ErrNoCPUSetConfig is returned in presence of an empty cpuset.conf file.
