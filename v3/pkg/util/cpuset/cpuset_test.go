@@ -57,6 +57,21 @@ func TestCpuSetPattern(t *testing.T) {
 			Line:  `CPUSET="--cpuset 0foo1bar"`,
 			Match: false,
 		},
+		{
+			Name:  "trailing space (#4627)",
+			Line:  `CPUSET="--cpuset 0-1 "`,
+			Match: true,
+		},
+		{
+			Name:  "many spaces cpuset",
+			Line:  `      CPUSET=     "     --cpuset 0-10,15,17-20    "   `,
+			Match: true,
+		},
+		{
+			Name:  "many spaces smp",
+			Line:  `      CPUSET=     "     --smp=1    "   `,
+			Match: true,
+		},
 	}
 
 	for i := range table {
