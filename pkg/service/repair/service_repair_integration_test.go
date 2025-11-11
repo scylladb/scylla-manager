@@ -180,6 +180,25 @@ func (h *repairTestHelper) assertDone(wait time.Duration) {
 	}, _interval, wait)
 }
 
+// Because of #4529, we have different expectations from tablet
+// and vnode repairs when operating on a cluster with subset of
+// nodes down. Vnode repair should finish just fine, but tablet
+// repair might get stuck on making read barrier, which requires
+// all nodes to be up. Because of that, in tablet repair, we need
+// to start the down node before expecting repair to finish.
+func (h *repairTestHelper) assertDonePartialTabletRepair(wait time.Duration, startNode func()) {
+	h.T.Helper()
+	err := WaitCondError(func() bool {
+		h.mu.RLock()
+		defer h.mu.RUnlock()
+		return h.done
+	}, _interval, shortWait)
+	if err != nil {
+		startNode()
+	}
+	h.assertDone(wait)
+}
+
 func (h *repairTestHelper) assertProgressSuccess() {
 	p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
 	if err != nil {
@@ -1099,7 +1118,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		var ignored = ManagedClusterHost()
 		h.stopNode(ignored)
-		defer h.startNode(ignored, globalNodeInfo)
+		startNodeFunc := sync.OnceFunc(func() {
+			h.startNode(ignored, globalNodeInfo)
+		})
+		defer startNodeFunc()
 
 		Print("When: run repair")
 		h.runRepair(ctx, singleUnit(map[string]any{
@@ -1107,7 +1129,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 		}))
 
 		Print("When: repair is done")
-		h.assertDone(longWait)
+		rd := scyllaclient.NewRingDescriber(ctx, h.Client)
+		if rd.IsTabletKeyspace("test_repair") {
+			h.assertDonePartialTabletRepair(shortWait, startNodeFunc)
+		} else {
+			h.assertDone(longWait)
+		}
 
 		Print("Then: ignored node is not repaired")
 		prog, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)
@@ -2191,7 +2218,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			down := h.GetHostsFromDC("dc2")[0]
 			h.stopNode(down)
-			defer h.startNode(down, globalNodeInfo)
+			startNodeFunc := sync.OnceFunc(func() {
+				h.startNode(down, globalNodeInfo)
+			})
+			defer startNodeFunc()
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -2199,7 +2229,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 				"keyspace": []string{tabletMultiDCKs, vnodeKs},
 				"dc":       []string{"dc1"},
 			})
-			h.assertDone(2 * longWait)
+
+			rd := scyllaclient.NewRingDescriber(ctx, h.Client)
+			if rd.IsTabletKeyspace("test_repair") {
+				h.assertDonePartialTabletRepair(longWait, startNodeFunc)
+			} else {
+				h.assertDone(2 * longWait)
+			}
 		})
 	})
 
