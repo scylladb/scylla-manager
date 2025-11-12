@@ -119,3 +119,5 @@ name: integration-tests-2024.1.21-IPV6-raftschema-nossl
         branches:
             - master
             - branch-**
+permissions:
+    contents: read

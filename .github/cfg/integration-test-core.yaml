@@ -10,6 +10,9 @@ concurrency:
   group: int-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   #   Right now both restore-tables and restore-schema tests take way longer than any other pkg tests.
   #   For this reason they are divided into two distinct jobs, so that the whole workflow can be executed faster.

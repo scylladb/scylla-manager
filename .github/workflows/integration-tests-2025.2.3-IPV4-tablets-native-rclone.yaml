@@ -121,3 +121,5 @@ name: integration-tests-2025.2.3-IPV4-tablets-native-rclone
         branches:
             - master
             - branch-**
+permissions:
+    contents: read
