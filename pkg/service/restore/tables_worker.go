@@ -228,6 +228,11 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			return errors.Errorf("unknown node IP %s, known node IPs %v", ip, slices.Collect(maps.Keys(w.nodeConfig)))
 		}
 
+		// Ensure that there are not leftovers from previous SM or manual restores in the upload dirs
+		if err := w.cleanHostUploadDirs(ctx, host); err != nil {
+			return errors.Wrapf(err, "clean host %s upload dirs", host)
+		}
+
 		if err := w.hostNativeRestoreSupport(ctx, hi.Host, nc.NodeInfo, w.target.Location); err == nil {
 			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
 			if err != nil {
