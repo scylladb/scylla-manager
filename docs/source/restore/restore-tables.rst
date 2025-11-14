@@ -4,7 +4,7 @@ Restore tables
 
 .. note:: Currently, ScyllaDB Manager does not support restoring content of `CDC log tables <https://docs.scylladb.com/manual/stable/features/cdc/cdc-log-table.html>`_.
 
-.. warning:: Restoring data related to *authentication* (``system_auth``) and *service levels* (``system_distributed.service_levels``) is not supported in ScyllaDB 6.0.
+.. warning:: Data related to *authentication* and *service levels* is a part of the backed up CQL schema file, but it is not automatically restored as a part of the restore tables procedure. To restore it, it needs to be fetched from the backup location and applied manually via CQL.
 
 .. warning::
     In case of Alternator clusters, when restore task is completed, restored LSIs are available, yet they are still in the process of applying view updates.
