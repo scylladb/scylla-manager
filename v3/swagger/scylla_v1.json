@@ -10169,6 +10169,26 @@
             "required": true,
             "type": "string",
             "description": "Name of a table to copy SSTables to"
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "enum": [
+              "all",
+              "dc",
+              "rack",
+              "node"
+            ],
+            "type": "string",
+            "description": "Defines the set of nodes to which mutations can be streamed"
+          },
+          {
+            "name": "primary_replica_only",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Load the sstables and stream to the primary replica node within the scope, if one is specified. If not, stream to the global primary replica."
           }
         ],
         "responses": {
