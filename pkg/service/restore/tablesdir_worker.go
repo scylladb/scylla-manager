@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs"
 	. "github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -97,11 +98,6 @@ func (w *tablesWorker) restoreSSTables(ctx context.Context, b batch, pr *RunProg
 
 // newRunProgress creates RunProgress by starting download to host's upload dir.
 func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch) (*RunProgress, error) {
-	uploadDir := UploadTableDir(b.Keyspace, b.Table, w.tableVersion[b.TableName])
-	if err := w.cleanUploadDir(ctx, hi.Host, uploadDir, nil); err != nil {
-		return nil, errors.Wrapf(err, "clean upload dir of host %s", hi.Host)
-	}
-
 	jobID, versionedDownloaded, err := w.startDownload(ctx, hi, b)
 	if err != nil {
 		return nil, err
@@ -190,6 +186,18 @@ func (w *tablesWorker) downloadVersioned(ctx context.Context, host, srcDir, dstD
 	}
 
 	return parallel.Run(len(versioned), parallel.NoLimit, f, notify)
+}
+
+func (w *tablesWorker) cleanHostUploadDirs(ctx context.Context, host string) error {
+	for _, u := range w.run.Units {
+		for _, t := range u.Tables {
+			uploadDir := UploadTableDir(u.Keyspace, t.Table, w.tableVersion[TableName{Keyspace: u.Keyspace, Table: t.Table}])
+			if err := w.cleanUploadDir(ctx, host, uploadDir, nil); err != nil && !errors.Is(err, fs.ErrorDirNotFound) {
+				return errors.Wrapf(err, "clean upload dir %s", uploadDir)
+			}
+		}
+	}
+	return nil
 }
 
 func (w *tablesWorker) cleanupRunProgress(ctx context.Context, pr *RunProgress) {

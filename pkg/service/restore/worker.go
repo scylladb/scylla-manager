@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
@@ -716,7 +717,7 @@ func (w *worker) cleanUploadDir(ctx context.Context, host, dir string, excluded 
 
 	for _, f := range toBeDeleted {
 		remotePath := path.Join(dir, f)
-		if err := w.client.RcloneDeleteFile(ctx, host, remotePath); err != nil {
+		if err := w.client.RcloneDeleteFile(ctx, host, remotePath); err != nil && !errors.Is(err, fs.ErrorObjectNotFound) {
 			return errors.Wrapf(err, "delete file: %s on host: %s", remotePath, host)
 		}
 	}
