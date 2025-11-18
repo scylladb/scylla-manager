@@ -1330,19 +1330,34 @@ func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefi
 	return resp.GetPayload(), nil
 }
 
+// ScyllaScope defines scope of some Scylla API calls.
+type ScyllaScope = string
+
+// Enum defining possible ScyllaScope values.
+const (
+	ScyllaScopeAll  ScyllaScope = "all"
+	ScyllaScopeDC   ScyllaScope = "dc"
+	ScyllaScopeRack ScyllaScope = "rack"
+	ScyllaScopeNode ScyllaScope = "node"
+)
+
 // ScyllaRestore schedules Scylla restore task and returns its ID.
 // tocComponents are a list of sstable.ComponentTOC of SSTables that should be restored.
 // This method does not work with sstables with sstable.IntegerID.
 // Note that prefix must be a relative path (without leading slash) to the bucket root.
-func (c *Client) ScyllaRestore(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table string, tocComponents []string) (string, error) {
+func (c *Client) ScyllaRestore(ctx context.Context, host, endpoint, bucket, prefix, keyspace, table string,
+	tocComponents []string, scope ScyllaScope, primaryReplicaOnly bool,
+) (string, error) {
 	resp, err := c.scyllaOps.StorageServiceRestorePost(&operations.StorageServiceRestorePostParams{
-		Context:  forceHost(ctx, host),
-		Endpoint: endpoint,
-		Bucket:   bucket,
-		Prefix:   prefix,
-		Keyspace: keyspace,
-		Table:    table,
-		Sstables: tocComponents,
+		Context:            forceHost(ctx, host),
+		Endpoint:           endpoint,
+		Bucket:             bucket,
+		Prefix:             prefix,
+		Keyspace:           keyspace,
+		Table:              table,
+		Sstables:           tocComponents,
+		Scope:              &scope,
+		PrimaryReplicaOnly: &primaryReplicaOnly,
 	})
 	if err != nil {
 		return "", err

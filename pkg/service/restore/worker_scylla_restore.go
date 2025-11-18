@@ -93,7 +93,7 @@ func (w *tablesWorker) nativeBatchRestore(ctx context.Context, host string, nc c
 		return errors.Wrap(err, "get Scylla object storage endpoint")
 	}
 
-	id, err := w.client.ScyllaRestore(ctx, host, endpoint, b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC())
+	id, err := w.client.ScyllaRestore(ctx, host, endpoint, b.Location.Path, prefix, b.Keyspace, b.Table, b.TOC(), scyllaclient.ScyllaScopeAll, true)
 	if err != nil {
 		return errors.Wrap(err, "restore")
 	}
