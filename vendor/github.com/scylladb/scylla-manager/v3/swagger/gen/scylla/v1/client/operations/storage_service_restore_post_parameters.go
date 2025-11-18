@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewStorageServiceRestorePostParams creates a new StorageServiceRestorePostParams object
@@ -81,6 +82,16 @@ type StorageServiceRestorePostParams struct {
 
 	*/
 	Prefix string
+	/*PrimaryReplicaOnly
+	  Load the sstables and stream to the primary replica node within the scope, if one is specified. If not, stream to the global primary replica.
+
+	*/
+	PrimaryReplicaOnly *bool
+	/*Scope
+	  Defines the set of nodes to which mutations can be streamed
+
+	*/
+	Scope *string
 	/*Sstables
 	  The list of the object keys of the TOC component of the SSTables to be restored
 
@@ -174,6 +185,28 @@ func (o *StorageServiceRestorePostParams) SetPrefix(prefix string) {
 	o.Prefix = prefix
 }
 
+// WithPrimaryReplicaOnly adds the primaryReplicaOnly to the storage service restore post params
+func (o *StorageServiceRestorePostParams) WithPrimaryReplicaOnly(primaryReplicaOnly *bool) *StorageServiceRestorePostParams {
+	o.SetPrimaryReplicaOnly(primaryReplicaOnly)
+	return o
+}
+
+// SetPrimaryReplicaOnly adds the primaryReplicaOnly to the storage service restore post params
+func (o *StorageServiceRestorePostParams) SetPrimaryReplicaOnly(primaryReplicaOnly *bool) {
+	o.PrimaryReplicaOnly = primaryReplicaOnly
+}
+
+// WithScope adds the scope to the storage service restore post params
+func (o *StorageServiceRestorePostParams) WithScope(scope *string) *StorageServiceRestorePostParams {
+	o.SetScope(scope)
+	return o
+}
+
+// SetScope adds the scope to the storage service restore post params
+func (o *StorageServiceRestorePostParams) SetScope(scope *string) {
+	o.Scope = scope
+}
+
 // WithSstables adds the sstables to the storage service restore post params
 func (o *StorageServiceRestorePostParams) WithSstables(sstables []string) *StorageServiceRestorePostParams {
 	o.SetSstables(sstables)
@@ -238,6 +271,38 @@ func (o *StorageServiceRestorePostParams) WriteToRequest(r runtime.ClientRequest
 		if err := r.SetQueryParam("prefix", qPrefix); err != nil {
 			return err
 		}
+	}
+
+	if o.PrimaryReplicaOnly != nil {
+
+		// query param primary_replica_only
+		var qrPrimaryReplicaOnly bool
+		if o.PrimaryReplicaOnly != nil {
+			qrPrimaryReplicaOnly = *o.PrimaryReplicaOnly
+		}
+		qPrimaryReplicaOnly := swag.FormatBool(qrPrimaryReplicaOnly)
+		if qPrimaryReplicaOnly != "" {
+			if err := r.SetQueryParam("primary_replica_only", qPrimaryReplicaOnly); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.Scope != nil {
+
+		// query param scope
+		var qrScope string
+		if o.Scope != nil {
+			qrScope = *o.Scope
+		}
+		qScope := qrScope
+		if qScope != "" {
+			if err := r.SetQueryParam("scope", qScope); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if o.Sstables != nil {
