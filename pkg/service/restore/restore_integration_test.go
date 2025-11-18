@@ -1367,10 +1367,15 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	}
 
 	type testCase struct {
-		method           restore.Method
-		blockedPath      string
-		ensuredPath      string
-		getTargetSuccess bool
+		method             restore.Method
+		blockedPath        string
+		ensuredPath        string
+		ensuredQueryParams map[string]string
+		getTargetSuccess   bool
+	}
+	nativeRestoreQueryParams := map[string]string{
+		"scope":                "all",
+		"primary_replica_only": "true",
 	}
 	var testCases []testCase
 	// As currently scylla can't handle ipv6 object storage endpoints,
@@ -1379,7 +1384,7 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	case nativeRestoreSupport && !IsIPV6Network():
 		testCases = []testCase{
 			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
+			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, ensuredQueryParams: nativeRestoreQueryParams, getTargetSuccess: true},
 			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
@@ -1410,6 +1415,11 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 			h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if strings.HasPrefix(req.URL.Path, tc.ensuredPath) {
 					encounteredEnsured.Store(true)
+					for k, v := range tc.ensuredQueryParams {
+						if got := req.URL.Query().Get(k); got != v {
+							t.Errorf("Expected query param %q to be %q, got %q", k, v, got)
+						}
+					}
 				}
 				if strings.HasPrefix(req.URL.Path, tc.blockedPath) {
 					encounteredBlocked.Store(true)
