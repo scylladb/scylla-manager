@@ -18,7 +18,7 @@ func NewUUIDMatcher(expected uuid.UUID) *UUIDMatcher {
 }
 
 // Matches returns whether v is a match.
-func (m UUIDMatcher) Matches(v interface{}) bool {
+func (m UUIDMatcher) Matches(v any) bool {
 	id, ok := v.(uuid.UUID)
 	if !ok {
 		return false

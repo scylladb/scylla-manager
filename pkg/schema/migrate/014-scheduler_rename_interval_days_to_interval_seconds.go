@@ -28,7 +28,7 @@ func adjustScheduleIntervalAfter014(_ context.Context, session gocqlx.Session, _
 		clusterID uuid.UUID
 		t         string
 		id        uuid.UUID
-		sched     map[string]interface{}
+		sched     map[string]any
 	)
 
 	iter := q.Iter()

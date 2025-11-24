@@ -32,7 +32,7 @@ func (i WeekdayTime) MarshalText() (text []byte, err error) {
 	m := int(i.Time.Minutes())
 	hh = m / 60
 	mm = m % 60
-	return []byte(fmt.Sprintf("%s%d:%02d", day, hh, mm)), nil
+	return fmt.Appendf(nil, "%s%d:%02d", day, hh, mm), nil
 }
 
 var (

@@ -254,7 +254,7 @@ type Task struct {
 	Labels     map[string]string `json:"labels"`
 	Enabled    bool              `json:"enabled,omitempty"`
 	Deleted    bool              `json:"deleted,omitempty"`
-	Sched      Schedule          `json:"schedule,omitempty"`
+	Sched      Schedule          `json:"schedule"`
 	Properties json.RawMessage   `json:"properties,omitempty"`
 	Tags       []string
 

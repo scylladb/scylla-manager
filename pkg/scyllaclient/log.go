@@ -25,7 +25,7 @@ func requestLogger(next http.RoundTripper, logger log.Logger) http.RoundTripper 
 }
 
 func logReqResp(logger log.Logger, elapsed time.Duration, req *http.Request, resp *http.Response) {
-	f := []interface{}{
+	f := []any{
 		"host", req.Host,
 		"method", req.Method,
 		"uri", req.URL.RequestURI(),

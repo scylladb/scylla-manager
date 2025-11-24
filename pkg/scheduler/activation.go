@@ -56,11 +56,11 @@ func (h activationHeap[_]) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (h *activationHeap[K]) Push(x interface{}) {
+func (h *activationHeap[K]) Push(x any) {
 	*h = append(*h, x.(Activation[K]))
 }
 
-func (h *activationHeap[_]) Pop() interface{} {
+func (h *activationHeap[_]) Pop() any {
 	old := *h
 	n := len(old)
 	item := old[n-1]

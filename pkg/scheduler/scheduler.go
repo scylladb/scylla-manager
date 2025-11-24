@@ -375,10 +375,7 @@ func (s *Scheduler[_]) Start(ctx context.Context) {
 
 func (s *Scheduler[K]) activateIn(a Activation[K]) time.Duration {
 	d := a.Sub(s.now())
-	if d < 0 {
-		d = 0
-	}
-	return d
+	return max(d, 0)
 }
 
 // sleep waits for one of the following events: context is cancelled,

@@ -34,7 +34,7 @@ func NewIntensityFromDeprecated(i float64) Intensity {
 type Target struct {
 	Units []Unit     `json:"units"`
 	DC    []string   `json:"dc"`
-	Host  netip.Addr `json:"host,omitempty"`
+	Host  netip.Addr `json:"host"`
 	// Down hosts excluded from repair by the --ignore-down-hosts flag.
 	IgnoreHosts         []netip.Addr    `json:"ignore_hosts,omitempty"`
 	FailFast            bool            `json:"fail_fast"`
@@ -178,10 +178,7 @@ func (p progress) PercentComplete() int {
 		return 0
 	}
 	percent := 100 * p.Success / p.TokenRanges
-	if percent > 100 {
-		percent = 100
-	}
-	return int(percent)
+	return int(min(percent, 100))
 }
 
 // HostProgress specifies repair progress of a host.

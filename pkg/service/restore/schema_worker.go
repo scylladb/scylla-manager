@@ -355,7 +355,7 @@ func (w *schemaWorker) getFileNamesMapping(sstables []string, sstableUUIDFormat 
 // parseCQLStatement splits composite CQL statement into a slice of single CQL statements.
 func parseCQLStatement(cql string) []string {
 	var out []string
-	for _, stmt := range strings.Split(cql, ";") {
+	for stmt := range strings.SplitSeq(cql, ";") {
 		stmt = strings.TrimSpace(stmt)
 		if stmt != "" {
 			out = append(out, stmt)

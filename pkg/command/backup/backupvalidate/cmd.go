@@ -100,7 +100,7 @@ func (cmd *command) run(args []string) error {
 		task = cmd.CreateTask(managerclient.ValidateBackupTask)
 	}
 
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 	if cmd.Flag("location").Changed {
 		props["location"] = cmd.location
 		ok = true
