@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager/v3
 
-go 1.23.2
+go 1.25.1
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0
