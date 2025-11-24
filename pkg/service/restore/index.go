@@ -27,7 +27,7 @@ func (w Workload) NativeRestoreSupport() error {
 	for _, rdw := range w.RemoteDir {
 		for _, sst := range rdw.SSTables {
 			if err := sst.NativeRestoreSupport(); err != nil {
-				return errors.Wrapf(err, "%s: %s.%s", rdw.NodeID, rdw.TableName.Keyspace, rdw.TableName.Table)
+				return errors.Wrapf(err, "%s: %s.%s", rdw.NodeID, rdw.Keyspace, rdw.Table)
 			}
 		}
 	}

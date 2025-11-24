@@ -189,7 +189,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := h.Services.Scheduler.PropertiesDecorator(newTask.Type)
+	d := h.Scheduler.PropertiesDecorator(newTask.Type)
 	p := newTask.Properties
 	if d != nil {
 		p, err = d(r.Context(), newTask.ClusterID, newTask.ID, newTask.Properties)
@@ -289,7 +289,7 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := h.Services.Scheduler.PropertiesDecorator(newTask.Type)
+	d := h.Scheduler.PropertiesDecorator(newTask.Type)
 	p := newTask.Properties
 	if d != nil {
 		p, err = d(r.Context(), newTask.ClusterID, newTask.ID, newTask.Properties)

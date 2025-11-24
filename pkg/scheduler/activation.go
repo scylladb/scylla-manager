@@ -49,7 +49,7 @@ var _ heap.Interface = (*activationHeap[uuid.UUID])(nil)
 func (h activationHeap[_]) Len() int { return len(h) }
 
 func (h activationHeap[_]) Less(i, j int) bool {
-	return h[i].Time.Before(h[j].Time)
+	return h[i].Before(h[j].Time)
 }
 
 func (h activationHeap[_]) Swap(i, j int) {
