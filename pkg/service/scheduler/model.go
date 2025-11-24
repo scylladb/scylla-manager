@@ -161,7 +161,7 @@ func (l location) MarshalText() (text []byte, err error) {
 	if l.Location == nil {
 		return nil, nil
 	}
-	return []byte(l.Location.String()), nil
+	return []byte(l.String()), nil
 }
 
 func (l *location) UnmarshalText(text []byte) error {

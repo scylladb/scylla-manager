@@ -39,7 +39,7 @@ func MakeTaskBase() TaskBase {
 
 func NewUpdateTaskBase() TaskBase {
 	base := MakeTaskBase()
-	base.Command.Args = cobra.MaximumNArgs(1)
+	base.Args = cobra.MaximumNArgs(1)
 	base.update = true
 	return base
 }

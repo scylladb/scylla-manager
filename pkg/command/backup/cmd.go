@@ -76,7 +76,7 @@ func newCommand(client *managerclient.Client, update bool) *command {
 }
 
 func (cmd *command) init() {
-	cmd.TaskBase.Init()
+	cmd.Init()
 
 	defer flag.MustSetUsages(&cmd.Command, res, "cluster", "location")
 	w := flag.Wrap(cmd.Flags())

@@ -880,7 +880,7 @@ func (s *Service) extendClusterConfigWithTLS(cluster *Cluster, ni *scyllaclient.
 			if err != nil {
 				return err
 			}
-			cfg.SslOpts.Config.Certificates = []tls.Certificate{keyPair}
+			cfg.SslOpts.Certificates = []tls.Certificate{keyPair}
 		}
 	}
 
