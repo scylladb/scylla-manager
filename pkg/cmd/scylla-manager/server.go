@@ -357,6 +357,12 @@ func (s *server) startServices(ctx context.Context) error {
 	if err := s.schedSvc.UpdateHealthcheckTasks(ctx, s.config.Healthcheck); err != nil {
 		s.logger.Error(ctx, "Failed to update healthcheck tasks", "error", err)
 	}
+
+	// Instead this could be called from the restapi
+	if err := s.clusterSvc.VerifySMAndAgentVersions(ctx); err != nil {
+		return errors.Wrapf(err, "cluster service")
+	}
+
 	if err := s.schedSvc.LoadTasks(ctx); err != nil {
 		return errors.Wrap(err, "schedule service")
 	}
