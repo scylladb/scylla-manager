@@ -35,7 +35,7 @@ type logEntry struct {
 	m AgentMetrics
 }
 
-func (le *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ interface{}) {
+func (le *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ any) {
 	le.m.RecordStatusCode(le.r.Method, le.r.URL.EscapedPath(), status)
 
 	ctx := le.r.Context()
@@ -54,6 +54,6 @@ func (le *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duratio
 	}
 }
 
-func (le *logEntry) Panic(v interface{}, stack []byte) {
+func (le *logEntry) Panic(v any, stack []byte) {
 	le.l.Error(le.r.Context(), "Panic", "panic", v, "stack", stack)
 }

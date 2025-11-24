@@ -50,10 +50,7 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 			return err
 		}
 		if peers > 0 {
-			rf := peers + 1
-			if rf > 3 {
-				rf = 3
-			}
+			rf := min(peers+1, 3)
 			c.Database.ReplicationFactor = rf
 		}
 	}

@@ -29,14 +29,12 @@ func StartProgress() func() {
 	oldSyncPrint := operations.SyncPrintf
 
 	// Intercept output from functions such as HashLister to stdout
-	operations.SyncPrintf = func(format string, a ...interface{}) {
+	operations.SyncPrintf = func(format string, a ...any) {
 		printProgress(fmt.Sprintf(format, a...))
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		progressInterval := defaultProgressInterval
 		ticker := time.NewTicker(progressInterval)
 		for {
@@ -52,7 +50,7 @@ func StartProgress() func() {
 				return
 			}
 		}
-	}()
+	})
 	return func() {
 		close(stopStats)
 		wg.Wait()

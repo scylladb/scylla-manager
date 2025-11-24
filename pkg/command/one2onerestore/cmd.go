@@ -215,7 +215,7 @@ func flagsToTaskProperties(cmd *command, task *models.Task) (updated bool, err e
 		},
 	}
 
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 
 	for _, p := range taskProperties {
 		if cmd.Flag(p.flagName).Changed {

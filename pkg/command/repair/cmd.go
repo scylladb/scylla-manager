@@ -120,7 +120,7 @@ func (cmd *command) run(args []string) error {
 		task = cmd.CreateTask(managerclient.RepairTask)
 	}
 
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 
 	if cmd.Flag("dc").Changed {
 		props["dc"] = cmd.dc

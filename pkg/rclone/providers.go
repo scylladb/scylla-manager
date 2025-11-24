@@ -96,7 +96,7 @@ func RegisterAzureProvider(opts AzureOptions) error {
 	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
 
-func registerProvider(name, backend string, options interface{}) error {
+func registerProvider(name, backend string, options any) error {
 	var (
 		m     = reflectx.NewMapper("yaml").FieldMap(reflect.ValueOf(options))
 		extra = []string{"name=" + name}

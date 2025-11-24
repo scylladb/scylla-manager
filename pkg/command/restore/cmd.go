@@ -127,7 +127,7 @@ func (cmd *command) run(args []string) error {
 	wrapper := func(flagName string) error {
 		return errors.Errorf("updating restore task's '--%s' flag is forbidden. For this purpose, please create a new task with given properties", flagName)
 	}
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 	if cmd.Flag("location").Changed {
 		if cmd.Update() {
 			return wrapper("location")

@@ -13,6 +13,6 @@ func Print(msg string) {
 }
 
 // Printf prints format string to stderr.
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "--- "+format+"\n", args...)
 }

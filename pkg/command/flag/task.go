@@ -79,7 +79,7 @@ func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
 			NumRetries: int64(cmd.numRetries),
 			RetryWait:  cmd.retryWait.String(),
 		},
-		Properties: make(map[string]interface{}),
+		Properties: make(map[string]any),
 	}
 }
 

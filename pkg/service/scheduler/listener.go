@@ -70,7 +70,7 @@ func (l schedulerListener) OnSleep(ctx context.Context, key Key, d time.Duration
 	l.logger.Debug(ctx, "OnSleep", "task_id", key, "duration", d)
 }
 
-func (l schedulerListener) logKey(ctx context.Context, key Key, msg string, keyvals ...interface{}) {
+func (l schedulerListener) logKey(ctx context.Context, key Key, msg string, keyvals ...any) {
 	ti, ok := l.find(key)
 	if !ok {
 		return
@@ -82,8 +82,8 @@ func (l schedulerListener) logKey(ctx context.Context, key Key, msg string, keyv
 	}
 }
 
-func prependTaskInfo(ti taskInfo, i []interface{}) []interface{} {
-	v := make([]interface{}, len(i)+2)
+func prependTaskInfo(ti taskInfo, i []any) []any {
+	v := make([]any, len(i)+2)
 	v[0], v[1] = "task", ti
 	copy(v[2:], i)
 	return v

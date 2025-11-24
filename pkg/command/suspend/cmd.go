@@ -110,7 +110,7 @@ func (cmd *command) run(args []string) error {
 		task = cmd.CreateTask(managerclient.SuspendTask)
 	}
 
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 
 	if cmd.Flag("duration").Changed {
 		props["duration"] = cmd.duration.Value()

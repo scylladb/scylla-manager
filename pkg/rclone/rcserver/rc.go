@@ -36,7 +36,7 @@ import (
 // returned for all groups to allow access to global transfer stats.
 func rcJobInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	var (
-		jobOut, statsOut, transOut map[string]interface{}
+		jobOut, statsOut, transOut map[string]any
 		jobErr, statsErr, transErr error
 	)
 	// Load Job status only if jobid is explicitly set.
@@ -90,7 +90,7 @@ transferred: transferred stats
 
 // rcJobProgress aggregates and returns prepared job progress information.
 func rcJobProgress(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	var jobOut, aggregatedOut map[string]interface{}
+	var jobOut, aggregatedOut map[string]any
 	jobid, err := in.GetInt64("jobid")
 	if err != nil {
 		return nil, err
@@ -684,9 +684,9 @@ func getStringSlice(in rc.Params, key string) ([]string, error) {
 		return nil, err
 	}
 
-	tmp, ok := value.([]interface{})
+	tmp, ok := value.([]any)
 	if !ok {
-		return nil, errors.Errorf("expecting []interface{} value for key %q (was %T)", key, value)
+		return nil, errors.Errorf("expecting []any value for key %q (was %T)", key, value)
 	}
 
 	var res []string

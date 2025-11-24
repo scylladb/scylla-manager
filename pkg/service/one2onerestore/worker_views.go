@@ -135,8 +135,7 @@ func (w *worker) createView(ctx context.Context, view View) error {
 	)
 
 	op := func() error {
-		stmts := strings.Split(view.CreateStmt, ";")
-		for _, stmt := range stmts {
+		for stmt := range strings.SplitSeq(view.CreateStmt, ";") {
 			stmt = strings.TrimSpace(stmt)
 			if stmt == "" {
 				continue

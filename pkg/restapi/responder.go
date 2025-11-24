@@ -11,7 +11,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httplog"
 )
 
-func responder(w http.ResponseWriter, r *http.Request, v interface{}) {
+func responder(w http.ResponseWriter, r *http.Request, v any) {
 	err, ok := v.(error)
 
 	// If not an error use DefaultResponder

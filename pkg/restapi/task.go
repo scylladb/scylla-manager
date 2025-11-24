@@ -198,7 +198,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var t interface{}
+	var t any
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
@@ -447,7 +447,7 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 
 type taskRunProgress struct {
 	Run      *scheduler.Run `json:"run"`
-	Progress interface{}    `json:"progress"`
+	Progress any            `json:"progress"`
 }
 
 func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
@@ -501,7 +501,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		pr  interface{}
+		pr  any
 		err error
 	)
 	switch t.Type {
