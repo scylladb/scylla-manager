@@ -258,7 +258,7 @@ func RawWriteData(t *testing.T, session gocqlx.Session, keyspace string, startin
 func CreateMaterializedView(t *testing.T, session gocqlx.Session, keyspace, table, mv string) {
 	t.Helper()
 
-	ExecStmt(t, session, fmt.Sprintf("CREATE MATERIALIZED VIEW %q.%q AS SELECT * FROM %q.%q WHERE data IS NOT NULL PRIMARY KEY (id, data)",
+	ExecStmt(t, session, fmt.Sprintf("CREATE MATERIALIZED VIEW %q.%q AS SELECT * FROM %q.%q WHERE data IS NOT NULL PRIMARY KEY (id, data)", // nolint: unqueryvet
 		keyspace, mv, keyspace, table))
 
 	WaitForViews(t, session)
