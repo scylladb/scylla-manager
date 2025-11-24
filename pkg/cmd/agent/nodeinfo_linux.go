@@ -1,6 +1,5 @@
 // Copyright (C) 2017 ScyllaDB
 //go:build linux
-// +build linux
 
 package main
 

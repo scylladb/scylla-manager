@@ -1,7 +1,6 @@
 // Copyright (C) 2024 ScyllaDB
 
 //go:build all || api_integration
-// +build all api_integration
 
 package clusteradd
 

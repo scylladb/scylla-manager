@@ -1,7 +1,6 @@
 // Copyright (C) 2021 ScyllaDB
 
 //go:build all || integration
-// +build all integration
 
 package migrate
 
