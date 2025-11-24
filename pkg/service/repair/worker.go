@@ -179,7 +179,7 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 
 	var incrementalMode string
 	if w.apiSupport.incrementalRepair {
-		incrementalMode = string(w.target.IncrementalMode)
+		incrementalMode = w.target.IncrementalMode
 	}
 	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter, incrementalMode)
 	if err != nil {
