@@ -144,7 +144,7 @@ func NewTestConfigCacheSvc(t *testing.T, clusterID uuid.UUID, hosts []string) co
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = clusterSvc.PutCluster(context.Background(), ValidCluster(t, clusterID, hosts[0]))
+	err = clusterSvc.PutCluster(t.Context(), ValidCluster(t, clusterID, hosts[0]))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func NewTestConfigCacheSvc(t *testing.T, clusterID uuid.UUID, hosts []string) co
 	}
 
 	svc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider, secretsStore, log.NewDevelopment())
-	svc.Init(context.Background())
+	svc.Init(t.Context())
 	return svc
 }
 

@@ -65,7 +65,7 @@ func (sw *alternatorSchemaWorker) restore(ctx context.Context) (err error) {
 					TableName: aws.String(t),
 				})
 				if delErr != nil {
-					err = stdErr.Join(err, errors.Wrapf(delErr, "rollback creation of alternator table "+t))
+					err = stdErr.Join(err, errors.Wrap(delErr, "rollback creation of alternator table "+t))
 					return
 				}
 			}
