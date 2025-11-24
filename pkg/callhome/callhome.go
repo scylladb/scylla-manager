@@ -128,11 +128,10 @@ func (s *Checker) CheckForUpdates(ctx context.Context, install bool) (Result, er
 	}
 	q.Add("sts", sts)
 	u.RawQuery = q.Encode()
-	req, err := http.NewRequest(http.MethodGet, u.String(), http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
 		return res, err
 	}
-	req = req.WithContext(ctx)
 	resp, err := s.Client.Do(req)
 	if err != nil {
 		return res, err
