@@ -48,7 +48,7 @@ func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 	session := createSessionFromCluster(tb, cluster)
 
 	migrate.Callback = nopmigrate.Callback
-	if err := migrate.FromFS(context.Background(), session, schema.Files); err != nil {
+	if err := migrate.FromFS(tb.Context(), session, schema.Files); err != nil {
 		tb.Fatal("migrate:", err)
 	}
 	return session
@@ -83,9 +83,8 @@ func CreateSession(tb testing.TB, client *scyllaclient.Client) gocqlx.Session {
 // It allows to specify cql user and decide if cluster should be cleared.
 func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient.Client, user, pass string) gocqlx.Session {
 	tb.Helper()
-	ctx := context.Background()
 
-	sessionHosts, err := cluster.GetRPCAddresses(ctx, client, client.Config().Hosts, false)
+	sessionHosts, err := cluster.GetRPCAddresses(tb.Context(), client, client.Config().Hosts, false)
 	if err != nil {
 		tb.Log(err)
 		if errors.Is(err, cluster.ErrNoRPCAddressesFound) {
@@ -279,7 +278,7 @@ func FlushTable(t *testing.T, client *scyllaclient.Client, hosts []string, keysp
 	t.Helper()
 
 	for _, h := range hosts {
-		if err := client.FlushTable(context.Background(), h, keyspace, table); err != nil {
+		if err := client.FlushTable(t.Context(), h, keyspace, table); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -352,7 +351,7 @@ func GetAlternatorCreds(t *testing.T, s gocqlx.Session, role string) (accessKeyI
 func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, accessKeyID, secretAccessKey string) *dynamodb.Client {
 	t.Helper()
 
-	ni, err := client.NodeInfo(context.Background(), host)
+	ni, err := client.NodeInfo(t.Context(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,7 +470,7 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt, gsiCnt
 	}
 
 	for _, table := range tables {
-		_, err := client.CreateTable(context.Background(), &dynamodb.CreateTableInput{
+		_, err := client.CreateTable(t.Context(), &dynamodb.CreateTableInput{
 			TableName:            aws.String(table),
 			AttributeDefinitions: attrDef,
 			KeySchema: []types.KeySchemaElement{
@@ -499,7 +498,7 @@ func CreateAlternatorGSI(t *testing.T, client *dynamodb.Client, table string, gs
 	t.Helper()
 
 	for _, gsi := range gsis {
-		_, err := client.UpdateTable(context.Background(), &dynamodb.UpdateTableInput{
+		_, err := client.UpdateTable(t.Context(), &dynamodb.UpdateTableInput{
 			TableName: aws.String(table),
 			AttributeDefinitions: []types.AttributeDefinition{
 				{
@@ -542,14 +541,14 @@ func CreateAlternatorGSI(t *testing.T, client *dynamodb.Client, table string, gs
 func TagAlternatorTable(t *testing.T, client *dynamodb.Client, table string, tags ...string) {
 	t.Helper()
 
-	out, err := client.DescribeTable(context.Background(), &dynamodb.DescribeTableInput{
+	out, err := client.DescribeTable(t.Context(), &dynamodb.DescribeTableInput{
 		TableName: aws.String(table),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = client.TagResource(context.Background(), &dynamodb.TagResourceInput{
+	_, err = client.TagResource(t.Context(), &dynamodb.TagResourceInput{
 		ResourceArn: out.Table.TableArn,
 		Tags: slices2.Map(tags, func(tag string) types.Tag {
 			return types.Tag{
@@ -567,7 +566,7 @@ func TagAlternatorTable(t *testing.T, client *dynamodb.Client, table string, tag
 func UpdateAlternatorTableTTL(t *testing.T, client *dynamodb.Client, table, attr string, enabled bool) {
 	t.Helper()
 
-	_, err := client.UpdateTimeToLive(context.Background(), &dynamodb.UpdateTimeToLiveInput{
+	_, err := client.UpdateTimeToLive(t.Context(), &dynamodb.UpdateTimeToLiveInput{
 		TableName: aws.String(table),
 		TimeToLiveSpecification: &types.TimeToLiveSpecification{
 			AttributeName: aws.String(attr),
@@ -611,7 +610,7 @@ func InsertAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt int
 				table: writeRequests,
 			},
 		}
-		_, err := client.BatchWriteItem(context.Background(), in)
+		_, err := client.BatchWriteItem(t.Context(), in)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -624,7 +623,7 @@ func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, 
 	t.Helper()
 
 	for _, table := range tables {
-		out, err := client.Scan(context.Background(), &dynamodb.ScanInput{
+		out, err := client.Scan(t.Context(), &dynamodb.ScanInput{
 			TableName: aws.String(table),
 		})
 		if err != nil {
@@ -635,7 +634,7 @@ func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, 
 		}
 
 		for lsi := range lsiCnt {
-			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+			out, err = client.Scan(t.Context(), &dynamodb.ScanInput{
 				TableName: aws.String(table),
 				IndexName: aws.String(fmt.Sprint(AlternatorLSIPrefix, lsi)),
 			})
@@ -648,7 +647,7 @@ func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, 
 		}
 
 		for gsi := range gsiCnt {
-			out, err = client.Scan(context.Background(), &dynamodb.ScanInput{
+			out, err = client.Scan(t.Context(), &dynamodb.ScanInput{
 				TableName: aws.String(table),
 				IndexName: aws.String(fmt.Sprint(AlternatorGSIPrefix, gsi)),
 			})
@@ -667,7 +666,7 @@ func ValidateAlternatorGSIData(t *testing.T, client *dynamodb.Client, rowCnt int
 	t.Helper()
 
 	for _, gsi := range gsis {
-		out, err := client.Scan(context.Background(), &dynamodb.ScanInput{
+		out, err := client.Scan(t.Context(), &dynamodb.ScanInput{
 			TableName: aws.String(table),
 			IndexName: aws.String(gsi),
 		})
