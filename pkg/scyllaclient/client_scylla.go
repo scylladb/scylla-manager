@@ -617,13 +617,16 @@ func ReplicaHash(replicaSet []netip.Addr) uint64 {
 
 // TabletRepair schedules Scylla repair tablet table task and returns its ID.
 // All tablets will be repaired with just a single task. It repairs all hosts
-// by default, but it's possible to filter them by DC or host ID. The master is
-// only needed so that we know which node should be queried for the task status.
+// by default, but it's possible to filter them by DC or host ID.
+// Master is optional, as we can query any node for table repair task status.
 func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode string) (string, error) {
 	const allTablets = "all"
 	dontAwaitCompletion := "false"
+	if master != "" {
+		ctx = forceHost(ctx, master)
+	}
 	p := operations.StorageServiceTabletsRepairPostParams{
-		Context:         forceHost(ctx, master),
+		Context:         ctx,
 		Ks:              keyspace,
 		Table:           table,
 		Tokens:          allTablets,
@@ -1391,10 +1394,13 @@ func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 
 // ScyllaWaitTask waits for Scylla task to finish and returns its status.
 // If longPollingSeconds is greater than 0, it will long poll instead of waiting for the task to finish.
+// Host is mandatory only when waiting for a task local to specific node.
 func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
 	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
-	ctx = forceHost(ctx, host)
 	ctx = noTimeout(ctx)
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	p := &operations.TaskManagerWaitTaskTaskIDGetParams{
 		Context: ctx,
 		TaskID:  id,
@@ -1414,9 +1420,13 @@ func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollin
 }
 
 // ScyllaTaskProgress returns provided Scylla task status.
+// Host is mandatory only when getting progress of a task local to specific node.
 func (c *Client) ScyllaTaskProgress(ctx context.Context, host, id string) (*models.TaskStatus, error) {
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	resp, err := c.scyllaOps.TaskManagerTaskStatusTaskIDGet(&operations.TaskManagerTaskStatusTaskIDGetParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 		TaskID:  id,
 	})
 	if err != nil {
@@ -1427,9 +1437,13 @@ func (c *Client) ScyllaTaskProgress(ctx context.Context, host, id string) (*mode
 
 // ScyllaAbortTask aborts provided Scylla task.
 // Note that not all Scylla tasks can be aborted - see models.TaskStatus to check that.
+// Host is mandatory only when aborting task local to specific node.
 func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	_, err := c.scyllaOps.TaskManagerAbortTaskTaskIDPost(&operations.TaskManagerAbortTaskTaskIDPostParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 		TaskID:  id,
 	})
 	return err
