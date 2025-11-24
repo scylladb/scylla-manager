@@ -117,6 +117,7 @@ func (w *WeekdayTime) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
 // Window adds JSON validation to scheduler.Window.
 type Window []WeekdayTime
 
+// UnmarshalJSON implements json.Unmarshaler.
 func (w *Window) UnmarshalJSON(data []byte) error {
 	var wdt []scheduler.WeekdayTime
 	if err := json.Unmarshal(data, &wdt); err != nil {
@@ -199,6 +200,7 @@ func NewTimezone(tz *time.Location) Timezone {
 	return Timezone{location{tz}}
 }
 
+// UnmarshalJSON implements json.Unmarshaler.
 func (tz *Timezone) UnmarshalJSON(data []byte) error {
 	return errors.Wrap(json.Unmarshal(data, &tz.location), "timezone")
 }
