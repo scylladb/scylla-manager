@@ -47,7 +47,8 @@ type RemoteDirWorkload struct {
 
 // RemoteSSTable represents SSTable updated with size and version info from remote.
 type RemoteSSTable struct {
-	SSTable   // SSTable.Files and SSTable.TOC might contain versioned snapshot tag extension
+	SSTable // SSTable.Files and SSTable.TOC might contain versioned snapshot tag extension
+
 	Size      int64
 	Versioned bool
 }

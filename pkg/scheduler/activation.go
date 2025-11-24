@@ -16,6 +16,7 @@ import (
 // Parametrized by scheduler key type.
 type Activation[K comparable] struct {
 	time.Time
+
 	Key        K
 	Retry      int8
 	Properties Properties

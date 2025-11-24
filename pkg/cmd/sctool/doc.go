@@ -13,6 +13,7 @@ import (
 
 type docCommand struct {
 	cobra.Command
+
 	output string
 }
 

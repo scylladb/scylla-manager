@@ -86,6 +86,7 @@ type job struct {
 
 type jobResult struct {
 	job
+
 	err error
 }
 

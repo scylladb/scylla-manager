@@ -18,6 +18,7 @@ var ErrTimeout = errors.New("timeout")
 // body defers context cancellation until response body is closed.
 type body struct {
 	io.ReadCloser
+
 	cancel context.CancelFunc
 }
 

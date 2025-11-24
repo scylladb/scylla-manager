@@ -13,6 +13,7 @@ import (
 // TaskBase handles common task schedule related flags.
 type TaskBase struct {
 	cobra.Command
+
 	update bool
 
 	enabled  bool

@@ -24,6 +24,7 @@ import (
 // It basis its knowledge of alternator schema on the alternator schema backup file.
 type alternatorSchemaWorker struct {
 	alternatorWorker
+
 	// In alternator, each table lives in its own keyspace named 'alternator_<table>'.
 	// Table schema is stored under the keyspace name for easier lookup.
 	ksSchema map[string]backupspec.AlternatorTableSchema
@@ -117,6 +118,7 @@ func (sw *alternatorSchemaWorker) sanitizeCQLKeyspace(cql query.DescribedSchemaR
 // It basis its knowledge of alternator schema on the alternator schema described from the cluster.
 type alternatorInitViewsWorker struct {
 	alternatorWorker
+
 	// In alternator, each table lives in its own keyspace named 'alternator_<table>'.
 	// Table schema is stored under the keyspace name for easier lookup.
 	ksSchema map[string]backupspec.AlternatorTableSchema
@@ -244,6 +246,7 @@ func (iw *alternatorInitViewsWorker) filterGSIAttr(desc types.TableDescription, 
 // It basis its knowledge of alternator schema on the initialized Views.
 type alternatorDropViewsWorker struct {
 	alternatorWorker
+
 	views  []View
 	client *dynamodb.Client
 }

@@ -8,7 +8,8 @@ import (
 
 // LogConfig specifies logger configuration options.
 type LogConfig struct {
-	log.Config  `yaml:",inline"`
+	log.Config `yaml:",inline"`
+
 	Development bool `yaml:"development"`
 }
 

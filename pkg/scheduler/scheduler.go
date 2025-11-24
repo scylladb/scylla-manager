@@ -19,9 +19,10 @@ type Properties = any
 // information.
 type RunContext[K comparable] struct {
 	context.Context //nolint:containedctx
-	Key             K
-	Properties      Properties
-	Retry           int8
+
+	Key        K
+	Properties Properties
+	Retry      int8
 
 	err error
 }

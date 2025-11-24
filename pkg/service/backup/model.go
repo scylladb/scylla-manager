@@ -185,6 +185,7 @@ type progress struct {
 // Progress groups uploading progress for all backed up hosts.
 type Progress struct {
 	progress
+
 	SnapshotTag string         `json:"snapshot_tag"`
 	DC          []string       `json:"dcs,omitempty"`
 	Hosts       []HostProgress `json:"hosts,omitempty"`

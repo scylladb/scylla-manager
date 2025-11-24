@@ -187,6 +187,7 @@ func (p progress) PercentComplete() int {
 // HostProgress specifies repair progress of a host.
 type HostProgress struct {
 	progress
+
 	Host   string          `json:"host"`
 	Tables []TableProgress `json:"tables,omitempty"`
 }
@@ -194,6 +195,7 @@ type HostProgress struct {
 // TableProgress represents progress for table for all hosts.
 type TableProgress struct {
 	progress
+
 	Keyspace string `json:"keyspace"`
 	Table    string `json:"table"`
 }
@@ -202,6 +204,7 @@ type TableProgress struct {
 // separately.
 type Progress struct {
 	progress
+
 	SuccessPercentage int             `json:"success_percentage"`
 	ErrorPercentage   int             `json:"error_percentage"`
 	DC                []string        `json:"dcs"`
