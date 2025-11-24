@@ -615,11 +615,30 @@ func ReplicaHash(replicaSet []netip.Addr) uint64 {
 	return hash.Sum64()
 }
 
+// IncrementalMode describes tablet repair api incremental_mode param.
+// When this param, is not provided, it defaults to IncrementalModeIncremental.
+type IncrementalMode = string
+
+const (
+	// IncrementalModeIncremental means that incremental repair logic is enabled.
+	// Unrepaired sstables will be included for repair. Repaired sstables will be skipped.
+	// The incremental repair states will be updated after repair.
+	IncrementalModeIncremental IncrementalMode = "incremental"
+	// IncrementalModeFull means that incremental repair logic is enabled.
+	// Both repaired and unrepaired sstables will be included for repair.
+	// The incremental repair states will be updated after repair.
+	IncrementalModeFull IncrementalMode = "full"
+	// IncrementalModeDisabled means that incremental repair logic is disabled completely.
+	// The incremental repair states, e.g., repaired_at in sstables and sstables_repaired_at
+	// in the system.tablets table, will not be updated after repair.
+	IncrementalModeDisabled IncrementalMode = "disabled"
+)
+
 // TabletRepair schedules Scylla repair tablet table task and returns its ID.
 // All tablets will be repaired with just a single task. It repairs all hosts
 // by default, but it's possible to filter them by DC or host ID.
 // Master is optional, as we can query any node for table repair task status.
-func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode string) (string, error) {
+func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode IncrementalMode) (string, error) {
 	const allTablets = "all"
 	dontAwaitCompletion := "false"
 	if master != "" {
