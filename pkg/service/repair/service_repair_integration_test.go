@@ -2424,7 +2424,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		modes := []repair.IncrementalMode{repair.IncrementalModeIncremental, repair.IncrementalModeFull, repair.IncrementalModeDisabled}
+		modes := []scyllaclient.IncrementalMode{scyllaclient.IncrementalModeIncremental, scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled}
 		for _, m := range modes {
 			t.Run("IncrementalRepairMode: "+string(m), func(t *testing.T) {
 				var incrementalRepairUsed string

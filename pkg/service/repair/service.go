@@ -193,8 +193,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return t, nil
 }
 
-func validateIncrementalMode(incrementalMode IncrementalMode) error {
-	knownIncrementalModes := []IncrementalMode{IncrementalModeIncremental, IncrementalModeFull, IncrementalModeDisabled}
+func validateIncrementalMode(incrementalMode scyllaclient.IncrementalMode) error {
+	knownIncrementalModes := []scyllaclient.IncrementalMode{scyllaclient.IncrementalModeIncremental, scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled}
 	if !slices.Contains(knownIncrementalModes, incrementalMode) {
 		return util.ErrValidate(errors.Errorf("unknown --incremental-mode: %s, known incremental modes: %v", incrementalMode, knownIncrementalModes))
 	}
