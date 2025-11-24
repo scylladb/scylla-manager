@@ -23,6 +23,7 @@ var updateRes []byte
 
 type command struct {
 	flag.TaskBase
+
 	client *managerclient.Client
 
 	cluster          string

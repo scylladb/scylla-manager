@@ -80,6 +80,7 @@ type hostWorkload struct {
 
 type scyllaTableWithSize struct {
 	scyllaTable
+
 	size int64
 }
 

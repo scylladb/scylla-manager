@@ -15,6 +15,7 @@ type Listener = scheduler.Listener[Key]
 
 type schedulerListener struct {
 	Listener
+
 	find   func(key Key) (taskInfo, bool)
 	logger log.Logger
 }

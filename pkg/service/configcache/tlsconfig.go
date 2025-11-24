@@ -16,6 +16,7 @@ import (
 // TLSConfigWithAddress is a concatenation of tls.Config and Address.
 type TLSConfigWithAddress struct {
 	*tls.Config
+
 	Address string
 }
 

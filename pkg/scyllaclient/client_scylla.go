@@ -1042,6 +1042,7 @@ func (t HostKeyspaceTables) Hosts() []string {
 // SizeReport extends HostKeyspaceTable with Size information.
 type SizeReport struct {
 	HostKeyspaceTable
+
 	Size int64
 }
 

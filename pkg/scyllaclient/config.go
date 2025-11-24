@@ -14,6 +14,7 @@ import (
 // Config specifies the Client configuration.
 type Config struct {
 	TimeoutConfig
+
 	// Transport scheme HTTP or HTTPS.
 	Scheme string `yaml:"scheme"`
 	// Hosts specifies all the cluster hosts that for a pool of hosts for the

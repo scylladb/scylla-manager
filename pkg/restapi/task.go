@@ -166,11 +166,13 @@ func (h *taskHandler) parseTask(r *http.Request) (*scheduler.Task, error) {
 
 type backupTarget struct {
 	backup.Target
+
 	Size int64 // Target size in bytes.
 }
 
 type restoreTarget struct {
 	restore.Target
+
 	Units []restore.Unit
 	Views []restore.View
 	Size  int64 // Total size of restored tables in bytes.
