@@ -1,7 +1,6 @@
 // Copyright (C) 2025 ScyllaDB
 
 //go:build all || integration
-// +build all integration
 
 package one2onerestore
 
