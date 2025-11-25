@@ -11,6 +11,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	repair "github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	tablet "github.com/scylladb/scylla-manager/v3/pkg/service/repair/tablet"
 	uuid "github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -65,6 +66,36 @@ func (m *MockRepairService) GetRun(arg0 context.Context, arg1, arg2, arg3 uuid.U
 func (mr *MockRepairServiceMockRecorder) GetRun(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRun", reflect.TypeOf((*MockRepairService)(nil).GetRun), arg0, arg1, arg2, arg3)
+}
+
+// GetTabletProgress mocks base method.
+func (m *MockRepairService) GetTabletProgress(arg0 context.Context, arg1, arg2, arg3 uuid.UUID) (tablet.Progress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTabletProgress", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(tablet.Progress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTabletProgress indicates an expected call of GetTabletProgress.
+func (mr *MockRepairServiceMockRecorder) GetTabletProgress(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTabletProgress", reflect.TypeOf((*MockRepairService)(nil).GetTabletProgress), arg0, arg1, arg2, arg3)
+}
+
+// GetTabletTarget mocks base method.
+func (m *MockRepairService) GetTabletTarget(arg0 context.Context, arg1 uuid.UUID, arg2 json.RawMessage) (tablet.Target, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTabletTarget", arg0, arg1, arg2)
+	ret0, _ := ret[0].(tablet.Target)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTabletTarget indicates an expected call of GetTabletTarget.
+func (mr *MockRepairServiceMockRecorder) GetTabletTarget(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTabletTarget", reflect.TypeOf((*MockRepairService)(nil).GetTabletTarget), arg0, arg1, arg2)
 }
 
 // GetTarget mocks base method.
