@@ -366,6 +366,29 @@ var (
 		},
 	})
 
+	TabletRepairRunProgress = table.New(table.Metadata{
+		Name: "tablet_repair_run_progress",
+		Columns: []string{
+			"cluster_id",
+			"completed_at",
+			"error",
+			"keyspace_name",
+			"run_id",
+			"started_at",
+			"table_name",
+			"task_id",
+		},
+		PartKey: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+		},
+		SortKey: []string{
+			"keyspace_name",
+			"table_name",
+		},
+	})
+
 	ValidateBackupRunProgress = table.New(table.Metadata{
 		Name: "validate_backup_run_progress",
 		Columns: []string{
