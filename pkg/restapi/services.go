@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/one2onerestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -57,6 +58,9 @@ type RepairService interface {
 	GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (repair.Target, error)
 	SetIntensity(ctx context.Context, runID uuid.UUID, intensity float64) error
 	SetParallel(ctx context.Context, runID uuid.UUID, parallel int) error
+
+	GetTabletTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (tablet.Target, error)
+	GetTabletProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (tablet.Progress, error)
 }
 
 // BackupService service interface for the REST API handlers.

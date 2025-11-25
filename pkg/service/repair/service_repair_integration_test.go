@@ -311,6 +311,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		session,
 		c,
 		metrics.NewRepairMetrics(),
+		metrics.NewTabletRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
@@ -334,6 +335,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 		session,
 		c,
 		metrics.NewRepairMetrics(),
+		metrics.NewTabletRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
