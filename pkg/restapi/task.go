@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/one2onerestore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
@@ -263,6 +264,10 @@ func (h *taskHandler) validateTask(ctx context.Context, newTask *scheduler.Task,
 		if _, err := h.Repair.GetTarget(ctx, newTask.ClusterID, p); err != nil {
 			return errors.Wrap(err, "create repair target")
 		}
+	case scheduler.TabletRepairTask:
+		if _, err := h.Repair.GetTabletTarget(ctx, newTask.ClusterID, p); err != nil {
+			return errors.Wrap(err, "create tablet repair target")
+		}
 	case scheduler.ValidateBackupTask:
 		if _, err := h.Backup.GetValidationTarget(ctx, newTask.ClusterID, p); err != nil {
 			return errors.Wrap(err, "create backup validation target")
@@ -469,6 +474,8 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 			switch t.Type {
 			case scheduler.RepairTask:
 				prog.Progress = repair.Progress{}
+			case scheduler.TabletRepairTask:
+				prog.Progress = tablet.Progress{}
 			case scheduler.BackupTask:
 				prog.Progress = backup.Progress{}
 			case scheduler.RestoreTask:
@@ -505,6 +512,8 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	switch t.Type {
 	case scheduler.RepairTask:
 		pr, err = h.Repair.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
+	case scheduler.TabletRepairTask:
+		pr, err = h.Repair.GetTabletProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	case scheduler.BackupTask:
 		pr, err = h.Backup.GetProgress(r.Context(), t.ClusterID, t.ID, prog.Run.ID)
 	case scheduler.RestoreTask:
