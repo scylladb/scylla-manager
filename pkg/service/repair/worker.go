@@ -4,7 +4,6 @@ package repair
 
 import (
 	"context"
-	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
@@ -228,26 +227,17 @@ func (w *worker) hostFilter(ctx context.Context) ([]string, error) {
 	return status.Up().HostIDs(), nil
 }
 
-// Regex of schedule colocated table repair error. Taken from:
-// https://github.com/scylladb/scylladb/blob/e4e79be295d18e2014796540684cdd4c1dca6788/service/storage_service.cc#L6738.
-var colocatedTableErrRe = regexp.MustCompile(`because it is colocated with the base table '([^']+)'.'([^']+)'`)
-
 // convertColocatedTableRepairErr checks if the error returned from scheduling tablet repair
 // is related to repairing colocated table and whether we can safely ignore it.
-// Scylla 2025.4 introduces concept of colocated tablet tables which cannot be
-// repaired directly, but they are repaired when their base table is repaired.
-// See https://github.com/scylladb/scylladb/blob/7600ccfb/docs/dev/topology-over-raft.md#co-located-tables.
-// Because of that, we can ignore such error after making sure that the base table
-// is included in repaired units. This method converts the error to nil in such case.
+// We can ignore such error after making sure that the base table is included in repaired units.
+// This method converts the error to nil in such case.
 // Otherwise, it returns the original error wrapped with additional context.
 func (w *worker) convertColocatedTableRepairErr(scheduleTabletRepairErr error) error {
-	matches := colocatedTableErrRe.FindStringSubmatch(scheduleTabletRepairErr.Error())
-	if len(matches) == 0 {
+	baseKs, baseTab, ok := scyllaclient.IsColocatedTableErr(scheduleTabletRepairErr)
+	if !ok {
 		// Not a colocated table error
 		return scheduleTabletRepairErr
 	}
-	baseKs := matches[1]
-	baseTab := matches[2]
 	for _, u := range w.target.Units {
 		if u.Keyspace != baseKs {
 			continue
