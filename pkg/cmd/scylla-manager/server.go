@@ -102,6 +102,7 @@ func (s *server) makeServices(ctx context.Context) error {
 		s.session,
 		s.config.Repair,
 		metrics.NewRepairMetrics().MustRegister(),
+		metrics.NewTabletRepairMetrics().MustRegister(),
 		s.clusterSvc.Client,
 		s.clusterSvc.GetSession,
 		s.configCacheSvc,
@@ -177,6 +178,8 @@ func (s *server) makeServices(ctx context.Context) error {
 	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
 	s.schedSvc.SetRunner(scheduler.RepairTask,
 		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.Runner(), TaskType: scheduler.RepairTask})
+	s.schedSvc.SetRunner(scheduler.TabletRepairTask,
+		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.TabletService, TaskType: scheduler.TabletRepairTask})
 	s.schedSvc.SetRunner(scheduler.ValidateBackupTask, s.backupSvc.ValidationRunner())
 
 	// Add additional properties on task run.
