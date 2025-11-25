@@ -53,6 +53,8 @@ type ClientService interface {
 
 	GetClusterClusterIDTaskRestoreTaskIDRunID(params *GetClusterClusterIDTaskRestoreTaskIDRunIDParams) (*GetClusterClusterIDTaskRestoreTaskIDRunIDOK, error)
 
+	GetClusterClusterIDTaskTabletRepairTaskIDRunID(params *GetClusterClusterIDTaskTabletRepairTaskIDRunIDParams) (*GetClusterClusterIDTaskTabletRepairTaskIDRunIDOK, error)
+
 	GetClusterClusterIDTaskTaskTypeTaskID(params *GetClusterClusterIDTaskTaskTypeTaskIDParams) (*GetClusterClusterIDTaskTaskTypeTaskIDOK, error)
 
 	GetClusterClusterIDTaskTaskTypeTaskIDHistory(params *GetClusterClusterIDTaskTaskTypeTaskIDHistoryParams) (*GetClusterClusterIDTaskTaskTypeTaskIDHistoryOK, error)
@@ -551,6 +553,39 @@ func (a *Client) GetClusterClusterIDTaskRestoreTaskIDRunID(params *GetClusterClu
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*GetClusterClusterIDTaskRestoreTaskIDRunIDDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+GetClusterClusterIDTaskTabletRepairTaskIDRunID get cluster cluster ID task tablet repair task ID run ID API
+*/
+func (a *Client) GetClusterClusterIDTaskTabletRepairTaskIDRunID(params *GetClusterClusterIDTaskTabletRepairTaskIDRunIDParams) (*GetClusterClusterIDTaskTabletRepairTaskIDRunIDOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterClusterIDTaskTabletRepairTaskIDRunIDParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterClusterIDTaskTabletRepairTaskIDRunID",
+		Method:             "GET",
+		PathPattern:        "/cluster/{cluster_id}/task/tablet_repair/{task_id}/{run_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterClusterIDTaskTabletRepairTaskIDRunIDReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetClusterClusterIDTaskTabletRepairTaskIDRunIDOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetClusterClusterIDTaskTabletRepairTaskIDRunIDDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
