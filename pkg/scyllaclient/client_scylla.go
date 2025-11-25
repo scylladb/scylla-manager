@@ -669,6 +669,27 @@ func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master strin
 	return resp.GetPayload().TabletTaskID, nil
 }
 
+// Regex of schedule colocated table repair error. Taken from:
+// https://github.com/scylladb/scylladb/blob/e4e79be295d18e2014796540684cdd4c1dca6788/service/storage_service.cc#L6738.
+var colocatedTableErrRe = regexp.MustCompile(`because it is colocated with the base table '([^']+)'.'([^']+)'`)
+
+// IsColocatedTableErr checks if the error returned from scheduling tablet repair
+// is related to repairing colocated table.
+// If so, it returns colocated table's base keyspace and table names.
+// Scylla 2025.4 introduces concept of colocated tablet tables which cannot be
+// repaired directly, but they are repaired when their base table is repaired.
+// See https://github.com/scylladb/scylladb/blob/7600ccfb/docs/dev/topology-over-raft.md#co-located-tables.
+func IsColocatedTableErr(scheduleTabletRepairErr error) (ks, tab string, ok bool) {
+	if scheduleTabletRepairErr == nil {
+		return "", "", false
+	}
+	matches := colocatedTableErrRe.FindStringSubmatch(scheduleTabletRepairErr.Error())
+	if len(matches) == 0 {
+		return "", "", false
+	}
+	return matches[1], matches[2], true
+}
+
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, keyspace, table, master string, replicaSet []string, ranges []TokenRange, intensity int, smallTableOpt bool) (int32, error) {
 	dr := dumpRanges(ranges)
