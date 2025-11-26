@@ -478,6 +478,22 @@ func (c *Client) RepairProgress(ctx context.Context, clusterID, taskID, runID st
 	}, nil
 }
 
+// TabletRepairProgress returns tablet repair progress.
+func (c *Client) TabletRepairProgress(ctx context.Context, clusterID, taskID, runID string) (TabletRepairProgress, error) {
+	resp, err := c.operations.GetClusterClusterIDTaskTabletRepairTaskIDRunID(&operations.GetClusterClusterIDTaskTabletRepairTaskIDRunIDParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskID:    taskID,
+		RunID:     runID,
+	})
+	if err != nil {
+		return TabletRepairProgress{}, err
+	}
+	return TabletRepairProgress{
+		TaskRunTabletRepairProgress: resp.GetPayload(),
+	}, nil
+}
+
 // BackupProgress returns backup progress.
 func (c *Client) BackupProgress(ctx context.Context, clusterID, taskID, runID string) (BackupProgress, error) {
 	tr := &models.TaskRunBackupProgress{
