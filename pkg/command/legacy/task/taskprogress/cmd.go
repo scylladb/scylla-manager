@@ -75,6 +75,8 @@ func (cmd *command) run(args []string) error {
 	switch taskType {
 	case managerclient.RepairTask:
 		return cmd.renderRepairProgress(task)
+	case managerclient.TabletRepairTask:
+		return cmd.renderTabletRepairProgress(task)
 	case managerclient.BackupTask:
 		return cmd.renderBackupProgress(task)
 	case managerclient.RestoreTask:
@@ -96,6 +98,21 @@ func (cmd *command) renderRepairProgress(t *managerclient.Task) error {
 	if err := p.SetHostFilter(cmd.host); err != nil {
 		return err
 	}
+	if err := p.SetKeyspaceFilter(cmd.keyspace); err != nil {
+		return err
+	}
+	p.Task = t
+
+	return p.Render(cmd.OutOrStdout())
+}
+
+func (cmd *command) renderTabletRepairProgress(t *managerclient.Task) error {
+	p, err := cmd.client.TabletRepairProgress(cmd.Context(), cmd.cluster, t.ID, cmd.runID)
+	if err != nil {
+		return err
+	}
+
+	p.Detailed = cmd.details
 	if err := p.SetKeyspaceFilter(cmd.keyspace); err != nil {
 		return err
 	}

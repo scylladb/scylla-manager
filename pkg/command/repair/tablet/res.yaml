@@ -1,0 +1,9 @@
+use: tablet --cluster <id|name> [flags]
+
+short: Schedule tablet repair (ad-hoc or scheduled)
+
+long: |
+  This command allows you to schedule or run ad-hoc cluster tablet repair.
+  It requires ScyllaDB version 2025.1 or higher.
+  This repair targets all tablet keyspaces.
+  It also uses incremental tablet repair when ScyllaDB version is 2025.4 or higher.
