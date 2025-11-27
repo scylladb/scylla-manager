@@ -88,9 +88,11 @@ ifeq ($(RAFT_SCHEMA),disabled)
 endif
 ifeq ($(TABLETS),enabled)
 	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' true
+	@$(YQ) write -i scylla/scylla.yaml 'tablets_mode_for_new_keyspaces' enabled
 endif
 ifeq ($(TABLETS),disabled)
 	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' false
+	@$(YQ) write -i scylla/scylla.yaml 'tablets_mode_for_new_keyspaces' disabled
 endif
 	@cp scylla/scylla.yaml scylla/scylla-second-cluster.yaml
 	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
