@@ -40,6 +40,8 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
+            - name: Run tablet repair tests
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
     restore-schema:
         name: Test restore schema
         runs-on: ubuntu-latest
