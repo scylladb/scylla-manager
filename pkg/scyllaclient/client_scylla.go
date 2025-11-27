@@ -641,6 +641,7 @@ const (
 func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode IncrementalMode) (string, error) {
 	const allTablets = "all"
 	dontAwaitCompletion := "false"
+	ctx = withShouldRetryHandler(ctx, tabletRepairShouldRetryHandler)
 	if master != "" {
 		ctx = forceHost(ctx, master)
 	}
@@ -688,6 +689,13 @@ func IsColocatedTableErr(scheduleTabletRepairErr error) (ks, tab string, ok bool
 		return "", "", false
 	}
 	return matches[1], matches[2], true
+}
+
+func tabletRepairShouldRetryHandler(err error) *bool {
+	if _, _, ok := IsColocatedTableErr(err); ok {
+		return pointer.BoolPtr(false)
+	}
+	return nil
 }
 
 // Repair invokes async repair and returns the repair command ID.
