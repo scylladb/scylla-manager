@@ -27,11 +27,9 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
-	"github.com/scylladb/scylla-manager/v3/pkg/ping/cqlping"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
-	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
@@ -285,51 +283,6 @@ func (h *repairTestHelper) assertParallelIntensity(parallel, intensity int) {
 	}
 }
 
-func (h *repairTestHelper) stopNode(host string) {
-	h.T.Helper()
-
-	_, _, err := ExecOnHost(host, "supervisorctl stop scylla")
-	if err != nil {
-		h.T.Fatal(err)
-	}
-}
-
-func (h *repairTestHelper) startNode(host string, ni *scyllaclient.NodeInfo) {
-	h.T.Helper()
-
-	_, _, err := ExecOnHost(host, "supervisorctl start scylla")
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	cfg := cqlping.Config{
-		Addr:    ni.CQLAddr(host, false),
-		Timeout: time.Minute,
-	}
-	if testconfig.IsSSLEnabled() {
-		sslOpts := testconfig.CQLSSLOptions()
-		tlsConfig, err := testconfig.TLSConfig(sslOpts)
-		if err != nil {
-			h.T.Fatalf("setup tls config: %v", err)
-		}
-		cfg.TLSConfig = tlsConfig
-	}
-
-	cond := func() bool {
-		if _, err = cqlping.QueryPing(context.Background(), cfg, TestDBUsername(), TestDBPassword()); err != nil {
-			return false
-		}
-		for _, other := range ManagedClusterHosts() {
-			status, err := h.Client.Status(scyllaclient.ClientContextWithSelectedHost(context.Background(), other))
-			if err != nil || len(status.Live()) != len(ManagedClusterHosts()) {
-				return false
-			}
-		}
-		return true
-	}
-	WaitCond(h.T, cond, time.Second, shortWait)
-}
-
 func percentComplete(p repair.Progress) (int, int) {
 	if p.TokenRanges == 0 {
 		return 0, 0
@@ -358,6 +311,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 		session,
 		c,
 		metrics.NewRepairMetrics(),
+		metrics.NewTabletRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
@@ -381,6 +335,7 @@ func newTestServiceWithClusterSession(t *testing.T, session gocqlx.Session, clie
 		session,
 		c,
 		metrics.NewRepairMetrics(),
+		metrics.NewTabletRepairMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
@@ -1117,9 +1072,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		defer cancel()
 
 		var ignored = ManagedClusterHost()
-		h.stopNode(ignored)
+		h.StopNode(ignored)
 		startNodeFunc := sync.OnceFunc(func() {
-			h.startNode(ignored, globalNodeInfo)
+			h.StartNode(ignored, globalNodeInfo)
 		})
 		defer startNodeFunc()
 
@@ -2196,8 +2151,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 
 			down := ManagedClusterHost()
-			h.stopNode(down)
-			defer h.startNode(down, globalNodeInfo)
+			h.StopNode(down)
+			defer h.StartNode(down, globalNodeInfo)
 
 			_, err := h.generateTarget(map[string]any{
 				"keyspace": []string{tabletMultiDCKs},
@@ -2217,9 +2172,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 
 			down := h.GetHostsFromDC("dc2")[0]
-			h.stopNode(down)
+			h.StopNode(down)
 			startNodeFunc := sync.OnceFunc(func() {
-				h.startNode(down, globalNodeInfo)
+				h.StartNode(down, globalNodeInfo)
 			})
 			defer startNodeFunc()
 
@@ -2424,7 +2379,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		modes := []repair.IncrementalMode{repair.IncrementalModeIncremental, repair.IncrementalModeFull, repair.IncrementalModeDisabled}
+		modes := []scyllaclient.IncrementalMode{scyllaclient.IncrementalModeIncremental, scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled}
 		for _, m := range modes {
 			t.Run("IncrementalRepairMode: "+string(m), func(t *testing.T) {
 				var incrementalRepairUsed string

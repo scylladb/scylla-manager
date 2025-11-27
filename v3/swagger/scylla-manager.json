@@ -276,6 +276,40 @@
         }
       }
     },
+    "TabletRepairProgress": {
+      "type": "object",
+      "properties": {
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TabletRepairTableProgress"
+          }
+        }
+      }
+    },
+    "TabletRepairTableProgress": {
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-nullable": true
+        },
+        "error": {
+          "type": "string"
+        }
+      }
+    },
     "Schedule": {
       "type": "object",
       "properties": {
@@ -530,6 +564,17 @@
           "items": {
             "$ref": "#/definitions/RepairUnit"
           }
+        }
+      }
+    },
+    "TaskRunTabletRepairProgress": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/TaskRun"
+        },
+        "progress": {
+          "$ref": "#/definitions/TabletRepairProgress"
         }
       }
     },
@@ -1984,6 +2029,44 @@
             "description": "Repair progress",
             "schema": {
               "$ref": "#/definitions/TaskRunRepairProgress"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster_id}/task/tablet_repair/{task_id}/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "task_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "run_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tablet repair progress",
+            "schema": {
+              "$ref": "#/definitions/TaskRunTabletRepairProgress"
             }
           },
           "default": {
