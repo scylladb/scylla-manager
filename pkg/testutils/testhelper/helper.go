@@ -60,6 +60,53 @@ func (h *CommonTestHelper) GetAllHosts() []string {
 	return out
 }
 
+// StopNode via supervisorctl.
+func (h *CommonTestHelper) StopNode(host string) {
+	h.T.Helper()
+
+	_, _, err := ExecOnHost(host, "supervisorctl stop scylla")
+	if err != nil {
+		h.T.Fatal(err)
+	}
+}
+
+// StartNode via supervisorctl and wait for it to become available.
+func (h *CommonTestHelper) StartNode(host string, ni *scyllaclient.NodeInfo) {
+	h.T.Helper()
+
+	_, _, err := ExecOnHost(host, "supervisorctl start scylla")
+	if err != nil {
+		h.T.Fatal(err)
+	}
+
+	cfg := cqlping.Config{
+		Addr:    ni.CQLAddr(host, false),
+		Timeout: time.Minute,
+	}
+	if testconfig.IsSSLEnabled() {
+		sslOpts := testconfig.CQLSSLOptions()
+		tlsConfig, err := testconfig.TLSConfig(sslOpts)
+		if err != nil {
+			h.T.Fatalf("setup tls config: %v", err)
+		}
+		cfg.TLSConfig = tlsConfig
+	}
+
+	cond := func() bool {
+		if _, err = cqlping.QueryPing(context.Background(), cfg, testconfig.TestDBUsername(), testconfig.TestDBPassword()); err != nil {
+			return false
+		}
+		for _, other := range testconfig.ManagedClusterHosts() {
+			status, err := h.Client.Status(scyllaclient.ClientContextWithSelectedHost(context.Background(), other))
+			if err != nil || len(status.Live()) != len(testconfig.ManagedClusterHosts()) {
+				return false
+			}
+		}
+		return true
+	}
+	WaitCond(h.T, cond, time.Second, time.Minute)
+}
+
 // RestartAgents via supervisorctl.
 func (h *CommonTestHelper) RestartAgents() {
 	execOnAllHosts(h, "supervisorctl restart scylla-manager-agent")
