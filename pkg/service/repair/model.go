@@ -47,16 +47,17 @@ type Target struct {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace            []string        `json:"keyspace"`
-	DC                  []string        `json:"dc"`
-	Host                string          `json:"host"`
-	IgnoreDownHosts     bool            `json:"ignore_down_hosts"`
-	FailFast            bool            `json:"fail_fast"`
-	Continue            bool            `json:"continue"`
-	Intensity           float64         `json:"intensity"`
-	Parallel            int             `json:"parallel"`
-	SmallTableThreshold int64           `json:"small_table_threshold"`
-	IncrementalMode     IncrementalMode `json:"incremental_mode"`
+	Keyspace            []string                         `json:"keyspace"`
+	DC                  []string                         `json:"dc"`
+	Host                string                           `json:"host"`
+	KeyspaceReplication scyllaclient.KeyspaceReplication `json:"keyspace_replication"`
+	IgnoreDownHosts     bool                             `json:"ignore_down_hosts"`
+	FailFast            bool                             `json:"fail_fast"`
+	Continue            bool                             `json:"continue"`
+	Intensity           float64                          `json:"intensity"`
+	Parallel            int                              `json:"parallel"`
+	SmallTableThreshold int64                            `json:"small_table_threshold"`
+	IncrementalMode     IncrementalMode                  `json:"incremental_mode"`
 }
 
 // IncrementalMode describes tablet repair api incremental_mode param.
@@ -83,8 +84,9 @@ func defaultTaskProperties() *taskProperties {
 		// Don't repair system_traces unless it has been deliberately specified.
 		Keyspace: []string{"*", "!system_traces"},
 
-		Continue:  true,
-		Intensity: float64(defaultIntensity),
+		KeyspaceReplication: scyllaclient.ReplicationAll,
+		Continue:            true,
+		Intensity:           float64(defaultIntensity),
 
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,

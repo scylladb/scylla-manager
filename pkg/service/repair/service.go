@@ -99,6 +99,9 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		IncrementalMode:     props.IncrementalMode,
 	}
 
+	if err := validateKeyspaceReplication(props.KeyspaceReplication); err != nil {
+		return Target{}, err
+	}
 	if err := validateIncrementalMode(props.IncrementalMode); err != nil {
 		return Target{}, err
 	}
@@ -149,7 +152,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	if err != nil {
 		return t, err
 	}
-	keyspaces, err := client.Keyspaces(ctx)
+	keyspaces, err := client.FilteredKeyspaces(ctx, scyllaclient.KeyspaceTypeAll, props.KeyspaceReplication)
 	if err != nil {
 		return t, errors.Wrapf(err, "get keyspaces")
 	}
@@ -191,6 +194,14 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	// Set filtered units as they are still used for displaying --dry-run
 	t.Units = p.FilteredUnits(t.Units)
 	return t, nil
+}
+
+func validateKeyspaceReplication(replication scyllaclient.KeyspaceReplication) error {
+	knownReplication := []scyllaclient.KeyspaceReplication{scyllaclient.ReplicationAll, scyllaclient.ReplicationTablet, scyllaclient.ReplicationVnode}
+	if !slices.Contains(knownReplication, replication) {
+		return util.ErrValidate(errors.Errorf("unknown --keyspace-replication: %s, known keyspace replications: %v", replication, knownReplication))
+	}
+	return nil
 }
 
 func validateIncrementalMode(incrementalMode IncrementalMode) error {

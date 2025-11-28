@@ -36,6 +36,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -2451,6 +2452,59 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 				if !incrementalRepairSupport && incrementalRepairUsed != "" {
 					t.Fatalf("Incremental repair is not supported, expected no mode, got %q", incrementalRepairUsed)
+				}
+			})
+		}
+	})
+
+	t.Run("Keyspace replication", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+
+		const (
+			vnodeKs  = "test_keyspace_replication_vnode_ks"
+			tabletKs = "test_keyspace_replication_tablet_ks"
+		)
+
+		createVnodeKeyspace(t, clusterSession, vnodeKs, 3, 3)
+		defer dropKeyspace(t, clusterSession, vnodeKs)
+		WriteData(t, clusterSession, vnodeKs, 0)
+
+		createTabletKeyspace(t, clusterSession, tabletKs, 3, 3)
+		defer dropKeyspace(t, clusterSession, tabletKs)
+		WriteData(t, clusterSession, tabletKs, 0)
+
+		testCases := []struct {
+			keyspaceReplication scyllaclient.KeyspaceReplication
+			expectedKeyspaces   []string
+		}{
+			{
+				keyspaceReplication: scyllaclient.ReplicationAll,
+				expectedKeyspaces:   []string{vnodeKs, tabletKs},
+			},
+			{
+				keyspaceReplication: scyllaclient.ReplicationTablet,
+				expectedKeyspaces:   []string{tabletKs},
+			},
+			{
+				keyspaceReplication: scyllaclient.ReplicationVnode,
+				expectedKeyspaces:   []string{vnodeKs},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run("Keyspace replication: "+string(tc.keyspaceReplication), func(t *testing.T) {
+				target, err := h.generateTarget(map[string]any{
+					"keyspace_replication": tc.keyspaceReplication,
+					"keyspace":             []string{vnodeKs, tabletKs},
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				targetKs := slices2.Map(target.Units, func(u repair.Unit) string { return u.Keyspace })
+				sort.Strings(targetKs)
+				sort.Strings(tc.expectedKeyspaces)
+				if !slices.Equal(targetKs, tc.expectedKeyspaces) {
+					t.Fatalf("Expected keyspaces: %v, got: %v", tc.expectedKeyspaces, targetKs)
 				}
 			})
 		}
