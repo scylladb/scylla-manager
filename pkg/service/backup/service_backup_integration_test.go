@@ -2847,3 +2847,53 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 		})
 	}
 }
+
+func TestBackupCleanupIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-cleanup"
+		testKeyspace = "backuptest_cleanup"
+	)
+
+	var (
+		location       = s3Location(testBucket)
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 1, "tab1", "tab2")
+
+	for i, host := range ManagedClusterHosts() {
+		// Make snapshots with different tags for more coverage
+		tag := backupspec.SnapshotTagAt(timeutc.Now().Add(-time.Duration(i) * time.Second))
+		if err := h.Client.TakeSnapshot(ctx, host, tag, testKeyspace); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	anySnapshotOnDisk := func() bool {
+		for _, host := range ManagedClusterHosts() {
+			tags, err := h.Client.Snapshots(ctx, host)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(tags) > 0 {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !anySnapshotOnDisk() {
+		t.Fatal("Expected to find snapshot on disk after backup was stopped")
+	}
+
+	if err := h.service.Cleanup(ctx, h.ClusterID); err != nil {
+		t.Fatal(err)
+	}
+
+	if anySnapshotOnDisk() {
+		t.Fatal("Expected no snapshots on disk after cleanup")
+	}
+}
