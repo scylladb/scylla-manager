@@ -12,6 +12,15 @@ host: |
   Specifying the host flag limits repair to token ranges replicated by a given node.
   It can be used in conjunction with --dc flag, in such a case the node must belong to the specified datacenters.
 
+keyspace-replication: |
+  Repair keyspaces with specified replication only.
+  When used with other filtering flags (e.g. '--keyspace'), repaired keyspaces need to match all filtering criteria.
+  It accepts the following values:
+  
+  * 'all': Repair all keyspaces.
+  * 'tablets': Repair keyspaces replicated with tablets only.
+  * 'vnodes': Repair keyspaces replicated with vnodes only.
+
 ignore-down-hosts: |
   Do not repair nodes that are down i.e. in status DN.
 

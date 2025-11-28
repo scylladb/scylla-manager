@@ -29,6 +29,7 @@ type command struct {
 	keyspace            []string
 	failFast            bool
 	host                string
+	keyspaceReplication string
 	ignoreDownHosts     bool
 	intensity           *flag.Intensity
 	parallel            int
@@ -82,6 +83,7 @@ func (cmd *command) init() {
 	w.KeyspaceWithDefaultV(&cmd.keyspace, []string{"*", "!system_traces"})
 	w.FailFast(&cmd.failFast)
 	w.Unwrap().StringVar(&cmd.host, "host", "", "")
+	w.Unwrap().StringVar(&cmd.keyspaceReplication, "keyspace-replication", "all", "")
 	w.Unwrap().BoolVar(&cmd.ignoreDownHosts, "ignore-down-hosts", false, "")
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
@@ -136,6 +138,10 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("host").Changed {
 		props["host"] = cmd.host
+		ok = true
+	}
+	if cmd.Flag("keyspace-replication").Changed {
+		props["keyspace_replication"] = cmd.keyspaceReplication
 		ok = true
 	}
 	if cmd.Flag("ignore-down-hosts").Changed {

@@ -105,6 +105,16 @@ options:
         Patterns are evaluated from left to right.
         If a pattern starts with '!' it unselects items that were selected by previous patterns i.e. 'a?,!aa' selects *ab* but not *aa*.
 
+    - name: keyspace-replication
+      default_value: all
+      usage: |
+        Repair keyspaces with specified replication only.
+        When used with other filtering flags (e.g. '--keyspace'), repaired keyspaces need to match all filtering criteria.
+        It accepts the following values:
+
+        * 'all': Repair all keyspaces.
+        * 'tablets': Repair keyspaces replicated with tablets only.
+        * 'vnodes': Repair keyspaces replicated with vnodes only.
     - name: label
       usage: |
         A comma-separated list of label modifications. Labels are represented as a key-value store.
