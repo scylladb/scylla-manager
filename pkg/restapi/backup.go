@@ -42,6 +42,7 @@ func newBackupHandler(services Services) *chi.Mux {
 		m.Get("/files", h.listFiles)
 	})
 	m.Get("/schema", h.describeSchema)
+	m.Delete("/local_snapshots", h.deleteLocalSnapshots)
 
 	return m
 }
@@ -248,6 +249,16 @@ func (h backupHandler) describeSchema(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.Respond(w, r, convertSchema(cqlSchema))
+}
+
+func (h backupHandler) deleteLocalSnapshots(w http.ResponseWriter, r *http.Request) {
+	cluster := mustClusterFromCtx(r)
+
+	if err := h.svc.DeleteLocalSnapshots(r.Context(), cluster.ID); err != nil {
+		respondError(w, r, errors.Wrap(err, "delete local snapshots"))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func parseOptionalUUID(v string) (uuid.UUID, error) {
