@@ -670,6 +670,16 @@ func (c *Client) DeleteSnapshot(ctx context.Context, clusterID string,
 	return err
 }
 
+// DeleteLocalSnapshots deletes SM snapshots from nodes' disks.
+func (c *Client) DeleteLocalSnapshots(ctx context.Context, clusterID string) error {
+	p := &operations.DeleteClusterClusterIDBackupsLocalSnapshotsParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+	}
+	_, err := c.operations.DeleteClusterClusterIDBackupsLocalSnapshots(p)
+	return err
+}
+
 // Version returns server version.
 func (c *Client) Version(ctx context.Context) (*models.Version, error) {
 	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
