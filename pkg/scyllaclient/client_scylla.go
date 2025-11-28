@@ -615,15 +615,38 @@ func ReplicaHash(replicaSet []netip.Addr) uint64 {
 	return hash.Sum64()
 }
 
+// IncrementalMode describes tablet repair api incremental_mode param.
+// When this param, is not provided, it defaults to IncrementalModeIncremental.
+type IncrementalMode = string
+
+const (
+	// IncrementalModeIncremental means that incremental repair logic is enabled.
+	// Unrepaired sstables will be included for repair. Repaired sstables will be skipped.
+	// The incremental repair states will be updated after repair.
+	IncrementalModeIncremental IncrementalMode = "incremental"
+	// IncrementalModeFull means that incremental repair logic is enabled.
+	// Both repaired and unrepaired sstables will be included for repair.
+	// The incremental repair states will be updated after repair.
+	IncrementalModeFull IncrementalMode = "full"
+	// IncrementalModeDisabled means that incremental repair logic is disabled completely.
+	// The incremental repair states, e.g., repaired_at in sstables and sstables_repaired_at
+	// in the system.tablets table, will not be updated after repair.
+	IncrementalModeDisabled IncrementalMode = "disabled"
+)
+
 // TabletRepair schedules Scylla repair tablet table task and returns its ID.
 // All tablets will be repaired with just a single task. It repairs all hosts
-// by default, but it's possible to filter them by DC or host ID. The master is
-// only needed so that we know which node should be queried for the task status.
-func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode string) (string, error) {
+// by default, but it's possible to filter them by DC or host ID.
+// Master is optional, as we can query any node for table repair task status.
+func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode IncrementalMode) (string, error) {
 	const allTablets = "all"
 	dontAwaitCompletion := "false"
+	ctx = withShouldRetryHandler(ctx, tabletRepairShouldRetryHandler)
+	if master != "" {
+		ctx = forceHost(ctx, master)
+	}
 	p := operations.StorageServiceTabletsRepairPostParams{
-		Context:         forceHost(ctx, master),
+		Context:         ctx,
 		Ks:              keyspace,
 		Table:           table,
 		Tokens:          allTablets,
@@ -645,6 +668,34 @@ func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master strin
 		return "", err
 	}
 	return resp.GetPayload().TabletTaskID, nil
+}
+
+// Regex of schedule colocated table repair error. Taken from:
+// https://github.com/scylladb/scylladb/blob/e4e79be295d18e2014796540684cdd4c1dca6788/service/storage_service.cc#L6738.
+var colocatedTableErrRe = regexp.MustCompile(`because it is colocated with the base table '([^']+)'.'([^']+)'`)
+
+// IsColocatedTableErr checks if the error returned from scheduling tablet repair
+// is related to repairing colocated table.
+// If so, it returns colocated table's base keyspace and table names.
+// Scylla 2025.4 introduces concept of colocated tablet tables which cannot be
+// repaired directly, but they are repaired when their base table is repaired.
+// See https://github.com/scylladb/scylladb/blob/7600ccfb/docs/dev/topology-over-raft.md#co-located-tables.
+func IsColocatedTableErr(scheduleTabletRepairErr error) (ks, tab string, ok bool) {
+	if scheduleTabletRepairErr == nil {
+		return "", "", false
+	}
+	matches := colocatedTableErrRe.FindStringSubmatch(scheduleTabletRepairErr.Error())
+	if len(matches) == 0 {
+		return "", "", false
+	}
+	return matches[1], matches[2], true
+}
+
+func tabletRepairShouldRetryHandler(err error) *bool {
+	if _, _, ok := IsColocatedTableErr(err); ok {
+		return pointer.BoolPtr(false)
+	}
+	return nil
 }
 
 // Repair invokes async repair and returns the repair command ID.
@@ -1391,10 +1442,13 @@ func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 
 // ScyllaWaitTask waits for Scylla task to finish and returns its status.
 // If longPollingSeconds is greater than 0, it will long poll instead of waiting for the task to finish.
+// Host is mandatory only when waiting for a task local to specific node.
 func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
 	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
-	ctx = forceHost(ctx, host)
 	ctx = noTimeout(ctx)
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	p := &operations.TaskManagerWaitTaskTaskIDGetParams{
 		Context: ctx,
 		TaskID:  id,
@@ -1414,9 +1468,13 @@ func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollin
 }
 
 // ScyllaTaskProgress returns provided Scylla task status.
+// Host is mandatory only when getting progress of a task local to specific node.
 func (c *Client) ScyllaTaskProgress(ctx context.Context, host, id string) (*models.TaskStatus, error) {
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	resp, err := c.scyllaOps.TaskManagerTaskStatusTaskIDGet(&operations.TaskManagerTaskStatusTaskIDGetParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 		TaskID:  id,
 	})
 	if err != nil {
@@ -1427,9 +1485,13 @@ func (c *Client) ScyllaTaskProgress(ctx context.Context, host, id string) (*mode
 
 // ScyllaAbortTask aborts provided Scylla task.
 // Note that not all Scylla tasks can be aborted - see models.TaskStatus to check that.
+// Host is mandatory only when aborting task local to specific node.
 func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
 	_, err := c.scyllaOps.TaskManagerAbortTaskTaskIDPost(&operations.TaskManagerAbortTaskTaskIDPostParams{
-		Context: forceHost(ctx, host),
+		Context: ctx,
 		TaskID:  id,
 	})
 	return err

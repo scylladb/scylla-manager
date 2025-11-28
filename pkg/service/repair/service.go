@@ -21,6 +21,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
@@ -35,6 +36,8 @@ import (
 
 // Service orchestrates cluster repairs.
 type Service struct {
+	TabletService *tablet.Service
+
 	session gocqlx.Session
 	config  Config
 	metrics metrics.RepairMetrics
@@ -48,7 +51,7 @@ type Service struct {
 	mu                sync.Mutex
 }
 
-func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMetrics,
+func NewService(session gocqlx.Session, config Config, m metrics.RepairMetrics, tm metrics.TabletRepairMetrics,
 	scyllaClient scyllaclient.ProviderFunc, clusterSession cluster.SessionFunc, configCache configcache.ConfigCacher,
 	logger log.Logger,
 ) (*Service, error) {
@@ -61,9 +64,10 @@ func NewService(session gocqlx.Session, config Config, metrics metrics.RepairMet
 	}
 
 	return &Service{
+		TabletService:     tablet.NewService(session, tm, scyllaClient, logger),
 		session:           session,
 		config:            config,
-		metrics:           metrics,
+		metrics:           m,
 		scyllaClient:      scyllaClient,
 		clusterSession:    clusterSession,
 		configCache:       configCache,
@@ -193,8 +197,8 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	return t, nil
 }
 
-func validateIncrementalMode(incrementalMode IncrementalMode) error {
-	knownIncrementalModes := []IncrementalMode{IncrementalModeIncremental, IncrementalModeFull, IncrementalModeDisabled}
+func validateIncrementalMode(incrementalMode scyllaclient.IncrementalMode) error {
+	knownIncrementalModes := []scyllaclient.IncrementalMode{scyllaclient.IncrementalModeIncremental, scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled}
 	if !slices.Contains(knownIncrementalModes, incrementalMode) {
 		return util.ErrValidate(errors.Errorf("unknown --incremental-mode: %s, known incremental modes: %v", incrementalMode, knownIncrementalModes))
 	}
@@ -612,4 +616,14 @@ func getAllPrevRunIDs(session gocqlx.Session, clusterID, taskID, runID uuid.UUID
 		out = append(out, prevID)
 		runID = prevID
 	}
+}
+
+// GetTabletTarget returns tablet repair target.
+func (s *Service) GetTabletTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (tablet.Target, error) {
+	return s.TabletService.GetTarget(ctx, clusterID, properties)
+}
+
+// GetTabletProgress returns tablet repair progress.
+func (s *Service) GetTabletProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (tablet.Progress, error) {
+	return s.TabletService.GetProgress(ctx, clusterID, taskID, runID)
 }

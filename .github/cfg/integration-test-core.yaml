@@ -93,6 +93,9 @@ jobs:
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
 
+      - name: Run tablet repair tests
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+
   small-pkg:
     name: Test other, smaller packages
     runs-on: ubuntu-latest

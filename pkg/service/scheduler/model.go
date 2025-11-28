@@ -30,6 +30,7 @@ const (
 	One2OneRestoreTask TaskType = "1_1_restore"
 	HealthCheckTask    TaskType = "healthcheck"
 	RepairTask         TaskType = "repair"
+	TabletRepairTask   TaskType = "tablet_repair"
 	SuspendTask        TaskType = "suspend"
 	ValidateBackupTask TaskType = "validate_backup"
 
@@ -58,6 +59,8 @@ func (t *TaskType) UnmarshalText(text []byte) error {
 		*t = HealthCheckTask
 	case RepairTask:
 		*t = RepairTask
+	case TabletRepairTask:
+		*t = TabletRepairTask
 	case SuspendTask:
 		*t = SuspendTask
 	case ValidateBackupTask:
