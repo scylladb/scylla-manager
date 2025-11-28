@@ -39,6 +39,20 @@ func (m *MockBackupService) EXPECT() *MockBackupServiceMockRecorder {
 	return m.recorder
 }
 
+// Cleanup mocks base method.
+func (m *MockBackupService) Cleanup(arg0 context.Context, arg1 uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Cleanup", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Cleanup indicates an expected call of Cleanup.
+func (mr *MockBackupServiceMockRecorder) Cleanup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cleanup", reflect.TypeOf((*MockBackupService)(nil).Cleanup), arg0, arg1)
+}
+
 // DeleteSnapshot mocks base method.
 func (m *MockBackupService) DeleteSnapshot(arg0 context.Context, arg1 uuid.UUID, arg2 []backupspec.Location, arg3 []string) error {
 	m.ctrl.T.Helper()
