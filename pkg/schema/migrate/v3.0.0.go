@@ -50,16 +50,16 @@ func rewriteHealthCheck30(_ context.Context, session gocqlx.Session, _ migrate.C
 		return json.RawMessage(`{"mode": "` + mode + `"}`)
 	}
 
-	var deleteKeys []map[string]interface{}
-	markForDelete := func(m map[string]interface{}) {
-		deleteKeys = append(deleteKeys, map[string]interface{}{
+	var deleteKeys []map[string]any
+	markForDelete := func(m map[string]any) {
+		deleteKeys = append(deleteKeys, map[string]any{
 			"cluster_id": m["cluster_id"],
 			"type":       m["type"],
 			"id":         m["id"],
 		})
 	}
 
-	err := dbutil.RewriteTable(session, schedulerTask, schedulerTask, func(m map[string]interface{}) {
+	err := dbutil.RewriteTable(session, schedulerTask, schedulerTask, func(m map[string]any) {
 		switch m["type"] {
 		case healthCheckCQLTask:
 			// Do not mark for delete as we reuse primary key as the task type does not change.

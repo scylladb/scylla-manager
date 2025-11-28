@@ -150,7 +150,7 @@ func MigrateToRestoreRunProgressWithSortKeyWithScyllaTaskID(_ context.Context, s
 		return errors.Wrap(err, "create tmp_restore_run_progress")
 	}
 
-	err := dbutil.RewriteTable(session, tmp, src, func(m map[string]interface{}) {
+	err := dbutil.RewriteTable(session, tmp, src, func(m map[string]any) {
 		m["remote_sstable_dir"] = m["manifest_path"]
 		delete(m, "manifest_path")
 

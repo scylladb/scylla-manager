@@ -35,7 +35,7 @@ rm -f "${LOCAL_BIN}"/*
 echo "==> Installing Go packages at ${LOCAL_BIN}"
 
 export GOBIN=${LOCAL_BIN}
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
 go install github.com/goreleaser/goreleaser@v1.14.1
 go install github.com/go-enry/go-license-detector/v4/cmd/license-detector@latest
 go install github.com/golang/mock/mockgen@v1.6.0

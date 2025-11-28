@@ -79,6 +79,7 @@ func NopListener[K comparable]() Listener[K] {
 
 type errorLogListener[K comparable] struct {
 	nopListener[K]
+
 	logger log.Logger
 }
 

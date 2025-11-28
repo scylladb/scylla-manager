@@ -750,7 +750,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		OnRunProgress:        s.putRunProgressLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
 		memoryPool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return &bytes.Buffer{}
 			},
 		},

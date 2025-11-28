@@ -1,7 +1,6 @@
 // Copyright (C) 2025 ScyllaDB
 
 //go:build all || api_integration
-// +build all api_integration
 
 package stop
 

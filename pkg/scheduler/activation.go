@@ -16,6 +16,7 @@ import (
 // Parametrized by scheduler key type.
 type Activation[K comparable] struct {
 	time.Time
+
 	Key        K
 	Retry      int8
 	Properties Properties
@@ -48,18 +49,18 @@ var _ heap.Interface = (*activationHeap[uuid.UUID])(nil)
 func (h activationHeap[_]) Len() int { return len(h) }
 
 func (h activationHeap[_]) Less(i, j int) bool {
-	return h[i].Time.Before(h[j].Time)
+	return h[i].Before(h[j].Time)
 }
 
 func (h activationHeap[_]) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (h *activationHeap[K]) Push(x interface{}) {
+func (h *activationHeap[K]) Push(x any) {
 	*h = append(*h, x.(Activation[K]))
 }
 
-func (h *activationHeap[_]) Pop() interface{} {
+func (h *activationHeap[_]) Pop() any {
 	old := *h
 	n := len(old)
 	item := old[n-1]

@@ -1,123 +1,185 @@
+version: "2"
 run:
-  timeout: 5m
   tests: false
-
-linters-settings:
-  errcheck:
-    check-blank: true
-  gocognit:
-    min-complexity: 50
-  gocyclo:
-    min-complexity: 50
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-      - style
-    disabled-checks:
-      - commentedOutCode
-      - evalOrder
-      - hugeParam
-      - importShadow
-      - regexpSimplify
-      - yodaStyleExpr
-      - whyNoLint
-  lll:
-    line-length: 180
-  nestif:
-    min-complexity: 6
-
 linters:
-  enable-all: true
+  default: all
   disable:
-    - depguard
-    - tagalign
-    - interfacebloat
-    - gci
     - contextcheck
     - cyclop
+    - depguard
     - durationcheck
+    - err113
     - exhaustive
     - exhaustruct
     - forbidigo
     - forcetypeassert
     - funlen
-    - gosec
     - gochecknoglobals
     - gochecknoinits
-    - err113
+    - gomoddirectives
+    - gosec
+    - interfacebloat
     - ireturn
+    - mnd
     - nilerr
     - nlreturn
     - nolintlint
     - nonamedreturns
     - prealloc
     - promlinter
+    - recvcheck
+    - tagalign
     - tagliatelle
     - varnamelen
     - wrapcheck
     - wsl
-    - mnd
-    - tenv
-    - gomoddirectives
-    - recvcheck
-
-issues:
-  exclude-files:
-    - _gen\.go$
-    - _string\.go$
-    - mock_.*\.go$
-    - pkg/managerclient/sizesuffix.go
-  exclude-use-default: false
-  exclude:
-    - a blank import should be only in a main or test package, or have a comment justifying it
-    - package-comments[:] should have a package comment
-    - at least one file in a package should have a package comment
-    - cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
-    - cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
-    - composite literal uses unkeyed fields
-    - exported function Default.+ should have comment or be unexported
-    - exported function New.* should have comment or be unexported
-    - exported function Make
-    - exported method +\.Close should have comment or be unexported
-    - exported method .*Value\..+ should have comment or be unexported
-    - exported method .+\.Init should have comment or be unexported
-    - exported method .+\.IsZero should have comment or be unexported
-    - exported method .+\.Key should have comment or be unexported
-    - exported method .+\.MarshalBinary should have comment or be unexported
-    - exported method .+\.MarshalCQL should have comment or be unexported
-    - exported method .+\.MarshalJson should have comment or be unexported
-    - exported method .+\.MarshalText should have comment or be unexported
-    - exported method .+\.MarshalUDT should have comment or be unexported
-    - exported method .+\.UnmarshalBinary should have comment or be unexported
-    - exported method .+\.UnmarshalCQL should have comment or be unexported
-    - exported method .+\.UnmarshalJson should have comment or be unexported
-    - exported method .+\.UnmarshalText should have comment or be unexported
-    - exported method .+\.UnmarshalUDT should have comment or be unexported
-    - exported method .+\.Validate should have comment or be unexported
-    - exported method .+\.Value should have comment or be unexported
-    - exported method .+\.WriteTo should have comment or be unexported
-    - exported method Service.Runner should have comment or be unexported
-    - exported method Wrapper\..+ should have comment or be unexported
-    - exported method Runner\.Run should have comment or be unexported
-    - exported type .*Metrics should have comment or be unexported
-    - exported type .*Value should have comment or be unexported
-    - exported type Option should have comment or be unexported
-    - exported type Service should have comment or be unexported
-    - exported var Default.+ should have comment or be unexported
-    - has json tag but is not exported
-    - naked return in func `WriteTo`
-    - replacement are not allowed
-    - return value of `.+\.Close` is not checked
-    - return value of `net.SplitHostPort` is not checked
-    - return value of `strconv.ParseBool` is not checked
-    - should merge variable declaration with assignment on next line
-    - should not use dot imports
-    - string `string` has [\d]+ occurrences, make it a constant
-    - Function name[:] .+, Cyclomatic Complexity
-    - string `http[s]` has [\d]+ occurrences, make it a constant
-  exclude-rules:
-    - path: v3/pkg/managerclient|pkg/command|pkg/cmd
-      text: Error return value of `fmt.Fprintf?(ln)?` is not checked
-    - path: pkg/scheduler/activation\.go
-      text: receiver-naming[:] receiver name .+ should be consistent with previous receiver name .+ for invalid-type
+    - wsl_v5
+    - noinlineerr
+  settings:
+    errcheck:
+      check-blank: true
+    gocognit:
+      min-complexity: 50
+    gocritic:
+      disabled-checks:
+        - commentedOutCode
+        - evalOrder
+        - hugeParam
+        - importShadow
+        - regexpSimplify
+        - yodaStyleExpr
+        - whyNoLint
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 50
+    lll:
+      line-length: 180
+    nestif:
+      min-complexity: 6
+    funcorder:
+      struct-method: false
+  exclusions:
+    generated: lax
+    rules:
+      - path: v3/pkg/managerclient|pkg/command|pkg/cmd
+        text: Error return value of `fmt.Fprintf?(ln)?` is not checked
+      - path: pkg/scheduler/activation\.go
+        text: receiver-naming[:] receiver name .+ should be consistent with previous receiver name .+ for invalid-type
+      - path: (.+)\.go$
+        text: a blank import should be only in a main or test package, or have a comment justifying it
+      - path: (.+)\.go$
+        text: package-comments[:] should have a package comment
+      - path: (.+)\.go$
+        text: at least one file in a package should have a package comment
+      - path: (.+)\.go$
+        text: cognitive complexity [\d]+ of func `\(\*Service\)\.Backup` is high
+      - path: (.+)\.go$
+        text: cognitive complexity [\d]+ of func `\(\*Service\)\.Repair` is high
+      - path: (.+)\.go$
+        text: composite literal uses unkeyed fields
+      - path: (.+)\.go$
+        text: exported function Default.+ should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported function New.* should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported function Make
+      - path: (.+)\.go$
+        text: exported method +\.Close should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .*Value\..+ should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.Init should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.IsZero should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.Key should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.MarshalBinary should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.MarshalCQL should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.MarshalJson should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.MarshalText should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.MarshalUDT should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.UnmarshalBinary should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.UnmarshalCQL should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.UnmarshalJson should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.UnmarshalText should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.UnmarshalUDT should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.Validate should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.Value should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method .+\.WriteTo should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method Service.Runner should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method Wrapper\..+ should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported method Runner\.Run should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported type .*Metrics should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported type .*Value should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported type Option should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported type Service should have comment or be unexported
+      - path: (.+)\.go$
+        text: exported var Default.+ should have comment or be unexported
+      - path: (.+)\.go$
+        text: has json tag but is not exported
+      - path: (.+)\.go$
+        text: naked return in func `WriteTo`
+      - path: (.+)\.go$
+        text: replacement are not allowed
+      - path: (.+)\.go$
+        text: return value of `.+\.Close` is not checked
+      - path: (.+)\.go$
+        text: return value of `net.SplitHostPort` is not checked
+      - path: (.+)\.go$
+        text: return value of `strconv.ParseBool` is not checked
+      - path: (.+)\.go$
+        text: should merge variable declaration with assignment on next line
+      - path: (.+)\.go$
+        text: should not use dot imports
+      - path: (.+)\.go$
+        text: string `string` has [\d]+ occurrences, make it a constant
+      - path: (.+)\.go$
+        text: Function name[:] .+, Cyclomatic Complexity
+      - path: (.+)\.go$
+        text: string `http[s]` has [\d]+ occurrences, make it a constant
+    paths:
+      - _gen\.go$
+      - _string\.go$
+      - mock_.*\.go$
+      - pkg/managerclient/sizesuffix.go
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - _gen\.go$
+      - _string\.go$
+      - mock_.*\.go$
+      - pkg/managerclient/sizesuffix.go
+      - third_party$
+      - builtin$
+      - examples$

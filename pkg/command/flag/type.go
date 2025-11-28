@@ -99,9 +99,7 @@ func (l *Label) ApplyDiff(labels map[string]string) map[string]string {
 		out = make(map[string]string)
 	}
 
-	for k, v := range l.add {
-		out[k] = v
-	}
+	maps.Copy(out, l.add)
 	for _, k := range l.remove {
 		delete(out, k)
 	}

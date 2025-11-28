@@ -96,7 +96,7 @@ func (c retryableClient) Do(id string, req *http.Request) (*http.Response, error
 		id:            id,
 		logger:        c.logger,
 	}
-	o.do = func() (interface{}, error) {
+	o.do = func() (any, error) {
 		r := req.Clone(o.ctx)
 		if req.GetBody != nil {
 			body, err := req.GetBody()
@@ -134,7 +134,7 @@ func retryableWrapTransport(transport runtime.ClientTransport, config *retryConf
 	}
 }
 
-func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interface{}, error) {
+func (t retryableTransport) Submit(operation *runtime.ClientOperation) (any, error) {
 	if _, ok := operation.Context.Value(ctxNoRetry).(bool); ok {
 		v, err := t.transport.Submit(operation)
 		return v, unpackURLError(err)
@@ -148,7 +148,7 @@ func (t retryableTransport) Submit(operation *runtime.ClientOperation) (interfac
 		id:            operation.ID,
 		logger:        t.logger,
 	}
-	o.do = func() (interface{}, error) {
+	o.do = func() (any, error) {
 		operation.Context = o.ctx //nolint: fatcontext
 		return t.transport.Submit(operation)
 	}
@@ -160,14 +160,14 @@ type retryableOperation struct {
 	customTimeout time.Duration
 	ctx           context.Context //nolint:containedctx
 	id            string
-	result        interface{}
+	result        any
 	attempts      int
 	logger        log.Logger
 
-	do func() (interface{}, error)
+	do func() (any, error)
 }
 
-func (o *retryableOperation) submit() (interface{}, error) {
+func (o *retryableOperation) submit() (any, error) {
 	err := retry.WithNotify(o.ctx, o.op, o.config.backoff(o.ctx), o.notify)
 	if err != nil {
 		err = unpackURLError(err)

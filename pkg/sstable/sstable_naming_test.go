@@ -189,7 +189,7 @@ func TestRenameSStables(t *testing.T) {
 				return strconv.Itoa(int(counter.Add(1)))
 			})
 			if diff := cmp.Diff(tcase.expected, val); diff != "" {
-				t.Fatalf(diff)
+				t.Fatal(diff)
 			}
 		})
 	}

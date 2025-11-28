@@ -15,6 +15,7 @@ import (
 // activations.
 type TaskListItem struct {
 	Task
+
 	Suspended      bool       `json:"suspended"`
 	NextActivation *time.Time `json:"next_activation"`
 	Retry          int        `json:"retry"`

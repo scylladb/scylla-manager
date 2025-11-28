@@ -22,7 +22,7 @@ func ReadInputFile(tb testing.TB) []byte {
 }
 
 // ReadInputJSONFile reads test input file and unmarshall it into 'v'.
-func ReadInputJSONFile(tb testing.TB, v interface{}) {
+func ReadInputJSONFile(tb testing.TB, v any) {
 	tb.Helper()
 
 	if err := json.Unmarshal(ReadInputFile(tb), v); err != nil {

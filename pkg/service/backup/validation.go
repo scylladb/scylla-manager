@@ -110,6 +110,8 @@ func (s *Service) GetValidationTarget(ctx context.Context, clusterID uuid.UUID, 
 
 // validationRunProgress embeds ValidationResult with task run information.
 type validationRunProgress struct {
+	ValidationResult
+
 	ClusterID   uuid.UUID
 	TaskID      uuid.UUID
 	RunID       uuid.UUID
@@ -119,7 +121,6 @@ type validationRunProgress struct {
 	Manifests   int
 	StartedAt   *time.Time
 	CompletedAt *time.Time
-	ValidationResult
 }
 
 // Validate checks that all SSTable files that are referenced in manifests are
@@ -348,13 +349,14 @@ func (s *Service) putValidationRunProgress(p validationRunProgress) error {
 
 // ValidationHostProgress represents validation results per host.
 type ValidationHostProgress struct {
+	ValidationResult
+
 	DC          string              `json:"dc"`
 	Host        string              `json:"host"`
 	Location    backupspec.Location `json:"location"`
 	Manifests   int                 `json:"manifests"`
 	StartedAt   *time.Time          `json:"started_at"`
 	CompletedAt *time.Time          `json:"completed_at"`
-	ValidationResult
 }
 
 // GetValidationProgress returns the current validation result.

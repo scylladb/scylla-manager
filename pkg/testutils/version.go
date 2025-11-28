@@ -3,7 +3,6 @@
 package testutils
 
 import (
-	"context"
 	"testing"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -15,7 +14,7 @@ import (
 func CheckAnyConstraint(t *testing.T, client *scyllaclient.Client, constraints ...string) bool {
 	t.Helper()
 
-	ni, err := client.AnyNodeInfo(context.Background())
+	ni, err := client.AnyNodeInfo(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}

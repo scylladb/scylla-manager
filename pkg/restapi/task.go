@@ -166,11 +166,13 @@ func (h *taskHandler) parseTask(r *http.Request) (*scheduler.Task, error) {
 
 type backupTarget struct {
 	backup.Target
+
 	Size int64 // Target size in bytes.
 }
 
 type restoreTarget struct {
 	restore.Target
+
 	Units []restore.Unit
 	Views []restore.View
 	Size  int64 // Total size of restored tables in bytes.
@@ -187,7 +189,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := h.Services.Scheduler.PropertiesDecorator(newTask.Type)
+	d := h.Scheduler.PropertiesDecorator(newTask.Type)
 	p := newTask.Properties
 	if d != nil {
 		p, err = d(r.Context(), newTask.ClusterID, newTask.ID, newTask.Properties)
@@ -196,7 +198,7 @@ func (h *taskHandler) getTarget(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var t interface{}
+	var t any
 
 	switch newTask.Type {
 	case scheduler.BackupTask:
@@ -287,7 +289,7 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := h.Services.Scheduler.PropertiesDecorator(newTask.Type)
+	d := h.Scheduler.PropertiesDecorator(newTask.Type)
 	p := newTask.Properties
 	if d != nil {
 		p, err = d(r.Context(), newTask.ClusterID, newTask.ID, newTask.Properties)
@@ -445,7 +447,7 @@ func (h *taskHandler) taskHistory(w http.ResponseWriter, r *http.Request) {
 
 type taskRunProgress struct {
 	Run      *scheduler.Run `json:"run"`
-	Progress interface{}    `json:"progress"`
+	Progress any            `json:"progress"`
 }
 
 func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
@@ -499,7 +501,7 @@ func (h *taskHandler) taskRunProgress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		pr  interface{}
+		pr  any
 		err error
 	)
 	switch t.Type {

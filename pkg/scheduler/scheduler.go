@@ -19,9 +19,10 @@ type Properties = any
 // information.
 type RunContext[K comparable] struct {
 	context.Context //nolint:containedctx
-	Key             K
-	Properties      Properties
-	Retry           int8
+
+	Key        K
+	Properties Properties
+	Retry      int8
 
 	err error
 }
@@ -206,7 +207,7 @@ func shouldContinue(ctx context.Context) bool {
 }
 
 func shouldRetry(ctx context.Context, err error) bool {
-	return !(err == nil || errors.Is(context.Cause(ctx), ErrStoppedTask) || retry.IsPermanent(err))
+	return err != nil && !errors.Is(context.Cause(ctx), ErrStoppedTask) && !retry.IsPermanent(err)
 }
 
 func (s *Scheduler[K]) scheduleLocked(ctx context.Context, key K, next, preRescheduleActivation time.Time, retno int8, p Properties, w Window) {
@@ -374,10 +375,7 @@ func (s *Scheduler[_]) Start(ctx context.Context) {
 
 func (s *Scheduler[K]) activateIn(a Activation[K]) time.Duration {
 	d := a.Sub(s.now())
-	if d < 0 {
-		d = 0
-	}
-	return d
+	return max(d, 0)
 }
 
 // sleep waits for one of the following events: context is cancelled,

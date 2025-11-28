@@ -66,7 +66,7 @@ func TestMakeHostsLimit(t *testing.T) {
 			golden := test.HostsLimit
 			m := makeHostsLimit(test.Hosts, test.Limits)
 			if diff := cmp.Diff(golden, m, cmp.AllowUnexported(hostsLimit{}), cmpopts.IgnoreFields(hostInfo{}, "NodeConfig")); diff != "" {
-				t.Errorf(diff)
+				t.Error(diff)
 			}
 		})
 	}

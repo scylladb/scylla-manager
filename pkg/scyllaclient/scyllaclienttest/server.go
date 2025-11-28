@@ -32,7 +32,8 @@ func ServerListenOnAddr(t *testing.T, addr string) ServerOption {
 			l.Close()
 		}
 
-		l, err := net.Listen("tcp", addr)
+		var lc net.ListenConfig
+		l, err := lc.Listen(t.Context(), "tcp", addr)
 		if err != nil {
 			t.Fatal("net.Listen() error", err)
 		}

@@ -42,12 +42,12 @@ func (e *jsonEncoder) CloseList() {
 	e.writeString("]")
 }
 
-func (e *jsonEncoder) Field(key string, value interface{}) {
+func (e *jsonEncoder) Field(key string, value any) {
 	e.writeString(`"` + key + `":`)
 	e.Encode(value)
 }
 
-func (e *jsonEncoder) Encode(v interface{}) {
+func (e *jsonEncoder) Encode(v any) {
 	if e.err != nil {
 		return
 	}

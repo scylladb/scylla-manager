@@ -117,21 +117,21 @@ type logWrapper struct {
 }
 
 // Info wraps logger.Info method.
-func (log *logWrapper) Info(msg string, keyVals ...interface{}) {
+func (log *logWrapper) Info(msg string, keyVals ...any) {
 	log.logger.Info(context.Background(), msg, keyVals...)
 }
 
 // Error wraps logger.Error method.
-func (log *logWrapper) Error(msg string, keyVals ...interface{}) {
+func (log *logWrapper) Error(msg string, keyVals ...any) {
 	log.logger.Error(context.Background(), msg, keyVals...)
 }
 
 // Warn wraps logger.Error method.
-func (log *logWrapper) Warn(msg string, keyVals ...interface{}) {
+func (log *logWrapper) Warn(msg string, keyVals ...any) {
 	log.logger.Error(context.Background(), msg, keyVals...)
 }
 
 // Debug wraps logger.Debug method.
-func (log *logWrapper) Debug(msg string, keyVals ...interface{}) {
+func (log *logWrapper) Debug(msg string, keyVals ...any) {
 	log.logger.Debug(context.Background(), msg, keyVals...)
 }

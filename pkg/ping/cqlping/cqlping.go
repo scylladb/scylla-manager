@@ -54,35 +54,39 @@ func NativeCQLPing(ctx context.Context, config Config, logger log.Logger) (rtt t
 }
 
 func nativeCQLPingOnce(ctx context.Context, config Config, deadline time.Time) (err error) {
-	var (
-		conn   net.Conn
-		header [9]byte
-	)
-
-	d := &net.Dialer{
+	type contextDialer interface {
+		DialContext(ctx context.Context, network, addr string) (net.Conn, error)
+	}
+	var d contextDialer = &net.Dialer{
 		Deadline: deadline,
 	}
+	if config.TLSConfig != nil {
+		d = &tls.Dialer{
+			NetDialer: &net.Dialer{
+				Deadline: deadline,
+			},
+			Config: config.TLSConfig,
+		}
+	}
+
 	network := "tcp"
 	if strings.Count(config.Addr, ":") > 1 {
 		network = "tcp6"
 	}
-	if config.TLSConfig != nil {
-		conn, err = tls.DialWithDialer(d, network, config.Addr, config.TLSConfig)
-	} else {
-		conn, err = d.DialContext(ctx, network, config.Addr)
-	}
+
+	conn, err := d.DialContext(ctx, network, config.Addr)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	if err := conn.SetDeadline(d.Deadline); err != nil {
+	if err := conn.SetDeadline(deadline); err != nil {
 		return err
 	}
-
 	if _, err = conn.Write(options); err != nil {
 		return err
 	}
+	var header [9]byte
 	if _, err = conn.Read(header[:]); err != nil {
 		return err
 	}

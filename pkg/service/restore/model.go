@@ -308,6 +308,7 @@ type progress struct {
 // Progress groups restore progress for all restored keyspaces.
 type Progress struct {
 	progress
+
 	RepairProgress *repair.Progress `json:"repair_progress"`
 
 	SnapshotTag string             `json:"snapshot_tag"`

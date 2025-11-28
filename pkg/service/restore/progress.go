@@ -74,7 +74,7 @@ func aggregateProgress(run *Run, seq iter.Seq[*RunProgress], now time.Time) Prog
 
 	// Aggregate keyspace progress
 	for _, u := range run.Units {
-		p.progress.Size += u.Size
+		p.Size += u.Size
 		kp := KeyspaceProgress{
 			Keyspace: u.Keyspace,
 			progress: progress{

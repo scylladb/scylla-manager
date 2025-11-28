@@ -78,8 +78,8 @@ type consulNode struct {
 	ServicePort              int
 	ServiceEnableTagOverride bool
 	ServiceProxyDestination  string
-	ServiceProxy             map[string]interface{}
-	ServiceConnect           map[string]interface{}
+	ServiceProxy             map[string]any
+	ServiceConnect           map[string]any
 	CreateIndex              uint64
 	ModifyIndex              uint64
 }
@@ -113,7 +113,7 @@ type consulService struct {
 type consulHealthServiceItem struct {
 	Node    consulHealthNode
 	Service consulService
-	Checks  []interface{}
+	Checks  []any
 }
 
 func (h *consulHandler) getCatalogNodes(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +201,7 @@ func (h *consulHandler) getHealthNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *consulHandler) getAgent(w http.ResponseWriter, r *http.Request) {
-	render.Respond(w, r, map[string]interface{}{
-		"Config": map[string]interface{}{"Datacenter": "scylla-manager"},
+	render.Respond(w, r, map[string]any{
+		"Config": map[string]any{"Datacenter": "scylla-manager"},
 	})
 }

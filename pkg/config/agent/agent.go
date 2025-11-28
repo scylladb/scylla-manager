@@ -130,7 +130,7 @@ type CPUs []int
 
 // UnmarshalYAML is a custom unmarshaller accepting both
 // single ints and int array.
-func (c *CPUs) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (c *CPUs) UnmarshalYAML(unmarshal func(any) error) error {
 	var v int
 	errV := unmarshal(&v)
 	if errV == nil {
@@ -148,7 +148,7 @@ func (c *CPUs) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // MarshalYAML is a custom marshaller returning
 // single int is possible, and int array otherwise.
-func (c CPUs) MarshalYAML() (interface{}, error) {
+func (c CPUs) MarshalYAML() (any, error) {
 	if len(c) == 1 {
 		return (c)[0], nil
 	}

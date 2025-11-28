@@ -1,7 +1,6 @@
 // Copyright (C) 2024 ScyllaDB
 
 //go:build all || integration
-// +build all integration
 
 package backup_test
 

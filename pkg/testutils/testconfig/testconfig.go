@@ -175,7 +175,7 @@ func TLSConfig(sslOpts *gocql.SslOptions) (*tls.Config, error) {
 		}
 	} else {
 		// use clone to avoid race.
-		tlsConfig = sslOpts.Config.Clone()
+		tlsConfig = sslOpts.Clone()
 	}
 
 	if tlsConfig.InsecureSkipVerify && sslOpts.EnableHostVerification {

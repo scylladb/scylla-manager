@@ -13,6 +13,7 @@ import (
 // TaskBase handles common task schedule related flags.
 type TaskBase struct {
 	cobra.Command
+
 	update bool
 
 	enabled  bool
@@ -38,7 +39,7 @@ func MakeTaskBase() TaskBase {
 
 func NewUpdateTaskBase() TaskBase {
 	base := MakeTaskBase()
-	base.Command.Args = cobra.MaximumNArgs(1)
+	base.Args = cobra.MaximumNArgs(1)
 	base.update = true
 	return base
 }
@@ -78,7 +79,7 @@ func (cmd *TaskBase) CreateTask(taskType string) *managerclient.Task {
 			NumRetries: int64(cmd.numRetries),
 			RetryWait:  cmd.retryWait.String(),
 		},
-		Properties: make(map[string]interface{}),
+		Properties: make(map[string]any),
 	}
 }
 

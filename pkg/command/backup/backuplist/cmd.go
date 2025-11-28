@@ -19,6 +19,7 @@ var res []byte
 
 type command struct {
 	cobra.Command
+
 	client *managerclient.Client
 
 	cluster     string

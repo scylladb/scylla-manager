@@ -17,6 +17,7 @@ import (
 
 type rootCommand struct {
 	cobra.Command
+
 	client *managerclient.Client
 
 	apiURL      string

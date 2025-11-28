@@ -22,6 +22,7 @@ var updateRes []byte
 
 type command struct {
 	flag.TaskBase
+
 	client *managerclient.Client
 
 	cluster             string
@@ -74,7 +75,7 @@ func newCommand(client *managerclient.Client, update bool) *command {
 }
 
 func (cmd *command) init() {
-	cmd.TaskBase.Init()
+	cmd.Init()
 
 	defer flag.MustSetUsages(&cmd.Command, res, "cluster")
 	w := flag.Wrap(cmd.Flags())
@@ -121,7 +122,7 @@ func (cmd *command) run(args []string) error {
 		task = cmd.CreateTask(managerclient.RepairTask)
 	}
 
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 
 	if cmd.Flag("dc").Changed {
 		props["dc"] = cmd.dc

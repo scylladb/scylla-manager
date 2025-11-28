@@ -23,6 +23,7 @@ var updateRes []byte
 
 type command struct {
 	flag.TaskBase
+
 	client *managerclient.Client
 
 	cluster          string
@@ -75,7 +76,7 @@ func newCommand(client *managerclient.Client, update bool) *command {
 }
 
 func (cmd *command) init() {
-	cmd.TaskBase.Init()
+	cmd.Init()
 
 	defer flag.MustSetUsages(&cmd.Command, res, "cluster", "location")
 	w := flag.Wrap(cmd.Flags())
@@ -123,7 +124,7 @@ func (cmd *command) run(args []string) error {
 		task = cmd.CreateTask(managerclient.BackupTask)
 	}
 
-	props := task.Properties.(map[string]interface{})
+	props := task.Properties.(map[string]any)
 	if cmd.Flag("location").Changed {
 		props["location"] = cmd.location
 		ok = true

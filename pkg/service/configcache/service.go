@@ -241,12 +241,9 @@ func (svc *Service) updateAll(ctx context.Context) {
 
 	clustersWg := sync.WaitGroup{}
 	for _, c := range clusters {
-		clustersWg.Add(1)
-		go func() {
-			defer clustersWg.Done()
-
+		clustersWg.Go(func() {
 			svc.updateSingle(ctx, c)
-		}()
+		})
 	}
 	clustersWg.Wait()
 }

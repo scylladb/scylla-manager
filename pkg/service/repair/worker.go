@@ -65,12 +65,12 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 	}()
 
 	var ranges []scyllaclient.TokenRange
-	switch {
-	case j.jobType == tabletJobType:
+	switch j.jobType {
+	case tabletJobType:
 		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master.String())
-	case j.jobType == smallTableJobType:
+	case smallTableJobType:
 		ranges = nil
-	case j.jobType == mergeRangesJobType:
+	case mergeRangesJobType:
 		ranges = []scyllaclient.TokenRange{
 			{
 				StartToken: dht.Murmur3MinToken,

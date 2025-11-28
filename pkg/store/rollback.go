@@ -9,6 +9,7 @@ import (
 
 type entryHolder struct {
 	Entry
+
 	data []byte
 }
 

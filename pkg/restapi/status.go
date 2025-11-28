@@ -12,6 +12,7 @@ import (
 
 type statusHandler struct {
 	clusterFilter
+
 	service HealthCheckService
 }
 

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"maps"
 	"mime"
 	"net/http"
 	"os"
@@ -64,7 +65,7 @@ func New() Server {
 	})
 	return Server{
 		memoryPool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return &bytes.Buffer{}
 			},
 		},
@@ -248,9 +249,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		inExt = in
 	} else {
 		inExt = in.Copy()
-		for k, v := range extra {
-			inExt[k] = v
-		}
+		maps.Copy(inExt, extra)
 	}
 
 	if isAsync {

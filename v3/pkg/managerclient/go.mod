@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager/v3/pkg/managerclient
 
-go 1.23.2
+go 1.25.1
 
 require (
 	github.com/go-openapi/runtime v0.28.0

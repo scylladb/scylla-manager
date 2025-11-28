@@ -26,7 +26,7 @@ func UpdateGoldenFiles() bool {
 }
 
 // SaveGoldenJSONFileIfNeeded puts v as JSON to a new file named after test name.
-func SaveGoldenJSONFileIfNeeded(tb testing.TB, v interface{}) {
+func SaveGoldenJSONFileIfNeeded(tb testing.TB, v any) {
 	tb.Helper()
 
 	if !UpdateGoldenFiles() {
@@ -55,7 +55,7 @@ func SaveGoldenJSONFileIfNeeded(tb testing.TB, v interface{}) {
 }
 
 // LoadGoldenJSONFile loads files written by SaveGoldenJSONFileIfNeeded.
-func LoadGoldenJSONFile(tb testing.TB, v interface{}) {
+func LoadGoldenJSONFile(tb testing.TB, v any) {
 	tb.Helper()
 
 	b, err := os.ReadFile(goldenJSONFileName(tb))

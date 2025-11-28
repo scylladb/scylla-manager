@@ -117,6 +117,7 @@ func (w *WeekdayTime) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
 // Window adds JSON validation to scheduler.Window.
 type Window []WeekdayTime
 
+// UnmarshalJSON implements json.Unmarshaler.
 func (w *Window) UnmarshalJSON(data []byte) error {
 	var wdt []scheduler.WeekdayTime
 	if err := json.Unmarshal(data, &wdt); err != nil {
@@ -161,7 +162,7 @@ func (l location) MarshalText() (text []byte, err error) {
 	if l.Location == nil {
 		return nil, nil
 	}
-	return []byte(l.Location.String()), nil
+	return []byte(l.String()), nil
 }
 
 func (l *location) UnmarshalText(text []byte) error {
@@ -199,6 +200,7 @@ func NewTimezone(tz *time.Location) Timezone {
 	return Timezone{location{tz}}
 }
 
+// UnmarshalJSON implements json.Unmarshaler.
 func (tz *Timezone) UnmarshalJSON(data []byte) error {
 	return errors.Wrap(json.Unmarshal(data, &tz.location), "timezone")
 }
@@ -252,7 +254,7 @@ type Task struct {
 	Labels     map[string]string `json:"labels"`
 	Enabled    bool              `json:"enabled,omitempty"`
 	Deleted    bool              `json:"deleted,omitempty"`
-	Sched      Schedule          `json:"schedule,omitempty"`
+	Sched      Schedule          `json:"schedule"`
 	Properties json.RawMessage   `json:"properties,omitempty"`
 	Tags       []string
 
