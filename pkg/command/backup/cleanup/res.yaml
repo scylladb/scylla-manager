@@ -1,0 +1,10 @@
+use: cleanup --cluster <id|name> [flags]
+
+short: Cleanup backup
+
+long: |
+  This command allows you to perform cleanup of the backup procedure.
+  The exact cleanup actions are controlled with flags.
+
+delete-disk-snapshots: |
+  Delete SM snapshots from all nodes' disks in the cluster.
