@@ -654,6 +654,17 @@ func (c *Client) DeleteSnapshot(ctx context.Context, clusterID string,
 	return err
 }
 
+// BackupCleanup performs backup cleanup.
+func (c *Client) BackupCleanup(ctx context.Context, clusterID string, deleteDiskSnapshots bool) error {
+	p := &operations.DeleteClusterClusterIDBackupsCleanupParams{
+		Context:             ctx,
+		ClusterID:           clusterID,
+		DeleteDiskSnapshots: &deleteDiskSnapshots,
+	}
+	_, err := c.operations.DeleteClusterClusterIDBackupsCleanup(p)
+	return err
+}
+
 // Version returns server version.
 func (c *Client) Version(ctx context.Context) (*models.Version, error) {
 	resp, err := c.operations.GetVersion(&operations.GetVersionParams{
