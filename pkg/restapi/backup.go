@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -42,6 +43,7 @@ func newBackupHandler(services Services) *chi.Mux {
 		m.Get("/files", h.listFiles)
 	})
 	m.Get("/schema", h.describeSchema)
+	m.Delete("/cleanup", h.cleanup)
 
 	return m
 }
@@ -248,6 +250,32 @@ func (h backupHandler) describeSchema(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.Respond(w, r, convertSchema(cqlSchema))
+}
+
+func (h backupHandler) cleanup(w http.ResponseWriter, r *http.Request) {
+	cluster := mustClusterFromCtx(r)
+
+	var (
+		deleteDiskSnapshots bool
+		err                 error
+	)
+	if v := r.URL.Query().Get("delete_disk_snapshots"); v != "" {
+		deleteDiskSnapshots, err = strconv.ParseBool(v)
+		if err != nil {
+			respondBadRequest(w, r, util.ErrValidate(errors.Wrap(err, "parse delete_disk_snapshots")))
+			return
+		}
+	}
+	if !deleteDiskSnapshots {
+		respondBadRequest(w, r, util.ErrValidate(errors.New("no cleanup specified")))
+		return
+	}
+
+	if err := h.svc.Cleanup(r.Context(), cluster.ID); err != nil {
+		respondError(w, r, errors.Wrap(err, "perform cleanup"))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func parseOptionalUUID(v string) (uuid.UUID, error) {
