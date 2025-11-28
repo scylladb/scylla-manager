@@ -33,6 +33,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -1166,6 +1167,40 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
+}
+
+// DeleteLocalSnapshots from nodes in the cluster.
+func (s *Service) DeleteLocalSnapshots(ctx context.Context, clusterID uuid.UUID) error {
+	client, err := s.scyllaClient(ctx, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "get scylla client")
+	}
+	status, err := client.Status(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get status")
+	}
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	for _, host := range status.Up().Hosts() {
+		eg.Go(func() error {
+			tags, err := client.Snapshots(egCtx, host)
+			if err != nil {
+				return errors.Wrapf(err, "%s: list snapshots", host)
+			}
+			s.logger.Info(egCtx, "Listed snapshots", "host", host, "tags", tags)
+
+			for _, tag := range tags {
+				if backupspec.IsSnapshotTag(tag) {
+					s.logger.Info(egCtx, "Delete snapshot", "host", host, "tag", tag)
+					if err := client.DeleteSnapshot(egCtx, host, tag); err != nil {
+						return errors.Wrapf(err, "%s: delete snapshot %s", host, tag)
+					}
+				}
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
 }
 
 // NewSnapshotTag should be used instead of raw backupspec.NewSnapshotTag
