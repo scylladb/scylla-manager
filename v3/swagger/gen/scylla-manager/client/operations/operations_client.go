@@ -29,6 +29,8 @@ type ClientService interface {
 
 	DeleteClusterClusterIDBackups(params *DeleteClusterClusterIDBackupsParams) (*DeleteClusterClusterIDBackupsOK, error)
 
+	DeleteClusterClusterIDBackupsCleanup(params *DeleteClusterClusterIDBackupsCleanupParams) (*DeleteClusterClusterIDBackupsCleanupOK, error)
+
 	DeleteClusterClusterIDTaskTaskTypeTaskID(params *DeleteClusterClusterIDTaskTaskTypeTaskIDParams) (*DeleteClusterClusterIDTaskTaskTypeTaskIDOK, error)
 
 	GetClusterClusterID(params *GetClusterClusterIDParams) (*GetClusterClusterIDOK, error)
@@ -155,6 +157,39 @@ func (a *Client) DeleteClusterClusterIDBackups(params *DeleteClusterClusterIDBac
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*DeleteClusterClusterIDBackupsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+DeleteClusterClusterIDBackupsCleanup delete cluster cluster ID backups cleanup API
+*/
+func (a *Client) DeleteClusterClusterIDBackupsCleanup(params *DeleteClusterClusterIDBackupsCleanupParams) (*DeleteClusterClusterIDBackupsCleanupOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteClusterClusterIDBackupsCleanupParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeleteClusterClusterIDBackupsCleanup",
+		Method:             "DELETE",
+		PathPattern:        "/cluster/{cluster_id}/backups/cleanup",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeleteClusterClusterIDBackupsCleanupReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteClusterClusterIDBackupsCleanupOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteClusterClusterIDBackupsCleanupDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
