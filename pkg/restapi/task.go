@@ -365,31 +365,35 @@ func (h *taskHandler) deleteTask(w http.ResponseWriter, r *http.Request) {
 func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	t := mustTaskFromCtx(r)
 
-	noContinue, err := h.noContinue(r)
+	cont, err := parseBoolParam(r, "continue")
 	if err != nil {
 		respondBadRequest(w, r, err)
+		return
 	}
-	if noContinue {
+	enable, err := parseBoolParam(r, "enable")
+	if err != nil {
+		respondBadRequest(w, r, err)
+		return
+	}
+
+	if !cont {
 		h.Scheduler.SetTaskNoContinue(t.ID, false)
+	}
+
+	if enable {
+		t.Enabled = true
+		// Putting the task might start it (according to its schedule),
+		// but starting an already running task is a no-op, so that's not a problem.
+		if err := h.Scheduler.PutTask(r.Context(), t); err != nil {
+			respondError(w, r, errors.Wrapf(err, "enable task %q", t.ID))
+			return
+		}
 	}
 
 	if err = h.Scheduler.StartTask(r.Context(), t); err != nil {
 		respondError(w, r, errors.Wrapf(err, "start task %q", t.ID))
 		return
 	}
-}
-
-func (h *taskHandler) noContinue(r *http.Request) (bool, error) {
-	v := r.FormValue("continue")
-	if v == "" {
-		return false, nil
-	}
-
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		return false, errors.Wrap(err, "parse continue param")
-	}
-	return !b, nil
 }
 
 func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
@@ -547,4 +551,16 @@ func tryReadOffset(s string) (int, error) {
 		return int(i64), err
 	}
 	return -1, nil
+}
+
+func parseBoolParam(r *http.Request, name string) (bool, error) {
+	v := r.URL.Query().Get(name)
+	if v == "" {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, util.ErrValidate(errors.Wrapf(err, "parse %q query param", name))
+	}
+	return b, nil
 }
