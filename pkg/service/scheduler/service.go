@@ -56,13 +56,22 @@ type Service struct {
 	resolver   resolver
 	scheduler  map[uuid.UUID]*Scheduler
 	suspended  map[uuid.UUID]suspendParams
-	noContinue map[uuid.UUID]time.Time
+	noContinue map[uuid.UUID]noContinueParams
 	closed     bool
 	mu         sync.Mutex
 }
 
 type suspendParams struct {
 	AllowTask AllowedTaskType
+}
+
+type noContinueParams struct {
+	// timestamp of when the no continue was set.
+	// It is used to bypass no continue which is too old.
+	timestamp time.Time
+	// force dictates whether task should be started from scratch
+	// regardless of when (timestamp) the no continue was set.
+	force bool
 }
 
 func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer store.Store, logger log.Logger) (*Service, error) {
@@ -78,7 +87,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		resolver:   newResolver(),
 		scheduler:  make(map[uuid.UUID]*Scheduler),
 		suspended:  make(map[uuid.UUID]suspendParams),
-		noContinue: make(map[uuid.UUID]time.Time),
+		noContinue: make(map[uuid.UUID]noContinueParams),
 	}
 	s.runners[SuspendTask] = suspendRunner{service: s}
 
@@ -479,7 +488,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 	if ctx.Properties.(Properties) == nil {
 		ctx.Properties = json.RawMessage("{}")
 	}
-	if ctx.Retry == 0 && now().Sub(c) < noContinueThreshold {
+	if (cok && c.force) || (ctx.Retry == 0 && now().Sub(c.timestamp) < noContinueThreshold) {
 		ctx.Properties = jsonutil.Set(ctx.Properties.(Properties), "continue", false)
 	}
 	if d != nil {
@@ -608,18 +617,11 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 
 // StartTask starts execution of a task immediately.
 func (s *Service) StartTask(ctx context.Context, t *Task) error {
-	return s.startTask(ctx, t, false)
+	return s.startTask(ctx, t)
 }
 
-// StartTaskNoContinue starts execution of a task immediately and adds the
-// "no_continue" flag to properties of the next run.
-// The possible retries would not have the flag enabled.
-func (s *Service) StartTaskNoContinue(ctx context.Context, t *Task) error {
-	return s.startTask(ctx, t, true)
-}
-
-func (s *Service) startTask(ctx context.Context, t *Task, noContinue bool) error {
-	s.logger.Debug(ctx, "StartTask", "task", t, "no_continue", noContinue)
+func (s *Service) startTask(ctx context.Context, t *Task) error {
+	s.logger.Debug(ctx, "StartTask", "task", t)
 
 	s.mu.Lock()
 	if s.isSuspendedForTaskLocked(t.ClusterID, t.Type) {
@@ -630,9 +632,6 @@ func (s *Service) startTask(ctx context.Context, t *Task, noContinue bool) error
 	if !lok {
 		l = s.newScheduler(t.ClusterID)
 		s.scheduler[t.ClusterID] = l
-	}
-	if noContinue {
-		s.noContinue[t.ID] = now()
 	}
 	s.mu.Unlock()
 
@@ -667,6 +666,18 @@ func (s *Service) StopTask(ctx context.Context, t *Task) error {
 	l.Stop(ctx, t.ID)
 
 	return nil
+}
+
+// SetTaskNoContinue marks that the next task activation should run from scratch.
+// It does so by adding "no_continue" flag to properties of the next run.
+// The possible retries would not have the flag enabled.
+func (s *Service) SetTaskNoContinue(taskID uuid.UUID, force bool) {
+	s.mu.Lock()
+	s.noContinue[taskID] = noContinueParams{
+		timestamp: now(),
+		force:     force,
+	}
+	s.mu.Unlock()
 }
 
 func (s *Service) updateRunStatus(r *Run) error {

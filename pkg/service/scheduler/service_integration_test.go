@@ -597,7 +597,47 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("When: task is started")
-		h.service.StartTaskNoContinue(ctx, task)
+		h.service.SetTaskNoContinue(task.ID, false)
+		h.service.StartTask(ctx, task)
+
+		Print("Then: task is ran two times")
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(task, scheduler.StatusError)
+
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(task, scheduler.StatusError)
+
+		Print("And: task is not executed")
+		h.assertNotStatus(task, scheduler.StatusRunning)
+
+		Print("And: properties are preserved")
+		if diff := cmp.Diff(h.runner.Properties(), props); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("start task no continue force", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("Given: task scheduled in future")
+		task := h.makeTaskWithStartDate(now().Add(time.Second))
+		task.Sched.NumRetries = 1
+		task.Sched.RetryWait = duration.Duration(10 * time.Millisecond)
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		props := []json.RawMessage{
+			json.RawMessage(`{"continue":false}`),
+			json.RawMessage(`{}`),
+		}
+
+		Print("When: task is started on its own")
+		h.service.SetTaskNoContinue(task.ID, true)
 
 		Print("Then: task is ran two times")
 		h.assertStatus(task, scheduler.StatusRunning)
