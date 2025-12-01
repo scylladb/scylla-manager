@@ -369,13 +369,11 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondBadRequest(w, r, err)
 	}
-
 	if noContinue {
-		err = h.Scheduler.StartTaskNoContinue(r.Context(), t)
-	} else {
-		err = h.Scheduler.StartTask(r.Context(), t)
+		h.Scheduler.SetTaskNoContinue(t.ID, false)
 	}
-	if err != nil {
+
+	if err = h.Scheduler.StartTask(r.Context(), t); err != nil {
 		respondError(w, r, errors.Wrapf(err, "start task %q", t.ID))
 		return
 	}
