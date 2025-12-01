@@ -1857,6 +1857,13 @@
           "in": "query",
           "required": true,
           "description": "Enable the task if it was disabled"
+        },
+        {
+          "type": "boolean",
+          "name": "soft",
+          "in": "query",
+          "required": true,
+          "description": "The task will be started only if its last run hasn't finished successfully, or if it finished successfully but missed its next scheduled activation"
         }
       ],
       "put": {
