@@ -96,8 +96,8 @@ type SchedService interface {
 	DeleteTask(ctx context.Context, t *scheduler.Task) error
 	ListTasks(ctx context.Context, clusterID uuid.UUID, filter scheduler.ListFilter) ([]*scheduler.TaskListItem, error)
 	StartTask(ctx context.Context, t *scheduler.Task) error
-	StartTaskNoContinue(ctx context.Context, t *scheduler.Task) error
 	StopTask(ctx context.Context, t *scheduler.Task) error
+	SetTaskNoContinue(taskID uuid.UUID, force bool)
 	GetRun(ctx context.Context, t *scheduler.Task, runID uuid.UUID) (*scheduler.Run, error)
 	GetNthLastRun(ctx context.Context, t *scheduler.Task, n int) (*scheduler.Run, error)
 	GetLastRuns(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
