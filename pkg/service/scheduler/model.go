@@ -224,7 +224,8 @@ type Schedule struct {
 	RetryWait  duration.Duration `json:"retry_wait"`
 }
 
-func (s Schedule) trigger() schedules.Trigger {
+// Trigger returning next activations.
+func (s Schedule) Trigger() schedules.Trigger {
 	if !s.Cron.IsZero() {
 		return s.Cron
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -375,17 +376,43 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 		respondBadRequest(w, r, err)
 		return
 	}
+	soft, err := parseBoolParam(r, "soft")
+	if err != nil {
+		respondBadRequest(w, r, err)
+		return
+	}
 
 	if !cont {
-		h.Scheduler.SetTaskNoContinue(t.ID, false)
+		// Soft started tasks might not be started right away.
+		// Because of that, we need ot force their no continue
+		// to skip timestamp validation.
+		h.Scheduler.SetTaskNoContinue(t.ID, soft)
 	}
 
 	if enable {
 		t.Enabled = true
 		// Putting the task might start it (according to its schedule),
 		// but starting an already running task is a no-op, so that's not a problem.
+		// We need to put task before handling soft start, because the checks that
+		// it performs are based on lousy timestamp comparison, so we want to first
+		// schedule the task according to its schedule (which also works on timestamps),
+		// and only after that evaluate whether we need to additionally start it or not.
+		// Without that, we could skip task activation in corner cases.
 		if err := h.Scheduler.PutTask(r.Context(), t); err != nil {
 			respondError(w, r, errors.Wrapf(err, "enable task %q", t.ID))
+			return
+		}
+	}
+
+	if soft {
+		ok, err := h.shouldSoftStartTask(r.Context(), t)
+		if err != nil {
+			respondError(w, r, errors.Wrapf(err, "check soft start for task %q", t.ID))
+			return
+		}
+		if !ok {
+			// When soft start is used, task should
+			// be started only if it missed its activation.
 			return
 		}
 	}
@@ -394,6 +421,25 @@ func (h *taskHandler) startTask(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, errors.Wrapf(err, "start task %q", t.ID))
 		return
 	}
+}
+
+// shouldSoftStartTask checks if task should be soft started by taking a look at its last run.
+// If the last run ended with anything else than scheduler.StatusDone, the task should be started.
+// Otherwise, the task should be started only if it missed its activation scheduled at the end of the last successfully run.
+// This means that new, stopped, out of maintenance window, failed tasks will always be started.
+func (h *taskHandler) shouldSoftStartTask(ctx context.Context, t *scheduler.Task) (bool, error) {
+	run, err := h.Scheduler.GetNthLastRun(ctx, t, 0)
+	if err != nil {
+		if errors.Is(err, util.ErrNotFound) {
+			return true, nil
+		}
+		return false, errors.Wrap(err, "get last task run")
+	}
+	if run.Status == scheduler.StatusDone && run.EndTime != nil {
+		next := t.Sched.Trigger().Next(*run.EndTime)
+		return !next.IsZero() && next.Before(timeutc.Now()), nil
+	}
+	return true, nil
 }
 
 func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
