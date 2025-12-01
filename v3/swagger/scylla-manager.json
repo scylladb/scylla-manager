@@ -1850,6 +1850,13 @@
           "name": "continue",
           "in": "query",
           "required": true
+        },
+        {
+          "type": "boolean",
+          "name": "enable",
+          "in": "query",
+          "required": true,
+          "description": "Enable the task if it was disabled"
         }
       ],
       "put": {
